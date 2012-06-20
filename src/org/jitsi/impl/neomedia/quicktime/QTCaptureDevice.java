@@ -8,6 +8,8 @@ package org.jitsi.impl.neomedia.quicktime;
 
 import java.util.*;
 
+import net.java.sip.communicator.impl.neomedia.quicktime.*;
+
 /**
  * Represents a QTKit capture device which is connected or has been previously
  * connected to the user's computer during the lifetime of the application.

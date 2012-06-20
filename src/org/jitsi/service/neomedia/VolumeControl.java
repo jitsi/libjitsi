@@ -20,14 +20,14 @@ public interface VolumeControl
      * of audio input.
      */
     public final static String CAPTURE_VOLUME_LEVEL_PROPERTY_NAME
-            = "org.jitsi.service.media.CAPTURE_VOLUME_LEVEL";
+            = "net.java.sip.communicator.service.media.CAPTURE_VOLUME_LEVEL";
 
     /**
      * The name of the configuration property which specifies the volume level
      * of audio output.
      */
     public final static String PLAYBACK_VOLUME_LEVEL_PROPERTY_NAME
-            = "org.jitsi.service.media.PLAYBACK_VOLUME_LEVEL";
+            = "net.java.sip.communicator.service.media.PLAYBACK_VOLUME_LEVEL";
 
     /**
      * Current volume value.

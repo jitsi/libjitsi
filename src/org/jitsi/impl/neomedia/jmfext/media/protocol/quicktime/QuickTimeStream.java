@@ -6,7 +6,7 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.protocol.quicktime;
 
-import java.awt.Dimension; // disambiguation
+import java.awt.*;
 import java.io.*;
 
 import javax.media.*;
@@ -14,8 +14,10 @@ import javax.media.control.*;
 import javax.media.format.*;
 import javax.media.protocol.*;
 
+import net.java.sip.communicator.impl.neomedia.codec.*;
+import net.java.sip.communicator.impl.neomedia.quicktime.*;
+
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.quicktime.*;
@@ -306,7 +308,7 @@ public class QuickTimeStream
                 else
                 {
                     Dimension defaultSize
-                        = NeomediaActivator
+                        = NeomediaServiceUtils
                             .getMediaServiceImpl()
                                 .getDeviceConfiguration()
                                     .getVideoSize();
@@ -635,7 +637,7 @@ public class QuickTimeStream
         if (size == null)
         {
             Dimension defaultSize
-                = NeomediaActivator
+                = NeomediaServiceUtils
                     .getMediaServiceImpl()
                         .getDeviceConfiguration()
                             .getVideoSize();

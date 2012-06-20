@@ -8,6 +8,8 @@ package org.jitsi.impl.neomedia.quicktime;
 
 import java.awt.*;
 
+import net.java.sip.communicator.impl.neomedia.quicktime.*;
+
 /**
  * Describes the media format of media samples and of media sources, such as
  * devices and capture connections. Includes basic information about the media,

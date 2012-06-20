@@ -14,6 +14,7 @@ import javax.media.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
@@ -37,7 +38,7 @@ public class EncodingConfiguration
      * The SDP preference property.
      */
     private static final String PROP_SDP_PREFERENCE
-        = "org.jitsi.impl.neomedia.codec.EncodingConfiguration";
+        = "net.java.sip.communicator.impl.neomedia.codec.EncodingConfiguration";
 
     /**
      * The indicator which determines whether the G.729 codec is enabled.
@@ -73,8 +74,8 @@ public class EncodingConfiguration
             G729
                 ? "org.jitsi.impl.neomedia.codec.audio.g729.JavaEncoder"
                 : null,
-            "org.jitsi.impl.neomedia.codec.audio.g722.JNIDecoder",
-            "org.jitsi.impl.neomedia.codec.audio.g722.JNIEncoder",
+            "net.java.sip.communicator.impl.neomedia.codec.audio.g722.JNIDecoder",
+            "net.java.sip.communicator.impl.neomedia.codec.audio.g722.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.audio.gsm.Decoder",
             "org.jitsi.impl.neomedia.codec.audio.gsm.Encoder",
             "org.jitsi.impl.neomedia.codec.audio.gsm.DePacketizer",
@@ -100,6 +101,7 @@ public class EncodingConfiguration
         = new String[]
                 {
                     "org.jitsi.impl.neomedia.jmfext",
+                    "net.java.sip.communicator.impl.neomedia.jmfext",
                     "net.sf.fmj"
                 };
 
@@ -142,10 +144,6 @@ public class EncodingConfiguration
      * Default constructor.
      */
     public EncodingConfiguration()
-    {
-    }
-
-    public void initialize()
     {
         initializeFormatPreferences();
         registerCustomPackages();
@@ -209,7 +207,7 @@ public class EncodingConfiguration
         setEncodingPreference(Constants.TELEPHONE_EVENT, 8000, 1);
 
         // now override with those that are specified by the user.
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
         {
@@ -390,14 +388,13 @@ public class EncodingConfiguration
         String encodingEncoding = encoding.getEncoding();
 
         // save the settings
-        NeomediaActivator.getConfigurationService()
-            .setProperty(
-                    PROP_SDP_PREFERENCE
-                        + "."
-                        + encodingEncoding
-                        + "/"
-                        + encoding.getClockRateString(),
-                    priority);
+        LibJitsi.getConfigurationService().setProperty(
+                PROP_SDP_PREFERENCE
+                    + "."
+                    + encodingEncoding
+                    + "/"
+                    + encoding.getClockRateString(),
+                priority);
     }
 
     /**
@@ -575,7 +572,7 @@ public class EncodingConfiguration
                 PlugInManager.setPlugInList(codecs, PlugInManager.CODEC);
         }
 
-        if (commit && !NeomediaActivator.isJmfRegistryDisableLoad())
+        if (commit && !MediaServiceImpl.isJmfRegistryDisableLoad())
         {
             try
             {

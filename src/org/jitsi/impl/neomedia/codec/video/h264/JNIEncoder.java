@@ -12,14 +12,16 @@ import java.util.*;
 import javax.media.*;
 import javax.media.format.*;
 
-import org.jitsi.impl.neomedia.*;
+import net.java.sip.communicator.impl.neomedia.codec.*;
+import net.sf.fmj.media.*;
+
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.util.*;
-import net.sf.fmj.media.*;
 
 /**
  * Implements a H.264 encoder.
@@ -58,7 +60,7 @@ public class JNIEncoder
      * to change from the main to the base profile unless we really have to.
      */
     public static final String DEFAULT_PROFILE_PNAME
-        = "org.jitsi.impl.neomedia.codec.video.h264."
+        = "net.java.sip.communicator.impl.neomedia.codec.video.h264."
             + "defaultProfile";
 
     /**
@@ -466,7 +468,7 @@ public class JNIEncoder
          * many AVCodecContext properties we have set above, force the default
          * profile configuration.
          */
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
         String profile
             = (cfg == null)
                 ? null

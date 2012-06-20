@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.quicktime;
 
+import net.java.sip.communicator.impl.neomedia.quicktime.*;
+
 /**
  * Represents a CoreVideo <tt>CVPixelBufferRef</tt>.
  *

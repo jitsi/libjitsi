@@ -10,10 +10,12 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.*;
 import java.util.*;
-import java.util.List; // disambiguation
+import java.util.List;
 
 import javax.media.*;
 import javax.swing.*;
+
+import net.java.sip.communicator.impl.neomedia.jmfext.media.renderer.video.*;
 
 import org.jitsi.util.*;
 import org.jitsi.util.swing.*;

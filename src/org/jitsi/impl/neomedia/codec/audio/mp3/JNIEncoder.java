@@ -9,9 +9,10 @@ package org.jitsi.impl.neomedia.codec.audio.mp3;
 import javax.media.*;
 import javax.media.format.*;
 
+import net.java.sip.communicator.impl.neomedia.codec.*;
+
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.util.*;
-import net.sf.fmj.media.*;
 
 /**
  * Implements a MP3 encoder using the native FFmpeg library.

@@ -11,8 +11,10 @@ import gnu.java.zrtp.*;
 import java.util.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.protocol.event.*;
+import org.jitsi.service.resources.*;
 import org.jitsi.util.*;
 
 /**
@@ -396,12 +398,17 @@ public class SecurityEventManager extends ZrtpUserCallback
      */
     private static String getI18NString(String key, String param)
     {
-        String[] params = null;
+        ResourceManagementService resources
+            = LibJitsi.getResourceManagementService();
 
-        if(param != null)
-            params = new String[]{param};
+        if (resources == null)
+            return null;
+        else
+        {
+            String[] params = (param == null) ? null : new String[] { param };
 
-        return NeomediaActivator.getResources().getI18NString(key, params);
+            return resources.getI18NString(key, params);
+        }
     }
 
     /**

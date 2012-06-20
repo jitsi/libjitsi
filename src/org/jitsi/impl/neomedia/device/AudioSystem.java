@@ -10,9 +10,11 @@ import java.io.*;
 import java.util.*;
 
 import javax.media.*;
+import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 
 public abstract class AudioSystem
@@ -141,13 +143,37 @@ public abstract class AudioSystem
 
     public List<CaptureDeviceInfo> getCaptureDevices()
     {
+        MediaServiceImpl mediaServiceImpl
+            = NeomediaServiceUtils.getMediaServiceImpl();
+        DeviceConfiguration deviceConfiguration
+            = (mediaServiceImpl == null)
+                ? null
+                : mediaServiceImpl.getDeviceConfiguration();
+        List<CaptureDeviceInfo> deviceList;
+
+        if (deviceConfiguration == null)
+        {
+            /*
+             * XXX The initialization of MediaServiceImpl is very complex so it
+             * is wise to not reference it at the early stage of its
+             * initialization. The same goes for DeviceConfiguration. If for
+             * some reason one of the two is not available at this time, just
+             * fall back go something that makes sense.
+             */
+            @SuppressWarnings("unchecked")
+            Vector<CaptureDeviceInfo> audioCaptureDeviceInfos
+                = CaptureDeviceManager.getDeviceList(
+                        new AudioFormat(AudioFormat.LINEAR, -1, 16, -1));
+
+            deviceList = audioCaptureDeviceInfos;
+        }
+        else
+        {
+            deviceList = deviceConfiguration.getAvailableAudioCaptureDevices();
+        }
+
         return
-            filterDeviceListByLocatorProtocol(
-                    NeomediaActivator
-                        .getMediaServiceImpl()
-                            .getDeviceConfiguration()
-                                .getAvailableAudioCaptureDevices(),
-                    getLocatorProtocol());
+            filterDeviceListByLocatorProtocol(deviceList, getLocatorProtocol());
     }
 
     public CaptureDeviceInfo getNotifyDevice()
@@ -245,7 +271,7 @@ public abstract class AudioSystem
             String property,
             List<CaptureDeviceInfo> devices)
     {
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
         {
@@ -340,7 +366,7 @@ public abstract class AudioSystem
             CaptureDeviceInfo device,
             boolean isNull)
     {
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
         {
@@ -400,7 +426,7 @@ public abstract class AudioSystem
                 CaptureDeviceManager.addDevice(captureDevice);
                 commit = true;
             }
-            if (commit && !NeomediaActivator.isJmfRegistryDisableLoad())
+            if (commit && !MediaServiceImpl.isJmfRegistryDisableLoad())
             {
                 try
                 {

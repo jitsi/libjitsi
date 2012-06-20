@@ -11,9 +11,11 @@ import java.awt.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import net.java.sip.communicator.impl.neomedia.codec.*;
+import net.sf.fmj.media.*;
+
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
-import net.sf.fmj.media.*;
 
 /**
  * Implements a H.263+ decoder.

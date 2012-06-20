@@ -6,13 +6,14 @@
  */
 package org.jitsi.impl.neomedia.notify;
 
+import java.beans.*;
 import java.net.*;
 import java.util.*;
-import java.beans.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.audionotifier.*;
+import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.resources.*;
 
 /**
  * The implementation of the AudioNotifierService.
@@ -37,7 +38,7 @@ public class AudioNotifierServiceImpl
     /**
      * Device config to look for notify device.
      */
-    private DeviceConfiguration deviceConfiguration;
+    private final DeviceConfiguration deviceConfiguration;
 
     /**
      * Creates audio notify service.
@@ -46,6 +47,7 @@ public class AudioNotifierServiceImpl
     public AudioNotifierServiceImpl(DeviceConfiguration deviceConfiguration)
     {
         this.deviceConfiguration = deviceConfiguration;
+
         deviceConfiguration.addPropertyChangeListener(this);
     }
 
@@ -68,8 +70,12 @@ public class AudioNotifierServiceImpl
             }
             else
             {
-                URL url =
-                    NeomediaActivator.getResources().getSoundURLForPath(uri);
+                ResourceManagementService resources
+                    = LibJitsi.getResourceManagementService();
+                URL url
+                    = (resources == null)
+                        ? null
+                        : resources.getSoundURLForPath(uri);
 
                 if (url == null)
                 {

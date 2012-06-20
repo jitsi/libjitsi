@@ -23,9 +23,10 @@ import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.codec.video.h264.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.control.*;
-import org.jitsi.service.neomedia.control.KeyFrameControl; // disambiguation
+import org.jitsi.service.neomedia.control.KeyFrameControl;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.resources.*;
 import org.jitsi.util.*;
@@ -179,7 +180,7 @@ public class VideoMediaDeviceSession
             String protocol = (locator == null) ? null : locator.getProtocol();
             float frameRate;
             DeviceConfiguration deviceConfig
-                = NeomediaActivator
+                = NeomediaServiceUtils
                     .getMediaServiceImpl()
                         .getDeviceConfiguration();
 
@@ -626,8 +627,12 @@ public class VideoMediaDeviceSession
      */
     private Component createLocalVisualComponentForDesktopStreaming()
     {
-        ResourceManagementService resources = NeomediaActivator.getResources();
-        ImageIcon icon = resources.getImage(DESKTOP_STREAMING_ICON);
+        ResourceManagementService resources
+            = LibJitsi.getResourceManagementService();
+        ImageIcon icon
+            = (resources == null)
+                ? null
+                : resources.getImage(DESKTOP_STREAMING_ICON);
         Canvas canvas;
 
         if (icon == null)

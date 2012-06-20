@@ -466,7 +466,7 @@ public class MediaFormatFactoryImpl
             String encoding, double clockRate)
     {
         EncodingConfiguration encodingConfiguration
-            = NeomediaActivator.getMediaServiceImpl()
+            = NeomediaServiceUtils.getMediaServiceImpl()
                     .getEncodingConfiguration();
         List<MediaFormat> supportedMediaFormats
             = getMatchingMediaFormats(

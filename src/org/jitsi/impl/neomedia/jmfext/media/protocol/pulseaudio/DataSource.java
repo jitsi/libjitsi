@@ -111,10 +111,13 @@ public class DataSource
             if (pulseAudioSystem == null)
                 throw new IllegalStateException("pulseAudioSystem");
 
+            MediaServiceImpl mediaServiceImpl
+                = NeomediaServiceUtils.getMediaServiceImpl();
+
             gainControl
-                = (GainControl)
-                    NeomediaActivator.getMediaServiceImpl()
-                            .getInputVolumeControl();
+                = (mediaServiceImpl == null)
+                    ? null
+                    : (GainControl) mediaServiceImpl.getInputVolumeControl();
         }
 
         public void read(Buffer buffer)

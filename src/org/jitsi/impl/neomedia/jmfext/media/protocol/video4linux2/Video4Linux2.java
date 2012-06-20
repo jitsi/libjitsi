@@ -10,7 +10,7 @@ package org.jitsi.impl.neomedia.jmfext.media.protocol.video4linux2;
  * Provides the interface to the native Video for Linux Two API Specification
  * (http://v4l2spec.bytesex.org/spec/) implementation.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class Video4Linux2
 {
@@ -84,7 +84,7 @@ public class Video4Linux2
 
     static
     {
-        System.loadLibrary("jvideo4linux2");
+        System.loadLibrary("jnvideo4linux2");
 
         VIDIOC_DQBUF = VIDIOC_DQBUF();
         VIDIOC_G_FMT = VIDIOC_G_FMT();

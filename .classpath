@@ -8,6 +8,7 @@
 	<classpathentry kind="lib" path="lib/json-20090723.jar"/>
 	<classpathentry kind="lib" path="lib/jspeex.jar"/>
 	<classpathentry kind="lib" path="lib/lcrypto-jdk16-143.jar"/>
+	<classpathentry kind="lib" path="lib/osgi.core.jar"/>
 	<classpathentry kind="lib" path="lib/sdes4j.jar"/>
 	<classpathentry kind="lib" path="lib/zrtp4j-light.jar"/>
 	<classpathentry kind="output" path="classes"/>

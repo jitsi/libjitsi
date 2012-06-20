@@ -6,8 +6,6 @@
  */
 package org.jitsi.impl.neomedia;
 
-import org.jitsi.service.packetlogging.*;
-
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -15,6 +13,9 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.*;
 
 import javax.media.rtp.*;
+
+import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.packetlogging.*;
 
 /**
  * @author Bing SU (nova.su@gmail.com)
@@ -241,7 +242,7 @@ public abstract class RTPConnectorOutputStream
                 if(logPacket(numberOfPackets))
                 {
                     PacketLoggingService packetLogging
-                        = NeomediaActivator.getPacketLogging();
+                        = LibJitsi.getPacketLoggingService();
 
                     if ((packetLogging != null)
                             && packetLogging.isLoggingEnabled(

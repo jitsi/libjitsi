@@ -348,7 +348,7 @@ public class MediaDeviceImpl
             QualityPreset receivePreset)
     {
         MediaServiceImpl mediaServiceImpl
-            = NeomediaActivator.getMediaServiceImpl();
+            = NeomediaServiceUtils.getMediaServiceImpl();
         EncodingConfiguration encodingConfiguration
             = mediaServiceImpl.getEncodingConfiguration();
         MediaFormat[] supportedEncodings

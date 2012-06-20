@@ -8,6 +8,8 @@ package org.jitsi.impl.neomedia.jmfext.media.renderer.video;
 
 import java.awt.*;
 
+import net.java.sip.communicator.impl.neomedia.jmfext.media.renderer.video.*;
+
 import org.jitsi.util.swing.*;
 
 /**

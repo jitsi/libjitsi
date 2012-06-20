@@ -5,16 +5,17 @@
  */
 package org.jitsi.impl.neomedia;
 
+import gnu.java.zrtp.*;
+
 import org.jitsi.service.configuration.*;
-import gnu.java.zrtp.ZrtpConfigure;
-import gnu.java.zrtp.ZrtpConstants;
+import org.jitsi.service.libjitsi.*;
 
 public class ZrtpConfigureUtils
 {
     public static <T extends Enum<T>>String getPropertyID(T algo)
     {
         Class<T> clazz = algo.getDeclaringClass();
-        return "org.jitsi." + clazz.getName().replace('$', '_');
+        return "net.java.sip.communicator." + clazz.getName().replace('$', '_');
     }
 
     public static ZrtpConfigure getZrtpConfiguration()
@@ -32,7 +33,7 @@ public class ZrtpConfigureUtils
     private static <T extends Enum<T>> void
         setupConfigure(T algo, ZrtpConfigure active)
     {
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
         String savedConf = null;
 
         if (cfg != null)

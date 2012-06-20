@@ -11,9 +11,10 @@ import java.util.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import net.java.sip.communicator.impl.neomedia.portaudio.*;
+
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
-import org.jitsi.impl.neomedia.portaudio.*;
 import org.jitsi.util.*;
 
 /**

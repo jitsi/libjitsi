@@ -11,10 +11,12 @@ import java.awt.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import net.java.sip.communicator.impl.neomedia.codec.*;
+import net.sf.fmj.media.*;
+
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.service.neomedia.control.*;
-import net.sf.fmj.media.*;
 
 /**
  * Decodes H.264 NAL units and returns the resulting frames as FFmpeg

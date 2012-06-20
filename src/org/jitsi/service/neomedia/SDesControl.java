@@ -21,7 +21,7 @@ public interface SDesControl
      * suites. Cipher suites are comma-separated.
      */
     public static final String SDES_CIPHER_SUITES =
-        "org.jitsi.service.neomedia.SDES_CIPHER_SUITES";
+        "net.java.sip.communicator.service.neomedia.SDES_CIPHER_SUITES";
 
     /**
      * Set the enabled SDES ciphers.

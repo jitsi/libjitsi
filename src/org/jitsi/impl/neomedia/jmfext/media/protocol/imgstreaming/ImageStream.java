@@ -14,7 +14,8 @@ import javax.media.*;
 import javax.media.control.*;
 import javax.media.format.*;
 
-import org.jitsi.impl.neomedia.codec.*;
+import net.java.sip.communicator.impl.neomedia.codec.*;
+
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.imgstreaming.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
@@ -31,7 +32,8 @@ public class ImageStream
     extends AbstractVideoPullBufferStream
 {
     /**
-     * The <tt>Logger</tt>
+     * The <tt>Logger</tt> used by the <tt>ImageStream</tt> class and its
+     * instances for logging output.
      */
     private static final Logger logger = Logger.getLogger(ImageStream.class);
 
@@ -330,15 +332,12 @@ public class ImageStream
         {
             /* convert to ARGB BufferedImage */
             scaledScreen
-                = ImageStreamingUtils
-                    .getScaledImage(
+                = ImgStreamingUtils.getScaledImage(
                         screen,
-                        width,
-                        height,
+                        width, height,
                         BufferedImage.TYPE_INT_ARGB);
-
             /* get raw bytes */
-            data = ImageStreamingUtils.getImageBytes(scaledScreen, output);
+            data = ImgStreamingUtils.getImageBytes(scaledScreen, output);
         }
 
         screen = null;

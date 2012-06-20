@@ -11,10 +11,12 @@ import java.util.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import net.java.sip.communicator.impl.neomedia.codec.*;
+import net.sf.fmj.media.*;
+
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.util.*;
-import net.sf.fmj.media.*;
 
 /**
  * Implements <tt>Codec</tt> to represent a depacketizer of H.264 RTP packets

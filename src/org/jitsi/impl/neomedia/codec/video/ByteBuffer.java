@@ -6,7 +6,7 @@
  */
 package org.jitsi.impl.neomedia.codec.video;
 
-import org.jitsi.impl.neomedia.codec.*;
+import net.java.sip.communicator.impl.neomedia.codec.*;
 
 /**
  * Represents a buffer of native memory with a specific size/capacity which

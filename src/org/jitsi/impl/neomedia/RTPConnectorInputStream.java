@@ -12,7 +12,7 @@ import java.net.*;
 import javax.media.protocol.*;
 
 import org.ice4j.socket.*;
-
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.util.*;
 
@@ -98,7 +98,7 @@ public abstract class RTPConnectorInputStream
                         if (RTPConnectorOutputStream.logPacket(numberOfPackets))
                         {
                             PacketLoggingService packetLogging
-                                = NeomediaActivator.getPacketLogging();
+                                = LibJitsi.getPacketLoggingService();
 
                             if ((packetLogging != null)
                                     && packetLogging.isLoggingEnabled(

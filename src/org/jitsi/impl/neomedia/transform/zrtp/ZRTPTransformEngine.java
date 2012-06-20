@@ -16,6 +16,7 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
 import org.jitsi.service.fileaccess.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
 
 /**
@@ -470,75 +471,80 @@ public class ZRTPTransformEngine
      * @param config the zrtp config to use
      * @return true if initialization fails, false if succeeds
      */
-    public synchronized boolean initialize(String zidFilename,
-            boolean autoEnable, ZrtpConfigure config)
+    public synchronized boolean initialize(
+            String zidFilename,
+            boolean autoEnable,
+            ZrtpConfigure config)
     {
-        // Get a reference to the FileAccessService
-        FileAccessService faService = NeomediaActivator.getFileAccessService();
-
+        // Try to get the ZidFile path through the FileAccessService.
         File file = null;
-        try
-        {
-            // Create the zid file
-            file = faService.getPrivatePersistentFile(zidFilename);
-        }
-        catch (Exception e)
-        {
-            logger.warn("Failed to create the zid file.");
+        FileAccessService faService = LibJitsi.getFileAccessService();
 
-            if (logger.isDebugEnabled())
-                logger.debug("Failed to create the zid file.", e);
+        if (faService != null)
+        {
+            try
+            {
+                // Create the zid file
+                file = faService.getPrivatePersistentFile(zidFilename);
+            }
+            catch (Exception e)
+            {
+                logger.warn("Failed to create the zid file.");
+            }
         }
 
+        // The ZidFile path should be absolute.
         String zidFilePath = null;
+
         try
         {
             if (file != null)
-                // Get the absolute path of the created zid file
                 zidFilePath = file.getAbsolutePath();
         }
         catch (SecurityException e)
         {
             if (logger.isDebugEnabled())
+            {
                 logger.debug(
-                    "Failed to obtain the absolute path of the zid file.", e);
+                        "Failed to obtain the absolute path of the zid file.",
+                        e);
+            }
         }
 
         ZidFile zf = ZidFile.getInstance();
+
         if (!zf.isOpen())
         {
-            String fname;
             if (zidFilePath == null)
             {
                 String home = System.getenv("HOME");
-                String baseDir = (home != null) ? ((home) + ("/.")) : ".";
-                fname = baseDir + "GNUZRTP4J.zid";
-                zidFilename = fname;
-            }
-            else
-            {
-                zidFilename = zidFilePath;
-            }
+                String baseDir
+                    = ((home == null) || (home.length() < 1))
+                        ? ""
+                        : (home + "/");
 
-            if (zf.open(zidFilename) < 0)
-            {
-                return false;
+                zidFilePath = baseDir + ".GNUZRTP4J.zid";
             }
+            if (zf.open(zidFilePath) < 0)
+                return false;
         }
+
         if (config == null)
         {
             config = new ZrtpConfigure();
             config.setStandardConfig();
         }
-        if (enableParanoidMode) {
+        if (enableParanoidMode)
             config.setParanoidMode(enableParanoidMode);
-        }
-        zrtpEngine = new ZRtp(zf.getZid(), this, clientIdString, config, mitmMode);
+
+        zrtpEngine
+            = new ZRtp(zf.getZid(), this, clientIdString, config, mitmMode);
 
         if (timeoutProvider == null)
         {
             timeoutProvider = new TimeoutProvider("ZRTP");
-            // timeoutProvider.setDaemon(true); // Daemon only if timeoutprovider is a global singleton
+            // XXX Daemon only if timeoutProvider is a global singleton.
+            // timeoutProvider.setDaemon(true);
             timeoutProvider.start();
         }
 

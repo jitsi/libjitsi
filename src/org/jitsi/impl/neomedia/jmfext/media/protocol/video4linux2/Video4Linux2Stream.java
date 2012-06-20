@@ -13,8 +13,9 @@ import javax.media.*;
 import javax.media.control.*;
 import javax.media.format.*;
 
+import net.java.sip.communicator.impl.neomedia.codec.*;
+
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 
@@ -653,7 +654,8 @@ public class Video4Linux2Stream
             if (size == null)
             {
                 // if there is no size in the format, respect settings
-                size = NeomediaActivator
+                size
+                    = NeomediaServiceUtils
                         .getMediaServiceImpl()
                             .getDeviceConfiguration()
                                 .getVideoSize();

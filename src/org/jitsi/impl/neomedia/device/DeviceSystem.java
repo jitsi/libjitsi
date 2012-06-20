@@ -14,6 +14,7 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jitsi.util.event.*;
@@ -81,7 +82,7 @@ public abstract class DeviceSystem
 
     public static void initializeDeviceSystems()
     {
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         /*
          * Detect the audio capture devices unless the configuration explicitly
@@ -365,7 +366,7 @@ public abstract class DeviceSystem
                     CaptureDeviceManager.removeDevice(cdi);
                     commit = true;
                 }
-                if (commit && !NeomediaActivator.isJmfRegistryDisableLoad())
+                if (commit && !MediaServiceImpl.isJmfRegistryDisableLoad())
                 {
                     try
                     {

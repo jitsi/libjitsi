@@ -14,6 +14,7 @@ import java.util.List;
 import javax.media.*;
 
 import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.util.*;
@@ -133,8 +134,7 @@ public class AbstractVolumeControl
 
         try
         {
-            ConfigurationService cfg
-                = NeomediaActivator.getConfigurationService();
+            ConfigurationService cfg = LibJitsi.getConfigurationService();
 
             if (cfg != null)
             {
@@ -316,7 +316,7 @@ public class AbstractVolumeControl
          * Save the current volume level in the ConfigurationService so that we
          * can restore it on the next application run.
          */
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
         {

@@ -365,7 +365,7 @@ public class VideoMediaStreamImpl
         if (!OSUtils.IS_ANDROID)
         {
             int maxBandwidth
-                = NeomediaActivator
+                = NeomediaServiceUtils
                     .getMediaServiceImpl()
                         .getDeviceConfiguration()
                             .getVideoMaxBandwidth();
@@ -1062,9 +1062,9 @@ public class VideoMediaStreamImpl
             ds = ds2.getWrappedDataSource();
         }
 
-        ScreenDevice screen =
-            NeomediaActivator.getMediaServiceImpl().getScreenForPoint(
-                new Point(x, y));
+        ScreenDevice screen
+            = NeomediaServiceUtils.getMediaServiceImpl().getScreenForPoint(
+                    new Point(x, y));
         ScreenDevice currentScreen = screen;
 
         if(screen == null)
@@ -1187,8 +1187,8 @@ public class VideoMediaStreamImpl
         {
             if(localSettingsPreset == null)
             {
-                DeviceConfiguration deviceConfiguration =
-                    NeomediaActivator.getMediaServiceImpl()
+                DeviceConfiguration deviceConfiguration
+                    = NeomediaServiceUtils.getMediaServiceImpl()
                             .getDeviceConfiguration();
 
                 localSettingsPreset = new QualityPreset(

@@ -8,8 +8,8 @@ package org.jitsi.service.neomedia;
 
 import java.net.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
 
 /**
@@ -43,14 +43,14 @@ public class DefaultStreamConnector
      * bound to (each retry would be on a new port in the allowed boundaries).
      */
     public static final String BIND_RETRIES_PROPERTY_NAME
-        = "org.jitsi.service.media.BIND_RETRIES";
+        = "net.java.sip.communicator.service.media.BIND_RETRIES";
 
     /**
      * The name of the property that contains the maximum port number that we'd
      * like our RTP managers to bind upon.
      */
     public static final String MAX_PORT_NUMBER_PROPERTY_NAME
-        = "org.jitsi.service.media.MAX_PORT_NUMBER";
+        = "net.java.sip.communicator.service.media.MAX_PORT_NUMBER";
 
     /**
      * The maximum port number <tt>DefaultStreamConnector</tt> instances are to
@@ -63,7 +63,7 @@ public class DefaultStreamConnector
      * like our RTP managers to bind upon.
      */
     public static final String MIN_PORT_NUMBER_PROPERTY_NAME
-        = "org.jitsi.service.media.MIN_PORT_NUMBER";
+        = "net.java.sip.communicator.service.media.MIN_PORT_NUMBER";
 
     /**
      * The minimum port number <tt>DefaultStreamConnector</tt> instances are to
@@ -119,7 +119,7 @@ public class DefaultStreamConnector
     private static synchronized DatagramSocket createDatagramSocket(
             InetAddress bindAddr)
     {
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
         int bindRetries = BIND_RETRIES_DEFAULT_VALUE;
 
         if (cfg != null)

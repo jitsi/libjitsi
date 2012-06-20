@@ -14,8 +14,10 @@ import javax.sdp.*;
 
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.h264.*;
+import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
@@ -29,7 +31,6 @@ import org.jitsi.util.*;
  */
 public class MediaUtils
 {
-
     /**
      * The constant which stands for an empty array of <tt>MediaFormat</tt>s.
      * Explicitly defined in order to reduce unnecessary allocations.
@@ -202,8 +203,11 @@ public class MediaUtils
          */
         //h264AdvancedAttributes.put("rtcp-fb", "nack pli");
 
-        ScreenDevice screen
-            = NeomediaActivator.getMediaServiceImpl().getDefaultScreenDevice();
+        /*
+         * XXX The initialization of MediaServiceImpl is very complex so it is
+         * wise to not reference it at the early stage of its initialization.
+         */
+        ScreenDevice screen = ScreenDeviceImpl.getDefaultScreenDevice();
         java.awt.Dimension res = (screen == null) ? null : screen.getSize();
 
         h264AdvancedAttributes.put("imageattr", createImageAttr(null, res));
@@ -211,12 +215,12 @@ public class MediaUtils
         // packetization-mode=1
         h264FormatParams.put(packetizationMode, "1");
 
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if ((cfg == null)
                 || cfg
                     .getString(
-                            "org.jitsi.impl.neomedia"
+                            "net.java.sip.communicator.impl.neomedia"
                                 + ".codec.video.h264.defaultProfile",
                             JNIEncoder.MAIN_PROFILE)
                         .equals(JNIEncoder.MAIN_PROFILE))

@@ -11,8 +11,9 @@ import java.util.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import net.java.sip.communicator.impl.neomedia.codec.audio.speex.*;
+
 import org.jitsi.impl.neomedia.codec.*;
-import net.sf.fmj.media.*;
 
 /**
  * Implements an audio resampler using Speex.

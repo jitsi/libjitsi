@@ -24,7 +24,7 @@ public interface Recorder
      * the media being sent and received in a <tt>Call</tt>).
      */
     public static final String SAVED_CALLS_PATH
-        = "org.jitsi.impl.neomedia.SAVED_CALLS_PATH";
+        = "net.java.sip.communicator.impl.neomedia.SAVED_CALLS_PATH";
 
     /**
      * The name of the configuration property the value of which specifies the
@@ -32,7 +32,7 @@ public interface Recorder
      * media being sent and received in a <tt>Call</tt>).
      */
     public static final String FORMAT
-        = "org.jitsi.impl.neomedia.Recorder.FORMAT";
+        = "net.java.sip.communicator.impl.neomedia.Recorder.FORMAT";
 
     /**
      * Adds a new <tt>Listener</tt> to the list of listeners interested in

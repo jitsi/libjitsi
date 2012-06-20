@@ -16,6 +16,7 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.transform.dtmf.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.event.*;
@@ -126,7 +127,7 @@ public class AudioMediaStreamImpl
          * It appears that if we don't do this managers don't play. You can try
          * some other buffer size to see if you can get better smoothness.
          */
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
         long bufferLength = 100;
 
         if (cfg != null)

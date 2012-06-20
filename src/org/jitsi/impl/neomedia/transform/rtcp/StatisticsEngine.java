@@ -6,11 +6,12 @@
  */
 package org.jitsi.impl.neomedia.transform.rtcp;
 
+import net.sf.fmj.media.rtp.*;
+
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
-import net.sf.fmj.media.rtp.*;
 
 /**
  * Engine which don't transform packets, just listens for outgoing
@@ -181,19 +182,22 @@ public class StatisticsEngine
             int offset = pkt.getOffset();
             int length = pkt.getLength();
 
-            RTCPHeader header = new RTCPHeader(data, offset, length);
-            if (header.getPacketType() == RTCPPacket.SR)
+            if(length - offset != 0)
             {
-                RTCPSenderReport report = new RTCPSenderReport(
-                        data, offset, length);
-
-                if(report.getFeedbackReports().size() > 0)
+                RTCPHeader header = new RTCPHeader(data, offset, length);
+                if (header.getPacketType() == RTCPPacket.SR)
                 {
-                    RTCPFeedback feedback =
-                            (RTCPFeedback)report.getFeedbackReports().get(0);
+                    RTCPSenderReport report = new RTCPSenderReport(
+                            data, offset, length);
 
-                    this.mediaStream.getMediaStreamStats()
-                        .updateNewReceivedFeedback(feedback);
+                    if(report.getFeedbackReports().size() > 0)
+                    {
+                        RTCPFeedback feedback =
+                                (RTCPFeedback)report.getFeedbackReports().get(0);
+
+                        this.mediaStream.getMediaStreamStats()
+                            .updateNewReceivedFeedback(feedback);
+                    }
                 }
             }
         }

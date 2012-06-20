@@ -6,16 +6,16 @@
  */
 package org.jitsi.impl.neomedia;
 
-import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
-
 import java.awt.*;
-import java.io.*;
 import java.net.*;
+
 import javax.media.format.*;
 import javax.media.rtp.*;
+
 import net.sf.fmj.media.rtp.*;
+
+import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Class used to compute stats concerning a MediaStream.
@@ -273,15 +273,14 @@ public class MediaStreamStatsImpl
      */
     private VideoFormat getUploadVideoFormat()
     {
-        Dimension videoSize = null;
-        MediaDeviceSession mediaDeviceSession =
-            this.mediaStreamImpl.getDeviceSession();
-        if(mediaDeviceSession instanceof VideoMediaDeviceSession)
-        {
-            return ((VideoMediaDeviceSession) mediaDeviceSession)
-                .getSentVideoFormat();
-        }
-        return null;
+        MediaDeviceSession mediaDeviceSession
+            = mediaStreamImpl.getDeviceSession();
+
+        return
+            (mediaDeviceSession instanceof VideoMediaDeviceSession)
+                ? ((VideoMediaDeviceSession) mediaDeviceSession)
+                    .getSentVideoFormat()
+                : null;
     }
 
     /**
@@ -293,15 +292,14 @@ public class MediaStreamStatsImpl
      */
     private VideoFormat getDownloadVideoFormat()
     {
-        Dimension videoSize = null;
-        MediaDeviceSession mediaDeviceSession =
-            this.mediaStreamImpl.getDeviceSession();
-        if(mediaDeviceSession instanceof VideoMediaDeviceSession)
-        {
-            return ((VideoMediaDeviceSession) mediaDeviceSession)
-                .getReceivedVideoFormat();
-        }
-        return null;
+        MediaDeviceSession mediaDeviceSession
+            = mediaStreamImpl.getDeviceSession();
+
+        return
+            (mediaDeviceSession instanceof VideoMediaDeviceSession)
+                ? ((VideoMediaDeviceSession) mediaDeviceSession)
+                    .getReceivedVideoFormat()
+                : null;
     }
 
     /**

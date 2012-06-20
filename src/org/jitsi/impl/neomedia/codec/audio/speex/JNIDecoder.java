@@ -9,8 +9,9 @@ package org.jitsi.impl.neomedia.codec.audio.speex;
 import javax.media.*;
 import javax.media.format.*;
 
+import net.java.sip.communicator.impl.neomedia.codec.audio.speex.*;
+
 import org.jitsi.impl.neomedia.codec.*;
-import net.sf.fmj.media.*;
 
 /**
  * Implements a Speex decoder and RTP depacketizer using the native Speex

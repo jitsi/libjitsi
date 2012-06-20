@@ -11,6 +11,8 @@ import java.util.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import net.java.sip.communicator.impl.neomedia.portaudio.*;
+
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.portaudio.*;
@@ -159,13 +161,25 @@ public class PortAudioRenderer
      */
     public PortAudioRenderer(boolean enableVolumeControl)
     {
-        gainControl
-            = enableVolumeControl
-                ? (GainControl)
-                    NeomediaActivator
-                        .getMediaServiceImpl()
-                            .getOutputVolumeControl()
-                : null;
+        if (enableVolumeControl)
+        {
+            /*
+             * XXX The Renderer implementations are probed for their
+             * supportedInputFormats during the initialization of
+             * MediaServiceImpl so the latter may not be available at this time.
+             * Which is not much of a problem given than the GainControl is of
+             * no interest during the probing of the supportedInputFormats.
+             */
+            MediaServiceImpl mediaServiceImpl
+                = NeomediaServiceUtils.getMediaServiceImpl();
+
+            gainControl
+                = (mediaServiceImpl == null)
+                    ? null
+                    : (GainControl) mediaServiceImpl.getOutputVolumeControl();
+        }
+        else
+            gainControl = null;
     }
 
     /**

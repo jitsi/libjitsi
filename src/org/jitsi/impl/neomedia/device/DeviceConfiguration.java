@@ -19,6 +19,7 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jitsi.util.event.*;
@@ -65,24 +66,24 @@ public class DeviceConfiguration
     private static final String[] CUSTOM_RENDERERS
         = new String[]
         {
-            OSUtils.IS_ANDROID ? ".audio.AudioTrackRenderer" : null,
-            OSUtils.IS_ANDROID ? ".audio.OpenSLESRenderer" : null,
+            OSUtils.IS_ANDROID ? "net.java.sip.communicator.impl.neomedia.jmfext.media.renderer.audio.AudioTrackRenderer" : null,
+            OSUtils.IS_ANDROID ? "net.java.sip.communicator.impl.neomedia.jmfext.media.renderer.audio.OpenSLESRenderer" : null,
             OSUtils.IS_LINUX ? ".audio.PulseAudioRenderer" : null,
             OSUtils.IS_ANDROID ? null : ".audio.PortAudioRenderer",
-            ".video.JAWTRenderer"
+            "net.java.sip.communicator.impl.neomedia.jmfext.media.renderer.video.JAWTRenderer"
         };
 
     /**
      * The default value to be used for the {@link #PROP_AUDIO_DENOISE} property
      * when it does not have a value.
      */
-    private static final boolean DEFAULT_AUDIO_DENOISE = true;
+    public static final boolean DEFAULT_AUDIO_DENOISE = true;
 
     /**
      * The default value to be used for the {@link #PROP_AUDIO_ECHOCANCEL}
      * property when it does not have a value.
      */
-    private static final boolean DEFAULT_AUDIO_ECHOCANCEL = true;
+    public static final boolean DEFAULT_AUDIO_ECHOCANCEL = true;
 
     /**
      * The default value to be used for the
@@ -92,7 +93,7 @@ public class DeviceConfiguration
      * reverberation time is in the order of 300 ms, so a filter length of 100
      * ms is a good choice (800 samples at 8000 Hz sampling rate).
      */
-    private static final long DEFAULT_AUDIO_ECHOCANCEL_FILTER_LENGTH_IN_MILLIS
+    public static final long DEFAULT_AUDIO_ECHOCANCEL_FILTER_LENGTH_IN_MILLIS
         = 100;
 
     /**
@@ -120,14 +121,14 @@ public class DeviceConfiguration
      * suppression is to be performed for captured audio.
      */
     static final String PROP_AUDIO_DENOISE
-        = "org.jitsi.impl.neomedia.denoise";
+        = "net.java.sip.communicator.impl.neomedia.denoise";
 
     /**
      * The name of the <tt>boolean</tt> property which determines whether echo
      * cancellation is to be performed for captured audio.
      */
     static final String PROP_AUDIO_ECHOCANCEL
-        = "org.jitsi.impl.neomedia.echocancel";
+        = "net.java.sip.communicator.impl.neomedia.echocancel";
 
     /**
      * The name of the <tt>long</tt> property which determines the filter length
@@ -138,10 +139,10 @@ public class DeviceConfiguration
      * (800 samples at 8000 Hz sampling rate).
      */
     static final String PROP_AUDIO_ECHOCANCEL_FILTER_LENGTH_IN_MILLIS
-        = "org.jitsi.impl.neomedia.echocancel.filterLengthInMillis";
+        = "net.java.sip.communicator.impl.neomedia.echocancel.filterLengthInMillis";
 
     public static final String PROP_AUDIO_SYSTEM
-        = "org.jitsi.impl.neomedia.audioSystem";
+        = "net.java.sip.communicator.impl.neomedia.audioSystem";
 
     public static final String PROP_AUDIO_SYSTEM_DEVICES
         = PROP_AUDIO_SYSTEM + "." + DeviceSystem.PROP_DEVICES;
@@ -151,32 +152,32 @@ public class DeviceConfiguration
      * by <tt>DeviceConfiguration</tt> for video capture.
      */
     private static final String PROP_VIDEO_DEVICE
-        = "org.jitsi.impl.neomedia.videoDevice";
+        = "net.java.sip.communicator.impl.neomedia.videoDevice";
 
     /**
      * The property we use to store the video framerate settings.
      */
     private static final String PROP_VIDEO_FRAMERATE
-        = "org.jitsi.impl.neomedia.video.framerate";
+        = "net.java.sip.communicator.impl.neomedia.video.framerate";
 
     /**
      * The name of the property which specifies the height of the video.
      */
     private static final String PROP_VIDEO_HEIGHT
-        = "org.jitsi.impl.neomedia.video.height";
+        = "net.java.sip.communicator.impl.neomedia.video.height";
 
     /**
      * The property we use to store the settings for maximum allowed video
      * bandwidth.
      */
     private static final String PROP_VIDEO_MAX_BANDWIDTH
-        = "org.jitsi.impl.neomedia.video.maxbandwidth";
+        = "net.java.sip.communicator.impl.neomedia.video.maxbandwidth";
 
     /**
      * The name of the property which specifies the width of the video.
      */
     private static final String PROP_VIDEO_WIDTH
-        = "org.jitsi.impl.neomedia.video.width";
+        = "net.java.sip.communicator.impl.neomedia.video.width";
 
     /**
      * The currently supported resolutions we will show as option
@@ -234,6 +235,37 @@ public class DeviceConfiguration
      * The current resolution settings.
      */
     private Dimension videoSize;
+
+    /**
+     * Initializes a new <tt>DeviceConfiguration</tt> instance.
+     */
+    public DeviceConfiguration()
+    {
+        // these seem to be throwing exceptions every now and then so we'll
+        // blindly catch them for now
+        try
+        {
+            DeviceSystem.initializeDeviceSystems();
+            extractConfiguredCaptureDevices();
+
+            ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+            if (cfg != null)
+            {
+                cfg.addPropertyChangeListener(PROP_VIDEO_HEIGHT, this);
+                cfg.addPropertyChangeListener(PROP_VIDEO_WIDTH, this);
+                cfg.addPropertyChangeListener(PROP_VIDEO_FRAMERATE, this);
+                cfg.addPropertyChangeListener(PROP_VIDEO_MAX_BANDWIDTH, this);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.error("Failed to initialize media.", ex);
+        }
+
+        registerCustomRenderers();
+        fixRenderers();
+    }
 
     /**
      * Fixes the list of <tt>Renderer</tt>s registered with FMJ in order to
@@ -302,38 +334,6 @@ public class DeviceConfiguration
     }
 
     /**
-     * Initializes capture devices.
-     */
-    public void initialize()
-    {
-        // these seem to be throwing exceptions every now and then so we'll
-        // blindly catch them for now
-        try
-        {
-            DeviceSystem.initializeDeviceSystems();
-            extractConfiguredCaptureDevices();
-
-            ConfigurationService cfg
-                = NeomediaActivator.getConfigurationService();
-
-            if (cfg != null)
-            {
-                cfg.addPropertyChangeListener(PROP_VIDEO_HEIGHT, this);
-                cfg.addPropertyChangeListener(PROP_VIDEO_WIDTH, this);
-                cfg.addPropertyChangeListener(PROP_VIDEO_FRAMERATE, this);
-                cfg.addPropertyChangeListener(PROP_VIDEO_MAX_BANDWIDTH, this);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.error("Failed to initialize media.", ex);
-        }
-
-        registerCustomRenderers();
-        fixRenderers();
-    }
-
-    /**
      * Detects capture devices configured through JMF and disable audio and/or
      * video transmission if none were found.
      */
@@ -358,8 +358,7 @@ public class DeviceConfiguration
 
         if (videoCaptureDevices.size() > 0)
         {
-            ConfigurationService cfg
-                = NeomediaActivator.getConfigurationService();
+            ConfigurationService cfg = LibJitsi.getConfigurationService();
             String videoDevName
                 = (cfg == null) ? null : cfg.getString(PROP_VIDEO_DEVICE);
 
@@ -505,8 +504,7 @@ public class DeviceConfiguration
 
             if (save)
             {
-                ConfigurationService cfg
-                    = NeomediaActivator.getConfigurationService();
+                ConfigurationService cfg = LibJitsi.getConfigurationService();
 
                 if (cfg != null)
                 {
@@ -630,8 +628,7 @@ public class DeviceConfiguration
 
             if (save)
             {
-                ConfigurationService cfg
-                    = NeomediaActivator.getConfigurationService();
+                ConfigurationService cfg = LibJitsi.getConfigurationService();
 
                 if (cfg != null)
                 {
@@ -666,7 +663,7 @@ public class DeviceConfiguration
      */
     public void setEchoCancel(boolean echoCancel)
     {
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
             cfg.setProperty(PROP_AUDIO_ECHOCANCEL, echoCancel);
@@ -681,7 +678,7 @@ public class DeviceConfiguration
      */
     public void setDenoise(boolean denoise)
     {
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
             cfg.setProperty(PROP_AUDIO_DENOISE, denoise);
@@ -696,7 +693,7 @@ public class DeviceConfiguration
      */
     public boolean isEchoCancel()
     {
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
         boolean value = DEFAULT_AUDIO_ECHOCANCEL;
 
         if (cfg != null)
@@ -711,7 +708,7 @@ public class DeviceConfiguration
      */
     public long getEchoCancelFilterLengthInMillis()
     {
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
         long value = DEFAULT_AUDIO_ECHOCANCEL_FILTER_LENGTH_IN_MILLIS;
 
         if (cfg != null)
@@ -733,7 +730,7 @@ public class DeviceConfiguration
      */
     public boolean isDenoise()
     {
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
         boolean value = DEFAULT_AUDIO_DENOISE;
 
         if (cfg != null)
@@ -825,7 +822,7 @@ public class DeviceConfiguration
                 logger.trace("Reordered plug-in list:" + plugins);
         }
 
-        if (commit && !NeomediaActivator.isJmfRegistryDisableLoad())
+        if (commit && !MediaServiceImpl.isJmfRegistryDisableLoad())
         {
             try
             {
@@ -849,8 +846,7 @@ public class DeviceConfiguration
     {
         if (videoMaxBandwidth == -1)
         {
-            ConfigurationService cfg
-                = NeomediaActivator.getConfigurationService();
+            ConfigurationService cfg = LibJitsi.getConfigurationService();
             int value = DEFAULT_VIDEO_MAX_BANDWIDTH;
 
             if (cfg != null)
@@ -870,7 +866,7 @@ public class DeviceConfiguration
     {
         this.videoMaxBandwidth = videoMaxBandwidth;
 
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
         {
@@ -891,8 +887,7 @@ public class DeviceConfiguration
     {
         if (frameRate == -1)
         {
-            ConfigurationService cfg
-                = NeomediaActivator.getConfigurationService();
+            ConfigurationService cfg = LibJitsi.getConfigurationService();
             int value = DEFAULT_VIDEO_FRAMERATE;
 
             if (cfg != null)
@@ -913,7 +908,7 @@ public class DeviceConfiguration
     {
         this.frameRate = frameRate;
 
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
         {
@@ -933,8 +928,7 @@ public class DeviceConfiguration
     {
         if(videoSize == null)
         {
-            ConfigurationService cfg
-                = NeomediaActivator.getConfigurationService();
+            ConfigurationService cfg = LibJitsi.getConfigurationService();
             int height = DEFAULT_VIDEO_HEIGHT;
             int width = DEFAULT_VIDEO_WIDTH;
 
@@ -957,7 +951,7 @@ public class DeviceConfiguration
      */
     public void setVideoSize(Dimension videoSize)
     {
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
         {
@@ -1058,8 +1052,7 @@ public class DeviceConfiguration
 
             if (audioSystem == null)
             {
-                ConfigurationService cfg
-                    = NeomediaActivator.getConfigurationService();
+                ConfigurationService cfg = LibJitsi.getConfigurationService();
 
                 if (cfg != null)
                 {
@@ -1094,7 +1087,7 @@ public class DeviceConfiguration
      */
     private void extractConfiguredVideoCaptureDevices()
     {
-        ConfigurationService cfg = NeomediaActivator.getConfigurationService();
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
         String videoCaptureDeviceString
             = (cfg == null) ? null : cfg.getString(PROP_VIDEO_DEVICE);
 

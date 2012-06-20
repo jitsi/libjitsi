@@ -9,6 +9,8 @@ package org.jitsi.impl.neomedia.imgstreaming;
 import java.awt.*;
 import java.awt.image.*;
 
+import net.java.sip.communicator.impl.neomedia.imgstreaming.*;
+
 import org.jitsi.util.*;
 
 /**
@@ -18,13 +20,15 @@ import org.jitsi.util.*;
  * @see java.awt.Robot
  * @author Sebastien Vincent
  */
-public class DesktopInteractImpl implements DesktopInteract
+public class DesktopInteractImpl
+    implements DesktopInteract
 {
     /**
-     * The <tt>Logger</tt>.
+     * The <tt>Logger</tt> used by the <tt>DesktopInteractImpl</tt> class and
+     * its instances for logging output.
      */
-    private static final Logger logger =
-        Logger.getLogger(DesktopInteractImpl.class);
+    private static final Logger logger
+        = Logger.getLogger(DesktopInteractImpl.class);
 
     /**
      * Screen capture robot.
@@ -110,13 +114,14 @@ public class DesktopInteractImpl implements DesktopInteract
     public boolean captureScreen(int display, int x, int y, int width,
             int height, byte output[])
     {
-        if(OSUtils.IS_LINUX || OSUtils.IS_FREEBSD || OSUtils.IS_WINDOWS
-                || OSUtils.IS_MAC)
+        if (OSUtils.IS_LINUX || OSUtils.IS_MAC || OSUtils.IS_WINDOWS)
         {
-            return NativeScreenCapture.grabScreen(
-                    display, x, y, width, height, output);
+            return
+                NativeScreenCapture.grabScreen(
+                        display,
+                        x, y, width, height,
+                        output);
         }
-
         return false;
     }
 
@@ -143,13 +148,14 @@ public class DesktopInteractImpl implements DesktopInteract
     public boolean captureScreen(int display, int x, int y, int width,
             int height, long buffer, int bufferLength)
     {
-        if(OSUtils.IS_LINUX || OSUtils.IS_FREEBSD || OSUtils.IS_WINDOWS
-                || OSUtils.IS_MAC)
+        if (OSUtils.IS_LINUX || OSUtils.IS_MAC || OSUtils.IS_WINDOWS)
         {
-            return NativeScreenCapture.grabScreen(
-                        display, x, y, width, height, buffer, bufferLength);
+            return
+                NativeScreenCapture.grabScreen(
+                        display,
+                        x, y, width, height,
+                        buffer, bufferLength);
         }
-
         return false;
     }
 

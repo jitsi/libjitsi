@@ -6,15 +6,18 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.protocol.directshow;
 
+import java.awt.*;
 import java.io.*;
 import java.util.*;
-import java.awt.Dimension;
+import java.util.List;
 
 import javax.media.*;
 import javax.media.control.*;
 import javax.media.format.*;
 
-import org.jitsi.impl.neomedia.codec.*;
+import net.java.sip.communicator.impl.neomedia.codec.*;
+import net.java.sip.communicator.impl.neomedia.directshow.*;
+
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;

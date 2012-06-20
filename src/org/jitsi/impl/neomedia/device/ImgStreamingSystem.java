@@ -6,18 +6,18 @@
  */
 package org.jitsi.impl.neomedia.device;
 
-import java.util.List;
 import java.awt.*;
 
 import javax.media.*;
 import javax.media.format.*;
 
+import net.java.sip.communicator.impl.neomedia.codec.*;
+
+import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.util.*;
-import org.jitsi.impl.neomedia.codec.*;
-import org.jitsi.impl.neomedia.codec.video.*;
-import org.jitsi.impl.neomedia.*;
 
 /**
  * Add ImageStreaming capture device.
@@ -48,10 +48,13 @@ public class ImgStreamingSystem
     protected void doInitialize()
         throws Exception
     {
+        /*
+         * XXX The initialization of MediaServiceImpl is very complex so it is
+         * wise to not reference it at the early stage of its initialization.
+         */
+        ScreenDevice[] screens = ScreenDeviceImpl.getAvailableScreenDevices();
+
         String name = "Desktop Streaming";
-        List<ScreenDevice> screens
-            = NeomediaActivator.getMediaServiceImpl()
-                    .getAvailableScreenDevices();
         int i = 0;
         boolean multipleMonitorOneScreen = false;
         Dimension screenSize = null;
@@ -119,7 +122,7 @@ public class ImgStreamingSystem
                 break;
         }
 
-        if (!NeomediaActivator.isJmfRegistryDisableLoad())
+        if (!MediaServiceImpl.isJmfRegistryDisableLoad())
             CaptureDeviceManager.commit();
     }
 }

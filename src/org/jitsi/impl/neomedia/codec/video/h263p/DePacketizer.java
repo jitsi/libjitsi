@@ -6,14 +6,16 @@
  */
 package org.jitsi.impl.neomedia.codec.video.h263p;
 
-import java.util.Arrays;
+import java.util.*;
 
 import javax.media.*;
 import javax.media.format.*;
 
-import org.jitsi.impl.neomedia.codec.*;
-import org.jitsi.util.Logger;
+import net.java.sip.communicator.impl.neomedia.codec.*;
 import net.sf.fmj.media.*;
+
+import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.util.*;
 
 /**
  * Depacketizes H.263+ RTP packets in in accord with RFC 4529 "RTP Payload

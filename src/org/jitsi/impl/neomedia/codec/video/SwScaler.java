@@ -11,10 +11,11 @@ import java.awt.*;
 import javax.media.*;
 import javax.media.format.*;
 
-import org.jitsi.impl.neomedia.codec.*;
+import net.java.sip.communicator.impl.neomedia.codec.*;
+import net.sf.fmj.media.*;
+
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.util.*;
-import net.sf.fmj.media.*;
 
 /**
  * Implements a <tt>Codec</tt> which uses libswscale to scale images and convert

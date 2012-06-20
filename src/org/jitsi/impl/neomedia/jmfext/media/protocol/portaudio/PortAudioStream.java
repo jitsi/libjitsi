@@ -12,6 +12,8 @@ import javax.media.*;
 import javax.media.control.*;
 import javax.media.format.*;
 
+import net.java.sip.communicator.impl.neomedia.portaudio.*;
+
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
@@ -114,9 +116,13 @@ public class PortAudioStream
 
         this.audioQualityImprovement = audioQualityImprovement;
 
+        MediaServiceImpl mediaServiceImpl
+            = NeomediaServiceUtils.getMediaServiceImpl();
+
         gainControl
-            = (GainControl)
-                NeomediaActivator.getMediaServiceImpl().getInputVolumeControl();
+            = (mediaServiceImpl == null)
+                ? null
+                : (GainControl) mediaServiceImpl.getInputVolumeControl();
     }
 
     /**
@@ -349,18 +355,33 @@ public class PortAudioStream
                             Format.NOT_SPECIFIED /* frameRate */,
                             Format.byteArray);
 
-            DeviceConfiguration deviceConfig
-                = NeomediaActivator
-                    .getMediaServiceImpl()
-                        .getDeviceConfiguration();
+            MediaServiceImpl mediaServiceImpl
+                = NeomediaServiceUtils.getMediaServiceImpl();
+            boolean denoise = DeviceConfiguration.DEFAULT_AUDIO_DENOISE;
+            boolean echoCancel = DeviceConfiguration.DEFAULT_AUDIO_ECHOCANCEL;
+            long echoCancelFilterLengthInMillis
+                = DeviceConfiguration
+                    .DEFAULT_AUDIO_ECHOCANCEL_FILTER_LENGTH_IN_MILLIS;
 
-            PortAudio.setDenoise(
-                    stream,
-                    audioQualityImprovement && deviceConfig.isDenoise());
+            if (mediaServiceImpl != null)
+            {
+                DeviceConfiguration devCfg
+                    = mediaServiceImpl.getDeviceConfiguration();
+
+                if (devCfg != null)
+                {
+                    denoise = devCfg.isDenoise();
+                    echoCancel = devCfg.isEchoCancel();
+                    echoCancelFilterLengthInMillis
+                        = devCfg.getEchoCancelFilterLengthInMillis();
+                }
+            }
+
+            PortAudio.setDenoise(stream, audioQualityImprovement && denoise);
             PortAudio.setEchoFilterLengthInMillis(
                     stream,
-                    (audioQualityImprovement && deviceConfig.isEchoCancel())
-                        ? deviceConfig.getEchoCancelFilterLengthInMillis()
+                    (audioQualityImprovement && echoCancel)
+                        ? echoCancelFilterLengthInMillis
                         : 0);
         }
     }
