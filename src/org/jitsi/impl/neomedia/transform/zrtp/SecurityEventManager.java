@@ -26,7 +26,7 @@ import org.jitsi.util.*;
  *
  * Coordinate this callback class with the associated GUI implementation class
  *
- * @see org.jitsi.impl.gui.main.call.ZrtpSecurityPanel
+ * @see net.java.sip.communicator.impl.gui.main.call.ZrtpSecurityPanel
  *
  * @author Emanuel Onica
  * @author Werner Dittmann
@@ -428,6 +428,16 @@ public class SecurityEventManager extends ZrtpUserCallback
     public String getSecurityString()
     {
         return sas;
+    }
+
+    /**
+     * Gets the cipher information for the current media stream.
+     * 
+     * @return the cipher information string.
+     */
+    public String getCipherString()
+    {
+        return cipher;
     }
 
     /**

@@ -932,7 +932,7 @@ public class MediaServiceImpl
         noPreview.setHorizontalAlignment(SwingConstants.CENTER);
         noPreview.setVerticalAlignment(SwingConstants.CENTER);
 
-        final JComponent videoContainer = new VideoContainer(noPreview);
+        final JComponent videoContainer = new VideoContainer(noPreview, false);
 
         if ((preferredWidth > 0) && (preferredHeight > 0))
             videoContainer.setPreferredSize(
@@ -1195,7 +1195,7 @@ public class MediaServiceImpl
         String name = "Partial desktop streaming";
         Dimension size = null;
         int multiple = 0;
-        Point p = new Point(x, y);
+        Point p = new Point((x < 0) ? 0 : x, (y < 0) ? 0 : y);
         ScreenDevice dev = getScreenForPoint(p);
         int display = -1;
 

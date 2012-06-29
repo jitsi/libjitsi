@@ -1117,6 +1117,16 @@ public class MediaStreamImpl
     }
 
     /**
+     * Gets the synchronization source (SSRC) identifiers of the remote peer.
+     *
+     * @return the synchronization source (SSRC) identifiers of the remote peer
+     */
+    public List<Long> getRemoteSourceIDs()
+    {
+        return Collections.unmodifiableList(remoteSourceIDs);
+    }
+
+    /**
      * Gets the <tt>RTPConnector</tt> through which this instance sends and
      * receives RTP and RTCP traffic.
      *
@@ -2097,7 +2107,7 @@ public class MediaStreamImpl
                                 + receiveStreamSSRC);
                 }
 
-                setRemoteSourceID(receiveStreamSSRC);
+                addRemoteSourceID(receiveStreamSSRC);
 
                 synchronized (receiveStreams)
                 {
@@ -2279,7 +2289,7 @@ public class MediaStreamImpl
      * @param remoteSourceID the SSRC identifier that this stream will be using
      * in outgoing RTP packets from now on.
      */
-    protected void setRemoteSourceID(long remoteSourceID)
+    protected void addRemoteSourceID(long remoteSourceID)
     {
         Long oldValue = getRemoteSourceID();
 

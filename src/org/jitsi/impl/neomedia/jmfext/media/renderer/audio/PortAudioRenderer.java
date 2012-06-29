@@ -17,7 +17,6 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.portaudio.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
-import org.jitsi.impl.neomedia.portaudio.*;
 import org.jitsi.util.*;
 
 /**

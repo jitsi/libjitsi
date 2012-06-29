@@ -4,11 +4,11 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.impl.neomedia.quicktime;
+package net.java.sip.communicator.impl.neomedia.quicktime;
 
 import java.util.*;
 
-import net.java.sip.communicator.impl.neomedia.quicktime.*;
+import org.jitsi.impl.neomedia.quicktime.*;
 
 /**
  * Represents a QTKit capture device which is connected or has been previously

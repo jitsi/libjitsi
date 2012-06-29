@@ -6,9 +6,9 @@
  */
 package org.jitsi.service.neomedia;
 
+import java.beans.*;
 import java.net.*;
 import java.util.*;
-import java.beans.*;
 
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
@@ -105,15 +105,22 @@ public interface MediaStream
     public MediaDevice getDevice();
 
     /**
-     * Returns the synchronization source (SSRC) identifier of the remote
-     * participant or <tt>-1</tt> if that identifier is not yet known at this
-     * point.
+     * Gets the synchronization source (SSRC) identifier of the remote peer or
+     * <tt>-1</tt> if that identifier is not yet known at this point in the
+     * execution.
      *
-     * @return  the synchronization source (SSRC) identifier of the remote
-     * participant or <tt>-1</tt> if that identifier is not yet known at this
-     * point.
+     * @return the synchronization source (SSRC) identifier of the remote peer
+     * or <tt>-1</tt> if that identifier is not yet known at this point in the
+     * execution
      */
     public long getRemoteSourceID();
+
+    /**
+     * Gets the synchronization source (SSRC) identifiers of the remote peer.
+     *
+     * @return the synchronization source (SSRC) identifiers of the remote peer
+     */
+    public List<Long> getRemoteSourceIDs();
 
     /**
      * Returns the synchronization source (SSRC) identifier of the local

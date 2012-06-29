@@ -27,6 +27,27 @@ public class LibJitsiImpl
         = new HashMap<String, Object>();
 
     /**
+     * Initializes a new <tt>LibJitsiImpl</tt> instance.
+     */
+    public LibJitsiImpl()
+    {
+        /*
+         * The AudioNotifierService implementation uses a non-standard package
+         * location so work around it.
+         */
+        String key
+            = "org.jitsi.service.audionotifier.AudioNotifierService";
+        String value = System.getProperty(key);
+
+        if ((value == null) || (value.length() == 0))
+        {
+            System.setProperty(
+                    key,
+                    "org.jitsi.impl.neomedia.notify.AudioNotifierServiceImpl");
+        }
+    }
+
+    /**
      * Gets a service of a specific type associated with this implementation of
      * the <tt>libjitsi</tt> library.
      *
@@ -58,9 +79,22 @@ public class LibJitsiImpl
             }
         }
 
+        /*
+         * Allow the service implementation class names to be specified as
+         * System properties akin to standard Java class factory names.
+         */
+        String serviceImplClassName = System.getProperty(serviceClassName);
+
+        if ((serviceImplClassName == null)
+                || (serviceImplClassName.length() == 0))
+        {
+            serviceImplClassName
+                = serviceClassName
+                    .replace(".service.", ".impl.")
+                        .concat("Impl");
+        }
+
         Class<?> serviceImplClass = null;
-        String serviceImplClassName
-            = serviceClassName.replace(".service.", ".impl.").concat("Impl");
         Throwable exception = null;
 
         try

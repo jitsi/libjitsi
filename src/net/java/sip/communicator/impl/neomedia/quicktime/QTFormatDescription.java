@@ -4,11 +4,9 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.impl.neomedia.quicktime;
+package net.java.sip.communicator.impl.neomedia.quicktime;
 
 import java.awt.*;
-
-import net.java.sip.communicator.impl.neomedia.quicktime.*;
 
 /**
  * Describes the media format of media samples and of media sources, such as

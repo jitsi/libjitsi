@@ -10,6 +10,7 @@ import java.beans.*;
 import java.net.*;
 import java.util.*;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.audionotifier.*;
 import org.jitsi.service.libjitsi.*;
@@ -41,12 +42,14 @@ public class AudioNotifierServiceImpl
     private final DeviceConfiguration deviceConfiguration;
 
     /**
-     * Creates audio notify service.
-     * @param deviceConfiguration the device configuration.
+     * Initializes a new <tt>AudioNotifierServiceImpl</tt> instance.
      */
-    public AudioNotifierServiceImpl(DeviceConfiguration deviceConfiguration)
+    public AudioNotifierServiceImpl()
     {
-        this.deviceConfiguration = deviceConfiguration;
+        this.deviceConfiguration
+            = NeomediaServiceUtils
+                .getMediaServiceImpl()
+                    .getDeviceConfiguration();
 
         deviceConfiguration.addPropertyChangeListener(this);
     }

@@ -4,9 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.impl.neomedia.quicktime;
-
-import net.java.sip.communicator.impl.neomedia.quicktime.*;
+package net.java.sip.communicator.impl.neomedia.quicktime;
 
 /**
  * Represents a QuickTime/QTKit <tt>QTSampleBuffer</tt> object.

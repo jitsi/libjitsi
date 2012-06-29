@@ -116,19 +116,16 @@ public class MediaDeviceImpl
             }
             catch (IOException ioe)
             {
-                // TODO
                 exception = ioe;
             }
             catch (NoDataSourceException ndse)
             {
-                // TODO
                 exception = ndse;
             }
 
             if (exception != null)
             {
-                logger
-                    .error(
+                logger.error(
                         "Failed to create CaptureDevice"
                             + " from CaptureDeviceInfo "
                             + captureDeviceInfo,
@@ -136,7 +133,7 @@ public class MediaDeviceImpl
             }
             else
             {
-                if(captureDevice instanceof AbstractPullBufferCaptureDevice)
+                if (captureDevice instanceof AbstractPullBufferCaptureDevice)
                 {
                     ((AbstractPullBufferCaptureDevice)captureDevice)
                         .setCaptureDeviceInfo(captureDeviceInfo);

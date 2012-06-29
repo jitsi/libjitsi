@@ -24,11 +24,16 @@ public interface VideoMediaStream
     extends MediaStream
 {
     /**
-     * Gets local visual <tt>Component</tt> of the local peer.
+     * Gets the visual <tt>Component</tt>, if any, depicting the video streamed
+     * from the local peer to the remote peer.
      *
-     * @return visual <tt>Component</tt>
+     * @param flip <tt>true</tt> to have the display of the local video flipped;
+     * <tt>false</tt>, otherwise
+     * @return the visual <tt>Component</tt> depicting the local video if local
+     * video is actually being streamed from the local peer to the remote peer;
+     * otherwise, <tt>null</tt>
      */
-    public Component createLocalVisualComponent();
+    public Component createLocalVisualComponent(boolean flip);
 
     /**
      * Disposes of a specific local visual <tt>Component</tt> of the local peer.
@@ -47,6 +52,18 @@ public interface VideoMediaStream
      */
     @Deprecated
     public Component getVisualComponent();
+
+    /**
+     * Gets the visual <tt>Component</tt> rendering the <tt>ReceiveStream</tt>
+     * with a specific SSRC.
+     *
+     * @param ssrc the SSRC of the <tt>ReceiveStream</tt> to get the associated
+     * rendering visual <tt>Component</tt> of
+     * @return the visual <tt>Component</tt> rendering the
+     * <tt>ReceiveStream</tt> with the specified <tt>ssrc</tt> if any;
+     * otherwise, <tt>null</tt>
+     */
+    public Component getVisualComponent(long ssrc);
 
     /**
      * Gets a list of the visual <tt>Component</tt>s where video from the remote
@@ -105,8 +122,7 @@ public interface VideoMediaStream
      * @param advancedParams parameters of advanced attributes that may affect
      * quality control
      */
-    public void updateQualityControl(
-        Map<String, String> advancedParams);
+    public void updateQualityControl(Map<String, String> advancedParams);
 
     /**
      * Move origin of a partial desktop streaming <tt>MediaDevice</tt>.
@@ -114,6 +130,5 @@ public interface VideoMediaStream
      * @param x new x coordinate origin
      * @param y new y coordinate origin
      */
-    public void movePartialDesktopStreaming(
-            int x, int y);
+    public void movePartialDesktopStreaming(int x, int y);
 }

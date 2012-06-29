@@ -19,9 +19,9 @@ import javax.media.protocol.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.service.neomedia.QualityControl; // disambiguation
+import org.jitsi.service.neomedia.QualityControl;
 import org.jitsi.service.neomedia.control.*;
-import org.jitsi.service.neomedia.control.KeyFrameControl; // disambiguation
+import org.jitsi.service.neomedia.control.KeyFrameControl;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.protocol.*;
@@ -400,6 +400,8 @@ public class VideoMediaStreamImpl
      * Creates the visual <tt>Component</tt> depicting the video being streamed
      * from the local peer to the remote peer.
      *
+     * @param flip <tt>true</tt> to have the display of the local video flipped;
+     * <tt>false</tt>, otherwise
      * @return the visual <tt>Component</tt> depicting the video being streamed
      * from the local peer to the remote peer if it was immediately created or
      * <tt>null</tt> if it was not immediately created and it is to be delivered
@@ -407,14 +409,14 @@ public class VideoMediaStreamImpl
      * <tt>VideoEvent</tt> with type {@link VideoEvent#VIDEO_ADDED} and origin
      * {@link VideoEvent#LOCAL}
      */
-    public Component createLocalVisualComponent()
+    public Component createLocalVisualComponent(boolean flip)
     {
         MediaDeviceSession deviceSession = getDeviceSession();
 
         return
             (deviceSession instanceof VideoMediaDeviceSession)
                 ? ((VideoMediaDeviceSession) deviceSession)
-                    .createLocalVisualComponent()
+                    .createLocalVisualComponent(flip)
                 : null;
     }
 
@@ -633,6 +635,26 @@ public class VideoMediaStreamImpl
         else
             visualComponents = Collections.emptyList();
         return visualComponents;
+    }
+
+    /**
+     * Gets the visual <tt>Component</tt>s rendering the <tt>ReceiveStream</tt>
+     * corresponding to the given ssrc.
+     *
+     * @param ssrc the src-id of the receive stream, which visual
+     * <tt>Component</tt> we're looking for
+     * @return the visual <tt>Component</tt> rendering the
+     * <tt>ReceiveStream</tt> corresponding to the given ssrc
+     */
+    public Component getVisualComponent(long ssrc)
+    {
+        MediaDeviceSession deviceSession = getDeviceSession();
+
+        return
+            (deviceSession instanceof VideoMediaDeviceSession)
+                ? ((VideoMediaDeviceSession) deviceSession).getVisualComponent(
+                        ssrc)
+                : null;
     }
 
     /**
@@ -964,9 +986,9 @@ public class VideoMediaStreamImpl
      * @param ssrc remote SSRC
      */
     @Override
-    protected void setRemoteSourceID(long ssrc)
+    protected void addRemoteSourceID(long ssrc)
     {
-        super.setRemoteSourceID(ssrc);
+        super.addRemoteSourceID(ssrc);
 
         ((VideoMediaDeviceSession) getDeviceSession()).setRemoteSSRC(ssrc);
     }
@@ -1062,21 +1084,22 @@ public class VideoMediaStreamImpl
             ds = ds2.getWrappedDataSource();
         }
 
+        // Makes the screen detection with a point inside a real screen i.e.
+        // x and y are both greater than or equal to 0.
         ScreenDevice screen
             = NeomediaServiceUtils.getMediaServiceImpl().getScreenForPoint(
-                    new Point(x, y));
-        ScreenDevice currentScreen = screen;
+                    new Point((x < 0) ? 0 : x, (y < 0) ? 0 : y));
 
-        if(screen == null)
-            return;
+        if (screen != null)
+        {
+            Rectangle bounds = ((ScreenDeviceImpl)screen).getBounds();
 
-        Rectangle bounds = ((ScreenDeviceImpl)screen).getBounds();
-
-        x -= bounds.x;
-        y -= bounds.y;
-        ((org.jitsi.impl.neomedia.jmfext.media.protocol.imgstreaming.DataSource)
-                ds)
-            .setOrigin(0, currentScreen.getIndex(), x, y);
+            x -= bounds.x;
+            y -= bounds.y;
+            ((org.jitsi.impl.neomedia.jmfext.media.protocol.imgstreaming.DataSource)
+                    ds)
+                .setOrigin(0, screen.getIndex(), x, y);
+        }
     }
 
     /**
@@ -1188,7 +1211,8 @@ public class VideoMediaStreamImpl
             if(localSettingsPreset == null)
             {
                 DeviceConfiguration deviceConfiguration
-                    = NeomediaServiceUtils.getMediaServiceImpl()
+                    = NeomediaServiceUtils
+                        .getMediaServiceImpl()
                             .getDeviceConfiguration();
 
                 localSettingsPreset = new QualityPreset(

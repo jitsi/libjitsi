@@ -992,6 +992,26 @@ public class MediaDeviceSession
     }
 
     /**
+     * Gets the <tt>Player</tt> rendering the <tt>ReceiveStream</tt> with a
+     * specific SSRC.
+     *
+     * @param ssrc the SSRC of the <tt>ReceiveStream</tt> to get the rendering
+     * the <tt>Player</tt> of
+     * @return the <tt>Player</tt> rendering the <tt>ReceiveStream</tt> with the
+     * specified <tt>ssrc</tt>
+     */
+    protected Player getPlayer(long ssrc)
+    {
+        synchronized (playbacks)
+        {
+            for (Playback playback : playbacks)
+                if (playback.receiveStream.getSSRC() == ssrc)
+                    return playback.player;
+        }
+        return null;
+    }
+
+    /**
      * Gets the <tt>Player</tt>s rendering the <tt>ReceiveStream</tt>s of this
      * instance on its associated <tt>MediaDevice</tt>.
      *

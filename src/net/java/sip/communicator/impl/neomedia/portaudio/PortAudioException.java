@@ -4,15 +4,16 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.impl.neomedia.portaudio;
+package net.java.sip.communicator.impl.neomedia.portaudio;
 
 /**
- * Implements <tt>Exception</tt> for the PortAudio capture and playback system.
- * 
+ * Provides compatibility with source code written prior to the inception of
+ * libjitsi.
+ *
  * @author Lyubomir Marinov
  */
 public class PortAudioException
-    extends Exception
+    extends org.jitsi.impl.neomedia.portaudio.PortAudioException
 {
     /**
      * Serial version UID.

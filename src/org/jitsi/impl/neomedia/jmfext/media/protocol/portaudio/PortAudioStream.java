@@ -17,7 +17,6 @@ import net.java.sip.communicator.impl.neomedia.portaudio.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
-import org.jitsi.impl.neomedia.portaudio.*;
 import org.jitsi.util.*;
 
 /**

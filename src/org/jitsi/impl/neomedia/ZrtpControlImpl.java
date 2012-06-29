@@ -284,7 +284,7 @@ public class ZrtpControlImpl
      * (non-Javadoc)
      *
      * @see
-     * org.jitsi.service.neomedia.ZrtpControl#getSecurityString
+     * net.java.sip.communicator.service.neomedia.ZrtpControl#getSecurityString
      * ()
      */
     public String getSecurityString()
@@ -296,7 +296,19 @@ public class ZrtpControlImpl
      * (non-Javadoc)
      *
      * @see
-     * org.jitsi.service.neomedia.ZrtpControl#isSecurityVerified
+     * net.java.sip.communicator.service.neomedia.ZrtpControl#getCiperString
+     * ()
+     */
+    public String getCipherString()
+    {
+        return getTransformEngine().getUserCallback().getCipherString();
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * net.java.sip.communicator.service.neomedia.ZrtpControl#isSecurityVerified
      * ()
      */
     public boolean isSecurityVerified()
@@ -308,7 +320,7 @@ public class ZrtpControlImpl
      * (non-Javadoc)
      *
      * @see
-     * org.jitsi.service.neomedia.ZrtpControl#getPeerZid
+     * net.java.sip.communicator.service.neomedia.ZrtpControl#getPeerZid
      * ()
      */
     public byte[] getPeerZid()
@@ -320,7 +332,7 @@ public class ZrtpControlImpl
      * (non-Javadoc)
      *
      * @see
-     * org.jitsi.service.neomedia.ZrtpControl#getPeerZidString
+     * net.java.sip.communicator.service.neomedia.ZrtpControl#getPeerZidString
      * ()
      */
     public String getPeerZidString()

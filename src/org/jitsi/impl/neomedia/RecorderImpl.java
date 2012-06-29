@@ -32,7 +32,7 @@ public class RecorderImpl
      * The list of formats in which <tt>RecorderImpl</tt> instances support
      * recording media.
      */
-    static final String[] SUPPORTED_FORMATS
+    public static final String[] SUPPORTED_FORMATS
         = new String[]
                 {
                     SoundFileUtils.aif,

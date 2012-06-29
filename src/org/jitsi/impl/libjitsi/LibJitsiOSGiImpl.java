@@ -57,7 +57,7 @@ public class LibJitsiOSGiImpl
     {
         @SuppressWarnings("rawtypes")
         ServiceReference serviceReference
-            = bundleContext.getServiceReference(serviceClass);
+            = bundleContext.getServiceReference(serviceClass.getName());
         @SuppressWarnings("unchecked")
         T service
             = (serviceReference == null)

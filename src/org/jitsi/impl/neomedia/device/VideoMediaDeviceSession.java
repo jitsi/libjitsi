@@ -127,6 +127,12 @@ public class VideoMediaDeviceSession
         = new VideoNotifierSupport(this, false);
 
     /**
+     * The indicator which determines whether the display of the local video is
+     * to be flipped (as is often true for webcams).
+     */
+    private boolean flipLocalVideoDisplay = true;
+
+    /**
      * Initializes a new <tt>VideoMediaDeviceSession</tt> instance which is to
      * represent the work of a <tt>MediaStream</tt> with a specific video
      * <tt>MediaDevice</tt>.
@@ -491,21 +497,27 @@ public class VideoMediaDeviceSession
             TrackControl[] trackControls = player.getTrackControls();
 
             if ((trackControls != null) && (trackControls.length != 0))
+            {
                 try
                 {
                     for (TrackControl trackControl : trackControls)
                     {
                         trackControl.setCodecChain(
-                                new Codec[] { new HFlip(), new SwScaler() });
+                                flipLocalVideoDisplay
+                                    ? new Codec[]
+                                            { new HFlip(), new SwScaler() }
+                                    : new Codec[]
+                                            { new SwScaler() });
                         break;
                     }
                 }
                 catch (UnsupportedPlugInException upiex)
                 {
                     logger.warn(
-                            "Failed to add SwScaler/VideoFlipEffect to " +
-                            "codec chain", upiex);
+                            "Failed to add HFlip/SwScaler Effect",
+                            upiex);
                 }
+            }
 
             // Turn the Processor into a Player.
             try
@@ -560,6 +572,8 @@ public class VideoMediaDeviceSession
      * Creates the visual <tt>Component</tt> depicting the video being streamed
      * from the local peer to the remote peer.
      *
+     * @param flip <tt>true</tt> to have the display of the local video flipped;
+     * otherwise, <tt>false</tt>
      * @return the visual <tt>Component</tt> depicting the video being streamed
      * from the local peer to the remote peer if it was immediately created or
      * <tt>null</tt> if it was not immediately created and it is to be delivered
@@ -567,8 +581,10 @@ public class VideoMediaDeviceSession
      * <tt>VideoEvent</tt> with type {@link VideoEvent#VIDEO_ADDED} and origin
      * {@link VideoEvent#LOCAL}
      */
-    public Component createLocalVisualComponent()
+    public Component createLocalVisualComponent(boolean flip)
     {
+        flipLocalVideoDisplay = flip;
+
         /*
          * Displaying the currently streamed desktop is perceived as unnecessary
          * because the user sees the whole desktop anyway. Instead, a static
@@ -830,6 +846,22 @@ public class VideoMediaDeviceSession
             }
         }
         return visualComponents;
+    }
+
+    /**
+     * Gets the visual <tt>Component</tt>s rendering the <tt>ReceiveStream</tt>
+     * corresponding to the given ssrc.
+     *
+     * @param ssrc the src-id of the receive stream, which visual
+     * <tt>Component</tt> we're looking for
+     * @return the visual <tt>Component</tt> rendering the
+     * <tt>ReceiveStream</tt> corresponding to the given ssrc
+     */
+    public Component getVisualComponent(long ssrc)
+    {
+        Player player = getPlayer(ssrc);
+
+        return (player == null) ? null : player.getVisualComponent();
     }
 
     /**

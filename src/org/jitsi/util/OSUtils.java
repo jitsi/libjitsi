@@ -168,4 +168,12 @@ public class OSUtils
         IS_WINDOWS32 = IS_WINDOWS && IS_32_BIT;
         IS_WINDOWS64 = IS_WINDOWS && IS_64_BIT;
     }
+
+    /**
+     * Allows the extending of the <tt>OSUtils</tt> class but disallows
+     * initializing non-extended <tt>OSUtils</tt> instances.
+     */
+    protected OSUtils()
+    {
+    }
 }
