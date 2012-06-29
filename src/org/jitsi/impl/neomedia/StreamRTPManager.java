@@ -14,9 +14,9 @@ import javax.media.format.*;
 import javax.media.protocol.*;
 import javax.media.rtp.*;
 
-import com.sun.media.rtp.*;
-
 import org.jitsi.service.neomedia.*;
+
+import com.sun.media.rtp.*;
 
 /**
  * Implements the <tt>RTPManager</tt> interface as used by a

@@ -8,7 +8,8 @@ package org.jitsi.util.event;
 
 import java.awt.*;
 import java.util.*;
-import java.util.List; // disambiguation
+import java.util.List;
+// disambiguation
 
 /**
  * Represents a mechanism to easily add to a specific <tt>Object</tt> by means

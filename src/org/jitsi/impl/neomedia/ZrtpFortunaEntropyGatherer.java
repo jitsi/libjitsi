@@ -6,14 +6,14 @@
  */
 package org.jitsi.impl.neomedia;
 
+import gnu.java.zrtp.utils.*;
+
 import java.io.*;
 
 import javax.media.*;
-import javax.media.control.FormatControl;
+import javax.media.control.*;
 import javax.media.format.*;
 import javax.media.protocol.*;
-
-import gnu.java.zrtp.utils.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.util.*;

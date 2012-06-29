@@ -5,10 +5,10 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.ulaw;
 
-import com.sun.media.controls.*;
-
 import javax.media.*;
 import javax.media.format.*;
+
+import com.sun.media.controls.*;
 
 public class JavaDecoder
     extends com.ibm.media.codec.audio.AudioCodec

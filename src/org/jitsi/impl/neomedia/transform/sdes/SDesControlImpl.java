@@ -6,17 +6,17 @@
  */
 package org.jitsi.impl.neomedia.transform.sdes;
 
-import gnu.java.zrtp.utils.ZrtpFortuna;
+import gnu.java.zrtp.utils.*;
 
 import java.util.*;
-
-import ch.imvs.sdes4j.srtp.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.zrtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
+
+import ch.imvs.sdes4j.srtp.*;
 
 /**
  * Default implementation of {@link SDesControl} that supports the crypto suites

@@ -7,12 +7,14 @@
 package org.jitsi.impl.neomedia.codec.audio.speex;
 
 import java.io.*;
+
 import javax.media.*;
 import javax.media.format.*;
 
-import org.xiph.speex.*;
-import org.jitsi.impl.neomedia.codec.*;
 import net.sf.fmj.media.*;
+
+import org.jitsi.impl.neomedia.codec.*;
+import org.xiph.speex.*;
 
 /**
  * Speex to PCM java decoder

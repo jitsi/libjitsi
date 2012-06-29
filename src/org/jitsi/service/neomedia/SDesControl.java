@@ -6,7 +6,7 @@
  */
 package org.jitsi.service.neomedia;
 
-import ch.imvs.sdes4j.srtp.SrtpCryptoAttribute;
+import ch.imvs.sdes4j.srtp.*;
 
 /**
  * SDES based SRTP MediaStream encryption control.

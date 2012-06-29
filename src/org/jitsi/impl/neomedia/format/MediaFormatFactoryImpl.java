@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.format;
 
 import java.util.*;
+
 import javax.media.*;
 import javax.media.format.*;
 

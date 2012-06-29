@@ -25,7 +25,7 @@
 */
 package org.jitsi.impl.neomedia.transform.srtp;
 
-import org.bouncycastle.crypto.BlockCipher;
+import org.bouncycastle.crypto.*;
 
 /**
  * SRTPCipherCTR implements SRTP Counter Mode AES Encryption (AES-CM).

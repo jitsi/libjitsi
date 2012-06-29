@@ -6,11 +6,10 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.gsm;
 
-import net.sf.fmj.media.*;
-
 import javax.media.*;
-import javax.media.Format;
 import javax.media.format.*;
+
+import net.sf.fmj.media.*;
 
 /**
  * GSM encoder Codec. Encodes 160 16-bit PCM samples into array of

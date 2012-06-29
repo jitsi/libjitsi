@@ -6,15 +6,18 @@
  */
 package org.jitsi.impl.neomedia.codec.video.h264;
 
-import java.awt.Dimension; // disambiguation
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 import javax.media.*;
 import javax.media.format.*;
 
-import org.jitsi.impl.neomedia.format.*;
-import org.jitsi.impl.neomedia.codec.*;
 import net.sf.fmj.media.*;
+
+import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.impl.neomedia.format.*;
+// disambiguation
 
 /**
  * Packetizes H.264 encoded data/NAL units into RTP packets in accord with RFC

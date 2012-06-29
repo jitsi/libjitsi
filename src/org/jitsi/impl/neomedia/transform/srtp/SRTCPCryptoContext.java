@@ -26,19 +26,14 @@
 */
 package org.jitsi.impl.neomedia.transform.srtp;
 
-import java.util.Arrays;
+import java.util.*;
 
-import org.jitsi.impl.neomedia.*;
-
-import org.bouncycastle.crypto.digests.SHA1Digest;
+import org.bouncycastle.crypto.*;
+import org.bouncycastle.crypto.digests.*;
+import org.bouncycastle.crypto.engines.*;
 import org.bouncycastle.crypto.macs.*;
-import org.bouncycastle.crypto.params.KeyParameter;
-import org.bouncycastle.crypto.params.ParametersForSkein;
-import org.bouncycastle.crypto.BlockCipher;
-import org.bouncycastle.crypto.Mac;
-
-import org.bouncycastle.crypto.engines.AESFastEngine;
-import org.bouncycastle.crypto.engines.TwofishEngine;
+import org.bouncycastle.crypto.params.*;
+import org.jitsi.impl.neomedia.*;
 
 
 /**

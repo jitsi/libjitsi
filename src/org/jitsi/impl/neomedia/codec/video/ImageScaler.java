@@ -9,15 +9,11 @@ package org.jitsi.impl.neomedia.codec.video;
 import java.awt.*;
 import java.awt.image.*;
 
-import javax.media.Buffer;
-import javax.media.Codec;
-import javax.media.Format;
-import javax.media.format.RGBFormat;
-import javax.media.format.VideoFormat;
+import javax.media.*;
+import javax.media.format.*;
 
-import net.sf.fmj.media.AbstractCodec;
-import net.sf.fmj.media.util.BufferToImage;
-import net.sf.fmj.media.util.ImageToBuffer;
+import net.sf.fmj.media.*;
+import net.sf.fmj.media.util.*;
 
 /**
  * Codec that scales images from one size to another.

@@ -9,9 +9,10 @@ package org.jitsi.impl.neomedia.codec.audio.g729;
 import javax.media.*;
 import javax.media.format.*;
 
+import net.sf.fmj.media.*;
+
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
-import net.sf.fmj.media.*;
 
 /**
  * @author Lubomir Marinov

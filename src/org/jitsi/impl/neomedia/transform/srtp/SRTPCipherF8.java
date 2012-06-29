@@ -27,8 +27,8 @@ package org.jitsi.impl.neomedia.transform.srtp;
 
 import java.util.*;
 
-import org.bouncycastle.crypto.BlockCipher;
-import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.crypto.*;
+import org.bouncycastle.crypto.params.*;
 
 /**
  * SRTPCipherF8 implements SRTP F8 Mode AES Encryption (AES-f8).

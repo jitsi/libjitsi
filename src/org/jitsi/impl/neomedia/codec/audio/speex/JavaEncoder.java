@@ -9,9 +9,9 @@ package org.jitsi.impl.neomedia.codec.audio.speex;
 import javax.media.*;
 import javax.media.format.*;
 
-import org.jitsi.impl.neomedia.codec.*;
 import net.sf.fmj.media.*;
 
+import org.jitsi.impl.neomedia.codec.*;
 import org.xiph.speex.*;
 
 /**

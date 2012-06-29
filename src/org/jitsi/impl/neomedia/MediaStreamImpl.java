@@ -6,10 +6,10 @@
  */
 package org.jitsi.impl.neomedia;
 
+import java.beans.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.beans.*;
 
 import javax.media.*;
 import javax.media.control.*;

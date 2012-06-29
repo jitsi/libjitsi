@@ -6,9 +6,9 @@
  */
 package org.jitsi.impl.neomedia.transform.sdes;
 
-import ch.imvs.sdes4j.srtp.*;
-
 import org.jitsi.impl.neomedia.transform.srtp.*;
+
+import ch.imvs.sdes4j.srtp.*;
 
 /**
  * PacketTransformer for SDES based SRTP encryption.

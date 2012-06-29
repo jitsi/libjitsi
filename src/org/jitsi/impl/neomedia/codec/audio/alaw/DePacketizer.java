@@ -9,8 +9,9 @@ package org.jitsi.impl.neomedia.codec.audio.alaw;
 import javax.media.*;
 import javax.media.format.*;
 
-import com.sun.media.codec.audio.*;
 import org.jitsi.impl.neomedia.codec.*;
+
+import com.sun.media.codec.audio.*;
 
 /**
  * DePacketizer for ALAW codec

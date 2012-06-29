@@ -6,9 +6,10 @@
  */
 package org.jitsi.impl.neomedia.device;
 
-import java.awt.Dimension; // disambiguation
+import java.awt.*;
 import java.io.*;
 import java.util.*;
+import java.util.List;
 
 import javax.media.*;
 import javax.media.control.*;
@@ -25,6 +26,7 @@ import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
 import org.jitsi.util.event.*;
+// disambiguation
 
 /**
  * Represents the use of a specific <tt>MediaDevice</tt> by a

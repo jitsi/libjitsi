@@ -8,13 +8,15 @@ package org.jitsi.impl.neomedia.codec.video.h263p;
 
 import java.awt.*;
 import java.util.*;
-import java.util.List; // disambiguation
+import java.util.List;
 
 import javax.media.*;
 import javax.media.format.*;
 
-import org.jitsi.impl.neomedia.codec.*;
 import net.sf.fmj.media.*;
+
+import org.jitsi.impl.neomedia.codec.*;
+// disambiguation
 
 /**
  * Packetizes H.263+ encoded data into RTP packets in accord with RFC 4529

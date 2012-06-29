@@ -11,14 +11,15 @@ import java.lang.reflect.*;
 import java.util.*;
 
 import javax.media.*;
-import javax.media.Controls; // disambiguation
+import javax.media.Controls;
 import javax.media.control.*;
 import javax.media.protocol.*;
 
+import net.sf.fmj.media.util.*;
+
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.util.*;
-
-import net.sf.fmj.media.util.*;
+// disambiguation
 
 /**
  * Facilitates the implementations of the <tt>CaptureDevice</tt> and

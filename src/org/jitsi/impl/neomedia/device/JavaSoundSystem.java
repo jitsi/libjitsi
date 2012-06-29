@@ -6,7 +6,7 @@
  */
 package org.jitsi.impl.neomedia.device;
 
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 
 /**
  * Auto-detection of FMJ audio capture devices.

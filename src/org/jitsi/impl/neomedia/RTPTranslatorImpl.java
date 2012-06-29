@@ -17,10 +17,10 @@ import javax.media.rtp.*;
 import javax.media.rtp.event.*;
 import javax.media.rtp.rtcp.*;
 
-import com.sun.media.rtp.*;
-
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+
+import com.sun.media.rtp.*;
 
 /**
  * Implements <tt>RTPTranslator</tt> which represents an RTP translator which

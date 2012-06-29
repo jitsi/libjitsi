@@ -14,8 +14,9 @@ import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.service.neomedia.MediaException; // disambiguation
+import org.jitsi.service.neomedia.MediaException;
 import org.jitsi.util.*;
+// disambiguation
 
 /**
  * The call recording implementation.

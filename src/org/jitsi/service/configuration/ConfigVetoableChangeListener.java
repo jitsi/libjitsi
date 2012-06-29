@@ -7,7 +7,7 @@
 package org.jitsi.service.configuration;
 
 import java.beans.*;
-import java.util.EventListener;
+import java.util.*;
 
 /**
  * This interface uses SC's own ProperteyVetoException.

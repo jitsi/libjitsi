@@ -6,8 +6,8 @@
  */
 package org.jitsi.util.event;
 
-import java.util.*;
 import java.beans.*;
+import java.util.*;
 
 /**
  * Represents a source of <tt>PropertyChangeEvent</tt>s which notifies

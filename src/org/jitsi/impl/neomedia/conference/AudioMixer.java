@@ -11,7 +11,7 @@ import java.lang.reflect.*;
 import java.util.*;
 
 import javax.media.*;
-import javax.media.Controls; // disambiguation
+import javax.media.Controls;
 import javax.media.control.*;
 import javax.media.format.*;
 import javax.media.protocol.*;
@@ -21,6 +21,7 @@ import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.util.*;
+// disambiguation
 
 /**
  * Represents an audio mixer which manages the mixing of multiple audio streams

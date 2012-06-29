@@ -26,15 +26,14 @@
 */
 package org.jitsi.impl.neomedia.transform.srtp;
 
-import java.util.Arrays;
-
-import org.jitsi.impl.neomedia.*;
+import java.util.*;
 
 import org.bouncycastle.crypto.*;
 import org.bouncycastle.crypto.digests.*;
 import org.bouncycastle.crypto.engines.*;
 import org.bouncycastle.crypto.macs.*;
 import org.bouncycastle.crypto.params.*;
+import org.jitsi.impl.neomedia.*;
 
 /**
  * SRTPCryptoContext class is the core class of SRTP implementation.
