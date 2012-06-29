@@ -6,9 +6,12 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.protocol.imgstreaming;
 
+import java.awt.*;
+
 import javax.media.*;
 import javax.media.control.*;
 
+import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 
 /**
@@ -23,9 +26,30 @@ public class DataSource
     extends AbstractVideoPullBufferCaptureDevice
 {
     /**
-     * Stream created.
+     * The <tt>ImgStreamingControl</tt> implementation which allows controlling
+     * this <tt>DataSource</tt> through the "standard" FMJ/JMF
+     * <tt>javax.media.Control</tt> means.
      */
-    private ImageStream stream = null;
+    private final ImgStreamingControl imgStreamingControl
+        = new ImgStreamingControl()
+        {
+            public Component getControlComponent()
+            {
+                /*
+                 * This javax.media.Control implementation provides only
+                 * programmatic control and not UI control.
+                 */
+                return null;
+            }
+
+            public void setOrigin(
+                    int streamIndex,
+                    int displayIndex,
+                    int x, int y)
+            {
+                DataSource.this.setOrigin(streamIndex, displayIndex, x, y);
+            }
+        };
 
     /**
      * Initializes a new <tt>DataSource</tt> instance.
@@ -35,30 +59,15 @@ public class DataSource
     }
 
     /**
-     * Initializes a new <tt>DataSource</tt> instance.
+     * Initializes a new <tt>DataSource</tt> instance from a specific
+     * <tt>MediaLocator</tt>.
      *
-     * @param locator associated <tt>MediaLocator</tt>
+     * @param locator the <tt>MediaLocator</tt> to initialize the new instance
+     * from
      */
     public DataSource(MediaLocator locator)
     {
         super(locator);
-    }
-
-    /**
-     * Set origin of <tt>ImageStream</tt>.
-     *
-     * @param streamIndex stream index
-     * @param monitorIndex monitor index
-     * @param x x coordinate
-     * @param y y coordinate
-     */
-    public void setOrigin(int streamIndex, int monitorIndex, int x, int y)
-    {
-        if(stream != null)
-        {
-            stream.setOrigin(x, y);
-            stream.setDisplayIndex(monitorIndex);
-        }
     }
 
     /**
@@ -88,27 +97,86 @@ public class DataSource
          */
         String remainder = getLocator().getRemainder();
         String split[] = remainder.split(",");
-        int index = -1;
-        int x = 0;
-        int y = 0;
+        int dispayIndex;
+        int x;
+        int y;
 
         if ((split != null) && (split.length > 1))
         {
-            index = Integer.parseInt(split[0]);
+            dispayIndex = Integer.parseInt(split[0]);
             x = Integer.parseInt(split[1]);
             y = Integer.parseInt(split[2]);
         }
         else
         {
-            index = Integer.parseInt(remainder);
+            dispayIndex = Integer.parseInt(remainder);
+            x = 0;
+            y = 0;
         }
 
         ImageStream stream = new ImageStream(this, formatControl);
 
-        stream.setDisplayIndex(index);
+        stream.setDisplayIndex(dispayIndex);
         stream.setOrigin(x, y);
 
-        this.stream = stream;
         return stream;
+    }
+
+    /**
+     * Gets the control of the specified type available for this instance.
+     *
+     * @param controlType the type of the control available for this instance to
+     * be retrieved
+     * @return an <tt>Object</tt> which represents the control of the specified
+     * type available for this instance if such a control is indeed available;
+     * otherwise, <tt>null</tt>
+     */
+    @Override
+    public Object getControl(String controlType)
+    {
+        /*
+         * TODO As a matter of fact, we have to override getControls() and not
+         * getControl(String). However, overriding getControls() is much more
+         * complex and the ImgStreamingControl is too obscure. Besides, the
+         * ImgStreamingControl implementation of this DataSource does not
+         * provide UI control so it makes no sense for the caller to try to get
+         * it through getControls().
+         */
+        if (ImgStreamingControl.class.getName().equals(controlType))
+            return imgStreamingControl;
+        else
+            return super.getControl(controlType);
+    }
+
+    /**
+     * Set the display index and the origin of the <tt>ImageStream</tt>
+     * associated with a specific index in this <tt>DataSource</tt>.
+     *
+     * @param streamIndex the index in this <tt>DataSource</tt> of the
+     * <tt>ImageStream</tt> to set the display index and the origin of
+     * @param displayIndex the display index to set on the specified
+     * <tt>ImageStream</tt>
+     * @param x the x coordinate of the origin to set on the specified
+     * <tt>ImageStream</tt>
+     * @param y the y coordinate of the origin to set on the specified
+     * <tt>ImageStream</tt>
+     */
+    public void setOrigin(int streamIndex, int displayIndex, int x, int y)
+    {
+        synchronized (getStreamSyncRoot())
+        {
+            Object[] streams = streams();
+
+            if ((streams != null) && (streamIndex < streams.length))
+            {
+                ImageStream stream = (ImageStream) streams[streamIndex];
+
+                if (stream != null)
+                {
+                    stream.setDisplayIndex(displayIndex);
+                    stream.setOrigin(x, y);
+                }
+            }
+        }
     }
 }

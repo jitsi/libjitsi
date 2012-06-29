@@ -188,20 +188,21 @@ public class ImageStream
     }
 
     /**
-     * Set display index.
+     * Sets the index of the display to be used by this <tt>ImageStream</tt>.
      *
-     * @param index display index
+     * @param displayIndex the index of the display to be used by this
+     * <tt>ImageStream</tt>
      */
-    public void setDisplayIndex(int index)
+    public void setDisplayIndex(int displayIndex)
     {
-        displayIndex = index;
+        this.displayIndex = displayIndex;
     }
 
     /**
-     * Set Origin of capture.
+     * Sets the origin to be captured by this <tt>ImageStream</tt>.
      *
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param x the x coordinate of the origin to be set on this instance
+     * @param y the y coordinate of the origin to be set on this instance
      */
     public void setOrigin(int x, int y)
     {

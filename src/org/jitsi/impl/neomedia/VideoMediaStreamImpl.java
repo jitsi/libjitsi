@@ -16,8 +16,8 @@ import javax.media.control.*;
 import javax.media.format.*;
 import javax.media.protocol.*;
 
+import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.QualityControl;
 import org.jitsi.service.neomedia.control.*;
@@ -1066,23 +1066,16 @@ public class VideoMediaStreamImpl
     {
         MediaDeviceImpl dev = (MediaDeviceImpl)getDevice();
 
-        if(!dev.getCaptureDeviceInfo().getLocator().getProtocol().equals(
+        if (!dev.getCaptureDeviceInfo().getLocator().getProtocol().equals(
                 DeviceSystem.LOCATOR_PROTOCOL_IMGSTREAMING))
             return;
 
-        /* To move origin of the desktop capture, we need to access the
-         * JMF DataSource of imgstreaming
-         */
-        VideoMediaDeviceSession session =
-            (VideoMediaDeviceSession)getDeviceSession();
+        DataSource captureDevice = getDeviceSession().getCaptureDevice();
+        Object imgStreamingControl
+            = captureDevice.getControl(ImgStreamingControl.class.getName());
 
-        DataSource ds = session.getCaptureDevice();
-        if(ds instanceof RewritablePullBufferDataSource)
-        {
-            RewritablePullBufferDataSource ds2 =
-                (RewritablePullBufferDataSource)ds;
-            ds = ds2.getWrappedDataSource();
-        }
+        if (imgStreamingControl == null)
+            return;
 
         // Makes the screen detection with a point inside a real screen i.e.
         // x and y are both greater than or equal to 0.
@@ -1092,13 +1085,12 @@ public class VideoMediaStreamImpl
 
         if (screen != null)
         {
-            Rectangle bounds = ((ScreenDeviceImpl)screen).getBounds();
+            Rectangle bounds = ((ScreenDeviceImpl) screen).getBounds();
 
-            x -= bounds.x;
-            y -= bounds.y;
-            ((org.jitsi.impl.neomedia.jmfext.media.protocol.imgstreaming.DataSource)
-                    ds)
-                .setOrigin(0, screen.getIndex(), x, y);
+            ((ImgStreamingControl) imgStreamingControl).setOrigin(
+                    0,
+                    screen.getIndex(),
+                    x - bounds.x, y - bounds.y);
         }
     }
 
