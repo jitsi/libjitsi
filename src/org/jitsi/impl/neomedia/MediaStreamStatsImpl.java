@@ -83,6 +83,13 @@ public class MediaStreamStatsImpl
     private double[] jitterRTPTimestampUnits = {0, 0};
 
     /**
+     * The RTT computed with the RTCP feedback (cf. RFC3550, section 6.4.1,
+     * subsection "delay since last SR (DLSR): 32 bits").
+     * -1 if the RTT has not been computed yet. Otherwise the RTT in ms.
+     */
+    private long rttMs = -1;
+
+    /**
      * Creates a new instance of stats concerning a MediaStream.
      *
      * @param mediaStreamImpl The MediaStreamImpl used to compute the stats.
@@ -479,6 +486,9 @@ public class MediaStreamStatsImpl
 
         // Updates the upload loss counters.
         this.uploadFeedbackNbPackets = uploadNewNbRecv;
+
+        // Computes RTT.
+        this.rttMs = computeRTTInMs(feedback);
     }
 
     /**
@@ -662,5 +672,54 @@ public class MediaStreamStatsImpl
             }
         }
         return nbBytes;
+    }
+
+    /**
+     * Computes the RTT with the data (LSR and DLSR) contained in the last
+     * RTCP Sender Report (RTCP feedback). This RTT computation is based on
+     * RFC3550, section 6.4.1, subsection "delay since last SR (DLSR): 32
+     * bits".
+     *
+     * @param feedback The last RTCP feedback received by the MediaStream.
+     *
+     * @return The RTT in milliseconds, or -1 if the RTT is not computable.
+     */
+    private long computeRTTInMs(RTCPFeedback feedback)
+    {
+        // Computes RTT.
+        long currentTime = System.currentTimeMillis();
+        long DLSR = feedback.getDLSR();
+        long LSR = feedback.getLSR();
+
+        // If the peer sending us the sender report has at least received on
+        // sender report from our side, then computes the RTT.
+        if(DLSR != 0 && LSR != 0)
+        {
+            long LSRs = LSR >> 16;
+            long LSRms = ((LSR & 0xffff) * 1000) / 0xffff;
+            long DLSRs = DLSR / 0xffff;
+            long DLSRms = ((DLSR & 0xffff) *1000) / 0xffff;
+            long currentTimeS = (currentTime / 1000) & 0x0000ffff;
+            long currentTimeMs = (currentTime % 1000);
+
+            long rttS = currentTimeS - DLSRs - LSRs;
+            long rttMs = currentTimeMs - DLSRms - LSRms;
+
+            return (rttS * 1000) + rttMs;
+        }
+        // Else the RTT can not be computed yet.
+        return -1;
+    }
+
+    /**
+     * Returns the RTT computed with the RTCP feedback (cf. RFC3550, section
+     * 6.4.1, subsection "delay since last SR (DLSR): 32 bits").
+     *
+     * @return The RTT computed with the RTCP feedback. Returns -1 if the RTT
+     * has not been computed yet. Otherwise the RTT in ms.
+     */
+    public long getRttMs()
+    {
+        return this.rttMs;
     }
 }

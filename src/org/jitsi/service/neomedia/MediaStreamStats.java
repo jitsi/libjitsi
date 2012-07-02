@@ -137,4 +137,13 @@ public interface MediaStreamStats
      * @param feedback The last RTCP feedback received by the MediaStream.
      */
     public void updateNewReceivedFeedback(RTCPFeedback feedback);
+
+    /**
+     * Returns the RTT computed with the RTCP feedback (cf. RFC3550, section
+     * 6.4.1, subsection "delay since last SR (DLSR): 32 bits").
+     *
+     * @return The RTT computed with the RTCP feedback. Returns -1 if the RTT
+     * has not been computed yet. Otherwise the RTT in ms.
+     */
+    public long getRttMs();
 }
