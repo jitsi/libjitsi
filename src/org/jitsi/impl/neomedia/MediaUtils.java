@@ -212,10 +212,19 @@ public class MediaUtils
 
         h264AdvancedAttributes.put("imageattr", createImageAttr(null, res));
 
-        // packetization-mode=1
-        h264FormatParams.put(packetizationMode, "1");
-
         ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        // by default packetization mode 1 is enabled
+        if ((cfg == null)
+                || cfg
+                    .getBoolean(
+                        "net.java.sip.communicator.impl.neomedia" +
+                            ".codec.video.h264.packetization-mode-1.enabled",
+                            true))
+        {
+            // packetization-mode=1
+            h264FormatParams.put(packetizationMode, "1");
+        }
 
         if ((cfg == null)
                 || cfg
