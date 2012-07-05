@@ -27,6 +27,18 @@
         target="1.5" />
   </target>
 
+  <target name="compile-g729">
+     <replace file="src/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
+              token="public static final boolean G729 = false"
+              value="public static final boolean G729 = true"/>
+
+      <antcall target="compile" />
+
+      <replace file="src/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
+                    token="public static final boolean G729 = true"
+                    value="public static final boolean G729 = false "/>
+   </target>
+
   <target name="jar" depends="compile">
     <jar
         compress="true"
@@ -48,5 +60,10 @@
       name="rebuild"
       depends="clean,make"
       description="Clean and make the project." />
+
+  <target
+      name="make-g729"
+      depends="compile-g729,jar"
+      description="Incrementally compile and jar/package the project including g729." />
 
 </project>
