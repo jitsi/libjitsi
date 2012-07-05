@@ -852,7 +852,10 @@ public class DeviceConfiguration
             if (cfg != null)
                 value = cfg.getInt(PROP_VIDEO_MAX_BANDWIDTH, value);
 
-            videoMaxBandwidth = value;
+            if(value > 0)
+                videoMaxBandwidth = value;
+            else
+                videoMaxBandwidth = DEFAULT_VIDEO_MAX_BANDWIDTH;
         }
         return videoMaxBandwidth;
     }
