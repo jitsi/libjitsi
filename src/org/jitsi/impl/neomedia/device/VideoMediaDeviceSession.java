@@ -21,6 +21,7 @@ import javax.swing.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.codec.video.h264.*;
+import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.libjitsi.*;
@@ -594,12 +595,13 @@ public class VideoMediaDeviceSession
 
         if (captureDevice != null)
         {
-            MediaLocator locator = captureDevice.getLocator();
+            Object imgStreamingControl
+                = captureDevice.getControl(ImgStreamingControl.class.getName());
 
-            if ((locator != null)
-                    && DeviceSystem.LOCATOR_PROTOCOL_IMGSTREAMING.equals(
-                            locator.getProtocol()))
+            if (imgStreamingControl != null)
+            {
                 return createLocalVisualComponentForDesktopStreaming();
+            }
         }
 
         /*
