@@ -13,7 +13,6 @@ import net.java.sip.communicator.impl.neomedia.directshow.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.video.*;
-import org.jitsi.impl.neomedia.directshow.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.directshow.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;

@@ -28,15 +28,15 @@
   </target>
 
   <target name="compile-g729">
-     <replace file="src/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
-              token="public static final boolean G729 = false"
-              value="public static final boolean G729 = true"/>
-
-      <antcall target="compile" />
-
-      <replace file="src/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
-                    token="public static final boolean G729 = true"
-                    value="public static final boolean G729 = false"/>
+    <replace
+        file="src/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
+        token="public static final boolean G729 = false"
+        value="public static final boolean G729 = true"/>
+    <antcall target="compile" />
+    <replace
+        file="src/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
+        token="public static final boolean G729 = true"
+        value="public static final boolean G729 = false"/>
    </target>
 
   <target name="jar" depends="compile">
@@ -57,13 +57,38 @@
       description="Incrementally compile and jar/package the project." />
 
   <target
+      name="make-g729"
+      depends="compile-g729,jar"
+      description="Incrementally compile and jar/package the project including support for the G.729 audio codec." />
+
+  <target
       name="rebuild"
       depends="clean,make"
       description="Clean and make the project." />
 
+  <!--
+    Run a libjitsi example from the org.jitsi.examples package by name. The name
+    of the example to run is to be specified as the value of the Ant property
+    'run.example.name'. Command-line arguments may be specified to the example
+    to be run via the Ant property 'run.example.arg.line'.
+  -->
   <target
-      name="make-g729"
-      depends="compile-g729,jar"
-      description="Incrementally compile and jar/package the project including g729." />
+  	  name="run-example"
+      depends="compile"
+  	  description="Run a libjitsi example by name.">
+    <java
+        classname="org.jitsi.examples.${run.example.name}"
+        failonerror="true"
+        fork="true">
+      <arg line="${run.example.arg.line}" />
+      <classpath>
+        <path refid="compile.classpath" />
+        <pathelement location="${output}" />
+      </classpath>
+      <sysproperty
+          key="java.library.path"
+          path="native/linux-64:native/linux:native/mac:native/windows-64:native/windows" />
+    </java>
+  </target>
 
 </project>

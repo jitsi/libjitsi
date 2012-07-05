@@ -4,9 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.impl.neomedia.directshow;
-
-import net.java.sip.communicator.impl.neomedia.directshow.*;
+package net.java.sip.communicator.impl.neomedia.directshow;
 
 /**
  * DirectShow capture device.

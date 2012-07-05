@@ -6,8 +6,6 @@
  */
 package net.java.sip.communicator.impl.neomedia.directshow;
 
-import org.jitsi.impl.neomedia.directshow.*;
-
 /**
  * DirectShow capture device manager.
  *

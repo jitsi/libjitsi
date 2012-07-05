@@ -279,7 +279,6 @@ public class MediaStreamImpl
             setConnector(connector);
 
         this.mediaStreamStatsImpl = new MediaStreamStatsImpl(this);
-
     }
 
     /**
