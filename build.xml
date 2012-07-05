@@ -36,7 +36,7 @@
 
       <replace file="src/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
                     token="public static final boolean G729 = true"
-                    value="public static final boolean G729 = false "/>
+                    value="public static final boolean G729 = false"/>
    </target>
 
   <target name="jar" depends="compile">
