@@ -3,6 +3,7 @@
 
   <property file="local.properties" />
   <property name="output" value="classes" />
+  <property name="libjitsi.jar" value="libjitsi.jar"/>
 
   <path id="compile.classpath">
     <fileset dir="lib" includes="*.jar" />
@@ -27,7 +28,7 @@
         target="1.5" />
   </target>
 
-  <target name="compile-g729">
+  <target name="compile-with-g729">
     <replace
         file="src/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
         token="public static final boolean G729 = false"
@@ -42,7 +43,7 @@
   <target name="jar" depends="compile">
     <jar
         compress="true"
-        destfile="${output}/libjitsi.jar">
+        destfile="${libjitsi.jar}">
       <fileset casesensitive="no" dir="${output}">
         <include name="**/*.class" />
       	<include name="**/*.properties" />
@@ -55,10 +56,10 @@
       name="make"
       depends="compile,jar"
       description="Incrementally compile and jar/package the project." />
-
+  
   <target
-      name="make-g729"
-      depends="compile-g729,jar"
+      name="make-with-g729"
+      depends="compile-with-g729,jar"
       description="Incrementally compile and jar/package the project including support for the G.729 audio codec." />
 
   <target
