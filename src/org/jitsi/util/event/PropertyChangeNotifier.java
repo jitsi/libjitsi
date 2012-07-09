@@ -70,7 +70,9 @@ public class PropertyChangeNotifier
      * <tt>PropertyChangeListener</tt>s registered with this
      * <tt>PropertyChangeNotifier</tt> in order to notify about a change in the
      * value of a specific property which had its old value modified to a
-     * specific new value.
+     * specific new value. <tt>PropertyChangeNotifier</tt> does not check
+     * whether the specified <tt>oldValue</tt> and <tt>newValue</tt> are indeed
+     * different.
      * 
      * @param property the name of the property of this
      * <tt>PropertyChangeNotifier</tt> which had its value changed
@@ -80,28 +82,31 @@ public class PropertyChangeNotifier
      * the change
      */
     protected void firePropertyChange(
-        String property,
-        Object oldValue,
-        Object newValue)
+            String property,
+            Object oldValue,
+            Object newValue)
     {
         PropertyChangeListener[] listeners;
+
         synchronized (this.listeners)
         {
             listeners
-                = this.listeners
-                        .toArray(
-                            new PropertyChangeListener[this.listeners.size()]);
+                = this.listeners.toArray(
+                        new PropertyChangeListener[this.listeners.size()]);
         }
 
-        PropertyChangeEvent event
-            = new PropertyChangeEvent(
-                    getPropertyChangeSource(property, oldValue, newValue),
-                    property,
-                    oldValue,
-                    newValue);
+        if (listeners.length != 0)
+        {
+            PropertyChangeEvent event
+                = new PropertyChangeEvent(
+                        getPropertyChangeSource(property, oldValue, newValue),
+                        property,
+                        oldValue,
+                        newValue);
 
-        for (PropertyChangeListener listener : listeners)
-            listener.propertyChange(event);
+            for (PropertyChangeListener listener : listeners)
+                listener.propertyChange(event);
+        }
     }
 
     /**
@@ -126,9 +131,9 @@ public class PropertyChangeNotifier
      * specified new value
      */
     protected Object getPropertyChangeSource(
-        String property,
-        Object oldValue,
-        Object newValue)
+            String property,
+            Object oldValue,
+            Object newValue)
     {
         return this;
     }

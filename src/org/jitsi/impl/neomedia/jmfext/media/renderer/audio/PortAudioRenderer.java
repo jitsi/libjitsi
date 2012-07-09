@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.renderer.audio;
 
+import java.lang.reflect.*;
 import java.util.*;
 
 import javax.media.*;
@@ -16,7 +17,6 @@ import net.java.sip.communicator.impl.neomedia.portaudio.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.portaudio.*;
-import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
 import org.jitsi.util.*;
 
 /**
@@ -26,7 +26,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  */
 public class PortAudioRenderer
-    extends AbstractRenderer<AudioFormat>
+    extends AbstractAudioRenderer
 {
     /**
      * The <tt>Logger</tt> used by the <tt>PortAudioRenderer</tt> class and its
@@ -109,12 +109,6 @@ public class PortAudioRenderer
      */
     private int framesPerBuffer;
 
-    /**
-     * The <tt>MediaLocator</tt> which specifies the device index of the
-     * PortAudio device used by this instance for rendering.
-     */
-    private MediaLocator locator;
-
     private long outputParameters = 0;
 
     /**
@@ -160,6 +154,8 @@ public class PortAudioRenderer
      */
     public PortAudioRenderer(boolean enableVolumeControl)
     {
+        super(AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO);
+
         if (enableVolumeControl)
         {
             /*
@@ -209,6 +205,8 @@ public class PortAudioRenderer
                 PortAudio.PaStreamParameters_free(outputParameters);
                 outputParameters = 0;
             }
+
+            super.close();
         }
     }
 
@@ -223,35 +221,6 @@ public class PortAudioRenderer
     public Object[] getControls()
     {
         return new Object[] { gainControl };
-    }
-
-    /**
-     * Gets the <tt>MediaLocator</tt> which specifies the device index of the
-     * PortAudio device used by this instance for rendering.
-     *
-     * @return the <tt>MediaLocator</tt> which specifies the device index of the
-     * PortAudio device used by this instance for rendering
-     */
-    public MediaLocator getLocator()
-    {
-        MediaLocator locator = this.locator;
-
-        if (locator == null)
-        {
-            AudioSystem portAudioSystem
-                = AudioSystem.getAudioSystem(
-                        AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO);
-
-            if (portAudioSystem != null)
-            {
-                CaptureDeviceInfo playbackDevice
-                    = portAudioSystem.getPlaybackDevice();
-
-                if (playbackDevice != null)
-                    locator = playbackDevice.getLocator();
-            }
-        }
-        return locator;
     }
 
     /**
@@ -415,6 +384,8 @@ public class PortAudioRenderer
                 throw rue;
             }
         }
+
+        super.open();
     }
 
     /**
@@ -607,23 +578,50 @@ public class PortAudioRenderer
     }
 
     /**
+     * Resets the state of this <tt>PlugIn</tt>.
+     */
+    public synchronized void reset()
+    {
+        waitWhileStreamIsBusy();
+
+        boolean open = (this.stream != 0);
+
+        if (open)
+        {
+            /*
+             * The close method will stop this Renderer if it is currently
+             * started.
+             */
+            boolean start = this.started;
+
+            close();
+
+            try
+            {
+                open();
+            }
+            catch (ResourceUnavailableException rue)
+            {
+                throw new UndeclaredThrowableException(rue);
+            }
+
+            if (start)
+                start();
+        }
+    }
+
+    /**
      * Sets the <tt>MediaLocator</tt> which specifies the device index of the
      * PortAudio device to be used by this instance for rendering.
      *
      * @param locator a <tt>MediaLocator</tt> which specifies the device index
      * of the PortAudio device to be used by this instance for rendering
      */
+    @Override
     public void setLocator(MediaLocator locator)
     {
-        if (this.locator == null)
-        {
-            if (locator == null)
-                return;
-        }
-        else if (this.locator.equals(locator))
-            return;
+        super.setLocator(locator);
 
-        this.locator = locator;
         supportedInputFormats = null;
     }
 
@@ -653,6 +651,30 @@ public class PortAudioRenderer
      */
     public synchronized void stop()
     {
+        waitWhileStreamIsBusy();
+        if (started && (stream != 0))
+        {
+            try
+            {
+                PortAudio.Pa_StopStream(stream);
+                started = false;
+
+                bufferLeft = null;
+            }
+            catch (PortAudioException paex)
+            {
+                logger.error("Failed to close PortAudio stream.", paex);
+            }
+        }
+    }
+
+    /**
+     * Waits on this instance while {@link #streamIsBusy} is equal to
+     * <tt>true</tt> i.e. until it becomes <tt>false</tt>. The method should
+     * only be called by a thread that is the owner of this object's monitor.
+     */
+    private void waitWhileStreamIsBusy()
+    {
         boolean interrupted = false;
 
         while (streamIsBusy)
@@ -668,20 +690,5 @@ public class PortAudioRenderer
         }
         if (interrupted)
             Thread.currentThread().interrupt();
-
-        if (started && (stream != 0))
-        {
-            try
-            {
-                PortAudio.Pa_StopStream(stream);
-                started = false;
-
-                bufferLeft = null;
-            }
-            catch (PortAudioException paex)
-            {
-                logger.error("Failed to close PortAudio stream.", paex);
-            }
-        }
     }
 }

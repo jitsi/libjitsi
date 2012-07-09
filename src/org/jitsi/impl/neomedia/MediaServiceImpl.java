@@ -1386,7 +1386,20 @@ public class MediaServiceImpl
     {
         String propertyName = event.getPropertyName();
 
+        /*
+         * While AUDIO_CAPTURE_DEVICE is sure to affect the DEFAULT_DEVICE,
+         * AUDIO_PLAYBACK_DEVICE is not. Anyway, MediaDevice is supposed to
+         * represent the device to be used for capture AND playback (though its
+         * current implementation MediaDeviceImpl may be incomplete with respect
+         * to the playback representation). Since it is not clear at this point
+         * of the execution whether AUDIO_PLAYBACK_DEVICE really affects the
+         * DEFAULT_DEVICE and for the sake of completeness, throw in the changes
+         * to the AUDIO_NOTIFY_DEVICE as well.
+         */
         if (DeviceConfiguration.AUDIO_CAPTURE_DEVICE.equals(propertyName)
+                || DeviceConfiguration.AUDIO_NOTIFY_DEVICE.equals(propertyName)
+                || DeviceConfiguration.AUDIO_PLAYBACK_DEVICE.equals(
+                        propertyName)
                 || DeviceConfiguration.VIDEO_CAPTURE_DEVICE.equals(
                         propertyName))
         {

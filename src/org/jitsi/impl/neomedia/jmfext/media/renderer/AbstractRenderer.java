@@ -12,7 +12,7 @@ import org.jitsi.impl.neomedia.control.*;
 
 /**
  * Provides an abstract base implementation of <tt>Renderer</tt> in order to
- * facilitate extenders
+ * facilitate extenders.
  *
  * @author Lyubomir Marinov
  *

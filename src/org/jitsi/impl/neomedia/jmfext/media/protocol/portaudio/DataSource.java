@@ -188,14 +188,17 @@ public class DataSource
      *
      * @return the device index of a PortAudio device identified by the
      * <tt>MediaLocator</tt> of this <tt>DataSource</tt>
+     * @throws IllegalStateException if there is no <tt>MediaLocator</tt>
+     * associated with this <tt>DataSource</tt>
      */
     private int getDeviceIndex()
     {
         MediaLocator locator = getLocator();
 
         if (locator == null)
-            throw new NullPointerException("locator");
-        return getDeviceIndex(locator);
+            throw new IllegalStateException("locator");
+        else
+            return getDeviceIndex(locator);
     }
 
     /**
@@ -211,13 +214,9 @@ public class DataSource
     {
         if (AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO.equalsIgnoreCase(
                 locator.getProtocol()))
-        {
             return Integer.parseInt(locator.getRemainder().replace("#", ""));
-        }
         else
-        {
             throw new IllegalArgumentException("locator.protocol");
-        }
     }
 
     /**

@@ -308,11 +308,21 @@ public abstract class AudioSystem
             {
                 if (captureDevice != null)
                 {
-                    List<CaptureDeviceInfo> captureDevices = getCaptureDevices();
+                    List<CaptureDeviceInfo> captureDevices
+                        = getCaptureDevices();
 
                     if ((captureDevices == null)
                             || !captureDevices.contains(captureDevice))
                         setCaptureDevice(null, false);
+                }
+                else
+                {
+                    /*
+                     * If captureDevice is null, it means that a device is to be
+                     * used as the default. The default in question may have
+                     * changed.
+                     */
+                    setCaptureDevice(null, false);
                 }
             }
             finally
@@ -330,6 +340,15 @@ public abstract class AudioSystem
                                     || !notifyDevices.contains(notifyDevice))
                                 setNotifyDevice(null, false);
                         }
+                        else
+                        {
+                            /*
+                             * If notifyDevice is null, it means that a device
+                             * is to be used as the default. The default in
+                             * question may have changed.
+                             */
+                            setNotifyDevice(null, false);
+                        }
                     }
                     finally
                     {
@@ -342,6 +361,15 @@ public abstract class AudioSystem
                                     || !playbackDevices.contains(
                                             playbackDevice))
                                 setPlaybackDevice(null, false);
+                        }
+                        else
+                        {
+                            /*
+                             * If playbackDevice is null, it means that a device
+                             * is to be used as the default. The default in
+                             * question may have changed.
+                             */
+                            setPlaybackDevice(null, false);
                         }
                     }
                 }

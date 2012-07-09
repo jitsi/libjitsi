@@ -14,11 +14,15 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
 import org.jitsi.impl.neomedia.pulseaudio.*;
 
+/**
+ * Implements an audio <tt>Renderer</tt> which uses PulseAudio.
+ *
+ * @author Lyubomir Marinov
+ */
 public class PulseAudioRenderer
-    extends AbstractRenderer<AudioFormat>
+    extends AbstractAudioRenderer
 {
     /**
      * The human-readable <tt>PlugIn</tt> name of the
@@ -53,10 +57,14 @@ public class PulseAudioRenderer
 
     private float gainControlLevel;
 
-    private MediaLocator locator;
-
     private final String mediaRole;
 
+    /*
+     * TODO The field pulseAudioSystem has been introduced prior to
+     * AbstractAudioSystem and its field audioSystem. It would be a good idea to
+     * remove the field pulseAudioSystem in order to reduce the memory footprint
+     * of the PulseAudioRenderer instances.
+     */
     private final PulseAudioSystem pulseAudioSystem;
 
     private long stream;
@@ -80,7 +88,9 @@ public class PulseAudioRenderer
 
     public PulseAudioRenderer(String mediaRole)
     {
-        pulseAudioSystem = PulseAudioSystem.getPulseAudioSystem();
+        super(PulseAudioSystem.getPulseAudioSystem());
+
+        pulseAudioSystem = (PulseAudioSystem) audioSystem;
         if (pulseAudioSystem == null)
             throw new IllegalStateException("pulseAudioSystem");
 
@@ -140,6 +150,8 @@ public class PulseAudioRenderer
                     PA.stream_unref(stream);
                 }
             }
+
+            super.close();
         }
         finally
         {
@@ -162,21 +174,6 @@ public class PulseAudioRenderer
         {
             pulseAudioSystem.signalMainloop(false);
         }
-    }
-
-    public MediaLocator getLocator()
-    {
-        MediaLocator locator = this.locator;
-
-        if (locator == null)
-        {
-            CaptureDeviceInfo playbackDevice
-                = pulseAudioSystem.getPlaybackDevice();
-
-            if (playbackDevice != null)
-                locator = playbackDevice.getLocator();
-        }
-        return locator;
     }
 
     private String getLocatorDev()
@@ -212,6 +209,8 @@ public class PulseAudioRenderer
         try
         {
             openWithMainloopLock();
+
+            super.open();
         }
         finally
         {
@@ -465,17 +464,43 @@ public class PulseAudioRenderer
         return ret;
     }
 
-    public void setLocator(MediaLocator locator)
+    /**
+     * Resets the state of this <tt>PlugIn</tt>.
+     */
+    public void reset()
     {
-        if (this.locator == null)
+        pulseAudioSystem.lockMainloop();
+        try
         {
-            if (locator == null)
-                return;
-        }
-        else if (this.locator.equals(locator))
-            return;
+            boolean open = (this.stream != 0);
 
-        this.locator = locator;
+            if (open)
+            {
+                /*
+                 * The close method will stop this Renderer if it is currently
+                 * started.
+                 */
+                boolean start = !this.corked;
+
+                close();
+
+                try
+                {
+                    open();
+                }
+                catch (ResourceUnavailableException rue)
+                {
+                    throw new UndeclaredThrowableException(rue);
+                }
+
+                if (start)
+                    start();
+            }
+        }
+        finally
+        {
+            pulseAudioSystem.unlockMainloop();
+        }
     }
 
     private void setStreamVolume(long stream, float level)
