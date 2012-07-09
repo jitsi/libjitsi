@@ -16,6 +16,7 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Class used to compute stats concerning a MediaStream.
@@ -25,6 +26,12 @@ import org.jitsi.service.neomedia.*;
 public class MediaStreamStatsImpl
     implements MediaStreamStats
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>MediaStreamImpl</tt> class and its
+     * instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(MediaStreamStatsImpl.class);
 
     /**
      * Enumeation of the direction (DOWNLOAD or UPLOAD) used for the stats.
@@ -538,13 +545,13 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * Computes the bandwidth usage in Kilo bits per secondes.
+     * Computes the bandwidth usage in Kilo bits per seconds.
      *
      * @param nbByteRecv The number of Byte received.
      * @param callNbTimeMsSpent The time spent since the mediaStreamImpl is
      * connected to the endpoint.
      *
-     * @return the bandwidth rate computed in Kilo bits per secondes.
+     * @return the bandwidth rate computed in Kilo bits per seconds.
      */
     private static double computeRateKiloBitPerSec(
             long nbByteRecv,
@@ -705,7 +712,43 @@ public class MediaStreamStatsImpl
             long rttS = currentTimeS - DLSRs - LSRs;
             long rttMs = currentTimeMs - DLSRms - LSRms;
 
-            return (rttS * 1000) + rttMs;
+            long computedRTTms = (rttS * 1000) + rttMs;
+
+            // If the RTT is greater than a minute there might be a bug. Thus we
+            // log the info to see the source of this error.
+            if(computedRTTms > 60000 && logger.isInfoEnabled())
+            {
+                logger.info("RTT computation seems to be wrong ("
+                        + computedRTTms + "> 60 seconds):"
+
+                        + "\n\tcurrentTime: " + currentTime
+                        + " (" + Long.toHexString(currentTime) + ")"
+                        + "\n\tDLSR: " + DLSR
+                        + " (" + Long.toHexString(DLSR) + ")"
+                        + "\n\tLSR: " + LSR
+                        + " (" + Long.toHexString(LSR) + ")"
+
+                        + "\n\n\tcurrentTimeS: " + currentTimeS
+                        + " (" + Long.toHexString(currentTimeS) + ")"
+                        + "\n\tDLSRs: " + DLSRs
+                        + " (" + Long.toHexString(DLSRs) + ")"
+                        + "\n\tLSRs: " + LSRs
+                        + " (" + Long.toHexString(LSRs) + ")"
+                        + "\n\trttS: " + rttS
+                        + " (" + Long.toHexString(rttS) + ")"
+
+                        + "\n\n\tcurrentTimeMs: " + currentTimeMs
+                        + " (" + Long.toHexString(currentTimeMs) + ")"
+                        + "\n\tDLSRms: " + DLSRms
+                        + " (" + Long.toHexString(DLSRms) + ")"
+                        + "\n\tLSRms: " + LSRms
+                        + " (" + Long.toHexString(LSRms) + ")"
+                        + "\n\trttMs: " + rttMs
+                        + " (" + Long.toHexString(rttMs) + ")"
+                        );
+            }
+
+            return computedRTTms;
         }
         // Else the RTT can not be computed yet.
         return -1;
