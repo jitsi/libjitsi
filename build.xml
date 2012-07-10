@@ -88,7 +88,7 @@
       </classpath>
       <sysproperty
           key="java.library.path"
-          path="native/linux-64:native/linux:native/mac:native/windows-64:native/windows" />
+          path="lib/native/linux-64:lib/native/linux:lib/native/mac:lib/native/windows-64:lib/native/windows" />
     </java>
   </target>
 

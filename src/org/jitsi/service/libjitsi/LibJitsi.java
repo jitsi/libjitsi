@@ -12,6 +12,7 @@ import org.jitsi.service.fileaccess.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.service.resources.*;
+import org.jitsi.util.*;
 
 /**
  * Represents the entry point of the <tt>libjitsi</tt> library.
@@ -40,6 +41,12 @@ import org.jitsi.service.resources.*;
  */
 public abstract class LibJitsi
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>LibJitsi</tt> class for logging
+     * output.
+     */
+    private static final Logger logger = Logger.getLogger(LibJitsi.class);
+
     /**
      * The <tt>LibJitsi</tt> instance which is provides the implementation of
      * the <tt>getXXXService</tt> methods.
@@ -206,8 +213,13 @@ public abstract class LibJitsi
                     break;
             }
 
-            if (exception != null)
-                exception.printStackTrace(System.err);
+            if ((exception != null) && logger.isInfoEnabled())
+            {
+                logger.info(
+                        "Failed to initialize LibJitsi backend "
+                                + implClassName
+                                + ". Will continue with an alternative.");
+            }
         }
 
         if (impl == null)

@@ -9,6 +9,7 @@ package org.jitsi.impl.libjitsi;
 import java.util.*;
 
 import org.jitsi.service.libjitsi.*;
+import org.jitsi.util.*;
 
 /**
  * Represents an implementation of the <tt>libjitsi</tt> library which is
@@ -19,6 +20,12 @@ import org.jitsi.service.libjitsi.*;
 public class LibJitsiImpl
     extends LibJitsi
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>LibJitsiImpl</tt> class and its
+     * instances.
+     */
+    private static final Logger logger = Logger.getLogger(LibJitsiImpl.class);
+
     /**
      * The service instances associated with this implementation of the
      * <tt>libjitsi</tt> library mapped by their respective type/class names.
@@ -143,8 +150,13 @@ public class LibJitsiImpl
                     services.put(serviceClassName, service);
             }
         }
-        else
-            exception.printStackTrace(System.err);
+        else if (logger.isInfoEnabled())
+        {
+            logger.info(
+                    "Failed to initialize service implementation "
+                        + serviceImplClassName
+                        + ". Will continue without it.");
+        }
 
         return service;
     }
