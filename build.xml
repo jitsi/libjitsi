@@ -3,17 +3,25 @@
 
   <property file="local.properties" />
   <property name="output" value="classes" />
+  <property name="dist" value="dist" />
   <property name="libjitsi.jar" value="libjitsi.jar"/>
 
   <path id="compile.classpath">
     <fileset dir="lib" includes="*.jar" />
   </path>
 
+  <condition property="build.label"
+             value="-${label}"
+             else="">
+    <isset property="label"/>
+  </condition>
+
   <target
       name="clean"
       description="Remove all compiled/generated files and prepare for a clean compile/build.">
     <delete failonerror="false" includeemptydirs="true">
       <fileset dir="${output}" />
+      <fileset dir="${dist}" />
     </delete>
   </target>
 
@@ -90,6 +98,43 @@
           key="java.library.path"
           path="lib/native/linux-64:lib/native/linux:lib/native/mac:lib/native/windows-64:lib/native/windows" />
     </java>
+  </target>
+
+  <target name="dist" depends="make">
+      <mkdir dir="${dist}/windows"/>
+      <mkdir dir="${dist}/macosx"/>
+      <mkdir dir="${dist}/linux"/>
+
+      <zip destfile="${dist}/windows/libjitsi${build.label}-x86.zip">
+          <zipfileset file="libjitsi.jar" />
+          <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
+          <zipfileset dir="lib/native/windows" includes="*.dll"
+                      prefix="lib/native/windows"/>
+      </zip>
+      <zip destfile="${dist}/windows/libjitsi${build.label}-x64.zip">
+          <zipfileset file="libjitsi.jar" />
+          <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
+          <zipfileset dir="lib/native/windows-64" includes="*.dll"
+                      prefix="lib/native/windows-64"/>
+      </zip>
+      <zip destfile="${dist}/macosx/libjitsi${build.label}.zip">
+          <zipfileset file="libjitsi.jar" />
+          <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
+          <zipfileset dir="lib/native/mac" includes="*.jnilib"
+                      prefix="lib/native/mac"/>
+      </zip>
+      <zip destfile="${dist}/linux/libjitsi${build.label}-i386.zip">
+          <zipfileset file="libjitsi.jar" />
+          <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
+          <zipfileset dir="lib/native/linux" includes="*.so"
+                      prefix="lib/native/linux"/>
+      </zip>
+      <zip destfile="${dist}/linux/libjitsi${build.label}-amd64.zip">
+          <zipfileset file="libjitsi.jar" />
+          <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
+          <zipfileset dir="lib/native/linux-64" includes="*.so"
+                      prefix="lib/native/linux-64"/>
+      </zip>
   </target>
 
 </project>
