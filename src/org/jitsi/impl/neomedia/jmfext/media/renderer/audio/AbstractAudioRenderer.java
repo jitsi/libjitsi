@@ -105,10 +105,24 @@ public abstract class AbstractAudioRenderer
         }
     }
 
+    /**
+     * Notifies this instance that the value of the
+     * {@link AudioSystem#PROP_PLAYBACK_DEVICE} property of its associated
+     * <tt>AudioSystem</tt> has changed. The default implementation does nothing
+     * so extenders may safely not call back to their
+     * <tt>AbstractAudioRenderer</tt> super.
+     *
+     * @param event a <tt>PropertyChangeEvent</tt> which specifies details about
+     * the change such as the name of the property and its old and new values
+     */
+    protected void playbackDevicePropertyChange(PropertyChangeEvent event)
+    {
+    }
+
     private void propertyChange(PropertyChangeEvent event)
     {
         if (AudioSystem.PROP_PLAYBACK_DEVICE.equals(event.getPropertyName()))
-            reset();
+            playbackDevicePropertyChange(event);
     }
 
     /**

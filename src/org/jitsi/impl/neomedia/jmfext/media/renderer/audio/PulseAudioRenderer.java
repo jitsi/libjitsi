@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.renderer.audio;
 
+import java.beans.*;
 import java.io.*;
 import java.lang.reflect.*;
 
@@ -374,6 +375,55 @@ public class PulseAudioRenderer
         }
     }
 
+    /**
+     * Notifies this instance that the value of the
+     * {@link AudioSystem#PROP_PLAYBACK_DEVICE} property of its associated
+     * <tt>AudioSystem</tt> has changed.
+     *
+     * @param event a <tt>PropertyChangeEvent</tt> which specifies details about
+     * the change such as the name of the property and its old and new values
+     */
+    @Override
+    protected void playbackDevicePropertyChange(PropertyChangeEvent event)
+    {
+        /*
+         * FIXME Disabled due to freezes reported by Vincent Lucas and Kertesz
+         * Laszlo on the dev mailing list.
+         */
+//        pulseAudioSystem.lockMainloop();
+//        try
+//        {
+//            boolean open = (this.stream != 0);
+//
+//            if (open)
+//            {
+//                /*
+//                 * The close method will stop this Renderer if it is currently
+//                 * started.
+//                 */
+//                boolean start = !this.corked;
+//
+//                close();
+//
+//                try
+//                {
+//                    open();
+//                }
+//                catch (ResourceUnavailableException rue)
+//                {
+//                    throw new UndeclaredThrowableException(rue);
+//                }
+//
+//                if (start)
+//                    start();
+//            }
+//        }
+//        finally
+//        {
+//            pulseAudioSystem.unlockMainloop();
+//        }
+    }
+
     public int process(Buffer buffer)
     {
         if (buffer.isDiscard())
@@ -462,45 +512,6 @@ public class PulseAudioRenderer
         }
 
         return ret;
-    }
-
-    /**
-     * Resets the state of this <tt>PlugIn</tt>.
-     */
-    public void reset()
-    {
-        pulseAudioSystem.lockMainloop();
-        try
-        {
-            boolean open = (this.stream != 0);
-
-            if (open)
-            {
-                /*
-                 * The close method will stop this Renderer if it is currently
-                 * started.
-                 */
-                boolean start = !this.corked;
-
-                close();
-
-                try
-                {
-                    open();
-                }
-                catch (ResourceUnavailableException rue)
-                {
-                    throw new UndeclaredThrowableException(rue);
-                }
-
-                if (start)
-                    start();
-            }
-        }
-        finally
-        {
-            pulseAudioSystem.unlockMainloop();
-        }
     }
 
     private void setStreamVolume(long stream, float level)

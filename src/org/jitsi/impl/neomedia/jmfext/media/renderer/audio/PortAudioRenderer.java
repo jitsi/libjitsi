@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.renderer.audio;
 
+import java.beans.*;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -468,6 +469,52 @@ public class PortAudioRenderer
     }
 
     /**
+     * Notifies this instance that the value of the
+     * {@link AudioSystem#PROP_PLAYBACK_DEVICE} property of its associated
+     * <tt>AudioSystem</tt> has changed.
+     *
+     * @param event a <tt>PropertyChangeEvent</tt> which specifies details about
+     * the change such as the name of the property and its old and new values
+     */
+    @Override
+    protected void playbackDevicePropertyChange(PropertyChangeEvent event)
+    {
+        /*
+         * Stop, close, re-open and re-start this Renderer (performing whichever
+         * of these in order to bring it into the same state) in order to
+         * reflect the change in the selection with respect to the playback
+         * device.
+         */
+
+        waitWhileStreamIsBusy();
+
+        boolean open = (this.stream != 0);
+
+        if (open)
+        {
+            /*
+             * The close method will stop this Renderer if it is currently
+             * started.
+             */
+            boolean start = this.started;
+
+            close();
+
+            try
+            {
+                open();
+            }
+            catch (ResourceUnavailableException rue)
+            {
+                throw new UndeclaredThrowableException(rue);
+            }
+
+            if (start)
+                start();
+        }
+    }
+
+    /**
      * Renders the audio data contained in a specific <tt>Buffer</tt> onto the
      * PortAudio device represented by this <tt>Renderer</tt>.
      *
@@ -574,39 +621,6 @@ public class PortAudioRenderer
                 bufferLeft = new byte[bytesPerBuffer];
             System.arraycopy(buffer, offset, bufferLeft, 0, length);
             bufferLeftLength = length;
-        }
-    }
-
-    /**
-     * Resets the state of this <tt>PlugIn</tt>.
-     */
-    public synchronized void reset()
-    {
-        waitWhileStreamIsBusy();
-
-        boolean open = (this.stream != 0);
-
-        if (open)
-        {
-            /*
-             * The close method will stop this Renderer if it is currently
-             * started.
-             */
-            boolean start = this.started;
-
-            close();
-
-            try
-            {
-                open();
-            }
-            catch (ResourceUnavailableException rue)
-            {
-                throw new UndeclaredThrowableException(rue);
-            }
-
-            if (start)
-                start();
         }
     }
 
