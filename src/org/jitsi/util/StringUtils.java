@@ -92,15 +92,20 @@ public final class StringUtils
     }
 
     /**
-     * Indicates whether strings are equal.
+     * Determines whether a specific <tt>String</tt> value equals another
+     * <tt>String</tt> value. If the two specified <tt>String</tt> values are
+     * equal to <tt>null</tt>, they are considered equal.
      *
-     * @param s1 the string to analyze.
-     * @param s2 the string to analyze.
-     * @return true if string are equal.
+     * @param s1 the first <tt>String</tt> value to check for value equality
+     * with the second
+     * @param s2 the second <tt>String</tt> value to check for value equality
+     * with the first
+     * @return <tt>true</tt> if the two specified <tt>Sting</tt> values are
+     * equal; otherwise, <tt>false</tt>
      */
     public static boolean isEquals(String s1, String s2)
     {
-        return (s1 == null && s2 == null) || (s1 != null && s1.equals(s2));
+        return (s1 == null) ? (s2 == null) : s1.equals(s2);
     }
 
     /**

@@ -16,6 +16,7 @@ import javax.media.format.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.pulseaudio.*;
+import org.jitsi.util.*;
 
 /**
  * Implements an audio <tt>Renderer</tt> which uses PulseAudio.
@@ -53,6 +54,11 @@ public class PulseAudioRenderer
     private boolean corked = true;
 
     private long cvolume;
+
+    /**
+     * The name of the sink {@link #stream} is connected to.
+     */
+    private String dev;
 
     private final GainControl gainControl;
 
@@ -142,6 +148,7 @@ public class PulseAudioRenderer
                     this.stream = 0;
 
                     corked = true;
+                    dev = null;
 
                     pulseAudioSystem.signalMainloop(false);
 
@@ -301,9 +308,12 @@ public class PulseAudioRenderer
                 PA.stream_set_state_callback(
                         stream,
                         stateCallback);
+
+                String dev = getLocatorDev();
+
                 PA.stream_connect_playback(
                         stream,
-                        getLocatorDev(),
+                        dev,
                         attr,
                         PA.STREAM_ADJUST_LATENCY
                             | PA.STREAM_START_CORKED,
@@ -355,6 +365,7 @@ public class PulseAudioRenderer
                     }
 
                     this.stream = stream;
+                    this.dev = dev;
                 }
                 finally
                 {
@@ -390,38 +401,64 @@ public class PulseAudioRenderer
          * FIXME Disabled due to freezes reported by Vincent Lucas and Kertesz
          * Laszlo on the dev mailing list.
          */
-//        pulseAudioSystem.lockMainloop();
-//        try
-//        {
-//            boolean open = (this.stream != 0);
-//
-//            if (open)
-//            {
-//                /*
-//                 * The close method will stop this Renderer if it is currently
-//                 * started.
-//                 */
-//                boolean start = !this.corked;
-//
-//                close();
-//
-//                try
-//                {
-//                    open();
-//                }
-//                catch (ResourceUnavailableException rue)
-//                {
-//                    throw new UndeclaredThrowableException(rue);
-//                }
-//
-//                if (start)
-//                    start();
-//            }
-//        }
-//        finally
-//        {
-//            pulseAudioSystem.unlockMainloop();
-//        }
+        pulseAudioSystem.lockMainloop();
+        try
+        {
+            /*
+             * If the stream is not open, changes to the default playback device
+             * do not really concern this Renderer because it will pick them up
+             * when it gets open.
+             */
+            boolean open = (stream != 0);
+
+            if (open)
+            {
+                /*
+                 * One and the same name of the sink that stream is connected to
+                 * in the server may come from different MediaLocator instances.
+                 */
+                String locatorDev = getLocatorDev();
+
+                if (!StringUtils.isEquals(dev, locatorDev))
+                {
+                    /*
+                     * PulseAudio has the capability to move a stream to a
+                     * different device while the stream is connected to a sink.
+                     * In other words, it may turn out that the stream is
+                     * already connected to the sink with the specified name at
+                     * this time of the execution.
+                     */
+                    String streamDev = PA.stream_get_device_name(stream);
+
+                    if (!StringUtils.isEquals(streamDev, locatorDev))
+                    {
+                        /*
+                         * The close method will stop this Renderer if it is
+                         * currently started.
+                         */
+                        boolean start = !corked;
+
+                        close();
+
+                        try
+                        {
+                            open();
+                        }
+                        catch (ResourceUnavailableException rue)
+                        {
+                            throw new UndeclaredThrowableException(rue);
+                        }
+
+                        if (start)
+                            start();
+                    }
+                }
+            }
+        }
+        finally
+        {
+            pulseAudioSystem.unlockMainloop();
+        }
     }
 
     public int process(Buffer buffer)

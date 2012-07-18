@@ -393,6 +393,14 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_pulseaudio_PA_stream_1drop
 
 /*
  * Class:     org_jitsi_impl_neomedia_pulseaudio_PA
+ * Method:    stream_get_device_name
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_jitsi_impl_neomedia_pulseaudio_PA_stream_1get_1device_1name
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_pulseaudio_PA
  * Method:    stream_get_index
  * Signature: (J)I
  */

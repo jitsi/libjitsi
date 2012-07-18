@@ -556,17 +556,16 @@ public class XMLUtils
     {
         String prefix = node.getPrefix();
         String namespaceUri = node.getNamespaceURI();
+
         if (!isNullOrEmpty(namespaceUri))
-        {
             return normalizeNamespace(namespaceUri);
-        }
-        if (XMLConstants.XMLNS_ATTRIBUTE.equals(node.getNodeName()) ||
-                XMLConstants.XMLNS_ATTRIBUTE.equals(prefix))
-        {
+        if (XMLConstants.XMLNS_ATTRIBUTE.equals(node.getNodeName())
+                || XMLConstants.XMLNS_ATTRIBUTE.equals(prefix))
             return normalizeNamespace(XMLNS_ATTRIBUTE_NS_URI);
-        }
+
         Element rootElement = node.getOwnerDocument().getDocumentElement();
         Node parentNode = null;
+
         while (parentNode != rootElement)
         {
             if (parentNode == null)
@@ -577,23 +576,15 @@ public class XMLUtils
                     // If attribute doesn't have prefix - it has its parent
                     // namespace
                     if (isNullOrEmpty(prefix))
-                    {
                         prefix = parentNode.getPrefix();
-                    }
                 }
                 else if (node.getNodeType() == Node.ELEMENT_NODE)
-                {
                     parentNode = node.getParentNode();
-                }
                 else
-                {
                     return null;
-                }
             }
             else
-            {
                 parentNode = parentNode.getParentNode();
-            }
             String parentPrefix = parentNode.getPrefix();
             String parentNamespaceUri = parentNode.getNamespaceURI();
             if (isNullOrEmpty(prefix))
@@ -601,22 +592,16 @@ public class XMLUtils
                 Node xmlnsAttribute =
                         parentNode.getAttributes().getNamedItem("xmlns");
                 if (xmlnsAttribute != null)
-                {
                     return ((Attr) xmlnsAttribute).getValue();
-                }
             }
             else if (isEquals(prefix, parentPrefix))
             {
                 if (!isNullOrEmpty(parentNamespaceUri))
-                {
                     return normalizeNamespace(parentNamespaceUri);
-                }
             }
         }
         if ("xml".equals(prefix))
-        {
             return normalizeNamespace(XML_NS_URI);
-        }
         return null;
     }
 

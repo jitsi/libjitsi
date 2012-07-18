@@ -606,6 +606,15 @@ Java_org_jitsi_impl_neomedia_pulseaudio_PA_stream_1drop
     return pa_stream_drop((pa_stream *) (intptr_t) s);
 }
 
+JNIEXPORT jstring JNICALL
+Java_org_jitsi_impl_neomedia_pulseaudio_PA_stream_1get_1device_1name
+    (JNIEnv *env, jclass clazz, jlong s)
+{
+    const char *chars = pa_stream_get_device_name((pa_stream *) (intptr_t) s);
+
+    return chars ? (*env)->NewStringUTF(env, chars) : NULL;
+}
+
 JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_pulseaudio_PA_stream_1get_1index
     (JNIEnv *env, jclass clazz, jlong s)

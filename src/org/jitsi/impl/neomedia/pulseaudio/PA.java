@@ -6,6 +6,13 @@
  */
 package org.jitsi.impl.neomedia.pulseaudio;
 
+/**
+ * Declares the functions, structures and constants of the native
+ * <tt>PulseAudio</tt> API for use within Java in general and neomedia in
+ * particular.
+ *
+ * @author Lyubomir Marinov
+ */
 public final class PA
 {
     public interface context_success_cb_t
@@ -233,6 +240,17 @@ public final class PA
     public static native int stream_disconnect(long s);
 
     public static native int stream_drop(long s);
+
+    /**
+     * Gets the name of the sink or source a specified <tt>pa_stream</tt> is
+     * connected to in the server.
+     *
+     * @param s the <tt>pa_stream</tt> of which to get the name of the sink or
+     * source it is connected to in the server 
+     * @return the name of the sink or source the specified <tt>pa_stream</tt>
+     * is connected to in the server
+     */
+    public static native String stream_get_device_name(long s);
 
     public static native int stream_get_index(long s);
 
