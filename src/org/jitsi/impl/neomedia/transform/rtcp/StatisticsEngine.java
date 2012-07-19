@@ -105,19 +105,6 @@ public class StatisticsEngine
             {
                 RTCPSenderReport report = new RTCPSenderReport(
                         data, offset, length);
-                long currentTime = System.currentTimeMillis();
-                StringBuffer logDebugRTCPSenderReport
-                    = new StringBuffer("Send new RTCPFeedback: "
-                            + "\n\tcurrentTime: " + currentTime
-                            + " (" + Long.toHexString(currentTime) + ")"
-                            + "\n\tNTPTimeStampMSW: "
-                            + report.getNTPTimeStampMSW()  + " ("
-                            + Long.toHexString(report.getNTPTimeStampMSW()) 
-                            + ")"
-                            + "\n\tNTPTimeStampLSW: "
-                            + report.getNTPTimeStampLSW()  + " ("
-                            + Long.toHexString(report.getNTPTimeStampLSW()) 
-                            + ")");
 
                 if(report.getFeedbackReports().size() > 0)
                 {
@@ -168,20 +155,7 @@ public class StatisticsEngine
                                 .append((int) (feedback.getDLSR() / 65.536))
                                 .append("ms ]");
                     logger.info(buff);
-
-                    logDebugRTCPSenderReport.append(
-                            "\n\tDLSR: " + feedback.getDLSR() + " ("
-                                + Long.toHexString(feedback.getDLSR()) + ")"
-                            + "\n\tLSR: " + feedback.getLSR() + " ("
-                                + Long.toHexString(feedback.getLSR()) + ")"
-                            + "\n\tXntdSeqNum: " + feedback.getXtndSeqNum()
-                            + "\n\tnumLost: " + feedback.getNumLost()
-                            + "\n\tjitter: " + feedback.getJitter());
                 }
-
-                // log RTCP sender report received to correct wrong
-                // computation (RTT, loss rate, etc).
-                logger.info(logDebugRTCPSenderReport.toString());
             }
         }
         catch(Throwable t)
@@ -216,20 +190,6 @@ public class StatisticsEngine
                     RTCPSenderReport report = new RTCPSenderReport(
                             data, offset, length);
 
-                    long currentTime = System.currentTimeMillis();
-                    StringBuffer logDebugRTCPSenderReport
-                        = new StringBuffer("Receive new RTCPFeedback: "
-                                + "\n\tcurrentTime: " + currentTime
-                                + " (" + Long.toHexString(currentTime) + ")"
-                                + "\n\tNTPTimeStampMSW: "
-                                + report.getNTPTimeStampMSW()  + " ("
-                                + Long.toHexString(report.getNTPTimeStampMSW()) 
-                                + ")"
-                                + "\n\tNTPTimeStampLSW: "
-                                + report.getNTPTimeStampLSW()  + " ("
-                                + Long.toHexString(report.getNTPTimeStampLSW()) 
-                                + ")");
-
                     if(report.getFeedbackReports().size() > 0)
                     {
                         RTCPFeedback feedback = (RTCPFeedback)
@@ -237,20 +197,7 @@ public class StatisticsEngine
 
                         this.mediaStream.getMediaStreamStats()
                             .updateNewReceivedFeedback(feedback);
-
-                        logDebugRTCPSenderReport.append(
-                                "\n\tDLSR: " + feedback.getDLSR() + " ("
-                                    + Long.toHexString(feedback.getDLSR()) + ")"
-                                + "\n\tLSR: " + feedback.getLSR() + " ("
-                                    + Long.toHexString(feedback.getLSR()) + ")"
-                                + "\n\tXntdSeqNum: " + feedback.getXtndSeqNum()
-                                + "\n\tnumLost: " + feedback.getNumLost()
-                                + "\n\tjitter: " + feedback.getJitter());
                     }
-
-                    // log RTCP sender report received to correct wrong
-                    // computation (RTT, loss rate, etc).
-                    logger.info(logDebugRTCPSenderReport.toString());
                 }
             }
         }
