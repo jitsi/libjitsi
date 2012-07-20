@@ -2,11 +2,14 @@
 <project name="libjitsi">
 
   <property file="local.properties" />
-  <property name="output" value="classes" />
+  <property name="dest" value="classes" />
   <property name="dist" value="dist" />
   <property name="libjitsi.jar" value="libjitsi.jar"/>
-
-  <path id="compile.classpath">
+  <property name="src" value="src"/>
+  <property name="doc" value="doc"/>
+  <property name="java.doc" value="${doc}/api"/>
+     
+  <path id="compile.class.path">
     <fileset dir="lib" includes="*.jar" />
   </path>
 
@@ -20,30 +23,32 @@
       name="clean"
       description="Remove all compiled/generated files and prepare for a clean compile/build.">
     <delete failonerror="false" includeemptydirs="true">
-      <fileset dir="${output}" />
+      <fileset file="${libjitsi.jar}" />
+      <fileset dir="${dest}" />
       <fileset dir="${dist}" />
+      <fileset dir="${doc}" />
     </delete>
   </target>
 
   <target name="compile">
-    <mkdir dir="${output}" />
+    <mkdir dir="${dest}" />
     <javac
-        classpathref="compile.classpath"
-        destdir="${output}"
+        classpathref="compile.class.path"
+        destdir="${dest}"
         fork="true"
         source="1.5"
-        srcdir="src"
+        srcdir="${src}"
         target="1.5" />
   </target>
 
   <target name="compile-with-g729">
     <replace
-        file="src/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
+        file="${src}/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
         token="public static final boolean G729 = false"
         value="public static final boolean G729 = true"/>
     <antcall target="compile" />
     <replace
-        file="src/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
+        file="${src}/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
         token="public static final boolean G729 = true"
         value="public static final boolean G729 = false"/>
    </target>
@@ -52,10 +57,10 @@
     <jar
         compress="true"
         destfile="${libjitsi.jar}">
-      <fileset casesensitive="no" dir="${output}">
+      <fileset casesensitive="no" dir="${dest}">
         <include name="**/*.class" />
       	<include name="**/*.properties" />
-        <exclude name="${output}/libjitsi.jar" />
+        <exclude name="${dest}/libjitsi.jar" />
       </fileset>
     </jar>    
   </target>
@@ -91,8 +96,8 @@
         fork="true">
       <arg line="${run.example.arg.line}" />
       <classpath>
-        <path refid="compile.classpath" />
-        <pathelement location="${output}" />
+        <path refid="compile.class.path" />
+        <pathelement location="${dest}" />
       </classpath>
       <sysproperty
           key="java.library.path"
@@ -100,6 +105,37 @@
     </java>
   </target>
 
+  <!-- JAVADOC -->
+  <target name="javadoc"
+      description="Generates project javadoc.">
+      <javadoc author="true" destdir="${java.doc}" package="true"
+          version="true" use="true" windowtitle="Jitsi API"
+          classpathref="compile.class.path" source="1.5+" maxmemory="256m">
+          <packageset dir="${src}">
+              <include name="**"/>
+          </packageset>
+          <tag name="todo" description="To do:"/>
+          <tag name="note" description="Note:"/>
+          <link href="${j2se_api}" />
+          <header>
+              <![CDATA[
+              <b> Jitsi: the OpenSource Java VoIP and Instant Messaging client. </b>
+              ]]>
+          </header>
+          <bottom>
+              <![CDATA[
+              <font size="-1">
+                  <a href="http://jitsi.org"> Jitsi, the OpenSource Java VoIP and Instant Messaging client. </a>
+                  <br>
+                      <a href="http://gnu.org"> Distributable under LGPL license. </a>
+                  <br>
+              </font>
+              ]]>
+          </bottom>
+      </javadoc>
+  </target>
+
+  <!-- build all binaries and the libjitsi.jar -->
   <target name="dist" depends="make">
       <mkdir dir="${dist}/windows"/>
       <mkdir dir="${dist}/macosx"/>
