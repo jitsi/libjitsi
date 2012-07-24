@@ -9,7 +9,7 @@ package org.jitsi.impl.neomedia.quicktime;
 /**
  * Enumerates the QTKit media types.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public enum QTMediaType
 {

@@ -6,12 +6,10 @@
  */
 package org.jitsi.impl.neomedia.quicktime;
 
-import net.java.sip.communicator.impl.neomedia.quicktime.*;
-
 /**
  * Represents an Objective-C <tt>NSError</tt> object.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class NSError
     extends NSObject

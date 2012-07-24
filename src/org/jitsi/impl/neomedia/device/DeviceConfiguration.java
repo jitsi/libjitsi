@@ -800,14 +800,14 @@ public class DeviceConfiguration
         {
             int pluginCount = plugins.size();
             int pluginBeginIndex = 0;
-            String preferred = "org.jitsi.impl.neomedia.";
 
             for (int pluginIndex = pluginCount - 1;
                  pluginIndex >= pluginBeginIndex;)
             {
                 String plugin = plugins.get(pluginIndex);
 
-                if (plugin.startsWith(preferred))
+                if (plugin.startsWith("org.jitsi.")
+                        || plugin.startsWith("net.java.sip.communicator."))
                 {
                     plugins.remove(pluginIndex);
                     plugins.add(0, plugin);

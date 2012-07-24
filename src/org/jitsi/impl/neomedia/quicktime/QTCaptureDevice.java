@@ -4,17 +4,15 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package net.java.sip.communicator.impl.neomedia.quicktime;
+package org.jitsi.impl.neomedia.quicktime;
 
 import java.util.*;
-
-import org.jitsi.impl.neomedia.quicktime.*;
 
 /**
  * Represents a QTKit capture device which is connected or has been previously
  * connected to the user's computer during the lifetime of the application.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class QTCaptureDevice
     extends NSObject

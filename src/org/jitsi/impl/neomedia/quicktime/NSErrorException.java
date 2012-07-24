@@ -9,7 +9,7 @@ package org.jitsi.impl.neomedia.quicktime;
 /**
  * Defines an <tt>Exception</tt> which reports an <tt>NSError</tt>.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class NSErrorException
     extends Exception

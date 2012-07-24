@@ -57,6 +57,11 @@ public class JAWTRendererVideoComponent
         this.renderer = renderer;
     }
 
+    /**
+     * Overrides {@link Component#addNotify()} to reset the indicator which
+     * determines whether the native counterpart of this <tt>JAWTRenderer</tt>
+     * wants <tt>paint</tt> calls on its AWT <tt>Component</tt> to be delivered.
+     */
     @Override
     public void addNotify()
     {
@@ -90,6 +95,10 @@ public class JAWTRendererVideoComponent
         return renderer.getHandleLock();
     }
 
+    /**
+     * Overrides {@link Canvas#paint(Graphics)} to paint this <tt>Component</tt>
+     * in the native counterpart of its associated <tt>JAWTRenderer</tt>.
+     */
     @Override
     public void paint(Graphics g)
     {
@@ -105,6 +114,11 @@ public class JAWTRendererVideoComponent
         }
     }
 
+    /**
+     * Overrides {@link Component#removeNotify()} to reset the indicator which
+     * determines whether the native counterpart of this <tt>JAWTRenderer</tt>
+     * wants <tt>paint</tt> calls on its AWT <tt>Component</tt> to be delivered.
+     */
     @Override
     public void removeNotify()
     {
@@ -118,6 +132,10 @@ public class JAWTRendererVideoComponent
         super.removeNotify();
     }
 
+    /**
+     * Overrides {@link Canvas#update(Graphics)} to skip the filling with the
+     * background color in order to prevent flickering.
+     */
     @Override
     public void update(Graphics g)
     {

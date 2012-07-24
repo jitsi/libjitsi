@@ -16,14 +16,11 @@ import javax.media.*;
 import javax.media.control.*;
 import javax.media.format.*;
 
-import net.java.sip.communicator.impl.neomedia.quicktime.*;
-
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.quicktime.*;
 import org.jitsi.util.*;
-// disambiguation
 
 /**
  * Implements a <tt>PushBufferDataSource</tt> and <tt>CaptureDevice</tt> using

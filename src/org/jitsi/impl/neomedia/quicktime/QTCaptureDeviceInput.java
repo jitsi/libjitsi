@@ -4,14 +4,12 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package net.java.sip.communicator.impl.neomedia.quicktime;
-
-import org.jitsi.impl.neomedia.quicktime.*;
+package org.jitsi.impl.neomedia.quicktime;
 
 /**
  * Represents a QTKit <tt>QTCaptureDeviceInput</tt> object.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class QTCaptureDeviceInput
     extends QTCaptureInput

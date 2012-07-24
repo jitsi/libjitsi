@@ -19,7 +19,8 @@ import javax.swing.*;
  * @author Lyubomir Marinov
  * @author Yana Stamcheva
  */
-public class VideoLayout extends FitLayout
+public class VideoLayout
+    extends FitLayout
 {
     /**
      * The video canvas constraint.
@@ -97,8 +98,6 @@ public class VideoLayout extends FitLayout
      */
     public VideoLayout(boolean isConference)
     {
-        super();
-
         this.isConference = isConference;
     }
 
@@ -149,11 +148,11 @@ public class VideoLayout extends FitLayout
      */
     private int calculateColumnCount(List<Component> remotes)
     {
-        int remotesCount = remotes.size();
+        int remoteCount = remotes.size();
 
-        if (remotesCount == 1)
+        if (remoteCount == 1)
             return 1;
-        else if (remotesCount == 2 || remotesCount == 4)
+        else if ((remoteCount == 2) || (remoteCount == 4))
             return 2;
         else
             return 3;
@@ -295,6 +294,7 @@ public class VideoLayout extends FitLayout
                     = Math.round(parentSize.height * LOCAL_TO_REMOTE_RATIO);
                 int width
                     = Math.round(parentSize.width * LOCAL_TO_REMOTE_RATIO);
+                float alignmentX;
 
                 /*
                  * XXX The remote Component being a JLabel is meant to signal
@@ -303,25 +303,21 @@ public class VideoLayout extends FitLayout
                  */
                 if ((remotes.size() == 1) && (remote0 instanceof JLabel))
                 {
-                    localX = parentSize.width/2 - width/2;
+                    localX = (parentSize.width - width) / 2;
                     localY = parentSize.height - height;
-                    super.layoutComponent(
-                            local,
-                            new Rectangle(localX, localY, width, height),
-                            Component.CENTER_ALIGNMENT,
-                            Component.BOTTOM_ALIGNMENT);
+                    alignmentX = Component.CENTER_ALIGNMENT;
                 }
                 else
                 {
                     localX = ((remote0 == null) ? 0 : remote0.getX()) + 5;
                     localY = parentSize.height - height - 5;
-
-                    super.layoutComponent(
-                            local,
-                            new Rectangle(localX, localY, width, height),
-                            Component.LEFT_ALIGNMENT,
-                            Component.BOTTOM_ALIGNMENT);
+                    alignmentX = Component.LEFT_ALIGNMENT;
                 }
+                super.layoutComponent(
+                        local,
+                        new Rectangle(localX, localY, width, height),
+                        alignmentX,
+                        Component.BOTTOM_ALIGNMENT);
             }
 
             if (closeButton != null)

@@ -10,7 +10,7 @@ package org.jitsi.impl.neomedia.quicktime;
  * Defines the types of <tt>CVPixelBuffer</tt>s to be output by
  * <tt>QTCaptureDecompressedVideoOutput</tt>.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public final class CVPixelFormatType
 {

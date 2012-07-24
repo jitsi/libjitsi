@@ -6,12 +6,10 @@
  */
 package org.jitsi.impl.neomedia.quicktime;
 
-import net.java.sip.communicator.impl.neomedia.quicktime.*;
-
 /**
  * Represents a QTKit <tt>QTCaptureOutput</tt> object.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class QTCaptureOutput
     extends NSObject

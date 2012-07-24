@@ -4,7 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package net.java.sip.communicator.impl.neomedia.quicktime;
+package org.jitsi.impl.neomedia.quicktime;
 
 import java.awt.*;
 
@@ -14,7 +14,7 @@ import java.awt.*;
  * such as media type and format type (or codec type), as well as extended
  * information specific to each media type.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class QTFormatDescription
     extends NSObject

@@ -226,7 +226,10 @@ public class JAWTRenderer
         {
             StringBuilder componentClassName = new StringBuilder();
 
-            componentClassName.append(JAWTRenderer.class.getName());
+            componentClassName.append(
+                    "org.jitsi"
+                        + ".impl.neomedia.jmfext.media.renderer.video"
+                        + ".JAWTRenderer");
             if (USE_MACOSX_CALAYERS && OSUtils.IS_MAC)
                 componentClassName.append("Swing");
             else if (OSUtils.IS_ANDROID)
