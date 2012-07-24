@@ -98,7 +98,7 @@ public class SoundFileUtils
                 return (Arrays.binarySearch(
                             soundFormats,
                             ext,
-                            String.CASE_INSENSITIVE_ORDER) != -1);
+                            String.CASE_INSENSITIVE_ORDER) > -1);
             }
         }
         return false;
