@@ -43,6 +43,12 @@ public class VideoLayout
     public static final String EAST_REMOTE = "EAST_REMOTE";
 
     /**
+     * The horizontal gap between the <tt>Component</tt> being laid out by
+     * <tt>VideoLayout</tt>.
+     */
+    private static final int HGAP = 10;
+
+    /**
      * The local video constraint.
      */
     public static final String LOCAL = "LOCAL";
@@ -229,13 +235,9 @@ public class VideoLayout
             remotes = this.remotes;
 
         int remoteCount = remotes.size();
-
-        // We need to reduce parent size in order to fit also the space we've
-        // left between videos.
         Dimension parentSize = parent.getSize();
-        parentSize.width -= remoteCount*10;
 
-        if (remoteCount == 1 && !isConference)
+        if ((remoteCount == 1) && !isConference)
         {
             super.layoutContainer(parent,
                     (local == null)
@@ -245,14 +247,21 @@ public class VideoLayout
         else if (remoteCount > 0)
         {
             int columns = calculateColumnCount(remotes);
-            int rows = (remoteCount + columns - 1) / columns;
+            int columnsMinus1 = columns - 1;
+            int rows = (remoteCount + columnsMinus1) / columns;
             Rectangle bounds
                 = new Rectangle(
                         0,
                         0,
-                        parentSize.width / columns,
+                        /*
+                         * HGAP is the horizontal gap between the Components
+                         * being laid out by this VideoLayout so the number of
+                         * HGAPs will be with one less than the number of
+                         * columns and that horizontal space cannot be allocated
+                         * to the bounds of the Components.
+                         */
+                        (parentSize.width - (columnsMinus1 * HGAP)) / columns,
                         parentSize.height / rows);
-            int columnsMinus1 = columns - 1;
             int i = 0;
 
             for (Component remote : remotes)
@@ -261,11 +270,13 @@ public class VideoLayout
                  * We want the remote videos ordered from right to left so that
                  * the local video does not cover a remote video when possible.
                  */
-                bounds.x = (columnsMinus1 - (i % columns)) * bounds.width;
+                /*
+                 * We account for the HGAP between the Components being laid out
+                 * by this VideoLayout.
+                 */
+                bounds.x
+                    = (columnsMinus1 - (i % columns)) * (bounds.width + HGAP);
                 bounds.y = (i / columns) * bounds.height;
-
-                if (bounds.x > 0)
-                    bounds.x += ((columns - (i%columns))*10);
 
                 super.layoutComponent(
                         remote,
