@@ -477,7 +477,8 @@ public class PortAudioRenderer
      * the change such as the name of the property and its old and new values
      */
     @Override
-    protected void playbackDevicePropertyChange(PropertyChangeEvent event)
+    protected synchronized void playbackDevicePropertyChange(
+            PropertyChangeEvent event)
     {
         /*
          * Stop, close, re-open and re-start this Renderer (performing whichever
