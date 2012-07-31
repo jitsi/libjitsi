@@ -16,6 +16,7 @@ import javax.media.rtp.*;
 
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
+import org.jitsi.util.*;
 
 /**
  * @author Bing SU (nova.su@gmail.com)
@@ -24,6 +25,12 @@ import org.jitsi.service.packetlogging.*;
 public abstract class RTPConnectorOutputStream
     implements OutputDataStream
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>RTPConnectorOutputStream</tt> class
+     * and its instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(RTPConnectorOutputStream.class);
 
     /**
      * The maximum number of packets to be sent to be kept in the queue of
@@ -307,6 +314,15 @@ public abstract class RTPConnectorOutputStream
      */
     public int write(byte[] buffer, int offset, int length)
     {
+        /*
+         * While calling write without targets can be carried out without a
+         * problem, such a situation may be a symptom of a problem. For example,
+         * it was discovered during testing that RTCP was seemingly-endlessly
+         * sent after hanging up a call.
+         */
+        if (logger.isDebugEnabled() && targets.isEmpty())
+            logger.debug("Write called without targets!", new Throwable());
+
         RawPacket packet = createRawPacket(buffer, offset, length);
 
         /*
@@ -333,8 +349,8 @@ public abstract class RTPConnectorOutputStream
     public void setPriority(int priority)
     {
         // currently no priority is set
-//        if(maxPacketsPerMillisPolicy != null &&
-//            maxPacketsPerMillisPolicy.sendThread != null)
+//        if ((maxPacketsPerMillisPolicy != null)
+//                && (maxPacketsPerMillisPolicy.sendThread != null))
 //            maxPacketsPerMillisPolicy.sendThread.setPriority(priority);
     }
 

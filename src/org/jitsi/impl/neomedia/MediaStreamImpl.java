@@ -502,10 +502,6 @@ public class MediaStreamImpl
             csrcEngine = null;
         }
 
-        if (rtpConnector != null)
-            rtpConnector.removeTargets();
-        rtpConnectorTarget = null;
-
         if (rtpManager != null)
         {
             if (logger.isInfoEnabled())
@@ -543,6 +539,15 @@ public class MediaStreamImpl
                 logger.error("Failed to dispose of RTPManager", t);
             }
         }
+
+        /*
+         * XXX Call AbstractRTPConnector#removeTargets() after
+         * StreamRTPManager#dispose(). Otherwise, the latter will try to send an
+         * RTCP BYE and there will be no targets to send it to.
+         */
+        if (rtpConnector != null)
+            rtpConnector.removeTargets();
+        rtpConnectorTarget = null;
 
         if (deviceSession != null)
             deviceSession.close();

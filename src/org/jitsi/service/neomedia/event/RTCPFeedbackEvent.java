@@ -45,12 +45,12 @@ public class RTCPFeedbackEvent
     /**
      * Feedback message type.
      */
-    private int feedbackMessageType = 0;
+    private final int feedbackMessageType;
 
     /**
      * Payload type.
      */
-    private int payloadType = 0;
+    private final int payloadType;
 
     /**
      * Constructor.

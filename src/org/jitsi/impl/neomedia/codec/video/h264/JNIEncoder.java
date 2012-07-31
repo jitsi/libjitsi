@@ -238,16 +238,19 @@ public class JNIEncoder
     }
 
     /**
-     * Event fired when RTCP feedback message is received.
+     * Notifies this <tt>RTCPFeedbackListener</tt> that an RTCP feedback message
+     * has been received
      *
-     * @param event <tt>RTCPFeedbackEvent</tt>
+     * @param event an <tt>RTCPFeedbackEvent</tt> which specifies the details of
+     * the notification event such as the feedback message type and the payload
+     * type
      */
-    public void feedbackReceived(RTCPFeedbackEvent event)
+    public void rtcpFeedbackReceived(RTCPFeedbackEvent event)
     {
         /*
-         * If RTCP message is a Picture Loss Indication (PLI) or a
-         * Full Intra-frame Request (FIR) the encoder will force the next frame
-         * to be a keyframe.
+         * If RTCP message is a Picture Loss Indication (PLI) or a Full
+         * Intra-frame Request (FIR) the encoder will force the next frame to be
+         * a keyframe.
          */
         if (event.getPayloadType() == RTCPFeedbackEvent.PT_PS)
         {

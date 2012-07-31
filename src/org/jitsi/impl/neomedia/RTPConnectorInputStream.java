@@ -248,11 +248,15 @@ public abstract class RTPConnectorInputStream
         int pktLength = pkt.getLength();
 
         if (length < pktLength)
-            throw
-                new IOException("Input buffer not big enough for " + pktLength);
+        {
+            throw new IOException(
+                    "Input buffer not big enough for " + pktLength);
+        }
 
         System.arraycopy(
-                pkt.getBuffer(), pkt.getOffset(), buffer, offset, pktLength);
+                pkt.getBuffer(), pkt.getOffset(),
+                buffer, offset,
+                pktLength);
 
         return pktLength;
     }

@@ -21,7 +21,8 @@ public class JAWTRendererVideoComponent
     extends Canvas
 {
     /**
-     * Serial version UID.
+     * The serial version UID of the <tt>JAWTRendererVideoComponent</tt> class
+     * defined to silence a serialization compile-time warning.
      */
     private static final long serialVersionUID = 0L;
 

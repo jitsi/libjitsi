@@ -23,7 +23,7 @@ public class RTCPConnectorInputStream
     /**
      * List of feedback listeners;
      */
-    private final List<RTCPFeedbackListener> rtcpFeedbackListeners
+    private final List<RTCPFeedbackListener> listeners
         = new ArrayList<RTCPFeedbackListener>();
 
     /**
@@ -45,8 +45,57 @@ public class RTCPConnectorInputStream
      */
     public void addRTCPFeedbackListener(RTCPFeedbackListener listener)
     {
-        if(!rtcpFeedbackListeners.contains(listener))
-            rtcpFeedbackListeners.add(listener);
+        if (listener == null)
+            throw new NullPointerException("listener");
+        if(!listeners.contains(listener))
+            listeners.add(listener);
+    }
+
+    /**
+     * Notifies a specific list of <tt>RTCPFeedbackListener</tt>s about a
+     * specific RTCP feedback message if such a message can be parsed out of a
+     * specific <tt>byte</tt> buffer.
+     *
+     * @param source the object to be reported as the source of the
+     * <tt>RTCPFeedbackEvent</tt> to be fired
+     * @param buffer the <tt>byte</tt> buffer which may specific an RTCP
+     * feedback message
+     * @param offset the offset in <tt>buffer</tt> at which the reading of bytes
+     * is to begin
+     * @param length the number of bytes in <tt>buffer</tt> to be read for the
+     * purposes of parsing an RTCP feedback message and firing an
+     * <tt>RTPCFeedbackEvent</tt>
+     * @param listeners the list of <tt>RTCPFeedbackListener</tt>s to be
+     * notified about the specified RTCP feedback message if such a message can
+     * be parsed out of the specified <tt>buffer</tt>
+     */
+    public static void fireRTCPFeedbackReceived(
+            Object source,
+            byte[] buffer, int offset, int length,
+            List<RTCPFeedbackListener> listeners)
+    {
+        /*
+         * RTCP feedback message size is minimum 12 bytes:
+         * Version/Padding/Feedback message type: 1 byte
+         * Payload type: 1 byte
+         * Length: 2 bytes
+         * SSRC of packet sender: 4 bytes
+         * SSRC of media source: 4 bytes
+         */
+        if ((length >= 12) && !listeners.isEmpty())
+        {
+            int pt = buffer[offset + 1] & 0xFF;
+
+            if ((pt == RTCPFeedbackEvent.PT_PS)
+                    || (pt == RTCPFeedbackEvent.PT_TL))
+            {
+                int fmt = buffer[offset] & 0x1F;
+                RTCPFeedbackEvent evt = new RTCPFeedbackEvent(source, fmt, pt);
+
+                for (RTCPFeedbackListener l : listeners)
+                    l.rtcpFeedbackReceived(evt);
+            }
+        }
     }
 
     /**
@@ -56,65 +105,31 @@ public class RTCPConnectorInputStream
      */
     public void removeRTCPFeedbackListener(RTCPFeedbackListener listener)
     {
-        rtcpFeedbackListeners.remove(listener);
+        listeners.remove(listener);
     }
 
     /**
      * Copies the content of the most recently received packet into
      * <tt>inBuffer</tt>.
      *
-     * @param inBuffer the <tt>byte[]</tt> that we'd like to copy the content
-     * of the packet to.
+     * @param buffer the <tt>byte[]</tt> that we'd like to copy the content of
+     * the packet to.
      * @param offset the position where we are supposed to start writing in
-     * <tt>inBuffer</tt>.
+     * <tt>buffer</tt>.
      * @param length the number of <tt>byte</tt>s available for writing in
-     * <tt>inBuffer</tt>.
+     * <tt>buffer</tt>.
      *
      * @return the number of bytes read
      *
      * @throws IOException if <tt>length</tt> is less than the size of the
      * packet.
      */
-    public int read(byte[] inBuffer, int offset, int length)
+    public int read(byte[] buffer, int offset, int length)
         throws IOException
     {
-        if (ioError)
-            return -1;
+        int pktLength = super.read(buffer, offset, length);
 
-        int pktLength = pkt.getLength();
-
-        if (length < pktLength)
-            throw
-                new IOException("Input buffer not big enough for " + pktLength);
-
-        /* check if RTCP feedback message */
-
-        /* Feedback message size is minimum 12 bytes:
-         * Version/Padding/Feedback message type: 1 byte
-         * Payload type: 1 byte
-         * Length: 2 bytes
-         * SSRC of packet sender: 4 bytes
-         * SSRC of media source: 4 bytes
-         */
-        if(pktLength >= 12)
-        {
-            byte data[] = pkt.getBuffer();
-            int fmt = 0;
-            int pt = 0;
-
-            /* get FMT field (last 5 bits of first byte) */
-            fmt = (data[0] & 0x1F);
-            pt |= (data[1] & 0xFF);
-
-            RTCPFeedbackEvent evt = new RTCPFeedbackEvent(this, fmt, pt);
-
-            /* notify feedback listeners */
-            for(RTCPFeedbackListener l : rtcpFeedbackListeners)
-                l.feedbackReceived(evt);
-        }
-
-        System.arraycopy(
-                pkt.getBuffer(), pkt.getOffset(), inBuffer, offset, pktLength);
+        fireRTCPFeedbackReceived(this, buffer, offset, pktLength, listeners);
 
         return pktLength;
     }
