@@ -150,63 +150,97 @@ public class SDesControlImpl
     public TransformEngine getTransformEngine()
     {
         if(engine == null)
+        {
             engine = new SDesTransformEngine(this);
+        }
         return engine;
     }
 
-    public String[] getInitiatorCryptoAttributes()
+    /**
+     * Initializes the available SRTP crypto attributes containing: he
+     * crypto-suite, the key-param and the session-param.
+     */
+    private void initAttributes()
     {
         if(attributes == null)
         {
             attributes = new SrtpCryptoAttribute[enabledCryptoSuites.size()];
             for (int i = 0; i < attributes.length; i++)
             {
-                attributes[i] =
-                    sdesFactory.createCryptoAttribute(i + 1,
+                attributes[i] = sdesFactory.createCryptoAttribute(
+                        i + 1,
                         enabledCryptoSuites.get(i));
             }
         }
-        String[] result = new String[attributes.length];
-        for(int i = 0; i < attributes.length; i++)
-            result[i] = attributes[i].encode();
-        return result;
     }
 
-    public String responderSelectAttribute(Iterable<String> peerAttributes)
+    /**
+     * Returns the crypto attributes enabled on this computer.
+     *
+     * @return The crypto attributes enabled on this computer.
+     */
+    public SrtpCryptoAttribute[] getInitiatorCryptoAttributes()
     {
-        for (String suite : enabledCryptoSuites)
+        initAttributes();
+
+        return attributes;
+    }
+
+    /**
+     * Chooses a supported crypto attribute from the peer's list of supplied
+     * attributes and creates the local crypto attribute. Used when the control
+     * is running in the role as responder.
+     * 
+     * @param peerAttributes The peer's crypto attribute offering.
+     *
+     * @return The local crypto attribute for the answer of the offer or null if
+     *         no matching cipher suite could be found.
+     */
+    public SrtpCryptoAttribute responderSelectAttribute(
+            Iterable<SrtpCryptoAttribute> peerAttributes)
+    {
+        for (SrtpCryptoAttribute ea : peerAttributes)
         {
-            for (String ea : peerAttributes)
+            for (String suite : enabledCryptoSuites)
             {
-                SrtpCryptoAttribute peerCA = SrtpCryptoAttribute.create(ea);
-                if (suite.equals(peerCA.getCryptoSuite().encode()))
+                if (suite.equals(ea.getCryptoSuite().encode()))
                 {
-                    selectedInAttribute = peerCA;
-                    selectedOutAttribute =
-                        sdesFactory.createCryptoAttribute(1, suite);
-                    return selectedOutAttribute.encode();
+                    selectedInAttribute = ea;
+                    selectedOutAttribute
+                        = sdesFactory.createCryptoAttribute(1, suite);
+                    return selectedOutAttribute;
                 }
             }
         }
         return null;
     }
 
-    public boolean initiatorSelectAttribute(Iterable<String> peerAttributes)
+    /**
+     * Select the local crypto attribute from the initial offering (@see
+     * {@link #getInitiatorCryptoAttributes()}) based on the peer's first
+     * matching cipher suite.
+     * 
+     * @param peerAttributes The peer's crypto offers.
+     *
+     * @return A SrtpCryptoAttribute when a matching cipher suite was found.
+     * Null otherwise.
+     */
+    public SrtpCryptoAttribute initiatorSelectAttribute(
+            Iterable<SrtpCryptoAttribute> peerAttributes)
     {
-        for (SrtpCryptoAttribute localCA : attributes)
+        for (SrtpCryptoAttribute peerCA : peerAttributes)
         {
-            for (String ea : peerAttributes)
+            for (SrtpCryptoAttribute localCA : attributes)
             {
-                SrtpCryptoAttribute peerCA = SrtpCryptoAttribute.create(ea);
                 if (localCA.getCryptoSuite().equals(peerCA.getCryptoSuite()))
                 {
                     selectedInAttribute = peerCA;
                     selectedOutAttribute = localCA;
-                    return true;
+                    return peerCA;
                 }
             }
         }
-        return false;
+        return null;
     }
 
     public SrtpCryptoAttribute getInAttribute()

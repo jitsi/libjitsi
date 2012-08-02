@@ -90,12 +90,12 @@ public class SRTCPTransformer
             SRTPTransformEngine engine)
     {
         long ssrc = pkt.getRTCPSSRC();
-        SRTCPCryptoContext context;
+        SRTCPCryptoContext context = null;
 
         synchronized (contexts)
         {
             context = contexts.get(ssrc);
-            if (context == null)
+            if (context == null && engine != null)
             {
                 context = engine.getDefaultContextControl();
                 if (context != null)
@@ -136,7 +136,15 @@ public class SRTCPTransformer
     {
         SRTCPCryptoContext context = getContext(pkt, forwardEngine);
 
-        context.transformPacket(pkt);
-        return pkt;
+        if(context != null)
+        {
+            context.transformPacket(pkt);
+            return pkt;
+        }
+        else
+        {
+            // The packet can not be encrypted. Thus, does not send it.
+            return null;
+        }
     }
 }

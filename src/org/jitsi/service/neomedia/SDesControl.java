@@ -38,12 +38,11 @@ public interface SDesControl
     public Iterable<String> getSupportedCryptoSuites();
 
     /**
-     * Gets the encoded SDES crypto-attributes for all enabled ciphers when the
-     * control is used as the initiator.
-     * 
-     * @return the encoded SDES crypto-attributes for all enabled ciphers.
+     * Returns the crypto attributes enabled on this computer.
+     *
+     * @return The crypto attributes enabled on this computer.
      */
-    public String[] getInitiatorCryptoAttributes();
+    public SrtpCryptoAttribute[] getInitiatorCryptoAttributes();
 
     /**
      * Chooses a supported crypto attribute from the peer's list of supplied
@@ -51,10 +50,12 @@ public interface SDesControl
      * is running in the role as responder.
      * 
      * @param peerAttributes The peer's crypto attribute offering.
+     *
      * @return The local crypto attribute for the answer of the offer or null if
      *         no matching cipher suite could be found.
      */
-    public String responderSelectAttribute(Iterable<String> peerAttributes);
+    public SrtpCryptoAttribute responderSelectAttribute(
+            Iterable<SrtpCryptoAttribute> peerAttributes);
 
     /**
      * Select the local crypto attribute from the initial offering (@see
@@ -62,9 +63,12 @@ public interface SDesControl
      * matching cipher suite.
      * 
      * @param peerAttributes The peer's crypto offers.
-     * @return True when a matching cipher suite was found, false otherwise.
+     *
+     * @return A SrtpCryptoAttribute when a matching cipher suite was found.
+     * Null otherwise.
      */
-    public boolean initiatorSelectAttribute(Iterable<String> peerAttributes);
+    public SrtpCryptoAttribute initiatorSelectAttribute(
+            Iterable<SrtpCryptoAttribute> peerAttributes);
 
     /**
      * Gets the crypto attribute of the incoming MediaStream.
