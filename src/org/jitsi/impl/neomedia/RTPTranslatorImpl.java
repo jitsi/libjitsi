@@ -339,6 +339,55 @@ public class RTPTranslatorImpl
         }
     }
 
+    /**
+     * Logs information about an RTCP packet using {@link #logger} for debugging
+     * purposes.
+     *
+     * @param obj the object which is the source of the log request
+     * @param methodName the name of the method on <tt>obj</tt> which is the
+     * source of the log request
+     * @param buffer the <tt>byte</tt>s which (possibly) represent an RTCP
+     * packet to be logged for debugging purposes
+     * @param offset the position within <tt>buffer</tt> at which the valid data
+     * begins
+     * @param length the number of bytes in <tt>buffer</tt> which constitute the
+     * valid data 
+     */
+    private static void logRTCP(
+            Object obj, String methodName,
+            byte[] buffer, int offset, int length)
+    {
+        if (length > 8)
+        {
+            byte b0 = buffer[offset];
+            int v = (b0 & 0xc0) >>> 6;
+
+            if (v == 2)
+            {
+                byte b1 = buffer[offset + 1];
+                int pt = b1 & 0xff;
+
+                if (pt == 203 /* BYE */)
+                {
+                    int sc = b0 & 0x1f;
+                    long ssrc = (sc > 0) ? readInt(buffer, offset + 4) : -1;
+
+                    logger.trace(
+                            obj.getClass().getName()
+                                + '.'
+                                + methodName
+                                + ": RTCP BYE v="
+                                + v
+                                + "; pt="
+                                + pt
+                                + "; ssrc="
+                                + ssrc
+                                + ';');
+                }
+            }
+        }
+    }
+
     private int read(
             PushSourceStreamDesc streamDesc,
             byte[] buffer, int offset, int length,
@@ -372,6 +421,8 @@ public class RTPTranslatorImpl
                 format = streamRTPManagerDesc.getFormat(payloadType);
             }
         }
+        else if (logger.isTraceEnabled())
+            logRTCP(this, "read", buffer, offset, read);
 
         OutputDataStreamImpl outputStream
             = data
@@ -560,22 +611,31 @@ public class RTPTranslatorImpl
 
                 if (streamRTPManagerDesc != exclusion)
                 {
-                    if (data && (format != null) && (length > 0))
+                    if (data)
                     {
-                        Integer payloadType
-                            = streamRTPManagerDesc.getPayloadType(format);
-
-                        if ((payloadType == null) && (exclusion != null))
-                            payloadType = exclusion.getPayloadType(format);
-                        if (payloadType != null)
+                        if ((format != null) && (length > 0))
                         {
-                            int payloadTypeByteIndex = offset + 1;
+                            Integer payloadType
+                                = streamRTPManagerDesc.getPayloadType(format);
 
-                            buffer[payloadTypeByteIndex]
-                                = (byte)
-                                    ((buffer[payloadTypeByteIndex] & 0x80)
-                                        | (payloadType & 0x7f));
+                            if ((payloadType == null) && (exclusion != null))
+                                payloadType = exclusion.getPayloadType(format);
+                            if (payloadType != null)
+                            {
+                                int payloadTypeByteIndex = offset + 1;
+
+                                buffer[payloadTypeByteIndex]
+                                    = (byte)
+                                        ((buffer[payloadTypeByteIndex] & 0x80)
+                                            | (payloadType & 0x7f));
+                            }
                         }
+                    }
+                    else if (logger.isTraceEnabled())
+                    {
+                        logRTCP(
+                                this, "doWrite",
+                                buffer, offset, length);
                     }
 
                     int streamWrite

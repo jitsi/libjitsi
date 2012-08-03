@@ -1879,7 +1879,22 @@ public class MediaStreamImpl
                 && (MediaDirection.SENDRECV.equals(startedDirection)
                         || MediaDirection.SENDONLY.equals(startedDirection)))
         {
-            stopSendStreams(false);
+            /*
+             * XXX It is not very clear at the time of this writing whether the
+             * SendStreams are to be stopped or closed. On one hand, stopping a
+             * direction may be a temporary transition which relies on retaining
+             * the SSRC. On the other hand, it may be permanent. In which case,
+             * the respective ReveiveStream on the remote peer will timeout at
+             * some point in time. In the context of video conferences, when a
+             * member stops the streaming of their video without leaving the
+             * conference, they will stop their SendStreams. However, the other
+             * members will need respective BYE RTCP packets in order to know
+             * that they are to remove the associated ReceiveStreams from
+             * display. The initial version of the code here used to stop the
+             * SendStreams without closing them but, given the considerations
+             * above, it is being changed to close them in the case of video.
+             */
+            stopSendStreams(this instanceof VideoMediaStream);
 
             if (deviceSession != null)
                 deviceSession.stop(MediaDirection.SENDONLY);
@@ -1951,9 +1966,11 @@ public class MediaStreamImpl
                 try
                 {
                     if (logger.isTraceEnabled())
+                    {
                         logger.trace(
                                 "Stopping receive stream with hashcode "
                                     + receiveStream.hashCode());
+                    }
 
                     DataSource receiveStreamDataSource
                         = receiveStream.getDataSource();

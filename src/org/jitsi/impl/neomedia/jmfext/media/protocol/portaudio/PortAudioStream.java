@@ -242,6 +242,12 @@ public class PortAudioStream
         // DataSource#disconnect
         if (this.deviceIndex != PortAudio.paNoDevice)
         {
+            /*
+             * Just to be on the safe side, make sure #read(Buffer) is not
+             * currently executing.
+             */
+            waitWhileStreamIsBusy();
+
             if (stream != 0)
             {
                 try
@@ -420,21 +426,7 @@ public class PortAudioStream
     public synchronized void stop()
         throws IOException
     {
-        boolean interrupted = false;
-
-        while (streamIsBusy)
-        {
-            try
-            {
-                wait();
-            }
-            catch (InterruptedException iex)
-            {
-                interrupted = true;
-            }
-        }
-        if (interrupted)
-            Thread.currentThread().interrupt();
+        waitWhileStreamIsBusy();
 
         try
         {
@@ -449,5 +441,29 @@ public class PortAudioStream
             ioex.initCause(paex);
             throw ioex;
         }
+    }
+
+    /**
+     * Waits on this instance while {@link #streamIsBusy} is equal to
+     * <tt>true</tt> i.e. until it becomes <tt>false</tt>. The method should
+     * only be called by a thread that is the owner of this object's monitor.
+     */
+    private void waitWhileStreamIsBusy()
+    {
+        boolean interrupted = false;
+
+        while ((stream != 0) && streamIsBusy)
+        {
+            try
+            {
+                wait();
+            }
+            catch (InterruptedException iex)
+            {
+                interrupted = true;
+            }
+        }
+        if (interrupted)
+            Thread.currentThread().interrupt();
     }
 }
