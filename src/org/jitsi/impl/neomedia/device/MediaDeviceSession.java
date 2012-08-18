@@ -311,25 +311,31 @@ public class MediaDeviceSession
      */
     public void close()
     {
-        /**
-         * Here the order of stopping the playback and capture is important
-         * cause when we use echo cancellation the capturer access data from
-         * the render part and so there a synchronized so we don't get
-         * SEGFAULTS, but sometimes this synchronization can lead to slowly
-         * stopping of the renderer. Thats why we first stop the capturer.
-         */
+        try
+        {
+            stop(MediaDirection.SENDRECV);
+        }
+        finally
+        {
+            /*
+             * XXX The order of stopping the playback and capture is important
+             * here because when we use echo cancellation the capture accesses
+             * data from the playback and thus there is synchronization to avoid
+             * segfaults but this synchronization can sometimes lead to a slow
+             * stop of the playback. That is why we stop the capture first.
+             */
 
-        // capture
-        disconnectCaptureDevice();
-        closeProcessor();
+            // capture
+            disconnectCaptureDevice();
+            closeProcessor();
 
-        // playback
-        if (disposePlayerOnClose)
-            disposePlayer();
+            // playback
+            if (disposePlayerOnClose)
+                disposePlayer();
 
-        processor = null;
-//        player = null;
-        captureDevice = null;
+            processor = null;
+            captureDevice = null;
+        }
     }
 
     /**

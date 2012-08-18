@@ -27,21 +27,11 @@ public interface VideoMediaStream
      * Gets the visual <tt>Component</tt>, if any, depicting the video streamed
      * from the local peer to the remote peer.
      *
-     * @param flip <tt>true</tt> to have the display of the local video flipped;
-     * <tt>false</tt>, otherwise
      * @return the visual <tt>Component</tt> depicting the local video if local
      * video is actually being streamed from the local peer to the remote peer;
      * otherwise, <tt>null</tt>
      */
-    public Component createLocalVisualComponent(boolean flip);
-
-    /**
-     * Disposes of a specific local visual <tt>Component</tt> of the local peer.
-     *
-     * @param component the local visual <tt>Component</tt> of the local peer to
-     * dispose of
-     */
-    public void disposeLocalVisualComponent(Component component);
+    public Component getLocalVisualComponent();
 
     /**
      * Gets the visual <tt>Component</tt> where video from the remote peer is
@@ -49,6 +39,10 @@ public interface VideoMediaStream
      *
      * @return the visual <tt>Component</tt> where video from the remote peer is
      * being rendered or <tt>null</tt> if no video is currently being rendered
+     * @deprecated Since multiple videos may be received from the remote peer
+     * and rendered, it is not clear which one of them is to be singled out as
+     * the return value. Thus {@link #getVisualComponent(long)} and
+     * {@link #getVisualComponents()} are to be used instead.
      */
     @Deprecated
     public Component getVisualComponent();

@@ -10,6 +10,7 @@ import org.jitsi.service.protocol.*;
 
 /**
  * The quality controls we use to control other party video presets.
+ *
  * @author Damian Minkov
  */
 public interface QualityControl

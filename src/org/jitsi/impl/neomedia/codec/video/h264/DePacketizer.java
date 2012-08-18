@@ -171,7 +171,8 @@ public class DePacketizer
          * interpreted as it having a value of 0.
          */
         Collections.addAll(inputFormats, Packetizer.SUPPORTED_OUTPUT_FORMATS);
-        this.inputFormats = inputFormats.toArray(new Format[inputFormats.size()]);
+        this.inputFormats
+            = inputFormats.toArray(new Format[inputFormats.size()]);
     }
 
     /**

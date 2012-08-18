@@ -128,12 +128,6 @@ public class VideoMediaDeviceSession
         = new VideoNotifierSupport(this, false);
 
     /**
-     * The indicator which determines whether the display of the local video is
-     * to be flipped (as is often true for webcams).
-     */
-    private boolean flipLocalVideoDisplay = true;
-
-    /**
      * Initializes a new <tt>VideoMediaDeviceSession</tt> instance which is to
      * represent the work of a <tt>MediaStream</tt> with a specific video
      * <tt>MediaDevice</tt>.
@@ -451,13 +445,24 @@ public class VideoMediaDeviceSession
             {
                 if (localPlayer != null)
                 {
+                    /*
+                     * If a local visual Component is to be displayed for
+                     * desktop sharing/streaming, do not flip it because it does
+                     * not seem natural.
+                     */
+                    final boolean hflip
+                        = (captureDevice.getControl(
+                                    ImgStreamingControl.class.getName())
+                                == null);
+
                     localPlayer.addControllerListener(
                         new ControllerListener()
                         {
                             public void controllerUpdate(ControllerEvent event)
                             {
                                 controllerUpdateForCreateLocalVisualComponent(
-                                    event);
+                                    event,
+                                    hflip);
                             }
                         });
                     localPlayer.configure();
@@ -482,9 +487,13 @@ public class VideoMediaDeviceSession
      * @param controllerEvent the <tt>ControllerEvent</tt> specifying the
      * <tt>Controller</tt> which is the source of the event and the very type of
      * the event
+     * @param hflip <tt>true</tt> if the image displayed in the local visual
+     * <tt>Component</tt> is to be horizontally flipped; otherwise,
+     * <tt>false</tt>
      */
     private void controllerUpdateForCreateLocalVisualComponent(
-            ControllerEvent controllerEvent)
+            ControllerEvent controllerEvent,
+            boolean hflip)
     {
         if (controllerEvent instanceof ConfigureCompleteEvent)
         {
@@ -504,7 +513,7 @@ public class VideoMediaDeviceSession
                     for (TrackControl trackControl : trackControls)
                     {
                         trackControl.setCodecChain(
-                                flipLocalVideoDisplay
+                                hflip
                                     ? new Codec[]
                                             { new HFlip(), new SwScaler() }
                                     : new Codec[]
@@ -544,12 +553,12 @@ public class VideoMediaDeviceSession
                 start = false;
             else
             {
-                start
-                    = fireVideoEvent(
-                            VideoEvent.VIDEO_ADDED,
-                            visualComponent,
-                            VideoEvent.LOCAL,
-                            true);
+                fireVideoEvent(
+                        VideoEvent.VIDEO_ADDED,
+                        visualComponent,
+                        VideoEvent.LOCAL,
+                        false);
+                start = true;
             }
             if (start)
                 player.start();
@@ -573,8 +582,6 @@ public class VideoMediaDeviceSession
      * Creates the visual <tt>Component</tt> depicting the video being streamed
      * from the local peer to the remote peer.
      *
-     * @param flip <tt>true</tt> to have the display of the local video flipped;
-     * otherwise, <tt>false</tt>
      * @return the visual <tt>Component</tt> depicting the video being streamed
      * from the local peer to the remote peer if it was immediately created or
      * <tt>null</tt> if it was not immediately created and it is to be delivered
@@ -582,10 +589,8 @@ public class VideoMediaDeviceSession
      * <tt>VideoEvent</tt> with type {@link VideoEvent#VIDEO_ADDED} and origin
      * {@link VideoEvent#LOCAL}
      */
-    public Component createLocalVisualComponent(boolean flip)
+    protected Component createLocalVisualComponent()
     {
-        flipLocalVideoDisplay = flip;
-
         /*
          * Displaying the currently streamed desktop is perceived as unnecessary
          * because the user sees the whole desktop anyway. Instead, a static
@@ -593,15 +598,12 @@ public class VideoMediaDeviceSession
          */
         DataSource captureDevice = getCaptureDevice();
 
-        if (captureDevice != null)
+        if ((captureDevice != null)
+                && (captureDevice.getControl(
+                            ImgStreamingControl.class.getName())
+                        != null))
         {
-            Object imgStreamingControl
-                = captureDevice.getControl(ImgStreamingControl.class.getName());
-
-            if (imgStreamingControl != null)
-            {
-                return createLocalVisualComponentForDesktopStreaming();
-            }
+            return createLocalVisualComponentForDesktopStreaming();
         }
 
         /*
@@ -628,11 +630,13 @@ public class VideoMediaDeviceSession
          * caller may still depend on a VIDEO_ADDED event being fired for it.
          */
         if (localVisualComponent != null)
+        {
             fireVideoEvent(
                     VideoEvent.VIDEO_ADDED,
                     localVisualComponent,
                     VideoEvent.LOCAL,
                     false);
+        }
         return localVisualComponent;
     }
 
@@ -731,7 +735,9 @@ public class VideoMediaDeviceSession
             canvas.setName(DESKTOP_STREAMING_ICON);
 
             fireVideoEvent(
-                    VideoEvent.VIDEO_ADDED, canvas, VideoEvent.LOCAL,
+                    VideoEvent.VIDEO_ADDED,
+                    canvas,
+                    VideoEvent.LOCAL,
                     false);
         }
         return canvas;
@@ -743,7 +749,7 @@ public class VideoMediaDeviceSession
      * @param component the local visual <tt>Component</tt> of the local peer to
      * dispose of
      */
-    public void disposeLocalVisualComponent(Component component)
+    protected void disposeLocalVisualComponent(Component component)
     {
         if (component != null)
         {
@@ -814,9 +820,30 @@ public class VideoMediaDeviceSession
             }
 
             if (visualComponent != null)
+            {
                 fireVideoEvent(
-                    VideoEvent.VIDEO_REMOVED, visualComponent, VideoEvent.LOCAL,
-                    false);
+                        VideoEvent.VIDEO_REMOVED,
+                        visualComponent,
+                        VideoEvent.LOCAL,
+                        false);
+            }
+        }
+    }
+
+    /**
+     * Gets the visual <tt>Component</tt>, if any, depicting the video streamed
+     * from the local peer to the remote peer.
+     *
+     * @return the visual <tt>Component</tt> depicting the local video if local
+     * video is actually being streamed from the local peer to the remote peer;
+     * otherwise, <tt>null</tt>
+     */
+    public Component getLocalVisualComponent()
+    {
+        synchronized (localPlayerSyncRoot)
+        {
+            return
+                (localPlayer == null) ? null : getVisualComponent(localPlayer);
         }
     }
 
@@ -1621,6 +1648,40 @@ public class VideoMediaDeviceSession
     {
         super.startedDirectionChanged(oldValue, newValue);
 
+        try
+        {
+            Player localPlayer;
+
+            synchronized (localPlayerSyncRoot)
+            {
+                localPlayer = this.localPlayer;
+            }
+            if (newValue.allowsSending())
+            {
+                if (localPlayer == null)
+                    createLocalVisualComponent();
+            }
+            else if (localPlayer != null)
+            {
+                disposeLocalPlayer(localPlayer);
+            }
+        }
+        catch (Throwable t)
+        {
+            if (t instanceof ThreadDeath)
+                throw (ThreadDeath) t;
+            else
+            {
+                logger.error(
+                        "Failed to start/stop the preview of the local video",
+                        t);
+            }
+        }
+
+        /*
+         * Translate the starting and stopping of the playback into respective
+         * VideoEvents for the REMOTE origin.
+         */
         for (Player player : getPlayers())
         {
             int state = player.getState();
@@ -1667,6 +1728,49 @@ public class VideoMediaDeviceSession
                 }
             }
         }
+    }
+
+    /**
+     * Returns the format of the video we are receiving from the remote peer.
+     *
+     * @return The video format of the received video. Null, if no video is
+     * received.
+     */
+    public VideoFormat getReceivedVideoFormat()
+    {
+        if (playerScaler != null)
+        {
+            Format format = playerScaler.getInputFormat();
+
+            if (format instanceof VideoFormat)
+                return (VideoFormat) format;
+        }
+        return null;
+    }
+
+    /**
+     * Returns the format of the video we are streaming to the remote peer.
+     *
+     * @return The video format of the sent video. Null, if no video is sent.
+     */
+    public VideoFormat getSentVideoFormat()
+    {
+        DataSource capture = getCaptureDevice();
+
+        if (capture instanceof PullBufferDataSource)
+        {
+            PullBufferStream[] streams
+                = ((PullBufferDataSource) capture).getStreams();
+
+            for (PullBufferStream stream : streams)
+            {
+                VideoFormat format = (VideoFormat) stream.getFormat();
+
+                if (format != null)
+                    return format;
+            }
+        }
+        return null;
     }
 
     /**
@@ -1779,50 +1883,5 @@ public class VideoMediaDeviceSession
             }
             return inputFormat;
         }
-    }
-
-    /**
-     * Returns the format of the video we are receiving from the remote peer.
-     *
-     * @return The video format of the received video. Null, if no video is
-     * received.
-     */
-    public VideoFormat getReceivedVideoFormat()
-    {
-        if(this.playerScaler != null)
-        {
-            Format format = this.playerScaler.getInputFormat();
-
-            if (format instanceof VideoFormat)
-            {
-                return ((VideoFormat) format);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Returns the format of the video we are streaming to the remote peer.
-     *
-     * @return The video format of the sent video. Null, if no video is sent.
-     */
-    public VideoFormat getSentVideoFormat()
-    {
-        DataSource capture = this.getCaptureDevice();
-        if(capture instanceof PullBufferDataSource)
-        {
-            PullBufferStream[] streams =
-                ((PullBufferDataSource) capture).getStreams();
-            for(int i = 0; i < streams.length; ++i)
-            {
-                VideoFormat format = (VideoFormat) streams[i].getFormat();
-                if(format != null)
-                {
-                    return format;
-                }
-            }
-        }
-        return null;
     }
 }

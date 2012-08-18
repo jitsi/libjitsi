@@ -24,7 +24,6 @@ import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.control.KeyFrameControl;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
-import org.jitsi.service.protocol.*;
 import org.jitsi.util.*;
 import org.jitsi.util.event.*;
 
@@ -397,26 +396,21 @@ public class VideoMediaStreamImpl
     }
 
     /**
-     * Creates the visual <tt>Component</tt> depicting the video being streamed
+     * Gets the visual <tt>Component</tt>, if any, depicting the video streamed
      * from the local peer to the remote peer.
      *
-     * @param flip <tt>true</tt> to have the display of the local video flipped;
-     * <tt>false</tt>, otherwise
-     * @return the visual <tt>Component</tt> depicting the video being streamed
-     * from the local peer to the remote peer if it was immediately created or
-     * <tt>null</tt> if it was not immediately created and it is to be delivered
-     * to the currently registered <tt>VideoListener</tt>s in a
-     * <tt>VideoEvent</tt> with type {@link VideoEvent#VIDEO_ADDED} and origin
-     * {@link VideoEvent#LOCAL}
+     * @return the visual <tt>Component</tt> depicting the local video if local
+     * video is actually being streamed from the local peer to the remote peer;
+     * otherwise, <tt>null</tt>
      */
-    public Component createLocalVisualComponent(boolean flip)
+    public Component getLocalVisualComponent()
     {
         MediaDeviceSession deviceSession = getDeviceSession();
 
         return
             (deviceSession instanceof VideoMediaDeviceSession)
                 ? ((VideoMediaDeviceSession) deviceSession)
-                    .createLocalVisualComponent(flip)
+                    .getLocalVisualComponent()
                 : null;
     }
 
@@ -526,21 +520,6 @@ public class VideoMediaStreamImpl
              */
             newVideoMediaDeviceSession.setKeyFrameControl(getKeyFrameControl());
         }
-    }
-
-    /**
-     * Disposes of the visual <tt>Component</tt> of the local peer.
-     *
-     * @param component the visual <tt>Component</tt> of the local peer to
-     * dispose of
-     */
-    public void disposeLocalVisualComponent(Component component)
-    {
-        MediaDeviceSession deviceSession = getDeviceSession();
-
-        if(deviceSession instanceof VideoMediaDeviceSession)
-            ((VideoMediaDeviceSession) deviceSession)
-                .disposeLocalVisualComponent(component);
     }
 
     /**
@@ -750,10 +729,10 @@ public class VideoMediaStreamImpl
                         outputSize = res[1];
 
                         qualityControl.setRemoteSendMaxPreset(
-                            new QualityPreset(res[0]));
+                                new QualityPreset(res[0]));
                         qualityControl.setRemoteReceiveResolution(outputSize);
-                        ((VideoMediaDeviceSession)getDeviceSession()).
-                            setOutputSize(outputSize);
+                        ((VideoMediaDeviceSession)getDeviceSession())
+                            .setOutputSize(outputSize);
                     }
                 }
                 else if(key.equals("CIF"))
@@ -1045,12 +1024,12 @@ public class VideoMediaStreamImpl
                 if(res != null)
                 {
                     qualityControl.setRemoteSendMaxPreset(
-                        new QualityPreset(res[0]));
+                            new QualityPreset(res[0]));
                     qualityControl.setRemoteReceiveResolution(
-                        res[1]);
+                            res[1]);
                     outputSize = res[1];
-                    ((VideoMediaDeviceSession)getDeviceSession()).
-                        setOutputSize(outputSize);
+                    ((VideoMediaDeviceSession)getDeviceSession())
+                        .setOutputSize(outputSize);
                 }
             }
         }
@@ -1091,140 +1070,6 @@ public class VideoMediaStreamImpl
                     0,
                     screen.getIndex(),
                     x - bounds.x, y - bounds.y);
-        }
-    }
-
-    /**
-     * Implements the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>.
-     *
-     * @author Damian Minkov
-     */
-    private class QualityControlImpl
-        implements QualityControl
-    {
-        /**
-         * The current used preset.
-         */
-        private QualityPreset preset;
-
-        /**
-         * The minimum values for resolution, framerate ...
-         */
-        private QualityPreset minPreset;
-
-        /**
-         * The maximum values for resolution, framerate ...
-         */
-        private QualityPreset maxPreset;
-
-        /**
-         * This is the local settings from the config panel.
-         */
-        private QualityPreset localSettingsPreset;
-
-        /**
-         * Sets the preset.
-         * @param preset the desired video settings
-         * @throws OperationFailedException
-         */
-        private void setRemoteReceivePreset(QualityPreset preset)
-            throws OperationFailedException
-        {
-            if(preset.compareTo(getPreferredSendPreset()) > 0)
-                this.preset = getPreferredSendPreset();
-            else
-            {
-                this.preset = preset;
-
-                if(logger.isInfoEnabled()
-                    && preset != null && preset.getResolution() != null)
-                {
-                    logger.info("video send resolution: "
-                        + preset.getResolution().width + "x"
-                            + preset.getResolution().height);
-                }
-            }
-        }
-
-        /**
-         * The current preset.
-         * @return the current preset
-         */
-        public QualityPreset getRemoteReceivePreset()
-        {
-            return preset;
-        }
-
-        /**
-         * The minimum resolution values for remote part.
-         * @return minimum resolution values for remote part.
-         */
-        public QualityPreset getRemoteSendMinPreset()
-        {
-            return minPreset;
-        }
-
-        /**
-         * The max resolution values for remote part.
-         * @return max resolution values for remote part.
-         */
-        public QualityPreset getRemoteSendMaxPreset()
-        {
-            return maxPreset;
-        }
-
-        /**
-         * Does nothing specific locally.
-         *
-         * @param preset the max preset
-         * @throws OperationFailedException not thrown.
-         */
-        public void setPreferredRemoteSendMaxPreset(QualityPreset preset)
-            throws OperationFailedException
-        {
-            setRemoteSendMaxPreset(preset);
-        }
-
-        /**
-         * Changes remote send preset, the one we will receive.
-         * @param preset
-         */
-        public void setRemoteSendMaxPreset(QualityPreset preset)
-        {
-            this.maxPreset = preset;
-        }
-
-        /**
-         * Gets the local setting of capture.
-         * @return the local setting of capture
-         */
-        private QualityPreset getPreferredSendPreset()
-        {
-            if(localSettingsPreset == null)
-            {
-                DeviceConfiguration deviceConfiguration
-                    = NeomediaServiceUtils
-                        .getMediaServiceImpl()
-                            .getDeviceConfiguration();
-
-                localSettingsPreset = new QualityPreset(
-                        deviceConfiguration.getVideoSize(),
-                        deviceConfiguration.getFrameRate());
-            }
-            return localSettingsPreset;
-        }
-
-        /**
-         * Sets maximum resolution.
-         * @param res
-         */
-        public void setRemoteReceiveResolution(Dimension res)
-        {
-            try
-            {
-                this.setRemoteReceivePreset(new QualityPreset(res));
-            }
-            catch(OperationFailedException ofe){}
         }
     }
 }

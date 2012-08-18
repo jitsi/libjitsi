@@ -17,6 +17,7 @@ import javax.media.rtp.*;
 import javax.media.rtp.event.*;
 import javax.media.rtp.rtcp.*;
 
+import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -51,6 +52,14 @@ public class RTPTranslatorImpl
      * attached to this instance.
      */
     private RTPConnectorImpl connector;
+
+    /**
+     * The <tt>SendStream</tt> created by the <tt>RTPManager</tt> in order to
+     * ensure that this <tt>RTPTranslatorImpl</tt> is able to disperse RTP and
+     * RTCP received from remote peers even when the local peer is not
+     * generating media to be transmitted.
+     */
+    private SendStream fakeSendStream;
 
     /**
      * The <tt>RTPManager</tt> which implements the actual RTP management of
@@ -119,6 +128,46 @@ public class RTPTranslatorImpl
         // TODO Auto-generated method stub
     }
 
+    /**
+     * Closes {@link #fakeSendStream} if it exists and is considered no longer
+     * necessary; otherwise, does nothing.
+     */
+    private synchronized void closeFakeSendStreamIfNotNecessary()
+    {
+        /*
+         * If a SendStream has been created in response to a request from the
+         * clients of this RTPTranslator implementation, the newly-created
+         * SendStream in question will disperse the received RTP and RTCP from
+         * remote peers so fakeSendStream will be obsolete.
+         */
+        try
+        {
+            if (!sendStreams.isEmpty() || (streamRTPManagers.size() < 2))
+            {
+                try
+                {
+                    fakeSendStream.close();
+                }
+                finally
+                {
+                    fakeSendStream = null;
+                }
+            }
+        }
+        catch (Throwable t)
+        {
+            if (t instanceof ThreadDeath)
+                throw (ThreadDeath) t;
+            else if (logger.isDebugEnabled())
+            {
+                logger.debug(
+                        "Failed to close the fake SendStream of this"
+                            + " RTPTranslator.",
+                        t);
+            }
+        }
+    }
+
     private synchronized void closeSendStream(SendStreamDesc sendStreamDesc)
     {
         if (sendStreams.contains(sendStreamDesc)
@@ -126,6 +175,74 @@ public class RTPTranslatorImpl
         {
             sendStreamDesc.sendStream.close();
             sendStreams.remove(sendStreamDesc);
+        }
+    }
+
+    /**
+     * Creates {@link #fakeSendStream} if it does not exist yet and is
+     * considered necessary; otherwise, does nothing.
+     */
+    private synchronized void createFakeSendStreamIfNecessary()
+    {
+        /*
+         * If no SendStream has been created in response to a request from the
+         * clients of this RTPTranslator implementation, it will need
+         * fakeSendStream in order to be able to disperse the received RTP and
+         * RTCP from remote peers. Additionally, the fakeSendStream is not
+         * necessary in the case of a single client of this RTPTranslator
+         * because there is no other remote peer to disperse the received RTP
+         * and RTCP to.
+         */
+        if ((fakeSendStream == null)
+                && sendStreams.isEmpty()
+                && (streamRTPManagers.size() > 1))
+        {
+            Format supportedFormat = null;
+
+            for (StreamRTPManagerDesc s : streamRTPManagers)
+            {
+                Format[] formats = s.getFormats();
+
+                if ((formats != null) && (formats.length > 0))
+                {
+                    for (Format f : formats)
+                    {
+                        if (f != null)
+                        {
+                            supportedFormat = f;
+                            break;
+                        }
+                    }
+                    if (supportedFormat != null)
+                        break;
+                }
+            }
+            if (supportedFormat != null)
+            {
+                try
+                {
+                    fakeSendStream
+                        = manager.createSendStream(
+                                new FakePushBufferDataSource(supportedFormat),
+                                0);
+                }
+                catch (Throwable t)
+                {
+                    if (t instanceof ThreadDeath)
+                        throw (ThreadDeath) t;
+                    else
+                    {
+                        logger.error(
+                                "Failed to create a fake SendStream to ensure"
+                                    + " that this RTPTranslator is able to"
+                                    + " disperse RTP and RTCP received from"
+                                    + " remote peers even when the local peer"
+                                    + " is not generating media to be"
+                                    + " transmitted.",
+                                t);
+                    }
+                }
+            }
         }
     }
 
@@ -153,6 +270,8 @@ public class RTPTranslatorImpl
                 sendStreamDesc
                     = new SendStreamDesc(dataSource, streamIndex, sendStream);
                 sendStreams.add(sendStreamDesc);
+
+                closeFakeSendStreamIfNotNecessary();
             }
         }
         return
@@ -197,6 +316,9 @@ public class RTPTranslatorImpl
                 }
 
                 streamRTPManagerIter.remove();
+
+                closeFakeSendStreamIfNotNecessary();
+
                 break;
             }
         }
@@ -423,6 +545,8 @@ public class RTPTranslatorImpl
         }
         else if (logger.isTraceEnabled())
             logRTCP(this, "read", buffer, offset, read);
+
+        createFakeSendStreamIfNecessary();
 
         OutputDataStreamImpl outputStream
             = data
@@ -1556,6 +1680,16 @@ public class RTPTranslatorImpl
             synchronized (formats)
             {
                 return formats.get(payloadType);
+            }
+        }
+
+        public Format[] getFormats()
+        {
+            synchronized (this.formats)
+            {
+                Collection<Format> formats = this.formats.values();
+
+                return formats.toArray(new Format[formats.size()]);
             }
         }
 
