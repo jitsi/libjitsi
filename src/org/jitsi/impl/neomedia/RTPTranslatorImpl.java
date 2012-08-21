@@ -41,6 +41,13 @@ public class RTPTranslatorImpl
         = Logger.getLogger(RTPTranslatorImpl.class);
 
     /**
+     * The indicator which determines whether the method
+     * {@link #createFakeSendStreamIfNecessary()} is to be executed by
+     * <tt>RTPTranslatorImpl</tt>.
+     */
+    private static final boolean CREATE_FAKE_SEND_STREAM_IF_NECESSARY = false;
+
+    /**
      * An array with <tt>long</tt> element type and no elements explicitly
      * defined to reduce unnecessary allocations.
      */
@@ -193,7 +200,8 @@ public class RTPTranslatorImpl
          * because there is no other remote peer to disperse the received RTP
          * and RTCP to.
          */
-        if ((fakeSendStream == null)
+        if (CREATE_FAKE_SEND_STREAM_IF_NECESSARY
+                && (fakeSendStream == null)
                 && sendStreams.isEmpty()
                 && (streamRTPManagers.size() > 1))
         {

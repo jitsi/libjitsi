@@ -1694,10 +1694,23 @@ public class MediaStreamImpl
         if (direction == null)
             throw new NullPointerException("direction");
 
+        /*
+         * If the local peer is the focus of a conference for which it is to
+         * perform RTP translation even without generating media to be sent, it
+         * should create its StreamRTPManager.
+         */
+        boolean getRTPManagerForRTPTranslator = true;
+
         if (direction.allowsSending()
                 && ((startedDirection == null)
                         || !startedDirection.allowsSending()))
         {
+            /*
+             * The startSendStreams method will be called so the getRTPManager
+             * method will be called as part of the execution of the former.
+             */
+            getRTPManagerForRTPTranslator = false;
+
             startSendStreams();
 
             getDeviceSession().start(MediaDirection.SENDONLY);
@@ -1720,6 +1733,12 @@ public class MediaStreamImpl
                 && ((startedDirection == null)
                         || !startedDirection.allowsReceiving()))
         {
+            /*
+             * The startReceiveStreams method will be called so the getRTPManager
+             * method will be called as part of the execution of the former.
+             */
+            getRTPManagerForRTPTranslator = false;
+
             startReceiveStreams();
 
             getDeviceSession().start(MediaDirection.RECVONLY);
@@ -1729,6 +1748,14 @@ public class MediaStreamImpl
             else if (startedDirection == null)
                 startedDirection = MediaDirection.RECVONLY;
         }
+
+        /*
+         * If the local peer is the focus of a conference for which it is to
+         * perform RTP translation even without generating media to be sent, it
+         * should create its StreamRTPManager.
+         */
+        if (getRTPManagerForRTPTranslator && (rtpTranslator != null))
+            getRTPManager();
     }
 
     /**
@@ -2476,9 +2503,7 @@ public class MediaStreamImpl
     public void setRTPTranslator(RTPTranslator rtpTranslator)
     {
         if (this.rtpTranslator != rtpTranslator)
-        {
             this.rtpTranslator = rtpTranslator;
-        }
     }
 
     /**
