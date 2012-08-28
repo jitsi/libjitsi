@@ -155,6 +155,15 @@ public class RTPTranslatorImpl
                 {
                     fakeSendStream.close();
                 }
+                catch (NullPointerException npe)
+                {
+                    /*
+                     * Refer to MediaStreamImpl#stopSendStreams(
+                     * Iterable<SendStream>, boolean) for an explanation about
+                     * the swallowing of the exception.
+                     */
+                    logger.error("Failed to close fake send stream", npe);
+                }
                 finally
                 {
                     fakeSendStream = null;
@@ -180,7 +189,21 @@ public class RTPTranslatorImpl
         if (sendStreams.contains(sendStreamDesc)
                 && (sendStreamDesc.getSendStreamCount() < 1))
         {
-            sendStreamDesc.sendStream.close();
+            SendStream sendStream = sendStreamDesc.sendStream;
+
+            try
+            {
+                sendStream.close();
+            }
+            catch (NullPointerException npe)
+            {
+                /*
+                 * Refer to MediaStreamImpl#stopSendStreams(
+                 * Iterable<SendStream>, boolean) for an explanation about the
+                 * swallowing of the exception.
+                 */
+                logger.error("Failed to close send stream", npe);
+            }
             sendStreams.remove(sendStreamDesc);
         }
     }

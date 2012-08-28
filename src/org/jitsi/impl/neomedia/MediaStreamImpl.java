@@ -2062,16 +2062,21 @@ public class MediaStreamImpl
             return null;
 
         for (SendStream sendStream : sendStreams)
+        {
             try
             {
-                if(logger.isTraceEnabled())
-                    logger.trace("Stopping send stream with hashcode "
-                            + sendStream.hashCode());
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace(
+                            "Stopping send stream with hashcode "
+                                + sendStream.hashCode());
+                }
 
                 sendStream.getDataSource().stop();
                 sendStream.stop();
 
                 if (close)
+                {
                     try
                     {
                         sendStream.close();
@@ -2089,16 +2094,17 @@ public class MediaStreamImpl
                          * SendStreams, ignore the exception here just in case
                          * because we already ignore IOExceptions.
                          */
-                        logger
-                            .error(
-                                "Failed to close stream " + sendStream,
+                        logger.error(
+                                "Failed to close send stream " + sendStream,
                                 npe);
                     }
+                }
             }
             catch (IOException ioe)
             {
-                logger.warn("Failed to stop stream " + sendStream, ioe);
+                logger.warn("Failed to stop send stream " + sendStream, ioe);
             }
+        }
         return sendStreams;
     }
 
