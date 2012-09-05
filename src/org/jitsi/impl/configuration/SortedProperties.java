@@ -48,4 +48,23 @@ public class SortedProperties extends Properties
             }
         };
     }
+
+    /**
+     * Do not allow putting empty String keys in the properties table.
+     * @param key the key
+     * @param value the value
+     * @return the previous value of the specified key in this hashtable,
+     *         or <code>null</code> if it did not have one
+     */
+    public synchronized Object put(Object key, Object value)
+    {
+        if(key instanceof String
+            && ((String)key).trim().length() == 0)
+        {
+            // just skip the putting
+            return null;
+        }
+
+        return super.put(key, value);
+    }
 }
