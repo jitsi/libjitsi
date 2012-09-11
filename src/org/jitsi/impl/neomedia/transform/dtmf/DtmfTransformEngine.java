@@ -236,8 +236,11 @@ public class DtmfTransformEngine
             throw new IllegalStateException("Can't send DTMF when no payload "
                             +"type has been negotiated for DTMF events.");
 
-        DtmfRawPacket dtmfPkt = new DtmfRawPacket(pkt.getBuffer(),
-                        pkt.getOffset(), currentDtmfPayload);
+        DtmfRawPacket dtmfPkt = new DtmfRawPacket(
+                pkt.getBuffer(),
+                pkt.getOffset(),
+                pkt.getLength(),
+                currentDtmfPayload);
 
         long audioPacketTimestamp = dtmfPkt.getTimestamp();
         boolean pktEnd = false;

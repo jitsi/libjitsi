@@ -29,11 +29,6 @@ public class DtmfRawPacket
         = Logger.getLogger(DtmfRawPacket.class);
 
     /**
-     * The fixed size of a DTMF packet.
-     */
-    public static final int DTMF_PACKET_SIZE = 16;
-
-    /**
      * The event code to send.
      */
     private int code;
@@ -54,12 +49,13 @@ public class DtmfRawPacket
      * @param buffer the <tt>byte</tt> array that we should use to store packet
      * content
      * @param offset the index where we should start using the <tt>buffer</tt>.
+     * @param length Length of the packet's data.
      * @param payload the payload that has been negotiated for telephone events
      * by our signaling modules.
      */
-    public DtmfRawPacket(byte[] buffer, int offset, byte payload)
+    public DtmfRawPacket(byte[] buffer, int offset, int length, byte payload)
     {
-        super (buffer, offset, DTMF_PACKET_SIZE);
+        super (buffer, offset, length);
 
         setPayload(payload);
     }
