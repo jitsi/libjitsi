@@ -9,6 +9,7 @@ package org.jitsi.service.neomedia.device;
 import java.util.*;
 
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
 
 /**
@@ -80,4 +81,24 @@ public interface MediaDevice
     public List<MediaFormat> getSupportedFormats(
             QualityPreset localPreset,
             QualityPreset remotePreset);
+   
+     /**
+     * Returns a list of <tt>MediaFormat</tt> instances representing the media
+     * formats supported by this <tt>MediaDevice</tt> and enabled in
+     * <tt>encodingConfiguration</tt>.
+     *
+     * @param localPreset the preset used to set the send format parameters,
+     * used for video and settings.
+     * @param remotePreset the preset used to set the receive format parameters,
+     * used for video and settings.
+     * @param encodingConfiguration the <tt>EncodingConfiguration<tt> instance
+     * to use.
+     *
+     * @return the list of <tt>MediaFormat</tt>s supported by this device.
+     */
+    public List<MediaFormat> getSupportedFormats(
+            QualityPreset localPreset,
+            QualityPreset remotePreset,
+            EncodingConfiguration encodingConfiguration);
+   
 }

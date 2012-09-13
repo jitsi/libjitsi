@@ -21,6 +21,7 @@ import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
@@ -331,7 +332,8 @@ public class MediaDeviceImpl
 
     /**
      * Gets the list of <tt>MediaFormat</tt>s supported by this
-     * <tt>MediaDevice</tt>.
+     * <tt>MediaDevice</tt>. Uses the <tt>EncodingConfiguration</tt> from the
+     * media service, which contains all known encodings.
      *
      * @param sendPreset the preset used to set some of the format parameters,
      * used for video and settings.
@@ -344,10 +346,48 @@ public class MediaDeviceImpl
             QualityPreset sendPreset,
             QualityPreset receivePreset)
     {
+        return getSupportedFormats(sendPreset, receivePreset,
+                NeomediaServiceUtils.getMediaServiceImpl()
+                    .getEncodingConfiguration());
+    }
+    
+    /**
+     * Gets the list of <tt>MediaFormat</tt>s supported by this
+     * <tt>MediaDevice</tt> and enabled in <tt>encodingConfiguration</tt>.
+     *
+     * @param encodingConfiguration the <tt>EncodingConfiguration</tt> instance
+     * to use
+     * @return the list of <tt>MediaFormat</tt>s supported by this device
+     * and enabled in <tt>encodingConfiguration</tt>.
+     * @see MediaDevice#getSupportedFormats()
+     */
+    public List<MediaFormat> getSupportedFormats(
+            EncodingConfiguration encodingConfiguration)
+    {
+            return getSupportedFormats(null, null, encodingConfiguration);
+    }
+    
+    /**
+     * Gets the list of <tt>MediaFormat</tt>s supported by this
+     * <tt>MediaDevice</tt> and enabled in <tt>encodingConfiguration</tt>.
+     *
+     * @param sendPreset the preset used to set some of the format parameters,
+     * used for video and settings.
+     * @param receivePreset the preset used to set the receive format
+     * parameters, used for video and settings.
+     * @param encodingConfiguration the <tt>EncodingConfiguration</tt> instance
+     * to use
+     * @return the list of <tt>MediaFormat</tt>s supported by this device
+     * and enabled in <tt>encodingConfiguration</tt>.
+     * @see MediaDevice#getSupportedFormats()
+     */
+    public List<MediaFormat> getSupportedFormats(
+            QualityPreset sendPreset,
+            QualityPreset receivePreset,
+            EncodingConfiguration encodingConfiguration)
+    {
         MediaServiceImpl mediaServiceImpl
             = NeomediaServiceUtils.getMediaServiceImpl();
-        EncodingConfiguration encodingConfiguration
-            = mediaServiceImpl.getEncodingConfiguration();
         MediaFormat[] supportedEncodings
             = encodingConfiguration.getSupportedEncodings(getMediaType());
         List<MediaFormat> supportedFormats = new ArrayList<MediaFormat>();

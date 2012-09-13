@@ -29,6 +29,7 @@ import org.jitsi.impl.neomedia.transform.sdes.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.resources.*;
@@ -144,7 +145,7 @@ public class MediaServiceImpl
      * and the order of their preference.
      */
     private final EncodingConfiguration encodingConfiguration
-        = new EncodingConfiguration();
+        = new EncodingConfigurationImpl();
 
     /**
      * The <tt>MediaFormatFactory</tt> through which <tt>MediaFormat</tt>
@@ -1505,5 +1506,13 @@ public class MediaServiceImpl
                 }
             }
         }
+    }
+    
+    /**
+     * Returns a new <tt>EncodingConfiguration</tt> instance.
+     */
+    public EncodingConfiguration getNewEncodingConfiguration()
+    {
+        return new EncodingConfigurationImpl();
     }
 }

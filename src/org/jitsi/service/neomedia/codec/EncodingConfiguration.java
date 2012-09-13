@@ -1,0 +1,472 @@
+/*
+ * Jitsi, the OpenSource Java VoIP and Instant Messaging client.
+ *
+ * Distributable under LGPL license.
+ * See terms of license at gnu.org.
+ */
+package org.jitsi.service.neomedia.codec;
+
+import java.util.*;
+
+import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.format.*;
+import org.jitsi.util.*;
+
+/**
+ * Abstract class that manages encoding configurations. It holds information
+ * about supported formats.
+ * 
+ * @author Damian Minkov
+ * @author Lyubomir Marinov
+ * @author Boris Grozev
+ */
+public abstract class EncodingConfiguration
+{
+    /**
+     * The <tt>Logger</tt> used by this <tt>EncodingConfiguration</tt> instance
+     * for logging output.
+     */
+    protected final Logger logger = Logger.getLogger(EncodingConfiguration.class);
+
+    /**
+     * The <tt>Comparator</tt> which sorts the sets according to the settings in
+     * encodingPreferences.
+     */
+    private final Comparator<MediaFormat> encodingComparator
+        = new Comparator<MediaFormat>()
+                {
+                    @Override
+                    public int compare(MediaFormat s1, MediaFormat s2)
+                    {
+                        return compareEncodingPreferences(s1, s2);
+                    }
+                };
+
+    /**
+     * That's where we keep format preferences matching SDP formats to integers.
+     * We keep preferences for both audio and video formats here in case we'd
+     * ever need to compare them to one another. In most cases however both
+     * would be decorelated and other components (such as the UI) should present
+     * them separately.
+     */
+    protected final Map<String, Integer> encodingPreferences
+        = new HashMap<String, Integer>();
+
+    /**
+     * The cache of supported <tt>AudioMediaFormat</tt>s ordered by decreasing
+     * priority.
+     */
+    private Set<MediaFormat> supportedAudioEncodings;
+
+    /**
+     * The cache of supported <tt>VideoMediaFormat</tt>s ordered by decreasing
+     * priority.
+     */
+    private Set<MediaFormat> supportedVideoEncodings;
+
+    /**
+     * Updates the codecs in the supported sets according to the preferences in
+     * encodingPreferences. If the preference value is <tt>0</tt>, the codec is
+     * disabled.
+     */
+    private void updateSupportedEncodings()
+    {
+        /*
+         * If they need updating, their caches are invalid and need rebuilding
+         * next time they are requested.
+         */
+        supportedAudioEncodings = null;
+        supportedVideoEncodings = null;
+    }
+
+    /**
+     * Gets the <tt>Set</tt> of enabled available <tt>MediaFormat</tt>s with the
+     * specified <tt>MediaType</tt> sorted in decreasing priority.
+     *
+     * @param type the <tt>MediaType</tt> of the <tt>MediaFormat</tt>s to get
+     * @return a <tt>Set</tt> of enabled available <tt>MediaFormat</tt>s with
+     * the specified <tt>MediaType</tt> sorted in decreasing priority
+     */
+    private Set<MediaFormat> updateSupportedEncodings(MediaType type)
+    {
+        Set<MediaFormat> enabled
+            = new TreeSet<MediaFormat>(encodingComparator);
+
+        for (MediaFormat format : getAvailableEncodings(type))
+        {
+            if (getPriority(format) > 0)
+            {
+                enabled.add(format);
+            }
+        }
+        return enabled;
+    }
+
+    /**
+     * Sets <tt>pref</tt> as the preference associated with <tt>encoding</tt>.
+     * Use this method for both audio and video encodings and don't worry if
+     * preferences are equal since we rarely need to compare prefs of video
+     * encodings to those of audio encodings.
+     *
+     * @param encoding the SDP int of the encoding whose pref we're setting.
+     * @param clockRate clock rate
+     * @param pref a positive int indicating the preference for that encoding.
+     */
+    protected void setEncodingPreference(
+            String encoding, double clockRate,
+            int pref)
+    {
+        MediaFormat mediaFormat = null;
+
+        /*
+         * The key in encodingPreferences associated with a MediaFormat is
+         * currently composed of the encoding and the clockRate only so it makes
+         * sense to ignore the format parameters.
+         */
+        for (MediaFormat mf : MediaUtils.getMediaFormats(encoding))
+            if (mf.getClockRate() == clockRate)
+            {
+                mediaFormat = mf;
+                break;
+            }
+        if (mediaFormat != null)
+        {
+            encodingPreferences.put(
+                    getEncodingPreferenceKey(mediaFormat),
+                    pref);
+        }
+    }
+
+    /**
+     * Sets <tt>priority</tt> as the preference associated with
+     * <tt>encoding</tt>. Use this method for both audio and video encodings and
+     * don't worry if the preferences are equal since we rarely need to compare
+     * the preferences of video encodings to those of audio encodings.
+     *
+     * @param encoding the <tt>MediaFormat</tt> specifying the encoding to set
+     * the priority of
+     * @param priority a positive <tt>int</tt> indicating the priority of
+     * <tt>encoding</tt> to set
+     */
+    public void setPriority(MediaFormat encoding, int priority)
+    {
+        String encodingEncoding = encoding.getEncoding();
+
+        /*
+         * Since we'll be remembering the priority in the ConfigurationService
+         * by associating it with a property name/key based on encoding and
+         * clock rate only, it does not make sense to store the MediaFormat in
+         * encodingPreferences because MediaFormat is much more specific than
+         * just encoding and clock rate.
+         */
+        setEncodingPreference(
+                encodingEncoding, encoding.getClockRate(),
+                priority);
+
+        updateSupportedEncodings();
+    }
+    
+    /**
+     * Sets <tt>priority</tt> as the preference associated with
+     * <tt>encoding</tt> (with a call to <tt>setPriority(MediaFormat, int)</tt>
+     * for example), and also, if <tt>updateConfig</tt> is <tt>true</tt>,
+     * updates configuration. 
+     * @param encoding the <tt>MediaFormat</tt> specifying the encoding to set
+     * the priority of
+     * @param priority a positive <tt>int</tt> indicating the priority of
+     * <tt>encoding</tt> to set
+     * @param updateConfig Whether to update configuration or not.
+     */
+    public abstract void setPriority(MediaFormat encoding, int priority,
+            boolean updateConfig);
+
+
+    /**
+     * Get the priority for a <tt>MediaFormat</tt>.
+     * @param encoding the <tt>MediaFormat</tt>
+     * @return the priority
+     */
+    public int getPriority(MediaFormat encoding)
+    {
+        /*
+         * Directly returning encodingPreference.get(encoding) will throw a
+         * NullPointerException if encodingPreferences does not contain a
+         * mapping for encoding.
+         */
+        Integer priority
+            = encodingPreferences.get(getEncodingPreferenceKey(encoding));
+
+        return (priority == null) ? 0 : priority;
+    }
+
+    
+    /**
+     * Get the available encodings for a specific <tt>MediaType</tt>.
+     *
+     * @param type the <tt>MediaType</tt> we would like to know its available
+     * encodings
+     * @return array of <tt>MediaFormat</tt> supported for the
+     * <tt>MediaType</tt>
+     */
+    public MediaFormat[] getAvailableEncodings(MediaType type)
+    {
+        return MediaUtils.getMediaFormats(type);
+    }
+
+    /**
+     * Gets the supported <tt>MediaFormat</tt>s i.e. the enabled available
+     * <tt>MediaFormat</tt>s sorted in decreasing priority.
+     *
+     * @param type the <tt>MediaType</tt> of the supported <tt>MediaFormat</tt>s
+     * to get
+     * @return an array of the supported <tt>MediaFormat</tt>s i.e. the enabled
+     * available <tt>MediaFormat</tt>s sorted in decreasing priority
+     */
+    public MediaFormat[] getSupportedEncodings(MediaType type)
+    {
+        Set<MediaFormat> supportedEncodings;
+
+        switch (type)
+        {
+        case AUDIO:
+            if (supportedAudioEncodings == null)
+                supportedAudioEncodings = updateSupportedEncodings(type);
+            supportedEncodings = supportedAudioEncodings;
+            break;
+        case VIDEO:
+            if (supportedVideoEncodings == null)
+                supportedVideoEncodings = updateSupportedEncodings(type);
+            supportedEncodings = supportedVideoEncodings;
+            break;
+        default:
+            return MediaUtils.EMPTY_MEDIA_FORMATS;
+        }
+
+        return
+            supportedEncodings.toArray(
+                    new MediaFormat[supportedEncodings.size()]);
+    }
+
+    /**
+     * Compares the two formats for order. Returns a negative integer, zero, or
+     * a positive integer as the first format has been assigned a preference
+     * higher, equal to, or greater than the one of the second.
+     *
+     * @param enc1 the first format to compare for preference.
+     * @param enc2 the second format to compare for preference
+     * @return a negative integer, zero, or a positive integer as the first
+     * format has been assigned a preference higher, equal to, or greater than
+     * the one of the second
+     */
+    private int compareEncodingPreferences(MediaFormat enc1, MediaFormat enc2)
+    {
+        int res = getPriority(enc2) - getPriority(enc1);
+
+        /*
+         * If the encodings are with same priority, compare them by name. If we
+         * return equals, TreeSet will not add equal encodings.
+         */
+        if (res == 0)
+        {
+            res = enc1.getEncoding().compareToIgnoreCase(enc2.getEncoding());
+            /*
+             * There are formats with one and the same encoding (name) but
+             * different clock rates.
+             */
+            if (res == 0)
+            {
+                res = Double.compare(enc2.getClockRate(), enc1.getClockRate());
+                /*
+                 * And then again, there are formats (e.g. H.264) with one and
+                 * the same encoding (name) and clock rate but different format
+                 * parameters (e.g. packetization-mode).
+                 */
+                if (res == 0)
+                {
+                    // Try to preserve the order specified by MediaUtils.
+                    int index1;
+                    int index2;
+
+                    if (((index1 = MediaUtils.getMediaFormatIndex(enc1)) != -1)
+                            && ((index2 = MediaUtils.getMediaFormatIndex(enc2))
+                                    != -1))
+                    {
+                        res = (index1 - index2);
+                    }
+
+                    if (res == 0)
+                    {
+                        /*
+                         * The format with more parameters will be considered
+                         * here to be the format with higher priority.
+                         */
+                        Map<String, String> fmtps1 = enc1.getFormatParameters();
+                        Map<String, String> fmtps2 = enc2.getFormatParameters();
+                        int fmtpCount1 = (fmtps1 == null) ? 0 : fmtps1.size();
+                        int fmtpCount2 = (fmtps2 == null) ? 0 : fmtps2.size();
+
+                        /*
+                         * TODO Even if the number of format parameters is
+                         * equal, the two formats may still be different.
+                         * Consider ordering by the values of the format
+                         * parameters as well.
+                         */
+                        res = (fmtpCount2 - fmtpCount1);
+                    }
+                }
+            }
+        }
+        return res;
+    }
+
+    /**
+     * Gets the key in {@link #encodingPreferences} which is associated with the
+     * priority of a specific <tt>MediaFormat</tt>.
+     *
+     * @param encoding the <tt>MediaFormat</tt> to get the key in
+     * {@link #encodingPreferences} of
+     * @return the key in {@link #encodingPreferences} which is associated with
+     * the priority of the specified <tt>encoding</tt>
+     */
+    protected String getEncodingPreferenceKey(MediaFormat encoding)
+    {
+        return encoding.getEncoding() + "/" + encoding.getClockRateString();
+    }
+    
+    /**
+     * Loads configuration.
+     */
+    public abstract void loadConfig();
+    
+    /**
+     * Parses the properties under <tt>prefix</tt> and loads them.
+     * 
+     * @param prefix The prefix to search the configuration under
+     */
+    public void loadFormatPreferencesFromConfig(String prefix)
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        
+        Map<String, String> properties = new HashMap<String, String>();
+        
+        if (cfg != null)
+        {
+            for (String pName : cfg.getPropertyNamesByPrefix(prefix, false))
+            {
+                properties.put(pName,
+                        cfg.getString(pName));
+            }
+            loadProperties(properties);
+        }
+    }
+        
+    
+   /**
+    * Parses a <tt>Map<String, String></tt> and updates the format preferences
+    * according to it.
+    * The map is expected to have entries in the form of
+    * (formatString, preference).
+    * @param properties The <tt>Map</tt> to parse.
+    */
+    public void loadProperties(Map<String, String> properties)
+    {
+
+            for (String pName
+                    : properties.keySet())
+            {
+                String prefStr = properties.get(pName);
+                String fmtName;
+                if(pName.contains("."))
+                {
+                    fmtName = pName.substring(pName.lastIndexOf('.') + 1);
+                }
+                else
+                {
+                    fmtName = pName;
+                }
+                
+                // legacy
+                if (fmtName.contains("sdp"))
+                {
+                    fmtName = fmtName.replaceAll("sdp", "");
+                    /*
+                     * If the current version of the property name is also
+                     * associated with a value, ignore the value for the legacy
+                     * one.
+                     */
+                    if (properties.containsKey(pName.replaceAll("sdp", "")))
+                        continue;
+                }
+
+                int preference = -1;
+                String encoding;
+                double clockRate;
+
+                try
+                {
+                    preference = Integer.parseInt(prefStr);
+
+                    int encodingClockRateSeparator = fmtName.lastIndexOf('/');
+
+                    if (encodingClockRateSeparator > -1)
+                    {
+                        encoding
+                            = fmtName.substring(0, encodingClockRateSeparator);
+                        clockRate
+                            = Double.parseDouble(
+                                    fmtName.substring(
+                                            encodingClockRateSeparator + 1));
+                    }
+                    else
+                    {
+                        encoding = fmtName;
+                        clockRate = MediaFormatFactory.CLOCK_RATE_NOT_SPECIFIED;
+                    }
+                }
+                catch (NumberFormatException nfe)
+                {
+                    logger.warn(
+                            "Failed to parse format ("
+                                + fmtName
+                                + ") or preference ("
+                                + prefStr
+                                + ").",
+                            nfe);
+                    continue;
+                }
+                setEncodingPreference(encoding, clockRate, preference);
+            }
+        
+
+        // now update the arrays so that they are returned by order of
+        // preference.
+        updateSupportedEncodings();
+    }
+    
+    
+    /**
+     * Returns a <tt>Map<String, String></tt> that holds the properties
+     * corresponding to the current format preferences
+     * @return A <tt>Map<String, String></tt> that holds the properties
+     * corresponding to the current format preferences.
+     */
+    public Map<String, String> getEncodingProperties()
+    {
+        Map<String, String> encodingProperties = new HashMap<String, String>();
+        for(MediaFormat mf : getAvailableEncodings(MediaType.AUDIO))
+        {
+            encodingProperties.put(getEncodingPreferenceKey(mf),
+                                   "" + getPriority(mf));
+        }
+        for(MediaFormat mf : getAvailableEncodings(MediaType.VIDEO))
+        {
+            encodingProperties.put(getEncodingPreferenceKey(mf),
+                                   "" + getPriority(mf));
+        }
+        return encodingProperties;
+    }
+    
+}

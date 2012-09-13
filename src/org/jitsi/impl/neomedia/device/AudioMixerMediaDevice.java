@@ -19,6 +19,7 @@ import org.jitsi.impl.neomedia.audiolevel.*;
 import org.jitsi.impl.neomedia.conference.*;
 import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.neomedia.format.*;
@@ -442,6 +443,27 @@ public class AudioMixerMediaDevice
             QualityPreset receivePreset)
     {
         return device.getSupportedFormats();
+    }
+    
+    /**
+     * Gets the list of <tt>MediaFormat</tt>s supported by this
+     * <tt>MediaDevice</tt> and enabled in <tt>encodingConfiguration</tt>.
+     *
+     * @param sendPreset not used
+     * @param receivePreset not used
+     * @param encodingConfiguration the <tt>EncodingConfiguration</tt> instance
+     * to use
+     * @return the list of <tt>MediaFormat</tt>s supported by this
+     * <tt>MediaDevice</tt> and enabled in <tt>encodingConfiguration</tt>.
+     * @see MediaDevice#getSupportedFormats(QualityPreset, QualityPreset,
+     * EncodingConfiguration)
+     */
+    public List<MediaFormat> getSupportedFormats(
+            QualityPreset sendPreset,
+            QualityPreset receivePreset,
+            EncodingConfiguration encodingConfiguration)
+    {
+        return device.getSupportedFormats(encodingConfiguration);
     }
 
     /**

@@ -148,7 +148,7 @@ public class MediaUtils
             MediaType.AUDIO,
             Constants.G722_RTP,
             8000);
-        if (EncodingConfiguration.G729)
+        if (EncodingConfigurationImpl.G729)
         {
             addMediaFormats(
                 (byte) SdpConstants.G729,

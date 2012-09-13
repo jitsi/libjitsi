@@ -9,6 +9,7 @@ package org.jitsi.service.neomedia;
 import java.beans.*;
 import java.util.*;
 
+import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 
@@ -317,4 +318,9 @@ public interface MediaService
      * notified about changes in the values of the properties of this instance
      */
     public void removePropertyChangeListener(PropertyChangeListener listener);
+    
+    /**
+     * Returns a new <tt>EncodingConfiguration</tt> instance.
+     */
+    public EncodingConfiguration getNewEncodingConfiguration();
 }
