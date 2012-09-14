@@ -43,12 +43,12 @@
 
   <target name="compile-with-g729">
     <replace
-        file="${src}/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
+        file="${src}/org/jitsi/impl/neomedia/codec/EncodingConfigurationImpl.java"
         token="public static final boolean G729 = false"
         value="public static final boolean G729 = true"/>
     <antcall target="compile" />
     <replace
-        file="${src}/org/jitsi/impl/neomedia/codec/EncodingConfiguration.java"
+        file="${src}/org/jitsi/impl/neomedia/codec/EncodingConfigurationImpl.java"
         token="public static final boolean G729 = true"
         value="public static final boolean G729 = false"/>
    </target>
