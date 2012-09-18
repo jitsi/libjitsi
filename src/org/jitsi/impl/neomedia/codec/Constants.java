@@ -64,6 +64,11 @@ public class Constants
     public static final String SPEEX_RTP = "speex/rtp";
 
     /**
+     * The OPUS/RTP constant.
+     */
+    public static final String OPUS_RTP = "opus/rtp";
+
+    /**
      * The H264 constant.
      */
     public static final String H264 = "h264";

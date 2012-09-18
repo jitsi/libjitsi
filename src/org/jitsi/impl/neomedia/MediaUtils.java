@@ -169,6 +169,12 @@ public class MediaUtils
             MediaType.AUDIO,
             Constants.TELEPHONE_EVENT,
             8000);
+        addMediaFormats(
+            MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
+            "opus",
+            MediaType.AUDIO,
+            Constants.OPUS_RTP,
+            48000);
 
         /*
          * We don't really support these.

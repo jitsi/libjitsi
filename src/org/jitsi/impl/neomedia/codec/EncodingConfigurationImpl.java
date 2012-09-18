@@ -55,6 +55,8 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
             "org.jitsi.impl.neomedia.codec.audio.ulaw.JavaDecoder",
             "org.jitsi.impl.neomedia.codec.audio.ulaw.JavaEncoder",
             "org.jitsi.impl.neomedia.codec.audio.ulaw.Packetizer",
+            "org.jitsi.impl.neomedia.codec.audio.opus.JNIDecoder",
+            "org.jitsi.impl.neomedia.codec.audio.opus.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.audio.speex.JNIDecoder",
             "org.jitsi.impl.neomedia.codec.audio.speex.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.audio.speex.SpeexResampler",
@@ -171,6 +173,7 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
         setEncodingPreference("SILK", 12000, 0);
         setEncodingPreference("SILK", 8000, 0);
         setEncodingPreference("G729", 8000, 0 /* proprietary */);
+        setEncodingPreference("opus", 48000, 2);
 
         // enables by default telephone event(DTMF rfc4733), with lowest
         // priority as it is not needed to order it with audio codecs

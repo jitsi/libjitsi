@@ -472,7 +472,7 @@ public class MediaFormatFactoryImpl
                     .getEncodingConfiguration();
         List<MediaFormat> supportedMediaFormats
             = getMatchingMediaFormats(
-                encodingConfiguration.getSupportedEncodings(
+                encodingConfiguration.getAvailableEncodings(
                         MediaType.AUDIO),
                 encoding,
                 clockRate);
@@ -480,7 +480,7 @@ public class MediaFormatFactoryImpl
         if (supportedMediaFormats.isEmpty())
             supportedMediaFormats
                 = getMatchingMediaFormats(
-                    encodingConfiguration.getSupportedEncodings(
+                    encodingConfiguration.getAvailableEncodings(
                             MediaType.VIDEO),
                     encoding,
                     clockRate);

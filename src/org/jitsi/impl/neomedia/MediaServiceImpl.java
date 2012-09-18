@@ -1509,7 +1509,10 @@ public class MediaServiceImpl
     }
     
     /**
-     * Returns a new <tt>EncodingConfiguration</tt> instance.
+     * Returns a new {@link EncodingConfiguration} instance that can be
+     * used by other bundles.
+     *
+     * @return a new {@link EncodingConfiguration} instance.
      */
     public EncodingConfiguration getNewEncodingConfiguration()
     {
