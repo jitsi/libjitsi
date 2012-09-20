@@ -295,28 +295,23 @@ public class AVReceive2
         = {
             {
                 LOCAL_PORT_BASE_ARG_NAME,
-                "The port which is the source of the transmission"
-                        + " i.e. from which the media is to be transmitted."
-                        + " The specified value will be used as the port to"
-                        + " transmit the audio RTP from, the next port after it"
-                        + " will be used to transmit the audio RTCP from."
-                        + " Respectively, the subsequent ports will be used to"
-                        + " transmit the video RTP and RTCP from."
+                "The port on which media is to be received. The specified value"
+                    + " will be used as the port to receive the audio RTP on,"
+                    + " the next port after it will be used to receive the"
+                    + " audio RTCP on. Respectively, the subsequent ports will"
+                    + " be used to receive the video RTP and RTCP on."
             },
             {
                 REMOTE_HOST_ARG_NAME,
-                "The name of the host which is the target of the transmission"
-                    + " i.e. to which the media is to be transmitted"
+                "The name of the host from which the media is to be received."
             },
             {
                 REMOTE_PORT_BASE_ARG_NAME,
-                "The port which is the target of the transmission"
-                        + " i.e. to which the media is to be transmitted."
-                        + " The specified value will be used as the port to"
-                        + " transmit the audio RTP to, the next port after it"
-                        + " will be used to transmit the audio RTCP to."
-                        + " Respectively, the subsequent ports will be used to"
-                        + " transmit the video RTP and RTCP to."
+                "The port from which media is to be received. The specified"
+                    + " vaue will be used as the port to receive the audio RTP"
+                    + " from, the next port after it will be used to receive"
+                    + " the audio RTCP from. Respectively, the subsequent ports"
+                    + " will be used to receive the video RTP and RTCP from."
             }
         };
 
@@ -324,7 +319,7 @@ public class AVReceive2
         throws Exception
     {
         // We need three parameters to do the transmission. For example,
-        // java org.jitsi.examples.AVReceive2 --local-port-base=10000 --remote-host=129.130.131.132 --remote-port-base=5000
+        // ant run-example -Drun.example.name=AVReceive2 -Drun.example.arg.line="--local-port-base=10000 --remote-host=129.130.131.132 --remote-port-base=5000"
         if (args.length < 3)
         {
             prUsage();

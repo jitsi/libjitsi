@@ -292,13 +292,13 @@ public class AVTransmit2
         = {
             {
                 LOCAL_PORT_BASE_ARG_NAME,
-                "The port which is the source of the transmission"
-                        + " i.e. from which the media is to be transmitted."
-                        + " The specified value will be used as the port to"
-                        + " transmit the audio RTP from, the next port after it"
-                        + " will be used to transmit the audio RTCP from."
-                        + " Respectively, the subsequent ports will be used to"
-                        + " transmit the video RTP and RTCP from."
+                "The port which is the source of the transmission i.e. from"
+                    + " which the media is to be transmitted. The specified"
+                    + " value will be used as the port to transmit the audio"
+                    + " RTP from, the next port after it will be used to"
+                    + " transmit the audio RTCP from. Respectively, the"
+                    + " subsequent ports will be used to transmit the video RTP"
+                    + " and RTCP from."
             },
             {
                 REMOTE_HOST_ARG_NAME,
@@ -307,13 +307,12 @@ public class AVTransmit2
             },
             {
                 REMOTE_PORT_BASE_ARG_NAME,
-                "The port which is the target of the transmission"
-                        + " i.e. to which the media is to be transmitted."
-                        + " The specified value will be used as the port to"
-                        + " transmit the audio RTP to, the next port after it"
-                        + " will be used to transmit the audio RTCP to."
-                        + " Respectively, the subsequent ports will be used to"
-                        + " transmit the video RTP and RTCP to."
+                "The port which is the target of the transmission i.e. to which"
+                    + " the media is to be transmitted. The specified value"
+                    + " will be used as the port to transmit the audio RTP to"
+                    + " the next port after it will be used to transmit the"
+                    + " audio RTCP to. Respectively, the subsequent ports will"
+                    + " be used to transmit the video RTP and RTCP to."
             }
         };
 
@@ -321,7 +320,7 @@ public class AVTransmit2
         throws Exception
     {
         // We need two parameters to do the transmission. For example,
-        // java org.jitsi.examples.AVTransmit2 --remote-host=127.0.0.1 --remote-port-base=10000
+        // ant run-example -Drun.example.name=AVTransmit2 -Drun.example.arg.line="--remote-host=127.0.0.1 --remote-port-base=10000"
         if (args.length < 2)
         {
             prUsage();
