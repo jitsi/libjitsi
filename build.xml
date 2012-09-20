@@ -8,6 +8,8 @@
   <property name="src" value="src"/>
   <property name="doc" value="doc"/>
   <property name="java.doc" value="${doc}/api"/>
+  <property name="native.libs" value="lib/native"/>
+  <property environment="system"/>
      
   <path id="compile.class.path">
     <fileset dir="lib" includes="*.jar" />
@@ -18,6 +20,9 @@
              else="">
     <isset property="label"/>
   </condition>
+
+  <!-- Import JNI build xml -->
+  <import file="${src}/native/build.xml"/>
 
   <target
       name="clean"
@@ -37,8 +42,10 @@
         destdir="${dest}"
         fork="true"
         source="1.5"
-        srcdir="${src}"
-        target="1.5" />
+        target="1.5">
+        <src path="${src}"/>
+        <exclude name="org/jitsi/impl/neomedia/codec/audio/speex/Java*"/>
+    </javac>
   </target>
 
   <target name="compile-with-g729">
@@ -87,9 +94,9 @@
     to be run via the Ant property 'run.example.arg.line'.
   -->
   <target
-  	  name="run-example"
+      name="run-example"
       depends="compile"
-  	  description="Run a libjitsi example by name.">
+      description="Run a libjitsi example by name.">
     <java
         classname="org.jitsi.examples.${run.example.name}"
         failonerror="true"

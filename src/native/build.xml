@@ -1,0 +1,653 @@
+<project name="libjitsi-native" default="help-native">
+  <import file="../../build.xml"/>
+
+  <!-- additionnal property -->
+  <property name="obj" value="${src}/native/native_obj" />
+
+  <!-- load cpptasks jar to have <cc /> tag -->
+  <taskdef resource="cpptasks.tasks">
+    <!-- load cpptasks jar -->
+    <classpath>
+      <pathelement location="lib/installer-exclude/cpptasks.jar"/>
+    </classpath>
+  </taskdef>
+
+  <!-- windows specific properties -->
+  <condition property="is.running.windows" value="${os.name}">
+      <os family="windows"/>
+  </condition>
+  <!-- linux specific properties -->
+  <condition property="is.running.linux" value="${os.name}">
+      <equals arg1="${os.name}" arg2="linux" casesensitive="false" trim="true"/>
+  </condition>
+  <!-- solaris specific properties -->
+  <condition property="is.running.solaris" value="${os.name}">
+      <equals arg1="${os.name}" arg2="solaris" casesensitive="false" trim="true"/>
+  </condition>
+
+  <condition property="is.running.solaris" value="${os.name}">
+      <equals arg1="${os.name}" arg2="SunOS" casesensitive="false" trim="true"/>
+  </condition>
+  <!-- mac specific properties -->
+  <condition property="is.running.macos" value="${os.name}">
+      <os family="mac"/>
+  </condition>
+  <!-- FreeBSD specific properties -->
+  <condition property="is.running.freebsd" value="${os.name}">
+      <equals arg1="${os.name}" arg2="freebsd" casesensitive="false" trim="true"/>
+  </condition>
+
+  <condition property="arch" value="32">
+    <or>
+      <os arch="x86" />
+      <os arch="i386" />
+      <os arch="i486" />
+      <os arch="i586" />
+      <os arch="i686" />
+    </or>
+  </condition>
+  <condition property="arch" value="64">
+    <os arch="amd64" />
+  </condition>
+
+  <!--
+    Cross compilation. It is mainly used on Linux to cross-compile 32-bit
+    binaries on a 64-bit host. It is also used to compile ffmpeg on Mac OS X for
+    each architecture before creating an universal binary with the lipo tool.
+  -->
+  <condition property="cross_32" value="y" >
+    <equals arg1="${arch}" arg2="32" />
+  </condition>
+
+  <condition property="cross_64" value="y" >
+    <equals arg1="${arch}" arg2="64" />
+  </condition>
+
+  <!-- Mac OS X only -->
+  <condition property="cross_ppc" value="y" >
+    <equals arg1="${arch}" arg2="ppc" />
+  </condition>
+
+  <!-- initialize destination directory -->
+  <condition property="native_install_dir" value="${native.libs}/windows">
+    <and>
+      <isset property="is.running.windows"/>
+      <equals arg1="${arch}" arg2="32" />
+    </and>
+  </condition>
+
+  <condition property="native_install_dir" value="${native.libs}/windows-64">
+    <and>
+      <isset property="is.running.windows"/>
+      <equals arg1="${arch}" arg2="64" />
+    </and>
+  </condition>
+
+  <condition property="native_install_dir" value="${native.libs}/linux">
+    <and>
+      <isset property="is.running.linux"/>
+      <equals arg1="${arch}" arg2="32" />
+    </and>
+  </condition>
+
+  <condition property="native_install_dir" value="${native.libs}/linux-64">
+    <and>
+      <isset property="is.running.linux"/>
+      <equals arg1="${arch}" arg2="64" />
+    </and>
+  </condition>
+
+  <condition property="native_install_dir" value="${native.libs}/mac">
+    <isset property="is.running.macos"/>
+  </condition>
+
+  <!--
+  <echo message="ffmpeg library: ${ffmpeg}" />
+  <echo message="x264 library: ${x264}" />
+  <echo message="lame library: ${lame}" />
+  <echo message="portaudio library: ${portaudio}" />
+  <echo message="speex library: ${speex}" />
+  <echo message="Install directory ${native_install_dir}" />
+  <echo message="arch: ${arch}" />
+  -->
+
+  <target name="init-native" description="Initialize native stuff">
+    <mkdir dir="${obj}" />
+  </target>
+
+  <!-- compile jnscreencapture library -->
+  <target name="screencapture" description="Build screencapture shared library"
+    depends="init-native">
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnscreencapture" objdir="${obj}">
+      <!-- common compiler flags -->
+      <compilerarg value="-std=c99" />
+      <compilerarg value="-D_XOPEN_SOURCE=600" />
+      <compilerarg value="-Wall" />
+      <compilerarg value="-Wextra" />
+      <compilerarg value="-O3" />
+
+      <!-- Linux specific flags -->
+      <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+
+      <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <linkerarg value="-lX11" location="end" if="is.running.linux" />
+
+      <!-- Mac OS X specific flags -->
+      <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="x86_64" if="is.running.macos" />
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="i386" if="is.running.macos" />
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="ppc" if="is.running.macos" />
+      <compilerarg value="-I/System/Library/Frameworks/ApplicationServices.framework/Headers" if="is.running.macos" />
+      <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
+
+      <linkerarg value="-o" location="end" if="is.running.macos" />
+      <linkerarg value="libjnscreencapture.jnilib" location="end" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="x86_64" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="i386" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="ppc" if="is.running.macos" />
+      <linkerarg value="-framework" if="is.running.macos" />
+      <linkerarg value="ApplicationServices" if="is.running.macos" />
+
+      <!-- Windows specific flags -->
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
+
+      <linkerarg value="-lgdi32" location="end" if="is.running.windows" />
+      <linkerarg value="-ojnscreencapture.dll" if="is.running.windows" />
+      <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
+
+      <fileset dir="${src}/native/screencapture" includes="*.c"/>
+    </cc>
+  </target>
+
+  <!-- compile jnawtrenderer library -->
+  <target name="jawtrenderer" description="Build jnawtrenderer shared library" depends="init-native,jawtrenderer-windows"
+    unless="is.running.windows">
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnawtrenderer" objdir="${obj}">
+
+      <!-- common compiler flags -->
+      <compilerarg value="-std=c99" />
+      <compilerarg value="-Wall" />
+      <compilerarg value="-O2" />
+
+      <linkerarg value="-L${system.JAVA_HOME}/jre/lib/amd64" />
+      <linkerarg value="-L${system.JAVA_HOME}/jre/lib/x86" />
+      <linkerarg value="-ljawt" location="end" />
+
+      <!-- Linux specific flags -->
+      <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+
+      <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <linkerarg value="-lXv" location="end" if="is.running.linux" />
+      <linkerarg value="-lX11" location="end" if="is.running.linux" />
+
+      <fileset dir="${src}/native/jawtrenderer" includes="net*.c JAWTRenderer_Linux.c" if="is.running.linux"/>
+
+      <!-- Mac OS X specific flags -->
+      <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="x86_64" if="is.running.macos" />
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="i386" if="is.running.macos" />
+      <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
+
+      <linkerarg value="-o" location="end" if="is.running.macos" />
+      <linkerarg value="libjnawtrenderer.jnilib" location="end" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="x86_64" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="i386" if="is.running.macos" />
+      <linkerarg value="-framework" if="is.running.macos" />
+      <linkerarg value="OpenGL" if="is.running.macos" />
+      <linkerarg value="-framework" if="is.running.macos" />
+      <linkerarg value="Foundation" if="is.running.macos" />
+      <linkerarg value="-framework" if="is.running.macos" />
+      <linkerarg value="AppKit" if="is.running.macos" />
+      <linkerarg value="-L/System/Library/Frameworks/JavaVM.framework/Libraries/" if="is.running.macos" />
+
+      <fileset dir="${src}/native/jawtrenderer" includes="net*.c JAWTRenderer_MacOSX.m" if="is.running.macos" />
+
+    </cc>
+  </target>
+
+  <!-- compile jnawtrenderer library for Windows -->
+  <target name="jawtrenderer-windows" description="Build jnawtrenderer shared library for Windows" depends="init-native"
+    if="is.running.windows">
+    <cc outtype="shared" name="msvc" outfile="${native_install_dir}/jnawtrenderer" objdir="${obj}">
+      <compilerarg value="/O2" />
+      <compilerarg value="/MT" location="end" />
+      <compilerarg value="/IC:\Program Files\Microsoft DirectX SDK (February 2010)\Include" />
+      <compilerarg value="/IC:\Program Files (x86)\Microsoft DirectX SDK (February 2010)\Include" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/win32" />
+
+      <!-- <linkerarg value="/LD" /> -->
+      <linkerarg value="/LIBPATH:C:\Program Files\Microsoft DirectX SDK (February 2010)\lib\x86" />
+      <linkerarg value="/LIBPATH:C:\Program Files (x86)\Microsoft DirectX SDK (February 2010)\lib\x64" />
+      <linkerarg value="/LIBPATH:${system.JAVA_HOME}\\lib" />
+      <linkerarg value="d3d9.lib" location="end" />
+      <linkerarg value="user32.lib" location="end" />
+      <linkerarg value="jawt.lib" location="end" />
+
+      <fileset dir="${src}/native/jawtrenderer" includes="net*.c JAWTRenderer_Windows.cpp windows/*.cpp windows/*.c"/>
+    </cc>
+  </target>
+
+  <!-- compile ffmpeg library -->
+  <target name="ffmpeg" description="Build ffmpeg shared library" depends="init-native">
+
+    <fail message="ffmpeg repository not set!" unless="ffmpeg" />
+    <fail message="x264 repository not set!" unless="x264" />
+    <fail message="lame repository not set!" unless="lame" />
+
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnffmpeg" objdir="${obj}">
+      <!-- common compiler flags -->
+      <compilerarg value="-std=c99" />
+      <compilerarg value="-D_XOPEN_SOURCE=600" />
+      <compilerarg value="-Wall" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-I${ffmpeg}" />
+      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+
+      <linkerarg value="-L${ffmpeg}/libavformat" />
+      <linkerarg value="-L${ffmpeg}/libavcodec" />
+      <linkerarg value="-L${ffmpeg}/libavutil" />
+      <linkerarg value="-L${ffmpeg}/libavfilter" />
+      <linkerarg value="-L${ffmpeg}/libswscale" />
+      <linkerarg value="-L${x264}" />
+      <!--
+        Depending on the way that lame is built, libmp3lame.a may be in
+        libmp3lame/ or libmp3lame/.libs/.
+      -->
+      <linkerarg value="-L${lame}/libmp3lame" />
+      <linkerarg value="-L${lame}/libmp3lame/.libs" />
+      <!--
+        Static libraries MUST be at the end otherwise they will not be added to
+        the shared library.
+      -->
+      <linkerarg value="-lavformat" location="end" />
+      <linkerarg value="-lavcodec" location="end" />
+      <linkerarg value="-lavfilter" location="end" />
+      <linkerarg value="-lavutil" location="end" />
+      <linkerarg value="-lswscale" location="end" />
+      <linkerarg value="-lx264" location="end" />
+      <linkerarg value="-lmp3lame" location="end" />
+
+      <!-- Linux specific flags -->
+      <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+
+      <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <linkerarg value="-Wl,-Bsymbolic" if="is.running.linux" />
+
+      <!-- Mac OS X specific flags -->
+      <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="x86_64" if="is.running.macos" />
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="i386" if="is.running.macos" />
+      <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
+
+      <!-- ffmpeg/x264 libraries cannot be built as universal binaries
+           so you have to setup and compile ffmpeg/x264 for each architecture separately.
+           Run this ant script with:
+           -Darch=32 (rename libjnffmpeg.dyld to libjnffmpeg.dyld.32)
+           -Darch=64 (rename libjnffmpeg.dyld to libjnffmpeg.dyld.64)
+           -Darch=ppc (rename libjnffmpeg.dyld to libjnffmpeg.dyld.ppc)
+
+           Finally create the universal binary with:
+           lipo -create libjnffmpeg.dyld.32 libjnffmpeg.dyld.64 libjnffmpeg.dyld.ppc -output libjnffmpeg.jnilib
+      -->
+      <linkerarg value="-o" location="end" if="is.running.macos" />
+      <linkerarg value="libjnffmpeg.jnilib" location="end" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="i386" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="x86_64" if="is.running.macos" />
+      <linkerarg value="-dynamiclib" if="is.running.macos" />
+      <linkerarg value="-Wl,-read_only_relocs,suppress" if="is.running.macos" />
+
+      <!-- Windows specific flags -->
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
+
+      <linkerarg value="-ojnffmpeg.dll" if="is.running.windows" />
+      <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
+
+      <fileset dir="${src}/native/ffmpeg" includes="*.c"/>
+    </cc>
+
+    <delete dir="${obj}" failonerror="false" />
+    <delete file="${native_install_dir}/history.xml" failonerror="false" />
+  </target>
+
+  <!-- compile jnportaudio library -->
+  <target name="portaudio" description="Build jnportaudio shared library" depends="init-native">
+
+    <fail message="portaudio repository not set!" unless="portaudio" />
+    <fail message="speex repository not set!" unless="speex" />
+
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnportaudio" objdir="${obj}">
+      <!-- common compiler flags -->
+      <compilerarg value="-std=c99" />
+      <compilerarg value="-Wall" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-I${portaudio}/include" />
+      <compilerarg value="-I${speex}/include" />
+      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+
+      <linkerarg value="-L${speex}/libspeex/.libs" />
+      <linkerarg value="-L${portaudio}/lib/.libs" />
+
+      <!-- Linux specific flags -->
+      <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+
+      <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
+
+      <!-- static libraries MUST be at the end otherwise
+      they will not be added to shared library
+      -->
+      <linkerarg value="-Wl,-Bstatic" location="end" if="is.running.linux" />
+      <linkerarg value="-lportaudio" location="end" if="is.running.linux" />
+      <linkerarg value="-lspeexdsp" location="end" if="is.running.linux" />
+      <linkerarg value="-Wl,-Bdynamic" location="end" if="is.running.linux" />
+      <linkerarg value="-lrt" location="end" if="is.running.linux" />
+      <linkerarg value="-lasound" location="end" if="is.running.linux" />
+      <linkerarg value="-lm" location="end" if="is.running.linux" />
+      <linkerarg value="-lpthread" location="end" if="is.running.linux" />
+
+      <!-- Mac OS X specific flags -->
+      <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
+      <compilerarg value="-arch"  if="is.running.macos" />
+      <compilerarg value="x86_64" if="is.running.macos" />
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="i386" if="is.running.macos" />
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="ppc" if="is.running.macos" />
+      <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
+
+      <linkerarg value="-o" location="end" if="is.running.macos" />
+      <linkerarg value="libjnportaudio.jnilib" location="end" if="is.running.macos" />
+      <linkerarg value="-dynamiclib" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="x86_64" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="i386" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="ppc" if="is.running.macos" />
+      <linkerarg value="-framework" location="end" if="is.running.macos" />
+      <linkerarg value="AudioToolbox" location="end" if="is.running.macos" />
+      <linkerarg value="-framework" location="end" if="is.running.macos" />
+      <linkerarg value="AudioUnit" location="end" if="is.running.macos" />
+      <linkerarg value="-framework" location="end" if="is.running.macos" />
+      <linkerarg value="CoreAudio" location="end" if="is.running.macos" />
+      <linkerarg value="-framework" location="end" if="is.running.macos" />
+      <linkerarg value="Carbon" location="end" if="is.running.macos" />
+      <linkerarg value="-lportaudio" location="end" if="is.running.macos" />
+      <linkerarg value="-lspeexdsp" location="end" if="is.running.macos" />
+      <linkerarg value="-dynamic" location="end" if="is.running.macos" />
+      <linkerarg value="-lpthread" location="end" if="is.running.macos" />
+
+      <!-- Windows specific flags -->
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
+
+      <linkerarg value="-L${pthread}" if="is.running.windows" />
+      <linkerarg value="-ojnportaudio.dll" if="is.running.windows" />
+      <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
+      <linkerarg value="-Wl,-Bstatic" location="end" if="is.running.windows" />
+      <linkerarg value="-lportaudio" location="end" if="is.running.windows" />
+      <linkerarg value="-lspeexdsp" location="end" if="is.running.windows" />
+      <linkerarg value="-lwinmm" location="end" if="is.running.windows" />
+      <linkerarg value="-lsetupapi" location="end" if="is.running.windows" />
+      <linkerarg value="-lm" location="end" if="is.running.windows" />
+      <linkerarg value="-lstdc++" location="end" if="is.running.windows" />
+      <linkerarg value="-lole32" location="end" if="is.running.windows" />
+      <linkerarg value="-luuid" location="end" if="is.running.windows" />
+
+      <fileset dir="${src}/native/portaudio" includes="*.c"/>
+    </cc>
+  </target>
+
+  <!-- compile jspeex library -->
+  <target name="speex" description="Build jspeex shared library" depends="init-native">
+
+    <fail message="speex repository not set!" unless="speex" />
+
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jspeex" objdir="${obj}">
+      <!-- common compiler flags -->
+      <compilerarg value="-std=c99" />
+      <compilerarg value="-Wall" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-I${speex}/include" />
+      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+
+      <linkerarg value="-L${speex}/libspeex/.libs" />
+
+      <!-- Linux specific flags -->
+      <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+
+      <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
+
+      <!-- static libraries MUST be at the end otherwise
+      they will not be added to shared library
+      -->
+      <linkerarg value="-Wl,-Bstatic" location="end" if="is.running.linux" />
+      <linkerarg value="-lspeex" location="end" if="is.running.linux" />
+      <linkerarg value="-lspeexdsp" location="end" if="is.running.linux" />
+      <linkerarg value="-Wl,-Bdynamic" location="end" if="is.running.linux" />
+      <linkerarg value="-lm" location="end" if="is.running.linux" />
+
+      <!-- Mac OS X specific flags -->
+      <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
+      <compilerarg value="-arch"  if="is.running.macos" />
+      <compilerarg value="x86_64" if="is.running.macos" />
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="i386" if="is.running.macos" />
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="ppc" if="is.running.macos" />
+      <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
+
+      <linkerarg value="-o" location="end" if="is.running.macos" />
+      <linkerarg value="libjspeex.jnilib" location="end" if="is.running.macos" />
+      <linkerarg value="-dynamiclib" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="x86_64" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="i386" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="ppc" if="is.running.macos" />
+      <linkerarg value="-lspeex" location="end" if="is.running.macos" />
+      <linkerarg value="-lspeexdsp" location="end" if="is.running.macos" />
+
+      <!-- Windows specific flags -->
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
+
+      <linkerarg value="-ojspeex.dll" if="is.running.windows" />
+      <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
+      <linkerarg value="-Wl,-Bstatic" location="end" if="is.running.windows" />
+      <linkerarg value="-lspeex" location="end" if="is.running.windows" />
+      <linkerarg value="-lspeexdsp" location="end" if="is.running.windows" />
+      <linkerarg value="-Wl,-Bdynamic" location="end" if="is.running.windows" />
+      <linkerarg value="-lm" location="end" if="is.running.windows" />
+
+      <fileset dir="${src}/native/speex" includes="*.c"/>
+    </cc>
+  </target>
+
+  <!-- compile jng722 library -->
+  <target name="g722" description="Build jng722 shared library" depends="init-native">
+
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jng722" objdir="${obj}">
+      <!-- common compiler flags -->
+      <compilerarg value="-std=c99" />
+      <compilerarg value="-Wall" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+
+      <!-- Linux specific flags -->
+      <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+
+      <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
+
+      <!-- Mac OS X specific flags -->
+      <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
+      <compilerarg value="-arch"  if="is.running.macos" />
+      <compilerarg value="x86_64" if="is.running.macos" />
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="i386" if="is.running.macos" />
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="ppc" if="is.running.macos" />
+      <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
+
+      <linkerarg value="-o" location="end" if="is.running.macos" />
+      <linkerarg value="libjng722.jnilib" location="end" if="is.running.macos" />
+      <linkerarg value="-dynamiclib" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="x86_64" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="i386" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="ppc" if="is.running.macos" />
+
+      <!-- Windows specific flags -->
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
+
+      <linkerarg value="-ojng722.dll" if="is.running.windows" />
+      <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
+
+      <fileset dir="${src}/native/g722" includes="*.c"/>
+    </cc>
+  </target>
+
+  <!-- compile jnvideo4linux2 library -->
+  <target name="video4linux2" description="Build jnvideo4linux2 shared library" if="is.running.linux"
+    depends="init-native">
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnvideo4linux2" objdir="${obj}">
+      <compilerarg value="-std=c99" />
+      <compilerarg value="-Wall" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/linux" />
+      <compilerarg value="-m32" if="cross_32" />
+      <compilerarg value="-m64" if="cross_64" />
+
+      <linkerarg value="-m32" if="cross_32" />
+      <linkerarg value="-m64" if="cross_64" />
+
+      <fileset dir="${src}/native/linux/video4linux2" includes="*.c"/>
+    </cc>
+  </target>
+
+  <!-- compile jnquicktime library for Mac OS X (32-bit/64-bit/ppc) -->
+  <target name="quicktime" description="Build jnquicktime shared library for Mac OS X" if="is.running.macos"
+    depends="init-native">
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnquicktime" objdir="${obj}">
+      <compilerarg value="-Wall" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-arch" />
+      <compilerarg value="x86_64" />
+      <compilerarg value="-arch" />
+      <compilerarg value="i386" />
+      <compilerarg value="-arch" />
+      <compilerarg value="ppc" />
+      <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" />
+
+      <linkerarg value="-o" location="end" />
+      <linkerarg value="libjnquicktime.jnilib" location="end" />
+      <linkerarg value="-arch" />
+      <linkerarg value="x86_64" />
+      <linkerarg value="-arch" />
+      <linkerarg value="i386" />
+      <linkerarg value="-arch" />
+      <linkerarg value="ppc" />
+      <linkerarg value="-framework" />
+      <linkerarg value="Foundation" />
+      <linkerarg value="-framework" />
+      <linkerarg value="QTKit" />
+      <linkerarg value="-framework" />
+      <linkerarg value="Quartz" />
+
+      <fileset dir="${src}/native/macosx/quicktime" includes="*.c *.m"/>
+    </cc>
+
+    <delete dir="${obj}" failonerror="false" />
+    <delete file="${native_install_dir}/history.xml" failonerror="false" />
+  </target>
+
+  <!-- Cleanup object file and shared libraries -->
+  <target name="clean-native" description="Clean all object file and libraries.">
+    <delete failonerror="false" includeemptydirs="true">
+        <fileset dir="${obj}" />
+        <fileset dir="${src}/native/" includes="*.dll *.so *.dyld *.jnilib *.manifest *.o *.obj *.lib *.exp history.xml" />
+        <fileset dir="." includes="**.dll *.so *.dyld *.jnilib *.manifest *.o *.obj *.lib *.exp history.xml" />
+    </delete>
+  </target>
+
+  <!-- Help, print useful targets -->
+  <target name="help-native">
+    <echo message="Targets available:" />
+    <echo message="'ant screencapture' to compile screencapture shared library" />
+    <echo message="'ant jawtrenderer' to compile jawtrenderer shared library" />
+    <echo message="'ant ffmpeg' to compile ffmpeg shared library" />
+    <echo message="'ant portaudio' to compile jnportaudio shared library" />
+    <echo message="'ant speex' to compile jspeex shared library" />
+    <echo message="'ant g722' to compile jng722 shared library" />
+    <echo message="'ant hid' to compile hid shared library" />
+    <echo message="'ant hwaddressretriever' to compile hwaddressretriever shared library" />
+    <echo message="'ant video4linux2 (Linux only)' to compile jvideo4linux2 shared library" />
+    <echo message="'ant galagonotification (Linux only)' to compile galagonotification shared library" />
+    <echo message="'ant localhostretriever (Windows only)' to compile LocalhostRetriever shared library" />
+    <echo message="'ant directshow (Windows only)' to compile jdirectshow shared library" />
+    <echo message="'ant aegeturleventhandler (Mac OS X only)' to compile AEGetURLEventHandler shared library" />
+    <echo message="'ant sparkle (Mac OS X only)' to compile sparkle shared library" />
+    <echo message="'ant quicktime (Mac OS X only)' to compile jquicktime shared library" />
+    <echo message="" />
+    <echo message="Options:" />
+    <echo message="-Darch: cross-compile for 32-bit (-Darch=32), 64-bit (-Darch=64) or ppc (-Darch=ppc, Mac OS X only) targets. Windows users have to use gcc >= 4.5." />
+    <echo message="-Dx264: path to x264 directory (ffmpeg JNI compilation)." />
+    <echo message="-Dlame: path to lame directory (ffmpeg JNI compilation)." />
+    <echo message="-Dffmpeg: path to ffmpeg directory (ffmpeg JNI compilation)." />
+    <echo message="-Dportaudio path to portaudio directory (jnportaudio JNI compilation)." />
+    <echo message="-Dspeex: path to speex directory (jnportaudio/jspeex JNI compilation)." />
+    <echo message="" />
+    <echo message="Please note that external libraries such as ffmpeg, x264, lame, portaudio and speex have to be compiled" />
+    <echo message="(follow READMEs in relevant directory) before trying to compile libffmpeg and libjnportaudio"  />
+    <echo message="When compiling libffmpeg you have to tell ant script the directory of ffmpeg and x264 with"  />
+    <echo message="-Dffmpeg=/path/to/ffmpeg and -Dx264=/path/to/x264 -Dlame=/path/to/lame"  />
+    <echo message="When compiling libjnportaudio you have to tell ant script the directory of portaudio and speex with"  />
+    <echo message="-Dportaudio=/path/to/portaudio and -Dspeex=/path/to/speex"  />
+  </target>
+</project>
+
