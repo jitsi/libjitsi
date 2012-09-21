@@ -12,7 +12,6 @@ import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
@@ -469,10 +468,10 @@ public class MediaFormatFactoryImpl
     {
         EncodingConfiguration encodingConfiguration
             = NeomediaServiceUtils.getMediaServiceImpl()
-                    .getEncodingConfiguration();
+                    .getCurrentEncodingConfiguration();
         List<MediaFormat> supportedMediaFormats
             = getMatchingMediaFormats(
-                encodingConfiguration.getAvailableEncodings(
+                encodingConfiguration.getAllEncodings(
                         MediaType.AUDIO),
                 encoding,
                 clockRate);
@@ -480,7 +479,7 @@ public class MediaFormatFactoryImpl
         if (supportedMediaFormats.isEmpty())
             supportedMediaFormats
                 = getMatchingMediaFormats(
-                    encodingConfiguration.getAvailableEncodings(
+                    encodingConfiguration.getAllEncodings(
                             MediaType.VIDEO),
                     encoding,
                     clockRate);

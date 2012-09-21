@@ -46,10 +46,11 @@ public interface MediaConfigurationService
     public Component createEncodingControls(MediaType mediaType,
             EncodingConfiguration encodingConfiguration,
             boolean autoUpdateConfig);
-    
+
     /**
-     * Returns a new <tt>EncodingConfiguration</tt> instance
-     * @return a new <tt>EncodingConfiguration</tt> instance
+     * Returns the <tt>MediaService</tt> instance
+     *
+     * @return the <tt>MediaService</tt> instance
      */
-    public EncodingConfiguration getNewEncodingConfiguration();
+    public MediaService getMediaService();
 }

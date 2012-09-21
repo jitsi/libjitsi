@@ -13,15 +13,12 @@ import javax.media.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.format.*;
-import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
-import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
-import org.jitsi.util.*;
 
 /**
- * Simple configuration of encoding priorities.
+ * Configuration of encoding priorities.
  *
  * @author Damian Minkov
  * @author Lyubomir Marinov
@@ -29,12 +26,6 @@ import org.jitsi.util.*;
  */
 public class EncodingConfigurationImpl extends EncodingConfiguration
 {
-    /**
-     * The SDP preference property.
-     */
-    private static final String PROP_SDP_PREFERENCE
-        = "net.java.sip.communicator.impl.neomedia.codec.EncodingConfiguration";
-
     /**
      * The indicator which determines whether the G.729 codec is enabled.
      *
@@ -89,12 +80,12 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
             "org.jitsi.impl.neomedia.codec.video.h264.Packetizer",
             "org.jitsi.impl.neomedia.codec.video.SwScaler"
         };
-    
+
     /**
      * Whether custom codecs have been registered with JFM
      */
     private static boolean codecsRegistered = false;
-    
+
     /**
      * Whether custom packages have been registered with JFM
      */
@@ -111,7 +102,7 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
                     "net.java.sip.communicator.impl.neomedia.jmfext",
                     "net.sf.fmj"
                 };
-    
+
     /**
      * Constructor. Loads the hard-coded default preferences and registers
      * packages and codecs with JMF.
@@ -119,7 +110,7 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
     public EncodingConfigurationImpl()
     {
         initializeFormatPreferences();
-        
+
         registerCustomPackages();
         registerCustomCodecs();
     }
@@ -202,8 +193,9 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
             String encodingEncoding = encoding.getEncoding();
 
             // save the settings
+            //TODO: remove the whole method
             LibJitsi.getConfigurationService().setProperty(
-                    PROP_SDP_PREFERENCE
+                    "net.java.sip.communicator.impl.neomedia.codec.EncodingConfiguration"
                         + "."
                         + getEncodingPreferenceKey(encoding),
                     priority);
@@ -426,12 +418,5 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
         
         packagesRegistered = true;
     }
-    
-    /**
-     * Loads the "global" preferences.
-     */
-    public void loadConfig()
-    {
-        loadFormatPreferencesFromConfig(PROP_SDP_PREFERENCE);
-    }
+
 }

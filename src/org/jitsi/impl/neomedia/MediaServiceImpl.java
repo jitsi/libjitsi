@@ -112,6 +112,12 @@ public class MediaServiceImpl
     private static boolean postInitializeOnce;
 
     /**
+     * The prefix that is used to store configuration for encodings preference.
+     */
+    private static final String ENCODING_CONFIG_PROP_PREFIX
+        = "net.java.sip.communicator.impl.neomedia.codec.EncodingConfiguration";
+
+    /**
      * The <tt>CaptureDevice</tt> user choices such as the default audio and
      * video capture devices.
      */
@@ -141,11 +147,10 @@ public class MediaServiceImpl
         = new ArrayList<MediaDeviceImpl>();
 
     /**
-     * The format-related user choices such as the enabled and disabled codecs
-     * and the order of their preference.
+     * The {@link EncodingConfiguration} instance that holds the current (global)
+     * list of formats and their preference.
      */
-    private final EncodingConfiguration encodingConfiguration
-        = new EncodingConfigurationImpl();
+    private final EncodingConfiguration currentEncodingConfiguration;
 
     /**
      * The <tt>MediaFormatFactory</tt> through which <tt>MediaFormat</tt>
@@ -235,6 +240,10 @@ public class MediaServiceImpl
                 postInitializeOnce(this);
             }
         }
+
+        currentEncodingConfiguration = new EncodingConfigurationImpl();
+        currentEncodingConfiguration.loadFormatPreferencesFromConfig(
+                ENCODING_CONFIG_PROP_PREFIX);
     }
 
     /**
@@ -581,15 +590,16 @@ public class MediaServiceImpl
     }
 
     /**
-     * Gets the format-related user choices such as the enabled and disabled
-     * codecs and the order of their preference.
+     * Returns the current encoding configuration -- the instance that contains
+     * the global settings. Note that any changes made to this instance will
+     * have immediate effect on the configuration.
      *
-     * @return the format-related user choices such as the enabled and disabled
-     * codecs and the order of their preference
+     * @return the current encoding configuration -- the instance that contains
+     * the global settings.
      */
-    public EncodingConfiguration getEncodingConfiguration()
+    public EncodingConfiguration getCurrentEncodingConfiguration()
     {
-        return encodingConfiguration;
+        return currentEncodingConfiguration;
     }
 
     /**
@@ -1514,7 +1524,7 @@ public class MediaServiceImpl
      *
      * @return a new {@link EncodingConfiguration} instance.
      */
-    public EncodingConfiguration getNewEncodingConfiguration()
+    public EncodingConfiguration createEmptyEncodingConfiguration()
     {
         return new EncodingConfigurationImpl();
     }

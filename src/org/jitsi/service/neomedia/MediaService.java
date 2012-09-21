@@ -318,9 +318,18 @@ public interface MediaService
      * notified about changes in the values of the properties of this instance
      */
     public void removePropertyChangeListener(PropertyChangeListener listener);
-    
+
     /**
      * Returns a new <tt>EncodingConfiguration</tt> instance.
+     *
+     * @return a new <tt>EncodingConfiguration</tt> instance.
      */
-    public EncodingConfiguration getNewEncodingConfiguration();
+    public EncodingConfiguration createEmptyEncodingConfiguration();
+
+    /**
+     * Returns the current <tt>EncodingConfiguration</tt> instance.
+     *
+     * @return the current <tt>EncodingConfiguration</tt> instance.
+     */
+    public EncodingConfiguration getCurrentEncodingConfiguration();
 }

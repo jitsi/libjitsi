@@ -16,7 +16,6 @@ import javax.media.control.*;
 import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.protocol.*;
@@ -332,8 +331,8 @@ public class MediaDeviceImpl
 
     /**
      * Gets the list of <tt>MediaFormat</tt>s supported by this
-     * <tt>MediaDevice</tt>. Uses the <tt>EncodingConfiguration</tt> from the
-     * media service, which contains all known encodings.
+     * <tt>MediaDevice</tt>. Uses the current <tt>EncodingConfiguration</tt>
+     * from the media service (i.e. the global configuration).
      *
      * @param sendPreset the preset used to set some of the format parameters,
      * used for video and settings.
@@ -348,7 +347,7 @@ public class MediaDeviceImpl
     {
         return getSupportedFormats(sendPreset, receivePreset,
                 NeomediaServiceUtils.getMediaServiceImpl()
-                    .getEncodingConfiguration());
+                    .getCurrentEncodingConfiguration());
     }
     
     /**
@@ -366,7 +365,7 @@ public class MediaDeviceImpl
     {
             return getSupportedFormats(null, null, encodingConfiguration);
     }
-    
+
     /**
      * Gets the list of <tt>MediaFormat</tt>s supported by this
      * <tt>MediaDevice</tt> and enabled in <tt>encodingConfiguration</tt>.
@@ -388,14 +387,14 @@ public class MediaDeviceImpl
     {
         MediaServiceImpl mediaServiceImpl
             = NeomediaServiceUtils.getMediaServiceImpl();
-        MediaFormat[] supportedEncodings
-            = encodingConfiguration.getSupportedEncodings(getMediaType());
+        MediaFormat[] enabledEncodings
+            = encodingConfiguration.getEnabledEncodings(getMediaType());
         List<MediaFormat> supportedFormats = new ArrayList<MediaFormat>();
 
         // If there is preset, check and set the format attributes where needed.
-        if (supportedEncodings != null)
+        if (enabledEncodings != null)
         {
-            for (MediaFormat f : supportedEncodings)
+            for (MediaFormat f : enabledEncodings)
             {
                 if("h264".equalsIgnoreCase(f.getEncoding()))
                 {

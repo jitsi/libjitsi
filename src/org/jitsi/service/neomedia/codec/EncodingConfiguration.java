@@ -33,7 +33,7 @@ public abstract class EncodingConfiguration
 
     /**
      * The <tt>Comparator</tt> which sorts the sets according to the settings in
-     * encodingPreferences.
+     * <tt>encodingPreferences</tt>.
      */
     private final Comparator<MediaFormat> encodingComparator
         = new Comparator<MediaFormat>()
@@ -95,7 +95,7 @@ public abstract class EncodingConfiguration
         Set<MediaFormat> enabled
             = new TreeSet<MediaFormat>(encodingComparator);
 
-        for (MediaFormat format : getAvailableEncodings(type))
+        for (MediaFormat format : getAllEncodings(type))
         {
             if (getPriority(format) > 0)
             {
@@ -168,7 +168,8 @@ public abstract class EncodingConfiguration
 
         updateSupportedEncodings();
     }
-    
+
+    //TODO: remove
     /**
      * Sets <tt>priority</tt> as the preference associated with
      * <tt>encoding</tt> (with a call to <tt>setPriority(MediaFormat, int)</tt>
@@ -204,28 +205,31 @@ public abstract class EncodingConfiguration
 
     
     /**
-     * Get the available encodings for a specific <tt>MediaType</tt>.
+     * Returns all the available encodings for a specific <tt>MediaType</tt>.
+     * This includes disabled ones (ones with priority 0).
      *
-     * @param type the <tt>MediaType</tt> we would like to know its available
-     * encodings
+     * @param type the <tt>MediaType</tt> we would like to know the available
+     * encodings of
      * @return array of <tt>MediaFormat</tt> supported for the
      * <tt>MediaType</tt>
      */
-    public MediaFormat[] getAvailableEncodings(MediaType type)
+    public MediaFormat[] getAllEncodings(MediaType type)
     {
         return MediaUtils.getMediaFormats(type);
     }
 
     /**
-     * Gets the supported <tt>MediaFormat</tt>s i.e. the enabled available
-     * <tt>MediaFormat</tt>s sorted in decreasing priority.
+     * Returns the supported <tt>MediaFormat</tt>s i.e. the enabled available
+     * <tt>MediaFormat</tt>s, sorted in decreasing priority. Returns only the
+     * formats of type <tt>type</tt>.
      *
      * @param type the <tt>MediaType</tt> of the supported <tt>MediaFormat</tt>s
      * to get
      * @return an array of the supported <tt>MediaFormat</tt>s i.e. the enabled
-     * available <tt>MediaFormat</tt>s sorted in decreasing priority
+     * available <tt>MediaFormat</tt>s sorted in decreasing priority. Returns
+     * only the formats of type <tt>type</tt>.
      */
-    public MediaFormat[] getSupportedEncodings(MediaType type)
+    public MediaFormat[] getEnabledEncodings(MediaType type)
     {
         Set<MediaFormat> supportedEncodings;
 
@@ -335,12 +339,7 @@ public abstract class EncodingConfiguration
     {
         return encoding.getEncoding() + "/" + encoding.getClockRateString();
     }
-    
-    /**
-     * Loads configuration.
-     */
-    public abstract void loadConfig();
-    
+
     /**
      * Parses the properties under <tt>prefix</tt> and loads them.
      * 
@@ -349,9 +348,8 @@ public abstract class EncodingConfiguration
     public void loadFormatPreferencesFromConfig(String prefix)
     {
         ConfigurationService cfg = LibJitsi.getConfigurationService();
-        
         Map<String, String> properties = new HashMap<String, String>();
-        
+
         if (cfg != null)
         {
             for (String pName : cfg.getPropertyNamesByPrefix(prefix, false))
@@ -362,23 +360,77 @@ public abstract class EncodingConfiguration
             loadProperties(properties);
         }
     }
-        
+
+    /**
+     * Stores the format preferences in this instance in the given <tt>Map</tt>,
+     * using <tt>prefix</tt> as a prefix to the key.
+     * Entries in the format (prefix+formatName, formatPriority) will be added
+     * to <tt>properties</tt>, one for each available format.
+     * Note that a "." is not automatically added to <tt>prefix</tt>.
+     *
+     * @param properties The <tt>Map</tt> where entries will be added.
+     * @param prefix The prefix to use.
+     */
+    public void storeProperties(Map<String, String> properties, String prefix)
+    {
+        for(MediaType mediaType : MediaType.values())
+        {
+            for(MediaFormat mediaFormat: getAllEncodings(mediaType))
+            {
+                properties.put(prefix+getEncodingPreferenceKey(mediaFormat),
+                                "" + getPriority(mediaFormat));
+            }
+        }
+    }
+
+    /**
+     * Stores the format preferecens in this instance in the given <tt>Map</tt>.
+     * Entries in the format (formatName, formatPriority) will be added
+     * to <tt>properties</tt>, one for each available format.
+     *
+     * @param properties The <tt>Map</tt> where entries will be added.
+     */
+    public void storeProperties(Map<String,String> properties)
+    {
+        storeProperties(properties, "");
+    }
+
+    /**
+     * Parses a <tt>Map<String, String></tt> and updates the format preferences
+     * according to it. Does not use a prefix.
+     *
+     * @param properties The <tt>Map</tt> to parse.
+     *
+     * @see EncodingConfiguration#loadProperties(java.util.Map, String)
+     */
+    public void loadProperties(Map<String, String> properties)
+    {
+        loadProperties(properties, "");
+    }
     
    /**
     * Parses a <tt>Map<String, String></tt> and updates the format preferences
-    * according to it.
-    * The map is expected to have entries in the form of
-    * (formatString, preference).
+    * according to it. For each entry, if it's key does not begin with
+    * <tt>prefix</tt>, its ignored. If the key begins with <tt>prefix</tt>,
+    * look for an encoding name after the last ".", and interpret the key
+    * value as preference.
+    *
     * @param properties The <tt>Map</tt> to parse.
+    * @param prefix The prefix to use.
     */
-    public void loadProperties(Map<String, String> properties)
+    public void loadProperties(Map<String, String> properties, String prefix)
     {
-
-            for (String pName
-                    : properties.keySet())
+            for(Map.Entry<String, String> entry : properties.entrySet())
             {
-                String prefStr = properties.get(pName);
+                String pName = entry.getKey();
+                String prefStr = entry.getValue();
                 String fmtName;
+
+                if(!pName.startsWith(prefix))
+                {
+                    continue;
+                }
+
                 if(pName.contains("."))
                 {
                     fmtName = pName.substring(pName.lastIndexOf('.') + 1);
@@ -387,7 +439,7 @@ public abstract class EncodingConfiguration
                 {
                     fmtName = pName;
                 }
-                
+
                 // legacy
                 if (fmtName.contains("sdp"))
                 {
@@ -445,28 +497,17 @@ public abstract class EncodingConfiguration
         // preference.
         updateSupportedEncodings();
     }
-    
-    
+
     /**
-     * Returns a <tt>Map<String, String></tt> that holds the properties
-     * corresponding to the current format preferences
-     * @return A <tt>Map<String, String></tt> that holds the properties
-     * corresponding to the current format preferences.
+     * Load the preferences stored in <tt>encodingConfiguration</tt>
+     *
+     * @param encodingConfiguration the <tt>EncodingConfiguration</tt> to load
+     *                              preferences from.
      */
-    public Map<String, String> getEncodingProperties()
+    public void loadEncodingConfiguration(EncodingConfiguration encodingConfiguration)
     {
-        Map<String, String> encodingProperties = new HashMap<String, String>();
-        for(MediaFormat mf : getAvailableEncodings(MediaType.AUDIO))
-        {
-            encodingProperties.put(getEncodingPreferenceKey(mf),
-                                   "" + getPriority(mf));
-        }
-        for(MediaFormat mf : getAvailableEncodings(MediaType.VIDEO))
-        {
-            encodingProperties.put(getEncodingPreferenceKey(mf),
-                                   "" + getPriority(mf));
-        }
-        return encodingProperties;
+        Map<String, String> properties = new HashMap<String, String>();
+        encodingConfiguration.storeProperties(properties);
+        loadProperties(properties);
     }
-    
 }
