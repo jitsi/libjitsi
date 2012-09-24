@@ -419,15 +419,6 @@ public class MediaServiceImpl
             }
         }
 
-        /*
-         * Don't use the device in case the user has disabled all codecs for
-         * that kind of media.
-         */
-        if ((defaultDevice != null)
-                && (defaultDevice.getSupportedFormats().isEmpty()))
-        {
-            defaultDevice = null;
-        }
         return defaultDevice;
     }
 
@@ -1283,6 +1274,8 @@ public class MediaServiceImpl
      */
     public boolean isPartialStreaming(MediaDevice mediaDevice)
     {
+        if(mediaDevice == null)
+            return false;
         MediaDeviceImpl dev = (MediaDeviceImpl)mediaDevice;
         CaptureDeviceInfo devInfo = dev.getCaptureDeviceInfo();
 
