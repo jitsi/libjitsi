@@ -29,7 +29,8 @@ public abstract class EncodingConfiguration
      * The <tt>Logger</tt> used by this <tt>EncodingConfiguration</tt> instance
      * for logging output.
      */
-    protected final Logger logger = Logger.getLogger(EncodingConfiguration.class);
+    protected final Logger logger
+        = Logger.getLogger(EncodingConfiguration.class);
 
     /**
      * The <tt>Comparator</tt> which sorts the sets according to the settings in
@@ -38,7 +39,6 @@ public abstract class EncodingConfiguration
     private final Comparator<MediaFormat> encodingComparator
         = new Comparator<MediaFormat>()
                 {
-                    @Override
                     public int compare(MediaFormat s1, MediaFormat s2)
                     {
                         return compareEncodingPreferences(s1, s2);
@@ -98,9 +98,7 @@ public abstract class EncodingConfiguration
         for (MediaFormat format : getAllEncodings(type))
         {
             if (getPriority(format) > 0)
-            {
                 enabled.add(format);
-            }
         }
         return enabled;
     }
@@ -127,11 +125,13 @@ public abstract class EncodingConfiguration
          * sense to ignore the format parameters.
          */
         for (MediaFormat mf : MediaUtils.getMediaFormats(encoding))
+        {
             if (mf.getClockRate() == clockRate)
             {
                 mediaFormat = mf;
                 break;
             }
+        }
         if (mediaFormat != null)
         {
             encodingPreferences.put(
@@ -184,7 +184,6 @@ public abstract class EncodingConfiguration
     public abstract void setPriority(MediaFormat encoding, int priority,
             boolean updateConfig);
 
-
     /**
      * Get the priority for a <tt>MediaFormat</tt>.
      * @param encoding the <tt>MediaFormat</tt>
@@ -203,7 +202,6 @@ public abstract class EncodingConfiguration
         return (priority == null) ? 0 : priority;
     }
 
-    
     /**
      * Returns all the available encodings for a specific <tt>MediaType</tt>.
      * This includes disabled ones (ones with priority 0).
@@ -353,10 +351,7 @@ public abstract class EncodingConfiguration
         if (cfg != null)
         {
             for (String pName : cfg.getPropertyNamesByPrefix(prefix, false))
-            {
-                properties.put(pName,
-                        cfg.getString(pName));
-            }
+                properties.put(pName, cfg.getString(pName));
             loadProperties(properties);
         }
     }
@@ -377,16 +372,17 @@ public abstract class EncodingConfiguration
         {
             for(MediaFormat mediaFormat: getAllEncodings(mediaType))
             {
-                properties.put(prefix+getEncodingPreferenceKey(mediaFormat),
-                                "" + getPriority(mediaFormat));
+                properties.put(
+                        prefix + getEncodingPreferenceKey(mediaFormat),
+                        Integer.toString(getPriority(mediaFormat)));
             }
         }
     }
 
     /**
-     * Stores the format preferecens in this instance in the given <tt>Map</tt>.
-     * Entries in the format (formatName, formatPriority) will be added
-     * to <tt>properties</tt>, one for each available format.
+     * Stores the format preferences in this instance in the given <tt>Map</tt>.
+     * Entries in the format (formatName, formatPriority) will be added to
+     * <tt>properties</tt>, one for each available format.
      *
      * @param properties The <tt>Map</tt> where entries will be added.
      */
@@ -408,90 +404,83 @@ public abstract class EncodingConfiguration
         loadProperties(properties, "");
     }
     
-   /**
-    * Parses a <tt>Map<String, String></tt> and updates the format preferences
-    * according to it. For each entry, if it's key does not begin with
-    * <tt>prefix</tt>, its ignored. If the key begins with <tt>prefix</tt>,
-    * look for an encoding name after the last ".", and interpret the key
-    * value as preference.
-    *
-    * @param properties The <tt>Map</tt> to parse.
-    * @param prefix The prefix to use.
-    */
+    /**
+     * Parses a <tt>Map<String, String></tt> and updates the format preferences
+     * according to it. For each entry, if it's key does not begin with
+     * <tt>prefix</tt>, its ignored. If the key begins with <tt>prefix</tt>,
+     * look for an encoding name after the last ".", and interpret the key
+     * value as preference.
+     *
+     * @param properties The <tt>Map</tt> to parse.
+     * @param prefix The prefix to use.
+     */
     public void loadProperties(Map<String, String> properties, String prefix)
     {
-            for(Map.Entry<String, String> entry : properties.entrySet())
+        for(Map.Entry<String, String> entry : properties.entrySet())
+        {
+            String pName = entry.getKey();
+            String prefStr = entry.getValue();
+            String fmtName;
+
+            if(!pName.startsWith(prefix))
+                continue;
+
+            if(pName.contains("."))
+                fmtName = pName.substring(pName.lastIndexOf('.') + 1);
+            else
+                fmtName = pName;
+
+            // legacy
+            if (fmtName.contains("sdp"))
             {
-                String pName = entry.getKey();
-                String prefStr = entry.getValue();
-                String fmtName;
-
-                if(!pName.startsWith(prefix))
-                {
+                fmtName = fmtName.replaceAll("sdp", "");
+                /*
+                 * If the current version of the property name is also
+                 * associated with a value, ignore the value for the legacy
+                 * one.
+                 */
+                if (properties.containsKey(pName.replaceAll("sdp", "")))
                     continue;
-                }
+            }
 
-                if(pName.contains("."))
+            int preference = -1;
+            String encoding;
+            double clockRate;
+
+            try
+            {
+                preference = Integer.parseInt(prefStr);
+
+                int encodingClockRateSeparator = fmtName.lastIndexOf('/');
+
+                if (encodingClockRateSeparator > -1)
                 {
-                    fmtName = pName.substring(pName.lastIndexOf('.') + 1);
+                    encoding
+                        = fmtName.substring(0, encodingClockRateSeparator);
+                    clockRate
+                        = Double.parseDouble(
+                                fmtName.substring(
+                                        encodingClockRateSeparator + 1));
                 }
                 else
                 {
-                    fmtName = pName;
+                    encoding = fmtName;
+                    clockRate = MediaFormatFactory.CLOCK_RATE_NOT_SPECIFIED;
                 }
-
-                // legacy
-                if (fmtName.contains("sdp"))
-                {
-                    fmtName = fmtName.replaceAll("sdp", "");
-                    /*
-                     * If the current version of the property name is also
-                     * associated with a value, ignore the value for the legacy
-                     * one.
-                     */
-                    if (properties.containsKey(pName.replaceAll("sdp", "")))
-                        continue;
-                }
-
-                int preference = -1;
-                String encoding;
-                double clockRate;
-
-                try
-                {
-                    preference = Integer.parseInt(prefStr);
-
-                    int encodingClockRateSeparator = fmtName.lastIndexOf('/');
-
-                    if (encodingClockRateSeparator > -1)
-                    {
-                        encoding
-                            = fmtName.substring(0, encodingClockRateSeparator);
-                        clockRate
-                            = Double.parseDouble(
-                                    fmtName.substring(
-                                            encodingClockRateSeparator + 1));
-                    }
-                    else
-                    {
-                        encoding = fmtName;
-                        clockRate = MediaFormatFactory.CLOCK_RATE_NOT_SPECIFIED;
-                    }
-                }
-                catch (NumberFormatException nfe)
-                {
-                    logger.warn(
-                            "Failed to parse format ("
-                                + fmtName
-                                + ") or preference ("
-                                + prefStr
-                                + ").",
-                            nfe);
-                    continue;
-                }
-                setEncodingPreference(encoding, clockRate, preference);
             }
-        
+            catch (NumberFormatException nfe)
+            {
+                logger.warn(
+                        "Failed to parse format ("
+                            + fmtName
+                            + ") or preference ("
+                            + prefStr
+                            + ").",
+                        nfe);
+                continue;
+            }
+            setEncodingPreference(encoding, clockRate, preference);
+        }
 
         // now update the arrays so that they are returned by order of
         // preference.
@@ -502,11 +491,13 @@ public abstract class EncodingConfiguration
      * Load the preferences stored in <tt>encodingConfiguration</tt>
      *
      * @param encodingConfiguration the <tt>EncodingConfiguration</tt> to load
-     *                              preferences from.
+     * preferences from.
      */
-    public void loadEncodingConfiguration(EncodingConfiguration encodingConfiguration)
+    public void loadEncodingConfiguration(
+            EncodingConfiguration encodingConfiguration)
     {
         Map<String, String> properties = new HashMap<String, String>();
+
         encodingConfiguration.storeProperties(properties);
         loadProperties(properties);
     }

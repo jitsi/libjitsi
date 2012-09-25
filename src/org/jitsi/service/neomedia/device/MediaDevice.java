@@ -81,7 +81,7 @@ public interface MediaDevice
     public List<MediaFormat> getSupportedFormats(
             QualityPreset localPreset,
             QualityPreset remotePreset);
-   
+
      /**
      * Returns a list of <tt>MediaFormat</tt> instances representing the media
      * formats supported by this <tt>MediaDevice</tt> and enabled in
@@ -100,5 +100,4 @@ public interface MediaDevice
             QualityPreset localPreset,
             QualityPreset remotePreset,
             EncodingConfiguration encodingConfiguration);
-   
 }

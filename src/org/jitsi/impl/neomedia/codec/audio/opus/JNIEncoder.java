@@ -12,7 +12,7 @@ import net.sf.fmj.media.*;
 import org.jitsi.impl.neomedia.codec.*;
 
 /**
- * Implements an opus encoder
+ * Implements an opus encoder.
  *
  * @author Boris Grozev
  */

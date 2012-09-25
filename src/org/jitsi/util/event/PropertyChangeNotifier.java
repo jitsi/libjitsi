@@ -24,7 +24,7 @@ public class PropertyChangeNotifier
      * <tt>PropertyChangeNotifier</tt>.
      */
     private final List<PropertyChangeListener> listeners
-        = new Vector<PropertyChangeListener>();
+        = new ArrayList<PropertyChangeListener>();
 
     /**
      * Adds a specific <tt>PropertyChangeListener</tt> to the list of listeners

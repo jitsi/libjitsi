@@ -13,9 +13,9 @@ import net.sf.fmj.media.*;
 import org.jitsi.impl.neomedia.codec.*;
 
 /**
- * Implements an Opus decoder
+ * Implements an Opus decoder.
  *
- * @author Boris Grozec
+ * @author Boris Grozev
  */
 public class JNIDecoder
     extends AbstractCodecExt

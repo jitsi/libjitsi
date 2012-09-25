@@ -9,7 +9,7 @@ package org.jitsi.util;
 import java.io.*;
 
 /**
- * Utility class that helps to work with <tt>String</tt> class.
+ * Implements utility functions to facilitate work with <tt>String</tt>s.
  *
  * @author Grigorii Balutsel
  * @author Emil Ivov
@@ -17,7 +17,8 @@ import java.io.*;
 public final class StringUtils
 {
     /**
-     * This class cannot be instantiated.
+     * Prevents the initialization of <tt>StringUtils</tt> instances because the
+     * <tt>StringUtils</tt> class implements utility function only.
      */
     private StringUtils()
     {
@@ -68,7 +69,7 @@ public final class StringUtils
      * Indicates whether string is <tt>null</tt> or empty.
      *
      * @param s the string to analyze.
-     * @return true if string is <tt>null</tt> or empty.
+     * @return <tt>true</tt> if string is <tt>null</tt> or empty.
      */
     public static boolean isNullOrEmpty(String s)
     {
@@ -80,7 +81,7 @@ public final class StringUtils
      *
      * @param s    the string to analyze.
      * @param trim indicates whether to trim the string.
-     * @return true if string is <tt>null</tt> or empty.
+     * @return <tt>true</tt> if string is <tt>null</tt> or empty.
      */
     public static boolean isNullOrEmpty(String s, boolean trim)
     {
@@ -132,8 +133,7 @@ public final class StringUtils
     public static InputStream fromString(String string, String encoding)
             throws UnsupportedEncodingException
     {
-        byte[] bytes = string.getBytes(encoding);
-        return new ByteArrayInputStream(bytes);
+        return new ByteArrayInputStream(string.getBytes(encoding));
     }
 
     /**
@@ -141,7 +141,6 @@ public final class StringUtils
      * where UTF-8 is not supported.
      *
      * @param string the <tt>String</tt> whose bytes we'd like to obtain.
-     *
      * @return <tt>string</tt>'s bytes.
      */
     public static byte[] getUTF8Bytes(String string)
@@ -153,7 +152,7 @@ public final class StringUtils
         catch(UnsupportedEncodingException exc)
         {
             // shouldn't happen. UTF-8 is always supported, anyways ... if
-            //this happens, we'll cheat
+            // this happens, we'll cheat
             return string.getBytes();
         }
     }
@@ -164,7 +163,6 @@ public final class StringUtils
      *
      * @param bytes the <tt>byte</tt> array that we'd like to convert into a
      * <tt>String</tt>.
-     *
      * @return the UTF-8 <tt>String</tt>.
      */
     public static String getUTF8String(byte[] bytes)
@@ -176,7 +174,7 @@ public final class StringUtils
         catch(UnsupportedEncodingException exc)
         {
             // shouldn't happen. UTF-8 is always supported, anyways ... if
-            //this happens, we'll cheat
+            // this happens, we'll cheat
             return new String(bytes);
         }
     }
@@ -185,8 +183,8 @@ public final class StringUtils
      * Indicates if the given string is composed only of digits or not.
      *
      * @param string the string to check
-     * @return <tt>true</tt> if the given string is composed only of digits,
-     * <tt>false</tt> - otherwise
+     * @return <tt>true</tt> if the given string is composed only of digits;
+     * <tt>false</tt>, otherwise
      */
     public static boolean isNumber(String string)
     {
@@ -196,16 +194,15 @@ public final class StringUtils
             if (!Character.isDigit(string.charAt(i)))
                 return false;
         }
-
         return true;
     }
 
     /**
-     * Indicates if the given string contains any letters.
+     * Indicates whether the given string contains any letters.
      *
      * @param string the string to check for letters
-     * @return <tt>true</tt> if the given string contains letters,
-     * <tt>false</tt> - otherwise
+     * @return <tt>true</tt> if the given string contains letters;
+     * <tt>false</tt>, otherwise
      */
     public static boolean containsLetters(String string)
     {
@@ -214,7 +211,6 @@ public final class StringUtils
             if (Character.isLetter(string.charAt(i)))
                 return true;
         }
-
         return false;
     }
 
@@ -227,15 +223,13 @@ public final class StringUtils
      */
     public static String concatenateWords(String string)
     {
-        StringBuffer buff = new StringBuffer();
-        char[] stringAsCharArray = string.toCharArray();
+        char[] chars = string.toCharArray();
+        StringBuilder buff = new StringBuilder(chars.length);
 
-        for (char character : stringAsCharArray)
+        for (char ch : chars)
         {
-            if (character != ' ')
-            {
-                buff.append(character);
-            }
+            if (ch != ' ')
+                buff.append(ch);
         }
         return buff.toString();
     }

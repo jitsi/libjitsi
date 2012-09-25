@@ -169,7 +169,6 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
         // enables by default telephone event(DTMF rfc4733), with lowest
         // priority as it is not needed to order it with audio codecs
         setEncodingPreference(Constants.TELEPHONE_EVENT, 8000, 1);
-        
     }
 
     /**
@@ -190,8 +189,6 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
         
         if(updateConfig)
         {
-            String encodingEncoding = encoding.getEncoding();
-
             // save the settings
             //TODO: remove the whole method
             LibJitsi.getConfigurationService().setProperty(
@@ -201,7 +198,7 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
                     priority);
         }
     }
-   
+
     /**
      * Register in JMF the custom codecs we provide
      */
@@ -384,9 +381,7 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
     private void registerCustomPackages()
     {
         if(packagesRegistered)
-        {
             return;
-        }
         
         @SuppressWarnings("unchecked")
         Vector<String> packages = PackageManager.getProtocolPrefixList();
@@ -418,5 +413,4 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
         
         packagesRegistered = true;
     }
-
 }

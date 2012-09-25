@@ -1276,6 +1276,7 @@ public class MediaServiceImpl
     {
         if(mediaDevice == null)
             return false;
+
         MediaDeviceImpl dev = (MediaDeviceImpl)mediaDevice;
         CaptureDeviceInfo devInfo = dev.getCaptureDeviceInfo();
 
@@ -1510,7 +1511,7 @@ public class MediaServiceImpl
             }
         }
     }
-    
+
     /**
      * Returns a new {@link EncodingConfiguration} instance that can be
      * used by other bundles.

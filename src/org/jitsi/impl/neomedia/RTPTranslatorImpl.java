@@ -149,7 +149,8 @@ public class RTPTranslatorImpl
          */
         try
         {
-            if (!sendStreams.isEmpty() || (streamRTPManagers.size() < 2))
+            if ((!sendStreams.isEmpty() || (streamRTPManagers.size() < 2))
+                    && (fakeSendStream != null))
             {
                 try
                 {
