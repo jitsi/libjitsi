@@ -501,4 +501,17 @@ public abstract class EncodingConfiguration
         encodingConfiguration.storeProperties(properties);
         loadProperties(properties);
     }
+
+    /**
+     * Returns <tt>true</tt> if there is at least one enabled format for media
+     * type <tt>type</tt>.
+     *
+     * @param mediaType The media type, MediaType.AUDIO or MediaType.VIDEO
+     * @return <tt>true</tt> if there is at least one enabled format for media
+     * type <tt>type</tt>.
+     */
+    public boolean hasEnabledFormat(MediaType mediaType)
+    {
+        return (getEnabledEncodings(mediaType).length > 0);
+    }
 }
