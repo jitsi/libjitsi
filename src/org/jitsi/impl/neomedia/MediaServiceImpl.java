@@ -228,6 +228,10 @@ public class MediaServiceImpl
         deviceConfiguration.addPropertyChangeListener(
                 deviceConfigurationPropertyChangeListener);
 
+        currentEncodingConfiguration = new EncodingConfigurationImpl();
+        currentEncodingConfiguration.loadFormatPreferencesFromConfig(
+                ENCODING_CONFIG_PROP_PREFIX);
+
         /*
          * Perform one-time initialization after initializing the first instance
          * of MediaServiceImpl.
@@ -240,10 +244,6 @@ public class MediaServiceImpl
                 postInitializeOnce(this);
             }
         }
-
-        currentEncodingConfiguration = new EncodingConfigurationImpl();
-        currentEncodingConfiguration.loadFormatPreferencesFromConfig(
-                ENCODING_CONFIG_PROP_PREFIX);
     }
 
     /**
