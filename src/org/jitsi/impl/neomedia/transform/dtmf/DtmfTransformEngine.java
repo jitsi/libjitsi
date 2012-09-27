@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia.transform.dtmf;
 
+import java.util.*;
 import javax.media.*;
 
 import org.jitsi.impl.neomedia.*;
@@ -25,7 +26,6 @@ public class DtmfTransformEngine
     implements TransformEngine,
                PacketTransformer
 {
-
     /**
      * The <tt>AudioMediaStreamImpl</tt> that this transform engine was created
      * by and that it's going to deliver DTMF packets for.
@@ -41,13 +41,6 @@ public class DtmfTransformEngine
          * Indicates that this engine is not currently sending DTMF.
          */
         IDLE,
-
-        /**
-         * Indicates that the user has just called the {@link
-         * #startSending(DTMFRtpTone)} method and we haven't yet sent any of the
-         * packets corresponding to that particular tone.
-         */
-        SEND_PENDING,
 
         /**
          * Indicates that we are currently in the process of sending a DTMF
@@ -95,7 +88,7 @@ public class DtmfTransformEngine
     /**
      * The tone that we are supposed to be currently transmitting.
      */
-    private DTMFRtpTone currentTone = null;
+    private Vector<DTMFRtpTone> currentTone = new Vector<DTMFRtpTone>(1, 1);
 
     /**
      * The duration (in timestamp units or in other words ms*8) that we have
@@ -223,12 +216,12 @@ public class DtmfTransformEngine
      */
     public RawPacket transform(RawPacket pkt)
     {
-        if (this.toneTransmissionState.equals(ToneTransmissionState.IDLE)
-             || currentTone == null)
+        if(currentTone.isEmpty())
         {
             return pkt;
         }
 
+        byte toneCode = currentTone.firstElement().getCode();
         byte currentDtmfPayload = mediaStream.getDynamicRTPPayloadType(
                         Constants.TELEPHONE_EVENT);
 
@@ -247,7 +240,7 @@ public class DtmfTransformEngine
         boolean pktMarker = false;
         int pktDuration = 0;
 
-        if(toneTransmissionState == ToneTransmissionState.SEND_PENDING)
+        if(toneTransmissionState == ToneTransmissionState.IDLE)
         {
             currentDuration = 0;
             currentDuration += getCurrentSpacingDuration();
@@ -296,11 +289,14 @@ public class DtmfTransformEngine
             remainingsEndPackets--;
 
             if(remainingsEndPackets == 0)
+            {
                 toneTransmissionState = ToneTransmissionState.IDLE;
+                currentTone.remove(0);
+            }
         }
 
         dtmfPkt.init(
-            currentTone.getCode(),
+            toneCode,
             pktEnd,
             pktMarker,
             pktDuration,
@@ -319,12 +315,7 @@ public class DtmfTransformEngine
      */
     public void startSending(DTMFRtpTone tone)
     {
-        if(toneTransmissionState != ToneTransmissionState.IDLE)
-            throw new IllegalStateException(
-                "Calling start before stopping previous transmission");
-
-        currentTone = tone;
-        toneTransmissionState = ToneTransmissionState.SEND_PENDING;
+        currentTone.add(tone);
     }
 
     /**
