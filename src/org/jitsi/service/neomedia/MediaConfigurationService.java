@@ -22,30 +22,26 @@ public interface MediaConfigurationService
      * @return A <tt>Component</tt> for audio configuration
      */
     public Component createAudioConfigPanel();
-    
+
     /**
      * Returns a <tt>Component</tt> for video configuration
      * 
      * @return A <tt>Component</tt> for video configuration
      */
     public Component createVideoConfigPanel();
-    
+
     /**
-     * Returns a <tt>Component</tt> for encodings configuration (either audio or video)
+     * Returns a <tt>Component</tt> for encodings configuration (either audio
+     * or video)
+     *
      * @param mediaType The type of media -- either MediaType.AUDIO or
      * MediaType.VIDEO
      * @param encodingConfiguration The <tt>EncodingConfiguration</tt> instance
-     * to use. If null, creates one on it's own.
-     * @param autoUpdateConfig Whether we should update the configuration after
-     * every change. Useful, because in the main audio/video encoding 
-     * configuration we want the changes to apply instantaneously, while in the
-     * account creation wizards we want to delay the update until the form is
-     * committed.
+     * to use.
      * @return The <tt>Component</tt> for encodings configuration
      */
     public Component createEncodingControls(MediaType mediaType,
-            EncodingConfiguration encodingConfiguration,
-            boolean autoUpdateConfig);
+            EncodingConfiguration encodingConfiguration);
 
     /**
      * Returns the <tt>MediaService</tt> instance

@@ -9,21 +9,19 @@ package org.jitsi.service.neomedia.codec;
 import java.util.*;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.service.configuration.*;
-import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
 
 /**
- * Abstract class that manages encoding configurations. It holds information
+ * A base class that manages encoding configurations. It holds information
  * about supported formats.
  * 
  * @author Damian Minkov
  * @author Lyubomir Marinov
  * @author Boris Grozev
  */
-public abstract class EncodingConfiguration
+public class EncodingConfiguration
 {
     /**
      * The <tt>Logger</tt> used by this <tt>EncodingConfiguration</tt> instance
@@ -169,23 +167,9 @@ public abstract class EncodingConfiguration
         updateSupportedEncodings();
     }
 
-    //TODO: remove
-    /**
-     * Sets <tt>priority</tt> as the preference associated with
-     * <tt>encoding</tt> (with a call to <tt>setPriority(MediaFormat, int)</tt>
-     * for example), and also, if <tt>updateConfig</tt> is <tt>true</tt>,
-     * updates configuration. 
-     * @param encoding the <tt>MediaFormat</tt> specifying the encoding to set
-     * the priority of
-     * @param priority a positive <tt>int</tt> indicating the priority of
-     * <tt>encoding</tt> to set
-     * @param updateConfig Whether to update configuration or not.
-     */
-    public abstract void setPriority(MediaFormat encoding, int priority,
-            boolean updateConfig);
-
     /**
      * Get the priority for a <tt>MediaFormat</tt>.
+     *
      * @param encoding the <tt>MediaFormat</tt>
      * @return the priority
      */
@@ -339,24 +323,6 @@ public abstract class EncodingConfiguration
     }
 
     /**
-     * Parses the properties under <tt>prefix</tt> and loads them.
-     * 
-     * @param prefix The prefix to search the configuration under
-     */
-    public void loadFormatPreferencesFromConfig(String prefix)
-    {
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-        Map<String, String> properties = new HashMap<String, String>();
-
-        if (cfg != null)
-        {
-            for (String pName : cfg.getPropertyNamesByPrefix(prefix, false))
-                properties.put(pName, cfg.getString(pName));
-            loadProperties(properties);
-        }
-    }
-
-    /**
      * Stores the format preferences in this instance in the given <tt>Map</tt>,
      * using <tt>prefix</tt> as a prefix to the key.
      * Entries in the format (prefix+formatName, formatPriority) will be added
@@ -403,7 +369,7 @@ public abstract class EncodingConfiguration
     {
         loadProperties(properties, "");
     }
-    
+
     /**
      * Parses a <tt>Map<String, String></tt> and updates the format preferences
      * according to it. For each entry, if it's key does not begin with
