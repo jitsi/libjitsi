@@ -342,7 +342,32 @@
   <target name="portaudio" description="Build jnportaudio shared library" depends="init-native">
 
     <fail message="portaudio repository not set!" unless="portaudio" />
-    <fail message="speex repository not set!" unless="speex" />
+
+    <condition property="is.speex.set" value="true">
+        <and>
+            <isset property="speex"/>
+            <not>
+                <isset property="speex.dynamic"/>
+            </not>
+        </and>
+    </condition>
+    <condition property="is.speex.set" value="true">
+        <and>
+            <isset property="speex.dynamic"/>
+            <not>
+                <isset property="speex"/>
+            </not>
+        </and>
+    </condition>
+
+    <condition property="is.speex.dynamic.set" value="true">
+        <and>
+            <isset property="speex.dynamic"/>
+            <isset property="is.running.linux"/>
+        </and>
+    </condition>
+
+    <fail message="speex repository not set!" unless="is.speex.set" />
 
     <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnportaudio" objdir="${obj}">
       <!-- common compiler flags -->
@@ -370,8 +395,9 @@
       -->
       <linkerarg value="-Wl,-Bstatic" location="end" if="is.running.linux" />
       <linkerarg value="-lportaudio" location="end" if="is.running.linux" />
-      <linkerarg value="-lspeexdsp" location="end" if="is.running.linux" />
+      <linkerarg value="-lspeexdsp" location="end" if="is.running.linux" unless="speex.dynamic"/>
       <linkerarg value="-Wl,-Bdynamic" location="end" if="is.running.linux" />
+      <linkerarg value="-lspeexdsp" location="end" if="is.speex.dynamic.set"/>
       <linkerarg value="-lrt" location="end" if="is.running.linux" />
       <linkerarg value="-lasound" location="end" if="is.running.linux" />
       <linkerarg value="-lm" location="end" if="is.running.linux" />
@@ -562,7 +588,8 @@
         <fail message="opus repository not set!" unless="opus"/>
 
         <cc outtype="shared" name="gcc"
-            outfile="${native_install_dir}/opus" objdir="${obj}">
+            objdir="${obj}"
+            outfile="${native_install_dir}/jnopus">
             <!-- common compiler flags -->
             <compilerarg value="-shared" />
             <compilerarg value="-Wall" />
@@ -589,8 +616,6 @@
             <!--<linkerarg value="-Wl,-Bstatic" location="end" if="is.running.linux" />-->
             <linkerarg value="-lopus" location="end" if="is.running.linux" />
             <!--<linkerarg value="-Wl,-Bdynamic" location="end" if="is.running.linux" />-->
-            <linkerarg value="-o" location="end" if="is.running.linux" />
-            <linkerarg value="libjnopus.so" location="end" if="is.running.linux" />
 
             <!-- Mac OS X specific flags -->
             <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
@@ -692,6 +717,43 @@
     <delete dir="${obj}" failonerror="false" />
     <delete file="${native_install_dir}/history.xml" failonerror="false" />
   </target>
+
+    <!-- compile pulseaudio library
+        gcc -D_JNI_IMPLEMENTATION_ -fPIC -I/usr/lib/jvm/java-1.5.0-sun/include
+            -I/usr/lib/jvm/java-1.5.0-sun/include/linux -O2 -Wall
+            org_jitsi_impl_neomedia_pulseaudio_PA.c `pkg-config - -cflags libpulse`
+            -shared -o libjnpulseaudio.so -Wl,- -no-undefined `pkg-config - -libs libpulse`
+            -ldl && strip -x libjnpulseaudio.so
+    -->
+    <target name="pulseaudio"
+            description="Build pulseaudio shared library" if="is.running.linux"
+            depends="init-native">
+        <cc outtype="shared" name="gcc"
+            outfile="${native_install_dir}/jnpulseaudio"
+            objdir="${obj}">
+                <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+                <compilerarg value="-fPIC" />
+                <compilerarg value="-O2" />
+                <compilerarg value="-Wall" />
+                <compilerarg value="-I${system.JAVA_HOME}/include" />
+                <compilerarg value="-I${system.JAVA_HOME}/include/linux" />
+                <compilerarg value="-shared" />
+                <compilerarg value="-ldl" />
+                <compilerarg value="-D_REENTRANT" />
+
+                <linkerarg value="-Wl,--no-undefined" />
+                <linkerarg value="-lpulse" />
+                <linkerarg value="-ldl" />
+
+                <compilerarg value="-m32" if="cross_32" />
+                <compilerarg value="-m64" if="cross_64" />
+
+                <linkerarg value="-m32" if="cross_32" />
+                <linkerarg value="-m64" if="cross_64" />
+
+                <fileset dir="${src}/native/linux/pulseaudio" includes="*.c"/>
+        </cc>
+    </target>
 
   <!-- Cleanup object file and shared libraries -->
   <target name="clean-native" description="Clean all object file and libraries.">
