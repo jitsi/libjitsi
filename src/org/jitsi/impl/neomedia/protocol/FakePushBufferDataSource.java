@@ -123,6 +123,20 @@ public class FakePushBufferDataSource
     }
 
     /**
+     * {@inheritDoc}
+     *
+     * Allows setting an arbitrary <tt>Format</tt> on this <tt>DataSource</tt>
+     * because it does not really provide any media.
+     */
+    @Override
+    protected Format setFormat(
+            int streamIndex,
+            Format oldValue, Format newValue)
+    {
+        return newValue;
+    }
+
+    /**
      * Starts the transfer of media data from this <tt>DataSource</tt>.
      *
      * @throws IOException if anything goes wrong while starting the transfer of
@@ -179,6 +193,18 @@ public class FakePushBufferDataSource
                 FormatControl formatControl)
         {
             super(dataSource, formatControl);
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * Allows setting an arbitrary format on this <tt>SourceStream</tt>
+         * because it does not really provide any media.
+         */
+        @Override
+        protected Format doSetFormat(Format format)
+        {
+            return super.doSetFormat(format);
         }
 
         /**

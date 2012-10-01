@@ -83,14 +83,12 @@ public abstract class AbstractRTPConnector
 
         if (controlAddress != null)
         {
-            getControlOutputStream()
-                .addTarget(
+            getControlOutputStream().addTarget(
                     controlAddress,
                     target.getControlPort());
         }
 
-        getDataOutputStream()
-            .addTarget(
+        getDataOutputStream().addTarget(
                 target.getDataAddress(),
                 target.getDataPort());
     }

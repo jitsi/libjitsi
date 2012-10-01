@@ -25,7 +25,9 @@ public class LibJitsiOSGiImpl
     private final BundleContext bundleContext;
 
     /**
-     * Initializes a new <tt>LibJitsiOSGiImpl</tt> instance.
+     * Initializes a new <tt>LibJitsiOSGiImpl</tt> instance with the
+     * <tt>BundleContext</tt> of the <tt>Bundle</tt> which has loaded the
+     * <tt>LibJitsi</tt> class.
      */
     public LibJitsiOSGiImpl()
     {
@@ -42,6 +44,21 @@ public class LibJitsiOSGiImpl
             else
                 this.bundleContext = bundleContext;
         }
+    }
+
+    /**
+     * Initializes a new <tt>LibJitsiOSGiImpl</tt> instance with a specific
+     * <tt>BundleContext</tt>.
+     *
+     * @param bundleContext the <tt>BundleContext</tt> to be used by the new
+     * instance to look for registered services
+     */
+    public LibJitsiOSGiImpl(BundleContext bundleContext)
+    {
+        if (bundleContext == null)
+            throw new NullPointerException("bundleContext");
+        else
+            this.bundleContext = bundleContext;
     }
 
     /**

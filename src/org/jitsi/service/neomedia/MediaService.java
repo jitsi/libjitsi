@@ -79,6 +79,20 @@ public interface MediaService
     public MediaStream createMediaStream(MediaDevice device);
 
     /**
+     * Initializes a new <tt>MediaStream</tt> of a specific <tt>MediaType</tt>.
+     * The new instance will not have a <tt>MediaDevice</tt> at the time of its
+     * initialization and a <tt>MediaDevice</tt> may be specified later on with
+     * the constraint that {@link MediaDevice#getMediaType()} equals
+     * <tt>mediaType</tt>.
+     *
+     * @param mediaType the <tt>MediaType</tt> of the new instance to be
+     * initialized
+     * @return a new <tt>MediaStream</tt> instance of the specified
+     * <tt>mediaType</tt>
+     */
+    public MediaStream createMediaStream(MediaType mediaType);
+
+    /**
      * Creates a <tt>MediaStream</tt> that will be using the specified
      * <tt>MediaDevice</tt> for both capture and playback of media exchanged
      * via the specified <tt>StreamConnector</tt>.

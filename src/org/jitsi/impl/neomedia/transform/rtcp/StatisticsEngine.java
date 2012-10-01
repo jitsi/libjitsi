@@ -10,7 +10,7 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.service.neomedia.format.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -137,12 +137,12 @@ public class StatisticsEngine
                         return pkt;
 
                     StringBuilder buff = new StringBuilder(RTP_STAT_PREFIX);
-                    MediaFormat mediaStreamFormat = mediaStream.getFormat();
+                    MediaType mediaType = mediaStream.getMediaType();
+                    String mediaTypeStr
+                        = (mediaType == null) ? "" : mediaType.toString();
 
                     buff.append("Sending a report for ")
-                        .append(mediaStreamFormat != null
-                                    ? mediaStreamFormat.getMediaType()
-                                    : "")
+                        .append(mediaTypeStr)
                         .append(" stream SSRC:")
                         .append(feedback.getSSRC())
                         .append(" [packet count:")

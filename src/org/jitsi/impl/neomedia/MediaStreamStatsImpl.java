@@ -16,6 +16,7 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
 
 /**
@@ -197,13 +198,13 @@ public class MediaStreamStatsImpl
      */
     public String getLocalIPAddress()
     {
-        InetSocketAddress mediaStreamLocalDataAddress =
-            mediaStreamImpl.getLocalDataAddress();
-        if(mediaStreamLocalDataAddress == null)
-        {
-            return null;
-        }
-        return mediaStreamLocalDataAddress.getAddress().getHostAddress();
+        InetSocketAddress mediaStreamLocalDataAddress
+            = mediaStreamImpl.getLocalDataAddress();
+
+        return
+            (mediaStreamLocalDataAddress == null)
+                ? null
+                : mediaStreamLocalDataAddress.getAddress().getHostAddress();
     }
 
     /**
@@ -213,13 +214,13 @@ public class MediaStreamStatsImpl
      */
     public int getLocalPort()
     {
-        InetSocketAddress mediaStreamLocalDataAddress =
-            mediaStreamImpl.getLocalDataAddress();
-        if(mediaStreamLocalDataAddress == null)
-        {
-            return -1;
-        }
-        return mediaStreamLocalDataAddress.getPort();
+        InetSocketAddress mediaStreamLocalDataAddress
+            = mediaStreamImpl.getLocalDataAddress();
+
+        return
+            (mediaStreamLocalDataAddress == null)
+                ? -1
+                : mediaStreamLocalDataAddress.getPort();
     }
 
     /**
@@ -263,8 +264,9 @@ public class MediaStreamStatsImpl
      */
     public String getEncoding()
     {
-        // Gets this stream encoding.
-        return mediaStreamImpl.getFormat().getEncoding();
+        MediaFormat format = mediaStreamImpl.getFormat();
+
+        return (format == null) ? null : format.getEncoding();
     }
 
     /**
@@ -274,8 +276,9 @@ public class MediaStreamStatsImpl
      */
     public String getEncodingClockRate()
     {
-        // Gets this stream encoding clock rate.
-        return mediaStreamImpl.getFormat().getRealUsedClockRateString();
+        MediaFormat format = mediaStreamImpl.getFormat();
+
+        return (format == null) ? null : format.getRealUsedClockRateString();
     }
 
     /**
@@ -422,8 +425,23 @@ public class MediaStreamStatsImpl
      */
     private double getJitterMs(StreamDirection streamDirection)
     {
-        double mediaFormatClockRate =
-            this.mediaStreamImpl.getFormat().getClockRate();
+        MediaFormat format = mediaStreamImpl.getFormat();
+        double clockRate;
+
+        if (format == null)
+        {
+            MediaType mediaType = mediaStreamImpl.getMediaType();
+
+            if (MediaType.VIDEO.equals(mediaType))
+                clockRate = 90000;
+            else
+                clockRate = -1;
+        }
+        else
+            clockRate = format.getClockRate();
+
+        if (clockRate <= 0)
+            return -1;
 
         // RFC3550 says that concerning the RTP timestamp unit (cf. section 5.1
         // RTP Fixed Header Fields, subsection timestamp: 32 bits):
@@ -433,8 +451,9 @@ public class MediaStreamStatsImpl
         // Thus we take the jitter (in RTP timestamp units), converts it to
         // seconds (deivision by the codec clock rate) and finally converts it
         // in Ms (* 1000).
-        return (this.jitterRTPTimestampUnits[streamDirection.ordinal()]
-                / mediaFormatClockRate) * 1000.0;
+        return
+            (jitterRTPTimestampUnits[streamDirection.ordinal()] / clockRate)
+                * 1000.0;
     }
 
     /**

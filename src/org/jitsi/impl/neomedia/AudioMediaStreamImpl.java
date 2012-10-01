@@ -103,9 +103,6 @@ public class AudioMediaStreamImpl
                                 SrtpControl srtpControl)
     {
         super(connector, device, srtpControl);
-
-        if(logger.isTraceEnabled())
-            logger.trace("Created Audio Stream with hashCode " + hashCode());
     }
 
     /**

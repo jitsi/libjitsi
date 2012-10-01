@@ -28,19 +28,42 @@ public class MediaStreamTarget
     private final InetSocketAddress rtcpTarget;
 
     /**
-     * Creates an instance of this <tt>MediaStreamTarget</tt> containing the
-     * specified RTP and RTCP target host:port couples.
+     * Initializes a new <tt>MediaStreamTarget</tt> instance with specific
+     * RTP and RTCP <tt>InetSocketAddress<tt>es.
      *
-     * @param rtpTarget the <tt>InetSocketAddress</tt> that this
-     * <tt>MediaStreamTarget</tt> is supposed to indicate as a data address.
-     * @param rtcpTarget the <tt>InetSocketAddress</tt> that this
-     * <tt>MediaStreamTarget</tt> is supposed to indicate as a control address.
+     * @param rtpTarget the <tt>InetSocketAddress</tt> that the new instance is
+     * to indicate as a data/RTP address.
+     * @param rtcpTarget the <tt>InetSocketAddress</tt> that the new instance is
+     * to indicate as a control/RTCP address.
      */
-    public MediaStreamTarget(InetSocketAddress rtpTarget,
-                             InetSocketAddress rtcpTarget)
+    public MediaStreamTarget(
+            InetSocketAddress rtpTarget,
+            InetSocketAddress rtcpTarget)
     {
         this.rtpTarget = rtpTarget;
         this.rtcpTarget = rtcpTarget;
+    }
+
+    /**
+     * Initializes a new <tt>MediaStreamTarget</tt> instance with specific
+     * RTP and RTCP <tt>InetAddress</tt>es and ports.
+     *
+     * @param rtpAddr the <tt>InetAddress</tt> that the new instance is to
+     * indicate as the IP address of a data/RTP address
+     * @param rtpPort the port that the new instance is to indicate as the port
+     * of a data/RTP address
+     * @param rtcpAddr the <tt>InetAddress</tt> that the new instance is to
+     * indicate as the IP address of a control/RTCP address
+     * @param rtcpPort the port that the new instance is to indicate as the port
+     * of a control/RTCP address
+     */
+    public MediaStreamTarget(
+            InetAddress rtpAddr, int rtpPort,
+            InetAddress rtcpAddr, int rtcpPort)
+    {
+        this(
+                new InetSocketAddress(rtpAddr, rtpPort),
+                new InetSocketAddress(rtcpAddr, rtcpPort));
     }
 
     /**
@@ -53,7 +76,7 @@ public class MediaStreamTarget
      * @return <tt>true</tt> if <tt>addr1</tt> is equal to <tt>addr2</tt>;
      * otherwise, <tt>false</tt>
      */
-    private boolean addressesAreEqual(
+    public static boolean addressesAreEqual(
             InetSocketAddress addr1,
             InetSocketAddress addr2)
     {
@@ -124,12 +147,13 @@ public class MediaStreamTarget
     public int hashCode()
     {
         int hashCode = 0;
-
         InetSocketAddress controlAddress = getControlAddress();
+
         if (controlAddress != null)
             hashCode |= controlAddress.hashCode();
 
         InetSocketAddress dataAddress = getDataAddress();
+
         if (dataAddress != null)
             hashCode |= dataAddress.hashCode();
 
@@ -149,9 +173,7 @@ public class MediaStreamTarget
     {
         return
             getClass().getSimpleName()
-                + " with dataAddress "
-                + getDataAddress()
-                + " and controlAddress "
-                + getControlAddress();
+                + " with dataAddress " + getDataAddress()
+                + " and controlAddress " + getControlAddress();
     }
 }

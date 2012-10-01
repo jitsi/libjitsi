@@ -259,11 +259,15 @@ public class MediaStreamImpl
             MediaDevice device,
             SrtpControl srtpControl)
     {
-        /*
-         * XXX Set the device early in order to make sure that it is of the
-         * right type because we do not support just about any MediaDevice yet.
-         */
-        setDevice(device);
+        if (device != null)
+        {
+            /*
+             * XXX Set the device early in order to make sure that it is of the
+             * right type because we do not support just about any MediaDevice
+             * yet.
+             */
+            setDevice(device);
+        }
 
         // TODO Add option to disable ZRTP, e.g. by implementing a NullControl.
         // If you change the default behavior (initiates a ZrtpControlImpl if
@@ -279,6 +283,15 @@ public class MediaStreamImpl
             setConnector(connector);
 
         this.mediaStreamStatsImpl = new MediaStreamStatsImpl(this);
+
+        if (logger.isTraceEnabled())
+        {
+            logger.trace(
+                    "Created "
+                        + getClass().getSimpleName()
+                        + " with hashCode "
+                        + hashCode());
+        }
     }
 
     /**
@@ -430,6 +443,37 @@ public class MediaStreamImpl
             else
                 activeRTPExtensions.put(extensionID, rtpExtension);
         }
+    }
+
+    /**
+     * Asserts that the state of this instance will remain consistent if a
+     * specific <tt>MediaDirection</tt> (i.e. <tt>direction</tt>) and a
+     * <tt>MediaDevice</tt> with a specific <tt>MediaDirection</tt> (i.e.
+     * <tt>deviceDirection</tt>) are both set on this instance.
+     *
+     * @param direction the <tt>MediaDirection</tt> to validate against the
+     * specified <tt>deviceDirection</tt>
+     * @param deviceDirection the <tt>MediaDirection</tt> of a
+     * <tt>MediaDevice</tt> to validate against the specified <tt>direction</tt>
+     * @param illegalArgumentExceptionMessage the message of the
+     * <tt>IllegalArgumentException</tt> to be thrown if the state of this
+     * instance would've been compromised if <tt>direction</tt> and the
+     * <tt>MediaDevice</tt> associated with <tt>deviceDirection</tt> were both
+     * set on this instance
+     * @throws IllegalArgumentException if the state of this instance would've
+     * been compromised were both <tt>direction</tt> and the
+     * <tt>MediaDevice</tt> associated with <tt>deviceDirection</tt> set on this
+     * instance
+     */
+    private void assertDirection(
+            MediaDirection direction,
+            MediaDirection deviceDirection,
+            String illegalArgumentExceptionMessage)
+        throws IllegalArgumentException
+    {
+        if ((direction != null)
+                && !direction.and(deviceDirection).equals(direction))
+            throw new IllegalArgumentException(illegalArgumentExceptionMessage);
     }
 
     /**
@@ -804,27 +848,82 @@ public class MediaStreamImpl
      */
     private void doSetTarget(MediaStreamTarget target)
     {
-        rtpConnector.removeTargets();
-        rtpConnectorTarget = null;
+        InetSocketAddress newDataAddr;
+        InetSocketAddress newControlAddr;
+
+        if (target == null)
+        {
+            newDataAddr = null;
+            newControlAddr = null;
+        }
+        else
+        {
+            newDataAddr = target.getDataAddress();
+            newControlAddr = target.getControlAddress();
+        }
+
+        /*
+         * Invoke AbstractRTPConnector#removeTargets() if the new value does
+         * actually remove an RTP or RTCP target in comparison to the old value.
+         * If the new value is equal to the oldValue or adds an RTP or RTCP
+         * target (i.e. the old value does not specify the respective RTP or
+         * RTCP target and the new value does), then removeTargets is
+         * unnecessary and would've needlessly allowed a (tiny) interval of
+         * (execution) time (between removeTargets and addTarget) without a
+         * target.
+         */
+        if (rtpConnectorTarget != null)
+        {
+            InetSocketAddress oldDataAddr = rtpConnectorTarget.getDataAddress();
+            boolean removeTargets
+                = (oldDataAddr == null)
+                    ? (newDataAddr != null)
+                    : !oldDataAddr.equals(newDataAddr);
+
+            if (!removeTargets)
+            {
+                InetSocketAddress oldControlAddr
+                    = rtpConnectorTarget.getControlAddress();
+
+                removeTargets
+                    = (oldControlAddr == null)
+                        ? (newControlAddr != null)
+                        : !oldControlAddr.equals(newControlAddr);
+            }
+
+            if (removeTargets)
+            {
+                rtpConnector.removeTargets();
+                rtpConnectorTarget = null;
+            }
+        }
 
         boolean targetIsSet;
 
-        if (target != null)
+        if (target == null)
+            targetIsSet = true;
+        else
         {
-            InetSocketAddress dataAddr = target.getDataAddress();
-            InetSocketAddress controlAddr = target.getControlAddress();
-
             try
             {
-                rtpConnector
-                    .addTarget(
+                InetAddress controlInetAddr;
+                int controlPort;
+
+                if (newControlAddr == null)
+                {
+                    controlInetAddr = null;
+                    controlPort = 0;
+                }
+                else
+                {
+                    controlInetAddr = newControlAddr.getAddress();
+                    controlPort = newControlAddr.getPort();
+                }
+
+                rtpConnector.addTarget(
                         new SessionAddress(
-                                dataAddr.getAddress(),
-                                dataAddr.getPort(),
-                                controlAddr != null ? controlAddr.getAddress()
-                                        : null,
-                                controlAddr != null ? controlAddr.getPort()
-                                        : 0));
+                                newDataAddr.getAddress(), newDataAddr.getPort(),
+                                controlInetAddr, controlPort));
                 targetIsSet = true;
             }
             catch (IOException ioe)
@@ -834,21 +933,17 @@ public class MediaStreamImpl
                 logger.error("Failed to set target " + target, ioe);
             }
         }
-        else
-            targetIsSet = true;
         if (targetIsSet)
         {
             rtpConnectorTarget = target;
 
             if (logger.isTraceEnabled())
-                logger
-                    .trace(
-                        "Set target of "
-                            + getClass().getSimpleName()
-                            + " with hashCode "
-                            + hashCode()
-                            + " to "
-                            + target);
+            {
+                logger.trace(
+                        "Set target of " + getClass().getSimpleName()
+                            + " with hashCode " + hashCode()
+                            + " to " + target);
+            }
         }
     }
 
@@ -863,6 +958,23 @@ public class MediaStreamImpl
     public AbstractMediaDevice getDevice()
     {
         return getDeviceSession().getDevice();
+    }
+
+    /**
+     * Gets the <tt>MediaDirection</tt> of the <tt>device</tt> of this instance
+     * if any or {@link MediaDirection#INACTIVE}.
+     *
+     * @return the <tt>MediaDirection</tt> of the <tt>device</tt> of this
+     * instance if any or <tt>MediaDirection.INACTIVE</tt>
+     */
+    private MediaDirection getDeviceDirection()
+    {
+        MediaDeviceSession deviceSession = getDeviceSession();
+
+        return
+            (deviceSession == null)
+                ? MediaDirection.INACTIVE
+                : deviceSession.getDevice().getDirection();
     }
 
     /**
@@ -887,14 +999,7 @@ public class MediaStreamImpl
      */
     public MediaDirection getDirection()
     {
-        if (direction != null)
-            return direction;
-
-        MediaDeviceSession deviceSession = getDeviceSession();
-
-        return (deviceSession == null)
-                ? MediaDirection.INACTIVE
-                : deviceSession.getDevice().getDirection();
+        return (direction == null) ? getDeviceDirection() : direction;
     }
 
     /**
@@ -958,7 +1063,9 @@ public class MediaStreamImpl
      */
     public MediaFormat getFormat()
     {
-        return getDeviceSession().getFormat();
+        MediaDeviceSession deviceSession = getDeviceSession();
+
+        return (deviceSession == null) ? null : deviceSession.getFormat();
     }
 
     /**
@@ -1321,6 +1428,46 @@ public class MediaStreamImpl
     }
 
     /**
+     * Notifies this instance that its {@link #rtpConnector} has created a new
+     * <tt>RTPConnectorInputStream</tt> either RTP or RTCP.
+     *
+     * @param inputStream the new <tt>RTPConnectorInputStream</tt> instance
+     * created by the <tt>rtpConnector</tt> of this instance
+     * @param data <tt>true</tt> if <tt>inputStream</tt> will be used for RTP
+     * or <tt>false</tt> for RTCP
+     */
+    private void rtpConnectorInputStreamCreated(
+            RTPConnectorInputStream inputStream,
+            boolean data)
+    {
+        /*
+         * TODO The following is a very ugly way to expose the
+         * RTPConnectorInputStreams created by the rtpConnector of this
+         * instance so they may be configured from outside the class hierarchy
+         * (e.g. to invoke addDatagramPacketFilter). That's why the property in
+         * use bellow is not defined as a well-known constant and is to be
+         * considered internal and likely to be removed in a future revision.
+         */
+        try
+        {
+            firePropertyChange(
+                    MediaStreamImpl.class.getName()
+                        + ".rtpConnector."
+                        + (data ? "data" : "control")
+                        + "InputStream",
+                    null,
+                    inputStream);
+        }
+        catch (Throwable t)
+        {
+            if (t instanceof ThreadDeath)
+                throw (ThreadDeath) t;
+            else
+                logger.error(t);
+        }
+    }
+
+    /**
      * Sets the <tt>StreamConnector</tt> to be used by this instance for sending
      * and receiving media.
      *
@@ -1345,27 +1492,39 @@ public class MediaStreamImpl
                 = new RTPTransformUDPConnector(connector)
                 {
                     @Override
-                    protected TransformUDPOutputStream createDataOutputStream()
+                    protected TransformUDPInputStream createControlInputStream()
                         throws IOException
                     {
-                        TransformUDPOutputStream dataOutputStream
-                            = super.createDataOutputStream();
+                        TransformUDPInputStream s
+                            = super.createControlInputStream();
 
-                        if (dataOutputStream != null)
-                            configureDataOutputStream(dataOutputStream);
-                        return dataOutputStream;
+                        rtpConnectorInputStreamCreated(s, false);
+                        return s;
                     }
 
                     @Override
                     protected TransformUDPInputStream createDataInputStream()
                         throws IOException
                     {
-                        TransformUDPInputStream dataInputStream
+                        TransformUDPInputStream s
                             = super.createDataInputStream();
 
-                        if (dataInputStream != null)
-                            configureDataInputStream(dataInputStream);
-                        return dataInputStream;
+                        rtpConnectorInputStreamCreated(s, true);
+                        if (s != null)
+                            configureDataInputStream(s);
+                        return s;
+                    }
+
+                    @Override
+                    protected TransformUDPOutputStream createDataOutputStream()
+                        throws IOException
+                    {
+                        TransformUDPOutputStream s
+                            = super.createDataOutputStream();
+
+                        if (s != null)
+                            configureDataOutputStream(s);
+                        return s;
                     }
                 };
             break;
@@ -1374,27 +1533,39 @@ public class MediaStreamImpl
                 = new RTPTransformTCPConnector(connector)
                 {
                     @Override
-                    protected TransformTCPOutputStream createDataOutputStream()
+                    protected TransformTCPInputStream createControlInputStream()
                         throws IOException
                     {
-                        TransformTCPOutputStream dataOutputStream
-                            = super.createDataOutputStream();
+                        TransformTCPInputStream s
+                            = super.createControlInputStream();
 
-                        if (dataOutputStream != null)
-                            configureDataOutputStream(dataOutputStream);
-                        return dataOutputStream;
+                        rtpConnectorInputStreamCreated(s, false);
+                        return s;
                     }
 
                     @Override
                     protected TransformTCPInputStream createDataInputStream()
                         throws IOException
                     {
-                        TransformTCPInputStream dataInputStream
+                        TransformTCPInputStream s
                             = super.createDataInputStream();
 
-                        if (dataInputStream != null)
-                            configureDataInputStream(dataInputStream);
-                        return dataInputStream;
+                        rtpConnectorInputStreamCreated(s, true);
+                        if (s != null)
+                            configureDataInputStream(s);
+                        return s;
+                    }
+
+                    @Override
+                    protected TransformTCPOutputStream createDataOutputStream()
+                        throws IOException
+                    {
+                        TransformTCPOutputStream s
+                            = super.createDataOutputStream();
+
+                        if (s != null)
+                            configureDataOutputStream(s);
+                        return s;
                     }
                 };
             break;
@@ -1428,6 +1599,8 @@ public class MediaStreamImpl
 
         if ((deviceSession == null) || (deviceSession.getDevice() != device))
         {
+            assertDirection(direction, device.getDirection(), "device");
+
             MediaDeviceSession oldValue = deviceSession;
             MediaFormat format;
             MediaDirection startedDirection;
@@ -1512,21 +1685,18 @@ public class MediaStreamImpl
             return;
 
         if(logger.isTraceEnabled())
-            logger.trace("Changing direction of stream " + hashCode()
-                + " from:" + this.direction + " to:" + direction);
+        {
+            logger.trace(
+                    "Changing direction of stream " + hashCode()
+                        + " from:" + this.direction
+                        + " to:" + direction);
+        }
 
         /*
          * Make sure that the specified direction is in accord with the
          * direction of the MediaDevice of this instance.
          */
-        MediaDeviceSession deviceSession = getDeviceSession();
-        MediaDirection deviceDirection
-            = (deviceSession == null)
-                ? MediaDirection.INACTIVE
-                : deviceSession.getDevice().getDirection();
-
-        if (!deviceDirection.and(direction).equals(direction))
-            throw new IllegalArgumentException("direction");
+        assertDirection(direction, getDeviceDirection(), "direction");
 
         this.direction = direction;
 
@@ -1720,13 +1890,25 @@ public class MediaStreamImpl
             else if (startedDirection == null)
                 startedDirection = MediaDirection.SENDONLY;
 
-            logger.info(getFormat().getMediaType().toString() + " codec/freq: "
-                + getMediaStreamStats().getEncoding()
-                + "/" + getMediaStreamStats().getEncodingClockRate() + " Hz");
-            logger.info(getFormat().getMediaType().toString()
-                + " remote IP/port: "
-                + getMediaStreamStats().getRemoteIPAddress()
-                + "/" + String.valueOf(getMediaStreamStats().getRemotePort()));
+            if (logger.isInfoEnabled())
+            {
+                MediaType mediaType = getMediaType();
+                MediaStreamStats stats = getMediaStreamStats();
+
+                logger.info(
+                        mediaType
+                            + " codec/freq: "
+                            + stats.getEncoding()
+                            + "/"
+                            + stats.getEncodingClockRate()
+                            + " Hz");
+                logger.info(
+                        mediaType
+                            + " remote IP/port: "
+                            + stats.getRemoteIPAddress()
+                            + "/"
+                            + String.valueOf(stats.getRemotePort()));
+            }
         }
 
         if (direction.allowsReceiving()
@@ -1734,8 +1916,9 @@ public class MediaStreamImpl
                         || !startedDirection.allowsReceiving()))
         {
             /*
-             * The startReceiveStreams method will be called so the getRTPManager
-             * method will be called as part of the execution of the former.
+             * The startReceiveStreams method will be called so the
+             * getRTPManager method will be called as part of the execution of
+             * the former.
              */
             getRTPManagerForRTPTranslator = false;
 
@@ -2275,8 +2458,8 @@ public class MediaStreamImpl
 
                 remoteJitter = feedback.getJitter();
 
-                if(remoteJitter < minRemoteInterArrivalJitter
-                    ||minRemoteInterArrivalJitter == -1)
+                if((remoteJitter < minRemoteInterArrivalJitter)
+                        || (minRemoteInterArrivalJitter == -1))
                     minRemoteInterArrivalJitter = remoteJitter;
 
                 if(maxRemoteInterArrivalJitter < remoteJitter)
@@ -2290,13 +2473,12 @@ public class MediaStreamImpl
 
             StringBuilder buff
                 = new StringBuilder(StatisticsEngine.RTP_STAT_PREFIX);
-            MediaFormat format = getFormat();
+            MediaType mediaType = getMediaType();
+            String mediaTypeStr
+                = (mediaType == null) ? "" : mediaType.toString();
 
             buff.append("Received a report for ")
-                .append(
-                        (format == null)
-                            ? ""
-                            : format.getMediaType().toString())
+                .append(mediaTypeStr)
                 .append(" stream SSRC:")
                 .append(getLocalSourceID())
                 .append(" [packet count:")
@@ -2416,11 +2598,14 @@ public class MediaStreamImpl
             //print flow statistics.
             GlobalTransmissionStats s = rtpManager.getGlobalTransmissionStats();
 
-            StringBuilder buff =
-                    new StringBuilder(StatisticsEngine.RTP_STAT_PREFIX);
+            StringBuilder buff
+                = new StringBuilder(StatisticsEngine.RTP_STAT_PREFIX);
+            MediaType mediaType = getMediaType();
+            String mediaTypeStr
+                = (mediaType == null) ? "" : mediaType.toString();
 
             buff.append("call stats for outgoing ")
-                .append(getFormat() != null ? getFormat().getMediaType() : "")
+                .append(mediaTypeStr)
                 .append(" stream SSRC:")
                 .append(getLocalSourceID())
                     .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
@@ -2445,11 +2630,11 @@ public class MediaStreamImpl
             logger.info(buff);
 
             GlobalReceptionStats rs = rtpManager.getGlobalReceptionStats();
+            MediaFormat format = getFormat();
 
             buff = new StringBuilder(StatisticsEngine.RTP_STAT_PREFIX);
-
             buff.append("call stats for incoming ")
-                .append(getFormat() != null ? getFormat().getMediaType() : "")
+                .append((format == null) ? "" : format)
                 .append(" stream SSRC:")
                 .append(getRemoteSourceID())
                 .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
@@ -2522,5 +2707,35 @@ public class MediaStreamImpl
     public MediaStreamStats getMediaStreamStats()
     {
         return this.mediaStreamStatsImpl;
+    }
+
+    /**
+     * Gets the <tt>MediaType</tt> of this <tt>MediaStream</tt>.
+     *
+     * @return the <tt>MediaType</tt> of this <tt>MediaStream</tt>
+     */
+    public MediaType getMediaType()
+    {
+        MediaFormat format = getFormat();
+        MediaType mediaType = null;
+
+        if (format != null)
+            mediaType = format.getMediaType();
+        if (mediaType == null)
+        {
+            MediaDeviceSession deviceSession = getDeviceSession();
+
+            if (deviceSession != null)
+                mediaType = deviceSession.getDevice().getMediaType();
+            if (mediaType == null)
+            {
+                if (this instanceof AudioMediaStream)
+                    mediaType = MediaType.AUDIO;
+                else if (this instanceof VideoMediaStream)
+                    mediaType = MediaType.VIDEO;
+            }
+        }
+
+        return mediaType;
     }
 }

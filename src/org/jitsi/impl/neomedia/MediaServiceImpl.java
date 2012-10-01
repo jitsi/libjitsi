@@ -265,6 +265,18 @@ public class MediaServiceImpl
     }
 
     /**
+     * {@inheritDoc}
+     *
+     * Implements {@link MediaService#createMediaStream(MediaType)}. Initializes
+     * a new <tt>AudioMediaStreamImpl</tt> or <tt>VideoMediaStreamImpl</tt> in
+     * accord with <tt>mediaType</tt>
+     */
+    public MediaStream createMediaStream(MediaType mediaType)
+    {
+        return createMediaStream(mediaType, null, null, null);
+    }
+
+    /**
      * Creates a new <tt>MediaStream</tt> instance which will use the specified
      * <tt>MediaDevice</tt> for both capture and playback of media exchanged
      * via the specified <tt>StreamConnector</tt>.
@@ -295,7 +307,7 @@ public class MediaServiceImpl
      * instance is to use for both capture and playback of media exchanged via
      * the specified <tt>connector</tt>
      * @param srtpControl a control which is already created, used to control
-     *        the srtp operations.
+     * the SRTP operations.
      *
      * @return a new <tt>MediaStream</tt> instance
      * @see MediaService#createMediaStream(StreamConnector, MediaDevice)
@@ -305,7 +317,48 @@ public class MediaServiceImpl
             MediaDevice device,
             SrtpControl srtpControl)
     {
-        switch (device.getMediaType())
+        return createMediaStream(null, connector, device, srtpControl);
+    }
+
+    /**
+     * Initializes a new <tt>MediaStream</tt> instance. The method is the actual
+     * implementation to which the public <tt>createMediaStream</tt> methods of
+     * <tt>MediaServiceImpl</tt> delegate.
+     *
+     * @param mediaType the <tt>MediaType</tt> of the new <tt>MediaStream</tt>
+     * instance to be initialized. If <tt>null</tt>, <tt>device</tt> must be
+     * non-<tt>null</tt> and its {@link MediaDevice#getMediaType()} will be used
+     * to determine the <tt>MediaType</tt> of the new instance. If
+     * non-<tt>null</tt>, <tt>device</tt> may be <tt>null</tt>. If
+     * non-<tt>null</tt> and <tt>device</tt> is non-<tt>null</tt>, the
+     * <tt>MediaType</tt> of <tt>device</tt> must be (equal to)
+     * <tt>mediaType</tt>.
+     * @param connector the <tt>StreamConnector</tt> to be used by the new
+     * instance if non-<tt>null</tt>
+     * @param device the <tt>MediaDevice</tt> to be used by the instance if
+     * non-<tt>null</tt>
+     * @param srtpControl the <tt>SrtpControl</tt> to be used by the new
+     * instance if non-<tt>null</tt>
+     * @return a new <tt>MediaStream</tt> instance
+     */
+    private MediaStream createMediaStream(
+            MediaType mediaType,
+            StreamConnector connector,
+            MediaDevice device,
+            SrtpControl srtpControl)
+    {
+        // Make sure that mediaType and device are in accord.
+        if (mediaType == null)
+        {
+            if (device == null)
+                throw new NullPointerException("device");
+            else
+                mediaType = device.getMediaType();
+        }
+        else if ((device != null) && !mediaType.equals(device.getMediaType()))
+            throw new IllegalArgumentException("device");
+
+        switch (mediaType)
         {
         case AUDIO:
             return new AudioMediaStreamImpl(connector, device, srtpControl);

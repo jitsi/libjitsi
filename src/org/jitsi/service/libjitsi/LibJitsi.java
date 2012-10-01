@@ -6,6 +6,8 @@
  */
 package org.jitsi.service.libjitsi;
 
+import java.lang.reflect.*;
+
 import org.jitsi.service.audionotifier.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.fileaccess.*;
@@ -35,7 +37,7 @@ import org.jitsi.util.*;
  * relying on OSGi functionality. In the case of successful detection of OSGi,
  * the library will not register the supported service class instances in the
  * retrieved <tt>BundleContext</tt>.
- * </p> 
+ * </p>
  *
  * @author Lyubomir Marinov
  */
@@ -166,17 +168,37 @@ public abstract class LibJitsi
      */
     public static void start()
     {
+        start(null);
+    }
+
+    /**
+     * Starts/initializes the use of the <tt>libjitsi</tt> library.
+     *
+     * @param context an <tt>Object</tt>, if any, which represents a context in
+     * which the <tt>libjitsi</tt> library is being started and is to be
+     * executed. If non-<tt>null</tt>, a <tt>LibJitsi</tt> implementation which
+     * accepts it will be used. For example, <tt>BundleContext</tt> may be
+     * specified in which case an OSGi-aware <tt>LibJitsi</tt> implementation
+     * will be used.
+     */
+    private static void start(Object context)
+    {
+        /*
+         * LibJitsi implements multiple backends and tries to choose the most
+         * appropriate at run time. For example, an OSGi-aware backend is used
+         * if it is detected that an OSGi implementation is available.
+         */
         String implBaseClassName
             = LibJitsi.class.getName().replace(".service.", ".impl.");
         String[] implClassNameExtensions
             = new String[] { "OSGi", "" };
         LibJitsi impl = null;
 
-        for (String implClassNameExtension : implClassNameExtensions)
+        for (int i = 0; i < implClassNameExtensions.length; i++)
         {
             Class<?> implClass = null;
             String implClassName
-                = implBaseClassName + implClassNameExtension + "Impl";
+                = implBaseClassName + implClassNameExtensions[i] + "Impl";
             Throwable exception = null;
 
             try
@@ -200,7 +222,34 @@ public abstract class LibJitsi
             {
                 try
                 {
-                    impl = (LibJitsi) implClass.newInstance();
+                    if (context == null)
+                    {
+                        impl = (LibJitsi) implClass.newInstance();
+                    }
+                    else
+                    {
+                        /*
+                         * Try to find a Constructor which will accept the
+                         * specified context.
+                         */
+                        Constructor<?> constructor = null;
+
+                        for (Constructor<?> aConstructor
+                                : implClass.getConstructors())
+                        {
+                            Class<?>[] parameterTypes
+                                = aConstructor.getParameterTypes();
+
+                            if ((parameterTypes.length == 1)
+                                    && parameterTypes[0].isInstance(context))
+                            {
+                                constructor = aConstructor;
+                                break;
+                            }
+                        }
+
+                        impl = (LibJitsi) constructor.newInstance(context);
+                    }
                 }
                 catch (Throwable t)
                 {
@@ -215,10 +264,15 @@ public abstract class LibJitsi
 
             if ((exception != null) && logger.isInfoEnabled())
             {
-                logger.info(
-                        "Failed to initialize LibJitsi backend "
-                                + implClassName
-                                + ". Will continue with an alternative.");
+                StringBuilder message = new StringBuilder();
+
+                message.append("Failed to initialize LibJitsi backend ");
+                message.append(implClassName);
+                message.append(". (Exception stack trace follows.)");
+                // If the current backend is not the last, we'll try the next.
+                if (i < (implClassNameExtensions.length - 1))
+                    message.append(" Will try an alternative.");
+                logger.info(message, exception);
             }
         }
 

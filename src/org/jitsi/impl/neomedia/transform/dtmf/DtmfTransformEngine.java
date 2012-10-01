@@ -7,12 +7,14 @@
 package org.jitsi.impl.neomedia.transform.dtmf;
 
 import java.util.*;
+
 import javax.media.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.format.*;
 
 /**
  * The class is responsible for sending DTMF tones in an RTP audio stream as
@@ -141,9 +143,24 @@ public class DtmfTransformEngine
     {
         if (currentSpacingDuration == Format.NOT_SPECIFIED)
         {
+            MediaFormat format = mediaStream.getFormat();
+            double clockRate;
+
+            if (format == null)
+            {
+                MediaType mediaType = mediaStream.getMediaType();
+
+                if (MediaType.VIDEO.equals(mediaType))
+                    clockRate = 90000;
+                else
+                    clockRate = -1;
+            }
+            else
+                clockRate = format.getClockRate();
+
             // the default is 50 ms. RECOMMENDED in rfc4733.
-            currentSpacingDuration
-                = (int) mediaStream.getFormat().getClockRate()/50;
+            if (clockRate > 0)
+                currentSpacingDuration = (int) clockRate / 50;
         }
         return currentSpacingDuration;
     }

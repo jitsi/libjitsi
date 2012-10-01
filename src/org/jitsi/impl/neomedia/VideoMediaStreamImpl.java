@@ -316,9 +316,6 @@ public class VideoMediaStreamImpl
         SrtpControl srtpControl)
     {
         super(connector, device, srtpControl);
-
-        if(logger.isTraceEnabled())
-            logger.trace("Created Video Stream with hashCode " + hashCode());
     }
 
     /**
@@ -951,12 +948,14 @@ public class VideoMediaStreamImpl
      * @param localSourceID source ID
      */
     @Override
-    protected void setLocalSourceID(long localSourceID)
+    protected void setLocalSourceID(long ssrc)
     {
-        super.setLocalSourceID(localSourceID);
+        super.setLocalSourceID(ssrc);
 
-        ((VideoMediaDeviceSession) getDeviceSession()).setLocalSSRC(
-                localSourceID);
+        MediaDeviceSession deviceSession = getDeviceSession();
+
+        if (deviceSession instanceof VideoMediaDeviceSession)
+            ((VideoMediaDeviceSession) deviceSession).setLocalSSRC(ssrc);
     }
 
     /**
@@ -969,7 +968,10 @@ public class VideoMediaStreamImpl
     {
         super.addRemoteSourceID(ssrc);
 
-        ((VideoMediaDeviceSession) getDeviceSession()).setRemoteSSRC(ssrc);
+        MediaDeviceSession deviceSession = getDeviceSession();
+
+        if (deviceSession instanceof VideoMediaDeviceSession)
+            ((VideoMediaDeviceSession) deviceSession).setRemoteSSRC(ssrc);
     }
 
     /**
