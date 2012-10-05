@@ -159,16 +159,34 @@ public class MediaUtils
         }
         addMediaFormats(
             MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
-            "SILK",
-            MediaType.AUDIO,
-            Constants.SILK_RTP,
-            8000, 12000, 16000, 24000);
-        addMediaFormats(
-            MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
             "telephone-event",
             MediaType.AUDIO,
             Constants.TELEPHONE_EVENT,
             8000);
+
+
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        boolean advertiseFEC
+                = cfg.getBoolean("net.java.sip.communicator.impl.neomedia" +
+                ".codec.audio.silk.encoder.advertisefec", false);
+        Map<String,String> silkFormatParams = new HashMap<String, String>();
+        if(advertiseFEC)
+            silkFormatParams.put("useinbandfec", "1");
+        addMediaFormats(
+                MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
+                "SILK",
+                MediaType.AUDIO,
+                Constants.SILK_RTP,
+                silkFormatParams,
+                null,
+                8000, 12000, 16000, 24000);
+        addMediaFormats(
+            MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
+            "SILK",
+            MediaType.AUDIO,
+            Constants.SILK_RTP,
+            8000, 12000, 16000, 24000);
         addMediaFormats(
             MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
             "opus",
@@ -218,7 +236,6 @@ public class MediaUtils
 
         h264AdvancedAttributes.put("imageattr", createImageAttr(null, res));
 
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if ((cfg == null)
                 || cfg
