@@ -169,7 +169,7 @@ public class MediaUtils
 
         boolean advertiseFEC
                 = cfg.getBoolean("net.java.sip.communicator.impl.neomedia" +
-                ".codec.audio.silk.encoder.advertisefec", false);
+                ".codec.audio.silk.ADVERTISE_FEC", false);
         Map<String,String> silkFormatParams = new HashMap<String, String>();
         if(advertiseFEC)
             silkFormatParams.put("useinbandfec", "1");
@@ -181,12 +181,6 @@ public class MediaUtils
                 silkFormatParams,
                 null,
                 8000, 12000, 16000, 24000);
-        addMediaFormats(
-            MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
-            "SILK",
-            MediaType.AUDIO,
-            Constants.SILK_RTP,
-            8000, 12000, 16000, 24000);
         addMediaFormats(
             MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
             "opus",

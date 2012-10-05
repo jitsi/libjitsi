@@ -144,15 +144,15 @@ public class JavaEncoder
         //TODO: we should have a default value dependent on the SDP parameters
         //here.
         boolean useFEC = cfg.getBoolean("net.java.sip.communicator.impl."
-                +"neomedia.codec.audio.silk.encoder.usefec", true);
-        boolean forcePacketLoss = cfg.getBoolean("net.java.sip.communicator." +
+                +"neomedia.codec.audio.silk.encoder.USE_FEC", true);
+        boolean assumePacketLoss = cfg.getBoolean("net.java.sip.communicator." +
                 "impl.neomedia.codec.audio.silk.encoder." +
-                "forcepacketloss", true);
+                "ALWAYS_ASSUME_PACKET_LOSS", true);
 
         //Update the statically defined value for "speech activity threshold"
         //according to our configuration
-        String satStr = cfg.getString("net.java.sip." +
-              "communicator.impl.neomedia.codec.audio.silk.encoder.sat", "0.5");
+        String satStr = cfg.getString("net.java.sip.communicator.impl.neomedia"
+                + ".codec.audio.silk.encoder.SPEECH_ACTIVITY_THRESHOLD", "0.5");
         float sat = Silk_define_FLP.LBRR_SPEECH_ACTIVITY_THRES;
         try
         {
@@ -165,10 +165,7 @@ public class JavaEncoder
         encControl.bitRate = BITRATE;
         encControl.complexity = COMPLEXITY;
         encControl.maxInternalSampleRate = encControl.API_sampleRate;
-        //At the moment we do not support dynamically setting the expected
-        //packet loss. Therefore to force the encoder to always expect packet
-        //loss we set this higher than all thresholds.
-        encControl.packetLossPercentage = forcePacketLoss ? 100 : 0;
+        encControl.packetLossPercentage = assumePacketLoss ? 2 : 0;
         encControl.packetSize
             = (int)
                 ((JavaDecoder.FRAME_DURATION * sampleRate * channels) / 1000);
