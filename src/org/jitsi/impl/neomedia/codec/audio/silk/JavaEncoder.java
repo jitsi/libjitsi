@@ -10,6 +10,8 @@ import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 
 /**
  * Implements the SILK encoder as an FMJ/JMF <tt>Codec</tt>.
@@ -27,9 +29,7 @@ public class JavaEncoder
      * The maximum number of output payload bytes per input frame. Equals peak
      * bitrate of 100 kbps.
      */
-    private static final int MAX_BYTES_PER_FRAME = 250;
-
-    private static final int PACKET_LOSS_PERCENTAGE = 0;
+    static final int MAX_BYTES_PER_FRAME = 250;
 
     /**
      * The list of <tt>Format</tt>s of audio data supported as input by
@@ -51,8 +51,6 @@ public class JavaEncoder
         = new double[] { 8000, 12000, 16000, 24000 };
 
     private static final boolean USE_DTX = false;
-
-    private static final boolean USE_IN_BAND_FEC = false;
 
     /**
      * The duration an output <tt>Buffer</tt> produced by this <tt>Codec</tt>
@@ -141,16 +139,41 @@ public class JavaEncoder
         double sampleRate = inputFormat.getSampleRate();
         int channels = inputFormat.getChannels();
 
+
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        //TODO: we should have a default value dependent on the SDP parameters
+        //here.
+        boolean useFEC = cfg.getBoolean("net.java.sip.communicator.impl."
+                +"neomedia.codec.audio.silk.encoder.usefec", true);
+        boolean forcePacketLoss = cfg.getBoolean("net.java.sip.communicator." +
+                "impl.neomedia.codec.audio.silk.encoder." +
+                "forcepacketloss", true);
+
+        //Update the statically defined value for "speech activity threshold"
+        //according to our configuration
+        String satStr = cfg.getString("net.java.sip." +
+              "communicator.impl.neomedia.codec.audio.silk.encoder.sat", "0.5");
+        float sat = Silk_define_FLP.LBRR_SPEECH_ACTIVITY_THRES;
+        try
+        {
+            sat = Float.parseFloat(satStr);
+        }
+        catch (Exception e){}
+        Silk_define_FLP.LBRR_SPEECH_ACTIVITY_THRES = sat;
+
         encControl.API_sampleRate = (int) sampleRate;
         encControl.bitRate = BITRATE;
         encControl.complexity = COMPLEXITY;
         encControl.maxInternalSampleRate = encControl.API_sampleRate;
-        encControl.packetLossPercentage = PACKET_LOSS_PERCENTAGE;
+        //At the moment we do not support dynamically setting the expected
+        //packet loss. Therefore to force the encoder to always expect packet
+        //loss we set this higher than all thresholds.
+        encControl.packetLossPercentage = forcePacketLoss ? 100 : 0;
         encControl.packetSize
             = (int)
                 ((JavaDecoder.FRAME_DURATION * sampleRate * channels) / 1000);
         encControl.useDTX = USE_DTX ? 1 : 0;
-        encControl.useInBandFEC = USE_IN_BAND_FEC ? 1 : 0;
+        encControl.useInBandFEC = useFEC ? 1 : 0;
     }
 
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)

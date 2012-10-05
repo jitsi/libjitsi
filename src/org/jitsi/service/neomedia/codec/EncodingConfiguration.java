@@ -27,7 +27,7 @@ public class EncodingConfiguration
      * The <tt>Logger</tt> used by this <tt>EncodingConfiguration</tt> instance
      * for logging output.
      */
-    protected final Logger logger
+    private final Logger logger
         = Logger.getLogger(EncodingConfiguration.class);
 
     /**

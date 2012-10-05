@@ -9,6 +9,7 @@ package org.jitsi.impl.neomedia.codec;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.format.MediaFormat;
+import org.jitsi.util.*;
 
 import java.util.*;
 
@@ -22,6 +23,13 @@ import java.util.*;
 public class EncodingConfigurationConfigImpl
        extends EncodingConfigurationImpl
 {
+    /**
+     * The <tt>Logger</tt> used by this <tt>EncodingConfigurationConfigImpl</tt>
+     * instance for logging output.
+     */
+    private final Logger logger
+            = Logger.getLogger(EncodingConfigurationConfigImpl.class);
+
     /**
      * Holds the prefix that will be used to store properties
      */

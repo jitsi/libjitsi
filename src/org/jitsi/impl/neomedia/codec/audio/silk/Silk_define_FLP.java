@@ -71,7 +71,7 @@ public class Silk_define_FLP
     static final float SPEECH_ACTIVITY_DTX_THRES =                      0.1f;
 
     /* Speech Activity LBRR enable threshold (needs tuning) */
-    static final float LBRR_SPEECH_ACTIVITY_THRES =                     0.5f;        
+    static float LBRR_SPEECH_ACTIVITY_THRES =                           0.5f;
 
     static final float Q14_CONVERSION_FAC =                             6.1035e-005f; // 1 / 2^14
 }
