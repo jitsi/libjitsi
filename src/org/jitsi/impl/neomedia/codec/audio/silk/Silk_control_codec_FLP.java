@@ -619,7 +619,7 @@ public class Silk_control_codec_FLP {
              */
             LBRR_usage = Silk_define.SKP_SILK_NO_LBRR;
             if (psEnc.speech_activity > Silk_define_FLP.LBRR_SPEECH_ACTIVITY_THRES
-                    && psEnc.sCmn.PacketLoss_perc >= Silk_define.LBRR_LOSS_THRES)
+                    && psEnc.sCmn.PacketLoss_perc > Silk_define.LBRR_LOSS_THRES)
             { // nb! maybe multiply loss prob and speech activity
                 LBRR_usage = Silk_define.SKP_SILK_ADD_LBRR_TO_PLUS1;
             }

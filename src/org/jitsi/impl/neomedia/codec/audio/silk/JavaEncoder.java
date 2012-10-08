@@ -165,7 +165,7 @@ public class JavaEncoder
         encControl.bitRate = BITRATE;
         encControl.complexity = COMPLEXITY;
         encControl.maxInternalSampleRate = encControl.API_sampleRate;
-        encControl.packetLossPercentage = assumePacketLoss ? 2 : 0;
+        encControl.packetLossPercentage = assumePacketLoss ? 3 : 0;
         encControl.packetSize
             = (int)
                 ((JavaDecoder.FRAME_DURATION * sampleRate * channels) / 1000);
