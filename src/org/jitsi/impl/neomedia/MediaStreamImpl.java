@@ -683,16 +683,6 @@ public class MediaStreamImpl
 
                 if (getLocalSourceID() != localSSRC)
                     setLocalSourceID(localSSRC);
-
-                /*
-                 * If a ZRTP engine is available, then let it know about the
-                 * SSRC of the new SendStream. Currently, ZRTP supports only one
-                 * SSRC per engine.
-                 */
-                TransformEngine engine = srtpControl.getTransformEngine();
-
-                if ((engine != null) && (engine instanceof ZRTPTransformEngine))
-                    ((ZRTPTransformEngine)engine).setOwnSSRC(localSSRC);
             }
             catch (IOException ioe)
             {
@@ -2513,6 +2503,17 @@ public class MediaStreamImpl
             Long oldValue = this.localSourceID;
 
             this.localSourceID = localSourceID;
+
+            /*
+             * If a ZRTP engine is available, then let it know about the
+             * SSRC of the new SendStream. Currently, ZRTP supports only one
+             * SSRC per engine.
+             */
+            TransformEngine engine = srtpControl.getTransformEngine();
+            if ((engine != null) && (engine instanceof ZRTPTransformEngine))
+            {
+                ((ZRTPTransformEngine)engine).setOwnSSRC(getLocalSourceID());
+            }
 
             firePropertyChange(PNAME_LOCAL_SSRC, oldValue, this.localSourceID);
         }
