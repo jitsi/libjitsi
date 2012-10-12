@@ -42,24 +42,28 @@ public class AudioSystemClipImpl
 
     private final URL url;
 
+    private boolean isPlayback = false;
+
     /**
      * Creates the audio clip and initializes the listener used from the
      * loop timer.
      *
      * @param url the URL pointing to the audio file
      * @param audioNotifier the audio notify service
+     * @param playback to use playback or notification device
      * @throws IOException cannot audio clip with supplied URL.
      */
     public AudioSystemClipImpl(
             URL url,
             AudioNotifierServiceImpl audioNotifier,
-            org.jitsi.impl.neomedia.device.AudioSystem
-                audioSystem)
+            org.jitsi.impl.neomedia.device.AudioSystem audioSystem,
+            boolean playback)
         throws IOException
     {
         this.url = url;
         this.audioNotifier = audioNotifier;
         this.audioSystem = audioSystem;
+        this.isPlayback = playback;
     }
 
     /**
@@ -130,7 +134,8 @@ public class AudioSystemClipImpl
         Buffer buffer = new Buffer();
         byte[] bufferData = new byte[1024];
         // don't enable volume control for notifications
-        Renderer renderer = audioSystem.createRenderer(false);
+
+        Renderer renderer = audioSystem.createRenderer(isPlayback);
 
         buffer.setData(bufferData);
         while (started)
@@ -160,7 +165,10 @@ public class AudioSystemClipImpl
                     {
                         try
                         {
-                            syncObject.wait(getLoopInterval());
+                            // only wait if lonnger than 0
+                            // or we will wait forever
+                            if(getLoopInterval() > 0)
+                                syncObject.wait(getLoopInterval());
                         }
                         catch (InterruptedException e)
                         {

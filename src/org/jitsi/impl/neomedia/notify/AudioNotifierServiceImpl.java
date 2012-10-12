@@ -26,10 +26,10 @@ public class AudioNotifierServiceImpl
                PropertyChangeListener
 {
     /**
-     * Map of differents audio clips.
+     * Map of different audio clips.
      */
-    private static final Map<String, SCAudioClipImpl> audioClips =
-        new HashMap<String, SCAudioClipImpl>();
+    private static final Map<AudioClipsKey, SCAudioClipImpl> audioClips =
+        new HashMap<AudioClipsKey, SCAudioClipImpl>();
 
     /**
      * If the sound is currently disabled.
@@ -56,20 +56,34 @@ public class AudioNotifierServiceImpl
 
     /**
      * Creates an SCAudioClip from the given URI and adds it to the list of
-     * available audio-s.
+     * available audio-s. Uses notification device if any.
      *
      * @param uri the path where the audio file could be found
      * @return a newly created <tt>SCAudioClip</tt> from <tt>uri</tt>
      */
     public SCAudioClipImpl createAudio(String uri)
     {
+        return createAudio(uri, false);
+    }
+
+    /**
+     * Creates an SCAudioClip from the given URI and adds it to the list of
+     * available audio-s.
+     *
+     * @param uri the path where the audio file could be found
+     * @param playback use or not the playback device.
+     * @return a newly created <tt>SCAudioClip</tt> from <tt>uri</tt>
+     */
+    public SCAudioClipImpl createAudio(String uri, boolean playback)
+    {
         SCAudioClipImpl audioClip;
 
         synchronized (audioClips)
         {
-            if(audioClips.containsKey(uri))
+            AudioClipsKey key = new AudioClipsKey(uri, playback);
+            if(audioClips.containsKey(key))
             {
-                audioClip = audioClips.get(uri);
+                audioClip = audioClips.get(key);
             }
             else
             {
@@ -106,8 +120,8 @@ public class AudioNotifierServiceImpl
                         audioClip = null;
                     else
                     {
-                        audioClip
-                            = new AudioSystemClipImpl(url, this, audioSystem);
+                        audioClip = new AudioSystemClipImpl(
+                                            url, this, audioSystem, playback);
                     }
                 }
                 catch (Throwable t)
@@ -118,7 +132,7 @@ public class AudioNotifierServiceImpl
                     return null;
                 }
 
-                audioClips.put(uri, audioClip);
+                audioClips.put(key, audioClip);
             }
         }
 
@@ -134,7 +148,18 @@ public class AudioNotifierServiceImpl
     {
         synchronized (audioClips)
         {
-            audioClips.remove(audioClip);
+            AudioClipsKey keyToRemove = null;
+            for(Map.Entry<AudioClipsKey, SCAudioClipImpl> entry
+                : audioClips.entrySet())
+            {
+                if(entry.getValue().equals(audioClip))
+                {
+                    keyToRemove = entry.getKey();
+                    break;
+                }
+            }
+
+            audioClips.remove(keyToRemove);
         }
     }
 
@@ -190,6 +215,46 @@ public class AudioNotifierServiceImpl
                 event.getPropertyName()))
         {
             audioClips.clear();
+        }
+    }
+
+    /**
+     * Key for clips.
+     */
+    private static class AudioClipsKey
+    {
+        /**
+         * The uri.
+         */
+        private String uri;
+
+        /**
+         * Is it playback.
+         */
+        private boolean isPlayback;
+
+        /**
+         * Constructs key.
+         * @param uri by uri
+         * @param playback and playback
+         */
+        private AudioClipsKey(String uri, boolean playback)
+        {
+            this.uri = uri;
+            isPlayback = playback;
+        }
+
+        @Override
+        public boolean equals(Object o)
+        {
+            AudioClipsKey that = (AudioClipsKey) o;
+
+            if(isPlayback != that.isPlayback)
+                return false;
+            if(uri != null ? !uri.equals(that.uri) : that.uri != null)
+                return false;
+
+            return true;
         }
     }
 }
