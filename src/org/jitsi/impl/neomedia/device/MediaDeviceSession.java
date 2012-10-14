@@ -2199,4 +2199,25 @@ public class MediaDeviceSession
             this.receiveStream = receiveStream;
         }
     }
+
+    /**
+     * Returns the <tt>TranscodingDataSource</tt> associated with
+     * <tt>receiveStream</tt>.
+     *
+     * @param receiveStream the <tt>ReceiveStream</tt> to use
+     *
+     * @return the <tt>TranscodingDataSource</tt> associated with
+     * <tt>receiveStream</tt>.
+     */
+    public TranscodingDataSource getTranscodingDataSource(
+                ReceiveStream receiveStream)
+    {
+        TranscodingDataSource transcodingDataSource = null;
+        if(device instanceof AudioMixerMediaDevice)
+        {
+            transcodingDataSource = ((AudioMixerMediaDevice) device)
+                    .getTranscodingDataSource(receiveStream.getDataSource());
+        }
+        return transcodingDataSource;
+    }
 }

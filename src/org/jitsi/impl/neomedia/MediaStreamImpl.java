@@ -21,12 +21,14 @@ import javax.media.rtp.rtcp.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
+import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.impl.neomedia.transform.dtmf.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.impl.neomedia.transform.zrtp.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
@@ -2738,5 +2740,45 @@ public class MediaStreamImpl
         }
 
         return mediaType;
+    }
+
+    /**
+     * Returns an instance of <tt>FECDecoderControl</tt> associated with
+     * <tt>receiveStream</tt>, if one is found in the <tt>deviceSession</tt>
+     * and <tt>null</tt> otherwise.
+     *
+     * @param receiveStream The <tt>ReceiveStream</tt> to to return an
+     * associated <tt>FECDecoderControl</tt> instance for.
+     *
+     * @return an instance of <tt>FECDecoderControl</tt> associated with
+     * <tt>receiveStream</tt>, if one is found in the <tt>deviceSession</tt>
+     * and <tt>null</tt> otherwise.
+     */
+    public FECDecoderControl getFecDecoderControl(ReceiveStream receiveStream)
+    {
+
+        TranscodingDataSource transcodingDataSource
+                    = deviceSession.getTranscodingDataSource(receiveStream);
+
+        if(transcodingDataSource == null)
+            return null;
+
+        Processor processor = transcodingDataSource.getTranscodingProcessor();
+
+        if(processor == null)
+            return null;
+
+        //return the first found instance
+        for(TrackControl tc : processor.getTrackControls())
+        {
+            for(Object control : tc.getControls())
+            {
+                if(control instanceof FECDecoderControl)
+                        {
+                            return (FECDecoderControl) control;
+                        }
+            }
+        }
+        return null;
     }
 }

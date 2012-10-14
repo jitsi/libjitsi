@@ -16,6 +16,7 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
 
@@ -68,6 +69,11 @@ public class MediaStreamStatsImpl
      * The last number of download/upload lost packets.
      */
     private long[] nbLost = {0, 0};
+
+    /**
+     * The number of packets for which FEC data was decoded. This is only
+     */
+    private long nbFec = 0;
 
     /**
      * The last number of received/sent Bytes.
@@ -134,7 +140,7 @@ public class MediaStreamStatsImpl
      *
      * @param streamDirection The stream direction (DOWNLOAD or UPLOAD) of the
      * stream from which this function updates the stats.
-     * @param currentTime The current time in ms.
+     * @param currentTimeMs The current time in ms.
      */
     private void updateStreamDirectionStats(
             StreamDirection streamDirection,
@@ -189,6 +195,8 @@ public class MediaStreamStatsImpl
         // Saves the last update values.
         this.nbPackets[streamDirectionIndex] = newNbRecv;
         this.nbByte[streamDirectionIndex] = newNbByte;
+
+        updateNbFec();
     }
 
     /**
@@ -485,7 +493,7 @@ public class MediaStreamStatsImpl
     {
         updateJitterRTPTimestampUnits(feedback, StreamDirection.DOWNLOAD);
 
-        // No need to update the download loss has we have a more accurate value
+        // No need to update the download loss as we have a more accurate value
         // in the global reception stats, which are updated for each new packet
         // received.
     }
@@ -659,11 +667,8 @@ public class MediaStreamStatsImpl
         java.util.List<ReceiveStream> listReceiveStream =
             this.mediaStreamImpl.getDeviceSession().getReceiveStreams();
 
-        for(int i = 0; i < listReceiveStream.size(); ++i)
-        {
-            ReceiveStream receiveStream = listReceiveStream.get(i);
+        for(ReceiveStream receiveStream : listReceiveStream)
             nbLost += receiveStream.getSourceReceptionStats().getPDUlost();
-        }
 
         return nbLost;
     }
@@ -783,5 +788,38 @@ public class MediaStreamStatsImpl
     public long getRttMs()
     {
         return this.rttMs;
+    }
+
+    /**
+     * Returns the number of packets for which FEC data was decoded. Currently
+     * this is cumulative over all <tt>ReceiveStream</tt>s.
+     *
+     * @return the number of packets for which FEC data was decoded. Currently
+     * this is cumulative over all <tt>ReceiveStream</tt>s.
+     *
+     * @see org.jitsi.impl.neomedia.MediaStreamStatsImpl#updateNbFec()
+     */
+    public long getNbFec()
+    {
+        return nbFec;
+    }
+
+    /**
+     * Updates the <tt>nbFec</tt> field with the sum of FEC-decoded packets
+     * over the different <tt>ReceiveStream</tt>s
+     */
+    private void updateNbFec()
+    {
+        int nbFec = 0;
+        FECDecoderControl fecDecoderControl;
+        for(ReceiveStream receiveStream :
+                this.mediaStreamImpl.getDeviceSession().getReceiveStreams())
+        {
+            fecDecoderControl =
+                    mediaStreamImpl.getFecDecoderControl(receiveStream);
+            if(fecDecoderControl != null)
+                nbFec += fecDecoderControl.fecPacketsDecoded();
+        }
+        this.nbFec = nbFec;
     }
 }

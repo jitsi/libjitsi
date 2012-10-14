@@ -310,4 +310,26 @@ class InputDataSourceDesc
         if (connected)
             getEffectiveInputDataSource().stop();
     }
+
+    /**
+     * Returns this instance's <tt>inputDataSource</tt>
+     *
+     * @return this instance's <tt>inputDataSource</tt>
+     */
+    public DataSource getInputDataSource()
+    {
+        return inputDataSource;
+    }
+
+    /**
+     * Returns the <tt>TranscodingDataSource</tt> object used in this instance.
+     *
+     * @return the <tt>TranscodingDataSource</tt> object used in this instance.
+     */
+    public TranscodingDataSource getTranscodingDataSource()
+    {
+        return (transcodingDataSource == null)?
+                null
+                : (TranscodingDataSource) transcodingDataSource;
+    }
 }

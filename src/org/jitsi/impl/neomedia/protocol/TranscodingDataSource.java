@@ -308,4 +308,14 @@ public class TranscodingDataSource
             outputDataSource.stop();
         }
     }
+
+    /**
+     * Returns this instance's <tt>Processor</tt> object
+     *
+     * @return this instance's <tt>Processor</tt> object
+     */
+    public Processor getTranscodingProcessor()
+    {
+        return transcodingProcessor;
+    }
 }

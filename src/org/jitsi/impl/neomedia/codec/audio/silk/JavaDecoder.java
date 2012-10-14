@@ -6,11 +6,14 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import java.awt.*;
 import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.service.neomedia.control.*;
 import org.jitsi.util.*;
+
 
 /**
  * Implements the SILK decoder as an FMJ/JMF <tt>Codec</tt>.
@@ -105,6 +108,29 @@ public class JavaDecoder
     private short[] lbrrBytes = new short[1];
 
     /**
+     * Number of packets which: were successfully decoded
+     */
+    private int nbPacketsDecoded = 0;
+
+    /**
+     * Number of packets which: were missing, the following packet was available
+     * and it contained FEC data.
+     */
+    private int nbFECDecoded = 0;
+
+    /**
+     * Number of packets which: were missing, the next packet was available, but
+     * it did not contain FEC data.
+     */
+    private int nbFECNotDecoded = 0;
+
+    /**
+     * Number of packets which: were missing, and the subsequent packet was also
+     * missing.
+     */
+    private int nbPacketsLost = 0;
+
+    /**
      * Initializes a new <tt>JavaDecoder</tt> instance.
      */
     public JavaDecoder()
@@ -112,10 +138,22 @@ public class JavaDecoder
         super("SILK Decoder", AudioFormat.class, SUPPORTED_OUTPUT_FORMATS);
         
         inputFormats = SUPPORTED_INPUT_FORMATS;
+
+        addControl(new Stats());
     }
 
     protected void doClose()
     {
+        if(logger.isDebugEnabled())
+        {
+            logger.debug("Packets decoded normally: " + nbPacketsDecoded);
+            logger.debug("Packets decoded with FEC: " + nbFECDecoded);
+            logger.debug("Packets lost (subsequent missing):"
+                    + nbPacketsLost);
+            logger.debug("Packets lost (no FEC in subsequent): "
+                    + nbFECNotDecoded);
+        }
+
         decState = null;
         decControl = null;
     }
@@ -160,7 +198,13 @@ public class JavaDecoder
                 sequenceNumber != lastPacketSeq+1 &&
                 /* RTP sequence number is a 16bit field */
                 !(lastPacketSeq == 65535 && sequenceNumber == 0))
+        {
             decodeFEC = true;
+            if(sequenceNumber > lastPacketSeq)
+                nbPacketsLost += (sequenceNumber-lastPacketSeq)-1;
+            else
+                nbPacketsLost += 65535 - lastPacketSeq + sequenceNumber - 1;
+        }
 
         int processed;
 
@@ -180,14 +224,22 @@ public class JavaDecoder
                 outputBuffer.setOffset(outputOffset);
 
                 if (decControl.moreInternalDecoderFrames == 0)
+                {
+                    nbPacketsDecoded++;
                     processed = BUFFER_PROCESSED_OK;
+                }
                 else
                 {
                     framesPerPayload++;
-                    processed
-                        = (framesPerPayload >= MAX_FRAMES_PER_PAYLOAD)
-                            ? BUFFER_PROCESSED_OK
-                            : INPUT_BUFFER_NOT_CONSUMED;
+                    if (framesPerPayload >= MAX_FRAMES_PER_PAYLOAD)
+                    {
+                        nbPacketsDecoded++;
+                        processed = BUFFER_PROCESSED_OK;
+                    }
+                    else
+                    {
+                        processed = INPUT_BUFFER_NOT_CONSUMED;
+                    }
                 }
             }
             else
@@ -211,12 +263,16 @@ public class JavaDecoder
             {
                 logger.trace("Packet loss detected. Last seen " + lastPacketSeq
                         + ", current " + sequenceNumber);
-                logger.trace("Looking for LBRR info, got " + lbrrBytes[0] + "bytes");
+                logger.trace("Looking for FEC data, found "
+                        + lbrrBytes[0] + "bytes");
             }
 
             if(lbrrBytes[0] == 0)
+            {
                 //No FEC data found, process the normal data in the packet next
+                nbFECNotDecoded++;
                 processed = INPUT_BUFFER_NOT_CONSUMED;
+            }
             else if(Silk_dec_API.SKP_Silk_SDK_Decode(
                             decState, decControl, 0,
                             lbrrData, 0, lbrrBytes[0],
@@ -224,6 +280,8 @@ public class JavaDecoder
                     == 0)
             {
                 //Found FEC data, decode it
+                nbFECDecoded++;
+
                 outputBuffer.setDuration(FRAME_DURATION * 1000000);
                 outputBuffer.setLength(outputLength[0]);
                 outputBuffer.setOffset(outputOffset);
@@ -255,5 +313,35 @@ public class JavaDecoder
                     inputFormat,
                     SUPPORTED_INPUT_FORMATS,
                     SUPPORTED_OUTPUT_FORMATS);
+    }
+
+    /**
+     * A private class, an instance of which is registered via
+     * <tt>addControl</tt>. This instance will be used by outside classes to
+     * access decoder statistics.
+     */
+    private class Stats implements FECDecoderControl
+    {
+        /**
+         * Returns the number packets for which FEC data was decoded in
+         * <tt>JavaDecoder.this</tt>
+         *
+         * @return Returns the number packets for which FEC data was decoded in
+         * <tt>JavaDecoder.this</tt>
+         */
+        public int fecPacketsDecoded()
+        {
+            return nbFECDecoded;
+        }
+
+        /**
+         * Stub. Always return <tt>null</tt>, as it's not used.
+         *
+         * @return <tt>null</tt>
+         */
+        public Component getControlComponent()
+        {
+            return null;
+        }
     }
 }

@@ -1139,4 +1139,37 @@ public class AudioMixer
             }
         }
     }
+
+    /**
+     * Searches this object's <tt>inputDataSource</tt>s for one that matches
+     * <tt>inputDataSource</tt>, and returns it's associated
+     * <tt>TranscodingDataSource</tt>. Currently this is only used when
+     * the <tt>MediaStream</tt> needs access to the codec chain used to
+     * playback one of it's <tt>ReceiveStream</tt>s.
+     *
+     * @param inputDataSource the <tt>DataSource</tt> to search for.
+     *
+     * @return The <tt>TranscodingDataSource</tt> associated with
+     * <tt>inputDataSource</tt>, if we can find one, <tt>null</tt> otherwise.
+     */
+    public TranscodingDataSource
+                getTranscodingDataSource(DataSource inputDataSource)
+    {
+        for(InputDataSourceDesc inputDataSourceDesc : inputDataSources)
+        {
+            DataSource ourDataSource = inputDataSourceDesc.getInputDataSource();
+            if(ourDataSource == inputDataSource)
+                return inputDataSourceDesc.getTranscodingDataSource();
+            else if(ourDataSource instanceof ReceiveStreamPushBufferDataSource)
+            {
+                //sometimes the inputDataSource has come to AudioMixer
+                //wrapped in a ReceiveStreamPushBufferDataSource. We consider
+                //it to match
+                if(((ReceiveStreamPushBufferDataSource) ourDataSource)
+                    .getDataSource() == inputDataSource)
+                    return inputDataSourceDesc.getTranscodingDataSource();
+            }
+        }
+        return null;
+    }
 }

@@ -146,4 +146,10 @@ public interface MediaStreamStats
      * has not been computed yet. Otherwise the RTT in ms.
      */
     public long getRttMs();
+
+    /**
+     * Returns the number of packets for which FEC data was decoded.
+     */
+    public long getNbFec();
+
 }

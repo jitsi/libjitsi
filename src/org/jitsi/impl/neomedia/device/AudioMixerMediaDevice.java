@@ -1258,4 +1258,21 @@ public class AudioMixerMediaDevice
             return listener.hashCode();
         }
     }
+
+    /**
+     * Returns the <tt>TranscodingDataSource</tt> associated with
+     * <tt>inputDataSource</tt> in this object's <tt>AudioMixer</tt>.
+     *
+     * @param inputDataSource the <tt>DataSource</tt> to search for
+     *
+     * @return Returns the <tt>TranscodingDataSource</tt> associated with
+     * <tt>inputDataSource</tt> in this object's <tt>AudioMixer</tt>
+     *
+     * @see AudioMixer#getTranscodingDataSource(javax.media.protocol.DataSource)
+     */
+    public TranscodingDataSource getTranscodingDataSource(
+            DataSource inputDataSource)
+    {
+            return getAudioMixer().getTranscodingDataSource(inputDataSource);
+    }
 }
