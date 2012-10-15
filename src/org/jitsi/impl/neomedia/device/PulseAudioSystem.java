@@ -170,7 +170,8 @@ public class PulseAudioSystem
             locator = null;
         else
         {
-            CaptureDeviceInfo notifyDevice = getNotifyDevice();
+            CaptureDeviceInfo notifyDevice
+                = getDevice(AudioSystem.NOTIFY_INDEX);
 
             if (notifyDevice == null)
                 return null;

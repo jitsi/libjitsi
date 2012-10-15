@@ -43,21 +43,21 @@ public class DeviceConfiguration
      * the device used by <tt>DeviceConfiguration</tt> for audio capture.
      */
     public static final String AUDIO_CAPTURE_DEVICE
-        = AudioSystem.PROP_CAPTURE_DEVICE;
+        = CaptureDevices.PROP_DEVICE;
 
     /**
      * The name of the <tt>DeviceConfiguration</tt> property which represents
      * the device used by <tt>DeviceConfiguration</tt> for audio notify.
      */
     public static final String AUDIO_NOTIFY_DEVICE
-        = AudioSystem.PROP_NOTIFY_DEVICE;
+        = NotifyDevices.PROP_DEVICE;
 
     /**
      * The name of the <tt>DeviceConfiguration</tt> property which represents
      * the device used by <tt>DeviceConfiguration</tt> for audio playback.
      */
     public static final String AUDIO_PLAYBACK_DEVICE
-        = AudioSystem.PROP_PLAYBACK_DEVICE;
+        = PlaybackDevices.PROP_DEVICE;
 
     /**
      * The list of class names of custom <tt>Renderer</tt> implementations to be
@@ -399,7 +399,9 @@ public class DeviceConfiguration
     {
         AudioSystem audioSystem = getAudioSystem();
 
-        return (audioSystem == null) ? null : audioSystem.getCaptureDevice();
+        return (audioSystem == null)
+            ? null
+            : audioSystem.getDevice(AudioSystem.CAPTURE_INDEX);
     }
 
     /**
@@ -444,7 +446,7 @@ public class DeviceConfiguration
                         audioSystem.getLocatorProtocol()))
                 {
                     List<CaptureDeviceInfo> captureDevices
-                        = audioSystem.getCaptureDevices();
+                        = audioSystem.getDevices(AudioSystem.CAPTURE_INDEX);
 
                     if ((captureDevices == null)
                             || (captureDevices.size() <= 0))
@@ -458,13 +460,15 @@ public class DeviceConfiguration
                         else
                         {
                             List<CaptureDeviceInfo> notifyDevices
-                                = audioSystem.getNotifyDevices();
+                                = audioSystem.getDevices(
+                                        AudioSystem.NOTIFY_INDEX);
 
                             if ((notifyDevices == null)
                                     || (notifyDevices.size() <= 0))
                             {
                                 List<CaptureDeviceInfo> playbackDevices
-                                    = audioSystem.getPlaybackDevices();
+                                    = audioSystem.getDevices(
+                                        AudioSystem.PLAYBACK_INDEX);
     
                                 if ((playbackDevices == null)
                                         || (playbackDevices.size() <= 0))
@@ -651,7 +655,9 @@ public class DeviceConfiguration
     {
         AudioSystem audioSystem = getAudioSystem();
 
-        return (audioSystem == null) ? null : audioSystem.getNotifyDevice();
+        return (audioSystem == null)
+            ? null
+            : audioSystem.getDevice(AudioSystem.NOTIFY_INDEX);
     }
 
     /**
@@ -989,9 +995,9 @@ public class DeviceConfiguration
     {
         String propertyName = event.getPropertyName();
 
-        if (AudioSystem.PROP_CAPTURE_DEVICE.equals(propertyName)
-                || AudioSystem.PROP_NOTIFY_DEVICE.equals(propertyName)
-                || AudioSystem.PROP_PLAYBACK_DEVICE.equals(propertyName))
+        if (AUDIO_CAPTURE_DEVICE.equals(propertyName)
+                || AUDIO_NOTIFY_DEVICE.equals(propertyName)
+                || AUDIO_PLAYBACK_DEVICE.equals(propertyName))
         {
             firePropertyChange(
                     propertyName,

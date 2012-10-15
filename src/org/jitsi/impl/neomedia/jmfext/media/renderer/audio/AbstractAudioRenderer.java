@@ -78,7 +78,7 @@ public abstract class AbstractAudioRenderer
         if ((locator == null) && (audioSystem != null))
         {
             CaptureDeviceInfo playbackDevice
-                = audioSystem.getPlaybackDevice();
+                = audioSystem.getDevice(AudioSystem.PLAYBACK_INDEX);
 
             if (playbackDevice != null)
                 locator = playbackDevice.getLocator();
@@ -121,7 +121,7 @@ public abstract class AbstractAudioRenderer
 
     private void propertyChange(PropertyChangeEvent event)
     {
-        if (AudioSystem.PROP_PLAYBACK_DEVICE.equals(event.getPropertyName()))
+        if (PlaybackDevices.PROP_DEVICE.equals(event.getPropertyName()))
             playbackDevicePropertyChange(event);
     }
 

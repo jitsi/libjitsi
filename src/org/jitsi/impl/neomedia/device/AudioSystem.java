@@ -26,12 +26,6 @@ public abstract class AudioSystem
 
     public static final int FEATURE_NOTIFY_AND_PLAYBACK_DEVICES = 8;
 
-    private static final int FLAG_CAPTURE_DEVICE_IS_NULL = 1;
-
-    private static final int FLAG_NOTIFY_DEVICE_IS_NULL = 2;
-
-    private static final int FLAG_PLAYBACK_DEVICE_IS_NULL = 4;
-
     public static final String LOCATOR_PROTOCOL_AUDIORECORD = "audiorecord";
     
     public static final String LOCATOR_PROTOCOL_JAVASOUND = "javasound";
@@ -41,12 +35,6 @@ public abstract class AudioSystem
     public static final String LOCATOR_PROTOCOL_PORTAUDIO = "portaudio";
 
     public static final String LOCATOR_PROTOCOL_PULSEAUDIO = "pulseaudio";
-
-    public static final String PROP_CAPTURE_DEVICE = "captureDevice";
-
-    public static final String PROP_NOTIFY_DEVICE = "notifyDevice";
-
-    public static final String PROP_PLAYBACK_DEVICE = "playbackDevice";
 
     public static AudioSystem getAudioSystem(String locatorProtocol)
     {
@@ -89,15 +77,25 @@ public abstract class AudioSystem
                 : audioSystems.toArray(new AudioSystem[audioSystems.size()]);
     }
 
-    private CaptureDeviceInfo captureDevice;
+    /**
+     * The index of the capture devices.
+     */
+    public static final int CAPTURE_INDEX = 0;
 
-    private int flags;
+    /**
+     * The index of the notify devices.
+     */
+    public static final int NOTIFY_INDEX = 1;
 
-    private CaptureDeviceInfo notifyDevice;
+    /**
+     * The index of the playback devices.
+     */
+    public static final int PLAYBACK_INDEX = 2;
 
-    private CaptureDeviceInfo playbackDevice;
-
-    private List<CaptureDeviceInfo> playbackDevices;
+    /**
+     * The list of the devices: capture, notify or playback.
+     */
+    private Devices[] devices;
 
     protected AudioSystem(String locatorProtocol)
         throws Exception
@@ -111,188 +109,86 @@ public abstract class AudioSystem
         super(MediaType.AUDIO, locatorProtocol, features);
     }
 
-    public CaptureDeviceInfo getCaptureDevice()
+    /**
+     * Gets the list of a kind of devices: cpature, notify or playback.
+     *
+     * @param index The index of the specific devices: cpature, notify or
+     * playback.
+     *
+     * @return The list of a kind of devices: cpature, notify or playback.
+     */
+    public List<CaptureDeviceInfo> getDevices(int index)
     {
-        List<CaptureDeviceInfo> captureDevices = null;
-
-        if (this.captureDevice != null)
-        {
-            if (captureDevices == null)
-                captureDevices = getCaptureDevices();
-            if ((captureDevices == null)
-                    || !captureDevices.contains(this.captureDevice))
-                setCaptureDevice(null, false);
-        }
-
-        CaptureDeviceInfo captureDevice = this.captureDevice;
-
-        if ((captureDevice == null)
-                && ((flags & FLAG_CAPTURE_DEVICE_IS_NULL) == 0))
-        {
-            if (captureDevices == null)
-                captureDevices = getCaptureDevices();
-            if ((captureDevices != null) && (captureDevices.size() > 0))
-            {
-                captureDevice = loadDevice(PROP_CAPTURE_DEVICE, captureDevices);
-                if (captureDevice == null)
-                    captureDevice = captureDevices.get(0);
-            }
-        }
-        return captureDevice;
-    }
-
-    public List<CaptureDeviceInfo> getCaptureDevices()
-    {
-        MediaServiceImpl mediaServiceImpl
-            = NeomediaServiceUtils.getMediaServiceImpl();
-        DeviceConfiguration deviceConfiguration
-            = (mediaServiceImpl == null)
-                ? null
-                : mediaServiceImpl.getDeviceConfiguration();
-        List<CaptureDeviceInfo> deviceList;
-
-        if (deviceConfiguration == null)
-        {
-            /*
-             * XXX The initialization of MediaServiceImpl is very complex so it
-             * is wise to not reference it at the early stage of its
-             * initialization. The same goes for DeviceConfiguration. If for
-             * some reason one of the two is not available at this time, just
-             * fall back go something that makes sense.
-             */
-            @SuppressWarnings("unchecked")
-            Vector<CaptureDeviceInfo> audioCaptureDeviceInfos
-                = CaptureDeviceManager.getDeviceList(
-                        new AudioFormat(AudioFormat.LINEAR, -1, 16, -1));
-
-            deviceList = audioCaptureDeviceInfos;
-        }
-        else
-        {
-            deviceList = deviceConfiguration.getAvailableAudioCaptureDevices();
-        }
-
-        return
-            filterDeviceListByLocatorProtocol(deviceList, getLocatorProtocol());
-    }
-
-    public CaptureDeviceInfo getNotifyDevice()
-    {
-        List<CaptureDeviceInfo> notifyDevices = null;
-
-        if (this.notifyDevice != null)
-        {
-            if (notifyDevices == null)
-                notifyDevices = getNotifyDevices();
-            if ((notifyDevices == null)
-                    || !notifyDevices.contains(this.notifyDevice))
-                setNotifyDevice(null, false);
-        }
-
-        CaptureDeviceInfo notifyDevice = this.notifyDevice;
-
-        if ((notifyDevice == null)
-                && ((flags & FLAG_NOTIFY_DEVICE_IS_NULL) == 0))
-        {
-            if (notifyDevices == null)
-                notifyDevices = getNotifyDevices();
-            if ((notifyDevices != null) && (notifyDevices.size() > 0))
-            {
-                notifyDevice = loadDevice(PROP_NOTIFY_DEVICE, notifyDevices);
-                if (notifyDevice == null)
-                    notifyDevice = notifyDevices.get(0);
-            }
-        }
-        return notifyDevice;
-    }
-
-    public List<CaptureDeviceInfo> getNotifyDevices()
-    {
-        return getPlaybackDevices();
-    }
-
-    public CaptureDeviceInfo getPlaybackDevice()
-    {
-        List<CaptureDeviceInfo> playbackDevices = null;
-
-        if (this.playbackDevice != null)
-        {
-            if (playbackDevices == null)
-                playbackDevices = getPlaybackDevices();
-            if ((playbackDevices == null)
-                    || !playbackDevices.contains(this.playbackDevice))
-                setPlaybackDevice(null, false);
-        }
-
-        CaptureDeviceInfo playbackDevice = this.playbackDevice;
-
-        if ((playbackDevice == null)
-                && ((flags & FLAG_PLAYBACK_DEVICE_IS_NULL) == 0))
-        {
-            if (playbackDevices == null)
-                playbackDevices = getPlaybackDevices();
-            if ((playbackDevices != null) && (playbackDevices.size() > 0))
-            {
-                playbackDevice
-                    = loadDevice(PROP_PLAYBACK_DEVICE, playbackDevices);
-                if (playbackDevice == null)
-                    playbackDevice = playbackDevices.get(0);
-            }
-        }
-        return playbackDevice;
-    }
-
-    public List<CaptureDeviceInfo> getPlaybackDevices()
-    {
-        List<CaptureDeviceInfo> playbackDevices = this.playbackDevices;
-
-        return
-            (playbackDevices == null)
-                ? null
-                : new ArrayList<CaptureDeviceInfo>(playbackDevices);
+        return this.devices[index].getDevices(getLocatorProtocol());
     }
 
     /**
-     * Loads the user's preference with respect to a <tt>CaptureDeviceInfo</tt>
-     * among a specific list of <tt>CaptureDeviceInfo</tt>s from the
-     * <tt>ConfigurationService</tt>.
+     * Gets the selected device for a specific kind: cpature, notify or
+     * playback.
      *
-     * @param property the name of the <tt>ConfigurationService</tt> property
-     * which specifies the user's preference with respect to a
-     * <tt>CaptureDeviceInfo</tt> among the specified list of
-     * <tt>CaptureDeviceInfo</tt>s 
-     * @param devices the list of <tt>CaptureDeviceInfo</tt>s which are valid
-     * selections for the user's preference
-     * @return a <tt>CaptureDeviceInfo</tt> among the specified <tt>devices</tt>
-     * which represents the user's preference stored in the
-     * <tt>ConfigurationService</tt>
+     * @param index The index of the specific devices: cpature, notify or
+     * playback.
+     *
+     * @return The selected device for a specific kind: cpature, notify or
+     * playback.
      */
-    private CaptureDeviceInfo loadDevice(
-            String property,
-            List<CaptureDeviceInfo> devices)
+    public CaptureDeviceInfo getDevice(int index)
     {
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        return this.devices[index].getDevice(getLocatorProtocol());
+    }
 
-        if (cfg != null)
+    /**
+     * Sets the list of a kind of devices: cpature, notify or playback.
+     *
+     * @param activeCaptureDevices The list of a kind of devices: cpature,
+     * notify or playback.
+     */
+    protected void setCaptureDevices(
+            List<CaptureDeviceInfo> activeCaptureDevices)
+    {
+        this.devices[CAPTURE_INDEX].setActiveDevices(activeCaptureDevices);
+    }
+
+    /**
+     * Selects the active device.
+     *
+     * @param index The index corresponding to a specific device kind:
+     * capture/notify/playback.
+     * @param device The selected active device.
+     * @param save Flag set to true in order to save this choice in the
+     * configuration. False otherwise.
+     */
+    public void setDevice(int index, CaptureDeviceInfo device, boolean save)
+    {
+        this.devices[index].setDevice(getLocatorProtocol(), device, save);
+    }
+
+    /**
+     * Sets the list of the active devices.
+     *
+     * @param activePlaybackDevices The list of the active devices.
+     */
+    protected void setPlaybackDevices(
+            List<CaptureDeviceInfo> activePlaybackDevices)
+    {
+        this.devices[PLAYBACK_INDEX].setActiveDevices(activePlaybackDevices);
+        // The active notify device list is a copy of the playback one.
+        this.devices[NOTIFY_INDEX].setActiveDevices(activePlaybackDevices);
+    }
+
+    /**
+     * Pre-initializes this audio system before setting the different devices.
+     */
+    protected void preInitialize()
+    {
+        super.preInitialize();
+        if(this.devices == null)
         {
-            property
-                = DeviceConfiguration.PROP_AUDIO_SYSTEM
-                    + "."
-                    + getLocatorProtocol()
-                    + "."
-                    + property;
-
-            String name = cfg.getString(property);
-
-            if ((name != null)
-                    && !NoneAudioSystem.LOCATOR_PROTOCOL.equalsIgnoreCase(name))
-            {
-                for (CaptureDeviceInfo device : devices)
-                    if (name.equals(device.getName()))
-                        return device;
-            }
+            this.devices = new Devices[3];
+            this.devices[0] = new CaptureDevices(this);
+            this.devices[1] = new NotifyDevices(this);
+            this.devices[2] = new PlaybackDevices(this);
         }
-        return null;
     }
 
     @Override
@@ -306,24 +202,7 @@ public abstract class AudioSystem
         {
             try
             {
-                if (captureDevice != null)
-                {
-                    List<CaptureDeviceInfo> captureDevices
-                        = getCaptureDevices();
-
-                    if ((captureDevices == null)
-                            || !captureDevices.contains(captureDevice))
-                        setCaptureDevice(null, false);
-                }
-                else
-                {
-                    /*
-                     * If captureDevice is null, it means that a device is to be
-                     * used as the default. The default in question may have
-                     * changed.
-                     */
-                    setCaptureDevice(null, false);
-                }
+                this.postInitializeSpecificDevices(CAPTURE_INDEX);
             }
             finally
             {
@@ -331,46 +210,11 @@ public abstract class AudioSystem
                 {
                     try
                     {
-                        if (notifyDevice != null)
-                        {
-                            List<CaptureDeviceInfo> notifyDevices
-                                = getNotifyDevices();
-
-                            if ((notifyDevices == null)
-                                    || !notifyDevices.contains(notifyDevice))
-                                setNotifyDevice(null, false);
-                        }
-                        else
-                        {
-                            /*
-                             * If notifyDevice is null, it means that a device
-                             * is to be used as the default. The default in
-                             * question may have changed.
-                             */
-                            setNotifyDevice(null, false);
-                        }
+                        this.postInitializeSpecificDevices(NOTIFY_INDEX);
                     }
                     finally
                     {
-                        if (playbackDevice != null)
-                        {
-                            List<CaptureDeviceInfo> playbackDevices
-                                = getPlaybackDevices();
-
-                            if ((playbackDevices == null)
-                                    || !playbackDevices.contains(
-                                            playbackDevice))
-                                setPlaybackDevice(null, false);
-                        }
-                        else
-                        {
-                            /*
-                             * If playbackDevice is null, it means that a device
-                             * is to be used as the default. The default in
-                             * question may have changed.
-                             */
-                            setPlaybackDevice(null, false);
-                        }
+                        this.postInitializeSpecificDevices(PLAYBACK_INDEX);
                     }
                 }
             }
@@ -378,157 +222,65 @@ public abstract class AudioSystem
     }
 
     /**
-     * Saves the user's preference with respect to a specific
-     * <tt>CaptureDeviceInfo</tt> in the <tt>ConfigurationService</tt>.
+     * Sets the device lists after the different audio systems (portaudio,
+     * pulseaudio, etc) have finished to detects the evices.
      *
-     * @param property the name of the <tt>ConfigurationService</tt> property
-     * into which the user's preference with respect to the specified
-     * <tt>CaptureDeviceInfo</tt> is to be saved
-     * @param device the <tt>CaptureDeviceInfo</tt> which is the user's
-     * preference
-     * @param isNull <tt>true</tt> if the user's preference with respect to the
-     * specified <tt>device</tt> is <tt>null</tt>; otherwise, <tt>false</tt>
+     * @param index The index corresponding to a specific device kind:
+     * capture/notify/playback.
      */
-    private void saveDevice(
+    protected void postInitializeSpecificDevices(int index)
+    {
+        // If there is a selected device, checks if it is part of the current
+        // active devices.
+        if (this.devices[index].getDevice(getLocatorProtocol()) != null)
+        {
+            List<CaptureDeviceInfo> devices = this.devices[index].getDevices(
+                    getLocatorProtocol());
+
+            if ((devices == null)
+                    || !devices.contains(this.devices[index].getDevice(
+                            getLocatorProtocol())))
+            {
+                // The selected device is not part of the active devices, then
+                // set it to null (but not saved).
+                this.devices[index].setDevice(
+                        getLocatorProtocol(),
+                        null,
+                        false);
+            }
+        }
+        else
+        {
+            /*
+             * If the device is null, it means that a device is to be
+             * used as the default. The default in question may have
+             * changed.
+             */
+            this.devices[index].setDevice(getLocatorProtocol(), null, false);
+        }
+    }
+
+    /**
+     * Fires a new <tt>PropertyChangeEvent</tt> to the
+     * <tt>PropertyChangeListener</tt>s registered with this
+     * <tt>PropertyChangeNotifier</tt> in order to notify about a change in the
+     * value of a specific property which had its old value modified to a
+     * specific new value. <tt>PropertyChangeNotifier</tt> does not check
+     * whether the specified <tt>oldValue</tt> and <tt>newValue</tt> are indeed
+     * different.
+     * 
+     * @param property the name of the property of this
+     * <tt>PropertyChangeNotifier</tt> which had its value changed
+     * @param oldValue the value of the property with the specified name before
+     * the change
+     * @param newValue the value of the property with the specified name after
+     * the change
+     */
+    public void propertyChange(
             String property,
-            CaptureDeviceInfo device,
-            boolean isNull)
+            Object oldValue,
+            Object newValue)
     {
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-
-        if (cfg != null)
-        {
-            property
-                = DeviceConfiguration.PROP_AUDIO_SYSTEM
-                    + "."
-                    + getLocatorProtocol()
-                    + "."
-                    + property;
-            if (device == null)
-            {
-                if (isNull)
-                    cfg.setProperty(property, NoneAudioSystem.LOCATOR_PROTOCOL);
-                else
-                    cfg.removeProperty(property);
-            }
-            else
-                cfg.setProperty(property, device.getName());
-        }
-    }
-
-    public void setCaptureDevice(CaptureDeviceInfo captureDevice, boolean save)
-    {
-        if ((this.captureDevice != captureDevice) || (captureDevice == null))
-        {
-            CaptureDeviceInfo oldValue = this.captureDevice;
-
-            this.captureDevice = captureDevice;
-
-            if (save)
-            {
-                boolean isNull = (this.captureDevice == null);
-
-                if (isNull)
-                    flags |= FLAG_CAPTURE_DEVICE_IS_NULL;
-                else
-                    flags &= ~FLAG_CAPTURE_DEVICE_IS_NULL;
-
-                saveDevice(PROP_CAPTURE_DEVICE, this.captureDevice, isNull);
-            }
-
-            CaptureDeviceInfo newValue = getCaptureDevice();
-
-            if (oldValue != newValue)
-                firePropertyChange(PROP_CAPTURE_DEVICE, oldValue, newValue);
-        }
-    }
-
-    protected void setCaptureDevices(List<CaptureDeviceInfo> captureDevices)
-    {
-        if (captureDevices != null)
-        {
-            boolean commit = false;
-
-            for (CaptureDeviceInfo captureDevice : captureDevices)
-            {
-                CaptureDeviceManager.addDevice(captureDevice);
-                commit = true;
-            }
-            if (commit && !MediaServiceImpl.isJmfRegistryDisableLoad())
-            {
-                try
-                {
-                    CaptureDeviceManager.commit();
-                }
-                catch (IOException ioe)
-                {
-                    // Whatever.
-                }
-            }
-        }
-    }
-
-    public void setNotifyDevice(CaptureDeviceInfo notifyDevice, boolean save)
-    {
-        if ((this.notifyDevice != notifyDevice) || (notifyDevice == null))
-        {
-            CaptureDeviceInfo oldValue = this.notifyDevice;
-
-            this.notifyDevice = notifyDevice;
-
-            if (save)
-            {
-                boolean isNull = (this.notifyDevice == null);
-
-                if (isNull)
-                    flags |= FLAG_NOTIFY_DEVICE_IS_NULL;
-                else
-                    flags &= ~FLAG_NOTIFY_DEVICE_IS_NULL;
-
-                saveDevice(PROP_NOTIFY_DEVICE, this.notifyDevice, isNull);
-            }
-
-            CaptureDeviceInfo newValue = getNotifyDevice();
-
-            if (oldValue != newValue)
-                firePropertyChange(PROP_NOTIFY_DEVICE, oldValue, newValue);
-        }
-    }
-
-    public void setPlaybackDevice(
-            CaptureDeviceInfo playbackDevice,
-            boolean save)
-    {
-        if ((this.playbackDevice != playbackDevice) || (playbackDevice == null))
-        {
-            CaptureDeviceInfo oldValue = this.playbackDevice;
-
-            this.playbackDevice = playbackDevice;
-
-            if (save)
-            {
-                boolean isNull = (this.playbackDevice == null);
-
-                if (isNull)
-                    flags |= FLAG_PLAYBACK_DEVICE_IS_NULL;
-                else
-                    flags &= ~FLAG_PLAYBACK_DEVICE_IS_NULL;
-
-                saveDevice(PROP_PLAYBACK_DEVICE, this.playbackDevice, isNull);
-            }
-
-            CaptureDeviceInfo newValue = getPlaybackDevice();
-
-            if (oldValue != newValue)
-                firePropertyChange(PROP_PLAYBACK_DEVICE, oldValue, newValue);
-        }
-    }
-
-    protected void setPlaybackDevices(List<CaptureDeviceInfo> playbackDevices)
-    {
-        this.playbackDevices
-            = (playbackDevices == null)
-                ? null
-                : new ArrayList<CaptureDeviceInfo>(playbackDevices);
+        firePropertyChange(property, oldValue, newValue);
     }
 }
