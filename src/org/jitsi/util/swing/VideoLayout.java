@@ -69,6 +69,12 @@ public class VideoLayout
     private Component closeButton;
 
     /**
+     * The indicator which determines whether this instance is dedicated to a
+     * conference.
+     */
+    private final boolean conference;
+
+    /**
      * The map of component constraints.
      */
     private final HashMap<Component, Object> constraints
@@ -80,31 +86,25 @@ public class VideoLayout
     private Component local;
 
     /**
-     * The list of <tt>Component</tt>s depicting remote videos.
-     */
-    private final List<Component> remotes = new LinkedList<Component>();
-
-    /**
      * The x coordinate alignment of the remote video.
      */
     private float remoteAlignmentX = Component.CENTER_ALIGNMENT;
 
     /**
-     * Indicates if this <tt>VideoLayout</tt> is dedicated to a conference
-     * interface.
+     * The list of <tt>Component</tt>s depicting remote videos.
      */
-    private final boolean isConference;
+    private final List<Component> remotes = new LinkedList<Component>();
 
     /**
      * Creates an instance of <tt>VideoLayout</tt> by also indicating if this
      * video layout is dedicated to a conference interface.
      *
-     * @param isConference indicates if this <tt>VideoLayout</tt> is dedicated
-     * to a conference interface.
+     * @param conference <tt>true</tt> if the new instance will be dedicated to
+     * a conference; otherwise, <tt>false</tt>
      */
-    public VideoLayout(boolean isConference)
+    public VideoLayout(boolean conference)
     {
-        this.isConference = isConference;
+        this.conference = conference;
     }
 
     /**
@@ -237,7 +237,7 @@ public class VideoLayout
         int remoteCount = remotes.size();
         Dimension parentSize = parent.getSize();
 
-        if ((remoteCount == 1) && !isConference)
+        if ((remoteCount == 1) && !conference)
         {
             super.layoutContainer(parent,
                     (local == null)
@@ -296,7 +296,7 @@ public class VideoLayout
              * If the local visual/video Component is not displayed as if it is
              * a remote one, it will be placed on top of a remote one.
              */
-            if (!remotes.contains(local) && !isConference)
+            if (!remotes.contains(local) && !conference)
             {
                 Component remote0 = remotes.isEmpty() ? null : remotes.get(0);
                 int localX;

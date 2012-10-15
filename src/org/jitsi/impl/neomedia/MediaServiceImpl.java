@@ -1331,11 +1331,11 @@ public class MediaServiceImpl
             return false;
 
         MediaDeviceImpl dev = (MediaDeviceImpl)mediaDevice;
-        CaptureDeviceInfo devInfo = dev.getCaptureDeviceInfo();
+        CaptureDeviceInfo cdi = dev.getCaptureDeviceInfo();
 
         return
-            (devInfo != null)
-                && devInfo.getName().startsWith("Partial desktop streaming");
+            (cdi != null)
+                && cdi.getName().startsWith("Partial desktop streaming");
     }
 
     /**
@@ -1361,10 +1361,12 @@ public class MediaServiceImpl
     public Point getOriginForDesktopStreamingDevice(MediaDevice mediaDevice)
     {
         MediaDeviceImpl dev = (MediaDeviceImpl)mediaDevice;
-        CaptureDeviceInfo devInfo = dev.getCaptureDeviceInfo();
-        if(devInfo == null)
+        CaptureDeviceInfo cdi = dev.getCaptureDeviceInfo();
+
+        if(cdi == null)
             return null;
-        MediaLocator locator = devInfo.getLocator();
+
+        MediaLocator locator = cdi.getLocator();
 
         if(!DeviceSystem.LOCATOR_PROTOCOL_IMGSTREAMING.equals(
                 locator.getProtocol()))

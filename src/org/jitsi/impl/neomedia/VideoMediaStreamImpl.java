@@ -459,14 +459,11 @@ public class VideoMediaStreamImpl
                 {
 
                     /**
-                     * Notifies that a visual <tt>Component</tt> representing
-                     * video has been added to the provider this listener has
-                     * been added to.
+                     * {@inheritDoc}
                      *
-                     * @param e a <tt>VideoEvent</tt> describing the added
-                     * visual <tt>Component</tt> representing video and the
-                     * provider it was added into
-                     * @see VideoListener#videoAdded(VideoEvent)
+                     * Notifies that a visual <tt>Component</tt> depicting video
+                     * was reported added by the provider this listener is added
+                     * to.
                      */
                     public void videoAdded(VideoEvent e)
                     {
@@ -479,20 +476,24 @@ public class VideoMediaStreamImpl
                     }
 
                     /**
-                     * Notifies that a visual <tt>Component</tt> representing
-                     * video has been removed from the provider this listener
-                     * has been added to.
+                     * {@inheritDoc}
                      *
-                     * @param e a <tt>VideoEvent</tt> describing the removed
-                     * visual <tt>Component</tt> representing video and the
-                     * provider it was removed from
-                     * @see VideoListener#videoRemoved(VideoEvent)
+                     * Notifies that a visual <tt>Component</tt> depicting video
+                     * was reported removed by the provider this listener is
+                     * added to.
                      */
                     public void videoRemoved(VideoEvent e)
                     {
                         videoAdded(e);
                     }
 
+                    /**
+                     * {@inheritDoc}
+                     *
+                     * Notifies that a visual <tt>Component</tt> depicting video
+                     * was reported updated by the provider this listener is
+                     * added to.
+                     */
                     public void videoUpdate(VideoEvent e)
                     {
                         fireVideoEvent(e, true);
@@ -1045,11 +1046,13 @@ public class VideoMediaStreamImpl
      */
     public void movePartialDesktopStreaming(int x, int y)
     {
-        MediaDeviceImpl dev = (MediaDeviceImpl)getDevice();
+        MediaDeviceImpl dev = (MediaDeviceImpl) getDevice();
 
-        if (!dev.getCaptureDeviceInfo().getLocator().getProtocol().equals(
-                DeviceSystem.LOCATOR_PROTOCOL_IMGSTREAMING))
+        if (!DeviceSystem.LOCATOR_PROTOCOL_IMGSTREAMING.equals(
+                dev.getCaptureDeviceInfoLocatorProtocol()))
+        {
             return;
+        }
 
         DataSource captureDevice = getDeviceSession().getCaptureDevice();
         Object imgStreamingControl

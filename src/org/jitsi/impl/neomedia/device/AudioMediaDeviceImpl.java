@@ -123,7 +123,7 @@ public class AudioMediaDeviceImpl
      * if the creation fails
      */
     @Override
-    synchronized CaptureDevice createCaptureDevice()
+    protected synchronized CaptureDevice createCaptureDevice()
     {
         CaptureDevice captureDevice = null;
 
@@ -200,7 +200,7 @@ public class AudioMediaDeviceImpl
      * <tt>MediaDevice</tt>
      */
     @Override
-    Renderer createRenderer()
+    public Renderer createRenderer()
     {
         Renderer renderer = null;
 
@@ -223,28 +223,6 @@ public class AudioMediaDeviceImpl
                 renderer = super.createRenderer();
         }
         return renderer;
-    }
-
-    /**
-     * Gets the protocol of the <tt>MediaLocator</tt> of the
-     * <tt>CaptureDeviceInfo</tt> represented by this instance.
-     *
-     * @return the protocol of the <tt>MediaLocator</tt> of the
-     * <tt>CaptureDeviceInfo</tt> represented by this instance
-     */
-    private String getCaptureDeviceInfoLocatorProtocol()
-    {
-        CaptureDeviceInfo cdi = getCaptureDeviceInfo();
-
-        if (cdi != null)
-        {
-            MediaLocator locator = cdi.getLocator();
-
-            if (locator != null)
-                return locator.getProtocol();
-        }
-
-        return null;
     }
 
     /**

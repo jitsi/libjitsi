@@ -64,7 +64,7 @@ public abstract class AbstractMediaDevice
      * @return a <tt>DataSource</tt> instance which gives access to the media
      * captured by this <tt>MediaDevice</tt>
      */
-    abstract DataSource createOutputDataSource();
+    protected abstract DataSource createOutputDataSource();
 
     /**
      * Initializes a new <tt>Renderer</tt> instance which is to play back media
@@ -75,7 +75,7 @@ public abstract class AbstractMediaDevice
      * <tt>Renderer</tt> is to be chosen irrespective of this
      * <tt>MediaDevice</tt>
      */
-    abstract Renderer createRenderer();
+    public abstract Renderer createRenderer();
 
     /**
      * Creates a new <tt>MediaDeviceSession</tt> instance which is to represent

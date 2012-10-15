@@ -1732,16 +1732,20 @@ public class MediaStreamImpl
             if ((deviceSessionFormat != null)
                     && deviceSessionFormat.equals(format)
                     && deviceSessionFormat.advancedAttributesAreEqual(
-                        deviceSessionFormat.getAdvancedAttributes(),
-                        format.getAdvancedAttributes()))
+                            deviceSessionFormat.getAdvancedAttributes(),
+                            format.getAdvancedAttributes()))
+            {
                 return;
+            }
         }
 
         if (logger.isTraceEnabled())
+        {
             logger.trace(
                     "Changing format of stream " + hashCode()
                         + " from: " + deviceSessionFormat
                         + " to: " + format);
+        }
 
         handleAttributes(format, format.getAdvancedAttributes());
         handleAttributes(format, format.getFormatParameters());

@@ -99,12 +99,13 @@ public class MediaDeviceImpl
      * provides an implementation of <tt>MediaDevice</tt> for; <tt>null</tt>
      * if the creation fails
      */
-    CaptureDevice createCaptureDevice()
+    protected CaptureDevice createCaptureDevice()
     {
         CaptureDevice captureDevice = null;
 
         if (getDirection().allowsSending())
         {
+            CaptureDeviceInfo captureDeviceInfo = getCaptureDeviceInfo();
             Throwable exception = null;
 
             try
@@ -135,14 +136,16 @@ public class MediaDeviceImpl
             {
                 if (captureDevice instanceof AbstractPullBufferCaptureDevice)
                 {
-                    ((AbstractPullBufferCaptureDevice)captureDevice)
+                    ((AbstractPullBufferCaptureDevice) captureDevice)
                         .setCaptureDeviceInfo(captureDeviceInfo);
                 }
 
                 // Try to enable tracing on captureDevice.
                 if (logger.isTraceEnabled())
+                {
                     captureDevice
                         = createTracingCaptureDevice(captureDevice, logger);
+                }
             }
         }
         return captureDevice;
@@ -156,7 +159,7 @@ public class MediaDeviceImpl
      * captured by this <tt>MediaDevice</tt>
      * @see AbstractMediaDevice#createOutputDataSource()
      */
-    DataSource createOutputDataSource()
+    protected DataSource createOutputDataSource()
     {
         return
             getDirection().allowsSending()
@@ -173,7 +176,7 @@ public class MediaDeviceImpl
      * <tt>Renderer</tt> is to be chosen irrespective of this
      * <tt>MediaDevice</tt>
      */
-    Renderer createRenderer()
+    public Renderer createRenderer()
     {
         return null;
     }
@@ -269,6 +272,28 @@ public class MediaDeviceImpl
     }
 
     /**
+     * Gets the protocol of the <tt>MediaLocator</tt> of the
+     * <tt>CaptureDeviceInfo</tt> represented by this instance.
+     *
+     * @return the protocol of the <tt>MediaLocator</tt> of the
+     * <tt>CaptureDeviceInfo</tt> represented by this instance
+     */
+    public String getCaptureDeviceInfoLocatorProtocol()
+    {
+        CaptureDeviceInfo cdi = getCaptureDeviceInfo();
+
+        if (cdi != null)
+        {
+            MediaLocator locator = cdi.getLocator();
+
+            if (locator != null)
+                return locator.getProtocol();
+        }
+
+        return null;
+    }
+
+    /**
      * Returns the <tt>MediaDirection</tt> supported by this device.
      *
      * @return {@link MediaDirection#SENDONLY} if this is a read-only device,
@@ -279,7 +304,7 @@ public class MediaDeviceImpl
      */
     public MediaDirection getDirection()
     {
-        if (captureDeviceInfo != null)
+        if (getCaptureDeviceInfo() != null)
             return MediaDirection.SENDRECV;
         else
             return
@@ -345,9 +370,12 @@ public class MediaDeviceImpl
             QualityPreset sendPreset,
             QualityPreset receivePreset)
     {
-        return getSupportedFormats(sendPreset, receivePreset,
-                NeomediaServiceUtils.getMediaServiceImpl()
-                    .getCurrentEncodingConfiguration());
+        return
+            getSupportedFormats(
+                    sendPreset,
+                    receivePreset,
+                    NeomediaServiceUtils.getMediaServiceImpl()
+                            .getCurrentEncodingConfiguration());
     }
     
     /**
@@ -404,6 +432,8 @@ public class MediaDeviceImpl
                     if (h264AdvancedAttributes == null)
                         h264AdvancedAttributes = new HashMap<String, String>();
 
+                    CaptureDeviceInfo captureDeviceInfo
+                        = getCaptureDeviceInfo();
                     MediaLocator captureDeviceInfoLocator;
                     Dimension sendSize = null;
 

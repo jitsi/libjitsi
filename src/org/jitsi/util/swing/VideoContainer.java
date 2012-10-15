@@ -72,12 +72,12 @@ public class VideoContainer
      *
      * @param noVideoComponent the component to be displayed when no remote
      * video is available
-     * @param isConference indicates if this <tt>VideoLayout</tt> is dedicated
-     * to a conference interface.
+     * @param conference <tt>true</tt> to dedicate the new instance to a
+     * telephony conferencing user interface; otherwise, <tt>false</tt>
      */
-    public VideoContainer(Component noVideoComponent, boolean isConference)
+    public VideoContainer(Component noVideoComponent, boolean conference)
     {
-        setLayout(new VideoLayout(isConference));
+        setLayout(new VideoLayout(conference));
 
         this.noVideoComponent = noVideoComponent;
 
@@ -169,7 +169,6 @@ public class VideoContainer
                 && noVideoComponent.getParent() != null))
         {
             remove(noVideoComponent);
-            validate();
         }
 
         if ((canvas == null) || (canvas.getParent() != this))
@@ -279,7 +278,6 @@ public class VideoContainer
                 && (canvas.getParent() != this))
         {
             canvas = null;
-            validate();
         }
 
         Component[] components = getComponents();
@@ -302,7 +300,6 @@ public class VideoContainer
                 && !noVideoComponent.equals(comp))
         {
             add(noVideoComponent, VideoLayout.CENTER_REMOTE);
-            validate();
         }
 
         removeCanvasIfNecessary();
@@ -326,17 +323,14 @@ public class VideoContainer
             canvas = null;
 
         if (noVideoComponent != null)
-        {
             add(noVideoComponent, VideoLayout.CENTER_REMOTE);
-            validate();
-        }
     }
 
     /**
      * Removes {@link #canvas} from this <tt>VideoContainer</tt> if no sibling
      * <tt>Component</tt> needs it.
      */
-    public void removeCanvasIfNecessary()
+    private void removeCanvasIfNecessary()
     {
         if ((canvas == null) || !OSUtils.IS_MAC)
             return;

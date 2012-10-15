@@ -8,6 +8,8 @@ package org.jitsi.util.swing;
 
 import java.awt.*;
 
+import javax.swing.*;
+
 /**
  * Represents a <code>LayoutManager</code> which centers the first
  * <code>Component</code> within its <code>Container</code> and, if the
@@ -49,46 +51,68 @@ public class FitLayout
         return (components.length > 0) ? components[0] : null;
     }
 
-    protected void layoutComponent(Component component, Rectangle bounds,
-        float alignmentX, float alignmentY)
+    protected void layoutComponent(
+            Component component,
+            Rectangle bounds,
+            float alignmentX,
+            float alignmentY)
     {
-        Dimension componentSize = component.getPreferredSize();
-        boolean scale = false;
-        double widthRatio;
-        double heightRatio;
+        Dimension componentSize;
 
-        if ((componentSize.width != bounds.width) && (componentSize.width > 0))
+        /*
+         * XXX The following is a quick and dirty hack for the purposes of video
+         * conferencing which adds transparent JPanels to VideoContainer and
+         * does not want them fitted because they contains VideoContainers
+         * themselves and the videos get fitted in them.
+         */
+        if ((component instanceof JPanel)
+                && !component.isOpaque()
+                && (((Container) component).getComponentCount() > 1))
         {
-            scale = true;
-            widthRatio = bounds.width / (double) componentSize.width;
+            componentSize = bounds.getSize();
         }
         else
-            widthRatio = 1;
-        if ((componentSize.height != bounds.height)
-                && (componentSize.height > 0))
         {
-            scale = true;
-            heightRatio = bounds.height / (double) componentSize.height;
-        }
-        else
-            heightRatio = 1;
-        if (scale)
-        {
-            double ratio = Math.min(widthRatio, heightRatio);
+            componentSize = component.getSize();
 
-            componentSize.width = (int) (componentSize.width * ratio);
-            componentSize.height = (int) (componentSize.height * ratio);
+            boolean scale = false;
+            double widthRatio;
+            double heightRatio;
 
-            // Respect the maximumSize of the component.
-            if (component.isMaximumSizeSet())
+            if ((componentSize.width != bounds.width)
+                    && (componentSize.width > 0))
             {
-                Dimension maximumSize = component.getMaximumSize();
-
-                if (componentSize.width > maximumSize.width)
-                    componentSize.width = maximumSize.width;
-                if (componentSize.height > maximumSize.height)
-                    componentSize.height = maximumSize.height;
+                scale = true;
+                widthRatio = bounds.width / (double) componentSize.width;
             }
+            else
+                widthRatio = 1;
+            if ((componentSize.height != bounds.height)
+                    && (componentSize.height > 0))
+            {
+                scale = true;
+                heightRatio = bounds.height / (double) componentSize.height;
+            }
+            else
+                heightRatio = 1;
+            if (scale)
+            {
+                double ratio = Math.min(widthRatio, heightRatio);
+
+                componentSize.width = (int) (componentSize.width * ratio);
+                componentSize.height = (int) (componentSize.height * ratio);
+            }
+        }
+
+        // Respect the maximumSize of the component.
+        if (component.isMaximumSizeSet())
+        {
+            Dimension maximumSize = component.getMaximumSize();
+
+            if (componentSize.width > maximumSize.width)
+                componentSize.width = maximumSize.width;
+            if (componentSize.height > maximumSize.height)
+                componentSize.height = maximumSize.height;
         }
 
         /*

@@ -213,7 +213,7 @@ public class AudioMixerMediaDevice
      * <tt>Renderer</tt> is to be chosen irrespective of this
      * <tt>MediaDevice</tt>
      */
-    Renderer createRenderer()
+    public Renderer createRenderer()
     {
         return device.createRenderer();
     }

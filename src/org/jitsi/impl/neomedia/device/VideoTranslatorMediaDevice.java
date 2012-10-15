@@ -92,7 +92,7 @@ public class VideoTranslatorMediaDevice
      * captured by this <tt>MediaDevice</tt>
      * @see AbstractMediaDevice#createOutputDataSource()
      */
-    synchronized DataSource createOutputDataSource()
+    protected synchronized DataSource createOutputDataSource()
     {
         if (deviceSession == null)
         {
@@ -132,7 +132,7 @@ public class VideoTranslatorMediaDevice
      * <tt>Renderer</tt> is to be chosen irrespective of this
      * <tt>MediaDevice</tt>
      */
-    Renderer createRenderer()
+    public Renderer createRenderer()
     {
         return null;
     }

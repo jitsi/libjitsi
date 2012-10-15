@@ -204,7 +204,7 @@ public class FakePushBufferDataSource
         @Override
         protected Format doSetFormat(Format format)
         {
-            return super.doSetFormat(format);
+            return format;
         }
 
         /**
