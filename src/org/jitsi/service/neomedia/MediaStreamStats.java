@@ -152,4 +152,20 @@ public interface MediaStreamStats
      */
     public long getNbFec();
 
+    /**
+     * Returns the total number of discarded packets since the beginning of the
+     * session.
+     *
+     * @return the total number of discarded packets since the beginning of the
+     * session.
+     */
+    public long getNbDiscarded();
+
+    /**
+     * Returns the current percent of discarded packets.
+     *
+     * @return the current percent of discarded packets.
+     */
+    public double getPercentDiscarded();
+
 }

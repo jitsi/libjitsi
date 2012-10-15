@@ -2679,6 +2679,16 @@ public class MediaStreamImpl
                     .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
                 .append("unknown types: ").append(rs.getUnknownTypes());
 
+            /* The number of discarded packets is not available in
+             * <tt>GlobalReceptionStats</tt>. Neither is the number of
+             * decoded using FEC. */
+            buff.append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append("discarded RTP packets: ")
+                        .append(mediaStreamStatsImpl.getNbDiscarded())
+                .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append("decoded with FEC: ")
+                        .append(mediaStreamStatsImpl.getNbFec());
+
             logger.info(buff);
         }
         catch(Throwable t)

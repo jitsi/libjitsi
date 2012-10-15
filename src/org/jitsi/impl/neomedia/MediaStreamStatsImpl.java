@@ -24,6 +24,7 @@ import org.jitsi.util.*;
  * Class used to compute stats concerning a MediaStream.
  *
  * @author Vincent Lucas
+ * @author Boris Grozev
  */
 public class MediaStreamStatsImpl
     implements MediaStreamStats
@@ -71,6 +72,11 @@ public class MediaStreamStatsImpl
     private long[] nbLost = {0, 0};
 
     /**
+     * The total number of discarded packets
+     */
+    private long nbDiscarded = 0;
+
+    /**
      * The number of packets for which FEC data was decoded. This is only
      */
     private long nbFec = 0;
@@ -84,6 +90,11 @@ public class MediaStreamStatsImpl
      * The last download/upload loss rate computed (in %).
      */
     private double[] percentLoss = {0, 0};
+
+    /**
+     * The last percent of discarded packets
+     */
+    private double percentDiscarded = 0;
 
     /**
      * The last used bandwidth computed in download/upload (in Kbit/s).
@@ -179,6 +190,9 @@ public class MediaStreamStatsImpl
                 this.getDownloadNbPDULost() - this.nbLost[streamDirectionIndex];
 
             updateNbLoss(streamDirection, newNbLost, nbSteps + newNbLost);
+
+            long newNbDiscarded = this.getNbDiscarded() - this.nbDiscarded;
+            updateNbDiscarded(newNbDiscarded, nbSteps + newNbDiscarded);
         }
 
         // Computes the bandwidth used by this stream.
@@ -374,6 +388,16 @@ public class MediaStreamStatsImpl
     }
 
     /**
+     * Returns the percent of discarded packets
+     *
+     * @return the percent of discarded packets
+     */
+    public double getPercentDiscarded()
+    {
+        return percentDiscarded;
+    }
+
+    /**
      * Returns the percent loss of the upload stream.
      *
      * @return the last loss rate computed (in %).
@@ -531,7 +555,7 @@ public class MediaStreamStatsImpl
      * @param streamDirection The stream direction (DOWNLOAD or UPLOAD) of the
      * stream from which this function updates the stats.
      * @param newNbLost The last update of the number of lost.
-     * @param nbSteps The number of elasped steps since the last number of loss
+     * @param nbSteps The number of elapsed steps since the last number of loss
      * update.
      */
     private void updateNbLoss(
@@ -671,6 +695,25 @@ public class MediaStreamStatsImpl
             nbLost += receiveStream.getSourceReceptionStats().getPDUlost();
 
         return nbLost;
+    }
+
+    /**
+     * Returns the number of Protocol Data Units (PDU) discarded by the
+     * FMJ packet queue since the beginning of the session. It's the sum over
+     * all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
+     *
+     * @return the number of discarded packets.
+     */
+    public long getNbDiscarded()
+    {
+        int nbDiscarded = 0;
+        java.util.List<ReceiveStream> listReceiveStream =
+                this.mediaStreamImpl.getDeviceSession().getReceiveStreams();
+
+        for(ReceiveStream receiveStream : listReceiveStream)
+            nbDiscarded += receiveStream.getSourceReceptionStats().getPDUDrop();
+
+        return nbDiscarded;
     }
 
     /**
@@ -821,5 +864,29 @@ public class MediaStreamStatsImpl
                 nbFec += fecDecoderControl.fecPacketsDecoded();
         }
         this.nbFec = nbFec;
+    }
+    /**
+     * Updates the number of discarded packets.
+     *
+     * @param newNbDiscarded The last update of the number of lost.
+     * @param nbSteps The number of elapsed steps since the last number of loss
+     * update.
+     */
+    private void updateNbDiscarded(
+            long newNbDiscarded,
+            long nbSteps)
+    {
+
+        double newPercentDiscarded = MediaStreamStatsImpl.computePercentLoss(
+                nbSteps,
+                newNbDiscarded);
+        this.percentDiscarded =
+                MediaStreamStatsImpl.computeEWMA(
+                        nbSteps,
+                        this.percentDiscarded,
+                        newPercentDiscarded);
+
+        // Saves the last update number download lost value.
+        this.nbDiscarded += newNbDiscarded;
     }
 }
