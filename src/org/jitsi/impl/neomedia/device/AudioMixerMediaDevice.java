@@ -205,15 +205,28 @@ public class AudioMixerMediaDevice
     }
 
     /**
-     * Initializes a new <tt>Renderer</tt> instance which is to play back media
-     * on this <tt>MediaDevice</tt>.
+     * {@inheritDoc}
      *
-     * @return a new <tt>Renderer</tt> instance which is to play back media on
-     * this <tt>MediaDevice</tt> or <tt>null</tt> if a suitable
-     * <tt>Renderer</tt> is to be chosen irrespective of this
-     * <tt>MediaDevice</tt>
+     * Delegates to the {@link AbstractMediaDevice#createPlayer(DataSource)}
+     * implementation of the <tt>MediaDevice</tt> on which this instance enables
+     * mixing i.e. {@link #getWrappedDevice()}.
      */
-    public Renderer createRenderer()
+    @Override
+    protected Processor createPlayer(DataSource dataSource)
+        throws Exception
+    {
+        return device.createPlayer(dataSource);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Delegates to the {@link AbstractMediaDevice#createRenderer()}
+     * implementation of the <tt>MediaDevice</tt> on which this instance enables
+     * mixing i.e. {@link #getWrappedDevice()}.
+     */
+    @Override
+    protected Renderer createRenderer()
     {
         return device.createRenderer();
     }
@@ -648,6 +661,20 @@ public class AudioMixerMediaDevice
         protected DataSource createCaptureDevice()
         {
             return getAudioMixer().getLocalOutputDataSource();
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected Player createPlayer(DataSource dataSource)
+        {
+            /*
+             * TODO AudioMixerMediaDevice wraps a MediaDevice so
+             * AudioMixerMediaDeviceSession should wrap a MediaDeviceSession of
+             * that same wrapped MediaDevice.
+             */
+            return super.createPlayer(dataSource);
         }
 
         /**

@@ -67,15 +67,58 @@ public abstract class AbstractMediaDevice
     protected abstract DataSource createOutputDataSource();
 
     /**
+     * Initializes a new <tt>Processor</tt> instance which is to be used to play
+     * back media on this <tt>MediaDevice</tt>. Allows extenders to, for
+     * example, disable the playback on this <tt>MediaDevice</tt> by completely
+     * overriding and returning <tt>null</tt>.
+     *
+     * @param dataSource the <tt>DataSource</tt> which is to be played back by
+     * the new <tt>Processor</tt> instance
+     * @return a new <tt>Processor</tt> instance which is to be used to play
+     * back the media provided by the specified <tt>dataSource</tt> or
+     * <tt>null</tt> if the specified <tt>dataSource</tt> is to not be played
+     * back
+     * @throws Exception if an exception is thrown by
+     * {@link DataSource#connect()},
+     * {@link Manager#createProcessor(DataSource)}, or
+     * {@link DataSource#disconnect()}
+     */
+    protected Processor createPlayer(DataSource dataSource)
+        throws Exception
+    {
+        Processor player = null;
+
+        // A Player is documented to be created on a connected DataSource.
+        dataSource.connect();
+        try
+        {
+            player = Manager.createProcessor(dataSource);
+        }
+        finally
+        {
+            if (player == null)
+                dataSource.disconnect();
+        }
+        return player;
+    }
+
+    /**
      * Initializes a new <tt>Renderer</tt> instance which is to play back media
-     * on this <tt>MediaDevice</tt>.
+     * on this <tt>MediaDevice</tt>. Allows extenders to initialize a specific
+     * <tt>Renderer</tt> instance. The implementation of
+     * <tt>AbstractMediaDevice</tt> returns <tt>null</tt> which means that it is
+     * left to FMJ to choose a suitable <tt>Renderer</tt> irrespective of this
+     * <tt>MediaDevice</tt>.
      *
      * @return a new <tt>Renderer</tt> instance which is to play back media on
      * this <tt>MediaDevice</tt> or <tt>null</tt> if a suitable
      * <tt>Renderer</tt> is to be chosen irrespective of this
      * <tt>MediaDevice</tt>
      */
-    public abstract Renderer createRenderer();
+    protected Renderer createRenderer()
+    {
+        return null;
+    }
 
     /**
      * Creates a new <tt>MediaDeviceSession</tt> instance which is to represent

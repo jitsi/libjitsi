@@ -191,16 +191,18 @@ public class AudioMediaDeviceImpl
     }
 
     /**
-     * Initializes a new <tt>Renderer</tt> instance which is to play back media
-     * on this <tt>MediaDevice</tt>.
+     * {@inheritDoc}
      *
-     * @return a new <tt>Renderer</tt> instance which is to play back media on
-     * this <tt>MediaDevice</tt> or <tt>null</tt> if a suitable
-     * <tt>Renderer</tt> is to be chosen irrespective of this
-     * <tt>MediaDevice</tt>
+     * Tries to delegate the initialization of a new <tt>Renderer</tt> instance
+     * to the <tt>AudioSystem</tt> which provides the <tt>CaptureDevice</tt> of
+     * this instance. This way both the capture and the playback are given a
+     * chance to happen within the same <tt>AudioSystem</tt>. If the discovery
+     * of the delegate fails, the implementation of <tt>MediaDeviceImpl</tt> is
+     * executed and it currently leaves it to FMJ to choose a <tt>Renderer</tt>
+     * irrespective of this <tt>MediaDevice</tt>.
      */
     @Override
-    public Renderer createRenderer()
+    protected Renderer createRenderer()
     {
         Renderer renderer = null;
 

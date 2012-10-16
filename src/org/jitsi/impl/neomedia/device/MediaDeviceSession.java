@@ -430,36 +430,13 @@ public class MediaDeviceSession
         Processor player = null;
         Throwable exception = null;
 
-        // A Player is documented to be created on a connected DataSource.
         try
         {
-            dataSource.connect();
+            player = getDevice().createPlayer(dataSource);
         }
-        catch (IOException ioex)
+        catch (Exception ex)
         {
-            // TODO
-            exception = ioex;
-        }
-        if (exception != null)
-        {
-            logger.error(
-                    "Failed to connect to "
-                        + MediaStreamImpl.toString(dataSource),
-                    exception);
-            return player;
-        }
-
-        try
-        {
-            player = Manager.createProcessor(dataSource);
-        }
-        catch (IOException ioe)
-        {
-            exception = ioe;
-        }
-        catch (NoPlayerException npe)
-        {
-            exception = npe;
+            exception = ex;
         }
         if (exception != null)
         {
@@ -468,7 +445,7 @@ public class MediaDeviceSession
                         + MediaStreamImpl.toString(dataSource),
                     exception);
         }
-        else
+        else if (player != null)
         {
             /*
              * We cannot wait for the Player to get configured (e.g. with
@@ -477,6 +454,7 @@ public class MediaDeviceSession
              * media (e.g. abnormally stopped), it will leave us blocked.
              */
             if (playerControllerListener == null)
+            {
                 playerControllerListener = new ControllerListener()
                 {
 
@@ -495,19 +473,19 @@ public class MediaDeviceSession
                         playerControllerUpdate(event);
                     }
                 };
+            }
             player.addControllerListener(playerControllerListener);
 
             player.configure();
             if (logger.isTraceEnabled())
+            {
                 logger.trace(
                         "Created Player with hashCode "
                             + player.hashCode()
                             + " for "
                             + MediaStreamImpl.toString(dataSource));
+            }
         }
-
-        if (player == null)
-            dataSource.disconnect();
 
         return player;
     }
@@ -939,12 +917,13 @@ public class MediaDeviceSession
         {
             outputDataSource = processor.getDataOutput();
             if (logger.isTraceEnabled() && (outputDataSource != null))
-                logger
-                    .trace(
+            {
+                logger.trace(
                         "Processor with hashCode "
                             + processor.hashCode()
                             + " provided "
                             + MediaStreamImpl.toString(outputDataSource));
+            }
 
             /*
              * Whoever wants the outputDataSource, they expect it to be started
