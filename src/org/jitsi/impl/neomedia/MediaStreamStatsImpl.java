@@ -46,7 +46,7 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * The MediaStream used to copte the stats.
+     * The source data stream to analyze in order to compute the stats.
      */
     private MediaStreamImpl mediaStreamImpl;
 
@@ -707,11 +707,15 @@ public class MediaStreamStatsImpl
     public long getNbDiscarded()
     {
         int nbDiscarded = 0;
-        java.util.List<ReceiveStream> listReceiveStream =
-                this.mediaStreamImpl.getDeviceSession().getReceiveStreams();
+        if(this.mediaStreamImpl != null && this.mediaStreamImpl.isStarted())
+        {
+            java.util.List<ReceiveStream> listReceiveStream =
+                    this.mediaStreamImpl.getDeviceSession().getReceiveStreams();
 
-        for(ReceiveStream receiveStream : listReceiveStream)
-            nbDiscarded += receiveStream.getSourceReceptionStats().getPDUDrop();
+            for(ReceiveStream receiveStream : listReceiveStream)
+                nbDiscarded
+                    += receiveStream.getSourceReceptionStats().getPDUDrop();
+        }
 
         return nbDiscarded;
     }
