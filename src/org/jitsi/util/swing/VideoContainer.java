@@ -57,6 +57,8 @@ public class VideoContainer
      */
     private Component canvas;
 
+    private int inAddOrRemove;
+
     /**
      * The <tt>Component</tt> to be displayed by this <tt>VideoContainer</tt>
      * at {@link VideoLayout#CENTER_REMOTE} when no other <tt>Component</tt> has
@@ -65,6 +67,10 @@ public class VideoContainer
      * video is not available.
      */
     private final Component noVideoComponent;
+
+    private final Object syncRoot = new Object();
+
+    private boolean validateAndRepaint;
 
     /**
      * Initializes a new <tt>VideoContainer</tt> with a specific
@@ -89,39 +95,24 @@ public class VideoContainer
          * relatively the same, always use a black background.
          */
         if (DEFAULT_BACKGROUND_COLOR != null)
-        {
             setBackground(DEFAULT_BACKGROUND_COLOR);
-            addContainerListener(
+
+        addContainerListener(
                 new ContainerListener()
                 {
-                    public void componentAdded(ContainerEvent e)
+                    public void componentAdded(ContainerEvent ev)
                     {
-                        int componentCount = getComponentCount();
-
-                        if ((componentCount == 1)
-                                && (getComponent(0)
-                                    == VideoContainer.this.noVideoComponent))
-                            componentCount = 0;
-
-                        setOpaque(componentCount > 0);
+                        VideoContainer.this.onContainerEvent(ev);
                     }
 
-                    public void componentRemoved(ContainerEvent e)
+                    public void componentRemoved(ContainerEvent ev)
                     {
-                        /*
-                         * It's all the same with respect to the purpose of this
-                         * ContainerListener.
-                         */
-                        componentAdded(e);
+                        VideoContainer.this.onContainerEvent(ev);
                     }
                 });
-        }
 
         if (this.noVideoComponent != null)
-        {
             add(this.noVideoComponent, VideoLayout.CENTER_REMOTE, -1);
-            validate();
-        }
     }
 
     /**
@@ -162,104 +153,174 @@ public class VideoContainer
     @Override
     public void add(Component comp, Object constraints, int index)
     {
-        if (VideoLayout.CENTER_REMOTE.equals(constraints)
-                && (noVideoComponent != null)
-                && !noVideoComponent.equals(comp)
-            || (comp.equals(noVideoComponent)
-                && noVideoComponent.getParent() != null))
+        enterAddOrRemove();
+        try
         {
-            remove(noVideoComponent);
-        }
+            if (VideoLayout.CENTER_REMOTE.equals(constraints)
+                    && (noVideoComponent != null)
+                    && !noVideoComponent.equals(comp)
+                || (comp.equals(noVideoComponent)
+                    && noVideoComponent.getParent() != null))
+            {
+                remove(noVideoComponent);
+            }
 
-        if ((canvas == null) || (canvas.getParent() != this))
-        {
-            if (OSUtils.IS_MAC && (comp != canvas))
+            if ((canvas == null) || (canvas.getParent() != this))
+            {
+                if (OSUtils.IS_MAC && (comp != canvas))
+                {
+                    /*
+                     * Unless the comp has a createCanvas() method, it makes no
+                     * sense to consider any exception a problem.
+                     */
+                    boolean ignoreException;
+                    Throwable exception;
+
+                    ignoreException = true;
+                    exception = null;
+                    canvas = null;
+
+                    try
+                    {
+                        Method m
+                            = comp.getClass().getMethod(
+                                    VIDEO_CANVAS_FACTORY_METHOD_NAME);
+
+                        if (m != null)
+                        {
+                            ignoreException = false;
+
+                            Object c = m.invoke(comp);
+
+                            if (c instanceof Component)
+                                canvas = (Component) c;
+                        }
+                    }
+                    catch (ClassCastException cce)
+                    {
+                        exception = cce;
+                    }
+                    catch (ExceptionInInitializerError eiie)
+                    {
+                        exception = eiie;
+                    }
+                    catch (IllegalAccessException illegalAccessException)
+                    {
+                        exception = illegalAccessException;
+                    }
+                    catch (IllegalArgumentException illegalArgumentException)
+                    {
+                        exception = illegalArgumentException;
+                    }
+                    catch (InvocationTargetException ita)
+                    {
+                        exception = ita;
+                    }
+                    catch (NoSuchMethodException nsme)
+                    {
+                        exception = nsme;
+                    }
+                    catch (NullPointerException npe)
+                    {
+                        exception = npe;
+                    }
+                    catch (SecurityException se)
+                    {
+                        exception = se;
+                    }
+                    if (canvas != null)
+                        add(canvas, VideoLayout.CANVAS, 0);
+                    else if ((exception != null) && !ignoreException)
+                        logger.error("Failed to create video canvas.", exception);
+                }
+            }
+            if ((canvas != null)
+                    && (canvas.getParent() == this)
+                    && OSUtils.IS_MAC
+                    && (comp != canvas))
             {
                 /*
-                 * Unless the comp has a createCanvas() method, it makes no
-                 * sense to consider any exception a problem.
+                 * The canvas in which the other components are to be painted
+                 * should always be at index 0. And the order of adding is
+                 * important so no index should be specified.
                  */
-                boolean ignoreException;
-                Throwable exception;
+                index = -1;
+            }
 
-                ignoreException = true;
-                exception = null;
-                canvas = null;
+            /*
+             * XXX Do not call #remove(Component) beyond this point and before
+             * #add(Component, Object, int) because #removeCanvasIfNecessary()
+             * will remove the canvas.
+             */
 
-                try
+            super.add(comp, constraints, index);
+        }
+        finally
+        {
+            exitAddOrRemove();
+        }
+    }
+
+    private void enterAddOrRemove()
+    {
+        synchronized (syncRoot)
+        {
+            if (inAddOrRemove == 0)
+                validateAndRepaint = false;
+            inAddOrRemove++;
+        }
+    }
+
+    private void exitAddOrRemove()
+    {
+        synchronized (syncRoot)
+        {
+            inAddOrRemove--;
+            if (inAddOrRemove < 1)
+            {
+                inAddOrRemove = 0;
+                if (validateAndRepaint)
                 {
-                    Method m
-                        = comp.getClass().getMethod(
-                                VIDEO_CANVAS_FACTORY_METHOD_NAME);
+                    validateAndRepaint = false;
 
-                    if (m != null)
+                    if (isDisplayable())
                     {
-                        ignoreException = false;
-
-                        Object c = m.invoke(comp);
-
-                        if (c instanceof Component)
-                            canvas = (Component) c;
+                        validate();
+                        repaint();
                     }
+                    else
+                        doLayout();
                 }
-                catch (ClassCastException cce)
-                {
-                    exception = cce;
-                }
-                catch (ExceptionInInitializerError eiie)
-                {
-                    exception = eiie;
-                }
-                catch (IllegalAccessException illegalAccessException)
-                {
-                    exception = illegalAccessException;
-                }
-                catch (IllegalArgumentException illegalArgumentException)
-                {
-                    exception = illegalArgumentException;
-                }
-                catch (InvocationTargetException ita)
-                {
-                    exception = ita;
-                }
-                catch (NoSuchMethodException nsme)
-                {
-                    exception = nsme;
-                }
-                catch (NullPointerException npe)
-                {
-                    exception = npe;
-                }
-                catch (SecurityException se)
-                {
-                    exception = se;
-                }
-                if (canvas != null)
-                    add(canvas, VideoLayout.CANVAS, 0);
-                else if ((exception != null) && !ignoreException)
-                    logger.error("Failed to create video canvas.", exception);
             }
         }
-        if ((canvas != null)
-                && (canvas.getParent() == this)
-                && OSUtils.IS_MAC
-                && (comp != canvas))
+    }
+
+    private void onContainerEvent(ContainerEvent ev)
+    {
+        try
         {
-            /*
-             * The canvas in which the other components are to be painted should
-             * always be at index 0. And the order of adding is important so no
-             * index should be specified
-             */
-            index = -1;
+            if (DEFAULT_BACKGROUND_COLOR != null)
+            {
+                int componentCount = getComponentCount();
+
+                if ((componentCount == 1)
+                        && (getComponent(0)
+                                == VideoContainer.this.noVideoComponent))
+                {
+                    componentCount = 0;
+                }
+
+                setOpaque(componentCount > 0);
+            }
         }
-
-        /*
-         * XXX Do not call #remove(Component) beyond this point and before
-         * #add(Component, Object, int) because #removeCanvasIfNecessary() will
-         * remove the canvas.
-         */
-
-        super.add(comp, constraints, index);
+        finally
+        {
+            synchronized (syncRoot)
+            {
+                if (inAddOrRemove != 0)
+                    validateAndRepaint = true;
+            }
+        }
     }
 
     /**
@@ -271,38 +332,46 @@ public class VideoContainer
     @Override
     public void remove(Component comp)
     {
-        super.remove(comp);
-
-        if ((comp == canvas)
-                && (canvas != null)
-                && (canvas.getParent() != this))
+        enterAddOrRemove();
+        try
         {
-            canvas = null;
-        }
+            super.remove(comp);
 
-        Component[] components = getComponents();
-        VideoLayout videoLayout = (VideoLayout) getLayout();
-        boolean hasComponentsAtCenterRemote = false;
-
-        for (Component c : components)
-        {
-            if (!c.equals(noVideoComponent)
-                    && VideoLayout.CENTER_REMOTE.equals(
-                            videoLayout.getComponentConstraints(c)))
+            if ((comp == canvas)
+                    && (canvas != null)
+                    && (canvas.getParent() != this))
             {
-                hasComponentsAtCenterRemote = true;
-                break;
+                canvas = null;
             }
-        }
 
-        if (!hasComponentsAtCenterRemote
-                && (noVideoComponent != null)
-                && !noVideoComponent.equals(comp))
+            Component[] components = getComponents();
+            VideoLayout videoLayout = (VideoLayout) getLayout();
+            boolean hasComponentsAtCenterRemote = false;
+
+            for (Component c : components)
+            {
+                if (!c.equals(noVideoComponent)
+                        && VideoLayout.CENTER_REMOTE.equals(
+                                videoLayout.getComponentConstraints(c)))
+                {
+                    hasComponentsAtCenterRemote = true;
+                    break;
+                }
+            }
+
+            if (!hasComponentsAtCenterRemote
+                    && (noVideoComponent != null)
+                    && !noVideoComponent.equals(comp))
+            {
+                add(noVideoComponent, VideoLayout.CENTER_REMOTE);
+            }
+
+            removeCanvasIfNecessary();
+        }
+        finally
         {
-            add(noVideoComponent, VideoLayout.CENTER_REMOTE);
+            exitAddOrRemove();
         }
-
-        removeCanvasIfNecessary();
     }
 
     /**
@@ -317,13 +386,21 @@ public class VideoContainer
     @Override
     public void removeAll()
     {
-        super.removeAll();
+        enterAddOrRemove();
+        try
+        {
+            super.removeAll();
 
-        if ((canvas != null) && (canvas.getParent() != this))
-            canvas = null;
+            if ((canvas != null) && (canvas.getParent() != this))
+                canvas = null;
 
-        if (noVideoComponent != null)
-            add(noVideoComponent, VideoLayout.CENTER_REMOTE);
+            if (noVideoComponent != null)
+                add(noVideoComponent, VideoLayout.CENTER_REMOTE);
+        }
+        finally
+        {
+            exitAddOrRemove();
+        }
     }
 
     /**

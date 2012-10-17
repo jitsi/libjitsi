@@ -290,7 +290,16 @@ public class VideoLayout
             }
         }
 
-        if (local != null)
+        if (local == null)
+        {
+            /*
+             * It is plain wrong to display a close button for the local video
+             * if there is no local video.
+             */
+            if (closeButton != null)
+                closeButton.setVisible(false);
+        }
+        else
         {
             /*
              * If the local visual/video Component is not displayed as if it is
@@ -333,6 +342,14 @@ public class VideoLayout
 
             if (closeButton != null)
             {
+                /*
+                 * XXX We may be overwriting the visible property set by our
+                 * client (who has initialized the close button) but it is wrong
+                 * to display a close button for the local video if the local
+                 * video is not visible.
+                 */
+                closeButton.setVisible(local.isVisible());
+
                 super.layoutComponent(
                         closeButton,
                         new Rectangle(

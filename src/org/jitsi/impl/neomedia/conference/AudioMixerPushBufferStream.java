@@ -1180,6 +1180,7 @@ class AudioMixerPushBufferStream
                 if (transferHandler == null)
                     inputStreamTransferHandler = null;
                 else if (transferHandlerIsSet)
+                {
                     inputStreamTransferHandler = new BufferTransferHandler()
                     {
                         public void transferData(PushBufferStream stream)
@@ -1191,15 +1192,18 @@ class AudioMixerPushBufferStream
                              */
                         }
                     };
+                }
                 else
+                {
                     inputStreamTransferHandler
                         = new StreamSubstituteBufferTransferHandler(
                                     transferHandler,
                                     inputPushBufferStream,
                                     this);
+                }
 
-                inputPushBufferStream
-                    .setTransferHandler(inputStreamTransferHandler);
+                inputPushBufferStream.setTransferHandler(
+                        inputStreamTransferHandler);
 
                 transferHandlerIsSet = true;
             }

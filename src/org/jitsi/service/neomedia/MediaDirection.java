@@ -162,20 +162,15 @@ public enum MediaDirection
      */
     public MediaDirection getReverseDirection()
     {
-        if (this == SENDRECV)
+        switch (this)
         {
+        case SENDRECV:
             return SENDRECV;
-        }
-        else if(this == SENDONLY)
-        {
+        case SENDONLY:
             return RECVONLY;
-        }
-        else if (this == RECVONLY)
-        {
+        case RECVONLY:
             return SENDONLY;
-        }
-        else
-        {
+        default:
             return INACTIVE;
         }
     }

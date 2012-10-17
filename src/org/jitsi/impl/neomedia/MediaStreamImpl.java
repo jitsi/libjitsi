@@ -1207,11 +1207,11 @@ public class MediaStreamImpl
     }
 
     /**
-     * Get the synchronization source (SSRC) identifier of the remote peer or
-     * <tt>-1</tt> if it is not yet known.
+     * {@inheritDoc}
      *
-     * @return  the synchronization source (SSRC) identifier of the remote
-     * peer or <tt>-1</tt> if it is not yet known
+     * Returns the last element of {@link #getRemoteSourceIDs()} which may or
+     * may not always be appropriate.
+     *
      * @see MediaStream#getRemoteSourceID()
      */
     public long getRemoteSourceID()
@@ -1226,6 +1226,11 @@ public class MediaStreamImpl
      */
     public List<Long> getRemoteSourceIDs()
     {
+        /*
+         * TODO Returning an unmodifiable view of remoteSourceIDs prevents
+         * modifications of private state from the outside but it does not
+         * prevent ConcurrentModificationException. 
+         */
         return Collections.unmodifiableList(remoteSourceIDs);
     }
 
