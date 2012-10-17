@@ -53,4 +53,11 @@ public interface AudioNotifierService
      * @return TRUE if currently the sound is off, FALSE otherwise
      */
     public boolean isMute();
+
+    /**
+     * Checks whether the playback and notification configuration
+     * share the same device.
+     * @return are audio out and notifications using the same device.
+     */
+    public boolean audioOutAndNotificationsShareSameDevice();
 }

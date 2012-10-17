@@ -16,6 +16,8 @@ import org.jitsi.service.audionotifier.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.resources.*;
 
+import javax.media.*;
+
 /**
  * The implementation of the AudioNotifierService.
  *
@@ -216,6 +218,28 @@ public class AudioNotifierServiceImpl
         {
             audioClips.clear();
         }
+    }
+
+    /**
+     * Checks whether the playback and notification configuration
+     * share the same device.
+     * @return are audio out and notifications using the same device.
+     */
+    public boolean audioOutAndNotificationsShareSameDevice()
+    {
+        CaptureDeviceInfo notifyInfo =
+            getDeviceConfiguration().getAudioSystem()
+                .getDevice(AudioSystem.NOTIFY_INDEX);
+        CaptureDeviceInfo playbackInfo =
+            getDeviceConfiguration().getAudioSystem()
+                .getDevice(AudioSystem.PLAYBACK_INDEX);
+
+        if(notifyInfo != null && playbackInfo != null)
+        {
+            return notifyInfo.getLocator().equals(playbackInfo.getLocator());
+        }
+
+        return false;
     }
 
     /**
