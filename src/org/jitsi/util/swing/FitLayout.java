@@ -54,8 +54,7 @@ public class FitLayout
     protected void layoutComponent(
             Component component,
             Rectangle bounds,
-            float alignmentX,
-            float alignmentY)
+            float alignmentX, float alignmentY)
     {
         Dimension componentSize;
 
@@ -73,7 +72,7 @@ public class FitLayout
         }
         else
         {
-            componentSize = component.getSize();
+            componentSize = component.getPreferredSize();
 
             boolean scale = false;
             double widthRatio;
@@ -150,8 +149,12 @@ public class FitLayout
         Component component = getComponent(parent);
 
         if (component != null)
-            layoutComponent(component, new Rectangle(parent.getSize()),
-                componentAlignmentX, Component.CENTER_ALIGNMENT);
+        {
+            layoutComponent(
+                    component,
+                    new Rectangle(parent.getSize()),
+                    componentAlignmentX, Component.CENTER_ALIGNMENT);
+        }
     }
 
     /*
@@ -163,8 +166,10 @@ public class FitLayout
     {
         Component component = getComponent(parent);
 
-        return (component != null) ? component.getMinimumSize()
-            : new Dimension(0, 0);
+        return
+            (component != null)
+                ? component.getMinimumSize()
+                : new Dimension(0, 0);
     }
 
     /*
@@ -176,8 +181,10 @@ public class FitLayout
     {
         Component component = getComponent(parent);
 
-        return (component != null) ? component.getPreferredSize()
-            : new Dimension(0, 0);
+        return
+            (component != null)
+                ? component.getPreferredSize()
+                : new Dimension(0, 0);
     }
 
     /*

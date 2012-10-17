@@ -64,13 +64,20 @@ public class SizeChangeVideoEvent
         this.height = height;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * Makes sure that the cloning of this instance initializes a new
+     * <tt>SizeChangeVideoEvent</tt> instance.
+     */
     @Override
     public VideoEvent clone(Object source)
     {
         return
             new SizeChangeVideoEvent(
                     source,
-                    getVisualComponent(), getOrigin(),
+                    getVisualComponent(),
+                    getOrigin(),
                     getWidth(), getHeight());
     }
 

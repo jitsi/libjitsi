@@ -166,7 +166,7 @@ public class MediaDeviceSession
      * Whether output size has changed after latest processor config.
      * Used for video streams.
      */
-    protected boolean outputsizeChanged = false;
+    protected boolean outputSizeChanged = false;
 
     /**
      * Initializes a new <tt>MediaDeviceSession</tt> instance which is to
@@ -1221,15 +1221,15 @@ public class MediaDeviceSession
      * overriding this method should call the super implementation.
      * </p>
      *
-     * @param event the <tt>ControllerEvent</tt> specifying the
+     * @param ev the <tt>ControllerEvent</tt> specifying the
      * <tt>Controller</tt> which is the source of the event and the very type of
      * the event
      */
-    protected void playerControllerUpdate(ControllerEvent event)
+    protected void playerControllerUpdate(ControllerEvent ev)
     {
-        if (event instanceof ConfigureCompleteEvent)
+        if (ev instanceof ConfigureCompleteEvent)
         {
-            Processor player = (Processor) event.getSourceController();
+            Processor player = (Processor) ev.getSourceController();
 
             if (player != null)
             {
@@ -1254,9 +1254,9 @@ public class MediaDeviceSession
                 player.realize();
             }
         }
-        else if (event instanceof RealizeCompleteEvent)
+        else if (ev instanceof RealizeCompleteEvent)
         {
-            Processor player = (Processor) event.getSourceController();
+            Processor player = (Processor) ev.getSourceController();
 
             if (player != null)
             {
@@ -1558,9 +1558,9 @@ public class MediaDeviceSession
                         || ((processorState > Processor.Configured)
                                 && !this.format.getFormat().equals(
                                         getProcessorFormat()))
-                        || outputsizeChanged)
+                        || outputSizeChanged)
             {
-                outputsizeChanged = false;
+                outputSizeChanged = false;
                 setProcessor(null);
             }
         }

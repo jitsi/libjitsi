@@ -104,6 +104,17 @@ public class VideoEvent
         this.origin = origin;
     }
 
+    /**
+     * Initializes a new instance of the run-time type of this instance which
+     * has the same property values as this instance except for the source which
+     * is set on the new instance to a specific value.
+     *
+     * @param source the <tt>Object</tt> which is to be reported as the source
+     * of the new instance
+     * @return a new instance of the run-time type of this instance which has
+     * the same property values as this instance except for the source which is
+     * set on the new instance to the specified <tt>source</tt>
+     */
     public VideoEvent clone(Object source)
     {
         return

@@ -693,18 +693,23 @@ public class VideoMediaStreamImpl
             MediaFormat format,
             Map<String, String> attrs)
     {
-        /* walk through attributes and see if we recognized something
-         * we support
+        /*
+         * Iterate over the specified attributes and handle those of them which
+         * we recognize.
          */
         if(attrs != null)
         {
+            /*
+             * The width and height attributes are separate but they have to be
+             * collected into a Dimension in order to be handled.
+             */
             String width = null;
             String height = null;
 
-            for(Map.Entry<String, String> mapEntry : attrs.entrySet())
+            for(Map.Entry<String, String> attr : attrs.entrySet())
             {
-                String key = mapEntry.getKey();
-                String value = mapEntry.getValue();
+                String key = attr.getKey();
+                String value = attr.getValue();
 
                 if(key.equals("rtcp-fb"))
                 {
@@ -713,17 +718,22 @@ public class VideoMediaStreamImpl
                 }
                 else if(key.equals("imageattr"))
                 {
+                    /*
+                     * If the width and height attributes have been collected
+                     * into outputSize, do not override the Dimension they have
+                     * specified.
+                     */
+                    if((attrs.containsKey("width")
+                                || attrs.containsKey("height"))
+                            && (outputSize != null))
+                    {
+                        continue;
+                    }
+
                     Dimension res[] = parseSendRecvResolution(value);
 
                     if(res != null)
                     {
-                        // if we have width or height attributes
-                        // don't override any previous output size
-                        if((attrs.containsKey("width")
-                                || attrs.containsKey("height"))
-                            && outputSize != null)
-                            continue;
-
                         outputSize = res[1];
 
                         qualityControl.setRemoteSendMaxPreset(
@@ -737,39 +747,40 @@ public class VideoMediaStreamImpl
                 {
                     Dimension dim = new Dimension(352, 288);
 
-                    if(outputSize == null || (outputSize.width < dim.width &&
-                            outputSize.height < dim.height))
+                    if((outputSize == null)
+                            || ((outputSize.width < dim.width)
+                                    && (outputSize.height < dim.height)))
                     {
                         outputSize = dim;
-                        ((VideoMediaDeviceSession)getDeviceSession()).
-                            setOutputSize(outputSize);
+                        ((VideoMediaDeviceSession)getDeviceSession())
+                            .setOutputSize(outputSize);
                     }
                 }
                 else if(key.equals("QCIF"))
                 {
                     Dimension dim = new Dimension(176, 144);
 
-                    if(outputSize == null || (outputSize.width < dim.width &&
-                            outputSize.height < dim.height))
+                    if((outputSize == null)
+                            || ((outputSize.width < dim.width)
+                                    && (outputSize.height < dim.height)))
                     {
                         outputSize = dim;
-                        ((VideoMediaDeviceSession)getDeviceSession()).
-                            setOutputSize(outputSize);
+                        ((VideoMediaDeviceSession)getDeviceSession())
+                            .setOutputSize(outputSize);
                     }
                 }
-                else if(key.equals("VGA")) // X-lite send it
+                else if(key.equals("VGA")) // X-Lite sends it.
                 {
                     Dimension dim = new Dimension(640, 480);
 
-                    if(outputSize == null || (outputSize.width < dim.width &&
-                            outputSize.height < dim.height))
+                    if((outputSize == null)
+                            || ((outputSize.width < dim.width)
+                                    && (outputSize.height < dim.height)))
                     {
-                        /* X-lite does not display anything if we send 640x480
-                         * video
-                         */
+                        // X-Lite does not display anything if we send 640x480.
                         outputSize = dim;
-                        ((VideoMediaDeviceSession)getDeviceSession()).
-                            setOutputSize(outputSize);
+                        ((VideoMediaDeviceSession)getDeviceSession())
+                            .setOutputSize(outputSize);
                     }
                 }
                 else if(key.equals("CUSTOM"))
@@ -781,15 +792,18 @@ public class VideoMediaStreamImpl
 
                     try
                     {
-                        Dimension dim = new Dimension(Integer.parseInt(args[0]),
-                                Integer.parseInt(args[1]));
+                        Dimension dim
+                            = new Dimension(
+                                    Integer.parseInt(args[0]),
+                                    Integer.parseInt(args[1]));
 
-                        if(outputSize == null || (outputSize.width < dim.width
-                                && outputSize.height < dim.height))
+                        if((outputSize == null)
+                                || ((outputSize.width < dim.width)
+                                        && (outputSize.height < dim.height)))
                         {
                             outputSize = dim;
-                            ((VideoMediaDeviceSession)getDeviceSession()).
-                                setOutputSize(outputSize);
+                            ((VideoMediaDeviceSession)getDeviceSession())
+                                .setOutputSize(outputSize);
                         }
                     }
                     catch(Exception e)
@@ -799,28 +813,27 @@ public class VideoMediaStreamImpl
                 else if (key.equals("width"))
                 {
                     width = value;
-
                     if(height != null)
                     {
-                        outputSize = new Dimension(
-                            Integer.parseInt(width),
-                            Integer.parseInt(height));
-
-                        ((VideoMediaDeviceSession)getDeviceSession()).
-                            setOutputSize(outputSize);
+                        outputSize
+                            = new Dimension(
+                                    Integer.parseInt(width),
+                                    Integer.parseInt(height));
+                        ((VideoMediaDeviceSession)getDeviceSession())
+                            .setOutputSize(outputSize);
                     }
                 }
                 else if (key.equals("height"))
                 {
                     height = value;
-
                     if(width != null)
                     {
-                        outputSize = new Dimension(
-                            Integer.parseInt(width),
-                            Integer.parseInt(height));
-                        ((VideoMediaDeviceSession)getDeviceSession()).
-                            setOutputSize(outputSize);
+                        outputSize
+                            = new Dimension(
+                                    Integer.parseInt(width),
+                                    Integer.parseInt(height));
+                        ((VideoMediaDeviceSession)getDeviceSession())
+                            .setOutputSize(outputSize);
                     }
                 }
             }
@@ -1015,8 +1028,7 @@ public class VideoMediaStreamImpl
      * @param advancedParams parameters of advanced attributes that may affect
      * quality control
      */
-    public void updateQualityControl(
-        Map<String, String> advancedParams)
+    public void updateQualityControl(Map<String, String> advancedParams)
     {
         for(Map.Entry<String, String> entry : advancedParams.entrySet())
         {
@@ -1028,8 +1040,7 @@ public class VideoMediaStreamImpl
                 {
                     qualityControl.setRemoteSendMaxPreset(
                             new QualityPreset(res[0]));
-                    qualityControl.setRemoteReceiveResolution(
-                            res[1]);
+                    qualityControl.setRemoteReceiveResolution(res[1]);
                     outputSize = res[1];
                     ((VideoMediaDeviceSession)getDeviceSession())
                         .setOutputSize(outputSize);
