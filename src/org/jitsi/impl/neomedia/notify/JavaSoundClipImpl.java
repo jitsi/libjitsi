@@ -7,13 +7,10 @@
 package org.jitsi.impl.neomedia.notify;
 
 import java.applet.*;
-import java.awt.event.*;
 import java.io.*;
 import java.lang.reflect.*;
 import java.net.*;
 import java.security.*;
-
-import javax.swing.*;
 
 import org.jitsi.service.audionotifier.*;
 
@@ -23,98 +20,33 @@ import org.jitsi.service.audionotifier.*;
  * @author Yana Stamcheva
  */
 public class JavaSoundClipImpl
-    extends SCAudioClipImpl
-    implements ActionListener
+    extends AbstractSCAudioClip
                
 {
     private static Constructor<AudioClip> acConstructor = null;
 
-    private final Timer playAudioTimer = new Timer(1000, null);
-
-    private final AudioClip audioClip;
-
-    private final AudioNotifierService audioNotifier;
-
-    /**
-     * Creates the audio clip and initialize the listener used from the
-     * loop timer.
-     *
-     * @param url the url pointing to the audio file
-     * @param audioNotifier the audio notify service
-     * @throws IOException cannot audio clip with supplied url.
-     */
-    public JavaSoundClipImpl(URL url, AudioNotifierService audioNotifier)
-        throws IOException
+    @SuppressWarnings("unchecked")
+    private static Constructor<AudioClip> createAcConstructor()
+        throws ClassNotFoundException,
+               NoSuchMethodException,
+               SecurityException
     {
-        this.audioClip = createAppletAudioClip(url.openStream());
-        this.audioNotifier = audioNotifier;
-
-        this.playAudioTimer.addActionListener(this);
-    }
-
-    /**
-     * Plays this audio.
-     */
-    public void play()
-    {
-        if ((audioClip != null) && !audioNotifier.isMute())
-            audioClip.play();
-    }
-
-    /**
-     * Plays this audio in loop.
-     *
-     * @param interval the loop interval
-     */
-    public void playInLoop(int interval)
-    {
-        if(!audioNotifier.isMute())
+        Class<?> class1;
+        try
         {
-            if(interval == 0)
-                audioClip.loop();
-            else
-            {
-                //first play the audio and then start the timer and wait
-                audioClip.play();
-                playAudioTimer.setDelay(interval);
-                playAudioTimer.setRepeats(true);
-
-                playAudioTimer.start();
-            }
+            class1
+                = Class.forName(
+                    "com.sun.media.sound.JavaSoundAudioClip",
+                    true,
+                    ClassLoader.getSystemClassLoader());
         }
-
-        setLoopInterval(interval);
-        setIsLooping(true);
-    }
-
-    /**
-     * Stops this audio.
-     */
-    public void stop()
-    {
-        if (audioClip != null)
-            audioClip.stop();
-
-        if (isLooping())
+        catch (ClassNotFoundException cnfex)
         {
-            playAudioTimer.stop();
-            setIsLooping(false);
+            class1
+                = Class.forName("sun.audio.SunAudioClip", true, null);
         }
-    }
-
-    /**
-     * Stops this audio without setting the isLooping property in the case of
-     * a looping audio. The AudioNotifier uses this method to stop the audio
-     * when setMute(true) is invoked. This allows us to restore all looping
-     * audios when the sound is restored by calling setMute(false).
-     */
-    public void internalStop()
-    {
-        if (audioClip != null)
-            audioClip.stop();
-
-        if (isLooping())
-            playAudioTimer.stop();
+        return
+            (Constructor<AudioClip>) class1.getConstructor(InputStream.class);
     }
 
     /**
@@ -162,40 +94,52 @@ public class JavaSoundClipImpl
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static Constructor<AudioClip> createAcConstructor()
-        throws ClassNotFoundException,
-               NoSuchMethodException,
-               SecurityException
+    private final AudioClip audioClip;
+
+    /**
+     * Creates the audio clip and initialize the listener used from the
+     * loop timer.
+     *
+     * @param url the url pointing to the audio file
+     * @param audioNotifier the audio notify service
+     * @throws IOException cannot audio clip with supplied url.
+     */
+    public JavaSoundClipImpl(URL url, AudioNotifierService audioNotifier)
+            throws IOException
     {
-        Class<?> class1;
-        try
-        {
-            class1
-                = Class.forName(
-                    "com.sun.media.sound.JavaSoundAudioClip",
-                    true,
-                    ClassLoader.getSystemClassLoader());
-        }
-        catch (ClassNotFoundException cnfex)
-        {
-            class1
-                = Class.forName("sun.audio.SunAudioClip", true, null);
-        }
-        return
-            (Constructor<AudioClip>) class1.getConstructor(InputStream.class);
+        super(url, audioNotifier);
+
+        audioClip = createAppletAudioClip(url.openStream());
     }
 
     /**
-     * Plays an audio clip. Used in the playAudioTimer to play an audio in loop.
-     * @param e the event.
+     * {@inheritDoc}
      */
-    public void actionPerformed(ActionEvent e)
+    @Override
+    public void internalStop()
     {
-        if (audioClip != null)
+        try
         {
-            audioClip.stop();
+            if (audioClip != null)
+                audioClip.stop();
+        }
+        finally
+        {
+            super.internalStop();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected boolean runOnceInPlayThread()
+    {
+        if (audioClip == null)
+            return false;
+        else
+        {
             audioClip.play();
+            return true;
         }
     }
 }

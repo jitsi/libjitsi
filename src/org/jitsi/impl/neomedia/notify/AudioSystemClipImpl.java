@@ -13,16 +13,17 @@ import javax.media.*;
 import javax.sound.sampled.*;
 
 import org.jitsi.impl.neomedia.codec.audio.speex.*;
+import org.jitsi.service.audionotifier.*;
 import org.jitsi.util.*;
 
 /**
  * Implementation of SCAudioClip using PortAudio.
  *
  * @author Damyian Minkov
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class AudioSystemClipImpl
-    extends SCAudioClipImpl
+    extends AbstractSCAudioClip
 {
     /**
      * The <tt>Logger</tt> used by the <tt>AudioSystemClipImpl</tt> class and
@@ -31,18 +32,16 @@ public class AudioSystemClipImpl
     private static final Logger logger
         = Logger.getLogger(AudioSystemClipImpl.class);
 
-    private final AudioNotifierServiceImpl audioNotifier;
-
     private final org.jitsi.impl.neomedia.device.AudioSystem
         audioSystem;
 
-    private boolean started = false;
-    
-    private final Object syncObject = new Object();
+    private Buffer buffer;
 
-    private final URL url;
+    private byte[] bufferData;
 
-    private boolean isPlayback = false;
+    private final boolean playback;
+
+    private Renderer renderer;
 
     /**
      * Creates the audio clip and initializes the listener used from the
@@ -55,154 +54,58 @@ public class AudioSystemClipImpl
      */
     public AudioSystemClipImpl(
             URL url,
-            AudioNotifierServiceImpl audioNotifier,
+            AudioNotifierService audioNotifier,
             org.jitsi.impl.neomedia.device.AudioSystem audioSystem,
             boolean playback)
         throws IOException
     {
-        this.url = url;
-        this.audioNotifier = audioNotifier;
+        super(url, audioNotifier);
+
         this.audioSystem = audioSystem;
-        this.isPlayback = playback;
+        this.playback = playback;
     }
 
     /**
-     * Plays this audio.
+     * {@inheritDoc}
      */
-    public void play()
+    @Override
+    protected void enterRunInPlayThread()
     {
-        if ((url != null) && !audioNotifier.isMute())
-        {
-            started = true;
-            new Thread()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            runInPlayThread();
-                        }
-                    }.start();
-        }
-    }
-
-    /**
-     * Plays this audio in loop.
-     *
-     * @param interval the loop interval
-     */
-    public void playInLoop(int interval)
-    {
-        setLoopInterval(interval);
-        setIsLooping(true);
-
-        play();
-    }
-
-    /**
-     * Stops this audio.
-     */
-    public void stop()
-    {
-        internalStop();
-        setIsLooping(false);
-    }
-
-    /**
-     * Stops this audio without setting the isLooping property in the case of
-     * a looping audio. The AudioNotifier uses this method to stop the audio
-     * when setMute(true) is invoked. This allows us to restore all looping
-     * audios when the sound is restored by calling setMute(false).
-     */
-    public void internalStop()
-    {
-        synchronized (syncObject) 
-        {
-            if (url != null && started) 
-            {
-                started = false;
-                syncObject.notifyAll();
-            }
-        }
-    }
-
-    /**
-     * Runs in a separate thread to perform the actual playback of the audio
-     * stream pointed to by {@link #url} looping as necessary.
-     */
-    private void runInPlayThread()
-    {
-        Buffer buffer = new Buffer();
-        byte[] bufferData = new byte[1024];
-        // don't enable volume control for notifications
-
-        Renderer renderer = audioSystem.createRenderer(isPlayback);
-
+        buffer = new Buffer();
+        bufferData = new byte[1024];
         buffer.setData(bufferData);
-        while (started)
-        {
-            try
-            {
-                if (!runOnceInPlayThread(renderer, buffer, bufferData))
-                    break;
-            }
-            finally
-            {
-                try
-                {
-                    renderer.stop();
-                }
-                finally
-                {
-                    renderer.close();
-                }
-            }
 
-            if(isLooping())
-            {
-                synchronized(syncObject)
-                {
-                    if (started)
-                    {
-                        try
-                        {
-                            // only wait if lonnger than 0
-                            // or we will wait forever
-                            if(getLoopInterval() > 0)
-                                syncObject.wait(getLoopInterval());
-                        }
-                        catch (InterruptedException e)
-                        {
-                        }
-                    }
-                }
-            }
-            else
-                break;
-        }
+        renderer = audioSystem.createRenderer(playback);
     }
 
     /**
-     * Runs in a separate thread to perform the actual playback of the audio
-     * stream pointed to by {@link #url} once using a specific
-     * <tt>PortAudioRenderer</tt> and giving it the audio data for processing
-     * through a specific JMF <tt>Buffer</tt>.
-     *
-     * @param renderer the <tt>PortAudioRenderer</tt> which is to render the
-     * audio data read from the audio stream pointed to by {@link #url}
-     * @param buffer the JMF <tt>Buffer</tt> through which the audio data to be
-     * rendered is to be given to <tt>renderer</tt>
-     * @param bufferData the value of the <tt>data</tt> property of
-     * <tt>buffer</tt> explicitly specified for performance reasons so that it
-     * doesn't have to be read and cast during every iteration of the playback
-     * loop
-     * @return <tt>true</tt> if the playback was successful and it is to be
-     * carried out again in accord with the <tt>looping</tt> property value of
-     * this <tt>SCAudioClipImpl</tt>; otherwise, <tt>false</tt>
+     * {@inheritDoc}
      */
-    private boolean runOnceInPlayThread(
-            Renderer renderer,
-            Buffer buffer,
-            byte[] bufferData)
+    @Override
+    protected void exitRunInPlayThread()
+    {
+        buffer = null;
+        bufferData = null;
+        renderer = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void exitRunOnceInPlayThread()
+    {
+        try
+        {
+            renderer.stop();
+        }
+        finally
+        {
+            renderer.close();
+        }
+    }
+
+    protected boolean runOnceInPlayThread()
     {
         AudioInputStream audioStream = null;
 
@@ -288,7 +191,7 @@ public class AudioSystemClipImpl
 
                 int bufferLength;
 
-                while(started
+                while(isStarted()
                         && ((bufferLength = audioStream.read(bufferData))
                                 != -1))
                 {

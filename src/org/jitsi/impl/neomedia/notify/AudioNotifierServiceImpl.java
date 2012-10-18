@@ -10,13 +10,13 @@ import java.beans.*;
 import java.net.*;
 import java.util.*;
 
+import javax.media.*;
+
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.audionotifier.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.resources.*;
-
-import javax.media.*;
 
 /**
  * The implementation of the AudioNotifierService.
@@ -30,8 +30,8 @@ public class AudioNotifierServiceImpl
     /**
      * Map of different audio clips.
      */
-    private static final Map<AudioClipsKey, SCAudioClipImpl> audioClips =
-        new HashMap<AudioClipsKey, SCAudioClipImpl>();
+    private static final Map<AudioClipsKey, AbstractSCAudioClip> audioClips
+        = new HashMap<AudioClipsKey, AbstractSCAudioClip>();
 
     /**
      * If the sound is currently disabled.
@@ -63,7 +63,7 @@ public class AudioNotifierServiceImpl
      * @param uri the path where the audio file could be found
      * @return a newly created <tt>SCAudioClip</tt> from <tt>uri</tt>
      */
-    public SCAudioClipImpl createAudio(String uri)
+    public AbstractSCAudioClip createAudio(String uri)
     {
         return createAudio(uri, false);
     }
@@ -76,9 +76,9 @@ public class AudioNotifierServiceImpl
      * @param playback use or not the playback device.
      * @return a newly created <tt>SCAudioClip</tt> from <tt>uri</tt>
      */
-    public SCAudioClipImpl createAudio(String uri, boolean playback)
+    public AbstractSCAudioClip createAudio(String uri, boolean playback)
     {
-        SCAudioClipImpl audioClip;
+        AbstractSCAudioClip audioClip;
 
         synchronized (audioClips)
         {
@@ -122,8 +122,11 @@ public class AudioNotifierServiceImpl
                         audioClip = null;
                     else
                     {
-                        audioClip = new AudioSystemClipImpl(
-                                            url, this, audioSystem, playback);
+                        audioClip
+                            = new AudioSystemClipImpl(
+                                    url,
+                                    this, audioSystem,
+                                    playback);
                     }
                 }
                 catch (Throwable t)
@@ -151,7 +154,7 @@ public class AudioNotifierServiceImpl
         synchronized (audioClips)
         {
             AudioClipsKey keyToRemove = null;
-            for(Map.Entry<AudioClipsKey, SCAudioClipImpl> entry
+            for(Map.Entry<AudioClipsKey, AbstractSCAudioClip> entry
                 : audioClips.entrySet())
             {
                 if(entry.getValue().equals(audioClip))
@@ -175,7 +178,7 @@ public class AudioNotifierServiceImpl
     {
         this.isMute = isMute;
 
-        for (SCAudioClipImpl audioClip : audioClips.values())
+        for (AbstractSCAudioClip audioClip : audioClips.values())
         {
             if (isMute)
             {
@@ -183,7 +186,7 @@ public class AudioNotifierServiceImpl
             }
             else if (audioClip.isLooping())
             {
-                audioClip.playInLoop(audioClip.getLoopInterval());
+                // TODO Auto-generated method stub
             }
         }
     }

@@ -6,28 +6,40 @@
  */
 package org.jitsi.service.audionotifier;
 
+import java.util.concurrent.*;
+
 /**
  * SCAudioClip represents an audio clip created using the AudioNotifierService.
  * Like  any audio it could be played, stopped or played in loop.
  *
  * @author Yana Stamcheva
+ * @author Lyubomir Marinov
  */
 public interface SCAudioClip
 {
     /**
-     * Plays this audio.
+     * Starts playing this audio once only. The method behaves as if
+     * {@link #play(int, Callable)} was invoked with a negative
+     * <tt>loopInterval</tt> and/or <tt>null</tt> <tt>loopCondition</tt>.
      */
     public void play();
 
     /**
-     * Plays this audio in loop.
+     * Starts playing this audio. Optionally, the playback is looped.
      *
-     * @param silenceInterval interval between loops
+     * @param loopInterval the interval of time in milliseconds between
+     * consecutive plays of this audio. If negative, this audio is played once
+     * only and <tt>loopCondition</tt> is ignored.
+     * @param loopCondition a <tt>Callable</tt> which is called at the beginning
+     * of each iteration of looped playback of this audio except the first one
+     * to determine whether to continue the loop. If <tt>loopInterval</tt> is
+     * negative or <tt>loopCondition</tt> is <tt>null</tt>, this audio is played
+     * once only.
      */
-    public void playInLoop(int silenceInterval);
+    public void play(int loopInterval, Callable<Boolean> loopCondition);
 
     /**
-     * Stops this audio.
+     * Stops playing this audio.
      */
     public void stop();
 }
