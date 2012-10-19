@@ -9,6 +9,7 @@ package org.jitsi.impl.neomedia.notify;
 import java.beans.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 import javax.media.*;
 
@@ -19,29 +20,39 @@ import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.resources.*;
 
 /**
- * The implementation of the AudioNotifierService.
+ * The implementation of <tt>AudioNotifierService</tt>.
  *
  * @author Yana Stamcheva
+ * @author Lyubomir Marinov
  */
 public class AudioNotifierServiceImpl
     implements AudioNotifierService,
                PropertyChangeListener
 {
     /**
-     * Map of different audio clips.
+     * The cache of <tt>SCAudioClip</tt> instances which we may reuse. The reuse
+     * is complex because a <tt>SCAudioClip</tt> may be used by a single user at
+     * a time. 
      */
-    private static final Map<AudioClipsKey, AbstractSCAudioClip> audioClips
-        = new HashMap<AudioClipsKey, AbstractSCAudioClip>();
+    private Map<AudioKey, SCAudioClip> audios;
 
     /**
-     * If the sound is currently disabled.
+     * The <tt>Object</tt> which synchronizes the access to {@link #audios}.
      */
-    private boolean isMute;
+    private final Object audiosSyncRoot = new Object();
 
     /**
-     * Device config to look for notify device.
+     * The <tt>DeviceConfiguration</tt> which provides information about the
+     * notify and playback devices on which this instance plays
+     * <tt>SCAudioClip</tt>s.
      */
     private final DeviceConfiguration deviceConfiguration;
+
+    /**
+     * The indicator which determined whether <tt>SCAudioClip</tt>s are to be
+     * played by this instance.
+     */
+    private boolean mute;
 
     /**
      * Initializes a new <tt>AudioNotifierServiceImpl</tt> instance.
@@ -53,7 +64,26 @@ public class AudioNotifierServiceImpl
                 .getMediaServiceImpl()
                     .getDeviceConfiguration();
 
-        deviceConfiguration.addPropertyChangeListener(this);
+        this.deviceConfiguration.addPropertyChangeListener(this);
+    }
+
+    /**
+     * Checks whether the playback and notification configuration
+     * share the same device.
+     * @return are audio out and notifications using the same device.
+     */
+    public boolean audioOutAndNotificationsShareSameDevice()
+    {
+        AudioSystem audioSystem = getDeviceConfiguration().getAudioSystem();
+        CaptureDeviceInfo notify
+            = audioSystem.getDevice(AudioSystem.NOTIFY_INDEX);
+        CaptureDeviceInfo playback
+            = audioSystem.getDevice(AudioSystem.PLAYBACK_INDEX);
+
+        return
+            (notify == null)
+                ? (playback == null)
+                : notify.getLocator().equals(playback.getLocator());
     }
 
     /**
@@ -63,7 +93,7 @@ public class AudioNotifierServiceImpl
      * @param uri the path where the audio file could be found
      * @return a newly created <tt>SCAudioClip</tt> from <tt>uri</tt>
      */
-    public AbstractSCAudioClip createAudio(String uri)
+    public SCAudioClip createAudio(String uri)
     {
         return createAudio(uri, false);
     }
@@ -76,18 +106,23 @@ public class AudioNotifierServiceImpl
      * @param playback use or not the playback device.
      * @return a newly created <tt>SCAudioClip</tt> from <tt>uri</tt>
      */
-    public AbstractSCAudioClip createAudio(String uri, boolean playback)
+    public SCAudioClip createAudio(String uri, boolean playback)
     {
-        AbstractSCAudioClip audioClip;
+        SCAudioClip audio;
 
-        synchronized (audioClips)
+        synchronized (audiosSyncRoot)
         {
-            AudioClipsKey key = new AudioClipsKey(uri, playback);
-            if(audioClips.containsKey(key))
-            {
-                audioClip = audioClips.get(key);
-            }
-            else
+            final AudioKey key = new AudioKey(uri, playback);
+
+            /*
+             * While we want to reuse the SCAudioClip instances, they may be
+             * used by a single user at a time. That's why we'll forget about
+             * them while they are in use and we'll reclaim them when they are
+             * no longer in use.
+             */
+            audio = (audios == null) ? null : audios.remove(key);
+
+            if (audio == null)
             {
                 ResourceManagementService resources
                     = LibJitsi.getResourceManagementService();
@@ -105,7 +140,6 @@ public class AudioNotifierServiceImpl
                     }
                     catch (MalformedURLException e)
                     {
-                        //logger.error("The given uri could not be parsed.", e);
                         return null;
                     }
                 }
@@ -116,16 +150,21 @@ public class AudioNotifierServiceImpl
                         = getDeviceConfiguration().getAudioSystem();
 
                     if (audioSystem == null)
-                        audioClip = new JavaSoundClipImpl(url, this);
+                    {
+                        audio = new JavaSoundClipImpl(url, this);
+                    }
                     else if (NoneAudioSystem.LOCATOR_PROTOCOL.equalsIgnoreCase(
                             audioSystem.getLocatorProtocol()))
-                        audioClip = null;
+                    {
+                        audio = null;
+                    }
                     else
                     {
-                        audioClip
+                        audio
                             = new AudioSystemClipImpl(
                                     url,
-                                    this, audioSystem,
+                                    this,
+                                    audioSystem,
                                     playback);
                     }
                 }
@@ -133,71 +172,75 @@ public class AudioNotifierServiceImpl
                 {
                     if (t instanceof ThreadDeath)
                         throw (ThreadDeath) t;
-                    // Cannot create audio to play
-                    return null;
-                }
-
-                audioClips.put(key, audioClip);
-            }
-        }
-
-        return audioClip;
-    }
-
-    /**
-     * Removes the given audio from the list of available audio clips.
-     *
-     * @param audioClip the audio to destroy
-     */
-    public void destroyAudio(SCAudioClip audioClip)
-    {
-        synchronized (audioClips)
-        {
-            AudioClipsKey keyToRemove = null;
-            for(Map.Entry<AudioClipsKey, AbstractSCAudioClip> entry
-                : audioClips.entrySet())
-            {
-                if(entry.getValue().equals(audioClip))
-                {
-                    keyToRemove = entry.getKey();
-                    break;
+                    else
+                    {
+                        /*
+                         * Could not initialize a new SCAudioClip instance to be
+                         * played.
+                         */
+                        return null;
+                    }
                 }
             }
 
-            audioClips.remove(keyToRemove);
-        }
-    }
-
-    /**
-     * Enables or disables the sound in the application. If FALSE, we try to
-     * restore all looping sounds if any.
-     *
-     * @param isMute when TRUE disables the sound, otherwise enables the sound.
-     */
-    public void setMute(boolean isMute)
-    {
-        this.isMute = isMute;
-
-        for (AbstractSCAudioClip audioClip : audioClips.values())
-        {
-            if (isMute)
+            /*
+             * Make sure that the SCAudioClip will be reclaimed for reuse when
+             * it is no longer in use.
+             */
+            if (audio != null)
             {
-                audioClip.internalStop();
-            }
-            else if (audioClip.isLooping())
-            {
-                // TODO Auto-generated method stub
+                if (audios == null)
+                    audios = new HashMap<AudioKey, SCAudioClip>();
+
+                /*
+                 * We have to return in the Map which was active at the time the
+                 * SCAudioClip was initialized because it may have become
+                 * invalid if the playback or notify audio device changed.
+                 */
+                final Map<AudioKey, SCAudioClip> finalAudios = audios;
+                final SCAudioClip finalAudio = audio;
+
+                audio
+                    = new SCAudioClip()
+                    {
+                        @Override
+                        protected void finalize()
+                            throws Throwable
+                        {
+                            try
+                            {
+                                synchronized (audios)
+                                {
+                                    finalAudios.put(key, finalAudio);
+                                }
+                            }
+                            finally
+                            {
+                                super.finalize();
+                            }
+                        }
+
+                        public void play()
+                        {
+                            finalAudio.play();
+                        }
+
+                        public void play(
+                                int loopInterval,
+                                Callable<Boolean> loopCondition)
+                        {
+                            finalAudio.play(loopInterval, loopCondition);
+                        }
+
+                        public void stop()
+                        {
+                            finalAudio.stop();
+                        }
+                    };
             }
         }
-    }
 
-    /**
-     * Returns TRUE if the sound is currently disabled, FALSE otherwise.
-     * @return TRUE if the sound is currently disabled, FALSE otherwise
-     */
-    public boolean isMute()
-    {
-        return isMute;
+        return audio;
     }
 
     /**
@@ -211,84 +254,101 @@ public class AudioNotifierServiceImpl
     }
 
     /**
+     * Returns TRUE if the sound is currently disabled, FALSE otherwise.
+     * @return TRUE if the sound is currently disabled, FALSE otherwise
+     */
+    public boolean isMute()
+    {
+        return mute;
+    }
+
+    /**
      * Listens for changes in notify device
-     * @param event the event that notify device has changed.
+     * @param ev the event that notify device has changed.
      */
-    public void propertyChange(PropertyChangeEvent event)
+    public void propertyChange(PropertyChangeEvent ev)
     {
-        if (DeviceConfiguration.AUDIO_NOTIFY_DEVICE.equals(
-                event.getPropertyName()))
+        String propertyName = ev.getPropertyName();
+
+        if (DeviceConfiguration.AUDIO_NOTIFY_DEVICE.equals(propertyName)
+                || DeviceConfiguration.AUDIO_PLAYBACK_DEVICE.equals(
+                        propertyName))
         {
-            audioClips.clear();
+            synchronized (audiosSyncRoot)
+            {
+                /*
+                 * Make sure that the currently referenced SCAudioClips will not
+                 * be reclaimed.
+                 */
+                audios = null;
+            }
         }
     }
 
     /**
-     * Checks whether the playback and notification configuration
-     * share the same device.
-     * @return are audio out and notifications using the same device.
+     * Enables or disables the sound in the application. If FALSE, we try to
+     * restore all looping sounds if any.
+     *
+     * @param mute when TRUE disables the sound, otherwise enables the sound.
      */
-    public boolean audioOutAndNotificationsShareSameDevice()
+    public void setMute(boolean mute)
     {
-        CaptureDeviceInfo notifyInfo =
-            getDeviceConfiguration().getAudioSystem()
-                .getDevice(AudioSystem.NOTIFY_INDEX);
-        CaptureDeviceInfo playbackInfo =
-            getDeviceConfiguration().getAudioSystem()
-                .getDevice(AudioSystem.PLAYBACK_INDEX);
+        this.mute = mute;
 
-        if(notifyInfo != null && playbackInfo != null)
-        {
-            return notifyInfo.getLocator().equals(playbackInfo.getLocator());
-        }
-
-        return false;
+        // TODO Auto-generated method stub
     }
 
     /**
-     * Key for clips.
+     * Implements the key of {@link AudioNotifierServiceImpl#audios}. Combines the
+     * <tt>uri</tt> of the <tt>SCAudioClip</tt> with the indicator which
+     * determines whether the <tt>SCAudioClip</tt> in question uses the playback
+     * or the notify audio device.
      */
-    private static class AudioClipsKey
+    private static class AudioKey
     {
+        /**
+         * Is it playback?
+         */
+        private final boolean playback;
+
         /**
          * The uri.
          */
-        private String uri;
+        final String uri;
 
         /**
-         * Is it playback.
+         * Initializes a new <tt>AudioKey</tt> instance.
+         *
+         * @param uri
+         * @param playback
          */
-        private boolean isPlayback;
-
-        /**
-         * Constructs key.
-         * @param uri by uri
-         * @param playback and playback
-         */
-        private AudioClipsKey(String uri, boolean playback)
+        private AudioKey(String uri, boolean playback)
         {
             this.uri = uri;
-            isPlayback = playback;
+            this.playback = playback;
         }
 
         @Override
         public boolean equals(Object o)
         {
-            AudioClipsKey that = (AudioClipsKey) o;
-
-            if(isPlayback != that.isPlayback)
-                return false;
-            if(uri != null ? !uri.equals(that.uri) : that.uri != null)
+            if (o == this)
+                return true;
+            if (o == null)
                 return false;
 
-            return true;
+            AudioKey that = (AudioKey) o;
+
+            return
+                (playback == that.playback)
+                    && ((uri == null)
+                            ? (that.uri == null)
+                            : uri.equals(that.uri));
         }
 
         @Override
         public int hashCode()
         {
-            return (uri != null ? uri.hashCode() : 0)
-                + (isPlayback ? 1 : 0);
+            return ((uri == null) ? 0 : uri.hashCode()) + (playback ? 1 : 0);
         }
     }
 }

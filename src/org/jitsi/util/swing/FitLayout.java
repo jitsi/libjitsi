@@ -11,14 +11,13 @@ import java.awt.*;
 import javax.swing.*;
 
 /**
- * Represents a <code>LayoutManager</code> which centers the first
- * <code>Component</code> within its <code>Container</code> and, if the
- * preferred size of the <code>Component</code> is larger than the size of the
- * <code>Container</code>, scales the former within the bounds of the latter
- * while preserving the aspect ratio. <code>FitLayout</code> is appropriate for
- * <code>Container</code>s which display a single image or video
- * <code>Component</code> in its entirety for which preserving the aspect ratio
- * is important.
+ * Represents a <tt>LayoutManager</tt> which centers the first
+ * <tt>Component</tt> within its <tt>Container</tt> and, if the preferred size
+ * of the <tt>Component</tt> is larger than the size of the <tt>Container</tt>,
+ * scales the former within the bounds of the latter while preserving the aspect
+ * ratio. <tt>FitLayout</tt> is appropriate for <tt>Container</tt>s which
+ * display a single image or video <tt>Component</tt> in its entirety for which
+ * preserving the aspect ratio is important.
  * 
  * @author Lyubomir Marinov
  */
@@ -35,14 +34,13 @@ public class FitLayout
     }
 
     /**
-     * Gets the first <code>Component</code> of a specific
-     * <code>Container</code> if there is such a <code>Component</code>.
-     * 
-     * @param parent the <code>Container</code> to retrieve the first
-     *            <code>Component</code> of
-     * @return the first <code>Component</code> of a specific
-     *         <code>Container</code> if there is such a <code>Component</code>;
-     *         otherwise, <tt>null</tt>
+     * Gets the first <tt>Component</tt> of a specific <tt>Container</tt> if
+     * there is such a <tt>Component</tt>.
+     *
+     * @param parent the <tt>Container</tt> to retrieve the first
+     * <tt>Component</tt> of
+     * @return the first <tt>Component</tt> of a specific <tt>Container</tt> if
+     * there is such a <tt>Component</tt>; otherwise, <tt>null</tt>
      */
     protected Component getComponent(Container parent)
     {
@@ -172,10 +170,13 @@ public class FitLayout
                 : new Dimension(0, 0);
     }
 
-    /*
-     * Since this LayoutManager lays out only the first Component of the
-     * specified parent Container, the preferred size of the Container is the
-     * preferred size of the mentioned Component.
+    /**
+     * {@inheritDoc}
+     *
+     * Since this <tt>LayoutManager</tt> lays out only the first
+     * <tt>Component</tt> of the specified parent <tt>Container</tt>, the
+     * preferred size of the <tt>Container</tt> is the preferred size of the
+     * mentioned <tt>Component</tt>.
      */
     public Dimension preferredLayoutSize(Container parent)
     {
@@ -187,9 +188,12 @@ public class FitLayout
                 : new Dimension(0, 0);
     }
 
-    /*
-     * Does nothing because this LayoutManager lays out only the first Component
-     * of the parent Container and thus doesn't need String associations.
+    /**
+     * {@inheritDoc}
+     *
+     * Does nothing because this <tt>LayoutManager</tt> lays out only the first
+     * <tt>Component</tt> of the parent <tt>Container</tt> and thus doesn't need
+     * any <tt>String</tt> associations.
      */
     public void removeLayoutComponent(Component comp)
     {

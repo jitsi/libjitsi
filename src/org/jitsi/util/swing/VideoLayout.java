@@ -374,11 +374,9 @@ public class VideoLayout
     }
 
     /**
-     * Returns the minimum layout size for the given container.
+     * {@inheritDoc}
      *
-     * @param parent the container which minimum layout size we're looking for
-     * @return a Dimension containing, the minimum layout size for the given
-     * container
+     * The <tt>VideoLayout</tt> implementation of the method does nothing.
      */
     @Override
     public Dimension minimumLayoutSize(Container parent)

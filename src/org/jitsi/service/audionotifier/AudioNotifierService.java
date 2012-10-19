@@ -18,6 +18,13 @@ package org.jitsi.service.audionotifier;
 public interface AudioNotifierService
 {
     /**
+     * Checks whether the playback and notification configuration
+     * share the same device.
+     * @return are audio out and notifications using the same device.
+     */
+    public boolean audioOutAndNotificationsShareSameDevice();
+
+    /**
      * Creates an SCAudioClip and returns it. By default using notification
      * device.
      * @param uri the uri, which will be the source of the audio
@@ -34,20 +41,6 @@ public interface AudioNotifierService
     public SCAudioClip createAudio(String uri, boolean playback);
 
     /**
-     * Destroys the given audio.
-     *
-     * @param audio <tt>SCAudioClip</tt> to destroy
-     */
-    public void destroyAudio(SCAudioClip audio);
-
-    /**
-     * Stops/Restores all currently playing sounds.
-     *
-     * @param isMute mute or not currently playing sounds
-     */
-    public void setMute(boolean isMute);
-
-    /**
      * Specifies if currently the sound is off.
      *
      * @return TRUE if currently the sound is off, FALSE otherwise
@@ -55,9 +48,9 @@ public interface AudioNotifierService
     public boolean isMute();
 
     /**
-     * Checks whether the playback and notification configuration
-     * share the same device.
-     * @return are audio out and notifications using the same device.
+     * Stops/Restores all currently playing sounds.
+     *
+     * @param isMute mute or not currently playing sounds
      */
-    public boolean audioOutAndNotificationsShareSameDevice();
+    public void setMute(boolean isMute);
 }

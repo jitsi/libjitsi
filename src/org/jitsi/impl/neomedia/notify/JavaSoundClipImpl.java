@@ -97,12 +97,17 @@ public class JavaSoundClipImpl
     private final AudioClip audioClip;
 
     /**
-     * Creates the audio clip and initialize the listener used from the
-     * loop timer.
+     * Initializes a new <tt>JavaSoundClipImpl</tt> instance which is to play
+     * audio stored at a specific <tt>URL</tt> using
+     * <tt>java.applet.AudioClip</tt>.
      *
-     * @param url the url pointing to the audio file
-     * @param audioNotifier the audio notify service
-     * @throws IOException cannot audio clip with supplied url.
+     * @param url the <tt>URL</tt> at which the audio is stored and which the
+     * new instance is to load
+     * @param audioNotifier the <tt>AudioNotifierService</tt> which is
+     * initializing the new instance and whose <tt>mute</tt> property/state is
+     * to be monitored by the new instance
+     * @throws IOException if a <tt>java.applet.AudioClip</tt> could not be
+     * initialized or the audio at the specified <tt>url</tt> could not be read
      */
     public JavaSoundClipImpl(URL url, AudioNotifierService audioNotifier)
             throws IOException
@@ -114,9 +119,11 @@ public class JavaSoundClipImpl
 
     /**
      * {@inheritDoc}
+     *
+     * Stops the <tt>java.applet.AudioClip</tt> wrapped by this instance.
      */
     @Override
-    public void internalStop()
+    protected void internalStop()
     {
         try
         {
@@ -131,6 +138,8 @@ public class JavaSoundClipImpl
 
     /**
      * {@inheritDoc}
+     *
+     * Plays the <tt>java.applet.AudioClip</tt> wrapped by this instance.
      */
     protected boolean runOnceInPlayThread()
     {
