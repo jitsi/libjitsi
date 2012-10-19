@@ -14,6 +14,7 @@ package org.jitsi.service.audionotifier;
  * could be used.
  *
  * @author Yana Stamcheva
+ * @author Lyubomir Marinov
  */
 public interface AudioNotifierService
 {
