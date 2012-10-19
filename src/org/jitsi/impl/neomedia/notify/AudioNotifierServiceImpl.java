@@ -283,5 +283,12 @@ public class AudioNotifierServiceImpl
 
             return true;
         }
+
+        @Override
+        public int hashCode()
+        {
+            return (uri != null ? uri.hashCode() : 0)
+                + (isPlayback ? 1 : 0);
+        }
     }
 }
