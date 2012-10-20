@@ -537,6 +537,12 @@ public class MediaStreamImpl
      */
     public void close()
     {
+        /* Some statistics cannot be taken from the RTP manager and have to
+         * be gathered from the ReceiveStream. We need to do this before
+         * calling stop(). */
+        if(logger.isInfoEnabled())
+            printReceiveStreamStatistics();
+
         stop();
         closeSendStreams();
 
@@ -2688,22 +2694,24 @@ public class MediaStreamImpl
                     .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
                 .append("unknown types: ").append(rs.getUnknownTypes());
 
-            /* The number of discarded packets is not available in
-             * <tt>GlobalReceptionStats</tt>. Neither is the number of
-             * decoded using FEC. */
-            buff.append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
-                    .append("discarded RTP packets: ")
-                        .append(mediaStreamStatsImpl.getNbDiscarded())
-                .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
-                    .append("decoded with FEC: ")
-                        .append(mediaStreamStatsImpl.getNbFec());
-
             logger.info(buff);
         }
         catch(Throwable t)
         {
             logger.error("Error writing statistics", t);
         }
+    }
+
+    private void printReceiveStreamStatistics()
+    {
+        mediaStreamStatsImpl.updateStats();
+        StringBuilder buff = new StringBuilder("\nReceive stream stats: " +
+            "discarded RTP packets: ")
+                .append(mediaStreamStatsImpl.getNbDiscarded())
+                .append("\n").append("Receive stream stats: " +
+                    "decoded with FEC: ")
+                .append(mediaStreamStatsImpl.getNbFec());
+        logger.info(buff);
     }
 
     /**
