@@ -1173,6 +1173,29 @@ public class MediaDeviceSession
     }
 
     /**
+     * Notifies this <tt>MediaDeviceSession</tt> that a <tt>DataSource</tt> has
+     * been changed on the represented <tt>MediaDevice</tt>.
+     *
+     * @param playbackDataSource the <tt>DataSource</tt> which has been added
+     * for playback on the represented <tt>MediaDevice</tt>
+     */
+    protected void playbackDataSourceUpdated(DataSource playbackDataSource)
+    {
+    }
+
+    /**
+     * Notifies this <tt>MediaDeviceSession</tt> that a <tt>DataSource</tt> has
+     * been changed on the represented <tt>MediaDevice</tt>.
+     *
+     * @param playbackDataSource the <tt>DataSource</tt> which has been added
+     * for playback on the represented <tt>MediaDevice</tt>
+     */
+    public void playbackDataSourceChanged(DataSource playbackDataSource)
+    {
+        playbackDataSourceUpdated(playbackDataSource);
+    }
+
+    /**
      * Notifies this instance that a specific <tt>Player</tt> of remote content
      * has generated a <tt>ConfigureCompleteEvent</tt>. Allows extenders to
      * carry out additional processing on the <tt>Player</tt>.

@@ -108,6 +108,16 @@ public class AudioMixingPushBufferDataSource
     }
 
     /**
+     * The input <tt>DataSource</tt> has been updated.
+     * @param inputDataSource the <tt>DataSource</tt> that was updated.
+     */
+    public void updateInputDataSource(DataSource inputDataSource)
+    {
+        // just update the input streams
+        audioMixer.getOutputStream();
+    }
+
+    /**
      * Implements {@link DataSource#connect()}. Lets the <tt>AudioMixer</tt>
      * know that one of its output <tt>PushBufferDataSources</tt> has been
      * connected and marks this <tt>DataSource</tt> as connected.

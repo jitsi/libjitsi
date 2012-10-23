@@ -2400,6 +2400,43 @@ public class MediaStreamImpl
                 }
             }
         }
+        else if (event instanceof RemotePayloadChangeEvent)
+        {
+            ReceiveStream receiveStream = event.getReceiveStream();
+
+            if(receiveStream != null)
+            {
+                MediaDeviceSession deviceSession = getDeviceSession();
+
+                if (deviceSession != null)
+                {
+                    TranscodingDataSource transcodingDataSource
+                        = deviceSession.getTranscodingDataSource(receiveStream);
+
+                    // we receive packets, streams are active
+                    // if processor in transcoding DataSource is running
+                    // we need to recreate it by disconnect, connect
+                    // and starting again the DataSource
+                    try
+                    {
+                        transcodingDataSource.disconnect();
+                        transcodingDataSource.connect();
+                        transcodingDataSource.start();
+
+                        // as output streams of the DataSource
+                        // are recreated we need to update
+                        // mixers and everything that are using them
+                        deviceSession.playbackDataSourceChanged(
+                            receiveStream.getDataSource());
+                    }
+                    catch(IOException e)
+                    {
+                        logger.error("Error re-creating processor in " +
+                            "transcoding DataSource", e);
+                    }
+                }
+            }
+        }
     }
 
     /**

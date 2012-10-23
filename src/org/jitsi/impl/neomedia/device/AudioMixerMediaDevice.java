@@ -1018,6 +1018,36 @@ public class AudioMixerMediaDevice
         }
 
         /**
+         * Notifies this <tt>MediaDeviceSession</tt> that a <tt>DataSource</tt>
+         * has been updated.
+         *
+         * @param playbackDataSource the <tt>DataSource</tt> which has been
+         * updated.
+         * @see MediaDeviceSession#playbackDataSourceUpdated(DataSource)
+         */
+        @Override
+        protected void playbackDataSourceUpdated(DataSource playbackDataSource)
+        {
+            super.playbackDataSourceUpdated(playbackDataSource);
+
+            DataSource captureDevice = getCaptureDevice();
+
+            /*
+             * Unwrap wrappers of the captureDevice until
+             * AudioMixingPushBufferDataSource is found.
+             */
+            if (captureDevice instanceof PushBufferDataSourceDelegate<?>)
+                captureDevice
+                    = ((PushBufferDataSourceDelegate<?>) captureDevice)
+                        .getDataSource();
+            if (captureDevice instanceof AudioMixingPushBufferDataSource)
+            {
+                ((AudioMixingPushBufferDataSource) captureDevice)
+                    .updateInputDataSource(playbackDataSource);
+            }
+        }
+
+        /**
          * The method relays <tt>PropertyChangeEvent</tt>s indicating a change
          * in the SSRC_LIST in the encapsulated mixer device so that the
          * <tt>MediaStream</tt> that uses this device session can update its
