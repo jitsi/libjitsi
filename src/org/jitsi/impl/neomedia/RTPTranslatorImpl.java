@@ -319,7 +319,23 @@ public class RTPTranslatorImpl
     public synchronized void dispose()
     {
         manager.removeReceiveStreamListener(this);
-        manager.dispose();
+        try
+        {
+            manager.dispose();
+        }
+        catch (Throwable t)
+        {
+            if (t instanceof ThreadDeath)
+                throw (ThreadDeath) t;
+            else
+            {
+                /*
+                 * RTPManager.dispose() often throws at least a
+                 * NullPointerException in relation to some RTP BYE.
+                 */
+                logger.error("Failed to dispose of RTPManager", t);
+            }
+        }
     }
 
     public synchronized void dispose(StreamRTPManager streamRTPManager)

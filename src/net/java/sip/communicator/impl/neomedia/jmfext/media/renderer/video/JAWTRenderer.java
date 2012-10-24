@@ -18,6 +18,7 @@ import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
+import org.jitsi.util.swing.*;
 
 /**
  * Implements a <tt>VideoRenderer</tt> which uses JAWT to perform native
@@ -595,13 +596,19 @@ public class JAWTRenderer
              * Apart from the simplest of cases in which the component has no
              * preferredSize, it is also necessary to reflect the width and
              * height of the input onto the preferredSize when the ratio of the
-             * input is different than the ratio of the preferredSize.
+             * input is different than the ratio of the preferredSize. It may
+             * also be argued that the component needs to know of the width and
+             * height of the input if its preferredSize is with the same ratio
+             * but is smaller.
              */
             if ((preferredSize == null)
                     || (preferredSize.width < 1)
                     || (preferredSize.height < 1)
-                    || (preferredSize.width * inputHeight
-                            != preferredSize.height * inputWidth))
+                    || !VideoLayout.areAspectRatiosEqual(
+                            preferredSize,
+                            inputWidth, inputHeight)
+                    || (preferredSize.width < inputWidth)
+                    || (preferredSize.height < inputHeight))
             {
                 component.setPreferredSize(
                         new Dimension(inputWidth, inputHeight));

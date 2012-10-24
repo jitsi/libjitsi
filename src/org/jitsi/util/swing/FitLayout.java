@@ -25,9 +25,12 @@ public class FitLayout
     implements LayoutManager
 {
 
-    /*
-     * Does nothing because this LayoutManager lays out only the first Component
-     * of the parent Container and thus doesn't need String associations.
+    /**
+     * {@inheritDoc}
+     *
+     * Does nothing because this <tt>LayoutManager</tt> lays out only the first
+     * <tt>Component</tt> of the parent <tt>Container</tt> and thus doesn't need
+     * any <tt>String</tt> associations.
      */
     public void addLayoutComponent(String name, Component comp)
     {

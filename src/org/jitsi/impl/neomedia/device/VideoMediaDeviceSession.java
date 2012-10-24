@@ -32,6 +32,7 @@ import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.resources.*;
 import org.jitsi.util.*;
 import org.jitsi.util.event.*;
+import org.jitsi.util.swing.*;
 
 /**
  * Extends <tt>MediaDeviceSession</tt> to add video-specific functionality.
@@ -1132,13 +1133,42 @@ public class VideoMediaDeviceSession
 
         if (visualComponent != null)
         {
-            fireVideoEvent(
-                    new SizeChangeVideoEvent(
-                            this,
-                            visualComponent,
-                            origin,
-                            width, height),
-                    false);
+            /*
+             * The Player will notice the new size and will notify about it
+             * before it reaches the Renderer. The notification/event may as
+             * well arrive before the Renderer reflects the new size onto the
+             * preferredSize of the Component. In order to make sure that the
+             * new size is reflected on the preferredSize of the Component
+             * before the notification/event arrives to its
+             * destination/listener, reflect it as soon as possible i.e. now.
+             */
+            try
+            {
+                Dimension preferredSize = visualComponent.getPreferredSize();
+
+                if ((preferredSize == null)
+                        || (preferredSize.width < 1)
+                        || (preferredSize.height < 1)
+                        || !VideoLayout.areAspectRatiosEqual(
+                                preferredSize,
+                                width, height)
+                        || (preferredSize.width < width)
+                        || (preferredSize.height < height))
+                {
+                    visualComponent.setPreferredSize(
+                            new Dimension(width, height));
+                }
+            }
+            finally
+            {
+                fireVideoEvent(
+                        new SizeChangeVideoEvent(
+                                this,
+                                visualComponent,
+                                origin,
+                                width, height),
+                        false);
+            }
         }
     }
 
@@ -1245,10 +1275,8 @@ public class VideoMediaDeviceSession
             int outputHeightDelta
                 = outputSize.height - playerScalerOutputSize.height;
 
-            if ((outputWidthDelta < -1)
-                    || (outputWidthDelta > 1)
-                    || (outputHeightDelta < -1)
-                    || (outputHeightDelta > 1))
+            if ((outputWidthDelta < -1) || (outputWidthDelta > 1)
+                    || (outputHeightDelta < -1) || (outputHeightDelta > 1))
             {
                 playerScaler.setOutputSize(outputSize);
             }

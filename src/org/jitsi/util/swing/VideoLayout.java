@@ -77,7 +77,7 @@ public class VideoLayout
     /**
      * The map of component constraints.
      */
-    private final HashMap<Component, Object> constraints
+    private final Map<Component, Object> constraints
         = new HashMap<Component, Object>();
 
     /**
@@ -122,17 +122,19 @@ public class VideoLayout
 
         synchronized (constraints)
         {
-            this.constraints.put(comp, name);
+            constraints.put(comp, name);
         }
 
         if ((name == null) || name.equals(CENTER_REMOTE))
         {
-            remotes.add(comp);
+            if (!remotes.contains(comp))
+                remotes.add(comp);
             remoteAlignmentX = Component.CENTER_ALIGNMENT;
         }
         else if (name.equals(EAST_REMOTE))
         {
-            remotes.add(comp);
+            if (!remotes.contains(comp))
+                remotes.add(comp);
             remoteAlignmentX = Component.RIGHT_ALIGNMENT;
         }
         else if (name.equals(LOCAL))
@@ -141,6 +143,39 @@ public class VideoLayout
             closeButton = comp;
         else if (name.equals(CANVAS))
             canvas = comp;
+    }
+
+    /**
+     * Determines whether the aspect ratio of a specific <tt>Dimension</tt> is
+     * to be considered equal to the aspect ratio of specific <tt>width</tt> and
+     * <tt>height</tt>.
+     *
+     * @param size the <tt>Dimension</tt> whose aspect ratio is to be compared
+     * to the aspect ratio of <tt>width</tt> and <tt>height</tt>
+     * @param width the width which defines in combination with <tt>height</tt>
+     * the aspect ratio to be compared to the aspect ratio of <tt>size</tt>
+     * @param height the height which defines in combination with <tt>width</tt>
+     * the aspect ratio to be compared to the aspect ratio of <tt>size</tt>
+     * @return <tt>true</tt> if the aspect ratio of <tt>size</tt> is to be
+     * considered equal to the aspect ratio of <tt>width</tt> and
+     * <tt>height</tt>; otherwise, <tt>false</tt>
+     */
+    public static boolean areAspectRatiosEqual(
+            Dimension size,
+            int width, int height)
+    {
+        if (size.height == 0)
+            return (height == 0);
+        else if (height == 0)
+            return false;
+        else
+        {
+            double a = size.width / size.height;
+            double b = width / height;
+            double difference = a - b;
+
+            return (-0.01 < difference) && (difference < 0.01);
+        }
     }
 
     /**
@@ -210,26 +245,35 @@ public class VideoLayout
     }
 
     /**
-     * Lays out this given container.
+     * Lays out the specified <tt>Container</tt> (i.e. the <tt>Component</tt>s
+     * it contains) in accord with the logic implemented by this
+     * <tt>LayoutManager</tt>.
      *
-     * @param parent the container to lay out
+     * @param parent the <tt>Container</tt> to lay out
      */
     @Override
     public void layoutContainer(Container parent)
     {
+        /*
+         * XXX The methods layoutContainer and preferredLayoutSize must be kept
+         * in sync.
+         */
+
         List<Component> remotes;
         Component local = getLocal();
 
         /*
          * When there are multiple remote visual/video Components, the local one
          * will be displayed as if it is a remote one i.e. in the same grid, not
-         * on top of a remote one.
+         * on top of a remote one. The same layout will be used when this
+         * instance is dedicated to a telephony conference.
          */
-        if ((this.remotes.size() > 1) && (local != null))
+        if (conference || ((this.remotes.size() > 1) && (local != null)))
         {
             remotes = new ArrayList<Component>();
             remotes.addAll(this.remotes);
-            remotes.add(local);
+            if (local != null)
+                remotes.add(local);
         }
         else
             remotes = this.remotes;
@@ -237,9 +281,17 @@ public class VideoLayout
         int remoteCount = remotes.size();
         Dimension parentSize = parent.getSize();
 
-        if ((remoteCount == 1) && !conference)
+        if (!conference && (remoteCount == 1))
         {
-            super.layoutContainer(parent,
+            /*
+             * If the videos are to be laid out as in a one-to-one call, the
+             * remote video has to fill the parent and the local video will be
+             * placed on top of the remote video. The remote video will be laid
+             * out now and the local video will be laid out later/further
+             * bellow.
+             */
+            super.layoutContainer(
+                    parent,
                     (local == null)
                         ? Component.CENTER_ALIGNMENT
                         : remoteAlignmentX);
@@ -305,7 +357,7 @@ public class VideoLayout
              * If the local visual/video Component is not displayed as if it is
              * a remote one, it will be placed on top of a remote one.
              */
-            if (!remotes.contains(local) && !conference)
+            if (!remotes.contains(local))
             {
                 Component remote0 = remotes.isEmpty() ? null : remotes.get(0);
                 int localX;
@@ -321,7 +373,7 @@ public class VideoLayout
                  * that there is no remote video and the remote is the
                  * photoLabel.
                  */
-                if ((remotes.size() == 1) && (remote0 instanceof JLabel))
+                if ((remoteCount == 1) && (remote0 instanceof JLabel))
                 {
                     localX = (parentSize.width - width) / 2;
                     localY = parentSize.height - height;
@@ -340,6 +392,7 @@ public class VideoLayout
                         Component.BOTTOM_ALIGNMENT);
             }
 
+            /* The closeButton has to be on top of the local video. */
             if (closeButton != null)
             {
                 /*
@@ -363,26 +416,12 @@ public class VideoLayout
             }
         }
 
+        /*
+         * The video canvas will get the locations of the other components to
+         * paint so it has to cover the parent completely.
+         */
         if (canvas != null)
-        {
-            /*
-             * The video canvas will get the locations of the other components
-             * to paint so it has to cover the parent completely.
-             */
             canvas.setBounds(0, 0, parentSize.width, parentSize.height);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * The <tt>VideoLayout</tt> implementation of the method does nothing.
-     */
-    @Override
-    public Dimension minimumLayoutSize(Container parent)
-    {
-        // TODO Auto-generated method stub
-        return super.minimumLayoutSize(parent);
     }
 
     /**
@@ -401,73 +440,144 @@ public class VideoLayout
         /*
          * When there are multiple remote visual/video Components, the local one
          * will be displayed as if it is a remote one i.e. in the same grid, not
-         * on top of a remote one.
+         * on top of a remote one. The same layout will be used when this
+         * instance is dedicated to a telephony conference.
          */
-        if ((this.remotes.size() > 1) && (local != null))
+        if (conference || ((this.remotes.size() > 1) && (local != null)))
         {
             remotes = new ArrayList<Component>();
             remotes.addAll(this.remotes);
-            remotes.add(local);
+            if (local != null)
+                remotes.add(local);
         }
         else
             remotes = this.remotes;
 
         int remoteCount = remotes.size();
+        Dimension preferredLayoutSize;
 
-        if (remoteCount == 0)
+        if (!conference && (remoteCount == 1))
         {
             /*
-             * If there is no remote visual/video Component, the local one will
-             * serve the preferredSize of the Container.
+             * If the videos are to be laid out as in a one-to-one call, the
+             * remote video has to fill the parent and the local video will be
+             * placed on top of the remote video. The remote video will be laid
+             * out now and the local video will be laid out later/further
+             * bellow.
              */
-            if (local != null)
+            preferredLayoutSize = super.preferredLayoutSize(parent);
+        }
+        else if (remoteCount > 0)
+        {
+            int columns = calculateColumnCount(remotes);
+            int columnsMinus1 = columns - 1;
+            int rows = (remoteCount + columnsMinus1) / columns;
+            int i = 0;
+            Dimension[] preferredSizes = new Dimension[columns * rows];
+
+            for (Component remote : remotes)
+            {
+                int column = columnsMinus1 - (i % columns);
+                int row = i / columns;
+
+                preferredSizes[column + row * columns]
+                    = remote.getPreferredSize();
+
+                i++;
+                if (i >= remoteCount)
+                    break;
+            }
+
+            int preferredLayoutWidth = 0;
+
+            for (int column = 0; column < columns; column++)
+            {
+                int preferredColumnWidth = 0;
+
+                for (int row = 0; row < rows; row++)
+                {
+                    Dimension preferredSize
+                        = preferredSizes[column + row * columns];
+
+                    if (preferredSize != null)
+                        preferredColumnWidth += preferredSize.width;
+                }
+                preferredColumnWidth /= rows;
+
+                preferredLayoutWidth += preferredColumnWidth;
+            }
+
+            int preferredLayoutHeight = 0;
+
+            for (int row = 0; row < rows; row++)
+            {
+                int preferredRowHeight = 0;
+
+                for (int column = 0; column < columns; column++)
+                {
+                    Dimension preferredSize
+                        = preferredSizes[column + row * columns];
+
+                    if (preferredSize != null)
+                        preferredRowHeight = preferredSize.height;
+                }
+                preferredRowHeight /= columns;
+
+                preferredLayoutHeight += preferredRowHeight;
+            }
+
+            preferredLayoutSize
+                = new Dimension(
+                        preferredLayoutWidth + columnsMinus1 * HGAP,
+                        preferredLayoutHeight);
+        }
+        else
+            preferredLayoutSize = null;
+
+        if (local != null)
+        {
+            /*
+             * If the local visual/video Component is not displayed as if it is
+             * a remote one, it will be placed on top of a remote one. Then for
+             * the purposes of the preferredLayoutSize method it needs to be
+             * considered only if there is no remote video whatsoever.
+             */
+            if (!remotes.contains(local) && (preferredLayoutSize == null))
             {
                 Dimension preferredSize = local.getPreferredSize();
 
                 if (preferredSize != null)
-                    return preferredSize;
-            }
-        }
-        else if (remoteCount == 1)
-        {
-            /*
-             * If there is a single remote visual/video Component, the local one
-             * will be on top of it so the remote one will serve the
-             * preferredSize of the Container.
-             */
-            Dimension preferredSize = remotes.get(0).getPreferredSize();
-
-            if (preferredSize != null)
-                return preferredSize;
-        }
-        else if (remoteCount > 1)
-        {
-            int maxWidth = 0;
-            int maxHeight = 0;
-
-            for (Component remote : remotes)
-            {
-                Dimension preferredSize = remote.getPreferredSize();
-
-                if (preferredSize != null)
                 {
-                    if (maxWidth < preferredSize.width)
-                        maxWidth = preferredSize.width;
-                    if (maxHeight < preferredSize.height)
-                        maxHeight = preferredSize.height;
+                    int preferredHeight
+                        = Math.round(
+                                preferredSize.height * LOCAL_TO_REMOTE_RATIO);
+                    int preferredWidth
+                        = Math.round(
+                                preferredSize.width * LOCAL_TO_REMOTE_RATIO);
+
+                    preferredLayoutSize
+                        = new Dimension(preferredWidth, preferredHeight);
                 }
             }
 
-            if ((maxWidth > 0) && (maxHeight > 0))
-            {
-                int columns = calculateColumnCount(remotes);
-                int rows = (remoteCount + columns - 1) / columns;
-
-                return new Dimension(maxWidth * columns, maxHeight * rows);
-            }
+            /*
+             * The closeButton has to be on top of the local video.
+             * Consequently, the preferredLayoutSize method does not have to
+             * consider it. Well, maybe if does if the local video is smaller
+             * than the closeButton... but that's just not cool anyway.
+             */
         }
 
-        return super.preferredLayoutSize(parent);
+        /*
+         * The video canvas will get the locations of the other components to
+         * paint so it has to cover the parent completely. In other words, the
+         * preferredLayoutSize method does not have to consider it.
+         */
+
+        return
+            (preferredLayoutSize == null)
+                ? super.preferredLayoutSize(parent)
+                : preferredLayoutSize;
     }
 
     /**
@@ -479,6 +589,11 @@ public class VideoLayout
     public void removeLayoutComponent(Component comp)
     {
         super.removeLayoutComponent(comp);
+
+        synchronized (constraints)
+        {
+            constraints.remove(comp);
+        }
 
         if (local == comp)
             local = null;
