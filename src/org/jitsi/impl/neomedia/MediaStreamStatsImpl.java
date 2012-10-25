@@ -312,12 +312,11 @@ public class MediaStreamStatsImpl
      */
     private VideoFormat getUploadVideoFormat()
     {
-        MediaDeviceSession mediaDeviceSession
-            = mediaStreamImpl.getDeviceSession();
+        MediaDeviceSession deviceSession = mediaStreamImpl.getDeviceSession();
 
         return
-            (mediaDeviceSession instanceof VideoMediaDeviceSession)
-                ? ((VideoMediaDeviceSession) mediaDeviceSession)
+            (deviceSession instanceof VideoMediaDeviceSession)
+                ? ((VideoMediaDeviceSession) deviceSession)
                     .getSentVideoFormat()
                 : null;
     }
@@ -331,12 +330,11 @@ public class MediaStreamStatsImpl
      */
     private VideoFormat getDownloadVideoFormat()
     {
-        MediaDeviceSession mediaDeviceSession
-            = mediaStreamImpl.getDeviceSession();
+        MediaDeviceSession deviceSession = mediaStreamImpl.getDeviceSession();
 
         return
-            (mediaDeviceSession instanceof VideoMediaDeviceSession)
-                ? ((VideoMediaDeviceSession) mediaDeviceSession)
+            (deviceSession instanceof VideoMediaDeviceSession)
+                ? ((VideoMediaDeviceSession) deviceSession)
                     .getReceivedVideoFormat()
                 : null;
     }
@@ -368,13 +366,9 @@ public class MediaStreamStatsImpl
      */
     public Dimension getDownloadVideoSize()
     {
-        Dimension videoSize = null;
-        VideoFormat format = this.getDownloadVideoFormat();
-        if(format != null)
-        {
-            videoSize = format.getSize();
-        }
-        return videoSize;
+        VideoFormat format = getDownloadVideoFormat();
+
+        return (format == null) ? null : format.getSize();
     }
 
     /**

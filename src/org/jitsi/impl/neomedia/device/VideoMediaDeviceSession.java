@@ -1014,8 +1014,8 @@ public class VideoMediaDeviceSession
             catch (UnsupportedPlugInException upiex)
             {
                 logger.error(
-                        "Failed to add SwScaler or H.264 DePacketizer to codec"
-                            + " chain",
+                        "Failed to add SwScaler or H.264 DePacketizer"
+                            + " to codec chain",
                         upiex);
                 playerScaler = null;
             }
@@ -1774,10 +1774,13 @@ public class VideoMediaDeviceSession
     }
 
     /**
-     * Returns the format of the video we are receiving from the remote peer.
+     * Returns the FMJ <tt>Format</tt> of the video we are receiving from the
+     * remote peer.
      *
-     * @return The video format of the received video. Null, if no video is
-     * received.
+     * @return the FMJ <tt>Format</tt> of the video we are receiving from the
+     * remote peer or <tt>null</tt> if we are not receiving any video or the FMJ
+     * <tt>Format</tt> of the video we are receiving from the remote peer cannot
+     * be determined
      */
     public VideoFormat getReceivedVideoFormat()
     {

@@ -203,6 +203,38 @@ public class AudioNotifierServiceImpl
                 audio
                     = new SCAudioClip()
                     {
+                        /**
+                         * Evaluates a specific <tt>loopCondition</tt> as
+                         * defined by
+                         * {@link SCAudioClip#play(int,Callable)}.
+                         *
+                         * @param loopCondition the
+                         * <tt>Callable&lt;Boolean&gt;</tt> which represents the
+                         * <tt>loopCondition</tt> to be evaluated
+                         * @return {@link Boolean#FALSE} if
+                         * <tt>loopCondition</tt> is <tt>null</tt>; otherwise,
+                         * the value returned by invoking
+                         * {@link Callable#call()} on the specified
+                         * <tt>loopCondition</tt>
+                         * @throws Exception if the specified
+                         * <tt>loopCondition</tt> throws an <tt>Exception</tt>
+                         */
+                        private Boolean evaluateLoopCondition(
+                                Callable<Boolean> loopCondition)
+                            throws Exception
+                        {
+                            /*
+                             * SCAudioClip.play(int,Callable<Boolean>) is
+                             * documented to play the SCAudioClip once only if
+                             * the loopCondition is null. The same will be
+                             * accomplished by returning Boolean.FALSE.
+                             */
+                            return
+                                (loopCondition == null)
+                                    ? Boolean.FALSE
+                                    : loopCondition.call();
+                        }
+
                         @Override
                         protected void finalize()
                             throws Throwable
@@ -222,13 +254,44 @@ public class AudioNotifierServiceImpl
 
                         public void play()
                         {
-                            finalAudio.play();
+                            /*
+                             * SCAudioClip.play() is documented to behave as if
+                             * loopInterval is negative and/or loopCondition is
+                             * null. We have to take care that this instance
+                             * does not get garbage collected until the
+                             * finalAudio finishes playing so we will delegate
+                             * to this instance's implementation of
+                             * SCAudioClip.play(int,Callable<Boolean>) instead
+                             * of to the finalAudio's.
+                             */
+                            play(-1, null);
                         }
 
                         public void play(
                                 int loopInterval,
-                                Callable<Boolean> loopCondition)
+                                final Callable<Boolean> finalLoopCondition)
                         {
+                            /*
+                             * We have to make sure that this instance does not
+                             * get garbage collected before the finalAudio
+                             * finishes playing. The argument loopCondition of
+                             * the method
+                             * SCAudioClip.play(int,Callable<Boolean>) will
+                             * live/be referenced during that time so we will
+                             * use it to hold on to this instance.
+                             */
+                            Callable<Boolean> loopCondition
+                                = new Callable<Boolean>()
+                                {
+                                    public Boolean call()
+                                        throws Exception
+                                    {
+                                        return
+                                            evaluateLoopCondition(
+                                                    finalLoopCondition);
+                                    }
+                                };
+
                             finalAudio.play(loopInterval, loopCondition);
                         }
 
