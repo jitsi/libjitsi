@@ -238,6 +238,22 @@ public interface MediaStream
     public Map<Byte, MediaFormat> getDynamicRTPPayloadTypes();
 
     /**
+     * Adds additional RTP payload mappings that will override the ones in the
+     * "dynamicPayloadTypes" map for outgoing packets. This is necessary so
+     * that we can support the RFC3264 case where the answerer has the right
+     * to declare what payload type mappings it wants to receive even if they
+     * are different from those in the offer. RFC3264 claims this is for
+     * support of legacy protocols such as H.323 but we've been bumping with
+     * a number of cases where multi-component pure SIP systems also need to
+     * behave this way.
+     * The <tt>Map<Byte, Byte></tt> maps source payload to payload to use
+     * for packets when sending.
+     * @param mappingOverride <tt>Map<Byte, Byte></tt> that maps
+     * source payload to payload to use for packets when sending.
+     */
+    public void setPTMappingOverrides(Map<Byte, Byte> mappingOverride);
+
+    /**
      * Adds or updates an association in this <tt>MediaStream</tt> mapping the
      * specified <tt>extensionID</tt> to <tt>rtpExtension</tt> and enabling or
      * disabling its use according to the direction attribute of

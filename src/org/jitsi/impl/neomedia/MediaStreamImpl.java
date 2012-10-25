@@ -25,6 +25,7 @@ import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.impl.neomedia.transform.dtmf.*;
+import org.jitsi.impl.neomedia.transform.pt.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.impl.neomedia.transform.zrtp.*;
 import org.jitsi.service.neomedia.*;
@@ -224,6 +225,11 @@ public class MediaStreamImpl
     private MediaStreamStatsImpl mediaStreamStatsImpl;
 
     /**
+     * Engine chain overriding payload type if needed.
+     */
+    private PayloadTypeTransformEngine ptTransformEngine;
+
+    /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
      * specified <tt>MediaDevice</tt> for both capture and playback of media.
      * The new instance will not have an associated <tt>StreamConnector</tt> and
@@ -372,6 +378,12 @@ public class MediaStreamImpl
         if (statisticsEngine == null)
             statisticsEngine = new StatisticsEngine(this);
         engineChain.add(statisticsEngine);
+
+        // here comes the override payload type transformer
+        // as it changes headers of packets, need to go before encryption
+        if(ptTransformEngine == null)
+            ptTransformEngine = new PayloadTypeTransformEngine();
+        engineChain.add(ptTransformEngine);
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
@@ -2844,5 +2856,25 @@ public class MediaStreamImpl
             }
         }
         return null;
+    }
+
+    /**
+     * Adds additional RTP payload mappings that will override the ones in the
+     * "dynamicPayloadTypes" map for outgoing packets. This is necessary so
+     * that we can support the RFC3264 case where the answerer has the right
+     * to declare what payload type mappings it wants to receive even if they
+     * are different from those in the offer. RFC3264 claims this is for
+     * support of legacy protocols such as H.323 but we've been bumping with
+     * a number of cases where multi-component pure SIP systems also need to
+     * behave this way.
+     * The <tt>Map<Byte, Byte></tt> maps source payload to payload to use
+     * for packets when sending.
+     * @param mappingOverride <tt>Map<Byte, Byte></tt> that maps
+     * source payload to payload to use for packets when sending.
+     */
+    public void setPTMappingOverrides(Map<Byte, Byte> mappingOverride)
+    {
+        if(ptTransformEngine != null)
+            ptTransformEngine.setPTMappingOverride(mappingOverride);
     }
 }
