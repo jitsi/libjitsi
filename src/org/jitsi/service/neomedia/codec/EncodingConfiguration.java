@@ -8,7 +8,6 @@ package org.jitsi.service.neomedia.codec;
 
 import java.util.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
@@ -21,7 +20,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  * @author Boris Grozev
  */
-public class EncodingConfiguration
+public abstract class EncodingConfiguration
 {
     /**
      * The <tt>Logger</tt> used by this <tt>EncodingConfiguration</tt> instance
@@ -111,32 +110,9 @@ public class EncodingConfiguration
      * @param clockRate clock rate
      * @param pref a positive int indicating the preference for that encoding.
      */
-    protected void setEncodingPreference(
+    protected abstract void setEncodingPreference(
             String encoding, double clockRate,
-            int pref)
-    {
-        MediaFormat mediaFormat = null;
-
-        /*
-         * The key in encodingPreferences associated with a MediaFormat is
-         * currently composed of the encoding and the clockRate only so it makes
-         * sense to ignore the format parameters.
-         */
-        for (MediaFormat mf : MediaUtils.getMediaFormats(encoding))
-        {
-            if (mf.getClockRate() == clockRate)
-            {
-                mediaFormat = mf;
-                break;
-            }
-        }
-        if (mediaFormat != null)
-        {
-            encodingPreferences.put(
-                    getEncodingPreferenceKey(mediaFormat),
-                    pref);
-        }
-    }
+            int pref);
 
     /**
      * Sets <tt>priority</tt> as the preference associated with
@@ -195,10 +171,7 @@ public class EncodingConfiguration
      * @return array of <tt>MediaFormat</tt> supported for the
      * <tt>MediaType</tt>
      */
-    public MediaFormat[] getAllEncodings(MediaType type)
-    {
-        return MediaUtils.getMediaFormats(type);
-    }
+    public abstract MediaFormat[] getAllEncodings(MediaType type);
 
     /**
      * Returns the supported <tt>MediaFormat</tt>s i.e. the enabled available
@@ -228,7 +201,7 @@ public class EncodingConfiguration
             supportedEncodings = supportedVideoEncodings;
             break;
         default:
-            return MediaUtils.EMPTY_MEDIA_FORMATS;
+            return new MediaFormat[0];
         }
 
         return
@@ -247,66 +220,9 @@ public class EncodingConfiguration
      * format has been assigned a preference higher, equal to, or greater than
      * the one of the second
      */
-    private int compareEncodingPreferences(MediaFormat enc1, MediaFormat enc2)
-    {
-        int res = getPriority(enc2) - getPriority(enc1);
+    protected abstract
+            int compareEncodingPreferences(MediaFormat enc1, MediaFormat enc2);
 
-        /*
-         * If the encodings are with same priority, compare them by name. If we
-         * return equals, TreeSet will not add equal encodings.
-         */
-        if (res == 0)
-        {
-            res = enc1.getEncoding().compareToIgnoreCase(enc2.getEncoding());
-            /*
-             * There are formats with one and the same encoding (name) but
-             * different clock rates.
-             */
-            if (res == 0)
-            {
-                res = Double.compare(enc2.getClockRate(), enc1.getClockRate());
-                /*
-                 * And then again, there are formats (e.g. H.264) with one and
-                 * the same encoding (name) and clock rate but different format
-                 * parameters (e.g. packetization-mode).
-                 */
-                if (res == 0)
-                {
-                    // Try to preserve the order specified by MediaUtils.
-                    int index1;
-                    int index2;
-
-                    if (((index1 = MediaUtils.getMediaFormatIndex(enc1)) != -1)
-                            && ((index2 = MediaUtils.getMediaFormatIndex(enc2))
-                                    != -1))
-                    {
-                        res = (index1 - index2);
-                    }
-
-                    if (res == 0)
-                    {
-                        /*
-                         * The format with more parameters will be considered
-                         * here to be the format with higher priority.
-                         */
-                        Map<String, String> fmtps1 = enc1.getFormatParameters();
-                        Map<String, String> fmtps2 = enc2.getFormatParameters();
-                        int fmtpCount1 = (fmtps1 == null) ? 0 : fmtps1.size();
-                        int fmtpCount2 = (fmtps2 == null) ? 0 : fmtps2.size();
-
-                        /*
-                         * TODO Even if the number of format parameters is
-                         * equal, the two formats may still be different.
-                         * Consider ordering by the values of the format
-                         * parameters as well.
-                         */
-                        res = (fmtpCount2 - fmtpCount1);
-                    }
-                }
-            }
-        }
-        return res;
-    }
 
     /**
      * Gets the key in {@link #encodingPreferences} which is associated with the
