@@ -112,9 +112,9 @@ public abstract class AudioSystem
      *
      * @return The list of a kind of devices: cpature, notify or playback.
      */
-    public List<CaptureDeviceInfo> getDevices(int index)
+    public List<ExtendedCaptureDeviceInfo> getDevices(int index)
     {
-        return this.devices[index].getDevices(getLocatorProtocol());
+        return this.devices[index].getDevices();
     }
 
     /**
@@ -127,9 +127,11 @@ public abstract class AudioSystem
      * @return The selected device for a specific kind: cpature, notify or
      * playback.
      */
-    public CaptureDeviceInfo getDevice(int index)
+    public ExtendedCaptureDeviceInfo getDevice(int index)
     {
-        return this.devices[index].getDevice(getLocatorProtocol());
+        return this.devices[index].getDevice(
+                getLocatorProtocol(),
+                getDevices(index));
     }
 
     /**
@@ -139,7 +141,7 @@ public abstract class AudioSystem
      * notify or playback.
      */
     protected void setCaptureDevices(
-            List<CaptureDeviceInfo> activeCaptureDevices)
+            List<ExtendedCaptureDeviceInfo> activeCaptureDevices)
     {
         this.devices[CAPTURE_INDEX].setActiveDevices(activeCaptureDevices);
     }
@@ -153,9 +155,16 @@ public abstract class AudioSystem
      * @param save Flag set to true in order to save this choice in the
      * configuration. False otherwise.
      */
-    public void setDevice(int index, CaptureDeviceInfo device, boolean save)
+    public void setDevice(
+            int index,
+            ExtendedCaptureDeviceInfo device,
+            boolean save)
     {
-        this.devices[index].setDevice(getLocatorProtocol(), device, save);
+        this.devices[index].setDevice(
+                getLocatorProtocol(),
+                device,
+                save,
+                getDevices(index));
     }
 
     /**
@@ -164,7 +173,7 @@ public abstract class AudioSystem
      * @param activePlaybackDevices The list of the active devices.
      */
     protected void setPlaybackDevices(
-            List<CaptureDeviceInfo> activePlaybackDevices)
+            List<ExtendedCaptureDeviceInfo> activePlaybackDevices)
     {
         this.devices[PLAYBACK_INDEX].setActiveDevices(activePlaybackDevices);
         // The active notify device list is a copy of the playback one.
@@ -225,34 +234,23 @@ public abstract class AudioSystem
      */
     protected void postInitializeSpecificDevices(int index)
     {
-        // If there is a selected device, checks if it is part of the current
-        // active devices.
-        if (this.devices[index].getDevice(getLocatorProtocol()) != null)
-        {
-            List<CaptureDeviceInfo> devices = this.devices[index].getDevices(
-                    getLocatorProtocol());
-
-            if ((devices == null)
-                    || !devices.contains(this.devices[index].getDevice(
-                            getLocatorProtocol())))
-            {
-                // The selected device is not part of the active devices, then
-                // set it to null (but not saved).
-                this.devices[index].setDevice(
-                        getLocatorProtocol(),
-                        null,
-                        false);
-            }
-        }
-        else
-        {
-            /*
-             * If the device is null, it means that a device is to be
-             * used as the default. The default in question may have
-             * changed.
-             */
-            this.devices[index].setDevice(getLocatorProtocol(), null, false);
-        }
+        // Gets all current active devies.
+        List<ExtendedCaptureDeviceInfo> activeDevices = this.getDevices(index);
+        // Gets the default device.
+        ExtendedCaptureDeviceInfo selectedActiveDevice
+            = this.devices[index].getDevice(
+                    getLocatorProtocol(),
+                    activeDevices);
+        // Sets the default device as selected (this function will only fire a
+        // property change if the device has changed from previous
+        // configuration).
+        // This "set" part is important because only the fire property event
+        // provides a way to get hot plugged devices working during a call.
+        this.devices[index].setDevice(
+                    getLocatorProtocol(),
+                    selectedActiveDevice,
+                    false,
+                    activeDevices);
     }
 
     /**

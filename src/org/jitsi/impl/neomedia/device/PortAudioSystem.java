@@ -100,10 +100,10 @@ public class PortAudioSystem
         long sampleFormat = PortAudio.getPaSampleFormat(sampleSizeInBits);
         int defaultInputDeviceIndex = PortAudio.Pa_GetDefaultInputDevice();
         int defaultOutputDeviceIndex = PortAudio.Pa_GetDefaultOutputDevice();
-        List<CaptureDeviceInfo> captureDevices
-            = new LinkedList<CaptureDeviceInfo>();
-        List<CaptureDeviceInfo> playbackDevices
-            = new LinkedList<CaptureDeviceInfo>();
+        List<ExtendedCaptureDeviceInfo> captureDevices
+            = new LinkedList<ExtendedCaptureDeviceInfo>();
+        List<ExtendedCaptureDeviceInfo> playbackDevices
+            = new LinkedList<ExtendedCaptureDeviceInfo>();
 
         for (int deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++)
         {
@@ -117,30 +117,52 @@ public class PortAudioSystem
                 = PortAudio.PaDeviceInfo_getMaxInputChannels(deviceInfo);
             int maxOutputChannels
                 = PortAudio.PaDeviceInfo_getMaxOutputChannels(deviceInfo);
+            String transportType
+                = PortAudio.PaDeviceInfo_getTransportType(deviceInfo);
+            String deviceUID
+                = PortAudio.PaDeviceInfo_getDeviceUID(deviceInfo);
 
-            CaptureDeviceInfo cdi
-                = new CaptureDeviceInfo(
-                        name,
-                        new MediaLocator(LOCATOR_PROTOCOL + ":#" + deviceIndex),
-                        new Format[]
-                        {
-                            new AudioFormat(
-                                    AudioFormat.LINEAR,
-                                    (maxInputChannels > 0)
-                                        ? getSupportedSampleRate(
-                                                true,
-                                                deviceIndex,
-                                                channels,
-                                                sampleFormat)
-                                        : PortAudio.DEFAULT_SAMPLE_RATE,
-                                    sampleSizeInBits,
-                                    channels,
-                                    AudioFormat.LITTLE_ENDIAN,
-                                    AudioFormat.SIGNED,
-                                    Format.NOT_SPECIFIED /* frameSizeInBits */,
-                                    Format.NOT_SPECIFIED /* frameRate */,
-                                    Format.byteArray)
-                        });
+            ExtendedCaptureDeviceInfo cdi = null;
+            List<ExtendedCaptureDeviceInfo> devices = getDevices(CAPTURE_INDEX);
+            boolean found = false;
+            // Search if the device is already initiated. If yes used it,
+            // otherwise a call currently using this device will fail.
+            for(int i = 0; devices !=null && i < devices.size() && !found; ++i)
+            {
+                if(devices.get(i).getUID().equals(deviceUID))
+                {
+                    cdi = devices.get(i);
+                    found = true;
+                }
+            }
+            // If not found, then we must initialized this new device.
+            if(!found)
+            {
+                cdi = new ExtendedCaptureDeviceInfo(
+                    name,
+                    new MediaLocator(LOCATOR_PROTOCOL + ":#" + deviceIndex),
+                    new Format[]
+                    {
+                        new AudioFormat(
+                                AudioFormat.LINEAR,
+                                (maxInputChannels > 0)
+                                    ? getSupportedSampleRate(
+                                            true,
+                                            deviceIndex,
+                                            channels,
+                                            sampleFormat)
+                                    : PortAudio.DEFAULT_SAMPLE_RATE,
+                                sampleSizeInBits,
+                                channels,
+                                AudioFormat.LITTLE_ENDIAN,
+                                AudioFormat.SIGNED,
+                                Format.NOT_SPECIFIED /* frameSizeInBits */,
+                                Format.NOT_SPECIFIED /* frameRate */,
+                                Format.byteArray)
+                    },
+                    deviceUID,
+                    transportType);
+            }
 
             if (maxInputChannels > 0)
             {

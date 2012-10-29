@@ -25,14 +25,14 @@ public class CaptureDevices
     extends Devices
 {
     /**
-     * The flag nuber if the capture device is null.
-     */
-    protected static final int FLAG_DEVICE_IS_NULL = 1;
-
-    /**
      * The property of the capture devices.
      */
     public static final String PROP_DEVICE = "captureDevice";
+
+    /**
+     * The list of active (actually plugged-in) capture devices.
+     */
+    private List<ExtendedCaptureDeviceInfo> activeCaptureDevices = null;
 
     /**
      * Initializes the capture device list managment.
@@ -47,43 +47,34 @@ public class CaptureDevices
     /**
      * Returns the list of the active devices.
      *
-     * @param locator The string representation of the locator.
-     *
      * @return The list of the active devices.
      */
-    public List<CaptureDeviceInfo> getDevices(String locator)
+    public List<ExtendedCaptureDeviceInfo> getDevices()
     {
-        MediaServiceImpl mediaServiceImpl
-            = NeomediaServiceUtils.getMediaServiceImpl();
-        DeviceConfiguration deviceConfiguration = (mediaServiceImpl == null)
-                ? null
-                : mediaServiceImpl.getDeviceConfiguration();
-        List<CaptureDeviceInfo> deviceList;
+        Format[] formats;
+        Format format = new AudioFormat(AudioFormat.LINEAR, -1, 16, -1);
+        List<ExtendedCaptureDeviceInfo> devices = null;
 
-        if (deviceConfiguration == null)
+        if(this.activeCaptureDevices != null)
         {
-            /*
-             * XXX The initialization of MediaServiceImpl is very complex so it
-             * is wise to not reference it at the early stage of its
-             * initialization. The same goes for DeviceConfiguration. If for
-             * some reason one of the two is not available at this time, just
-             * fall back go something that makes sense.
-             */
-            @SuppressWarnings("unchecked")
-            Vector<CaptureDeviceInfo> audioCaptureDeviceInfos
-                = CaptureDeviceManager.getDeviceList(
-                        new AudioFormat(AudioFormat.LINEAR, -1, 16, -1));
+            devices = new ArrayList<ExtendedCaptureDeviceInfo>(
+                    this.activeCaptureDevices.size());
 
-            deviceList = audioCaptureDeviceInfos;
-        }
-        else
-        {
-            deviceList = deviceConfiguration.getAvailableAudioCaptureDevices();
+            for(ExtendedCaptureDeviceInfo device: this.activeCaptureDevices)
+            {
+                formats = device.getFormats();
+                for(int i = 0; i < formats.length; ++i)
+                {
+                    if(formats[i].matches(format))
+                    {
+                        devices.add(device);
+                        i = formats.length;
+                    }
+                }
+            }
         }
 
-        return DeviceSystem.filterDeviceListByLocatorProtocol(
-                deviceList,
-                locator);
+        return devices;
     }
 
     /**
@@ -91,7 +82,7 @@ public class CaptureDevices
      *
      * @param activeDevices The list of the active devices.
      */
-    public void setActiveDevices(List<CaptureDeviceInfo> activeDevices)
+    public void setActiveDevices(List<ExtendedCaptureDeviceInfo> activeDevices)
     {
         if(activeDevices != null)
         {
@@ -114,16 +105,10 @@ public class CaptureDevices
                 }
             }
         }
-    }
 
-    /**
-     * Returns the flag nuber if the capture device is null.
-     *
-     * @return The flag nuber if the capture device is null.
-     */
-    protected int getFlagDeviceIsNull()
-    {
-        return FLAG_DEVICE_IS_NULL;
+        this.activeCaptureDevices = (activeDevices == null)
+                ? null
+                : new ArrayList<ExtendedCaptureDeviceInfo>(activeDevices);
     }
 
     /**

@@ -264,8 +264,8 @@ public class PulseAudioSystem
     {
         long context = getContext();
 
-        final List<CaptureDeviceInfo> captureDevices
-            = new LinkedList<CaptureDeviceInfo>();
+        final List<ExtendedCaptureDeviceInfo> captureDevices
+            = new LinkedList<ExtendedCaptureDeviceInfo>();
         final List<Format> captureDeviceFormats = new LinkedList<Format>();
         PA.source_info_cb_t sourceInfoListCallback
             = new PA.source_info_cb_t()
@@ -290,8 +290,8 @@ public class PulseAudioSystem
                 }
             };
 
-        final List<CaptureDeviceInfo> playbackDevices
-            = new LinkedList<CaptureDeviceInfo>();
+        final List<ExtendedCaptureDeviceInfo> playbackDevices
+            = new LinkedList<ExtendedCaptureDeviceInfo>();
         final List<Format> playbackDeviceFormats = new LinkedList<Format>();
         PA.sink_info_cb_t sinkInfoListCallback
             = new PA.sink_info_cb_t()
@@ -364,19 +364,23 @@ public class PulseAudioSystem
         {
             captureDevices.add(
                     0,
-                    new CaptureDeviceInfo(
+                    new ExtendedCaptureDeviceInfo(
                             NULL_DEV_CAPTURE_DEVICE_INFO_NAME,
                             new MediaLocator(LOCATOR_PROTOCOL + ":"),
                             captureDeviceFormats.toArray(
-                                    new Format[captureDeviceFormats.size()])));
+                                    new Format[captureDeviceFormats.size()]),
+                            null,
+                            null));
         }
         if (!playbackDevices.isEmpty())
         {
             playbackDevices.add(
                     0,
-                    new CaptureDeviceInfo(
+                    new ExtendedCaptureDeviceInfo(
                             NULL_DEV_CAPTURE_DEVICE_INFO_NAME,
                             new MediaLocator(LOCATOR_PROTOCOL + ":"),
+                            null,
+                            null,
                             null));
         }
 
@@ -447,7 +451,7 @@ public class PulseAudioSystem
     private void sinkInfoListCallback(
             long context,
             long sinkInfo,
-            List<CaptureDeviceInfo> deviceList,
+            List<ExtendedCaptureDeviceInfo> deviceList,
             List<Format> formatList)
     {
         int sampleSpecFormat = PA.sink_info_get_sample_spec_format(sinkInfo);
@@ -461,19 +465,21 @@ public class PulseAudioSystem
         if (description == null)
             description = name;
         deviceList.add(
-                new CaptureDeviceInfo(
+                new ExtendedCaptureDeviceInfo(
                         description,
                         new MediaLocator(
                                 LOCATOR_PROTOCOL
                                     + ":"
                                     + name),
+                        null,
+                        null,
                         null));
     }
 
     private void sourceInfoListCallback(
             long context,
             long sourceInfo,
-            List<CaptureDeviceInfo> deviceList,
+            List<ExtendedCaptureDeviceInfo> deviceList,
             List<Format> formatList)
     {
         int monitorOfSink = PA.source_info_get_monitor_of_sink(sourceInfo);
@@ -524,14 +530,16 @@ public class PulseAudioSystem
             if (description == null)
                 description = name;
             deviceList.add(
-                    new CaptureDeviceInfo(
+                    new ExtendedCaptureDeviceInfo(
                             description,
                             new MediaLocator(
                                     LOCATOR_PROTOCOL
                                         + ":"
                                         + name),
                             sourceInfoFormatList.toArray(
-                                    new Format[sourceInfoFormatList.size()])));
+                                    new Format[sourceInfoFormatList.size()]),
+                            null,
+                            null));
         }
     }
 

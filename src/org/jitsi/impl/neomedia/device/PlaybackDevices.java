@@ -21,11 +21,6 @@ public class PlaybackDevices
     extends Devices
 {
     /**
-     * The flag nuber if the playback device is null.
-     */
-    protected static final int FLAG_DEVICE_IS_NULL = 4;
-
-    /**
      * The property of the playback devices.
      */
     public static final String PROP_DEVICE = "playbackDevice";
@@ -33,7 +28,7 @@ public class PlaybackDevices
     /**
      * The list of active (actually plugged-in) playback devices.
      */
-    private List<CaptureDeviceInfo> activePlaybackDevices = null;
+    private List<ExtendedCaptureDeviceInfo> activePlaybackDevices = null;
 
     /**
      * Initializes the playback device list managment.
@@ -48,18 +43,14 @@ public class PlaybackDevices
     /**
      * Returns the list of the active devices.
      *
-     * @param locator The string representation of the locator.
-     *
      * @return The list of the active devices.
      */
-    public List<CaptureDeviceInfo> getDevices(String locator)
+    public List<ExtendedCaptureDeviceInfo> getDevices()
     {
-        List<CaptureDeviceInfo> activePlaybackDevices
-            = this.activePlaybackDevices;
-
-        return (activePlaybackDevices == null)
+        return (this.activePlaybackDevices == null)
                 ? null
-                : new ArrayList<CaptureDeviceInfo>(activePlaybackDevices);
+                : new ArrayList<ExtendedCaptureDeviceInfo>(
+                        this.activePlaybackDevices);
     }
 
     /**
@@ -67,21 +58,11 @@ public class PlaybackDevices
      *
      * @param activeDevices The list of the active devices.
      */
-    public void setActiveDevices(List<CaptureDeviceInfo> activeDevices)
+    public void setActiveDevices(List<ExtendedCaptureDeviceInfo> activeDevices)
     {
         this.activePlaybackDevices = (activeDevices == null)
                 ? null
-                : new ArrayList<CaptureDeviceInfo>(activeDevices);
-    }
-
-    /**
-     * Returns the flag nuber if the capture device is null.
-     *
-     * @return The flag nuber if the capture device is null.
-     */
-    protected int getFlagDeviceIsNull()
-    {
-        return FLAG_DEVICE_IS_NULL;
+                : new ArrayList<ExtendedCaptureDeviceInfo>(activeDevices);
     }
 
     /**

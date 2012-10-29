@@ -508,7 +508,7 @@ public class MediaServiceImpl
             MediaType mediaType,
             MediaUseCase useCase)
     {
-        List<CaptureDeviceInfo> cdis;
+        List<? extends CaptureDeviceInfo> cdis;
         List<MediaDeviceImpl> privateDevices;
 
         if (MediaType.VIDEO.equals(mediaType))
@@ -528,8 +528,7 @@ public class MediaServiceImpl
             privateDevices = audioDevices;
             break;
         case VIDEO:
-            cdis
-                = getDeviceConfiguration().getAvailableVideoCaptureDevices(
+            cdis = getDeviceConfiguration().getAvailableVideoCaptureDevices(
                         useCase);
             privateDevices = videoDevices;
             break;
@@ -555,7 +554,8 @@ public class MediaServiceImpl
 
                 while (deviceIter.hasNext())
                 {
-                    Iterator<CaptureDeviceInfo> cdiIter = cdis.iterator();
+                    Iterator<? extends CaptureDeviceInfo> cdiIter
+                        = cdis.iterator();
                     CaptureDeviceInfo captureDeviceInfo
                         = deviceIter.next().getCaptureDeviceInfo();
                     boolean deviceIsFound = false;

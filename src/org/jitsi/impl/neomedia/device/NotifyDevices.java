@@ -21,11 +21,6 @@ public class NotifyDevices
     extends PlaybackDevices
 {
     /**
-     * The flag nuber if the notify device is null.
-     */
-    protected static final int FLAG_DEVICE_IS_NULL = 2;
-
-    /**
      * The property of the notify devices.
      */
     public static final String PROP_DEVICE = "notifyDevice";
@@ -38,16 +33,6 @@ public class NotifyDevices
     public NotifyDevices(AudioSystem audioSystem)
     {
         super(audioSystem);
-    }
-
-    /**
-     * Returns the flag nuber if the capture device is null.
-     *
-     * @return The flag nuber if the capture device is null.
-     */
-    protected int getFlagDeviceIsNull()
-    {
-        return FLAG_DEVICE_IS_NULL;
     }
 
     /**

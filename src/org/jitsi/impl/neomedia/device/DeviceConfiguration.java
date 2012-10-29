@@ -395,7 +395,7 @@ public class DeviceConfiguration
      * @return the CaptureDeviceInfo of a device that we could use for audio
      *         capture.
      */
-    public CaptureDeviceInfo getAudioCaptureDevice()
+    public ExtendedCaptureDeviceInfo getAudioCaptureDevice()
     {
         AudioSystem audioSystem = getAudioSystem();
 
@@ -414,14 +414,9 @@ public class DeviceConfiguration
      *         capture devices available through this
      *         <tt>DeviceConfiguration</tt>
      */
-    public List<CaptureDeviceInfo> getAvailableAudioCaptureDevices()
+    public List<ExtendedCaptureDeviceInfo> getAvailableAudioCaptureDevices()
     {
-        @SuppressWarnings("unchecked")
-        Vector<CaptureDeviceInfo> audioCaptureDevices
-            = CaptureDeviceManager.getDeviceList(
-                    new AudioFormat(AudioFormat.LINEAR, -1, 16, -1));
-
-        return audioCaptureDevices;
+        return audioSystem.getDevices(AudioSystem.CAPTURE_INDEX);
     }
 
     public AudioSystem getAudioSystem()
@@ -445,7 +440,7 @@ public class DeviceConfiguration
                 if (!NoneAudioSystem.LOCATOR_PROTOCOL.equalsIgnoreCase(
                         audioSystem.getLocatorProtocol()))
                 {
-                    List<CaptureDeviceInfo> captureDevices
+                    List<ExtendedCaptureDeviceInfo> captureDevices
                         = audioSystem.getDevices(AudioSystem.CAPTURE_INDEX);
 
                     if ((captureDevices == null)
@@ -459,14 +454,14 @@ public class DeviceConfiguration
                         }
                         else
                         {
-                            List<CaptureDeviceInfo> notifyDevices
+                            List<ExtendedCaptureDeviceInfo> notifyDevices
                                 = audioSystem.getDevices(
                                         AudioSystem.NOTIFY_INDEX);
 
                             if ((notifyDevices == null)
                                     || (notifyDevices.size() <= 0))
                             {
-                                List<CaptureDeviceInfo> playbackDevices
+                                List<ExtendedCaptureDeviceInfo> playbackDevices
                                     = audioSystem.getDevices(
                                         AudioSystem.PLAYBACK_INDEX);
     

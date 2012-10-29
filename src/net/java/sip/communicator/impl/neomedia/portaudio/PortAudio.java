@@ -616,6 +616,73 @@ public final class PortAudio
     private static native byte[] PaDeviceInfo_getNameBytes(long deviceInfo);
 
     /**
+     * Tranpsort type for the device: BuiltIn, USB, BLuetooth, etc.
+     * @param deviceInfo device info pointer.
+     * @return The transport type identifier.
+     */
+    public static native byte[] PaDeviceInfo_getTransportTypeBytes(
+            long deviceInfo);
+
+    /**
+     * Tranpsort type for the device: BuiltIn, USB, BLuetooth, etc.
+     * @param deviceInfo device info pointer.
+     * @return The transport type identifier.
+     */
+    public static String PaDeviceInfo_getTransportType(long deviceInfo)
+    {
+        byte[] typeBytes = PaDeviceInfo_getTransportTypeBytes(deviceInfo);
+        if(typeBytes == null)
+        {
+            return null;
+        }
+
+        Charset defaultCharset = Charset.defaultCharset();
+        String charsetName
+            = (defaultCharset == null) ? "UTF-8" : defaultCharset.name();
+        try
+        {
+            return new String(typeBytes, charsetName);
+        }
+        catch (UnsupportedEncodingException ueex)
+        {
+            return new String(typeBytes);
+        }
+    }
+
+    /**
+     * Device UID for the device (persistent across boots).
+     * @param deviceInfo device info pointer.
+     * @return The device UID.
+     */
+    public static native byte[] PaDeviceInfo_getDeviceUIDBytes(long deviceInfo);
+
+    /**
+     * Device UID for the device (persistent across boots).
+     * @param deviceInfo device info pointer.
+     * @return The device UID.
+     */
+    public static String PaDeviceInfo_getDeviceUID(long deviceInfo)
+    {
+        byte[] uidBytes = PaDeviceInfo_getDeviceUIDBytes(deviceInfo);
+        if(uidBytes == null)
+        {
+            return null;
+        }
+
+        Charset defaultCharset = Charset.defaultCharset();
+        String charsetName
+            = (defaultCharset == null) ? "UTF-8" : defaultCharset.name();
+        try
+        {
+            return new String(uidBytes, charsetName);
+        }
+        catch (UnsupportedEncodingException ueex)
+        {
+            return new String(uidBytes);
+        }
+    }
+
+    /**
      * The default input device for this host API.
      * @param hostApiInfo pointer to host api info structure.
      * @return The default input device for this host API.

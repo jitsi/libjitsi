@@ -230,6 +230,22 @@ JNIEXPORT jbyteArray JNICALL Java_org_jitsi_impl_neomedia_portaudio_PortAudio_Pa
   (JNIEnv *, jclass, jlong);
 
 /*
+ * Class:     net_java_sip_communicator_impl_neomedia_portaudio_PortAudio
+ * Method:    PaDeviceInfo_getTransportTypeBytes
+ * Signature: (J)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_net_java_sip_communicator_impl_neomedia_portaudio_PortAudio_PaDeviceInfo_1getTransportTypeBytes
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     net_java_sip_communicator_impl_neomedia_portaudio_PortAudio
+ * Method:    PaDeviceInfo_getDeviceUIDBytes
+ * Signature: (J)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_net_java_sip_communicator_impl_neomedia_portaudio_PortAudio_PaDeviceInfo_1getDeviceUIDBytes
+  (JNIEnv *, jclass, jlong);
+
+/*
  * Class:     org_jitsi_impl_neomedia_portaudio_PortAudio
  * Method:    PaHostApiInfo_getDefaultInputDevice
  * Signature: (J)I
