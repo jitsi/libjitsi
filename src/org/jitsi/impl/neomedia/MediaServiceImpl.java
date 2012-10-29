@@ -1518,10 +1518,13 @@ public class MediaServiceImpl
     private static void setupFMJ()
     {
         /*
-         * Since FMJ is part of neomedia, FMJ's log should be enabled when
-         * neomedia's log is enabled.
+         * FMJ now uses java.util.logging.Logger, but only logs if
+         * "allowLogging" is set in it's registry. Since the levels can be
+         * configured through properties for the net.sf.fmj.media.Log class,
+         * we always enable this (as opposed to only enabling it when
+         * <tt>this.logger</tt> has debug enabled).
          */
-        Registry.set("allowLogging", logger.isDebugEnabled());
+        Registry.set("allowLogging", true);
 
         /*
          * Disable the loading of .fmj.registry because Kertesz Laszlo has
