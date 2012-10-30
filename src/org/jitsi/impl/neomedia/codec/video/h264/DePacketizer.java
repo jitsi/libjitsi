@@ -15,6 +15,7 @@ import net.java.sip.communicator.impl.neomedia.codec.*;
 import net.sf.fmj.media.*;
 
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.util.*;
 

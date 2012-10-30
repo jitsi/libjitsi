@@ -12,6 +12,7 @@ import javax.media.format.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.neomedia.codec.*;
 
 /**
  * Implements the SILK encoder as an FMJ/JMF <tt>Codec</tt>.

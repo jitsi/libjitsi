@@ -12,6 +12,7 @@ import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.service.neomedia.codec.*;
 
 /**
  * Implements an iLBC decoder and RTP depacketizer as a {@link Codec}.

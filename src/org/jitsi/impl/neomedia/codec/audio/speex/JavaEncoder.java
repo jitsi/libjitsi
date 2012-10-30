@@ -12,6 +12,7 @@ import javax.media.format.*;
 import net.sf.fmj.media.*;
 
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.service.neomedia.codec.*;
 import org.xiph.speex.*;
 
 /**

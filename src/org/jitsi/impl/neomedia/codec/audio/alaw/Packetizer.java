@@ -9,7 +9,7 @@ package org.jitsi.impl.neomedia.codec.audio.alaw;
 import javax.media.*;
 import javax.media.format.*;
 
-import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.service.neomedia.codec.*;
 
 /**
  * Implements an RTP packetizer for the A-law codec.

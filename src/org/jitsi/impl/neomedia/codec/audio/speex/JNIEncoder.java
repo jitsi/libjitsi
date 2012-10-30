@@ -13,6 +13,7 @@ import net.java.sip.communicator.impl.neomedia.codec.audio.speex.*;
 import net.sf.fmj.media.*;
 
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.service.neomedia.codec.*;
 
 /**
  * Implements a Speex encoder and RTP packetizer using the native Speex library.

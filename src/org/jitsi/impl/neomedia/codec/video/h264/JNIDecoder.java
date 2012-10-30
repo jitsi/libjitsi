@@ -16,6 +16,7 @@ import net.sf.fmj.media.*;
 
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
+import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 
 /**
