@@ -30,4 +30,18 @@ public class PortAudioException
     {
         super(message);
     }
+
+    /**
+     * Initializes a new <tt>PortAudioException</tt> instance with a specific
+     * detail message.
+     *
+     * @param message the detail message to initialize the new instance with
+     */
+    public PortAudioException(String message,
+                              int hostApiInfo,
+                              long errorCode,
+                              String errorText)
+    {
+        super(message, hostApiInfo, errorCode, errorText);
+    }
 }

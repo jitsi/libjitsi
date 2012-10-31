@@ -42,6 +42,8 @@ public final class PortAudio
         }
         catch (PortAudioException paex)
         {
+            printHostError(paex);
+
             throw new UndeclaredThrowableException(paex);
         }
     }
@@ -871,5 +873,23 @@ public final class PortAudio
      */
     private PortAudio()
     {
+    }
+
+    /**
+     * Prints host error info for an <tt>PortAudioException</tt> if any.
+     * @param e the exception to check for host error info.
+     */
+    public static void printHostError(PortAudioException e)
+    {
+        PortAudioHostErrorInfo hostErrorInfo = e.getPortAudioHostErrorInfo();
+
+        if(hostErrorInfo != null)
+        {
+            logger.error(e.getMessage() +
+                ". Host error info - hostApiType:"
+                                        + hostErrorInfo.getHostApiType() +
+                ", native error code:"  + hostErrorInfo.getErrorCode() +
+                ", native error text: " + hostErrorInfo.getErrorText());
+        }
     }
 }
