@@ -39,12 +39,14 @@
     <mkdir dir="${dest}" />
     <javac
         classpathref="compile.class.path"
+        debug="true"
         destdir="${dest}"
         fork="true"
+        optimize="true"
         source="1.5"
         target="1.5">
-        <src path="${src}"/>
-        <exclude name="org/jitsi/impl/neomedia/codec/audio/speex/Java*"/>
+      <src path="${src}"/>
+      <exclude name="org/jitsi/impl/neomedia/codec/audio/speex/Java*"/>
     </javac>
   </target>
 

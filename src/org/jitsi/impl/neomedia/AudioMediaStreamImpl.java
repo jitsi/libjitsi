@@ -121,11 +121,17 @@ public class AudioMediaStreamImpl
             BufferControl bufferControl)
     {
         /*
-         * It appears that if we don't do this managers don't play. You can try
-         * some other buffer size to see if you can get better smoothness.
+         * It appears that, if we don't do the following, the RTPManager won't
+         * play.
          */
         ConfigurationService cfg = LibJitsi.getConfigurationService();
-        long bufferLength = 100;
+        /*
+         * There isn't a particular reason why we'd choose 100 or 120. It may be
+         * that 120 is divided by 30 (which is used by iLBC, for example) and
+         * 100 isn't. Anyway, what matters most is that it's proportional to the
+         * latency of the playback. 
+         */
+        long bufferLength = 120;
 
         if (cfg != null)
         {
@@ -150,8 +156,15 @@ public class AudioMediaStreamImpl
         if (logger.isTraceEnabled())
             logger.trace("Set receiver buffer length to " + bufferLength);
 
-        bufferControl.setEnabledThreshold(true);
-        bufferControl.setMinimumThreshold(100);
+        /*
+         * The threshold should better be half of the bufferLength rather than
+         * equal to it (as it used to be before). Whatever it is, FMJ/JMF
+         * doesn't take it into account anyway.
+         */
+        long minimumThreshold = bufferLength / 2;
+
+        bufferControl.setEnabledThreshold(minimumThreshold > 0);
+        bufferControl.setMinimumThreshold(minimumThreshold);
     }
 
     /**
