@@ -129,7 +129,10 @@ public class PortAudioSystem
             // otherwise a call currently using this device will fail.
             for(int i = 0; devices !=null && i < devices.size() && !found; ++i)
             {
-                if(devices.get(i).getUID().equals(deviceUID))
+                // using identifier (name or uid, cause there can be some
+                // uid that are null)
+                String id = devices.get(i).getIdentifier();
+                if(id.equals(deviceUID) || id.equals(name))
                 {
                     cdi = devices.get(i);
                     found = true;
