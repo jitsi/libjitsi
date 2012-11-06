@@ -156,26 +156,26 @@ JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_portaudio_Pa_AbortStream
     (JNIEnv *env, jclass clazz, jlong stream)
 {
-    PaError errorCode
+    PaError err
         = Pa_AbortStream(((PortAudioStream *) (intptr_t) stream)->stream);
 
-    if (paNoError != errorCode)
-        PortAudio_throwException(env, errorCode);
+    if (paNoError != err)
+        PortAudio_throwException(env, err);
 }
 
 JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_portaudio_Pa_CloseStream
     (JNIEnv *env, jclass clazz, jlong stream)
 {
-    PortAudioStream *portAudioStream = (PortAudioStream *) (intptr_t) stream;
-    PaError errorCode = Pa_CloseStream(portAudioStream->stream);
+    PortAudioStream *s = (PortAudioStream *) (intptr_t) stream;
+    PaError err = Pa_CloseStream(s->stream);
 
-    if (paNoError != errorCode)
-        PortAudio_throwException(env, errorCode);
-    else if (portAudioStream->pseudoBlocking)
-        PortAudioStream_release(portAudioStream);
+    if (paNoError != err)
+        PortAudio_throwException(env, err);
+    else if (s->pseudoBlocking)
+        PortAudioStream_release(s);
     else
-        PortAudioStream_free(env, portAudioStream);
+        PortAudioStream_free(env, s);
 }
 
 JNIEXPORT jdouble JNICALL
@@ -217,11 +217,11 @@ JNIEXPORT jbyteArray JNICALL
 Java_org_jitsi_impl_neomedia_portaudio_Pa_DeviceInfo_1getDeviceUIDBytes
     (JNIEnv *env, jclass clazz, jlong deviceInfo)
 {
-    PaDeviceInfo *_deviceInfo = (PaDeviceInfo *) (intptr_t) deviceInfo;
+    PaDeviceInfo *di = (PaDeviceInfo *) (intptr_t) deviceInfo;
 
     return
-        (_deviceInfo->structVersion >= 3)
-            ? PortAudio_getStrBytes(env, _deviceInfo->deviceUID)
+        (di->structVersion >= 3)
+            ? PortAudio_getStrBytes(env, di->deviceUID)
             : NULL;
 }
 
@@ -260,11 +260,11 @@ JNIEXPORT jbyteArray JNICALL
 Java_org_jitsi_impl_neomedia_portaudio_Pa_DeviceInfo_1getTransportTypeBytes
     (JNIEnv *env, jclass clazz, jlong deviceInfo)
 {
-    PaDeviceInfo *_deviceInfo = (PaDeviceInfo *) (intptr_t) deviceInfo;
+    PaDeviceInfo *di = (PaDeviceInfo *) (intptr_t) deviceInfo;
 
     return
-        (_deviceInfo->structVersion >= 3)
-            ? PortAudio_getStrBytes(env, _deviceInfo->transportType)
+        (di->structVersion >= 3)
+            ? PortAudio_getStrBytes(env, di->transportType)
             : NULL;
 }
 
@@ -371,9 +371,9 @@ JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_portaudio_Pa_Initialize
     (JNIEnv *env, jclass clazz)
 {
-    PaError errorCode = Pa_Initialize();
+    PaError err = Pa_Initialize();
 
-    if (paNoError == errorCode)
+    if (paNoError == err)
     {
         jclass devicesChangedCallbackClass
             = (*env)->FindClass(env, "org/jitsi/impl/neomedia/portaudio/Pa");
@@ -405,7 +405,7 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_Initialize
         }
     }
     else
-        PortAudio_throwException(env, errorCode);
+        PortAudio_throwException(env, err);
 }
 
 JNIEXPORT jboolean JNICALL
@@ -432,25 +432,25 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_OpenStream
     jlong streamFlags,
     jobject streamCallback)
 {
-    PortAudioStream *stream = PortAudioStream_new(env, streamCallback);
+    PortAudioStream *s = PortAudioStream_new(env, streamCallback);
     PaStreamCallback *effectiveStreamCallback;
     PaStreamFinishedCallback *effectiveStreamFinishedCallback;
     unsigned long effectiveFramesPerBuffer = framesPerBuffer;
     PaHostApiTypeId hostApiType = paInDevelopment;
-    PaError errorCode;
+    PaError err;
     PaStreamParameters *inputStreamParameters
         = (PaStreamParameters *) (intptr_t) inputParameters;
     PaStreamParameters *outputStreamParameters
         = (PaStreamParameters *) (intptr_t) outputParameters;
 
-    if (!stream)
+    if (!s)
         return 0;
 
     if (streamCallback)
     {
         effectiveStreamCallback = PortAudioStream_javaCallback;
         effectiveStreamFinishedCallback = PortAudioStream_javaFinishedCallback;
-        stream->pseudoBlocking = JNI_FALSE;
+        s->pseudoBlocking = JNI_FALSE;
     }
     else
     {
@@ -463,7 +463,7 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_OpenStream
 
         effectiveStreamCallback = NULL;
         effectiveStreamFinishedCallback = NULL;
-        stream->pseudoBlocking = JNI_FALSE;
+        s->pseudoBlocking = JNI_FALSE;
 
         /*
          * TODO It should be possible to implement the blocking stream interface
@@ -532,7 +532,7 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_OpenStream
                                 = PortAudioStream_pseudoBlockingCallback;
                             effectiveStreamFinishedCallback
                                 = PortAudioStream_pseudoBlockingFinishedCallback;
-                            stream->pseudoBlocking = JNI_TRUE;
+                            s->pseudoBlocking = JNI_TRUE;
                             break;
                         default:
                             break;
@@ -543,19 +543,19 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_OpenStream
         }
     }
 
-    if (JNI_TRUE == stream->pseudoBlocking)
+    if (JNI_TRUE == s->pseudoBlocking)
     {
-        stream->mutex = Mutex_new(NULL);
-        errorCode = (stream->mutex) ? paNoError : paInsufficientMemory;
+        s->mutex = Mutex_new(NULL);
+        err = (s->mutex) ? paNoError : paInsufficientMemory;
     }
     else
-        errorCode = paNoError;
+        err = paNoError;
 
-    if (paNoError == errorCode)
+    if (paNoError == err)
     {
-        errorCode
+        err
             = Pa_OpenStream(
-                &(stream->stream),
+                &(s->stream),
                 PortAudio_fixInputParametersSuggestedLatency(
                     inputStreamParameters,
                     sampleRate, framesPerBuffer,
@@ -568,53 +568,51 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_OpenStream
                 effectiveFramesPerBuffer,
                 streamFlags,
                 effectiveStreamCallback,
-                stream);
+                s);
     }
 
-    if (paNoError == errorCode)
+    if (paNoError == err)
     {
-        stream->framesPerBuffer = effectiveFramesPerBuffer;
-        stream->inputFrameSize
-                = PortAudio_getFrameSize(inputStreamParameters);
-        stream->outputFrameSize
-                = PortAudio_getFrameSize(outputStreamParameters);
-        stream->sampleRate = sampleRate;
+        s->framesPerBuffer = effectiveFramesPerBuffer;
+        s->inputFrameSize = PortAudio_getFrameSize(inputStreamParameters);
+        s->outputFrameSize = PortAudio_getFrameSize(outputStreamParameters);
+        s->sampleRate = sampleRate;
 
         if (effectiveStreamFinishedCallback)
         {
-            errorCode
+            err
                 = Pa_SetStreamFinishedCallback(
-                    stream->stream,
+                    s->stream,
                     effectiveStreamFinishedCallback);
         }
 
-        stream->audioQualityImprovement
+        s->audioQualityImprovement
             = AudioQualityImprovement_getSharedInstance(
                 AUDIO_QUALITY_IMPROVEMENT_STRING_ID,
                 0);
         if (inputStreamParameters)
         {
-            stream->sampleSizeInBits
+            s->sampleSizeInBits
                 = PortAudio_getSampleSizeInBits(inputStreamParameters);
-            stream->channels = inputStreamParameters->channelCount;
+            s->channels = inputStreamParameters->channelCount;
 
             /*
              * Prepare whatever is necessary for the pseudo-blocking stream
              * interface implementation. For example, allocate its memory early
              * because doing it in the stream callback may introduce latency.
              */
-            if (stream->pseudoBlocking
+            if (s->pseudoBlocking
                     && !PortAudioStream_allocPseudoBlockingBuffer(
-                            2 * framesPerBuffer * (stream->inputFrameSize),
-                            &(stream->input),
-                            &(stream->inputLength),
-                            &(stream->inputCapacity),
-                            &(stream->inputMutex),
-                            &(stream->inputCondVar)))
+                            2 * framesPerBuffer * (s->inputFrameSize),
+                            &(s->input),
+                            &(s->inputLength),
+                            &(s->inputCapacity),
+                            &(s->inputMutex),
+                            &(s->inputCondVar)))
             {
                 Java_org_jitsi_impl_neomedia_portaudio_Pa_CloseStream(
                     env, clazz,
-                    (jlong) (intptr_t) stream);
+                    (jlong) (intptr_t) s);
                 if (JNI_FALSE == (*env)->ExceptionCheck(env))
                 {
                     PortAudio_throwException(env, paInsufficientMemory);
@@ -622,20 +620,20 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_OpenStream
                 }
             }
 
-            if (stream->audioQualityImprovement)
+            if (s->audioQualityImprovement)
             {
                 AudioQualityImprovement_setSampleRate(
-                    stream->audioQualityImprovement,
+                    s->audioQualityImprovement,
                     (int) sampleRate);
 
-                if (stream->pseudoBlocking)
+                if (s->pseudoBlocking)
                 {
                     const PaStreamInfo *streamInfo;
 
-                    streamInfo = Pa_GetStreamInfo(stream->stream);
+                    streamInfo = Pa_GetStreamInfo(s->stream);
                     if (streamInfo)
                     {
-                        stream->inputLatency
+                        s->inputLatency
                                 = (jlong) (streamInfo->inputLatency * 1000);
                     }
                 }
@@ -643,22 +641,22 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_OpenStream
         }
         if (outputStreamParameters)
         {
-            stream->sampleSizeInBits
+            s->sampleSizeInBits
                 = PortAudio_getSampleSizeInBits(outputStreamParameters);
-            stream->channels = outputStreamParameters->channelCount;
+            s->channels = outputStreamParameters->channelCount;
 
-            if (stream->pseudoBlocking
+            if (s->pseudoBlocking
                     && !PortAudioStream_allocPseudoBlockingBuffer(
-                            2 * framesPerBuffer * (stream->outputFrameSize),
-                            &(stream->output),
-                            &(stream->outputLength),
-                            &(stream->outputCapacity),
-                            &(stream->outputMutex),
-                            &(stream->outputCondVar)))
+                            2 * framesPerBuffer * (s->outputFrameSize),
+                            &(s->output),
+                            &(s->outputLength),
+                            &(s->outputCapacity),
+                            &(s->outputMutex),
+                            &(s->outputCondVar)))
             {
                 Java_org_jitsi_impl_neomedia_portaudio_Pa_CloseStream(
                     env, clazz,
-                    (jlong) (intptr_t) stream);
+                    (jlong) (intptr_t) s);
                 if (JNI_FALSE == (*env)->ExceptionCheck(env))
                 {
                     PortAudio_throwException(env, paInsufficientMemory);
@@ -666,28 +664,28 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_OpenStream
                 }
             }
 
-            if (stream->audioQualityImprovement)
+            if (s->audioQualityImprovement)
             {
                 const PaStreamInfo *streamInfo;
 
-                streamInfo = Pa_GetStreamInfo(stream->stream);
+                streamInfo = Pa_GetStreamInfo(s->stream);
                 if (streamInfo)
                 {
-                    stream->outputLatency
+                    s->outputLatency
                             = (jlong) (streamInfo->outputLatency * 1000);
                 }
             }
         }
 
-        if (stream->pseudoBlocking)
-            PortAudioStream_retain(stream);
+        if (s->pseudoBlocking)
+            PortAudioStream_retain(s);
 
-        return (jlong) (intptr_t) stream;
+        return (jlong) (intptr_t) s;
     }
     else
     {
-        PortAudioStream_free(env, stream);
-        PortAudio_throwException(env, errorCode);
+        PortAudioStream_free(env, s);
+        PortAudio_throwException(env, err);
         return 0;
     }
 }
@@ -700,94 +698,87 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_ReadStream
 
     if (data)
     {
-        PortAudioStream *portAudioStream
-            = (PortAudioStream *) (intptr_t) stream;
-        PaError errorCode;
-        jlong framesInBytes = frames * portAudioStream->inputFrameSize;
+        PortAudioStream *s = (PortAudioStream *) (intptr_t) stream;
+        PaError err;
+        jlong framesInBytes = frames * s->inputFrameSize;
 
-        if (portAudioStream->pseudoBlocking)
+        if (s->pseudoBlocking)
         {
-            if (Mutex_lock(portAudioStream->inputMutex))
-                errorCode = paInternalError;
+            if (Mutex_lock(s->inputMutex))
+                err = paInternalError;
             else
             {
                 jlong bytesRead = 0;
 
-                errorCode = paNoError;
+                err = paNoError;
                 while (bytesRead < framesInBytes)
                 {
                     jlong bytesToRead;
 
-                    if (JNI_TRUE == portAudioStream->finished)
+                    if (JNI_TRUE == s->finished)
                     {
-                        errorCode = paStreamIsStopped;
+                        err = paStreamIsStopped;
                         break;
                     }
-                    if (!(portAudioStream->inputLength))
+                    if (!(s->inputLength))
                     {
-                        ConditionVariable_wait(
-                            portAudioStream->inputCondVar,
-                            portAudioStream->inputMutex);
+                        ConditionVariable_wait(s->inputCondVar, s->inputMutex);
                         continue;
                     }
 
                     bytesToRead = framesInBytes - bytesRead;
-                    if (bytesToRead > portAudioStream->inputLength)
-                        bytesToRead = portAudioStream->inputLength;
-                    memcpy(
-                        data + bytesRead,
-                        portAudioStream->input,
-                        bytesToRead);
+                    if (bytesToRead > s->inputLength)
+                        bytesToRead = s->inputLength;
+                    memcpy(data + bytesRead, s->input, bytesToRead);
                     PortAudioStream_popFromPseudoBlockingBuffer(
-                        portAudioStream->input,
+                        s->input,
                         bytesToRead,
-                        &(portAudioStream->inputLength));
+                        &(s->inputLength));
                     bytesRead += bytesToRead;
                 }
-                Mutex_unlock(portAudioStream->inputMutex);
+                Mutex_unlock(s->inputMutex);
             }
 
             /* Improve the audio quality of the input if possible. */
-            if ((paNoError == errorCode)
-                    && portAudioStream->audioQualityImprovement)
+            if ((paNoError == err) && s->audioQualityImprovement)
             {
                 AudioQualityImprovement_process(
-                    portAudioStream->audioQualityImprovement,
+                    s->audioQualityImprovement,
                     AUDIO_QUALITY_IMPROVEMENT_SAMPLE_ORIGIN_INPUT,
-                    portAudioStream->sampleRate,
-                    portAudioStream->sampleSizeInBits,
-                    portAudioStream->channels,
-                    portAudioStream->inputLatency,
+                    s->sampleRate,
+                    s->sampleSizeInBits,
+                    s->channels,
+                    s->inputLatency,
                     data, framesInBytes);
             }
         }
         else
         {
-            errorCode = Pa_ReadStream(portAudioStream->stream, data, frames);
-            if ((paNoError == errorCode) || (paInputOverflowed == errorCode))
+            err = Pa_ReadStream(s->stream, data, frames);
+            if ((paNoError == err) || (paInputOverflowed == err))
             {
-                errorCode = paNoError;
+                err = paNoError;
 
-                if (portAudioStream->audioQualityImprovement)
+                if (s->audioQualityImprovement)
                 {
                     AudioQualityImprovement_process(
-                        portAudioStream->audioQualityImprovement,
+                        s->audioQualityImprovement,
                         AUDIO_QUALITY_IMPROVEMENT_SAMPLE_ORIGIN_INPUT,
-                        portAudioStream->sampleRate,
-                        portAudioStream->sampleSizeInBits,
-                        portAudioStream->channels,
-                        portAudioStream->inputLatency,
+                        s->sampleRate,
+                        s->sampleSizeInBits,
+                        s->channels,
+                        s->inputLatency,
                         data, framesInBytes);
                 }
             }
         }
 
-        if (paNoError == errorCode)
+        if (paNoError == err)
             (*env)->ReleaseByteArrayElements(env, buffer, data, 0);
         else
         {
             (*env)->ReleaseByteArrayElements(env, buffer, data, JNI_ABORT);
-            PortAudio_throwException(env, errorCode);
+            PortAudio_throwException(env, err);
         }
     }
 }
@@ -822,40 +813,40 @@ JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_portaudio_Pa_StartStream
     (JNIEnv *env, jclass clazz, jlong stream)
 {
-    PortAudioStream *portAudioStream = (PortAudioStream *) (intptr_t) stream;
-    PaError errorCode;
+    PortAudioStream *s = (PortAudioStream *) (intptr_t) stream;
+    PaError err;
 
-    if (portAudioStream->pseudoBlocking)
+    if (s->pseudoBlocking)
     {
-        PortAudioStream_retain(portAudioStream);
-        if (Mutex_lock(portAudioStream->mutex))
-            errorCode = paInternalError;
+        PortAudioStream_retain(s);
+        if (Mutex_lock(s->mutex))
+            err = paInternalError;
         else
         {
-            portAudioStream->finished = JNI_FALSE;
-            errorCode = Pa_StartStream(portAudioStream->stream);
-            if (paNoError != errorCode)
-                portAudioStream->finished = JNI_TRUE;
-            Mutex_unlock(portAudioStream->mutex);
+            s->finished = JNI_FALSE;
+            err = Pa_StartStream(s->stream);
+            if (paNoError != err)
+                s->finished = JNI_TRUE;
+            Mutex_unlock(s->mutex);
         }
-        if (paNoError != errorCode)
-            PortAudioStream_release(portAudioStream);
+        if (paNoError != err)
+            PortAudioStream_release(s);
     }
     else
-        errorCode = Pa_StartStream(portAudioStream->stream);
-    if (paNoError != errorCode)
-        PortAudio_throwException(env, errorCode);
+        err = Pa_StartStream(s->stream);
+    if (paNoError != err)
+        PortAudio_throwException(env, err);
 }
 
 JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_portaudio_Pa_StopStream
     (JNIEnv *env, jclass clazz, jlong stream)
 {
-    PaError errorCode
+    PaError err
         = Pa_StopStream(((PortAudioStream *) (intptr_t) stream)->stream);
 
-    if (paNoError != errorCode)
-        PortAudio_throwException(env, errorCode);
+    if (paNoError != err)
+        PortAudio_throwException(env, err);
 }
 
 JNIEXPORT jlong JNICALL
@@ -896,9 +887,9 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_WriteStream
 {
     jbyte *bufferBytes;
     jbyte* data;
-    PortAudioStream *portAudioStream;
+    PortAudioStream *s;
     jint i;
-    PaError errorCode = paNoError;
+    PaError err = paNoError;
     jlong framesInBytes;
     AudioQualityImprovement *aqi;
     double sampleRate;
@@ -911,42 +902,40 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_WriteStream
         return;
     data = bufferBytes + offset;
 
-    portAudioStream = (PortAudioStream *) (intptr_t) stream;
-    framesInBytes = frames * portAudioStream->outputFrameSize;
-    aqi = portAudioStream->audioQualityImprovement;
-    sampleRate = portAudioStream->sampleRate;
-    sampleSizeInBits = portAudioStream->sampleSizeInBits;
-    channels = portAudioStream->channels;
-    outputLatency = portAudioStream->outputLatency;
+    s = (PortAudioStream *) (intptr_t) stream;
+    framesInBytes = frames * s->outputFrameSize;
+    aqi = s->audioQualityImprovement;
+    sampleRate = s->sampleRate;
+    sampleSizeInBits = s->sampleSizeInBits;
+    channels = s->channels;
+    outputLatency = s->outputLatency;
 
-    if (portAudioStream->pseudoBlocking)
+    if (s->pseudoBlocking)
     {
         for (i = 0; i < numberOfWrites; i++)
         {
-            if (Mutex_lock(portAudioStream->outputMutex))
-                errorCode = paInternalError;
+            if (Mutex_lock(s->outputMutex))
+                err = paInternalError;
             else
             {
                 jlong bytesWritten = 0;
 
-                errorCode = paNoError;
+                err = paNoError;
                 while (bytesWritten < framesInBytes)
                 {
-                    size_t outputCapacity
-                        = portAudioStream->outputCapacity
-                            - portAudioStream->outputLength;
+                    size_t outputCapacity = s->outputCapacity - s->outputLength;
                     jlong bytesToWrite;
 
-                    if (JNI_TRUE == portAudioStream->finished)
+                    if (JNI_TRUE == s->finished)
                     {
-                        errorCode = paStreamIsStopped;
+                        err = paStreamIsStopped;
                         break;
                     }
                     if (outputCapacity < 1)
                     {
                         ConditionVariable_wait(
-                            portAudioStream->outputCondVar,
-                            portAudioStream->outputMutex);
+                            s->outputCondVar,
+                            s->outputMutex);
                         continue;
                     }
 
@@ -954,18 +943,17 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_WriteStream
                     if (bytesToWrite > outputCapacity)
                         bytesToWrite = outputCapacity;
                     memcpy(
-                        ((jbyte *) portAudioStream->output)
-                            + portAudioStream->outputLength,
+                        ((jbyte *) s->output) + s->outputLength,
                         data + bytesWritten,
                         bytesToWrite);
 
-                    portAudioStream->outputLength += bytesToWrite;
+                    s->outputLength += bytesToWrite;
                     bytesWritten += bytesToWrite;
                 }
-                Mutex_unlock(portAudioStream->outputMutex);
+                Mutex_unlock(s->outputMutex);
             }
 
-            if (paNoError == errorCode)
+            if (paNoError == err)
             {
                 if (aqi)
                 {
@@ -983,12 +971,12 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_WriteStream
     }
     else
     {
-        PaStream *paStream = portAudioStream->stream;
+        PaStream *paStream = s->stream;
 
         for (i = 0; i < numberOfWrites; i++)
         {
-            errorCode = Pa_WriteStream(paStream, data, frames);
-            if ((paNoError != errorCode) && (paOutputUnderflowed != errorCode))
+            err = Pa_WriteStream(paStream, data, frames);
+            if ((paNoError != err) && (paOutputUnderflowed != err))
                 break;
             else
             {
@@ -1008,8 +996,8 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_WriteStream
 
     (*env)->ReleaseByteArrayElements(env, buffer, bufferBytes, JNI_ABORT);
 
-    if ((paNoError != errorCode) && (paOutputUnderflowed != errorCode))
-        PortAudio_throwException(env, errorCode);
+    if ((paNoError != err) && (paOutputUnderflowed != err))
+        PortAudio_throwException(env, err);
 }
 
 JNIEXPORT jint JNICALL
@@ -1236,58 +1224,101 @@ PortAudio_getStrBytes(JNIEnv *env, const char *str)
 }
 
 static void
-PortAudio_throwException(JNIEnv *env, PaError errorCode)
+PortAudio_throwException(JNIEnv *env, PaError err)
 {
     jclass clazz
         = (*env)->FindClass(
             env,
             "org/jitsi/impl/neomedia/portaudio/PortAudioException");
 
-    if(errorCode == paUnanticipatedHostError)
+    /*
+     * XXX If there is no clazz, an exception has already been thrown and the
+     * current thread may no longer utilize JNIEnv methods.
+     */
+    if (clazz)
     {
-        // throw new exception with host error info
-        const PaHostErrorInfo*  herr = Pa_GetLastHostErrorInfo();
-        if (herr)
+        /*
+         * We may be able to provide further details in the case of
+         * paUnanticipatedHostError by means of PaHostErrorInfo.
+         */
+        if (paUnanticipatedHostError == err)
         {
-            jmethodID methodID
-                = (*env)->GetMethodID(
-                        env,
-                        clazz,
-                        "<init>",
-                        "(Ljava/lang/String;IJLjava/lang/String;)V");
+            const PaHostErrorInfo*  hostErr = Pa_GetLastHostErrorInfo();
 
-            if (methodID)
+            if (hostErr)
             {
-                jstring jmessage;
-                if (herr->errorText)
-                    jmessage = (*env)->NewStringUTF(env, herr->errorText);
-                else
-                    jmessage = (*env)->NewStringUTF(env, "");
+                jmethodID methodID
+                    = (*env)->GetMethodID(
+                            env,
+                            clazz,
+                            "<init>",
+                            "(Ljava/lang/String;JI)V");
 
-                if (jmessage)
+                if (methodID)
                 {
-                    jobject t
-                        = (*env)->NewObject(
-                                env,
-                                clazz,
-                                methodID,
-                                Pa_GetErrorText(errorCode),
-                                herr->hostApiType,
-                                herr->errorCode,
-                                jmessage);
+                    const char *message = hostErr->errorText;
+                    jstring jmessage;
 
-                    if (t)
+                    /*
+                     * PaHostErrorInfo's errorText is documented to possibly be
+                     * an empty string. In such a case, the (detailed) message
+                     * of the PortAudioException will fall back to
+                     * Pa_GetErrorText.
+                     */
+                    if (!message || !strlen(message))
+                        message = Pa_GetErrorText(err);
+
+                    if (message)
                     {
-                        (*env)->Throw(env, (jthrowable) t);
+                        jmessage = (*env)->NewStringUTF(env, message);
+                        if (!jmessage)
+                        {
+                            /*
+                             * XXX An exception has already been thrown and the
+                             * current thread may no longer utilize JNIEnv
+                             * methods.
+                             */
+                            return;
+                        }
+                    }
+                    else
+                        jmessage = 0;
+
+                    if (jmessage)
+                    {
+                        jobject t
+                            = (*env)->NewObject(
+                                    env,
+                                    clazz,
+                                    methodID,
+                                    jmessage,
+                                    hostErr->errorCode,
+                                    hostErr->hostApiType);
+
+                        if (t)
+                            (*env)->Throw(env, (jthrowable) t);
+                        /*
+                         * XXX If there is no t, an exception has already been
+                         * thrown and the current thread may no longer utilize
+                         * JNIEnv methods.
+                         */
                         return;
                     }
                 }
+                else
+                {
+                    /*
+                     * XXX An exception has already been thrown and the
+                     * current thread may no longer utilize JNIEnv
+                     * methods.
+                     */
+                    return;
+                }
             }
         }
-    }
 
-    if (clazz)
-        (*env)->ThrowNew(env, clazz, Pa_GetErrorText(errorCode));
+        (*env)->ThrowNew(env, clazz, Pa_GetErrorText(err));
+    }
 }
 
 /**
@@ -1395,8 +1426,8 @@ PortAudioStream_javaCallback
     PaStreamCallbackFlags statusFlags,
     void *userData)
 {
-    PortAudioStream *stream = (PortAudioStream *) userData;
-    jobject streamCallback = stream->streamCallback;
+    PortAudioStream *s = (PortAudioStream *) userData;
+    jobject streamCallback = s->streamCallback;
     JNIEnv *env;
     jmethodID streamCallbackMethodID;
     int ret;
@@ -1404,17 +1435,17 @@ PortAudioStream_javaCallback
     if (!streamCallback)
         return paContinue;
 
-    env = stream->env;
+    env = s->env;
     if (!env)
     {
-        JavaVM *vm = stream->vm;
+        JavaVM *vm = s->vm;
 
         if ((*vm)->AttachCurrentThreadAsDaemon(vm, (void **) &env, NULL) < 0)
             return paAbort;
         else
-            stream->env = env;
+            s->env = env;
     }
-    streamCallbackMethodID = stream->streamCallbackMethodID;
+    streamCallbackMethodID = s->streamCallbackMethodID;
     if (!streamCallbackMethodID)
     {
         jclass streamCallbackClass
@@ -1427,7 +1458,7 @@ PortAudioStream_javaCallback
                     "callback",
                     "(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)I");
         if (streamCallbackMethodID)
-            stream->streamCallbackMethodID = streamCallbackMethodID;
+            s->streamCallbackMethodID = streamCallbackMethodID;
         else
             return paAbort;
     }
@@ -1441,13 +1472,13 @@ PortAudioStream_javaCallback
                     ? (*env)->NewDirectByteBuffer(
                             env,
                             (void *) input,
-                            frameCount * stream->inputFrameSize)
+                            frameCount * s->inputFrameSize)
                     : NULL,
                 output
                     ? (*env)->NewDirectByteBuffer(
                             env,
                             output,
-                            frameCount * stream->outputFrameSize)
+                            frameCount * s->outputFrameSize)
                     : NULL);
     /*
      * Because we've called to Java from a native callback, make sure that any
@@ -1461,25 +1492,25 @@ PortAudioStream_javaCallback
 static void
 PortAudioStream_javaFinishedCallback(void *userData)
 {
-    PortAudioStream *stream = (PortAudioStream *) userData;
-    jobject streamCallback = stream->streamCallback;
+    PortAudioStream *s = (PortAudioStream *) userData;
+    jobject streamCallback = s->streamCallback;
     JNIEnv *env;
     jmethodID streamFinishedCallbackMethodID;
 
     if (!streamCallback)
         return;
 
-    env = stream->env;
+    env = s->env;
     if (!env)
     {
-        JavaVM *vm = stream->vm;
+        JavaVM *vm = s->vm;
 
         if ((*vm)->AttachCurrentThreadAsDaemon(vm, (void **) &env, NULL) < 0)
             return;
         else
-            stream->env = env;
+            s->env = env;
     }
-    streamFinishedCallbackMethodID = stream->streamFinishedCallbackMethodID;
+    streamFinishedCallbackMethodID = s->streamFinishedCallbackMethodID;
     if (!streamFinishedCallbackMethodID)
     {
         jclass streamCallbackClass
@@ -1492,7 +1523,7 @@ PortAudioStream_javaFinishedCallback(void *userData)
                     "finishedCallback",
                     "()V");
         if (streamFinishedCallbackMethodID)
-            stream->streamFinishedCallbackMethodID
+            s->streamFinishedCallbackMethodID
                 = streamFinishedCallbackMethodID;
         else
             return;
@@ -1510,9 +1541,9 @@ PortAudioStream_javaFinishedCallback(void *userData)
 static PortAudioStream *
 PortAudioStream_new(JNIEnv *env, jobject streamCallback)
 {
-    PortAudioStream *stream = calloc(1, sizeof(PortAudioStream));
+    PortAudioStream *s = calloc(1, sizeof(PortAudioStream));
 
-    if (!stream)
+    if (!s)
     {
         PortAudio_throwException(env, paInsufficientMemory);
         return NULL;
@@ -1520,23 +1551,23 @@ PortAudioStream_new(JNIEnv *env, jobject streamCallback)
 
     if (streamCallback)
     {
-        if ((*env)->GetJavaVM(env, &(stream->vm)) < 0)
+        if ((*env)->GetJavaVM(env, &(s->vm)) < 0)
         {
-            free(stream);
+            free(s);
             PortAudio_throwException(env, paInternalError);
             return NULL;
         }
 
-        stream->streamCallback = (*env)->NewGlobalRef(env, streamCallback);
-        if (!(stream->streamCallback))
+        s->streamCallback = (*env)->NewGlobalRef(env, streamCallback);
+        if (!(s->streamCallback))
         {
-            free(stream);
+            free(s);
             PortAudio_throwException(env, paInsufficientMemory);
             return NULL;
         }
     }
 
-    return stream;
+    return s;
 }
 
 static void
@@ -1562,11 +1593,11 @@ PortAudioStream_pseudoBlockingCallback
     PaStreamCallbackFlags statusFlags,
     void *userData)
 {
-    PortAudioStream *stream = (PortAudioStream *) userData;
+    PortAudioStream *s = (PortAudioStream *) userData;
 
-    if (input && stream->inputMutex && !Mutex_lock(stream->inputMutex))
+    if (input && s->inputMutex && !Mutex_lock(s->inputMutex))
     {
-        size_t inputLength = frameCount * stream->inputFrameSize;
+        size_t inputLength = frameCount * s->inputFrameSize;
         size_t newInputLength;
         void *inputInStream;
 
@@ -1574,33 +1605,33 @@ PortAudioStream_pseudoBlockingCallback
          * Remember the specified input so that it can be retrieved later on in
          * our pseudo-blocking Pa_ReadStream().
          */
-        newInputLength = stream->inputLength + inputLength;
-        if (newInputLength > stream->inputCapacity)
+        newInputLength = s->inputLength + inputLength;
+        if (newInputLength > s->inputCapacity)
         {
             PortAudioStream_popFromPseudoBlockingBuffer(
-                stream->input,
-                newInputLength - stream->inputCapacity,
-                &(stream->inputLength));
+                s->input,
+                newInputLength - s->inputCapacity,
+                &(s->inputLength));
         }
-        inputInStream = ((jbyte *) (stream->input)) + stream->inputLength;
+        inputInStream = ((jbyte *) (s->input)) + s->inputLength;
         memcpy(inputInStream, input, inputLength);
-        stream->inputLength += inputLength;
+        s->inputLength += inputLength;
 
-        ConditionVariable_notify(stream->inputCondVar);
-        Mutex_unlock(stream->inputMutex);
+        ConditionVariable_notify(s->inputCondVar);
+        Mutex_unlock(s->inputMutex);
     }
-    if (output && stream->outputMutex && !Mutex_lock(stream->outputMutex))
+    if (output && s->outputMutex && !Mutex_lock(s->outputMutex))
     {
-        size_t outputLength = frameCount * stream->outputFrameSize;
+        size_t outputLength = frameCount * s->outputFrameSize;
         size_t availableOutputLength = outputLength;
 
-        if (availableOutputLength > stream->outputLength)
-            availableOutputLength = stream->outputLength;
-        memcpy(output, stream->output, availableOutputLength);
+        if (availableOutputLength > s->outputLength)
+            availableOutputLength = s->outputLength;
+        memcpy(output, s->output, availableOutputLength);
         PortAudioStream_popFromPseudoBlockingBuffer(
-            stream->output,
+            s->output,
             availableOutputLength,
-            &(stream->outputLength));
+            &(s->outputLength));
         if (availableOutputLength < outputLength)
         {
             memset(
@@ -1609,8 +1640,8 @@ PortAudioStream_pseudoBlockingCallback
                 outputLength - availableOutputLength);
         }
 
-        ConditionVariable_notify(stream->outputCondVar);
-        Mutex_unlock(stream->outputMutex);
+        ConditionVariable_notify(s->outputCondVar);
+        Mutex_unlock(s->outputMutex);
     }
     return paContinue;
 }
@@ -1618,24 +1649,24 @@ PortAudioStream_pseudoBlockingCallback
 static void
 PortAudioStream_pseudoBlockingFinishedCallback(void *userData)
 {
-    PortAudioStream *stream = (PortAudioStream *) userData;
+    PortAudioStream *s = (PortAudioStream *) userData;
 
-    if (!Mutex_lock(stream->mutex))
+    if (!Mutex_lock(s->mutex))
     {
-        stream->finished = JNI_TRUE;
-        if (stream->inputMutex && !Mutex_lock(stream->inputMutex))
+        s->finished = JNI_TRUE;
+        if (s->inputMutex && !Mutex_lock(s->inputMutex))
         {
-            ConditionVariable_notify(stream->inputCondVar);
-            Mutex_unlock(stream->inputMutex);
+            ConditionVariable_notify(s->inputCondVar);
+            Mutex_unlock(s->inputMutex);
         }
-        if (stream->outputMutex && !Mutex_lock(stream->outputMutex))
+        if (s->outputMutex && !Mutex_lock(s->outputMutex))
         {
-            ConditionVariable_notify(stream->outputCondVar);
-            Mutex_unlock(stream->outputMutex);
+            ConditionVariable_notify(s->outputCondVar);
+            Mutex_unlock(s->outputMutex);
         }
-        Mutex_unlock(stream->mutex);
+        Mutex_unlock(s->mutex);
     }
-    PortAudioStream_release(stream);
+    PortAudioStream_release(s);
 }
 
 static void
