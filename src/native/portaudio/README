@@ -31,6 +31,6 @@
     $ export CPP="gcc -E"
     $ ./configure --disable-shared --enable-static --with-pic && make
 
-3. jportaudio
+3. jnportaudio
     - Linux/FreeBSD, Mac OS X, Windows
     $ make/gmake
