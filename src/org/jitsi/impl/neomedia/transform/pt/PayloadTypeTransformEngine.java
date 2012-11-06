@@ -31,7 +31,13 @@ public class PayloadTypeTransformEngine
      * and we do nothing, packets are passed through without modification.
      * Maps source payload to target payload.
      */
-    private Map<Byte, Byte> mappingOverride = new HashMap<Byte, Byte>();
+    private Map<Byte, Byte> mappingOverrides = new HashMap<Byte, Byte>();
+
+    /**
+     * This map is a copy of <tt>mappingOverride</tt> that we use durig actual
+     * transformation
+     */
+    private Map<Byte, Byte> mappingOverridesCopy = null;
 
     /**
      * Checks if there are any override mappings, if no setting just pass
@@ -47,10 +53,10 @@ public class PayloadTypeTransformEngine
      */
     public RawPacket transform(RawPacket pkt)
     {
-        if(mappingOverride.isEmpty())
+        if(mappingOverridesCopy == null || mappingOverridesCopy.isEmpty())
             return pkt;
 
-        Byte newPT = mappingOverride.get(pkt.getPayloadType());
+        Byte newPT = mappingOverridesCopy.get(pkt.getPayloadType());
         if(newPT != null)
             pkt.setPayload(newPT);
 
@@ -102,15 +108,29 @@ public class PayloadTypeTransformEngine
     }
 
     /**
-     * Adds additional RTP payload mappings used to override the outgoing
-     * payload type. The <tt>Map<Byte, Byte></tt> maps source payload to
-     * payload to use for packets when sending.
-     * @param mappingOverride <tt>Map<Byte, Byte></tt> that maps
-     * source payload to payload to use for packets when sending.
+     * Adds an additional RTP payload type mapping used to override the payload
+     * type of outgoing RTP packets. If an override for <tt>originalPT<tt/>,
+     * was already being overridden, this call is simply going to update the
+     * override to the new one.
+     * <p>
+     * This method creates a copy of the local overriding map so that mapping
+     * overrides could be set during a call (e.g. after a SIP re-INVITE) in a
+     * thread-safe way without using synchronization.
+     *
+     * @param originalPt the payload type that we are overriding
+     * @param overloadPt the payload type that we are overriging it with
      */
-    public void setPTMappingOverride(Map<Byte, Byte> mappingOverride)
+
+    public void addPTMappingOverride(byte originalPt, byte overloadPt)
     {
-        if(mappingOverride != null)
-            this.mappingOverride = mappingOverride;
+        if (mappingOverrides.containsKey(originalPt)
+            && mappingOverrides.get(originalPt) == overloadPt)
+        {
+            return;
+        }
+
+        mappingOverrides.put(originalPt, overloadPt);
+
+        mappingOverridesCopy = new HashMap(mappingOverrides);
     }
 }
