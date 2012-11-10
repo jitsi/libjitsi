@@ -203,6 +203,11 @@ public class MediaStreamImpl
     private long numberOfReceivedSenderReports = 0;
 
     /**
+     * Number of received receiver reports. Used for logging and debugging only.
+     */
+    private long numberOfReceivedReceiverReports = 0;
+
+    /**
      * The minimum inter arrival jitter value the other party has reported.
      */
     private long maxRemoteInterArrivalJitter = 0;
@@ -228,6 +233,12 @@ public class MediaStreamImpl
      * Engine chain overriding payload type if needed.
      */
     private PayloadTypeTransformEngine ptTransformEngine;
+
+    /**
+     * The <tt>PacketLossAwareEncoder</tt> in the encoding codec chain, which
+     * is to be notified of packet loss information received via RTCP.
+     */
+    PacketLossAwareEncoder packetLossAwareEncoder = null;
 
     /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
@@ -2495,15 +2506,22 @@ public class MediaStreamImpl
      */
     public void update(RemoteEvent remoteEvent)
     {
-        if(!logger.isInfoEnabled())
-            return;
-
-        if(remoteEvent instanceof SenderReportEvent)
+        if(remoteEvent instanceof SenderReportEvent ||
+                remoteEvent instanceof ReceiverReportEvent)
         {
-            numberOfReceivedSenderReports++;
-
-            SenderReport report =
-                    ((SenderReportEvent)remoteEvent).getReport();
+            Report report;
+            boolean senderReport = false;
+            if(remoteEvent instanceof SenderReportEvent)
+            {
+                numberOfReceivedSenderReports++;
+                report = ((SenderReportEvent)remoteEvent).getReport();
+                senderReport = true;
+            }
+            else
+            {
+                numberOfReceivedReceiverReports++;
+                report = ((ReceiverReportEvent)remoteEvent).getReport();
+            }
 
             Feedback feedback = null;
             long remoteJitter = -1;
@@ -2522,36 +2540,55 @@ public class MediaStreamImpl
                     maxRemoteInterArrivalJitter = remoteJitter;
             }
 
-            // As sender reports are received on every 5 seconds
-            // print every 4th packet, on every 20 seconds
-            if(numberOfReceivedSenderReports%4 != 1)
-                return;
+            //Notify the encoder of the percentage of packets lost by the
+            //other side. See RFC3550 Section 6.4.1 for the interpretation of
+            //'fraction lost'
+            PacketLossAwareEncoder plae = getPacketLossAwareEncoder();
+            if(plae != null)
+                plae.setExpectedPacketLoss(
+                        (int) ((feedback.getFractionLost() * 100) / 256));
 
-            StringBuilder buff
-                = new StringBuilder(StatisticsEngine.RTP_STAT_PREFIX);
-            MediaType mediaType = getMediaType();
-            String mediaTypeStr
-                = (mediaType == null) ? "" : mediaType.toString();
+            if(logger.isInfoEnabled())
+            {
+                // As reports are received on every 5 seconds
+                // print every 4th packet, on every 20 seconds
+                if((numberOfReceivedSenderReports
+                        + numberOfReceivedReceiverReports)%4 != 1)
+                    return;
 
-            buff.append("Received a report for ")
-                .append(mediaTypeStr)
-                .append(" stream SSRC:")
-                .append(getLocalSourceID())
-                .append(" [packet count:")
-                .append(report.getSenderPacketCount())
-                .append(", bytes:").append(report.getSenderByteCount());
+                StringBuilder buff
+                    = new StringBuilder(StatisticsEngine.RTP_STAT_PREFIX);
+                MediaType mediaType = getMediaType();
+                String mediaTypeStr
+                    = (mediaType == null) ? "" : mediaType.toString();
+
+                buff.append("Received a ")
+                    .append(senderReport ? "sender" : "receiver")
+                    .append(" report for ")
+                    .append(mediaTypeStr)
+                    .append(" stream SSRC:")
+                    .append(getLocalSourceID())
+                    .append(" [");
+                if(senderReport)
+                {
+                    buff.append("packet count:")
+                        .append(((SenderReport) report).getSenderPacketCount())
+                        .append(", bytes:")
+                        .append(((SenderReport) report).getSenderByteCount());
+                }
 
                 if(feedback != null)
                 {
                     buff.append(", interarrival jitter:")
-                            .append(remoteJitter)
-                    .append(", lost packets:").append(feedback.getNumLost())
-                    .append(", time since previous report:")
-                            .append((int) (feedback.getDLSR() / 65.536))
-                            .append("ms");
+                        .append(remoteJitter)
+                        .append(", lost packets:").append(feedback.getNumLost())
+                        .append(", time since previous report:")
+                        .append((int) (feedback.getDLSR() / 65.536))
+                        .append("ms");
                 }
-            buff.append(" ]");
-            logger.info(buff);
+                buff.append(" ]");
+                logger.info(buff);
+            }
         }
     }
 
@@ -2860,7 +2897,7 @@ public class MediaStreamImpl
 
     /**
      * Adds an additional RTP payload mapping that will overriding one that
-     * we've set with {@link addDynamicRTPPayloadType(byte, MediaFormat)}.
+     * we've set with {@link #addDynamicRTPPayloadType(byte, MediaFormat)}.
      * This is necessary so that we can support the RFC3264 case where the
      * answerer has the right to declare what payload type mappings it wants to
      * receive RTP packets with even if they are different from those in the
@@ -2879,5 +2916,38 @@ public class MediaStreamImpl
         {
             ptTransformEngine.addPTMappingOverride(originalPt, overloadPt);
         }
+    }
+
+    /**
+     * Gets this <tt>MediaDevice</tt>'s <tt>PacketLossAwareEncoder</tt> if any,
+     * <tt>null</tt> otherwise. To find such an instance, the codec chain
+     * contained in the <tt>DeviceSession</tt>'s processor is searched.
+     *
+     * @return this <tt>MediaDevice</tt>'s <tt>PacketLossAwareEncoder</tt> if
+     * any, <tt>null</tt> otherwise.
+     */
+    public PacketLossAwareEncoder getPacketLossAwareEncoder()
+    {
+        if(packetLossAwareEncoder != null)
+            return packetLossAwareEncoder;
+
+        MediaDeviceSession mediaDeviceSession = getDeviceSession();
+        if(mediaDeviceSession == null)
+            return null;
+        Processor processor = mediaDeviceSession.getProcessor();
+        if(processor == null)
+            return null;
+
+        for(TrackControl tc : processor.getTrackControls())
+        {
+            Object obj
+                    = tc.getControl(PacketLossAwareEncoder.class.getName());
+            if(obj instanceof PacketLossAwareEncoder)
+            {
+                packetLossAwareEncoder = (PacketLossAwareEncoder)obj;
+                return packetLossAwareEncoder;
+            }
+        }
+        return packetLossAwareEncoder;
     }
 }

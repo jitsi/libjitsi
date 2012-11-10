@@ -169,8 +169,7 @@ public class MediaUtils
         ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         boolean advertiseFEC
-                = cfg.getBoolean("net.java.sip.communicator.impl.neomedia" +
-                ".codec.audio.silk.ADVERTISE_FEC", false);
+                = cfg.getBoolean(Constants.PROP_SILK_ADVERSISE_FEC, false);
         Map<String,String> silkFormatParams = new HashMap<String, String>();
         if(advertiseFEC)
             silkFormatParams.put("useinbandfec", "1");

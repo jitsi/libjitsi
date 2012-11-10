@@ -8,6 +8,8 @@ package org.jitsi.impl.neomedia.codec.audio.opus;
 
 /**
  * Implements an interface to the native opus library
+ *
+ * @author Boris Grozev
  */
 public class Opus
 {
@@ -40,6 +42,11 @@ public class Opus
      * Constant usually indicating that no error occurred
      */
     public static final int OPUS_OK = 0;
+
+    /**
+     * Constant used to set various settings to "automatic"
+     */
+    public static final int OPUS_AUTO = -1000;
 
     /**
      * Opus constant for an invalid packet
@@ -140,6 +147,16 @@ public class Opus
     public static native int encoder_set_vbr(long encoder, int use_vbr);
 
     /**
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns the
+     * current encoder VBR setting
+     *
+     * @param encoder The encoder to use
+     *
+     * @return The current encoder VBR setting.
+     */
+    public static native int encoder_get_vbr(long encoder);
+
+    /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
      * encoder VBR constraint setting
      *
@@ -150,6 +167,16 @@ public class Opus
      */
     public static native int encoder_set_vbr_constraint(long encoder,
                                                         int use_cvbr);
+
+    /**
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns
+     * the current VBR constraint encoder setting.
+     *
+     * @param encoder The encoder to use
+     *
+     * @return the current VBR constraint encoder setting.
+     */
+    public static native int encoder_get_vbr_constraint(long encoder);
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
@@ -196,6 +223,43 @@ public class Opus
      * @return OPUS_OK on success
      */
     public static native int encoder_set_dtx(long encoder, int use_dtx);
+
+    /**
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns
+     * the current DTX setting of the encoder.
+     *
+     * @param encoder The encoder to use
+     *
+     * @return the current DTX setting of the encoder.
+     */
+    public static native int encoder_get_dtx(long encoder);
+
+    /**
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
+     * encoder's expected packet loss percentage.
+     *
+     * @param encoder The encoder to use
+     * @param percentage 0 to turn DTX off, non-zero to turn it on
+     *
+     * @return OPUS_OK on success.
+     */
+    public static native int encoder_set_packet_loss_perc(long encoder,
+                                                          int percentage);
+
+    /**
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
+     * maximum audio bandwidth to be used by the encoder.
+     *
+     * @param encoder The encoder to use
+     * @param maxBandwidth The maximum bandwidth to use, should be one of
+     *  <tt>BANDWIDTH_FULLBAND</tt>, <tt>BANDWIDTH_MEDIUMBAND</tt>,
+     *  <tt>BANDWIDTH_NARROWBAND</tt>, <tt>BANDWIDTH_SUPERWIDEBAND</tt> or
+     *  <tt>BANDWIDTH_WIDEBAND</tt>
+     *
+     * @return <tt>OPUS_OK</tt> on success.
+     */
+    public static native int encoder_set_max_bandwidth(long encoder,
+                                                       int maxBandwidth);
 
     /**
      * Encodes the input from <tt>input</tt> into an opus packet in
@@ -254,12 +318,14 @@ public class Opus
      * @param inputSize Size of the packet in bytes.
      * @param output Output buffer where the output will be stored.
      * @param outputSize Size in bytes of the output buffer.
+     * @param decodeFEC 0 to decode the packet normally, 1 to decode the FEC
+     * data in the packet.
      *
      * @return Number of samples decoded
      */
     public static native int decode(long decoder, byte[] input, int inputOffset,
                                     int inputSize, byte[] output,
-                                    int outputSize);
+                                    int outputSize, int decodeFEC);
 
     /**
      * Returns the audio bandwidth of an opus packet, one of

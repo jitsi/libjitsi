@@ -9,12 +9,13 @@ package org.jitsi.service.neomedia.codec;
 import org.jitsi.util.*;
 
 /**
- * Allows start import of <tt>org.jitsi.impl.neomedia.codec</tt>
- * in order to get the constants define in
+ * Allows star import of <tt>org.jitsi.service.neomedia.codec</tt>
+ * in order to get the constants defined in
  * <tt>org.jitsi.service.neomedia.codec.Constants</tt> without star
  * import of <tt>org.jitsi.impl.neomedia.codec</tt>.
  *
  * @author Lubomir Marinov
+ * @author Boris Grozev
  */
 public class Constants
 {
@@ -109,6 +110,83 @@ public class Constants
      * Default video height.
      */
     public static final int VIDEO_HEIGHT;
+
+    /**
+     * The name of the property used to control whether FEC is enabled for SILK
+     */
+    public static final String PROP_SILK_FEC
+            = "net.java.sip.communicator.impl.neomedia.codec.audio.silk." +
+            "encoder.USE_FEC";
+
+    /**
+     * The name of the property used to control the the
+     * 'always assume packet loss' setting for SILK
+     */
+    public static final String PROP_SILK_ASSUME_PL
+            = "net.java.sip.communicator.impl.neomedia.codec.audio.silk." +
+            "encoder.AWLAYS_ASSUME_PACKET_LOSS";
+
+    /**
+     * The name of the property used to control the SILK
+     * 'speech activity threshold'
+     */
+    public static final String PROP_SILK_FEC_SAT
+            = "net.java.sip.communicator.impl.neomedia.codec.audio.silk." +
+            "encoder.SPEECH_ACTIVITY_THRESHOLD";
+
+    /**
+     * The name of the property used to control whether FEC support is
+     * advertised for SILK
+     */
+    public static final String PROP_SILK_ADVERSISE_FEC
+            = "net.java.sip.communicator.impl.neomedia.codec.audio.silk." +
+            "ADVERTISE_FEC";
+    /**
+     * The name of the property used to control the Opus encoder
+     * "audio bandwidth" setting
+     */
+    public static final String PROP_OPUS_BANDWIDTH
+            = "net.java.sip.communicator.impl.neomedia.codec.audio.opus." +
+            "encoder.AUDIO_BANDWIDTH";
+
+    /**
+     * The name of the property used to control the Opus encoder bitrate setting
+     */
+    public static final String PROP_OPUS_BITRATE
+            = "net.java.sip.communicator.impl.neomedia.codec.audio.opus." +
+            "encoder.BITRATE";
+
+    /**
+     * The name of the property used to control the Opus encoder "DTX" setting
+     */
+    public static final String PROP_OPUS_DTX
+            = "net.java.sip.communicator.impl.neomedia.codec.audio.opus." +
+            "encoder.DTX";
+
+    /**
+     * The name of the property used to control whether FEC is enabled for the
+     * Opus encoder
+     */
+    public static final String PROP_OPUS_FEC
+            = "net.java.sip.communicator.impl.neomedia.codec.audio.opus." +
+            "encoder.FEC";
+
+    /**
+     * The name of the property used to control the Opus encoder
+     * "minimum expected packet loss" setting
+     */
+    public static final String PROP_OPUS_MIN_EXPECTED_PACKET_LOSS
+            = "net.java.sip.communicator.impl.neomedia.codec.audio.opus." +
+            "encoder.MIN_EXPECTED_PACKET_LOSS";
+
+    /**
+     * The name of the property used to control the Opus encoder 'complexity'
+     * setting
+     */
+    public static final String PROP_OPUS_COMPLEXITY
+            = "net.java.sip.communicator.impl.neomedia.codec.audio.opus." +
+            "encoder.COMPLEXITY";
+
 
     static
     {

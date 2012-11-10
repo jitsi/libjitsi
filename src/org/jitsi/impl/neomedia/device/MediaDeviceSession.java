@@ -1026,7 +1026,7 @@ public class MediaDeviceSession
      * @return the JMF <tt>Processor</tt> which transcodes the
      * <tt>MediaDevice</tt> of this instance into the format of this instance
      */
-    private Processor getProcessor()
+    public Processor getProcessor()
     {
         if (processor == null)
             processor = createProcessor();

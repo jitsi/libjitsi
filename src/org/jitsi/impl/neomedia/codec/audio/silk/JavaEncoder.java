@@ -13,15 +13,28 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.codec.*;
+import org.jitsi.service.neomedia.control.*;
+import org.jitsi.util.*;
+
+import java.awt.*;
 
 /**
  * Implements the SILK encoder as an FMJ/JMF <tt>Codec</tt>.
  *
  * @author Dingxin Xu
+ * @author Boris Grozev
  */
 public class JavaEncoder
     extends AbstractCodecExt
+    implements PacketLossAwareEncoder
 {
+    /**
+     * The <tt>Logger</tt> used by this <tt>JavaEncoder</tt> instance
+     * for logging output.
+     */
+    private final Logger logger
+            = Logger.getLogger(JavaEncoder.class);
+
     private static final int BITRATE = 40000;
 
     private static final int COMPLEXITY = 2;
@@ -51,7 +64,33 @@ public class JavaEncoder
     private static final double[] SUPPORTED_SAMPLE_RATES
         = new double[] { 8000, 12000, 16000, 24000 };
 
+    /**
+     * Default value for the use DTX setting
+     */
     private static final boolean USE_DTX = false;
+
+    /**
+     * If <tt>alwaysExpectPacketLoss</tt> is <tt>true</tt> the expected
+     * packet loss will always be set at or above this threshold.
+     */
+    private static final int MIN_PACKET_LOSS_PERCENTAGE = 3;
+
+    /**
+     * Whether to use FEC or not.
+     */
+    private boolean useFec;
+
+    /**
+     * Whether to always assume packet loss and set the encoder's expected
+     * packet loss over <tt>MIN_PACKET_LOSS_PERCENTAGE</tt>.
+     */
+    private boolean alwaysAssumePacketLoss = true;
+
+    /**
+     * The actual expected packet loss. Defaults to 0 and can be updated by
+     * outside classes through <tt>PacketLossUpdater</tt> instances.
+     */
+    private int expectedPacketLoss = 0;
 
     /**
      * The duration an output <tt>Buffer</tt> produced by this <tt>Codec</tt>
@@ -118,6 +157,26 @@ public class JavaEncoder
         super("SILK Encoder", AudioFormat.class, SUPPORTED_OUTPUT_FORMATS);
 
         inputFormats = SUPPORTED_INPUT_FORMATS;
+
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        //TODO: we should have a default value dependent on the SDP parameters
+        //here.
+        useFec = cfg.getBoolean(Constants.PROP_SILK_FEC, true);
+        alwaysAssumePacketLoss
+                = cfg.getBoolean(Constants.PROP_SILK_ASSUME_PL, true);
+
+        //Update the statically defined value for "speech activity threshold"
+        //according to our configuration
+        String satStr = cfg.getString(Constants.PROP_SILK_FEC_SAT, "0.5");
+        float sat = Silk_define_FLP.LBRR_SPEECH_ACTIVITY_THRES;
+        try
+        {
+            sat = Float.parseFloat(satStr);
+        }
+        catch (Exception e){}
+        Silk_define_FLP.LBRR_SPEECH_ACTIVITY_THRES = sat;
+
+        addControl(this);
     }
 
     protected void doClose()
@@ -141,37 +200,16 @@ public class JavaEncoder
         int channels = inputFormat.getChannels();
 
 
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-        //TODO: we should have a default value dependent on the SDP parameters
-        //here.
-        boolean useFEC = cfg.getBoolean("net.java.sip.communicator.impl."
-                +"neomedia.codec.audio.silk.encoder.USE_FEC", true);
-        boolean assumePacketLoss = cfg.getBoolean("net.java.sip.communicator." +
-                "impl.neomedia.codec.audio.silk.encoder." +
-                "ALWAYS_ASSUME_PACKET_LOSS", true);
-
-        //Update the statically defined value for "speech activity threshold"
-        //according to our configuration
-        String satStr = cfg.getString("net.java.sip.communicator.impl.neomedia"
-                + ".codec.audio.silk.encoder.SPEECH_ACTIVITY_THRESHOLD", "0.5");
-        float sat = Silk_define_FLP.LBRR_SPEECH_ACTIVITY_THRES;
-        try
-        {
-            sat = Float.parseFloat(satStr);
-        }
-        catch (Exception e){}
-        Silk_define_FLP.LBRR_SPEECH_ACTIVITY_THRES = sat;
-
         encControl.API_sampleRate = (int) sampleRate;
         encControl.bitRate = BITRATE;
         encControl.complexity = COMPLEXITY;
         encControl.maxInternalSampleRate = encControl.API_sampleRate;
-        encControl.packetLossPercentage = assumePacketLoss ? 3 : 0;
+        setExpectedPacketLoss(0);
         encControl.packetSize
             = (int)
                 ((JavaDecoder.FRAME_DURATION * sampleRate * channels) / 1000);
         encControl.useDTX = USE_DTX ? 1 : 0;
-        encControl.useInBandFEC = useFEC ? 1 : 0;
+        encControl.useInBandFEC = useFec ? 1 : 0;
     }
 
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
@@ -323,5 +361,35 @@ public class JavaEncoder
                         });
         }
         return outputFormat;
+    }
+
+    /**
+     * Updates the encoder's packet loss percentage. Takes into account
+     * <tt>this.alwaysAssumePacketLoss</tt>.
+     *
+     * @param percentage the expected packet loss percentage to set.
+     */
+    public void setExpectedPacketLoss(int percentage)
+    {
+        if(opened)
+        {
+            if(alwaysAssumePacketLoss &&
+                    MIN_PACKET_LOSS_PERCENTAGE >= percentage)
+                percentage = MIN_PACKET_LOSS_PERCENTAGE;
+            encControl.packetLossPercentage = percentage;
+            if(logger.isTraceEnabled())
+                logger.trace("Setting expected packet loss to: "
+                        + percentage);
+        }
+    }
+
+    /**
+     * Stub. Only added in order to implement the
+     * <tt>PacketLossAwareEncoder</tt> interface.
+     *
+     * @return null
+     */
+    public Component getControlComponent() {
+        return null;
     }
 }

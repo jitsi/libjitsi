@@ -141,7 +141,7 @@ public class JNIDecoder
         byte[] output = validateByteArraySize(outputBuffer, outputLength);
 
         int samplesCount = Opus.decode(decoder, input, inputOffset, inputLength,
-                                                output, outputLength);
+                                                output, outputLength, 0);
 
         if (samplesCount > 0)
         {

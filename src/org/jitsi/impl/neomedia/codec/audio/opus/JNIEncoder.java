@@ -10,7 +10,13 @@ import javax.media.*;
 import javax.media.format.*;
 import net.sf.fmj.media.*;
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.codec.*;
+import org.jitsi.service.neomedia.control.*;
+import org.jitsi.util.*;
+
+import java.awt.*;
 
 /**
  * Implements an opus encoder.
@@ -19,6 +25,7 @@ import org.jitsi.service.neomedia.codec.*;
  */
 public class JNIEncoder
     extends AbstractCodecExt
+    implements PacketLossAwareEncoder
 {
     /**
      * The list of <tt>Format</tt>s of audio data supported as input by
@@ -43,6 +50,13 @@ public class JNIEncoder
      */
     private static final Format[] SUPPORTED_OUTPUT_FORMATS
         = new Format[] { new AudioFormat(Constants.OPUS_RTP) };
+
+    /**
+     * The <tt>Logger</tt> used by this <tt>JNIEncoder</tt> instance
+     * for logging output.
+     */
+    private final Logger logger
+            = Logger.getLogger(JNIEncoder.class);
 
     /**
      * Set the supported input formats.
@@ -112,6 +126,11 @@ public class JNIEncoder
     private double frameSize = 20;
 
     /**
+     * The minimum expected packet loss percentage to set to the encoder.
+     */
+    private int minPacketLoss = 0;
+
+    /**
      * Returns the number of bytes that we need to read from the input buffer
      * in order ot fill a frame of <tt>frameSize</tt>. Depends on the input
      * sample frequency, the number of channels and <tt>frameSize</tt>
@@ -123,14 +142,14 @@ public class JNIEncoder
     private int inputFrameSize()
     {
         int fs =
-	    (int) (
+        (int) (
            2 /* sizeof(short) */
            * channels
            *  ((AudioFormat)getInputFormat()).getSampleRate() /* samples in 1s */
            *   frameSize /* milliseconds */
            ) / 1000;
 
-	    return fs;
+        return fs;
     }
 
     /**
@@ -143,6 +162,8 @@ public class JNIEncoder
                SUPPORTED_OUTPUT_FORMATS);
 
         inputFormats = SUPPORTED_INPUT_FORMATS;
+
+        addControl(this);
     }
 
     /**
@@ -170,25 +191,61 @@ public class JNIEncoder
     protected void doOpen()
         throws ResourceUnavailableException
     {
+        AudioFormat inputFormat = (AudioFormat) getInputFormat();
+        int sampleRate = (int)inputFormat.getSampleRate();
+        channels = inputFormat.getChannels();
 
-    //TODO: make a ParametrizedAudioFormat (or something) class, and use it here
-    //to set the encoder parameters
-	AudioFormat inputFormat = (AudioFormat) getInputFormat();
-	int sampleRate = (int)inputFormat.getSampleRate();
-    channels = inputFormat.getChannels();
+        encoder = Opus.encoder_create(sampleRate, channels);
+        if (encoder == 0)
+            throw new ResourceUnavailableException("opus_encoder_create()");
 
-    encoder = Opus.encoder_create(sampleRate, channels);
-    if (encoder == 0)
-        throw new ResourceUnavailableException("opus_encoder_create()");
+        //Set encoder options according to user configuration and SDP parameters
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
-    //set default encoder settings
-    Opus.encoder_set_bitrate(encoder, 60000);
-	Opus.encoder_set_bandwidth(encoder, Opus.BANDWIDTH_FULLBAND);
-	Opus.encoder_set_vbr(encoder, 1);
-	Opus.encoder_set_complexity(encoder, 10);
-	Opus.encoder_set_inband_fec(encoder, 0);
-	Opus.encoder_set_dtx(encoder, 1);
-	Opus.encoder_set_force_channels(encoder, 1);
+        //configuration is in kilobits per second
+        int bitrate = 1000 *
+                cfg.getInt(Constants.PROP_OPUS_BITRATE, 32);
+        //TODO:update bitrate from SDP (maxaveragebitrate)
+        //Note: If the parameter "maxaveragebitrate" is below the range specified
+        //in Section 3.1.1 the session MUST be rejected.
+        if(bitrate < 500 && bitrate != Opus.OPUS_AUTO)
+            bitrate = 500;
+        if(bitrate > 512000 && bitrate != Opus.OPUS_AUTO)
+            bitrate = 512000;
+
+        String bandwidthStr
+                = cfg.getString(Constants.PROP_OPUS_BANDWIDTH, "auto");
+        int bandwidth = Opus.OPUS_AUTO;
+        if("fb".equals(bandwidthStr))
+            bandwidth = Opus.BANDWIDTH_FULLBAND;
+        else if("swb".equals(bandwidthStr))
+            bandwidth = Opus.BANDWIDTH_SUPERWIDEBAND;
+        else if("wb".equals(bandwidthStr))
+            bandwidth = Opus.BANDWIDTH_WIDEBAND;
+        else if("mb".equals(bandwidthStr))
+            bandwidth = Opus.BANDWIDTH_MEDIUMBAND;
+        else if("nb".equals(bandwidthStr))
+            bandwidth = Opus.BANDWIDTH_NARROWBAND;
+
+        int complexity = cfg.getInt(Constants.PROP_OPUS_COMPLEXITY, 10);
+
+        boolean useFEC = cfg.getBoolean(Constants.PROP_OPUS_FEC, true);
+        //TODO:check SDP for useinbandfec
+
+        minPacketLoss = cfg.getInt(
+                Constants.PROP_OPUS_MIN_EXPECTED_PACKET_LOSS, 1);
+        boolean useDTX = cfg.getBoolean(Constants.PROP_OPUS_DTX, true);
+        //TODO:check SDP parameters for usedtx
+
+        //TODO:check SDP for maxcodedaudiobandwidth
+        //TODO: check {min,max,}ptime and adjust the frame size
+
+        Opus.encoder_set_bitrate(encoder, bitrate);
+        Opus.encoder_set_bandwidth(encoder, bandwidth);
+        Opus.encoder_set_complexity(encoder, complexity);
+        Opus.encoder_set_inband_fec(encoder, useFEC ? 1 : 0);
+        Opus.encoder_set_packet_loss_perc(encoder, minPacketLoss);
+        Opus.encoder_set_dtx(encoder, useDTX ? 1 : 0);
     }
 
     /**
@@ -211,14 +268,13 @@ public class JNIEncoder
             if (null == setInputFormat(inputFormat))
                 return BUFFER_PROCESSED_FAILED;
         }
-        inputFormat = this.inputFormat;
 
         byte[] input = (byte[]) inputBuffer.getData();
         int inputLength = inputBuffer.getLength();
         int inputOffset = inputBuffer.getOffset();
 
 
-	    int inputBytesNeeded = inputFrameSize();
+        int inputBytesNeeded = inputFrameSize();
 
         if ((previousInput != null) && (previousInputLength > 0))
         {
@@ -299,7 +355,7 @@ public class JNIEncoder
 
         byte[] output = validateByteArraySize(outputBuffer, Opus.MAX_PACKET);
 
-	    int outputLength = Opus.encode(encoder, input, inputOffset,
+        int outputLength = Opus.encode(encoder, input, inputOffset,
                 inputBytesNeeded / 2, output, Opus.MAX_PACKET);
 
 
@@ -411,5 +467,32 @@ public class JNIEncoder
             }
         }
         return inputFormat;
+    }
+
+    /**
+     * Updates the encoder's expected packet loss percentage to the bigger of
+     * <tt>percentage</tt> and <tt>this.minPacketLoss</tt>.
+     *
+     * @param percentage the expected packet loss percentage to set
+     */
+    public void setExpectedPacketLoss(int percentage)
+    {
+        if(opened)
+            Opus.encoder_set_packet_loss_perc(encoder,
+                    (percentage > minPacketLoss) ? percentage : minPacketLoss);
+
+        if(logger.isTraceEnabled())
+            logger.trace("Updating expected packet loss: " + percentage
+                    + " (minimum " + minPacketLoss + ")");
+    }
+
+    /**
+     * Stub. Only added in order to implement the
+     * <tt>PacketLossAwareEncoder</tt> interface.
+     *
+     * @return null
+     */
+    public Component getControlComponent() {
+        return null;
     }
 }

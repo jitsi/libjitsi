@@ -66,10 +66,28 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
     return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_VBR(use_vbr));
 }
 
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1vbr
+  (JNIEnv *env, jclass clazz, jlong encoder)
+{
+    int x, ret;
+    ret = opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_GET_VBR(&x));
+    if(ret<0) return ret;
+    return x;
+}
+
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1vbr_1constraint
   (JNIEnv *env, jclass clazz, jlong encoder, jint use_cvbr)
 {
     return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_VBR_CONSTRAINT(use_cvbr));
+}
+
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1vbr_1constraint
+  (JNIEnv *env, jclass clazz, jlong encoder)
+{
+    int x, ret;
+    ret = opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_GET_VBR_CONSTRAINT(&x));
+    if(ret<0) return ret;
+    return x;
 }
 
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1complexity
@@ -94,6 +112,27 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
   (JNIEnv *env, jclass clazz, jlong encoder, jint use_dtx)
 {
     return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_DTX(use_dtx));
+}
+
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1dtx
+  (JNIEnv *env, jclass clazz, jlong encoder)
+{
+    int x, ret;
+    ret = opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_GET_DTX(&x));
+    if(ret<0) return ret;
+    return x;
+}
+
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1packet_1loss_1perc
+  (JNIEnv *env, jclass clazz, jlong encoder, jint percentage)
+{
+    return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_PACKET_LOSS_PERC(percentage));
+}
+
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1max_1bandwidth
+  (JNIEnv *env, jclass clazz, jlong encoder, jint max_bandwidth)
+{
+    return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_MAX_BANDWIDTH(max_bandwidth));
 }
 
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
@@ -148,7 +187,7 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
 }
 
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
-  (JNIEnv *env, jclass clazz, jlong decoder, jbyteArray input, jint inputOffset, jint inputSize, jbyteArray output, jint outputSize)
+  (JNIEnv *env, jclass clazz, jlong decoder, jbyteArray input, jint inputOffset, jint inputSize, jbyteArray output, jint outputSize, jint decodeFEC)
 {
     jbyte *inputPtr = (*env)->GetByteArrayElements(env, input, NULL);
     jbyte *outputPtr = (*env)->GetByteArrayElements(env, output, NULL);
@@ -158,10 +197,10 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
     {
         ret = opus_decode((OpusDecoder *)(intptr_t)decoder,
                 (unsigned char *) ((char *)inputPtr + inputOffset),
-		(int) inputSize,
+        (int) inputSize,
                 (opus_int16 *)outputPtr,
-		(int) outputSize,
-		0);
+        (int) outputSize,
+        (int) decodeFEC);
     }
     else
         ret = 0;
@@ -181,7 +220,7 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_packet
     jint bandwidth = 0;
     if(packetPtr){
         bandwidth = (jint) opus_packet_get_bandwidth((unsigned char *)packetPtr+offset);
-	(*env)->ReleaseByteArrayElements(env, packet, packetPtr, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, packet, packetPtr, JNI_ABORT);
     }
     return bandwidth;
 }
@@ -193,7 +232,7 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_packet
     jint channels = 0;
     if(packetPtr){
         channels = (jint) opus_packet_get_nb_channels((unsigned char *)packetPtr+offset);
-	(*env)->ReleaseByteArrayElements(env, packet, packetPtr, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, packet, packetPtr, JNI_ABORT);
     }
     return channels;
 }
@@ -205,7 +244,7 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_packet
     jint frames = 0;
     if(packetPtr){
         frames = (jint) opus_packet_get_nb_frames((unsigned char *)packetPtr+offset, len);
-	(*env)->ReleaseByteArrayElements(env, packet, packetPtr, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, packet, packetPtr, JNI_ABORT);
     }
     return frames;
 }
@@ -220,6 +259,6 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
         samples = opus_decoder_get_nb_samples((OpusDecoder*)(intptr_t)decoder, (unsigned char *)packetPtr+offset, len);
     }
     if(packetPtr)
-	(*env)->ReleaseByteArrayElements(env, packet, packetPtr, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, packet, packetPtr, JNI_ABORT);
     return samples;
 }

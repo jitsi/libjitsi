@@ -19,6 +19,8 @@ extern "C" {
 #define org_jitsi_impl_neomedia_codec_audio_opus_Opus_BANDWIDTH_FULLBAND 1105L
 #undef org_jitsi_impl_neomedia_codec_audio_opus_Opus_OPUS_OK
 #define org_jitsi_impl_neomedia_codec_audio_opus_Opus_OPUS_OK 0L
+#undef org_jitsi_impl_neomedia_codec_audio_opus_Opus_OPUS_AUTO
+#define org_jitsi_impl_neomedia_codec_audio_opus_Opus_OPUS_AUTO -1000L
 #undef org_jitsi_impl_neomedia_codec_audio_opus_Opus_INVALID_PACKET
 #define org_jitsi_impl_neomedia_codec_audio_opus_Opus_INVALID_PACKET -4L
 #undef org_jitsi_impl_neomedia_codec_audio_opus_Opus_MAX_PACKET
@@ -89,11 +91,27 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
+ * Method:    encoder_get_vbr
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1vbr
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
  * Method:    encoder_set_vbr_constraint
  * Signature: (JI)I
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1vbr_1constraint
   (JNIEnv *, jclass, jlong, jint);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
+ * Method:    encoder_get_vbr_constraint
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1vbr_1constraint
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
@@ -125,6 +143,30 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
  * Signature: (JI)I
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1dtx
+  (JNIEnv *, jclass, jlong, jint);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
+ * Method:    encoder_get_dtx
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1dtx
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
+ * Method:    encoder_set_packet_loss_perc
+ * Signature: (JI)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1packet_1loss_1perc
+  (JNIEnv *, jclass, jlong, jint);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
+ * Method:    encoder_set_max_bandwidth
+ * Signature: (JI)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1max_1bandwidth
   (JNIEnv *, jclass, jlong, jint);
 
 /*
@@ -162,10 +204,10 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
 /*
  * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
  * Method:    decode
- * Signature: (J[BII[BI)I
+ * Signature: (J[BII[BII)I
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
-  (JNIEnv *, jclass, jlong, jbyteArray, jint, jint, jbyteArray, jint);
+  (JNIEnv *, jclass, jlong, jbyteArray, jint, jint, jbyteArray, jint, jint);
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
