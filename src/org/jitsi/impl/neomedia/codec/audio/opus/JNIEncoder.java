@@ -492,7 +492,8 @@ public class JNIEncoder
      *
      * @return null
      */
-    public Component getControlComponent() {
+    public Component getControlComponent()
+    {
         return null;
     }
 }

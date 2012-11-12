@@ -389,7 +389,8 @@ public class JavaEncoder
      *
      * @return null
      */
-    public Component getControlComponent() {
+    public Component getControlComponent()
+    {
         return null;
     }
 }

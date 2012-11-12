@@ -12,6 +12,9 @@ import javax.media.format.*;
 import net.sf.fmj.media.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.neomedia.codec.*;
+import org.jitsi.service.neomedia.control.*;
+
+import java.awt.*;
 
 /**
  * Implements an Opus decoder.
@@ -20,6 +23,7 @@ import org.jitsi.service.neomedia.codec.*;
  */
 public class JNIDecoder
     extends AbstractCodecExt
+    implements FECDecoderControl
 {
     /**
      * The list of <tt>Format</tt>s of audio data supported as input by
@@ -49,7 +53,7 @@ public class JNIDecoder
     static
     {
         SUPPORTED_INPUT_FORMATS
-	    = new Format[] {new AudioFormat(Constants.OPUS_RTP)};
+                = new Format[] {new AudioFormat(Constants.OPUS_RTP)};
     }
 
     /**
@@ -68,6 +72,23 @@ public class JNIDecoder
     private int outputSamplingRate = 48000;
 
     /**
+     * Sequence number of the last packet processed
+     */
+    private long lastPacketSeq;
+
+    /**
+     * Whether at least one packet has already been processed. Use this to
+     * prevent FEC data from trying to be decoded from the first packet in a
+     * session.
+     */
+    private boolean firstPacketProcessed = false;
+
+    /**
+     * Number of packets decoded with FEC
+     */
+    private int nbDecodedFec = 0;
+
+    /**
      * Initializes a new <tt>JNIDecoder</tt> instance.
      */
     public JNIDecoder()
@@ -78,6 +99,8 @@ public class JNIDecoder
             SUPPORTED_OUTPUT_FORMATS);
 
         inputFormats = SUPPORTED_INPUT_FORMATS;
+
+        addControl(this);
     }
 
     /**
@@ -130,18 +153,28 @@ public class JNIDecoder
             if (null == setInputFormat(inputFormat))
                 return BUFFER_PROCESSED_FAILED;
         }
-        inputFormat = this.inputFormat;
 
-        byte[] input = (byte[]) inputBuffer.getData();
+        boolean decodeFec = false;
+        long inputSequenceNumber = inputBuffer.getSequenceNumber();
+
+        /* Detect a missing packet, take care of wraps at 2^16 */
+        if(firstPacketProcessed &&
+              (inputSequenceNumber != lastPacketSeq + 1) &&
+              !(inputSequenceNumber == 0 && lastPacketSeq == 65535))
+            decodeFec = true;
+
+        byte[] inputData = (byte[]) inputBuffer.getData();
         int inputOffset = inputBuffer.getOffset();
         int inputLength = inputBuffer.getLength();
 
         int outputLength =  Opus.decoder_get_nb_samples(decoder,
-                input, inputOffset, inputLength) * 2 /* sizeof(short) */;
-        byte[] output = validateByteArraySize(outputBuffer, outputLength);
+                inputData, inputOffset, inputLength) * 2 /* sizeof(short) */;
+        byte[] outputData = validateByteArraySize(outputBuffer, outputLength);
 
-        int samplesCount = Opus.decode(decoder, input, inputOffset, inputLength,
-                                                output, outputLength, 0);
+        int samplesCount = Opus.decode(decoder,
+                inputData, inputOffset, inputLength,
+                outputData, outputLength,
+                decodeFec ? 1 : 0);
 
         if (samplesCount > 0)
         {
@@ -150,6 +183,8 @@ public class JNIDecoder
             outputBuffer.setFormat(getOutputFormat());
             outputBuffer.setLength(2*samplesCount); //16bit pcm
             outputBuffer.setOffset(0);
+            if(decodeFec)
+                nbDecodedFec++;
         }
         else
         {
@@ -157,6 +192,16 @@ public class JNIDecoder
             discardOutputBuffer(outputBuffer);
         }
 
+
+        firstPacketProcessed = true;
+
+        if(decodeFec)
+        {
+            lastPacketSeq = inputSequenceNumber - 1;
+            return BUFFER_PROCESSED_OK | INPUT_BUFFER_NOT_CONSUMED;
+        }
+
+        lastPacketSeq = inputSequenceNumber;
         return BUFFER_PROCESSED_OK;
     }
 
@@ -244,5 +289,25 @@ public class JNIDecoder
             }
         }
         return inputFormat;
+    }
+
+    /**
+     * Returns the number of packets decoded with FEC
+     * @return
+     */
+    public int fecPacketsDecoded()
+    {
+        return nbDecodedFec;
+    }
+
+    /**
+     * Stub. Only added in order to implement the <tt>FECDecoderControl</tt>
+     * interface.
+     *
+     * @return null
+     */
+    public Component getControlComponent()
+    {
+        return null;
     }
 }
