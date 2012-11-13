@@ -25,13 +25,13 @@ public abstract class Devices
     /**
      * The selected active device.
      */
-    protected ExtendedCaptureDeviceInfo device = null;
+    private ExtendedCaptureDeviceInfo device = null;
 
     /**
      * The list of device ID/names saved by the congifuration service and
      * previously saved given user preference order.
      */
-    protected List<String> devicePreferences = new ArrayList<String>();
+    private List<String> devicePreferences = new ArrayList<String>();
 
     /**
      * The audio system managing this device list.
@@ -88,23 +88,26 @@ public abstract class Devices
 
             // Search if an active device match one of the previsouly configured
             // in the preferences.
-            for(int i = 0; i < devicePreferences.size(); ++i)
+            synchronized(devicePreferences)
             {
-                for(ExtendedCaptureDeviceInfo activeDevice : activeDevices)
+                for(int i = 0; i < devicePreferences.size(); ++i)
                 {
-                    // If we have found the "preferred" device among active
-                    // device.
-                    if(devicePreferences.get(i).equals(
-                                activeDevice.getIdentifier()))
+                    for(ExtendedCaptureDeviceInfo activeDevice : activeDevices)
                     {
-                        return activeDevice;
-                    }
-                    // If the "none" device is the "preferred" device among
-                    // "active" device.
-                    else if(devicePreferences.get(i).equals(
-                                NoneAudioSystem.LOCATOR_PROTOCOL))
-                    {
-                        return null;
+                        // If we have found the "preferred" device among active
+                        // device.
+                        if(devicePreferences.get(i).equals(
+                                    activeDevice.getIdentifier()))
+                        {
+                            return activeDevice;
+                        }
+                        // If the "none" device is the "preferred" device among
+                        // "active" device.
+                        else if(devicePreferences.get(i).equals(
+                                    NoneAudioSystem.LOCATOR_PROTOCOL))
+                        {
+                            return null;
+                        }
                     }
                 }
             }
@@ -145,37 +148,41 @@ public abstract class Devices
 
             String deviceIdentifiersString = cfg.getString(new_property);
 
-            if (deviceIdentifiersString != null)
+            synchronized(devicePreferences)
             {
-                devicePreferences.clear();
-                // We must parce the string in order to load the device list.
-                String[] deviceIdentifiers = deviceIdentifiersString
-                    .substring(2, deviceIdentifiersString.length() - 2)
-                    .split("\", \"");
-                for(int i = 0; i < deviceIdentifiers.length; ++i)
+                if (deviceIdentifiersString != null)
                 {
-                    devicePreferences.add(deviceIdentifiers[i]);
+                    devicePreferences.clear();
+                    // We must parce the string in order to load the device
+                    // list.
+                    String[] deviceIdentifiers = deviceIdentifiersString
+                        .substring(2, deviceIdentifiersString.length() - 2)
+                        .split("\", \"");
+                    for(int i = 0; i < deviceIdentifiers.length; ++i)
+                    {
+                        devicePreferences.add(deviceIdentifiers[i]);
+                    }
                 }
-            }
-            // Else, use the old property to load the last preferred device.
-            // This whole "else" block may be removed in the future.
-            else
-            {
-                String old_property
-                    = DeviceConfiguration.PROP_AUDIO_SYSTEM
+                // Else, use the old property to load the last preferred device.
+                // This whole "else" block may be removed in the future.
+                else
+                {
+                    String old_property
+                        = DeviceConfiguration.PROP_AUDIO_SYSTEM
                         + "."
                         + locator
                         + "."
                         + property;
 
-                deviceIdentifiersString = cfg.getString(old_property);
+                    deviceIdentifiersString = cfg.getString(old_property);
 
-                if (deviceIdentifiersString != null
-                        && !NoneAudioSystem.LOCATOR_PROTOCOL.equalsIgnoreCase(
-                            deviceIdentifiersString))
-                {
-                    devicePreferences.clear();
-                    devicePreferences.add(deviceIdentifiersString);
+                    if (deviceIdentifiersString != null
+                            && !NoneAudioSystem.LOCATOR_PROTOCOL
+                                .equalsIgnoreCase(deviceIdentifiersString))
+                    {
+                        devicePreferences.clear();
+                        devicePreferences.add(deviceIdentifiersString);
+                    }
                 }
             }
         }
@@ -199,51 +206,21 @@ public abstract class Devices
             List<ExtendedCaptureDeviceInfo> activeDevices,
             boolean isSelected)
     {
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-
-        if (cfg != null)
+        String selectedDeviceIdentifier = NoneAudioSystem.LOCATOR_PROTOCOL;
+        if(device != null)
         {
-            property
-                = DeviceConfiguration.PROP_AUDIO_SYSTEM
-                    + "." + locator
-                    + "." + property
-                    + "_list";
-
-            String selectedDeviceIdentifier = NoneAudioSystem.LOCATOR_PROTOCOL;
-            if(device != null)
-            {
-                selectedDeviceIdentifier = device.getIdentifier();
-            }
-
-            // Sorts the user preferences to put the selected device on top.
-            devicePreferences.remove(selectedDeviceIdentifier);
-            if(isSelected)
-            {
-                int firstActiveIndex = getFirstActiveIndexFromDevicePreferences(
-                        locator,
-                        activeDevices);
-                devicePreferences.add(
-                        firstActiveIndex,
-                        selectedDeviceIdentifier);
-            }
-            else
-            {
-                devicePreferences.add(selectedDeviceIdentifier);
-            }
-
-            // Saves the user preferences.
-            StringBuffer value = new StringBuffer("[\"");
-            if(devicePreferences.size() > 0)
-            {
-                value.append(devicePreferences.get(0));
-                for(int i = 1; i < devicePreferences.size(); ++i)
-                {
-                    value.append("\", \"" + devicePreferences.get(i));
-                }
-            }
-            value.append("\"]");
-            cfg.setProperty(property, value.toString());
+            selectedDeviceIdentifier = device.getIdentifier();
         }
+
+        // Sorts the user preferences to put the selected device on top.
+        this.addToDevicePreferences(
+                locator,
+                activeDevices,
+                selectedDeviceIdentifier,
+                isSelected);
+
+        // Saves the user preferences.
+        this.writeDevicePreferences(locator, property);
     }
 
     /**
@@ -299,41 +276,52 @@ public abstract class Devices
     protected abstract String getPropDevice();
 
     /**
-     * Returns the index of the first active device from the device preference
-     * list.
+     * Adds a new device in the preferences (at the first active position if the
+     * isSelected argument is true).
      *
      * @param locator The string representation of the locator.
      * @param activeDevices The list of the active devices.
-     *
-     * @return The index of the first active device from the device preference
-     * list. Or the size of the device preference list if all devices are
-     * inactive.
+     * @param newsDeviceIdentifier The identifier of the device to add int first
+     * active position of the preferences.
+     * @param isSelected True if the device is the selected one.
      */
-    private int getFirstActiveIndexFromDevicePreferences(
+    private void addToDevicePreferences(
             String locator,
-            List<ExtendedCaptureDeviceInfo> activeDevices)
+            List<ExtendedCaptureDeviceInfo> activeDevices,
+            String newDeviceIdentifier,
+            boolean isSelected)
     {
         int i;
         int j;
-        // Searches for the first active device.
-        for(i = 0; i < devicePreferences.size(); ++i)
+
+        synchronized(devicePreferences)
         {
-            // Checks if this element is an active device.
-            for(j = 0; j < activeDevices.size(); ++j)
+            devicePreferences.remove(newDeviceIdentifier);
+            if(isSelected)
             {
-                if(devicePreferences.get(i).equals(
-                            activeDevices.get(j).getIdentifier())
-                        || devicePreferences.get(i).equals(
-                            NoneAudioSystem.LOCATOR_PROTOCOL))
+                // Searches for the first active device.
+                for(i = 0; i < devicePreferences.size(); ++i)
                 {
-                    // The first active device is found.
-                    return i;
+                    // Checks if this element is an active device.
+                    for(j = 0; j < activeDevices.size(); ++j)
+                    {
+                        if(devicePreferences.get(i).equals(
+                                    activeDevices.get(j).getIdentifier())
+                                || devicePreferences.get(i).equals(
+                                    NoneAudioSystem.LOCATOR_PROTOCOL))
+                        {
+                            // The first active device is found.
+                            devicePreferences.add(i, newDeviceIdentifier);
+                            // The device is added, stop the loops and quit.
+                            return;
+                        }
+                    }
                 }
             }
+            // If there is no active devices or the device is not selected, then
+            // set the new device to the end of the device peference list.
+            devicePreferences.add(newDeviceIdentifier);
         }
-        // There is no active devices, then returns the size of the device
-        // peference list.
-        return devicePreferences.size();
     }
 
     /**
@@ -342,7 +330,7 @@ public abstract class Devices
      *
      * @param activeDevices The list of the active devices.
      */
-    public void renameOldFashionedIdentifier(
+    private void renameOldFashionedIdentifier(
             List<ExtendedCaptureDeviceInfo> activeDevices)
     {
         String name;
@@ -358,32 +346,70 @@ public abstract class Devices
             // api give us a unique identifier (different from the device name).
             if(!name.equals(id))
             {
-                do
+                synchronized(devicePreferences)
                 {
-                    nameIndex = devicePreferences.indexOf(
-                            activeDevices.get(i).getName());
-                    idIndex = devicePreferences.indexOf(
-                            activeDevices.get(i).getIdentifier());
-                    // If there is one old fashioned identifier.
-                    if(nameIndex != -1)
+                    do
                     {
-                        // If the correspondant new fashioned identifier does
-                        // not exists, then renames the old one into the new
-                        // one.
-                        if(idIndex == -1)
+                        nameIndex = devicePreferences.indexOf(
+                                activeDevices.get(i).getName());
+                        idIndex = devicePreferences.indexOf(
+                                activeDevices.get(i).getIdentifier());
+                        // If there is one old fashioned identifier.
+                        if(nameIndex != -1)
                         {
-                            devicePreferences.set(nameIndex,
-                                    activeDevices.get(i).getIdentifier());
-                        }
-                        // Else removes the dupplicate.
-                        else
-                        {
-                            devicePreferences.remove(nameIndex);
+                            // If the correspondant new fashioned identifier
+                            // does not exists, then renames the old one into
+                            // the new one.
+                            if(idIndex == -1)
+                            {
+                                devicePreferences.set(nameIndex,
+                                        activeDevices.get(i).getIdentifier());
+                            }
+                            // Else removes the dupplicate.
+                            else
+                            {
+                                devicePreferences.remove(nameIndex);
+                            }
                         }
                     }
+                    while(nameIndex != -1);
                 }
-                while(nameIndex != -1);
             }
+        }
+    }
+
+    /**
+     * Saves the device preferences and wrtite it to the configuration file.
+     *
+     * @param locator The string representation of the locator.
+     * @param property the name of the <tt>ConfigurationService</tt> property
+     */
+    private void writeDevicePreferences(String locator, String property)
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        if (cfg != null)
+        {
+            property
+                = DeviceConfiguration.PROP_AUDIO_SYSTEM
+                    + "." + locator
+                    + "." + property
+                    + "_list";
+
+            StringBuffer value = new StringBuffer("[\"");
+            synchronized(devicePreferences)
+            {
+                if(devicePreferences.size() > 0)
+                {
+                    value.append(devicePreferences.get(0));
+                    for(int i = 1; i < devicePreferences.size(); ++i)
+                    {
+                        value.append("\", \"" + devicePreferences.get(i));
+                    }
+                }
+            }
+            value.append("\"]");
+            cfg.setProperty(property, value.toString());
         }
     }
 }
