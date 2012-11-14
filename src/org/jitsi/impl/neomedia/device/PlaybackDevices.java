@@ -8,11 +8,9 @@ package org.jitsi.impl.neomedia.device;
 
 import java.util.*;
 
-import javax.media.*;
-
 /**
- * Manages the list of active (currently pluged-in) playback devices and manages
- * user preferences between all known devices (previously and actually
+ * Manages the list of active (currently plugged-in) playback devices and
+ * manages user preferences between all known devices (previously and actually
  * plugged-in).
  *
  * @author Vincent Lucas
@@ -31,7 +29,7 @@ public class PlaybackDevices
     private List<ExtendedCaptureDeviceInfo> activePlaybackDevices = null;
 
     /**
-     * Initializes the playback device list managment.
+     * Initializes the playback device list management.
      *
      * @param audioSystem The audio system managing this playback device list.
      */

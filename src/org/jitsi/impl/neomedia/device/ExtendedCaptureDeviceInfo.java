@@ -6,8 +6,6 @@
  */
 package org.jitsi.impl.neomedia.device;
 
-import java.util.*;
-
 import javax.media.*;
 
 /**
@@ -22,12 +20,12 @@ public class ExtendedCaptureDeviceInfo
     /**
      * The device UID (unique identifier).
      */
-    private String UID = null;
+    private final String UID;
 
     /**
      * The device transport type.
      */
-    private String transportType = null;
+    private final String transportType;
 
     /**
      * Constructs a CaptureDeviceInfo object with the specified name, media
@@ -133,15 +131,10 @@ public class ExtendedCaptureDeviceInfo
      * It is composed by the system UID if not null. Otherwise returns the
      * device name and (if not null) the transport type.
      *
-     * @return The device identifer.
+     * @return The device identifier.
      */
     public String getIdentifier()
     {
-        String id = this.UID;
-        if(this.UID == null)
-        {
-            id = this.name;
-        }
-        return id;
+        return (UID == null) ? name : UID;
     }
 }

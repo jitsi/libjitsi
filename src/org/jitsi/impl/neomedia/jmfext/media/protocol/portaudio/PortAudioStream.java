@@ -12,11 +12,10 @@ import javax.media.*;
 import javax.media.control.*;
 import javax.media.format.*;
 
-import net.java.sip.communicator.impl.neomedia.portaudio.*;
-
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
+import org.jitsi.impl.neomedia.portaudio.*;
 import org.jitsi.util.*;
 
 /**
@@ -52,7 +51,7 @@ public class PortAudioStream
      * The device index of the PortAudio device read through this
      * <tt>PullBufferStream</tt>.
      */
-    private int deviceIndex = PortAudio.paNoDevice;
+    private int deviceIndex = Pa.paNoDevice;
 
     /**
      * The last-known <tt>Format</tt> of the media data made available by this
@@ -77,10 +76,99 @@ public class PortAudioStream
      */
     private long inputParameters = 0;
 
+    private final PortAudioSystem.PaUpdateAvailableDeviceListListener
+        paUpdateAvailableDeviceListListener
+            = new PortAudioSystem.PaUpdateAvailableDeviceListListener()
+            {
+                private int deviceIndex = Pa.paNoDevice;
+
+                private boolean start = false;
+
+                public void didPaUpdateAvailableDeviceList()
+                    throws Exception
+                {
+                    synchronized (PortAudioStream.this)
+                    {
+                        try
+                        {
+                            waitWhileStreamIsBusy();
+                            /*
+                             * The stream should be closed. If it is not,
+                             * then something else happened in the meantime
+                             * and we cannot be sure that restoring the old
+                             * state of this PortAudioStream is the right
+                             * thing to do in its new state.
+                             */
+                            if (stream == 0)
+                            {
+                                if (deviceIndex != Pa.paNoDevice)
+                                {
+                                    setDeviceIndex(deviceIndex);
+
+                                    if (start)
+                                        start();
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            /*
+                             * If we had to attempt to restore the state of
+                             * this PortAudioStream, we just did attempt to.
+                             */
+                            deviceIndex = Pa.paNoDevice;
+                            start = false;
+                        }
+                    }
+                }
+
+                public void willPaUpdateAvailableDeviceList()
+                    throws Exception
+                {
+                    synchronized (PortAudioStream.this)
+                    {
+                        waitWhileStreamIsBusy();
+                        if (stream == 0)
+                        {
+                            deviceIndex = Pa.paNoDevice;
+                            start = false;
+                        }
+                        else
+                        {
+                            deviceIndex = PortAudioStream.this.deviceIndex;
+                            start = PortAudioStream.this.started;
+
+                            boolean disconnected = false;
+
+                            try
+                            {
+                                setDeviceIndex(Pa.paNoDevice);
+                                disconnected = true;
+                            }
+                            finally
+                            {
+                                /*
+                                 * If we failed to disconnect this
+                                 * PortAudioStream, we will not attempt to
+                                 * restore its state later on.
+                                 */
+                                if (!disconnected)
+                                {
+                                    deviceIndex = Pa.paNoDevice;
+                                    start = false;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
     /**
      * Current sequence number.
      */
     private int sequenceNumber = 0;
+
+    private boolean started = false;
 
     /**
      * The input PortAudio stream represented by this instance.
@@ -122,6 +210,117 @@ public class PortAudioStream
             = (mediaServiceImpl == null)
                 ? null
                 : (GainControl) mediaServiceImpl.getInputVolumeControl();
+
+        /*
+         * XXX We will add a PaUpdateAvailableDeviceListListener and will not
+         * remove it because we will rely on PortAudioSystem's use of
+         * WeakReference.
+         */
+        PortAudioSystem.addPaUpdateAvailableDeviceListListener(
+                paUpdateAvailableDeviceListListener);
+    }
+
+    private void connect()
+        throws IOException
+    {
+        AudioFormat format = (AudioFormat) getFormat();
+        int channels = format.getChannels();
+        int sampleSizeInBits = format.getSampleSizeInBits();
+        long sampleFormat = Pa.getPaSampleFormat(sampleSizeInBits);
+        double sampleRate = format.getSampleRate();
+        int framesPerBuffer
+            = (int)
+                ((sampleRate * Pa.DEFAULT_MILLIS_PER_BUFFER)
+                    / (channels * 1000));
+
+        try
+        {
+            inputParameters
+                = Pa.StreamParameters_new(
+                        this.deviceIndex,
+                        channels,
+                        sampleFormat,
+                        Pa.getSuggestedLatency());
+
+            stream
+                = Pa.OpenStream(
+                        inputParameters,
+                        0 /* outputParameters */,
+                        sampleRate,
+                        framesPerBuffer,
+                        Pa.STREAM_FLAGS_CLIP_OFF | Pa.STREAM_FLAGS_DITHER_OFF,
+                        null /* streamCallback */);
+        }
+        catch (PortAudioException paex)
+        {
+            logger.error("Failed to open " + getClass().getSimpleName(), paex);
+            paex.printHostErrorInfo();
+
+            IOException ioex = new IOException(paex.getLocalizedMessage());
+
+            ioex.initCause(paex);
+            throw ioex;
+        }
+        finally
+        {
+            if ((stream == 0) && (inputParameters != 0))
+            {
+                Pa.StreamParameters_free(inputParameters);
+                inputParameters = 0;
+            }
+        }
+        if (stream == 0)
+            throw new IOException("Pa_OpenStream");
+
+        this.framesPerBuffer = framesPerBuffer;
+        bytesPerBuffer
+            = Pa.GetSampleSize(sampleFormat) * channels * framesPerBuffer;
+
+        /*
+         * Know the Format in which this PortAudioStream will output audio
+         * data so that it can report it without going through its
+         * DataSource.
+         */
+        this.format
+                = new AudioFormat(
+                        AudioFormat.LINEAR,
+                        sampleRate,
+                        sampleSizeInBits,
+                        channels,
+                        AudioFormat.LITTLE_ENDIAN,
+                        AudioFormat.SIGNED,
+                        Format.NOT_SPECIFIED /* frameSizeInBits */,
+                        Format.NOT_SPECIFIED /* frameRate */,
+                        Format.byteArray);
+
+        MediaServiceImpl mediaServiceImpl
+            = NeomediaServiceUtils.getMediaServiceImpl();
+        boolean denoise = DeviceConfiguration.DEFAULT_AUDIO_DENOISE;
+        boolean echoCancel = DeviceConfiguration.DEFAULT_AUDIO_ECHOCANCEL;
+        long echoCancelFilterLengthInMillis
+            = DeviceConfiguration
+                .DEFAULT_AUDIO_ECHOCANCEL_FILTER_LENGTH_IN_MILLIS;
+
+        if (mediaServiceImpl != null)
+        {
+            DeviceConfiguration devCfg
+                = mediaServiceImpl.getDeviceConfiguration();
+
+            if (devCfg != null)
+            {
+                denoise = devCfg.isDenoise();
+                echoCancel = devCfg.isEchoCancel();
+                echoCancelFilterLengthInMillis
+                    = devCfg.getEchoCancelFilterLengthInMillis();
+            }
+        }
+
+        Pa.setDenoise(stream, audioQualityImprovement && denoise);
+        Pa.setEchoFilterLengthInMillis(
+                stream,
+                (audioQualityImprovement && echoCancel)
+                    ? echoCancelFilterLengthInMillis
+                    : 0);
     }
 
     /**
@@ -186,11 +385,11 @@ public class PortAudioStream
 
             try
             {
-                PortAudio.Pa_ReadStream(stream, bufferData, framesPerBuffer);
+                Pa.ReadStream(stream, bufferData, framesPerBuffer);
             }
             catch (PortAudioException paex)
             {
-                PortAudio.printHostError(paex);
+                paex.printHostErrorInfo();
 
                 IOException ioex = new IOException(paex.getLocalizedMessage());
 
@@ -242,7 +441,7 @@ public class PortAudioStream
             return;
 
         // DataSource#disconnect
-        if (this.deviceIndex != PortAudio.paNoDevice)
+        if (this.deviceIndex != Pa.paNoDevice)
         {
             /*
              * Just to be on the safe side, make sure #read(Buffer) is not
@@ -254,14 +453,14 @@ public class PortAudioStream
             {
                 try
                 {
-                    PortAudio.Pa_CloseStream(stream);
+                    Pa.CloseStream(stream);
                 }
                 catch (PortAudioException paex)
                 {
                     logger.error(
                             "Failed to close " + getClass().getSimpleName(),
                             paex);
-                    PortAudio.printHostError(paex);
+                    paex.printHostErrorInfo();
 
                     IOException ioex
                         = new IOException(paex.getLocalizedMessage());
@@ -272,7 +471,7 @@ public class PortAudioStream
                 stream = 0;
                 if (inputParameters != 0)
                 {
-                    PortAudio.PaStreamParameters_free(inputParameters);
+                    Pa.StreamParameters_free(inputParameters);
                     inputParameters = 0;
                 }
 
@@ -286,112 +485,19 @@ public class PortAudioStream
             }
         }
         this.deviceIndex = deviceIndex;
+        this.started = false;
         // DataSource#connect
-        if (this.deviceIndex != PortAudio.paNoDevice)
+        if (this.deviceIndex != Pa.paNoDevice)
         {
-            AudioFormat format = (AudioFormat) getFormat();
-            int channels = format.getChannels();
-            int sampleSizeInBits = format.getSampleSizeInBits();
-            long sampleFormat = PortAudio.getPaSampleFormat(sampleSizeInBits);
-            double sampleRate = format.getSampleRate();
-            int framesPerBuffer
-                = (int)
-                    ((sampleRate * PortAudio.DEFAULT_MILLIS_PER_BUFFER)
-                        / (channels * 1000));
-
+            PortAudioSystem.willPaOpenStream();
             try
             {
-                inputParameters
-                    = PortAudio.PaStreamParameters_new(
-                            this.deviceIndex,
-                            channels,
-                            sampleFormat,
-                            PortAudio.getSuggestedLatency());
-
-                stream
-                    = PortAudio.Pa_OpenStream(
-                            inputParameters,
-                            0 /* outputParameters */,
-                            sampleRate,
-                            framesPerBuffer,
-                            PortAudio.STREAM_FLAGS_CLIP_OFF
-                                | PortAudio.STREAM_FLAGS_DITHER_OFF,
-                            null /* streamCallback */);
-            }
-            catch (PortAudioException paex)
-            {
-                logger.error(
-                        "Failed to open " + getClass().getSimpleName(),
-                        paex);
-                PortAudio.printHostError(paex);
-
-                IOException ioex = new IOException(paex.getLocalizedMessage());
-
-                ioex.initCause(paex);
-                throw ioex;
+                connect();
             }
             finally
             {
-                if ((stream == 0) && (inputParameters != 0))
-                {
-                    PortAudio.PaStreamParameters_free(inputParameters);
-                    inputParameters = 0;
-                }
+                PortAudioSystem.didPaOpenStream();
             }
-            if (stream == 0)
-                throw new IOException("Pa_OpenStream");
-
-            this.framesPerBuffer = framesPerBuffer;
-            bytesPerBuffer
-                = PortAudio.Pa_GetSampleSize(sampleFormat)
-                    * channels
-                    * framesPerBuffer;
-
-            /*
-             * Know the Format in which this PortAudioStream will output audio
-             * data so that it can report it without going through its
-             * DataSource.
-             */
-            this.format
-                    = new AudioFormat(
-                            AudioFormat.LINEAR,
-                            sampleRate,
-                            sampleSizeInBits,
-                            channels,
-                            AudioFormat.LITTLE_ENDIAN,
-                            AudioFormat.SIGNED,
-                            Format.NOT_SPECIFIED /* frameSizeInBits */,
-                            Format.NOT_SPECIFIED /* frameRate */,
-                            Format.byteArray);
-
-            MediaServiceImpl mediaServiceImpl
-                = NeomediaServiceUtils.getMediaServiceImpl();
-            boolean denoise = DeviceConfiguration.DEFAULT_AUDIO_DENOISE;
-            boolean echoCancel = DeviceConfiguration.DEFAULT_AUDIO_ECHOCANCEL;
-            long echoCancelFilterLengthInMillis
-                = DeviceConfiguration
-                    .DEFAULT_AUDIO_ECHOCANCEL_FILTER_LENGTH_IN_MILLIS;
-
-            if (mediaServiceImpl != null)
-            {
-                DeviceConfiguration devCfg
-                    = mediaServiceImpl.getDeviceConfiguration();
-
-                if (devCfg != null)
-                {
-                    denoise = devCfg.isDenoise();
-                    echoCancel = devCfg.isEchoCancel();
-                    echoCancelFilterLengthInMillis
-                        = devCfg.getEchoCancelFilterLengthInMillis();
-                }
-            }
-
-            PortAudio.setDenoise(stream, audioQualityImprovement && denoise);
-            PortAudio.setEchoFilterLengthInMillis(
-                    stream,
-                    (audioQualityImprovement && echoCancel)
-                        ? echoCancelFilterLengthInMillis
-                        : 0);
         }
     }
 
@@ -407,12 +513,13 @@ public class PortAudioStream
     {
         try
         {
-            PortAudio.Pa_StartStream(stream);
+            Pa.StartStream(stream);
+            started = true;
         }
         catch (PortAudioException paex)
         {
             logger.error("Failed to start " + getClass().getSimpleName(), paex);
-            PortAudio.printHostError(paex);
+            paex.printHostErrorInfo();
 
             IOException ioex = new IOException(paex.getLocalizedMessage());
 
@@ -435,12 +542,13 @@ public class PortAudioStream
 
         try
         {
-            PortAudio.Pa_StopStream(stream);
+            Pa.StopStream(stream);
+            started = false;
         }
         catch (PortAudioException paex)
         {
             logger.error("Failed to stop " + getClass().getSimpleName(), paex);
-            PortAudio.printHostError(paex);
+            paex.printHostErrorInfo();
 
             IOException ioex = new IOException(paex.getLocalizedMessage());
 

@@ -13,8 +13,6 @@ import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
-import org.jitsi.util.*;
-
 
 /**
  * Configuration of encoding priorities.
@@ -33,13 +31,6 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
      * <a href="http://www.sipro.com">SIPRO Lab Telecom</a>.
      */
     public static final boolean G729 = false;
-
-    /**
-     * The <tt>Logger</tt> used by this <tt>EncodingConfigurationImpl</tt>
-     * instance for logging output.
-     */
-    private final Logger logger
-            = Logger.getLogger(EncodingConfigurationImpl.class);
 
     /**
      * Constructor. Loads the default preferences.

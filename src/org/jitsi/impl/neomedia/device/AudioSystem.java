@@ -8,8 +8,6 @@ package org.jitsi.impl.neomedia.device;
 
 import java.util.*;
 
-import javax.media.*;
-
 import org.jitsi.service.neomedia.*;
 
 public abstract class AudioSystem

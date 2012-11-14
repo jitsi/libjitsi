@@ -11,9 +11,8 @@ import java.awt.*;
 import javax.media.*;
 import javax.media.format.*;
 
-import net.java.sip.communicator.impl.neomedia.codec.*;
-
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;

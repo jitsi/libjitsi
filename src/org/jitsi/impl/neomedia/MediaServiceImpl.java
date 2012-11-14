@@ -19,8 +19,6 @@ import javax.media.format.*;
 import javax.media.protocol.*;
 import javax.swing.*;
 
-import net.java.sip.communicator.impl.neomedia.codec.*;
-
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.device.*;

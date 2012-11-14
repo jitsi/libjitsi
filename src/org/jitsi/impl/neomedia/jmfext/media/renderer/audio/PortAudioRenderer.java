@@ -13,15 +13,14 @@ import java.util.*;
 import javax.media.*;
 import javax.media.format.*;
 
-import net.java.sip.communicator.impl.neomedia.portaudio.*;
-
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.portaudio.*;
+import org.jitsi.impl.neomedia.portaudio.*;
 import org.jitsi.util.*;
 
 /**
- * Implements an audio <tt>Renderer</tt> which uses PortAudio.
+ * Implements an audio <tt>Renderer</tt> which uses Pa.
  *
  * @author Damian Minkov
  * @author Lyubomir Marinov
@@ -105,12 +104,104 @@ public class PortAudioRenderer
     private int bytesPerBuffer;
 
     /**
+     * The <tt>GainControl</tt> through which volume/gain of rendered media is
+     * controlled.
+     */
+    private final GainControl gainControl;
+
+    /**
      * The number of frames to write to the native PortAudio stream represented
      * by this instance with a single invocation.
      */
     private int framesPerBuffer;
 
     private long outputParameters = 0;
+
+    private final PortAudioSystem.PaUpdateAvailableDeviceListListener
+        paUpdateAvailableDeviceListListener
+            = new PortAudioSystem.PaUpdateAvailableDeviceListListener()
+            {
+                private boolean open = false;
+
+                private boolean start = false;
+
+                public void didPaUpdateAvailableDeviceList()
+                    throws Exception
+                {
+                    synchronized (PortAudioRenderer.this)
+                    {
+                        try
+                        {
+                            waitWhileStreamIsBusy();
+                            /*
+                             * The stream should be closed. If it is not,
+                             * then something else happened in the meantime
+                             * and we cannot be sure that restoring the old
+                             * state of this Renderer is the right thing to
+                             * do in its new state.
+                             */
+                            if (stream == 0)
+                            {
+                                if (open)
+                                {
+                                    open();
+
+                                    if (start)
+                                        start();
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            /*
+                             * If we had to attempt to restore the state of
+                             * this Renderer, we just did attempt to.
+                             */
+                            open = false;
+                            start = false;
+                        }
+                    }
+                }
+
+                public void willPaUpdateAvailableDeviceList()
+                    throws Exception
+                {
+                    synchronized (PortAudioRenderer.this)
+                    {
+                        waitWhileStreamIsBusy();
+                        if (stream == 0)
+                        {
+                            open = false;
+                            start = false;
+                        }
+                        else
+                        {
+                            open = true;
+                            start = PortAudioRenderer.this.started;
+
+                            boolean closed = false;
+
+                            try
+                            {
+                                close();
+                                closed = true;
+                            }
+                            finally
+                            {
+                                /*
+                                 * If we failed to close this Renderer, we
+                                 * will not attempt to restore its state later on.
+                                 */
+                                if (!closed)
+                                {
+                                    open = false;
+                                    start = false;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
 
     /**
      * The indicator which determines whether this <tt>Renderer</tt> is started.
@@ -132,12 +223,6 @@ public class PortAudioRenderer
      * Array of supported input formats.
      */
     private Format[] supportedInputFormats;
-
-    /**
-     * The <tt>GainControl</tt> through which volume/gain of rendered media is
-     * controlled.
-     */
-    private final GainControl gainControl;
 
     /**
      * Initializes a new <tt>PortAudioRenderer</tt> instance.
@@ -176,11 +261,20 @@ public class PortAudioRenderer
         }
         else
             gainControl = null;
+
+        /*
+         * XXX We will add a PaUpdateAvailableDeviceListListener and will not
+         * remove it because we will rely on PortAudioSystem's use of
+         * WeakReference.
+         */
+        PortAudioSystem.addPaUpdateAvailableDeviceListListener(
+                paUpdateAvailableDeviceListListener);
     }
 
     /**
      * Closes this <tt>PlugIn</tt>.
      */
+    @Override
     public synchronized void close()
     {
         try
@@ -193,18 +287,18 @@ public class PortAudioRenderer
             {
                 try
                 {
-                    PortAudio.Pa_CloseStream(stream);
+                    Pa.CloseStream(stream);
                     stream = 0;
                 }
                 catch (PortAudioException paex)
                 {
                     logger.error("Failed to close PortAudio stream.", paex);
-                    PortAudio.printHostError(paex);
+                    paex.printHostErrorInfo();
                 }
             }
             if ((stream == 0) && (outputParameters != 0))
             {
-                PortAudio.PaStreamParameters_free(outputParameters);
+                Pa.StreamParameters_free(outputParameters);
                 outputParameters = 0;
             }
 
@@ -220,6 +314,7 @@ public class PortAudioRenderer
      * @return an array of <tt>Object</tt>s which represent the controls
      * available for the owner of this instance
      */
+    @Override
     public Object[] getControls()
     {
         return new Object[] { gainControl };
@@ -251,11 +346,11 @@ public class PortAudioRenderer
 
             if ((locator == null)
                     || ((deviceIndex = DataSource.getDeviceIndex(locator))
-                            == PortAudio.paNoDevice))
+                            == Pa.paNoDevice))
                 supportedInputFormats = SUPPORTED_INPUT_FORMATS;
             else
             {
-                long deviceInfo = PortAudio.Pa_GetDeviceInfo(deviceIndex);
+                long deviceInfo = Pa.GetDeviceInfo(deviceIndex);
 
                 if (deviceInfo == 0)
                     supportedInputFormats = SUPPORTED_INPUT_FORMATS;
@@ -269,7 +364,7 @@ public class PortAudioRenderer
                      */
                     int maxOutputChannels
                         = Math.min(
-                                PortAudio.PaDeviceInfo_getMaxOutputChannels(
+                                Pa.DeviceInfo_getMaxOutputChannels(
                                         deviceInfo),
                                 2);
                     List<Format> supportedInputFormats
@@ -306,7 +401,7 @@ public class PortAudioRenderer
     {
         AudioFormat audioFormat = (AudioFormat) format;
         int sampleSizeInBits = audioFormat.getSampleSizeInBits();
-        long sampleFormat = PortAudio.getPaSampleFormat(sampleSizeInBits);
+        long sampleFormat = Pa.getPaSampleFormat(sampleSizeInBits);
         double sampleRate = audioFormat.getSampleRate();
 
         for (int channels = minOutputChannels;
@@ -314,17 +409,17 @@ public class PortAudioRenderer
                 channels++)
         {
             long outputParameters
-                = PortAudio.PaStreamParameters_new(
+                = Pa.StreamParameters_new(
                         deviceIndex,
                         channels,
                         sampleFormat,
-                        PortAudio.LATENCY_UNSPECIFIED);
+                        Pa.LATENCY_UNSPECIFIED);
 
             if (outputParameters != 0)
             {
                 try
                 {
-                    if (PortAudio.Pa_IsFormatSupported(
+                    if (Pa.IsFormatSupported(
                             0,
                             outputParameters,
                             sampleRate))
@@ -344,7 +439,7 @@ public class PortAudioRenderer
                 }
                 finally
                 {
-                    PortAudio.PaStreamParameters_free(outputParameters);
+                    Pa.StreamParameters_free(outputParameters);
                 }
             }
         }
@@ -357,12 +452,21 @@ public class PortAudioRenderer
      * @throws ResourceUnavailableException if the PortAudio device or output
      * stream cannot be created or opened
      */
+    @Override
     public synchronized void open()
         throws ResourceUnavailableException
     {
         try
         {
-            doOpen();
+            PortAudioSystem.willPaOpenStream();
+            try
+            {
+                doOpen();
+            }
+            finally
+            {
+                PortAudioSystem.didPaOpenStream();
+            }
         }
         catch (Throwable t)
         {
@@ -419,44 +523,44 @@ public class PortAudioRenderer
                 channels = 1;
 
             long sampleFormat
-                = PortAudio.getPaSampleFormat(
+                = Pa.getPaSampleFormat(
                     inputFormat.getSampleSizeInBits());
             double sampleRate = inputFormat.getSampleRate();
 
             framesPerBuffer
                 = (int)
-                    ((sampleRate * PortAudio.DEFAULT_MILLIS_PER_BUFFER)
+                    ((sampleRate * Pa.DEFAULT_MILLIS_PER_BUFFER)
                         / (channels * 1000));
 
             try
             {
                 outputParameters
-                    = PortAudio.PaStreamParameters_new(
+                    = Pa.StreamParameters_new(
                             deviceIndex,
                             channels,
                             sampleFormat,
-                            PortAudio.getSuggestedLatency());
+                            Pa.getSuggestedLatency());
 
                 stream
-                    = PortAudio.Pa_OpenStream(
+                    = Pa.OpenStream(
                             0 /* inputParameters */,
                             outputParameters,
                             sampleRate,
                             framesPerBuffer,
-                            PortAudio.STREAM_FLAGS_CLIP_OFF
-                                | PortAudio.STREAM_FLAGS_DITHER_OFF,
+                            Pa.STREAM_FLAGS_CLIP_OFF
+                                | Pa.STREAM_FLAGS_DITHER_OFF,
                             null /* streamCallback */);
             }
             catch (PortAudioException paex)
             {
-                PortAudio.printHostError(paex);
+                paex.printHostErrorInfo();
                 throw new ResourceUnavailableException(paex.getMessage());
             }
             finally
             {
                 if ((stream == 0) && (outputParameters != 0))
                 {
-                    PortAudio.PaStreamParameters_free(outputParameters);
+                    Pa.StreamParameters_free(outputParameters);
                     outputParameters = 0;
                 }
             }
@@ -464,7 +568,7 @@ public class PortAudioRenderer
                 throw new ResourceUnavailableException("Pa_OpenStream");
 
             bytesPerBuffer
-                = PortAudio.Pa_GetSampleSize(sampleFormat)
+                = Pa.GetSampleSize(sampleFormat)
                     * channels
                     * framesPerBuffer;
         }
@@ -545,7 +649,7 @@ public class PortAudioRenderer
         catch (PortAudioException paex)
         {
             logger.error("Failed to process Buffer.", paex);
-            PortAudio.printHostError(paex);
+            paex.printHostErrorInfo();
         }
         finally
         {
@@ -589,7 +693,7 @@ public class PortAudioRenderer
 
             if (bufferLeftLength == bytesPerBuffer)
             {
-                PortAudio.Pa_WriteStream(stream, bufferLeft, framesPerBuffer);
+                Pa.WriteStream(stream, bufferLeft, framesPerBuffer);
                 bufferLeftLength = 0;
             }
         }
@@ -607,7 +711,7 @@ public class PortAudioRenderer
                         buffer, offset, length);
             }
 
-            PortAudio.Pa_WriteStream(
+            Pa.WriteStream(
                     stream,
                     buffer, offset, framesPerBuffer,
                     numberOfWrites);
@@ -654,13 +758,13 @@ public class PortAudioRenderer
         {
             try
             {
-                PortAudio.Pa_StartStream(stream);
+                Pa.StartStream(stream);
                 started = true;
             }
             catch (PortAudioException paex)
             {
                 logger.error("Failed to start PortAudio stream.", paex);
-                PortAudio.printHostError(paex);
+                paex.printHostErrorInfo();
             }
         }
     }
@@ -675,7 +779,7 @@ public class PortAudioRenderer
         {
             try
             {
-                PortAudio.Pa_StopStream(stream);
+                Pa.StopStream(stream);
                 started = false;
 
                 bufferLeft = null;
@@ -683,7 +787,7 @@ public class PortAudioRenderer
             catch (PortAudioException paex)
             {
                 logger.error("Failed to close PortAudio stream.", paex);
-                PortAudio.printHostError(paex);
+                paex.printHostErrorInfo();
             }
         }
     }

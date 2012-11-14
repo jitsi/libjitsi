@@ -6,12 +6,8 @@
  */
 package org.jitsi.impl.neomedia.device;
 
-import java.util.*;
-
-import javax.media.*;
-
 /**
- * Manages the list of active (currently pluged-in) notify devices and manages
+ * Manages the list of active (currently plugged-in) notify devices and manages
  * user preferences between all known devices (previously and actually
  * plugged-in).
  *
@@ -26,7 +22,7 @@ public class NotifyDevices
     public static final String PROP_DEVICE = "notifyDevice";
 
     /**
-     * Initializes the notify device list managment.
+     * Initializes the notify device list management.
      *
      * @param audioSystem The audio system managing this notify device list.
      */

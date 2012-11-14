@@ -8,9 +8,8 @@ package org.jitsi.impl.neomedia.device;
 
 import javax.media.*;
 
-import net.java.sip.communicator.impl.neomedia.codec.*;
-
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.video4linux2.*;
 import org.jitsi.service.neomedia.*;

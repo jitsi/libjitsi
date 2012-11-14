@@ -9,22 +9,23 @@ package org.jitsi.impl.neomedia.portaudio;
 import java.nio.*;
 
 /**
- * @author Lubomir Marinov
+ *
+ * @author Lyubomir Marinov
  */
 public interface PortAudioStreamCallback
 {
     /**
-     * "Abort" resut code.
+     * &quot;Abort&quot; result code.
      */
     public static final int RESULT_ABORT = 2;
 
     /**
-     * "Complete" resut code.
+     * &quot;Complete&quot; result code.
      */
     public static final int RESULT_COMPLETE = 1;
 
     /**
-     * "Continue" resut code.
+     * &quot;Continue&quot; result code.
      */
     public static final int RESULT_CONTINUE = 0;
 

@@ -10,8 +10,6 @@ import java.awt.*;
 
 import javax.media.*;
 
-import net.java.sip.communicator.impl.neomedia.codec.*;
-
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.util.*;
 

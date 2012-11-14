@@ -8,8 +8,7 @@ package org.jitsi.impl.neomedia.jmfext.media.protocol;
 
 import java.util.*;
 
-import net.java.sip.communicator.impl.neomedia.codec.*;
-
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.util.*;
 
@@ -18,7 +17,7 @@ import org.jitsi.util.*;
  * deallocations of <tt>ByteBuffer</tt>s in the Java heap and of native memory
  * in the native heap.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class ByteBufferPool
 {

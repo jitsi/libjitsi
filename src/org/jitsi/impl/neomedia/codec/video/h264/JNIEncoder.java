@@ -12,7 +12,6 @@ import java.util.*;
 import javax.media.*;
 import javax.media.format.*;
 
-import net.java.sip.communicator.impl.neomedia.codec.*;
 import net.sf.fmj.media.*;
 
 import org.jitsi.impl.neomedia.codec.*;

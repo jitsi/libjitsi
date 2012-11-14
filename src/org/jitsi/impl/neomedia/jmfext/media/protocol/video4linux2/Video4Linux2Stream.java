@@ -13,9 +13,8 @@ import javax.media.*;
 import javax.media.control.*;
 import javax.media.format.*;
 
-import net.java.sip.communicator.impl.neomedia.codec.*;
-
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 
@@ -256,8 +255,8 @@ public class Video4Linux2Stream
                 /* initialize FFmpeg's MJPEG decoder if not already done */
                 if(mjpeg_context == 0)
                 {
-                    long avcodec = FFmpeg.avcodec_find_decoder(
-                            FFmpeg.CODEC_ID_MJPEG);
+                    long avcodec
+                        = FFmpeg.avcodec_find_decoder(FFmpeg.CODEC_ID_MJPEG);
 
                     mjpeg_context = FFmpeg.avcodec_alloc_context();
                     FFmpeg.avcodeccontext_set_workaround_bugs(mjpeg_context,

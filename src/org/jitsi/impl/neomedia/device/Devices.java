@@ -8,13 +8,11 @@ package org.jitsi.impl.neomedia.device;
 
 import java.util.*;
 
-import javax.media.*;
-
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 
 /**
- * Manages the list of active (currently pluged-in) capture/notify/playback
+ * Manages the list of active (currently plugged-in) capture/notify/playback
  * devices and manages user preferences between all known devices (previously
  * and actually plugged-in).
  *

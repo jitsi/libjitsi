@@ -11,10 +11,9 @@ import java.io.*;
 import javax.media.*;
 import javax.media.control.*;
 
-import net.java.sip.communicator.impl.neomedia.portaudio.*;
-
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
+import org.jitsi.impl.neomedia.portaudio.*;
 import org.jitsi.util.*;
 
 /**
@@ -163,7 +162,7 @@ public class DataSource
                         try
                         {
                             ((PortAudioStream) stream).setDeviceIndex(
-                                    PortAudio.paNoDevice);
+                                    Pa.paNoDevice);
                         }
                         catch (IOException ioex)
                         {

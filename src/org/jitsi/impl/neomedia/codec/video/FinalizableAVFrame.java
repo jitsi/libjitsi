@@ -10,8 +10,7 @@ import java.awt.*;
 
 import javax.media.*;
 
-import net.java.sip.communicator.impl.neomedia.codec.*;
-
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 
 /**
@@ -21,7 +20,7 @@ import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
  * deallocation, <tt>FinalizableAVFrame</tt> relies on the Java finalization
  * mechanism to reclaim the represented native memory.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class FinalizableAVFrame
     extends AVFrame
