@@ -511,20 +511,26 @@ public class PortAudioStream
     public synchronized void start()
         throws IOException
     {
-        try
+        if (stream != 0)
         {
-            Pa.StartStream(stream);
-            started = true;
-        }
-        catch (PortAudioException paex)
-        {
-            logger.error("Failed to start " + getClass().getSimpleName(), paex);
-            paex.printHostErrorInfo();
+            waitWhileStreamIsBusy();
 
-            IOException ioex = new IOException(paex.getLocalizedMessage());
+            try
+            {
+                Pa.StartStream(stream);
+                started = true;
+            }
+            catch (PortAudioException paex)
+            {
+                logger.error(
+                        "Failed to start " + getClass().getSimpleName(), paex);
+                paex.printHostErrorInfo();
 
-            ioex.initCause(paex);
-            throw ioex;
+                IOException ioex = new IOException(paex.getLocalizedMessage());
+
+                ioex.initCause(paex);
+                throw ioex;
+            }
         }
     }
 
@@ -538,22 +544,26 @@ public class PortAudioStream
     public synchronized void stop()
         throws IOException
     {
-        waitWhileStreamIsBusy();
-
-        try
+        if (stream != 0)
         {
-            Pa.StopStream(stream);
-            started = false;
-        }
-        catch (PortAudioException paex)
-        {
-            logger.error("Failed to stop " + getClass().getSimpleName(), paex);
-            paex.printHostErrorInfo();
+            waitWhileStreamIsBusy();
 
-            IOException ioex = new IOException(paex.getLocalizedMessage());
+            try
+            {
+                Pa.StopStream(stream);
+                started = false;
+            }
+            catch (PortAudioException paex)
+            {
+                logger.error(
+                        "Failed to stop " + getClass().getSimpleName(), paex);
+                paex.printHostErrorInfo();
 
-            ioex.initCause(paex);
-            throw ioex;
+                IOException ioex = new IOException(paex.getLocalizedMessage());
+
+                ioex.initCause(paex);
+                throw ioex;
+            }
         }
     }
 

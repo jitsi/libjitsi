@@ -44,6 +44,22 @@ public class PortAudioRenderer
         = new Format[0];
 
     /**
+     * The flag which indicates that {@link #open()} has been called on a
+     * <tt>PortAudioRenderer</tt> without an intervening {@link #close()}. The
+     * state it represents is from the public point of view. The private point
+     * of view is represented by {@link #stream}.
+     */
+    private static final byte FLAG_OPEN = 1;
+
+    /**
+     * The flag which indicates that {@link #start()} has been called on a
+     * <tt>PortAudioRenderer</tt> without an intervening {@link #stop()}. The
+     * state it represents is from the public point of view. The private point
+     * of view is represented by {@link #started}.
+     */
+    private static final byte FLAG_STARTED = 2;
+
+    /**
      * The human-readable name of the <tt>PortAudioRenderer</tt> JMF plug-in.
      */
     private static final String PLUGIN_NAME = "PortAudio Renderer";
@@ -110,6 +126,16 @@ public class PortAudioRenderer
     private final GainControl gainControl;
 
     /**
+     * The flags which represent certain state of this
+     * <tt>PortAudioRenderer</tt>. Acceptable values are among the
+     * <tt>FLAG_XXX</tt> constants defined by the <tt>PortAudioRenderer</tt>
+     * class. For example, {@link #FLAG_OPEN} indicates that from the public
+     * point of view {@link #open()} has been invoked on this <tt>Renderer</tt>
+     * without an intervening {@link #close()}.
+     */
+    private byte flags = 0;
+
+    /**
      * The number of frames to write to the native PortAudio stream represented
      * by this instance with a single invocation.
      */
@@ -117,48 +143,48 @@ public class PortAudioRenderer
 
     private long outputParameters = 0;
 
+    /**
+     * The <tt>PaUpdateAvailableDeviceListListener</tt> which is to be notified
+     * before and after PortAudio's native function
+     * <tt>Pa_UpdateAvailableDeviceList()</tt> is invoked. It will close
+     * {@link #stream} before the invocation in order to mitigate memory
+     * corruption afterwards and it will attempt to restore the state of this
+     * <tt>Renderer</tt> after the invocation.
+     */
     private final PortAudioSystem.PaUpdateAvailableDeviceListListener
         paUpdateAvailableDeviceListListener
             = new PortAudioSystem.PaUpdateAvailableDeviceListListener()
             {
-                private boolean open = false;
-
-                private boolean start = false;
-
                 public void didPaUpdateAvailableDeviceList()
                     throws Exception
                 {
                     synchronized (PortAudioRenderer.this)
                     {
+                        waitWhileStreamIsBusy();
+
+                        /*
+                         * PortAudioRenderer's field flags represents its open
+                         * and started state from the public point of view. We
+                         * will automatically open and start this Renderer i.e.
+                         * we will be modifying the state from the private point
+                         * of view only and, consequently, we have to make sure
+                         * that we will not modify it from the public point of
+                         * view.
+                         */
+                        byte flags = PortAudioRenderer.this.flags;
+
                         try
                         {
-                            waitWhileStreamIsBusy();
-                            /*
-                             * The stream should be closed. If it is not,
-                             * then something else happened in the meantime
-                             * and we cannot be sure that restoring the old
-                             * state of this Renderer is the right thing to
-                             * do in its new state.
-                             */
-                            if (stream == 0)
+                            if ((FLAG_OPEN & flags) == FLAG_OPEN)
                             {
-                                if (open)
-                                {
-                                    open();
-
-                                    if (start)
-                                        start();
-                                }
+                                open();
+                                if ((FLAG_STARTED & flags) == FLAG_STARTED)
+                                    start();
                             }
                         }
                         finally
                         {
-                            /*
-                             * If we had to attempt to restore the state of
-                             * this Renderer, we just did attempt to.
-                             */
-                            open = false;
-                            start = false;
+                            PortAudioRenderer.this.flags = flags;
                         }
                     }
                 }
@@ -169,35 +195,25 @@ public class PortAudioRenderer
                     synchronized (PortAudioRenderer.this)
                     {
                         waitWhileStreamIsBusy();
-                        if (stream == 0)
-                        {
-                            open = false;
-                            start = false;
-                        }
-                        else
-                        {
-                            open = true;
-                            start = PortAudioRenderer.this.started;
 
-                            boolean closed = false;
+                        /*
+                         * PortAudioRenderer's field flags represents its open
+                         * and started state from the public point of view. We
+                         * will automatically close this Renderer i.e. we will
+                         * be modifying the state from the private point of view
+                         * only and, consequently, we have to make sure that we
+                         * will not modify it from the public point of view.
+                         */
+                        byte flags = PortAudioRenderer.this.flags;
 
-                            try
-                            {
+                        try
+                        {
+                            if (stream != 0)
                                 close();
-                                closed = true;
-                            }
-                            finally
-                            {
-                                /*
-                                 * If we failed to close this Renderer, we
-                                 * will not attempt to restore its state later on.
-                                 */
-                                if (!closed)
-                                {
-                                    open = false;
-                                    start = false;
-                                }
-                            }
+                        }
+                        finally
+                        {
+                            PortAudioRenderer.this.flags = flags;
                         }
                     }
                 }
@@ -289,6 +305,8 @@ public class PortAudioRenderer
                 {
                     Pa.CloseStream(stream);
                     stream = 0;
+                    started = false;
+                    flags &= ~(FLAG_OPEN | FLAG_STARTED);
                 }
                 catch (PortAudioException paex)
                 {
@@ -558,10 +576,20 @@ public class PortAudioRenderer
             }
             finally
             {
-                if ((stream == 0) && (outputParameters != 0))
+                started = false;
+                if (stream == 0)
                 {
-                    Pa.StreamParameters_free(outputParameters);
-                    outputParameters = 0;
+                    flags &= ~(FLAG_OPEN | FLAG_STARTED);
+
+                    if (outputParameters != 0)
+                    {
+                        Pa.StreamParameters_free(outputParameters);
+                        outputParameters = 0;
+                    }
+                }
+                else
+                {
+                    flags |= (FLAG_OPEN | FLAG_STARTED);
                 }
             }
             if (stream == 0)
@@ -595,29 +623,33 @@ public class PortAudioRenderer
 
         waitWhileStreamIsBusy();
 
-        boolean open = (this.stream != 0);
+        /*
+         * From the public point of view, the state of this PortAudioRenderer
+         * remains the same.
+         */
+        byte flags = this.flags;
 
-        if (open)
+        try
         {
-            /*
-             * The close method will stop this Renderer if it is currently
-             * started.
-             */
-            boolean start = this.started;
-
-            close();
-
-            try
+            if ((FLAG_OPEN & flags) == FLAG_OPEN)
             {
-                open();
-            }
-            catch (ResourceUnavailableException rue)
-            {
-                throw new UndeclaredThrowableException(rue);
-            }
+                close();
 
-            if (start)
-                start();
+                try
+                {
+                    open();
+                }
+                catch (ResourceUnavailableException rue)
+                {
+                    throw new UndeclaredThrowableException(rue);
+                }
+                if ((FLAG_STARTED & flags) == FLAG_STARTED)
+                    start();
+            }
+        }
+        finally
+        {
+            this.flags = flags;
         }
     }
 
@@ -760,6 +792,7 @@ public class PortAudioRenderer
             {
                 Pa.StartStream(stream);
                 started = true;
+                flags |= FLAG_STARTED;
             }
             catch (PortAudioException paex)
             {
@@ -781,6 +814,7 @@ public class PortAudioRenderer
             {
                 Pa.StopStream(stream);
                 started = false;
+                flags &= ~FLAG_STARTED;
 
                 bufferLeft = null;
             }
