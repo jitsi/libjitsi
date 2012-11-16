@@ -558,7 +558,7 @@ public class PortAudioSystem
      */
     private static void waitForPaOpenStream()
     {
-        boolean interrupted = true;
+        boolean interrupted = false;
 
         while (paOpenStream > 0)
         {
@@ -581,7 +581,7 @@ public class PortAudioSystem
      */
     private static void waitForPaUpdateAvailableDeviceList()
     {
-        boolean interrupted = true;
+        boolean interrupted = false;
 
         while (paUpdateAvailableDeviceList > 0)
         {

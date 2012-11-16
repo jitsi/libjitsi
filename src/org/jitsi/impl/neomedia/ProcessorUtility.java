@@ -15,7 +15,7 @@ import org.jitsi.util.*;
  *
  * @author Emil Ivov
  * @author Ken Larson
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class ProcessorUtility
     implements ControllerListener
@@ -140,15 +140,22 @@ public class ProcessorUtility
                 }
                 catch (InterruptedException ie)
                 {
-                    logger
-                        .warn(
-                            "Failed while waiting on Processor "
+                    logger.warn(
+                            "Interrupted while waiting on Processor "
                                 + processor
                                 + " for state "
                                 + state,
                             ie);
-                    processor.removeControllerListener(this);
-                    return false;
+                    /*
+                     * XXX It is not really clear what we should do. It seems
+                     * that an InterruptedException may be thrown and the
+                     * Processor will still work fine. Consequently, we cannot
+                     * fail here. Besides, if the Processor fails, it will tell
+                     * us with a ControllerEvent anyway and we will get out of
+                     * the loop.
+                     */
+//                    processor.removeControllerListener(this);
+//                    return false;
                 }
             }
         }
