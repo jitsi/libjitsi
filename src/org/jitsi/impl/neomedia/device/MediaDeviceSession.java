@@ -1022,7 +1022,7 @@ public class MediaDeviceSession
     /**
      * Gets the JMF <tt>Processor</tt> which transcodes the <tt>MediaDevice</tt>
      * of this instance into the format of this instance. If the
-     * <tt>Processor</tt> question does not exist, the method will create it.
+     * <tt>Processor</tt> in question does not exist, the method will create it.
      * <p>
      * <b>Warning</b>: Because the method will unconditionally create the
      * <tt>Processor</tt> if it does not exist and because the creation of the
