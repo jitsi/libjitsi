@@ -1021,7 +1021,18 @@ public class MediaDeviceSession
 
     /**
      * Gets the JMF <tt>Processor</tt> which transcodes the <tt>MediaDevice</tt>
-     * of this instance into the format of this instance.
+     * of this instance into the format of this instance. If the
+     * <tt>Processor</tt> question does not exist, the method will create it.
+     * <p>
+     * <b>Warning</b>: Because the method will unconditionally create the
+     * <tt>Processor</tt> if it does not exist and because the creation of the
+     * <tt>Processor</tt> will connect to the <tt>CaptureDevice</tt> of this
+     * instance, extreme care is to be taken when invoking the method in order
+     * to ensure that the existence of the <tt>Processor</tt> is really in
+     * accord with the rest of the state of this instance. Overall, the method
+     * is to be considered private and is to not be invoked outside the
+     * <tt>MediaDeviceSession</tt> class. 
+     * </p>
      *
      * @return the JMF <tt>Processor</tt> which transcodes the
      * <tt>MediaDevice</tt> of this instance into the format of this instance
