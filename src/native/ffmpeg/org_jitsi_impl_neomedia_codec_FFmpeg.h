@@ -33,11 +33,19 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_av_1register_1a
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avcodec_alloc_context
- * Signature: ()J
+ * Method:    av_set_options_string
+ * Signature: (JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1alloc_1context
-  (JNIEnv *, jclass);
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_av_1set_1options_1string
+  (JNIEnv *, jclass, jlong, jstring, jstring, jstring);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
+ * Method:    avcodec_alloc_context3
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1alloc_1context3
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
@@ -105,19 +113,19 @@ JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1find_
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avcodec_init
- * Signature: ()V
+ * Method:    avcodec_open
+ * Signature: (JJ[Ljava/lang/String;)I
  */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1init
-  (JNIEnv *, jclass);
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1open2
+  (JNIEnv *, jclass, jlong, jlong, jobjectArray);
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avcodec_open
- * Signature: (JJ)I
+ * Method:    avcodec_register_all
+ * Signature: ()V
  */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1open
-  (JNIEnv *, jclass, jlong, jlong);
+JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1register_1all
+  (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
@@ -133,14 +141,6 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_
  * Signature: (JI)V
  */
 JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_1add_1flags2
-  (JNIEnv *, jclass, jlong, jint);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avcodeccontext_add_partitions
- * Signature: (JI)V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_1add_1partitions
   (JNIEnv *, jclass, jlong, jint);
 
 /*
@@ -213,22 +213,6 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_
  * Signature: (JI)V
  */
 JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_1set_1chromaoffset
-  (JNIEnv *, jclass, jlong, jint);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avcodeccontext_set_crf
- * Signature: (JF)V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_1set_1crf
-  (JNIEnv *, jclass, jlong, jfloat);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avcodeccontext_set_deblockbeta
- * Signature: (JI)V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_1set_1deblockbeta
   (JNIEnv *, jclass, jlong, jint);
 
 /*
@@ -457,6 +441,62 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
+ * Method:    avfilter_graph_alloc
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1graph_1alloc
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
+ * Method:    avfilter_graph_config
+ * Signature: (JJ)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1graph_1config
+  (JNIEnv *, jclass, jlong, jlong);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
+ * Method:    avfilter_graph_free
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1graph_1free
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
+ * Method:    avfilter_graph_get_filter
+ * Signature: (JLjava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1graph_1get_1filter
+  (JNIEnv *, jclass, jlong, jstring);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
+ * Method:    avfilter_graph_parse
+ * Signature: (JLjava/lang/String;JJJ)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1graph_1parse
+  (JNIEnv *, jclass, jlong, jstring, jlong, jlong, jlong);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
+ * Method:    avfilter_register_all
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1register_1all
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
+ * Method:    avfilter_unref_buffer
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1unref_1buffer
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
  * Method:    avframe_get_pts
  * Signature: (J)J
  */
@@ -510,6 +550,14 @@ JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avpicture_1get
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avpicture_1get_1size
   (JNIEnv *, jclass, jint, jint, jint);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
+ * Method:    get_filtered_video_frame
+ * Signature: (JIIIJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_get_1filtered_1video_1frame
+  (JNIEnv *, jclass, jlong, jint, jint, jint, jlong, jlong, jlong);
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
@@ -598,70 +646,6 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_sws_1scale__JJI
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_sws_1scale__JLjava_lang_Object_2IIIIILjava_lang_Object_2III
   (JNIEnv *, jclass, jlong, jobject, jint, jint, jint, jint, jint, jobject, jint, jint, jint);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avfilter_graph_alloc
- * Signature: ()J
- */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1graph_1alloc
-  (JNIEnv *, jclass);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avfilter_graph_config
- * Signature: (JJ)I
- */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1graph_1config
-  (JNIEnv *, jclass, jlong, jlong);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avfilter_graph_free
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1graph_1free
-  (JNIEnv *, jclass, jlong);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avfilter_graph_get_filter
- * Signature: (JLjava/lang/String;)J
- */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1graph_1get_1filter
-  (JNIEnv *, jclass, jlong, jstring);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avfilter_graph_parse
- * Signature: (JLjava/lang/String;JJJ)I
- */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1graph_1parse
-  (JNIEnv *, jclass, jlong, jstring, jlong, jlong, jlong);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avfilter_register_all
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1register_1all
-  (JNIEnv *, jclass);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avfilter_unref_buffer
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avfilter_1unref_1buffer
-  (JNIEnv *, jclass, jlong);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    get_filtered_video_frame
- * Signature: (JIIIJJJ)J
- */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_get_1filtered_1video_1frame
-  (JNIEnv *, jclass, jlong, jint, jint, jint, jlong, jlong, jlong);
 
 #ifdef __cplusplus
 }
