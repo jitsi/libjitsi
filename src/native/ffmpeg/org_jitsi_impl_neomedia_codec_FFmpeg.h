@@ -33,14 +33,6 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_av_1register_1a
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    av_set_options_string
- * Signature: (JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
- */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_av_1set_1options_1string
-  (JNIEnv *, jclass, jlong, jstring, jstring, jstring);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
  * Method:    avcodec_alloc_context3
  * Signature: (J)J
  */

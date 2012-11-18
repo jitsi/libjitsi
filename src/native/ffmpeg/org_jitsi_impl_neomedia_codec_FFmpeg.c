@@ -12,7 +12,6 @@
 #include <string.h>
 
 #include <libavutil/avutil.h>
-#include <libavutil/opt.h>
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavfilter/avfilter.h>
@@ -56,63 +55,6 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_av_1register_1all
     (JNIEnv *env, jclass clazz)
 {
     av_register_all();
-}
-
-JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_codec_FFmpeg_av_1set_1options_1string
-    (JNIEnv *env, jclass clazz,
-    jlong ctx, jstring opts, jstring key_value_sep, jstring pairs_sep)
-{
-    const char *opts_;
-    jint err = 0;
-
-    if (opts)
-    {
-        opts_ = (*env)->GetStringUTFChars(env, opts, NULL);
-        if (!opts_)
-            err = AVERROR(ENOMEM);
-    }
-    else
-        opts_ = NULL;
-    if (0 == err)
-    {
-        const char *key_value_sep_;
-
-        if (key_value_sep)
-        {
-            key_value_sep_
-                = (*env)->GetStringUTFChars(env, key_value_sep, NULL);
-            if (!key_value_sep_)
-                err = AVERROR(ENOMEM);
-        }
-        else
-            key_value_sep_ = NULL;
-        if (0 == err)
-        {
-            const char *pairs_sep_;
-
-            if (pairs_sep)
-            {
-                pairs_sep_ = (*env)->GetStringUTFChars(env, pairs_sep, NULL);
-                if (!pairs_sep_)
-                    err = AVERROR(ENOMEM);
-            }
-            else
-                pairs_sep_ = NULL;
-            if (0 == err)
-            {
-                err
-                    = av_set_options_string(
-                            (void *) (intptr_t) ctx,
-                            opts_,
-                            key_value_sep_, pairs_sep_);
-                (*env)->ReleaseStringUTFChars(env, pairs_sep, pairs_sep_);
-            }
-            (*env)->ReleaseStringUTFChars(env, key_value_sep, key_value_sep_);
-        }
-        (*env)->ReleaseStringUTFChars(env, opts, opts_);
-    }
-    return err;
 }
 
 JNIEXPORT jlong JNICALL
@@ -186,7 +128,7 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1decode_1video__JJJI
 {
     AVPacket avpkt;
     int got_picture = 0;
-    int ret = -1;
+    int ret;
 
     av_init_packet(&avpkt);
     avpkt.data = (uint8_t*) (intptr_t) src;
@@ -195,7 +137,7 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1decode_1video__JJJI
     ret
         = avcodec_decode_video2(
                 (AVCodecContext *) (intptr_t) ctx,
-                (AVFrame *)avframe, &got_picture, &avpkt);
+                (AVFrame *) (intptr_t) avframe, &got_picture, &avpkt);
 
     return got_picture ? ret : -1;
 }
@@ -264,14 +206,14 @@ JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1find_1decoder
     (JNIEnv *env, jclass clazz, jint id)
 {
-    return (jlong) avcodec_find_decoder ((enum CodecID) id);
+    return (jlong) (intptr_t) avcodec_find_decoder((enum CodecID) id);
 }
 
 JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1find_1encoder
     (JNIEnv *env, jclass clazz, jint id)
 {
-    return (jlong) avcodec_find_encoder ((enum CodecID) id);
+    return (jlong) (intptr_t) avcodec_find_encoder((enum CodecID) id);
 }
 
 JNIEXPORT jint JNICALL
@@ -684,7 +626,7 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_avframe_1set_1data
 {
     AVFrame *frame_ = (AVFrame *) (intptr_t) frame;
 
-    frame_->data[0] = (uint8_t *) data0;
+    frame_->data[0] = (uint8_t *) (intptr_t) data0;
     frame_->data[1] = frame_->data[0] + offset1;
     frame_->data[2] = frame_->data[1] + offset2;
 }
@@ -737,7 +679,7 @@ JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_codec_FFmpeg_avpicture_1get_1data0
     (JNIEnv *env, jclass clazz, jlong picture)
 {
-    return (jlong) (((AVPicture *) (intptr_t) picture)->data[0]);
+    return (jlong) (intptr_t) (((AVPicture *) (intptr_t) picture)->data[0]);
 }
 
 JNIEXPORT jint JNICALL
@@ -789,7 +731,7 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_get_1filtered_1video_1frame
             }
         }
     }
-    return (jlong) ref;
+    return (jlong) (intptr_t) ref;
 }
 
 JNIEXPORT void JNICALL
@@ -865,7 +807,7 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_sws_1getCachedContext
         jint srcFormat, jint dstW, jint dstH, jint dstFormat, jint flags)
 {
     return
-        (jlong)
+        (jlong) (intptr_t)
             sws_getCachedContext(
                 (struct SwsContext *) (intptr_t) ctx,
                 (int) srcW, (int) srcH, (enum PixelFormat) srcFormat,
