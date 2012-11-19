@@ -396,7 +396,7 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_1set_1rc_1eq
         const char *js = (*env)->GetStringUTFChars(env, rc_eq, NULL);
 
         if (js) {
-            s = strdup(js);
+            s = av_strdup(js);
             (*env)->ReleaseStringUTFChars(env, rc_eq, js);
         } else
             s = NULL;
