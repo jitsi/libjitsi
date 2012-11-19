@@ -234,11 +234,6 @@ public class MediaStreamImpl
      */
     private PayloadTypeTransformEngine ptTransformEngine;
 
-    /**
-     * The <tt>PacketLossAwareEncoder</tt> in the encoding codec chain, which
-     * is to be notified of packet loss information received via RTCP.
-     */
-    PacketLossAwareEncoder packetLossAwareEncoder = null;
 
     /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
@@ -2544,9 +2539,12 @@ public class MediaStreamImpl
             //other side. See RFC3550 Section 6.4.1 for the interpretation of
             //'fraction lost'
             PacketLossAwareEncoder plae = getPacketLossAwareEncoder();
-            if(plae != null)
+            if(plae != null && feedback != null &&
+                        getDirection() != MediaDirection.INACTIVE)
+            {
                 plae.setExpectedPacketLoss(
                         (int) ((feedback.getFractionLost() * 100) / 256));
+            }
 
             if(logger.isInfoEnabled())
             {
@@ -2928,26 +2926,9 @@ public class MediaStreamImpl
      */
     public PacketLossAwareEncoder getPacketLossAwareEncoder()
     {
-        if(packetLossAwareEncoder != null)
-            return packetLossAwareEncoder;
-
         MediaDeviceSession mediaDeviceSession = getDeviceSession();
         if(mediaDeviceSession == null)
             return null;
-        Processor processor = mediaDeviceSession.getProcessor();
-        if(processor == null)
-            return null;
-
-        for(TrackControl tc : processor.getTrackControls())
-        {
-            Object obj
-                    = tc.getControl(PacketLossAwareEncoder.class.getName());
-            if(obj instanceof PacketLossAwareEncoder)
-            {
-                packetLossAwareEncoder = (PacketLossAwareEncoder)obj;
-                return packetLossAwareEncoder;
-            }
-        }
-        return packetLossAwareEncoder;
+        return mediaDeviceSession.getPacketLossAwareEncoder();
     }
 }

@@ -22,6 +22,7 @@ import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
+import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
@@ -2232,5 +2233,24 @@ public class MediaDeviceSession
                     .getTranscodingDataSource(receiveStream.getDataSource());
         }
         return transcodingDataSource;
+    }
+
+    /**
+     * Tries to find a PacketLossAwareEncoder in the processor's track controls.
+     *
+     * @return A <tt>PacketLossAwareEncoder</tt> instance or null
+     */
+    public PacketLossAwareEncoder getPacketLossAwareEncoder()
+    {
+        if(processor == null || processor.getState() < Processor.Realized)
+            return null;
+        for(TrackControl tc : processor.getTrackControls())
+        {
+            Object obj
+                    = tc.getControl(PacketLossAwareEncoder.class.getName());
+            if(obj instanceof PacketLossAwareEncoder)
+                return (PacketLossAwareEncoder)obj;
+        }
+        return null;
     }
 }
