@@ -138,6 +138,7 @@ public class JNIEncoder
     /**
      * Next interval for an automatic keyframe.
      */
+    @SuppressWarnings("unused")
     private int framesSinceLastIFrame = IFRAME_INTERVAL + 1;
 
     /**
@@ -217,14 +218,23 @@ public class JNIEncoder
             opened = false;
             super.close();
 
-            FFmpeg.avcodec_close(avctx);
-            FFmpeg.av_free(avctx);
-            avctx = 0;
+            if (avctx != 0)
+            {
+                FFmpeg.avcodec_close(avctx);
+                FFmpeg.av_free(avctx);
+                avctx = 0;
+            }
 
-            FFmpeg.av_free(avframe);
-            avframe = 0;
-            FFmpeg.av_free(rawFrameBuffer);
-            rawFrameBuffer = 0;
+            if (avframe != 0)
+            {
+                FFmpeg.av_free(avframe);
+                avframe = 0;
+            }
+            if (rawFrameBuffer != 0)
+            {
+                FFmpeg.av_free(rawFrameBuffer);
+                rawFrameBuffer = 0;
+            }
 
             encFrameBuffer = null;
 
@@ -369,38 +379,43 @@ public class JNIEncoder
 
         VideoFormat outputVideoFormat = (VideoFormat) outputFormat;
         Dimension size = outputVideoFormat.getSize();
-        int width = size.width;
-        int height = size.height;
+        int width = size.width, height = size.height;
+
         boolean useIntraRefresh = true;
-        boolean useCustomProfile = false;
-        String customProfile = null;
+        /*
+         * XXX We do not currently negotiate the profile so, regardless of the
+         * many AVCodecContext properties we have set above, force the default
+         * profile configuration.
+         */
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        String profile
+            = (cfg == null)
+                ? null
+                : cfg.getString(DEFAULT_PROFILE_PNAME, DEFAULT_DEFAULT_PROFILE);
 
         if(additionalSettings != null)
         {
-            for(Map.Entry<String, String> entry : additionalSettings.entrySet())
+            for(Map.Entry<String, String> e : additionalSettings.entrySet())
             {
-                String key = entry.getKey();
-                String value = entry.getValue();
+                String k = e.getKey();
+                String v = e.getValue();
 
-                if(key.equals("h264.intrarefresh") && value.equals("false"))
+                if("h264.intrarefresh".equals(k))
                 {
-                    useIntraRefresh = false;
+                    if("false".equals(v))
+                        useIntraRefresh = false;
                 }
-                else if(key.equals("h264.profile"))
+                else if("h264.profile".equals(k))
                 {
-                    if(value.equals(MAIN_PROFILE) ||
-                        value.equals(BASELINE_PROFILE))
-                    {
-                        useCustomProfile = true;
-                        customProfile = value;
-                    }
+                    if(MAIN_PROFILE.equals(v) || BASELINE_PROFILE.equals(v))
+                        profile = v;
                 }
             }
         }
 
         long avcodec = FFmpeg.avcodec_find_encoder(FFmpeg.CODEC_ID_H264);
 
-        avctx = FFmpeg.avcodec_alloc_context();
+        avctx = FFmpeg.avcodec_alloc_context3(avcodec);
 
         FFmpeg.avcodeccontext_set_pix_fmt(avctx, FFmpeg.PIX_FMT_YUV420P);
         FFmpeg.avcodeccontext_set_size(avctx, width, height);
@@ -416,8 +431,8 @@ public class JNIEncoder
         // average bit rate
         FFmpeg.avcodeccontext_set_bit_rate(avctx, bitRate);
         // so to be 1 in x264
-        FFmpeg.avcodeccontext_set_bit_rate_tolerance(avctx, (bitRate /
-                frameRate));
+        FFmpeg.avcodeccontext_set_bit_rate_tolerance(avctx,
+                (bitRate / frameRate));
         FFmpeg.avcodeccontext_set_rc_max_rate(avctx, bitRate);
         FFmpeg.avcodeccontext_set_sample_aspect_ratio(avctx, 0, 0);
         FFmpeg.avcodeccontext_set_thread_count(avctx, 1);
@@ -429,11 +444,6 @@ public class JNIEncoder
 
         // avctx.chromaoffset = -2;
 
-        FFmpeg.avcodeccontext_add_partitions(avctx, 0x111);
-        // X264_PART_I4X4 0x001
-        // X264_PART_P8X8 0x010
-        // X264_PART_B8X8 0x100
-
         FFmpeg.avcodeccontext_set_mb_decision(avctx,
             FFmpeg.FF_MB_DECISION_SIMPLE);
 
@@ -442,15 +452,15 @@ public class JNIEncoder
         FFmpeg.avcodeccontext_add_flags(avctx,
                 FFmpeg.CODEC_FLAG_LOOP_FILTER);
         if(useIntraRefresh)
+        {
             FFmpeg.avcodeccontext_add_flags2(avctx,
                 FFmpeg.CODEC_FLAG2_INTRA_REFRESH);
+        }
         FFmpeg.avcodeccontext_set_me_method(avctx, 7);
         FFmpeg.avcodeccontext_set_me_subpel_quality(avctx, 2);
         FFmpeg.avcodeccontext_set_me_range(avctx, 16);
         FFmpeg.avcodeccontext_set_me_cmp(avctx, FFmpeg.FF_CMP_CHROMA);
         FFmpeg.avcodeccontext_set_scenechange_threshold(avctx, 40);
-        // Constant quality mode (also known as constant ratefactor)
-        FFmpeg.avcodeccontext_set_crf(avctx, 0);
         FFmpeg.avcodeccontext_set_rc_buffer_size(avctx, 10);
         FFmpeg.avcodeccontext_set_gop_size(avctx, IFRAME_INTERVAL);
         FFmpeg.avcodeccontext_set_i_quant_factor(avctx, 1f / 1.4f);
@@ -466,22 +476,6 @@ public class JNIEncoder
                     Packetizer.MAX_PAYLOAD_SIZE);
         }
 
-        /*
-         * XXX We do not currently negotiate the profile so, regardless of the
-         * many AVCodecContext properties we have set above, force the default
-         * profile configuration.
-         */
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-        String profile
-            = (cfg == null)
-                ? null
-                : cfg.getString(DEFAULT_PROFILE_PNAME, DEFAULT_DEFAULT_PROFILE);
-
-        if(useCustomProfile)
-        {
-            profile = customProfile;
-        }
-
         try
         {
             FFmpeg.avcodeccontext_set_profile(avctx,
@@ -494,13 +488,27 @@ public class JNIEncoder
             logger.warn("The FFmpeg JNI library is out-of-date.");
         }
 
-        if (FFmpeg.avcodec_open(avctx, avcodec) < 0)
+        if (FFmpeg.avcodec_open2(
+                    avctx,
+                    avcodec,
+                    /*
+                     * XXX crf=0 means lossless coding which is not supported by
+                     * the baseline and main profiles. Consequently, we cannot
+                     * specify it because we specify either the baseline or the
+                     * main profile. Otherwise, x264 will detect the
+                     * inconsistency in the specified parameters/options and
+                     * FFmpeg will fail.
+                     */
+                    //"crf" /* constant quality mode, constant ratefactor */, "0",
+                    "partitions", "b8x8,i4x4,p8x8",
+                    "preset", "ultrafast",
+                    "thread_type", "slice",
+                    "tune", "zerolatency")
+                < 0)
         {
-            throw
-                new ResourceUnavailableException(
-                        "Could not open codec. (size= "
-                            + width + "x" + height
-                            + ")");
+            throw new ResourceUnavailableException(
+                    "Could not open codec."
+                        + " (size= " + width + "x" + height + ")");
         }
 
         encFrameLen = (width * height * 3) / 2;
@@ -525,13 +533,14 @@ public class JNIEncoder
          */
         if (keyFrameRequestee == null)
         {
-            keyFrameRequestee = new KeyFrameControl.KeyFrameRequestee()
-            {
-                public boolean keyFrameRequest()
+            keyFrameRequestee
+                = new KeyFrameControl.KeyFrameRequestee()
                 {
-                    return JNIEncoder.this.keyFrameRequest();
-                }
-            };
+                    public boolean keyFrameRequest()
+                    {
+                        return JNIEncoder.this.keyFrameRequest();
+                    }
+                };
         }
         if (keyFrameControl != null)
             keyFrameControl.addKeyFrameRequestee(-1, keyFrameRequestee);

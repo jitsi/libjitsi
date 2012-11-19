@@ -225,11 +225,11 @@ public class JNIDecoder
          */
         long avcodec = FFmpeg.avcodec_find_decoder(FFmpeg.CODEC_ID_H263);
 
-        avcontext = FFmpeg.avcodec_alloc_context();
+        avcontext = FFmpeg.avcodec_alloc_context3(avcodec);
         FFmpeg.avcodeccontext_set_workaround_bugs(avcontext,
             FFmpeg.FF_BUG_AUTODETECT);
 
-        if (FFmpeg.avcodec_open(avcontext, avcodec) < 0)
+        if (FFmpeg.avcodec_open2(avcontext, avcodec) < 0)
             throw new RuntimeException("Could not open codec CODEC_ID_H263");
 
         avframe = FFmpeg.avcodec_alloc_frame();

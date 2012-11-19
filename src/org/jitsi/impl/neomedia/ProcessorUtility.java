@@ -125,6 +125,8 @@ public class ProcessorUtility
         else if (state == Processor.Realized)
             processor.realize();
 
+        boolean interrupted = false;
+
         // Wait until we get an event that confirms the
         // success of the method, or a failure event.
         // See StateListener inner class
@@ -154,11 +156,14 @@ public class ProcessorUtility
                      * us with a ControllerEvent anyway and we will get out of
                      * the loop.
                      */
+                    interrupted = true;
 //                    processor.removeControllerListener(this);
 //                    return false;
                 }
             }
         }
+        if (interrupted)
+            Thread.currentThread().interrupt();
 
         processor.removeControllerListener(this);
         return !failed;

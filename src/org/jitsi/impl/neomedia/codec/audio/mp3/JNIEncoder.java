@@ -139,7 +139,7 @@ public class JNIEncoder
                     "Could not find FFmpeg encoder CODEC_ID_MP3");
         }
 
-        avctx = FFmpeg.avcodec_alloc_context();
+        avctx = FFmpeg.avcodec_alloc_context3(encoder);
         if (avctx == 0)
         {
             throw new ResourceUnavailableException(
@@ -175,7 +175,7 @@ public class JNIEncoder
             if (sampleRate != Format.NOT_SPECIFIED)
                 FFmpeg.avcodeccontext_set_sample_rate(avctx, sampleRate);
 
-            avcodec_open = FFmpeg.avcodec_open(avctx, encoder);
+            avcodec_open = FFmpeg.avcodec_open2(avctx, encoder);
 
             frameSizeInBytes
                 = FFmpeg.avcodeccontext_get_frame_size(avctx)

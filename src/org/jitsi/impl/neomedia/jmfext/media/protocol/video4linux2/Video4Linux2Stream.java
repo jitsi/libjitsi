@@ -258,11 +258,11 @@ public class Video4Linux2Stream
                     long avcodec
                         = FFmpeg.avcodec_find_decoder(FFmpeg.CODEC_ID_MJPEG);
 
-                    mjpeg_context = FFmpeg.avcodec_alloc_context();
+                    mjpeg_context = FFmpeg.avcodec_alloc_context3(avcodec);
                     FFmpeg.avcodeccontext_set_workaround_bugs(mjpeg_context,
                         FFmpeg.FF_BUG_AUTODETECT);
 
-                    if (FFmpeg.avcodec_open(mjpeg_context, avcodec) < 0)
+                    if (FFmpeg.avcodec_open2(mjpeg_context, avcodec) < 0)
                     {
                         throw new RuntimeException("" +
                                 "Could not open codec CODEC_ID_MJPEG");

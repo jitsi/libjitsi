@@ -199,7 +199,7 @@ public class JNIEncoder
 
         long avcodec = FFmpeg.avcodec_find_encoder(FFmpeg.CODEC_ID_H263P);
 
-        avcontext = FFmpeg.avcodec_alloc_context();
+        avcontext = FFmpeg.avcodec_alloc_context3(avcodec);
 
         FFmpeg.avcodeccontext_set_pix_fmt(avcontext, FFmpeg.PIX_FMT_YUV420P);
         FFmpeg.avcodeccontext_set_size(avcontext, width, height);
@@ -251,7 +251,7 @@ public class JNIEncoder
         //FFmpeg.avcodeccontext_set_refs(avcontext, 2);
         //FFmpeg.avcodeccontext_set_trellis(avcontext, 2);
 
-        if (FFmpeg.avcodec_open(avcontext, avcodec) < 0)
+        if (FFmpeg.avcodec_open2(avcontext, avcodec) < 0)
         {
             throw
                 new ResourceUnavailableException(

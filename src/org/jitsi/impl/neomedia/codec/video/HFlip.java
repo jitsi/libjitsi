@@ -209,34 +209,42 @@ public class HFlip
                      * Unfortunately, the name of an AVFilterContext created by
                      * avfilter_graph_parse is not the name of the AVFilter.
                      */
-                    String parsedFilterNameFormat = "Parsed filter %1$d %2$s";
+                    String parsedFilterNameFormat = "Parsed_%2$s_%1$d";
+                    String parsedFilterName
+                        = String.format(
+                                parsedFilterNameFormat,
+                                0, VSRC_BUFFER_NAME);
 
                     buffer
                         = FFmpeg.avfilter_graph_get_filter(
                                 graph,
-                                String.format(
-                                        parsedFilterNameFormat,
-                                        0,
-                                        VSRC_BUFFER_NAME));
+                                parsedFilterName);
                     if (buffer == 0)
                     {
                         errorReason
-                            = "avfilter_graph_get_filter: " + VSRC_BUFFER_NAME;
+                            = "avfilter_graph_get_filter: "
+                                + VSRC_BUFFER_NAME
+                                + "/"
+                                + parsedFilterName;
                     }
                     else
                     {
+                        parsedFilterName
+                            = String.format(
+                                    parsedFilterNameFormat,
+                                    2,
+                                    VSINK_FFSINK_NAME);
                         ffsink
                             = FFmpeg.avfilter_graph_get_filter(
                                     graph,
-                                    String.format(
-                                            parsedFilterNameFormat,
-                                            2,
-                                            VSINK_FFSINK_NAME));
+                                    parsedFilterName);
                         if (ffsink == 0)
                         {
                             errorReason
                                 = "avfilter_graph_get_filter: "
-                                    + VSINK_FFSINK_NAME;
+                                    + VSINK_FFSINK_NAME
+                                    + "/"
+                                    + parsedFilterName;
                         }
                         else
                         {

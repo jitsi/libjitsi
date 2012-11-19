@@ -242,7 +242,7 @@ public class JNIDecoder
 
         long avcodec = FFmpeg.avcodec_find_decoder(FFmpeg.CODEC_ID_H264);
 
-        avctx = FFmpeg.avcodec_alloc_context();
+        avctx = FFmpeg.avcodec_alloc_context3(avcodec);
         FFmpeg.avcodeccontext_set_workaround_bugs(avctx,
                 FFmpeg.FF_BUG_AUTODETECT);
 
@@ -250,7 +250,7 @@ public class JNIDecoder
         FFmpeg.avcodeccontext_add_flags2(avctx,
                 FFmpeg.CODEC_FLAG2_CHUNKS);
 
-        if (FFmpeg.avcodec_open(avctx, avcodec) < 0)
+        if (FFmpeg.avcodec_open2(avctx, avcodec) < 0)
             throw new RuntimeException("Could not open codec CODEC_ID_H264");
 
         avframe = FFmpeg.avcodec_alloc_frame();
