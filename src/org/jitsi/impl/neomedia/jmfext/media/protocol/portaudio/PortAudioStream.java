@@ -254,7 +254,6 @@ public class PortAudioStream
         catch (PortAudioException paex)
         {
             logger.error("Failed to open " + getClass().getSimpleName(), paex);
-            paex.printHostErrorInfo();
 
             IOException ioex = new IOException(paex.getLocalizedMessage());
 
@@ -389,7 +388,7 @@ public class PortAudioStream
             }
             catch (PortAudioException paex)
             {
-                paex.printHostErrorInfo();
+                logger.error("Failed to read from PortAudio stream.", paex);
 
                 IOException ioex = new IOException(paex.getLocalizedMessage());
 
@@ -460,7 +459,6 @@ public class PortAudioStream
                     logger.error(
                             "Failed to close " + getClass().getSimpleName(),
                             paex);
-                    paex.printHostErrorInfo();
 
                     IOException ioex
                         = new IOException(paex.getLocalizedMessage());
@@ -523,8 +521,8 @@ public class PortAudioStream
             catch (PortAudioException paex)
             {
                 logger.error(
-                        "Failed to start " + getClass().getSimpleName(), paex);
-                paex.printHostErrorInfo();
+                        "Failed to start " + getClass().getSimpleName(),
+                        paex);
 
                 IOException ioex = new IOException(paex.getLocalizedMessage());
 
@@ -556,8 +554,8 @@ public class PortAudioStream
             catch (PortAudioException paex)
             {
                 logger.error(
-                        "Failed to stop " + getClass().getSimpleName(), paex);
-                paex.printHostErrorInfo();
+                        "Failed to stop " + getClass().getSimpleName(),
+                        paex);
 
                 IOException ioex = new IOException(paex.getLocalizedMessage());
 

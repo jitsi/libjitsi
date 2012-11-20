@@ -311,7 +311,6 @@ public class PortAudioRenderer
                 catch (PortAudioException paex)
                 {
                     logger.error("Failed to close PortAudio stream.", paex);
-                    paex.printHostErrorInfo();
                 }
             }
             if ((stream == 0) && (outputParameters != 0))
@@ -571,7 +570,7 @@ public class PortAudioRenderer
             }
             catch (PortAudioException paex)
             {
-                paex.printHostErrorInfo();
+                logger.error("Failed to open PortAudio stream.", paex);
                 throw new ResourceUnavailableException(paex.getMessage());
             }
             finally
@@ -681,7 +680,6 @@ public class PortAudioRenderer
         catch (PortAudioException paex)
         {
             logger.error("Failed to process Buffer.", paex);
-            paex.printHostErrorInfo();
         }
         finally
         {
@@ -797,7 +795,6 @@ public class PortAudioRenderer
             catch (PortAudioException paex)
             {
                 logger.error("Failed to start PortAudio stream.", paex);
-                paex.printHostErrorInfo();
             }
         }
     }
@@ -821,7 +818,6 @@ public class PortAudioRenderer
             catch (PortAudioException paex)
             {
                 logger.error("Failed to close PortAudio stream.", paex);
-                paex.printHostErrorInfo();
             }
         }
     }

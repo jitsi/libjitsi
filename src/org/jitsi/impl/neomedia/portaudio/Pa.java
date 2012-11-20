@@ -169,8 +169,7 @@ public final class Pa
         }
         catch (PortAudioException paex)
         {
-            paex.printHostErrorInfo();
-
+            logger.error("Failed to initialize the PortAudio library.", paex);
             throw new UndeclaredThrowableException(paex);
         }
     }
@@ -778,20 +777,20 @@ public final class Pa
      */
     public static enum HostApiTypeId
     {
-        paAL(9),
-        paALSA(8),
-        paASIO(3),
-        paAudioScienceHPI(14),
-        paBeOS(10),
-        paCoreAudio(5),
-        paDirectSound(1),
         paInDevelopment(0) /* use while developing support for a new host API */,
-        paJACK(12),
+        paDirectSound(1),
         paMME(2),
-        paOSS(7),
+        paASIO(3),
         paSoundManager(4),
+        paCoreAudio(5),
+        paOSS(7),
+        paALSA(8),
+        paAL(9),
+        paBeOS(10),
+        paWDMKS(11),
+        paJACK(12),
         paWASAPI(13),
-        paWDMKS(11);
+        paAudioScienceHPI(14);
 
         /**
          * Returns the <tt>PaHostApiTypeId</tt> which has a specific value or

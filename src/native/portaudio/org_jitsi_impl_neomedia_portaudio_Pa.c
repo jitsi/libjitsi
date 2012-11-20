@@ -1292,8 +1292,8 @@ PortAudio_throwException(JNIEnv *env, PaError err)
                                     clazz,
                                     methodID,
                                     jmessage,
-                                    hostErr->errorCode,
-                                    hostErr->hostApiType);
+                                    (jlong) (hostErr->errorCode),
+                                    (jint) (hostErr->hostApiType));
 
                         if (t)
                             (*env)->Throw(env, (jthrowable) t);

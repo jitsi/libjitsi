@@ -364,28 +364,28 @@
     <fail message="speex repository not set!" unless="is.speex.set" />
 
     <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnportaudio" objdir="${obj}">
-      <!-- common compiler flags -->
-      <compilerarg value="-std=c99" />
-      <compilerarg value="-Wall" />
-      <compilerarg value="-O2" />
-      <compilerarg value="-I${portaudio}/include" />
-      <compilerarg value="-I${speex}/include" />
-      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
-
-      <linkerarg value="-L${speex}/libspeex/.libs" />
-      <linkerarg value="-L${portaudio}/lib/.libs" />
-
-      <!-- Linux specific flags -->
+      <!-- Common flags -->
       <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
       <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
-      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
-      <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+      <compilerarg value="-fPIC" />
+      <compilerarg value="-I${portaudio}/include" />
+      <compilerarg value="-I${speex}/include" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" unless="is.running.macos" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-std=c99" />
+      <compilerarg value="-Wall" />
 
       <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
       <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <linkerarg value="-L${portaudio}/lib/.libs" />
+      <linkerarg value="-L${speex}/libspeex/.libs" />
 
-      <!-- static libraries MUST be at the end otherwise
-      they will not be added to shared library
+      <!-- Linux-specific flags -->
+      <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+
+      <!-- Static libraries MUST be at the end; otherwise, they will not be
+           added to shared library.
       -->
       <linkerarg value="-Wl,-Bstatic" location="end" if="is.running.linux" />
       <linkerarg value="-lportaudio" location="end" if="is.running.linux" />
@@ -397,21 +397,21 @@
       <linkerarg value="-lm" location="end" if="is.running.linux" />
       <linkerarg value="-lpthread" location="end" if="is.running.linux" />
 
-      <!-- Mac OS X specific flags -->
-      <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
+      <!-- OS X-specific flags -->
       <compilerarg value="-arch"  if="is.running.macos" />
-      <compilerarg value="x86_64" if="is.running.macos" />
-      <compilerarg value="-arch" if="is.running.macos" />
       <compilerarg value="i386" if="is.running.macos" />
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="x86_64" if="is.running.macos" />
+      <compilerarg value="-mmacosx-version-min=10.4" if="is.running.macos"/>
       <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
 
-      <linkerarg value="-o" location="end" if="is.running.macos" />
-      <linkerarg value="libjnportaudio.jnilib" location="end" if="is.running.macos" />
-      <linkerarg value="-dynamiclib" if="is.running.macos" />
-      <linkerarg value="-arch" if="is.running.macos" />
-      <linkerarg value="x86_64" if="is.running.macos" />
       <linkerarg value="-arch" if="is.running.macos" />
       <linkerarg value="i386" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="x86_64" if="is.running.macos" />
+      <linkerarg value="-dynamiclib" if="is.running.macos" />
+      <linkerarg value="-o" location="end" if="is.running.macos" />
+      <linkerarg value="libjnportaudio.jnilib" location="end" if="is.running.macos" />
       <linkerarg value="-framework" location="end" if="is.running.macos" />
       <linkerarg value="AudioToolbox" location="end" if="is.running.macos" />
       <linkerarg value="-framework" location="end" if="is.running.macos" />
@@ -425,11 +425,11 @@
       <linkerarg value="-dynamic" location="end" if="is.running.macos" />
       <linkerarg value="-lpthread" location="end" if="is.running.macos" />
 
-      <!-- Windows specific flags -->
-      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows" />
+      <!-- Windows-specific flags -->
+      <compilerarg value="-D_WIN32_WINNT=0x0502" if="is.running.windows" />
+      <compilerarg value="-DWINVER=0x0502" if="is.running.windows" />
       <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
 
-      <linkerarg value="-L${pthread}" if="is.running.windows" />
       <linkerarg value="-ojnportaudio.dll" if="is.running.windows" />
       <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
       <linkerarg value="-Wl,-Bstatic" location="end" if="is.running.windows" />

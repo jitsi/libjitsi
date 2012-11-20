@@ -6,9 +6,6 @@
  */
 package org.jitsi.impl.neomedia.portaudio;
 
-import org.jitsi.impl.neomedia.portaudio.Pa.*;
-import org.jitsi.util.*;
-
 /**
  * Implements <tt>Exception</tt> for the PortAudio capture and playback system.
  * 
@@ -18,13 +15,6 @@ import org.jitsi.util.*;
 public class PortAudioException
     extends Exception
 {
-    /**
-     * The <tt>Logger</tt> used by the <tt>PortAudioException</tt> class and its
-     * instances for logging output.
-     */
-    private static final Logger logger
-        = Logger.getLogger(PortAudioException.class);
-
     /**
      * Serial version UID.
      */
@@ -67,15 +57,8 @@ public class PortAudioException
         super(message);
 
         this.errorCode = errorCode;
-
-        if (-1 == hostApiType)
-            this.hostApiType = null;
-        else
-        {
-            this.hostApiType = Pa.HostApiTypeId.valueOf(hostApiType);
-            if (this.hostApiType == null)
-                throw new IllegalArgumentException("hostApiType");
-        }
+        this.hostApiType
+            = (hostApiType < 0) ? null : Pa.HostApiTypeId.valueOf(hostApiType);
     }
 
     /**
@@ -104,19 +87,48 @@ public class PortAudioException
     }
 
     /**
-     * Logs an ERROR message with the respective details if this
-     * <tt>PortAudioException</tt> represents a <tt>PaHostErrorInfo</tt> (as
-     * defined by the native PortAudio library).
+     * Returns a human-readable representation/description of this
+     * <tt>Throwable</tt>.
+     *
+     * @return a human-readable representation/description of this
+     * <tt>Throwable</tt>
      */
-    public void printHostErrorInfo()
+    @Override
+    public String toString()
     {
-        HostApiTypeId hostApiType = getHostApiType();
+        String s = super.toString();
 
-        if (hostApiType != null)
+        long errorCode = getErrorCode();
+        String errorCodeStr
+            = (errorCode == Pa.paNoError) ? null : Long.toString(errorCode);
+
+        Pa.HostApiTypeId hostApiType = getHostApiType();
+        String hostApiTypeStr
+            = (hostApiType == null) ? null : hostApiType.toString();
+
+        if ((errorCodeStr !=null) || (hostApiTypeStr != null))
         {
-            logger.error(
-                    getMessage() + " (hostApiType: " + hostApiType
-                        + ", errorCode: " + getErrorCode() + ")");
+            StringBuilder sb = new StringBuilder(s);
+
+            sb.append(": ");
+            if (errorCodeStr != null)
+            {
+                sb.append("errorCode= ");
+                sb.append(errorCodeStr);
+                sb.append(';');
+            }
+            if (hostApiTypeStr != null)
+            {
+                if (errorCodeStr != null)
+                    sb.append(' ');
+                sb.append("hostApiType= ");
+                sb.append(hostApiTypeStr);
+                sb.append(';');
+            }
+
+            s = sb.toString();
         }
+
+        return s;
     }
 }
