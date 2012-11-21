@@ -34,7 +34,7 @@ import org.jitsi.service.resources.*;
 import org.jitsi.util.*;
 import org.jitsi.util.event.*;
 import org.jitsi.util.swing.*;
-import org.json.*;
+import org.json.simple.*;
 
 import com.sun.media.util.*;
 
@@ -906,29 +906,31 @@ public class MediaServiceImpl
                     {
                         try
                         {
-                            JSONObject json = new JSONObject(source);
+                            JSONObject json = (JSONObject)JSONValue
+                                .parseWithException(source);
                             String encoding
-                                = json.getString(
+                                = (String)json.get(
                                         MediaFormatImpl.ENCODING_PNAME);
-                            int clockRate
-                                = json.getInt(MediaFormatImpl.CLOCK_RATE_PNAME);
+                            long clockRate = (Long)json.get(
+                                MediaFormatImpl.CLOCK_RATE_PNAME);
                             Map<String, String> fmtps
                                 = new HashMap<String, String>();
 
-                            if (json.has(
+                            if (json.containsKey(
                                     MediaFormatImpl.FORMAT_PARAMETERS_PNAME))
                             {
                                 JSONObject jsonFmtps
-                                    = json.getJSONObject(
+                                    = (JSONObject)json.get(
                                             MediaFormatImpl
                                                 .FORMAT_PARAMETERS_PNAME);
-                                Iterator<?> jsonFmtpsIter = jsonFmtps.keys();
+                                Iterator<?> jsonFmtpsIter
+                                    = jsonFmtps.keySet().iterator();
 
                                 while (jsonFmtpsIter.hasNext())
                                 {
                                     String key
                                         = jsonFmtpsIter.next().toString();
-                                    String value = jsonFmtps.getString(key);
+                                    String value = (String)jsonFmtps.get(key);
 
                                     fmtps.put(key, value);
                                 }
@@ -946,7 +948,7 @@ public class MediaServiceImpl
                                         dynamicPayloadTypePreference);
                             }
                         }
-                        catch (JSONException jsone)
+                        catch (Throwable jsone)
                         {
                             logger.warn(
                                     "Ignoring dynamic payload type preference"
