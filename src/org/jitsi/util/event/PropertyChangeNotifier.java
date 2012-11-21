@@ -9,6 +9,8 @@ package org.jitsi.util.event;
 import java.beans.*;
 import java.util.*;
 
+import org.jitsi.util.*;
+
 /**
  * Represents a source of <tt>PropertyChangeEvent</tt>s which notifies
  * <tt>PropertyChangeListener</tt>s about changes in the values of properties.
@@ -17,6 +19,12 @@ import java.util.*;
  */
 public class PropertyChangeNotifier
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>PropertyChangeNotifier</tt> class and
+     * its instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(PropertyChangeNotifier.class);
 
     /**
      * The list of <tt>PropertyChangeListener</tt>s interested in and notified
@@ -30,7 +38,7 @@ public class PropertyChangeNotifier
      * Adds a specific <tt>PropertyChangeListener</tt> to the list of listeners
      * interested in and notified about changes in the values of the properties
      * of this <tt>PropertyChangeNotifier</tt>.
-     * 
+     *
      * @param listener a <tt>PropertyChangeListener</tt> to be notified about
      * changes in the values of the properties of this
      * <tt>PropertyChangeNotifier</tt>. If the specified listener is already in
@@ -39,19 +47,30 @@ public class PropertyChangeNotifier
      */
     public void addPropertyChangeListener(PropertyChangeListener listener)
     {
-        if (listener != null)
+        if (listener == null)
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(
+                        "The specified argument listener is null"
+                            + " and that does not make sense.");
+            }
+        }
+        else
+        {
             synchronized (listeners)
             {
                 if (!listeners.contains(listener))
                     listeners.add(listener);
             }
+        }
     }
 
     /**
      * Removes a specific <tt>PropertyChangeListener</tt> from the list of
      * listeners interested in and notified about changes in the values of the
      * properties of this <tt>PropertyChangeNotifer</tt>.
-     * 
+     *
      * @param listener a <tt>PropertyChangeListener</tt> to no longer be
      * notified about changes in the values of the properties of this
      * <tt>PropertyChangeNotifier</tt>
@@ -59,10 +78,12 @@ public class PropertyChangeNotifier
     public void removePropertyChangeListener(PropertyChangeListener listener)
     {
         if (listener != null)
+        {
             synchronized (listeners)
             {
                 listeners.remove(listener);
             }
+        }
     }
 
     /**
@@ -73,7 +94,7 @@ public class PropertyChangeNotifier
      * specific new value. <tt>PropertyChangeNotifier</tt> does not check
      * whether the specified <tt>oldValue</tt> and <tt>newValue</tt> are indeed
      * different.
-     * 
+     *
      * @param property the name of the property of this
      * <tt>PropertyChangeNotifier</tt> which had its value changed
      * @param oldValue the value of the property with the specified name before
@@ -83,29 +104,27 @@ public class PropertyChangeNotifier
      */
     protected void firePropertyChange(
             String property,
-            Object oldValue,
-            Object newValue)
+            Object oldValue, Object newValue)
     {
-        PropertyChangeListener[] listeners;
+        PropertyChangeListener[] ls;
 
-        synchronized (this.listeners)
+        synchronized (listeners)
         {
-            listeners
-                = this.listeners.toArray(
-                        new PropertyChangeListener[this.listeners.size()]);
+            ls
+                = listeners.toArray(
+                        new PropertyChangeListener[listeners.size()]);
         }
 
-        if (listeners.length != 0)
+        if (ls.length != 0)
         {
-            PropertyChangeEvent event
+            PropertyChangeEvent ev
                 = new PropertyChangeEvent(
                         getPropertyChangeSource(property, oldValue, newValue),
                         property,
-                        oldValue,
-                        newValue);
+                        oldValue, newValue);
 
-            for (PropertyChangeListener listener : listeners)
-                listener.propertyChange(event);
+            for (PropertyChangeListener l : ls)
+                l.propertyChange(ev);
         }
     }
 
@@ -116,7 +135,7 @@ public class PropertyChangeNotifier
      * <tt>PropertyChangeNotifier</tt> about the change in the value of a
      * property with a specific name from a specific old value to a specific new
      * value.
-     * 
+     *
      * @param property the name of the property which had its value changed from
      * the specified old value to the specified new value
      * @param oldValue the value of the property with the specified name before
@@ -132,8 +151,7 @@ public class PropertyChangeNotifier
      */
     protected Object getPropertyChangeSource(
             String property,
-            Object oldValue,
-            Object newValue)
+            Object oldValue, Object newValue)
     {
         return this;
     }
