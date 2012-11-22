@@ -21,6 +21,7 @@ import javax.swing.*;
 
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
+import org.jitsi.impl.neomedia.coreaudio.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.transform.sdes.*;
@@ -748,9 +749,19 @@ public class MediaServiceImpl
     {
         if (inputVolumeControl == null)
         {
-            inputVolumeControl
-                = new AbstractVolumeControl(
-                        VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME);
+            if(OSUtils.IS_MAC)
+            {
+                inputVolumeControl
+                    = new CoreAudioVolumeControl(
+                            this,
+                            VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME);
+            }
+            else
+            {
+                inputVolumeControl
+                    = new AbstractVolumeControl(
+                            VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME);
+            }
         }
         return inputVolumeControl;
     }

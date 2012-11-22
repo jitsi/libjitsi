@@ -43,7 +43,7 @@ public class AbstractVolumeControl
     /**
      * The minimum volume level accepted by <tt>AbstractVolumeControl</tt>.
      */
-    private static final float MIN_VOLUME_LEVEL = 0.0F;
+    protected static final float MIN_VOLUME_LEVEL = 0.0F;
 
     /**
      * The minimum volume level expressed in percent accepted by
@@ -54,21 +54,13 @@ public class AbstractVolumeControl
     /**
      * The maximum volume level accepted by <tt>AbstractVolumeControl</tt>.
      */
-    private static final float MAX_VOLUME_LEVEL = 1.0F;
+    protected static final float MAX_VOLUME_LEVEL = 1.0F;
 
     /**
      * The maximum volume level expressed in percent accepted by
      * <tt>AbstractVolumeControl</tt>.
      */
     public static final int MAX_VOLUME_PERCENT = 200;
-
-    /**
-     * The default volume level.
-     */
-    private static final float DEFAULT_VOLUME_LEVEL
-        = MIN_VOLUME_LEVEL
-            + (MAX_VOLUME_LEVEL - MIN_VOLUME_LEVEL)
-                / ((MAX_VOLUME_PERCENT - MIN_VOLUME_PERCENT) / 100);
 
     /**
      * The <tt>VolumeChangeListener</tt>s interested in volume change events
@@ -92,7 +84,13 @@ public class AbstractVolumeControl
     /**
      * The current volume level.
      */
-    private float volumeLevel = DEFAULT_VOLUME_LEVEL;
+    protected float volumeLevel;
+
+    /**
+     * The power level reference used to compute equivelents between the volume
+     * power level and the gain in decibels.
+     */
+    private float gainReferenceLevel;
 
     /**
      * Current mute state, by default we start unmuted.
@@ -103,11 +101,6 @@ public class AbstractVolumeControl
      * Current level in db.
      */
     private float db;
-
-    /**
-     * The initial volume level, when this instance was created.
-     */
-    private final float initialVolumeLevel;
 
     /**
      * The name of the configuration property which specifies the value of the
@@ -126,29 +119,29 @@ public class AbstractVolumeControl
     public AbstractVolumeControl(
         String volumeLevelConfigurationPropertyName)
     {
+        // Initializes default values.
+        this.volumeLevel = getDefaultVolumeLevel();
+        this.gainReferenceLevel = getGainReferenceLevel();
+
         this.volumeLevelConfigurationPropertyName
             = volumeLevelConfigurationPropertyName;
 
         // Read the initial volume level from the ConfigurationService.
-        float initialVolumeLevel = DEFAULT_VOLUME_LEVEL;
-
         try
         {
             ConfigurationService cfg = LibJitsi.getConfigurationService();
 
             if (cfg != null)
             {
-                String initialVolumeLevelString
+                String volumeLevelString
                     = cfg.getString(this.volumeLevelConfigurationPropertyName);
 
-                if (initialVolumeLevelString != null)
+                if (volumeLevelString != null)
                 {
-                    initialVolumeLevel
-                        = Float.parseFloat(initialVolumeLevelString);
+                    this.volumeLevel = Float.parseFloat(volumeLevelString);
                     if(logger.isDebugEnabled())
                     {
-                        logger.debug(
-                                "Restored volume: " + initialVolumeLevelString);
+                        logger.debug("Restored volume: " + volumeLevelString);
                     }
                 }
             }
@@ -157,9 +150,6 @@ public class AbstractVolumeControl
         {
             logger.warn("Error restoring volume", t);
         }
-
-        this.initialVolumeLevel = initialVolumeLevel;
-        this.volumeLevel = this.initialVolumeLevel;
     }
 
     /**
@@ -310,6 +300,7 @@ public class AbstractVolumeControl
             return value;
 
         volumeLevel = value;
+        updateHardwareVolume();
         fireVolumeChange();
 
         /*
@@ -325,13 +316,7 @@ public class AbstractVolumeControl
                     String.valueOf(volumeLevel));
         }
 
-        float f1 = value / initialVolumeLevel;
-
-        db
-            = (float)
-                ((Math.log(((double)f1 != 0.0D) ? f1 : 0.0001D)
-                        / Math.log(10D))
-                    * 20D);
+        db = getDbFromPowerRatio(value, this.gainReferenceLevel);
         fireGainEvents();
 
         return volumeLevel;
@@ -380,9 +365,7 @@ public class AbstractVolumeControl
         if(this.db != gain)
         {
             this.db = gain;
-
-            float f1 = (float)Math.pow(10D, (double)this.db / 20D);
-            float volumeLevel = f1 * this.initialVolumeLevel;
+            float volumeLevel = getPowerRatioFromDb(gain, gainReferenceLevel);
 
             setVolumeLevel(volumeLevel);
         }
@@ -532,5 +515,78 @@ public class AbstractVolumeControl
     public Component getControlComponent()
     {
         return null;
+    }
+
+    /**
+     * Returns the decibel value for a ratio between a power level required and
+     * the reference power level.
+     *
+     * @param powerLevelRequired The power level wished for the signal
+     * (corresponds to the mesured power level).
+     * @param referencePowerLevel The reference power level.
+     *
+     * @return The gain in Db.
+     */
+    private static float getDbFromPowerRatio(
+            float powerLevelRequired,
+            float referencePowerLevel)
+    {
+        float powerRatio = powerLevelRequired / referencePowerLevel;
+
+        // Limits the lowest power ratio to be 0.0001.
+        float minPowerRatio = 0.0001F;
+        float flooredPowerRatio = Math.max(powerRatio, minPowerRatio);
+
+        return (float) (20.0 * Math.log10(flooredPowerRatio));
+    }
+
+    /**
+     * Returns the mesured power level corresponding to a gain in decibel and
+     * compared to the reference power level.
+     *
+     * @param gainInDb The gain in Db.
+     * @param referencePowerLevel The reference power level.
+     *
+     * @return The power level the signal, which corresponds to the mesured
+     * power level.
+     */
+    private static float getPowerRatioFromDb(
+            float gainInDb,
+            float referencePowerLevel)
+    {
+        return (float) Math.pow(10, (gainInDb / 20)) * referencePowerLevel;
+    }
+
+    /**
+     * Returns the default volume level.
+     *
+     * @return The default volume level.
+     */
+    protected static float getDefaultVolumeLevel()
+    {
+        return MIN_VOLUME_LEVEL
+            + (MAX_VOLUME_LEVEL - MIN_VOLUME_LEVEL)
+                / ((MAX_VOLUME_PERCENT - MIN_VOLUME_PERCENT) / 100);
+    }
+
+    /**
+     * Returns the reference volume level for computing the gain.
+     *
+     * @return The reference volume level for computing the gain.
+     */
+    protected static float getGainReferenceLevel()
+    {
+        return getDefaultVolumeLevel();
+    }
+
+    /**
+     * Modifies the hardware microphone sensibility (hardaware amplification).
+     * This is a void function for AbstractVolumeControl sincei it does not have
+     * any connection to hardware volume. But, this function must be redefined
+     * by any extending class.
+     */
+    protected void updateHardwareVolume()
+    {
+        // Nothing to do. This AbstractVolumeControl only modifies the gain.
     }
 }

@@ -8,7 +8,6 @@ package org.jitsi.impl.neomedia.portaudio;
 
 import java.io.*;
 import java.lang.reflect.*;
-import java.nio.charset.*;
 
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
@@ -247,7 +246,7 @@ public final class Pa
      */
     public static String DeviceInfo_getDeviceUID(long deviceInfo)
     {
-        return newString(DeviceInfo_getDeviceUIDBytes(deviceInfo));
+        return StringUtils.newString(DeviceInfo_getDeviceUIDBytes(deviceInfo));
     }
 
     /**
@@ -293,7 +292,7 @@ public final class Pa
      */
     public static String DeviceInfo_getName(long deviceInfo)
     {
-        return newString(DeviceInfo_getNameBytes(deviceInfo));
+        return StringUtils.newString(DeviceInfo_getNameBytes(deviceInfo));
     }
 
     /**
@@ -316,7 +315,8 @@ public final class Pa
      */
     public static String DeviceInfo_getTransportType(long deviceInfo)
     {
-        return newString(DeviceInfo_getTransportTypeBytes(deviceInfo));
+        return StringUtils.newString(
+                DeviceInfo_getTransportTypeBytes(deviceInfo));
     }
 
     /**
@@ -564,36 +564,6 @@ public final class Pa
         long inputParameters,
         long outputParameters,
         double sampleRate);
-
-    /**
-     * Initializes a new <tt>String</tt> instance by decoding a specified array
-     * of bytes.
-     *
-     * @param bytes the bytes to be decoded into characters/a new
-     * <tt>String</tt> instance
-     * @return a new <tt>String</tt> instance whose characters were decoded from
-     * the specified <tt>bytes</tt>
-     */
-    private static String newString(byte[] bytes)
-    {
-        if ((bytes == null) || (bytes.length == 0))
-            return null;
-        else
-        {
-            Charset defaultCharset = Charset.defaultCharset();
-            String charsetName
-                = (defaultCharset == null) ? "UTF-8" : defaultCharset.name();
-
-            try
-            {
-                return new String(bytes, charsetName);
-            }
-            catch (UnsupportedEncodingException ueex)
-            {
-                return new String(bytes);
-            }
-        }
-    }
 
     /**
      * Opens a stream for either input, output or both.

@@ -7,6 +7,7 @@
 package org.jitsi.util;
 
 import java.io.*;
+import java.nio.charset.*;
 
 /**
  * Implements utility functions to facilitate work with <tt>String</tt>s.
@@ -232,5 +233,35 @@ public final class StringUtils
                 buff.append(ch);
         }
         return buff.toString();
+    }
+
+    /**
+     * Initializes a new <tt>String</tt> instance by decoding a specified array
+     * of bytes (mostly used by JNI).
+     *
+     * @param bytes the bytes to be decoded into characters/a new
+     * <tt>String</tt> instance
+     * @return a new <tt>String</tt> instance whose characters were decoded from
+     * the specified <tt>bytes</tt>
+     */
+    public static String newString(byte[] bytes)
+    {
+        if ((bytes == null) || (bytes.length == 0))
+            return null;
+        else
+        {
+            Charset defaultCharset = Charset.defaultCharset();
+            String charsetName
+                = (defaultCharset == null) ? "UTF-8" : defaultCharset.name();
+
+            try
+            {
+                return new String(bytes, charsetName);
+            }
+            catch (UnsupportedEncodingException ueex)
+            {
+                return new String(bytes);
+            }
+        }
     }
 }

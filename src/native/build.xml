@@ -668,6 +668,38 @@
     </cc>
   </target>
 
+  <!-- compile jncoreaudio library for Mac OS X (32-bit/64-bit) -->
+  <target name="coreaudio" description="Build jncoreaudio shared library for Mac OS X" if="is.running.macos"
+    depends="init-native">
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jncoreaudio" objdir="${obj}">
+      <compilerarg value="-Wall" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-arch" />
+      <compilerarg value="x86_64" />
+      <compilerarg value="-arch" />
+      <compilerarg value="i386" />
+      <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers"
+      />
+
+      <linkerarg value="-o" location="end" />
+      <linkerarg value="libjncoreaudio.jnilib" location="end" />
+      <linkerarg value="-arch" />
+      <linkerarg value="x86_64" />
+      <linkerarg value="-arch" />
+      <linkerarg value="i386" />
+      <linkerarg value="-framework" />
+      <linkerarg value="Foundation" />
+      <linkerarg value="-framework" />
+      <linkerarg value="Coreaudio" />
+
+      <fileset dir="${src}/native/macosx/coreaudio/lib" includes="*.c"/>
+      <fileset dir="${src}/native/macosx/coreaudio/jni" includes="*.c"/>
+    </cc>
+
+    <delete dir="${obj}" failonerror="false" />
+    <delete file="${native_install_dir}/history.xml" failonerror="false" />
+  </target>
+
   <!-- compile jnquicktime library for Mac OS X (32-bit/64-bit/ppc) -->
   <target name="quicktime" description="Build jnquicktime shared library for Mac OS X" if="is.running.macos"
     depends="init-native">
@@ -767,6 +799,7 @@
     <echo message="'ant directshow (Windows only)' to compile jdirectshow shared library" />
     <echo message="'ant aegeturleventhandler (Mac OS X only)' to compile AEGetURLEventHandler shared library" />
     <echo message="'ant sparkle (Mac OS X only)' to compile sparkle shared library" />
+    <echo message="'ant coreaudio (Mac OS X only)' to compile jcoreaudio shared library" />
     <echo message="'ant quicktime (Mac OS X only)' to compile jquicktime shared library" />
     <echo message="" />
     <echo message="Options:" />
