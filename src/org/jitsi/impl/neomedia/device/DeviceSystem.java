@@ -19,11 +19,33 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jitsi.util.event.*;
 
+/**
+ * Represents the base of a supported device system/backend such as DirectShow,
+ * PortAudio, PulseAudio, QuickTime, video4linux2. A <tt>DeviceSystem</tt> is
+ * initialized at a certain time (usually, during the initialization of the
+ * <tt>MediaService</tt> implementation which is going to use it) and it
+ * registers with FMJ the <tt>CaptureDevice</tt>s it will provide. In addition
+ * to providing the devices for the purposes of capture, a <tt>DeviceSystem</tt>
+ * also provides the devices on which playback is to be performed i.e. it acts
+ * as a <tt>Renderer</tt> factory via its {@link #createRenderer(boolean)}
+ * method.
+ *
+ * @author Lyubomir Marinov
+ */
 public abstract class DeviceSystem
     extends PropertyChangeNotifier
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>DeviceSystem</tt> class and its
+     * instances for logging output.
+     */
     private static final Logger logger = Logger.getLogger(DeviceSystem.class);
 
+    /**
+     * The constant/flag (to be) returned by {@link #getFeatures()} in order to
+     * indicate that the respective <tt>DeviceSystem</tt> supports invoking its
+     * {@link #initialize()} more than once.
+     */
     public static final int FEATURE_REINITIALIZE = 1;
 
     public static final String LOCATOR_PROTOCOL_CIVIL = "civil";
@@ -40,6 +62,9 @@ public abstract class DeviceSystem
 
     public static final String PROP_DEVICES = "devices";
 
+    /**
+     * The list of <tt>DeviceSystem</tt>s which have been initialized.
+     */
     private static List<DeviceSystem> deviceSystems
         = new LinkedList<DeviceSystem>();
 
@@ -80,6 +105,17 @@ public abstract class DeviceSystem
         return ret.toArray(new DeviceSystem[ret.size()]);
     }
 
+    /**
+     * Initializes the <tt>DeviceSystem</tt> instances which are to represent
+     * the supported device systems/backends such as DirectShow, PortAudio,
+     * PulseAudio, QuickTime, video4linux2. The method may be invoked multiple
+     * times. If a <tt>DeviceSystem</tt> has been initialized by a previous
+     * invocation of the method, its {@link #initialize()} method will be called
+     * again as part of the subsequent invocation only if the
+     * <tt>DeviceSystem</tt> in question returns a set of flags from its
+     * {@link #getFeatures()} method which contains the constant/flag
+     * {@link #FEATURE_REINITIALIZE}.
+     */
     public static void initializeDeviceSystems()
     {
         ConfigurationService cfg = LibJitsi.getConfigurationService();
@@ -117,8 +153,22 @@ public abstract class DeviceSystem
         }
     }
 
+    /**
+     * Initializes the <tt>DeviceSystem</tt> instances which are to represent
+     * the supported device systems/backends which are to capable of capturing
+     * and playing back media of a specific type such as audio or video.
+     *
+     * @param mediaType the <tt>MediaType</tt> of the <tt>DeviceSystem</tt>s to
+     * be initialized
+     */
     public static void initializeDeviceSystems(MediaType mediaType)
     {
+        /*
+         * The list of supported DeviceSystem implementations if hard-coded. The
+         * order of the classes is significant and represents a decreasing
+         * preference with respect to which DeviceSystem is to be picked up as
+         * the default one (for the specified mediaType, of course).
+         */
         String[] classNames;
 
         switch (mediaType)
@@ -152,6 +202,19 @@ public abstract class DeviceSystem
         initializeDeviceSystems(classNames);
     }
 
+    /**
+     * Initializes the <tt>DeviceSystem</tt> instances specified by the names of
+     * the classes which implement them. If a <tt>DeviceSystem</tt> instance has
+     * already been initialized for a specific class name, no new instance of
+     * the class in question will be initialized and rather the
+     * {@link #initialize()} method of the existing <tt>DeviceSystem</tt>
+     * instance will be invoked if the <tt>DeviceSystem</tt> instance returns a
+     * set of flags from its {@link #getFeatures()} which contains
+     * {@link #FEATURE_REINITIALIZE}.
+     * 
+     * @param classNames the names of the classes which extend the
+     * <tt>DeviceSystem</tt> class and instances of which are to be initialized
+     */
     private static void initializeDeviceSystems(String[] classNames)
     {
         synchronized (deviceSystems)
@@ -197,9 +260,11 @@ public abstract class DeviceSystem
                         if (t instanceof ThreadDeath)
                             throw (ThreadDeath) t;
                         else if (logger.isDebugEnabled())
+                        {
                             logger.debug(
                                     "Failed to initialize " + className,
                                     t);
+                        }
                     }
                     if (o instanceof DeviceSystem)
                     {
@@ -225,19 +290,39 @@ public abstract class DeviceSystem
                         if (t instanceof ThreadDeath)
                             throw (ThreadDeath) t;
                         else if (logger.isDebugEnabled())
+                        {
                             logger.debug(
                                     "Failed to reinitialize " + className,
                                     t);
+                        }
                     }
                 }
             }
         }
     }
 
+    /**
+     * The set of flags indicating which optional features are supported by this
+     * <tt>DeviceSystem</tt>. For example, the presence of the flag
+     * {@link #FEATURE_REINITIALIZE} indicates that this instance is able to
+     * deal with multiple consecutive invocations of its {@link #initialize()}
+     * method.
+     */
     private final int features;
 
+    /**
+     * The protocol of the <tt>MediaLocator</tt> of the
+     * <tt>CaptureDeviceInfo</tt>s (to be) registered (with FMJ) by this
+     * <tt>DeviceSystem</tt>. The protocol is a unique identifier of a
+     * <tt>DeviceSystem</tt>.
+     */
     private final String locatorProtocol;
 
+    /**
+     * The <tt>MediaType</tt> of this <tt>DeviceSystem</tt> i.e. the type of the
+     * media that this instance supports for capture and playback such as audio
+     * or video.
+     */
     private final MediaType mediaType;
 
     protected DeviceSystem(MediaType mediaType, String locatorProtocol)
@@ -279,11 +364,13 @@ public abstract class DeviceSystem
                 if (t instanceof ThreadDeath)
                     throw (ThreadDeath) t;
                 else
+                {
                     logger.warn(
                             "Failed to initialize a new "
                                 + className
                                 + " instance",
                             t);
+                }
             }
         }
         return null;
@@ -326,11 +413,26 @@ public abstract class DeviceSystem
         }
     }
 
+    /**
+     * Invoked as part of the execution of {@link #initialize()} after the
+     * execution of {@link #doInitialize()} regardless of whether the latter
+     * completed successfully. The implementation of <tt>DeviceSystem</tt> fires
+     * a new <tt>PropertyChangeEvent</tt> to notify that the value of the
+     * property {@link #PROP_DEVICES} of this instance may have changed i.e.
+     * that the list of devices detected by this instance may have changed. 
+     */
     protected void postInitialize()
     {
         firePropertyChange(PROP_DEVICES, null, null);
     }
 
+    /**
+     * Invoked as part of the execution of {@link #initialize()} before the
+     * execution of {@link #doInitialize()}. The implementation of
+     * <tt>DeviceSystem</tt> removes from FMJ's <tt>CaptureDeviceManager</tt>
+     * the <tt>CaptureDeviceInfo</tt>s whose <tt>MediaLocator</tt> has the same
+     * protocol as {@link #getLocatorProtocol()} of this instance.
+     */
     protected void preInitialize()
     {
         Format format;
@@ -379,15 +481,23 @@ public abstract class DeviceSystem
                          * historical reasons.
                          */
                         if (logger.isDebugEnabled())
+                        {
                             logger.debug(
                                     "Failed to commit CaptureDeviceManager",
                                     ioe);
+                        }
                     }
                 }
             }
         }
     }
 
+    /**
+     * Returns a human-readable representation of this <tt>DeviceSystem</tt>.
+     *
+     * @return a <tt>String</tt> which represents this <tt>DeviceSystem</tt> in
+     * a human-readable form
+     */
     @Override
     public String toString()
     {

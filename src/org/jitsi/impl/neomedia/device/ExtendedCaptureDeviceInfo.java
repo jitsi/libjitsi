@@ -10,7 +10,7 @@ import javax.media.*;
 
 /**
  * Adds some important information (i.e. device type, UID.) to FMJ
- * CaptureDeviceInfo.
+ * <tt>CaptureDeviceInfo</tt>.
  *
  * @author Vincent Lucas
  */

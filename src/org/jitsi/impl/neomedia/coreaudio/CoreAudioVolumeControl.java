@@ -8,7 +8,6 @@ package org.jitsi.impl.neomedia.coreaudio;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**

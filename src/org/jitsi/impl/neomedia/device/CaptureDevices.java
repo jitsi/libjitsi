@@ -15,7 +15,7 @@ import javax.media.format.*;
 import org.jitsi.impl.neomedia.*;
 
 /**
- * Manages the list of active (currently pluged-in) capture devices and manages
+ * Manages the list of active (currently plugged-in) capture devices and manages
  * user preferences between all known devices (previously and actually
  * plugged-in).
  *
@@ -35,7 +35,7 @@ public class CaptureDevices
     private List<ExtendedCaptureDeviceInfo> activeCaptureDevices = null;
 
     /**
-     * Initializes the capture device list managment.
+     * Initializes the capture device list management.
      *
      * @param audioSystem The audio system managing this capture device list.
      */

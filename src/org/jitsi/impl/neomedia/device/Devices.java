@@ -21,23 +21,23 @@ import org.jitsi.service.libjitsi.*;
 public abstract class Devices
 {
     /**
+     * The audio system managing this device list.
+     */
+    private final AudioSystem audioSystem;
+
+    /**
      * The selected active device.
      */
     private ExtendedCaptureDeviceInfo device = null;
 
     /**
-     * The list of device ID/names saved by the congifuration service and
+     * The list of device ID/names saved by the configuration service and
      * previously saved given user preference order.
      */
-    private List<String> devicePreferences = new ArrayList<String>();
+    private final List<String> devicePreferences = new ArrayList<String>();
 
     /**
-     * The audio system managing this device list.
-     */
-    private AudioSystem audioSystem;
-
-    /**
-     * Initializes the device list managment.
+     * Initializes the device list management.
      *
      * @param audioSystem The audio system managing this device list.
      */
@@ -84,7 +84,7 @@ public abstract class Devices
                 }
             }
 
-            // Search if an active device match one of the previsouly configured
+            // Search if an active device match one of the previously configured
             // in the preferences.
             synchronized(devicePreferences)
             {
@@ -151,7 +151,7 @@ public abstract class Devices
                 if (deviceIdentifiersString != null)
                 {
                     devicePreferences.clear();
-                    // We must parce the string in order to load the device
+                    // We must parse the string in order to load the device
                     // list.
                     String[] deviceIdentifiers = deviceIdentifiersString
                         .substring(2, deviceIdentifiersString.length() - 2)
@@ -317,7 +317,7 @@ public abstract class Devices
                 }
             }
             // If there is no active devices or the device is not selected, then
-            // set the new device to the end of the device peference list.
+            // set the new device to the end of the device preference list.
             devicePreferences.add(newDeviceIdentifier);
         }
     }
@@ -355,7 +355,7 @@ public abstract class Devices
                         // If there is one old fashioned identifier.
                         if(nameIndex != -1)
                         {
-                            // If the correspondant new fashioned identifier
+                            // If the corresponding new fashioned identifier
                             // does not exists, then renames the old one into
                             // the new one.
                             if(idIndex == -1)
@@ -363,7 +363,7 @@ public abstract class Devices
                                 devicePreferences.set(nameIndex,
                                         activeDevices.get(i).getIdentifier());
                             }
-                            // Else removes the dupplicate.
+                            // Else removes the duplicate.
                             else
                             {
                                 devicePreferences.remove(nameIndex);
@@ -377,7 +377,7 @@ public abstract class Devices
     }
 
     /**
-     * Saves the device preferences and wrtite it to the configuration file.
+     * Saves the device preferences and write it to the configuration file.
      *
      * @param locator The string representation of the locator.
      * @param property the name of the <tt>ConfigurationService</tt> property
