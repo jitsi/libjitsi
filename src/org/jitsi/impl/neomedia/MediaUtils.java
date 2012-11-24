@@ -115,18 +115,6 @@ public class MediaUtils
             AudioFormat.GSM_RTP,
             8000);
         addMediaFormats(
-            (byte) SdpConstants.DVI4_8000,
-            "DVI4",
-            MediaType.AUDIO,
-            AudioFormat.DVI_RTP,
-            8000);
-        addMediaFormats(
-            (byte) SdpConstants.DVI4_16000,
-            "DVI4",
-            MediaType.AUDIO,
-            AudioFormat.DVI_RTP,
-            16000);
-        addMediaFormats(
             (byte) SdpConstants.PCMA,
             "PCMA",
             MediaType.AUDIO,

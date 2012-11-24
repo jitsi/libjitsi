@@ -72,6 +72,7 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
             800);
 
         // audio
+        setEncodingPreference("opus", 48000, 750);
         setEncodingPreference("G722", 8000 /* actually, 16 kHz */, 705);
         setEncodingPreference("SILK", 24000, 704);
         setEncodingPreference("SILK", 16000, 703);
@@ -82,14 +83,11 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
         setEncodingPreference("iLBC", 8000, 500);
         setEncodingPreference("GSM", 8000, 450);
         setEncodingPreference("speex", 8000, 352);
-        setEncodingPreference("DVI4", 8000, 300);
-        setEncodingPreference("DVI4", 16000, 250);
         setEncodingPreference("G723", 8000, 150);
 
         setEncodingPreference("SILK", 12000, 0);
         setEncodingPreference("SILK", 8000, 0);
         setEncodingPreference("G729", 8000, 0 /* proprietary */);
-        setEncodingPreference("opus", 48000, 2);
 
         // enables by default telephone event(DTMF rfc4733), with lowest
         // priority as it is not needed to order it with audio codecs
