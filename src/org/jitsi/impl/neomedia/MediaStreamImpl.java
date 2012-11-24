@@ -40,6 +40,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  * @author Emil Ivov
  * @author Sebastien Vincent
+ * @author Boris Grozev
  */
 public class MediaStreamImpl
     extends AbstractMediaStream
@@ -2535,16 +2536,17 @@ public class MediaStreamImpl
                     maxRemoteInterArrivalJitter = remoteJitter;
             }
 
-            //Notify the encoder of the percentage of packets lost by the
+            //Notify encoders of the percentage of packets lost by the
             //other side. See RFC3550 Section 6.4.1 for the interpretation of
             //'fraction lost'
-            PacketLossAwareEncoder plae = getPacketLossAwareEncoder();
-            if(plae != null && feedback != null &&
-                        getDirection() != MediaDirection.INACTIVE)
-            {
-                plae.setExpectedPacketLoss(
+            for(Object plae : deviceSession.getEncoderControls(
+                                PacketLossAwareEncoder.class.getName()))
+                if(plae != null && feedback != null &&
+                            getDirection() != MediaDirection.INACTIVE)
+                {
+                    ((PacketLossAwareEncoder)plae).setExpectedPacketLoss(
                         (int) ((feedback.getFractionLost() * 100) / 256));
-            }
+                }
 
             if(logger.isInfoEnabled())
             {
@@ -2854,46 +2856,6 @@ public class MediaStreamImpl
     }
 
     /**
-     * Returns an instance of <tt>FECDecoderControl</tt> associated with
-     * <tt>receiveStream</tt>, if one is found in the <tt>deviceSession</tt>
-     * and <tt>null</tt> otherwise.
-     *
-     * @param receiveStream The <tt>ReceiveStream</tt> to to return an
-     * associated <tt>FECDecoderControl</tt> instance for.
-     *
-     * @return an instance of <tt>FECDecoderControl</tt> associated with
-     * <tt>receiveStream</tt>, if one is found in the <tt>deviceSession</tt>
-     * and <tt>null</tt> otherwise.
-     */
-    public FECDecoderControl getFecDecoderControl(ReceiveStream receiveStream)
-    {
-
-        TranscodingDataSource transcodingDataSource
-                    = deviceSession.getTranscodingDataSource(receiveStream);
-
-        if(transcodingDataSource == null)
-            return null;
-
-        Processor processor = transcodingDataSource.getTranscodingProcessor();
-
-        if(processor == null)
-            return null;
-
-        //return the first found instance
-        for(TrackControl tc : processor.getTrackControls())
-        {
-            for(Object control : tc.getControls())
-            {
-                if(control instanceof FECDecoderControl)
-                        {
-                            return (FECDecoderControl) control;
-                        }
-            }
-        }
-        return null;
-    }
-
-    /**
      * Adds an additional RTP payload mapping that will overriding one that
      * we've set with {@link #addDynamicRTPPayloadType(byte, MediaFormat)}.
      * This is necessary so that we can support the RFC3264 case where the
@@ -2914,21 +2876,5 @@ public class MediaStreamImpl
         {
             ptTransformEngine.addPTMappingOverride(originalPt, overloadPt);
         }
-    }
-
-    /**
-     * Gets this <tt>MediaDevice</tt>'s <tt>PacketLossAwareEncoder</tt> if any,
-     * <tt>null</tt> otherwise. To find such an instance, the codec chain
-     * contained in the <tt>DeviceSession</tt>'s processor is searched.
-     *
-     * @return this <tt>MediaDevice</tt>'s <tt>PacketLossAwareEncoder</tt> if
-     * any, <tt>null</tt> otherwise.
-     */
-    public PacketLossAwareEncoder getPacketLossAwareEncoder()
-    {
-        MediaDeviceSession mediaDeviceSession = getDeviceSession();
-        if(mediaDeviceSession == null)
-            return null;
-        return mediaDeviceSession.getPacketLossAwareEncoder();
     }
 }

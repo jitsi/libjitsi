@@ -29,6 +29,7 @@ import org.jitsi.util.*;
  *
  * @author Emil Ivov
  * @author Lyubomir Marinov
+ * @author Boris Grozev
  */
 public class MediaUtils
 {
@@ -181,11 +182,21 @@ public class MediaUtils
                 silkFormatParams,
                 null,
                 8000, 12000, 16000, 24000);
+
+        Map<String, String> opusFormatParams = new HashMap<String,String>();
+        boolean opusFec = cfg.getBoolean(Constants.PROP_OPUS_FEC, true);
+        if(!opusFec)
+            opusFormatParams.put("useinbandfec", "0");
+        boolean opusDtx = cfg.getBoolean(Constants.PROP_OPUS_DTX, true);
+        if(opusDtx)
+            opusFormatParams.put("usedtx", "1");
         addMediaFormats(
             MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
             "opus",
             MediaType.AUDIO,
             Constants.OPUS_RTP,
+            opusFormatParams,
+            null,
             48000);
 
         /*

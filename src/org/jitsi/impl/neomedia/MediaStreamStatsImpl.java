@@ -852,14 +852,16 @@ public class MediaStreamStatsImpl
     private void updateNbFec()
     {
         int nbFec = 0;
-        FECDecoderControl fecDecoderControl;
         for(ReceiveStream receiveStream :
                 this.mediaStreamImpl.getDeviceSession().getReceiveStreams())
         {
-            fecDecoderControl =
-                    mediaStreamImpl.getFecDecoderControl(receiveStream);
-            if(fecDecoderControl != null)
-                nbFec += fecDecoderControl.fecPacketsDecoded();
+            for(Object fecDecoderControl : mediaStreamImpl.getDeviceSession()
+                    .getDecoderControls(receiveStream,
+                                       FECDecoderControl.class.getName()))
+            {
+                nbFec += ((FECDecoderControl)fecDecoderControl)
+                        .fecPacketsDecoded();
+            }
         }
         this.nbFec = nbFec;
     }

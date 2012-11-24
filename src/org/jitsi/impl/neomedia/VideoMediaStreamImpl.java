@@ -959,7 +959,7 @@ public class VideoMediaStreamImpl
     /**
      * Set local SSRC.
      *
-     * @param localSourceID source ID
+     * @param ssrc source ID
      */
     @Override
     protected void setLocalSourceID(long ssrc)

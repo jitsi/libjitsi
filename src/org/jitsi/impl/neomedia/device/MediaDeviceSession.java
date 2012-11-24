@@ -36,6 +36,7 @@ import org.jitsi.util.event.*;
  * @author Lyubomir Marinov
  * @author Damian Minkov
  * @author Emil Ivov
+ * @author Boris Grozev
  */
 public class MediaDeviceSession
     extends PropertyChangeNotifier
@@ -1038,7 +1039,7 @@ public class MediaDeviceSession
      * @return the JMF <tt>Processor</tt> which transcodes the
      * <tt>MediaDevice</tt> of this instance into the format of this instance
      */
-    public Processor getProcessor()
+    private Processor getProcessor()
     {
         if (processor == null)
             processor = createProcessor();
@@ -1360,6 +1361,18 @@ public class MediaDeviceSession
             // TODO Should the access to processor be synchronized?
             if ((processor != null) && (this.processor == processor))
                 processorIsPrematurelyClosed = true;
+        }
+        else if (event instanceof RealizeCompleteEvent)
+        {
+            Processor processor = (Processor) event.getSourceController();
+
+            for(Object fpac : getAllTrackControls(
+                    FormatParametersAwareCodec.class.getName(),
+                    processor))
+            {
+                ((FormatParametersAwareCodec)fpac)
+                        .setFormatParameters(this.format.getFormatParameters());
+            }
         }
     }
 
@@ -2236,21 +2249,68 @@ public class MediaDeviceSession
     }
 
     /**
-     * Tries to find a PacketLossAwareEncoder in the processor's track controls.
+     * Searches for controls of type <tt>controlType</tt> in the
+     * <tt>TrackControl</tt>s of the <tt>Processor</tt> used to transcode the
+     * <tt>MediaDevice</tt> of this instance into the format of this instance.
+     * Returns a <tt>Set</tt> of instances of class <tt>controlType</tt>,
+     * always non-null.
      *
-     * @return A <tt>PacketLossAwareEncoder</tt> instance or null
+     * @param controlType the name of the class to search for.
+     * @return A non-null <tt>Set</tt> of all <tt>controlType</tt>s found.
      */
-    public PacketLossAwareEncoder getPacketLossAwareEncoder()
+    public Set<Object> getEncoderControls(String controlType)
+    {
+        return getAllTrackControls(controlType, this.processor);
+    }
+
+    /**
+     * Searches for controls of type <tt>controlType</tt> in the
+     * <tt>TrackControl</tt>s of the <tt>Processor</tt> used to decode
+     * <tt>receiveStream</tt>. Returns a <tt>Set</tt> of instances of class
+     * <tt>controlType</tt>, always non-null.
+     *
+     * @param receiveStream the <tt>ReceiveStream</tt> whose <tt>Processor</tt>'s
+     * <tt>TrackControl</tt>s are to be searched.
+     * @param controlType the name of the class to search for.
+     * @return A non-null <tt>Set</tt> of all <tt>controlType</tt>s found.
+     */
+    public Set<Object> getDecoderControls(
+            ReceiveStream receiveStream,
+            String controlType)
+    {
+        TranscodingDataSource transcodingDataSource
+                = getTranscodingDataSource(receiveStream);
+        if(transcodingDataSource == null)
+            return Collections.emptySet();
+
+        return getAllTrackControls(
+                controlType,
+                transcodingDataSource.getTranscodingProcessor());
+    }
+
+    /**
+     * Returns the <tt>Set</tt> of controls of type <tt>controlType</tt>, which
+     * are controls for some of <tt>processor</tt>'s <tt>TrackControl</tt>s.
+     *
+     * @param controlType the name of the class to search for.
+     * @param processor the <tt>Processor</tt> whose <tt>TrackControls</tt>s
+     * will be searched.
+     * @return A non-null <tt>Set</tt> of all <tt>controlType</tt>s found.
+     */
+    private Set<Object> getAllTrackControls(
+            String controlType,
+            Processor processor)
     {
         if(processor == null || processor.getState() < Processor.Realized)
-            return null;
+            return Collections.emptySet();
+
+        Set<Object> controls = new HashSet<Object>();
         for(TrackControl tc : processor.getTrackControls())
         {
-            Object obj
-                    = tc.getControl(PacketLossAwareEncoder.class.getName());
-            if(obj instanceof PacketLossAwareEncoder)
-                return (PacketLossAwareEncoder)obj;
+            Object obj = tc.getControl(controlType);
+            if(obj != null)
+                controls.add(obj);
         }
-        return null;
+        return controls;
     }
 }
