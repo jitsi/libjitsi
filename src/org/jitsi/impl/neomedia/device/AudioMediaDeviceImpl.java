@@ -257,10 +257,12 @@ public class AudioMediaDeviceImpl
                 csrcAudioLevelURN = null;
             }
             if (csrcAudioLevelURN != null)
+            {
                 rtpExtensions.add(
                         new RTPExtension(
                                 csrcAudioLevelURN,
                                 MediaDirection.RECVONLY));
+            }
         }
 
         return rtpExtensions;

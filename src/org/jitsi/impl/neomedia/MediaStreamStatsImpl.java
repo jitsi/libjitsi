@@ -48,7 +48,7 @@ public class MediaStreamStatsImpl
     /**
      * The source data stream to analyze in order to compute the stats.
      */
-    private MediaStreamImpl mediaStreamImpl;
+    private final MediaStreamImpl mediaStreamImpl;
 
     /**
      * The last time these stats have been updated.
@@ -253,13 +253,14 @@ public class MediaStreamStatsImpl
     public String getRemoteIPAddress()
     {
         MediaStreamTarget mediaStreamTarget = mediaStreamImpl.getTarget();
-        // Stops if the endpoint is disconnected.
-        if(mediaStreamTarget == null)
-        {
-            return null;
-        }
-        // Gets this stream IP address endpoint.
-        return mediaStreamTarget.getDataAddress().getAddress().getHostAddress();
+
+        // Gets this stream IP address endpoint. Stops if the endpoint is
+        // disconnected.
+        return
+            (mediaStreamTarget == null)
+                ? null
+                : mediaStreamTarget.getDataAddress().getAddress()
+                        .getHostAddress();
     }
 
     /**
@@ -270,13 +271,13 @@ public class MediaStreamStatsImpl
     public int getRemotePort()
     {
         MediaStreamTarget mediaStreamTarget = mediaStreamImpl.getTarget();
-        // Stops if the endpoint is disconnected.
-        if(mediaStreamTarget == null)
-        {
-            return -1;
-        }
-        // Gets this stream port endpoint.
-        return mediaStreamTarget.getDataAddress().getPort();
+
+        // Gets this stream port endpoint. Stops if the endpoint is
+        // disconnected.
+        return
+            (mediaStreamTarget == null)
+                ? -1
+                : mediaStreamTarget.getDataAddress().getPort();
     }
 
     /**
@@ -458,10 +459,7 @@ public class MediaStreamStatsImpl
         {
             MediaType mediaType = mediaStreamImpl.getMediaType();
 
-            if (MediaType.VIDEO.equals(mediaType))
-                clockRate = 90000;
-            else
-                clockRate = -1;
+            clockRate = MediaType.VIDEO.equals(mediaType) ? 90000 : -1;
         }
         else
             clockRate = format.getClockRate();
@@ -474,9 +472,8 @@ public class MediaStreamStatsImpl
         // As an example, for fixed-rate audio the timestamp clock would likely
         // increment by one for each sampling period.
         //
-        // Thus we take the jitter (in RTP timestamp units), converts it to
-        // seconds (deivision by the codec clock rate) and finally converts it
-        // in Ms (* 1000).
+        // Thus we take the jitter in RTP timestamp units, convert it to seconds
+        // (/ clockRate) and finally converts it to milliseconds  (* 1000).
         return
             (jitterRTPTimestampUnits[streamDirection.ordinal()] / clockRate)
                 * 1000.0;
@@ -650,24 +647,26 @@ public class MediaStreamStatsImpl
      */
     private long getNbPDU(StreamDirection streamDirection)
     {
+        StreamRTPManager rtpManager = mediaStreamImpl.getRTPManager();
         long nbPDU = 0;
-        StreamRTPManager rtpManager = this.mediaStreamImpl.getRTPManager();
 
         if(rtpManager != null)
         {
             switch(streamDirection)
             {
-                case UPLOAD:
-                    nbPDU =
-                        rtpManager.getGlobalTransmissionStats().getRTPSent();
-                    break;
-                case DOWNLOAD:
-                    GlobalReceptionStats globalReceptionStats =
-                        rtpManager.getGlobalReceptionStats();
-                    nbPDU =
-                        globalReceptionStats.getPacketsRecd()
+            case UPLOAD:
+                nbPDU = rtpManager.getGlobalTransmissionStats().getRTPSent();
+                break;
+
+            case DOWNLOAD:
+                GlobalReceptionStats globalReceptionStats
+                    = rtpManager.getGlobalReceptionStats();
+
+                nbPDU
+                    = globalReceptionStats.getPacketsRecd()
                         - globalReceptionStats.getRTCPRecd();
-                    break;
+                break;
+
             }
         }
         return nbPDU;
@@ -681,13 +680,14 @@ public class MediaStreamStatsImpl
      */
     private long getDownloadNbPDULost()
     {
+        MediaDeviceSession devSession = mediaStreamImpl.getDeviceSession();
         int nbLost = 0;
-        java.util.List<ReceiveStream> listReceiveStream =
-            this.mediaStreamImpl.getDeviceSession().getReceiveStreams();
 
-        for(ReceiveStream receiveStream : listReceiveStream)
-            nbLost += receiveStream.getSourceReceptionStats().getPDUlost();
-
+        if (devSession != null)
+        {
+            for(ReceiveStream receiveStream : devSession.getReceiveStreams())
+                nbLost += receiveStream.getSourceReceptionStats().getPDUlost();
+        }
         return nbLost;
     }
 
@@ -701,16 +701,21 @@ public class MediaStreamStatsImpl
     public long getNbDiscarded()
     {
         int nbDiscarded = 0;
-        if(this.mediaStreamImpl != null && this.mediaStreamImpl.isStarted())
+
+        if (mediaStreamImpl.isStarted())
         {
-            java.util.List<ReceiveStream> listReceiveStream =
-                    this.mediaStreamImpl.getDeviceSession().getReceiveStreams();
+            MediaDeviceSession devSession = mediaStreamImpl.getDeviceSession();
 
-            for(ReceiveStream receiveStream : listReceiveStream)
-                nbDiscarded
-                    += receiveStream.getSourceReceptionStats().getPDUDrop();
+            if (devSession != null)
+            {
+                for(ReceiveStream receiveStream
+                        : devSession.getReceiveStreams())
+                {
+                    nbDiscarded
+                        += receiveStream.getSourceReceptionStats().getPDUDrop();
+                }
+            }
         }
-
         return nbDiscarded;
     }
 
@@ -727,20 +732,19 @@ public class MediaStreamStatsImpl
     private long getNbBytes(StreamDirection streamDirection)
     {
         long nbBytes = 0;
-        StreamRTPManager rtpManager = this.mediaStreamImpl.getRTPManager();
+        StreamRTPManager rtpManager = mediaStreamImpl.getRTPManager();
 
         if(rtpManager != null)
         {
             switch(streamDirection)
             {
-                case DOWNLOAD:
-                    nbBytes =
-                        rtpManager.getGlobalReceptionStats().getBytesRecd();
-                    break;
-                case UPLOAD:
-                    nbBytes =
-                        rtpManager.getGlobalTransmissionStats().getBytesSent();
-                    break;
+            case DOWNLOAD:
+                nbBytes = rtpManager.getGlobalReceptionStats().getBytesRecd();
+                break;
+            case UPLOAD:
+                nbBytes
+                    = rtpManager.getGlobalTransmissionStats().getBytesSent();
+                break;
             }
         }
         return nbBytes;
@@ -851,16 +855,22 @@ public class MediaStreamStatsImpl
      */
     private void updateNbFec()
     {
+        MediaDeviceSession devSession = mediaStreamImpl.getDeviceSession();
         int nbFec = 0;
-        for(ReceiveStream receiveStream :
-                this.mediaStreamImpl.getDeviceSession().getReceiveStreams())
+
+        if(devSession != null)
         {
-            for(Object fecDecoderControl : mediaStreamImpl.getDeviceSession()
-                    .getDecoderControls(receiveStream,
-                                       FECDecoderControl.class.getName()))
+            for(ReceiveStream receiveStream : devSession.getReceiveStreams())
             {
-                nbFec += ((FECDecoderControl)fecDecoderControl)
-                        .fecPacketsDecoded();
+                for(Object fecDecoderControl
+                        : devSession.getDecoderControls(
+                                receiveStream,
+                                FECDecoderControl.class.getName()))
+                {
+                    nbFec
+                        += ((FECDecoderControl) fecDecoderControl)
+                            .fecPacketsDecoded();
+                }
             }
         }
         this.nbFec = nbFec;

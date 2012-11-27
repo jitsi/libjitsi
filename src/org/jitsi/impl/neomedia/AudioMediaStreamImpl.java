@@ -363,7 +363,7 @@ public class AudioMediaStreamImpl
      * this method enables sending of CSRC audio levels. The reason we are
      * doing this here rather than in the super class is that CSRC levels only
      * make sense for audio streams so we don't want them enabled in any other
-     * kind.
+     * type.
      *
      * @param extensionID the ID assigned to <tt>rtpExtension</tt> for the
      * lifetime of this stream.
@@ -408,7 +408,7 @@ public class AudioMediaStreamImpl
     @Override
     public AudioMediaDeviceSession getDeviceSession()
     {
-        return (AudioMediaDeviceSession)super.getDeviceSession();
+        return (AudioMediaDeviceSession) super.getDeviceSession();
     }
 
     /**
@@ -428,8 +428,7 @@ public class AudioMediaStreamImpl
 
         if (devSession == null)
             return -1;
-
-        if ( ssrc == getLocalSourceID() )
+        else if (ssrc == getLocalSourceID())
             return devSession.getLastMeasuredLocalUserAudioLevel();
         else
             return devSession.getLastMeasuredAudioLevel(ssrc);

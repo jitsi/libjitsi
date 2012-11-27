@@ -213,6 +213,7 @@ public class RTPTranslatorImpl
      * Creates {@link #fakeSendStream} if it does not exist yet and is
      * considered necessary; otherwise, does nothing.
      */
+    @SuppressWarnings("unused")
     private synchronized void createFakeSendStreamIfNecessary()
     {
         /*
@@ -527,6 +528,10 @@ public class RTPTranslatorImpl
             Object obj, String methodName,
             byte[] buffer, int offset, int length)
     {
+        /*
+         * Do the bytes in the specified buffer resemble (a header of) an RTCP
+         * packet?
+         */
         if (length > 8)
         {
             byte b0 = buffer[offset];
@@ -543,21 +548,33 @@ public class RTPTranslatorImpl
                     long ssrc = (sc > 0) ? readInt(buffer, offset + 4) : -1;
 
                     logger.trace(
-                            obj.getClass().getName()
-                                + '.'
-                                + methodName
-                                + ": RTCP BYE v="
-                                + v
-                                + "; pt="
-                                + pt
-                                + "; ssrc="
-                                + ssrc
-                                + ';');
+                            obj.getClass().getName() + '.' + methodName
+                                + ": RTCP BYE v=" + v + "; pt=" + pt + "; ssrc="
+                                + ssrc + ';');
                 }
             }
         }
     }
 
+    /**
+     * Notifies this instance that an RTP or RTCP packet has been received from
+     * a peer represented by a specific <tt>PushSourceStreamDesc</tt>.
+     *
+     * @param streamDesc a <tt>PushSourceStreamDesc</tt> which identifies the
+     * peer from which an RTP or RTCP packet has been received
+     * @param buffer the buffer which contains the bytes of the received RTP or
+     * RTCP packet
+     * @param offset the zero-based index in <tt>buffer</tt> at which the bytes
+     * of the received RTP or RTCP packet begin
+     * @param length the number of bytes in <tt>buffer</tt> beginning at
+     * <tt>offset</tt> which are allowed to be accessed
+     * @param read the number of bytes in <tt>buffer</tt> beginning at
+     * <tt>offset</tt> which represent the received RTP or RTCP packet
+     * @return the number of bytes in <tt>buffer</tt> beginning at
+     * <tt>offset</tt> which represent the received RTP or RTCP packet 
+     * @throws IOException if an I/O error occurs while the method processes the
+     * specified RTP or RTCP packet
+     */
     private int read(
             PushSourceStreamDesc streamDesc,
             byte[] buffer, int offset, int length,
@@ -571,7 +588,12 @@ public class RTPTranslatorImpl
 
         if (data)
         {
-            if (length >= 12)
+            /*
+             * Do the bytes in the specified buffer resemble (a header of) an
+             * RTP packet?
+             */
+            if ((length >= 12)
+                    && (/* v */ ((buffer[offset] & 0xc0) >>> 6) == 2))
             {
                 long ssrc = readInt(buffer, offset + 8);
 
@@ -586,9 +608,9 @@ public class RTPTranslatorImpl
                         return 0;
                 }
 
-                int payloadType = buffer[offset + 1] & 0x7f;
+                int pt = buffer[offset + 1] & 0x7f;
 
-                format = streamRTPManagerDesc.getFormat(payloadType);
+                format = streamRTPManagerDesc.getFormat(pt);
             }
         }
         else if (logger.isTraceEnabled())
@@ -623,7 +645,7 @@ public class RTPTranslatorImpl
      * @return an <tt>int</tt> read from the specified <tt>buffer</tt> starting
      * at the specified <tt>offset</tt>
      */
-    private static int readInt(byte[] buffer, int offset)
+    public static int readInt(byte[] buffer, int offset)
     {
         return
             ((buffer[offset++] & 0xff) << 24)

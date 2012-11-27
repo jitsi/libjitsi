@@ -227,7 +227,7 @@ public class CsrcTransformEngine
         {
             byte level
                 = (byte)
-                    ((AudioMediaStreamImpl)mediaStream)
+                    ((AudioMediaStreamImpl) mediaStream)
                         .getLastMeasuredAudioLevel(csrc);
 
             extensionBuff[csrcOffset] = level;

@@ -429,13 +429,18 @@ public class AudioMixerMediaDevice
             {
                 // can't happen since CSRC_AUDIO_LEVEL_URN is a valid URI and
                 // never changes.
+                csrcAudioLevelURN = null;
                 if (logger.isInfoEnabled())
                     logger.info("Aha! Someone messed with the source!", e);
-                return null;
             }
 
-            rtpExtensions.add(new RTPExtension(
-                               csrcAudioLevelURN, MediaDirection.SENDRECV));
+            if (csrcAudioLevelURN != null)
+            {
+                rtpExtensions.add(
+                        new RTPExtension(
+                                csrcAudioLevelURN,
+                                MediaDirection.SENDRECV));
+            }
         }
 
         return rtpExtensions;
@@ -1085,9 +1090,9 @@ public class AudioMixerMediaDevice
              * If someone registered a stream level listener, we can now add it
              * since we have the stream that it's supposed to listen to.
              */
-            synchronized(streamAudioLevelListenerLock)
+            synchronized (streamAudioLevelListenerLock)
             {
-                if(this.streamAudioLevelListener != null)
+                if (streamAudioLevelListener != null)
                     audioMixerMediaDeviceSession.setStreamAudioLevelListener(
                             receiveStream,
                             streamAudioLevelListener);
@@ -1171,7 +1176,7 @@ public class AudioMixerMediaDevice
         {
             synchronized(streamAudioLevelListenerLock)
             {
-                this.streamAudioLevelListener = listener;
+                streamAudioLevelListener = listener;
 
                 for (ReceiveStream receiveStream : getReceiveStreams())
                 {
@@ -1181,7 +1186,7 @@ public class AudioMixerMediaDevice
                      */
                     audioMixerMediaDeviceSession.setStreamAudioLevelListener(
                             receiveStream,
-                            listener);
+                            streamAudioLevelListener);
                 }
             }
         }
