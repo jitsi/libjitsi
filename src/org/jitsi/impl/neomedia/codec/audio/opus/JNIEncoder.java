@@ -50,7 +50,16 @@ public class JNIEncoder
      * <tt>JNIEncoder</tt> instances.
      */
     private static final Format[] SUPPORTED_OUTPUT_FORMATS
-        = new Format[] { new AudioFormat(Constants.OPUS_RTP) };
+        = new Format[] { new AudioFormat(
+                Constants.OPUS_RTP,
+                48000,
+                Format.NOT_SPECIFIED,
+                1,
+                Format.NOT_SPECIFIED,
+                Format.NOT_SPECIFIED,
+                Format.NOT_SPECIFIED,
+                Format.NOT_SPECIFIED,
+                Format.byteArray) };
 
     /**
      * The <tt>Logger</tt> used by this <tt>JNIEncoder</tt> instance
