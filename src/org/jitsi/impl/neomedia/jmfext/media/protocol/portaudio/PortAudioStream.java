@@ -225,6 +225,10 @@ public class PortAudioStream
     {
         AudioFormat format = (AudioFormat) getFormat();
         int channels = format.getChannels();
+
+        if (channels == Format.NOT_SPECIFIED)
+            channels = 1;
+
         int sampleSizeInBits = format.getSampleSizeInBits();
         long sampleFormat = Pa.getPaSampleFormat(sampleSizeInBits);
         double sampleRate = format.getSampleRate();
@@ -241,7 +245,6 @@ public class PortAudioStream
                         channels,
                         sampleFormat,
                         Pa.getSuggestedLatency());
-
             stream
                 = Pa.OpenStream(
                         inputParameters,
@@ -351,16 +354,43 @@ public class PortAudioStream
     public void read(Buffer buffer)
         throws IOException
     {
+        String message;
+
         synchronized (this)
         {
             if (stream == 0)
-            {
-                buffer.setLength(0);
-                return;
-            }
+                message = "This " + getClass().getName() + " is disconnected.";
+            else if (!started)
+                message = "This " + getClass().getName() + " is stopped.";
             else
+            {
+                message = null;
                 streamIsBusy = true;
+            }
         }
+
+        /*
+         * The caller shouldn't call #read(Buffer) if this instance is
+         * disconnected or stopped. Additionally, if she does, she may be
+         * persistent. If we do not slow her down, she may hog the CPU.
+         */
+        if (message != null)
+        {
+            boolean interrupted = false;
+
+            try
+            {
+                Thread.sleep(Pa.DEFAULT_MILLIS_PER_BUFFER);
+            }
+            catch (InterruptedException ie)
+            {
+                interrupted = true;
+            }
+            if (interrupted)
+                Thread.currentThread().interrupt();
+            throw new IOException(message);
+        }
+
         try
         {
             /*

@@ -1237,28 +1237,31 @@ PortAudio_throwException(JNIEnv *env, PaError err)
      */
     if (clazz)
     {
-        /*
-         * We may be able to provide further details in the case of
-         * paUnanticipatedHostError by means of PaHostErrorInfo.
-         */
-        if (paUnanticipatedHostError == err)
+        jmethodID methodID
+            = (*env)->GetMethodID(
+                    env,
+                    clazz,
+                    "<init>",
+                    "(Ljava/lang/String;JI)V");
+
+        if (methodID)
         {
-            const PaHostErrorInfo*  hostErr = Pa_GetLastHostErrorInfo();
+            const char *message;
+            jstring jmessage;
+            jlong errorCode;
+            jint hostApiType;
 
-            if (hostErr)
+            /*
+             * We may be able to provide further details in the case of
+             * paUnanticipatedHostError by means of PaHostErrorInfo.
+             */
+            if (paUnanticipatedHostError == err)
             {
-                jmethodID methodID
-                    = (*env)->GetMethodID(
-                            env,
-                            clazz,
-                            "<init>",
-                            "(Ljava/lang/String;JI)V");
+                const PaHostErrorInfo*  hostErr = Pa_GetLastHostErrorInfo();
 
-                if (methodID)
+                if (hostErr)
                 {
-                    const char *message = hostErr->errorText;
-                    jstring jmessage;
-
+                    message = hostErr->errorText;
                     /*
                      * PaHostErrorInfo's errorText is documented to possibly be
                      * an empty string. In such a case, the (detailed) message
@@ -1267,54 +1270,65 @@ PortAudio_throwException(JNIEnv *env, PaError err)
                      */
                     if (!message || !strlen(message))
                         message = Pa_GetErrorText(err);
-
-                    if (message)
-                    {
-                        jmessage = (*env)->NewStringUTF(env, message);
-                        if (!jmessage)
-                        {
-                            /*
-                             * XXX An exception has already been thrown and the
-                             * current thread may no longer utilize JNIEnv
-                             * methods.
-                             */
-                            return;
-                        }
-                    }
-                    else
-                        jmessage = 0;
-
-                    if (jmessage)
-                    {
-                        jobject t
-                            = (*env)->NewObject(
-                                    env,
-                                    clazz,
-                                    methodID,
-                                    jmessage,
-                                    (jlong) (hostErr->errorCode),
-                                    (jint) (hostErr->hostApiType));
-
-                        if (t)
-                            (*env)->Throw(env, (jthrowable) t);
-                        /*
-                         * XXX If there is no t, an exception has already been
-                         * thrown and the current thread may no longer utilize
-                         * JNIEnv methods.
-                         */
-                        return;
-                    }
+                    errorCode = hostErr->errorCode;
+                    hostApiType = hostErr->hostApiType;
                 }
                 else
                 {
+                    message = Pa_GetErrorText(err);
+                    errorCode = err;
+                    hostApiType = -1;
+                }
+            }
+            else
+            {
+                message = Pa_GetErrorText(err);
+                errorCode = err;
+                hostApiType = -1;
+            }
+
+            if (message)
+            {
+                jmessage = (*env)->NewStringUTF(env, message);
+                if (!jmessage)
+                {
                     /*
-                     * XXX An exception has already been thrown and the
-                     * current thread may no longer utilize JNIEnv
-                     * methods.
+                     * XXX An exception has already been thrown and the current
+                     * thread may no longer utilize JNIEnv methods.
                      */
                     return;
                 }
             }
+            else
+                jmessage = 0;
+
+            if (jmessage)
+            {
+                jobject t
+                    = (*env)->NewObject(
+                            env,
+                            clazz,
+                            methodID,
+                            jmessage,
+                            errorCode,
+                            hostApiType);
+
+                if (t)
+                    (*env)->Throw(env, (jthrowable) t);
+                /*
+                 * XXX If there is no t, an exception has already been thrown
+                 * and the current thread may no longer utilize JNIEnv methods.
+                 */
+                return;
+            }
+        }
+        else
+        {
+            /*
+             * XXX An exception has already been thrown and the current thread
+             * may no longer utilize JNIEnv methods.
+             */
+            return;
         }
 
         (*env)->ThrowNew(env, clazz, Pa_GetErrorText(err));

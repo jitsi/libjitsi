@@ -437,6 +437,7 @@ public class PushBufferDataSourceAdapter
         private void runInStreamReadThread()
         {
             boolean bufferIsWritten;
+            boolean yield;
 
             synchronized (buffer)
             {
@@ -452,6 +453,13 @@ public class PushBufferDataSourceAdapter
                     streamReadException = ie;
                 }
                 bufferIsWritten = this.bufferIsWritten;
+                /*
+                 * If an exception has been thrown by the stream's read method,
+                 * it may be better to give the stream's underlying
+                 * implementation (e.g. PortAudio) a little time to possibly get
+                 * its act together.
+                 */
+                yield = (!bufferIsWritten && (streamReadException != null)); 
             }
 
             if (bufferIsWritten)
@@ -461,6 +469,8 @@ public class PushBufferDataSourceAdapter
                 if (transferHandler != null)
                     transferHandler.transferData(this);
             }
+            else if (yield)
+                Thread.yield();
         }
 
         /**
