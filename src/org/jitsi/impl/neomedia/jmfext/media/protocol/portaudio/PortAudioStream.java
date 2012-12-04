@@ -376,20 +376,11 @@ public class PortAudioStream
          */
         if (message != null)
         {
-            boolean interrupted = false;
-
-            try
-            {
-                Thread.sleep(Pa.DEFAULT_MILLIS_PER_BUFFER);
-            }
-            catch (InterruptedException ie)
-            {
-                interrupted = true;
-            }
-            if (interrupted)
-                Thread.currentThread().interrupt();
+            yield();
             throw new IOException(message);
         }
+
+        long paErrorCode = Pa.paNoError;
 
         try
         {
@@ -416,14 +407,16 @@ public class PortAudioStream
             {
                 Pa.ReadStream(stream, bufferData, framesPerBuffer);
             }
-            catch (PortAudioException paex)
+            catch (PortAudioException pae)
             {
-                logger.error("Failed to read from PortAudio stream.", paex);
+                paErrorCode = pae.getErrorCode();
 
-                IOException ioex = new IOException(paex.getLocalizedMessage());
+                logger.error("Failed to read from PortAudio stream.", pae);
 
-                ioex.initCause(paex);
-                throw ioex;
+                IOException ioe = new IOException(pae.getLocalizedMessage());
+
+                ioe.initCause(pae);
+                throw ioe;
             }
 
             // if we have some volume setting apply them
@@ -452,6 +445,14 @@ public class PortAudioStream
                streamIsBusy = false;
                notifyAll();
             }
+
+            /*
+             * If a timeout has occurred in the method Pa.ReadStream, give the
+             * application a little time to allow it to possibly get its act
+             * together.
+             */
+            if (Pa.paTimedOut == paErrorCode)
+                yield();
         }
     }
 
@@ -614,6 +615,26 @@ public class PortAudioStream
             {
                 interrupted = true;
             }
+        }
+        if (interrupted)
+            Thread.currentThread().interrupt();
+    }
+
+    /**
+     * Causes the currently executing thread to temporarily pause and allow
+     * other threads to execute.
+     */
+    public static void yield()
+    {
+        boolean interrupted = false;
+
+        try
+        {
+            Thread.sleep(Pa.DEFAULT_MILLIS_PER_BUFFER);
+        }
+        catch (InterruptedException ie)
+        {
+            interrupted = true;
         }
         if (interrupted)
             Thread.currentThread().interrupt();

@@ -75,10 +75,16 @@ public final class Pa
     public static final int paNoDevice = -1;
 
     /**
-     * The error code defined by the native PortAudio library to signal that no
-     * error is detected/reported.
+     * The <tt>PaErrorCode</tt> value defined by the native PortAudio library to
+     * signal that no error is detected/reported.
      */
     public static final int paNoError = 0;
+
+    /**
+     * The <tt>PaErrorCode</tt> value defined by the native PortAudio library to
+     * signal that a timeout has occurred.
+     */
+    public static final int paTimedOut = -9987;
 
     /**
      * The name of the <tt>double</tt> property which determines the suggested

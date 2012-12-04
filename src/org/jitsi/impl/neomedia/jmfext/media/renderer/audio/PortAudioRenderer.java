@@ -670,6 +670,9 @@ public class PortAudioRenderer
             else
                 streamIsBusy = true;
         }
+
+        long paErrorCode = Pa.paNoError;
+
         try
         {
             process(
@@ -677,9 +680,11 @@ public class PortAudioRenderer
                 buffer.getOffset(),
                 buffer.getLength());
         }
-        catch (PortAudioException paex)
+        catch (PortAudioException pae)
         {
-            logger.error("Failed to process Buffer.", paex);
+            paErrorCode = pae.getErrorCode();
+
+            logger.error("Failed to process Buffer.", pae);
         }
         finally
         {
@@ -688,6 +693,14 @@ public class PortAudioRenderer
                 streamIsBusy = false;
                 notifyAll();
             }
+
+            /*
+             * If a timeout has occurred in the method Pa.WriteStream, give the
+             * application a little time to allow it to possibly get its act
+             * together.
+             */
+            if (Pa.paTimedOut == paErrorCode)
+                PortAudioStream.yield();
         }
         return BUFFER_PROCESSED_OK;
     }
