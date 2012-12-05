@@ -4,12 +4,12 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.impl.neomedia.coreaudio;
+package org.jitsi.impl.neomedia.maccoreaudio;
 
 import org.jitsi.util.*;
 
 /**
- * JNI link to the CoreAudio library.
+ * JNI link to the MacOSX CoreAudio library.
  *
  * @author Vincent Lucqs
  */
@@ -17,7 +17,7 @@ public class CoreAudioDevice
 {
     static
     {
-        System.loadLibrary("jncoreaudio");
+        System.loadLibrary("jnmaccoreaudio");
     }
 
 //    public static native AudioDeviceID getDevice(

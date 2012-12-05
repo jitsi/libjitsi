@@ -4,27 +4,26 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.impl.neomedia.coreaudio;
+package org.jitsi.impl.neomedia;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.util.*;
 
 /**
- * Implementation of VolumeControl which uses MacOSX sound architecture
- * CoreAudio to change input/output hardware volume.
+ * Abstract implementation of VolumeControl which uses system sound architecture
+ * to change input/output hardware volume.
  *
  * @author Vincent Lucas
  */
-public class CoreAudioVolumeControl
+public abstract class AbstractHardwareVolumeControl
     extends AbstractVolumeControl
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>CoreAudioVolumeControl</tt> class and
-     * its instances for logging output.
+     * The <tt>Logger</tt> used by the <tt>AbstractHarwareVolumeControl</tt>
+     * class and its instances for logging output.
      */
     private static final Logger logger
-        = Logger.getLogger(CoreAudioVolumeControl.class);
+        = Logger.getLogger(AbstractHardwareVolumeControl.class);
 
     /**
      * The media service implementation.
@@ -46,7 +45,7 @@ public class CoreAudioVolumeControl
      * property which specifies the value of the volume level of the new
      * instance
      */
-    public CoreAudioVolumeControl(
+    public AbstractHardwareVolumeControl(
         MediaServiceImpl mediaServiceImpl,
         String volumeLevelConfigurationPropertyName)
     {
@@ -102,11 +101,21 @@ public class CoreAudioVolumeControl
         }
 
         // Changes the input volume of the capture device.
-        if(CoreAudioDevice.setInputDeviceVolume(
+        if(this.setInputDeviceVolume(
                     deviceUID,
                     hardwareVolumeLevel) != 0)
         {
-            logger.debug("Could not change CoreAudio input device level");
+            logger.debug("Could not change hardware input device level");
         }
     }
+
+    /**
+     * Changes the device volume via the system API.
+     *
+     * @param deviceUID The device ID.
+     * @param volume The volume requested.
+     *
+     * @return 0 if everything works fine.
+     */
+    protected abstract int setInputDeviceVolume(String deviceUID, float volume);
 }

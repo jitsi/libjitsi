@@ -668,10 +668,36 @@
     </cc>
   </target>
 
-  <!-- compile jncoreaudio library for Mac OS X (32-bit/64-bit) -->
-  <target name="coreaudio" description="Build jncoreaudio shared library for Mac OS X" if="is.running.macos"
+  <!-- compile jnwincoreaudio library for Windows Vista, 7 and 8 (32-bit/64-bit)
+    -->
+  <target
+    name="win-coreaudio"
+    description="Build jnwincoreaudio shared library for Windows Vista, 7 and 8"
+    if="is.running.windows"
     depends="init-native">
-    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jncoreaudio" objdir="${obj}">
+    <cc outtype="shared" name="g++"
+        outfile="${native_install_dir}/jnwincoreaudio" objdir="${obj}">
+
+      <compilerarg value="-Wall" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/win32" />
+
+      <linkerarg value="-ojnwincoreaudio.dll" />
+      <libset libs="ole32" />
+
+      <fileset dir="${src}/native/windows/coreaudio/lib" includes="*.c" />
+      <fileset dir="${src}/native/windows/coreaudio/jni" includes="*.c" />
+    </cc>
+
+    <delete dir="${obj}" failonerror="false" />
+    <delete file="${native_install_dir}/history.xml" failonerror="false" />
+  </target>
+
+  <!-- compile jnmaccoreaudio library for Mac OS X (32-bit/64-bit) -->
+  <target name="mac-coreaudio" description="Build jnmaccoreaudio shared library for Mac OS X" if="is.running.macos"
+    depends="init-native">
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnmaccoreaudio" objdir="${obj}">
       <compilerarg value="-Wall" />
       <compilerarg value="-O2" />
       <compilerarg value="-arch" />
@@ -682,7 +708,7 @@
       />
 
       <linkerarg value="-o" location="end" />
-      <linkerarg value="libjncoreaudio.jnilib" location="end" />
+      <linkerarg value="libjnmaccoreaudio.jnilib" location="end" />
       <linkerarg value="-arch" />
       <linkerarg value="x86_64" />
       <linkerarg value="-arch" />
@@ -799,7 +825,8 @@
     <echo message="'ant directshow (Windows only)' to compile jdirectshow shared library" />
     <echo message="'ant aegeturleventhandler (Mac OS X only)' to compile AEGetURLEventHandler shared library" />
     <echo message="'ant sparkle (Mac OS X only)' to compile sparkle shared library" />
-    <echo message="'ant coreaudio (Mac OS X only)' to compile jcoreaudio shared library" />
+    <echo message="'ant win-coreaudio (Windows Vista, 7 and 8 only)' to compile jnwincoreaudio shared library" />
+    <echo message="'ant mac-coreaudio (Mac OS X only)' to compile jnmaccoreaudio shared library" />
     <echo message="'ant quicktime (Mac OS X only)' to compile jquicktime shared library" />
     <echo message="" />
     <echo message="Options:" />

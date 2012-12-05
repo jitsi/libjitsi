@@ -293,7 +293,7 @@ OSStatus setDeviceVolume(
 /**
  * Gets the input volume for a given device.
  *
- * @param device The device to get volume from.
+ * @param deviceUID The device UID to get volume from.
  *
  * @return The device volume as a scalar value between 0.0 and 1.0. Returns -1.0
  * if an error occurs.
@@ -309,7 +309,7 @@ Float32 getInputDeviceVolume(
 /**
  * Gets the output volume for a given device.
  *
- * @param device The device to get volume from.
+ * @param deviceUID The device UID to get volume from.
  *
  * @return The device volume as a scalar value between 0.0 and 1.0. Returns -1.0
  * if an error occurs.
@@ -327,7 +327,7 @@ Float32 getOutputDeviceVolume(
  * (private) function and must only be called by getInputDeviceVolume or
  * getOutputDeviceVolume.
  *
- * @param device The device to get volume from.
+ * @param deviceUID The device UID to get volume from.
  * @param inputOutputScope The scope to tell if this is an output or an input
  * device.
  *
@@ -410,7 +410,7 @@ Float32 getDeviceVolume(
 /**
  * Sets the channels for stereo of a given device.
  *
- * @param device The device to get the channels from.
+ * @param deviceUID The device UID to get the channels from.
  * @param channels The channels to be filled in with the correct values. This
  * must be a 2 item length array.
  *
