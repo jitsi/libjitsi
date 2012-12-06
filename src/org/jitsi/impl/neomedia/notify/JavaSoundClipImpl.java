@@ -101,7 +101,7 @@ public class JavaSoundClipImpl
      * audio stored at a specific <tt>URL</tt> using
      * <tt>java.applet.AudioClip</tt>.
      *
-     * @param url the <tt>URL</tt> at which the audio is stored and which the
+     * @param uri the <tt>URL</tt> at which the audio is stored and which the
      * new instance is to load
      * @param audioNotifier the <tt>AudioNotifierService</tt> which is
      * initializing the new instance and whose <tt>mute</tt> property/state is
@@ -109,12 +109,12 @@ public class JavaSoundClipImpl
      * @throws IOException if a <tt>java.applet.AudioClip</tt> could not be
      * initialized or the audio at the specified <tt>url</tt> could not be read
      */
-    public JavaSoundClipImpl(URL url, AudioNotifierService audioNotifier)
+    public JavaSoundClipImpl(String uri, AudioNotifierService audioNotifier)
             throws IOException
     {
-        super(url, audioNotifier);
+        super(uri, audioNotifier);
 
-        audioClip = createAppletAudioClip(url.openStream());
+        audioClip = createAppletAudioClip(new URL(uri).openStream());
     }
 
     /**

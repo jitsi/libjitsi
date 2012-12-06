@@ -155,7 +155,7 @@ public class LibJitsiImpl
             logger.info(
                     "Failed to initialize service implementation "
                         + serviceImplClassName
-                        + ". Will continue without it.");
+                        + ". Will continue without it.", exception);
         }
 
         return service;

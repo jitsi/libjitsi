@@ -95,6 +95,13 @@ public class Constants
     public static final String TELEPHONE_EVENT = "telephone-event";
 
     /**
+     * The list of well-known sample rates of audio data used throughout
+     * neomedia.
+     */
+    public static final double[] AUDIO_SAMPLE_RATES
+        = { 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000 };
+
+    /**
      * mode    : Frame size for the encoding/decoding
      * 20 - 20 ms
      * 30 - 30 ms

@@ -6,9 +6,17 @@
  */
 package org.jitsi.impl.neomedia.device;
 
+import java.io.*;
+import java.net.*;
 import java.util.*;
 
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.resources.*;
+import org.jitsi.util.*;
+
+import javax.media.*;
+import javax.sound.sampled.*;
 
 /**
  * Represents a <tt>DeviceSystem</tt> which provides support for the devices to
@@ -58,6 +66,11 @@ public abstract class AudioSystem
     public static final String LOCATOR_PROTOCOL_PORTAUDIO = "portaudio";
 
     public static final String LOCATOR_PROTOCOL_PULSEAUDIO = "pulseaudio";
+
+    /**
+     * The <tt>Logger</tt> used by this instance for logging output.
+     */
+    private static Logger logger = Logger.getLogger(AudioSystem.class);
 
     public static AudioSystem getAudioSystem(String locatorProtocol)
     {
@@ -316,5 +329,67 @@ public abstract class AudioSystem
             Object newValue)
     {
         firePropertyChange(property, oldValue, newValue);
+    }
+
+    /**
+     * Obtains an audio input stream from the URL provided.
+     * @param uri a valid uri to a sound resource.
+     * @return the input stream to audio data.
+     * @throws IOException if an I/O exception occurs
+     */
+    public InputStream getAudioInputStream(String uri)
+        throws IOException
+    {
+        AudioInputStream audioStream = null;
+
+        ResourceManagementService resources
+            = LibJitsi.getResourceManagementService();
+        URL url
+            = (resources == null)
+                ? null
+                : resources.getSoundURLForPath(uri);
+
+        try
+        {
+            if (url == null)
+            {
+                // Not found by the class loader. Perhaps it's a local file.
+                url = new URL(uri);
+            }
+
+            audioStream = javax.sound.sampled.AudioSystem
+                .getAudioInputStream(url);
+        }
+        catch (MalformedURLException e)
+        {
+            return null;
+        }
+        catch (UnsupportedAudioFileException uafex)
+        {
+            logger.error("Unsupported format of audio stream " + url, uafex);
+        }
+
+        return audioStream;
+    }
+
+    /**
+     * Returns the audio format for the <tt>InputStream</tt>. Or null
+     * if format cannot be obtained.
+     * @param audioInputStream the input stream.
+     * @return the format of the audio stream.
+     */
+    public Format getFormat(InputStream audioInputStream)
+    {
+        if(!(audioInputStream instanceof AudioInputStream))
+            return null;
+
+        AudioFormat audioStreamFormat =
+            ((AudioInputStream)audioInputStream).getFormat();
+
+        return new javax.media.format.AudioFormat(
+                    javax.media.format.AudioFormat.LINEAR,
+                    audioStreamFormat.getSampleRate(),
+                    audioStreamFormat.getSampleSizeInBits(),
+                    audioStreamFormat.getChannels());
     }
 }

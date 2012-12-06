@@ -46,7 +46,7 @@ public class DePacketizer
      * structure contains the first NAL unit of an access unit in decoding
      * order".
      */
-    private static final byte[] NAL_PREFIX = { 0, 0, 1 };
+    public static final byte[] NAL_PREFIX = { 0, 0, 1 };
 
     /**
      * The indicator which determines whether incomplete NAL units are output

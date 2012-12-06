@@ -124,26 +124,6 @@ public class AudioNotifierServiceImpl
 
             if (audio == null)
             {
-                ResourceManagementService resources
-                    = LibJitsi.getResourceManagementService();
-                URL url
-                    = (resources == null)
-                        ? null
-                        : resources.getSoundURLForPath(uri);
-
-                if (url == null)
-                {
-                    // Not found by the class loader. Perhaps it's a local file.
-                    try
-                    {
-                        url = new URL(uri);
-                    }
-                    catch (MalformedURLException e)
-                    {
-                        return null;
-                    }
-                }
-
                 try
                 {
                     AudioSystem audioSystem
@@ -151,7 +131,7 @@ public class AudioNotifierServiceImpl
 
                     if (audioSystem == null)
                     {
-                        audio = new JavaSoundClipImpl(url, this);
+                        audio = new JavaSoundClipImpl(uri, this);
                     }
                     else if (NoneAudioSystem.LOCATOR_PROTOCOL.equalsIgnoreCase(
                             audioSystem.getLocatorProtocol()))
@@ -162,7 +142,7 @@ public class AudioNotifierServiceImpl
                     {
                         audio
                             = new AudioSystemClipImpl(
-                                    url,
+                                    uri,
                                     this,
                                     audioSystem,
                                     playback);

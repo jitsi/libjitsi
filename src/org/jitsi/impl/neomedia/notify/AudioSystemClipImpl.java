@@ -7,12 +7,11 @@
 package org.jitsi.impl.neomedia.notify;
 
 import java.io.*;
-import java.net.*;
 
 import javax.media.*;
-import javax.sound.sampled.*;
 
 import org.jitsi.impl.neomedia.codec.audio.speex.*;
+import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.audionotifier.*;
 import org.jitsi.util.*;
 
@@ -32,8 +31,7 @@ public class AudioSystemClipImpl
     private static final Logger logger
         = Logger.getLogger(AudioSystemClipImpl.class);
 
-    private final org.jitsi.impl.neomedia.device.AudioSystem
-        audioSystem;
+    private final AudioSystem audioSystem;
 
     private Buffer buffer;
 
@@ -53,9 +51,9 @@ public class AudioSystemClipImpl
      * @throws IOException cannot audio clip with supplied URL.
      */
     public AudioSystemClipImpl(
-            URL url,
+            String url,
             AudioNotifierService audioNotifier,
-            org.jitsi.impl.neomedia.device.AudioSystem audioSystem,
+            AudioSystem audioSystem,
             boolean playback)
         throws IOException
     {
@@ -107,20 +105,17 @@ public class AudioSystemClipImpl
 
     protected boolean runOnceInPlayThread()
     {
-        AudioInputStream audioStream = null;
+        InputStream audioStream = null;
 
         try
         {
-            audioStream = AudioSystem.getAudioInputStream(url);
+            audioStream = audioSystem.getAudioInputStream(uri);
         }
         catch (IOException ioex)
         {
-            logger.error("Failed to get audio stream " + url, ioex);
+            logger.error("Failed to get audio stream " + uri, ioex);
         }
-        catch (UnsupportedAudioFileException uafex)
-        {
-            logger.error("Unsupported format of audio stream " + url, uafex);
-        }
+
         if (audioStream == null)
             return false;
 
@@ -128,13 +123,13 @@ public class AudioSystemClipImpl
 
         try
         {
-            AudioFormat audioStreamFormat = audioStream.getFormat();
-            Format rendererFormat
-                = new javax.media.format.AudioFormat(
-                        javax.media.format.AudioFormat.LINEAR,
-                        audioStreamFormat.getSampleRate(),
-                        audioStreamFormat.getSampleSizeInBits(),
-                        audioStreamFormat.getChannels());
+            Format rendererFormat = audioSystem.getFormat(audioStream);
+
+            if(rendererFormat == null)
+            {
+                return false;
+            }
+
             Format resamplerFormat = null;
 
             if (renderer.setInputFormat(rendererFormat) == null)
@@ -215,7 +210,7 @@ public class AudioSystemClipImpl
             }
             catch (IOException ioex)
             {
-                logger.error("Failed to read from audio stream " + url, ioex);
+                logger.error("Failed to read from audio stream " + uri, ioex);
                 return false;
             }
             catch (ResourceUnavailableException ruex)

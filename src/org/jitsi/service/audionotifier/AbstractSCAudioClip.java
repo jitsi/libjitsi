@@ -70,17 +70,17 @@ public abstract class AbstractSCAudioClip
     private final Object sync = new Object();
 
     /**
-     * The <tt>URL</tt> of the audio to be played by this instance.
+     * The <tt>String</tt> uri of the audio to be played by this instance.
      * <tt>AbstractSCAudioClip</tt> does not use it and just remembers it in
      * order to make it available to extenders.
      */
-    protected final URL url;
+    protected final String uri;
 
     protected AbstractSCAudioClip(
-            URL url,
+            String uri,
             AudioNotifierService audioNotifier)
     {
-        this.url = url;
+        this.uri = uri;
         this.audioNotifier = audioNotifier;
     }
 
@@ -201,7 +201,7 @@ public abstract class AbstractSCAudioClip
     /**
      * Determines whether this instance plays the audio it represents in a loop.
      *
-     * @param <tt>true</tt> if this instance plays the audio it represents in a
+     * @return <tt>true</tt> if this instance plays the audio it represents in a
      * loop; <tt>false</tt>, otherwise
      */
     public boolean isLooping()
@@ -500,8 +500,8 @@ public abstract class AbstractSCAudioClip
      * instance and the <tt>loopInterval</tt> and <tt>loopCondition</tt>
      * parameters of {@link #play(int, Callable)} anyway.
      *
-     * @param <tt>true</tt> to mark this instance that it should play the audio
-     * it represents in a loop; otherwise, <tt>false</tt>
+     * @param  looping <tt>true</tt> to mark this instance that it should play
+     *      the audio it represents in a loop; otherwise, <tt>false</tt>
      */
     public void setLooping(boolean looping)
     {

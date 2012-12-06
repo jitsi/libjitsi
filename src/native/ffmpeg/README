@@ -45,6 +45,12 @@ patch -Np1 -i x264-01-freebsd.patch
 
 ./configure --enable-pic
 
+- For android
+NDK_BASE=/../android-ndk-r8c
+./configure --enable-pic --host=arm-linux --disable-asm \
+    --sysroot="$NDK_BASE/platforms/android-9/arch-arm/" \
+    --cross-prefix=$NDK_BASE/toolchains/arm-linux-androideabi-4.4.3/prebuilt/darwin-x86/bin/arm-linux-androideabi-
+
 3. ffmpeg
 
 patch -Np1 -i ffmpeg-01-libavcodec_libx264.c-zero_latency.patch
@@ -81,6 +87,13 @@ Add the following to the configure line:
 
 Add the following to the configure line:
 --enable-pic --enable-pthreads --enable-memalign-hack
+
+- For android remove lame and add
+  --arch=arm \
+  --target-os=linux \
+  --enable-runtime-cpudetect \
+  --sysroot="$NDK_BASE/platforms/android-9/arch-arm/" \
+  --cross-prefix=$NDK_BASE/toolchains/arm-linux-androideabi-4.4.3/prebuilt/darwin-x86/bin/arm-linux-androideabi-
 
 4. jnffmpeg
 
