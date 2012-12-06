@@ -675,15 +675,22 @@
     description="Build jnwincoreaudio shared library for Windows Vista, 7 and 8"
     if="is.running.windows"
     depends="init-native">
-    <cc outtype="shared" name="g++"
-        outfile="${native_install_dir}/jnwincoreaudio" objdir="${obj}">
+    <cc name="gcc"
+        objdir="${obj}"
+        outfile="${native_install_dir}/jnwincoreaudio"
+        outtype="shared">
 
-      <compilerarg value="-Wall" />
-      <compilerarg value="-O2" />
+      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+      <compilerarg value="-D_WIN32_WINNT=0x0600" />
+      <compilerarg value="-DWINVER=0x0600" />
       <compilerarg value="-I${system.JAVA_HOME}/include" />
       <compilerarg value="-I${system.JAVA_HOME}/include/win32" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-Wall" />
+      <compilerarg value="-xc++" />
 
       <linkerarg value="-ojnwincoreaudio.dll" />
+      <linkerarg value="-Wl,--kill-at" />
       <libset libs="ole32" />
 
       <fileset dir="${src}/native/windows/coreaudio/lib" includes="*.c" />

@@ -14,7 +14,7 @@
 #include <propkeydef.h> // Must be defined after windows.h
 
 #include <commctrl.h> // Must be defined after mmdeviceapi.h
-#include "include/endpointvolume.h" // Must be defined after mmdeviceapi.h
+#include <endpointvolume.h> // Must be defined after mmdeviceapi.h
 
 /**
  * Functions to list, access and modifies audio devices via coreaudio.
@@ -39,9 +39,6 @@ float getDeviceVolume(
         const char * deviceUID);
 
 DEFINE_PROPERTYKEY(PKEY_Device_FriendlyName,           0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 14);    // DEVPROP_TYPE_STRING
-
-const IID IID_IAudioEndpointVolume =
-{0x5CDF2C82, 0x841E, 0x4546, {0x97, 0x22, 0x0C, 0xF7, 0x40, 0x78, 0x22, 0x9A}};
 
 /**
  * Initializes the COM component. This function must be called first in order to
@@ -92,16 +89,14 @@ IMMDevice * getDevice(
         const char * deviceUID)
 {
     // Gets the enumerator of the system devices.
-    int err;
+    HRESULT err;
     IMMDeviceEnumerator * enumerator = NULL;
-    const CLSID clsid = __uuidof(MMDeviceEnumerator);
-    const IID iid = __uuidof(IMMDeviceEnumerator);
 
     if((err = CoCreateInstance(
-                clsid,
+                CLSID_MMDeviceEnumerator,
                 NULL,
                 CLSCTX_ALL,
-                iid,
+                IID_IMMDeviceEnumerator,
                 (void**) &enumerator))
             != S_OK)
     {
