@@ -127,29 +127,7 @@ public class AbstractVolumeControl
             = volumeLevelConfigurationPropertyName;
 
         // Read the initial volume level from the ConfigurationService.
-        try
-        {
-            ConfigurationService cfg = LibJitsi.getConfigurationService();
-
-            if (cfg != null)
-            {
-                String volumeLevelString
-                    = cfg.getString(this.volumeLevelConfigurationPropertyName);
-
-                if (volumeLevelString != null)
-                {
-                    this.volumeLevel = Float.parseFloat(volumeLevelString);
-                    if(logger.isDebugEnabled())
-                    {
-                        logger.debug("Restored volume: " + volumeLevelString);
-                    }
-                }
-            }
-        }
-        catch (Throwable t)
-        {
-            logger.warn("Error restoring volume", t);
-        }
+        this.loadVolume();
     }
 
     /**
@@ -588,5 +566,35 @@ public class AbstractVolumeControl
     protected void updateHardwareVolume()
     {
         // Nothing to do. This AbstractVolumeControl only modifies the gain.
+    }
+
+    /**
+     * Reads the initial volume level from the system.
+     */
+    protected void loadVolume()
+    {
+        try
+        {
+            ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+            if (cfg != null)
+            {
+                String volumeLevelString
+                    = cfg.getString(this.volumeLevelConfigurationPropertyName);
+
+                if (volumeLevelString != null)
+                {
+                    this.volumeLevel = Float.parseFloat(volumeLevelString);
+                    if(logger.isDebugEnabled())
+                    {
+                        logger.debug("Restored volume: " + volumeLevelString);
+                    }
+                }
+            }
+        }
+        catch (Throwable t)
+        {
+            logger.warn("Error restoring volume", t);
+        }
     }
 }

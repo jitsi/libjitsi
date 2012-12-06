@@ -61,4 +61,26 @@ public class CoreAudioVolumeControl
         }
         return 0;
     }
+
+    /**
+     * Returns the device volume via the system API.
+     *
+     * @param deviceUID The device ID.
+     *
+     * @Return A scalar value between 0 and 1 if everything works fine. -1 if an
+     * error occured.
+     */
+    protected float getInputDeviceVolume(String deviceUID)
+    {
+        float volume;
+
+        if((volume = CoreAudioDevice.getInputDeviceVolume(deviceUID))
+                != 0)
+        {
+            logger.debug(
+                    "Could not get MacOsX CoreAudio input device level");
+        }
+
+        return volume;
+    }
 }

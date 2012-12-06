@@ -59,7 +59,7 @@ public class CoreAudioVolumeControl
                     "Could not initialize Windows CoreAudio input devices");
             return -1;
         }
-        // Changes the input volume of the capture device.
+        // Change the input volume of the capture device.
         if(CoreAudioDevice.setInputDeviceVolume(deviceUID, volume) != 0)
         {
             CoreAudioDevice.freeDevices();
@@ -70,5 +70,38 @@ public class CoreAudioVolumeControl
         CoreAudioDevice.freeDevices();
 
         return 0;
+    }
+
+    /**
+     * Returns the device volume via the system API.
+     *
+     * @param deviceUID The device ID.
+     *
+     * @Return A scalar value between 0 and 1 if everything works fine. -1 if an
+     * error occured.
+     */
+    protected float getInputDeviceVolume(String deviceUID)
+    {
+        float volume;
+
+        if(CoreAudioDevice.initDevices() == -1)
+        {
+            CoreAudioDevice.freeDevices();
+            logger.debug(
+                    "Could not initialize Windows CoreAudio input devices");
+            return -1;
+        }
+        // Get the input volume of the capture device.
+        if((volume = CoreAudioDevice.getInputDeviceVolume(deviceUID))
+                == -1)
+        {
+            CoreAudioDevice.freeDevices();
+            logger.debug(
+                    "Could not get Windows CoreAudio input device level");
+            return -1;
+        }
+        CoreAudioDevice.freeDevices();
+
+        return volume;
     }
 }

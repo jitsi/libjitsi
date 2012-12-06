@@ -748,25 +748,38 @@ public class MediaServiceImpl
     {
         if (inputVolumeControl == null)
         {
-            if(OSUtils.IS_MAC)
-            {
-                inputVolumeControl
-                    = new
+            boolean initialized = false;
+            try{
+                if(OSUtils.IS_MAC)
+                {
+                    inputVolumeControl = new
                     org.jitsi.impl.neomedia.maccoreaudio.CoreAudioVolumeControl(
-                            this,
-                            VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME);
-            }
-            else if(OSUtils.IS_WINDOWS_VISTA
-                    || OSUtils.IS_WINDOWS_7
-                    || OSUtils.IS_WINDOWS_8)
-            {
-                inputVolumeControl
-                    = new
+                                this,
+                                VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME
+                                );
+                    initialized = true;
+                }
+                else if(OSUtils.IS_WINDOWS_VISTA
+                        || OSUtils.IS_WINDOWS_7
+                        || OSUtils.IS_WINDOWS_8)
+                {
+                    inputVolumeControl = new
                     org.jitsi.impl.neomedia.wincoreaudio.CoreAudioVolumeControl(
-                            this,
-                            VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME);
+                                this,
+                                VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME
+                                );
+                    initialized = true;
+                }
             }
-            else
+            catch(UnsatisfiedLinkError ule)
+            {
+                //initialized = false;
+                logger.info("Can not load system volume control: "
+                        + ule.getMessage()
+                        + ". Loading default software volume control.");
+            }
+
+            if(!initialized)
             {
                 inputVolumeControl
                     = new AbstractVolumeControl(

@@ -51,7 +51,15 @@ public abstract class AbstractHardwareVolumeControl
     {
         super(volumeLevelConfigurationPropertyName);
         this.mediaServiceImpl = mediaServiceImpl;
-        updateHardwareVolume();
+
+        // Gets the device volume (an error use the default volume).
+        this.volumeLevel = getDefaultVolumeLevel();
+        String deviceUID = getCaptureDeviceUID();
+        float volume = this.getInputDeviceVolume(deviceUID);
+        if(volume != -1)
+        {
+            this.volumeLevel = volume;
+        }
     }
 
     /**
@@ -85,12 +93,7 @@ public abstract class AbstractHardwareVolumeControl
     protected void updateHardwareVolume()
     {
         // Gets the selected input dvice UID.
-        AudioSystem audioSystem
-            = mediaServiceImpl.getDeviceConfiguration().getAudioSystem();
-        ExtendedCaptureDeviceInfo captureDevice = (audioSystem == null)
-            ? null
-            : audioSystem.getDevice(AudioSystem.CAPTURE_INDEX);
-        String deviceUID = captureDevice.getUID();
+        String deviceUID = getCaptureDeviceUID();
 
         // Computes the hardware volume.
         float jitsiHarwareVolumeFactor = MAX_VOLUME_LEVEL / MAX_HARDWARE_POWER;
@@ -110,6 +113,28 @@ public abstract class AbstractHardwareVolumeControl
     }
 
     /**
+     * Returns the selected input device UID.
+     *
+     * @return The selected input device UID. Or null if not found.
+     */
+    protected String getCaptureDeviceUID()
+    {
+        String deviceUID = null;
+
+        AudioSystem audioSystem
+            = mediaServiceImpl.getDeviceConfiguration().getAudioSystem();
+        ExtendedCaptureDeviceInfo captureDevice = (audioSystem == null)
+            ? null
+            : audioSystem.getDevice(AudioSystem.CAPTURE_INDEX);
+        if(captureDevice != null)
+        {
+            deviceUID = captureDevice.getUID();
+        }
+
+        return deviceUID;
+    }
+
+    /**
      * Changes the device volume via the system API.
      *
      * @param deviceUID The device ID.
@@ -118,4 +143,14 @@ public abstract class AbstractHardwareVolumeControl
      * @return 0 if everything works fine.
      */
     protected abstract int setInputDeviceVolume(String deviceUID, float volume);
+
+    /**
+     * Returns the device volume via the system API.
+     *
+     * @param deviceUID The device ID.
+     *
+     * @Return A scalar value between 0 and 1 if everything works fine. -1 if an
+     * error occured.
+     */
+    protected abstract float getInputDeviceVolume(String deviceUID);
 }
