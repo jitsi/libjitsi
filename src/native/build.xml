@@ -688,10 +688,14 @@
       <compilerarg value="-O2" />
       <compilerarg value="-Wall" />
       <compilerarg value="-xc++" />
+      <compilerarg value="-m32" if="cross_32" />
+      <compilerarg value="-m64" if="cross_64" />
 
       <linkerarg value="-ojnwincoreaudio.dll" />
       <linkerarg value="-Wl,--kill-at" />
       <libset libs="ole32" />
+      <linkerarg value="-m32" if="cross_32" />
+      <linkerarg value="-m64" if="cross_64" />
 
       <fileset dir="${src}/native/windows/coreaudio/lib" includes="*.c" />
       <fileset dir="${src}/native/windows/coreaudio/jni" includes="*.c" />
@@ -832,7 +836,7 @@
     <echo message="'ant directshow (Windows only)' to compile jdirectshow shared library" />
     <echo message="'ant aegeturleventhandler (Mac OS X only)' to compile AEGetURLEventHandler shared library" />
     <echo message="'ant sparkle (Mac OS X only)' to compile sparkle shared library" />
-    <echo message="'ant win-coreaudio (Windows Vista, 7 and 8 only)' to compile jnwincoreaudio shared library" />
+    <echo message="'ant win-coreaudio (Windows Vista, 7 and 8 only)' to compile jnwincoreaudio shared library (use -Darch=32 or -Darch=64 for cross-compiling)" />
     <echo message="'ant mac-coreaudio (Mac OS X only)' to compile jnmaccoreaudio shared library" />
     <echo message="'ant quicktime (Mac OS X only)' to compile jquicktime shared library" />
     <echo message="" />
