@@ -252,7 +252,9 @@ public class CachingPushBufferStream
 
         if ((control == null)
                 && BufferControl.class.getName().equals(controlType))
+        {
             control = getBufferControl();
+        }
         return control;
     }
 
@@ -281,11 +283,13 @@ public class CachingPushBufferStream
             boolean bufferControlExists = false;
 
             for (Object control : controls)
+            {
                 if (control instanceof BufferControl)
                 {
                     bufferControlExists = true;
                     break;
                 }
+            }
             if (!bufferControlExists)
             {
                 BufferControl bufferControl = getBufferControl();
@@ -378,11 +382,11 @@ public class CachingPushBufferStream
         {
             if (readException != null)
             {
-                IOException ex = new IOException();
+                IOException ioe = new IOException();
 
-                ex.initCause(readException);
+                ioe.initCause(readException);
                 readException = null;
-                throw ex;
+                throw ioe;
             }
 
             buffer.setLength(0);
@@ -553,30 +557,26 @@ public class CachingPushBufferStream
      */
     public void setTransferHandler(BufferTransferHandler transferHandler)
     {
+        BufferTransferHandler substituteTransferHandler
+            = (transferHandler == null)
+                ? null
+                : new StreamSubstituteBufferTransferHandler(
+                        transferHandler,
+                        stream,
+                        this)
+                    {
+                        @Override
+                        public void transferData(PushBufferStream stream)
+                        {
+                            if (CachingPushBufferStream.this.stream == stream)
+                                CachingPushBufferStream.this.transferData(this);
+
+                            super.transferData(stream);
+                        }
+                    };
+
         synchronized (cache)
         {
-            BufferTransferHandler substituteTransferHandler
-                = (transferHandler == null)
-                    ? null
-                    : new StreamSubstituteBufferTransferHandler(
-                            transferHandler,
-                            stream,
-                            this)
-                        {
-                            @Override
-                            public void transferData(PushBufferStream stream)
-                            {
-                                if (CachingPushBufferStream.this.stream
-                                        == stream)
-                                {
-                                    CachingPushBufferStream.this.transferData(
-                                            this);
-                                }
-
-                                super.transferData(stream);
-                            }
-                        };
-
             stream.setTransferHandler(substituteTransferHandler);
             this.transferHandler = substituteTransferHandler;
             cache.notifyAll();
@@ -595,41 +595,98 @@ public class CachingPushBufferStream
      */
     protected void transferData(BufferTransferHandler transferHandler)
     {
+        /*
+         * Obviously, we cannot cache every Buffer because we will run out of
+         * memory. So wait for root to appear within cache (or for this instance
+         * to be stopped, of course).
+         */
+        boolean interrupted = false;
+        boolean canWriteInCache = false;
+
         synchronized (cache)
         {
-            boolean interrupted = false;
-
             while (true)
             {
                 if (this.transferHandler != transferHandler)
-                    return;
-                if (canWriteInCache())
+                {
+                    /*
+                     * The specified transferHandler has already been
+                     * obsoleted/replaced so it does not have the right to cause
+                     * a read or a write.
+                     */
+                    canWriteInCache = false;
                     break;
-                try
-                {
-                    cache.wait();
                 }
-                catch (InterruptedException iex)
+                else if (canWriteInCache())
                 {
-                    interrupted = true;
+                    canWriteInCache = true;
+                    break;
+                }
+                else
+                {
+                    try
+                    {
+                        cache.wait(DEFAULT_BUFFER_LENGTH);
+                    }
+                    catch (InterruptedException iex)
+                    {
+                        interrupted = true;
+                    }
                 }
             }
-            if (interrupted)
-                Thread.currentThread().interrupt();
-
+        }
+        if (interrupted)
+        {
+            Thread.currentThread().interrupt();
+        }
+        else if (canWriteInCache)
+        {
+            /*
+             * The protocol of PushBufferStream's #read(Buffer) method is that
+             * it does not block. The underlying implementation may be flawed
+             * though so we would better not take any chances. Besides, we have
+             * a report at the time of this writing which suggests that we may
+             * really be hitting a rogue implementation in a real-world
+             * scenario.
+             */
             Buffer buffer = new Buffer();
+            IOException readException;
 
             try
             {
                 stream.read(buffer);
                 readException = null;
             }
-            catch (IOException ioex)
+            catch (IOException ioe)
             {
-                readException = ioex;
+                readException = ioe;
             }
-            cache.add(buffer);
-            cacheLengthInMillis += getLengthInMillis(buffer);
+            if (readException == null)
+            {
+                if (!buffer.isDiscard()
+                        && (buffer.getLength() != 0)
+                        && (buffer.getData() != null))
+                {
+                    /*
+                     * Well, we risk disagreeing with #canWriteInCache() because
+                     * we have temporarily released the cache but we have read a
+                     * Buffer from the stream so it is probably better to not
+                     * throw it away.
+                     */
+                    synchronized (cache)
+                    {
+                        cache.add(buffer);
+                        cacheLengthInMillis += getLengthInMillis(buffer);
+                    }
+                }
+            }
+            else
+            {
+                synchronized (cache)
+                {
+                    this.readException = readException;
+                }
+            }
         }
     }
 
