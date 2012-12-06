@@ -756,7 +756,7 @@ public class MediaServiceImpl
                             this,
                             VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME);
             }
-            /*else if(OSUtils.IS_WINDOWS_VISTA
+            else if(OSUtils.IS_WINDOWS_VISTA
                     || OSUtils.IS_WINDOWS_7
                     || OSUtils.IS_WINDOWS_8)
             {
@@ -765,7 +765,7 @@ public class MediaServiceImpl
                     org.jitsi.impl.neomedia.wincoreaudio.CoreAudioVolumeControl(
                             this,
                             VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME);
-            }*/
+            }
             else
             {
                 inputVolumeControl

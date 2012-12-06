@@ -49,9 +49,6 @@ DEFINE_PROPERTYKEY(PKEY_Device_FriendlyName,           0xa45c254e, 0xdf1c, 0x4ef
  */
 int initDevices(void)
 {
-    fprintf(stderr,
-            "initDevices (coreaudio/device.c): \n");
-    fflush(stderr);
     if(CoInitializeEx(NULL, COINIT_MULTITHREADED) != S_OK)
     {
         fprintf(stderr,
@@ -69,9 +66,6 @@ int initDevices(void)
  */
 void freeDevices(void)
 {
-    fprintf(stderr,
-            "freeDevices (coreaudio/device.c): \n");
-    fflush(stderr);
     CoUninitialize();
 }
 
