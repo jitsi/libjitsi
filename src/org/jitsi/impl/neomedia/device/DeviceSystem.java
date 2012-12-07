@@ -63,6 +63,18 @@ public abstract class DeviceSystem
     public static final String PROP_DEVICES = "devices";
 
     /**
+     * The list of devices connected at the last preInitialize.
+     */
+    private static Vector<CaptureDeviceInfo> propertyChangeOldDevices
+        = new Vector<CaptureDeviceInfo>();
+
+    /**
+     * The list of devices connected at the last postInitialize.
+     */
+    private static Vector<CaptureDeviceInfo> propertyChangeNewDevices
+        = new Vector<CaptureDeviceInfo>();
+
+    /**
      * The list of <tt>DeviceSystem</tt>s which have been initialized.
      */
     private static List<DeviceSystem> deviceSystems
@@ -423,7 +435,38 @@ public abstract class DeviceSystem
      */
     protected void postInitialize()
     {
-        firePropertyChange(PROP_DEVICES, null, null);
+        Format format = this.getFormat();
+
+        if (format != null)
+        {
+            // Gets the list of the actual connected devices.
+            propertyChangeNewDevices.removeAllElements();
+            propertyChangeNewDevices.addAll(
+                CaptureDeviceManager.getDeviceList(format));
+
+            // Compares the previous conencted device list with the current one,
+            // in order to detect new connected or disconnected devices.
+            for(int i = 0; i < propertyChangeOldDevices.size(); ++i)
+            {
+                if(!propertyChangeNewDevices.remove(
+                        propertyChangeOldDevices.get(i)))
+                {
+                    // Old device is removed.
+                    firePropertyChange(
+                            PROP_DEVICES,
+                            propertyChangeOldDevices.get(i),
+                            null);
+                }
+            }
+            for(int i = 0; i < propertyChangeNewDevices.size(); ++i)
+            {
+                // New device is plugged in.
+                firePropertyChange(
+                        PROP_DEVICES,
+                        null,
+                        propertyChangeNewDevices.get(i));
+            }
+        }
     }
 
     /**
@@ -435,26 +478,15 @@ public abstract class DeviceSystem
      */
     protected void preInitialize()
     {
-        Format format;
-
-        switch (getMediaType())
-        {
-        case AUDIO:
-            format = new AudioFormat(null);
-            break;
-        case VIDEO:
-            format = new VideoFormat(null);
-            break;
-        default:
-            format = null;
-            break;
-        }
+        Format format = this.getFormat();
 
         if (format != null)
         {
             @SuppressWarnings("unchecked")
             Vector<CaptureDeviceInfo> cdis
                 = CaptureDeviceManager.getDeviceList(format);
+            propertyChangeOldDevices.removeAllElements();
+            propertyChangeOldDevices.addAll(cdis);
 
             if ((cdis != null) && (cdis.size() > 0))
             {
@@ -502,5 +534,32 @@ public abstract class DeviceSystem
     public String toString()
     {
         return getLocatorProtocol();
+    }
+
+    /**
+     * Returns the format depending on the media type: AudioFormat for AUDIO,
+     * VideoFormat for VIDEO. Otherwise, returns null.
+     *
+     * @return The format depending on the media type: AudioFormat for AUDIO,
+     * VideoFormat for VIDEO. Otherwise, returns null.
+     */
+    public Format getFormat()
+    {
+        Format format = null;
+
+        switch (getMediaType())
+        {
+        case AUDIO:
+            format = new AudioFormat(null);
+            break;
+        case VIDEO:
+            format = new VideoFormat(null);
+            break;
+        default:
+            format = null;
+            break;
+        }
+
+        return format;
     }
 }
