@@ -255,10 +255,6 @@ public abstract class AudioSystem
     {
         try
         {
-            super.postInitialize();
-        }
-        finally
-        {
             try
             {
                 postInitializeSpecificDevices(CAPTURE_INDEX);
@@ -277,6 +273,10 @@ public abstract class AudioSystem
                     }
                 }
             }
+        }
+        finally
+        {
+            super.postInitialize();
         }
     }
 
