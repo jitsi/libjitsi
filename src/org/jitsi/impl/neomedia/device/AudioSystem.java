@@ -217,7 +217,7 @@ public abstract class AudioSystem
             List<ExtendedCaptureDeviceInfo> activePlaybackDevices)
     {
         devices[PLAYBACK_INDEX].setActiveDevices(activePlaybackDevices);
-        // The active notify device list is a copy of the playback one.
+        // The notify devices are the same as the playback devices.
         devices[NOTIFY_INDEX].setActiveDevices(activePlaybackDevices);
     }
 
@@ -282,7 +282,7 @@ public abstract class AudioSystem
 
     /**
      * Sets the device lists after the different audio systems (PortAudio,
-     * PulseAudio, etc) have finished to detects the devices.
+     * PulseAudio, etc) have finished detecting their devices.
      *
      * @param index The index corresponding to a specific device kind:
      * capture/notify/playback.
@@ -357,8 +357,8 @@ public abstract class AudioSystem
                 url = new URL(uri);
             }
 
-            audioStream = javax.sound.sampled.AudioSystem
-                .getAudioInputStream(url);
+            audioStream
+                = javax.sound.sampled.AudioSystem.getAudioInputStream(url);
         }
         catch (MalformedURLException e)
         {

@@ -34,7 +34,7 @@ public class PayloadTypeTransformEngine
     private Map<Byte, Byte> mappingOverrides = new HashMap<Byte, Byte>();
 
     /**
-     * This map is a copy of <tt>mappingOverride</tt> that we use durig actual
+     * This map is a copy of <tt>mappingOverride</tt> that we use during actual
      * transformation
      */
     private Map<Byte, Byte> mappingOverridesCopy = null;
@@ -118,19 +118,16 @@ public class PayloadTypeTransformEngine
      * thread-safe way without using synchronization.
      *
      * @param originalPt the payload type that we are overriding
-     * @param overloadPt the payload type that we are overriging it with
+     * @param overridePt the payload type that we are overriding it with
      */
-
-    public void addPTMappingOverride(byte originalPt, byte overloadPt)
+    public void addPTMappingOverride(byte originalPt, byte overridePt)
     {
-        if (mappingOverrides.containsKey(originalPt)
-            && mappingOverrides.get(originalPt) == overloadPt)
+        Byte existingOverride = mappingOverrides.get(originalPt);
+
+        if ((existingOverride == null) || (existingOverride != overridePt))
         {
-            return;
+            mappingOverrides.put(originalPt, overridePt);
+            mappingOverridesCopy = new HashMap<Byte, Byte>(mappingOverrides);
         }
-
-        mappingOverrides.put(originalPt, overloadPt);
-
-        mappingOverridesCopy = new HashMap(mappingOverrides);
     }
 }

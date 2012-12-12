@@ -42,6 +42,12 @@ public abstract class DeviceSystem
     private static final Logger logger = Logger.getLogger(DeviceSystem.class);
 
     /**
+     * The list of <tt>DeviceSystem</tt>s which have been initialized.
+     */
+    private static List<DeviceSystem> deviceSystems
+        = new LinkedList<DeviceSystem>();
+
+    /**
      * The constant/flag (to be) returned by {@link #getFeatures()} in order to
      * indicate that the respective <tt>DeviceSystem</tt> supports invoking its
      * {@link #initialize()} more than once.
@@ -63,23 +69,30 @@ public abstract class DeviceSystem
     public static final String PROP_DEVICES = "devices";
 
     /**
-     * The list of devices connected at the last preInitialize.
-     */
-    private static Vector<CaptureDeviceInfo> propertyChangeOldDevices
-        = new Vector<CaptureDeviceInfo>();
-
-    /**
      * The list of devices connected at the last postInitialize.
      */
     private static Vector<CaptureDeviceInfo> propertyChangeNewDevices
         = new Vector<CaptureDeviceInfo>();
 
     /**
-     * The list of <tt>DeviceSystem</tt>s which have been initialized.
+     * The list of devices connected at the last preInitialize.
      */
-    private static List<DeviceSystem> deviceSystems
-        = new LinkedList<DeviceSystem>();
+    private static Vector<CaptureDeviceInfo> propertyChangeOldDevices
+        = new Vector<CaptureDeviceInfo>();
 
+    /**
+     * Returns a <tt>List</tt> of <tt>CaptureDeviceInfo</tt>s which are elements
+     * of a specific <tt>List</tt> of <tt>CaptureDeviceInfo</tt>s and have a
+     * specific <tt>MediaLocator</tt> protocol.
+     *
+     * @param deviceList the <tt>List</tt> of <tt>CaptureDeviceInfo</tt> which
+     * are to be filtered based on the specified <tt>MediaLocator</tt> protocol
+     * @param locatorProtocol the protocol of the <tt>MediaLocator</tt>s of the
+     * <tt>CaptureDeviceInfo</tt>s which are to be returned
+     * @return a <tt>List</tt> of <tt>CaptureDeviceInfo</tt>s which are elements
+     * of the specified <tt>deviceList</tt> and have the specified
+     * <tt>locatorProtocol</tt>
+     */
     protected static List<CaptureDeviceInfo> filterDeviceListByLocatorProtocol(
             List<CaptureDeviceInfo> deviceList,
             String locatorProtocol)
@@ -388,14 +401,72 @@ public abstract class DeviceSystem
         return null;
     }
 
+    /**
+     * Invoked by {@link #initialize()} to perform the very logic of the
+     * initialization of this <tt>DeviceSystem</tt>. This instance has been
+     * prepared for initialization by an earlier call to
+     * {@link #preInitialize()} and the initialization will be completed with a
+     * subsequent call to {@link #postInitialize()}.
+     *
+     * @throws Exception if an error occurs during the initialization of this
+     * instance. The initialization of this instance will be completed with a
+     * subsequent call to <tt>postInitialize()</tt> regardless of any
+     * <tt>Exception</tt> thrown by <tt>doInitialize()</tt>.
+     */
     protected abstract void doInitialize()
         throws Exception;
 
+    /**
+     * Gets the flags indicating the optional features supported by this
+     * <tt>DeviceSystem</tt>.
+     *
+     * @return the flags indicating the optional features supported by this
+     * <tt>DeviceSystem</tt>. The possible flags are among the
+     * <tt>FEATURE_XXX</tt> constants defined by the <tt>DeviceSystem</tt> class
+     * and its extenders.
+     */
     public final int getFeatures()
     {
         return features;
     }
 
+    /**
+     * Returns the format depending on the media type: AudioFormat for AUDIO,
+     * VideoFormat for VIDEO. Otherwise, returns null.
+     *
+     * @return The format depending on the media type: AudioFormat for AUDIO,
+     * VideoFormat for VIDEO. Otherwise, returns null.
+     */
+    public Format getFormat()
+    {
+        Format format = null;
+
+        switch (getMediaType())
+        {
+        case AUDIO:
+            format = new AudioFormat(null);
+            break;
+        case VIDEO:
+            format = new VideoFormat(null);
+            break;
+        default:
+            format = null;
+            break;
+        }
+
+        return format;
+    }
+
+    /**
+     * Gets the protocol of the <tt>MediaLocator</tt> of the
+     * <tt>CaptureDeviceInfo</tt>s (to be) registered (with FMJ) by this
+     * <tt>DeviceSystem</tt>. The protocol is a unique identifier of a
+     * <tt>DeviceSystem</tt>.
+     *
+     * @return the protocol of the <tt>MediaLocator</tt> of the
+     * <tt>CaptureDeviceInfo</tt>s (to be) registered (with FMJ) by this
+     * <tt>DeviceSystem</tt>
+     */
     public final String getLocatorProtocol()
     {
         return locatorProtocol;
@@ -406,11 +477,32 @@ public abstract class DeviceSystem
         return mediaType;
     }
 
+    /**
+     * Gets the name of the class which implements the <tt>Renderer</tt>
+     * interface to render media on a playback or notification device associated
+     * with this <tt>DeviceSystem</tt>. Invoked by
+     * {@link #createRenderer(boolean)}.
+     * 
+     * @return the name of the class which implements the <tt>Renderer</tt>
+     * interface to render media on a playback or notification device associated
+     * with this <tt>DeviceSystem</tt> or <tt>null</tt> if no <tt>Renderer</tt>
+     * instance is to be created by the <tt>DeviceSystem</tt> implementation or
+     * <tt>createRenderer(boolean) is overridden.
+     */
     protected String getRendererClassName()
     {
         return null;
     }
 
+    /**
+     * Initializes this <tt>DeviceSystem</tt> i.e. represents the native/system
+     * devices in the terms of the application so that they may be utilized. For
+     * example, the capture devices are represented as
+     * <tt>CaptureDeviceInfo</tt> instances registered with FMJ.
+     *
+     * @throws Exception if an error occurs during the initialization of this
+     * <tt>DeviceSystem</tt>
+     */
     protected final void initialize()
         throws Exception
     {
@@ -435,7 +527,7 @@ public abstract class DeviceSystem
      */
     protected void postInitialize()
     {
-        Format format = this.getFormat();
+        Format format = getFormat();
 
         if (format != null)
         {
@@ -444,7 +536,7 @@ public abstract class DeviceSystem
             propertyChangeNewDevices.addAll(
                 CaptureDeviceManager.getDeviceList(format));
 
-            // Compares the previous conencted device list with the current one,
+            // Compares the previous connected device list with the current one
             // in order to detect new connected or disconnected devices.
             for(int i = 0; i < propertyChangeOldDevices.size(); ++i)
             {
@@ -478,7 +570,7 @@ public abstract class DeviceSystem
      */
     protected void preInitialize()
     {
-        Format format = this.getFormat();
+        Format format = getFormat();
 
         if (format != null)
         {
@@ -534,32 +626,5 @@ public abstract class DeviceSystem
     public String toString()
     {
         return getLocatorProtocol();
-    }
-
-    /**
-     * Returns the format depending on the media type: AudioFormat for AUDIO,
-     * VideoFormat for VIDEO. Otherwise, returns null.
-     *
-     * @return The format depending on the media type: AudioFormat for AUDIO,
-     * VideoFormat for VIDEO. Otherwise, returns null.
-     */
-    public Format getFormat()
-    {
-        Format format = null;
-
-        switch (getMediaType())
-        {
-        case AUDIO:
-            format = new AudioFormat(null);
-            break;
-        case VIDEO:
-            format = new VideoFormat(null);
-            break;
-        default:
-            format = null;
-            break;
-        }
-
-        return format;
     }
 }

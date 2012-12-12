@@ -75,7 +75,7 @@ public abstract class Devices
                     // Adds the device in the preference list (to the end of the
                     // list, but the save device will push it to the top of
                     // active devices).
-                    this.saveDevice(
+                    saveDevice(
                             locator,
                             property,
                             activeDevice,
@@ -88,20 +88,20 @@ public abstract class Devices
             // in the preferences.
             synchronized(devicePreferences)
             {
-                for(int i = 0; i < devicePreferences.size(); ++i)
+                for(String devicePreference : devicePreferences)
                 {
                     for(ExtendedCaptureDeviceInfo activeDevice : activeDevices)
                     {
                         // If we have found the "preferred" device among active
                         // device.
-                        if(devicePreferences.get(i).equals(
-                                    activeDevice.getIdentifier()))
+                        if(devicePreference.equals(
+                                activeDevice.getIdentifier()))
                         {
                             return activeDevice;
                         }
                         // If the "none" device is the "preferred" device among
                         // "active" device.
-                        else if(devicePreferences.get(i).equals(
+                        else if(devicePreference.equals(
                                     NoneAudioSystem.LOCATOR_PROTOCOL))
                         {
                             return null;
@@ -211,14 +211,14 @@ public abstract class Devices
         }
 
         // Sorts the user preferences to put the selected device on top.
-        this.addToDevicePreferences(
+        addToDevicePreferences(
                 locator,
                 activeDevices,
                 selectedDeviceIdentifier,
                 isSelected);
 
         // Saves the user preferences.
-        this.writeDevicePreferences(locator, property);
+        writeDevicePreferences(locator, property);
     }
 
     /**
@@ -253,8 +253,7 @@ public abstract class Devices
             }
             this.device = device;
 
-            this.audioSystem
-                .propertyChange(getPropDevice(), oldValue, this.device);
+            audioSystem.propertyChange(getPropDevice(), oldValue, this.device);
         }
     }
 
@@ -394,7 +393,8 @@ public abstract class Devices
                     + "." + property
                     + "_list";
 
-            StringBuffer value = new StringBuffer("[\"");
+            StringBuilder value = new StringBuilder("[\"");
+
             synchronized(devicePreferences)
             {
                 if(devicePreferences.size() > 0)
@@ -402,11 +402,12 @@ public abstract class Devices
                     value.append(devicePreferences.get(0));
                     for(int i = 1; i < devicePreferences.size(); ++i)
                     {
-                        value.append("\", \"" + devicePreferences.get(i));
+                        value.append("\", \"").append(devicePreferences.get(i));
                     }
                 }
             }
             value.append("\"]");
+
             cfg.setProperty(property, value.toString());
         }
     }

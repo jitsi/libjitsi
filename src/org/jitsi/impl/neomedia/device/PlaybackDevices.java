@@ -45,22 +45,10 @@ public class PlaybackDevices
      */
     public List<ExtendedCaptureDeviceInfo> getDevices()
     {
-        return (this.activePlaybackDevices == null)
+        return (activePlaybackDevices == null)
                 ? null
                 : new ArrayList<ExtendedCaptureDeviceInfo>(
-                        this.activePlaybackDevices);
-    }
-
-    /**
-     * Sets the list of the active devices.
-     *
-     * @param activeDevices The list of the active devices.
-     */
-    public void setActiveDevices(List<ExtendedCaptureDeviceInfo> activeDevices)
-    {
-        this.activePlaybackDevices = (activeDevices == null)
-                ? null
-                : new ArrayList<ExtendedCaptureDeviceInfo>(activeDevices);
+                        activePlaybackDevices);
     }
 
     /**
@@ -71,5 +59,17 @@ public class PlaybackDevices
     protected String getPropDevice()
     {
         return PROP_DEVICE;
+    }
+
+    /**
+     * Sets the list of the active devices.
+     *
+     * @param activeDevices The list of the active devices.
+     */
+    public void setActiveDevices(List<ExtendedCaptureDeviceInfo> activeDevices)
+    {
+        activePlaybackDevices = (activeDevices == null)
+                ? null
+                : new ArrayList<ExtendedCaptureDeviceInfo>(activeDevices);
     }
 }

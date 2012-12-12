@@ -7,7 +7,6 @@
 package org.jitsi.impl.neomedia.maccoreaudio;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.util.*;
 
 /**
@@ -56,7 +55,7 @@ public class CoreAudioVolumeControl
         if(CoreAudioDevice.setInputDeviceVolume(deviceUID, volume) != 0)
         {
             logger.debug(
-                    "Could not change MacOsX CoreAudio input device level");
+                    "Could not change Mac OS X CoreAudio input device level");
             return -1;
         }
         return 0;
@@ -68,18 +67,14 @@ public class CoreAudioVolumeControl
      * @param deviceUID The device ID.
      *
      * @Return A scalar value between 0 and 1 if everything works fine. -1 if an
-     * error occured.
+     * error occurred.
      */
     protected float getInputDeviceVolume(String deviceUID)
     {
-        float volume;
+        float volume = CoreAudioDevice.getInputDeviceVolume(deviceUID);
 
-        if((volume = CoreAudioDevice.getInputDeviceVolume(deviceUID))
-                != 0)
-        {
-            logger.debug(
-                    "Could not get MacOsX CoreAudio input device level");
-        }
+        if(logger.isDebugEnabled() && (volume != 0))
+            logger.debug("Could not get Mac OS X CoreAudio input device level");
 
         return volume;
     }

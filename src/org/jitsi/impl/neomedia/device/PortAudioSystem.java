@@ -8,6 +8,7 @@ package org.jitsi.impl.neomedia.device;
 
 import java.lang.ref.*;
 import java.util.*;
+import java.util.regex.*;
 
 import javax.media.*;
 import javax.media.format.*;
@@ -220,10 +221,13 @@ public class PortAudioSystem
         long sampleFormat = Pa.getPaSampleFormat(sampleSizeInBits);
         int defaultInputDeviceIndex = Pa.GetDefaultInputDevice();
         int defaultOutputDeviceIndex = Pa.GetDefaultOutputDevice();
+        List<ExtendedCaptureDeviceInfo> captureAndPlaybackDevices
+            = new LinkedList<ExtendedCaptureDeviceInfo>();
         List<ExtendedCaptureDeviceInfo> captureDevices
             = new LinkedList<ExtendedCaptureDeviceInfo>();
         List<ExtendedCaptureDeviceInfo> playbackDevices
             = new LinkedList<ExtendedCaptureDeviceInfo>();
+        final boolean loggerIsDebugEnabled = logger.isDebugEnabled();
 
         for (int deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++)
         {
@@ -242,80 +246,149 @@ public class PortAudioSystem
             String deviceUID
                 = Pa.DeviceInfo_getDeviceUID(deviceInfo);
 
+            /*
+             * TODO The intention of reinitialize() was to perform the
+             * initialization from scratch. However, AudioSystem was later
+             * changed to disobey. But we should at least search through both
+             * CAPTURE_INDEX and PLAYBACK_INDEX.
+             */
+            List<ExtendedCaptureDeviceInfo> existingCdis
+                = getDevices(CAPTURE_INDEX);
             ExtendedCaptureDeviceInfo cdi = null;
-            List<ExtendedCaptureDeviceInfo> devices = getDevices(CAPTURE_INDEX);
-            boolean found = false;
-            // Search if the device is already initiated. If yes used it,
-            // otherwise a call currently using this device will fail.
-            for(int i = 0; devices !=null && i < devices.size() && !found; ++i)
+
+            if (existingCdis != null)
             {
-                // using identifier (name or uid, cause there can be some
-                // uid that are null)
-                String id = devices.get(i).getIdentifier();
-                if(id.equals(deviceUID) || id.equals(name))
+                for (ExtendedCaptureDeviceInfo existingCdi : existingCdis)
                 {
-                    cdi = devices.get(i);
-                    found = true;
+                    /*
+                     * The deviceUID is optional so a device may be identified
+                     * by deviceUID if it is available or by name if the
+                     * deviceUID is not available.
+                     */
+                    String id = existingCdi.getIdentifier();
+
+                    if (id.equals(deviceUID) || id.equals(name))
+                    {
+                        cdi = existingCdi;
+                        break;
+                    }
                 }
             }
-            // If not found, then we must initialized this new device.
-            if(!found)
+            if (cdi == null)
             {
-                cdi = new ExtendedCaptureDeviceInfo(
-                    name,
-                    new MediaLocator(LOCATOR_PROTOCOL + ":#" + deviceIndex),
-                    new Format[]
-                    {
-                        new AudioFormat(
-                                AudioFormat.LINEAR,
-                                (maxInputChannels > 0)
-                                    ? getSupportedSampleRate(
-                                            true,
-                                            deviceIndex,
-                                            channels,
-                                            sampleFormat)
-                                    : Pa.DEFAULT_SAMPLE_RATE,
-                                sampleSizeInBits,
-                                channels,
-                                AudioFormat.LITTLE_ENDIAN,
-                                AudioFormat.SIGNED,
-                                Format.NOT_SPECIFIED /* frameSizeInBits */,
-                                Format.NOT_SPECIFIED /* frameRate */,
-                                Format.byteArray)
-                    },
-                    deviceUID,
-                    transportType);
+                cdi
+                    = new ExtendedCaptureDeviceInfo(
+                            name,
+                            new MediaLocator(
+                                    LOCATOR_PROTOCOL + ":#" + deviceIndex),
+                            new Format[]
+                            {
+                                new AudioFormat(
+                                        AudioFormat.LINEAR,
+                                        (maxInputChannels > 0)
+                                            ? getSupportedSampleRate(
+                                                    true,
+                                                    deviceIndex,
+                                                    channels,
+                                                    sampleFormat)
+                                            : Pa.DEFAULT_SAMPLE_RATE,
+                                        sampleSizeInBits,
+                                        channels,
+                                        AudioFormat.LITTLE_ENDIAN,
+                                        AudioFormat.SIGNED,
+                                        Format.NOT_SPECIFIED /* frameSizeInBits */,
+                                        Format.NOT_SPECIFIED /* frameRate */,
+                                        Format.byteArray)
+                            },
+                            deviceUID,
+                            transportType);
             }
 
+            /*
+             * When we perform automatic selection of capture and
+             * playback/notify devices, we would like to pick up devices from
+             * one and the same hardware because that sound like a natural
+             * expectation from the point of view of the user. In order to
+             * achieve that, we will bring the devices which support both
+             * capture and playback to the top.
+             */
             if (maxInputChannels > 0)
             {
-                if (deviceIndex == defaultInputDeviceIndex)
+                List<ExtendedCaptureDeviceInfo> devices;
+
+                if (maxOutputChannels > 0)
+                    devices = captureAndPlaybackDevices;
+                else
+                    devices = captureDevices;
+
+                if ((deviceIndex == defaultInputDeviceIndex)
+                        || ((maxOutputChannels > 0)
+                                && (deviceIndex == defaultOutputDeviceIndex)))
                 {
-                    captureDevices.add(0, cdi);
-                    if (logger.isDebugEnabled())
+                    devices.add(0, cdi);
+                    if (loggerIsDebugEnabled)
                         logger.debug("Added default capture device: " + name);
                 }
                 else
                 {
-                    captureDevices.add(cdi);
-                    if (logger.isDebugEnabled())
+                    devices.add(cdi);
+                    if (loggerIsDebugEnabled)
                         logger.debug("Added capture device: " + name);
                 }
+                if (loggerIsDebugEnabled && (maxInputChannels > 0))
+                {
+                    if (deviceIndex == defaultOutputDeviceIndex)
+                        logger.debug("Added default playback device: " + name);
+                    else
+                        logger.debug("Added playback device: " + name);
+                }
             }
-            if (maxOutputChannels > 0)
+            else if (maxOutputChannels > 0)
             {
                 if (deviceIndex == defaultOutputDeviceIndex)
                 {
                     playbackDevices.add(0, cdi);
-                    if (logger.isDebugEnabled())
+                    if (loggerIsDebugEnabled)
                         logger.debug("Added default playback device: " + name);
                 }
                 else
                 {
                     playbackDevices.add(cdi);
-                    if (logger.isDebugEnabled())
+                    if (loggerIsDebugEnabled)
                         logger.debug("Added playback device: " + name);
                 }
+            }
+        }
+
+        /*
+         * Make sure that devices which support both capture and playback are
+         * reported as such and are preferred over devices which support either
+         * capture or playback (in order to achieve our goal to have automatic
+         * selection pick up devices from one and the same hardware).
+         */
+        if (!captureDevices.isEmpty() && !playbackDevices.isEmpty())
+        {
+            /*
+             * Event if we have not been provided with the information regarding
+             * the matching of the capture and playback/notify devices from one
+             * and the same hardware, we may still be able to deduce it by
+             * examining their names.
+             */
+            matchDevicesByName(captureDevices, playbackDevices);
+        }
+        /*
+         * Of course, of highest reliability is the fact that a specific
+         * instance supports both capture and playback.
+         */
+        if (!captureAndPlaybackDevices.isEmpty())
+        {
+            for (int i = captureAndPlaybackDevices.size() - 1; i >= 0; i--)
+            {
+                ExtendedCaptureDeviceInfo cdi
+                    = captureAndPlaybackDevices.get(i);
+
+                captureDevices.add(0, cdi);
+                playbackDevices.add(0, cdi);
             }
         }
 
@@ -486,6 +559,87 @@ public class PortAudioSystem
         else
             supportedSampleRate = Pa.DEFAULT_SAMPLE_RATE;
         return supportedSampleRate;
+    }
+
+    /**
+     * Attempts to reorder specific lists of capture and playback/notify
+     * <tt>ExtendedCaptureDeviceInfo</tt>s so that devices from the same
+     * hardware appear at the same indices in the respective lists. The judgment
+     * with respect to the belonging to the same hardware is based on the names
+     * of the specified <tt>ExtendedCaptureDeviceInfo</tt>s. The implementation
+     * is provided as a fallback to stand in for scenarios in which more
+     * accurate relevant information is not available.
+     *
+     * @param captureDevices
+     * @param playbackDevices
+     */
+    private void matchDevicesByName(
+            List<ExtendedCaptureDeviceInfo> captureDevices,
+            List<ExtendedCaptureDeviceInfo> playbackDevices)
+    {
+        Iterator<ExtendedCaptureDeviceInfo> captureIter
+            = captureDevices.iterator();
+        Pattern pattern
+            = Pattern.compile(
+                    "microphone|speakers|\\p{Space}|\\(|\\)",
+                    Pattern.CASE_INSENSITIVE);
+        LinkedList<ExtendedCaptureDeviceInfo> captureDevicesWithPlayback
+            = new LinkedList<ExtendedCaptureDeviceInfo>();
+        LinkedList<ExtendedCaptureDeviceInfo> playbackDevicesWithCapture
+            = new LinkedList<ExtendedCaptureDeviceInfo>();
+        int count = 0;
+
+        while (captureIter.hasNext())
+        {
+            ExtendedCaptureDeviceInfo captureDevice = captureIter.next();
+            String captureName = captureDevice.getName();
+
+            if (captureName != null)
+            {
+                captureName = pattern.matcher(captureName).replaceAll("");
+                if (captureName.length() != 0)
+                {
+                    Iterator<ExtendedCaptureDeviceInfo> playbackIter
+                        = playbackDevices.iterator();
+                    ExtendedCaptureDeviceInfo matchingPlaybackDevice = null;
+
+                    while (playbackIter.hasNext())
+                    {
+                        ExtendedCaptureDeviceInfo playbackDevice
+                            = playbackIter.next();
+                        String playbackName = playbackDevice.getName();
+
+                        if (playbackName != null)
+                        {
+                            playbackName
+                                = pattern
+                                    .matcher(playbackName)
+                                        .replaceAll("");
+                            if (captureName.equals(playbackName))
+                            {
+                                playbackIter.remove();
+                                matchingPlaybackDevice = playbackDevice;
+                                break;
+                            }
+                        }
+                    }
+                    if (matchingPlaybackDevice != null)
+                    {
+                        captureIter.remove();
+                        captureDevicesWithPlayback.add(captureDevice);
+                        playbackDevicesWithCapture.add(
+                                matchingPlaybackDevice);
+                        count++;
+                    }
+                }
+            }
+        }
+
+        for (int i = count - 1; i >= 0; i--)
+        {
+            captureDevices.add(0, captureDevicesWithPlayback.get(i));
+            playbackDevices.add(0, playbackDevicesWithCapture.get(i));
+        }
     }
 
     /**

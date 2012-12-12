@@ -51,30 +51,40 @@ public class CaptureDevices
      */
     public List<ExtendedCaptureDeviceInfo> getDevices()
     {
-        Format[] formats;
-        Format format = new AudioFormat(AudioFormat.LINEAR, -1, 16, -1);
         List<ExtendedCaptureDeviceInfo> devices = null;
 
-        if(this.activeCaptureDevices != null)
+        if(activeCaptureDevices != null)
         {
-            devices = new ArrayList<ExtendedCaptureDeviceInfo>(
-                    this.activeCaptureDevices.size());
+            devices
+                = new ArrayList<ExtendedCaptureDeviceInfo>(
+                        activeCaptureDevices.size());
 
-            for(ExtendedCaptureDeviceInfo device: this.activeCaptureDevices)
+            Format format = new AudioFormat(AudioFormat.LINEAR, -1, 16, -1);
+
+            for(ExtendedCaptureDeviceInfo device: activeCaptureDevices)
             {
-                formats = device.getFormats();
-                for(int i = 0; i < formats.length; ++i)
+                for(Format deviceFormat : device.getFormats())
                 {
-                    if(formats[i].matches(format))
+                    if(deviceFormat.matches(format))
                     {
                         devices.add(device);
-                        i = formats.length;
+                        break;
                     }
                 }
             }
         }
 
         return devices;
+    }
+
+    /**
+     * Returns the property of the capture devices.
+     *
+     * @return The property of the capture devices.
+     */
+    protected String getPropDevice()
+    {
+        return PROP_DEVICE;
     }
 
     /**
@@ -106,18 +116,8 @@ public class CaptureDevices
             }
         }
 
-        this.activeCaptureDevices = (activeDevices == null)
+        activeCaptureDevices = (activeDevices == null)
                 ? null
                 : new ArrayList<ExtendedCaptureDeviceInfo>(activeDevices);
-    }
-
-    /**
-     * Returns the property of the capture devices.
-     *
-     * @return The property of the capture devices.
-     */
-    protected String getPropDevice()
-    {
-        return PROP_DEVICE;
     }
 }

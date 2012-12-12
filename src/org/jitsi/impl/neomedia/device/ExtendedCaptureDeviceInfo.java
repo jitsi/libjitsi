@@ -18,14 +18,14 @@ public class ExtendedCaptureDeviceInfo
     extends CaptureDeviceInfo
 {
     /**
-     * The device UID (unique identifier).
-     */
-    private final String UID;
-
-    /**
      * The device transport type.
      */
     private final String transportType;
+
+    /**
+     * The device UID (unique identifier).
+     */
+    private final String uid;
 
     /**
      * Constructs a CaptureDeviceInfo object with the specified name, media
@@ -37,14 +37,14 @@ public class ExtendedCaptureDeviceInfo
      */
     public ExtendedCaptureDeviceInfo(
             CaptureDeviceInfo captureDeviceInfo,
-            String UID,
+            String uid,
             String transportType)
     {
         this(
                 captureDeviceInfo.getName(),
                 captureDeviceInfo.getLocator(),
                 captureDeviceInfo.getFormats(),
-                UID,
+                uid,
                 transportType);
     }
 
@@ -59,71 +59,32 @@ public class ExtendedCaptureDeviceInfo
      * @param transportType The device transport type.
      */
     public ExtendedCaptureDeviceInfo(
-            String name,
-            MediaLocator locator,
-            Format[] formats,
-            String UID,
-            String transportType)
+            String name, MediaLocator locator, Format[] formats,
+            String uid, String transportType)
     {
         super(name, locator, formats);
 
-        this.UID = UID;
+        this.uid = uid;
         this.transportType = transportType;
     }
 
     /**
-     * Returns the device UID (unique identifier).
+     * Determines whether a specific <tt>Object</tt> is equal (by value) to this
+     * instance.
      *
-     * @return The device UID (unique identifier).
+     * @param obj the <tt>Object</tt> to be determined whether it is equal (by
+     * value) to this instance
+     * @return <tt>true</tt> if the specified <tt>obj</tt> is equal (by value)
+     * to this instance; otherwise, <tt>false</tt>
      */
-    public String getUID()
-    {
-        return this.UID;
-    }
-
-    /**
-     * Returns the device transport type.
-     *
-     * @return The device transport type.
-     */
-    public String getTransportType()
-    {
-        return this.transportType;
-    }
-
-    /**
-     * Returns if the transport type matches the one given in parameter.
-     *
-     * The transport type to compare with.
-     *
-     * @return True if the transport type matches the one given in parameter.
-     * False otherwise.
-     */
-    public boolean isSameTransportType(String transportType)
-    {
-        if(this.transportType == null)
-        {
-            return (transportType == null);
-        }
-        return this.transportType.equals(transportType);
-    }
-
     @Override
     public boolean equals(Object obj)
     {
-        if(obj != null
-                && obj instanceof ExtendedCaptureDeviceInfo)
-        {
-            return this.getIdentifier().equals(
-                    ((ExtendedCaptureDeviceInfo) obj).getIdentifier());
-        }
-        return false;
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return this.getIdentifier().hashCode();
+        return
+            (obj != null)
+                && (obj instanceof ExtendedCaptureDeviceInfo)
+                && getIdentifier().equals(
+                        ((ExtendedCaptureDeviceInfo) obj).getIdentifier());
     }
 
     /**
@@ -135,6 +96,55 @@ public class ExtendedCaptureDeviceInfo
      */
     public String getIdentifier()
     {
-        return (UID == null) ? name : UID;
+        return (uid == null) ? name : uid;
+    }
+
+    /**
+     * Returns the device transport type of this instance.
+     *
+     * @return the device transport type of this instance
+     */
+    public String getTransportType()
+    {
+        return transportType;
+    }
+
+    /**
+     * Returns the device UID (unique identifier) of this instance.
+     *
+     * @return the device UID (unique identifier) of this instance
+     */
+    public String getUID()
+    {
+        return uid;
+    }
+
+    /**
+     * Returns a hash code value for this object for the benefit of hashtables.
+     *
+     * @return a hash code value for this object for the benefit of hashtables
+     */
+    @Override
+    public int hashCode()
+    {
+        return getIdentifier().hashCode();
+    }
+
+    /**
+     * Determines whether a specific transport type is equal to/the same as the
+     * transport type of this instance.
+     *
+     * @param transportType the transport type to compare to the transport type
+     * of this instance
+     * @return <tt>true</tt> if the specified <tt>transportType</tt> is equal
+     * to/the same as the transport type of this instance; otherwise,
+     * <tt>false</tt>
+     */
+    public boolean isSameTransportType(String transportType)
+    {
+        return
+            (this.transportType == null)
+                ? (transportType == null)
+                : this.transportType.equals(transportType);
     }
 }

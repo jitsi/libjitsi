@@ -6,7 +6,6 @@
  */
 package org.jitsi.impl.neomedia.portaudio;
 
-import java.io.*;
 import java.lang.reflect.*;
 
 import org.jitsi.service.configuration.*;

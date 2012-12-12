@@ -7,7 +7,6 @@
 package org.jitsi.impl.neomedia.wincoreaudio;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.util.*;
 
 /**
@@ -78,7 +77,7 @@ public class CoreAudioVolumeControl
      * @param deviceUID The device ID.
      *
      * @Return A scalar value between 0 and 1 if everything works fine. -1 if an
-     * error occured.
+     * error occurred.
      */
     protected float getInputDeviceVolume(String deviceUID)
     {

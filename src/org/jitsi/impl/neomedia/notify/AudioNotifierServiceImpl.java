@@ -7,7 +7,6 @@
 package org.jitsi.impl.neomedia.notify;
 
 import java.beans.*;
-import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -16,8 +15,6 @@ import javax.media.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.audionotifier.*;
-import org.jitsi.service.libjitsi.*;
-import org.jitsi.service.resources.*;
 
 /**
  * The implementation of <tt>AudioNotifierService</tt>.
