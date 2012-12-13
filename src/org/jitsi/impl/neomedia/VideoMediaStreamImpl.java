@@ -591,6 +591,26 @@ public class VideoMediaStreamImpl
     }
 
     /**
+     * Gets the visual <tt>Component</tt>s rendering the <tt>ReceiveStream</tt>
+     * corresponding to the given ssrc.
+     *
+     * @param ssrc the src-id of the receive stream, which visual
+     * <tt>Component</tt> we're looking for
+     * @return the visual <tt>Component</tt> rendering the
+     * <tt>ReceiveStream</tt> corresponding to the given ssrc
+     */
+    public Component getVisualComponent(long ssrc)
+    {
+        MediaDeviceSession deviceSession = getDeviceSession();
+
+        return
+            (deviceSession instanceof VideoMediaDeviceSession)
+                ? ((VideoMediaDeviceSession) deviceSession).getVisualComponent(
+                        ssrc)
+                : null;
+    }
+
+    /**
      * Gets a list of the visual <tt>Component</tt>s where video from the remote
      * peer is being rendered.
      *
@@ -612,26 +632,6 @@ public class VideoMediaStreamImpl
         else
             visualComponents = Collections.emptyList();
         return visualComponents;
-    }
-
-    /**
-     * Gets the visual <tt>Component</tt>s rendering the <tt>ReceiveStream</tt>
-     * corresponding to the given ssrc.
-     *
-     * @param ssrc the src-id of the receive stream, which visual
-     * <tt>Component</tt> we're looking for
-     * @return the visual <tt>Component</tt> rendering the
-     * <tt>ReceiveStream</tt> corresponding to the given ssrc
-     */
-    public Component getVisualComponent(long ssrc)
-    {
-        MediaDeviceSession deviceSession = getDeviceSession();
-
-        return
-            (deviceSession instanceof VideoMediaDeviceSession)
-                ? ((VideoMediaDeviceSession) deviceSession).getVisualComponent(
-                        ssrc)
-                : null;
     }
 
     /**

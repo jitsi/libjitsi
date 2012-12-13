@@ -902,7 +902,7 @@ public class VideoMediaDeviceSession
     {
         Player player = getPlayer(ssrc);
 
-        return (player == null) ? null : player.getVisualComponent();
+        return (player == null) ? null : getVisualComponent(player);
     }
 
     /**
