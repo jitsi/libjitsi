@@ -168,4 +168,79 @@ public interface MediaStreamStats
      */
     public double getPercentDiscarded();
 
+    /**
+     * Checks whether there is an adaptive jitter buffer enabled for at least
+     * one of the <tt>ReceiveStream</tt>s of the <tt>MediaStreamImpl</tt>.
+     *
+     * @return <tt>true</tt> if there is an adaptive jitter buffer enabled for
+     * at least one of the <tt>ReceiveStream</tt>s of the
+     * <tt>MediaStreamImpl</tt>. Otherwise, <tt>false</tt>
+     */
+    public boolean isAdaptiveBufferEnabled();
+
+    /**
+     * Returns the delay in number of packets introduced by the jitter buffer.
+     *
+     * @return the delay in number of packets introduced by the jitter buffer
+     */
+    public int getJitterBufferDelayPackets();
+
+    /**
+     * Returns the delay in milliseconds introduced by the jitter buffer.
+     *
+     * @return the delay in milliseconds introduces by the jitter buffer
+     */
+    public int getJitterBufferDelayMs();
+
+    /**
+     * Returns the number of packets discarded since the beginning of the
+     * session, because the packet queue was reset.
+     *
+     * @return the number of packets discarded since the beginning of the
+     * session, because the packet queue was reset.
+     */
+    public int getNbDiscardedReset();
+
+    /**
+     * Returns the number of packets discarded since the beginning of the
+     * session, because they were late.
+     *
+     * @return the number of packets discarded since the beginning of the
+     * session, because they were late.
+     */
+    public int getNbDiscardedLate();
+
+    /**
+     * Returns the number of packets discarded since the beginning of the
+     * session, while the packet queue was shrinking.
+     *
+     * @return the number of packets discarded since the beginning of the
+     * session, while the packet queue was shrinking.
+     */
+    public int getNbDiscardedShrink();
+
+    /**
+     * Returns the number of packets discarded since the beginning of the
+     * session, because the packet queue was full.
+     *
+     * @return the number of packets discarded since the beginning of the
+     * session, because the packet queue was full.
+     */
+    public int getNbDiscardedFull();
+
+    /**
+     * Returns the current size of the packet queue.
+     *
+     * @return the current size of the packet queue.
+     */
+    public int getPacketQueueSize();
+
+    /**
+     * Returns the number of packets currently in the packet queue.
+     *
+     * @return the number of packets currently in the packet queue.
+     */
+    public int getPacketQueueCountPackets();
+
+
 }

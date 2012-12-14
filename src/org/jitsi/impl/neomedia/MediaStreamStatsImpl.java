@@ -8,8 +8,11 @@ package org.jitsi.impl.neomedia;
 
 import java.awt.*;
 import java.net.*;
+import java.util.*;
 
 import javax.media.format.*;
+import javax.media.control.*;
+import javax.media.protocol.*;
 import javax.media.rtp.*;
 
 import net.sf.fmj.media.rtp.*;
@@ -19,6 +22,7 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
+import org.relaxng.datatype.DatatypeStreamingValidator;
 
 /**
  * Class used to compute stats concerning a MediaStream.
@@ -692,7 +696,7 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * Returns the number of Protocol Data Units (PDU) discarded by the
+     * Returns the total number of Protocol Data Units (PDU) discarded by the
      * FMJ packet queue since the beginning of the session. It's the sum over
      * all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
      *
@@ -701,22 +705,69 @@ public class MediaStreamStatsImpl
     public long getNbDiscarded()
     {
         int nbDiscarded = 0;
-
-        if (mediaStreamImpl.isStarted())
-        {
-            MediaDeviceSession devSession = mediaStreamImpl.getDeviceSession();
-
-            if (devSession != null)
-            {
-                for(ReceiveStream receiveStream
-                        : devSession.getReceiveStreams())
-                {
-                    nbDiscarded
-                        += receiveStream.getSourceReceptionStats().getPDUDrop();
-                }
-            }
-        }
+        for(PacketQueueControl pqc : getPacketQueueControls())
+            nbDiscarded =+ pqc.getDiscarded();
         return nbDiscarded;
+    }
+
+    /**
+     * Returns the number of Protocol Data Units (PDU) discarded by the
+     * FMJ packet queue since the beginning of the session due to shrinking.
+     * It's the sum over all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
+     *
+     * @return the number of discarded packets due to shrinking.
+     */
+    public int getNbDiscardedShrink()
+    {
+        int nbDiscardedShrink = 0;
+        for(PacketQueueControl pqc : getPacketQueueControls())
+            nbDiscardedShrink =+ pqc.getDiscardedShrink();
+        return nbDiscardedShrink;
+    }
+
+    /**
+     * Returns the number of Protocol Data Units (PDU) discarded by the
+     * FMJ packet queue since the beginning of the session because it was full.
+     * It's the sum over all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
+     *
+     * @return the number of discarded packets because it was full.
+     */
+    public int getNbDiscardedFull()
+    {
+        int nbDiscardedFull = 0;
+        for(PacketQueueControl pqc : getPacketQueueControls())
+            nbDiscardedFull =+ pqc.getDiscardedFull();
+        return nbDiscardedFull;
+    }
+
+    /**
+     * Returns the number of Protocol Data Units (PDU) discarded by the
+     * FMJ packet queue since the beginning of the session because they were late.
+     * It's the sum over all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
+     *
+     * @return the number of discarded packets because they were late.
+     */
+    public int getNbDiscardedLate()
+    {
+        int nbDiscardedLate = 0;
+        for(PacketQueueControl pqc : getPacketQueueControls())
+            nbDiscardedLate =+ pqc.getDiscardedLate();
+        return nbDiscardedLate;
+    }
+
+    /**
+     * Returns the number of Protocol Data Units (PDU) discarded by the
+     * FMJ packet queue since the beginning of the session during resets.
+     * It's the sum over all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
+     *
+     * @return the number of discarded packets during resets.
+     */
+    public int getNbDiscardedReset()
+    {
+        int nbDiscardedReset = 0;
+        for(PacketQueueControl pqc : getPacketQueueControls())
+            nbDiscardedReset =+ pqc.getDiscardedReset();
+        return nbDiscardedReset;
     }
 
     /**
@@ -898,5 +949,114 @@ public class MediaStreamStatsImpl
 
         // Saves the last update number download lost value.
         this.nbDiscarded += newNbDiscarded;
+    }
+
+    public boolean isAdaptiveBufferEnabled()
+    {
+        for(PacketQueueControl pcq : getPacketQueueControls())
+            if(pcq.isAdaptiveBufferEnabled())
+                return true;
+        return false;
+    }
+
+    /**
+     * Returns the delay in number of packets introduced by the jitter buffer.
+     * Since there might be multiple <tt>ReceiveStreams</tt>, returns the
+     * biggest delay found in any of them.
+     *
+     * @return the delay in number of packets introduced by the jitter buffer
+     */
+    public int getJitterBufferDelayPackets()
+    {
+        int delay = 0;
+        for(PacketQueueControl pqc : getPacketQueueControls())
+            if(pqc.getCurrentDelayPackets() > delay)
+                delay = pqc.getCurrentDelayPackets();
+
+        return delay;
+    }
+
+    /**
+     * Returns the delay in milliseconds introduced by the jitter buffer.
+     * Since there might be multiple <tt>ReceiveStreams</tt>, returns the
+     * biggest delay found in any of them.
+     *
+     * @return the delay in milliseconds introduces by the jitter buffer
+     */
+    public int getJitterBufferDelayMs()
+    {
+        int delay = 0;
+        for(PacketQueueControl pqc : getPacketQueueControls())
+          if(pqc.getCurrentDelayMs() > delay)
+              delay = pqc.getCurrentDelayMs();
+        return delay;
+    }
+
+    /**
+     * Returns the size of the first <tt>PacketQueueControl</tt> found via
+     * <tt>getPacketQueueControls</tt>.
+     *
+     * @return the size of the first <tt>PacketQueueControl</tt> found via
+     * <tt>getPacketQueueControls</tt>.
+     */
+    public int getPacketQueueSize()
+    {
+        for(PacketQueueControl pqc : getPacketQueueControls())
+            return pqc.getCurrentSizePackets();
+        return 0;
+    }
+
+    /**
+     * Returns the number of packets in the first <tt>PacketQueueControl</tt>
+     * found via <tt>getPacketQueueControls</tt>.
+     *
+     * @return the number of packets in the first <tt>PacketQueueControl</tt>
+     * found via <tt>getPacketQueueControls</tt>.
+     */
+    public int getPacketQueueCountPackets()
+    {
+        for(PacketQueueControl pqc : getPacketQueueControls())
+            return pqc.getCurrentPacketCount();
+        return 0;
+    }
+
+    /**
+     * Returns the set of <tt>PacketQueueControls</tt> found for all the
+     * <tt>DataSource</tt>s of all the <tt>ReceiveStream</tt>s. The set contains
+     * only non-null elements.
+     *
+     * @return the set of <tt>PacketQueueControls</tt> found for all the
+     * <tt>DataSource</tt>s of all the <tt>ReceiveStream</tt>s. The set contains
+     * only non-null elements.
+     */
+    private Set<PacketQueueControl> getPacketQueueControls()
+    {
+        Set<PacketQueueControl> set = new TreeSet<PacketQueueControl>();
+        if (mediaStreamImpl.isStarted())
+        {
+            MediaDeviceSession devSession = mediaStreamImpl.getDeviceSession();
+            if (devSession != null)
+            {
+                for(ReceiveStream receiveStream
+                        : devSession.getReceiveStreams())
+                {
+                    DataSource ds = receiveStream.getDataSource();
+                    if(ds instanceof net.sf.fmj.media.protocol.rtp.DataSource)
+                    {
+                        for (PushBufferStream pbs :
+                                ((net.sf.fmj.media.protocol.rtp.DataSource)ds)
+                                        .getStreams())
+                        {
+                            PacketQueueControl pqc = (PacketQueueControl)
+                                    pbs.getControl(
+                                            PacketQueueControl.class.getName());
+                            if(pqc != null)
+                                set.add(pqc);
+                        }
+                    }
+                }
+            }
+        }
+        return set;
     }
 }
