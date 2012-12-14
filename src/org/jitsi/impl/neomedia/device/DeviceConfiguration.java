@@ -1012,6 +1012,11 @@ public class DeviceConfiguration
                 || AUDIO_NOTIFY_DEVICE.equals(propertyName)
                 || AUDIO_PLAYBACK_DEVICE.equals(propertyName))
         {
+            // Try to switch to a new active audio system if we are currently
+            // using the "none" system.
+            switchFromNoneToActiveAudioSystem(
+                    (CaptureDeviceInfo) event.getNewValue());
+
             CaptureDeviceInfo deviceInfo
                 = (CaptureDeviceInfo) event.getOldValue();
             if(deviceInfo == null)
@@ -1182,6 +1187,43 @@ public class DeviceConfiguration
                     {
                         deviceSystem.addPropertyChangeListener(this);
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * Tries to automatically switch from the none audio system to a new active
+     * audio system: detected by an event showing that there is at least one
+     * device active for this system.
+     *
+     * @param newActiveDevice A device that have been recently detected has
+     * available.
+     */
+    private void switchFromNoneToActiveAudioSystem(
+            CaptureDeviceInfo newActiveDevice)
+    {
+        if(newActiveDevice != null)
+        {
+            String deviceSystemProtocol
+                = newActiveDevice.getLocator().getProtocol();
+            // If we are currently using the "none" system, and that the new
+            // available device uses a different system: then switch to the new
+            // audio system.
+            if(!deviceSystemProtocol.equals(NoneAudioSystem.LOCATOR_PROTOCOL)
+                && getAudioSystem().getLocatorProtocol().equals(
+                    NoneAudioSystem.LOCATOR_PROTOCOL))
+            {
+                // If the AUDIO media type is disabled via
+                // MediaServiceImpl.DISABLE_AUDIO_SUPPORT_PNAME, then the
+                // DeviceSystem.initializeDeviceSystems will not instantiante
+                // any other audio system (except the "none" one). Thereby, the
+                // Audio.getAudioSystem will return null.
+                AudioSystem deviceAudioSystem
+                    = AudioSystem.getAudioSystem(deviceSystemProtocol);
+                if(deviceAudioSystem != null)
+                {
+                    setAudioSystem(deviceAudioSystem, false);
                 }
             }
         }
