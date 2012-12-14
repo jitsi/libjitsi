@@ -51,6 +51,11 @@ public class CoreAudioVolumeControl
      */
     protected int setInputDeviceVolume(String deviceUID, float volume)
     {
+        if(deviceUID == null)
+        {
+            return -1;
+        }
+
         if(CoreAudioDevice.initDevices() == -1)
         {
             CoreAudioDevice.freeDevices();
@@ -82,6 +87,11 @@ public class CoreAudioVolumeControl
     protected float getInputDeviceVolume(String deviceUID)
     {
         float volume;
+
+        if(deviceUID == null)
+        {
+            return -1;
+        }
 
         if(CoreAudioDevice.initDevices() == -1)
         {

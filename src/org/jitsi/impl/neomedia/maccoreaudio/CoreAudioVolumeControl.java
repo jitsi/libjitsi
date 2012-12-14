@@ -51,6 +51,11 @@ public class CoreAudioVolumeControl
      */
     protected int setInputDeviceVolume(String deviceUID, float volume)
     {
+        if(deviceUID == null)
+        {
+            return -1;
+        }
+
         // Changes the input volume of the capture device.
         if(CoreAudioDevice.setInputDeviceVolume(deviceUID, volume) != 0)
         {
@@ -71,6 +76,11 @@ public class CoreAudioVolumeControl
      */
     protected float getInputDeviceVolume(String deviceUID)
     {
+        if(deviceUID == null)
+        {
+            return -1;
+        }
+
         float volume = CoreAudioDevice.getInputDeviceVolume(deviceUID);
 
         if(logger.isDebugEnabled() && (volume != 0))
