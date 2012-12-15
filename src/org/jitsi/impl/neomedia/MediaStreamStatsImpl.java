@@ -1031,7 +1031,7 @@ public class MediaStreamStatsImpl
      */
     private Set<PacketQueueControl> getPacketQueueControls()
     {
-        Set<PacketQueueControl> set = new TreeSet<PacketQueueControl>();
+        Set<PacketQueueControl> set = new HashSet<PacketQueueControl>();
         if (mediaStreamImpl.isStarted())
         {
             MediaDeviceSession devSession = mediaStreamImpl.getDeviceSession();
