@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia;
 
+import java.beans.*;
 import java.util.*;
 
 import javax.media.*;
@@ -22,6 +23,7 @@ import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.protocol.*;
 import org.jitsi.util.*;
+import org.jitsi.util.event.*;
 
 /**
  * Extends <tt>MediaStreamImpl</tt> in order to provide an implementation of
@@ -32,7 +34,8 @@ import org.jitsi.util.*;
  */
 public class AudioMediaStreamImpl
     extends MediaStreamImpl
-    implements AudioMediaStream
+    implements AudioMediaStream,
+                PropertyChangeListener
 {
 
     /**
@@ -86,6 +89,14 @@ public class AudioMediaStreamImpl
     private CsrcAudioLevelListener csrcAudioLevelListener = null;
 
     /**
+     * A property change notifier which will inform this stream if a selected
+     * audio device (capture, playback or notification device) has changed. We
+     * want to listen to these events, especially for those generated after the
+     * audio system has changed.
+     */
+    private PropertyChangeNotifier audioSystemChangeNotifier;
+
+    /**
      * Initializes a new <tt>AudioMediaStreamImpl</tt> instance which will use
      * the specified <tt>MediaDevice</tt> for both capture and playback of audio
      * exchanged via the specified <tt>StreamConnector</tt>.
@@ -97,12 +108,20 @@ public class AudioMediaStreamImpl
      * <tt>StreamConnector</tt>
      * @param srtpControl a control which is already created, used to control
      * the srtp operations.
+     * @param audioSystemChangeNotifier A property change notifier which will
+     * inform this stream if a selected audio device (capture, playback or
+     * notification device) has changed. We want to listen to these events,
+     * especially for those generated after the audio system has changed.
      */
     public AudioMediaStreamImpl(StreamConnector connector,
                                 MediaDevice     device,
-                                SrtpControl srtpControl)
+                                SrtpControl srtpControl,
+                                PropertyChangeNotifier audioSystemChangeNotifier
+                                )
     {
         super(connector, device, srtpControl);
+        this.audioSystemChangeNotifier = audioSystemChangeNotifier;
+        this.audioSystemChangeNotifier.addPropertyChangeListener(this);
     }
 
     /**
@@ -488,6 +507,8 @@ public class AudioMediaStreamImpl
         {
            dtmfTransfrmEngine = null;
         }
+
+        this.audioSystemChangeNotifier.removePropertyChangeListener(this);
     }
 
     /**
@@ -499,5 +520,22 @@ public class AudioMediaStreamImpl
     protected int getPriority()
     {
         return 3;
+    }
+
+    /**
+     * Receives and reacts to property change events: if the selected device
+     * (for capture, playback or notifications) has changed, then create or
+     * recreate the streams in order to use it.
+     * We want to listen to these events, especially for those generated after
+     * the audio system has changed.
+     *
+     * @param evt The event which may contain a audio system change event.
+     */
+    public void propertyChange(PropertyChangeEvent evt)
+    {
+        if (sendStreamsAreCreated)
+            recreateSendStreams();
+        else
+            start();
     }
 }

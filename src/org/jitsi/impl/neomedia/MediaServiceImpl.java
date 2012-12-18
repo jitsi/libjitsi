@@ -359,7 +359,8 @@ public class MediaServiceImpl
         switch (mediaType)
         {
         case AUDIO:
-            return new AudioMediaStreamImpl(connector, device, srtpControl);
+            return
+                new AudioMediaStreamImpl(connector, device, srtpControl, this);
         case VIDEO:
             return new VideoMediaStreamImpl(connector, device, srtpControl);
         default:

@@ -140,7 +140,7 @@ public class MediaStreamImpl
      * respectively the <tt>MediaDeviceSession</tt>, of this instance is
      * changed.
      */
-    private boolean sendStreamsAreCreated = false;
+    protected boolean sendStreamsAreCreated = false;
 
     /**
      * The indicator which determines whether {@link #start()} has been called
@@ -1368,7 +1368,7 @@ public class MediaStreamImpl
      * If they were not started prior to the call, does not start them after
      * recreating them.
      */
-    private void recreateSendStreams()
+    protected void recreateSendStreams()
     {
         if (sendStreamsAreCreated)
         {
