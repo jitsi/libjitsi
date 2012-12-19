@@ -32,7 +32,7 @@ public class CaptureDevices
     /**
      * The list of active (actually plugged-in) capture devices.
      */
-    private List<ExtendedCaptureDeviceInfo> activeCaptureDevices = null;
+    private List<ExtendedCaptureDeviceInfo> activeCaptureDevices;
 
     /**
      * Initializes the capture device list management.
@@ -51,9 +51,11 @@ public class CaptureDevices
      */
     public List<ExtendedCaptureDeviceInfo> getDevices()
     {
-        List<ExtendedCaptureDeviceInfo> devices = null;
+        List<ExtendedCaptureDeviceInfo> devices;
 
-        if(activeCaptureDevices != null)
+        if(activeCaptureDevices == null)
+            devices = Collections.emptyList();
+        else
         {
             devices
                 = new ArrayList<ExtendedCaptureDeviceInfo>(
@@ -94,7 +96,9 @@ public class CaptureDevices
      */
     public void setActiveDevices(List<ExtendedCaptureDeviceInfo> activeDevices)
     {
-        if(activeDevices != null)
+        if(activeDevices == null)
+            activeCaptureDevices = null;
+        else
         {
             boolean commit = false;
 
@@ -114,10 +118,9 @@ public class CaptureDevices
                     // Whatever.
                 }
             }
-        }
 
-        activeCaptureDevices = (activeDevices == null)
-                ? null
-                : new ArrayList<ExtendedCaptureDeviceInfo>(activeDevices);
+            activeCaptureDevices
+                = new ArrayList<ExtendedCaptureDeviceInfo>(activeDevices);
+        }
     }
 }

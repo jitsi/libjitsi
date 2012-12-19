@@ -26,7 +26,7 @@ public class PlaybackDevices
     /**
      * The list of active (actually plugged-in) playback devices.
      */
-    private List<ExtendedCaptureDeviceInfo> activePlaybackDevices = null;
+    private List<ExtendedCaptureDeviceInfo> activePlaybackDevices;
 
     /**
      * Initializes the playback device list management.
@@ -45,10 +45,18 @@ public class PlaybackDevices
      */
     public List<ExtendedCaptureDeviceInfo> getDevices()
     {
-        return (activePlaybackDevices == null)
-                ? null
-                : new ArrayList<ExtendedCaptureDeviceInfo>(
+        List<ExtendedCaptureDeviceInfo> devices;
+
+        if (activePlaybackDevices == null)
+            devices = Collections.emptyList();
+        else
+        {
+            devices
+                = new ArrayList<ExtendedCaptureDeviceInfo>(
                         activePlaybackDevices);
+        }
+
+        return devices;
     }
 
     /**
@@ -68,7 +76,8 @@ public class PlaybackDevices
      */
     public void setActiveDevices(List<ExtendedCaptureDeviceInfo> activeDevices)
     {
-        activePlaybackDevices = (activeDevices == null)
+        activePlaybackDevices
+            = (activeDevices == null)
                 ? null
                 : new ArrayList<ExtendedCaptureDeviceInfo>(activeDevices);
     }

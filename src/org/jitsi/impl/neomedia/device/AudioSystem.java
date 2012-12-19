@@ -24,6 +24,7 @@ import javax.sound.sampled.*;
  * integrate the native PortAudio, PulseAudio libraries.
  *
  * @author Lyubomir Marinov
+ * @author Vincent Lucas
  */
 public abstract class AudioSystem
     extends DeviceSystem
@@ -293,15 +294,17 @@ public abstract class AudioSystem
         List<ExtendedCaptureDeviceInfo> activeDevices = getDevices(index);
         // Gets the default device.
         Devices devices = this.devices[index];
+        String locatorProtocol = getLocatorProtocol();
         ExtendedCaptureDeviceInfo selectedActiveDevice
-            = devices.getDevice(getLocatorProtocol(), activeDevices);
-        // Sets the default device as selected (this function will only fire a
-        // property change if the device has changed from previous
-        // configuration).
-        // This "set" part is important because only the fire property event
-        // provides a way to get hot plugged devices working during a call.
+            = devices.getDevice(locatorProtocol, activeDevices);
+
+        // Sets the default device as selected. The function will fire a
+        // property change only if the device has changed from a previous
+        // configuration. The "set" part is important because only the fired
+        // property event provides a way to get the hotplugged devices working
+        // during a call.
         devices.setDevice(
-                getLocatorProtocol(),
+                locatorProtocol,
                 selectedActiveDevice,
                 false,
                 activeDevices);

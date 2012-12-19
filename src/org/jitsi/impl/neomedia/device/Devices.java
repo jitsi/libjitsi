@@ -67,9 +67,11 @@ public abstract class Devices
             // Search if an active device is a new one (is not stored in the
             // preferences yet). If true, then active this device and set it as
             // default device (only for USB devices since the user has
-            // deliberately plugged-in the device).
-            for(ExtendedCaptureDeviceInfo activeDevice : activeDevices)
+            // deliberately plugged in the device).
+            for(int i = activeDevices.size() - 1; i >= 0; i--)
             {
+                ExtendedCaptureDeviceInfo activeDevice = activeDevices.get(i);
+
                 if(!devicePreferences.contains(activeDevice.getIdentifier()))
                 {
                     // Adds the device in the preference list (to the end of the
@@ -204,11 +206,10 @@ public abstract class Devices
             List<ExtendedCaptureDeviceInfo> activeDevices,
             boolean isSelected)
     {
-        String selectedDeviceIdentifier = NoneAudioSystem.LOCATOR_PROTOCOL;
-        if(device != null)
-        {
-            selectedDeviceIdentifier = device.getIdentifier();
-        }
+        String selectedDeviceIdentifier
+            = (device == null)
+                ? NoneAudioSystem.LOCATOR_PROTOCOL
+                : device.getIdentifier();
 
         // Sorts the user preferences to put the selected device on top.
         addToDevicePreferences(
@@ -288,24 +289,25 @@ public abstract class Devices
             String newDeviceIdentifier,
             boolean isSelected)
     {
-        int i;
-        int j;
-
         synchronized(devicePreferences)
         {
             devicePreferences.remove(newDeviceIdentifier);
             if(isSelected)
             {
-                // Searches for the first active device.
-                for(i = 0; i < devicePreferences.size(); ++i)
+                // Search for the first active device.
+                for(int i = 0, devicePreferenceCount = devicePreferences.size();
+                        i < devicePreferenceCount;
+                        i++)
                 {
-                    // Checks if this element is an active device.
-                    for(j = 0; j < activeDevices.size(); ++j)
+                    String devicePreference = devicePreferences.get(i);
+
+                    // Check if devicePreference is an active device.
+                    for(ExtendedCaptureDeviceInfo activeDevice : activeDevices)
                     {
-                        if(devicePreferences.get(i).equals(
-                                    activeDevices.get(j).getIdentifier())
-                                || devicePreferences.get(i).equals(
-                                    NoneAudioSystem.LOCATOR_PROTOCOL))
+                        if(devicePreference.equals(
+                                    activeDevice.getIdentifier())
+                                || devicePreference.equals(
+                                        NoneAudioSystem.LOCATOR_PROTOCOL))
                         {
                             // The first active device is found.
                             devicePreferences.add(i, newDeviceIdentifier);
@@ -315,7 +317,7 @@ public abstract class Devices
                     }
                 }
             }
-            // If there is no active devices or the device is not selected, then
+            // If there is no active device or the device is not selected, then
             // set the new device to the end of the device preference list.
             devicePreferences.add(newDeviceIdentifier);
         }
@@ -330,46 +332,40 @@ public abstract class Devices
     private void renameOldFashionedIdentifier(
             List<ExtendedCaptureDeviceInfo> activeDevices)
     {
-        String name;
-        String id;
-        int nameIndex;
-        int idIndex;
         // Renames the old fashioned device identifier for all active devices.
-        for(int i = 0; i < activeDevices.size(); ++i)
+        for(ExtendedCaptureDeviceInfo activeDevice : activeDevices)
         {
-            name = activeDevices.get(i).getName();
-            id = activeDevices.get(i).getIdentifier();
+            String name = activeDevice.getName();
+            String id = activeDevice.getIdentifier();
+
             // We can only switch to the new fashioned notation, only if the OS
-            // api give us a unique identifier (different from the device name).
+            // API gives us a unique identifier (different from the device
+            // name).
             if(!name.equals(id))
             {
                 synchronized(devicePreferences)
                 {
                     do
                     {
-                        nameIndex = devicePreferences.indexOf(
-                                activeDevices.get(i).getName());
-                        idIndex = devicePreferences.indexOf(
-                                activeDevices.get(i).getIdentifier());
+                        int nameIndex = devicePreferences.indexOf(name);
+
                         // If there is one old fashioned identifier.
-                        if(nameIndex != -1)
+                        if(nameIndex == -1)
+                            break;
+                        else
                         {
+                            int idIndex = devicePreferences.indexOf(id);
+
                             // If the corresponding new fashioned identifier
-                            // does not exists, then renames the old one into
+                            // does not exist, then renames the old one into
                             // the new one.
                             if(idIndex == -1)
-                            {
-                                devicePreferences.set(nameIndex,
-                                        activeDevices.get(i).getIdentifier());
-                            }
-                            // Else removes the duplicate.
-                            else
-                            {
+                                devicePreferences.set(nameIndex, id);
+                            else // Remove the duplicate.
                                 devicePreferences.remove(nameIndex);
-                            }
                         }
                     }
-                    while(nameIndex != -1);
+                    while(true);
                 }
             }
         }
@@ -397,13 +393,13 @@ public abstract class Devices
 
             synchronized(devicePreferences)
             {
-                if(devicePreferences.size() > 0)
+                int devicePreferenceCount = devicePreferences.size();
+
+                if(devicePreferenceCount != 0)
                 {
                     value.append(devicePreferences.get(0));
-                    for(int i = 1; i < devicePreferences.size(); ++i)
-                    {
+                    for(int i = 1; i < devicePreferenceCount; i++)
                         value.append("\", \"").append(devicePreferences.get(i));
-                    }
                 }
             }
             value.append("\"]");

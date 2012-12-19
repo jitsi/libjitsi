@@ -10,12 +10,17 @@
 #include "AudioQualityImprovement.h"
 #include "ConditionVariable.h"
 #include "Mutex.h"
+
 #include <portaudio.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+
+#ifdef _WIN32
+    #include "WMME_DSound.h"
+#endif /* #ifdef _WIN32 */
 
 typedef struct
 {
@@ -250,10 +255,24 @@ JNIEXPORT jbyteArray JNICALL
 Java_org_jitsi_impl_neomedia_portaudio_Pa_DeviceInfo_1getNameBytes
     (JNIEnv *env, jclass clazz, jlong deviceInfo)
 {
-    return
-        PortAudio_getStrBytes(
-            env,
-            ((PaDeviceInfo *) (intptr_t) deviceInfo)->name);
+    PaDeviceInfo *di = (PaDeviceInfo *) (intptr_t) deviceInfo;
+    const char *name;
+
+#ifdef _WIN32
+    const PaHostApiInfo *hai = Pa_GetHostApiInfo(di->hostApi);
+
+    if (hai && (paMME == hai->type))
+    {
+        name = WMME_DSound_DeviceInfo_getName(di);
+        if (!name)
+            name = di->name;
+    }
+    else
+        name = di->name;
+#else /* #ifdef _WIN32 */
+    name = di->name;
+#endif /* #ifdef _WIN32 */
+    return PortAudio_getStrBytes(env, name);
 }
 
 JNIEXPORT jbyteArray JNICALL
@@ -876,6 +895,9 @@ Java_org_jitsi_impl_neomedia_portaudio_Pa_UpdateAvailableDeviceList
     (JNIEnv *env, jclass clazz)
 {
     Pa_UpdateAvailableDeviceList();
+#ifdef _WIN32
+    WMME_DSound_didUpdateAvailableDeviceList();
+#endif /* #ifdef _WIN32 */
 }
 
 JNIEXPORT void JNICALL
@@ -1005,6 +1027,9 @@ JNI_OnLoad(JavaVM *vm, void *reserved)
 {
     PortAudio_vm = vm;
     AudioQualityImprovement_load();
+#ifdef _WIN32
+    WMME_DSound_load();
+#endif /* #ifdef _WIN32 */
 
     return JNI_VERSION_1_4;
 }
@@ -1013,6 +1038,9 @@ JNIEXPORT void JNICALL
 JNI_OnUnload(JavaVM *vm, void *reserved)
 {
     AudioQualityImprovement_unload();
+#ifdef _WIN32
+    WMME_DSound_unload();
+#endif /* #ifdef _WIN32 */
     PortAudio_vm = NULL;
 }
 

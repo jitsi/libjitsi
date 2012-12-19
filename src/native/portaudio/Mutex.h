@@ -5,13 +5,12 @@
  * See terms of license at gnu.org.
  */
 
-#ifndef _NET_JAVA_SIP_COMMUNICATOR_IMPL_NEOMEDIA_PORTAUDIO_MUTEX_H_
-#define _NET_JAVA_SIP_COMMUNICATOR_IMPL_NEOMEDIA_PORTAUDIO_MUTEX_H_
+#ifndef _ORG_JITSI_IMPL_NEOMEDIA_PORTAUDIO_MUTEX_H_
+#define _ORG_JITSI_IMPL_NEOMEDIA_PORTAUDIO_MUTEX_H_
 
 #include <stdlib.h>
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 typedef CRITICAL_SECTION Mutex;
@@ -79,4 +78,4 @@ static inline int Mutex_unlock(Mutex* mutex)
 }
 #endif /* #ifdef _WIN32 */
 
-#endif /* #ifndef _NET_JAVA_SIP_COMMUNICATOR_IMPL_NEOMEDIA_PORTAUDIO_MUTEX_H_ */
+#endif /* #ifndef _ORG_JITSI_IMPL_NEOMEDIA_PORTAUDIO_MUTEX_H_ */

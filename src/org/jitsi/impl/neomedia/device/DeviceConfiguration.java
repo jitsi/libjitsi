@@ -405,9 +405,10 @@ public class DeviceConfiguration
     {
         AudioSystem audioSystem = getAudioSystem();
 
-        return (audioSystem == null)
-            ? null
-            : audioSystem.getDevice(AudioSystem.CAPTURE_INDEX);
+        return
+            (audioSystem == null)
+                ? null
+                : audioSystem.getDevice(AudioSystem.CAPTURE_INDEX);
     }
 
     /**
@@ -668,9 +669,10 @@ public class DeviceConfiguration
     {
         AudioSystem audioSystem = getAudioSystem();
 
-        return (audioSystem == null)
-            ? null
-            : audioSystem.getDevice(AudioSystem.NOTIFY_INDEX);
+        return
+            (audioSystem == null)
+                ? null
+                : audioSystem.getDevice(AudioSystem.NOTIFY_INDEX);
     }
 
     /**

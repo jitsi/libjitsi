@@ -147,6 +147,41 @@ public class PortAudioSystem
         }
     }
 
+    /**
+     * Sorts a specific list of <tt>ExtendedCaptureDeviceInfo</tt>s so that the
+     * ones representing USB devices appear at the beginning/top of the
+     * specified list.
+     *
+     * @param devices the list of <tt>ExtendedCaptureDeviceInfo</tt>s to be
+     * sorted so that the ones representing USB devices appear at the
+     * beginning/top of the list
+     */
+    private void bubbleUpUsbDevices(List<ExtendedCaptureDeviceInfo> devices)
+    {
+        if (!devices.isEmpty())
+        {
+            List<ExtendedCaptureDeviceInfo> nonUsbDevices
+                = new ArrayList<ExtendedCaptureDeviceInfo>(devices.size());
+
+            for (Iterator<ExtendedCaptureDeviceInfo> i = devices.iterator();
+                    i.hasNext();)
+            {
+                ExtendedCaptureDeviceInfo d = i.next();
+
+                if (!d.isSameTransportType("USB"))
+                {
+                    nonUsbDevices.add(d);
+                    i.remove();
+                }
+            }
+            if (!nonUsbDevices.isEmpty())
+            {
+                for (ExtendedCaptureDeviceInfo d : nonUsbDevices)
+                    devices.add(d);
+            }
+        }
+    }
+
     @Override
     public Renderer createRenderer(boolean playback)
     {
@@ -366,6 +401,8 @@ public class PortAudioSystem
          * capture or playback (in order to achieve our goal to have automatic
          * selection pick up devices from one and the same hardware).
          */
+        bubbleUpUsbDevices(captureDevices);
+        bubbleUpUsbDevices(playbackDevices);
         if (!captureDevices.isEmpty() && !playbackDevices.isEmpty())
         {
             /*
@@ -382,6 +419,7 @@ public class PortAudioSystem
          */
         if (!captureAndPlaybackDevices.isEmpty())
         {
+            bubbleUpUsbDevices(captureAndPlaybackDevices);
             for (int i = captureAndPlaybackDevices.size() - 1; i >= 0; i--)
             {
                 ExtendedCaptureDeviceInfo cdi
@@ -581,7 +619,7 @@ public class PortAudioSystem
             = captureDevices.iterator();
         Pattern pattern
             = Pattern.compile(
-                    "microphone|speakers|\\p{Space}|\\(|\\)",
+                    "array|headphones|microphone|speakers|\\p{Space}|\\(|\\)",
                     Pattern.CASE_INSENSITIVE);
         LinkedList<ExtendedCaptureDeviceInfo> captureDevicesWithPlayback
             = new LinkedList<ExtendedCaptureDeviceInfo>();

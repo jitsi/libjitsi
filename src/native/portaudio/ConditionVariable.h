@@ -5,13 +5,12 @@
  * See terms of license at gnu.org.
  */
 
-#ifndef _NET_JAVA_SIP_COMMUNICATOR_IMPL_NEOMEDIA_CONDITIONVARIABLE_H_
-#define _NET_JAVA_SIP_COMMUNICATOR_IMPL_NEOMEDIA_CONDITIONVARIABLE_H_
+#ifndef _ORG_JITSI_IMPL_NEOMEDIA_PORTAUDIO_CONDITIONVARIABLE_H_
+#define _ORG_JITSI_IMPL_NEOMEDIA_PORTAUDIO_CONDITIONVARIABLE_H_
 
 #include "Mutex.h"
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 typedef HANDLE ConditionVariable;
@@ -92,4 +91,4 @@ static inline int ConditionVariable_wait
 }
 #endif /* #ifdef _WIN32 */
 
-#endif /* _NET_JAVA_SIP_COMMUNICATOR_IMPL_NEOMEDIA_CONDITIONVARIABLE_H_ */
+#endif /* _ORG_JITSI_IMPL_NEOMEDIA_PORTAUDIO_CONDITIONVARIABLE_H_ */
