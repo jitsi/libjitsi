@@ -180,6 +180,12 @@ public class DeviceConfiguration
         = "net.java.sip.communicator.impl.neomedia.video.width";
 
     /**
+     * Indicates if libjitsi must list audio system which has no active devices.
+     */
+    private static final String HIDE_DEVICELESS_AUDIO_SYSTEMS
+        = "net.java.sip.communicator.impl.neomedia.device.hideDevicelessAudioSystems";
+
+    /**
      * The currently supported resolutions we will show as option
      * and user can select.
      */
@@ -431,6 +437,15 @@ public class DeviceConfiguration
         return audioSystem;
     }
 
+    /**
+     * Returns the list of available device system. By default, this function
+     * returns only device system with available devices. You can change this
+     * default behavior and activate the listing of system without available
+     * devices with the property:
+     * net.java.sip.communicator.impl.neomedia.device.hideDevicelessAudioSystems.
+     *
+     * @return The list of available device system.
+     */
     public AudioSystem[] getAvailableAudioSystems()
     {
         AudioSystem[] audioSystems =  AudioSystem.getAudioSystems();
@@ -441,11 +456,16 @@ public class DeviceConfiguration
         {
             List<AudioSystem> audioSystemsWithDevices
                 = new ArrayList<AudioSystem>();
+            boolean hideDevicelessAudioSystems
+                = LibJitsi.getConfigurationService().getBoolean(
+                        HIDE_DEVICELESS_AUDIO_SYSTEMS,
+                        true);
 
             for (AudioSystem audioSystem : audioSystems)
             {
                 if (!NoneAudioSystem.LOCATOR_PROTOCOL.equalsIgnoreCase(
-                        audioSystem.getLocatorProtocol()))
+                        audioSystem.getLocatorProtocol())
+                        && hideDevicelessAudioSystems)
                 {
                     List<ExtendedCaptureDeviceInfo> captureDevices
                         = audioSystem.getDevices(AudioSystem.CAPTURE_INDEX);
