@@ -149,15 +149,6 @@ public class DeviceConfiguration
         = PROP_AUDIO_SYSTEM + "." + DeviceSystem.PROP_DEVICES;
 
     /**
-     * The name of the <tt>ConfigurationService</tt> <tt>boolean</tt> property
-     * which indicates whether the <tt>AudioSystem</tt>s without devices should
-     * be hidden from display i.e. should not be displayed to the user. The
-     * default value is <tt>true</tt>. 
-     */
-    private static final String PROP_HIDE_DEVICELESS_AUDIO_SYSTEMS
-        = "net.java.sip.communicator.impl.neomedia.device.hideDevicelessAudioSystems";
-
-    /**
      * The <tt>ConfigurationService</tt> property which stores the device used
      * by <tt>DeviceConfiguration</tt> for video capture.
      */
@@ -444,28 +435,16 @@ public class DeviceConfiguration
     /**
      * Returns a list of available <tt>AudioSystem</tt>s. By default,  an
      * <tt>AudioSystem</tt> is considered available if it reports at least one
-     * device. The default behavior may be overridden i.e. the
-     * <tt>AudioSystem</tt>s without any devices may be reported by setting the
-     * <tt>ConfigurationService</tt> property with the name
-     * {@link #PROP_HIDE_DEVICELESS_AUDIO_SYSTEMS} to the <tt>boolean</tt> value
-     * <tt>false</tt>.
+     * device.
      *
      * @return an array of available <tt>AudioSystem</tt>s
      */
     public AudioSystem[] getAvailableAudioSystems()
     {
         AudioSystem[] audioSystems =  AudioSystem.getAudioSystems();
-        ConfigurationService cfg;
 
-        if ((audioSystems == null)
-                || (audioSystems.length == 0)
-                || (((cfg = LibJitsi.getConfigurationService()) != null)
-                        && !cfg.getBoolean(
-                                PROP_HIDE_DEVICELESS_AUDIO_SYSTEMS,
-                                true)))
-        {
+        if ((audioSystems == null) || (audioSystems.length == 0))
             return audioSystems;
-        }
         else
         {
             List<AudioSystem> audioSystemsWithDevices
