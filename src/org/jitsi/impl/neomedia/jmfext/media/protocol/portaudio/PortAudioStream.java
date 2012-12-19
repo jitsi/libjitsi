@@ -104,7 +104,6 @@ public class PortAudioStream
                                 if (deviceIndex != Pa.paNoDevice)
                                 {
                                     setDeviceIndex(deviceIndex);
-
                                     if (start)
                                         start();
                                 }
@@ -481,36 +480,81 @@ public class PortAudioStream
 
             if (stream != 0)
             {
+                /*
+                 * For the sake of completeness, attempt to stop this instance
+                 * before disconnecting it.
+                 */
+                if (started)
+                {
+                    try
+                    {
+                        stop();
+                    }
+                    catch (IOException ioe)
+                    {
+                        /*
+                         * The exception should have already been logged by the
+                         * method #stop(). Additionally and as said above, we
+                         * attempted it out of courtesy.
+                         */
+                    }
+                }
+
+                boolean closed = false;
+
                 try
                 {
                     Pa.CloseStream(stream);
+                    closed = true;
                 }
-                catch (PortAudioException paex)
+                catch (PortAudioException pae)
                 {
-                    logger.error(
-                            "Failed to close " + getClass().getSimpleName(),
-                            paex);
+                    /*
+                     * The function Pa_CloseStream is not supposed to time out
+                     * under normal execution. However, we have modified it to
+                     * do so under exceptional circumstances on Windows at least
+                     * in order to overcome endless loops related to
+                     * hotplugging. In such a case, presume the native PortAudio
+                     * stream closed in order to maybe avoid a crash at the risk
+                     * of a memory leak.
+                     */
+                    if (pae.getErrorCode() == Pa.paTimedOut)
+                        closed = true;
 
-                    IOException ioex
-                        = new IOException(paex.getLocalizedMessage());
+                    if (!closed)
+                    {
+                        logger.error(
+                                "Failed to close " + getClass().getSimpleName(),
+                                pae);
 
-                    ioex.initCause(paex);
-                    throw ioex;
+                        IOException ioe
+                            = new IOException(pae.getLocalizedMessage());
+
+                        ioe.initCause(pae);
+                        throw ioe;
+                    }
                 }
-                stream = 0;
-                if (inputParameters != 0)
+                finally
                 {
-                    Pa.StreamParameters_free(inputParameters);
-                    inputParameters = 0;
-                }
+                    if (closed)
+                    {
+                        stream = 0;
 
-                /*
-                 * Make sure this AbstractPullBufferStream asks its DataSource
-                 * for the Format in which it is supposed to output audio data
-                 * next time it's opened instead of using its Format from a
-                 * previous open.
-                 */
-                this.format = null;
+                        if (inputParameters != 0)
+                        {
+                            Pa.StreamParameters_free(inputParameters);
+                            inputParameters = 0;
+                        }
+
+                        /*
+                         * Make sure this AbstractPullBufferStream asks its
+                         * DataSource for the Format in which it is supposed to
+                         * output audio data the next time it is opened instead
+                         * of using its Format from a previous open.
+                         */
+                        this.format = null;
+                    }
+                }
             }
         }
         this.deviceIndex = deviceIndex;
