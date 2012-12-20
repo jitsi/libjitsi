@@ -1049,10 +1049,16 @@ public class DeviceConfiguration
         else if (DeviceSystem.PROP_DEVICES.equals(propertyName))
         {
             if (event.getSource() instanceof AudioSystem)
+            {
+                // Try to switch to a new active audio system if we are
+                // currently using the "none" system.
+                switchFromNoneToActiveAudioSystem(
+                        (CaptureDeviceInfo) event.getNewValue());
                 firePropertyChange(
                         PROP_AUDIO_SYSTEM_DEVICES,
                         event.getOldValue(),
                         event.getNewValue());
+            }
         }
         else if (PROP_VIDEO_FRAMERATE.equals(propertyName))
         {
@@ -1236,6 +1242,14 @@ public class DeviceConfiguration
                     setAudioSystem(deviceAudioSystem, false);
                 }
             }
+        }
+        // The device has been unplugged checks. It may be good to check if the
+        // current active audio system still have actvie devices. If not, then
+        // we will choose another audio system, or the "none" one if no audio
+        // system is available.
+        else
+        {
+            extractConfiguredAudioCaptureDevices();
         }
     }
 }
