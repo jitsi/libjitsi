@@ -28,24 +28,33 @@ public class ExtendedCaptureDeviceInfo
     private final String uid;
 
     /**
+     * The persistent identifier for the model of this device.
+     */
+    private final String modelIdentifier;
+
+    /**
      * Constructs a CaptureDeviceInfo object with the specified name, media
      * locator, and array of Format objects.
      *
      * @param captureDeiceInfo the device info.
      * @param uid The device UID (unique identifier).
      * @param transportType The device transport type.
+     * @param modelIdentifier The persistent identifier for the model of this
+     * device.
      */
     public ExtendedCaptureDeviceInfo(
             CaptureDeviceInfo captureDeviceInfo,
             String uid,
-            String transportType)
+            String transportType,
+            String modelIdentifier)
     {
         this(
                 captureDeviceInfo.getName(),
                 captureDeviceInfo.getLocator(),
                 captureDeviceInfo.getFormats(),
                 uid,
-                transportType);
+                transportType,
+                modelIdentifier);
     }
 
     /**
@@ -57,15 +66,22 @@ public class ExtendedCaptureDeviceInfo
      * @param formats An array of the output formats supported by the device.
      * @param uid The device UID (unique identifier).
      * @param transportType The device transport type.
+     * @param modelIdentifier The persistent identifier for the model of this
+     * device.
      */
     public ExtendedCaptureDeviceInfo(
-            String name, MediaLocator locator, Format[] formats,
-            String uid, String transportType)
+            String name,
+            MediaLocator locator,
+            Format[] formats,
+            String uid,
+            String transportType,
+            String modelIdentifier)
     {
         super(name, locator, formats);
 
         this.uid = uid;
         this.transportType = transportType;
+        this.modelIdentifier = modelIdentifier;
     }
 
     /**
@@ -117,6 +133,16 @@ public class ExtendedCaptureDeviceInfo
     public String getUID()
     {
         return uid;
+    }
+
+    /**
+     * Returns the model identifier of this instance.
+     *
+     * @return the model identifier of this instance
+     */
+    public String getModelIdentifier()
+    {
+        return modelIdentifier;
     }
 
     /**

@@ -5,7 +5,7 @@
  * See terms of license at gnu.org.
  */
 
-#include "org_jitsi_impl_neomedia_wincoreaudio_CoreAudioDevice.h"
+#include "org_jitsi_impl_neomedia_CoreAudioDevice.h"
 
 #include "../lib/device.h"
 
@@ -22,77 +22,92 @@ static jbyteArray getStrBytes(JNIEnv *env, const char *str);
 // Implementation
 
 JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_wincoreaudio_CoreAudioDevice_initDevices
+Java_org_jitsi_impl_neomedia_CoreAudioDevice_initDevices
   (JNIEnv *env, jclass clazz)
 {
     return initDevices();
 }
 
 JNIEXPORT void JNICALL
-Java_org_jitsi_impl_neomedia_wincoreaudio_CoreAudioDevice_freeDevices
+Java_org_jitsi_impl_neomedia_CoreAudioDevice_freeDevices
   (JNIEnv *env, jclass clazz)
 {
     freeDevices();
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_org_jitsi_impl_neomedia_wincoreaudio_CoreAudioDevice_getDeviceNameBytes
+Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDeviceNameBytes
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
-    const char * deviceUIDPtr = env->GetStringUTFChars(deviceUID, 0);
+    const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
     char * deviceName = getDeviceName(deviceUIDPtr);
     jbyteArray deviceNameBytes = getStrBytes(env, deviceName);
     // Free
     free(deviceName);
-    env->ReleaseStringUTFChars(deviceUID, deviceUIDPtr);
+    (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
     return deviceNameBytes;
 }
 
+JNIEXPORT jbyteArray JNICALL
+Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDeviceModelIdentifierBytes
+  (JNIEnv *env, jclass clazz, jstring deviceUID)
+{
+    const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
+    char * deviceModelIdentifier = getDeviceModelIdentifier(deviceUIDPtr);
+    jbyteArray deviceModelIdentifierBytes
+        = getStrBytes(env, deviceModelIdentifier);
+    // Free
+    free(deviceModelIdentifier);
+    (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
+
+    return deviceModelIdentifierBytes;
+}
+
 JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_wincoreaudio_CoreAudioDevice_setInputDeviceVolume
+Java_org_jitsi_impl_neomedia_CoreAudioDevice_setInputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID, jfloat volume)
 {
-    const char * deviceUIDPtr = env->GetStringUTFChars(deviceUID, 0);
+    const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
     jint err = setInputDeviceVolume(deviceUIDPtr, volume);
     // Free
-    env->ReleaseStringUTFChars(deviceUID, deviceUIDPtr);
+    (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
     return err;
 }
 
 JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_wincoreaudio_CoreAudioDevice_setOutputDeviceVolume
+Java_org_jitsi_impl_neomedia_CoreAudioDevice_setOutputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID, jfloat volume)
 {
-    const char * deviceUIDPtr = env->GetStringUTFChars(deviceUID, 0);
+    const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
     jint err = setOutputDeviceVolume(deviceUIDPtr, volume);
     // Free
-    env->ReleaseStringUTFChars(deviceUID, deviceUIDPtr);
+    (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
     return err;
 }
 
 JNIEXPORT jfloat JNICALL
-Java_org_jitsi_impl_neomedia_wincoreaudio_CoreAudioDevice_getInputDeviceVolume
+Java_org_jitsi_impl_neomedia_CoreAudioDevice_getInputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
-    const char * deviceUIDPtr = env->GetStringUTFChars(deviceUID, 0);
+    const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
     jfloat volume = getInputDeviceVolume(deviceUIDPtr);
     // Free
-    env->ReleaseStringUTFChars(deviceUID, deviceUIDPtr);
+    (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
     return volume;
 }
 
 JNIEXPORT jfloat JNICALL
-Java_org_jitsi_impl_neomedia_wincoreaudio_CoreAudioDevice_getOutputDeviceVolume
+Java_org_jitsi_impl_neomedia_CoreAudioDevice_getOutputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
-    const char * deviceUIDPtr = env->GetStringUTFChars(deviceUID, 0);
+    const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
     jfloat volume = getOutputDeviceVolume(deviceUIDPtr);
     // Free
-    env->ReleaseStringUTFChars(deviceUID, deviceUIDPtr);
+    (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
     return volume;
 }
@@ -115,9 +130,9 @@ static jbyteArray getStrBytes(JNIEnv *env, const char *str)
     {
         size_t length = strlen(str);
 
-        bytes = env->NewByteArray(length);
+        bytes = (*env)->NewByteArray(env, length);
         if (bytes && length)
-            env->SetByteArrayRegion(bytes, 0, length, (jbyte *) str);
+            (*env)->SetByteArrayRegion(env, bytes, 0, length, (jbyte *) str);
     }
     else
         bytes = NULL;

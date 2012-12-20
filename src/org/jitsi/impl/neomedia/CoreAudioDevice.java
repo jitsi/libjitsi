@@ -4,12 +4,12 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.impl.neomedia.maccoreaudio;
+package org.jitsi.impl.neomedia;
 
 import org.jitsi.util.*;
 
 /**
- * JNI link to the MacOSX CoreAudio library.
+ * JNI link to the MacOsX / Windows CoreAudio library.
  *
  * @author Vincent Lucqs
  */
@@ -17,11 +17,21 @@ public class CoreAudioDevice
 {
     static
     {
-        System.loadLibrary("jnmaccoreaudio");
+        if(OSUtils.IS_MAC)
+        {
+            System.loadLibrary("jnmaccoreaudio");
+        }
+        else if(OSUtils.IS_WINDOWS_VISTA
+                || OSUtils.IS_WINDOWS_7
+                || OSUtils.IS_WINDOWS_8)
+        {
+            System.loadLibrary("jnwincoreaudio");
+        }
     }
 
-//    public static native AudioDeviceID getDevice(
-//            String deviceUID);
+    public static native int initDevices();
+
+    public static native void freeDevices();
 
     public static String getDeviceName(
             String deviceUID)
@@ -33,6 +43,20 @@ public class CoreAudioDevice
     }
 
     public static native byte[] getDeviceNameBytes(
+            String deviceUID);
+
+    public static String getDeviceModelIdentifier(
+            String deviceUID)
+    {
+        byte[] deviceModelIdentifierBytes
+            = getDeviceModelIdentifierBytes(deviceUID);
+        String deviceModelIdentifier
+            = StringUtils.newString(deviceModelIdentifierBytes);
+
+        return deviceModelIdentifier;
+    }
+
+    public static native byte[] getDeviceModelIdentifierBytes(
             String deviceUID);
 
     public static native int setInputDeviceVolume(

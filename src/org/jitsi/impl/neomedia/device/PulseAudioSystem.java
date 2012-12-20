@@ -370,6 +370,7 @@ public class PulseAudioSystem
                             captureDeviceFormats.toArray(
                                     new Format[captureDeviceFormats.size()]),
                             null,
+                            null,
                             null));
         }
         if (!playbackDevices.isEmpty())
@@ -379,6 +380,7 @@ public class PulseAudioSystem
                     new ExtendedCaptureDeviceInfo(
                             NULL_DEV_CAPTURE_DEVICE_INFO_NAME,
                             new MediaLocator(LOCATOR_PROTOCOL + ":"),
+                            null,
                             null,
                             null,
                             null));
@@ -473,6 +475,7 @@ public class PulseAudioSystem
                                     + name),
                         null,
                         null,
+                        null,
                         null));
     }
 
@@ -538,6 +541,7 @@ public class PulseAudioSystem
                                         + name),
                             sourceInfoFormatList.toArray(
                                     new Format[sourceInfoFormatList.size()]),
+                            null,
                             null,
                             null));
         }

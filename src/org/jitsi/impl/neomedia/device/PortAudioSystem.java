@@ -280,6 +280,8 @@ public class PortAudioSystem
                 = Pa.DeviceInfo_getTransportType(deviceInfo);
             String deviceUID
                 = Pa.DeviceInfo_getDeviceUID(deviceInfo);
+            String modelIdentifier
+                = CoreAudioDevice.getDeviceModelIdentifier(deviceUID);
 
             /*
              * TODO The intention of reinitialize() was to perform the
@@ -336,7 +338,8 @@ public class PortAudioSystem
                                         Format.byteArray)
                             },
                             deviceUID,
-                            transportType);
+                            transportType,
+                            modelIdentifier);
             }
 
             /*

@@ -18,6 +18,10 @@
 /**
  * Private definition of functions,
  */
+char* getDeviceProperty(
+        const char * deviceUID,
+        AudioObjectPropertySelector propertySelector);
+
 OSStatus setDeviceVolume(
         const char * deviceUID,
         Float32 volume,
@@ -30,6 +34,26 @@ Float32 getDeviceVolume(
 OSStatus getChannelsForStereo(
         const char * deviceUID,
         UInt32 * channels);
+
+/**
+ * Do nothing: there is no need to initializes anything to get device
+ * information on MacOsX.
+ *
+ * @return Always returns 0 (always works).
+ */
+int initDevices(void)
+{
+    return 0;
+}
+
+/**
+ * Do nothing: there is no need to frees anything once getting device
+ * information is finished on MacOsX.
+ */
+void freeDevices(void)
+{
+    // Nothing to do.
+}
 
 /**
  * Returns the audio device corresponding to the UID given in parameter. Or
@@ -105,6 +129,38 @@ AudioDeviceID getDevice(
 char* getDeviceName(
         const char * deviceUID)
 {
+    return getDeviceProperty(deviceUID, kAudioObjectPropertyName);
+}
+
+/**
+ * Returns the device model identifier for the given device. Or NULL, if not
+ * available. The returned string must be freed by the caller.
+ *
+ * @param device The device to get the name from.
+ *
+ * @return The device model identifier for the given device. Or NULL, if not
+ * available. The returned string must be freed by the caller.
+ */
+char* getDeviceModelIdentifier(
+        const char * deviceUID)
+{
+    return getDeviceProperty(deviceUID, kAudioDevicePropertyModelUID);
+}
+
+/**
+ * Returns the requested device property for the given device. Or NULL, if not
+ * available. The returned string must be freed by the caller.
+ *
+ * @param device The device to get the name from.
+ * @param propertySelector The property we want to retrieve.
+ *
+ * @return The requested device property for the given device. Or NULL, if not
+ * available. The returned string must be freed by the caller.
+ */
+char* getDeviceProperty(
+        const char * deviceUID,
+        AudioObjectPropertySelector propertySelector)
+{
     AudioDeviceID device;
     OSStatus err = noErr;
     AudioObjectPropertyAddress address;
@@ -114,15 +170,15 @@ char* getDeviceName(
     if((device = getDevice(deviceUID)) == kAudioObjectUnknown)
     {
         fprintf(stderr,
-                "getDeviceName (coreaudio/device.c): \
+                "getDeviceProperty (coreaudio/device.c): \
                     \n\tgetDevice\n");
         return NULL;
     }
 
-    // Gets the device name
-    CFStringRef deviceName;
-    size = sizeof(deviceName);
-    address.mSelector = kAudioObjectPropertyName;
+    // Gets the device property
+    CFStringRef deviceProperty;
+    size = sizeof(deviceProperty);
+    address.mSelector = propertySelector;
     address.mScope = kAudioObjectPropertyScopeGlobal;
     address.mElement = kAudioObjectPropertyElementMaster;
 
@@ -132,33 +188,34 @@ char* getDeviceName(
             0,
             NULL,
             &size,
-            &deviceName)) != noErr)
+            &deviceProperty)) != noErr)
     {
         fprintf(stderr,
-                "getDeviceName (coreaudio/device.c): \
+                "getDeviceProperty (coreaudio/device.c): \
                     \n\tAudioObjectGetPropertyData, err: %d\n",
                 ((int) err));
         return NULL;
     }
 
-    // Converts the device name to ASCII.
-    CFIndex deviceNameLength = CFStringGetLength(deviceName) + 1;
-    char * deviceASCIIName;
+    // Converts the device property to ASCII.
+    CFIndex devicePropertyLength = CFStringGetLength(deviceProperty) + 1;
+    char * deviceASCIIProperty;
     // The caller of this function must free the string.
-    if((deviceASCIIName = (char *) malloc(deviceNameLength * sizeof(char)))
+    if((deviceASCIIProperty
+                = (char *) malloc(devicePropertyLength * sizeof(char)))
             == NULL)
     {
-        perror("getDeviceName (coreaudio/device.c): \
+        perror("getDeviceProperty (coreaudio/device.c): \
                     \n\tmalloc\n");
         return NULL;
     }
     if(CFStringGetCString(
-                deviceName,
-                deviceASCIIName,
-                deviceNameLength,
+                deviceProperty,
+                deviceASCIIProperty,
+                devicePropertyLength,
                 kCFStringEncodingASCII))
     {
-        return deviceASCIIName;
+        return deviceASCIIProperty;
     }
     return NULL;
 }

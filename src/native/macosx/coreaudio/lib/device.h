@@ -17,10 +17,17 @@
  *
  * @author Vincent Lucas
  */
+int initDevices(void);
+
+void freeDevices(void);
+
 AudioDeviceID getDevice(
         const char * deviceUID);
 
 char* getDeviceName(
+        const char * deviceUID);
+
+char* getDeviceModelIdentifier(
         const char * deviceUID);
 
 OSStatus setInputDeviceVolume(
