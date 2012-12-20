@@ -16,6 +16,7 @@
 #include <commctrl.h> // Must be defined after mmdeviceapi.h
 #include <endpointvolume.h> // Must be defined after mmdeviceapi.h
 
+
 /**
  * Functions to list, access and modifies audio devices via coreaudio.
  *
@@ -31,6 +32,16 @@ IAudioEndpointVolume * getEndpointVolume(
 void freeEndpointVolume(
         IAudioEndpointVolume * endpointVolume);
 
+char* getDeviceDescription(
+        const char * deviceUID);
+
+char* getDeviceInterfaceName(
+        const char * deviceUID);
+
+char* getDeviceProperty(
+        const char * deviceUID,
+        PROPERTYKEY propertyKey);
+
 int setDeviceVolume(
         const char * deviceUID,
         float volume);
@@ -38,7 +49,14 @@ int setDeviceVolume(
 float getDeviceVolume(
         const char * deviceUID);
 
+// Definitions find in "functiondiscoverykeys_devpkey.h" but not found by
+// MINGW64 TDM-gcc compiler.
+DEFINE_PROPERTYKEY(PKEY_DeviceInterface_FriendlyName,  0x026e516e, 0xb814, 0x414b, 0x83, 0xcd, 0x85, 0x6d, 0x6f, 0xef, 0x48, 0x22, 2); // DEVPROP_TYPE_STRING
+DEFINE_PROPERTYKEY(PKEY_Device_DeviceDesc,             0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 2);     // DEVPROP_TYPE_STRING
 DEFINE_PROPERTYKEY(PKEY_Device_FriendlyName,           0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 14);    // DEVPROP_TYPE_STRING
+
+
+DEFINE_PROPERTYKEY(PKEY_Device_BusNumber,              0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 23);    // DEVPROP_TYPE_UINT32
 
 /**
  * Initializes the COM component. This function must be called first in order to
@@ -224,7 +242,8 @@ void freeEndpointVolume(
 
 /**
  * Returns the device name for the given device. Or NULL, if not available. The
- * returned string must be freed by the caller.
+ * returned string must be freed by the caller. The device name is composed of
+ * the device description and of the device interface name.
  *
  * @param device The device to get the name from.
  *
@@ -234,10 +253,162 @@ void freeEndpointVolume(
 char* getDeviceName(
         const char * deviceUID)
 {
-    size_t deviceNameLength;
-    char * deviceName = NULL;
-    PROPVARIANT propertyDeviceName;
-    PropVariantInit(&propertyDeviceName);
+    return getDeviceProperty(deviceUID, PKEY_Device_FriendlyName);
+}
+
+/**
+ * Returns the device model identifier for the given device. Or NULL, if not
+ * available. The returned string must be freed by the caller.
+ *
+ * @param device The device to get the name from.
+ *
+ * @return The device model identifier for the given device. Or NULL, if not
+ * available. The returned string must be freed by the caller.
+ */
+char* getDeviceModelIdentifier(
+        const char * deviceUID)
+{
+    int deviceModelIdentifierLength;
+    char * deviceModelIdentifier = NULL;
+    char * deviceDescription;
+    char * deviceInterface;
+    char * genericDeviceInterface;
+
+    if((deviceDescription = getDeviceDescription(deviceUID)) == NULL)
+    {
+        fprintf(stderr,
+                "getDeviceModelIdentifier (coreaudio/device.c): \
+                    \n\tgetDeviceDescription\n");
+        fflush(stderr);
+        return NULL;
+    }
+    if((deviceInterface = getDeviceInterfaceName(deviceUID)) == NULL)
+    {
+        fprintf(stderr,
+                "getDeviceModelIdentifier (coreaudio/device.c): \
+                    \n\tgetDeviceInterfaceName\n");
+        fflush(stderr);
+        return NULL;
+    }
+
+    // A USB device (without a serial ID) puts into a USB port will add the
+    // port number (if greater than 1) with the following prefix: "X- "
+    // (with X the port number).
+    genericDeviceInterface = deviceInterface;
+    // First skip the number at the beginning of the prefix.
+    while(genericDeviceInterface[0] != '\0'
+            && genericDeviceInterface[0] >= '0'
+            && genericDeviceInterface[0] <= '9')
+    {
+        ++genericDeviceInterface;
+    }
+    // Then skips the "-".
+    if(genericDeviceInterface[0] != '\0'
+            && genericDeviceInterface[0] == '-')
+    {
+        ++genericDeviceInterface;
+    }
+    // Finally skips the " ".
+    if(genericDeviceInterface[0] != '\0'
+            && genericDeviceInterface[0] == ' ')
+    {
+        ++genericDeviceInterface;
+    }
+    // If we have reached the end of the string, then the string does not
+    // contain the prefix.
+    if(genericDeviceInterface[0] == '\0')
+    {
+        genericDeviceInterface = deviceInterface;
+    }
+
+    // Finally, concatenate the device description and its generic device
+    // interface.
+    deviceModelIdentifierLength
+        = strlen(deviceDescription) + 2 + strlen(genericDeviceInterface) + 2;
+    if((deviceModelIdentifier
+                = (char*) malloc(deviceModelIdentifierLength * sizeof(char)))
+            == NULL)
+    {
+        fprintf(stderr,
+                "getDeviceModelIdentifier (coreaudio/device.c): \
+                    \n\tmalloc\n");
+        fflush(stderr);
+        return NULL;
+    }
+    if(snprintf(
+            deviceModelIdentifier,
+            deviceModelIdentifierLength,
+            "%s (%s)",
+            deviceDescription,
+            genericDeviceInterface) != (deviceModelIdentifierLength - 1))
+    {
+        free(deviceModelIdentifier);
+        fprintf(stderr,
+                "getDeviceModelIdentifier (coreaudio/device.c): \
+                    \n\tsnprintf\n");
+        fflush(stderr);
+        return NULL;
+    }
+
+    // Frees memory.
+    free(deviceDescription);
+    free(deviceInterface);
+
+    return deviceModelIdentifier;
+}
+
+/**
+ * Returns the device description for the given device. Or NULL, if not
+ * available. The returned string must be freed by the caller. The device
+ * description is a generic name such as "microphone", "speaker", etc.
+ *
+ * @param device The device to get the name from.
+ *
+ * @return The device description for the given device. Or NULL, if not
+ * available. The returned string must be freed by the caller.
+ */
+char* getDeviceDescription(
+        const char * deviceUID)
+{
+    return getDeviceProperty(deviceUID, PKEY_Device_DeviceDesc);
+}
+
+/**
+ * Returns the device interface name for the given device. Or NULL, if not
+ * available. The returned string must be freed by the caller. The device
+ * interface name describes the way the device is connected, such as "USB audio
+ * adapter".
+ *
+ * @param device The device to get the name from.
+ *
+ * @return The device interface name for the given device. Or NULL, if not
+ * available. The returned string must be freed by the caller.
+ */
+char* getDeviceInterfaceName(
+        const char * deviceUID)
+{
+    return getDeviceProperty(deviceUID, PKEY_DeviceInterface_FriendlyName);
+}
+
+/**
+ * Returns the device property for the given device. Or NULL, if not available.
+ * The returned string must be freed by the caller.
+ *
+ * @param device The device to get the name from.
+ * @param propertyKey The requested property (i.e. PKEY_Device_FriendlyName for
+ * the device name).
+ *
+ * @return The device property for the given device. Or NULL, if not available.
+ * The returned string must be freed by the caller.
+ */
+char* getDeviceProperty(
+        const char * deviceUID,
+        PROPERTYKEY propertyKey)
+{
+    size_t devicePropertyLength;
+    char * deviceProperty = NULL;
+    PROPVARIANT propertyDevice;
+    PropVariantInit(&propertyDevice);
     IPropertyStore * properties = NULL;
 
     // Gets the audio device.
@@ -245,7 +416,7 @@ char* getDeviceName(
     if(device == NULL)
     {
         fprintf(stderr,
-                "getDeviceName (coreaudio/device.c): \
+                "getDeviceProperty (coreaudio/device.c): \
                     \n\tgetDevice\n");
         fflush(stderr);
         return NULL;
@@ -255,35 +426,39 @@ char* getDeviceName(
     if(device->OpenPropertyStore(STGM_READ, &properties) != S_OK)
     {
         fprintf(stderr,
-                "getDeviceName (coreaudio/device.c): \
+                "getDeviceProperty (coreaudio/device.c): \
                     \n\tIMMDevice.OpenPropertyStore\n");
         fflush(stderr);
         return NULL;
     }
-    if(properties->GetValue(PKEY_Device_FriendlyName, &propertyDeviceName)
+    if(properties->GetValue(propertyKey, &propertyDevice)
             != S_OK)
     {
         fprintf(stderr,
-                "getDeviceName (coreaudio/device.c): \
+                "getDeviceProperty (coreaudio/device.c): \
                     \n\tIPropertyStore.GetValue\n");
         fflush(stderr);
         return NULL;
     }
-    deviceNameLength = wcslen(propertyDeviceName.pwszVal);
-    if((deviceName = (char *) malloc((deviceNameLength + 1) * sizeof(char)))
+    devicePropertyLength = wcslen(propertyDevice.pwszVal);
+    if((deviceProperty
+                = (char *) malloc((devicePropertyLength + 1) * sizeof(char)))
             == NULL)
     {
         fprintf(stderr,
-                "getDeviceName (coreaudio/device.c): \
+                "getDeviceProperty (coreaudio/device.c): \
                     \n\tmalloc\n");
         fflush(stderr);
         return NULL;
     }
-    if(wcstombs(deviceName, propertyDeviceName.pwszVal, deviceNameLength + 1)
-            != deviceNameLength)
+    if(wcstombs(
+                deviceProperty,
+                propertyDevice.pwszVal,
+                devicePropertyLength + 1)
+            != devicePropertyLength)
     {
         fprintf(stderr,
-                "getDeviceName (coreaudio/device.c): \
+                "getDeviceProperty (coreaudio/device.c): \
                     \n\twcstombs\n");
         fflush(stderr);
         return NULL;
@@ -291,9 +466,9 @@ char* getDeviceName(
 
     // Frees.
     freeDevice(device);
-    PropVariantClear(&propertyDeviceName);
+    PropVariantClear(&propertyDevice);
 
-    return deviceName;
+    return deviceProperty;
 }
 
 /**

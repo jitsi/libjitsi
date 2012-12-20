@@ -49,6 +49,21 @@ Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDeviceNameBytes
     return deviceNameBytes;
 }
 
+JNIEXPORT jbyteArray JNICALL
+Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDeviceModelIdentifierBytes
+  (JNIEnv *env, jclass clazz, jstring deviceUID)
+{
+    const char * deviceUIDPtr = env->GetStringUTFChars(deviceUID, 0);
+    char * deviceModelIdentifier = getDeviceModelIdentifier(deviceUIDPtr);
+    jbyteArray deviceModelIdentifierBytes
+        = getStrBytes(env, deviceModelIdentifier);
+    // Free
+    free(deviceModelIdentifier);
+    env->ReleaseStringUTFChars(deviceUID, deviceUIDPtr);
+
+    return deviceModelIdentifierBytes;
+}
+
 JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_CoreAudioDevice_setInputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID, jfloat volume)

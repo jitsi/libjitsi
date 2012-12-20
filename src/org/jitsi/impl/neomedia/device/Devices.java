@@ -73,7 +73,7 @@ public abstract class Devices
                 ExtendedCaptureDeviceInfo activeDevice = activeDevices.get(i);
 
                 if(!devicePreferences.contains(
-                            activeDevice.getModelIdentifier()))
+                            activeDevice.getIdentifier()))
                 {
                     // Adds the device in the preference list (to the end of the
                     // list, but the save device will push it to the top of
@@ -98,7 +98,7 @@ public abstract class Devices
                         // If we have found the "preferred" device among active
                         // device.
                         if(devicePreference.equals(
-                                activeDevice.getModelIdentifier()))
+                                activeDevice.getIdentifier()))
                         {
                             return activeDevice;
                         }
@@ -210,7 +210,7 @@ public abstract class Devices
         String selectedDeviceIdentifier
             = (device == null)
                 ? NoneAudioSystem.LOCATOR_PROTOCOL
-                : device.getModelIdentifier();
+                : device.getIdentifier();
 
         // Sorts the user preferences to put the selected device on top.
         addToDevicePreferences(
@@ -306,7 +306,7 @@ public abstract class Devices
                     for(ExtendedCaptureDeviceInfo activeDevice : activeDevices)
                     {
                         if(devicePreference.equals(
-                                    activeDevice.getModelIdentifier())
+                                    activeDevice.getIdentifier())
                                 || devicePreference.equals(
                                         NoneAudioSystem.LOCATOR_PROTOCOL))
                         {
@@ -337,7 +337,7 @@ public abstract class Devices
         for(ExtendedCaptureDeviceInfo activeDevice : activeDevices)
         {
             String name = activeDevice.getName();
-            String id = activeDevice.getModelIdentifier();
+            String id = activeDevice.getIdentifier();
 
             // We can only switch to the new fashioned notation, only if the OS
             // API gives us a unique identifier (different from the device

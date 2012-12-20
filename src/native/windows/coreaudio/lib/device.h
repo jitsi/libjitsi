@@ -28,6 +28,9 @@ void freeDevice(
 char* getDeviceName(
         const char * deviceUID);
 
+char* getDeviceModelIdentifier(
+        const char * deviceUID);
+
 int setInputDeviceVolume(
         const char * deviceUID,
         float volume);

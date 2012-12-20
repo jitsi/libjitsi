@@ -264,6 +264,7 @@ public class PortAudioSystem
             = new LinkedList<ExtendedCaptureDeviceInfo>();
         final boolean loggerIsDebugEnabled = logger.isDebugEnabled();
 
+        CoreAudioDevice.initDevices();
         for (int deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++)
         {
             long deviceInfo = Pa.GetDeviceInfo(deviceIndex);
@@ -397,6 +398,7 @@ public class PortAudioSystem
                 }
             }
         }
+        CoreAudioDevice.freeDevices();
 
         /*
          * Make sure that devices which support both capture and playback are
