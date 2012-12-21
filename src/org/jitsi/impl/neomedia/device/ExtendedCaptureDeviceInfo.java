@@ -142,7 +142,7 @@ public class ExtendedCaptureDeviceInfo
      */
     public String getModelIdentifier()
     {
-        return modelIdentifier;
+        return (modelIdentifier == null) ? name : modelIdentifier;
     }
 
     /**
