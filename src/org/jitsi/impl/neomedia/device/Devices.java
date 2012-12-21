@@ -21,6 +21,14 @@ import org.jitsi.service.libjitsi.*;
 public abstract class Devices
 {
     /**
+     * The name of the <tt>ConfigurationService</tt> <tt>boolean</tt> property
+     * which indicates whether the automatic selection of USB devices must be
+     * disabled. The default value is <tt>false</tt>.
+     */
+    private static final String PROP_DISABLE_USB_DEVICE_AUTO_SELECTION
+        = "org.jitsi.impl.neomadia.device.disableUsbDeviceAutoSelection";
+
+    /**
      * The audio system managing this device list.
      */
     private final AudioSystem audioSystem;
@@ -75,6 +83,21 @@ public abstract class Devices
                 if(!devicePreferences.contains(
                             activeDevice.getModelIdentifier()))
                 {
+                    // By default, select automatically the USB devices.
+                    boolean isSelected
+                        = activeDevice.isSameTransportType("USB");
+                    ConfigurationService cfg
+                        = LibJitsi.getConfigurationService();
+                    // Desactivate the USB device automatic selection if the
+                    // property is set to true.
+                    if(cfg != null
+                            && cfg.getBoolean(
+                                PROP_DISABLE_USB_DEVICE_AUTO_SELECTION,
+                                false))
+                    {
+                        isSelected = false;
+                    }
+
                     // Adds the device in the preference list (to the end of the
                     // list, but the save device will push it to the top of
                     // active devices).
@@ -83,7 +106,7 @@ public abstract class Devices
                             property,
                             activeDevice,
                             activeDevices,
-                            activeDevice.isSameTransportType("USB"));
+                            isSelected);
                 }
             }
 
