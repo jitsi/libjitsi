@@ -36,12 +36,6 @@ public abstract class DeviceSystem
     extends PropertyChangeNotifier
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>DeviceSystem</tt> class and its
-     * instances for logging output.
-     */
-    private static final Logger logger = Logger.getLogger(DeviceSystem.class);
-
-    /**
      * The list of <tt>DeviceSystem</tt>s which have been initialized.
      */
     private static List<DeviceSystem> deviceSystems
@@ -66,19 +60,20 @@ public abstract class DeviceSystem
 
     public static final String LOCATOR_PROTOCOL_VIDEO4LINUX2 = "video4linux2";
 
+    /**
+     * The <tt>Logger</tt> used by the <tt>DeviceSystem</tt> class and its
+     * instances for logging output.
+     */
+    private static final Logger logger = Logger.getLogger(DeviceSystem.class);
+
+    /**
+     * The list of <tt>CaptureDeviceInfo</tt>s representing the devices of this
+     * instance at the time its {@link #preInitialize()} method was last
+     * invoked.
+     */
+    private static List<CaptureDeviceInfo> preInitializeDevices;
+
     public static final String PROP_DEVICES = "devices";
-
-    /**
-     * The list of devices connected at the last postInitialize.
-     */
-    private static Vector<CaptureDeviceInfo> propertyChangeNewDevices
-        = new Vector<CaptureDeviceInfo>();
-
-    /**
-     * The list of devices connected at the last preInitialize.
-     */
-    private static Vector<CaptureDeviceInfo> propertyChangeOldDevices
-        = new Vector<CaptureDeviceInfo>();
 
     /**
      * Returns a <tt>List</tt> of <tt>CaptureDeviceInfo</tt>s which are elements
@@ -527,37 +522,59 @@ public abstract class DeviceSystem
      */
     protected void postInitialize()
     {
-        Format format = getFormat();
-
-        if (format != null)
+        try
         {
-            // Gets the list of the actual connected devices.
-            propertyChangeNewDevices.removeAllElements();
-            propertyChangeNewDevices.addAll(
-                CaptureDeviceManager.getDeviceList(format));
+            Format format = getFormat();
 
-            // Compares the previous connected device list with the current one
-            // in order to detect new connected or disconnected devices.
-            for(int i = 0; i < propertyChangeOldDevices.size(); ++i)
+            if (format != null)
             {
-                if(!propertyChangeNewDevices.remove(
-                        propertyChangeOldDevices.get(i)))
+                /*
+                 * Calculate the lists of old and new devices and report them in
+                 * a PropertyChangeEvent about PROP_DEVICES.
+                 */
+                @SuppressWarnings("unchecked")
+                List<CaptureDeviceInfo> cdis
+                    = CaptureDeviceManager.getDeviceList(format);
+                List<CaptureDeviceInfo> postInitializeDevices
+                    = new ArrayList<CaptureDeviceInfo>(cdis);
+
+                if (preInitializeDevices != null)
                 {
-                    // Old device is removed.
+                    for (Iterator<CaptureDeviceInfo> preIter
+                                = preInitializeDevices.iterator();
+                            preIter.hasNext();)
+                    {
+                        if (postInitializeDevices.remove(preIter.next()))
+                            preIter.remove();
+                    }
+                }
+
+                /*
+                 * Fire a PropertyChangeEvent but only if there is an actual
+                 * change in the value of the property.
+                 */
+                int preInitializeDeviceCount
+                    = (preInitializeDevices == null)
+                        ? 0
+                        : preInitializeDevices.size();
+                int postInitializeDeviceCount
+                    = (postInitializeDevices == null)
+                        ? 0
+                        : postInitializeDevices.size();
+
+                if ((preInitializeDeviceCount != 0)
+                        || (postInitializeDeviceCount != 0))
+                {
                     firePropertyChange(
                             PROP_DEVICES,
-                            propertyChangeOldDevices.get(i),
-                            null);
+                            preInitializeDevices,
+                            postInitializeDevices);
                 }
             }
-            for(int i = 0; i < propertyChangeNewDevices.size(); ++i)
-            {
-                // New device is plugged in.
-                firePropertyChange(
-                        PROP_DEVICES,
-                        null,
-                        propertyChangeNewDevices.get(i));
-            }
+        }
+        finally
+        {
+            preInitializeDevices = null;
         }
     }
 
@@ -575,10 +592,10 @@ public abstract class DeviceSystem
         if (format != null)
         {
             @SuppressWarnings("unchecked")
-            Vector<CaptureDeviceInfo> cdis
+            List<CaptureDeviceInfo> cdis
                 = CaptureDeviceManager.getDeviceList(format);
-            propertyChangeOldDevices.removeAllElements();
-            propertyChangeOldDevices.addAll(cdis);
+
+            preInitializeDevices = new ArrayList<CaptureDeviceInfo>(cdis);
 
             if ((cdis != null) && (cdis.size() > 0))
             {
