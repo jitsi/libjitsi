@@ -749,38 +749,19 @@ public class MediaServiceImpl
     {
         if (inputVolumeControl == null)
         {
-            boolean initialized = false;
-            try{
-                if(OSUtils.IS_MAC)
-                {
-                    inputVolumeControl = new
-                    org.jitsi.impl.neomedia.maccoreaudio.CoreAudioVolumeControl(
-                                this,
-                                VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME
-                                );
-                    initialized = true;
-                }
-                else if(OSUtils.IS_WINDOWS_VISTA
-                        || OSUtils.IS_WINDOWS_7
-                        || OSUtils.IS_WINDOWS_8)
-                {
-                    inputVolumeControl = new
-                    org.jitsi.impl.neomedia.wincoreaudio.CoreAudioVolumeControl(
-                                this,
-                                VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME
-                                );
-                    initialized = true;
-                }
-            }
-            catch(UnsatisfiedLinkError ule)
+            // If available, use hardware volume control.
+            if(OSUtils.IS_MAC
+                    || OSUtils.IS_WINDOWS_VISTA
+                    || OSUtils.IS_WINDOWS_7
+                    || OSUtils.IS_WINDOWS_8)
             {
-                //initialized = false;
-                logger.info("Can not load system volume control: "
-                        + ule.getMessage()
-                        + ". Loading default software volume control.");
+                inputVolumeControl = new HardwareVolumeControl(
+                        this,
+                        VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME
+                        );
             }
-
-            if(!initialized)
+            // else available, use software volume control.
+            else
             {
                 inputVolumeControl
                     = new AbstractVolumeControl(

@@ -10,20 +10,20 @@ import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.util.*;
 
 /**
- * Abstract implementation of VolumeControl which uses system sound architecture
- * to change input/output hardware volume.
+ * Implementation of VolumeControl which uses system sound architecture (MacOsX
+ * or Windows CoreAudio) to change input/output hardware volume.
  *
  * @author Vincent Lucas
  */
-public abstract class AbstractHardwareVolumeControl
+public class HardwareVolumeControl
     extends AbstractVolumeControl
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>AbstractHarwareVolumeControl</tt>
+     * The <tt>Logger</tt> used by the <tt>HarwareVolumeControl</tt>
      * class and its instances for logging output.
      */
     private static final Logger logger
-        = Logger.getLogger(AbstractHardwareVolumeControl.class);
+        = Logger.getLogger(HardwareVolumeControl.class);
 
     /**
      * The media service implementation.
@@ -45,7 +45,7 @@ public abstract class AbstractHardwareVolumeControl
      * property which specifies the value of the volume level of the new
      * instance
      */
-    public AbstractHardwareVolumeControl(
+    public HardwareVolumeControl(
         MediaServiceImpl mediaServiceImpl,
         String volumeLevelConfigurationPropertyName)
     {
@@ -142,7 +142,32 @@ public abstract class AbstractHardwareVolumeControl
      *
      * @return 0 if everything works fine.
      */
-    protected abstract int setInputDeviceVolume(String deviceUID, float volume);
+    protected int setInputDeviceVolume(String deviceUID, float volume)
+    {
+        if(deviceUID == null)
+        {
+            return -1;
+        }
+
+        if(CoreAudioDevice.initDevices() == -1)
+        {
+            CoreAudioDevice.freeDevices();
+            logger.debug(
+                    "Could not initialize CoreAudio input devices");
+            return -1;
+        }
+        // Change the input volume of the capture device.
+        if(CoreAudioDevice.setInputDeviceVolume(deviceUID, volume) != 0)
+        {
+            CoreAudioDevice.freeDevices();
+            logger.debug(
+                    "Could not change CoreAudio input device level");
+            return -1;
+        }
+        CoreAudioDevice.freeDevices();
+
+        return 0;
+    }
 
     /**
      * Returns the device volume via the system API.
@@ -150,7 +175,35 @@ public abstract class AbstractHardwareVolumeControl
      * @param deviceUID The device ID.
      *
      * @Return A scalar value between 0 and 1 if everything works fine. -1 if an
-     * error occured.
+     * error occurred.
      */
-    protected abstract float getInputDeviceVolume(String deviceUID);
+    protected float getInputDeviceVolume(String deviceUID)
+    {
+        float volume;
+
+        if(deviceUID == null)
+        {
+            return -1;
+        }
+
+        if(CoreAudioDevice.initDevices() == -1)
+        {
+            CoreAudioDevice.freeDevices();
+            logger.debug(
+                    "Could not initialize CoreAudio input devices");
+            return -1;
+        }
+        // Get the input volume of the capture device.
+        if((volume = CoreAudioDevice.getInputDeviceVolume(deviceUID))
+                == -1)
+        {
+            CoreAudioDevice.freeDevices();
+            logger.debug(
+                    "Could not get CoreAudio input device level");
+            return -1;
+        }
+        CoreAudioDevice.freeDevices();
+
+        return volume;
+    }
 }
