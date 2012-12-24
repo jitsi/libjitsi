@@ -15,19 +15,31 @@ import org.jitsi.util.*;
  */
 public class CoreAudioDevice
 {
+    /**
+     * Loads CoreAudioDevice if we are using MacOsX or Windows Vista/7/8.
+     */
     static
     {
+        isLoaded = false;
         if(OSUtils.IS_MAC)
         {
             System.loadLibrary("jnmaccoreaudio");
+            isLoaded = true;
         }
         else if(OSUtils.IS_WINDOWS_VISTA
                 || OSUtils.IS_WINDOWS_7
                 || OSUtils.IS_WINDOWS_8)
         {
             System.loadLibrary("jnwincoreaudio");
+            isLoaded = true;
         }
     }
+
+    /**
+     * Tells if the CoreAudio library used by this CoreAudioDevice is correctly
+     * loaded: if we are under a supported operating system.
+     */
+    public static boolean isLoaded;
 
     public static native int initDevices();
 

@@ -264,7 +264,8 @@ public class PortAudioSystem
             = new LinkedList<ExtendedCaptureDeviceInfo>();
         final boolean loggerIsDebugEnabled = logger.isDebugEnabled();
 
-        CoreAudioDevice.initDevices();
+        if(CoreAudioDevice.isLoaded)
+            CoreAudioDevice.initDevices();
         for (int deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++)
         {
             long deviceInfo = Pa.GetDeviceInfo(deviceIndex);
@@ -281,8 +282,10 @@ public class PortAudioSystem
                 = Pa.DeviceInfo_getTransportType(deviceInfo);
             String deviceUID
                 = Pa.DeviceInfo_getDeviceUID(deviceInfo);
-            String modelIdentifier
-                = CoreAudioDevice.getDeviceModelIdentifier(deviceUID);
+            String modelIdentifier = null;
+            if(CoreAudioDevice.isLoaded)
+                modelIdentifier
+                    = CoreAudioDevice.getDeviceModelIdentifier(deviceUID);
 
             /*
              * TODO The intention of reinitialize() was to perform the
@@ -398,7 +401,8 @@ public class PortAudioSystem
                 }
             }
         }
-        CoreAudioDevice.freeDevices();
+        if(CoreAudioDevice.isLoaded)
+            CoreAudioDevice.freeDevices();
 
         /*
          * Make sure that devices which support both capture and playback are
