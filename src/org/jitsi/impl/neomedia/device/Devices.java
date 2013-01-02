@@ -26,7 +26,7 @@ public abstract class Devices
      * disabled. The default value is <tt>false</tt>.
      */
     private static final String PROP_DISABLE_USB_DEVICE_AUTO_SELECTION
-        = "org.jitsi.impl.neomadia.device.disableUsbDeviceAutoSelection";
+        = "org.jitsi.impl.neomedia.device.disableUsbDeviceAutoSelection";
 
     /**
      * The audio system managing this device list.
