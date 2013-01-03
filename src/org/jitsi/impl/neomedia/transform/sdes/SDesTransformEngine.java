@@ -6,31 +6,48 @@
  */
 package org.jitsi.impl.neomedia.transform.sdes;
 
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
 
 import ch.imvs.sdes4j.srtp.*;
 
 /**
- * PacketTransformer for SDES based SRTP encryption.
+ * TransformEngine for SDES based SRTP encryption.
  * 
  * @author Ingo Bauersachs
  */
 public class SDesTransformEngine
-    extends AsymmetricSRTPTransformer
+    implements TransformEngine
 {
+    private SRTPTransformer srtpTransformer;
+    private SRTCPTransformer srtcpTransformer;
+
     /**
      * Creates a new instance of this class.
-     * @param sDesControl The control that supplies the key material.
+     * @param inAttribute Key material for the incoming stream.
+     * @param outAttribute Key material for the outgoing stream.
      */
-    public SDesTransformEngine(SDesControlImpl sDesControl)
+    public SDesTransformEngine(SrtpCryptoAttribute inAttribute,
+            SrtpCryptoAttribute outAttribute)
     {
-        super(
-            getTransformEngine(sDesControl.getOutAttribute()),
-            getTransformEngine(sDesControl.getInAttribute())
-        );
+        SRTPContextFactory forwardCtx = getTransformEngine(outAttribute);
+        SRTPContextFactory reverseCtx = getTransformEngine(inAttribute);
+        srtpTransformer = new SRTPTransformer(forwardCtx, reverseCtx);
+        srtcpTransformer = new SRTCPTransformer(forwardCtx, reverseCtx);
     }
 
-    private static SRTPTransformEngine getTransformEngine(
+    public void close()
+    {
+        if (srtpTransformer != null)
+            srtpTransformer.close();
+        if (srtcpTransformer != null)
+            srtcpTransformer.close();
+
+        srtpTransformer = null;
+        srtcpTransformer = null;
+    }
+
+    private static SRTPContextFactory getTransformEngine(
         SrtpCryptoAttribute attribute)
     {
         if (attribute.getSessionParams() != null
@@ -41,7 +58,7 @@ public class SDesTransformEngine
         }
 
         SrtpCryptoSuite cs = attribute.getCryptoSuite();
-        return new SRTPTransformEngine(
+        return new SRTPContextFactory(
             getKey(attribute),
             getSalt(attribute),
             new SRTPPolicy(
@@ -58,25 +75,6 @@ public class SDesTransformEngine
             )
         );
     }
-
-//    /**
-//     * Get the key derivation parameter or the default from the SDES attribute.
-//     * @param attribute The negotiated SDES attribute for the stream.
-//     * @return The KDR parameter or 0 if not present.
-//     */
-//    private static long getKdr(SrtpCryptoAttribute attribute)
-//    {
-//        if (attribute.getSessionParams() != null)
-//        {
-//            for (SrtpSessionParam param : attribute.getSessionParams())
-//            {
-//                if (param instanceof KdrSessionParam)
-//                    return ((KdrSessionParam) param)
-//                        .getKeyDerivationRateExpanded();
-//            }
-//        }
-//        return 0;
-//    }
 
     private static byte[] getKey(SrtpCryptoAttribute attribute)
     {
@@ -119,5 +117,15 @@ public class SDesTransformEngine
             default:
                 throw new IllegalArgumentException("Unsupported hash");
         }
+    }
+
+    public PacketTransformer getRTPTransformer()
+    {
+        return srtpTransformer;
+    }
+
+    public PacketTransformer getRTCPTransformer()
+    {
+        return srtcpTransformer;
     }
 }

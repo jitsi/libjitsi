@@ -6,19 +6,14 @@
  */
 package org.jitsi.impl.neomedia.transform.srtp;
 
-import org.jitsi.impl.neomedia.transform.*;
-
 /**
- * SRTPTransformEngine class implements TransformEngine interface.
- * It stores important information / objects regarding SRTP processing.
- * Through SRTPTransformEngine, we can get the needed PacketTransformer, which
- * will be used by abstract TransformConnector classes.
- *
+ * The <tt>SRTPContextFactory</tt> creates the initial crypto contexts for RTP
+ * and RTCP encryption using the supplied key material.
+ * 
  * @author Bing SU (nova.su@gmail.com)
- *
+ * 
  */
-public class SRTPTransformEngine
-    implements TransformEngine
+public class SRTPContextFactory
 {
     /**
      * The default SRTPCryptoContext, which will be used to derivate other
@@ -41,7 +36,7 @@ public class SRTPTransformEngine
      * @param srtpPolicy SRTP policy
      * @param srtcpPolicy SRTCP policy
      */
-    public SRTPTransformEngine(byte[] masterKey, byte[] masterSalt,
+    public SRTPContextFactory(byte[] masterKey, byte[] masterSalt,
                                SRTPPolicy srtpPolicy, SRTPPolicy srtcpPolicy)
     {
 
@@ -70,26 +65,6 @@ public class SRTPTransformEngine
 
         defaultContext = null;
         defaultContextControl = null;
-    }
-
-    /**
-     * Gets the <tt>PacketTransformer</tt> for RTCP packets.
-     *
-     * @return the <tt>PacketTransformer</tt> for RTCP packets
-     */
-    public PacketTransformer getRTCPTransformer()
-    {
-        return new SRTCPTransformer(this);
-    }
-
-    /*
-     * (non-Javadoc)
-     * @see org.jitsi.impl.media.transform.
-     * TransformEngine#getRTPTransformer()
-     */
-    public PacketTransformer getRTPTransformer()
-    {
-        return new SRTPTransformer(this);
     }
 
     /**

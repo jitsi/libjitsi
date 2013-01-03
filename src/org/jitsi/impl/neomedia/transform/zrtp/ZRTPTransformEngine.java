@@ -856,12 +856,12 @@ public class ZRTPTransformEngine
                         secrets.getInitSaltLen() / 8    // salt length
                 );
 
-                SRTPTransformEngine engine = new SRTPTransformEngine(secrets
+                SRTPContextFactory engine = new SRTPContextFactory(secrets
                         .getKeyInitiator(), secrets.getSaltInitiator(),
                         srtpPolicy, srtpPolicy);
 
-                srtpOutTransformer = engine.getRTPTransformer();
-                getRTCPTransformer().setSrtcpOut(engine.getRTCPTransformer());
+                srtpOutTransformer = new SRTPTransformer(engine);
+                getRTCPTransformer().setSrtcpOut(new SRTCPTransformer(engine));
             }
             else
             {
@@ -872,11 +872,11 @@ public class ZRTPTransformEngine
                         secrets.getRespSaltLen() / 8    // salt length
                 );
 
-                SRTPTransformEngine engine = new SRTPTransformEngine(secrets
+                SRTPContextFactory engine = new SRTPContextFactory(secrets
                         .getKeyResponder(), secrets.getSaltResponder(),
                         srtpPolicy, srtpPolicy);
-                srtpOutTransformer = engine.getRTPTransformer();
-                getRTCPTransformer().setSrtcpOut(engine.getRTCPTransformer());
+                srtpOutTransformer = new SRTPTransformer(engine);
+                getRTCPTransformer().setSrtcpOut(new SRTCPTransformer(engine));
             }
         }
 
@@ -894,11 +894,11 @@ public class ZRTPTransformEngine
                         secrets.getRespSaltLen() / 8    // salt length
                 );
 
-                SRTPTransformEngine engine = new SRTPTransformEngine(secrets
+                SRTPContextFactory engine = new SRTPContextFactory(secrets
                         .getKeyResponder(), secrets.getSaltResponder(),
                         srtpPolicy, srtpPolicy);
-                srtpInTransformer = engine.getRTPTransformer();
-                getRTCPTransformer().setSrtcpIn(engine.getRTCPTransformer());
+                srtpInTransformer = new SRTPTransformer(engine);
+                getRTCPTransformer().setSrtcpIn(new SRTCPTransformer(engine));
                 this.muted = false;
             }
             else
@@ -910,11 +910,11 @@ public class ZRTPTransformEngine
                         secrets.getInitSaltLen() / 8    // salt length
                 );
 
-                SRTPTransformEngine engine = new SRTPTransformEngine(secrets
+                SRTPContextFactory engine = new SRTPContextFactory(secrets
                         .getKeyInitiator(), secrets.getSaltInitiator(),
                         srtpPolicy, srtpPolicy);
-                srtpInTransformer = engine.getRTPTransformer();
-                getRTCPTransformer().setSrtcpIn(engine.getRTCPTransformer());
+                srtpInTransformer = new SRTPTransformer(engine);
+                getRTCPTransformer().setSrtcpIn(new SRTCPTransformer(engine));
                 this.muted = false;
             }
         }

@@ -151,7 +151,8 @@ public class SDesControlImpl
     {
         if(engine == null)
         {
-            engine = new SDesTransformEngine(this);
+            engine = new SDesTransformEngine(selectedInAttribute,
+                    selectedOutAttribute);
         }
         return engine;
     }

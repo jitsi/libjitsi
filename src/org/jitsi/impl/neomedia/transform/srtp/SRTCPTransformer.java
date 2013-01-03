@@ -21,8 +21,8 @@ import org.jitsi.impl.neomedia.transform.*;
 public class SRTCPTransformer
     implements PacketTransformer
 {
-    private final SRTPTransformEngine forwardEngine;
-    private final SRTPTransformEngine reverseEngine;
+    private final SRTPContextFactory forwardFactory;
+    private final SRTPContextFactory reverseFactory;
 
     /**
      * All the known SSRC's corresponding SRTCPCryptoContexts
@@ -32,28 +32,28 @@ public class SRTCPTransformer
     /**
      * Constructs a SRTCPTransformer object.
      * 
-     * @param engine The associated SRTPTransformEngine object for both
+     * @param factory The associated context factory for both
      *            transform directions.
      */
-    public SRTCPTransformer(SRTPTransformEngine engine)
+    public SRTCPTransformer(SRTPContextFactory factory)
     {
-        this(engine, engine);
+        this(factory, factory);
     }
 
     /**
      * Constructs a SRTCPTransformer object.
      * 
-     * @param forwardEngine The associated SRTPTransformEngine object for
-     *            forward transformations.
-     * @param reverseEngine The associated SRTPTransformEngine object for
-     *            reverse transformations.
+     * @param forwardFactory The associated context factory for forward
+     *            transformations.
+     * @param reverseFactory The associated context factory for reverse
+     *            transformations.
      */
     public SRTCPTransformer(
-            SRTPTransformEngine forwardEngine,
-            SRTPTransformEngine reverseEngine)
+            SRTPContextFactory forwardFactory,
+            SRTPContextFactory reverseFactory)
     {
-        this.forwardEngine = forwardEngine;
-        this.reverseEngine = reverseEngine;
+        this.forwardFactory = forwardFactory;
+        this.reverseFactory = reverseFactory;
         this.contexts = new Hashtable<Long, SRTCPCryptoContext>();
     }
 
@@ -66,9 +66,9 @@ public class SRTCPTransformer
     {
         synchronized (contexts)
         {
-            forwardEngine.close();
-            if (reverseEngine != forwardEngine)
-                reverseEngine.close();
+            forwardFactory.close();
+            if (reverseFactory != forwardFactory)
+                reverseFactory.close();
 
             Iterator<Map.Entry<Long, SRTCPCryptoContext>> iter
                 = contexts.entrySet().iterator();
@@ -87,7 +87,7 @@ public class SRTCPTransformer
 
     private SRTCPCryptoContext getContext(
             RawPacket pkt,
-            SRTPTransformEngine engine)
+            SRTPContextFactory engine)
     {
         long ssrc = pkt.getRTCPSSRC();
         SRTCPCryptoContext context = null;
@@ -118,7 +118,7 @@ public class SRTCPTransformer
      */
     public RawPacket reverseTransform(RawPacket pkt)
     {
-        SRTCPCryptoContext context = getContext(pkt, reverseEngine);
+        SRTCPCryptoContext context = getContext(pkt, reverseFactory);
 
         return
             ((context != null) && context.reverseTransformPacket(pkt))
@@ -134,7 +134,7 @@ public class SRTCPTransformer
      */
     public RawPacket transform(RawPacket pkt)
     {
-        SRTCPCryptoContext context = getContext(pkt, forwardEngine);
+        SRTCPCryptoContext context = getContext(pkt, forwardFactory);
 
         if(context != null)
         {
@@ -143,7 +143,7 @@ public class SRTCPTransformer
         }
         else
         {
-            // The packet can not be encrypted. Thus, does not send it.
+            // The packet can not be encrypted. Thus, do not send it.
             return null;
         }
     }
