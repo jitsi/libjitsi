@@ -22,7 +22,6 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
-import org.relaxng.datatype.DatatypeStreamingValidator;
 
 /**
  * Class used to compute stats concerning a MediaStream.
