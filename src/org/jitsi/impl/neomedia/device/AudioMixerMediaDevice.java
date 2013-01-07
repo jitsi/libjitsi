@@ -1155,8 +1155,10 @@ public class AudioMixerMediaDevice
                 // this happens when holding a conversation, stream is muted
                 // and when recreated listener is again set
                 if(!isMute())
+                {
                     audioMixerMediaDeviceSession.addLocalUserAudioLevelListener(
                             l);
+                }
             }
         }
 

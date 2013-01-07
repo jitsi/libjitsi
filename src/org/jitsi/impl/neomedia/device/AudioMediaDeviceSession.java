@@ -58,6 +58,50 @@ public class AudioMediaDeviceSession
     }
 
     /**
+     * Copies the playback part of a specific <tt>MediaDeviceSession</tt> into
+     * this instance.
+     *
+     * @param deviceSession the <tt>MediaDeviceSession</tt> to copy the playback
+     * part of into this instance
+     */
+    @Override
+    public void copyPlayback(MediaDeviceSession deviceSession)
+    {
+        AudioMediaDeviceSession amds = (AudioMediaDeviceSession) deviceSession;
+
+        setStreamAudioLevelListener(
+                amds.streamAudioLevelEffect.getAudioLevelListener());
+        setLocalUserAudioLevelListener(
+                amds.localUserAudioLevelEffect.getAudioLevelListener());
+    }
+
+    /**
+     * Returns the last audio level that was measured by this device session
+     * for the specified <tt>ssrc</tt>.
+     *
+     * @param ssrc the SSRC ID whose last measured audio level we'd like to
+     * retrieve.
+     *
+     * @return the audio level that was last measured for the specified
+     * <tt>ssrc</tt> or <tt>-1</tt> if no level has been cached for that ID.
+     */
+    public int getLastMeasuredAudioLevel(long ssrc)
+    {
+        return -1;
+    }
+
+    /**
+     * Returns the last audio level that was measured by the underlying
+     * mixer for local user.
+     *
+     * @return the audio level that was last measured for the local user.
+     */
+    public int getLastMeasuredLocalUserAudioLevel()
+    {
+        return -1;
+    }
+
+    /**
      * Called by {@link MediaDeviceSession#playerControllerUpdate(
      * ControllerEvent event)} when the player associated with this session's
      * <tt>ReceiveStream</tt> moves enters the <tt>Configured</tt> state, so
@@ -218,49 +262,5 @@ public class AudioMediaDeviceSession
     public void setStreamAudioLevelListener(SimpleAudioLevelListener listener)
     {
         this.streamAudioLevelEffect.setAudioLevelListener(listener);
-    }
-
-    /**
-     * Returns the last audio level that was measured by this device session
-     * for the specified <tt>ssrc</tt>.
-     *
-     * @param ssrc the SSRC ID whose last measured audio level we'd like to
-     * retrieve.
-     *
-     * @return the audio level that was last measured for the specified
-     * <tt>ssrc</tt> or <tt>-1</tt> if no level has been cached for that ID.
-     */
-    public int getLastMeasuredAudioLevel(long ssrc)
-    {
-        return -1;
-    }
-
-    /**
-     * Returns the last audio level that was measured by the underlying
-     * mixer for local user.
-     *
-     * @return the audio level that was last measured for the local user.
-     */
-    public int getLastMeasuredLocalUserAudioLevel()
-    {
-        return -1;
-    }
-
-    /**
-     * Copies the playback part of a specific <tt>MediaDeviceSession</tt> into
-     * this instance.
-     *
-     * @param deviceSession the <tt>MediaDeviceSession</tt> to copy the playback
-     * part of into this instance
-     */
-    @Override
-    public void copyPlayback(MediaDeviceSession deviceSession)
-    {
-        AudioMediaDeviceSession amds = (AudioMediaDeviceSession) deviceSession;
-
-        this.setStreamAudioLevelListener(
-            amds.streamAudioLevelEffect.getAudioLevelListener());
-        this.setLocalUserAudioLevelListener(
-            amds.localUserAudioLevelEffect.getAudioLevelListener());
     }
 }

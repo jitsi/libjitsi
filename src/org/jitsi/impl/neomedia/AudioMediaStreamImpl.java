@@ -39,23 +39,6 @@ public class AudioMediaStreamImpl
 {
 
     /**
-     * The <tt>Logger</tt> used by the <tt>AudioMediaStreamImpl</tt> class and
-     * its instances for logging output.
-     */
-    private static final Logger logger
-        = Logger.getLogger(AudioMediaStreamImpl.class);
-
-    /**
-     * The transformer that we use for sending and receiving DTMF packets.
-     */
-    private DtmfTransformEngine dtmfTransfrmEngine ;
-
-    /**
-     * List of DTMF listeners;
-     */
-    private List<DTMFListener> dtmfListeners = new ArrayList<DTMFListener>();
-
-    /**
      * List of RTP format strings which are supported by SIP Communicator in
      * addition to the JMF standard formats.
      *
@@ -83,10 +66,11 @@ public class AudioMediaStreamImpl
                 };
 
     /**
-     * The listener that gets notified of changes in the audio level of
-     * remote conference participants.
+     * The <tt>Logger</tt> used by the <tt>AudioMediaStreamImpl</tt> class and
+     * its instances for logging output.
      */
-    private CsrcAudioLevelListener csrcAudioLevelListener = null;
+    private static final Logger logger
+        = Logger.getLogger(AudioMediaStreamImpl.class);
 
     /**
      * A property change notifier which will inform this stream if a selected
@@ -95,6 +79,23 @@ public class AudioMediaStreamImpl
      * audio system has changed.
      */
     private PropertyChangeNotifier audioSystemChangeNotifier;
+
+    /**
+     * The listener that gets notified of changes in the audio level of
+     * remote conference participants.
+     */
+    private CsrcAudioLevelListener csrcAudioLevelListener = null;
+
+    /**
+     * The list of DTMF listeners;
+     */
+    private final List<DTMFListener> dtmfListeners
+        = new ArrayList<DTMFListener>();
+
+    /**
+     * The transformer that we use for sending and receiving DTMF packets.
+     */
+    private DtmfTransformEngine dtmfTransfrmEngine ;
 
     /**
      * Initializes a new <tt>AudioMediaStreamImpl</tt> instance which will use
@@ -122,6 +123,67 @@ public class AudioMediaStreamImpl
         super(connector, device, srtpControl);
         this.audioSystemChangeNotifier = audioSystemChangeNotifier;
         this.audioSystemChangeNotifier.addPropertyChangeListener(this);
+    }
+
+    /**
+     * Adds a <tt>DTMFListener</tt> to this <tt>AudioMediaStream</tt> which is
+     * to receive notifications when the remote party starts sending DTMF tones
+     * to us.
+     *
+     * @param listener the <tt>DTMFListener</tt> to register for notifications
+     * about the remote party starting sending of DTM tones to this
+     * <tt>AudioMediaStream</tt>
+     * @see AudioMediaStream#addDTMFListener(DTMFListener)
+     */
+    public void addDTMFListener(DTMFListener listener)
+    {
+        if((listener != null) && !dtmfListeners.contains(listener))
+            dtmfListeners.add(listener);
+    }
+
+    /**
+     * In addition to calling
+     * {@link MediaStreamImpl#addRTPExtension(byte, RTPExtension)}
+     * this method enables sending of CSRC audio levels. The reason we are
+     * doing this here rather than in the super class is that CSRC levels only
+     * make sense for audio streams so we don't want them enabled in any other
+     * type.
+     *
+     * @param extensionID the ID assigned to <tt>rtpExtension</tt> for the
+     * lifetime of this stream.
+     * @param rtpExtension the RTPExtension that is being added to this stream.
+     */
+    @Override
+    public void addRTPExtension(byte extensionID, RTPExtension rtpExtension)
+    {
+        super.addRTPExtension(extensionID, rtpExtension);
+
+        if (RTPExtension.CSRC_AUDIO_LEVEL_URN.equals(
+                rtpExtension.getURI().toString()))
+        {
+            getCsrcEngine().setCsrcAudioLevelAudioLevelExtensionID(
+                    extensionID,
+                    rtpExtension.getDirection());
+        }
+    }
+
+    /**
+     * Releases the resources allocated by this instance in the course of its
+     * execution and prepares it to be garbage collected.
+     *
+     * @see MediaStream#close()
+     */
+    @Override
+    public void close()
+    {
+        super.close();
+
+        if(dtmfTransfrmEngine != null)
+        {
+           dtmfTransfrmEngine = null;
+        }
+
+        this.audioSystemChangeNotifier.removePropertyChangeListener(this);
     }
 
     /**
@@ -198,53 +260,110 @@ public class AudioMediaStreamImpl
     {
         if(this.dtmfTransfrmEngine == null)
             this.dtmfTransfrmEngine = new DtmfTransformEngine(this);
-
         return this.dtmfTransfrmEngine;
     }
 
     /**
-     * Adds a <tt>DTMFListener</tt> to this <tt>AudioMediaStream</tt> which is
-     * to receive notifications when the remote party starts sending DTMF tones
-     * to us.
+     * Delivers the <tt>audioLevels</tt> map to whoever's interested. This
+     * method is meant for use primarily by the transform engine handling
+     * incoming RTP packets (currently <tt>CsrcTransformEngine</tt>).
      *
-     * @param listener the <tt>DTMFListener</tt> to register for notifications
-     * about the remote party starting sending of DTM tones to this
-     * <tt>AudioMediaStream</tt>
-     * @see AudioMediaStream#addDTMFListener(DTMFListener)
+     * @param audioLevels a array mapping CSRC IDs to audio levels in
+     * consecutive elements.
      */
-    public void addDTMFListener(DTMFListener listener)
+    public void fireConferenceAudioLevelEvent(long[] audioLevels)
     {
-        if(!dtmfListeners.contains(listener))
+        CsrcAudioLevelListener csrcAudioLevelListener
+            = this.csrcAudioLevelListener;
+
+        if (csrcAudioLevelListener != null)
+            csrcAudioLevelListener.audioLevelsReceived(audioLevels);
+    }
+
+    /**
+     * Delivers the <tt>DTMF</tt> tones. The method is meant for use primarily
+     * by the transform engine handling incoming RTP packets (currently
+     * <tt>DtmfTransformEngine</tt>).
+     *
+     * @param tone the new tone
+     * @param end <tt>true</tt> if the tone is to be ended or <tt>false</tt> to
+     * be started
+     */
+    public void fireDTMFEvent(DTMFRtpTone tone, boolean end)
+    {
+        DTMFToneEvent ev = new DTMFToneEvent(this, tone);
+
+        for (DTMFListener listener : dtmfListeners)
         {
-            dtmfListeners.add(listener);
+            if(end)
+                listener.dtmfToneReceptionEnded(ev);
+            else
+                listener.dtmfToneReceptionStarted(ev);
         }
     }
 
     /**
-     * Sets <tt>listener</tt> as the <tt>SimpleAudioLevelListener</tt>
-     * registered to receive notifications from our device session for changes
-     * in the levels of the party that's at the other end of this stream.
+     * Returns the <tt>MediaDeviceSession</tt> associated with this stream
+     * after first casting it to <tt>AudioMediaDeviceSession</tt> since this is,
+     * after all, an <tt>AudioMediaStreamImpl</tt>.
      *
-     * @param listener the <tt>SimpleAudioLevelListener</tt> that we'd like to
-     * register or <tt>null</tt> if we want to stop stream audio level
-     * measurements.
+     * @return the <tt>AudioMediaDeviceSession</tt> associated with this stream.
      */
-    public void setStreamAudioLevelListener(SimpleAudioLevelListener listener)
+    @Override
+    public AudioMediaDeviceSession getDeviceSession()
     {
-        getDeviceSession().setStreamAudioLevelListener(listener);
+        return (AudioMediaDeviceSession) super.getDeviceSession();
     }
 
     /**
-     * Registers <tt>listener</tt> as the <tt>CsrcAudioLevelListener</tt> that
-     * will receive notifications for changes in the levels of conference
-     * participants that the remote party could be mixing.
+     * Returns the last audio level that was measured by the underlying device
+     * session for the specified <tt>ssrc</tt> (where <tt>ssrc</tt> could also
+     * correspond to our local sync source identifier).
      *
-     * @param listener the <tt>CsrcAudioLevelListener</tt> that we'd like to
-     * register or <tt>null</tt> if we'd like to stop receiving notifications.
+     * @param ssrc the SSRC ID whose last measured audio level we'd like to
+     * retrieve.
+     *
+     * @return the audio level that was last measured for the specified
+     * <tt>ssrc</tt> or <tt>-1</tt> if no level has been cached for that ID.
      */
-    public void setCsrcAudioLevelListener(CsrcAudioLevelListener listener)
+    public int getLastMeasuredAudioLevel(long ssrc)
     {
-        this.csrcAudioLevelListener = listener;
+        AudioMediaDeviceSession devSession = getDeviceSession();
+
+        if (devSession == null)
+            return -1;
+        else if (ssrc == getLocalSourceID())
+            return devSession.getLastMeasuredLocalUserAudioLevel();
+        else
+            return devSession.getLastMeasuredAudioLevel(ssrc);
+    }
+
+    /**
+     * The priority of the audio is 3, which is meant to be higher than
+     * other threads and higher than the video one.
+     * @return audio priority.
+     */
+    @Override
+    protected int getPriority()
+    {
+        return 3;
+    }
+
+    /**
+     * Receives and reacts to property change events: if the selected device
+     * (for capture, playback or notifications) has changed, then create or
+     * recreate the streams in order to use it.
+     * We want to listen to these events, especially for those generated after
+     * the audio system has changed.
+     *
+     * @param evt The event which may contain a audio system change event.
+     */
+    public void propertyChange(PropertyChangeEvent evt)
+    {
+        if (sendStreamsAreCreated)
+            recreateSendStreams();
+        else
+            start();
     }
 
     /**
@@ -290,6 +409,48 @@ public class AudioMediaStreamImpl
     public void removeDTMFListener(DTMFListener listener)
     {
         dtmfListeners.remove(listener);
+    }
+
+    /**
+     * Registers <tt>listener</tt> as the <tt>CsrcAudioLevelListener</tt> that
+     * will receive notifications for changes in the levels of conference
+     * participants that the remote party could be mixing.
+     *
+     * @param listener the <tt>CsrcAudioLevelListener</tt> that we'd like to
+     * register or <tt>null</tt> if we'd like to stop receiving notifications.
+     */
+    public void setCsrcAudioLevelListener(CsrcAudioLevelListener listener)
+    {
+        this.csrcAudioLevelListener = listener;
+    }
+
+    /**
+     * Sets <tt>listener</tt> as the <tt>SimpleAudioLevelListener</tt>
+     * registered to receive notifications from our device session for changes
+     * in the levels of the audio that this stream is sending out.
+     *
+     * @param listener the <tt>SimpleAudioLevelListener</tt> that we'd like to
+     * register or <tt>null</tt> if we want to stop local audio level
+     * measurements.
+     */
+    public void setLocalUserAudioLevelListener(
+                                            SimpleAudioLevelListener listener)
+    {
+        getDeviceSession().setLocalUserAudioLevelListener(listener);
+    }
+
+    /**
+     * Sets <tt>listener</tt> as the <tt>SimpleAudioLevelListener</tt>
+     * registered to receive notifications from our device session for changes
+     * in the levels of the party that's at the other end of this stream.
+     *
+     * @param listener the <tt>SimpleAudioLevelListener</tt> that we'd like to
+     * register or <tt>null</tt> if we want to stop stream audio level
+     * measurements.
+     */
+    public void setStreamAudioLevelListener(SimpleAudioLevelListener listener)
+    {
+        getDeviceSession().setStreamAudioLevelListener(listener);
     }
 
     /**
@@ -374,168 +535,5 @@ public class AudioMediaStreamImpl
         default:
             throw new IllegalArgumentException("dtmfMethod");
         }
-    }
-
-    /**
-     * In addition to calling
-     * {@link MediaStreamImpl#addRTPExtension(byte, RTPExtension)}
-     * this method enables sending of CSRC audio levels. The reason we are
-     * doing this here rather than in the super class is that CSRC levels only
-     * make sense for audio streams so we don't want them enabled in any other
-     * type.
-     *
-     * @param extensionID the ID assigned to <tt>rtpExtension</tt> for the
-     * lifetime of this stream.
-     * @param rtpExtension the RTPExtension that is being added to this stream.
-     */
-    @Override
-    public void addRTPExtension(byte extensionID, RTPExtension rtpExtension)
-    {
-        super.addRTPExtension(extensionID, rtpExtension);
-
-        if (RTPExtension.CSRC_AUDIO_LEVEL_URN.equals(
-                rtpExtension.getURI().toString()))
-        {
-            getCsrcEngine().setCsrcAudioLevelAudioLevelExtensionID(
-                    extensionID,
-                    rtpExtension.getDirection());
-        }
-    }
-
-    /**
-     * Sets <tt>listener</tt> as the <tt>SimpleAudioLevelListener</tt>
-     * registered to receive notifications from our device session for changes
-     * in the levels of the audio that this stream is sending out.
-     *
-     * @param listener the <tt>SimpleAudioLevelListener</tt> that we'd like to
-     * register or <tt>null</tt> if we want to stop local audio level
-     * measurements.
-     */
-    public void setLocalUserAudioLevelListener(
-                                            SimpleAudioLevelListener listener)
-    {
-        getDeviceSession().setLocalUserAudioLevelListener(listener);
-    }
-
-    /**
-     * Returns the <tt>MediaDeviceSession</tt> associated with this stream
-     * after first casting it to <tt>AudioMediaDeviceSession</tt> since this is,
-     * after all, an <tt>AudioMediaStreamImpl</tt>.
-     *
-     * @return the <tt>AudioMediaDeviceSession</tt> associated with this stream.
-     */
-    @Override
-    public AudioMediaDeviceSession getDeviceSession()
-    {
-        return (AudioMediaDeviceSession) super.getDeviceSession();
-    }
-
-    /**
-     * Returns the last audio level that was measured by the underlying device
-     * session for the specified <tt>ssrc</tt> (where <tt>ssrc</tt> could also
-     * correspond to our local sync source identifier).
-     *
-     * @param ssrc the SSRC ID whose last measured audio level we'd like to
-     * retrieve.
-     *
-     * @return the audio level that was last measured for the specified
-     * <tt>ssrc</tt> or <tt>-1</tt> if no level has been cached for that ID.
-     */
-    public int getLastMeasuredAudioLevel(long ssrc)
-    {
-        AudioMediaDeviceSession devSession = getDeviceSession();
-
-        if (devSession == null)
-            return -1;
-        else if (ssrc == getLocalSourceID())
-            return devSession.getLastMeasuredLocalUserAudioLevel();
-        else
-            return devSession.getLastMeasuredAudioLevel(ssrc);
-    }
-
-    /**
-     * Delivers the <tt>audioLevels</tt> map to whoever's interested. This
-     * method is meant for use primarily by the transform engine handling
-     * incoming RTP packets (currently <tt>CsrcTransformEngine</tt>).
-     *
-     * @param audioLevels a array mapping CSRC IDs to audio levels in
-     * consecutive elements.
-     */
-    public void fireConferenceAudioLevelEvent(long[] audioLevels)
-    {
-        CsrcAudioLevelListener csrcAudioLevelListener
-            = this.csrcAudioLevelListener;
-
-        if (csrcAudioLevelListener != null)
-            csrcAudioLevelListener.audioLevelsReceived(audioLevels);
-    }
-
-    /**
-     * Delivers the <tt>DTMF</tt> tones. This
-     * method is meant for use primarily by the transform engine handling
-     * incoming RTP packets (currently <tt>DtmfTransformEngine</tt>).
-     *
-     * @param tone the new tone
-     * @param end is end or start of tone.
-     */
-    public void fireDTMFEvent(DTMFRtpTone tone, boolean end)
-    {
-        Iterator<DTMFListener> iter = dtmfListeners.iterator();
-        DTMFToneEvent ev = new DTMFToneEvent(this, tone);
-        while (iter.hasNext())
-        {
-            DTMFListener listener = iter.next();
-            if(end)
-                listener.dtmfToneReceptionEnded(ev);
-            else
-                listener.dtmfToneReceptionStarted(ev);
-        }
-    }
-
-    /**
-     * Releases the resources allocated by this instance in the course of its
-     * execution and prepares it to be garbage collected.
-     *
-     * @see MediaStream#close()
-     */
-    @Override
-    public void close()
-    {
-        super.close();
-
-        if(dtmfTransfrmEngine != null)
-        {
-           dtmfTransfrmEngine = null;
-        }
-
-        this.audioSystemChangeNotifier.removePropertyChangeListener(this);
-    }
-
-    /**
-     * The priority of the audio is 3, which is meant to be higher than
-     * other threads and higher than the video one.
-     * @return audio priority.
-     */
-    @Override
-    protected int getPriority()
-    {
-        return 3;
-    }
-
-    /**
-     * Receives and reacts to property change events: if the selected device
-     * (for capture, playback or notifications) has changed, then create or
-     * recreate the streams in order to use it.
-     * We want to listen to these events, especially for those generated after
-     * the audio system has changed.
-     *
-     * @param evt The event which may contain a audio system change event.
-     */
-    public void propertyChange(PropertyChangeEvent evt)
-    {
-        if (sendStreamsAreCreated)
-            recreateSendStreams();
-        else
-            start();
     }
 }

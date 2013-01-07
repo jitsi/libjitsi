@@ -14,20 +14,26 @@ import org.jitsi.service.protocol.*;
  * audio streaming.
  *
  * @author Emil Ivov
+ * @author Lyubomir Marinov
  */
 public interface AudioMediaStream
     extends MediaStream
 {
     /**
-     * Sets <tt>listener</tt> as the <tt>SimpleAudioLevelListener</tt>
-     * registered to receive notifications for changes in the levels of the
-     * party that's at the other end of this stream.
+     * Registers a listener that would receive notification events if the
+     * remote party starts sending DTMF tones to us.
      *
-     * @param listener the <tt>SimpleAudioLevelListener</tt> that we'd like to
-     * register or <tt>null</tt> if we want to stop stream audio level
-     * measurements.
+     * @param listener the <tt>DTMFListener</tt> that we'd like to register.
      */
-    public void setStreamAudioLevelListener(SimpleAudioLevelListener listener);
+    public void addDTMFListener(DTMFListener listener);
+
+    /**
+     * Removes <tt>listener</tt> from the list of <tt>DTMFListener</tt>s
+     * registered to receive events for incoming DTMF tones.
+     *
+     * @param listener the listener that we'd like to unregister
+     */
+    public void removeDTMFListener(DTMFListener listener);
 
     /**
      * Registers <tt>listener</tt> as the <tt>CsrcAudioLevelListener</tt> that
@@ -50,6 +56,17 @@ public interface AudioMediaStream
      */
     public void setLocalUserAudioLevelListener(
                                             SimpleAudioLevelListener listener);
+
+    /**
+     * Sets <tt>listener</tt> as the <tt>SimpleAudioLevelListener</tt>
+     * registered to receive notifications for changes in the levels of the
+     * party that's at the other end of this stream.
+     *
+     * @param listener the <tt>SimpleAudioLevelListener</tt> that we'd like to
+     * register or <tt>null</tt> if we want to stop stream audio level
+     * measurements.
+     */
+    public void setStreamAudioLevelListener(SimpleAudioLevelListener listener);
 
     /**
      * Starts sending the specified <tt>DTMFTone</tt> until the
@@ -75,20 +92,4 @@ public interface AudioMediaStream
      * @param dtmfMethod the <tt>DTMFMethod</tt> to stop sending.
      */
     public void stopSendingDTMF(DTMFMethod dtmfMethod);
-
-    /**
-     * Registers a listener that would receive notification events if the
-     * remote party starts sending DTMF tones to us.
-     *
-     * @param listener the <tt>DTMFListener</tt> that we'd like to register.
-     */
-    public void addDTMFListener(DTMFListener listener);
-
-    /**
-     * Removes <tt>listener</tt> from the list of <tt>DTMFListener</tt>s
-     * registered to receive events for incoming DTMF tones.
-     *
-     * @param listener the listener that we'd like to unregister
-     */
-    public void removeDTMFListener(DTMFListener listener);
 }
