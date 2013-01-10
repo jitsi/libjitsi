@@ -54,8 +54,7 @@ public class HardwareVolumeControl
 
         // Gets the device volume (an error use the default volume).
         this.volumeLevel = getDefaultVolumeLevel();
-        String deviceUID = getCaptureDeviceUID();
-        float volume = this.getInputDeviceVolume(deviceUID);
+        float volume = this.getVolume();
         if(volume != -1)
         {
             this.volumeLevel = volume;
@@ -205,5 +204,18 @@ public class HardwareVolumeControl
         CoreAudioDevice.freeDevices();
 
         return volume;
+    }
+
+    /**
+     * Current volume value.
+     *
+     * @return the current volume level.
+     *
+     * @see org.jitsi.service.neomedia.VolumeControl
+     */
+    public float getVolume()
+    {
+        String deviceUID = getCaptureDeviceUID();
+        return this.getInputDeviceVolume(deviceUID);
     }
 }
