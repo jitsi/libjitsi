@@ -256,6 +256,7 @@
     <fail message="ffmpeg repository not set!" unless="ffmpeg" />
     <fail message="x264 repository not set!" unless="x264" />
     <fail message="lame repository not set!" unless="lame" />
+    <fail message="libvpx repository not set!" unless="libvpx" />
 
     <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnffmpeg" objdir="${obj}">
       <!-- common compiler flags -->
@@ -273,6 +274,7 @@
       <linkerarg value="-L${ffmpeg}/libavformat" />
       <linkerarg value="-L${ffmpeg}/libavutil" />
       <linkerarg value="-L${ffmpeg}/libswscale" />
+      <linkerarg value="-L${libvpx}" />
       <!--
         Depending on the way that lame is built, libmp3lame.a may be in
         libmp3lame/ or libmp3lame/.libs/.
@@ -292,6 +294,7 @@
       <linkerarg value="-lswscale" location="end" />
       <linkerarg value="-lmp3lame" location="end" />
       <linkerarg value="-lx264" location="end" />
+      <linkerarg value="-lvpx" location="end" />
 
       <!-- Linux specific flags -->
       <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />

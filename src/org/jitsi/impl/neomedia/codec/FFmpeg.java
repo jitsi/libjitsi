@@ -70,6 +70,11 @@ public class FFmpeg
     public static final int CODEC_ID_H264 = 28;
 
     /**
+     * VP8 codec ID
+     */
+    public static final int CODEC_ID_VP8 = 142;
+
+    /**
      * MJPEG codec ID.
      */
     public static final int CODEC_ID_MJPEG = 8;

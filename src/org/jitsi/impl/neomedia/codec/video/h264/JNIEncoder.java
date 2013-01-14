@@ -46,7 +46,7 @@ public class JNIEncoder
     public static final String BASELINE_PROFILE = "baseline";
 
     /**
-     * The frame rate to be assumed by <tt>JNIEncoder</tt> instance in the
+     * The frame rate to be assumed by <tt>JNIEncoder</tt> instances in the
      * absence of any other frame rate indication.
      */
     static final int DEFAULT_FRAME_RATE = 15;
@@ -120,14 +120,9 @@ public class JNIEncoder
     private long avframe;
 
     /**
-     * We use this buffer to supply data to encoder.
+     * Buffer used to store the encoded frame.
      */
     private byte[] encFrameBuffer;
-
-    /**
-     * The supplied data length.
-     */
-    private int encFrameLen;
 
     /**
      * Force encoder to send a key frame.
@@ -169,6 +164,12 @@ public class JNIEncoder
      * The raw frame buffer.
      */
     private long rawFrameBuffer;
+
+    /**
+     * Length of the raw frame buffer. Once the dimensions are known, this is
+     * set to 3/2 * (height*width), which is the size needed for a YUV420 frame.
+     */
+    private int rawFrameLen;
 
     /**
      * Peer that receive stream from latest ffmpeg/x264 aware peer does not
@@ -511,9 +512,8 @@ public class JNIEncoder
                         + " (size= " + width + "x" + height + ")");
         }
 
-        encFrameLen = (width * height * 3) / 2;
-
-        rawFrameBuffer = FFmpeg.av_malloc(encFrameLen);
+        rawFrameLen = (width * height * 3) / 2;
+        rawFrameBuffer = FFmpeg.av_malloc(rawFrameLen);
         avframe = FFmpeg.avcodec_alloc_frame();
 
         int sizeInBytes = width * height;
@@ -525,7 +525,7 @@ public class JNIEncoder
                 sizeInBytes / 4);
         FFmpeg.avframe_set_linesize(avframe, width, width / 2, width / 2);
 
-        encFrameBuffer = new byte[encFrameLen];
+        encFrameBuffer = new byte[rawFrameLen];
 
         /*
          * Implement the ability to have the remote peer request key frames from
@@ -588,7 +588,7 @@ public class JNIEncoder
         FFmpeg.memcpy(
                 rawFrameBuffer,
                 (byte[]) inBuffer.getData(), inBuffer.getOffset(),
-                encFrameLen);
+                rawFrameLen);
 
         if (/* framesSinceLastIFrame >= IFRAME_INTERVAL || */ forceKeyFrame)
         {
@@ -616,7 +616,7 @@ public class JNIEncoder
         int encLen
             = FFmpeg.avcodec_encode_video(
                     avctx,
-                    encFrameBuffer, encFrameLen,
+                    encFrameBuffer, rawFrameLen,
                     avframe);
 
         /*

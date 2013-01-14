@@ -80,6 +80,16 @@ public class Constants
     public static final String H264_RTP = "h264/rtp";
 
     /**
+     * The VP* constant
+     */
+    public static final String VP8 = "VP8";
+
+    /**
+     * The VP8/RTP constant.
+     */
+    public static final String VP8_RTP = "VP8/rtp";
+
+    /**
      * The H263+ constant.
      */
     public static final String H263P = "H263-1998";
