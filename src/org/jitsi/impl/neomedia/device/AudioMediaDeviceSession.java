@@ -243,7 +243,7 @@ public class AudioMediaDeviceSession
     public void setLocalUserAudioLevelListener(
             SimpleAudioLevelListener listener)
     {
-        this.localUserAudioLevelEffect.setAudioLevelListener(listener);
+        localUserAudioLevelEffect.setAudioLevelListener(listener);
     }
 
     /**
@@ -261,6 +261,6 @@ public class AudioMediaDeviceSession
      */
     public void setStreamAudioLevelListener(SimpleAudioLevelListener listener)
     {
-        this.streamAudioLevelEffect.setAudioLevelListener(listener);
+        streamAudioLevelEffect.setAudioLevelListener(listener);
     }
 }

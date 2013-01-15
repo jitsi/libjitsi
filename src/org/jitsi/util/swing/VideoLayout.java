@@ -301,6 +301,7 @@ public class VideoLayout
             int columns = calculateColumnCount(remotes);
             int columnsMinus1 = columns - 1;
             int rows = (remoteCount + columnsMinus1) / columns;
+            int rowsMinus1 = rows - 1;
             Rectangle bounds
                 = new Rectangle(
                         0,
@@ -314,31 +315,47 @@ public class VideoLayout
                          */
                         (parentSize.width - (columnsMinus1 * HGAP)) / columns,
                         parentSize.height / rows);
-            int i = 0;
 
-            for (Component remote : remotes)
+            for (int i = 0; i < remoteCount; i++)
             {
+                int column = i % columns;
+                int row = i / columns;
+
                 /*
-                 * We want the remote videos ordered from right to left so that
-                 * the local video does not cover a remote video when possible.
+                 * On the x axis, the first column starts at zero and each
+                 * subsequent column starts relative to the end of its preceding
+                 * column.
                  */
-                /*
-                 * We account for the HGAP between the Components being laid out
-                 * by this VideoLayout.
-                 */
-                bounds.x
-                    = (columnsMinus1 - (i % columns)) * (bounds.width + HGAP);
-                bounds.y = (i / columns) * bounds.height;
+                if (column == 0)
+                {
+                    bounds.x = 0;
+                    /*
+                     * Eventually, there may be empty cells in the last row.
+                     * Center the non-empty cells horizontally.
+                     */
+                    if (row == rowsMinus1)
+                    {
+                        int available = remoteCount - i;
+
+                        if (available < columns)
+                        {
+                            bounds.x
+                                = (parentSize.width
+                                        - available * bounds.width
+                                        - (available - 1) * HGAP)
+                                    / 2;
+                        }
+                    }
+                }
+                else
+                    bounds.x += (bounds.width + HGAP);
+                bounds.y = row * bounds.height;
 
                 super.layoutComponent(
-                        remote,
+                        remotes.get(i),
                         bounds,
                         Component.CENTER_ALIGNMENT,
                         Component.CENTER_ALIGNMENT);
-
-                i++;
-                if (i >= remoteCount)
-                    break;
             }
         }
 

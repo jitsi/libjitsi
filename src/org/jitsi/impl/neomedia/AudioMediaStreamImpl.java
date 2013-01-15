@@ -35,7 +35,7 @@ import org.jitsi.util.event.*;
 public class AudioMediaStreamImpl
     extends MediaStreamImpl
     implements AudioMediaStream,
-                PropertyChangeListener
+               PropertyChangeListener
 {
 
     /**
@@ -73,21 +73,22 @@ public class AudioMediaStreamImpl
         = Logger.getLogger(AudioMediaStreamImpl.class);
 
     /**
-     * A property change notifier which will inform this stream if a selected
-     * audio device (capture, playback or notification device) has changed. We
-     * want to listen to these events, especially for those generated after the
-     * audio system has changed.
+     * A <tt>PropertyChangeNotifier<tt> which will inform this
+     * <tt>AudioStream</tt> if a selected audio device (capture, playback or
+     * notification device) has changed. We want to listen to these events,
+     * especially for those generated after the <tt>AudioSystem</tt> has
+     * changed.
      */
-    private PropertyChangeNotifier audioSystemChangeNotifier;
+    private final PropertyChangeNotifier audioSystemChangeNotifier;
 
     /**
      * The listener that gets notified of changes in the audio level of
      * remote conference participants.
      */
-    private CsrcAudioLevelListener csrcAudioLevelListener = null;
+    private CsrcAudioLevelListener csrcAudioLevelListener;
 
     /**
-     * The list of DTMF listeners;
+     * The list of DTMF listeners.
      */
     private final List<DTMFListener> dtmfListeners
         = new ArrayList<DTMFListener>();
@@ -95,7 +96,21 @@ public class AudioMediaStreamImpl
     /**
      * The transformer that we use for sending and receiving DTMF packets.
      */
-    private DtmfTransformEngine dtmfTransfrmEngine ;
+    private DtmfTransformEngine dtmfTransfrmEngine;
+
+    /**
+     * The listener which has been set on this instance to get notified of
+     * changes in the levels of the audio that the local peer/user is sending to
+     * the remote peer(s).
+     */
+    private SimpleAudioLevelListener localUserAudioLevelListener;
+
+    /**
+     * The listener which has been set on this instance to get notified of
+     * changes in the levels of the audios that the local peer/user is receiving
+     * from the remote peer(s).
+     */
+    private SimpleAudioLevelListener streamAudioLevelListener;
 
     /**
      * Initializes a new <tt>AudioMediaStreamImpl</tt> instance which will use
@@ -109,20 +124,23 @@ public class AudioMediaStreamImpl
      * <tt>StreamConnector</tt>
      * @param srtpControl a control which is already created, used to control
      * the srtp operations.
-     * @param audioSystemChangeNotifier A property change notifier which will
-     * inform this stream if a selected audio device (capture, playback or
-     * notification device) has changed. We want to listen to these events,
-     * especially for those generated after the audio system has changed.
      */
-    public AudioMediaStreamImpl(StreamConnector connector,
-                                MediaDevice     device,
-                                SrtpControl srtpControl,
-                                PropertyChangeNotifier audioSystemChangeNotifier
-                                )
+    public AudioMediaStreamImpl(
+            StreamConnector connector,
+            MediaDevice device,
+            SrtpControl srtpControl)
     {
         super(connector, device, srtpControl);
-        this.audioSystemChangeNotifier = audioSystemChangeNotifier;
-        this.audioSystemChangeNotifier.addPropertyChangeListener(this);
+
+        MediaService mediaService = LibJitsi.getMediaService();
+
+        if (mediaService instanceof PropertyChangeNotifier)
+        {
+            audioSystemChangeNotifier = (PropertyChangeNotifier) mediaService;
+            audioSystemChangeNotifier.addPropertyChangeListener(this);
+        }
+        else
+            audioSystemChangeNotifier = null;
     }
 
     /**
@@ -168,6 +186,23 @@ public class AudioMediaStreamImpl
     }
 
     /**
+     * Delivers the <tt>audioLevels</tt> map to whoever's interested. This
+     * method is meant for use primarily by the transform engine handling
+     * incoming RTP packets (currently <tt>CsrcTransformEngine</tt>).
+     *
+     * @param audioLevels a array mapping CSRC IDs to audio levels in
+     * consecutive elements.
+     */
+    public void audioLevelsReceived(long[] audioLevels)
+    {
+        CsrcAudioLevelListener csrcAudioLevelListener
+            = this.csrcAudioLevelListener;
+
+        if (csrcAudioLevelListener != null)
+            csrcAudioLevelListener.audioLevelsReceived(audioLevels);
+    }
+
+    /**
      * Releases the resources allocated by this instance in the course of its
      * execution and prepares it to be garbage collected.
      *
@@ -180,10 +215,12 @@ public class AudioMediaStreamImpl
 
         if(dtmfTransfrmEngine != null)
         {
-           dtmfTransfrmEngine = null;
+            dtmfTransfrmEngine.close();
+            dtmfTransfrmEngine = null;
         }
 
-        this.audioSystemChangeNotifier.removePropertyChangeListener(this);
+        if (audioSystemChangeNotifier != null)
+            audioSystemChangeNotifier.removePropertyChangeListener(this);
     }
 
     /**
@@ -264,20 +301,44 @@ public class AudioMediaStreamImpl
     }
 
     /**
-     * Delivers the <tt>audioLevels</tt> map to whoever's interested. This
-     * method is meant for use primarily by the transform engine handling
-     * incoming RTP packets (currently <tt>CsrcTransformEngine</tt>).
+     * {@inheritDoc}
      *
-     * @param audioLevels a array mapping CSRC IDs to audio levels in
-     * consecutive elements.
+     * Makes sure that {@link #localUserAudioLevelListener} and
+     * {@link #streamAudioLevelListener} which have been set on this
+     * <tt>AudioMediaStream</tt> will be automatically updated when a new
+     * <tt>MediaDevice</tt> is set on this instance.
      */
-    public void fireConferenceAudioLevelEvent(long[] audioLevels)
+    @Override
+    protected void deviceSessionChanged(
+            MediaDeviceSession oldValue,
+            MediaDeviceSession newValue)
     {
-        CsrcAudioLevelListener csrcAudioLevelListener
-            = this.csrcAudioLevelListener;
+        if (oldValue != null)
+        {
+            AudioMediaDeviceSession deviceSession
+                = (AudioMediaDeviceSession) oldValue;
 
-        if (csrcAudioLevelListener != null)
-            csrcAudioLevelListener.audioLevelsReceived(audioLevels);
+            if (localUserAudioLevelListener != null)
+                deviceSession.setLocalUserAudioLevelListener(null);
+            if (streamAudioLevelListener != null)
+                deviceSession.setStreamAudioLevelListener(null);
+        }
+        if (newValue != null)
+        {
+            AudioMediaDeviceSession deviceSession
+                = (AudioMediaDeviceSession) newValue;
+
+            if (localUserAudioLevelListener != null)
+            {
+                deviceSession.setLocalUserAudioLevelListener(
+                        localUserAudioLevelListener);
+            }
+            if (streamAudioLevelListener != null)
+            {
+                deviceSession.setStreamAudioLevelListener(
+                        streamAudioLevelListener);
+            }
+        }
     }
 
     /**
@@ -352,14 +413,20 @@ public class AudioMediaStreamImpl
     /**
      * Receives and reacts to property change events: if the selected device
      * (for capture, playback or notifications) has changed, then create or
-     * recreate the streams in order to use it.
-     * We want to listen to these events, especially for those generated after
-     * the audio system has changed.
+     * recreate the streams in order to use it. We want to listen to these
+     * events, especially for those generated after the audio system has
+     * changed.
      *
-     * @param evt The event which may contain a audio system change event.
+     * @param ev The event which may contain a audio system change event.
      */
-    public void propertyChange(PropertyChangeEvent evt)
+    public void propertyChange(PropertyChangeEvent ev)
     {
+        /*
+         * FIXME It is very wrong to do the following upon every
+         * PropertyChangeEvent fired by MediaServiceImpl. Moreover, it does not
+         * seem right that we'd want to start this MediaStream upon a
+         * PropertyChangeEvent (regardless of its specifics).
+         */
         if (sendStreamsAreCreated)
             recreateSendStreams();
         else
@@ -421,7 +488,7 @@ public class AudioMediaStreamImpl
      */
     public void setCsrcAudioLevelListener(CsrcAudioLevelListener listener)
     {
-        this.csrcAudioLevelListener = listener;
+        csrcAudioLevelListener = listener;
     }
 
     /**
@@ -434,9 +501,20 @@ public class AudioMediaStreamImpl
      * measurements.
      */
     public void setLocalUserAudioLevelListener(
-                                            SimpleAudioLevelListener listener)
+            SimpleAudioLevelListener listener)
     {
-        getDeviceSession().setLocalUserAudioLevelListener(listener);
+        if (localUserAudioLevelListener != listener)
+        {
+            localUserAudioLevelListener = listener;
+
+            AudioMediaDeviceSession deviceSession = getDeviceSession();
+
+            if (deviceSession != null)
+            {
+                deviceSession.setLocalUserAudioLevelListener(
+                        localUserAudioLevelListener);
+            }
+        }
     }
 
     /**
@@ -450,7 +528,18 @@ public class AudioMediaStreamImpl
      */
     public void setStreamAudioLevelListener(SimpleAudioLevelListener listener)
     {
-        getDeviceSession().setStreamAudioLevelListener(listener);
+        if (streamAudioLevelListener != listener)
+        {
+            streamAudioLevelListener = listener;
+
+            AudioMediaDeviceSession deviceSession = getDeviceSession();
+
+            if (deviceSession != null)
+            {
+                deviceSession.setStreamAudioLevelListener(
+                        streamAudioLevelListener);
+            }
+        }
     }
 
     /**
@@ -518,8 +607,8 @@ public class AudioMediaStreamImpl
         switch (dtmfMethod)
         {
         case INBAND_DTMF:
-            // The INBAND DTMF is send by impluse of constant duration and
-            // does not need to be stopped explecitely.
+            // The INBAND DTMF is sent by impluse of constant duration and does
+            // not need to be stopped explicitly.
             break;
 
         case RTP_DTMF:
@@ -528,7 +617,7 @@ public class AudioMediaStreamImpl
             break;
 
         case SIP_INFO_DTMF:
-            // The SIP-INFO DTMF is not managed directly by the
+            // The SIP-INFO DTMF is managed directly by the
             // OperationSetDTMFSipImpl.
             break;
 

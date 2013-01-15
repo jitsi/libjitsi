@@ -359,8 +359,7 @@ public class MediaServiceImpl
         switch (mediaType)
         {
         case AUDIO:
-            return
-                new AudioMediaStreamImpl(connector, device, srtpControl, this);
+            return new AudioMediaStreamImpl(connector, device, srtpControl);
         case VIDEO:
             return new VideoMediaStreamImpl(connector, device, srtpControl);
         default:
@@ -1006,8 +1005,10 @@ public class MediaServiceImpl
         final JComponent videoContainer = new VideoContainer(noPreview, false);
 
         if ((preferredWidth > 0) && (preferredHeight > 0))
+        {
             videoContainer.setPreferredSize(
                     new Dimension(preferredWidth, preferredHeight));
+        }
 
         try
         {
@@ -1015,7 +1016,7 @@ public class MediaServiceImpl
 
             if ((device != null) &&
                     ((captureDeviceInfo
-                                = ((MediaDeviceImpl)device)
+                                = ((MediaDeviceImpl) device)
                                     .getCaptureDeviceInfo())
                             != null))
             {
@@ -1059,7 +1060,8 @@ public class MediaServiceImpl
         {
             if (t instanceof ThreadDeath)
                 throw (ThreadDeath) t;
-            logger.error("Failed to create video preview", t);
+            else
+                logger.error("Failed to create video preview", t);
         }
 
         return videoContainer;
@@ -1231,8 +1233,13 @@ public class MediaServiceImpl
 
             previewContainer.add(preview);
 
-            previewContainer.revalidate();
-            previewContainer.repaint();
+            if (previewContainer.isDisplayable())
+            {
+                previewContainer.revalidate();
+                previewContainer.repaint();
+            }
+            else
+                previewContainer.doLayout();
         }
         else
             disposePlayer(player);

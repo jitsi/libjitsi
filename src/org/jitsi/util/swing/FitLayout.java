@@ -62,12 +62,13 @@ public class FitLayout
         /*
          * XXX The following is a quick and dirty hack for the purposes of video
          * conferencing which adds transparent JPanels to VideoContainer and
-         * does not want them fitted because they contains VideoContainers
+         * does not want them fitted because they contain VideoContainers
          * themselves and the videos get fitted in them.
          */
-        if ((component instanceof JPanel)
-                && !component.isOpaque()
-                && (((Container) component).getComponentCount() > 1))
+        if (((component instanceof JPanel)
+                    && !component.isOpaque()
+                    && (((Container) component).getComponentCount() > 1))
+                || (component instanceof VideoContainer))
         {
             componentSize = bounds.getSize();
         }

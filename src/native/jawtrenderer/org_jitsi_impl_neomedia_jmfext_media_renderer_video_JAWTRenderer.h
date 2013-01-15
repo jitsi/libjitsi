@@ -9,14 +9,6 @@ extern "C" {
 #endif
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
- * Method:    addNotifyLightweightComponent
- * Signature: (JLjava/awt/Component;J)V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_addNotifyLightweightComponent
-  (JNIEnv *, jclass, jlong, jobject, jlong);
-
-/*
- * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
  * Method:    close
  * Signature: (JLjava/awt/Component;)V
  */
@@ -34,18 +26,10 @@ JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
  * Method:    paint
- * Signature: (JLjava/awt/Component;Ljava/awt/Graphics;)Z
+ * Signature: (JLjava/awt/Component;Ljava/awt/Graphics;I)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_paint
-  (JNIEnv *, jclass, jlong, jobject, jobject);
-
-/*
- * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
- * Method:    paintLightweightComponent
- * Signature: (JLjava/awt/Component;Ljava/awt/Graphics;)Z
- */
-JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_paintLightweightComponent
-  (JNIEnv *, jclass, jlong, jobject, jobject);
+  (JNIEnv *, jclass, jlong, jobject, jobject, jint);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
@@ -54,22 +38,6 @@ JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_vi
  */
 JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_process
   (JNIEnv *, jclass, jlong, jobject, jintArray, jint, jint, jint, jint);
-
-/*
- * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
- * Method:    processLightweightComponentEvent
- * Signature: (JIIII)V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_processLightweightComponentEvent
-  (JNIEnv *, jclass, jlong, jint, jint, jint, jint);
-
-/*
- * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
- * Method:    removeNotifyLightweightComponent
- * Signature: (JLjava/awt/Component;)V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_removeNotifyLightweightComponent
-  (JNIEnv *, jclass, jlong, jobject);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer

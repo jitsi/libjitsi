@@ -91,7 +91,8 @@ JAWTRenderer_open(JNIEnv *jniEnv, jclass clazz, jobject component)
 
 jboolean
 JAWTRenderer_paint
-    (JAWT_DrawingSurfaceInfo *dsi, jclass clazz, jlong handle, jobject g)
+    (jint version, JAWT_DrawingSurfaceInfo *dsi, jclass clazz, jlong handle,
+        jobject g, jint zOrder)
 {
     JAWT_X11DrawingSurfaceInfo *x11dsi;
     JAWTRenderer *renderer;

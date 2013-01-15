@@ -4,7 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package net.java.sip.communicator.impl.neomedia.jmfext.media.renderer.video;
+package org.jitsi.impl.neomedia.jmfext.media.renderer.video;
 
 import java.awt.*;
 import java.lang.reflect.*;
@@ -15,8 +15,6 @@ import javax.media.renderer.*;
 import javax.swing.*;
 
 import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
-import org.jitsi.service.configuration.*;
-import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
 import org.jitsi.util.swing.*;
 
@@ -69,49 +67,9 @@ public class JAWTRenderer
                                 0x00FF0000, 0x0000FF00, 0x000000FF)
                 };
 
-    /**
-     * The indicator which determines whether <tt>CALayer</tt>-based painting is
-     * to be performed by <tt>JAWTRenderer</tt> on Mac OS X.
-     */
-    private static final boolean USE_MACOSX_CALAYERS;
-
     static
     {
         System.loadLibrary("jnawtrenderer");
-
-        /*
-         * XXX The native JAWTRenderer implementation on Mac OS X which paints
-         * in a CALayer-like fashion has been determined through testing to not
-         * work as expected on MacBookPro8. Unfortunately, the cause of the
-         * problem has not been determined. As a workaround, fall back to the
-         * alternative implementation (currently used on the other supported
-         * operating systems) on the problematic model. 
-         */
-        if (OSUtils.IS_MAC)
-        {
-            ConfigurationService cfg = LibJitsi.getConfigurationService();
-
-            if ((cfg == null)
-                    || cfg.getBoolean(
-                            JAWTRenderer.class.getName()
-                                + ".USE_MACOSX_CALAYERS",
-                            false))
-            {
-                String hwModel = sysctlbyname("hw.model");
-
-                USE_MACOSX_CALAYERS
-                    = (hwModel == null)
-                        || !(hwModel.startsWith("MacBookPro8")
-                                || hwModel.startsWith("MacBookAir4"));
-            }
-            else
-                USE_MACOSX_CALAYERS = false;
-        }
-        else
-        {
-            // CALayer-like painting is currently only supported on Mac OS X.
-            USE_MACOSX_CALAYERS = false;
-        }
     }
 
     /**
@@ -142,10 +100,6 @@ public class JAWTRenderer
     public JAWTRenderer()
     {
     }
-
-    public static native void addNotifyLightweightComponent(
-            long handle, Component component,
-            long parentHandle);
 
     /**
      * Closes this <tt>PlugIn</tt> and releases the resources it has retained
@@ -199,7 +153,7 @@ public class JAWTRenderer
      * platform-specific info of <tt>component</tt> is not guaranteed to be
      * valid.
      */
-    public static native void close(long handle, Component component);
+    private static native void close(long handle, Component component);
 
     /**
      * Gets the region in the component of this <tt>VideoRenderer</tt> where the
@@ -231,9 +185,7 @@ public class JAWTRenderer
                     "org.jitsi"
                         + ".impl.neomedia.jmfext.media.renderer.video"
                         + ".JAWTRenderer");
-            if (USE_MACOSX_CALAYERS && OSUtils.IS_MAC)
-                componentClassName.append("Swing");
-            else if (OSUtils.IS_ANDROID)
+            if (OSUtils.IS_ANDROID)
                 componentClassName.append("Android");
             componentClassName.append("VideoComponent");
 
@@ -395,7 +347,7 @@ public class JAWTRenderer
      * is to draw into the specified AWT <tt>Component</tt>
      * @throws ResourceUnavailableException if there is a problem during opening
      */
-    public static native long open(Component component)
+    private static native long open(Component component)
         throws ResourceUnavailableException;
 
     /**
@@ -413,6 +365,7 @@ public class JAWTRenderer
      * <tt>paint</tt>.
      * @param g the <tt>Graphics</tt> context into which the drawing is to be
      * performed
+     * @param zOrder
      * @return <tt>true</tt> if the native counterpart of a
      * <tt>JAWTRenderer</tt> wants to continue receiving the <tt>paint</tt>
      * calls on the AWT <tt>Component</tt>; otherwise, false. For example, after
@@ -423,11 +376,10 @@ public class JAWTRenderer
      * indicate with <tt>false</tt> that it does not need further <tt>paint</tt>
      * deliveries.
      */
-    public static native boolean paint(
-            long handle, Component component, Graphics g);
-
-    public static native boolean paintLightweightComponent(
-            long handle, Component component, Graphics g);
+    static native boolean paint(
+            long handle,
+            Component component, Graphics g,
+            int zOrder);
 
     /**
      * Processes the data provided in a specific <tt>Buffer</tt> and renders it
@@ -510,18 +462,11 @@ public class JAWTRenderer
      * @param height the height of the video frame in <tt>data</tt>
      * @return <tt>true</tt> if data has been successfully processed
      */
-    public static native boolean process(
+    static native boolean process(
             long handle,
             Component component,
             int[] data, int offset, int length,
             int width, int height);
-
-    public static native void processLightweightComponentEvent(
-            long handle,
-            int x, int y, int width, int height);
-
-    public static native void removeNotifyLightweightComponent(
-            long handle, Component component);
 
     /**
      * Sets the region in the component of this <tt>VideoRenderer</tt> where the

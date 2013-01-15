@@ -40,14 +40,6 @@ public abstract class MediaFormatImpl<T extends Format>
         = Collections.emptyMap();
 
     /**
-     * The value of the <tt>codecSettings</tt> property of
-     * <tt>MediaFormatImpl</tt> when no codec-specific settings.
-     * Explicitly defined in order to reduce unnecessary allocations.
-     */
-    static final Map<String, String> EMPTY_CODEC_SETTINGS
-        = Collections.emptyMap();
-
-    /**
      * The name of the <tt>encoding</tt> property of <tt>MediaFormatImpl</tt>.
      */
     public static final String ENCODING_PNAME = "encoding";
@@ -57,11 +49,6 @@ public abstract class MediaFormatImpl<T extends Format>
      * <tt>MediaFormatImpl</tt>.
      */
     public static final String FORMAT_PARAMETERS_PNAME = "fmtps";
-
-    /**
-     * The additional codec settings.
-     */
-    private Map<String, String> codecSettings = EMPTY_CODEC_SETTINGS;
 
     /**
      * Creates a new <tt>MediaFormat</tt> instance for a specific JMF
@@ -96,7 +83,7 @@ public abstract class MediaFormatImpl<T extends Format>
      * @param clockRate the clock rate of the new instance
      * @param formatParameters the set of format-specific parameters of the new
      * instance
-     * @param advancedAttrs advanced attributes of the new instance
+     * @param advancedAttributess advanced attributes of the new instance
      * @return a new <tt>MediaFormat</tt> instance for the specified JMF
      * <tt>Format</tt> and with the specified clock rate and set of
      * format-specific parameters
@@ -105,7 +92,7 @@ public abstract class MediaFormatImpl<T extends Format>
             Format format,
             double clockRate,
             Map<String, String> formatParameters,
-            Map<String, String> advancedAttrs)
+            Map<String, String> advancedAttributess)
     {
         if (format instanceof AudioFormat)
         {
@@ -122,86 +109,20 @@ public abstract class MediaFormatImpl<T extends Format>
                         (AudioFormat)
                             clockRateAudioFormat.intersects(audioFormat),
                         formatParameters,
-                        advancedAttrs);
+                        advancedAttributess);
         }
         else if (format instanceof VideoFormat)
+        {
             return
                 new VideoMediaFormatImpl(
                         (VideoFormat) format,
                         clockRate,
                         -1,
                         formatParameters,
-                        advancedAttrs);
+                        advancedAttributess);
+        }
         else
             return null;
-    }
-
-    /**
-     * Determines whether a specific set of advanced attributes is equal to
-     * another set of advanced attributes in the sense that they define an equal
-     * number of parameters and assign them equal values. Since the values are
-     * <tt>String</tt>s, presumes that a value of <tt>null</tt> is equal to the
-     * empty <tt>String</tt>.
-     * <p>
-     *
-     * @param adv the first set of advanced attributes to be tested for
-     * equality
-     * @param adv2 the second set of advanced attributes to be tested for
-     * equality
-     * @return <tt>true</tt> if the specified sets of advanced attributes
-     * equal; <tt>false</tt>, otherwise
-     */
-    public boolean advancedAttributesAreEqual(Map<String, String> adv,
-            Map<String, String> adv2)
-    {
-        if(adv == null && adv2 != null || adv != null && adv2 == null)
-            return false;
-
-        if(adv == null && adv2 == null)
-            return true;
-
-        if(adv.size() != adv2.size())
-            return false;
-
-        for(Map.Entry<String, String> a : adv.entrySet())
-        {
-            String value = adv2.get(a.getKey());
-            if(value == null)
-                return false;
-            else
-                if(!value.equals(a.getValue()))
-                        return false;
-        }
-        return true;
-    }
-
-    /**
-     * Determines whether a specific set of format parameters is equal to
-     * another set of format parameters in the sense that they define an equal
-     * number of parameters and assign them equal values. Since the values are
-     * <tt>String</tt>s, presumes that a value of <tt>null</tt> is equal to the
-     * empty <tt>String</tt>.
-     * <p>
-     * The two <tt>Map</tt> instances of format parameters to be checked for
-     * equality are presumed to be modifiable in the sense that if the lack of a
-     * format parameter in a given <tt>Map</tt> is equivalent to it having a
-     * specific value, an association of the format parameter to the value in
-     * question may be added to or removed from the respective <tt>Map</tt>
-     * instance for the purposes of determining equality.
-     * </p>
-     *
-     * @param fmtps1 the first set of format parameters to be tested for
-     * equality
-     * @param fmtps2 the second set of format parameters to be tested for
-     * equality
-     * @return <tt>true</tt> if the specified sets of format parameters are
-     * equal; <tt>false</tt>, otherwise
-     */
-    protected boolean formatParametersAreEqual(
-            Map<String, String> fmtps1,
-            Map<String, String> fmtps2)
-    {
-        return formatParametersAreEqual(getEncoding(), fmtps1, fmtps2);
     }
 
     /**
@@ -267,17 +188,15 @@ public abstract class MediaFormatImpl<T extends Format>
     }
 
     /**
-     * {@inheritDoc}
-     * <p>
-     * The default implementation of <tt>MediaFormatImpl</tt> always returns
-     * <tt>true</tt> because format parameters in general do not cause the
-     * distinction of payload types.
-     * </p>
+     * The advanced parameters of this instance which have been received
+     * via SIP/SDP or XMPP/Jingle.
      */
-    public boolean formatParametersMatch(Map<String, String> fmtps)
-    {
-        return true;
-    }
+    private final Map<String, String> advancedAttributes;
+
+    /**
+     * The additional codec settings.
+     */
+    private Map<String, String> codecSettings = EMPTY_FORMAT_PARAMETERS;
 
     /**
      * The JMF <tt>Format</tt> this instance wraps and provides an
@@ -290,12 +209,6 @@ public abstract class MediaFormatImpl<T extends Format>
      * via SIP/SDP or XMPP/Jingle.
      */
     private final Map<String, String> formatParameters;
-
-    /**
-     * The advanced parameters of this instance which have been received
-     * via SIP/SDP or XMPP/Jingle.
-     */
-    private final Map<String, String> advancedParameters;
 
     /**
      * Initializes a new <tt>MediaFormatImpl</tt> instance which is to provide
@@ -318,13 +231,13 @@ public abstract class MediaFormatImpl<T extends Format>
      * implementation of <tt>MediaFormat</tt> for
      * @param formatParameters any codec-specific parameters that have been
      * received via SIP/SDP or XMPP/Jingle
-     * @param advancedParameters any parameters that have been
+     * @param advancedAttributes any parameters that have been
      * received via SIP/SDP or XMPP/Jingle
      */
     protected MediaFormatImpl(
             T format,
             Map<String, String> formatParameters,
-            Map<String, String> advancedParameters)
+            Map<String, String> advancedAttributes)
     {
         if (format == null)
             throw new NullPointerException("format");
@@ -334,10 +247,49 @@ public abstract class MediaFormatImpl<T extends Format>
             = ((formatParameters == null) || formatParameters.isEmpty())
                 ? EMPTY_FORMAT_PARAMETERS
                 : new HashMap<String, String>(formatParameters);
-        this.advancedParameters
-            = ((advancedParameters == null) || advancedParameters.isEmpty())
+        this.advancedAttributes
+            = ((advancedAttributes == null) || advancedAttributes.isEmpty())
                 ? EMPTY_FORMAT_PARAMETERS
-                : new HashMap<String, String>(advancedParameters);
+                : new HashMap<String, String>(advancedAttributes);
+    }
+
+    /**
+     * Determines whether a specific set of advanced attributes is equal to
+     * another set of advanced attributes in the sense that they define an equal
+     * number of parameters and assign them equal values. Since the values are
+     * <tt>String</tt>s, presumes that a value of <tt>null</tt> is equal to the
+     * empty <tt>String</tt>.
+     * <p>
+     *
+     * @param adv the first set of advanced attributes to be tested for
+     * equality
+     * @param adv2 the second set of advanced attributes to be tested for
+     * equality
+     * @return <tt>true</tt> if the specified sets of advanced attributes
+     * equal; <tt>false</tt>, otherwise
+     */
+    public boolean advancedAttributesAreEqual(Map<String, String> adv,
+            Map<String, String> adv2)
+    {
+        if(adv == null && adv2 != null || adv != null && adv2 == null)
+            return false;
+
+        if(adv == null && adv2 == null)
+            return true;
+
+        if(adv.size() != adv2.size())
+            return false;
+
+        for(Map.Entry<String, String> a : adv.entrySet())
+        {
+            String value = adv2.get(a.getKey());
+            if(value == null)
+                return false;
+            else
+                if(!value.equals(a.getValue()))
+                        return false;
+        }
+        return true;
     }
 
     /**
@@ -366,6 +318,94 @@ public abstract class MediaFormatImpl<T extends Format>
                 && formatParametersAreEqual(
                         getFormatParameters(),
                         mediaFormatImpl.getFormatParameters());
+    }
+
+    /**
+     * Determines whether a specific set of format parameters is equal to
+     * another set of format parameters in the sense that they define an equal
+     * number of parameters and assign them equal values. Since the values are
+     * <tt>String</tt>s, presumes that a value of <tt>null</tt> is equal to the
+     * empty <tt>String</tt>.
+     * <p>
+     * The two <tt>Map</tt> instances of format parameters to be checked for
+     * equality are presumed to be modifiable in the sense that if the lack of a
+     * format parameter in a given <tt>Map</tt> is equivalent to it having a
+     * specific value, an association of the format parameter to the value in
+     * question may be added to or removed from the respective <tt>Map</tt>
+     * instance for the purposes of determining equality.
+     * </p>
+     *
+     * @param fmtps1 the first set of format parameters to be tested for
+     * equality
+     * @param fmtps2 the second set of format parameters to be tested for
+     * equality
+     * @return <tt>true</tt> if the specified sets of format parameters are
+     * equal; <tt>false</tt>, otherwise
+     */
+    protected boolean formatParametersAreEqual(
+            Map<String, String> fmtps1,
+            Map<String, String> fmtps2)
+    {
+        return formatParametersAreEqual(getEncoding(), fmtps1, fmtps2);
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * The default implementation of <tt>MediaFormatImpl</tt> always returns
+     * <tt>true</tt> because format parameters in general do not cause the
+     * distinction of payload types.
+     * </p>
+     */
+    public boolean formatParametersMatch(Map<String, String> fmtps)
+    {
+        return true;
+    }
+
+    /**
+     * Returns additional codec settings.
+     *
+     * @return additional settings represented by a map.
+     */
+    public Map<String, String> getAdditionalCodecSettings()
+    {
+        return codecSettings;
+    }
+
+    /**
+     * Implements MediaFormat#getAdvancedAttributes(). Returns a copy of the
+     * attribute properties of this instance. Modifications to the returned Map
+     * do no affect the format properties of this instance.
+     *
+     * @return a copy of the attribute properties of this instance.
+     * Modifications to the returned Map do no affect the format properties of
+     * this instance.
+     */
+    public Map<String, String> getAdvancedAttributes()
+    {
+        return (advancedAttributes == EMPTY_FORMAT_PARAMETERS)
+                ? EMPTY_FORMAT_PARAMETERS
+                : new HashMap<String, String>(advancedAttributes);
+    }
+
+    /**
+     * Returns a <tt>String</tt> representation of the clock rate associated
+     * with this <tt>MediaFormat</tt> making sure that the value appears as
+     * an integer (i.e. its long-casted value is equal to its original one)
+     * unless it is actually a non integer.
+     *
+     * @return a <tt>String</tt> representation of the clock rate associated
+     * with this <tt>MediaFormat</tt>.
+     */
+    public String getClockRateString()
+    {
+        double clockRate = getClockRate();
+        long clockRateL = (long) clockRate;
+
+        if (clockRateL == clockRate)
+            return Long.toString(clockRateL);
+        else
+            return Double.toString(clockRate);
     }
 
     /**
@@ -425,22 +465,6 @@ public abstract class MediaFormatImpl<T extends Format>
     }
 
     /**
-     * Implements MediaFormat#getAdvancedParameters(). Returns a copy of the
-     * attribute properties of this instance. Modifications to the returned Map
-     * do no affect the format properties of this instance.
-     *
-     * @return a copy of the attribute properties of this instance.
-     * Modifications to the returned Map do no affect the format properties of
-     * this instance.
-     */
-    public Map<String, String> getAdvancedAttributes()
-    {
-        return (advancedParameters == EMPTY_FORMAT_PARAMETERS)
-                ? EMPTY_FORMAT_PARAMETERS
-                : new HashMap<String, String>(advancedParameters);
-    }
-
-    /**
      * Gets the encoding of the JMF <tt>Format</tt> represented by this
      * instance as it is known to JMF (in contrast to its RFC name).
      *
@@ -450,6 +474,31 @@ public abstract class MediaFormatImpl<T extends Format>
     public String getJMFEncoding()
     {
         return format.getEncoding();
+    }
+
+    /**
+     * Returns a <tt>String</tt> representation of the real used clock rate
+     * associated with this <tt>MediaFormat</tt> making sure that the value
+     * appears as an integer (i.e. contains no decimal point) unless it is
+     * actually a non integer.
+     * This function corrects the problem of the G.722 codec which advertises
+     * its clock rate to be 8 kHz while 16 kHz is really used to encode the
+     * stream (that's an error noted in the respective RFC and kept for the sake
+     * of compatibility.).
+     *
+     * @return a <tt>String</tt> representation of the real used clock rate
+     * associated with this <tt>MediaFormat</tt>.
+     */
+    public String getRealUsedClockRateString()
+    {
+        // RFC 1890 erroneously assigned 8 kHz to the RTP clock rate for the
+        // G722 payload format. The actual sampling rate for G.722 audio is 16
+        // kHz.
+        if(this.getEncoding().equalsIgnoreCase("G722"))
+        {
+            return "16000";
+        }
+        return this.getClockRateString();
     }
 
     /**
@@ -485,128 +534,6 @@ public abstract class MediaFormatImpl<T extends Format>
          * have a lot of instances with one and the same jmfEncoding.
          */
         return getJMFEncoding().hashCode() | getFormatParameters().hashCode();
-    }
-
-    /**
-     * Returns a <tt>String</tt> representation of the clock rate associated
-     * with this <tt>MediaFormat</tt> making sure that the value appears as
-     * an integer (i.e. its long-casted value is equal to its original one)
-     * unless it is actually a non integer.
-     *
-     * @return a <tt>String</tt> representation of the clock rate associated
-     * with this <tt>MediaFormat</tt>.
-     */
-    public String getClockRateString()
-    {
-        double clockRate = getClockRate();
-        long clockRateL = (long) clockRate;
-
-        if (clockRateL == clockRate)
-            return Long.toString(clockRateL);
-        else
-            return Double.toString(clockRate);
-    }
-
-    /**
-     * Returns a <tt>String</tt> representation of the real used clock rate
-     * associated with this <tt>MediaFormat</tt> making sure that the value
-     * appears as an integer (i.e. contains no decimal point) unless it is
-     * actually a non integer.
-     * This function corrects the problem of the G.722 codec which advertises
-     * its clock rate to be 8 kHz while 16 kHz is really used to encode the
-     * stream (that's an error noted in the respective RFC and kept for the sake
-     * of compatibility.).
-     *
-     * @return a <tt>String</tt> representation of the real used clock rate
-     * associated with this <tt>MediaFormat</tt>.
-     */
-    public String getRealUsedClockRateString()
-    {
-        // RFC 1890 erroneously assigned 8 kHz to the RTP clock rate for the
-        // G722 payload format. The actual sampling rate for G.722 audio is 16
-        // kHz.
-        if(this.getEncoding().equalsIgnoreCase("G722"))
-        {
-            return "16000";
-        }
-        return this.getClockRateString();
-    }
-
-    /**
-     * Sets additional codec settings.
-     *
-     * @param settings additional settings represented by a map.
-     */
-    public void setAdditionalCodecSettings(Map<String, String> settings)
-    {
-        codecSettings = settings;
-    }
-
-    /**
-     * Returns additional codec settings.
-     *
-     * @return additional settings represented by a map.
-     */
-    public Map<String, String> getAdditionalCodecSettings()
-    {
-        return codecSettings;
-    }
-
-    /**
-     * Returns a <tt>String</tt> representation of this <tt>MediaFormat</tt>
-     * containing, among other things, its encoding and clockrate values.
-     *
-     * @return a <tt>String</tt> representation of this <tt>MediaFormat</tt>.
-     */
-    @Override
-    public String toString()
-    {
-        StringBuffer str = new StringBuffer();
-
-        str.append("rtpmap:");
-        str.append(getRTPPayloadType());
-        str.append(' ');
-        str.append(getEncoding());
-        str.append('/');
-        str.append(getClockRateString());
-
-        /*
-         * If the number of channels is 1, it does not have to be mentioned
-         * because it is the default.
-         */
-        if (MediaType.AUDIO.equals(getMediaType()))
-        {
-            int channels = ((AudioFormat) getFormat()).getChannels();
-
-            if (channels != 1)
-            {
-                str.append('/');
-                str.append(channels);
-            }
-        }
-
-        Map<String, String> formatParameters = getFormatParameters();
-
-        if (!formatParameters.isEmpty())
-        {
-            str.append(" fmtp:");
-
-            boolean prependSeparator = false;
-
-            for (Map.Entry<String, String> formatParameter
-                    : formatParameters.entrySet())
-            {
-                if (prependSeparator)
-                    str.append(';');
-                else
-                    prependSeparator = true;
-                str.append(formatParameter.getKey());
-                str.append('=');
-                str.append(formatParameter.getValue());
-            }
-        }
-
-        return str.toString();
     }
 
     /**
@@ -690,5 +617,75 @@ public abstract class MediaFormatImpl<T extends Format>
 
         // formatParameters
         return formatParametersMatch(formatParameters);
+    }
+
+    /**
+     * Sets additional codec settings.
+     *
+     * @param settings additional settings represented by a map.
+     */
+    public void setAdditionalCodecSettings(Map<String, String> settings)
+    {
+        codecSettings
+            = ((settings == null) || settings.isEmpty())
+                ? EMPTY_FORMAT_PARAMETERS
+                : settings;
+    }
+
+    /**
+     * Returns a <tt>String</tt> representation of this <tt>MediaFormat</tt>
+     * containing, among other things, its encoding and clockrate values.
+     *
+     * @return a <tt>String</tt> representation of this <tt>MediaFormat</tt>.
+     */
+    @Override
+    public String toString()
+    {
+        StringBuffer str = new StringBuffer();
+
+        str.append("rtpmap:");
+        str.append(getRTPPayloadType());
+        str.append(' ');
+        str.append(getEncoding());
+        str.append('/');
+        str.append(getClockRateString());
+
+        /*
+         * If the number of channels is 1, it does not have to be mentioned
+         * because it is the default.
+         */
+        if (MediaType.AUDIO.equals(getMediaType()))
+        {
+            int channels = ((AudioFormat) getFormat()).getChannels();
+
+            if (channels != 1)
+            {
+                str.append('/');
+                str.append(channels);
+            }
+        }
+
+        Map<String, String> formatParameters = getFormatParameters();
+
+        if (!formatParameters.isEmpty())
+        {
+            str.append(" fmtp:");
+
+            boolean prependSeparator = false;
+
+            for (Map.Entry<String, String> formatParameter
+                    : formatParameters.entrySet())
+            {
+                if (prependSeparator)
+                    str.append(';');
+                else
+                    prependSeparator = true;
+                str.append(formatParameter.getKey());
+                str.append('=');
+                str.append(formatParameter.getValue());
+            }
+        }
+
+        return str.toString();
     }
 }

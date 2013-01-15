@@ -280,40 +280,33 @@ public class CsrcTransformEngine
         {
             isRunning = true;
 
-            //no point in listening if our stream is not an audio one.
+            // Audio levels are received in RTP audio streams only. 
             if(!(mediaStream instanceof AudioMediaStreamImpl))
                 return;
 
-            long[] temp = null;
+            AudioMediaStreamImpl audioStream
+                = (AudioMediaStreamImpl) mediaStream;
 
             while(isRunning)
             {
+                long[] audioLevels;
+
                 synchronized(this)
                 {
                     if(lastReportedLevels == null)
                     {
-                        try
-                        {
-                            wait();
-                        }
-                        catch (InterruptedException ie) {}
+                        try { wait(); } catch (InterruptedException ie) {}
+                        continue;
                     }
-
-                    temp = lastReportedLevels;
-                    // make lastReportedLevels to null
-                    // so we will wait for the next level on next iteration
-                    lastReportedLevels = null;
-                }
-
-                if(temp != null)
-                {
-                    //now notify our listener
-                    if (mediaStream != null)
+                    else
                     {
-                        ((AudioMediaStreamImpl)mediaStream)
-                            .fireConferenceAudioLevelEvent(temp);
+                        audioLevels = lastReportedLevels;
+                        lastReportedLevels = null;
                     }
                 }
+
+                if(audioLevels != null)
+                    audioStream.audioLevelsReceived(audioLevels);
             }
         }
 
@@ -328,7 +321,6 @@ public class CsrcTransformEngine
             synchronized(this)
             {
                 this.lastReportedLevels = levels;
-
                 notifyAll();
             }
         }
@@ -343,7 +335,6 @@ public class CsrcTransformEngine
             {
                 this.lastReportedLevels = null;
                 isRunning = false;
-
                 notifyAll();
             }
         }

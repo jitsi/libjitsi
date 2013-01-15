@@ -1149,7 +1149,7 @@ public class AudioMixerMediaDevice
 
             if (l != null)
             {
-                this.localUserAudioLevelListener = l;
+                localUserAudioLevelListener = l;
 
                 // add the listener only if we are not muted
                 // this happens when holding a conversation, stream is muted

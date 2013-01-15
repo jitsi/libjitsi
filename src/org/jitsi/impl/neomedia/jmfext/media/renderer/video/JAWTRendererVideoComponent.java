@@ -8,10 +8,6 @@ package org.jitsi.impl.neomedia.jmfext.media.renderer.video;
 
 import java.awt.*;
 
-import net.java.sip.communicator.impl.neomedia.jmfext.media.renderer.video.*;
-
-import org.jitsi.util.swing.*;
-
 /**
  * Implements an AWT <tt>Component</tt> in which <tt>JAWTRenderer</tt> paints.
  *
@@ -52,9 +48,6 @@ public class JAWTRendererVideoComponent
      */
     public JAWTRendererVideoComponent(JAWTRenderer renderer)
     {
-        if (VideoContainer.DEFAULT_BACKGROUND_COLOR != null)
-            setBackground(VideoContainer.DEFAULT_BACKGROUND_COLOR);
-
         this.renderer = renderer;
     }
 
@@ -110,7 +103,15 @@ public class JAWTRendererVideoComponent
                 long handle;
 
                 if ((handle = getHandle()) != 0)
-                    wantsPaint = JAWTRenderer.paint(handle, this, g);
+                {
+                    Container parent = getParent();
+                    int zOrder
+                        = (parent == null)
+                            ? -1
+                            : parent.getComponentZOrder(this);
+
+                    wantsPaint = JAWTRenderer.paint(handle, this, g, zOrder);
+                }
             }
         }
     }

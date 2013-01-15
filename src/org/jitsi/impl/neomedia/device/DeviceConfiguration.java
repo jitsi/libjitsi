@@ -67,11 +67,11 @@ public class DeviceConfiguration
     private static final String[] CUSTOM_RENDERERS
         = new String[]
         {
-            OSUtils.IS_ANDROID ? "org.jitsi.impl.neomedia.jmfext.media.renderer.audio.AudioTrackRenderer" : null,
-            OSUtils.IS_ANDROID ? "org.jitsi.impl.neomedia.jmfext.media.renderer.audio.OpenSLESRenderer" : null,
+            OSUtils.IS_ANDROID ? ".audio.AudioTrackRenderer" : null,
+            OSUtils.IS_ANDROID ? ".audio.OpenSLESRenderer" : null,
             OSUtils.IS_LINUX ? ".audio.PulseAudioRenderer" : null,
             OSUtils.IS_ANDROID ? null : ".audio.PortAudioRenderer",
-            "net.java.sip.communicator.impl.neomedia.jmfext.media.renderer.video.JAWTRenderer"
+            ".video.JAWTRenderer"
         };
 
     /**

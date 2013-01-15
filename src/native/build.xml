@@ -174,79 +174,72 @@
   </target>
 
   <!-- compile jnawtrenderer library -->
-  <target name="jawtrenderer" description="Build jnawtrenderer shared library" depends="init-native,jawtrenderer-windows"
-    unless="is.running.windows">
+  <target name="jawtrenderer" description="Build jnawtrenderer shared library" depends="init-native">
     <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnawtrenderer" objdir="${obj}">
 
       <!-- common compiler flags -->
-      <compilerarg value="-std=c99" />
-      <compilerarg value="-Wall" />
-      <compilerarg value="-O2" />
-
-      <linkerarg value="-L${system.JAVA_HOME}/jre/lib/amd64" />
-      <linkerarg value="-L${system.JAVA_HOME}/jre/lib/x86" />
-      <linkerarg value="-ljawt" location="end" />
-
-      <!-- Linux specific flags -->
+      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
       <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
       <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
-      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
-      <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-std=c99" />
+      <compilerarg value="-Wall" />
+
+      <compilerarg value="-I${system.JAVA_HOME}/include" unless="is.running.macos" />
 
       <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
       <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <linkerarg value="-ljawt" location="end" />
+
+      <!-- Linux-specific flags -->
+      <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+
+      <linkerarg value="-L${system.JAVA_HOME}/jre/lib/i386" if="is.running.linux" />
+      <linkerarg value="-L${system.JAVA_HOME}/jre/lib/amd64" if="is.running.linux" />
       <linkerarg value="-lXv" location="end" if="is.running.linux" />
       <linkerarg value="-lX11" location="end" if="is.running.linux" />
 
-      <fileset dir="${src}/native/jawtrenderer" includes="net*.c JAWTRenderer_Linux.c" if="is.running.linux"/>
+      <fileset dir="${src}/native/jawtrenderer" includes="org*.c JAWTRenderer_Linux.c" if="is.running.linux"/>
 
-      <!-- Mac OS X specific flags -->
+      <!-- Mac OS X-specific flags -->
       <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
       <compilerarg value="-arch" if="is.running.macos" />
-      <compilerarg value="x86_64" if="is.running.macos" />
-      <compilerarg value="-arch" if="is.running.macos" />
       <compilerarg value="i386" if="is.running.macos" />
+      <compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="x86_64" if="is.running.macos" />
       <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
 
       <linkerarg value="-o" location="end" if="is.running.macos" />
       <linkerarg value="libjnawtrenderer.jnilib" location="end" if="is.running.macos" />
-      <linkerarg value="-arch" if="is.running.macos" />
-      <linkerarg value="x86_64" if="is.running.macos" />
+      <linkerarg value="-dynamiclib" if="is.running.macos" />
       <linkerarg value="-arch" if="is.running.macos" />
       <linkerarg value="i386" if="is.running.macos" />
+      <linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="x86_64" if="is.running.macos" />
       <linkerarg value="-framework" if="is.running.macos" />
       <linkerarg value="OpenGL" if="is.running.macos" />
       <linkerarg value="-framework" if="is.running.macos" />
       <linkerarg value="Foundation" if="is.running.macos" />
       <linkerarg value="-framework" if="is.running.macos" />
       <linkerarg value="AppKit" if="is.running.macos" />
+      <linkerarg value="-framework" if="is.running.macos" />
+      <linkerarg value="QuartzCore" if="is.running.macos" />
       <linkerarg value="-L/System/Library/Frameworks/JavaVM.framework/Libraries/" if="is.running.macos" />
 
-      <fileset dir="${src}/native/jawtrenderer" includes="net*.c JAWTRenderer_MacOSX.m" if="is.running.macos" />
+      <fileset dir="${src}/native/jawtrenderer" includes="org*.c JAWTRenderer_MacOSX.m" if="is.running.macos" />
 
-    </cc>
-  </target>
+      <!-- Windows-specific flags -->
+      <compilerarg value="-D_WIN32_WINNT=0x0502" if="is.running.windows" />
+      <compilerarg value="-DWINVER=0x0502" if="is.running.windows" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
 
-  <!-- compile jnawtrenderer library for Windows -->
-  <target name="jawtrenderer-windows" description="Build jnawtrenderer shared library for Windows" depends="init-native"
-    if="is.running.windows">
-    <cc outtype="shared" name="msvc" outfile="${native_install_dir}/jnawtrenderer" objdir="${obj}">
-      <compilerarg value="/O2" />
-      <compilerarg value="/MT" location="end" />
-      <compilerarg value="/IC:\Program Files\Microsoft DirectX SDK (February 2010)\Include" />
-      <compilerarg value="/IC:\Program Files (x86)\Microsoft DirectX SDK (February 2010)\Include" />
-      <compilerarg value="-I${system.JAVA_HOME}/include" />
-      <compilerarg value="-I${system.JAVA_HOME}/include/win32" />
+      <linkerarg value="-ojnawtrenderer.dll" if="is.running.windows" />
+      <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
+      <linkerarg value="-L${system.JAVA_HOME}/lib" if="is.running.windows" />
+      <linkerarg value="-ld3d9" location="end" if="is.running.windows" />
+      <linkerarg value="-ld3dx9" location="end" if="is.running.windows" />
 
-      <!-- <linkerarg value="/LD" /> -->
-      <linkerarg value="/LIBPATH:C:\Program Files\Microsoft DirectX SDK (February 2010)\lib\x86" />
-      <linkerarg value="/LIBPATH:C:\Program Files (x86)\Microsoft DirectX SDK (February 2010)\lib\x64" />
-      <linkerarg value="/LIBPATH:${system.JAVA_HOME}\\lib" />
-      <linkerarg value="d3d9.lib" location="end" />
-      <linkerarg value="user32.lib" location="end" />
-      <linkerarg value="jawt.lib" location="end" />
-
-      <fileset dir="${src}/native/jawtrenderer" includes="net*.c JAWTRenderer_Windows.cpp windows/*.cpp windows/*.c"/>
+      <fileset dir="${src}/native/jawtrenderer" includes="org*.c JAWTRenderer_Windows.c" if="is.running.windows"/>
     </cc>
   </target>
 
