@@ -173,8 +173,7 @@ public class MediaFormatFactoryImpl
              * clockRate. We just want to make sure that the channels and the
              * format parameters match.
              */
-            if (AbstractMediaStream.matches(
-                    format,
+            if (format.matches(
                     format.getMediaType(),
                     format.getEncoding(), format.getClockRate(), channels,
                     fmtps))

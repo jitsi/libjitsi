@@ -608,4 +608,87 @@ public abstract class MediaFormatImpl<T extends Format>
 
         return str.toString();
     }
+
+    /**
+     * Determines whether this <tt>MediaFormat</tt> matches properties of a
+     * specific <tt>MediaFormat</tt>, such as <tt>mediaType</tt>,
+     * <tt>encoding</tt>, <tt>clockRate</tt> and <tt>channels</tt> for
+     * <tt>MediaFormat</tt>s with <tt>mediaType</tt> equal to
+     * {@link MediaType#AUDIO}.
+     *
+     * @param format the {@link MediaFormat} whose properties we'd like to
+     * examine and compare with ours.
+     */
+    public boolean matches(MediaFormat format)
+    {
+        if(format == null)
+            return false;
+
+        MediaType mediaType = format.getMediaType();
+        String encoding = format.getEncoding();
+        double clockRate = format.getClockRate();
+        int channels = MediaType.AUDIO.equals(mediaType)
+                ? ((AudioMediaFormat) format).getChannels()
+                : MediaFormatFactory.CHANNELS_NOT_SPECIFIED;
+        Map<String, String> formatParameters = format.getFormatParameters();
+
+        return matches(
+            mediaType, encoding, clockRate, channels, formatParameters);
+    }
+
+    /**
+     * Determines whether this <tt>MediaFormat</tt> has specific values
+     * for its properties <tt>mediaType</tt>, <tt>encoding</tt>,
+     * <tt>clockRate</tt> and <tt>channels</tt> for <tt>MediaFormat</tt>s with
+     * <tt>mediaType</tt> equal to {@link MediaType#AUDIO}.
+     *
+     * @param mediaType the type we expect {@link MediaFormat} to have
+     * @param encoding the encoding we are looking for.
+     * @param clockRate the clock rate that we'd like the format to have.
+     * @param channels the number of channels that expect to find in this format
+     * @param formatParameters the format parameters expected to match these of
+     * the specified <tt>format</tt>
+     * @return <tt>true</tt> if the specified <tt>format</tt> has specific
+     * values for its properties <tt>mediaType</tt>, <tt>encoding</tt>,
+     * <tt>clockRate</tt> and <tt>channels</tt>; otherwise, <tt>false</tt>
+     */
+    public boolean matches(MediaType mediaType,
+                           String encoding,
+                           double clockRate,
+                           int channels,
+                           Map<String, String> formatParameters)
+    {
+        // mediaType
+        // encoding
+        if (!getMediaType().equals(mediaType)
+                || !getEncoding().equals(encoding))
+            return false;
+
+        // clockRate
+        if (clockRate != MediaFormatFactory.CLOCK_RATE_NOT_SPECIFIED)
+        {
+            double formatClockRate = getClockRate();
+
+            if ((formatClockRate != MediaFormatFactory.CLOCK_RATE_NOT_SPECIFIED)
+                    && (formatClockRate != clockRate))
+                return false;
+        }
+
+        // channels
+        if (MediaType.AUDIO.equals(mediaType))
+        {
+            if (channels == MediaFormatFactory.CHANNELS_NOT_SPECIFIED)
+                channels = 1;
+
+            int formatChannels = ((AudioMediaFormat) this).getChannels();
+
+            if (formatChannels == MediaFormatFactory.CHANNELS_NOT_SPECIFIED)
+                formatChannels = 1;
+            if (formatChannels != channels)
+                return false;
+        }
+
+        // formatParameters
+        return formatParametersMatch(formatParameters);
+    }
 }

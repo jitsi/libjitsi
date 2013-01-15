@@ -171,4 +171,47 @@ public interface MediaFormat
      */
     @Override
     public String toString();
+
+    /**
+     * Determines whether this <tt>MediaFormat</tt> matches properties of a
+     * specific <tt>MediaFormat</tt>, such as <tt>mediaType</tt>,
+     * <tt>encoding</tt>, <tt>clockRate</tt> and <tt>channels</tt> for
+     * <tt>MediaFormat</tt>s with <tt>mediaType</tt> equal to
+     * {@link MediaType#AUDIO}.
+     *
+     * @param format the {@link MediaFormat} whose properties we'd like to
+     * examine
+     * @param mediaType the type we expect {@link MediaFormat} to have
+     * @param encoding the encoding we are looking for.
+     * @param clockRate the clock rate that we'd like the format to have.
+     * @param channels the number of channels that expect to find in this format
+     * @param formatParameters the format parameters expected to match these of
+     * the specified <tt>format</tt>
+     * @return <tt>true</tt> if the specified <tt>format</tt> has specific
+     * values for its properties <tt>mediaType</tt>, <tt>encoding</tt>,
+     * <tt>clockRate</tt> and <tt>channels</tt>; otherwise, <tt>false</tt>
+     */
+    public boolean matches(MediaFormat format);
+
+    /**
+     * Determines whether this <tt>MediaFormat</tt> has specific values
+     * for its properties <tt>mediaType</tt>, <tt>encoding</tt>,
+     * <tt>clockRate</tt> and <tt>channels</tt> for <tt>MediaFormat</tt>s with
+     * <tt>mediaType</tt> equal to {@link MediaType#AUDIO}.
+     *
+     * @param mediaType the type we expect {@link MediaFormat} to have
+     * @param encoding the encoding we are looking for.
+     * @param clockRate the clock rate that we'd like the format to have.
+     * @param channels the number of channels that expect to find in this format
+     * @param formatParameters the format parameters expected to match these of
+     * the specified <tt>format</tt>
+     * @return <tt>true</tt> if the specified <tt>format</tt> has specific
+     * values for its properties <tt>mediaType</tt>, <tt>encoding</tt>,
+     * <tt>clockRate</tt> and <tt>channels</tt>; otherwise, <tt>false</tt>
+     */
+    public boolean matches(MediaType mediaType,
+                           String encoding,
+                           double clockRate,
+                           int channels,
+                           Map<String, String> formatParameters);
 }
