@@ -9,8 +9,6 @@ package org.jitsi.util.swing;
 import java.awt.*;
 import java.awt.event.*;
 
-import org.jitsi.util.*;
-
 /**
  * Implements a <tt>Container</tt> for video/visual <tt>Component</tt>s.
  * <tt>VideoContainer</tt> uses {@link VideoLayout} to layout the video/visual
@@ -29,10 +27,10 @@ public class VideoContainer
     private static final long serialVersionUID = 0L;
 
     /**
-     * The default background color.
+     * The default background color of <tt>VideoContainer</tt> when it contains
+     * <tt>Component</tt> instances other than {@link #noVideoComponent}.
      */
-    public static final Color DEFAULT_BACKGROUND_COLOR
-        = OSUtils.IS_MAC ? Color.BLACK : null;
+    public static final Color DEFAULT_BACKGROUND_COLOR = Color.BLACK;
 
     private int inAddOrRemove;
 
@@ -63,6 +61,9 @@ public class VideoContainer
         setLayout(new VideoLayout(conference));
 
         this.noVideoComponent = noVideoComponent;
+
+        if (DEFAULT_BACKGROUND_COLOR != null)
+            setBackground(DEFAULT_BACKGROUND_COLOR);
 
         addContainerListener(
                 new ContainerListener()
@@ -176,10 +177,29 @@ public class VideoContainer
 
     private void onContainerEvent(ContainerEvent ev)
     {
-        synchronized (syncRoot)
+        try
         {
-            if (inAddOrRemove != 0)
-                validateAndRepaint = true;
+            if (DEFAULT_BACKGROUND_COLOR != null)
+            {
+                int componentCount = getComponentCount();
+
+                if ((componentCount == 1)
+                        && (getComponent(0)
+                                == VideoContainer.this.noVideoComponent))
+                {
+                    componentCount = 0;
+                }
+
+                setOpaque(componentCount > 0);
+            }
+        }
+        finally
+        {
+            synchronized (syncRoot)
+            {
+                if (inAddOrRemove != 0)
+                    validateAndRepaint = true;
+            }
         }
     }
 
