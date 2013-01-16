@@ -27,6 +27,9 @@ Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_paint
     (JNIEnv *env, jclass clazz, jlong handle, jobject component, jobject g,
         jint zOrder)
 {
+#ifdef __ANDROID__
+    return JAWTRenderer_paint(0, NULL, clazz, handle, g, zOrder);
+#else /* #ifdef __ANDROID__ */
     JAWT awt;
     jboolean awtIsAvailable;
     jboolean wantsPaint;
@@ -93,6 +96,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_paint
         }
     }
     return wantsPaint;
+#endif /* #ifdef __ANDROID__ */
 }
 
 JNIEXPORT jboolean JNICALL

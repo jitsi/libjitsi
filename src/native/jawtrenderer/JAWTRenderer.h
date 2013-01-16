@@ -8,12 +8,20 @@
 #ifndef _JAWTRENDERER_H_
 #define _JAWTRENDERER_H_
 
-#include <jawt.h>
+#ifndef __ANDROID__
+    #include <jawt.h>
+#else /* #ifndef __ANDROID__ */
+    typedef void JAWT_DrawingSurfaceInfo;
+#endif /* #ifndef __ANDROID__ */
 #include <jni.h>
+
+#ifndef NULL
+#define NULL 0
+#endif /* #ifndef NULL */
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif /* #ifdef __cplusplus */
 
 void JAWTRenderer_close
     (JNIEnv *env, jclass clazz, jlong handle, jobject component);
@@ -31,6 +39,6 @@ jstring JAWTRenderer_sysctlbyname(JNIEnv *env, jstring name);
 
 #ifdef __cplusplus
 } /* extern "C" { */
-#endif
+#endif /* #ifdef __cplusplus */
 
 #endif /* _JAWTRENDERER_H_ */
