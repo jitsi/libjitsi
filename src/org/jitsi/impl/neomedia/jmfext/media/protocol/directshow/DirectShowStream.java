@@ -24,14 +24,23 @@ import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
  * @author Lyubomir Marinov
  * @author Sebastien Vincent
  */
-public class DirectShowStream extends AbstractPushBufferStream
+public class DirectShowStream
+    extends AbstractPushBufferStream
 {
+    /**
+     * The indicator which determines whether {@link #grabber}
+     * automatically drops late frames. If <tt>false</tt>, we have to drop them
+     * ourselves because DirectShow will buffer them all and the video will
+     * be late.
+     */
+    private boolean automaticallyDropsLateVideoFrames = false;
+
     /**
      * The pool of <tt>ByteBuffer</tt>s this instances is using to transfer the
      * media data captured by {@link #grabber} out of this instance
      * through the <tt>Buffer</tt>s specified in its {@link #read(Buffer)}.
      */
-    private final ByteBufferPool bufferPool = new ByteBufferPool();
+    private final ByteBufferPool byteBufferPool = new ByteBufferPool();
 
     /**
      * The captured media data to be returned in {@link #read(Buffer)}.
@@ -56,12 +65,25 @@ public class DirectShowStream extends AbstractPushBufferStream
     private final Format format;
 
     /**
+     * Delegate class to handle video data.
+     */
+    final DSCaptureDevice.GrabberDelegate grabber
+        = new DSCaptureDevice.GrabberDelegate()
+        {
+            @Override
+            public void frameReceived(long ptr, int length)
+            {
+                processFrame(ptr, length);
+            }
+        };
+
+    /**
      * The captured media data to become the value of {@link #data} as soon as
      * the latter becomes is consumed. Thus prepares this
      * <tt>DirectShowStream</tt> to provide the latest available frame and not
      * wait for DirectShow to capture a new one.
      */
-    private ByteBuffer nextData = null;
+    private ByteBuffer nextData;
 
     /**
      * The time stamp in nanoseconds of {@link #nextData}.
@@ -76,27 +98,6 @@ public class DirectShowStream extends AbstractPushBufferStream
      * {@link #automaticallyDropsLateVideoFrames} is <tt>false</tt>.
      */
     private Thread transferDataThread;
-
-    /**
-     * The indicator which determines whether {@link #grabber}
-     * automatically drops late frames. If <tt>false</tt>, we have to drop them
-     * ourselves because DirectShow will buffer them all and the video will
-     * be late.
-     */
-    private boolean automaticallyDropsLateVideoFrames = false;
-
-    /**
-     * Delegate class to handle video data.
-     */
-    final DSCaptureDevice.GrabberDelegate grabber
-        = new DSCaptureDevice.GrabberDelegate()
-        {
-            @Override
-            public void frameReceived(long ptr, int length)
-            {
-                processFrame(ptr, length);
-            }
-        };
 
     /**
      * Initializes a new <tt>DirectShowStream</tt> instance which is to have its
@@ -116,6 +117,22 @@ public class DirectShowStream extends AbstractPushBufferStream
     }
 
     /**
+     * Gets the <tt>Format</tt> of this <tt>PushBufferStream</tt> as directly
+     * known by it.
+     *
+     * @return the <tt>Format</tt> of this <tt>PushBufferStream</tt> as directly
+     * known by it or <tt>null</tt> if this <tt>PushBufferStream</tt> does not
+     * directly know its <tt>Format</tt> and it relies on the
+     * <tt>PushBufferDataSource</tt> which created it to report its
+     * <tt>Format</tt>
+     */
+    @Override
+    protected Format doGetFormat()
+    {
+        return (this.format == null) ? super.doGetFormat() : this.format;
+    }
+
+    /**
      * Process received frames from DirectShow capture device
      *
      * @param ptr native pointer to data
@@ -129,43 +146,43 @@ public class DirectShowStream extends AbstractPushBufferStream
         {
             if(!automaticallyDropsLateVideoFrames && (data != null))
             {
-                if(nextData != null)
+                if (nextData != null)
                 {
-                    bufferPool.returnFreeBuffer(nextData);
+                    nextData.free();
                     nextData = null;
                 }
-
-                nextData
-                    = bufferPool.getFreeBuffer(length);
+                nextData = byteBufferPool.getBuffer(length);
                 if(nextData != null)
                 {
                     nextData.setLength(
                             DSCaptureDevice.getBytes(ptr,
-                                    nextData.ptr,
-                                    nextData.capacity));
+                                    nextData.getPtr(),
+                                    nextData.getCapacity()));
                     nextDataTimeStamp = System.nanoTime();
                 }
 
                 return;
             }
 
-            if(data != null)
+            if (data != null)
             {
-                bufferPool.returnFreeBuffer(data);
+                data.free();
                 data = null;
             }
-
-            data = bufferPool.getFreeBuffer(length);
+            data = byteBufferPool.getBuffer(length);
             if(data != null)
             {
-                data.setLength(DSCaptureDevice.getBytes(ptr,
-                        data.ptr, data.capacity));
+                data.setLength(
+                        DSCaptureDevice.getBytes(
+                                ptr,
+                                data.getPtr(),
+                                data.getCapacity()));
                 dataTimeStamp = System.nanoTime();
             }
 
-            if(nextData != null)
+            if (nextData != null)
             {
-                bufferPool.returnFreeBuffer(nextData);
+                nextData.free();
                 nextData = null;
             }
 
@@ -188,32 +205,80 @@ public class DirectShowStream extends AbstractPushBufferStream
     }
 
     /**
-     * Gets the <tt>Format</tt> of this <tt>PushBufferStream</tt> as directly
-     * known by it.
+     * Reads media data from this <tt>PushBufferStream</tt> into a specific
+     * <tt>Buffer</tt> without blocking.
      *
-     * @return the <tt>Format</tt> of this <tt>PushBufferStream</tt> as directly
-     * known by it or <tt>null</tt> if this <tt>PushBufferStream</tt> does not
-     * directly know its <tt>Format</tt> and it relies on the
-     * <tt>PushBufferDataSource</tt> which created it to report its
-     * <tt>Format</tt>
+     * @param buffer the <tt>Buffer</tt> in which media data is to be read from
+     * this <tt>PushBufferStream</tt>
+     * @throws IOException if anything goes wrong while reading media data from
+     * this <tt>PushBufferStream</tt> into the specified <tt>buffer</tt>
      */
-    @Override
-    protected Format doGetFormat()
+    public void read(Buffer buffer) throws IOException
     {
-        return (this.format == null) ? super.doGetFormat() : this.format;
-    }
+        synchronized (dataSyncRoot)
+        {
+            if(data == null)
+            {
+                buffer.setLength(0);
+                return;
+            }
 
-    /**
-     * Releases the resources used by this instance throughout its existence and
-     * makes it available for garbage collection. This instance is considered
-     * unusable after closing.
-     *
-     * @see AbstractPushBufferStream#close()
-     */
-    @Override
-    public void close()
-    {
-        bufferPool.close();
+            Format bufferFormat = buffer.getFormat();
+
+            if(bufferFormat == null)
+            {
+                bufferFormat = getFormat();
+                if(bufferFormat != null)
+                    buffer.setFormat(bufferFormat);
+            }
+            if(bufferFormat instanceof AVFrameFormat)
+            {
+                if (AVFrame.read(buffer, bufferFormat, data) < 0)
+                    data.free();
+                /*
+                 * XXX For the sake of safety, make sure that this instance does
+                 * not reference the data instance as soon as it is set on the
+                 * AVFrame.
+                 */
+                data = null;
+            }
+            else
+            {
+                Object o = buffer.getData();
+                byte[] bytes;
+                int length = data.getLength();
+
+                if(o instanceof byte[])
+                {
+                    bytes = (byte[]) o;
+                    if(bytes.length < length)
+                        bytes = null;
+                }
+                else
+                    bytes = null;
+                if(bytes == null)
+                {
+                    bytes = new byte[length];
+                    buffer.setData(bytes);
+                }
+
+                /*
+                 * TODO Copy the media from the native memory into the Java
+                 * heap.
+                 */
+                data.free();
+                data = null;
+
+                buffer.setLength(length);
+                buffer.setOffset(0);
+            }
+
+            buffer.setFlags(Buffer.FLAG_LIVE_DATA | Buffer.FLAG_SYSTEM_TIME);
+            buffer.setTimeStamp(dataTimeStamp);
+
+            if(!automaticallyDropsLateVideoFrames)
+                dataSyncRoot.notifyAll();
+        }
     }
 
     /**
@@ -289,12 +354,8 @@ public class DirectShowStream extends AbstractPushBufferStream
 
                 synchronized (dataSyncRoot)
                 {
-                    if(data != null)
-                    {
-                        bufferPool.returnFreeBuffer(data);
-                        data = null;
-                    }
-
+                    if (data != null)
+                        data.free();
                     data = nextData;
                     dataTimeStamp = nextDataTimeStamp;
                     nextData = null;
@@ -339,8 +400,11 @@ public class DirectShowStream extends AbstractPushBufferStream
      * media data from this <tt>PushBufferStream</tt>
      */
     @Override
-    public void start() throws IOException
+    public void start()
+        throws IOException
     {
+        super.start();
+
         if(!automaticallyDropsLateVideoFrames)
         {
             transferDataThread
@@ -363,101 +427,35 @@ public class DirectShowStream extends AbstractPushBufferStream
      * media data from this <tt>PushBufferStream</tt>
      */
     @Override
-    public void stop() throws IOException
+    public void stop()
+        throws IOException
     {
-        transferDataThread = null;
-
-        synchronized (dataSyncRoot)
+        try
         {
-            if(data != null)
-            {
-                bufferPool.returnFreeBuffer(data);
-                data = null;
-            }
+            transferDataThread = null;
 
-            if(nextData != null)
+            synchronized (dataSyncRoot)
             {
-                bufferPool.returnFreeBuffer(nextData);
-                nextData = null;
-            }
+                if (data != null)
+                {
+                    data.free();
+                    data = null;
+                }
+                if (nextData != null)
+                {
+                    nextData.free();
+                    nextData = null;
+                }
 
-            if(!automaticallyDropsLateVideoFrames)
-                dataSyncRoot.notifyAll();
+                if(!automaticallyDropsLateVideoFrames)
+                    dataSyncRoot.notifyAll();
+            }
         }
-    }
-
-    /**
-     * Reads media data from this <tt>PushBufferStream</tt> into a specific
-     * <tt>Buffer</tt> without blocking.
-     *
-     * @param buffer the <tt>Buffer</tt> in which media data is to be read from
-     * this <tt>PushBufferStream</tt>
-     * @throws IOException if anything goes wrong while reading media data from
-     * this <tt>PushBufferStream</tt> into the specified <tt>buffer</tt>
-     */
-    public void read(Buffer buffer) throws IOException
-    {
-        synchronized (dataSyncRoot)
+        finally
         {
-            if(data == null)
-            {
-                buffer.setLength(0);
-                return;
-            }
+            super.stop();
 
-            Format bufferFormat = buffer.getFormat();
-
-            if(bufferFormat == null)
-            {
-                bufferFormat = getFormat();
-                if(bufferFormat != null)
-                    buffer.setFormat(bufferFormat);
-            }
-            if(bufferFormat instanceof AVFrameFormat)
-            {
-                FinalizableAVFrame.read(
-                        buffer,
-                        bufferFormat,
-                        data,
-                        bufferPool);
-            }
-            else
-            {
-                Object bufferData = buffer.getData();
-                byte[] bufferByteData;
-                int dataLength = data.getLength();
-
-                if(bufferData instanceof byte[])
-                {
-                    bufferByteData = (byte[]) bufferData;
-                    if(bufferByteData.length < dataLength)
-                        bufferByteData = null;
-                }
-                else
-                    bufferByteData = null;
-                if(bufferByteData == null)
-                {
-                    bufferByteData = new byte[dataLength];
-                    buffer.setData(bufferByteData);
-                }
-
-                /* XXX */
-                //DSCaptureDevice.getBytes(bufferByteData, 0, dataLength,
-                //        data.ptr);
-                //CVPixelBuffer.memcpy(bufferByteData, 0, dataLength, data.ptr);
-
-                buffer.setLength(dataLength);
-                buffer.setOffset(0);
-
-                bufferPool.returnFreeBuffer(data);
-            }
-
-            buffer.setFlags(Buffer.FLAG_LIVE_DATA | Buffer.FLAG_SYSTEM_TIME);
-            buffer.setTimeStamp(dataTimeStamp);
-
-            data = null;
-            if(!automaticallyDropsLateVideoFrames)
-                dataSyncRoot.notifyAll();
+            byteBufferPool.drain();
         }
     }
 }

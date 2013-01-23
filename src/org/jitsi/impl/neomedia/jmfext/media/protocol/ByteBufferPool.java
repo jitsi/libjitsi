@@ -6,11 +6,11 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.protocol;
 
+import java.lang.ref.*;
 import java.util.*;
 
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
-import org.jitsi.util.*;
 
 /**
  * Represents a pool of <tt>ByteBuffer</tt>s which reduces the allocations and
@@ -21,67 +21,31 @@ import org.jitsi.util.*;
  */
 public class ByteBufferPool
 {
-
-    /**
-     * The <tt>Logger</tt> used by the <tt>ByteBufferPool</tt> class and its
-     * instances for logging output.
-     */
-    private static final Logger logger = Logger.getLogger(ByteBufferPool.class);
-
     /**
      * The <tt>ByteBuffer</tt>s which are managed by this
      * <tt>ByteBufferPool</tt>.
      */
-    private final List<ByteBuffer> buffers = new ArrayList<ByteBuffer>();
+    private final List<PooledByteBuffer> buffers
+        = new ArrayList<PooledByteBuffer>();
 
     /**
-     * The indicator which determines whether this <tt>ByteBufferPool</tt> has
-     * been closed. Introduced to determine when <tt>ByteBuffer</tt>s are to be
-     * disposed of and no longer be pooled.
+     * Drains this <tt>ByteBufferPool</tt> i.e. frees the <tt>ByteBuffer</tt>s
+     * that it contains.
      */
-    private boolean closed = false;
-
-    /**
-     * Closes this <tt>ByteBufferPool</tt> i.e. releases the resource allocated
-     * by this <tt>ByteBufferPool</tt> during its existence and prepares it to
-     * be garbage collected.
-     */
-    public void close()
+    public synchronized void drain()
     {
-        synchronized (buffers)
+        for (Iterator<PooledByteBuffer> i = buffers.iterator(); i.hasNext();)
         {
-            closed = true;
+            PooledByteBuffer buffer = i.next();
 
-            Iterator<ByteBuffer> bufferIter = buffers.iterator();
-            boolean loggerIsTraceEnabled = logger.isTraceEnabled();
-            int leakedCount = 0;
-
-            while (bufferIter.hasNext())
-            {
-                ByteBuffer buffer = bufferIter.next();
-
-                if (buffer.isFree())
-                {
-                    bufferIter.remove();
-                    FFmpeg.av_free(buffer.ptr);
-                }
-                else if (loggerIsTraceEnabled)
-                    leakedCount++;
-            }
-            if (loggerIsTraceEnabled)
-            {
-                if (logger.isTraceEnabled())
-                    logger.trace(
-                        "Leaking " + leakedCount + " ByteBuffer instances.");
-            }
+            i.remove();
+            buffer.doFree();
         }
     }
 
     /**
-     * Gets a <tt>ByteBuffer</tt> out of the pool of free <tt>ByteBuffer</tt>s
-     * (i.e. <tt>ByteBuffer</tt>s ready for writing captured media data into
-     * them) which is capable to receiving at least <tt>capacity</tt> number of
-     * bytes.
+     * Gets a <tt>ByteBuffer</tt> out of this pool of <tt>ByteBuffer</tt>s which
+     * is capable to receiving at least <tt>capacity</tt> number of bytes.
      *
      * @param capacity the minimal number of bytes that the returned
      * <tt>ByteBuffer</tt> is to be capable of receiving
@@ -89,80 +53,93 @@ public class ByteBufferPool
      * data into and which is capable of receiving at least <tt>capacity</tt>
      * number of bytes
      */
-    public ByteBuffer getFreeBuffer(int capacity)
+    public synchronized ByteBuffer getBuffer(int capacity)
     {
-        synchronized (buffers)
+        /*
+         * XXX Pad with FF_INPUT_BUFFER_PADDING_SIZE or hell will break loose.
+         */
+        capacity += FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE;
+
+        ByteBuffer buffer = null;
+
+        for (Iterator<PooledByteBuffer> i = buffers.iterator(); i.hasNext();)
         {
-            if (closed)
-                return null;
+            ByteBuffer aBuffer = i.next();
 
-            int bufferCount = buffers.size();
-            ByteBuffer freeBuffer = null;
-
-            /*
-             * XXX Pad with FF_INPUT_BUFFER_PADDING_SIZE or hell will break
-             * loose.
-             */
-            capacity += FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE;
-
-            for (int bufferIndex = 0; bufferIndex < bufferCount; bufferIndex++)
+            if (aBuffer.getCapacity() >= capacity)
             {
-                ByteBuffer buffer = buffers.get(bufferIndex);
-
-                if (buffer.isFree() && (buffer.capacity >= capacity))
-                {
-                    freeBuffer = buffer;
-                    break;
-                }
+                i.remove();
+                buffer = aBuffer;
+                break;
             }
-            if (freeBuffer == null)
-            {
-                freeBuffer = new ByteBuffer(capacity);
-                buffers.add(freeBuffer);
-            }
-            freeBuffer.setFree(false);
-            return freeBuffer;
         }
+        if (buffer == null)
+            buffer = new PooledByteBuffer(capacity, this);
+        return buffer;
     }
 
     /**
-     * Returns a specific <tt>ByteBuffer</tt> into the pool of free
-     * <tt>ByteBuffer</tt>s (i.e. <tt>ByteBuffer</tt>s ready for writing
-     * captured media data into them).
+     * Returns a specific <tt>ByteBuffer</tt> into this pool of
+     * <tt>ByteBuffer</tt>s.
      *
-     * @param buffer the <tt>ByteBuffer</tt> to be returned into the pool of
-     * free <tt>ByteBuffer</tt>s
-     */
-    public void returnFreeBuffer(ByteBuffer buffer)
-    {
-        synchronized (buffers)
-        {
-            buffer.setFree(true);
-            if (closed && buffers.remove(buffer))
-                FFmpeg.av_free(buffer.ptr);
-        }
-    }
-
-    /**
-     * Returns a specific <tt>ByteBuffer</tt> given by the pointer to the native
-     * memory that it represents into the pool of free <tt>ByteBuffer</tt>s
-     * (i.e. <tt>ByteBuffer</tt>s ready for writing captured media data into
-     * them).
-     *
-     * @param bufferPtr the pointer to the native memory represented by the
-     * <tt>ByteBuffer</tt> to be returned into the pool of free
+     * @param buffer the <tt>ByteBuffer</tt> to be returned into this pool of
      * <tt>ByteBuffer</tt>s
      */
-    public void returnFreeBuffer(long bufferPtr)
+    private synchronized void returnBuffer(PooledByteBuffer buffer)
     {
-        synchronized (buffers)
+        if (!buffers.contains(buffer))
+            buffers.add(buffer);
+    }
+
+    /**
+     * Implements a <tt>ByteBuffer</tt> which is pooled in a
+     * <tt>ByteBufferPool</tt> in order to reduce the numbers of allocations
+     * and deallocations of <tt>ByteBuffer</tt>s and their respective native
+     * memory.
+     */
+    private static class PooledByteBuffer
+        extends ByteBuffer
+    {
+        /**
+         * The <tt>ByteBufferPool</tt> in which this instance is pooled and in
+         * which it should returns upon {@link #free()}.
+         */
+        private final WeakReference<ByteBufferPool> pool;
+
+        public PooledByteBuffer(int capacity, ByteBufferPool pool)
         {
-            for (ByteBuffer buffer : buffers)
-                if (buffer.ptr == bufferPtr)
-                {
-                    returnFreeBuffer(buffer);
-                    break;
-                }
+            super(capacity);
+
+            this.pool = new WeakReference<ByteBufferPool>(pool);
+        }
+
+        /**
+         * Invokes {@link ByteBuffer#free()} i.e. does not make any attempt to
+         * return this instance to the associated <tt>ByteBufferPool</tt> and
+         * frees the native memory represented by this instance.
+         */
+        void doFree()
+        {
+            super.free();
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * Returns this <tt>ByteBuffer</tt> and, respectively, the native memory
+         * that it represents to the associated <tt>ByteBufferPool</tt>. If the
+         * <tt>ByteBufferPool</tt> has already been finalized by the garbage
+         * collector, frees the native memory represented by this instance.
+         */
+        @Override
+        public void free()
+        {
+            ByteBufferPool pool = this.pool.get();
+
+            if (pool == null)
+                doFree();
+            else
+                pool.returnBuffer(this);
         }
     }
 }

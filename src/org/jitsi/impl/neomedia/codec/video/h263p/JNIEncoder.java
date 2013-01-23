@@ -114,7 +114,7 @@ public class JNIEncoder
             FFmpeg.av_free(avcontext);
             avcontext = 0;
 
-            FFmpeg.av_free(avframe);
+            FFmpeg.avcodec_free_frame(avframe);
             avframe = 0;
             FFmpeg.av_free(rawFrameBuffer);
             rawFrameBuffer = 0;

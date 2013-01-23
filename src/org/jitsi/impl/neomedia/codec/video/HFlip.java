@@ -113,7 +113,7 @@ public class HFlip
         {
             if (outputFrame != 0)
             {
-                FFmpeg.av_free(outputFrame);
+                FFmpeg.avcodec_free_frame(outputFrame);
                 outputFrame = 0;
             }
         }

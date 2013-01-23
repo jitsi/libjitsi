@@ -45,7 +45,7 @@ public class FFmpeg
     public static final int CODEC_FLAG_LOOP_FILTER = 0x00000800;
 
     /**
-     * Allow to pass incomplete frame to decoder.
+     * The flag which allows incomplete frames to be passed to a decoder.
      */
     public static final int CODEC_FLAG2_CHUNKS = 0x00008000;
 
@@ -70,11 +70,6 @@ public class FFmpeg
     public static final int CODEC_ID_H264 = 28;
 
     /**
-     * VP8 codec ID
-     */
-    public static final int CODEC_ID_VP8 = 142;
-
-    /**
      * MJPEG codec ID.
      */
     public static final int CODEC_ID_MJPEG = 8;
@@ -83,6 +78,11 @@ public class FFmpeg
      * MP3 codec ID.
      */
     public static final int CODEC_ID_MP3 = 0x15000 + 1;
+
+    /**
+     * VP8 codec ID
+     */
+    public static final int CODEC_ID_VP8 = 142;
 
     /**
      * Work around bugs in encoders which sometimes cannot be detected
@@ -246,9 +246,11 @@ public class FFmpeg
     public static native long avcodec_alloc_context3(long codec);
 
     /**
-     * Allocate a AVFrame.
+     * Allocates an <tt>AVFrame</tt> instance and sets its fields to default
+     * values. The result must be freed using {@link #avcodec_free_frame(long)}.
      *
-     * @return native pointer to AVFrame
+     * @return an <tt>AVFrame *</tt> value which points to an <tt>AVFrame</tt>
+     * instance filled with default values or <tt>0</tt> on failure
      */
     public static native long avcodec_alloc_frame();
 
@@ -336,6 +338,25 @@ public class FFmpeg
      * otherwise
      */
     public static native long avcodec_find_encoder(int id);
+
+    /**
+     * Frees an <tt>AVFrame</tt> instance specified as an <tt>AVFrame *</tt>
+     * value and any dynamically allocated objects in it (e.g.
+     * <tt>extended_data</tt>).
+     * <p>
+     * <b>Warning</b>: The method/function does NOT free the data buffers
+     * themselves because it does not know how since they might have been
+     * allocated with a custom <tt>get_buffer()</tt>.
+     * </p>
+     *
+     * @param frame an <tt>AVFrame *</tt> value which points to the
+     * <tt>AVFrame</tt> instance to be freed
+     */
+    public static void avcodec_free_frame(long frame)
+    {
+        // FIXME Invoke the native function avcodec_free_frame(AVFrame **).
+        av_free(frame);
+    }
 
     /**
      * Initializes the specified <tt>AVCodecContext</tt> to use the specified

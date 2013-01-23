@@ -75,6 +75,10 @@ abstract class AbstractBufferStream
      * Releases the resources used by this instance throughout its existence and
      * makes it available for garbage collection. This instance is considered
      * unusable after closing.
+     * <p>
+     * <b>Warning</b>: The method is not invoked by the framework, extenders may
+     * choose to invoke it.
+     * </p>
      */
     public void close()
     {

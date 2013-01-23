@@ -28,6 +28,17 @@ public class Video4Linux2Stream
     extends AbstractVideoPullBufferStream
 {
     /**
+     * The <tt>AVCodecContext</tt> of the MJPEG decoder.
+     */
+    private long avctx = 0;
+
+    /**
+     * The <tt>AVFrame</tt> which represents the media data decoded by the MJPEG
+     * decoder/{@link #avctx}.
+     */
+    private long avframe = 0;
+
+    /**
      * The pool of <tt>ByteBuffer</tt>s this instances is using to transfer the
      * media data captured by the Video for Linux Two API Specification device
      * out of this instance through the <tt>Buffer</tt>s specified in its
@@ -70,6 +81,11 @@ public class Video4Linux2Stream
     private long[] mmaps;
 
     /**
+     * Native Video for Linux Two pixel format.
+     */
+    private int nativePixelFormat = 0;
+
+    /**
      * The number of buffers through which the Video for Linux Two API
      * Specification device provides the captured media data to this instance
      * when {@link #requestbuffersMemory} is equal to <tt>V4L2_MEMORY_MMAP</tt>.
@@ -83,31 +99,16 @@ public class Video4Linux2Stream
     private int requestbuffersMemory = 0;
 
     /**
-     * The <tt>v4l2_buffer</tt> instance via which captured media data is
-     * fetched from the Video for Linux Two API Specification device to this
-     * instance in {@link #read(Buffer)}.
-     */
-    private long v4l2_buffer;
-
-    /**
-     * Native Video for Linux Two pixel format.
-     */
-    private int nativePixelFormat = 0;
-
-    /**
      * Tell device to start capture in read() method.
      */
     private boolean startInRead = false;
 
     /**
-     * AVCodecContext for MJPEG conversion.
+     * The <tt>v4l2_buffer</tt> instance via which captured media data is
+     * fetched from the Video for Linux Two API Specification device to this
+     * instance in {@link #read(Buffer)}.
      */
-    private long mjpeg_context = 0;
-
-    /**
-     * AVFrame that is used in case of JPEG/MJPEG conversion.
-     */
-    private long avframe = 0;
+    private long v4l2_buffer;
 
     /**
      * Initializes a new <tt>Video4Linux2Stream</tt> instance which is to have
@@ -152,6 +153,7 @@ public class Video4Linux2Stream
             Video4Linux2.free(v4l2_buffer);
             v4l2_buffer = 0;
         }
+        byteBufferPool.drain();
     }
 
     /**
@@ -244,25 +246,24 @@ public class Video4Linux2Stream
 
         try
         {
-            ByteBuffer data = null;
             int index = Video4Linux2.v4l2_buffer_getIndex(v4l2_buffer);
             long mmap = mmaps[index];
             int bytesused = Video4Linux2.v4l2_buffer_getBytesused(v4l2_buffer);
 
-            if(nativePixelFormat == Video4Linux2.V4L2_PIX_FMT_MJPEG ||
-                    nativePixelFormat == Video4Linux2.V4L2_PIX_FMT_JPEG)
+            if((nativePixelFormat == Video4Linux2.V4L2_PIX_FMT_JPEG)
+                    || (nativePixelFormat == Video4Linux2.V4L2_PIX_FMT_MJPEG))
             {
-                /* initialize FFmpeg's MJPEG decoder if not already done */
-                if(mjpeg_context == 0)
+                /* Initialize the FFmpeg MJPEG decoder if necessary. */
+                if(avctx == 0)
                 {
                     long avcodec
                         = FFmpeg.avcodec_find_decoder(FFmpeg.CODEC_ID_MJPEG);
 
-                    mjpeg_context = FFmpeg.avcodec_alloc_context3(avcodec);
-                    FFmpeg.avcodeccontext_set_workaround_bugs(mjpeg_context,
-                        FFmpeg.FF_BUG_AUTODETECT);
+                    avctx = FFmpeg.avcodec_alloc_context3(avcodec);
+                    FFmpeg.avcodeccontext_set_workaround_bugs(avctx,
+                            FFmpeg.FF_BUG_AUTODETECT);
 
-                    if (FFmpeg.avcodec_open2(mjpeg_context, avcodec) < 0)
+                    if (FFmpeg.avcodec_open2(avctx, avcodec) < 0)
                     {
                         throw new RuntimeException("" +
                                 "Could not open codec CODEC_ID_MJPEG");
@@ -271,13 +272,13 @@ public class Video4Linux2Stream
                     avframe = FFmpeg.avcodec_alloc_frame();
                 }
 
-                if(FFmpeg.avcodec_decode_video(mjpeg_context, avframe, mmap,
-                        bytesused) != -1)
+                if(FFmpeg.avcodec_decode_video(avctx, avframe, mmap, bytesused)
+                        != -1)
                 {
                     Object out = buffer.getData();
 
-                    if (!(out instanceof AVFrame) ||
-                            (((AVFrame) out).getPtr() != avframe))
+                    if (!(out instanceof AVFrame)
+                            || (((AVFrame) out).getPtr() != avframe))
                     {
                         buffer.setData(new AVFrame(avframe));
                     }
@@ -285,21 +286,24 @@ public class Video4Linux2Stream
             }
             else
             {
-                data = byteBufferPool.getFreeBuffer(bytesused);
+                ByteBuffer data = byteBufferPool.getBuffer(bytesused);
 
                 if (data != null)
                 {
-                    Video4Linux2.memcpy(data.ptr, mmap, bytesused);
+                    Video4Linux2.memcpy(data.getPtr(), mmap, bytesused);
+                    data.setLength(bytesused);
+                    if (AVFrame.read(buffer, format, data) < 0)
+                        data.free();
                 }
-                data.setLength(bytesused);
-                FinalizableAVFrame.read(buffer, format, data, byteBufferPool);
             }
         }
         finally
         {
             if (Video4Linux2.ioctl(fd, Video4Linux2.VIDIOC_QBUF, v4l2_buffer)
                     == -1)
+            {
                 throw new IOException("ioctl: request= VIDIOC_QBUF");
+            }
         }
 
         buffer.setFlags(Buffer.FLAG_LIVE_DATA | Buffer.FLAG_SYSTEM_TIME);
@@ -834,19 +838,20 @@ public class Video4Linux2Stream
         {
             super.stop();
 
-            if(mjpeg_context > 0)
+            if(avctx != 0)
             {
-                FFmpeg.avcodec_close(mjpeg_context);
-                FFmpeg.av_free(mjpeg_context);
+                FFmpeg.avcodec_close(avctx);
+                FFmpeg.av_free(avctx);
+                avctx = 0;
             }
-            mjpeg_context = 0;
 
-            if(avframe > 0)
+            if(avframe != 0)
             {
-                FFmpeg.av_free(avframe);
+                FFmpeg.avcodec_free_frame(avframe);
+                avframe = 0;
             }
-            avframe = 0;
 
+            byteBufferPool.drain();
         }
     }
 }

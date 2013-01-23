@@ -203,18 +203,16 @@ public class QuickTimeStream
             {
                 if (nextData != null)
                 {
-                    byteBufferPool.returnFreeBuffer(nextData);
+                    nextData.free();
                     nextData = null;
                 }
-
-                nextData
-                    = byteBufferPool.getFreeBuffer(pixelBuffer.getByteCount());
+                nextData = byteBufferPool.getBuffer(pixelBuffer.getByteCount());
                 if (nextData != null)
                 {
                     nextData.setLength(
                             pixelBuffer.getBytes(
-                                    nextData.ptr,
-                                    nextData.capacity));
+                                    nextData.getPtr(),
+                                    nextData.getCapacity()));
                     nextDataTimeStamp = System.nanoTime();
                     if (nextDataFormat == null)
                         nextDataFormat = videoFrameFormat;
@@ -224,21 +222,24 @@ public class QuickTimeStream
 
             if (data != null)
             {
-                byteBufferPool.returnFreeBuffer(data);
+                data.free();
                 data = null;
             }
-
-            data = byteBufferPool.getFreeBuffer(pixelBuffer.getByteCount());
+            data = byteBufferPool.getBuffer(pixelBuffer.getByteCount());
             if (data != null)
             {
-                data.setLength(pixelBuffer.getBytes(data.ptr, data.capacity));
+                data.setLength(
+                        pixelBuffer.getBytes(
+                                data.getPtr(),
+                                data.getCapacity()));
                 dataTimeStamp = System.nanoTime();
                 if (dataFormat == null)
                     dataFormat = videoFrameFormat;
             }
+
             if (nextData != null)
             {
-                byteBufferPool.returnFreeBuffer(nextData);
+                nextData.free();
                 nextData = null;
             }
 
@@ -273,8 +274,7 @@ public class QuickTimeStream
         super.close();
 
         captureOutput.setDelegate(null);
-
-        byteBufferPool.close();
+        byteBufferPool.drain();
     }
 
     /**
@@ -504,43 +504,46 @@ public class QuickTimeStream
             }
             if (bufferFormat instanceof AVFrameFormat)
             {
-                FinalizableAVFrame.read(
-                        buffer,
-                        bufferFormat,
-                        data,
-                        byteBufferPool);
+                if (AVFrame.read(buffer, bufferFormat, data) < 0)
+                    data.free();
+                /*
+                 * XXX For the sake of safety, make sure that this instance does
+                 * not reference the data instance as soon as it is set on the
+                 * AVFrame.
+                 */
+                data = null;
             }
             else
             {
-                Object bufferData = buffer.getData();
-                byte[] bufferByteData;
-                int dataLength = data.getLength();
+                Object o = buffer.getData();
+                byte[] bytes;
+                int length = data.getLength();
 
-                if (bufferData instanceof byte[])
+                if (o instanceof byte[])
                 {
-                    bufferByteData = (byte[]) bufferData;
-                    if (bufferByteData.length < dataLength)
-                        bufferByteData = null;
+                    bytes = (byte[]) o;
+                    if (bytes.length < length)
+                        bytes = null;
                 }
                 else
-                    bufferByteData = null;
-                if (bufferByteData == null)
+                    bytes = null;
+                if (bytes == null)
                 {
-                    bufferByteData = new byte[dataLength];
-                    buffer.setData(bufferByteData);
+                    bytes = new byte[length];
+                    buffer.setData(bytes);
                 }
-                CVPixelBuffer.memcpy(bufferByteData, 0, dataLength, data.ptr);
 
-                buffer.setLength(dataLength);
+                CVPixelBuffer.memcpy(bytes, 0, length, data.getPtr());
+                data.free();
+                data = null;
+
+                buffer.setLength(length);
                 buffer.setOffset(0);
-
-                byteBufferPool.returnFreeBuffer(data);
             }
 
             buffer.setFlags(Buffer.FLAG_LIVE_DATA | Buffer.FLAG_SYSTEM_TIME);
             buffer.setTimeStamp(dataTimeStamp);
 
-            data = null;
             if (!automaticallyDropsLateVideoFrames)
                 dataSyncRoot.notifyAll();
         }
@@ -567,11 +570,7 @@ public class QuickTimeStream
                 synchronized (dataSyncRoot)
                 {
                     if (data != null)
-                    {
-                        byteBufferPool.returnFreeBuffer(data);
-                        data = null;
-                    }
-
+                        data.free();
                     data = nextData;
                     dataTimeStamp = nextDataTimeStamp;
                     if (dataFormat == null)
@@ -737,6 +736,8 @@ public class QuickTimeStream
     public void start()
         throws IOException
     {
+        super.start();
+
         if (!automaticallyDropsLateVideoFrames)
         {
             transferDataThread
@@ -762,25 +763,34 @@ public class QuickTimeStream
     public void stop()
         throws IOException
     {
-        transferDataThread = null;
-
-        synchronized (dataSyncRoot)
+        try
         {
-            if (data != null)
-            {
-                byteBufferPool.returnFreeBuffer(data);
-                data = null;
-            }
-            dataFormat = null;
-            if (nextData != null)
-            {
-                byteBufferPool.returnFreeBuffer(nextData);
-                nextData = null;
-            }
-            nextDataFormat = null;
+            transferDataThread = null;
 
-            if (!automaticallyDropsLateVideoFrames)
-                dataSyncRoot.notifyAll();
+            synchronized (dataSyncRoot)
+            {
+                if (data != null)
+                {
+                    data.free();
+                    data = null;
+                }
+                dataFormat = null;
+                if (nextData != null)
+                {
+                    nextData.free();
+                    nextData = null;
+                }
+                nextDataFormat = null;
+
+                if (!automaticallyDropsLateVideoFrames)
+                    dataSyncRoot.notifyAll();
+            }
+        }
+        finally
+        {
+            super.stop();
+
+            byteBufferPool.drain();
         }
     }
 }

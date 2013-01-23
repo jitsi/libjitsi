@@ -103,7 +103,7 @@ public class JNIDecoder
 
         if(avframe != 0)
         {
-            FFmpeg.av_free(avframe);
+            FFmpeg.avcodec_free_frame(avframe);
             avframe = 0;
         }
     }

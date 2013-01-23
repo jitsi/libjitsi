@@ -37,9 +37,10 @@ public class ImageStream
     private static final Logger logger = Logger.getLogger(ImageStream.class);
 
     /**
-     * Sequence number.
+     * The pool of <tt>ByteBuffer</tt>s this instances is using to optimize the
+     * allocations and deallocations of <tt>ByteBuffer</tt>s.
      */
-    private long seqNo = 0;
+    private final ByteBufferPool byteBufferPool = new ByteBufferPool();
 
     /**
      * Desktop interaction (screen capture, key press, ...).
@@ -47,19 +48,14 @@ public class ImageStream
     private DesktopInteract desktopInteract = null;
 
     /**
-     * Native buffer pointer.
-     */
-    private ByteBuffer data = null;
-
-    /**
-     * If stream has been reinitialized.
-     */
-    private boolean reinit = false;
-
-    /**
      * Index of display that we will capture from.
      */
     private int displayIndex = -1;
+
+    /**
+     * Sequence number.
+     */
+    private long seqNo = 0;
 
     /**
      * X origin.
@@ -104,79 +100,60 @@ public class ImageStream
          * not its responsibility, the DataSource of this ImageStream knows the
          * output Format.
          */
-        Format bufferFormat = buffer.getFormat();
+        Format format = buffer.getFormat();
 
-        if (bufferFormat == null)
+        if (format == null)
         {
-            bufferFormat = getFormat();
-            if (bufferFormat != null)
-                buffer.setFormat(bufferFormat);
+            format = getFormat();
+            if (format != null)
+                buffer.setFormat(format);
         }
 
-        if(bufferFormat instanceof AVFrameFormat)
+        if(format instanceof AVFrameFormat)
         {
             /*
              * Native transfer: we keep data in native memory rather than the
              * Java heap until we reach SwScaler.
              */
-            Object dataAv = buffer.getData();
-            AVFrame bufferFrame = null;
-            long bufferFramePtr = 0;
+            Object o = buffer.getData();
+            AVFrame frame;
 
-            if (dataAv instanceof AVFrame)
+            if (o instanceof AVFrame)
+                frame = (AVFrame) o;
+            else
             {
-                bufferFrame = (AVFrame)dataAv;
-                bufferFramePtr = bufferFrame.getPtr();
+                frame = new AVFrame();
+                buffer.setData(frame);
+            }
+
+            AVFrameFormat avFrameFormat = (AVFrameFormat) format;
+            Dimension size = avFrameFormat.getSize();
+            ByteBuffer data = readScreenNative(size);
+
+            if(data != null)
+            {
+                if (frame.avpicture_fill(data, avFrameFormat) < 0)
+                    data.free();
             }
             else
             {
-                bufferFrame = new FinalizableAVFrame();
-                bufferFramePtr = bufferFrame.getPtr();
-            }
-
-            AVFrameFormat bufferFrameFormat = (AVFrameFormat) bufferFormat;
-            Dimension bufferFrameSize = bufferFrameFormat.getSize();
-
-            if(readScreenNative(bufferFrameSize))
-            {
-                FFmpeg.avpicture_fill(
-                        bufferFramePtr,
-                        data.ptr,
-                        bufferFrameFormat.getPixFmt(),
-                        bufferFrameSize.width, bufferFrameSize.height);
-                buffer.setData(bufferFrame);
-            }
-            else
-            {
-                /* this can happen when we disconnect a monitor from computer
-                 * before or during grabbing
+                /*
+                 * This can happen when we disconnect a monitor from computer
+                 * before or during grabbing.
                  */
-                throw new IOException("Failed to grab screen");
+                throw new IOException("Failed to grab screen.");
             }
         }
         else
         {
-            byte dataByte[] = (byte[])buffer.getData();
-            int dataLength = (dataByte != null) ? dataByte.length : 0;
+            byte[] bytes = (byte[]) buffer.getData();
+            Dimension size = ((VideoFormat) format).getSize();
 
-            if((dataByte != null) || (dataLength != 0))
-            {
-                Dimension bufferFrameSize =
-                    ((VideoFormat)bufferFormat).getSize();
-                byte buf[] = readScreen(dataByte, bufferFrameSize);
+            bytes = readScreen(bytes, size);
 
-                if(buf != dataByte)
-                {
-                    /* readScreen returns us a different buffer than JMF ones,
-                     * it means that JMF's initial buffer was too short.
-                     */
-                    //System.out.println("use our own buffer");
-                    buffer.setData(buf);
-                }
-
-                buffer.setOffset(0);
-                buffer.setLength(buf.length);
-            }
+            buffer.setData(bytes);
+            buffer.setOffset(0);
+            buffer.setLength(bytes.length);
         }
 
         buffer.setHeader(null);
@@ -187,98 +164,6 @@ public class ImageStream
     }
 
     /**
-     * Sets the index of the display to be used by this <tt>ImageStream</tt>.
-     *
-     * @param displayIndex the index of the display to be used by this
-     * <tt>ImageStream</tt>
-     */
-    public void setDisplayIndex(int displayIndex)
-    {
-        this.displayIndex = displayIndex;
-    }
-
-    /**
-     * Sets the origin to be captured by this <tt>ImageStream</tt>.
-     *
-     * @param x the x coordinate of the origin to be set on this instance
-     * @param y the y coordinate of the origin to be set on this instance
-     */
-    public void setOrigin(int x, int y)
-    {
-        this.x = x;
-        this.y = y;
-    }
-
-    /**
-     * Start desktop capture stream.
-     *
-     * @see AbstractPullBufferStream#start()
-     */
-    @Override
-    public void start()
-    {
-        if(desktopInteract == null)
-        {
-            try
-            {
-                desktopInteract = new DesktopInteractImpl();
-            }
-            catch(Exception e)
-            {
-                logger.warn("Cannot create DesktopInteract object!");
-            }
-        }
-
-        reinit = true;
-    }
-
-    /**
-     * Stop desktop capture stream.
-     *
-     * @see AbstractPullBufferStream#stop()
-     */
-    @Override
-    public void stop()
-    {
-        if (logger.isInfoEnabled())
-            logger.info("Stop stream");
-    }
-
-    /**
-     * Read screen and store result in native buffer.
-     *
-     * @param dim dimension of the video
-     * @return true if success, false otherwise
-     */
-    private boolean readScreenNative(Dimension dim)
-    {
-        int size = dim.width * dim.height * 4;
-
-        /* pad the buffer */
-        size += FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE;
-
-        /* allocate native array */
-        if(data == null || reinit)
-        {
-            data = new ByteBuffer(size);
-            data.setLength(size);
-            reinit = false;
-        }
-        else if(data.capacity < size)
-        {
-            /* reallocate native array if capacity is not enough */
-            data.setFree(true);
-            FFmpeg.av_free(data.ptr);
-            data = new ByteBuffer(size);
-            data.setLength(size);
-        }
-
-        /* get desktop screen via native grabber */
-        return desktopInteract.captureScreen(displayIndex, x, y, dim.width,
-                dim.height, data.ptr, data.getLength());
-    }
-
-    /**
      * Read screen.
      *
      * @param output output buffer for screen bytes
@@ -286,7 +171,7 @@ public class ImageStream
      * @return raw bytes, it could be equal to output or not. Take care in the
      * caller to check if output is the returned value.
      */
-    public byte[] readScreen(byte output[], Dimension dim)
+    public byte[] readScreen(byte[] output, Dimension dim)
     {
         VideoFormat format = (VideoFormat) getFormat();
         Dimension formatSize = format.getSize();
@@ -297,18 +182,15 @@ public class ImageStream
         byte data[] = null;
         int size = width * height * 4;
 
-        /* check if output buffer can hold all the screen
-         * if not allocate our own buffer
-         */
-        if(output.length < size)
-        {
-            output = null;
+        // If output is not large enough, enlarge it.
+        if ((output == null) || (output.length < size))
             output = new byte[size];
-        }
 
         /* get desktop screen via native grabber if available */
-        if(desktopInteract.captureScreen(displayIndex, x, y, dim.width,
-                    dim.height, output))
+        if(desktopInteract.captureScreen(
+                displayIndex,
+                x, y, dim.width, dim.height,
+                output))
         {
             return output;
         }
@@ -343,5 +225,108 @@ public class ImageStream
         screen = null;
         scaledScreen = null;
         return data;
+    }
+
+    /**
+     * Read screen and store result in native buffer.
+     *
+     * @param dim dimension of the video
+     * @return true if success, false otherwise
+     */
+    private ByteBuffer readScreenNative(Dimension dim)
+    {
+        int size = dim.width * dim.height * 4;
+
+        /* pad the buffer */
+        size += FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE;
+
+        /* allocate native array */
+        ByteBuffer data = byteBufferPool.getBuffer(size);
+
+        data.setLength(size);
+
+        /* get desktop screen via native grabber */
+        if (desktopInteract.captureScreen(
+                    displayIndex,
+                    x, y, dim.width, dim.height,
+                    data.getPtr(),
+                    data.getLength()))
+        {
+            return data;
+        }
+        else
+        {
+            data.free();
+            return null;
+        }
+    }
+
+    /**
+     * Sets the index of the display to be used by this <tt>ImageStream</tt>.
+     *
+     * @param displayIndex the index of the display to be used by this
+     * <tt>ImageStream</tt>
+     */
+    public void setDisplayIndex(int displayIndex)
+    {
+        this.displayIndex = displayIndex;
+    }
+
+    /**
+     * Sets the origin to be captured by this <tt>ImageStream</tt>.
+     *
+     * @param x the x coordinate of the origin to be set on this instance
+     * @param y the y coordinate of the origin to be set on this instance
+     */
+    public void setOrigin(int x, int y)
+    {
+        this.x = x;
+        this.y = y;
+    }
+
+    /**
+     * Start desktop capture stream.
+     *
+     * @see AbstractPullBufferStream#start()
+     */
+    @Override
+    public void start()
+        throws IOException
+    {
+        super.start();
+
+        if(desktopInteract == null)
+        {
+            try
+            {
+                desktopInteract = new DesktopInteractImpl();
+            }
+            catch(Exception e)
+            {
+                logger.warn("Cannot create DesktopInteract object!");
+            }
+        }
+    }
+
+    /**
+     * Stop desktop capture stream.
+     *
+     * @see AbstractPullBufferStream#stop()
+     */
+    @Override
+    public void stop()
+        throws IOException
+    {
+        try
+        {
+            if (logger.isInfoEnabled())
+                logger.info("Stop stream");
+        }
+        finally
+        {
+            super.stop();
+
+            byteBufferPool.drain();
+        }
     }
 }

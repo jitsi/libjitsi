@@ -9,9 +9,11 @@ package org.jitsi.impl.neomedia.codec.video;
 import org.jitsi.impl.neomedia.codec.*;
 
 /**
- * Represents a buffer of native memory with a specific size/capacity which
- * either contains a specific number of bytes of valid data or is free for
- * consumption.
+ * Represents a buffer of native memory with a specific size/capacity which may
+ * contains a specific number of bytes of valid data. If the memory represented
+ * by a <tt>ByteBuffer</tt> instance has been allocated by the
+ * <tt>ByteBuffer</tt> instance itself, the native memory will automatically be
+ * freed upon finalization.
  *
  * @author Lyubomir Marinov
  */
@@ -19,16 +21,12 @@ public class ByteBuffer
 {
 
     /**
-     * The maximum number of bytes which can be written into the native memory
-     * represented by this instance.
+     * The maximum number of bytes which may be written into the native memory
+     * represented by this instance. If <tt>0</tt>, this instance has been
+     * initialized to provide read-only access to the native memory it
+     * represents and will not deallocate it upon finalization.
      */
-    public final int capacity;
-
-    /**
-     * The indicator which determines whether this instance is free to be
-     * written bytes into.
-     */
-    private boolean free;
+    private int capacity;
 
     /**
      * The number of bytes of valid data that the native memory represented by
@@ -39,31 +37,97 @@ public class ByteBuffer
     /**
      * The pointer to the native memory represented by this instance.
      */
-    public final long ptr;
+    private long ptr;
 
     /**
      * Initializes a new <tt>ByteBuffer</tt> instance with a specific
-     * <tt>capacity</tt>.
+     * <tt>capacity</tt> of native memory. The new instance allocates the native
+     * memory and automatically frees it upon finalization.
      *
      * @param capacity the maximum number of bytes which can be written into the
      * native memory represented by the new instance
      */
     public ByteBuffer(int capacity)
     {
-        this.capacity = capacity;
-        this.ptr = FFmpeg.av_malloc(this.capacity);
+        if (capacity < 1)
+            throw new IllegalArgumentException("capacity");
 
-        this.free = true;
-        this.length = 0;
-
+        this.ptr = FFmpeg.av_malloc(capacity);
         if (this.ptr == 0)
+            throw new OutOfMemoryError("av_malloc(" + this.capacity + ")");
+        else
         {
-            throw
-                new OutOfMemoryError(
-                        getClass().getSimpleName()
-                            + " with capacity "
-                            + this.capacity);
+            this.capacity = capacity;
+            this.length = 0;
         }
+    }
+
+    /**
+     * Initializes a new <tt>ByteBuffer</tt> instance which is to represent a
+     * specific block of native memory. Since the specified native memory has
+     * been allocated outside the new instance, the new instance will not
+     * automatically free it.
+     * 
+     * @param ptr a pointer to the block of native memory to be represented by
+     * the new instance
+     */
+    public ByteBuffer(long ptr)
+    {
+        this.ptr = ptr;
+
+        this.capacity = 0;
+        this.length = 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Frees the native memory represented by this instance if the native memory
+     * has been allocated by this instance and has not been freed yet i.e.
+     * ensures that {@link #free()} is invoked on this instance.
+     *
+     * @see Object#finalize()
+     */
+    @Override
+    protected void finalize()
+        throws Throwable
+    {
+        try
+        {
+            free();
+        }
+        finally
+        {
+            super.finalize();
+        }
+    }
+
+    /**
+     * Frees the native memory represented by this instance if the native memory
+     * has been allocated by this instance and has not been freed yet.
+     */
+    public synchronized void free()
+    {
+        if ((capacity != 0) && (ptr != 0))
+        {
+            FFmpeg.av_free(ptr);
+            capacity = 0;
+            ptr = 0;
+        }
+    }
+
+    /**
+     * Gets the maximum number of bytes which may be written into the native
+     * memory represented by this instance. If <tt>0</tt>, this instance has
+     * been initialized to provide read-only access to the native memory it
+     * represents and will not deallocate it upon finalization.
+     *
+     * @return the maximum number of bytes which may be written into the native
+     * memory represented by this instance
+     */
+    public synchronized int getCapacity()
+    {
+        return capacity;
     }
 
     /**
@@ -79,29 +143,13 @@ public class ByteBuffer
     }
 
     /**
-     * Determines whether this instance is free to be written bytes into.
+     * Gets the pointer to the native memory represented by this instance.
      *
-     * @return <tt>true</tt> if this instance is free to be written bytes into
-     * or <tt>false</tt> is the native memory represented by this instance is
-     * already is use
+     * @return the pointer to the native memory represented by this instance
      */
-    public boolean isFree()
+    public synchronized long getPtr()
     {
-        return free;
-    }
-
-    /**
-     * Sets the indicator which determines whether this instance is free to be
-     * written bytes into.
-     *
-     * @param free <tt>true</tt> if this instance is to be made available for
-     * writing bytes into; otherwise, <tt>false</tt>
-     */
-    public void setFree(boolean free)
-    {
-        this.free = free;
-        if (this.free)
-            setLength(0);
+        return ptr;
     }
 
     /**
@@ -110,9 +158,13 @@ public class ByteBuffer
      *
      * @param length the number of bytes of valid data that the native memory
      * represented by this instance contains
+     * @throws IllegalArgumentException if <tt>length</tt> is a negative value
      */
     public void setLength(int length)
     {
+        if (length < 0)
+            throw new IllegalArgumentException("length");
+
         this.length = length;
     }
 }
