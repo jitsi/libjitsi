@@ -501,6 +501,7 @@ public class JNIEncoder
                      * FFmpeg will fail.
                      */
                     //"crf" /* constant quality mode, constant ratefactor */, "0",
+                    "intra-refresh", "1",
                     "partitions", "b8x8,i4x4,p8x8",
                     "preset", "ultrafast",
                     "thread_type", "slice",
