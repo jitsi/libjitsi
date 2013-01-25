@@ -76,8 +76,8 @@ public class FMJPlugInConfiguration
                     "org.jitsi.impl.neomedia.codec.video.SwScaler",
                     "org.jitsi.impl.neomedia.codec.video.vp8.Packetizer",
                     "org.jitsi.impl.neomedia.codec.video.vp8.DePacketizer",
-                    "org.jitsi.impl.neomedia.codec.video.vp8.JNIEncoder",
-                    "org.jitsi.impl.neomedia.codec.video.vp8.JNIDecoder"
+                    "org.jitsi.impl.neomedia.codec.video.vp8.VPXEncoder",
+                    "org.jitsi.impl.neomedia.codec.video.vp8.VPXDecoder"
             };
 
     /**

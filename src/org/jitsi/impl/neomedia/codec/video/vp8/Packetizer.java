@@ -88,25 +88,14 @@ public class Packetizer
         }
         byte[] output;
         int offset;
-        boolean haveToCopy = true;
         final int pdMaxLen = DePacketizer.VP8PayloadDescriptor.MAX_LENGTH;
 
         //The input will fit in a single packet
         if(inputBuffer.getLength() <= MAX_SIZE)
         {
-            //see if we can reuse the input buffer
-            if(inputBuffer.getOffset() >= pdMaxLen)
-            {
-                output = (byte[]) inputBuffer.getData();
-                offset = inputBuffer.getOffset();
-                haveToCopy = false;
-            }
-            else
-            {
-                output = validateByteArraySize(outputBuffer,
-                        inputBuffer.getLength() + pdMaxLen);
-                offset = pdMaxLen;
-            }
+            output = validateByteArraySize(outputBuffer,
+                                           inputBuffer.getLength() + pdMaxLen);
+            offset = pdMaxLen;
         }
         else
         {
@@ -117,14 +106,12 @@ public class Packetizer
         int len = inputBuffer.getLength() <= MAX_SIZE
                     ? inputBuffer.getLength()
                     : MAX_SIZE;
-        if(haveToCopy)
-        {
-            System.arraycopy((byte[])inputBuffer.getData(),
-                                inputBuffer.getOffset(),
-                                output,
-                                offset,
-                                len);
-        }
+
+        System.arraycopy((byte[])inputBuffer.getData(),
+                         inputBuffer.getOffset(),
+                         output,
+                         offset,
+                         len);
 
         //get the payload descriptor and copy it to the output
         byte[] pd = DePacketizer.VP8PayloadDescriptor.create(firstPacket);
