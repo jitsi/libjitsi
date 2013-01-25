@@ -8,10 +8,11 @@
 #include "JAWTRenderer.h"
 
 #include <d3d9.h>
-#include <d3dx9tex.h>
 #include <jawt_md.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct _JAWTRenderer
 {
@@ -63,12 +64,13 @@ jboolean
 JAWTRenderer_paint
     (jint version, JAWT_DrawingSurfaceInfo *dsi, jclass clazz, jlong handle,
         jobject g, jint zOrder)
-{ 
-    HDC hdc = ((JAWT_Win32DrawingSurfaceInfo *) (dsi->platformInfo))->hdc;
+{
+    JAWT_Win32DrawingSurfaceInfo *win32dsi
+        = (JAWT_Win32DrawingSurfaceInfo *) (dsi->platformInfo);
     JAWTRenderer *thiz = (JAWTRenderer *) (intptr_t) handle;
 
     LPDIRECT3DDEVICE9 device = thiz->device;
-    HWND hwnd = WindowFromDC(hdc);
+    HWND hwnd = win32dsi->hwnd ? win32dsi->hwnd : WindowFromDC(win32dsi->hdc);
 
     if (device && (thiz->hwnd == hwnd))
     {
@@ -103,9 +105,10 @@ JAWTRenderer_paint
                     hr = IDirect3DDevice9_BeginScene(device);
                     if (SUCCEEDED(hr))
                     {
-                        IDirect3DDevice9_UpdateSurface(
+                        IDirect3DDevice9_StretchRect(
                             device,
-                            thiz->surface, NULL, backBuffer, NULL);
+                            thiz->surface, NULL, backBuffer, NULL,
+                            D3DTEXF_LINEAR);
                         IDirect3DDevice9_EndScene(device);
                         clear = FALSE;
                     }
@@ -181,7 +184,7 @@ JAWTRenderer_process
                         width,
                         height,
                         D3DFMT_X8R8G8B8,
-                        D3DPOOL_SYSTEMMEM,
+                        D3DPOOL_DEFAULT,
                         &(thiz->surface),
                         NULL);
                 if (SUCCEEDED(hr))
@@ -209,23 +212,21 @@ JAWTRenderer_process
 
     if (thiz->surface)
     {
-        RECT rect;
+        HRESULT hr;
+        D3DLOCKED_RECT lockedRect;
 
-        rect.bottom = height;
-        rect.left = 0;
-        rect.right = width;
-        rect.top = 0;
-        D3DXLoadSurfaceFromMemory(
-            thiz->surface,
-            NULL,
-            NULL,
-            data,
-            D3DFMT_A8R8G8B8,
-            width * 4,
-            NULL,
-            &rect,
-            D3DX_FILTER_NONE,
-            0);
+        hr = IDirect3DSurface9_LockRect(thiz->surface, &lockedRect, NULL, 0);
+        if (SUCCEEDED(hr))
+        {
+            jint y;
+            jbyte *dst = lockedRect.pBits;
+            INT dstPitch = lockedRect.Pitch;
+            size_t widthInBytes = width * sizeof(jint);
+
+            for (y = 0; y < height; y++, dst += dstPitch, data += width)
+                memcpy(dst, data, widthInBytes);
+            IDirect3DSurface9_UnlockRect(thiz->surface);
+        }
     }
 
     return JNI_TRUE;

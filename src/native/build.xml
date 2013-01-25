@@ -52,6 +52,18 @@
       <os arch="x86_64" />
     </or>
   </condition>
+  <condition property="is.running.windows_32" value="y">
+    <and>
+      <isset property="is.running.windows"/>
+      <equals arg1="${arch}" arg2="32" />
+    </and>
+  </condition>
+  <condition property="is.running.windows_64" value="y">
+    <and>
+      <isset property="is.running.windows"/>
+      <equals arg1="${arch}" arg2="64" />
+    </and>
+  </condition>
 
   <!--
     Cross compilation. It is mainly used on Linux to cross-compile 32-bit
@@ -235,9 +247,9 @@
 
       <linkerarg value="-ojnawtrenderer.dll" if="is.running.windows" />
       <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
-      <linkerarg value="-L${system.JAVA_HOME}/lib" if="is.running.windows" />
+      <linkerarg value="-L${system.JAVA_HOME}/lib" if="is.running.windows_32" />
+      <linkerarg value="-L${system.JAVA_HOME}/jre/bin" if="is.running.windows_64" />
       <linkerarg value="-ld3d9" location="end" if="is.running.windows" />
-      <linkerarg value="-ld3dx9" location="end" if="is.running.windows" />
 
       <fileset dir="${src}/native/jawtrenderer" includes="org*.c JAWTRenderer_Windows.c" if="is.running.windows"/>
     </cc>
