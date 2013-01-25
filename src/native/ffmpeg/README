@@ -51,18 +51,7 @@ NDK_BASE=/../android-ndk-r8c
     --sysroot="$NDK_BASE/platforms/android-9/arch-arm/" \
     --cross-prefix=$NDK_BASE/toolchains/arm-linux-androideabi-4.4.3/prebuilt/darwin-x86/bin/arm-linux-androideabi-
 
-3. libvpx
-./configure --disable-unit-tests --disable-examples --disable-docs \
- --enable-pic  --enable-error-concealment
-
-- If the version used supports vp9, it should be disabled with --disable-vp9,
-since we don't need it at the moment.
-
-- Max OS X
-Add the following to the configure line:
---target=universal-darwin9-gcc
-
-4. ffmpeg
+3. ffmpeg
 
 Apply the following to libavcodec/Makefile
 -OBJS-$(CONFIG_LIBMP3LAME_ENCODER)         += libmp3lame.o mpegaudiodecheader.o \
@@ -78,9 +67,8 @@ Apply the following to libavcodec/Makefile
   --enable-libx264 --enable-gpl \
   --enable-decoder=h264 --enable-encoder=libx264 --enable-parser=h264 \
   --enable-filter=buffer --enable-filter=hflip --enable-filter=scale --enable-filter=nullsink \
-  --enable-libvpx --enable-encoder=libvpx --enable-decoder=vp8 \
-  --extra-cflags="-I$MP3LAME_HOME/include -I$X264_HOME -I$LIBVPX_HOME" \
-  --extra-ldflags="-L$MP3LAME_HOME/libmp3lame -L$MP3LAME_HOME/libmp3lame/.libs -L$X264_HOME -L$LIBVPX_HOME"
+  --extra-cflags="-I$MP3LAME_HOME/include -I$X264_HOME" \
+  --extra-ldflags="-L$MP3LAME_HOME/libmp3lame -L$MP3LAME_HOME/libmp3lame/.libs -L$X264_HOME"
 
 - Windows
 
@@ -113,7 +101,7 @@ Add the following to the configure line:
 
 Define the environment variable JAVA_HOME so that the JNI headers can be found.
 Change the current directory to libjitsi/ and run "ant ffmpeg" passing it
-values for the ffmpeg, lame, x264 and libvpx properties which specify the paths
+values for the ffmpeg, lame and x264 properties which specify the paths
 to the homes of the development trees of the respective libraries.
 
 For creating universal libraries for Mac OS X see the instructions in src/native/build.xml

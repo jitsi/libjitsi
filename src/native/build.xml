@@ -261,7 +261,6 @@
     <fail message="ffmpeg repository not set!" unless="ffmpeg" />
     <fail message="x264 repository not set!" unless="x264" />
     <fail message="lame repository not set!" unless="lame" />
-    <fail message="libvpx repository not set!" unless="libvpx" />
 
     <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnffmpeg" objdir="${obj}">
       <!-- common compiler flags -->
@@ -279,7 +278,6 @@
       <linkerarg value="-L${ffmpeg}/libavformat" />
       <linkerarg value="-L${ffmpeg}/libavutil" />
       <linkerarg value="-L${ffmpeg}/libswscale" />
-      <linkerarg value="-L${libvpx}" />
       <!--
         Depending on the way that lame is built, libmp3lame.a may be in
         libmp3lame/ or libmp3lame/.libs/.
@@ -299,7 +297,6 @@
       <linkerarg value="-lswscale" location="end" />
       <linkerarg value="-lmp3lame" location="end" />
       <linkerarg value="-lx264" location="end" />
-      <linkerarg value="-lvpx" location="end" />
 
       <!-- Linux specific flags -->
       <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
@@ -655,6 +652,75 @@
                lipo -create libjnopus.jnilib-* -output libjnopus.jnilib
                strip libjnopus.jnilib
           -->
+        </cc>
+    </target>
+
+    <target name="libvpx" description="Build the libvpx shared library" depends="init-native">
+
+        <fail message="libvpx repository not set!" unless="libvpx"/>
+
+        <cc outtype="shared" name="gcc"
+            objdir="${obj}"
+            outfile="${native_install_dir}/jnvpx">
+            <!-- common compiler flags -->
+            <compilerarg value="-shared" />
+            <compilerarg value="-Wall" />
+            <compilerarg value="-fPIC"/>
+            <compilerarg value="-O2" />
+            <compilerarg value="-I${libvpx}" unless="is.running.linux"/>
+            <compilerarg value="-I/usr/include/vpx" if="is.running.linux"/>
+            <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+
+            <linkerarg value="-L${libvpx}" />
+
+            <!-- Linux specific flags -->
+            <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
+            <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
+            <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
+            <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+
+            <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
+            <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
+
+            <!-- static libraries MUST be at the end otherwise
+                they will not be added to shared library
+            -->
+            <!--<linkerarg value="-Wl,-Bstatic" location="end" if="is.running.linux" />-->
+            <linkerarg value="-lvpx" location="end" if="is.running.linux" />
+            <!--<linkerarg value="-Wl,-Bdynamic" location="end" if="is.running.linux" />-->
+
+            <!-- Mac OS X specific flags -->
+            <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
+            <compilerarg value="-arch"  if="is.running.macos" />
+            <compilerarg value="x86_64" if="is.running.macos" />
+            <compilerarg value="-arch" if="is.running.macos" />
+            <compilerarg value="i386" if="is.running.macos" />
+            <compilerarg value="-arch" if="is.running.macos" />
+            <compilerarg value="ppc" if="is.running.macos" />
+            <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
+
+            <linkerarg value="-o" location="end" if="is.running.macos" />
+            <linkerarg value="libjnvpx.jnilib" location="end" if="is.running.macos" />
+            <linkerarg value="-dynamiclib" if="is.running.macos" />
+            <linkerarg value="-arch" if="is.running.macos" />
+            <linkerarg value="x86_64" if="is.running.macos" />
+            <linkerarg value="-arch" if="is.running.macos" />
+            <linkerarg value="i386" if="is.running.macos" />
+            <linkerarg value="-arch" if="is.running.macos" />
+            <linkerarg value="ppc" if="is.running.macos" />
+            <linkerarg value="-lvpx" location="end" if="is.running.macos" />
+
+            <!-- Windows specific flags -->
+            <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows" />
+            <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
+
+            <linkerarg value="-ojnvpx.dll" if="is.running.windows" />
+            <linkerarg value="-Wl,--no-undefined" if="is.running.windows" />
+            <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
+            <linkerarg value="-Wl,-Bstatic" location="end" if="is.running.windows" />
+            <linkerarg value="-lvpx" location="end" if="is.running.windows" />
+
+            <fileset dir="${src}/native/vpx" includes="*.c"/>
         </cc>
     </target>
 
