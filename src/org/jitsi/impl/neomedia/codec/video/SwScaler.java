@@ -73,7 +73,7 @@ public class SwScaler
     };
 
     /**
-     * Libswscale context pointer.
+     * The pointer to the <tt>libswscale</tt> context.
      */
     private long swsContext = 0;
 
@@ -166,6 +166,7 @@ public class SwScaler
         int fmt;
 
         if(rgb.getBitsPerPixel() == 32)
+        {
             switch(rgb.getRedMask())
             {
             case 1:
@@ -189,6 +190,7 @@ public class SwScaler
                 fmt = FFmpeg.PIX_FMT_RGB32;
                 break;
             }
+        }
         else
             fmt = FFmpeg.PIX_FMT_RGB24;
 
@@ -470,13 +472,10 @@ public class SwScaler
         Format inputFormat
             = (format instanceof VideoFormat)
                 ? super.setInputFormat(format)
-                : null /* A size is not required, the input must be video. */;
+                : null /* The input must be video, a size is not required. */;
 
-        if (inputFormat != null)
-        {
-            if (logger.isDebugEnabled())
-                logger.debug("SwScaler set to input in " + inputFormat);
-        }
+        if ((inputFormat != null) && logger.isDebugEnabled())
+            logger.debug("SwScaler set to input in " + inputFormat);
         return inputFormat;
     }
 

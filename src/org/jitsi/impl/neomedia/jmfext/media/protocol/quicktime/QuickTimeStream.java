@@ -666,14 +666,18 @@ public class QuickTimeStream
 
         if (format instanceof AVFrameFormat)
         {
-            int pixFmt = ((AVFrameFormat) format).getPixFmt();
-
-            if (pixFmt == FFmpeg.PIX_FMT_YUV420P)
-                encoding = VideoFormat.YUV;
-            else if (pixFmt == FFmpeg.PIX_FMT_ARGB)
+            switch (((AVFrameFormat) format).getPixFmt())
+            {
+            case FFmpeg.PIX_FMT_ARGB:
                 encoding = VideoFormat.RGB;
-            else
+                break;
+            case FFmpeg.PIX_FMT_YUV420P:
+                encoding = VideoFormat.YUV;
+                break;
+            default:
                 encoding = null;
+                break;
+            }
         }
         else if (format.isSameEncoding(VideoFormat.RGB))
             encoding = VideoFormat.RGB;

@@ -25,23 +25,23 @@ public class AVFrameFormat
     extends VideoFormat
 {
     /**
-     * Serial version UID.
-     */
-    private static final long serialVersionUID = 0L;
-
-    /**
      * The encoding of the <tt>AVFrameFormat</tt> instances.
      */
     public static final String AVFRAME = "AVFrame";
 
     /**
-     * The native device-specific format represented by this instance. It's
-     * necessary in the cases of multiple device-specific formats corresponding
-     * to one and the same native FFmpeg format in which JMF is unable to
-     * differentiate them, yet the device needs to know its device-specific
-     * format.
+     * Serial version UID.
      */
-    private int devicePixFmt;
+    private static final long serialVersionUID = 0L;
+
+    /**
+     * The <tt>DeviceSystem</tt>-specific format represented by this instance.
+     * It is necessary in the cases of multiple <tt>DeviceSystem</tt>-specific
+     * formats corresponding to one and the same native FFmpeg format in which
+     * JMF is unable to differentiate them yet the device needs to know its
+     * <tt>DeviceSystem</tt>-specific format.
+     */
+    private int deviceSystemPixFmt;
 
     /**
      * The native FFmpeg format represented by this instance.
@@ -55,6 +55,32 @@ public class AVFrameFormat
     public AVFrameFormat()
     {
         this(NOT_SPECIFIED, NOT_SPECIFIED);
+    }
+
+    public AVFrameFormat(Dimension size, float frameRate, int pixFmt)
+    {
+        this(size, frameRate, pixFmt, NOT_SPECIFIED);
+    }
+
+    /**
+     * Initializes a new <tt>AVFrameFormat</tt> instance with specific size,
+     * frame rate and FFmpeg colorspace.
+     *
+     * @param size the <tt>Dimension</tt> of the new instance
+     * @param frameRate the frame rate of the new instance
+     * @param pixFmt the FFmpeg colorspace to be represented by the new instance
+     * @param deviceSystemPixFmt the <tt>DeviceSystem</tt>-specific colorspace
+     * to be represented by the new instance
+     */
+    public AVFrameFormat(
+            Dimension size,
+            float frameRate,
+            int pixFmt, int deviceSystemPixFmt)
+    {
+        super(AVFRAME, size, NOT_SPECIFIED, AVFrame.class, frameRate);
+
+        this.pixFmt = pixFmt;
+        this.deviceSystemPixFmt = deviceSystemPixFmt;
     }
 
     /**
@@ -73,33 +99,12 @@ public class AVFrameFormat
      * colorspace and unspecified size and frame rate.
      *
      * @param pixFmt the FFmpeg colorspace to be represented by the new instance
-     * @param devicePixFmt the capture device colorspace to be represented by
-     * the new instance
+     * @param deviceSystemPixFmt the <tt>DeviceSystem</tt>-specific colorspace
+     * to be represented by the new instance
      */
-    public AVFrameFormat(int pixFmt, int devicePixFmt)
+    public AVFrameFormat(int pixFmt, int deviceSystemPixFmt)
     {
-        this(null, NOT_SPECIFIED, pixFmt, devicePixFmt);
-    }
-
-    /**
-     * Initializes a new <tt>AVFrameFormat</tt> instance with specific size,
-     * frame rate and FFmpeg colorspace.
-     *
-     * @param size the <tt>Dimension</tt> of the new instance
-     * @param frameRate the frame rate of the new instance
-     * @param pixFmt the FFmpeg colorspace to be represented by the new instance
-     * @param devicePixFmt the capture device colorspace to be represented by
-     * the new instance
-     */
-    public AVFrameFormat(
-            Dimension size,
-            float frameRate,
-            int pixFmt, int devicePixFmt)
-    {
-        super(AVFRAME, size, NOT_SPECIFIED, AVFrame.class, frameRate);
-
-        this.pixFmt = pixFmt;
-        this.devicePixFmt = devicePixFmt;
+        this(null, NOT_SPECIFIED, pixFmt, deviceSystemPixFmt);
     }
 
     /**
@@ -116,7 +121,7 @@ public class AVFrameFormat
             = new AVFrameFormat(
                     getSize(),
                     getFrameRate(),
-                    pixFmt, devicePixFmt);
+                    pixFmt, deviceSystemPixFmt);
 
         f.copy(this);
         return f;
@@ -139,7 +144,7 @@ public class AVFrameFormat
             AVFrameFormat avFrameFormat = (AVFrameFormat) f;
 
             pixFmt = avFrameFormat.pixFmt;
-            devicePixFmt = avFrameFormat.devicePixFmt;
+            deviceSystemPixFmt = avFrameFormat.deviceSystemPixFmt;
         }
     }
 
@@ -167,6 +172,18 @@ public class AVFrameFormat
     }
 
     /**
+     * Gets the <tt>DeviceSystem</tt>-specific format represented by this
+     * instance.
+     *
+     * @return the <tt>DeviceSystem</tt>-specific format represented by this
+     * instance
+     */
+    public int getDeviceSystemPixFmt()
+    {
+        return deviceSystemPixFmt;
+    }
+
+    /**
      * Gets the native FFmpeg format represented by this instance.
      *
      * @return the native FFmpeg format represented by this instance
@@ -174,16 +191,6 @@ public class AVFrameFormat
     public int getPixFmt()
     {
         return pixFmt;
-    }
-
-    /**
-     * Gets the native capture device format represented by this instance.
-     *
-     * @return native capture device format represented by this instance
-     */
-    public int getDevicePixFmt()
-    {
-        return devicePixFmt;
     }
 
     @Override

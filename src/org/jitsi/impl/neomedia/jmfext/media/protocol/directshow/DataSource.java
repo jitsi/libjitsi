@@ -35,33 +35,10 @@ public class DataSource
     extends AbstractVideoPushBufferCaptureDevice
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>DataSource</tt> class and its
-     * instances for logging output.
+     * The map of DirectShow pixel formats to FFmpeg pixel formats which allows
+     * converting between the two.
      */
-    private static final Logger logger = Logger.getLogger(DataSource.class);
-
-    /**
-     * DirectShow capture device.
-     */
-    private DSCaptureDevice device = null;
-
-    /**
-     * Delegate grabber. Each frame captured by device will be pass through this
-     * grabber.
-     */
-    private DSCaptureDevice.GrabberDelegate grabber = null;
-
-
-    /**
-     * DirectShow manager.
-     */
-    private DSManager manager = null;
-
-    /**
-     * The map of DirectShow pixel formats to FFmpeg
-     * pixel formats which allows converting between the two.
-     */
-    private static final long[] DS_TO_FFMPEG_PIX_FMT
+    private static final long[] DS_TO_FFMPEG_PIX_FMTS
         = new long[]
                 {
                     DSFormat.RGB24,
@@ -77,12 +54,65 @@ public class DataSource
                     DSFormat.Y411,
                     FFmpeg.PIX_FMT_UYYVYY411,
                     DSFormat.Y41P,
-                    FFmpeg.PIX_FMT_UYYVYY411,
+                    FFmpeg.PIX_FMT_YUV411P,
                     DSFormat.NV12,
                     FFmpeg.PIX_FMT_NV12,
                     DSFormat.I420,
-                    FFmpeg.PIX_FMT_YUV420P,
+                    FFmpeg.PIX_FMT_YUV420P
                 };
+
+    /**
+     * The <tt>Logger</tt> used by the <tt>DataSource</tt> class and its
+     * instances for logging output.
+     */
+    private static final Logger logger = Logger.getLogger(DataSource.class);
+
+    /**
+     * Gets the FFmpeg pixel format matching a specific DirectShow
+     * Specification pixel format.
+     *
+     * @param ffmpegPixFmt FFmpeg format
+     * @return the DirectShow pixel format matching the specified FFmpeg format
+     */
+    public static long getDSPixFmt(int ffmpegPixFmt)
+    {
+        for (int i = 0; i < DS_TO_FFMPEG_PIX_FMTS.length; i += 2)
+            if (DS_TO_FFMPEG_PIX_FMTS[i + 1] == ffmpegPixFmt)
+                return DS_TO_FFMPEG_PIX_FMTS[i];
+        return -1;
+    }
+
+    /**
+     * Gets the DirectShow pixel format matching a specific FFmpeg pixel
+     * format.
+     *
+     * @param dsPixFmt the DirectShow pixel format to get the matching
+     * FFmpeg pixel format of
+     * @return the FFmpeg pixel format matching the specified DirectShow pixel
+     */
+    public static long getFFmpegPixFmt(long dsPixFmt)
+    {
+        for (int i = 0; i < DS_TO_FFMPEG_PIX_FMTS.length; i += 2)
+            if (DS_TO_FFMPEG_PIX_FMTS[i] == dsPixFmt)
+                return DS_TO_FFMPEG_PIX_FMTS[i + 1];
+        return FFmpeg.PIX_FMT_NONE;
+    }
+
+    /**
+     * DirectShow capture device.
+     */
+    private DSCaptureDevice device = null;
+
+    /**
+     * Delegate grabber. Each frame captured by device will be pass through this
+     * grabber.
+     */
+    private DSCaptureDevice.GrabberDelegate grabber = null;
+
+    /**
+     * DirectShow manager.
+     */
+    private DSManager manager = null;
 
     /**
      * Last known native DirectShow format.
@@ -106,75 +136,8 @@ public class DataSource
     public DataSource(MediaLocator locator)
     {
         super(locator);
+
         manager = DSManager.getInstance();
-    }
-
-    /**
-     * Sets the <tt>MediaLocator</tt> which specifies the media source of this
-     * <tt>DataSource</tt>.
-     *
-     * @param locator the <tt>MediaLocator</tt> which specifies the media source
-     * of this <tt>DataSource</tt>
-     * @see DataSource#setLocator(MediaLocator)
-     */
-    @Override
-    public void setLocator(MediaLocator locator)
-    {
-        DSCaptureDevice device = null;
-        logger.info("set locator to " + locator);
-
-        if(getLocator() == null)
-            super.setLocator(locator);
-        locator = getLocator();
-        logger.info("getLocator() returns " + locator);
-
-        if((locator != null) &&
-                DeviceSystem.LOCATOR_PROTOCOL_DIRECTSHOW.equalsIgnoreCase(
-                        locator.getProtocol()))
-        {
-            DSCaptureDevice[] devices = manager.getCaptureDevices();
-
-            logger.info("Search directshow device...");
-
-            /* find device */
-            for(int i = 0 ; i < devices.length ; i++)
-            {
-                if(devices[i].getName().equals(locator.getRemainder()))
-                {
-                    device = devices[i];
-                    logger.info("Set directshow device: " + device);
-                    break;
-                }
-            }
-
-            if(device == null)
-            {
-                logger.info("No devices matches locator's remainder: " +
-                        locator.getRemainder());
-            }
-        }
-        else
-        {
-            logger.info(
-                    "MediaLocator either null or does not have right protocol");
-            device = null;
-        }
-        setDevice(device);
-    }
-
-    /**
-     * Sets the <tt>DSCaptureDevice</tt> which represents the media source of
-     * this <tt>DataSource</tt>.
-     *
-     * @param device the <tt>DSCaptureDevice</tt> which represents the media
-     * source of this <tt>DataSource</tt>
-     */
-    private void setDevice(DSCaptureDevice device)
-    {
-        if(this.device != device)
-        {
-            this.device = device;
-        }
     }
 
     /**
@@ -256,104 +219,6 @@ public class DataSource
     }
 
     /**
-     * Gets the <tt>Format</tt>s which are to be reported by a
-     * <tt>FormatControl</tt> as supported formats for a
-     * <tt>PushBufferStream</tt> at a specific zero-based index in the list of
-     * streams of this <tt>PushBufferDataSource</tt>.
-     *
-     * @param streamIndex the zero-based index of the <tt>PushBufferStream</tt>
-     * for which the specified <tt>FormatControl</tt> is to report the list of
-     * supported <tt>Format</tt>s
-     * @return an array of <tt>Format</tt>s to be reported by a
-     * <tt>FormatControl</tt> as the supported formats for the
-     * <tt>PushBufferStream</tt> at the specified <tt>streamIndex</tt> in the
-     * list of streams of this <tt>PushBufferDataSource</tt>
-     * @see AbstractPushBufferCaptureDevice#getSupportedFormats(int)
-     */
-    @Override
-    protected Format[] getSupportedFormats(int streamIndex)
-    {
-        if(device == null)
-            return new Format[0];
-
-        DSFormat[] deviceFmts = device.getSupportedFormats();
-        List<Format> fmts = new ArrayList<Format>(deviceFmts.length);
-
-        for (DSFormat deviceFmt : deviceFmts)
-        {
-            Dimension size
-                = new Dimension(deviceFmt.getWidth(), deviceFmt.getHeight());
-            long devicePixFmt = deviceFmt.getPixelFormat();
-            int pixFmt = (int) getFFmpegPixFmt(devicePixFmt);
-
-            fmts.add(
-                    new AVFrameFormat(
-                            size,
-                            Format.NOT_SPECIFIED,
-                            pixFmt, (int) devicePixFmt));
-        }
-        return fmts.toArray(new Format[fmts.size()]);
-    }
-
-    /**
-     * Attempts to set the <tt>Format</tt> to be reported by the
-     * <tt>FormatControl</tt> of a <tt>PushBufferStream</tt> at a specific
-     * zero-based index in the list of streams of this
-     * <tt>PushBufferDataSource</tt>. The <tt>PushBufferStream</tt> does not
-     * exist at the time of the attempt to set its <tt>Format</tt>.
-     *
-     * @param streamIndex the zero-based index of the <tt>PushBufferStream</tt>
-     * the <tt>Format</tt> of which is to be set
-     * @param oldValue the last-known <tt>Format</tt> for the
-     * <tt>PushBufferStream</tt> at the specified <tt>streamIndex</tt>
-     * @param newValue the <tt>Format</tt> which is to be set
-     * @return the <tt>Format</tt> to be reported by the <tt>FormatControl</tt>
-     * of the <tt>PushBufferStream</tt> at the specified <tt>streamIndex</tt>
-     * in the list of streams of this <tt>PushBufferStream</tt> or <tt>null</tt>
-     * if the attempt to set the <tt>Format</tt> did not success and any
-     * last-known <tt>Format</tt> is to be left in effect
-     * @see AbstractPushBufferCaptureDevice#setFormat(int, Format, Format)
-     */
-    @Override
-    protected Format setFormat(
-            int streamIndex,
-            Format oldValue, Format newValue)
-    {
-        if(newValue instanceof VideoFormat)
-        {
-            if(newValue instanceof AVFrameFormat)
-            {
-                AVFrameFormat newAVFrameFormatValue
-                    = (AVFrameFormat) newValue;
-                long pixelFormat = newAVFrameFormatValue.getDevicePixFmt();
-
-                if(pixelFormat != -1)
-                {
-                    Dimension size = newAVFrameFormatValue.getSize();
-
-                    /*
-                     * We will set the native format in doStart() because a
-                     * connect-disconnect-connect sequence of the native
-                     * capture device may reorder its formats in a different
-                     * way. Consequently, in the absence of further calls to
-                     * setFormat() by JMF, a crash may occur later (typically,
-                     * during scaling) because of a wrong format.
-                     */
-                    nativeFormat
-                        = new DSFormat(
-                                size.width, size.height,
-                                pixelFormat);
-                }
-            }
-
-            // This DataSource supports setFormat.
-            return newValue;
-        }
-        else
-            return super.setFormat(streamIndex, oldValue, newValue);
-    }
-
-    /**
      * Opens a connection to the media source specified by the
      * <tt>MediaLocator</tt> of this <tt>DataSource</tt>.
      *
@@ -413,7 +278,7 @@ public class DataSource
         if (logger.isInfoEnabled())
             logger.info("start");
 
-        /* open and start capture */
+        /* Open and start the capture. */
         device.open();
         if(nativeFormat != null)
             device.setFormat(nativeFormat);
@@ -436,39 +301,169 @@ public class DataSource
         if (logger.isInfoEnabled())
             logger.info("stop");
 
-        /* close capture */
         super.doStop();
+
+        /* Stop and close the capture. */
         device.close();
     }
 
     /**
-     * Gets the DirectShow pixel format matching a specific FFmpeg pixel
-     * format.
+     * Gets the <tt>Format</tt>s which are to be reported by a
+     * <tt>FormatControl</tt> as supported formats for a
+     * <tt>PushBufferStream</tt> at a specific zero-based index in the list of
+     * streams of this <tt>PushBufferDataSource</tt>.
      *
-     * @param dsPixFmt the DirectShow pixel format to get the matching
-     * FFmpeg pixel format of
-     * @return the FFmpeg pixel format matching the specified DirectShow pixel
+     * @param streamIndex the zero-based index of the <tt>PushBufferStream</tt>
+     * for which the specified <tt>FormatControl</tt> is to report the list of
+     * supported <tt>Format</tt>s
+     * @return an array of <tt>Format</tt>s to be reported by a
+     * <tt>FormatControl</tt> as the supported formats for the
+     * <tt>PushBufferStream</tt> at the specified <tt>streamIndex</tt> in the
+     * list of streams of this <tt>PushBufferDataSource</tt>
+     * @see AbstractPushBufferCaptureDevice#getSupportedFormats(int)
      */
-    public static long getFFmpegPixFmt(long dsPixFmt)
+    @Override
+    protected Format[] getSupportedFormats(int streamIndex)
     {
-        for (int i = 0; i < DS_TO_FFMPEG_PIX_FMT.length; i += 2)
-            if (DS_TO_FFMPEG_PIX_FMT[i] == dsPixFmt)
-                return DS_TO_FFMPEG_PIX_FMT[i + 1];
-        return FFmpeg.PIX_FMT_NONE;
+        if(device == null)
+            return new Format[0];
+
+        DSFormat[] deviceFmts = device.getSupportedFormats();
+        List<Format> fmts = new ArrayList<Format>(deviceFmts.length);
+
+        for (DSFormat deviceFmt : deviceFmts)
+        {
+            Dimension size
+                = new Dimension(deviceFmt.getWidth(), deviceFmt.getHeight());
+            long devicePixFmt = deviceFmt.getPixelFormat();
+            int pixFmt = (int) getFFmpegPixFmt(devicePixFmt);
+
+            fmts.add(
+                    new AVFrameFormat(
+                            size,
+                            Format.NOT_SPECIFIED,
+                            pixFmt, (int) devicePixFmt));
+        }
+        return fmts.toArray(new Format[fmts.size()]);
     }
 
     /**
-     * Gets the FFmpeg pixel format matching a specific DirectShow
-     * Specification pixel format.
+     * Sets the <tt>DSCaptureDevice</tt> which represents the media source of
+     * this <tt>DataSource</tt>.
      *
-     * @param ffmpegPixFmt FFmpeg format
-     * @return the DirectShow pixel format matching the specified FFmpeg format
+     * @param device the <tt>DSCaptureDevice</tt> which represents the media
+     * source of this <tt>DataSource</tt>
      */
-    public static long getDSPixFmt(int ffmpegPixFmt)
+    private void setDevice(DSCaptureDevice device)
     {
-        for (int i = 0; i < DS_TO_FFMPEG_PIX_FMT.length; i += 2)
-            if (DS_TO_FFMPEG_PIX_FMT[i + 1] == ffmpegPixFmt)
-                return DS_TO_FFMPEG_PIX_FMT[i];
-        return -1;
+        this.device = device;
+    }
+
+    /**
+     * Attempts to set the <tt>Format</tt> to be reported by the
+     * <tt>FormatControl</tt> of a <tt>PushBufferStream</tt> at a specific
+     * zero-based index in the list of streams of this
+     * <tt>PushBufferDataSource</tt>. The <tt>PushBufferStream</tt> does not
+     * exist at the time of the attempt to set its <tt>Format</tt>.
+     *
+     * @param streamIndex the zero-based index of the <tt>PushBufferStream</tt>
+     * the <tt>Format</tt> of which is to be set
+     * @param oldValue the last-known <tt>Format</tt> for the
+     * <tt>PushBufferStream</tt> at the specified <tt>streamIndex</tt>
+     * @param newValue the <tt>Format</tt> which is to be set
+     * @return the <tt>Format</tt> to be reported by the <tt>FormatControl</tt>
+     * of the <tt>PushBufferStream</tt> at the specified <tt>streamIndex</tt>
+     * in the list of streams of this <tt>PushBufferStream</tt> or <tt>null</tt>
+     * if the attempt to set the <tt>Format</tt> did not success and any
+     * last-known <tt>Format</tt> is to be left in effect
+     * @see AbstractPushBufferCaptureDevice#setFormat(int, Format, Format)
+     */
+    @Override
+    protected Format setFormat(
+            int streamIndex,
+            Format oldValue, Format newValue)
+    {
+        if(newValue instanceof VideoFormat)
+        {
+            if(newValue instanceof AVFrameFormat)
+            {
+                AVFrameFormat avFrameFormat = (AVFrameFormat) newValue;
+                long pixFmt = getDSPixFmt(avFrameFormat.getPixFmt());
+
+                if(pixFmt != -1)
+                {
+                    Dimension size = avFrameFormat.getSize();
+
+                    /*
+                     * We will set the native format in doStart() because a
+                     * connect-disconnect-connect sequence of the native capture
+                     * device may reorder its formats in a different way.
+                     * Consequently, in the absence of further calls to
+                     * setFormat() by JMF, a crash may occur later (typically,
+                     * during scaling) because of a wrong format.
+                     */
+                    nativeFormat
+                        = new DSFormat(size.width, size.height, pixFmt);
+                }
+            }
+
+            // This DataSource supports setFormat.
+            return newValue;
+        }
+        else
+            return super.setFormat(streamIndex, oldValue, newValue);
+    }
+
+    /**
+     * Sets the <tt>MediaLocator</tt> which specifies the media source of this
+     * <tt>DataSource</tt>.
+     *
+     * @param locator the <tt>MediaLocator</tt> which specifies the media source
+     * of this <tt>DataSource</tt>
+     * @see DataSource#setLocator(MediaLocator)
+     */
+    @Override
+    public void setLocator(MediaLocator locator)
+    {
+        DSCaptureDevice device = null;
+        logger.info("set locator to " + locator);
+
+        if(getLocator() == null)
+            super.setLocator(locator);
+        locator = getLocator();
+        logger.info("getLocator() returns " + locator);
+
+        if((locator != null) &&
+                DeviceSystem.LOCATOR_PROTOCOL_DIRECTSHOW.equalsIgnoreCase(
+                        locator.getProtocol()))
+        {
+            DSCaptureDevice[] devices = manager.getCaptureDevices();
+
+            logger.info("Search directshow device...");
+
+            /* find device */
+            for(int i = 0 ; i < devices.length ; i++)
+            {
+                if(devices[i].getName().equals(locator.getRemainder()))
+                {
+                    device = devices[i];
+                    logger.info("Set directshow device: " + device);
+                    break;
+                }
+            }
+
+            if(device == null)
+            {
+                logger.info("No devices matches locator's remainder: " +
+                        locator.getRemainder());
+            }
+        }
+        else
+        {
+            logger.info(
+                    "MediaLocator either null or does not have right protocol");
+            device = null;
+        }
+        setDevice(device);
     }
 }

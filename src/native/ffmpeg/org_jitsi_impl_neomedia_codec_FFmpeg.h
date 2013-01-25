@@ -529,22 +529,6 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avpicture_1fill
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avpicture_get_data0
- * Signature: (J)J
- */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avpicture_1get_1data0
-  (JNIEnv *, jclass, jlong);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
- * Method:    avpicture_get_size
- * Signature: (III)I
- */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avpicture_1get_1size
-  (JNIEnv *, jclass, jint, jint, jint);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
  * Method:    get_filtered_video_frame
  * Signature: (JIIIJJJ)J
  */

@@ -629,7 +629,7 @@ public class Video4Linux2Stream
 
         if (format instanceof AVFrameFormat)
         {
-            pixelformat = ((AVFrameFormat) format).getDevicePixFmt();
+            pixelformat = ((AVFrameFormat) format).getDeviceSystemPixFmt();
             nativePixelFormat = pixelformat;
         }
         if (Video4Linux2.V4L2_PIX_FMT_NONE == pixelformat)

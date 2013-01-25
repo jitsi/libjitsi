@@ -676,20 +676,6 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_avpicture_1fill
 }
 
 JNIEXPORT jlong JNICALL
-Java_org_jitsi_impl_neomedia_codec_FFmpeg_avpicture_1get_1data0
-    (JNIEnv *env, jclass clazz, jlong picture)
-{
-    return (jlong) (intptr_t) (((AVPicture *) (intptr_t) picture)->data[0]);
-}
-
-JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_codec_FFmpeg_avpicture_1get_1size
-    (JNIEnv *env, jclass clazz, jint pix_fmt, jint width, jint height)
-{
-    return (jint) avpicture_get_size ((int) pix_fmt, (int) width, (int) height);
-}
-
-JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_codec_FFmpeg_get_1filtered_1video_1frame
     (JNIEnv *env, jclass clazz,
     jlong input, jint width, jint height, jint pixFmt,

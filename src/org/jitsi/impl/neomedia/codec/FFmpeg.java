@@ -19,6 +19,8 @@ public class FFmpeg
      */
     public static final long AV_NOPTS_VALUE = 0x8000000000000000L;
 
+    public static final int AV_NUM_DATA_POINTERS = 8;
+
     /**
      * The AV sample format for signed 16.
      */
@@ -178,6 +180,9 @@ public class FFmpeg
      * UYYVYY411 format.
      */
     public static final int PIX_FMT_UYYVYY411 = 18;
+
+    /** Y41P format */
+    public static final int PIX_FMT_YUV411P = 7;
 
     /**
      * YUV420P format.
@@ -684,22 +689,20 @@ public class FFmpeg
 
     public static native long avframe_get_pts(long frame);
 
-    public static native void avframe_set_data(long frame, long data0,
-        long offset1, long offset2);
+    public static native void avframe_set_data(
+            long frame,
+            long data0, long offset1, long offset2);
 
-    public static native void avframe_set_key_frame(long frame,
-        boolean key_frame);
+    public static native void avframe_set_key_frame(
+            long frame,
+            boolean key_frame);
 
-    public static native void avframe_set_linesize(long frame, int linesize0,
-        int linesize1, int linesize2);
+    public static native void avframe_set_linesize(
+            long frame,
+            int linesize0, int linesize1, int linesize2);
 
     public static native int avpicture_fill(long picture, long ptr,
         int pix_fmt, int width, int height);
-
-    public static native long avpicture_get_data0(long picture);
-
-    public static native int avpicture_get_size(int pix_fmt, int width,
-        int height);
 
     public static native long get_filtered_video_frame(
             long input, int width, int height, int pixFmt,
