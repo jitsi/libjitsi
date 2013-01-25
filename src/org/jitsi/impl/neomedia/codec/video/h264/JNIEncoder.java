@@ -64,6 +64,36 @@ public class JNIEncoder
             + "defaultProfile";
 
     /**
+     * A preset is a collection of options that will provide a certain encoding
+     * speed to compression ratio. A slower preset will provide
+     * better compression (compression is quality per size).
+     */
+    public static final String PRESET_PNAME
+        = "org.jitsi.impl.neomedia.codec.video.h264.preset";
+
+    /**
+     * The available presets we can use with the encoder.
+     */
+    public static final String[] AVAILABLE_PRESETS =
+    {
+        "ultrafast",
+        "superfast",
+        "veryfast",
+        "faster",
+        "fast",
+        "medium",
+        "slow",
+        "slower",
+        "veryslow"
+    };
+
+    /**
+     * The default value of the {@link #PRESET_PNAME}
+     * <tt>ConfigurationService</tt> property.
+     */
+    public static final String DEFAULT_PRESET = AVAILABLE_PRESETS[0];
+
+    /**
      * Key frame every 150 frames.
      */
     static final int IFRAME_INTERVAL = 150;
@@ -489,6 +519,11 @@ public class JNIEncoder
             logger.warn("The FFmpeg JNI library is out-of-date.");
         }
 
+        String preset
+            = (cfg == null)
+                ? null
+                : cfg.getString(PRESET_PNAME, DEFAULT_PRESET);
+
         if (FFmpeg.avcodec_open2(
                     avctx,
                     avcodec,
@@ -503,7 +538,7 @@ public class JNIEncoder
                     //"crf" /* constant quality mode, constant ratefactor */, "0",
                     "intra-refresh", "1",
                     "partitions", "b8x8,i4x4,p8x8",
-                    "preset", "ultrafast",
+                    "preset", preset,
                     "thread_type", "slice",
                     "tune", "zerolatency")
                 < 0)
