@@ -57,7 +57,7 @@ public class VPXEncoder
 
     /**
      * Iterator for the compressed frames in the encoder context. Can be
-     * re-initialized by setting it's only element to 0.
+     * re-initialized by setting its only element to 0.
      */
     private long[] iter = new long[1];
 
@@ -179,6 +179,8 @@ public class VPXEncoder
         VPX.codec_enc_cfg_set_kf_mode(cfg, VPX.KF_MODE_AUTO);
         VPX.codec_enc_cfg_set_w(cfg, width);
         VPX.codec_enc_cfg_set_h(cfg, height);
+        VPX.codec_enc_cfg_set_error_resilient(cfg,
+            VPX.ERROR_RESILIENT_DEFAULT | VPX.ERROR_RESILIENT_PARTITIONS);
 
         context = VPX.codec_ctx_malloc();
         int ret = VPX.codec_enc_init(context, INTERFACE, cfg, flags);

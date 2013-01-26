@@ -13,6 +13,8 @@ extern "C" {
 #define org_jitsi_impl_neomedia_codec_video_VPX_CODEC_LIST_END 9L
 #undef org_jitsi_impl_neomedia_codec_video_VPX_CODEC_USE_XMA
 #define org_jitsi_impl_neomedia_codec_video_VPX_CODEC_USE_XMA 1L
+#undef org_jitsi_impl_neomedia_codec_video_VPX_CODEC_USE_OUTPUT_PARTITION
+#define org_jitsi_impl_neomedia_codec_video_VPX_CODEC_USE_OUTPUT_PARTITION 131072L
 #undef org_jitsi_impl_neomedia_codec_video_VPX_IMG_FMT_I420
 #define org_jitsi_impl_neomedia_codec_video_VPX_IMG_FMT_I420 258L
 #undef org_jitsi_impl_neomedia_codec_video_VPX_RC_MODE_VBR
@@ -399,6 +401,14 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1enc_1
  * Signature: (JI)V
  */
 JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1enc_1cfg_1set_1h
+  (JNIEnv *, jclass, jlong, jint);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_video_VPX
+ * Method:    codec_enc_cfg_set_error_resilient
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1enc_1cfg_1set_1error_1resilient
   (JNIEnv *, jclass, jlong, jint);
 
 /*

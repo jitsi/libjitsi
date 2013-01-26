@@ -1,0 +1,17 @@
+To build the libjnvpx library:
+
+Configure the sources with
+./configure --disable-examples --disable-debug --disable-md5 --disable-shared \
+	--enable-vp8 --enable-realtime-only --enable-error-concealment 
+	
+For linux and MAC OS X add --enable-pic
+and a suitable target: 
+    --target=universal-darwin9-gcc
+    --target=x86-linux-gcc
+    --target=x86_64-linux-gcc
+
+If there are errors while linking on linux x86_64 try to add --extra-cflags='-fvisibility=protected'
+
+
+Run the 'libvpx' ant target from the libjitsi/ directory, setting the 'libvpx'
+property. 

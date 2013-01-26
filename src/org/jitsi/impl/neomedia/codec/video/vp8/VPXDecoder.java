@@ -48,7 +48,7 @@ public class VPXDecoder
 
     /**
      * Iterator for the frames in the decoder context. Can be re-initialized by
-     * setting it's only element to 0.
+     * setting its only element to 0.
      */
     private long[] iter = new long[1];
 
@@ -265,13 +265,13 @@ public class VPXDecoder
     }
 
     /**
-     * Allocates a new AVFrame and set it's data fields to the data fields
-     * from the <tt>vpx_image_t</tt> pointed to by <tt>img</tt>. Also set it's
+     * Allocates a new AVFrame and set its data fields to the data fields
+     * from the <tt>vpx_image_t</tt> pointed to by <tt>img</tt>. Also set its
      * 'linesize' according to <tt>img</tt>.
      *
      * @param img pointer to a <tt>vpx_image_t</tt> whose data will be used
      *
-     * @return an AVFrame instance with it's data fields set to the fields from
+     * @return an AVFrame instance with its data fields set to the fields from
      * <tt>img</tt>
      */
     private AVFrame makeAVFrame(long img)

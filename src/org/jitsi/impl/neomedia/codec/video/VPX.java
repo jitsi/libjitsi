@@ -32,6 +32,39 @@ public class VPX {
     public static final int CODEC_USE_XMA = 0x00000001;
 
     /**
+     * Output one partition at a time. Each partition is returned in its own
+     * <tt>VPX_CODEC_CX_FRAME_PKT</tt>.
+     */
+    public static final int CODEC_USE_OUTPUT_PARTITION = 0x20000;
+
+    /**
+     * Improve resiliency against losses of whole frames.
+     *
+     * To set this option for an encoder, enable this bit in the value passed
+     * to <tt>vpx_enc_cft_set_error_resilient</tt> for the encoder's
+     * configuration.
+     *
+     * Corresponds to <tt>VPX_ERROR_RESILIENT_DEFAULT</tt> from
+     * <tt>vpx/vpx_encoder.h</tt>
+     */
+    public static final int ERROR_RESILIENT_DEFAULT = 0x1;
+
+    /**
+     * The frame partitions are independently decodable by the bool decoder,
+     * meaning that partitions can be decoded even though earlier partitions
+     * have been lost. Note that intra predicition is still done over the
+     * partition boundary.
+     *
+     * To set this option for Coan encoder, enable this bit in the value passed
+     * to <tt>vpx_enc_cft_set_error_resilient</tt> for the encoder's
+     * configuration.
+     *
+     * Corresponds to <tt>VPX_ERROR_RESILIENT_PARTITIONS</tt> from
+     * <tt>vpx/vpx_encoder.h</tt>
+     */
+    public static final int ERROR_RESILIENT_PARTITIONS = 0x2;
+
+    /**
      * I420 format constant
      * Corresponds to <tt>VPX_IMG_FMT_I420</tt> from <tt>vpx/vpx_image.h</tt>
 
@@ -147,7 +180,7 @@ public class VPX {
      * <tt>codec_decode</tt>.
      *
      * @param context The decoder context to use.
-     * @param iter Iterator storage, initialized by setting it's first element
+     * @param iter Iterator storage, initialized by setting its first element
      * to 0.
      *
      * @return Pointer to a <tt>vpx_image_t</tt> describing the decoded frame,
@@ -183,7 +216,7 @@ public class VPX {
      *
      * @param context The codec context to use.
      * @param mmap Pointer to a <tt>vpx_codec_mmap_t</tt> to populate
-     * @param iter Iterator storage, initialized by setting it's first element
+     * @param iter Iterator storage, initialized by setting its first element
      * to 0.
      *
      * @return <tt>CODEC_OK</tt> on success, or an error code otherwise. The
@@ -249,7 +282,7 @@ public class VPX {
      * <tt>offset0</tt>, <tt>offset1</tt> and <tt>offset2</tt>.
      *
      * Note that <tt>buf</tt> and the offsets describe where the frames is
-     * stored, but <tt>img</tt> has to have all of it's other parameters (format,
+     * stored, but <tt>img</tt> has to have all of its other parameters (format,
      * dimensions, strides) already set.
      *
      * The reason <tt>buf</tt> and the offsets are treated differently is to
@@ -291,7 +324,7 @@ public class VPX {
      * application's muxer.
      *
      * @param context The codec context to use.
-     * @param iter Iterator storage, initialized by setting it's first element
+     * @param iter Iterator storage, initialized by setting its first element
      * to 0.
      *
      * @return Pointer to a vpx_codec_cx_pkt_t containing the output data
@@ -621,6 +654,16 @@ public class VPX {
      */
     public static native void codec_enc_cfg_set_h(long cfg,
                                                   int value);
+
+    /**
+     * Sets the <tt>g_error_resilient</tt> field of a
+     * <tt>vpx_codec_enc_cfg_t</tt>.
+     *
+     * @param cfg Pointer to a <tt>vpx_codec_enc_cfg_t</tt>.
+     * @param value The value to set.
+     */
+    public static native void codec_enc_cfg_set_error_resilient(long cfg,
+                                                                int value);
 
     /**
      * Sets the <tt>rc_target_bitrate</tt> field of a

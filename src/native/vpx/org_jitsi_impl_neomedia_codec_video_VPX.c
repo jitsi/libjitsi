@@ -547,6 +547,21 @@ DEFINE_ENC_CFG_INT_PROPERTY_SETTER(profile, g_profile)
 DEFINE_ENC_CFG_INT_PROPERTY_SETTER(threads, g_threads)
 DEFINE_ENC_CFG_INT_PROPERTY_SETTER(w, g_w)
 DEFINE_ENC_CFG_INT_PROPERTY_SETTER(h, g_h)
+
+/*
+ * Method:    codec_enc_cfg_set_error_resilient
+ */
+JNIEXPORT void JNICALL
+Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1enc_1cfg_1set_1error_1resilient
+    (JNIEnv *env,
+     jclass clazz,
+     jlong cfg,
+     jint flags)
+{
+    ((vpx_codec_enc_cfg_t *) (intptr_t) cfg)->g_error_resilient
+        = (vpx_codec_er_flags_t) flags;
+}
+
 DEFINE_ENC_CFG_INT_PROPERTY_SETTER(rc_1target_1bitrate, rc_target_bitrate)
 DEFINE_ENC_CFG_INT_PROPERTY_SETTER(rc_1dropframe_1thresh, rc_dropframe_thresh)
 DEFINE_ENC_CFG_INT_PROPERTY_SETTER(rc_1resize_1allowed, rc_resize_allowed)
