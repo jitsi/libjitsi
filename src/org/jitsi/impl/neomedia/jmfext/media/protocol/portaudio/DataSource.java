@@ -131,12 +131,14 @@ public class DataSource
     {
         super.doConnect();
 
-        int deviceIndex = getDeviceIndex();
+        String deviceID = getDeviceID();
 
         synchronized (getStreamSyncRoot())
         {
             for (Object stream : getStreams())
-                ((PortAudioStream) stream).setDeviceIndex(deviceIndex);
+            {
+                ((PortAudioStream) stream).setDeviceID(deviceID);
+            }
         }
     }
 
@@ -161,8 +163,7 @@ public class DataSource
                     {
                         try
                         {
-                            ((PortAudioStream) stream).setDeviceIndex(
-                                    Pa.paNoDevice);
+                            ((PortAudioStream) stream).setDeviceID(null);
                         }
                         catch (IOException ioex)
                         {
@@ -190,14 +191,14 @@ public class DataSource
      * @throws IllegalStateException if there is no <tt>MediaLocator</tt>
      * associated with this <tt>DataSource</tt>
      */
-    private int getDeviceIndex()
+    public String getDeviceID()
     {
         MediaLocator locator = getLocator();
 
         if (locator == null)
             throw new IllegalStateException("locator");
         else
-            return getDeviceIndex(locator);
+            return getDeviceID(locator);
     }
 
     /**
@@ -209,11 +210,11 @@ public class DataSource
      * @return the device index of a PortAudio device identified by
      * <tt>locator</tt>
      */
-    public static int getDeviceIndex(MediaLocator locator)
+    public static String getDeviceID(MediaLocator locator)
     {
         if (AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO.equalsIgnoreCase(
                 locator.getProtocol()))
-            return Integer.parseInt(locator.getRemainder().replace("#", ""));
+            return locator.getRemainder().replace("#", "");
         else
             throw new IllegalArgumentException("locator.protocol");
     }

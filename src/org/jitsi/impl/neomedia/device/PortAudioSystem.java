@@ -286,6 +286,8 @@ public class PortAudioSystem
             if(CoreAudioDevice.isLoaded)
                 modelIdentifier
                     = CoreAudioDevice.getDeviceModelIdentifier(deviceUID);
+            String deviceLocatorID
+                = (deviceUID != null)? deviceUID: name;
 
             /*
              * TODO The intention of reinitialize() was to perform the
@@ -321,7 +323,7 @@ public class PortAudioSystem
                     = new ExtendedCaptureDeviceInfo(
                             name,
                             new MediaLocator(
-                                    LOCATOR_PROTOCOL + ":#" + deviceIndex),
+                                    LOCATOR_PROTOCOL + ":#" + deviceLocatorID),
                             new Format[]
                             {
                                 new AudioFormat(

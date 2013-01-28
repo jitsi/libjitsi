@@ -792,4 +792,46 @@ public final class Pa
             this.value = value;
         }
     }
+
+    /**
+     * Returns the device index corresponding to the device ID, or Pa.paNoDevice
+     * if no device corresponds to this ID.
+     *
+     * @param deviceID The device ID.
+     *
+     * @return The device index corresponding to the device ID, or Pa.paNoDevice
+     * if no device corresponds to this ID.
+     */
+    public static int getDeviceIndex(String deviceID)
+    {
+        if(deviceID != null)
+        {
+            int nbDevices = 0;
+            try
+            {
+                nbDevices = Pa.GetDeviceCount();
+            }
+            // If a error occurs, returns that no device is available.
+            catch(PortAudioException paex)
+            {
+                return Pa.paNoDevice;
+            }
+
+            for(int i = 0; i < nbDevices; ++i)
+            {
+                long deviceInfo = Pa.GetDeviceInfo(i);
+                String deviceUID = Pa.DeviceInfo_getDeviceUID(deviceInfo);
+                String deviceName = Pa.DeviceInfo_getName(deviceInfo);
+                if(deviceID.equals(deviceUID)
+                        || (deviceUID == null && deviceID.equals(deviceName)))
+                {
+                    // We found the corresponding device.
+                    return i;
+                }
+            }
+        }
+
+        // No correspoding device was found.
+        return Pa.paNoDevice;
+    }
 }

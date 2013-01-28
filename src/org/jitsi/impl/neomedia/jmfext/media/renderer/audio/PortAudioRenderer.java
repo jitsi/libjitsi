@@ -359,11 +359,11 @@ public class PortAudioRenderer
         if (supportedInputFormats == null)
         {
             MediaLocator locator = getLocator();
-            int deviceIndex;
+            String deviceID = DataSource.getDeviceID(locator);
+            int deviceIndex = Pa.getDeviceIndex(deviceID);
 
             if ((locator == null)
-                    || ((deviceIndex = DataSource.getDeviceIndex(locator))
-                            == Pa.paNoDevice))
+                    || (deviceIndex == Pa.paNoDevice))
                 supportedInputFormats = SUPPORTED_INPUT_FORMATS;
             else
             {
@@ -528,7 +528,8 @@ public class PortAudioRenderer
             if (locator == null)
                 throw new ResourceUnavailableException("locator not set");
 
-            int deviceIndex = DataSource.getDeviceIndex(locator);
+            String deviceID = DataSource.getDeviceID(locator);
+            int deviceIndex = Pa.getDeviceIndex(deviceID);
             AudioFormat inputFormat = this.inputFormat;
 
             if (inputFormat == null)

@@ -48,10 +48,11 @@ public class PortAudioStream
     private int bytesPerBuffer;
 
     /**
-     * The device index of the PortAudio device read through this
+     * The device identifier (the device UID, or if not available, the device
+     * name) of the PortAudio device read through this
      * <tt>PullBufferStream</tt>.
      */
-    private int deviceIndex = Pa.paNoDevice;
+    private String deviceID = null;
 
     /**
      * The last-known <tt>Format</tt> of the media data made available by this
@@ -80,7 +81,14 @@ public class PortAudioStream
         paUpdateAvailableDeviceListListener
             = new PortAudioSystem.PaUpdateAvailableDeviceListListener()
             {
-                private int deviceIndex = Pa.paNoDevice;
+                /**
+                 * The device ID used, before and if available after the update.
+                 * This String contains the deviceUID, or if not available, the
+                 * deviceName.
+                 * If set to null, then there was no device used before the
+                 * update.
+                 */
+                private String deviceID = null;
 
                 private boolean start = false;
 
@@ -101,9 +109,13 @@ public class PortAudioStream
                              */
                             if (stream == 0)
                             {
-                                if (deviceIndex != Pa.paNoDevice)
+                                int deviceIndex = Pa.getDeviceIndex(deviceID);
+                                // Checks if the previously used device is still
+                                // available.
+                                if(deviceIndex != Pa.paNoDevice)
                                 {
-                                    setDeviceIndex(deviceIndex);
+                                    // If yes, then use it.
+                                    setDeviceID(deviceID);
                                     if (start)
                                         start();
                                 }
@@ -115,7 +127,7 @@ public class PortAudioStream
                              * If we had to attempt to restore the state of
                              * this PortAudioStream, we just did attempt to.
                              */
-                            deviceIndex = Pa.paNoDevice;
+                            deviceID = null;
                             start = false;
                         }
                     }
@@ -129,19 +141,19 @@ public class PortAudioStream
                         waitWhileStreamIsBusy();
                         if (stream == 0)
                         {
-                            deviceIndex = Pa.paNoDevice;
+                            deviceID = null;
                             start = false;
                         }
                         else
                         {
-                            deviceIndex = PortAudioStream.this.deviceIndex;
+                            deviceID = PortAudioStream.this.deviceID;
                             start = PortAudioStream.this.started;
 
                             boolean disconnected = false;
 
                             try
                             {
-                                setDeviceIndex(Pa.paNoDevice);
+                                setDeviceID(null);
                                 disconnected = true;
                             }
                             finally
@@ -153,7 +165,7 @@ public class PortAudioStream
                                  */
                                 if (!disconnected)
                                 {
-                                    deviceIndex = Pa.paNoDevice;
+                                    deviceID = null;
                                     start = false;
                                 }
                             }
@@ -228,6 +240,7 @@ public class PortAudioStream
         if (channels == Format.NOT_SPECIFIED)
             channels = 1;
 
+        int deviceIndex = Pa.getDeviceIndex(this.deviceID);
         int sampleSizeInBits = format.getSampleSizeInBits();
         long sampleFormat = Pa.getPaSampleFormat(sampleSizeInBits);
         double sampleRate = format.getSampleRate();
@@ -240,10 +253,11 @@ public class PortAudioStream
         {
             inputParameters
                 = Pa.StreamParameters_new(
-                        this.deviceIndex,
+                        deviceIndex,
                         channels,
                         sampleFormat,
                         Pa.getSuggestedLatency());
+
             stream
                 = Pa.OpenStream(
                         inputParameters,
@@ -459,18 +473,22 @@ public class PortAudioStream
      * Sets the device index of the PortAudio device to be read through this
      * <tt>PullBufferStream</tt>.
      *
-     * @param deviceIndex the device index of the PortAudio device to be read
-     * through this <tt>PullBufferStream</tt>
+     * @param deviceID The ID of the device used to be read trough this
+     * PortAudioStream.  This String contains the deviceUID, or if not
+     * available, the device name.  If set to null, then there was no device
+     * used before the update.
+     *
      * @throws IOException if input/output error occurred
      */
-    synchronized void setDeviceIndex(int deviceIndex)
+    synchronized void setDeviceID(String deviceID)
         throws IOException
     {
-        if (this.deviceIndex == deviceIndex)
+        if((this.deviceID == null && deviceID == null)
+                || (this.deviceID != null && this.deviceID.equals(deviceID)))
             return;
 
         // DataSource#disconnect
-        if (this.deviceIndex != Pa.paNoDevice)
+        if (this.deviceID != null)
         {
             /*
              * Just to be on the safe side, make sure #read(Buffer) is not
@@ -557,10 +575,10 @@ public class PortAudioStream
                 }
             }
         }
-        this.deviceIndex = deviceIndex;
+        this.deviceID = deviceID;
         this.started = false;
         // DataSource#connect
-        if (this.deviceIndex != Pa.paNoDevice)
+        if (this.deviceID != null)
         {
             PortAudioSystem.willPaOpenStream();
             try
