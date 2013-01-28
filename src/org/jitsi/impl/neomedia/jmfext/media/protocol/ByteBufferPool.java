@@ -55,9 +55,7 @@ public class ByteBufferPool
      */
     public synchronized ByteBuffer getBuffer(int capacity)
     {
-        /*
-         * XXX Pad with FF_INPUT_BUFFER_PADDING_SIZE or hell will break loose.
-         */
+        // XXX Pad with FF_INPUT_BUFFER_PADDING_SIZE or hell will break loose.
         capacity += FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE;
 
         ByteBuffer buffer = null;

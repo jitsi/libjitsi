@@ -111,10 +111,6 @@ public class ImageStream
 
         if(format instanceof AVFrameFormat)
         {
-            /*
-             * Native transfer: we keep data in native memory rather than the
-             * Java heap until we reach SwScale.
-             */
             Object o = buffer.getData();
             AVFrame frame;
 
@@ -133,7 +129,10 @@ public class ImageStream
             if(data != null)
             {
                 if (frame.avpicture_fill(data, avFrameFormat) < 0)
+                {
                     data.free();
+                    throw new IOException("avpicture_fill");
+                }
             }
             else
             {

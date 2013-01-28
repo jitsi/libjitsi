@@ -7,10 +7,8 @@
 package org.jitsi.service.neomedia.codec;
 
 /**
- * Allows star import of <tt>org.jitsi.service.neomedia.codec</tt>
- * in order to get the constants defined in
- * <tt>org.jitsi.service.neomedia.codec.Constants</tt> without star
- * import of <tt>org.jitsi.impl.neomedia.codec</tt>.
+ * Defines constants which are used by both neomedia clients and
+ * implementations.
  *
  * @author Lyubomir Marinov
  * @author Boris Grozev

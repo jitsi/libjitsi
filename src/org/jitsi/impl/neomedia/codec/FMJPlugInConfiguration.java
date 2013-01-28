@@ -15,7 +15,7 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.util.*;
 
 /**
- * Utility class that handles registration of JFM packages and plugins
+ * Utility class that handles registration of JFM packages and plugins.
  *
  * @author Damian Minkov
  * @author Lyubomir Marinov
@@ -24,78 +24,77 @@ import org.jitsi.util.*;
 public class FMJPlugInConfiguration
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>FMJPlugInConfiguration</tt> class
-     * for logging output.
+     * Whether custom codecs have been registered with JFM
      */
-    private static final Logger logger
-            = Logger.getLogger(FMJPlugInConfiguration.class);
+    private static boolean codecsRegistered = false;
 
     /**
      * The additional custom JMF codecs.
      */
-    private static final String[] CUSTOM_CODECS =
-            {
-                    "org.jitsi.impl.neomedia.codec.audio.alaw.DePacketizer",
-                    "org.jitsi.impl.neomedia.codec.audio.alaw.JavaEncoder",
-                    "org.jitsi.impl.neomedia.codec.audio.alaw.Packetizer",
-                    "org.jitsi.impl.neomedia.codec.audio.ulaw.JavaDecoder",
-                    "org.jitsi.impl.neomedia.codec.audio.ulaw.JavaEncoder",
-                    "org.jitsi.impl.neomedia.codec.audio.ulaw.Packetizer",
-                    "org.jitsi.impl.neomedia.codec.audio.opus.JNIDecoder",
-                    "org.jitsi.impl.neomedia.codec.audio.opus.JNIEncoder",
-                    "org.jitsi.impl.neomedia.codec.audio.speex.JNIDecoder",
-                    "org.jitsi.impl.neomedia.codec.audio.speex.JNIEncoder",
-                    "org.jitsi.impl.neomedia.codec.audio.speex.SpeexResampler",
-                    "org.jitsi.impl.neomedia.codec.audio.speex.JavaDecoder",
-                    "org.jitsi.impl.neomedia.codec.audio.speex.JavaEncoder",
-                    "org.jitsi.impl.neomedia.codec.audio.mp3.JNIEncoder",
-                    "org.jitsi.impl.neomedia.codec.audio.ilbc.JavaDecoder",
-                    "org.jitsi.impl.neomedia.codec.audio.ilbc.JavaEncoder",
-                    EncodingConfigurationImpl.G729
-                            ? "org.jitsi.impl.neomedia.codec.audio.g729.JavaDecoder"
-                            : null,
-                    EncodingConfigurationImpl.G729
-                            ? "org.jitsi.impl.neomedia.codec.audio.g729.JavaEncoder"
-                            : null,
-                    "net.java.sip.communicator.impl.neomedia.codec.audio.g722.JNIDecoder",
-                    "net.java.sip.communicator.impl.neomedia.codec.audio.g722.JNIEncoder",
-                    "org.jitsi.impl.neomedia.codec.audio.gsm.Decoder",
-                    "org.jitsi.impl.neomedia.codec.audio.gsm.Encoder",
-                    "org.jitsi.impl.neomedia.codec.audio.gsm.DePacketizer",
-                    "org.jitsi.impl.neomedia.codec.audio.gsm.Packetizer",
-                    "org.jitsi.impl.neomedia.codec.audio.silk.JavaDecoder",
-                    "org.jitsi.impl.neomedia.codec.audio.silk.JavaEncoder",
-                    "org.jitsi.impl.neomedia.codec.video.h263p.DePacketizer",
-                    "org.jitsi.impl.neomedia.codec.video.h263p.JNIDecoder",
-                    "org.jitsi.impl.neomedia.codec.video.h263p.JNIEncoder",
-                    "org.jitsi.impl.neomedia.codec.video.h263p.Packetizer",
-                    "org.jitsi.impl.neomedia.codec.video.h264.DePacketizer",
-                    "org.jitsi.impl.neomedia.codec.video.h264.JNIDecoder",
-                    "org.jitsi.impl.neomedia.codec.video.h264.JNIEncoder",
-                    "org.jitsi.impl.neomedia.codec.video.h264.Packetizer",
-                    "org.jitsi.impl.neomedia.codec.video.SwScale",
-                    "org.jitsi.impl.neomedia.codec.video.vp8.Packetizer",
-                    "org.jitsi.impl.neomedia.codec.video.vp8.DePacketizer",
-                    "org.jitsi.impl.neomedia.codec.video.vp8.VPXEncoder",
-                    "org.jitsi.impl.neomedia.codec.video.vp8.VPXDecoder"
-            };
+    private static final String[] CUSTOM_CODECS
+        = {
+            "org.jitsi.impl.neomedia.codec.audio.alaw.DePacketizer",
+            "org.jitsi.impl.neomedia.codec.audio.alaw.JavaEncoder",
+            "org.jitsi.impl.neomedia.codec.audio.alaw.Packetizer",
+            "org.jitsi.impl.neomedia.codec.audio.ulaw.JavaDecoder",
+            "org.jitsi.impl.neomedia.codec.audio.ulaw.JavaEncoder",
+            "org.jitsi.impl.neomedia.codec.audio.ulaw.Packetizer",
+            "org.jitsi.impl.neomedia.codec.audio.opus.JNIDecoder",
+            "org.jitsi.impl.neomedia.codec.audio.opus.JNIEncoder",
+            "org.jitsi.impl.neomedia.codec.audio.speex.JNIDecoder",
+            "org.jitsi.impl.neomedia.codec.audio.speex.JNIEncoder",
+            "org.jitsi.impl.neomedia.codec.audio.speex.SpeexResampler",
+            "org.jitsi.impl.neomedia.codec.audio.speex.JavaDecoder",
+            "org.jitsi.impl.neomedia.codec.audio.speex.JavaEncoder",
+            "org.jitsi.impl.neomedia.codec.audio.mp3.JNIEncoder",
+            "org.jitsi.impl.neomedia.codec.audio.ilbc.JavaDecoder",
+            "org.jitsi.impl.neomedia.codec.audio.ilbc.JavaEncoder",
+            EncodingConfigurationImpl.G729
+                    ? "org.jitsi.impl.neomedia.codec.audio.g729.JavaDecoder"
+                    : null,
+            EncodingConfigurationImpl.G729
+                    ? "org.jitsi.impl.neomedia.codec.audio.g729.JavaEncoder"
+                    : null,
+            "net.java.sip.communicator.impl.neomedia.codec.audio.g722.JNIDecoder",
+            "net.java.sip.communicator.impl.neomedia.codec.audio.g722.JNIEncoder",
+            "org.jitsi.impl.neomedia.codec.audio.gsm.Decoder",
+            "org.jitsi.impl.neomedia.codec.audio.gsm.Encoder",
+            "org.jitsi.impl.neomedia.codec.audio.gsm.DePacketizer",
+            "org.jitsi.impl.neomedia.codec.audio.gsm.Packetizer",
+            "org.jitsi.impl.neomedia.codec.audio.silk.JavaDecoder",
+            "org.jitsi.impl.neomedia.codec.audio.silk.JavaEncoder",
+            "org.jitsi.impl.neomedia.codec.video.h263p.DePacketizer",
+            "org.jitsi.impl.neomedia.codec.video.h263p.JNIDecoder",
+            "org.jitsi.impl.neomedia.codec.video.h263p.JNIEncoder",
+            "org.jitsi.impl.neomedia.codec.video.h263p.Packetizer",
+            "org.jitsi.impl.neomedia.codec.video.h264.DePacketizer",
+            "org.jitsi.impl.neomedia.codec.video.h264.JNIDecoder",
+            "org.jitsi.impl.neomedia.codec.video.h264.JNIEncoder",
+            "org.jitsi.impl.neomedia.codec.video.h264.Packetizer",
+            "org.jitsi.impl.neomedia.codec.video.SwScale",
+            "org.jitsi.impl.neomedia.codec.video.vp8.Packetizer",
+            "org.jitsi.impl.neomedia.codec.video.vp8.DePacketizer",
+            "org.jitsi.impl.neomedia.codec.video.vp8.VPXEncoder",
+            "org.jitsi.impl.neomedia.codec.video.vp8.VPXDecoder"
+        };
 
     /**
      * The package prefixes of the additional JMF <tt>DataSource</tt>s (e.g. low
      * latency PortAudio and ALSA <tt>CaptureDevice</tt>s).
      */
     private static final String[] CUSTOM_PACKAGES
-            = new String[]
-            {
-                    "org.jitsi.impl.neomedia.jmfext",
-                    "net.java.sip.communicator.impl.neomedia.jmfext",
-                    "net.sf.fmj"
-            };
+        = {
+            "org.jitsi.impl.neomedia.jmfext",
+            "net.java.sip.communicator.impl.neomedia.jmfext",
+            "net.sf.fmj"
+        };
 
     /**
-     * Whether custom codecs have been registered with JFM
+     * The <tt>Logger</tt> used by the <tt>FMJPlugInConfiguration</tt> class
+     * for logging output.
      */
-    private static boolean codecsRegistered = false;
+    private static final Logger logger
+        = Logger.getLogger(FMJPlugInConfiguration.class);
 
     /**
      * Whether custom packages have been registered with JFM
@@ -212,18 +211,23 @@ public class FMJPlugInConfiguration
                 if (registered)
                 {
                     if (logger.isDebugEnabled())
+                    {
                         logger.debug(
                                 "Codec "
-                                        + className
-                                        + " is successfully registered");
+                                    + className
+                                    + " is successfully registered");
+                    }
                 }
                 else
                 {
                     if (logger.isDebugEnabled())
+                    {
                         logger.debug(
                                 "Codec "
-                                        + className
-                                        + " is NOT succsefully registered", exception);
+                                    + className
+                                    + " is NOT succsefully registered",
+                                exception);
+                    }
                 }
             }
         }
@@ -298,19 +302,14 @@ public class FMJPlugInConfiguration
             {
                 packages.add(customPackage);
                 if (loggerIsDebugEnabled)
-                    if (logger.isDebugEnabled())
-                        logger.debug("Adding package  : " + customPackage);
+                    logger.debug("Adding package  : " + customPackage);
             }
         }
 
         PackageManager.setProtocolPrefixList(packages);
         PackageManager.commitProtocolPrefixList();
         if (loggerIsDebugEnabled)
-        {
-            if (logger.isDebugEnabled())
-                logger.debug(
-                        "Registering new protocol prefix list: " + packages);
-        }
+            logger.debug("Registering new protocol prefix list: " + packages);
 
         packagesRegistered = true;
     }
