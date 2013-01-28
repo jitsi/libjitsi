@@ -60,12 +60,14 @@ public class Packetizer
             int endIndex)
     {
         for (; beginIndex < (endIndex - 3); beginIndex++)
+        {
             if((byteStream[beginIndex] == 0)
                     && (byteStream[beginIndex + 1] == 0)
                     && ((byteStream[beginIndex + 2] & (byte)0x80) == -128))
             {
                 return beginIndex;
             }
+        }
         return endIndex;
     }
 

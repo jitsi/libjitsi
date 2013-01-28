@@ -54,6 +54,38 @@ public class Packetizer
         };
 
     /**
+     * Finds the index in <tt>byteStream</tt> at which the
+     * start_code_prefix_one_3bytes of a NAL unit begins.
+     *
+     * @param byteStream the H.264 encoded byte stream composed of NAL units in
+     * which the index of the beginning of the start_code_prefix_one_3bytes of a
+     * NAL unit is to be found
+     * @param beginIndex the inclusive index in <tt>byteStream</tt> at which the
+     * search is to begin
+     * @param endIndex the exclusive index in <tt>byteStream</tt> at which the
+     * search is to end
+     * @return the index in <tt>byteStream</tt> at which the
+     * start_code_prefix_one_3bytes of a NAL unit begins if it is found;
+     * otherwise, <tt>endIndex</tt>
+     */
+    private static int ff_avc_find_startcode(
+        byte[] byteStream,
+        int beginIndex,
+        int endIndex)
+    {
+        for (; beginIndex < (endIndex - 3); beginIndex++)
+        {
+            if((byteStream[beginIndex] == 0)
+                    && (byteStream[beginIndex + 1] == 0)
+                    && (byteStream[beginIndex + 2] == 1))
+            {
+                return beginIndex;
+            }
+        }
+        return endIndex;
+    }
+
+    /**
      * The list of NAL units to be sent as payload in RTP packets.
      */
     private final List<byte[]> nals = new LinkedList<byte[]>();
@@ -93,34 +125,6 @@ public class Packetizer
             opened = false;
             super.close();
         }
-    }
-
-    /**
-     * Finds the index in <tt>byteStream</tt> at which the
-     * start_code_prefix_one_3bytes of a NAL unit begins.
-     *
-     * @param byteStream the H.264 encoded byte stream composed of NAL units in
-     * which the index of the beginning of the start_code_prefix_one_3bytes of a
-     * NAL unit is to be found
-     * @param beginIndex the inclusive index in <tt>byteStream</tt> at which the
-     * search is to begin
-     * @param endIndex the exclusive index in <tt>byteStream</tt> at which the
-     * search is to end
-     * @return the index in <tt>byteStream</tt> at which the
-     * start_code_prefix_one_3bytes of a NAL unit begins if it is found;
-     * otherwise, <tt>endIndex</tt>
-     */
-    private static int ff_avc_find_startcode(
-        byte[] byteStream,
-        int beginIndex,
-        int endIndex)
-    {
-        for (; beginIndex < (endIndex - 3); beginIndex++)
-            if((byteStream[beginIndex] == 0)
-                    && (byteStream[beginIndex + 1] == 0)
-                    && (byteStream[beginIndex + 2] == 1))
-                return beginIndex;
-        return endIndex;
     }
 
     /**
@@ -531,9 +535,11 @@ public class Packetizer
         if (fmtps == null)
             fmtps = new HashMap<String, String>();
         if (fmtps.get(JNIEncoder.PACKETIZATION_MODE_FMTP) == null)
+        {
             fmtps.put(
                     JNIEncoder.PACKETIZATION_MODE_FMTP,
                     getPacketizationMode(inputFormat));
+        }
 
         outputFormat
             = new ParameterizedVideoFormat(
