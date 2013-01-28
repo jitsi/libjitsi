@@ -6,14 +6,15 @@
  */
 package org.jitsi.impl.neomedia.codec.video.vp8;
 
+import java.awt.*;
+
+import javax.media.*;
+import javax.media.format.*;
+
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.util.*;
-
-import javax.media.*;
-import javax.media.format.*;
-import java.awt.*;
 
 /**
  * Implements a VP8 decoder.
@@ -39,7 +40,7 @@ public class VPXDecoder
      * Default output formats
      */
     private static final VideoFormat[] SUPPORTED_OUTPUT_FORMATS
-        = new VideoFormat[]{ new AVFrameFormat(FFmpeg.PIX_FMT_YUV420P) };
+        = new VideoFormat[] { new AVFrameFormat(FFmpeg.PIX_FMT_YUV420P) };
 
     /**
      * Pointer to a native vpx_codec_dec_cfg structure containing
@@ -320,11 +321,11 @@ public class VPXDecoder
         {
             this.width = width;
             this.height = height;
-            outputFormat = new AVFrameFormat(
-                    new Dimension(width, height),
-                    frameRate,
-                    FFmpeg.PIX_FMT_YUV420P,
-                    Format.NOT_SPECIFIED);
+            outputFormat
+                = new AVFrameFormat(
+                        new Dimension(width, height),
+                        frameRate,
+                        FFmpeg.PIX_FMT_YUV420P);
         }
     }
 }
