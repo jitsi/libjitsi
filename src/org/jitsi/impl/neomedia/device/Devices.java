@@ -99,13 +99,11 @@ public abstract class Devices
                     }
 
                     // Adds the device in the preference list (to the end of the
-                    // list, but the save device will push it to the top of
-                    // active devices).
+                    // list, or on top if selected.
                     saveDevice(
                             locator,
                             property,
                             activeDevice,
-                            activeDevices,
                             isSelected);
                 }
             }
@@ -220,14 +218,12 @@ public abstract class Devices
      * into which the user's preference with respect to the specified
      * <tt>CaptureDeviceInfo</tt> is to be saved
      * @param selectedDevice The device selected by the user.
-     * @param activeDevices The list of the active devices.
      * @param isSelected True if the device is the selected one.
      */
     private void saveDevice(
             String locator,
             String property,
             ExtendedCaptureDeviceInfo device,
-            List<ExtendedCaptureDeviceInfo> activeDevices,
             boolean isSelected)
     {
         String selectedDeviceIdentifier
@@ -237,8 +233,6 @@ public abstract class Devices
 
         // Sorts the user preferences to put the selected device on top.
         addToDevicePreferences(
-                locator,
-                activeDevices,
                 selectedDeviceIdentifier,
                 isSelected);
 
@@ -253,13 +247,11 @@ public abstract class Devices
      * @param device The selected active device.
      * @param save Flag set to true in order to save this choice in the
      * configuration. False otherwise.
-     * @param activeDevices The list of the active devices.
      */
     public void setDevice(
             String locator,
             ExtendedCaptureDeviceInfo device,
-            boolean save,
-            List<ExtendedCaptureDeviceInfo> activeDevices)
+            boolean save)
     {
         // Checks if there is a change.
         if ((device == null) || !device.equals(this.device))
@@ -273,7 +265,6 @@ public abstract class Devices
                         locator,
                         getPropDevice(),
                         device,
-                        activeDevices,
                         true);
             }
             this.device = device;
@@ -301,49 +292,29 @@ public abstract class Devices
      * Adds a new device in the preferences (at the first active position if the
      * isSelected argument is true).
      *
-     * @param locator The string representation of the locator.
-     * @param activeDevices The list of the active devices.
      * @param newsDeviceIdentifier The identifier of the device to add int first
      * active position of the preferences.
      * @param isSelected True if the device is the selected one.
      */
     private void addToDevicePreferences(
-            String locator,
-            List<ExtendedCaptureDeviceInfo> activeDevices,
             String newDeviceIdentifier,
             boolean isSelected)
     {
         synchronized(devicePreferences)
         {
             devicePreferences.remove(newDeviceIdentifier);
+            // A selected device is placed on top of the list: this is the new
+            // preferred device.
             if(isSelected)
             {
-                // Search for the first active device.
-                for(int i = 0, devicePreferenceCount = devicePreferences.size();
-                        i < devicePreferenceCount;
-                        i++)
-                {
-                    String devicePreference = devicePreferences.get(i);
-
-                    // Check if devicePreference is an active device.
-                    for(ExtendedCaptureDeviceInfo activeDevice : activeDevices)
-                    {
-                        if(devicePreference.equals(
-                                    activeDevice.getModelIdentifier())
-                                || devicePreference.equals(
-                                        NoneAudioSystem.LOCATOR_PROTOCOL))
-                        {
-                            // The first active device is found.
-                            devicePreferences.add(i, newDeviceIdentifier);
-                            // The device is added, stop the loops and quit.
-                            return;
-                        }
-                    }
-                }
+                devicePreferences.add(0, newDeviceIdentifier);
             }
             // If there is no active device or the device is not selected, then
             // set the new device to the end of the device preference list.
-            devicePreferences.add(newDeviceIdentifier);
+            else
+            {
+                devicePreferences.add(newDeviceIdentifier);
+            }
         }
     }
 

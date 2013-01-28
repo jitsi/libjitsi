@@ -205,8 +205,7 @@ public abstract class AudioSystem
         devices[index].setDevice(
                 getLocatorProtocol(),
                 device,
-                save,
-                getDevices(index));
+                save);
     }
 
     /**
@@ -306,8 +305,7 @@ public abstract class AudioSystem
         devices.setDevice(
                 locatorProtocol,
                 selectedActiveDevice,
-                false,
-                activeDevices);
+                false);
     }
 
     /**
