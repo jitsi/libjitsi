@@ -20,7 +20,7 @@ import org.jitsi.service.neomedia.codec.*;
  * Implements a H.263+ encoder.
  *
  * @author Sebastien Vincent
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class JNIEncoder
     extends AbstractCodec
@@ -68,14 +68,14 @@ public class JNIEncoder
     private int encFrameLen = 0;
 
     /**
-     * The raw frame buffer.
-     */
-    private long rawFrameBuffer = 0;
-
-    /**
      * Next interval for an automatic keyframe.
      */
     private int framesSinceLastIFrame = IFRAME_INTERVAL + 1;
+
+    /**
+     * The raw frame buffer.
+     */
+    private long rawFrameBuffer = 0;
 
     /**
      * Initializes a new <tt>JNIEncoder</tt> instance.
@@ -86,13 +86,16 @@ public class JNIEncoder
             = new Format[]
             {
                 new YUVFormat(
-                        null,
-                        Format.NOT_SPECIFIED,
+                        /* size */ null,
+                        /* maxDataLength */ Format.NOT_SPECIFIED,
                         Format.byteArray,
-                        DEFAULT_FRAME_RATE,
+                        /* frameRate */ Format.NOT_SPECIFIED,
                         YUVFormat.YUV_420,
-                        Format.NOT_SPECIFIED, Format.NOT_SPECIFIED,
-                        0, Format.NOT_SPECIFIED, Format.NOT_SPECIFIED)
+                        /* strideY */ Format.NOT_SPECIFIED,
+                        /* strideUV */ Format.NOT_SPECIFIED,
+                        /* offsetY */ Format.NOT_SPECIFIED,
+                        /* offsetU */ Format.NOT_SPECIFIED,
+                        /* offsetV */ Format.NOT_SPECIFIED)
             };
 
         inputFormat = null;
@@ -372,43 +375,23 @@ public class JNIEncoder
     /**
      * Sets the input format.
      *
-     * @param in format to set
+     * @param format format to set
      * @return format
      */
     @Override
-    public Format setInputFormat(Format in)
+    public Format setInputFormat(Format format)
     {
         // mismatch input format
-        if (!(in instanceof VideoFormat)
-                || (null == AbstractCodecExt.matches(in, inputFormats)))
+        if (!(format instanceof VideoFormat)
+                || (null == AbstractCodecExt.matches(format, inputFormats)))
             return null;
 
-        YUVFormat yuv = (YUVFormat) in;
+        YUVFormat yuvFormat = (YUVFormat) format;
 
-        if (yuv.getOffsetU() > yuv.getOffsetV())
+        if (yuvFormat.getOffsetU() > yuvFormat.getOffsetV())
             return null;
 
-        Dimension size = yuv.getSize();
-
-        if (size == null)
-            size = new Dimension(Constants.VIDEO_WIDTH, Constants.VIDEO_HEIGHT);
-
-        int strideY = size.width;
-        int strideUV = strideY / 2;
-        int offsetU = strideY * size.height;
-        int offsetV = offsetU + strideUV * size.height / 2;
-
-        int yuvMaxDataLength = (strideY + strideUV) * size.height;
-
-        inputFormat
-            = new YUVFormat(
-                    size,
-                    yuvMaxDataLength + FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE,
-                    Format.byteArray,
-                    yuv.getFrameRate(),
-                    YUVFormat.YUV_420,
-                    strideY, strideUV,
-                    0, offsetU, offsetV);
+        inputFormat = AbstractCodecExt.specialize(yuvFormat, Format.byteArray);
 
         // Return the selected inputFormat
         return inputFormat;
@@ -418,45 +401,43 @@ public class JNIEncoder
      * Sets the <tt>Format</tt> in which this <tt>Codec</tt> is to output media
      * data.
      *
-     * @param out the <tt>Format</tt> in which this <tt>Codec</tt> is to
+     * @param format the <tt>Format</tt> in which this <tt>Codec</tt> is to
      * output media data
      * @return the <tt>Format</tt> in which this <tt>Codec</tt> is currently
      * configured to output media data or <tt>null</tt> if <tt>format</tt> was
      * found to be incompatible with this <tt>Codec</tt>
      */
     @Override
-    public Format setOutputFormat(Format out)
+    public Format setOutputFormat(Format format)
     {
         // mismatch output format
-        if (!(out instanceof VideoFormat)
+        if (!(format instanceof VideoFormat)
                 || (null
                         == AbstractCodecExt.matches(
-                                out,
+                                format,
                                 getMatchingOutputFormats(inputFormat))))
             return null;
 
-        VideoFormat videoOut = (VideoFormat) out;
-        Dimension outSize = videoOut.getSize();
+        VideoFormat videoFormat = (VideoFormat) format;
+        /*
+         * An Encoder translates raw media data in (en)coded media data.
+         * Consequently, the size of the output is equal to the size of the
+         * input.
+         */
+        Dimension size = null;
 
-        if (outSize == null)
-        {
-            Dimension inSize = ((VideoFormat) inputFormat).getSize();
-
-            outSize
-                = (inSize == null)
-                    ? new Dimension(
-                            Constants.VIDEO_WIDTH,
-                            Constants.VIDEO_HEIGHT)
-                    : inSize;
-        }
+        if (inputFormat != null)
+            size = ((VideoFormat) inputFormat).getSize();
+        if ((size == null) && format.matches(outputFormat))
+            size = ((VideoFormat) outputFormat).getSize();
 
         outputFormat
             = new VideoFormat(
-                    videoOut.getEncoding(),
-                    outSize,
-                    Format.NOT_SPECIFIED,
+                    videoFormat.getEncoding(),
+                    size,
+                    /* maxDataLength */ Format.NOT_SPECIFIED,
                     Format.byteArray,
-                    videoOut.getFrameRate());
+                    videoFormat.getFrameRate());
 
         // Return the selected outputFormat
         return outputFormat;

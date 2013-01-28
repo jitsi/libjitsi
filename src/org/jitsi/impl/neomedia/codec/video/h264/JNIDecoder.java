@@ -38,7 +38,7 @@ public class JNIDecoder
      * The default output <tt>VideoFormat</tt>.
      */
     private static final VideoFormat[] DEFAULT_OUTPUT_FORMATS
-        = new VideoFormat[] { new AVFrameFormat() };
+        = new VideoFormat[] { new AVFrameFormat(FFmpeg.PIX_FMT_YUV420P) };
 
     /**
      *  The codec context native pointer we will use.
@@ -86,24 +86,8 @@ public class JNIDecoder
      */
     public JNIDecoder()
     {
-        inputFormats
-            = new VideoFormat[] { new VideoFormat(Constants.H264) };
-        outputFormats
-            = new VideoFormat[]
-            {
-                new AVFrameFormat(
-                        new Dimension(
-                                Constants.VIDEO_WIDTH,
-                                Constants.VIDEO_HEIGHT),
-                        ensureFrameRate(Format.NOT_SPECIFIED),
-                        FFmpeg.PIX_FMT_YUV420P,
-                        Format.NOT_SPECIFIED)
-            };
-
-        Dimension outputSize = outputFormats[0].getSize();
-
-        width = outputSize.width;
-        height = outputSize.height;
+        inputFormats = new VideoFormat[] { new VideoFormat(Constants.H264) };
+        outputFormats = DEFAULT_OUTPUT_FORMATS;
     }
 
     /**
@@ -153,38 +137,21 @@ public class JNIDecoder
     /**
      * Get matching outputs for a specified input <tt>Format</tt>.
      *
-     * @param in input <tt>Format</tt>
+     * @param inputFormat input <tt>Format</tt>
      * @return array of matching outputs or null if there are no matching
      * outputs.
      */
-    protected Format[] getMatchingOutputFormats(Format in)
+    protected Format[] getMatchingOutputFormats(Format inputFormat)
     {
-        VideoFormat ivf = (VideoFormat) in;
-        Dimension inSize = ivf.getSize();
-        Dimension outSize;
-
-        // return the default size/currently decoder and encoder
-        // set to transmit/receive at this size
-        if (inSize == null)
-        {
-            VideoFormat ovf = outputFormats[0];
-
-            if (ovf == null)
-                return null;
-            else
-                outSize = ovf.getSize();
-        }
-        else
-            outSize = inSize; // Output in same size as input.
+        VideoFormat inputVideoFormat = (VideoFormat) inputFormat;
 
         return
             new Format[]
             {
                 new AVFrameFormat(
-                        outSize,
-                        ensureFrameRate(ivf.getFrameRate()),
-                        FFmpeg.PIX_FMT_YUV420P,
-                        Format.NOT_SPECIFIED)
+                        inputVideoFormat.getSize(),
+                        ensureFrameRate(inputVideoFormat.getFrameRate()),
+                        FFmpeg.PIX_FMT_YUV420P)
             };
     }
 
@@ -211,7 +178,7 @@ public class JNIDecoder
         Format[] supportedOutputFormats;
 
         if (inputFormat == null)
-            supportedOutputFormats = DEFAULT_OUTPUT_FORMATS;
+            supportedOutputFormats = outputFormats;
         else
         {
             // mismatch input format

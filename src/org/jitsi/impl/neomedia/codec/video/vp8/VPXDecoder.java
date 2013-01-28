@@ -21,8 +21,13 @@ import java.awt.*;
  * @author Boris Grozev
  */
 public class VPXDecoder
-        extends AbstractCodecExt
+    extends AbstractCodecExt
 {
+    /**
+     * The decoder interface to use
+     */
+    private static final int INTERFACE = VPX.INTEFACE_VP8_DEC;
+
     /**
      * The <tt>Logger</tt> used by the <tt>VPXDecoder</tt> class
      * for logging output.
@@ -31,9 +36,16 @@ public class VPXDecoder
             = Logger.getLogger(VPXDecoder.class);
 
     /**
-     * The decoder interface to use
+     * Default output formats
      */
-    private static final int INTERFACE = VPX.INTEFACE_VP8_DEC;
+    private static final VideoFormat[] SUPPORTED_OUTPUT_FORMATS
+        = new VideoFormat[]{ new AVFrameFormat(FFmpeg.PIX_FMT_YUV420P) };
+
+    /**
+     * Pointer to a native vpx_codec_dec_cfg structure containing
+     * the decoder configuration
+     */
+    private long cfg = 0;
 
     /**
      * Pointer to the libvpx codec context to be used
@@ -41,16 +53,10 @@ public class VPXDecoder
     private long context = 0;
 
     /**
-     * Whether there are unprocessed frames left from a previous call to
-     * VP8.codec_decode()
+     * The last known width of the video output by this
+     * <tt>VPXDecoder</tt>. Used to detect changes in the output size.
      */
-    private boolean leftoverFrames = false;
-
-    /**
-     * Iterator for the frames in the decoder context. Can be re-initialized by
-     * setting its only element to 0.
-     */
-    private long[] iter = new long[1];
+    private int height;
 
     /**
      * Pointer to a native vpx_image structure, containing a decoded frame.
@@ -60,47 +66,33 @@ public class VPXDecoder
     private long img = 0;
 
     /**
-     * Pointer to a native vpx_codec_dec_cfg structure containing
-     * the decoder configuration
+     * Iterator for the frames in the decoder context. Can be re-initialized by
+     * setting its only element to 0.
      */
-    private long cfg = 0;
+    private long[] iter = new long[1];
+
+    /**
+     * Whether there are unprocessed frames left from a previous call to
+     * VP8.codec_decode()
+     */
+    private boolean leftoverFrames = false;
 
     /**
      * The last known height of the video output by this
      * <tt>VPXDecoder</tt>. Used to detect changes in the output size.
      */
-    private int width = Constants.VIDEO_WIDTH;
-
-    /**
-     * The last known width of the video output by this
-     * <tt>VPXDecoder</tt>. Used to detect changes in the output size.
-     */
-    private int height = Constants.VIDEO_HEIGHT;
-
-    /**
-     * Default output formats
-     */
-    private static final VideoFormat[] SUPPORTED_OUTPUT_FORMATS
-            = new VideoFormat[]{new AVFrameFormat(
-            new Dimension(
-                    Constants.VIDEO_WIDTH,
-                    Constants.VIDEO_HEIGHT),
-            Format.NOT_SPECIFIED,
-            FFmpeg.PIX_FMT_YUV420P,
-            Format.NOT_SPECIFIED)};
+    private int width;
 
     /**
      * Initializes a new <tt>VPXDecoder</tt> instance.
      */
     public VPXDecoder()
     {
-        super("VP8 VPX Decoder",
-                VideoFormat.class,
-                SUPPORTED_OUTPUT_FORMATS);
+        super("VP8 VPX Decoder", VideoFormat.class, SUPPORTED_OUTPUT_FORMATS);
 
         inputFormat = null;
         outputFormat = null;
-        inputFormats = new VideoFormat[] {new VideoFormat(Constants.VP8)};
+        inputFormats = new VideoFormat[] { new VideoFormat(Constants.VP8) };
     }
 
     /**
@@ -243,25 +235,24 @@ public class VPXDecoder
     }
 
     /**
-     * Changes the output format, if necessary, according to the new dimentions
-     * given via <tt>width</tt> and <tt>height</tt>.
-     * @param width new width
-     * @param height new height
-     * @param frameRate frame rate
+     * Get matching outputs for a specified input <tt>Format</tt>.
+     *
+     * @param inputFormat input <tt>Format</tt>
+     * @return array of matching outputs or null if there are no matching
+     * outputs.
      */
-    private void updateOutputFormat(int width, int height, float frameRate)
+    protected Format[] getMatchingOutputFormats(Format inputFormat)
     {
-        if ((width > 0) && (height > 0)
-                && ((this.width != width) || (this.height != height)))
-        {
-            this.width = width;
-            this.height = height;
-            outputFormat = new AVFrameFormat(
-                    new Dimension(width, height),
-                    frameRate,
-                    FFmpeg.PIX_FMT_YUV420P,
-                    Format.NOT_SPECIFIED);
-        }
+        VideoFormat inputVideoFormat = (VideoFormat) inputFormat;
+
+        return
+            new Format[]
+                    {
+                        new AVFrameFormat(
+                                inputVideoFormat.getSize(),
+                                inputVideoFormat.getFrameRate(),
+                                FFmpeg.PIX_FMT_YUV420P)
+                    };
     }
 
     /**
@@ -296,44 +287,6 @@ public class VPXDecoder
     }
 
     /**
-     * Get matching outputs for a specified input <tt>Format</tt>.
-     *
-     * @param in input <tt>Format</tt>
-     * @return array of matching outputs or null if there are no matching
-     * outputs.
-     */
-    protected Format[] getMatchingOutputFormats(Format in)
-    {
-        VideoFormat ivf = (VideoFormat) in;
-        Dimension inSize = ivf.getSize();
-        Dimension outSize;
-
-        // return the default size/currently decoder and encoder
-        // set to transmit/receive at this size
-        if (inSize == null)
-        {
-            VideoFormat ovf = SUPPORTED_OUTPUT_FORMATS[0];
-
-            if (ovf == null)
-                return null;
-            else
-                outSize = ovf.getSize();
-        }
-        else
-            outSize = inSize; // Output in same size as input.
-
-        return
-                new Format[]
-                        {
-                                new AVFrameFormat(
-                                        outSize,
-                                        ivf.getFrameRate(),
-                                        FFmpeg.PIX_FMT_YUV420P,
-                                        Format.NOT_SPECIFIED)
-                        };
-    }
-
-    /**
      * Sets the <tt>Format</tt> of the media data to be input for processing in
      * this <tt>Codec</tt>.
      *
@@ -351,5 +304,27 @@ public class VPXDecoder
         if (setFormat != null)
             reset();
         return setFormat;
+    }
+
+    /**
+     * Changes the output format, if necessary, according to the new dimentions
+     * given via <tt>width</tt> and <tt>height</tt>.
+     * @param width new width
+     * @param height new height
+     * @param frameRate frame rate
+     */
+    private void updateOutputFormat(int width, int height, float frameRate)
+    {
+        if ((width > 0) && (height > 0)
+                && ((this.width != width) || (this.height != height)))
+        {
+            this.width = width;
+            this.height = height;
+            outputFormat = new AVFrameFormat(
+                    new Dimension(width, height),
+                    frameRate,
+                    FFmpeg.PIX_FMT_YUV420P,
+                    Format.NOT_SPECIFIED);
+        }
     }
 }

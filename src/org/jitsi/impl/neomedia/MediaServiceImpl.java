@@ -1083,7 +1083,7 @@ public class MediaServiceImpl
             Processor player = (Processor) event.getSourceController();
 
             /*
-             * Use SwScaler for the scaling since it produces an image with
+             * Use SwScale for the scaling since it produces an image with
              * better quality and add the "flip" effect to the video.
              */
             TrackControl[] trackControls = player.getTrackControls();
@@ -1094,7 +1094,7 @@ public class MediaServiceImpl
                     for (TrackControl trackControl : trackControls)
                     {
                         Codec codecs[] = null;
-                        SwScaler scaler = new SwScaler();
+                        SwScale scaler = new SwScale();
 
                         // do not flip desktop
                         if (DeviceSystem.LOCATOR_PROTOCOL_IMGSTREAMING.equals(
@@ -1110,7 +1110,7 @@ public class MediaServiceImpl
                 catch (UnsupportedPlugInException upiex)
                 {
                     logger.warn(
-                            "Failed to add SwScaler/VideoFlipEffect to " +
+                            "Failed to add SwScale/VideoFlipEffect to " +
                             "codec chain", upiex);
                 }
 

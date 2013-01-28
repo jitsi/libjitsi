@@ -113,7 +113,7 @@ public class ImageStream
         {
             /*
              * Native transfer: we keep data in native memory rather than the
-             * Java heap until we reach SwScaler.
+             * Java heap until we reach SwScale.
              */
             Object o = buffer.getData();
             AVFrame frame;

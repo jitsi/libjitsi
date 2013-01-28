@@ -24,21 +24,144 @@ import org.jitsi.util.*;
  * @author Sebastien Vincent
  * @author Lyubomir Marinov
  */
-public class SwScaler
+public class SwScale
     extends AbstractCodec
 {
 
     /**
-     * The <tt>Logger</tt> used by the <tt>SwScaler</tt> class and its instances
+     * The <tt>Logger</tt> used by the <tt>SwScale</tt> class and its instances
      * for logging output.
      */
-    private static final Logger logger = Logger.getLogger(SwScaler.class);
+    private static final Logger logger = Logger.getLogger(SwScale.class);
 
     /**
      * The minimum height and/or width of the input and/or output to be passed
      * to <tt>sws_scale</tt> in order to prevent its crashing.
      */
     private static final int MIN_SWS_SCALE_HEIGHT_OR_WIDTH = 4;
+
+    /**
+     * Gets the FFmpeg <tt>PixelFormat</tt> equivalent of a specific FMJ
+     * <tt>RGBFormat</tt>.
+     *
+     * @param rgb the FMJ <tt>RGBFormat</tt> to get the equivalent FFmpeg
+     * <tt>PixelFormat</tt> of
+     * @return the FFmpeg <tt>PixelFormat</tt> equivalent of the specified FMJ
+     * <tt>RGBFormat</tt>
+     */
+    public static int getFFmpegPixelFormat(RGBFormat rgb)
+    {
+        int fmt;
+
+        if(rgb.getBitsPerPixel() == 32)
+        {
+            switch(rgb.getRedMask())
+            {
+            case 1:
+            case 0xff:
+                fmt = FFmpeg.PIX_FMT_BGR32;
+                break;
+            case 2:
+            case (0xff << 8):
+                fmt = FFmpeg.PIX_FMT_BGR32_1;
+                break;
+            case 3:
+            case (0xff << 16):
+                fmt = FFmpeg.PIX_FMT_RGB32;
+                break;
+            case 4:
+            case (0xff << 24):
+                fmt = FFmpeg.PIX_FMT_RGB32_1;
+                break;
+            default:
+                /* assume ARGB ? */
+                fmt = FFmpeg.PIX_FMT_RGB32;
+                break;
+            }
+        }
+        else
+            fmt = FFmpeg.PIX_FMT_RGB24;
+
+        return fmt;
+    }
+
+    /**
+     * Gets a <tt>VideoFormat</tt> with a specific size i.e. width and height
+     * using a specific <tt>VideoFormat</tt> as a template.
+     *
+     * @param format the <tt>VideoFormat</tt> which is the template for the
+     * <tt>VideoFormat</tt> to be returned
+     * @param size the size i.e. width and height of the <tt>VideoFormat</tt> to
+     * be returned
+     * @return a <tt>VideoFormat</tt> with the specified <tt>size</tt> and based
+     * on the specified <tt>format</tt>
+     */
+    private static VideoFormat setSize(VideoFormat format, Dimension size)
+    {
+        /*
+         * Since the size of the Format has changed, its size-related properties
+         * should change as well. Format#intersects doesn't seem to be cool
+         * because it preserves them and thus the resulting Format is
+         * inconsistent.
+         */
+        if (format instanceof RGBFormat)
+        {
+            RGBFormat rgbFormat = (RGBFormat) format;
+            Class<?> dataType = format.getDataType();
+            int bitsPerPixel = rgbFormat.getBitsPerPixel();
+            int pixelStride = rgbFormat.getPixelStride();
+
+            if ((pixelStride == Format.NOT_SPECIFIED)
+                    && (dataType != null)
+                    && (bitsPerPixel != Format.NOT_SPECIFIED))
+                pixelStride
+                    = dataType.equals(Format.byteArray)
+                        ? (bitsPerPixel / 8)
+                        : 1;
+            format
+                = new RGBFormat(
+                        size,
+                        Format.NOT_SPECIFIED,
+                        dataType,
+                        format.getFrameRate(),
+                        bitsPerPixel,
+                        rgbFormat.getRedMask(),
+                        rgbFormat.getGreenMask(),
+                        rgbFormat.getBlueMask(),
+                        pixelStride,
+                        ((pixelStride == Format.NOT_SPECIFIED)
+                                || (size == null))
+                            ? Format.NOT_SPECIFIED
+                            : (pixelStride * size.width) /* lineStride */,
+                        rgbFormat.getFlipped(),
+                        rgbFormat.getEndian());
+        }
+        else if (format instanceof YUVFormat)
+        {
+            YUVFormat yuvFormat = (YUVFormat) format;
+
+            format
+                = new YUVFormat(
+                        size,
+                        Format.NOT_SPECIFIED,
+                        format.getDataType(),
+                        format.getFrameRate(),
+                        yuvFormat.getYuvType(),
+                        Format.NOT_SPECIFIED,
+                        Format.NOT_SPECIFIED,
+                        0,
+                        Format.NOT_SPECIFIED,
+                        Format.NOT_SPECIFIED);
+        }
+        else if (format != null)
+        {
+            logger.warn(
+                    "SwScale outputFormat of type "
+                        + format.getClass().getName()
+                        + " is not supported for optimized scaling.");
+        }
+        return format;
+    }
 
     /**
      * The indicator which determines whether this scaler will attempt to keep
@@ -78,23 +201,23 @@ public class SwScaler
     private long swsContext = 0;
 
     /**
-     * Initializes a new <tt>SwScaler</tt> instance which doesn't have an output
+     * Initializes a new <tt>SwScale</tt> instance which doesn't have an output
      * size and will use a default one when it becomes necessary unless an
      * explicit one is specified in the meantime.
      */
-    public SwScaler()
+    public SwScale()
     {
         this(false);
     }
 
     /**
-     * Initializes a new <tt>SwScaler</tt> instance which can optionally attempt
+     * Initializes a new <tt>SwScale</tt> instance which can optionally attempt
      * to keep the width and height of YUV 420 output even.
      *
      * @param fixOddYuv420Size <tt>true</tt> to keep the width and height of YUV
      * 420 output even; otherwise, <tt>false</tt>
      */
-    protected SwScaler(boolean fixOddYuv420Size)
+    protected SwScale(boolean fixOddYuv420Size)
     {
         this.fixOddYuv420Size = fixOddYuv420Size;
 
@@ -153,48 +276,6 @@ public class SwScaler
     public Format getInputFormat()
     {
         return super.getInputFormat();
-    }
-
-    /**
-     * Gets native (FFmpeg) RGB format.
-     *
-     * @param rgb JMF <tt>RGBFormat</tt>
-     * @return native RGB format
-     */
-    public static int getNativeRGBFormat(RGBFormat rgb)
-    {
-        int fmt;
-
-        if(rgb.getBitsPerPixel() == 32)
-        {
-            switch(rgb.getRedMask())
-            {
-            case 1:
-            case 0xff:
-                fmt = FFmpeg.PIX_FMT_BGR32;
-                break;
-            case 2:
-            case (0xff << 8):
-                fmt = FFmpeg.PIX_FMT_BGR32_1;
-                break;
-            case 3:
-            case (0xff << 16):
-                fmt = FFmpeg.PIX_FMT_RGB32;
-                break;
-            case 4:
-            case (0xff << 24):
-                fmt = FFmpeg.PIX_FMT_RGB32_1;
-                break;
-            default:
-                /* assume ARGB ? */
-                fmt = FFmpeg.PIX_FMT_RGB32;
-                break;
-            }
-        }
-        else
-            fmt = FFmpeg.PIX_FMT_RGB24;
-
-        return fmt;
     }
 
     /**
@@ -347,7 +428,7 @@ public class SwScaler
         {
             dstFmt
                 = OSUtils.IS_ANDROID
-                    ? getNativeRGBFormat((RGBFormat) outputFormat)
+                    ? getFFmpegPixelFormat((RGBFormat) outputFormat)
                     : FFmpeg.PIX_FMT_RGB32;
             dstLength = (outputWidth * outputHeight * 4);
         }
@@ -406,7 +487,7 @@ public class SwScaler
             srcFmt
                 = (inputFormat instanceof YUVFormat)
                     ? FFmpeg.PIX_FMT_YUV420P
-                    : getNativeRGBFormat((RGBFormat) inputFormat);
+                    : getFFmpegPixelFormat((RGBFormat) inputFormat);
             srcPicture = 0;
         }
 
@@ -475,7 +556,7 @@ public class SwScaler
                 : null /* The input must be video, a size is not required. */;
 
         if ((inputFormat != null) && logger.isDebugEnabled())
-            logger.debug("SwScaler set to input in " + inputFormat);
+            logger.debug("SwScale set to input in " + inputFormat);
         return inputFormat;
     }
 
@@ -527,16 +608,16 @@ public class SwScaler
         Format outputFormat = super.setOutputFormat(format);
 
         if (logger.isDebugEnabled() && (outputFormat != null))
-            logger.debug("SwScaler set to output in " + outputFormat);
+            logger.debug("SwScale set to output in " + outputFormat);
         return outputFormat;
     }
 
     /**
      * Sets the size i.e. width and height of the current <tt>outputFormat</tt>
-     * of this <tt>SwScaler</tt>
+     * of this <tt>SwScale</tt>
      * 
      * @param size the size i.e. width and height to be set on the current
-     * <tt>outputFormat</tt> of this <tt>SwScaler</tt>
+     * <tt>outputFormat</tt> of this <tt>SwScale</tt>
      */
     private void setOutputFormatSize(Dimension size)
     {
@@ -581,83 +662,5 @@ public class SwScaler
 
         // Set the size to the outputFormat as well.
         setOutputFormatSize(size);
-    }
-
-    /**
-     * Gets a <tt>VideoFormat</tt> with a specific size i.e. width and height
-     * using a specific <tt>VideoFormat</tt> as a template.
-     *
-     * @param format the <tt>VideoFormat</tt> which is the template for the
-     * <tt>VideoFormat</tt> to be returned
-     * @param size the size i.e. width and height of the <tt>VideoFormat</tt> to
-     * be returned
-     * @return a <tt>VideoFormat</tt> with the specified <tt>size</tt> and based
-     * on the specified <tt>format</tt>
-     */
-    private static VideoFormat setSize(VideoFormat format, Dimension size)
-    {
-        /*
-         * Since the size of the Format has changed, its size-related properties
-         * should change as well. Format#intersects doesn't seem to be cool
-         * because it preserves them and thus the resulting Format is
-         * inconsistent.
-         */
-        if (format instanceof RGBFormat)
-        {
-            RGBFormat rgbFormat = (RGBFormat) format;
-            Class<?> dataType = format.getDataType();
-            int bitsPerPixel = rgbFormat.getBitsPerPixel();
-            int pixelStride = rgbFormat.getPixelStride();
-
-            if ((pixelStride == Format.NOT_SPECIFIED)
-                    && (dataType != null)
-                    && (bitsPerPixel != Format.NOT_SPECIFIED))
-                pixelStride
-                    = dataType.equals(Format.byteArray)
-                        ? (bitsPerPixel / 8)
-                        : 1;
-            format
-                = new RGBFormat(
-                        size,
-                        Format.NOT_SPECIFIED,
-                        dataType,
-                        format.getFrameRate(),
-                        bitsPerPixel,
-                        rgbFormat.getRedMask(),
-                        rgbFormat.getGreenMask(),
-                        rgbFormat.getBlueMask(),
-                        pixelStride,
-                        ((pixelStride == Format.NOT_SPECIFIED)
-                                || (size == null))
-                            ? Format.NOT_SPECIFIED
-                            : (pixelStride * size.width) /* lineStride */,
-                        rgbFormat.getFlipped(),
-                        rgbFormat.getEndian());
-        }
-        else if (format instanceof YUVFormat)
-        {
-            YUVFormat yuvFormat = (YUVFormat) format;
-
-            format
-                = new YUVFormat(
-                        size,
-                        Format.NOT_SPECIFIED,
-                        format.getDataType(),
-                        format.getFrameRate(),
-                        yuvFormat.getYuvType(),
-                        Format.NOT_SPECIFIED,
-                        Format.NOT_SPECIFIED,
-                        0,
-                        Format.NOT_SPECIFIED,
-                        Format.NOT_SPECIFIED);
-        }
-        else if (format != null)
-        {
-            logger.warn(
-                    "SwScaler outputFormat of type "
-                        + format.getClass().getName()
-                        + " is not supported for optimized scaling.");
-        }
-        return format;
     }
 }

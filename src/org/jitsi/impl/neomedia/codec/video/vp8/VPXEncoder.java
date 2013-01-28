@@ -6,14 +6,15 @@
  */
 package org.jitsi.impl.neomedia.codec.video.vp8;
 
+import java.awt.*;
+
+import javax.media.*;
+import javax.media.format.*;
+
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.util.*;
-
-import javax.media.*;
-import javax.media.format.*;
-import java.awt.*;
 
 /**
  * Implements a VP8 encoder.
@@ -21,8 +22,13 @@ import java.awt.*;
  * @author Boris Grozev
  */
 public class VPXEncoder
-        extends AbstractCodecExt
+    extends AbstractCodecExt
 {
+    /**
+     * VPX interface to use
+     */
+    private static final int INTERFACE = VPX.INTERFACE_VP8_ENC;
+
     /**
      * The <tt>Logger</tt> used by the <tt>VPXEncoder</tt> class and its
      * instances for logging output.
@@ -30,14 +36,10 @@ public class VPXEncoder
     private static final Logger logger = Logger.getLogger(VPXEncoder.class);
 
     /**
-     * VPX interface to use
+     * Default output formats
      */
-    private static final int INTERFACE = VPX.INTERFACE_VP8_ENC;
-
-    /**
-     * Pointer to the libvpx codec context to be used
-     */
-    private long context = 0;
+    private static final VideoFormat[] SUPPORTED_OUTPUT_FORMATS
+            = new VideoFormat[] { new VideoFormat(Constants.VP8) };
 
     /**
      * Pointer to a native vpx_codec_dec_cfg structure containing
@@ -46,14 +48,29 @@ public class VPXEncoder
     private long cfg = 0;
 
     /**
+     * Pointer to the libvpx codec context to be used
+     */
+    private long context = 0;
+
+    /**
+     * Flags passed when (re-)initializing the encoder context
+     */
+    private long flags = 0;
+
+    /**
+     * Number of encoder frames so far. Used as pst (presentation time stamp)
+     */
+    private long frameCount = 0;
+
+    /**
+     * Current height of the input and output frames
+     */
+    private int height;
+
+    /**
      * Pointer to a native vpx_image instance used to feed frames to the encoder
      */
     private long img = 0;
-
-    /**
-     * Pointer to a vpx_codec_cx_pkt_t
-     */
-    private long pkt = 0;
 
     /**
      * Iterator for the compressed frames in the encoder context. Can be
@@ -68,57 +85,36 @@ public class VPXEncoder
     private boolean leftoverPackets = false;
 
     /**
-     * Default output formats
+     * Pointer to a vpx_codec_cx_pkt_t
      */
-    private static final VideoFormat[] SUPPORTED_OUTPUT_FORMATS
-            = new VideoFormat[] { new VideoFormat(Constants.VP8) };
-
-    /**
-     * The frame rate to be assumed by <tt>JNIEncoder</tt> instances in the
-     * absence of any other frame rate indication.
-     */
-    static final int DEFAULT_FRAME_RATE = 30;
-
-    /**
-     * Number of encoder frames so far. Used as pst (presentation time stamp)
-     */
-    private long frameCount = 0;
+    private long pkt = 0;
 
     /**
      * Current width of the input and output frames
      */
-    private int width = Constants.VIDEO_WIDTH;
-
-    /**
-     * Current height of the input and output frames
-     */
-    private int height = Constants.VIDEO_HEIGHT;
-
-    /**
-     * Flags passed when (re-)initializing the encoder context
-     */
-    private long flags = 0;
+    private int width;
 
     /**
      * Initializes a new <tt>VPXEncoder</tt> instance.
      */
     public VPXEncoder()
     {
-        super("VP8 Encoder",
-                VideoFormat.class,
-                SUPPORTED_OUTPUT_FORMATS);
+        super("VP8 Encoder", VideoFormat.class, SUPPORTED_OUTPUT_FORMATS);
         inputFormats
-                = new VideoFormat[]
-                {
-                        new YUVFormat(
-                                null,
-                                Format.NOT_SPECIFIED,
-                                Format.byteArray,
-                                DEFAULT_FRAME_RATE,
-                                YUVFormat.YUV_420,
-                                Format.NOT_SPECIFIED, Format.NOT_SPECIFIED,
-                                0, Format.NOT_SPECIFIED, Format.NOT_SPECIFIED)
-                };
+            = new VideoFormat[]
+            {
+                new YUVFormat(
+                        /* size */ null,
+                        /* maxDataLength */ Format.NOT_SPECIFIED,
+                        Format.byteArray,
+                        /* frameRate */ Format.NOT_SPECIFIED,
+                        YUVFormat.YUV_420,
+                        /* strideY */ Format.NOT_SPECIFIED,
+                        /* strideUV */ Format.NOT_SPECIFIED,
+                        /* offsetY */ Format.NOT_SPECIFIED,
+                        /* offsetU */ Format.NOT_SPECIFIED,
+                        /* offsetV */ Format.NOT_SPECIFIED)
+            };
         inputFormat = null;
         outputFormat = null;
     }
@@ -146,8 +142,6 @@ public class VPXEncoder
             VPX.free(cfg);
             cfg = 0;
         }
-
-
     }
 
     /**
@@ -337,6 +331,29 @@ public class VPXEncoder
     }
 
     /**
+     * Gets the matching output formats for a specific format.
+     *
+     * @param inputFormat input format
+     * @return array of formats matching input format
+     */
+    @Override
+    protected Format[] getMatchingOutputFormats(Format inputFormat)
+    {
+        VideoFormat inputVideoFormat = (VideoFormat) inputFormat;
+
+        return
+            new VideoFormat[]
+                    {
+                        new VideoFormat(
+                                Constants.VP8,
+                                inputVideoFormat.getSize(),
+                                /* maxDataLength */ Format.NOT_SPECIFIED,
+                                Format.byteArray,
+                                inputVideoFormat.getFrameRate())
+                    };
+    }
+
+    /**
      * Reinitializes the encoder context. Needed in order to encode frames
      * with different width or height
      */
@@ -355,40 +372,22 @@ public class VPXEncoder
     /**
      * Sets the input format.
      *
-     * @param in format to set
+     * @param format format to set
      * @return format
      */
     @Override
-    public Format setInputFormat(Format in)
+    public Format setInputFormat(Format format)
     {
-        if(!(in instanceof VideoFormat) || (matches(in, inputFormats) == null))
+        if(!(format instanceof VideoFormat)
+                || (matches(format, inputFormats) == null))
             return null;
 
-        YUVFormat yuv = (YUVFormat) in;
+        YUVFormat yuvFormat = (YUVFormat) format;
 
-        if (yuv.getOffsetU() > yuv.getOffsetV())
+        if (yuvFormat.getOffsetU() > yuvFormat.getOffsetV())
             return null;
-        Dimension size = yuv.getSize();
 
-        if (size == null)
-            size = new Dimension(Constants.VIDEO_WIDTH, Constants.VIDEO_HEIGHT);
-
-        int strideY = size.width;
-        int strideUV = strideY / 2;
-        int offsetU = strideY * size.height;
-        int offsetV = offsetU + strideUV * size.height / 2;
-
-        int yuvMaxDataLength = (strideY + strideUV) * size.height;
-
-        inputFormat
-                = new YUVFormat(
-                size,
-                yuvMaxDataLength + FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE,
-                Format.byteArray,
-                yuv.getFrameRate(),
-                YUVFormat.YUV_420,
-                strideY, strideUV,
-                0, offsetU, offsetV);
+        inputFormat = specialize(yuvFormat, Format.byteArray);
 
         // Return the selected inputFormat
         return inputFormat;
@@ -398,64 +397,42 @@ public class VPXEncoder
      * Sets the <tt>Format</tt> in which this <tt>Codec</tt> is to output media
      * data.
      *
-     * @param out the <tt>Format</tt> in which this <tt>Codec</tt> is to
+     * @param format the <tt>Format</tt> in which this <tt>Codec</tt> is to
      * output media data
      * @return the <tt>Format</tt> in which this <tt>Codec</tt> is currently
      * configured to output media data or <tt>null</tt> if <tt>format</tt> was
      * found to be incompatible with this <tt>Codec</tt>
      */
     @Override
-    public Format setOutputFormat(Format out)
+    public Format setOutputFormat(Format format)
     {
-        if(!(out instanceof VideoFormat) ||
-                (matches(out, getMatchingOutputFormats(inputFormat)) == null))
+        if(!(format instanceof VideoFormat)
+                || (matches(format, getMatchingOutputFormats(inputFormat))
+                        == null))
             return null;
 
-        VideoFormat videoOut = (VideoFormat) out;
-        Dimension outSize = videoOut.getSize();
+        VideoFormat videoFormat = (VideoFormat) format;
+        /*
+         * An Encoder translates raw media data in (en)coded media data.
+         * Consequently, the size of the output is equal to the size of the
+         * input.
+         */
+        Dimension size = null;
 
-        if (outSize == null)
-        {
-            Dimension inSize = ((VideoFormat) inputFormat).getSize();
+        if (inputFormat != null)
+            size = ((VideoFormat) inputFormat).getSize();
+        if ((size == null) && format.matches(outputFormat))
+            size = ((VideoFormat) outputFormat).getSize();
 
-            outSize
-                    = (inSize == null)
-                    ? new Dimension(
-                    Constants.VIDEO_WIDTH,
-                    Constants.VIDEO_HEIGHT)
-                    : inSize;
-        }
-
-        outputFormat = new VideoFormat(
-                videoOut.getEncoding(),
-                outSize,
-                Format.NOT_SPECIFIED,
-                Format.byteArray,
-                videoOut.getFrameRate());
+        outputFormat
+            = new VideoFormat(
+                    videoFormat.getEncoding(),
+                    size,
+                    /* maxDataLength */ Format.NOT_SPECIFIED,
+                    Format.byteArray,
+                    videoFormat.getFrameRate());
 
         // Return the selected outputFormat
         return outputFormat;
-    }
-
-    /**
-     * Gets the matching output formats for a specific format.
-     *
-     * @param in input format
-     * @return array of formats matching input format
-     */
-    protected Format[] getMatchingOutputFormats(Format in)
-    {
-        VideoFormat videoIn = (VideoFormat) in;
-
-        return
-                new VideoFormat[]
-                        {
-                                new VideoFormat(
-                                        Constants.VP8,
-                                        videoIn.getSize(),
-                                        Format.NOT_SPECIFIED,
-                                        Format.byteArray,
-                                        videoIn.getFrameRate())
-                        };
     }
 }

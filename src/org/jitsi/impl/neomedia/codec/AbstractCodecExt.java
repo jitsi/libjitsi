@@ -6,7 +6,10 @@
  */
 package org.jitsi.impl.neomedia.codec;
 
+import java.awt.*;
+
 import javax.media.*;
+import javax.media.format.*;
 
 import net.sf.fmj.media.*;
 
@@ -221,6 +224,60 @@ public abstract class AbstractCodecExt
             return null;
 
         return super.setOutputFormat(format);
+    }
+
+    public static YUVFormat specialize(YUVFormat yuvFormat, Class<?> dataType)
+    {
+        Dimension size = yuvFormat.getSize();
+        int strideY = yuvFormat.getStrideY();
+
+        if ((strideY == Format.NOT_SPECIFIED) && (size != null))
+            strideY = size.width;
+
+        int strideUV = yuvFormat.getStrideUV();
+
+        if ((strideUV == Format.NOT_SPECIFIED)
+                && (strideY != Format.NOT_SPECIFIED))
+            strideUV = (strideY + 1) / 2;
+
+        int offsetY = yuvFormat.getOffsetY();
+
+        if (offsetY == Format.NOT_SPECIFIED)
+            offsetY = 0;
+
+        int offsetU = yuvFormat.getOffsetU();
+
+        if ((offsetU == Format.NOT_SPECIFIED)
+                && (strideY != Format.NOT_SPECIFIED)
+                && (size != null))
+            offsetU = offsetY + strideY * size.height;
+
+        int offsetV = yuvFormat.getOffsetV();
+
+        if ((offsetV == Format.NOT_SPECIFIED)
+                && (offsetU != Format.NOT_SPECIFIED)
+                && (strideUV != Format.NOT_SPECIFIED)
+                && (size != null))
+            offsetV = offsetU + strideUV * ((size.height + 1) / 2);
+
+        int maxDataLength
+            = ((strideY != Format.NOT_SPECIFIED)
+                    && (strideUV != Format.NOT_SPECIFIED))
+                    && (size != null)
+                ? (strideY * size.height
+                        + 2 * strideUV * ((size.height + 1) / 2)
+                        + FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE)
+                : Format.NOT_SPECIFIED;
+
+        return
+            new YUVFormat(
+                    size,
+                    maxDataLength,
+                    (dataType == null) ? yuvFormat.getDataType() : dataType,
+                    yuvFormat.getFrameRate(),
+                    YUVFormat.YUV_420,
+                    strideY, strideUV,
+                    offsetY, offsetU, offsetV);
     }
 
     /**

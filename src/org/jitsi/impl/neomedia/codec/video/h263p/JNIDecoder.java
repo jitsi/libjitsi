@@ -21,31 +21,21 @@ import org.jitsi.service.neomedia.codec.*;
  * Implements a H.263+ decoder.
  *
  * @author Sebastien Vincent
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class JNIDecoder
     extends AbstractCodec
 {
     /**
-     * Plugin name.
-     */
-    private static final String PLUGIN_NAME = "H.263+ Decoder";
-
-    /**
      * The default output <tt>VideoFormat</tt>.
      */
     private static final VideoFormat[] DEFAULT_OUTPUT_FORMATS
-        = new VideoFormat[] { new AVFrameFormat() };
+        = new VideoFormat[] { new AVFrameFormat(FFmpeg.PIX_FMT_YUV420P) };
 
     /**
-     * Array of output <tt>VideoFormat</tt>s.
+     * Plugin name.
      */
-    private final VideoFormat[] outputFormats;
-
-    /**
-     * If decoder has got a picture.
-     */
-    private final boolean[] got_picture = new boolean[1];
+    private static final String PLUGIN_NAME = "H.263+ Decoder";
 
     /**
      *  The codec context native pointer we will use.
@@ -58,10 +48,9 @@ public class JNIDecoder
     private long avframe = 0;
 
     /**
-     * The last known width of {@link #avcontext} i.e. the video output by this
-     * <tt>JNIDecoder</tt>. Used to detect changes in the output size.
+     * If decoder has got a picture.
      */
-    private int width = 0;
+    private final boolean[] got_picture = new boolean[1];
 
     /**
      * The last known height of {@link #avcontext} i.e. the video output by this
@@ -70,29 +59,24 @@ public class JNIDecoder
     private int height = 0;
 
     /**
+     * Array of output <tt>VideoFormat</tt>s.
+     */
+    private final VideoFormat[] outputFormats;
+
+    /**
+     * The last known width of {@link #avcontext} i.e. the video output by this
+     * <tt>JNIDecoder</tt>. Used to detect changes in the output size.
+     */
+    private int width = 0;
+
+    /**
      * Initializes a new <tt>JNIDecoder</tt> instance which is to decode H.263+
      * encoded data into frames in YUV format.
      */
     public JNIDecoder()
     {
-        inputFormats
-            = new VideoFormat[] { new VideoFormat(Constants.H263P) };
-        outputFormats
-            = new VideoFormat[]
-            {
-                new AVFrameFormat(
-                        new Dimension(
-                                Constants.VIDEO_WIDTH,
-                                Constants.VIDEO_HEIGHT),
-                        ensureFrameRate(Format.NOT_SPECIFIED),
-                        FFmpeg.PIX_FMT_YUV420P,
-                        Format.NOT_SPECIFIED)
-            };
-
-        Dimension outputSize = outputFormats[0].getSize();
-
-        width = outputSize.width;
-        height = outputSize.height;
+        inputFormats = new VideoFormat[] { new VideoFormat(Constants.H263P) };
+        outputFormats = DEFAULT_OUTPUT_FORMATS;
     }
 
     /**
@@ -140,38 +124,21 @@ public class JNIDecoder
     /**
      * Get matching outputs for a specified input <tt>Format</tt>.
      *
-     * @param in input <tt>Format</tt>
+     * @param inputFormat input <tt>Format</tt>
      * @return array of matching outputs or null if there are no matching
      * outputs.
      */
-    protected Format[] getMatchingOutputFormats(Format in)
+    protected Format[] getMatchingOutputFormats(Format inputFormat)
     {
-        VideoFormat ivf = (VideoFormat) in;
-        Dimension inSize = ivf.getSize();
-        Dimension outSize;
-
-        // return the default size/currently decoder and encoder
-        // set to transmit/receive at this size
-        if (inSize == null)
-        {
-            VideoFormat ovf = outputFormats[0];
-
-            if (ovf == null)
-                return null;
-            else
-                outSize = ovf.getSize();
-        }
-        else
-            outSize = inSize; // Output in same size as input.
+        VideoFormat inputVideoFormat = (VideoFormat) inputFormat;
 
         return
             new Format[]
             {
                 new AVFrameFormat(
-                        outSize,
-                        ensureFrameRate(ivf.getFrameRate()),
-                        FFmpeg.PIX_FMT_YUV420P,
-                        Format.NOT_SPECIFIED)
+                        inputVideoFormat.getSize(),
+                        ensureFrameRate(inputVideoFormat.getFrameRate()),
+                        FFmpeg.PIX_FMT_YUV420P)
             };
     }
 
@@ -189,22 +156,23 @@ public class JNIDecoder
     /**
      * Get all supported output <tt>Format</tt>s.
      *
-     * @param in input <tt>Format</tt> to determine corresponding output
-     * <tt>Format/tt>s
+     * @param inputFormat input <tt>Format</tt> to determine corresponding
+     * output <tt>Format/tt>s
      * @return array of supported <tt>Format</tt>
      */
-    public Format[] getSupportedOutputFormats(Format in)
+    public Format[] getSupportedOutputFormats(Format inputFormat)
     {
-        if (in == null)
-            return DEFAULT_OUTPUT_FORMATS;
+        if (inputFormat == null)
+            return outputFormats;
 
         // mismatch input format
-        if (!(in instanceof VideoFormat)
-                || (AbstractCodecExt.matches(in, inputFormats) == null))
+        if (!(inputFormat instanceof VideoFormat)
+                || (AbstractCodecExt.matches(inputFormat, inputFormats)
+                        == null))
             return new Format[0];
 
         // match input format
-        return getMatchingOutputFormats(in);
+        return getMatchingOutputFormats(inputFormat);
     }
 
     /**

@@ -35,43 +35,6 @@ public class JNIEncoder
     implements RTCPFeedbackListener
 {
     /**
-     * The logger used by the <tt>JNIEncoder</tt> class and its instances for
-     * logging output.
-     */
-    private static final Logger logger = Logger.getLogger(JNIEncoder.class);
-
-    /**
-     * The name of the baseline H.264 (encoding) profile.
-     */
-    public static final String BASELINE_PROFILE = "baseline";
-
-    /**
-     * The frame rate to be assumed by <tt>JNIEncoder</tt> instances in the
-     * absence of any other frame rate indication.
-     */
-    static final int DEFAULT_FRAME_RATE = 15;
-
-    /**
-     * The name of the <tt>ConfigurationService</tt> property which specifies
-     * the H.264 (encoding) profile to be used in the absence of negotiation.
-     * Though it seems that RFC 3984 "RTP Payload Format for H.264 Video"
-     * specifies the baseline profile as the default, we have till the time of
-     * this writing defaulted to the main profile and we do not currently want
-     * to change from the main to the base profile unless we really have to.
-     */
-    public static final String DEFAULT_PROFILE_PNAME
-        = "net.java.sip.communicator.impl.neomedia.codec.video.h264."
-            + "defaultProfile";
-
-    /**
-     * A preset is a collection of options that will provide a certain encoding
-     * speed to compression ratio. A slower preset will provide
-     * better compression (compression is quality per size).
-     */
-    public static final String PRESET_PNAME
-        = "org.jitsi.impl.neomedia.codec.video.h264.preset";
-
-    /**
      * The available presets we can use with the encoder.
      */
     public static final String[] AVAILABLE_PRESETS =
@@ -88,15 +51,44 @@ public class JNIEncoder
     };
 
     /**
+     * The name of the baseline H.264 (encoding) profile.
+     */
+    public static final String BASELINE_PROFILE = "baseline";
+
+    /**
+     * The frame rate to be assumed by <tt>JNIEncoder</tt> instances in the
+     * absence of any other frame rate indication.
+     */
+    static final int DEFAULT_FRAME_RATE = 15;
+
+    /**
      * The default value of the {@link #PRESET_PNAME}
      * <tt>ConfigurationService</tt> property.
      */
     public static final String DEFAULT_PRESET = AVAILABLE_PRESETS[0];
 
     /**
+     * The name of the <tt>ConfigurationService</tt> property which specifies
+     * the H.264 (encoding) profile to be used in the absence of negotiation.
+     * Though it seems that RFC 3984 "RTP Payload Format for H.264 Video"
+     * specifies the baseline profile as the default, we have till the time of
+     * this writing defaulted to the main profile and we do not currently want
+     * to change from the main to the base profile unless we really have to.
+     */
+    public static final String DEFAULT_PROFILE_PNAME
+        = "net.java.sip.communicator.impl.neomedia.codec.video.h264."
+            + "defaultProfile";
+
+    /**
      * Key frame every 150 frames.
      */
     static final int IFRAME_INTERVAL = 150;
+
+    /**
+     * The logger used by the <tt>JNIEncoder</tt> class and its instances for
+     * logging output.
+     */
+    private static final Logger logger = Logger.getLogger(JNIEncoder.class);
 
     /**
      * The name of the main H.264 (encoding) profile.
@@ -126,6 +118,14 @@ public class JNIEncoder
     private static final String PLUGIN_NAME = "H.264 Encoder";
 
     /**
+     * A preset is a collection of options that will provide a certain encoding
+     * speed to compression ratio. A slower preset will provide
+     * better compression (compression is quality per size).
+     */
+    public static final String PRESET_PNAME
+        = "org.jitsi.impl.neomedia.codec.video.h264.preset";
+
+    /**
      * The list of <tt>Formats</tt> supported by <tt>JNIEncoder</tt> instances
      * as output.
      */
@@ -138,6 +138,11 @@ public class JNIEncoder
                     Constants.H264,
                     PACKETIZATION_MODE_FMTP, "1")
         };
+
+    /**
+     * Additional codec settings.
+     */
+    private Map<String, String> additionalSettings = null;
 
     /**
      * The codec we will use.
@@ -212,11 +217,6 @@ public class JNIEncoder
     private boolean secondKeyFrame = true;
 
     /**
-     * Additional codec settings.
-     */
-    private Map<String, String> additionalSettings = null;
-
-    /**
      * Initializes a new <tt>JNIEncoder</tt> instance.
      */
     public JNIEncoder()
@@ -225,13 +225,16 @@ public class JNIEncoder
             = new Format[]
             {
                 new YUVFormat(
-                        null,
-                        Format.NOT_SPECIFIED,
+                        /* size */ null,
+                        /* maxDataLength */ Format.NOT_SPECIFIED,
                         Format.byteArray,
-                        DEFAULT_FRAME_RATE,
+                        /* frameRate */ Format.NOT_SPECIFIED,
                         YUVFormat.YUV_420,
-                        Format.NOT_SPECIFIED, Format.NOT_SPECIFIED,
-                        0, Format.NOT_SPECIFIED, Format.NOT_SPECIFIED)
+                        /* strideY */ Format.NOT_SPECIFIED,
+                        /* strideUV */ Format.NOT_SPECIFIED,
+                        /* offsetY */ Format.NOT_SPECIFIED,
+                        /* offsetU */ Format.NOT_SPECIFIED,
+                        /* offsetV */ Format.NOT_SPECIFIED)
             };
 
         inputFormat = null;
@@ -279,51 +282,22 @@ public class JNIEncoder
     }
 
     /**
-     * Notifies this <tt>RTCPFeedbackListener</tt> that an RTCP feedback message
-     * has been received
-     *
-     * @param event an <tt>RTCPFeedbackEvent</tt> which specifies the details of
-     * the notification event such as the feedback message type and the payload
-     * type
-     */
-    public void rtcpFeedbackReceived(RTCPFeedbackEvent event)
-    {
-        /*
-         * If RTCP message is a Picture Loss Indication (PLI) or a Full
-         * Intra-frame Request (FIR) the encoder will force the next frame to be
-         * a keyframe.
-         */
-        if (event.getPayloadType() == RTCPFeedbackEvent.PT_PS)
-        {
-            switch (event.getFeedbackMessageType())
-            {
-                case RTCPFeedbackEvent.FMT_PLI:
-                case RTCPFeedbackEvent.FMT_FIR:
-                    keyFrameRequest();
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-
-    /**
      * Gets the matching output formats for a specific format.
      *
-     * @param in input format
+     * @param inputFormat input format
      * @return array for formats matching input format
      */
-    private Format[] getMatchingOutputFormats(Format in)
+    private Format[] getMatchingOutputFormats(Format inputFormat)
     {
-        VideoFormat videoIn = (VideoFormat) in;
+        VideoFormat inputVideoFormat = (VideoFormat) inputFormat;
 
         String[] packetizationModes
             = (this.packetizationMode == null)
                 ? new String[] { "0", "1" }
                 : new String[] { this.packetizationMode };
         Format[] matchingOutputFormats = new Format[packetizationModes.length];
-        Dimension size = videoIn.getSize();
-        float frameRate = videoIn.getFrameRate();
+        Dimension size = inputVideoFormat.getSize();
+        float frameRate = inputVideoFormat.getFrameRate();
 
         for (int index = packetizationModes.length - 1; index >= 0; index--)
         {
@@ -331,7 +305,7 @@ public class JNIEncoder
                 = new ParameterizedVideoFormat(
                         Constants.H264,
                         size,
-                        Format.NOT_SPECIFIED,
+                        /* maxDataLength */ Format.NOT_SPECIFIED,
                         Format.byteArray,
                         frameRate,
                         ParameterizedVideoFormat.toMap(
@@ -683,45 +657,64 @@ public class JNIEncoder
     }
 
     /**
+     * Notifies this <tt>RTCPFeedbackListener</tt> that an RTCP feedback message
+     * has been received
+     *
+     * @param event an <tt>RTCPFeedbackEvent</tt> which specifies the details of
+     * the notification event such as the feedback message type and the payload
+     * type
+     */
+    public void rtcpFeedbackReceived(RTCPFeedbackEvent event)
+    {
+        /*
+         * If RTCP message is a Picture Loss Indication (PLI) or a Full
+         * Intra-frame Request (FIR) the encoder will force the next frame to be
+         * a keyframe.
+         */
+        if (event.getPayloadType() == RTCPFeedbackEvent.PT_PS)
+        {
+            switch (event.getFeedbackMessageType())
+            {
+                case RTCPFeedbackEvent.FMT_PLI:
+                case RTCPFeedbackEvent.FMT_FIR:
+                    keyFrameRequest();
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Sets additional settings for the codec.
+     *
+     * @param settings additional settings
+     */
+    public void setAdditionalCodecSettings(Map<String, String> settings)
+    {
+        additionalSettings = settings;
+    }
+
+    /**
      * Sets the input format.
      *
-     * @param in format to set
+     * @param format format to set
      * @return format
      */
     @Override
-    public Format setInputFormat(Format in)
+    public Format setInputFormat(Format format)
     {
         // mismatch input format
-        if (!(in instanceof VideoFormat)
-                || (null == AbstractCodecExt.matches(in, inputFormats)))
+        if (!(format instanceof VideoFormat)
+                || (null == AbstractCodecExt.matches(format, inputFormats)))
             return null;
 
-        YUVFormat yuv = (YUVFormat) in;
+        YUVFormat yuvFormat = (YUVFormat) format;
 
-        if (yuv.getOffsetU() > yuv.getOffsetV())
+        if (yuvFormat.getOffsetU() > yuvFormat.getOffsetV())
             return null;
 
-        Dimension size = yuv.getSize();
-
-        if (size == null)
-            size = new Dimension(Constants.VIDEO_WIDTH, Constants.VIDEO_HEIGHT);
-
-        int strideY = size.width;
-        int strideUV = strideY / 2;
-        int offsetU = strideY * size.height;
-        int offsetV = offsetU + strideUV * size.height / 2;
-
-        int yuvMaxDataLength = (strideY + strideUV) * size.height;
-
-        inputFormat
-            = new YUVFormat(
-                    size,
-                    yuvMaxDataLength + FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE,
-                    Format.byteArray,
-                    yuv.getFrameRate(),
-                    YUVFormat.YUV_420,
-                    strideY, strideUV,
-                    0, offsetU, offsetV);
+        inputFormat = AbstractCodecExt.specialize(yuvFormat, Format.byteArray);
 
         // Return the selected inputFormat
         return inputFormat;
@@ -754,42 +747,40 @@ public class JNIEncoder
      * Sets the <tt>Format</tt> in which this <tt>Codec</tt> is to output media
      * data.
      *
-     * @param out the <tt>Format</tt> in which this <tt>Codec</tt> is to
+     * @param format the <tt>Format</tt> in which this <tt>Codec</tt> is to
      * output media data
      * @return the <tt>Format</tt> in which this <tt>Codec</tt> is currently
      * configured to output media data or <tt>null</tt> if <tt>format</tt> was
      * found to be incompatible with this <tt>Codec</tt>
      */
     @Override
-    public Format setOutputFormat(Format out)
+    public Format setOutputFormat(Format format)
     {
         // mismatch output format
-        if (!(out instanceof VideoFormat)
+        if (!(format instanceof VideoFormat)
                 || (null
                         == AbstractCodecExt.matches(
-                                out,
+                                format,
                                 getMatchingOutputFormats(inputFormat))))
             return null;
 
-        VideoFormat videoOut = (VideoFormat) out;
-        Dimension outSize = videoOut.getSize();
+        VideoFormat videoFormat = (VideoFormat) format;
+        /*
+         * An Encoder translates raw media data in (en)coded media data.
+         * Consequently, the size of the output is equal to the size of the
+         * input.
+         */
+        Dimension size = null;
 
-        if (outSize == null)
-        {
-            Dimension inSize = ((VideoFormat) inputFormat).getSize();
-
-            outSize
-                = (inSize == null)
-                    ? new Dimension(
-                            Constants.VIDEO_WIDTH,
-                            Constants.VIDEO_HEIGHT)
-                    : inSize;
-        }
+        if (inputFormat != null)
+            size = ((VideoFormat) inputFormat).getSize();
+        if ((size == null) && format.matches(outputFormat))
+            size = ((VideoFormat) outputFormat).getSize();
 
         Map<String, String> fmtps = null;
 
-        if (out instanceof ParameterizedVideoFormat)
-            fmtps = ((ParameterizedVideoFormat) out).getFormatParameters();
+        if (format instanceof ParameterizedVideoFormat)
+            fmtps = ((ParameterizedVideoFormat) format).getFormatParameters();
         if (fmtps == null)
             fmtps = new HashMap<String, String>();
         if (packetizationMode != null)
@@ -797,11 +788,11 @@ public class JNIEncoder
 
         outputFormat
             = new ParameterizedVideoFormat(
-                    videoOut.getEncoding(),
-                    outSize,
-                    Format.NOT_SPECIFIED,
+                    videoFormat.getEncoding(),
+                    size,
+                    /* maxDataLength */ Format.NOT_SPECIFIED,
                     Format.byteArray,
-                    videoOut.getFrameRate(),
+                    videoFormat.getFrameRate(),
                     fmtps);
 
         // Return the selected outputFormat
@@ -830,15 +821,5 @@ public class JNIEncoder
             this.packetizationMode = "1";
         else
             throw new IllegalArgumentException("packetizationMode");
-    }
-
-    /**
-     * Sets additional settings for the codec.
-     *
-     * @param settings additional settings
-     */
-    public void setAdditionalCodecSettings(Map<String, String> settings)
-    {
-        additionalSettings = settings;
     }
 }

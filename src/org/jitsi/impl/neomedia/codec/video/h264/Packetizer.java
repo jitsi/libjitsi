@@ -18,7 +18,6 @@ import net.sf.fmj.media.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.neomedia.codec.*;
-// disambiguation
 
 /**
  * Packetizes H.264 encoded data/NAL units into RTP packets in accord with RFC
@@ -493,45 +492,42 @@ public class Packetizer
      * Sets the <tt>Format</tt> in which this <tt>Codec</tt> is to output media
      * data.
      *
-     * @param output the <tt>Format</tt> in which this <tt>Codec</tt> is to
+     * @param format the <tt>Format</tt> in which this <tt>Codec</tt> is to
      * output media data
      * @return the <tt>Format</tt> in which this <tt>Codec</tt> is currently
      * configured to output media data or <tt>null</tt> if <tt>format</tt> was
      * found to be incompatible with this <tt>Codec</tt>
      */
     @Override
-    public Format setOutputFormat(Format output)
+    public Format setOutputFormat(Format format)
     {
         /*
          * Return null if the specified output Format is incompatible with this
          * Packetizer.
          */
-        if (!(output instanceof VideoFormat)
+        if (!(format instanceof VideoFormat)
                 || (null
                         == AbstractCodecExt.matches(
-                                output,
+                                format,
                                 getMatchingOutputFormats(inputFormat))))
             return null;
 
-        VideoFormat videoOutput = (VideoFormat) output;
-        Dimension outputSize = videoOutput.getSize();
+        VideoFormat videoFormat = (VideoFormat) format;
+        /*
+         * A Packetizer translates raw media data in RTP payloads. Consequently,
+         * the size of the output is equal to the size of the input.
+         */
+        Dimension size = null;
 
-        if (outputSize == null)
-        {
-            Dimension inputSize = ((VideoFormat) inputFormat).getSize();
-
-            outputSize
-                = (inputSize == null)
-                    ? new Dimension(
-                            Constants.VIDEO_WIDTH,
-                            Constants.VIDEO_HEIGHT)
-                    : inputSize;
-        }
+        if (inputFormat != null)
+            size = ((VideoFormat) inputFormat).getSize();
+        if ((size == null) && format.matches(outputFormat))
+            size = ((VideoFormat) outputFormat).getSize();
 
         Map<String, String> fmtps = null;
 
-        if (output instanceof ParameterizedVideoFormat)
-            fmtps = ((ParameterizedVideoFormat) output).getFormatParameters();
+        if (format instanceof ParameterizedVideoFormat)
+            fmtps = ((ParameterizedVideoFormat) format).getFormatParameters();
         if (fmtps == null)
             fmtps = new HashMap<String, String>();
         if (fmtps.get(JNIEncoder.PACKETIZATION_MODE_FMTP) == null)
@@ -541,11 +537,11 @@ public class Packetizer
 
         outputFormat
             = new ParameterizedVideoFormat(
-                    videoOutput.getEncoding(),
-                    outputSize,
-                    outputSize.width * outputSize.height,
+                    videoFormat.getEncoding(),
+                    size,
+                    /* maxDataLength */ Format.NOT_SPECIFIED,
                     Format.byteArray,
-                    videoOutput.getFrameRate(),
+                    videoFormat.getFrameRate(),
                     fmtps);
 
         // Return the outputFormat which is actually set.

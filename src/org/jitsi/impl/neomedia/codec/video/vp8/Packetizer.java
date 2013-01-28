@@ -147,23 +147,105 @@ public class Packetizer
      */
     class VP8PayloadDescriptor
     {
-        public final int NOT_SET = -1;
-        byte X; //Extended control bits present
-        byte N; //Non-reference frame
-        byte S; //Start of VP8 partition
-        byte PartID;//Partition index
+        public static final int NOT_SET = -1;
 
         byte I; //PictureID present
-        byte L; //TL0PICIDX present
-        byte T; //TID present
         byte K; //KEYIDX present
-
-
-        int PictureID = NOT_SET; //PictureID field
-        int TL0PICIDX = NOT_SET;
-        int TID = NOT_SET;
-        int Y = NOT_SET;
         int KEYIDX = NOT_SET;
+        byte L; //TL0PICIDX present
+        byte N; //Non-reference frame
+
+        byte PartID;//Partition index
+        int PictureID = NOT_SET; //PictureID field
+        byte S; //Start of VP8 partition
+
+
+        byte T; //TID present
+        int TID = NOT_SET;
+        int TL0PICIDX = NOT_SET;
+        byte X; //Extended control bits present
+        int Y = NOT_SET;
+
+        public byte[] getPayloadDescriptor()
+        {
+            int len = getSizeInBytes();
+            byte[] pd = new byte[len];
+            int idx = 0;
+            pd[idx] = (byte) (PartID + 0x10*S + 0x20*N);
+            if(PictureID != NOT_SET || TL0PICIDX != NOT_SET ||
+                    TID != NOT_SET || Y != NOT_SET || KEYIDX != NOT_SET)
+                pd[idx] += 0x80;
+
+            idx++;
+            if(idx == len)
+                return pd;
+            pd[idx] = 0;
+            if(PictureID != NOT_SET)
+                pd[idx] |= 0x80;
+            if(TL0PICIDX != NOT_SET)
+                pd[idx] |= 0x60; //set both the L and T bits
+            if(TID != NOT_SET || Y != NOT_SET)
+                pd[idx] |= 0x20;
+            if(KEYIDX != NOT_SET)
+                pd[idx] |= 0x10;
+
+            if(PictureID != NOT_SET)
+            {
+                idx++;
+                if(PictureID < 128)
+                    pd[idx] = (byte) PictureID;
+                else
+                {
+                    pd[idx] = (byte) ((PictureID >> 8) | 0x80);
+                    idx++;
+                    pd[idx] = (byte) (PictureID % 256);
+                }
+            }
+
+            if(TL0PICIDX != NOT_SET)
+            {
+                idx++;
+                pd[idx] = (byte)TL0PICIDX;
+            }
+
+            if(TID != NOT_SET || Y != NOT_SET || KEYIDX != NOT_SET)
+            {
+                idx++;
+                pd[idx] = 0;
+                if(TID != NOT_SET)
+                    pd[idx] = (byte) (TID << 6);
+                if(Y != NOT_SET)
+                    pd[idx] |= 0x20;
+                if(KEYIDX != NOT_SET)
+                    pd[idx] |= (byte) KEYIDX;
+            }
+
+            return pd;
+        }
+
+        /**
+         * @return size in bytes of the VP8 Payload Descriptor structure.
+         */
+        public int getSizeInBytes()
+        {
+            int size = 1;
+            if(TID != NOT_SET || Y != NOT_SET || KEYIDX != NOT_SET)
+                size++;
+            if(TL0PICIDX != NOT_SET)
+                size++;
+            if(PictureID != NOT_SET)
+            {
+                size++;
+                if(PictureID >= 128)
+                    size++;
+            }
+
+            //The X byte is not counted above. It will be present if and only
+            //if the total size is more than 2.
+            if(size > 1)
+                size++;
+            return size;
+        }
 
         /**
          * Sets the fields of this <tt>VP8PayloadDescriptor</tt> instance by
@@ -238,88 +320,5 @@ public class Packetizer
 
             return idx+1;
         }
-
-        /**
-         * @return size in bytes of the VP8 Payload Descriptor structure.
-         */
-        public int getSizeInBytes()
-        {
-            int size = 1;
-            if(TID != NOT_SET || Y != NOT_SET || KEYIDX != NOT_SET)
-                size++;
-            if(TL0PICIDX != NOT_SET)
-                size++;
-            if(PictureID != NOT_SET)
-            {
-                size++;
-                if(PictureID >= 128)
-                    size++;
-            }
-
-            //The X byte is not counted above. It will be present if and only
-            //if the total size is more than 2.
-            if(size > 1)
-                size++;
-            return size;
-        }
-
-        public byte[] getPayloadDescriptor()
-        {
-            int len = getSizeInBytes();
-            byte[] pd = new byte[len];
-            int idx = 0;
-            pd[idx] = (byte) (PartID + 0x10*S + 0x20*N);
-            if(PictureID != NOT_SET || TL0PICIDX != NOT_SET ||
-                    TID != NOT_SET || Y != NOT_SET || KEYIDX != NOT_SET)
-                pd[idx] += 0x80;
-
-            idx++;
-            if(idx == len)
-                return pd;
-            pd[idx] = 0;
-            if(PictureID != NOT_SET)
-                pd[idx] |= 0x80;
-            if(TL0PICIDX != NOT_SET)
-                pd[idx] |= 0x60; //set both the L and T bits
-            if(TID != NOT_SET || Y != NOT_SET)
-                pd[idx] |= 0x20;
-            if(KEYIDX != NOT_SET)
-                pd[idx] |= 0x10;
-
-            if(PictureID != NOT_SET)
-            {
-                idx++;
-                if(PictureID < 128)
-                    pd[idx] = (byte) PictureID;
-                else
-                {
-                    pd[idx] = (byte) ((PictureID >> 8) | 0x80);
-                    idx++;
-                    pd[idx] = (byte) (PictureID % 256);
-                }
-            }
-
-            if(TL0PICIDX != NOT_SET)
-            {
-                idx++;
-                pd[idx] = (byte)TL0PICIDX;
-            }
-
-            if(TID != NOT_SET || Y != NOT_SET || KEYIDX != NOT_SET)
-            {
-                idx++;
-                pd[idx] = 0;
-                if(TID != NOT_SET)
-                    pd[idx] = (byte) (TID << 6);
-                if(Y != NOT_SET)
-                    pd[idx] |= 0x20;
-                if(KEYIDX != NOT_SET)
-                    pd[idx] |= (byte) KEYIDX;
-            }
-
-            return pd;
-        }
     }
-
-
 }

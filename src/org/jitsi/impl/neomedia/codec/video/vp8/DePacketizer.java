@@ -25,8 +25,13 @@ import javax.media.format.*;
  * @author Boris Grozev
  */
 public class DePacketizer
-        extends AbstractCodecExt
+    extends AbstractCodecExt
 {
+    /**
+     * Size of <tt>buffer</tt>
+     */
+    private static final int BUFFER_SIZE = 100000;
+
     /**
      * The <tt>Logger</tt> used by the <tt>DePacketizer</tt> class and its
      * instances for logging output.
@@ -39,11 +44,6 @@ public class DePacketizer
      * and would be rarely used and to let compiler optimise the conditionals.
      */
     private static final boolean TRACE = true;
-
-    /**
-     * Size of <tt>buffer</tt>
-     */
-    private static final int BUFFER_SIZE = 100000;
 
     /**
      * Buffer used to store the payload of packets
@@ -94,6 +94,7 @@ public class DePacketizer
             logger.trace("Opened VP8 de-packetizer");
         return;
     }
+
 
     /**
      * {@inheritDoc}
@@ -196,7 +197,6 @@ public class DePacketizer
         return ret;
     }
 
-
     /**
      * A class that represents the VP8 Payload Descriptor structure defined
      * in {@link "http://tools.ietf.org/html/draft-ietf-payload-vp8-07"}
@@ -204,40 +204,57 @@ public class DePacketizer
     static class VP8PayloadDescriptor
     {
         /**
-         * Maximum length of a VP8 Payload Descriptor
-         */
-        public static final int MAX_LENGTH = 6;
-
-        /**
-         * X bit from the first byte of the Payload Descriptor
-         */
-        private static final byte X_BIT = (byte) 0x80;
-        /**
-         * S bit from the first byte of the Payload Descriptor
-         */
-        private static final byte S_BIT = (byte) 0x10;
-
-        /**
          * I bit from the X byte of the Payload Descriptor
          */
         private static final byte I_BIT = (byte) 0x80;
-        /**
-         * L bit from the X byte of the Payload Descriptor
-         */
-        private static final byte L_BIT = (byte) 0x40;
-        /**
-         * T bit from the X byte of the Payload Descriptor
-         */
-        private static final byte T_BIT = (byte) 0x20;
+
         /**
          * K bit from the X byte of the Payload Descriptor
          */
         private static final byte K_BIT = (byte) 0x10;
+        /**
+         * L bit from the X byte of the Payload Descriptor
+         */
+        private static final byte L_BIT = (byte) 0x40;
 
         /**
          * I bit from the I byte of the Payload Descriptor
          */
         private static final byte M_BIT = (byte) 0x80;
+        /**
+         * Maximum length of a VP8 Payload Descriptor
+         */
+        public static final int MAX_LENGTH = 6;
+        /**
+         * S bit from the first byte of the Payload Descriptor
+         */
+        private static final byte S_BIT = (byte) 0x10;
+        /**
+         * T bit from the X byte of the Payload Descriptor
+         */
+        private static final byte T_BIT = (byte) 0x20;
+
+        /**
+         * X bit from the first byte of the Payload Descriptor
+         */
+        private static final byte X_BIT = (byte) 0x80;
+
+        /**
+         * Returns a simple Payload Descriptor, with PartID = 0, the 'start
+         * of partition' bit set according to <tt>startOfPartition</tt>, and
+         * all other bits set to 0.
+         * @param startOfPartition whether to 'start of partition' bit should be
+         * set
+         * @return a simple Payload Descriptor, with PartID = 0, the 'start
+         * of partition' bit set according to <tt>startOfPartition</tt>, and
+         * all other bits set to 0.
+         */
+        public static byte[] create(boolean startOfPartition)
+        {
+            byte[] pd = new byte[1];
+            pd[0] = startOfPartition ? (byte) 0x10 : 0;
+            return pd;
+        }
 
         /**
          * The size in bytes of the Payload Descriptor at offset
@@ -285,23 +302,5 @@ public class DePacketizer
         {
             return (input[offset] & S_BIT) != 0;
         }
-
-        /**
-         * Returns a simple Payload Descriptor, with PartID = 0, the 'start
-         * of partition' bit set according to <tt>startOfPartition</tt>, and
-         * all other bits set to 0.
-         * @param startOfPartition whether to 'start of partition' bit should be
-         * set
-         * @return a simple Payload Descriptor, with PartID = 0, the 'start
-         * of partition' bit set according to <tt>startOfPartition</tt>, and
-         * all other bits set to 0.
-         */
-        public static byte[] create(boolean startOfPartition)
-        {
-            byte[] pd = new byte[1];
-            pd[0] = startOfPartition ? (byte) 0x10 : 0;
-            return pd;
-        }
     }
-
 }

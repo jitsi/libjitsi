@@ -99,11 +99,11 @@ public class VideoMediaDeviceSession
     private Dimension outputSize;
 
     /**
-     * The <tt>SwScaler</tt> inserted into the codec chain of the
+     * The <tt>SwScale</tt> inserted into the codec chain of the
      * <tt>Player</tt> rendering the media received from the remote peer and
      * enabling the explicit setting of the video size.
      */
-    private SwScaler playerScaler;
+    private SwScale playerScaler;
 
     /**
      * Remote SSRC.
@@ -500,7 +500,7 @@ public class VideoMediaDeviceSession
             Processor player = (Processor) ev.getSourceController();
 
             /*
-             * Use SwScaler for the scaling since it produces an image with
+             * Use SwScale for the scaling since it produces an image with
              * better quality and add the "flip" effect to the video.
              */
             TrackControl[] trackControls = player.getTrackControls();
@@ -514,16 +514,16 @@ public class VideoMediaDeviceSession
                         trackControl.setCodecChain(
                                 hflip
                                     ? new Codec[]
-                                            { new HFlip(), new SwScaler() }
+                                            { new HFlip(), new SwScale() }
                                     : new Codec[]
-                                            { new SwScaler() });
+                                            { new SwScale() });
                         break;
                     }
                 }
                 catch (UnsupportedPlugInException upiex)
                 {
                     logger.warn(
-                            "Failed to add HFlip/SwScaler Effect",
+                            "Failed to add HFlip/SwScale Effect",
                             upiex);
                 }
             }
@@ -953,7 +953,7 @@ public class VideoMediaDeviceSession
         super.playerConfigureComplete(player);
 
         TrackControl[] trackControls = player.getTrackControls();
-        SwScaler playerScaler = null;
+        SwScale playerScaler = null;
 
         if ((trackControls != null) && (trackControls.length != 0))
         {
@@ -962,7 +962,7 @@ public class VideoMediaDeviceSession
                 for (TrackControl trackControl : trackControls)
                 {
                     /*
-                     * Since SwScaler will scale any input size into the
+                     * Since SwScale will scale any input size into the
                      * configured output size, we may never get SizeChangeEvent
                      * from the player. We'll generate it ourselves then.
                      */
@@ -1014,7 +1014,7 @@ public class VideoMediaDeviceSession
             catch (UnsupportedPlugInException upiex)
             {
                 logger.error(
-                        "Failed to add SwScaler or H.264 DePacketizer"
+                        "Failed to add SwScale or H.264 DePacketizer"
                             + " to codec chain",
                         upiex);
                 playerScaler = null;
@@ -1038,7 +1038,7 @@ public class VideoMediaDeviceSession
         super.playerControllerUpdate(ev);
 
         /*
-         * If SwScaler is in the chain and it forces a specific size of the
+         * If SwScale is in the chain and it forces a specific size of the
          * output, the SizeChangeEvents of the Player do not really notify about
          * changes in the size of the input. Besides, playerScaler will take
          * care of the events in such a case.
@@ -1074,7 +1074,7 @@ public class VideoMediaDeviceSession
         if (visualComponent != null)
         {
             /*
-             * SwScaler seems to be very good at scaling with respect to image
+             * SwScale seems to be very good at scaling with respect to image
              * quality so use it for the scaling in the player replacing the
              * scaling it does upon rendering.
              */
@@ -1538,7 +1538,7 @@ public class VideoMediaDeviceSession
             Format format)
     {
         JNIEncoder encoder = null;
-        SwScaler scaler = null;
+        SwScale scaler = null;
         int codecCount = 0;
 
         /*
@@ -1596,10 +1596,10 @@ public class VideoMediaDeviceSession
         if (outputSize != null)
         {
             /* We have been explicitly told to use a specified output size so
-             * create a custom SwScaler that will scale and convert color spaces
+             * create a custom SwScale that will scale and convert color spaces
              * in one call.
              */
-            scaler = new SwScaler();
+            scaler = new SwScale();
             scaler.setOutputSize(outputSize);
             codecCount++;
         }
@@ -1614,7 +1614,7 @@ public class VideoMediaDeviceSession
 
         if (codecCount != 0)
         {
-            /* Add our custom SwScaler and possibly RTCP aware codec to the
+            /* Add our custom SwScale and possibly RTCP aware codec to the
              * codec chain so that it will be used instead of default.
              */
             try
@@ -1624,7 +1624,7 @@ public class VideoMediaDeviceSession
             catch(UnsupportedPlugInException upiex)
             {
                 logger.error(
-                        "Failed to add SwScaler/JNIEncoder to codec chain",
+                        "Failed to add SwScale/JNIEncoder to codec chain",
                         upiex);
             }
         }
@@ -1820,11 +1820,11 @@ public class VideoMediaDeviceSession
     }
 
     /**
-     * Extends <tt>SwScaler</tt> in order to provide scaling with high quality
+     * Extends <tt>SwScale</tt> in order to provide scaling with high quality
      * to a specific <tt>Player</tt> of remote video.
      */
     private class PlayerScaler
-        extends SwScaler
+        extends SwScale
     {
         /**
          * The last size reported in the form of a <tt>SizeChangeEvent</tt>.
@@ -1833,7 +1833,7 @@ public class VideoMediaDeviceSession
 
         /**
          * The <tt>Player</tt> into the codec chain of which this
-         * <tt>SwScaler</tt> is set.
+         * <tt>SwScale</tt> is set.
          */
         private final Player player;
 
@@ -1855,13 +1855,13 @@ public class VideoMediaDeviceSession
         /**
          * Determines when the input video sizes changes and reports it as a
          * <tt>SizeChangeVideoEvent</tt> because <tt>Player</tt> is unable to
-         * do it when this <tt>SwScaler</tt> is scaling to a specific
+         * do it when this <tt>SwScale</tt> is scaling to a specific
          * <tt>outputSize</tt>.
          *
          * @param input input buffer
          * @param output output buffer
          * @return the native <tt>PaSampleFormat</tt>
-         * @see SwScaler#process(Buffer, Buffer)
+         * @see SwScale#process(Buffer, Buffer)
          */
         @Override
         public int process(Buffer input, Buffer output)
@@ -1891,12 +1891,12 @@ public class VideoMediaDeviceSession
         }
 
         /**
-         * Ensures that this <tt>SwScaler</tt> preserves the aspect ratio of its
+         * Ensures that this <tt>SwScale</tt> preserves the aspect ratio of its
          * input video when scaling.
          *
          * @param inputFormat format to set
          * @return format
-         * @see SwScaler#setInputFormat(Format)
+         * @see SwScale#setInputFormat(Format)
          */
         @Override
         public Format setInputFormat(Format inputFormat)
