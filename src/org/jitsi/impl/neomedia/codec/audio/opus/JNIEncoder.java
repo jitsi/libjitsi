@@ -43,7 +43,6 @@ public class JNIEncoder
      */
     static final double[] SUPPORTED_INPUT_SAMPLE_RATES
         = new double[] { 48000 };
-        //= new double[] { 8000, 12000, 16000, 24000, 48000 };
 
     /**
      * The list of <tt>Format</tt>s of audio data supported as output by
@@ -62,17 +61,18 @@ public class JNIEncoder
                 Format.byteArray) };
 
     /**
-     * The <tt>Logger</tt> used by this <tt>JNIEncoder</tt> instance
-     * for logging output.
-     */
-    private final Logger logger
-            = Logger.getLogger(JNIEncoder.class);
-
-    /**
      * Set the supported input formats.
      */
     static
     {
+        /*
+         * If the Opus class or its supporting JNI library are not functional,
+         * it is too late to discover the fact in #doOpen() because a JNIEncoder
+         * instance has already been initialized and it has already signaled
+         * that the Opus codec is supported. 
+         */
+        Opus.assertOpusIsFunctional();
+
         int supportedInputCount = SUPPORTED_INPUT_SAMPLE_RATES.length;
 
         SUPPORTED_INPUT_FORMATS = new Format[supportedInputCount*2];
@@ -107,6 +107,48 @@ public class JNIEncoder
     }
 
     /**
+     * Codec audio bandwidth, obtained from configuration.
+     */
+    private int bandwidthConfig;
+
+    /**
+     *  Bitrate in bits per second setting, obtained from the configuration.
+     */
+    private int bitrateConfig;
+
+    /**
+     * Number of channels to use, default to 1.
+     */
+    private int channels = 1;
+
+    /**
+     * Complexity setting, obtained from configuration.
+     */
+    private int complexityConfig;
+
+    /**
+     * The pointer to the native OpusEncoder structure
+     */
+    private long encoder = 0;
+
+    /**
+     * Frame size in ms (2.5, 5, 10, 20, 40 or 60). Default to 20
+     */
+    private double frameSize = 20;
+
+    /**
+     * The <tt>Logger</tt> used by this <tt>JNIEncoder</tt> instance
+     * for logging output.
+     */
+    private final Logger logger
+            = Logger.getLogger(JNIEncoder.class);
+
+    /**
+     * The minimum expected packet loss percentage to set to the encoder.
+     */
+    private int minPacketLoss = 0;
+
+    /**
      * The bytes from an input <tt>Buffer</tt> from a previous call to
      * {@link #process(Buffer, Buffer)} that this <tt>Codec</tt> didn't process
      * because the total number of bytes was less than {@link #inputFrameSize()}
@@ -121,49 +163,14 @@ public class JNIEncoder
     private int previousInputLength = 0;
 
     /**
-     * The pointer to the native OpusEncoder structure
-     */
-    private long encoder = 0;
-
-    /**
-     * Number of channels to use, default to 1.
-     */
-    private int channels = 1;
-
-    /**
-     * Frame size in ms (2.5, 5, 10, 20, 40 or 60). Default to 20
-     */
-    private double frameSize = 20;
-
-    /**
-     * The minimum expected packet loss percentage to set to the encoder.
-     */
-    private int minPacketLoss = 0;
-
-    /**
-     *  Bitrate in bits per second setting, obtained from the configuration.
-     */
-    private int bitrateConfig;
-
-    /**
-     * Whether to use FEC, obtained from configuration.
-     */
-    private boolean useFecConfig;
-
-    /**
-     * Complexity setting, obtained from configuration.
-     */
-    private int complexityConfig;
-
-    /**
      * Whether to use DTX, obtained from configuration.
      */
     private boolean useDtxConfig;
 
     /**
-     * Codec audio bandwidth, obtained from configuration.
+     * Whether to use FEC, obtained from configuration.
      */
-    private int bandwidthConfig;
+    private boolean useFecConfig;
 
 
     /**
@@ -181,27 +188,6 @@ public class JNIEncoder
     }
 
     /**
-     * Returns the number of bytes that we need to read from the input buffer
-     * in order ot fill a frame of <tt>frameSize</tt>. Depends on the input
-     * sample frequency, the number of channels and <tt>frameSize</tt>
-     *
-     * @return the number of bytes that we need to read from the input buffer
-     * in order ot fill a frame of <tt>frameSize</tt>. Depends on the input
-     * sample frequency, the number of channels and <tt>frameSize</tt>
-     */
-    private int inputFrameSize()
-    {
-        int fs =
-        (int) (
-           2 /* sizeof(short) */
-           * channels
-           *  ((AudioFormat)getInputFormat()).getSampleRate() /* samples in 1s */
-           *   frameSize /* milliseconds */
-           ) / 1000;
-
-        return fs;
-    }
-    /**
      * @see AbstractCodecExt#doClose()
      */
     protected void doClose()
@@ -211,7 +197,6 @@ public class JNIEncoder
            Opus.encoder_destroy(encoder);
         }
     }
-
     /**
      * Opens this <tt>Codec</tt> and acquires the resources that it needs to
      * operate. A call to {@link PlugIn#open()} on this instance will result in
@@ -418,6 +403,17 @@ public class JNIEncoder
     }
 
     /**
+     * Stub. Only added in order to implement the
+     * <tt>Control</tt> interface.
+     *
+     * @return null
+     */
+    public Component getControlComponent()
+    {
+        return null;
+    }
+
+    /**
      * Get the output format.
      *
      * @return output format
@@ -458,6 +454,28 @@ public class JNIEncoder
     }
 
     /**
+     * Returns the number of bytes that we need to read from the input buffer
+     * in order ot fill a frame of <tt>frameSize</tt>. Depends on the input
+     * sample frequency, the number of channels and <tt>frameSize</tt>
+     *
+     * @return the number of bytes that we need to read from the input buffer
+     * in order ot fill a frame of <tt>frameSize</tt>. Depends on the input
+     * sample frequency, the number of channels and <tt>frameSize</tt>
+     */
+    private int inputFrameSize()
+    {
+        int fs =
+        (int) (
+           2 /* sizeof(short) */
+           * channels
+           *  ((AudioFormat)getInputFormat()).getSampleRate() /* samples in 1s */
+           *   frameSize /* milliseconds */
+           ) / 1000;
+
+        return fs;
+    }
+
+    /**
      * Updates the encoder's expected packet loss percentage to the bigger of
      * <tt>percentage</tt> and <tt>this.minPacketLoss</tt>.
      *
@@ -472,17 +490,6 @@ public class JNIEncoder
         if(logger.isTraceEnabled())
             logger.trace("Updating expected packet loss: " + percentage
                     + " (minimum " + minPacketLoss + ")");
-    }
-
-    /**
-     * Stub. Only added in order to implement the
-     * <tt>Control</tt> interface.
-     *
-     * @return null
-     */
-    public Component getControlComponent()
-    {
-        return null;
     }
 
     /**

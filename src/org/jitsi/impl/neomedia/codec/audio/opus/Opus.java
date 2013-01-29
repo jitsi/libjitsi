@@ -7,16 +7,16 @@
 package org.jitsi.impl.neomedia.codec.audio.opus;
 
 /**
- * Implements an interface to the native opus library
+ * Implements an interface to the native opus library.
  *
  * @author Boris Grozev
  */
 public class Opus
 {
     /**
-     * Opus narrowband constant
+     * Opus fullband constant
      */
-    public static final int BANDWIDTH_NARROWBAND = 1101;
+    public static final int BANDWIDTH_FULLBAND = 1105;
 
     /**
      * Opus mediumband constant
@@ -24,9 +24,9 @@ public class Opus
     public static final int BANDWIDTH_MEDIUMBAND = 1102;
 
     /**
-     * Opus wideband constant
+     * Opus narrowband constant
      */
-    public static final int BANDWIDTH_WIDEBAND = 1103;
+    public static final int BANDWIDTH_NARROWBAND = 1101;
 
     /**
      * Opus superwideband constant
@@ -34,19 +34,9 @@ public class Opus
     public static final int BANDWIDTH_SUPERWIDEBAND = 1104;
 
     /**
-     * Opus fullband constant
+     * Opus wideband constant
      */
-    public static final int BANDWIDTH_FULLBAND = 1105;
-
-    /**
-     * Constant usually indicating that no error occurred
-     */
-    public static final int OPUS_OK = 0;
-
-    /**
-     * Constant used to set various settings to "automatic"
-     */
-    public static final int OPUS_AUTO = -1000;
+    public static final int BANDWIDTH_WIDEBAND = 1103;
 
     /**
      * Opus constant for an invalid packet
@@ -60,16 +50,112 @@ public class Opus
      */
     public static final int MAX_PACKET = 1+1275;
 
-
+    /**
+     * Constant used to set various settings to "automatic"
+     */
+    public static final int OPUS_AUTO = -1000;
 
     /**
-     * Returns the size in bytes required for an OpusEncoder structure.
+     * Constant usually indicating that no error occurred
+     */
+    public static final int OPUS_OK = 0;
+
+    /**
+     * Load the native library.
+     */
+    static
+    {
+        System.loadLibrary("jnopus");
+    }
+
+    /**
+     * Asserts that the <tt>Opus</tt> class and the JNI library which supports
+     * it are functional. The method is to be invoked early (e.g. static/class
+     * initializers) by classes which require it (i.e. they depend on it and
+     * they cannot function without it).
+     */
+    public static void assertOpusIsFunctional()
+    {
+        int channels = 1;
+
+        decoder_get_size(channels);
+        encoder_get_size(channels);
+    }
+
+    /**
+     * Decodes an opus packet from <tt>input</tt> into <tt>output</tt>.
+     *
+     * @param decoder The decoder to use
+     * @param input An array containing the opus packet.
+     * @param inputOffset The offset into <tt>input</tt> where the packets
+     * begins.
+     * @param inputSize Size of the packet in bytes.
+     * @param output Output buffer where the output will be stored.
+     * @param outputSize Size in bytes of the output buffer.
+     * @param decodeFEC 0 to decode the packet normally, 1 to decode the FEC
+     * data in the packet.
+     *
+     * @return Number of samples decoded
+     */
+    public static native int decode(long decoder, byte[] input, int inputOffset,
+                                    int inputSize, byte[] output,
+                                    int outputSize, int decodeFEC);
+
+    /**
+     * Creates an OpusDecoder structure, returns a pointer to it or 0 on error.
+     *
+     * @param Fs Sample rate to decode to
+     * @param channels number of channels to decode to(1/2)
+     *
+     * @return A pointer to the OpusDecoder structure created, 0 on error.
+     */
+    public static native long decoder_create(int Fs, int channels);
+
+    /**
+     * Destroys an OpusDecoder, freeing it's resources.
+     *
+     * @param decoder Address of the structure (as returned from decoder_create)
+     */
+    public static native void decoder_destroy(long decoder);
+
+    /**
+     * Returns the number of samples in an opus packet
+
+     * @param decoder The decoder to use.
+     * @param packet Array holding the packet.
+     * @param offset Offset into packet where the actual packet begins.
+     * @param len Length of the packet.
+     *
+     * @return the number of samples in <tt>packet</tt> .
+     */
+    public static native int decoder_get_nb_samples(long decoder, byte[] packet, int offset, int len);
+
+    /**
+     * Returns the size in bytes required for an OpusDecoder structure.
      *
      * @param channels number of channels (1/2)
      *
-     * @return the size in bytes required for an OpusEncoder structure.
+     * @return the size in bytes required for an OpusDecoder structure.
      */
-    public static native int encoder_get_size(int channels);
+    public static native int decoder_get_size(int channels);
+
+    /**
+     * Encodes the input from <tt>input</tt> into an opus packet in
+     * <tt>output</tt>.
+     *
+     * @param encoder The encoder to use.
+     * @param input Array containing PCM encoded input.
+     * @param offset Offset to use into the <tt>input</tt> array
+     * @param frameSize The number of samples per channel in <tt>input</tt>.
+     * @param output Array where the encoded packet will be stored.
+     * @param outputSize The number of available bytes in <tt>output</tt>.
+     *
+     * @return The number of bytes written in <tt>output</tt>, or a negative
+     * on error.
+     */
+    public static native int encode(long encoder, byte[] input, int offset,
+                                    int frameSize, byte[] output,
+                                    int outputSize);
 
     /**
      * Creates an OpusEncoder structure, returns a pointer to it casted to long.
@@ -91,15 +177,14 @@ public class Opus
     public static native void encoder_destroy(long encoder);
 
     /**
-     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
-     * encoder bitrate
-     *
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns the
+     * current encoder audio bandwidth
+     * .
      * @param encoder The encoder to use
-     * @param bitrate The bitrate to set
      *
-     * @return OPUS_OK on success
+     * @return the current encoder audio bandwidth
      */
-    public static native int encoder_set_bitrate(long encoder, int bitrate);
+    public static native int encoder_get_bandwidth(long encoder);
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns the
@@ -110,6 +195,45 @@ public class Opus
      * @return The current encoder bitrate.
      */
     public static native int encoder_get_bitrate(long encoder);
+
+    /**
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns
+     * the current DTX setting of the encoder.
+     *
+     * @param encoder The encoder to use
+     *
+     * @return the current DTX setting of the encoder.
+     */
+    public static native int encoder_get_dtx(long encoder);
+
+    /**
+     * Returns the size in bytes required for an OpusEncoder structure.
+     *
+     * @param channels number of channels (1/2)
+     *
+     * @return the size in bytes required for an OpusEncoder structure.
+     */
+    public static native int encoder_get_size(int channels);
+
+    /**
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns the
+     * current encoder VBR setting
+     *
+     * @param encoder The encoder to use
+     *
+     * @return The current encoder VBR setting.
+     */
+    public static native int encoder_get_vbr(long encoder);
+
+    /**
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns
+     * the current VBR constraint encoder setting.
+     *
+     * @param encoder The encoder to use
+     *
+     * @return the current VBR constraint encoder setting.
+     */
+    public static native int encoder_get_vbr_constraint(long encoder);
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
@@ -126,57 +250,15 @@ public class Opus
     public static native int encoder_set_bandwidth(long encoder, int bandwidth);
 
     /**
-     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns the
-     * current encoder audio bandwidth
-     * .
-     * @param encoder The encoder to use
-     *
-     * @return the current encoder audio bandwidth
-     */
-    public static native int encoder_get_bandwidth(long encoder);
-
-    /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
-     * encoder VBR setting
+     * encoder bitrate
      *
      * @param encoder The encoder to use
-     * @param use_vbr 0 to turn VBR off, non-zero to turn it on.
+     * @param bitrate The bitrate to set
      *
      * @return OPUS_OK on success
      */
-    public static native int encoder_set_vbr(long encoder, int use_vbr);
-
-    /**
-     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns the
-     * current encoder VBR setting
-     *
-     * @param encoder The encoder to use
-     *
-     * @return The current encoder VBR setting.
-     */
-    public static native int encoder_get_vbr(long encoder);
-
-    /**
-     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
-     * encoder VBR constraint setting
-     *
-     * @param encoder The encoder to use
-     * @param use_cvbr 0 to turn VBR constraint off, non-zero to turn it on.
-     *
-     * @return OPUS_OK on success
-     */
-    public static native int encoder_set_vbr_constraint(long encoder,
-                                                        int use_cvbr);
-
-    /**
-     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns
-     * the current VBR constraint encoder setting.
-     *
-     * @param encoder The encoder to use
-     *
-     * @return the current VBR constraint encoder setting.
-     */
-    public static native int encoder_get_vbr_constraint(long encoder);
+    public static native int encoder_set_bitrate(long encoder, int bitrate);
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
@@ -192,14 +274,17 @@ public class Opus
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
-     * encoder FEC setting.
+     * DTX setting of the encoder.
+     *
      * @param encoder The encoder to use
-     * @param use_inband_fec 0 to turn FEC off, non-zero to turn it on.
+     * @param use_dtx 0 to turn DTX off, non-zero to turn it on
      *
      * @return OPUS_OK on success
      */
-    public static native int encoder_set_inband_fec(long encoder,
-                                                    int use_inband_fec);
+    public static native int encoder_set_dtx(long encoder, int use_dtx);
+
+
+
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
@@ -215,36 +300,14 @@ public class Opus
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
-     * DTX setting of the encoder.
-     *
+     * encoder FEC setting.
      * @param encoder The encoder to use
-     * @param use_dtx 0 to turn DTX off, non-zero to turn it on
+     * @param use_inband_fec 0 to turn FEC off, non-zero to turn it on.
      *
      * @return OPUS_OK on success
      */
-    public static native int encoder_set_dtx(long encoder, int use_dtx);
-
-    /**
-     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns
-     * the current DTX setting of the encoder.
-     *
-     * @param encoder The encoder to use
-     *
-     * @return the current DTX setting of the encoder.
-     */
-    public static native int encoder_get_dtx(long encoder);
-
-    /**
-     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
-     * encoder's expected packet loss percentage.
-     *
-     * @param encoder The encoder to use
-     * @param percentage 0 to turn DTX off, non-zero to turn it on
-     *
-     * @return OPUS_OK on success.
-     */
-    public static native int encoder_set_packet_loss_perc(long encoder,
-                                                          int percentage);
+    public static native int encoder_set_inband_fec(long encoder,
+                                                    int use_inband_fec);
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
@@ -262,70 +325,39 @@ public class Opus
                                                        int maxBandwidth);
 
     /**
-     * Encodes the input from <tt>input</tt> into an opus packet in
-     * <tt>output</tt>.
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
+     * encoder's expected packet loss percentage.
      *
-     * @param encoder The encoder to use.
-     * @param input Array containing PCM encoded input.
-     * @param offset Offset to use into the <tt>input</tt> array
-     * @param frameSize The number of samples per channel in <tt>input</tt>.
-     * @param output Array where the encoded packet will be stored.
-     * @param outputSize The number of available bytes in <tt>output</tt>.
+     * @param encoder The encoder to use
+     * @param percentage 0 to turn DTX off, non-zero to turn it on
      *
-     * @return The number of bytes written in <tt>output</tt>, or a negative
-     * on error.
+     * @return OPUS_OK on success.
      */
-    public static native int encode(long encoder, byte[] input, int offset,
-                                    int frameSize, byte[] output,
-                                    int outputSize);
-
-
-
+    public static native int encoder_set_packet_loss_perc(long encoder,
+                                                          int percentage);
 
     /**
-     * Returns the size in bytes required for an OpusDecoder structure.
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
+     * encoder VBR setting
      *
-     * @param channels number of channels (1/2)
+     * @param encoder The encoder to use
+     * @param use_vbr 0 to turn VBR off, non-zero to turn it on.
      *
-     * @return the size in bytes required for an OpusDecoder structure.
+     * @return OPUS_OK on success
      */
-    public static native int decoder_get_size(int channels);
+    public static native int encoder_set_vbr(long encoder, int use_vbr);
 
     /**
-     * Creates an OpusDecoder structure, returns a pointer to it or 0 on error.
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
+     * encoder VBR constraint setting
      *
-     * @param Fs Sample rate to decode to
-     * @param channels number of channels to decode to(1/2)
+     * @param encoder The encoder to use
+     * @param use_cvbr 0 to turn VBR constraint off, non-zero to turn it on.
      *
-     * @return A pointer to the OpusDecoder structure created, 0 on error.
+     * @return OPUS_OK on success
      */
-    public static native long decoder_create(int Fs, int channels);
-
-    /**
-     * Destroys an OpusDecoder, freeing it's resources.
-     *
-     * @param decoder Address of the structure (as returned from decoder_create)
-     */
-    public static native void decoder_destroy(long decoder);
-
-    /**
-     * Decodes an opus packet from <tt>input</tt> into <tt>output</tt>.
-     *
-     * @param decoder The decoder to use
-     * @param input An array containing the opus packet.
-     * @param inputOffset The offset into <tt>input</tt> where the packets
-     * begins.
-     * @param inputSize Size of the packet in bytes.
-     * @param output Output buffer where the output will be stored.
-     * @param outputSize Size in bytes of the output buffer.
-     * @param decodeFEC 0 to decode the packet normally, 1 to decode the FEC
-     * data in the packet.
-     *
-     * @return Number of samples decoded
-     */
-    public static native int decode(long decoder, byte[] input, int inputOffset,
-                                    int inputSize, byte[] output,
-                                    int outputSize, int decodeFEC);
+    public static native int encoder_set_vbr_constraint(long encoder,
+                                                        int use_cvbr);
 
     /**
      * Returns the audio bandwidth of an opus packet, one of
@@ -364,25 +396,5 @@ public class Opus
      */
     public static native int packet_get_nb_frames(byte[] packet, int offset,
                                                   int len);
-
-    /**
-     * Returns the number of samples in an opus packet
-
-     * @param decoder The decoder to use.
-     * @param packet Array holding the packet.
-     * @param offset Offset into packet where the actual packet begins.
-     * @param len Length of the packet.
-     *
-     * @return the number of samples in <tt>packet</tt> .
-     */
-    public static native int decoder_get_nb_samples(long decoder, byte[] packet, int offset, int len);
-
-    /**
-     * Load the native library.
-     */
-    static
-    {
-        System.loadLibrary("jnopus");
-    }
 
 }

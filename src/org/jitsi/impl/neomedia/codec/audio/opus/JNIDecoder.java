@@ -29,7 +29,8 @@ public class JNIDecoder
      * The list of <tt>Format</tt>s of audio data supported as input by
      * <tt>JNIDecoder</tt> instances.
      */
-    private static final Format[] SUPPORTED_INPUT_FORMATS;
+    private static final Format[] SUPPORTED_INPUT_FORMATS
+        = new Format[] { new AudioFormat(Constants.OPUS_RTP) };
 
     /**
      * The list of <tt>Format</tt>s of audio data supported as output by
@@ -52,8 +53,13 @@ public class JNIDecoder
 
     static
     {
-        SUPPORTED_INPUT_FORMATS
-                = new Format[] {new AudioFormat(Constants.OPUS_RTP)};
+        /*
+         * If the Opus class or its supporting JNI library are not functional,
+         * it is too late to discover the fact in #doOpen() because a JNIDecoder
+         * instance has already been initialized and it has already signaled
+         * that the Opus codec is supported. 
+         */
+        Opus.assertOpusIsFunctional();
     }
 
     /**
