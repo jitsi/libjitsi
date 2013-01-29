@@ -24,7 +24,7 @@ import org.jitsi.service.neomedia.event.*;
 import org.jitsi.util.*;
 
 /**
- * Implements a H.264 encoder.
+ * Implements an H.264 encoder.
  *
  * @author Damian Minkov
  * @author Lyubomir Marinov
@@ -155,11 +155,6 @@ public class JNIEncoder
     private long avframe;
 
     /**
-     * Buffer used to store the encoded frame.
-     */
-    private byte[] encFrameBuffer;
-
-    /**
      * Force encoder to send a key frame.
      * First frame have to be a keyframe.
      */
@@ -270,8 +265,6 @@ public class JNIEncoder
                 rawFrameBuffer = 0;
             }
 
-            encFrameBuffer = null;
-
             if (keyFrameRequestee != null)
             {
                 if (keyFrameControl != null)
@@ -377,13 +370,26 @@ public class JNIEncoder
         if (opened)
             return;
 
-        if (inputFormat == null)
-            throw new ResourceUnavailableException("No input format selected");
-        if (outputFormat == null)
-            throw new ResourceUnavailableException("No output format selected");
-
+        VideoFormat inputVideoFormat = (VideoFormat) inputFormat;
         VideoFormat outputVideoFormat = (VideoFormat) outputFormat;
-        Dimension size = outputVideoFormat.getSize();
+
+        /*
+         * An Encoder translates raw media data in (en)coded media data.
+         * Consequently, the size of the output is equal to the size of the
+         * input.
+         */
+        Dimension size = null;
+
+        if (inputVideoFormat != null)
+            size = inputVideoFormat.getSize();
+        if ((size == null) && (outputVideoFormat != null))
+            size = outputVideoFormat.getSize();
+        if (size == null)
+        {
+            throw new ResourceUnavailableException(
+                    "The input video frame width and height are not set.");
+        }
+
         int width = size.width, height = size.height;
 
         boolean useIntraRefresh = true;
@@ -428,8 +434,14 @@ public class JNIEncoder
         FFmpeg.avcodeccontext_set_qcompress(avctx, 0.6f);
 
         int bitRate = 128000;
-        int frameRate = (int) outputVideoFormat.getFrameRate();
+        int frameRate = Format.NOT_SPECIFIED;
 
+        /* Allow the outputFormat to request a certain frameRate. */
+        if (outputVideoFormat != null)
+            frameRate = (int) outputVideoFormat.getFrameRate();
+        /* Otherwise, output in the frameRate of the inputFormat. */
+        if ((frameRate == Format.NOT_SPECIFIED) && (inputVideoFormat != null))
+            frameRate = (int) inputVideoFormat.getFrameRate();
         if (frameRate == Format.NOT_SPECIFIED)
             frameRate = DEFAULT_FRAME_RATE;
 
@@ -458,6 +470,11 @@ public class JNIEncoder
                 FFmpeg.CODEC_FLAG_LOOP_FILTER);
         if(useIntraRefresh)
         {
+            /*
+             * The flag is ignored in newer FFmpeg versions and we set the
+             * "intra-refresh" option for them. Anyway, the flag is set for the
+             * older FFmpeg versions.
+             */
             FFmpeg.avcodeccontext_add_flags2(avctx,
                 FFmpeg.CODEC_FLAG2_INTRA_REFRESH);
         }
@@ -510,7 +527,7 @@ public class JNIEncoder
                      * FFmpeg will fail.
                      */
                     //"crf" /* constant quality mode, constant ratefactor */, "0",
-                    "intra-refresh", "1",
+                    "intra-refresh", useIntraRefresh ? "1" : "0",
                     "partitions", "b8x8,i4x4,p8x8",
                     "preset", preset,
                     "thread_type", "slice",
@@ -534,8 +551,6 @@ public class JNIEncoder
                 sizeInBytes,
                 sizeInBytes / 4);
         FFmpeg.avframe_set_linesize(avframe, width, width / 2, width / 2);
-
-        encFrameBuffer = new byte[rawFrameLen];
 
         /*
          * Implement the ability to have the remote peer request key frames from
@@ -584,7 +599,7 @@ public class JNIEncoder
 
         Format inFormat = inBuffer.getFormat();
 
-        if ((inFormat != inputFormat) && !inFormat.matches(inputFormat))
+        if ((inFormat != inputFormat) && !inFormat.equals(inputFormat))
             setInputFormat(inFormat);
 
         if (inBuffer.getLength() < 10)
@@ -622,13 +637,6 @@ public class JNIEncoder
             FFmpeg.avframe_set_key_frame(avframe, false);
         }
 
-        // encode data
-        int encLen
-            = FFmpeg.avcodec_encode_video(
-                    avctx,
-                    encFrameBuffer, rawFrameLen,
-                    avframe);
-
         /*
          * Do not always allocate a new data array for outBuffer, try to reuse
          * the existing one if it is suitable.
@@ -639,17 +647,21 @@ public class JNIEncoder
         if (outData instanceof byte[])
         {
             out = (byte[]) outData;
-            if (out.length < encLen)
+            if (out.length < rawFrameLen)
                 out = null;
         }
         else
             out = null;
         if (out == null)
-            out = new byte[encLen];
+        {
+            out = new byte[rawFrameLen];
+            outBuffer.setData(out);
+        }
 
-        System.arraycopy(encFrameBuffer, 0, out, 0, encLen);
+        // encode data
+        int encLen
+            = FFmpeg.avcodec_encode_video(avctx, out, out.length, avframe);
 
-        outBuffer.setData(out);
         outBuffer.setLength(encLen);
         outBuffer.setOffset(0);
         outBuffer.setTimeStamp(inBuffer.getTimeStamp());

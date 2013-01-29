@@ -1545,7 +1545,16 @@ public class VideoMediaDeviceSession
          * For H.264 we will monitor RTCP feedback. For example, if we receive a
          * PLI/FIR message, we will send a keyframe.
          */
-        if ("h264/rtp".equalsIgnoreCase(format.getEncoding()))
+        /*
+         * The current Android video capture device system provided H.264 so it
+         * is not possible to insert an H.264 encoder in the chain. Ideally, we
+         * will want to base the decision on the format of the capture device
+         * and not on the operating system. In a perfect worlds, we will
+         * re-implement the functionality bellow using a Control interface and
+         * we will not bother with inserting customized codecs. 
+         */
+        if (!OSUtils.IS_ANDROID
+                && "h264/rtp".equalsIgnoreCase(format.getEncoding()))
         {
             encoder = new JNIEncoder();
 
