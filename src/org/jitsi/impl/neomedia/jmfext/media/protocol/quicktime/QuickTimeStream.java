@@ -157,9 +157,9 @@ public class QuickTimeStream
                             QTSampleBuffer sampleBuffer)
                     {
                         captureOutputDidOutputVideoFrameWithSampleBuffer(
-                            captureOutput,
-                            videoFrame,
-                            sampleBuffer);
+                                captureOutput,
+                                videoFrame,
+                                sampleBuffer);
                     }
                 });
 
@@ -314,13 +314,13 @@ public class QuickTimeStream
                     format
                         = videoFormat.intersects(
                                 new VideoFormat(
-                                        null,
+                                        /* encoding */ null,
                                         new Dimension(
                                                 defaultSize.width,
                                                 defaultSize.height),
-                                        Format.NOT_SPECIFIED,
-                                        Format.byteArray,
-                                        Format.NOT_SPECIFIED));
+                                        /* maxDataLength */ Format.NOT_SPECIFIED,
+                                        /* dataType */ null,
+                                        /* frameRate */ Format.NOT_SPECIFIED));
                 }
             }
         }
@@ -361,34 +361,40 @@ public class QuickTimeStream
             {
             case CVPixelFormatType.kCVPixelFormatType_32ARGB:
                 if (captureOutputFormat instanceof AVFrameFormat)
+                {
                     return
                         new AVFrameFormat(
                                 ((width == 0) && (height == 0)
                                     ? null
                                     : new Dimension(width, height)),
-                                Format.NOT_SPECIFIED,
+                                /* frameRate */ Format.NOT_SPECIFIED,
                                 FFmpeg.PIX_FMT_ARGB,
                                 CVPixelFormatType.kCVPixelFormatType_32ARGB);
+                }
                 else
+                {
                     return
                         new RGBFormat(
                                 ((width == 0) && (height == 0)
                                     ? null
                                     : new Dimension(width, height)),
-                                Format.NOT_SPECIFIED,
+                                /* maxDataLength */ Format.NOT_SPECIFIED,
                                 Format.byteArray,
-                                Format.NOT_SPECIFIED,
+                                /* frameRate */ Format.NOT_SPECIFIED,
                                 32,
                                 2, 3, 4);
+                }
             case CVPixelFormatType.kCVPixelFormatType_420YpCbCr8Planar:
                 if ((width == 0) && (height == 0))
                 {
                     if (captureOutputFormat instanceof AVFrameFormat)
+                    {
                         return
                             new AVFrameFormat(
                                     FFmpeg.PIX_FMT_YUV420P,
                                     CVPixelFormatType
                                         .kCVPixelFormatType_420YpCbCr8Planar);
+                    }
                     else
                         return new YUVFormat(YUVFormat.YUV_420);
                 }
@@ -397,10 +403,10 @@ public class QuickTimeStream
                     return
                         new AVFrameFormat(
                                 new Dimension(width, height),
-                                Format.NOT_SPECIFIED,
+                                /* frameRate */ Format.NOT_SPECIFIED,
                                 FFmpeg.PIX_FMT_YUV420P,
-                                CVPixelFormatType.
-                                kCVPixelFormatType_420YpCbCr8Planar);
+                                CVPixelFormatType
+                                    .kCVPixelFormatType_420YpCbCr8Planar);
                 }
                 else
                 {
@@ -413,9 +419,9 @@ public class QuickTimeStream
                     return
                         new YUVFormat(
                                 new Dimension(width, height),
-                                Format.NOT_SPECIFIED,
+                                /* maxDataLength */ Format.NOT_SPECIFIED,
                                 Format.byteArray,
-                                Format.NOT_SPECIFIED,
+                                /* frameRate */ Format.NOT_SPECIFIED,
                                 YUVFormat.YUV_420,
                                 strideY, strideUV,
                                 offsetY, offsetU, offsetV);
@@ -457,17 +463,18 @@ public class QuickTimeStream
         Dimension size = ((VideoFormat) format).getSize();
 
         if ((size == null) || ((size.width == 0) && (size.height == 0)))
+        {
             format
-                = format
-                    .intersects(
+                = format.intersects(
                         new VideoFormat(
-                                null,
+                                /* encoding */ null,
                                 new Dimension(
                                         videoFrame.getWidth(),
                                         videoFrame.getHeight()),
-                                Format.NOT_SPECIFIED,
-                                Format.byteArray,
-                                Format.NOT_SPECIFIED));
+                                /* maxDataLength */ Format.NOT_SPECIFIED,
+                                /* dataType */ null,
+                                /* frameRate */ Format.NOT_SPECIFIED));
+        }
         return format;
     }
 
@@ -494,17 +501,17 @@ public class QuickTimeStream
             if (dataFormat != null)
                 buffer.setFormat(dataFormat);
 
-            Format bufferFormat = buffer.getFormat();
+            Format format = buffer.getFormat();
 
-            if (bufferFormat == null)
+            if (format == null)
             {
-                bufferFormat = getFormat();
-                if (bufferFormat != null)
-                    buffer.setFormat(bufferFormat);
+                format = getFormat();
+                if (format != null)
+                    buffer.setFormat(format);
             }
-            if (bufferFormat instanceof AVFrameFormat)
+            if (format instanceof AVFrameFormat)
             {
-                if (AVFrame.read(buffer, bufferFormat, data) < 0)
+                if (AVFrame.read(buffer, format, data) < 0)
                     data.free();
                 /*
                  * XXX For the sake of safety, make sure that this instance does
