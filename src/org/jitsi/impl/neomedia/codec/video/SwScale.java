@@ -49,40 +49,47 @@ public class SwScale
      * @return the FFmpeg <tt>PixelFormat</tt> equivalent of the specified FMJ
      * <tt>RGBFormat</tt>
      */
-    public static int getFFmpegPixelFormat(RGBFormat rgb)
+    private static int getFFmpegPixelFormat(RGBFormat rgb)
     {
-        int fmt;
+        int pixfmt;
 
-        if(rgb.getBitsPerPixel() == 32)
+        switch (rgb.getBitsPerPixel())
         {
-            switch(rgb.getRedMask())
+        case 24:
+            pixfmt = FFmpeg.PIX_FMT_RGB24;
+            break;
+
+        case 32:
+            switch (rgb.getRedMask())
             {
             case 1:
-            case 0xff:
-                fmt = FFmpeg.PIX_FMT_BGR32;
+            case 0x000000ff:
+                pixfmt = FFmpeg.PIX_FMT_BGR32;
                 break;
             case 2:
-            case (0xff << 8):
-                fmt = FFmpeg.PIX_FMT_BGR32_1;
+            case 0x0000ff00:
+                pixfmt = FFmpeg.PIX_FMT_BGR32_1;
                 break;
             case 3:
-            case (0xff << 16):
-                fmt = FFmpeg.PIX_FMT_RGB32;
+            case 0x00ff0000:
+                pixfmt = FFmpeg.PIX_FMT_RGB32;
                 break;
             case 4:
-            case (0xff << 24):
-                fmt = FFmpeg.PIX_FMT_RGB32_1;
+            case 0xff000000:
+                pixfmt = FFmpeg.PIX_FMT_RGB32_1;
                 break;
             default:
-                /* assume ARGB ? */
-                fmt = FFmpeg.PIX_FMT_RGB32;
+                pixfmt = FFmpeg.PIX_FMT_NONE;
                 break;
             }
-        }
-        else
-            fmt = FFmpeg.PIX_FMT_RGB24;
+            break;
 
-        return fmt;
+        default:
+            pixfmt = FFmpeg.PIX_FMT_NONE;
+            break;
+        }
+
+        return pixfmt;
     }
 
     /**
@@ -426,10 +433,7 @@ public class SwScale
         }
         else /* RGB format */
         {
-            dstFmt
-                = OSUtils.IS_ANDROID
-                    ? getFFmpegPixelFormat((RGBFormat) outputFormat)
-                    : FFmpeg.PIX_FMT_RGB32;
+            dstFmt = getFFmpegPixelFormat((RGBFormat) outputFormat);
             dstLength = (outputWidth * outputHeight * 4);
         }
 

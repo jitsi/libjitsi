@@ -58,13 +58,21 @@ public class JAWTRenderer
                                 Format.NOT_SPECIFIED /* offsetY */,
                                 Format.NOT_SPECIFIED /* offsetU */,
                                 Format.NOT_SPECIFIED /* offsetV */)
-                        : new RGBFormat(
-                                null,
-                                Format.NOT_SPECIFIED,
-                                Format.intArray,
-                                Format.NOT_SPECIFIED,
-                                32,
-                                0x00FF0000, 0x0000FF00, 0x000000FF)
+                        : OSUtils.IS_ANDROID
+                            ? new RGBFormat(
+                                    null,
+                                    Format.NOT_SPECIFIED,
+                                    Format.intArray,
+                                    Format.NOT_SPECIFIED,
+                                    32,
+                                    0x000000ff, 0x0000ff00, 0x00ff0000)
+                            : new RGBFormat(
+                                    null,
+                                    Format.NOT_SPECIFIED,
+                                    Format.intArray,
+                                    Format.NOT_SPECIFIED,
+                                    32,
+                                    0x00ff0000, 0x0000ff00, 0x000000ff)
                 };
 
     static

@@ -62,7 +62,7 @@ public class DirectShowSystem
                 i++)
         {
             long pixelFormat = devices[i].getFormat().getPixelFormat();
-            int ffmpegPixFmt = (int)DataSource.getFFmpegPixFmt(pixelFormat);
+            int ffmpegPixFmt = (int) DataSource.getFFmpegPixFmt(pixelFormat);
             Format format = null;
 
             if(ffmpegPixFmt != FFmpeg.PIX_FMT_NONE)
@@ -86,9 +86,7 @@ public class DirectShowSystem
                                 "Webcam available resolution for "
                                     + devices[i].getName()
                                     + ":"
-                                    + f.getWidth()
-                                    + "x"
-                                    + f.getHeight());
+                                    + f.getWidth() + "x" + f.getHeight());
                 }
             }
 

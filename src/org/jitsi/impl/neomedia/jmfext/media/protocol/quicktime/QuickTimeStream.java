@@ -349,12 +349,10 @@ public class QuickTimeStream
                         CVPixelBufferAttributeKey
                             .kCVPixelBufferPixelFormatTypeKey);
             int width
-                = pixelBufferAttributes
-                    .intForKey(
+                = pixelBufferAttributes.intForKey(
                         CVPixelBufferAttributeKey.kCVPixelBufferWidthKey);
             int height
-                = pixelBufferAttributes
-                    .intForKey(
+                = pixelBufferAttributes.intForKey(
                         CVPixelBufferAttributeKey.kCVPixelBufferHeightKey);
 
             switch (pixelFormatType)

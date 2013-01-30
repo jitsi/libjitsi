@@ -388,7 +388,7 @@ public class DataSource
             if(newValue instanceof AVFrameFormat)
             {
                 AVFrameFormat avFrameFormat = (AVFrameFormat) newValue;
-                long pixFmt = getDSPixFmt(avFrameFormat.getPixFmt());
+                long pixFmt = avFrameFormat.getDeviceSystemPixFmt();
 
                 if(pixFmt != -1)
                 {
