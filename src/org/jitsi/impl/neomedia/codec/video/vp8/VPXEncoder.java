@@ -30,6 +30,16 @@ public class VPXEncoder
     private static final int INTERFACE = VPX.INTERFACE_VP8_ENC;
 
     /**
+     * Default width
+     */
+    private static final int DEFAULT_WIDTH = 640;
+
+    /**
+     * Default height.
+     */
+    private static final int DEFAULT_HEIGHT = 480;
+
+    /**
      * The <tt>Logger</tt> used by the <tt>VPXEncoder</tt> class and its
      * instances for logging output.
      */
@@ -62,10 +72,6 @@ public class VPXEncoder
      */
     private long frameCount = 0;
 
-    /**
-     * Current height of the input and output frames
-     */
-    private int height;
 
     /**
      * Pointer to a native vpx_image instance used to feed frames to the encoder
@@ -92,7 +98,12 @@ public class VPXEncoder
     /**
      * Current width of the input and output frames
      */
-    private int width;
+    private int width = DEFAULT_WIDTH;
+
+    /**
+     * Current height of the input and output frames
+     */
+    private int height = DEFAULT_HEIGHT;
 
     /**
      * Initializes a new <tt>VPXEncoder</tt> instance.
