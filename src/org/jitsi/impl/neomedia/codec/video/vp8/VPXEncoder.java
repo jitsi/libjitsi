@@ -169,6 +169,10 @@ public class VPXEncoder
         }
         VPX.img_set_fmt(img, VPX.IMG_FMT_I420);
         VPX.img_set_bps(img, 12);
+        VPX.img_set_w(img, width);
+        VPX.img_set_d_w(img, width);
+        VPX.img_set_h(img, height);
+        VPX.img_set_d_h(img, height);
 
         cfg = VPX.codec_enc_cfg_malloc();
         if(cfg == 0)
@@ -202,6 +206,34 @@ public class VPXEncoder
 
         if(logger.isDebugEnabled())
             logger.debug("VP8 encoder opened succesfully");
+    }
+
+    /**
+     * Updates the input width and height the encoder should expect.
+     *
+     * @param w new width
+     * @param h new height
+     */
+    private void updateSize(int w, int h)
+    {
+        if(logger.isInfoEnabled())
+            logger.info("Setting new width/height: "+w + "/"+ h);
+
+        this.width = w;
+        this.height = h;
+        if(img != 0)
+        {
+            VPX.img_set_w(img, w);
+            VPX.img_set_d_w(img, w);
+            VPX.img_set_h(img, h);
+            VPX.img_set_d_h(img, h);
+        }
+        if(cfg != 0)
+        {
+            VPX.codec_enc_cfg_set_w(cfg, w);
+            VPX.codec_enc_cfg_set_h(cfg, h);
+            reinit();
+        }
     }
 
     /**
@@ -255,20 +287,7 @@ public class VPXEncoder
 
             if (width > 0 && height > 0 &&
                     (width != this.width || height != this.height))
-            {
-                if(logger.isInfoEnabled())
-                    logger.info("Setting new width/height: "+width + "/"
-                            + height);
-                this.width = width;
-                this.height = height;
-                VPX.img_set_w(img, width);
-                VPX.img_set_d_w(img, width);
-                VPX.img_set_h(img, height);
-                VPX.img_set_d_h(img, height);
-                VPX.codec_enc_cfg_set_w(cfg, width);
-                VPX.codec_enc_cfg_set_h(cfg, height);
-                reinit();
-            }
+                updateSize(width, height);
 
             //setup img
             int strideY = format.getStrideY();
@@ -365,12 +384,12 @@ public class VPXEncoder
     }
 
     /**
-     * Reinitializes the encoder context. Needed in order to encode frames
-     * with different width or height
+     * Reinitializes the encoder context. Needed when the input size changes.
      */
     private void reinit()
     {
-        VPX.codec_destroy(context);
+        if(context != 0)
+            VPX.codec_destroy(context);
 
         int ret = VPX.codec_enc_init(context, INTERFACE, cfg, flags);
 
