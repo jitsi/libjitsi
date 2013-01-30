@@ -30,15 +30,15 @@ public class JNIDecoder
     extends AbstractCodec
 {
     /**
-     * Plugin name.
-     */
-    private static final String PLUGIN_NAME = "H.264 Decoder";
-
-    /**
      * The default output <tt>VideoFormat</tt>.
      */
     private static final VideoFormat[] DEFAULT_OUTPUT_FORMATS
         = new VideoFormat[] { new AVFrameFormat(FFmpeg.PIX_FMT_YUV420P) };
+
+    /**
+     * Plugin name.
+     */
+    private static final String PLUGIN_NAME = "H.264 Decoder";
 
     /**
      *  The codec context native pointer we will use.
@@ -46,9 +46,10 @@ public class JNIDecoder
     private long avctx;
 
     /**
-     *  The decoded data is stored in avpicture in native ffmpeg format (YUV).
+     * The <tt>AVFrame</tt> in which the video frame decoded from the encoded
+     * media data is stored.
      */
-    private long avframe;
+    private AVFrame avframe;
 
     /**
      * If decoder has got a picture.
@@ -116,8 +117,11 @@ public class JNIDecoder
             FFmpeg.av_free(avctx);
             avctx = 0;
 
-            FFmpeg.avcodec_free_frame(avframe);
-            avframe = 0;
+            if (avframe != null)
+            {
+                avframe.free();
+                avframe = null;
+            }
 
             gotPictureAtLeastOnce = false;
         }
@@ -207,6 +211,13 @@ public class JNIDecoder
         if (opened)
             return;
 
+        if (avframe != null)
+        {
+            avframe.free();
+            avframe = null;
+        }
+        avframe = new AVFrame();
+
         long avcodec = FFmpeg.avcodec_find_decoder(FFmpeg.CODEC_ID_H264);
 
         avctx = FFmpeg.avcodec_alloc_context3(avcodec);
@@ -220,8 +231,6 @@ public class JNIDecoder
         if (FFmpeg.avcodec_open2(avctx, avcodec) < 0)
             throw new RuntimeException("Could not open codec CODEC_ID_H264");
 
-        avframe = FFmpeg.avcodec_alloc_frame();
-
         gotPictureAtLeastOnce = false;
 
         opened = true;
@@ -232,23 +241,23 @@ public class JNIDecoder
      * Decodes H.264 media data read from a specific input <tt>Buffer</tt> into
      * a specific output <tt>Buffer</tt>.
      *
-     * @param inBuffer input <tt>Buffer</tt>
-     * @param outBuffer output <tt>Buffer</tt>
-     * @return <tt>BUFFER_PROCESSED_OK</tt> if <tt>inBuffer</tt> has been
-     * successfully processed
+     * @param in input <tt>Buffer</tt>
+     * @param out output <tt>Buffer</tt>
+     * @return <tt>BUFFER_PROCESSED_OK</tt> if <tt>in</tt> has been successfully
+     * processed
      */
-    public synchronized int process(Buffer inBuffer, Buffer outBuffer)
+    public synchronized int process(Buffer in, Buffer out)
     {
-        if (!checkInputBuffer(inBuffer))
+        if (!checkInputBuffer(in))
             return BUFFER_PROCESSED_FAILED;
-        if (isEOM(inBuffer) || !opened)
+        if (isEOM(in) || !opened)
         {
-            propagateEOM(outBuffer);
+            propagateEOM(out);
             return BUFFER_PROCESSED_OK;
         }
-        if (inBuffer.isDiscard())
+        if (in.isDiscard())
         {
-            outBuffer.setDiscard(true);
+            out.setDiscard(true);
             return BUFFER_PROCESSED_OK;
         }
 
@@ -257,19 +266,19 @@ public class JNIDecoder
         // TODO Take into account the offset of inputBuffer.
         FFmpeg.avcodec_decode_video(
                 avctx,
-                avframe,
+                avframe.getPtr(),
                 got_picture,
-                (byte[]) inBuffer.getData(), inBuffer.getLength());
+                (byte[]) in.getData(), in.getLength());
 
         if (!got_picture[0])
         {
-            if ((inBuffer.getFlags() & Buffer.FLAG_RTP_MARKER) != 0)
+            if ((in.getFlags() & Buffer.FLAG_RTP_MARKER) != 0)
             {
                 if (keyFrameControl != null)
                     keyFrameControl.requestKeyFrame(!gotPictureAtLeastOnce);
             }
 
-            outBuffer.setDiscard(true);
+            out.setDiscard(true);
             return BUFFER_PROCESSED_OK;
         }
         gotPictureAtLeastOnce = true;
@@ -287,38 +296,35 @@ public class JNIDecoder
 
             // Output in same size and frame rate as input.
             Dimension outSize = new Dimension(this.width, this.height);
-            VideoFormat inFormat = (VideoFormat) inBuffer.getFormat();
+            VideoFormat inFormat = (VideoFormat) in.getFormat();
             float outFrameRate = ensureFrameRate(inFormat.getFrameRate());
 
             outputFormat
                 = new AVFrameFormat(
                         outSize,
                         outFrameRate,
-                        FFmpeg.PIX_FMT_YUV420P,
-                        Format.NOT_SPECIFIED);
+                        FFmpeg.PIX_FMT_YUV420P);
         }
-        outBuffer.setFormat(outputFormat);
+        out.setFormat(outputFormat);
 
         // data
-        Object out = outBuffer.getData();
-
-        if (!(out instanceof AVFrame) || (((AVFrame) out).getPtr() != avframe))
-            outBuffer.setData(new AVFrame(avframe));
+        if (out.getData() != avframe)
+            out.setData(avframe);
 
         // timeStamp
         long pts = FFmpeg.AV_NOPTS_VALUE; // TODO avframe_get_pts(avframe);
 
         if (pts == FFmpeg.AV_NOPTS_VALUE)
-            outBuffer.setTimeStamp(Buffer.TIME_UNKNOWN);
+            out.setTimeStamp(Buffer.TIME_UNKNOWN);
         else
         {
-            outBuffer.setTimeStamp(pts);
+            out.setTimeStamp(pts);
 
-            int outFlags = outBuffer.getFlags();
+            int outFlags = out.getFlags();
 
             outFlags |= Buffer.FLAG_RELATIVE_TIME;
             outFlags &= ~(Buffer.FLAG_RTP_TIME | Buffer.FLAG_SYSTEM_TIME);
-            outBuffer.setFlags(outFlags);
+            out.setFlags(outFlags);
         }
 
         return BUFFER_PROCESSED_OK;

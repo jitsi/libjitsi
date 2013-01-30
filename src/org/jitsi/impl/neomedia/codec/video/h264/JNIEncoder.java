@@ -152,7 +152,7 @@ public class JNIEncoder
     /**
      * The encoded data is stored in avpicture.
      */
-    private long avframe;
+    private long avFrame;
 
     /**
      * Force encoder to send a key frame.
@@ -254,10 +254,10 @@ public class JNIEncoder
                 avctx = 0;
             }
 
-            if (avframe != 0)
+            if (avFrame != 0)
             {
-                FFmpeg.avcodec_free_frame(avframe);
-                avframe = 0;
+                FFmpeg.avcodec_free_frame(avFrame);
+                avFrame = 0;
             }
             if (rawFrameBuffer != 0)
             {
@@ -512,7 +512,7 @@ public class JNIEncoder
 
         String preset
             = (cfg == null)
-                ? null
+                ? DEFAULT_PRESET
                 : cfg.getString(PRESET_PNAME, DEFAULT_PRESET);
 
         if (FFmpeg.avcodec_open2(
@@ -541,16 +541,16 @@ public class JNIEncoder
 
         rawFrameLen = (width * height * 3) / 2;
         rawFrameBuffer = FFmpeg.av_malloc(rawFrameLen);
-        avframe = FFmpeg.avcodec_alloc_frame();
+        avFrame = FFmpeg.avcodec_alloc_frame();
 
         int sizeInBytes = width * height;
 
         FFmpeg.avframe_set_data(
-                avframe,
+                avFrame,
                 rawFrameBuffer,
                 sizeInBytes,
                 sizeInBytes / 4);
-        FFmpeg.avframe_set_linesize(avframe, width, width / 2, width / 2);
+        FFmpeg.avframe_set_linesize(avFrame, width, width / 2, width / 2);
 
         /*
          * Implement the ability to have the remote peer request key frames from
@@ -617,7 +617,7 @@ public class JNIEncoder
 
         if (/* framesSinceLastIFrame >= IFRAME_INTERVAL || */ forceKeyFrame)
         {
-            FFmpeg.avframe_set_key_frame(avframe, true);
+            FFmpeg.avframe_set_key_frame(avFrame, true);
             framesSinceLastIFrame = 0;
 
             /* send keyframe for the first two frames */
@@ -634,7 +634,7 @@ public class JNIEncoder
         else
         {
             framesSinceLastIFrame++;
-            FFmpeg.avframe_set_key_frame(avframe, false);
+            FFmpeg.avframe_set_key_frame(avFrame, false);
         }
 
         /*
@@ -659,10 +659,10 @@ public class JNIEncoder
         }
 
         // encode data
-        int encLen
-            = FFmpeg.avcodec_encode_video(avctx, out, out.length, avframe);
+        int outputLength
+            = FFmpeg.avcodec_encode_video(avctx, out, out.length, avFrame);
 
-        outBuffer.setLength(encLen);
+        outBuffer.setLength(outputLength);
         outBuffer.setOffset(0);
         outBuffer.setTimeStamp(inBuffer.getTimeStamp());
         return BUFFER_PROCESSED_OK;
@@ -708,10 +708,14 @@ public class JNIEncoder
     }
 
     /**
-     * Sets the input format.
+     * Sets the <tt>Format</tt> of the media data to be input to this
+     * <tt>Codec</tt>.
      *
-     * @param format format to set
-     * @return format
+     * @param format the <tt>Format</tt> of media data to set on this
+     * <tt>Codec</tt>
+     * @return the <tt>Format</tt> of media data set on this <tt>Codec</tt> or
+     * <tt>null</tt> if the specified <tt>format</tt> is not supported by this
+     * <tt>Codec</tt>
      */
     @Override
     public Format setInputFormat(Format format)

@@ -18,8 +18,8 @@ import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.util.*;
 
 /**
- * Implements a <tt>Codec</tt> which uses libswscale to scale images and convert
- * between color spaces (typically, RGB and YUV).
+ * Implements an FMJ <tt>Codec</tt> which uses libswscale to scale images and
+ * convert between color spaces (typically, RGB and YUV).
  *
  * @author Sebastien Vincent
  * @author Lyubomir Marinov
@@ -128,7 +128,7 @@ public class SwScale
             format
                 = new RGBFormat(
                         size,
-                        Format.NOT_SPECIFIED,
+                        /* maxDataLength */ Format.NOT_SPECIFIED,
                         dataType,
                         format.getFrameRate(),
                         bitsPerPixel,
@@ -150,15 +150,15 @@ public class SwScale
             format
                 = new YUVFormat(
                         size,
-                        Format.NOT_SPECIFIED,
+                        /* maxDataLength */ Format.NOT_SPECIFIED,
                         format.getDataType(),
                         format.getFrameRate(),
                         yuvFormat.getYuvType(),
-                        Format.NOT_SPECIFIED,
-                        Format.NOT_SPECIFIED,
+                        /* strideY */ Format.NOT_SPECIFIED,
+                        /* strideUV */ Format.NOT_SPECIFIED,
                         0,
-                        Format.NOT_SPECIFIED,
-                        Format.NOT_SPECIFIED);
+                        /* offsetU */ Format.NOT_SPECIFIED,
+                        /* offsetV */ Format.NOT_SPECIFIED);
         }
         else if (format != null)
         {
@@ -186,21 +186,12 @@ public class SwScale
     /**
      * Supported output formats.
      */
-    private Format[] supportedOutputFormats = new Format[]
-    {
-        new YUVFormat(null, -1, Format.byteArray, -1.0f, YUVFormat.YUV_420,
-                -1, -1, 0, -1, -1),
-        new YUVFormat(null, -1, Format.intArray, -1.0f, YUVFormat.YUV_420,
-                -1, -1, 0, -1, -1),
-        new YUVFormat(null, -1, Format.shortArray, -1.0f, YUVFormat.YUV_420,
-                -1, -1, 0, -1, -1),
-        new RGBFormat(null, -1, Format.byteArray, -1.0f, 32, -1, -1, -1),
-        new RGBFormat(null, -1, Format.intArray, -1.0f, 32, -1, -1, -1),
-        new RGBFormat(null, -1, Format.shortArray, -1.0f, 32, -1, -1, -1),
-        new RGBFormat(null, -1, Format.byteArray, -1.0f, 24, -1, -1, -1),
-        new RGBFormat(null, -1, Format.intArray, -1.0f, 24, -1, -1, -1),
-        new RGBFormat(null, -1, Format.shortArray, -1.0f, 24, -1, -1, -1),
-    };
+    private VideoFormat[] supportedOutputFormats
+        = new VideoFormat[]
+                {
+                    new RGBFormat(),
+                    new YUVFormat(YUVFormat.YUV_420)
+                };
 
     /**
      * The pointer to the <tt>libswscale</tt> context.
@@ -228,22 +219,13 @@ public class SwScale
     {
         this.fixOddYuv420Size = fixOddYuv420Size;
 
-        inputFormats = new Format[]
-        {
-            new AVFrameFormat(),
-            new RGBFormat(null, -1, Format.byteArray, -1.0f, 32, -1, -1, -1),
-            new RGBFormat(null, -1, Format.intArray, -1.0f, 32, -1, -1, -1),
-            new RGBFormat(null, -1, Format.shortArray, -1.0f, 32, -1, -1, -1),
-            new RGBFormat(null, -1, Format.byteArray, -1.0f, 24, -1, -1, -1),
-            new RGBFormat(null, -1, Format.intArray, -1.0f, 24, -1, -1, -1),
-            new RGBFormat(null, -1, Format.shortArray, -1.0f, 24, -1, -1, -1),
-            new YUVFormat(null, -1, Format.byteArray, -1.0f, YUVFormat.YUV_420,
-                    -1, -1, 0, -1, -1),
-            new YUVFormat(null, -1, Format.intArray, -1.0f, YUVFormat.YUV_420,
-                    -1, -1, 0, -1, -1),
-            new YUVFormat(null, -1, Format.shortArray, -1.0f, YUVFormat.YUV_420,
-                    -1, -1, 0, -1, -1),
-        };
+        inputFormats
+            = new Format[]
+                    {
+                        new AVFrameFormat(),
+                        new RGBFormat(),
+                        new YUVFormat(YUVFormat.YUV_420)
+                    };
 
         addControl(frameProcessingControl);
     }
@@ -311,7 +293,7 @@ public class SwScale
     @Override
     public Format[] getSupportedOutputFormats(Format input)
     {
-        if(input == null)
+        if (input == null)
             return supportedOutputFormats;
 
         /* if size is set for element 0 (YUVFormat), it is also set
@@ -324,7 +306,7 @@ public class SwScale
          */
         VideoFormat videoInput = (VideoFormat) input;
 
-        if(size == null)
+        if (size == null)
             size = videoInput.getSize();
 
         float frameRate = videoInput.getFrameRate();
@@ -332,24 +314,26 @@ public class SwScale
         return
             new Format[]
             {
-                new YUVFormat(size, -1, Format.byteArray, frameRate,
-                        YUVFormat.YUV_420, -1, -1, 0, -1, -1),
-                new YUVFormat(size, -1, Format.intArray, frameRate,
-                        YUVFormat.YUV_420, -1, -1, 0, -1, -1),
-                new YUVFormat(size, -1, Format.shortArray, frameRate,
-                        YUVFormat.YUV_420, -1, -1, 0, -1, -1),
-                new RGBFormat(size, -1, Format.byteArray, frameRate, 32, -1, -1,
-                        -1),
-                new RGBFormat(size, -1, Format.intArray, frameRate, 32, -1, -1,
-                        -1),
-                new RGBFormat(size, -1, Format.shortArray, frameRate, 32, -1,
-                        -1, -1),
-                new RGBFormat(size, -1, Format.byteArray, frameRate, 24, -1, -1,
-                        -1),
-                new RGBFormat(size, -1, Format.intArray, frameRate, 24, -1, -1,
-                        -1),
-                new RGBFormat(size, -1, Format.shortArray, frameRate, 24, -1,
-                        -1, -1)
+                new RGBFormat(
+                        size,
+                        /* maxDataLength */ Format.NOT_SPECIFIED,
+                        /* dataType */ null,
+                        frameRate,
+                        32,
+                        /* red */ Format.NOT_SPECIFIED,
+                        /* green */ Format.NOT_SPECIFIED,
+                        /* blue */ Format.NOT_SPECIFIED),
+                new YUVFormat(
+                        size,
+                        /* maxDataLength */ Format.NOT_SPECIFIED,
+                        /* dataType */ null,
+                        frameRate,
+                        YUVFormat.YUV_420,
+                        /* strideY */ Format.NOT_SPECIFIED,
+                        /* strideUV */ Format.NOT_SPECIFIED,
+                        /* offsetY */ Format.NOT_SPECIFIED,
+                        /* offsetU */ Format.NOT_SPECIFIED,
+                        /* offsetV */ Format.NOT_SPECIFIED)
             };
     }
 
@@ -425,43 +409,47 @@ public class SwScale
         int dstFmt;
         int dstLength;
 
-        if (outputFormat instanceof YUVFormat)
-        {
-            dstFmt = FFmpeg.PIX_FMT_YUV420P;
-            /* YUV420P is 12 bits per pixel i.e. 1.5 bytes. */
-            dstLength = (int) (outputWidth * outputHeight * 1.5);
-        }
-        else /* RGB format */
+        if (outputFormat instanceof RGBFormat)
         {
             dstFmt = getFFmpegPixelFormat((RGBFormat) outputFormat);
             dstLength = (outputWidth * outputHeight * 4);
         }
+        else if (outputFormat instanceof YUVFormat)
+        {
+            dstFmt = FFmpeg.PIX_FMT_YUV420P;
+            /* YUV420P is 12 bits per pixel. */
+            dstLength
+                = outputWidth * outputHeight
+                    + 2 * ((outputWidth + 1) / 2) * ((outputHeight + 1) / 2);
+        }
+        else
+            return BUFFER_PROCESSED_FAILED;
 
         Class<?> outputDataType = outputFormat.getDataType();
         Object dst = output.getData();
 
         if (Format.byteArray.equals(outputDataType))
         {
-            if(dst == null || ((byte[])dst).length < dstLength)
+            if ((dst == null) || (((byte[]) dst).length < dstLength))
                 dst = new byte[dstLength];
         }
         else if (Format.intArray.equals(outputDataType))
         {
             /* Java int is always 4 bytes. */
             dstLength = dstLength / 4 + ((dstLength % 4 == 0) ? 0 : 1);
-            if(dst == null || ((int[])dst).length < dstLength)
+            if ((dst == null) || (((int[]) dst).length < dstLength))
                 dst = new int[dstLength];
         }
         else if (Format.shortArray.equals(outputDataType))
         {
             /* Java short is always 2 bytes. */
             dstLength = dstLength / 2 + ((dstLength % 2 == 0) ? 0 : 1);
-            if(dst == null || ((short[])dst).length < dstLength)
+            if ((dst == null) || (((short[]) dst).length < dstLength))
                 dst = new short[dstLength];
         }
         else
         {
-            logger.error("Unknown data type " + outputDataType);
+            logger.error("Unsupported output data type " + outputDataType);
             return BUFFER_PROCESSED_FAILED;
         }
 
@@ -642,27 +630,11 @@ public class SwScale
      */
     public void setOutputSize(Dimension size)
     {
-        supportedOutputFormats[0]
-            = new YUVFormat(size, -1, Format.byteArray, -1.0f,
-                    YUVFormat.YUV_420, -1, -1, 0, -1, -1);
-        supportedOutputFormats[1]
-            = new YUVFormat(size, -1, Format.intArray, -1.0f, YUVFormat.YUV_420,
-                    -1, -1, 0, -1, -1);
-        supportedOutputFormats[2]
-            = new YUVFormat(size, -1, Format.shortArray, -1.0f,
-                    YUVFormat.YUV_420, -1, -1, 0, -1, -1);
-        supportedOutputFormats[3]
-            = new RGBFormat(size, -1, Format.byteArray, -1.0f, 32, -1, -1, -1);
-        supportedOutputFormats[4]
-            = new RGBFormat(size, -1, Format.intArray, -1.0f, 32, -1, -1, -1);
-        supportedOutputFormats[5]
-            = new RGBFormat(size, -1, Format.shortArray, -1.0f, 32, -1, -1, -1);
-        supportedOutputFormats[6]
-            = new RGBFormat(size, -1, Format.byteArray, -1.0f, 24, -1, -1, -1);
-        supportedOutputFormats[7]
-            = new RGBFormat(size, -1, Format.intArray, -1.0f, 24, -1, -1, -1);
-        supportedOutputFormats[8]
-            = new RGBFormat(size, -1, Format.shortArray, -1.0f, 24, -1, -1, -1);
+        for (int i = 0; i < supportedOutputFormats.length; i++)
+        {
+            supportedOutputFormats[i]
+                = setSize(supportedOutputFormats[i], size);
+        }
 
         // Set the size to the outputFormat as well.
         setOutputFormatSize(size);

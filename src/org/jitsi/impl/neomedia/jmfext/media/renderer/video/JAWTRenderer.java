@@ -81,72 +81,6 @@ public class JAWTRenderer
     }
 
     /**
-     * The AWT <tt>Component</tt> into which this <tt>VideoRenderer</tt> draws.
-     */
-    private Component component;
-
-    /**
-     * The handle to the native counterpart of this <tt>JAWTRenderer</tt>.
-     */
-    private long handle = 0;
-
-    /**
-     * The last known height of the input processed by this
-     * <tt>JAWTRenderer</tt>.
-     */
-    private int inputHeight = 0;
-
-    /**
-     * The last known width of the input processed by this
-     * <tt>JAWTRenderer</tt>.
-     */
-    private int inputWidth = 0;
-
-    /**
-     * Initializes a new <tt>JAWTRenderer</tt> instance.
-     */
-    public JAWTRenderer()
-    {
-    }
-
-    /**
-     * Closes this <tt>PlugIn</tt> and releases the resources it has retained
-     * during its execution. No more data will be accepted by this
-     * <tt>PlugIn</tt> afterwards. A closed <tt>PlugIn</tt> can be reinstated by
-     * calling <tt>open</tt> again.
-     */
-    public synchronized void close()
-    {
-        if (handle != 0)
-        {
-            try
-            {
-                /*
-                 * It may or may not be necessary to ensure that #removeNotify()
-                 * is delivered to the native counterpart of this JAWTRenderer.
-                 * Anyway, do so for the sake of completeness.
-                 */
-                /*
-                 * Unfortunately, doing so in the synchronized block leads to a
-                 * deadlock.
-                 */
-//                if (JComponent.isLightweightComponent(component))
-//                {
-//                    Container parent = component.getParent();
-//
-//                    if (parent != null)
-//                        parent.remove(component);
-//                }
-            }
-            finally
-            {
-                close(handle, component);
-                handle = 0;
-            }
-        }
-    }
-
-    /**
      * Closes the native counterpart of a <tt>JAWTRenderer</tt> specified by its
      * handle as returned by {@link #open(Component)} and rendering into a
      * specific AWT <tt>Component</tt>. Releases the resources which the
@@ -162,6 +96,122 @@ public class JAWTRenderer
      * valid.
      */
     private static native void close(long handle, Component component);
+
+    /**
+     * Opens a handle to a native counterpart of a <tt>JAWTRenderer</tt> which
+     * is to draw into a specific AWT <tt>Component</tt>.
+     *
+     * @param component the AWT <tt>Component</tt> into which a
+     * <tt>JAWTRenderer</tt> and the native counterpart to be opened are to
+     * draw. The platform-specific info of <tt>component</tt> is not guaranteed
+     * to be valid.
+     * @return a handle to a native counterpart of a <tt>JAWTRenderer</tt> which
+     * is to draw into the specified AWT <tt>Component</tt>
+     * @throws ResourceUnavailableException if there is a problem during opening
+     */
+    private static native long open(Component component)
+        throws ResourceUnavailableException;
+
+    /**
+     * Paints a specific <tt>Component</tt> which is the AWT <tt>Component</tt>
+     * of a <tt>JAWTRenderer</tt> specified by the handle to its native
+     * counterpart.
+     *
+     * @param handle the handle to the native counterpart of a
+     * <tt>JAWTRenderer</tt> which is to draw into the specified AWT
+     * <tt>Component</tt>
+     * @param component the AWT <tt>Component</tt> into which the
+     * <tt>JAWTRenderer</tt> and its native counterpart specified by
+     * <tt>handle</tt> are to draw. The platform-specific info of
+     * <tt>component</tt> is guaranteed to be valid only during the execution of
+     * <tt>paint</tt>.
+     * @param g the <tt>Graphics</tt> context into which the drawing is to be
+     * performed
+     * @param zOrder
+     * @return <tt>true</tt> if the native counterpart of a
+     * <tt>JAWTRenderer</tt> wants to continue receiving the <tt>paint</tt>
+     * calls on the AWT <tt>Component</tt>; otherwise, false. For example, after
+     * the native counterpart has been able to acquire the native handle of the
+     * AWT <tt>Component</tt>, it may be able to determine when the native
+     * handle needs painting without waiting for AWT to call <tt>paint</tt> on
+     * the <tt>Component</tt>. In such a scenario, the native counterpart may
+     * indicate with <tt>false</tt> that it does not need further <tt>paint</tt>
+     * deliveries.
+     */
+    static native boolean paint(
+            long handle,
+            Component component, Graphics g,
+            int zOrder);
+
+    /**
+     * Processes the data provided in a specific <tt>int</tt> array with a
+     * specific offset and length and renders it to the output device
+     * represented by a <tt>JAWTRenderer</tt> specified by the handle to it
+     * native counterpart.
+     *
+     * @param handle the handle to the native counterpart of a
+     * <tt>JAWTRenderer</tt> to process the specified data and render it
+     * @param component the <tt>AWT</tt> component into which the specified
+     * <tt>JAWTRenderer</tt> and its native counterpart draw
+     * @param data an <tt>int</tt> array which contains the data to be processed
+     * and rendered
+     * @param offset the index in <tt>data</tt> at which the data to be
+     * processed and rendered starts
+     * @param length the number of elements in <tt>data</tt> starting at
+     * <tt>offset</tt> which represent the data to be processed and rendered
+     * @param width the width of the video frame in <tt>data</tt>
+     * @param height the height of the video frame in <tt>data</tt>
+     * @return <tt>true</tt> if data has been successfully processed
+     */
+    static native boolean process(
+            long handle,
+            Component component,
+            int[] data, int offset, int length,
+            int width, int height);
+
+    private static native String sysctlbyname(String name);
+
+    /**
+     * The AWT <tt>Component</tt> into which this <tt>VideoRenderer</tt> draws.
+     */
+    private Component component;
+
+    /**
+     * The handle to the native counterpart of this <tt>JAWTRenderer</tt>.
+     */
+    private long handle = 0;
+
+    /**
+     * The last known height of the input processed by this
+     * <tt>JAWTRenderer</tt>.
+     */
+    private int height = 0;
+
+    /**
+     * The last known width of the input processed by this
+     * <tt>JAWTRenderer</tt>.
+     */
+    private int width = 0;
+
+    /**
+     * Initializes a new <tt>JAWTRenderer</tt> instance.
+     */
+    public JAWTRenderer() {}
+
+    /**
+     * Closes this <tt>PlugIn</tt> and releases the resources it has retained
+     * during its execution. No more data will be accepted by this
+     * <tt>PlugIn</tt> afterwards. A closed <tt>PlugIn</tt> can be reinstated by
+     * calling <tt>open</tt> again.
+     */
+    public synchronized void close()
+    {
+        if (handle != 0)
+        {
+            close(handle, component);
+            handle = 0;
+        }
+    }
 
     /**
      * Gets the region in the component of this <tt>VideoRenderer</tt> where the
@@ -190,8 +240,7 @@ public class JAWTRenderer
             StringBuilder componentClassName = new StringBuilder();
 
             componentClassName.append(
-                    "org.jitsi"
-                        + ".impl.neomedia.jmfext.media.renderer.video"
+                    "org.jitsi.impl.neomedia.jmfext.media.renderer.video"
                         + ".JAWTRenderer");
             if (OSUtils.IS_ANDROID)
                 componentClassName.append("Android");
@@ -235,6 +284,8 @@ public class JAWTRenderer
             {
                 throw new RuntimeException(ite);
             }
+
+            reflectInputFormatOnComponent();
         }
         return component;
     }
@@ -317,7 +368,7 @@ public class JAWTRenderer
                 if (handle == 0)
                 {
                     throw new ResourceUnavailableException(
-                            "Failed to open the native counterpart of JAWTRenderer");
+                            "Failed to open the native JAWTRenderer.");
                 }
             }
             else
@@ -344,52 +395,6 @@ public class JAWTRenderer
     }
 
     /**
-     * Opens a handle to a native counterpart of a <tt>JAWTRenderer</tt> which
-     * is to draw into a specific AWT <tt>Component</tt>.
-     *
-     * @param component the AWT <tt>Component</tt> into which a
-     * <tt>JAWTRenderer</tt> and the native counterpart to be opened are to
-     * draw. The platform-specific info of <tt>component</tt> is not guaranteed
-     * to be valid.
-     * @return a handle to a native counterpart of a <tt>JAWTRenderer</tt> which
-     * is to draw into the specified AWT <tt>Component</tt>
-     * @throws ResourceUnavailableException if there is a problem during opening
-     */
-    private static native long open(Component component)
-        throws ResourceUnavailableException;
-
-    /**
-     * Paints a specific <tt>Component</tt> which is the AWT <tt>Component</tt>
-     * of a <tt>JAWTRenderer</tt> specified by the handle to its native
-     * counterpart.
-     *
-     * @param handle the handle to the native counterpart of a
-     * <tt>JAWTRenderer</tt> which is to draw into the specified AWT
-     * <tt>Component</tt>
-     * @param component the AWT <tt>Component</tt> into which the
-     * <tt>JAWTRenderer</tt> and its native counterpart specified by
-     * <tt>handle</tt> are to draw. The platform-specific info of
-     * <tt>component</tt> is guaranteed to be valid only during the execution of
-     * <tt>paint</tt>.
-     * @param g the <tt>Graphics</tt> context into which the drawing is to be
-     * performed
-     * @param zOrder
-     * @return <tt>true</tt> if the native counterpart of a
-     * <tt>JAWTRenderer</tt> wants to continue receiving the <tt>paint</tt>
-     * calls on the AWT <tt>Component</tt>; otherwise, false. For example, after
-     * the native counterpart has been able to acquire the native handle of the
-     * AWT <tt>Component</tt>, it may be able to determine when the native
-     * handle needs painting without waiting for AWT to call <tt>paint</tt> on
-     * the <tt>Component</tt>. In such a scenario, the native counterpart may
-     * indicate with <tt>false</tt> that it does not need further <tt>paint</tt>
-     * deliveries.
-     */
-    static native boolean paint(
-            long handle,
-            Component component, Graphics g,
-            int zOrder);
-
-    /**
      * Processes the data provided in a specific <tt>Buffer</tt> and renders it
      * to the output device represented by this <tt>Renderer</tt>.
      *
@@ -409,13 +414,13 @@ public class JAWTRenderer
         if (bufferLength == 0)
             return BUFFER_PROCESSED_OK;
 
-        Format bufferFormat = buffer.getFormat();
+        Format format = buffer.getFormat();
 
-        if ((bufferFormat != null)
-                && (bufferFormat != this.inputFormat)
-                && !bufferFormat.equals(this.inputFormat))
+        if ((format != null)
+                && (format != this.inputFormat)
+                && !format.equals(this.inputFormat))
         {
-            if (setInputFormat(bufferFormat) == null)
+            if (setInputFormat(format) == null)
                 return BUFFER_PROCESSED_FAILED;
         }
 
@@ -425,8 +430,8 @@ public class JAWTRenderer
         {
             Dimension size = null;
 
-            if (bufferFormat != null)
-                size = ((VideoFormat) bufferFormat).getSize();
+            if (format != null)
+                size = ((VideoFormat) format).getSize();
             if (size == null)
             {
                 size = this.inputFormat.getSize();
@@ -451,30 +456,52 @@ public class JAWTRenderer
     }
 
     /**
-     * Processes the data provided in a specific <tt>int</tt> array with a
-     * specific offset and length and renders it to the output device
-     * represented by a <tt>JAWTRenderer</tt> specified by the handle to it
-     * native counterpart.
-     *
-     * @param handle the handle to the native counterpart of a
-     * <tt>JAWTRenderer</tt> to process the specified data and render it
-     * @param component the <tt>AWT</tt> component into which the specified
-     * <tt>JAWTRenderer</tt> and its native counterpart draw
-     * @param data an <tt>int</tt> array which contains the data to be processed
-     * and rendered
-     * @param offset the index in <tt>data</tt> at which the data to be
-     * processed and rendered starts
-     * @param length the number of elements in <tt>data</tt> starting at
-     * <tt>offset</tt> which represent the data to be processed and rendered
-     * @param width the width of the video frame in <tt>data</tt>
-     * @param height the height of the video frame in <tt>data</tt>
-     * @return <tt>true</tt> if data has been successfully processed
+     * Sets properties of the AWT <tt>Component</tt> of this <tt>Renderer</tt>
+     * which depend on the properties of the <tt>inputFormat</tt> of this
+     * <tt>Renderer</tt>.
      */
-    static native boolean process(
-            long handle,
-            Component component,
-            int[] data, int offset, int length,
-            int width, int height);
+    private void reflectInputFormatOnComponent()
+    {
+        /*
+         * Reflect the width and height of the input onto the prefSize of our
+         * AWT Component (if necessary).
+         */
+        if ((component != null) && (width > 0) && (height > 0))
+        {
+            Dimension prefSize = component.getPreferredSize();
+
+            /*
+             * Apart from the simplest of cases in which the component has no
+             * prefSize, it is also necessary to reflect the width and height of
+             * the input onto the prefSize when the ratio of the input is
+             * different than the ratio of the prefSize. It may also be argued
+             * that the component needs to know of the width and height of the
+             * input if its prefSize is with the same ratio but is smaller.
+             */
+            if ((prefSize == null)
+                    || (prefSize.width < 1) || (prefSize.height < 1)
+                    || !VideoLayout.areAspectRatiosEqual(
+                            prefSize,
+                            width, height)
+                    || (prefSize.width < width) || (prefSize.height < height))
+            {
+                component.setPreferredSize(
+                        new Dimension(width, height));
+            }
+
+            /*
+             * If the component does not have a size, it looks strange given
+             * that we know a prefSize for it.
+             */
+            Dimension size = component.getSize();
+
+            if ((size.width < 1) || (size.height < 1))
+            {
+                prefSize = component.getPreferredSize();
+                component.setSize(prefSize.width, prefSize.height);
+            }
+        }
+    }
 
     /**
      * Sets the region in the component of this <tt>VideoRenderer</tt> where the
@@ -519,84 +546,48 @@ public class JAWTRenderer
      * which most closely matches the specified <tt>Format</tt>.
      */
     @Override
-    public Format setInputFormat(Format format)
+    public synchronized Format setInputFormat(Format format)
     {
-        super.setInputFormat(format);
+        VideoFormat oldInputFormat = inputFormat;
+        Format newInputFormat = super.setInputFormat(format);
+
+        /*
+         * Short-circuit because we will be calculating a lot and we do not want
+         * to do that unless necessary.
+         */
+        if (oldInputFormat == inputFormat)
+            return newInputFormat;
 
         /*
          * Know the width and height of the input because we'll be depicting it
-         * and we may want, for example, to report it as the preferred size of
-         * our AWT Component.
+         * and we may want, for example, to report them as the preferred size of
+         * our AWT Component. More importantly, know them because they determine
+         * certain arguments to be passed to the native counterpart of this
+         * JAWTRenderer i.e. handle.
          */
-        Dimension inputSize = inputFormat.getSize();
+        Dimension size = inputFormat.getSize();
 
-        if (inputSize != null)
+        if (size == null)
+            width = height = 0;
+        else
         {
-            inputWidth = inputSize.width;
-            inputHeight = inputSize.height;
+            width = size.width;
+            height = size.height;
         }
 
-        /*
-         * Reflect the width and height of the input onto the preferredSize of
-         * our AWT Component (if necessary).
-         */
-        if ((inputWidth > 0) && (inputHeight > 0))
-        {
-            Component component = getComponent();
-            Dimension preferredSize = component.getPreferredSize();
+        reflectInputFormatOnComponent();
 
-            /*
-             * Apart from the simplest of cases in which the component has no
-             * preferredSize, it is also necessary to reflect the width and
-             * height of the input onto the preferredSize when the ratio of the
-             * input is different than the ratio of the preferredSize. It may
-             * also be argued that the component needs to know of the width and
-             * height of the input if its preferredSize is with the same ratio
-             * but is smaller.
-             */
-            if ((preferredSize == null)
-                    || (preferredSize.width < 1)
-                    || (preferredSize.height < 1)
-                    || !VideoLayout.areAspectRatiosEqual(
-                            preferredSize,
-                            inputWidth, inputHeight)
-                    || (preferredSize.width < inputWidth)
-                    || (preferredSize.height < inputHeight))
-            {
-                component.setPreferredSize(
-                        new Dimension(inputWidth, inputHeight));
-            }
-
-            /*
-             * If the component does not have a size, it looks strange given
-             * that we know a preferredSize for it.
-             */
-            Dimension size = component.getSize();
-
-            if ((size.width < 1) || (size.height < 1))
-            {
-                preferredSize = component.getPreferredSize();
-                component.setSize(preferredSize.width, preferredSize.height);
-            }
-        }
-
-        return inputFormat;
+        return newInputFormat;
     }
 
     /**
      * Starts the rendering process. Begins rendering any data available in the
      * internal buffers of this <tt>Renderer</tt>.
      */
-    public void start()
-    {
-    }
+    public void start() {}
 
     /**
      * Stops the rendering process.
      */
-    public void stop()
-    {
-    }
-
-    private static native String sysctlbyname(String name);
+    public void stop() {}
 }

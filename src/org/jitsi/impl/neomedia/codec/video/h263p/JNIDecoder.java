@@ -210,25 +210,23 @@ public class JNIDecoder
      * Decodes H.263+ media data read from a specific input <tt>Buffer</tt> into
      * a specific output <tt>Buffer</tt>.
      *
-     * @param inBuffer input <tt>Buffer</tt>
-     * @param outBuffer output <tt>Buffer</tt>
-     * @return <tt>BUFFER_PROCESSED_OK</tt> if <tt>inBuffer</tt> has been
-     * successfully processed
+     * @param in input <tt>Buffer</tt>
+     * @param out output <tt>Buffer</tt>
+     * @return <tt>BUFFER_PROCESSED_OK</tt> if <tt>in</tt> has been successfully
+     * processed
      */
-    public synchronized int process(Buffer inBuffer, Buffer outBuffer)
+    public synchronized int process(Buffer in, Buffer out)
     {
-        if (!checkInputBuffer(inBuffer))
+        if (!checkInputBuffer(in))
             return BUFFER_PROCESSED_FAILED;
-
-        if (isEOM(inBuffer) || !opened)
+        if (isEOM(in) || !opened)
         {
-            propagateEOM(outBuffer);
+            propagateEOM(out);
             return BUFFER_PROCESSED_OK;
         }
-
-        if (inBuffer.isDiscard())
+        if (in.isDiscard())
         {
-            outBuffer.setDiscard(true);
+            out.setDiscard(true);
             return BUFFER_PROCESSED_OK;
         }
 
@@ -239,11 +237,11 @@ public class JNIDecoder
                 avcontext,
                 avframe,
                 got_picture,
-                (byte[]) inBuffer.getData(), inBuffer.getLength());
+                (byte[]) in.getData(), in.getLength());
 
         if (!got_picture[0])
         {
-            outBuffer.setDiscard(true);
+            out.setDiscard(true);
             return BUFFER_PROCESSED_OK;
         }
 
@@ -260,38 +258,40 @@ public class JNIDecoder
 
             // Output in same size and frame rate as input.
             Dimension outSize = new Dimension(this.width, this.height);
-            VideoFormat inFormat = (VideoFormat) inBuffer.getFormat();
+            VideoFormat inFormat = (VideoFormat) in.getFormat();
             float outFrameRate = ensureFrameRate(inFormat.getFrameRate());
 
             outputFormat
                 = new AVFrameFormat(
                         outSize,
                         outFrameRate,
-                        FFmpeg.PIX_FMT_YUV420P,
-                        Format.NOT_SPECIFIED);
+                        FFmpeg.PIX_FMT_YUV420P);
         }
-        outBuffer.setFormat(outputFormat);
+        out.setFormat(outputFormat);
 
         // data
-        Object out = outBuffer.getData();
+        Object outData = out.getData();
 
-        if (!(out instanceof AVFrame) || (((AVFrame) out).getPtr() != avframe))
-            outBuffer.setData(new AVFrame(avframe));
+        if (!(outData instanceof AVFrame)
+                || (((AVFrame) outData).getPtr() != avframe))
+        {
+            out.setData(new AVFrame(avframe));
+        }
 
         // timeStamp
         long pts = FFmpeg.AV_NOPTS_VALUE; // TODO avframe_get_pts(avframe);
 
         if (pts == FFmpeg.AV_NOPTS_VALUE)
-            outBuffer.setTimeStamp(Buffer.TIME_UNKNOWN);
+            out.setTimeStamp(Buffer.TIME_UNKNOWN);
         else
         {
-            outBuffer.setTimeStamp(pts);
+            out.setTimeStamp(pts);
 
-            int outFlags = outBuffer.getFlags();
+            int outFlags = out.getFlags();
 
             outFlags |= Buffer.FLAG_RELATIVE_TIME;
             outFlags &= ~(Buffer.FLAG_RTP_TIME | Buffer.FLAG_SYSTEM_TIME);
-            outBuffer.setFlags(outFlags);
+            out.setFlags(outFlags);
         }
 
         return BUFFER_PROCESSED_OK;

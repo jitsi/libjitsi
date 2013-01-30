@@ -19,6 +19,24 @@ import org.jitsi.impl.neomedia.codec.*;
  */
 public class AVFrame
 {
+    public static int read(Buffer buffer, Format format, ByteBuffer data)
+    {
+        AVFrameFormat frameFormat = (AVFrameFormat) format;
+
+        Object o = buffer.getData();
+        AVFrame frame;
+
+        if (o instanceof AVFrame)
+            frame = (AVFrame) o;
+        else
+        {
+            frame = new AVFrame();
+            buffer.setData(frame);
+        }
+
+        return frame.avpicture_fill(data, frameFormat);
+    }
+
     /**
      * The <tt>ByteBuffer</tt> whose native memory is set on the native
      * counterpart of this instance/<tt>AVFrame</tt>.
@@ -135,6 +153,18 @@ public class AVFrame
     }
 
     /**
+     * Gets the <tt>ByteBuffer</tt> whose native memory is set on the native
+     * counterpart of this instance/<tt>AVFrame</tt>.
+     *
+     * @return the <tt>ByteBuffer</tt> whose native memory is set on the native
+     * counterpart of this instance/<tt>AVFrame</tt>.
+     */
+    public synchronized ByteBuffer getData()
+    {
+        return data;
+    }
+
+    /**
      * Gets the pointer to the native FFmpeg <tt>AVFrame</tt> object represented
      * by this instance.
      *
@@ -144,23 +174,5 @@ public class AVFrame
     public synchronized long getPtr()
     {
         return ptr;
-    }
-
-    public static int read(Buffer buffer, Format format, ByteBuffer data)
-    {
-        AVFrameFormat frameFormat = (AVFrameFormat) format;
-
-        Object o = buffer.getData();
-        AVFrame frame;
-
-        if (o instanceof AVFrame)
-            frame = (AVFrame) o;
-        else
-        {
-            frame = new AVFrame();
-            buffer.setData(frame);
-        }
-
-        return frame.avpicture_fill(data, frameFormat);
     }
 }

@@ -55,12 +55,7 @@ public class JNIEncoder
     /**
      * The encoded data is stored in avpicture.
      */
-    private long avframe = 0;
-
-    /**
-     * We use this buffer to supply data to encoder.
-     */
-    private byte[] encFrameBuffer = null;
+    private long avFrame = 0;
 
     /**
      * The supplied data length.
@@ -117,12 +112,10 @@ public class JNIEncoder
             FFmpeg.av_free(avcontext);
             avcontext = 0;
 
-            FFmpeg.avcodec_free_frame(avframe);
-            avframe = 0;
+            FFmpeg.avcodec_free_frame(avFrame);
+            avFrame = 0;
             FFmpeg.av_free(rawFrameBuffer);
             rawFrameBuffer = 0;
-
-            encFrameBuffer = null;
         }
     }
 
@@ -267,18 +260,16 @@ public class JNIEncoder
 
         rawFrameBuffer = FFmpeg.av_malloc(encFrameLen);
 
-        avframe = FFmpeg.avcodec_alloc_frame();
+        avFrame = FFmpeg.avcodec_alloc_frame();
 
         int sizeInBytes = width * height;
 
         FFmpeg.avframe_set_data(
-                avframe,
+                avFrame,
                 rawFrameBuffer,
                 sizeInBytes,
                 sizeInBytes / 4);
-        FFmpeg.avframe_set_linesize(avframe, width, width / 2, width / 2);
-
-        encFrameBuffer = new byte[encFrameLen];
+        FFmpeg.avframe_set_linesize(avFrame, width, width / 2, width / 2);
 
         opened = true;
 
@@ -328,21 +319,14 @@ public class JNIEncoder
 
         if (framesSinceLastIFrame >= IFRAME_INTERVAL)
         {
-            FFmpeg.avframe_set_key_frame(avframe, true);
+            FFmpeg.avframe_set_key_frame(avFrame, true);
             framesSinceLastIFrame = 0;
         }
         else
         {
             framesSinceLastIFrame++;
-            FFmpeg.avframe_set_key_frame(avframe, false);
+            FFmpeg.avframe_set_key_frame(avFrame, false);
         }
-
-        // encode data
-        int encLen
-            = FFmpeg.avcodec_encode_video(
-                    avcontext,
-                    encFrameBuffer, encFrameLen,
-                    avframe);
 
         /*
          * Do not always allocate a new data array for outBuffer, try to reuse
@@ -354,18 +338,20 @@ public class JNIEncoder
         if (outData instanceof byte[])
         {
             out = (byte[]) outData;
-            if (out.length < encLen)
+            if (out.length < encFrameLen)
                 out = null;
         }
         else
             out = null;
         if (out == null)
-            out = new byte[encLen];
+            out = new byte[encFrameLen];
 
-        System.arraycopy(encFrameBuffer, 0, out, 0, encLen);
+        // encode data
+        int outputLength
+            = FFmpeg.avcodec_encode_video(avcontext, out, out.length, avFrame);
 
         outBuffer.setData(out);
-        outBuffer.setLength(encLen);
+        outBuffer.setLength(outputLength);
         outBuffer.setOffset(0);
         outBuffer.setTimeStamp(inBuffer.getTimeStamp());
 
@@ -373,10 +359,14 @@ public class JNIEncoder
     }
 
     /**
-     * Sets the input format.
+     * Sets the <tt>Format</tt> of the media data to be input to this
+     * <tt>Codec</tt>.
      *
-     * @param format format to set
-     * @return format
+     * @param format the <tt>Format</tt> of media data to set on this
+     * <tt>Codec</tt>
+     * @return the <tt>Format</tt> of media data set on this <tt>Codec</tt> or
+     * <tt>null</tt> if the specified <tt>format</tt> is not supported by this
+     * <tt>Codec</tt>
      */
     @Override
     public Format setInputFormat(Format format)
