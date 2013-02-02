@@ -313,31 +313,38 @@ public class AudioMediaStreamImpl
             MediaDeviceSession oldValue,
             MediaDeviceSession newValue)
     {
-        if (oldValue != null)
+        try
         {
-            AudioMediaDeviceSession deviceSession
-                = (AudioMediaDeviceSession) oldValue;
+            if (oldValue != null)
+            {
+                AudioMediaDeviceSession deviceSession
+                    = (AudioMediaDeviceSession) oldValue;
 
-            if (localUserAudioLevelListener != null)
-                deviceSession.setLocalUserAudioLevelListener(null);
-            if (streamAudioLevelListener != null)
-                deviceSession.setStreamAudioLevelListener(null);
+                if (localUserAudioLevelListener != null)
+                    deviceSession.setLocalUserAudioLevelListener(null);
+                if (streamAudioLevelListener != null)
+                    deviceSession.setStreamAudioLevelListener(null);
+            }
+            if (newValue != null)
+            {
+                AudioMediaDeviceSession deviceSession
+                    = (AudioMediaDeviceSession) newValue;
+
+                if (localUserAudioLevelListener != null)
+                {
+                    deviceSession.setLocalUserAudioLevelListener(
+                            localUserAudioLevelListener);
+                }
+                if (streamAudioLevelListener != null)
+                {
+                    deviceSession.setStreamAudioLevelListener(
+                            streamAudioLevelListener);
+                }
+            }
         }
-        if (newValue != null)
+        finally
         {
-            AudioMediaDeviceSession deviceSession
-                = (AudioMediaDeviceSession) newValue;
-
-            if (localUserAudioLevelListener != null)
-            {
-                deviceSession.setLocalUserAudioLevelListener(
-                        localUserAudioLevelListener);
-            }
-            if (streamAudioLevelListener != null)
-            {
-                deviceSession.setStreamAudioLevelListener(
-                        streamAudioLevelListener);
-            }
+            super.deviceSessionChanged(oldValue, newValue);
         }
     }
 

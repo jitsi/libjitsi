@@ -22,6 +22,12 @@ import net.sf.fmj.media.*;
 public abstract class AbstractCodecExt
     extends AbstractCodec
 {
+    /**
+     * An empty array of <tt>Format</tt> element type. Explicitly defined to
+     * reduce unnecessary allocations.
+     */
+    public static final Format[] EMPTY_FORMATS = new Format[0];
+
     private final Class<? extends Format> formatClass;
 
     /**
@@ -111,7 +117,7 @@ public abstract class AbstractCodecExt
 
         if (supportedOutputFormats != null)
             return supportedOutputFormats.clone();
-        return new Format[0];
+        return EMPTY_FORMATS;
     }
 
     @Override
@@ -134,7 +140,7 @@ public abstract class AbstractCodecExt
 
         if (!formatClass.isInstance(inputFormat)
                 || (matches(inputFormat, inputFormats) == null))
-            return new Format[0];
+            return EMPTY_FORMATS;
 
         return getMatchingOutputFormats(inputFormat);
     }
