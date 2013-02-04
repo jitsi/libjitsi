@@ -17,8 +17,12 @@
 #include <libavfilter/avfilter.h>
 #include <libavfilter/avfiltergraph.h>
 #include <libavfilter/buffersrc.h>
+
+#ifndef _JITSI_LIBAV_
 #include <libavfilter/formats.h> /* ff_default_query_formats, ff_make_format_list, ff_set_common_formats */
 #include <libavfilter/internal.h> /* ff_request_frame */
+#endif
+
 #include <libswscale/swscale.h>
 
 #define DEFINE_AVCODECCONTEXT_F_PROPERTY_SETTER(name, property) \
@@ -512,7 +516,11 @@ ffsink_query_formats(AVFilterContext *ctx)
     int err;
 
     /* Find buffer. */
+#ifdef _JITSI_LIBAV_
+    while (src && src->inputs && src->inputs)
+#else
     while (src && src->nb_inputs && src->inputs)
+#endif
     {
         AVFilterLink *link = src->inputs[0];
 
@@ -527,11 +535,21 @@ ffsink_query_formats(AVFilterContext *ctx)
     {
         const int pix_fmts[] = { src->outputs[0]->in_formats->formats[0], -1 };
 
+#ifdef _JITSI_LIBAV_
+        avfilter_set_common_formats(ctx, ff_make_format_list(pix_fmts));
+#else
         ff_set_common_formats(ctx, ff_make_format_list(pix_fmts));
+#endif
+
         err = 0;
     }
     else
+#ifdef _JITSI_LIBAV_
+        err = query_formats(ctx);
+#else
         err = ff_default_query_formats(ctx);
+#endif
+
     return err;
 }
 
