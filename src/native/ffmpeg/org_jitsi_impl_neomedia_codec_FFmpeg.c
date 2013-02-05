@@ -517,7 +517,7 @@ ffsink_query_formats(AVFilterContext *ctx)
 
     /* Find buffer. */
 #ifdef _JITSI_LIBAV_
-    while (src && src->inputs && src->inputs)
+    while (src && src->input_count && src->inputs)
 #else
     while (src && src->nb_inputs && src->inputs)
 #endif
