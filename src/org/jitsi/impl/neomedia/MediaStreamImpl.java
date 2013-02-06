@@ -2539,14 +2539,25 @@ public class MediaStreamImpl
             //Notify encoders of the percentage of packets lost by the
             //other side. See RFC3550 Section 6.4.1 for the interpretation of
             //'fraction lost'
-            for(Object plae : deviceSession.getEncoderControls(
-                                PacketLossAwareEncoder.class.getName()))
-                if(plae != null && feedback != null &&
-                            getDirection() != MediaDirection.INACTIVE)
+            if ((feedback != null)
+                    && (getDirection() != MediaDirection.INACTIVE))
+            {
+                Set<PacketLossAwareEncoder> plaes
+                    = deviceSession.getEncoderControls(
+                            PacketLossAwareEncoder.class);
+
+                if (!plaes.isEmpty())
                 {
-                    ((PacketLossAwareEncoder)plae).setExpectedPacketLoss(
-                        (int) ((feedback.getFractionLost() * 100) / 256));
+                    int expectedPacketLoss
+                        = (feedback.getFractionLost() * 100) / 256;
+
+                    for (PacketLossAwareEncoder plae : plaes)
+                    {
+                        if (plae != null)
+                            plae.setExpectedPacketLoss(expectedPacketLoss);
+                    }
                 }
+            }
 
             if(logger.isInfoEnabled())
             {

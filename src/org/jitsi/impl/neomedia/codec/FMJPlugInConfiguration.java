@@ -33,7 +33,7 @@ public class FMJPlugInConfiguration
      */
     private static final String[] CUSTOM_CODECS
         = {
-            "org.jitsi.impl.neomedia.codec.AndroidMediaCodec",
+//            "org.jitsi.impl.neomedia.codec.AndroidMediaCodec",
             "org.jitsi.impl.neomedia.codec.audio.alaw.DePacketizer",
             "org.jitsi.impl.neomedia.codec.audio.alaw.JavaEncoder",
             "org.jitsi.impl.neomedia.codec.audio.alaw.Packetizer",

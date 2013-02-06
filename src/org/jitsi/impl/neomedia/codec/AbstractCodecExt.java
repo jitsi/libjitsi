@@ -28,6 +28,75 @@ public abstract class AbstractCodecExt
      */
     public static final Format[] EMPTY_FORMATS = new Format[0];
 
+    /**
+     * Utility to perform format matching.
+     *
+     * @param in input format
+     * @param outs array of output formats
+     * @return the first output format that is supported
+     */
+    public static Format matches(Format in, Format outs[])
+    {
+        for (Format out : outs)
+            if (in.matches(out))
+                return out;
+        return null;
+    }
+
+    public static YUVFormat specialize(YUVFormat yuvFormat, Class<?> dataType)
+    {
+        Dimension size = yuvFormat.getSize();
+        int strideY = yuvFormat.getStrideY();
+
+        if ((strideY == Format.NOT_SPECIFIED) && (size != null))
+            strideY = size.width;
+
+        int strideUV = yuvFormat.getStrideUV();
+
+        if ((strideUV == Format.NOT_SPECIFIED)
+                && (strideY != Format.NOT_SPECIFIED))
+            strideUV = (strideY + 1) / 2;
+
+        int offsetY = yuvFormat.getOffsetY();
+
+        if (offsetY == Format.NOT_SPECIFIED)
+            offsetY = 0;
+
+        int offsetU = yuvFormat.getOffsetU();
+
+        if ((offsetU == Format.NOT_SPECIFIED)
+                && (strideY != Format.NOT_SPECIFIED)
+                && (size != null))
+            offsetU = offsetY + strideY * size.height;
+
+        int offsetV = yuvFormat.getOffsetV();
+
+        if ((offsetV == Format.NOT_SPECIFIED)
+                && (offsetU != Format.NOT_SPECIFIED)
+                && (strideUV != Format.NOT_SPECIFIED)
+                && (size != null))
+            offsetV = offsetU + strideUV * ((size.height + 1) / 2);
+
+        int maxDataLength
+            = ((strideY != Format.NOT_SPECIFIED)
+                    && (strideUV != Format.NOT_SPECIFIED))
+                    && (size != null)
+                ? (strideY * size.height
+                        + 2 * strideUV * ((size.height + 1) / 2)
+                        + FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE)
+                : Format.NOT_SPECIFIED;
+
+        return
+            new YUVFormat(
+                    size,
+                    maxDataLength,
+                    (dataType == null) ? yuvFormat.getDataType() : dataType,
+                    yuvFormat.getFrameRate(),
+                    YUVFormat.YUV_420,
+                    strideY, strideUV,
+                    offsetY, offsetU, offsetV);
+    }
+
     private final Class<? extends Format> formatClass;
 
     /**
@@ -101,10 +170,13 @@ public abstract class AbstractCodecExt
     protected abstract int doProcess(Buffer inputBuffer, Buffer outputBuffer);
 
     /**
-     * Get the output formats matching a specific input format.
+     * Gets the <tt>Format</tt>s which are supported by this <tt>Codec</tt> as
+     * output when the input is in a specific <tt>Format</tt>.
      *
-     * @param inputFormat the input format to get the matching output formats of
-     * @return the output formats matching the specified input format
+     * @param inputFormat the <tt>Format</tt> of the input for which the
+     * supported output <tt>Format</tt>s are to be returned
+     * @return an array of <tt>Format</tt>s supported by this <tt>Codec</tt> as
+     * output when the input is in the specified <tt>inputFormat</tt>
      */
     protected Format[] getMatchingOutputFormats(Format inputFormat)
     {
@@ -115,9 +187,10 @@ public abstract class AbstractCodecExt
         if (this instanceof Effect)
             return new Format[] { inputFormat };
 
-        if (supportedOutputFormats != null)
-            return supportedOutputFormats.clone();
-        return EMPTY_FORMATS;
+        return
+            (supportedOutputFormats == null)
+                ? EMPTY_FORMATS
+                : supportedOutputFormats.clone();
     }
 
     @Override
@@ -143,21 +216,6 @@ public abstract class AbstractCodecExt
             return EMPTY_FORMATS;
 
         return getMatchingOutputFormats(inputFormat);
-    }
-
-    /**
-     * Utility to perform format matching.
-     *
-     * @param in input format
-     * @param outs array of output formats
-     * @return the first output format that is supported
-     */
-    public static Format matches(Format in, Format outs[])
-    {
-        for (Format out : outs)
-            if (in.matches(out))
-                return out;
-        return null;
     }
 
     /**
@@ -230,60 +288,6 @@ public abstract class AbstractCodecExt
             return null;
 
         return super.setOutputFormat(format);
-    }
-
-    public static YUVFormat specialize(YUVFormat yuvFormat, Class<?> dataType)
-    {
-        Dimension size = yuvFormat.getSize();
-        int strideY = yuvFormat.getStrideY();
-
-        if ((strideY == Format.NOT_SPECIFIED) && (size != null))
-            strideY = size.width;
-
-        int strideUV = yuvFormat.getStrideUV();
-
-        if ((strideUV == Format.NOT_SPECIFIED)
-                && (strideY != Format.NOT_SPECIFIED))
-            strideUV = (strideY + 1) / 2;
-
-        int offsetY = yuvFormat.getOffsetY();
-
-        if (offsetY == Format.NOT_SPECIFIED)
-            offsetY = 0;
-
-        int offsetU = yuvFormat.getOffsetU();
-
-        if ((offsetU == Format.NOT_SPECIFIED)
-                && (strideY != Format.NOT_SPECIFIED)
-                && (size != null))
-            offsetU = offsetY + strideY * size.height;
-
-        int offsetV = yuvFormat.getOffsetV();
-
-        if ((offsetV == Format.NOT_SPECIFIED)
-                && (offsetU != Format.NOT_SPECIFIED)
-                && (strideUV != Format.NOT_SPECIFIED)
-                && (size != null))
-            offsetV = offsetU + strideUV * ((size.height + 1) / 2);
-
-        int maxDataLength
-            = ((strideY != Format.NOT_SPECIFIED)
-                    && (strideUV != Format.NOT_SPECIFIED))
-                    && (size != null)
-                ? (strideY * size.height
-                        + 2 * strideUV * ((size.height + 1) / 2)
-                        + FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE)
-                : Format.NOT_SPECIFIED;
-
-        return
-            new YUVFormat(
-                    size,
-                    maxDataLength,
-                    (dataType == null) ? yuvFormat.getDataType() : dataType,
-                    yuvFormat.getFrameRate(),
-                    YUVFormat.YUV_420,
-                    strideY, strideUV,
-                    offsetY, offsetU, offsetV);
     }
 
     /**

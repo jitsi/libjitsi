@@ -948,7 +948,7 @@ public class VideoMediaDeviceSession
      * @see MediaDeviceSession#playerConfigureComplete(Processor)
      */
     @Override
-    protected void playerConfigureComplete(final Processor player)
+    protected void playerConfigureComplete(Processor player)
     {
         super.playerConfigureComplete(player);
 
@@ -957,6 +957,8 @@ public class VideoMediaDeviceSession
 
         if ((trackControls != null) && (trackControls.length != 0))
         {
+            String fmjEncoding = getFormat().getJMFEncoding();
+
             try
             {
                 for (TrackControl trackControl : trackControls)
@@ -972,8 +974,7 @@ public class VideoMediaDeviceSession
                      * For H.264, we will use RTCP feedback. For example, to
                      * tell the sender that we've missed a frame.
                      */
-                    if ("h264/rtp".equalsIgnoreCase(
-                            getFormat().getJMFEncoding()))
+                    if ("h264/rtp".equalsIgnoreCase(fmjEncoding))
                     {
                         final DePacketizer depacketizer = new DePacketizer();
                         JNIDecoder decoder = new JNIDecoder();
@@ -1571,12 +1572,10 @@ public class VideoMediaDeviceSession
                 encoder.setPacketizationMode(packetizationMode);
             }
 
-            // additional codec settings
+            // additionalCodecSettings
             {
-                Map<String, String> settings =
-                    mediaFormat.getAdditionalCodecSettings();
-
-                encoder.setAdditionalCodecSettings(settings);
+                encoder.setAdditionalCodecSettings(
+                        mediaFormat.getAdditionalCodecSettings());
             }
 
             if (usePLI)

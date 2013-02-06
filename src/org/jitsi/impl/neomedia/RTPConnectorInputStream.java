@@ -291,11 +291,9 @@ public abstract class RTPConnectorInputStream
         {
             try
             {
+                // http://code.google.com/p/android/issues/detail?id=24765
                 if (OSUtils.IS_ANDROID)
-                {
-                    // http://code.google.com/p/android/issues/detail?id=24765
                     p.setLength(PACKET_RECEIVE_BUFFER_LENGTH);
-                }
 
                 receivePacket(p);
             }

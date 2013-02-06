@@ -46,7 +46,7 @@ public class DePacketizer
      * structure contains the first NAL unit of an access unit in decoding
      * order".
      */
-    public static final byte[] NAL_PREFIX = { 0, 0, 1 };
+    public static final byte[] NAL_PREFIX = { 0, 0, 0, 1 };
 
     /**
      * The indicator which determines whether incomplete NAL units are output
@@ -171,8 +171,7 @@ public class DePacketizer
          * interpreted as it having a value of 0.
          */
         Collections.addAll(inputFormats, Packetizer.SUPPORTED_OUTPUT_FORMATS);
-        this.inputFormats
-            = inputFormats.toArray(new Format[inputFormats.size()]);
+        this.inputFormats = inputFormats.toArray(EMPTY_FORMATS);
     }
 
     /**

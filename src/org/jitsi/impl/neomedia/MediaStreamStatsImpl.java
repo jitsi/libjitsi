@@ -912,19 +912,18 @@ public class MediaStreamStatsImpl
         {
             for(ReceiveStream receiveStream : devSession.getReceiveStreams())
             {
-                for(Object fecDecoderControl
+                for(FECDecoderControl fecDecoderControl
                         : devSession.getDecoderControls(
                                 receiveStream,
-                                FECDecoderControl.class.getName()))
+                                FECDecoderControl.class))
                 {
-                    nbFec
-                        += ((FECDecoderControl) fecDecoderControl)
-                            .fecPacketsDecoded();
+                    nbFec += fecDecoderControl.fecPacketsDecoded();
                 }
             }
         }
         this.nbFec = nbFec;
     }
+
     /**
      * Updates the number of discarded packets.
      *
