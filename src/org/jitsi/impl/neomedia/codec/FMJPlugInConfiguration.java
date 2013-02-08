@@ -226,7 +226,7 @@ public class FMJPlugInConfiguration
                         logger.debug(
                                 "Codec "
                                     + className
-                                    + " is NOT succsefully registered",
+                                    + " is NOT successfully registered",
                                 exception);
                     }
                 }
