@@ -82,11 +82,9 @@ public class PortAudioStream
             = new PortAudioSystem.PaUpdateAvailableDeviceListListener()
             {
                 /**
-                 * The device ID used, before and if available after the update.
-                 * This String contains the deviceUID, or if not available, the
-                 * deviceName.
-                 * If set to null, then there was no device used before the
-                 * update.
+                 * The device ID (could be deviceUID or name but that is not
+                 * really of concern to PortAudioStream) used before and after
+                 * (if still available) the update.
                  */
                 private String deviceID = null;
 
@@ -101,24 +99,17 @@ public class PortAudioStream
                         {
                             waitWhileStreamIsBusy();
                             /*
-                             * The stream should be closed. If it is not,
-                             * then something else happened in the meantime
-                             * and we cannot be sure that restoring the old
-                             * state of this PortAudioStream is the right
-                             * thing to do in its new state.
+                             * The stream should be closed. If it is not, then
+                             * something else happened in the meantime and we
+                             * cannot be sure that restoring the old state of
+                             * this PortAudioStream is the right thing to do in
+                             * its new state.
                              */
                             if (stream == 0)
                             {
-                                int deviceIndex = Pa.getDeviceIndex(deviceID);
-                                // Checks if the previously used device is still
-                                // available.
-                                if(deviceIndex != Pa.paNoDevice)
-                                {
-                                    // If yes, then use it.
-                                    setDeviceID(deviceID);
-                                    if (start)
-                                        start();
-                                }
+                                setDeviceID(deviceID);
+                                if (start)
+                                    start();
                             }
                         }
                         finally
@@ -234,13 +225,22 @@ public class PortAudioStream
     private void connect()
         throws IOException
     {
+        int deviceIndex = Pa.getDeviceIndex(deviceID);
+
+        if (deviceIndex == Pa.paNoDevice)
+        {
+            throw new IOException(
+                    "The audio device "
+                        + deviceID
+                        + " appears to be disconnected.");
+        }
+
         AudioFormat format = (AudioFormat) getFormat();
         int channels = format.getChannels();
 
         if (channels == Format.NOT_SPECIFIED)
             channels = 1;
 
-        int deviceIndex = Pa.getDeviceIndex(this.deviceID);
         int sampleSizeInBits = format.getSampleSizeInBits();
         long sampleFormat = Pa.getPaSampleFormat(sampleSizeInBits);
         double sampleRate = format.getSampleRate();
@@ -483,9 +483,11 @@ public class PortAudioStream
     synchronized void setDeviceID(String deviceID)
         throws IOException
     {
-        if((this.deviceID == null && deviceID == null)
-                || (this.deviceID != null && this.deviceID.equals(deviceID)))
-            return;
+        /*
+         * We should better not short-circuit because the deviceID may be the
+         * same but it eventually resolves to a deviceIndex and may have changed
+         * after hotplugging. 
+         */
 
         // DataSource#disconnect
         if (this.deviceID != null)
@@ -575,8 +577,10 @@ public class PortAudioStream
                 }
             }
         }
+
         this.deviceID = deviceID;
         this.started = false;
+
         // DataSource#connect
         if (this.deviceID != null)
         {

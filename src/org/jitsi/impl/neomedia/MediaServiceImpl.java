@@ -748,19 +748,23 @@ public class MediaServiceImpl
     {
         if (inputVolumeControl == null)
         {
-            // If available, use hardware volume control.
-            if(OSUtils.IS_MAC
-                    || OSUtils.IS_WINDOWS_VISTA
-                    || OSUtils.IS_WINDOWS_7
-                    || OSUtils.IS_WINDOWS_8)
+            // If available, use hardware.
+            try
             {
-                inputVolumeControl = new HardwareVolumeControl(
-                        this,
-                        VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME
-                        );
+                inputVolumeControl
+                    = new HardwareVolumeControl(
+                            this,
+                            VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME);
             }
-            // else available, use software volume control.
-            else
+            catch (Throwable t)
+            {
+                if (t instanceof ThreadDeath)
+                    throw (ThreadDeath) t;
+                else if (t instanceof InterruptedException)
+                    Thread.currentThread().interrupt();
+            }
+            // Otherwise, use software.
+            if (inputVolumeControl == null)
             {
                 inputVolumeControl
                     = new AbstractVolumeControl(

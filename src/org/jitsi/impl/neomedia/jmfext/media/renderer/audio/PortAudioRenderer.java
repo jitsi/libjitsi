@@ -359,12 +359,16 @@ public class PortAudioRenderer
         if (supportedInputFormats == null)
         {
             MediaLocator locator = getLocator();
-            String deviceID = DataSource.getDeviceID(locator);
-            int deviceIndex = Pa.getDeviceIndex(deviceID);
+            int deviceIndex;
 
             if ((locator == null)
-                    || (deviceIndex == Pa.paNoDevice))
+                    || ((deviceIndex
+                                = Pa.getDeviceIndex(
+                                        DataSource.getDeviceID(locator)))
+                            == Pa.paNoDevice))
+            {
                 supportedInputFormats = SUPPORTED_INPUT_FORMATS;
+            }
             else
             {
                 long deviceInfo = Pa.GetDeviceInfo(deviceIndex);
@@ -530,6 +534,15 @@ public class PortAudioRenderer
 
             String deviceID = DataSource.getDeviceID(locator);
             int deviceIndex = Pa.getDeviceIndex(deviceID);
+
+            if (deviceIndex == Pa.paNoDevice)
+            {
+                throw new ResourceUnavailableException(
+                        "The audio device "
+                            + deviceID
+                            + " appears to be disconnected.");
+            }
+
             AudioFormat inputFormat = this.inputFormat;
 
             if (inputFormat == null)

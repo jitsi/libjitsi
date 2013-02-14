@@ -13,7 +13,6 @@ import javax.media.control.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
-import org.jitsi.impl.neomedia.portaudio.*;
 import org.jitsi.util.*;
 
 /**
@@ -191,7 +190,7 @@ public class DataSource
      * @throws IllegalStateException if there is no <tt>MediaLocator</tt>
      * associated with this <tt>DataSource</tt>
      */
-    public String getDeviceID()
+    private String getDeviceID()
     {
         MediaLocator locator = getLocator();
 
@@ -214,7 +213,13 @@ public class DataSource
     {
         if (AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO.equalsIgnoreCase(
                 locator.getProtocol()))
-            return locator.getRemainder().replace("#", "");
+        {
+            String remainder = locator.getRemainder();
+
+            if (remainder.charAt(0) == '#')
+                remainder = remainder.substring(1);
+            return remainder;
+        }
         else
             throw new IllegalArgumentException("locator.protocol");
     }
