@@ -614,9 +614,11 @@ class AudioMixerPushBufferStream
                 inputBuffer.setOffset(0);
             }
             else
+            {
                 throw new UnsupportedFormatException(
                         "!Format.getDataType().equals(byte[].class)",
                         inputStreamFormat);
+            }
         }
 
         audioMixer.read(
@@ -661,10 +663,11 @@ class AudioMixerPushBufferStream
 
         if ((inputFormatSigned != AudioFormat.SIGNED)
                 && (inputFormatSigned != Format.NOT_SPECIFIED))
-            throw
-                new UnsupportedFormatException(
-                        "AudioFormat.getSigned()",
-                        inputFormat);
+        {
+            throw new UnsupportedFormatException(
+                    "AudioFormat.getSigned()",
+                    inputFormat);
+        }
 
         int inputChannels = inputFormat.getChannels();
         int outputChannels = outputFormat.getChannels();

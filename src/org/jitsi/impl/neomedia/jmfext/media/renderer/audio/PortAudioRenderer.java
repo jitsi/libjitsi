@@ -685,7 +685,8 @@ public class PortAudioRenderer
                 streamIsBusy = true;
         }
 
-        long paErrorCode = Pa.paNoError;
+        long errorCode = Pa.paNoError;
+        Pa.HostApiTypeId hostApiType = null;
 
         try
         {
@@ -696,7 +697,8 @@ public class PortAudioRenderer
         }
         catch (PortAudioException pae)
         {
-            paErrorCode = pae.getErrorCode();
+            errorCode = pae.getErrorCode();
+            hostApiType = pae.getHostApiType();
 
             logger.error("Failed to process Buffer.", pae);
         }
@@ -711,10 +713,16 @@ public class PortAudioRenderer
             /*
              * If a timeout has occurred in the method Pa.WriteStream, give the
              * application a little time to allow it to possibly get its act
-             * together.
+             * together. The same treatment sounds appropriate on Windows as
+             * soon as the wmme host API starts reporting that no device driver
+             * is present.
              */
-            if (Pa.paTimedOut == paErrorCode)
+            if ((Pa.paTimedOut == errorCode)
+                    || (Pa.HostApiTypeId.paMME.equals(hostApiType)
+                            && (Pa.MMSYSERR_NODRIVER == errorCode)))
+            {
                 PortAudioStream.yield();
+            }
         }
         return BUFFER_PROCESSED_OK;
     }

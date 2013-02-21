@@ -393,7 +393,8 @@ public class PortAudioStream
             throw new IOException(message);
         }
 
-        long paErrorCode = Pa.paNoError;
+        long errorCode = Pa.paNoError;
+        Pa.HostApiTypeId hostApiType = null;
 
         try
         {
@@ -422,7 +423,8 @@ public class PortAudioStream
             }
             catch (PortAudioException pae)
             {
-                paErrorCode = pae.getErrorCode();
+                errorCode = pae.getErrorCode();
+                hostApiType = pae.getHostApiType();
 
                 logger.error("Failed to read from PortAudio stream.", pae);
 
@@ -462,10 +464,16 @@ public class PortAudioStream
             /*
              * If a timeout has occurred in the method Pa.ReadStream, give the
              * application a little time to allow it to possibly get its act
-             * together.
+             * together. The same treatment sounds appropriate on Windows as
+             * soon as the wmme host API starts reporting that no device driver
+             * is present.
              */
-            if (Pa.paTimedOut == paErrorCode)
+            if ((Pa.paTimedOut == errorCode)
+                    || (Pa.HostApiTypeId.paMME.equals(hostApiType)
+                            && (Pa.MMSYSERR_NODRIVER == errorCode)))
+            {
                 yield();
+            }
         }
     }
 
@@ -538,8 +546,15 @@ public class PortAudioStream
                      * stream closed in order to maybe avoid a crash at the risk
                      * of a memory leak.
                      */
-                    if (pae.getErrorCode() == Pa.paTimedOut)
+                    long errorCode = pae.getErrorCode();
+
+                    if ((errorCode == Pa.paTimedOut)
+                            || (Pa.HostApiTypeId.paMME.equals(
+                                        pae.getHostApiType())
+                                    && (errorCode == Pa.MMSYSERR_NODRIVER)))
+                    {
                         closed = true;
+                    }
 
                     if (!closed)
                     {

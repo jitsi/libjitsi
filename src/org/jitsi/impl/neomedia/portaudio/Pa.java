@@ -22,6 +22,55 @@ import org.jitsi.util.*;
 public final class Pa
 {
     /**
+     * Enumerates the unchanging unique identifiers of each of the supported
+     * host APIs. The type is used in the <tt>PaHostApiInfo</tt> structure. The
+     * values are guaranteed to be unique and to never change, thus allowing
+     * code to be written that conditionally uses host API specific extensions.
+     */
+    public static enum HostApiTypeId
+    {
+        paAL(9),
+        paALSA(8),
+        paASIO(3),
+        paAudioScienceHPI(14),
+        paBeOS(10),
+        paCoreAudio(5),
+        paDirectSound(1),
+        paInDevelopment(0) /* use while developing support for a new host API */,
+        paJACK(12),
+        paMME(2),
+        paOSS(7),
+        paSoundManager(4),
+        paWASAPI(13),
+        paWDMKS(11);
+
+        /**
+         * Returns the <tt>PaHostApiTypeId</tt> which has a specific value or
+         * <tt>null</tt> if there is no such representation.
+         *
+         * @param value
+         * @return the <tt>PaHostApiTypeId</tt> which has the specified
+         * <tt>value</tt> or <tt>null</tt> if there is no such representation
+         */
+        public static HostApiTypeId valueOf(int value)
+        {
+            for (HostApiTypeId hati : values())
+            {
+                if (hati.value == value)
+                    return hati;
+            }
+            return null;
+        }
+
+        private final int value;
+
+        private HostApiTypeId(int value)
+        {
+            this.value = value;
+        }
+    }
+
+    /**
      * The number of milliseconds to be read from or written to a native
      * PortAudio stream in a single transfer of data.
      */
@@ -68,6 +117,12 @@ public final class Pa
     private static final Logger logger = Logger.getLogger(Pa.class);
 
     /**
+     * The constant defined by Windows Multimedia and utilized by PortAudio's
+     * wmme host API to signal that no device driver is present.
+     */
+    public static final int MMSYSERR_NODRIVER = 6;
+
+    /**
      * The constant defined by the native PortAudio library to signal that no
      * device is specified.
      */
@@ -84,6 +139,12 @@ public final class Pa
      * signal that a timeout has occurred.
      */
     public static final int paTimedOut = -9987;
+
+    /**
+     * The <tt>PaErrorCode</tt> value defined by the native PortAudio library to
+     * signal that an unanticipated error has been detected by a host API.
+     */
+    public static final int paUnanticipatedHostError = -9999;
 
     /**
      * The name of the <tt>double</tt> property which determines the suggested
@@ -375,6 +436,52 @@ public final class Pa
      */
     public static native int GetDeviceCount()
         throws PortAudioException;
+
+    /**
+     * Returns the device index corresponding to the device ID, or Pa.paNoDevice
+     * if no device corresponds to this ID.
+     *
+     * @param deviceID The device ID.
+     *
+     * @return The device index corresponding to the device ID, or Pa.paNoDevice
+     * if no device corresponds to this ID.
+     */
+    public static int getDeviceIndex(String deviceID)
+    {
+        if(deviceID != null)
+        {
+            int deviceCount = 0;
+
+            try
+            {
+                deviceCount = Pa.GetDeviceCount();
+            }
+            catch(PortAudioException paex)
+            {
+                /*
+                 * A deviceCount equal to 0 will eventually result in a return
+                 * value equal to paNoDevice.
+                 */
+            }
+            for(int deviceIndex = 0; deviceIndex < deviceCount; ++deviceIndex)
+            {
+                long deviceInfo = Pa.GetDeviceInfo(deviceIndex);
+                /* The deviceID is either the deviceUID or the name. */
+                String deviceUID = Pa.DeviceInfo_getDeviceUID(deviceInfo);
+
+                if(deviceID.equals(
+                        (deviceUID == null)
+                            ? Pa.DeviceInfo_getName(deviceInfo)
+                            : deviceUID))
+                {
+                    return deviceIndex;
+                }
+            }
+        }
+
+        // No corresponding device was found.
+        return Pa.paNoDevice;
+    }
 
     /**
      * Retrieve a pointer to a PaDeviceInfo structure containing information
@@ -742,96 +849,5 @@ public final class Pa
      */
     private Pa()
     {
-    }
-
-    /**
-     * Enumerates the unchanging unique identifiers of each of the supported
-     * host APIs. The type is used in the <tt>PaHostApiInfo</tt> structure. The
-     * values are guaranteed to be unique and to never change, thus allowing
-     * code to be written that conditionally uses host API specific extensions.
-     */
-    public static enum HostApiTypeId
-    {
-        paInDevelopment(0) /* use while developing support for a new host API */,
-        paDirectSound(1),
-        paMME(2),
-        paASIO(3),
-        paSoundManager(4),
-        paCoreAudio(5),
-        paOSS(7),
-        paALSA(8),
-        paAL(9),
-        paBeOS(10),
-        paWDMKS(11),
-        paJACK(12),
-        paWASAPI(13),
-        paAudioScienceHPI(14);
-
-        /**
-         * Returns the <tt>PaHostApiTypeId</tt> which has a specific value or
-         * <tt>null</tt> if there is no such representation.
-         *
-         * @param value
-         * @return the <tt>PaHostApiTypeId</tt> which has the specified
-         * <tt>value</tt> or <tt>null</tt> if there is no such representation
-         */
-        public static HostApiTypeId valueOf(int value)
-        {
-            for (HostApiTypeId hati : values())
-            {
-                if (hati.value == value)
-                    return hati;
-            }
-            return null;
-        }
-
-        private final int value;
-
-        private HostApiTypeId(int value)
-        {
-            this.value = value;
-        }
-    }
-
-    /**
-     * Returns the device index corresponding to the device ID, or Pa.paNoDevice
-     * if no device corresponds to this ID.
-     *
-     * @param deviceID The device ID.
-     *
-     * @return The device index corresponding to the device ID, or Pa.paNoDevice
-     * if no device corresponds to this ID.
-     */
-    public static int getDeviceIndex(String deviceID)
-    {
-        if(deviceID != null)
-        {
-            int nbDevices = 0;
-            try
-            {
-                nbDevices = Pa.GetDeviceCount();
-            }
-            // If a error occurs, returns that no device is available.
-            catch(PortAudioException paex)
-            {
-                return Pa.paNoDevice;
-            }
-
-            for(int i = 0; i < nbDevices; ++i)
-            {
-                long deviceInfo = Pa.GetDeviceInfo(i);
-                String deviceUID = Pa.DeviceInfo_getDeviceUID(deviceInfo);
-                String deviceName = Pa.DeviceInfo_getName(deviceInfo);
-                if(deviceID.equals(deviceUID)
-                        || (deviceUID == null && deviceID.equals(deviceName)))
-                {
-                    // We found the corresponding device.
-                    return i;
-                }
-            }
-        }
-
-        // No correspoding device was found.
-        return Pa.paNoDevice;
     }
 }
