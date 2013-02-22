@@ -14,12 +14,12 @@ import org.jitsi.impl.neomedia.control.*;
  * Provides an abstract base implementation of <tt>Renderer</tt> in order to
  * facilitate extenders.
  *
- * @author Lyubomir Marinov
+ * @param <T> the type of <tt>Format</tt> of the media data processed as input
+ * by <tt>AbstractRenderer</tt>
  *
- * @param <InputFormatT> the type of <tt>Format</tt> of the media data processed
- * as input by <tt>AbstractRenderer</tt> 
+ * @author Lyubomir Marinov
  */
-public abstract class AbstractRenderer<InputFormatT extends Format>
+public abstract class AbstractRenderer<T extends Format>
     extends ControlsAdapter
     implements Renderer
 {
@@ -27,7 +27,7 @@ public abstract class AbstractRenderer<InputFormatT extends Format>
      * The <tt>Format</tt> of the media data processed as input by this
      * <tt>Renderer</tt>.
      */
-    protected InputFormatT inputFormat;
+    protected T inputFormat;
 
     /**
      * Resets the state of this <tt>PlugIn</tt>.
@@ -47,7 +47,6 @@ public abstract class AbstractRenderer<InputFormatT extends Format>
      * with this <tt>Renderer</tt>; otherwise, the <tt>Format</tt> which has
      * been successfully set
      */
-    @SuppressWarnings("unchecked")
     public Format setInputFormat(Format format)
     {
         Format matchingFormat = null;
@@ -63,7 +62,10 @@ public abstract class AbstractRenderer<InputFormatT extends Format>
         if (matchingFormat == null)
             return null;
 
-        inputFormat = (InputFormatT) matchingFormat;
+        @SuppressWarnings("unchecked")
+        T t = (T) matchingFormat;
+
+        inputFormat = t;
         return inputFormat;
     }
 }

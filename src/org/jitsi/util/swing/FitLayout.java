@@ -24,7 +24,6 @@ import javax.swing.*;
 public class FitLayout
     implements LayoutManager
 {
-
     /**
      * {@inheritDoc}
      *
@@ -32,9 +31,7 @@ public class FitLayout
      * <tt>Component</tt> of the parent <tt>Container</tt> and thus doesn't need
      * any <tt>String</tt> associations.
      */
-    public void addLayoutComponent(String name, Component comp)
-    {
-    }
+    public void addLayoutComponent(String name, Component comp) {}
 
     /**
      * Gets the first <tt>Component</tt> of a specific <tt>Container</tt> if
@@ -57,7 +54,7 @@ public class FitLayout
             Rectangle bounds,
             float alignmentX, float alignmentY)
     {
-        Dimension componentSize;
+        Dimension size;
 
         /*
          * XXX The following is a quick and dirty hack for the purposes of video
@@ -70,29 +67,27 @@ public class FitLayout
                     && (((Container) component).getComponentCount() > 1))
                 || (component instanceof VideoContainer))
         {
-            componentSize = bounds.getSize();
+            size = bounds.getSize();
         }
         else
         {
-            componentSize = component.getPreferredSize();
+            size = component.getPreferredSize();
 
             boolean scale = false;
             double widthRatio;
             double heightRatio;
 
-            if ((componentSize.width != bounds.width)
-                    && (componentSize.width > 0))
+            if ((size.width != bounds.width) && (size.width > 0))
             {
                 scale = true;
-                widthRatio = bounds.width / (double) componentSize.width;
+                widthRatio = bounds.width / (double) size.width;
             }
             else
                 widthRatio = 1;
-            if ((componentSize.height != bounds.height)
-                    && (componentSize.height > 0))
+            if ((size.height != bounds.height) && (size.height > 0))
             {
                 scale = true;
-                heightRatio = bounds.height / (double) componentSize.height;
+                heightRatio = bounds.height / (double) size.height;
             }
             else
                 heightRatio = 1;
@@ -100,40 +95,37 @@ public class FitLayout
             {
                 double ratio = Math.min(widthRatio, heightRatio);
 
-                componentSize.width = (int) (componentSize.width * ratio);
-                componentSize.height = (int) (componentSize.height * ratio);
+                size.width = (int) (size.width * ratio);
+                size.height = (int) (size.height * ratio);
             }
         }
 
         // Respect the maximumSize of the component.
         if (component.isMaximumSizeSet())
         {
-            Dimension maximumSize = component.getMaximumSize();
+            Dimension maxSize = component.getMaximumSize();
 
-            if (componentSize.width > maximumSize.width)
-                componentSize.width = maximumSize.width;
-            if (componentSize.height > maximumSize.height)
-                componentSize.height = maximumSize.height;
+            if (size.width > maxSize.width)
+                size.width = maxSize.width;
+            if (size.height > maxSize.height)
+                size.height = maxSize.height;
         }
 
         /*
          * Why would one fit a Component into a rectangle with zero width and
          * height?
          */
-        if (componentSize.height < 1)
-            componentSize.height = 1;
-        if (componentSize.width < 1)
-            componentSize.width = 1;
+        if (size.height < 1)
+            size.height = 1;
+        if (size.width < 1)
+            size.width = 1;
 
         component.setBounds(
-                bounds.x
-                    + Math.round(
-                        (bounds.width - componentSize.width) * alignmentX),
+                bounds.x + Math.round((bounds.width - size.width) * alignmentX),
                 bounds.y
-                    + Math.round(
-                        (bounds.height - componentSize.height) * alignmentY),
-                componentSize.width,
-                componentSize.height);
+                    + Math.round((bounds.height - size.height) * alignmentY),
+                size.width,
+                size.height);
     }
 
     /*
@@ -199,7 +191,5 @@ public class FitLayout
      * <tt>Component</tt> of the parent <tt>Container</tt> and thus doesn't need
      * any <tt>String</tt> associations.
      */
-    public void removeLayoutComponent(Component comp)
-    {
-    }
+    public void removeLayoutComponent(Component comp) {}
 }

@@ -121,10 +121,12 @@ public class SwScale
             if ((pixelStride == Format.NOT_SPECIFIED)
                     && (dataType != null)
                     && (bitsPerPixel != Format.NOT_SPECIFIED))
+            {
                 pixelStride
                     = dataType.equals(Format.byteArray)
                         ? (bitsPerPixel / 8)
                         : 1;
+            }
             format
                 = new RGBFormat(
                         size,
@@ -367,7 +369,9 @@ public class SwScale
 
         if ((inputFormat != thisInputFormat)
                 && !inputFormat.equals(thisInputFormat))
+        {
             setInputFormat(inputFormat);
+        }
 
         // Determine the output Format and size.
         VideoFormat outputFormat = (VideoFormat) getOutputFormat();
@@ -399,7 +403,9 @@ public class SwScale
 
         if ((outputWidth < MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
                 || (outputHeight <= MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
-            return OUTPUT_BUFFER_NOT_FILLED; // sws_scale will crash
+        {
+            return OUTPUT_BUFFER_NOT_FILLED; // Otherwise, sws_scale will crash.
+        }
 
         // Apply the outputSize to the outputFormat of the output Buffer.
         outputFormat = setSize(outputFormat, outputSize);
@@ -548,7 +554,12 @@ public class SwScale
                 : null /* The input must be video, a size is not required. */;
 
         if ((inputFormat != null) && logger.isDebugEnabled())
-            logger.debug("SwScale set to input in " + inputFormat);
+        {
+            logger.debug(
+                    getClass().getName()
+                        + " 0x" + Integer.toHexString(hashCode())
+                        + " set to input in " + inputFormat);
+        }
         return inputFormat;
     }
 
@@ -583,15 +594,15 @@ public class SwScale
                         format
                             = new YUVFormat(
                                     new Dimension(width, height),
-                                    Format.NOT_SPECIFIED,
+                                    /* maxDataLength */ Format.NOT_SPECIFIED,
                                     yuvFormat.getDataType(),
                                     yuvFormat.getFrameRate(),
                                     yuvFormat.getYuvType(),
-                                    Format.NOT_SPECIFIED,
-                                    Format.NOT_SPECIFIED,
+                                    /* strideY */ Format.NOT_SPECIFIED,
+                                    /* strideUV */ Format.NOT_SPECIFIED,
                                     0,
-                                    Format.NOT_SPECIFIED,
-                                    Format.NOT_SPECIFIED);
+                                    /* offsetU */ Format.NOT_SPECIFIED,
+                                    /* strideV */ Format.NOT_SPECIFIED);
                     }
                 }
             }
@@ -599,8 +610,13 @@ public class SwScale
 
         Format outputFormat = super.setOutputFormat(format);
 
-        if (logger.isDebugEnabled() && (outputFormat != null))
-            logger.debug("SwScale set to output in " + outputFormat);
+        if ((outputFormat != null) && logger.isDebugEnabled())
+        {
+            logger.debug(
+                    getClass().getName()
+                        + " 0x" + Integer.toHexString(hashCode())
+                        + " set to output in " + outputFormat);
+        }
         return outputFormat;
     }
 
@@ -630,6 +646,17 @@ public class SwScale
      */
     public void setOutputSize(Dimension size)
     {
+        /*
+         * If the specified output size is tiny enough to crash sws_scale, do
+         * not accept it.
+         */
+        if ((size != null)
+                && ((size.height < MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
+                        || (size.width < MIN_SWS_SCALE_HEIGHT_OR_WIDTH)))
+        {
+            return;
+        }
+
         for (int i = 0; i < supportedOutputFormats.length; i++)
         {
             supportedOutputFormats[i]

@@ -164,17 +164,15 @@ public class VideoLayout
             Dimension size,
             int width, int height)
     {
-        if (size.height == 0)
-            return (height == 0);
-        else if (height == 0)
+        if ((size.height == 0) || (height == 0))
             return false;
         else
         {
-            double a = size.width / size.height;
-            double b = width / height;
-            double difference = a - b;
+            double a = size.width / (double) size.height;
+            double b = width / (double) height;
+            double diff = a - b;
 
-            return (-0.01 < difference) && (difference < 0.01);
+            return (-0.01 < diff) && (diff < 0.01);
         }
     }
 

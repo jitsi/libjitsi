@@ -1079,18 +1079,19 @@ public class VideoMediaDeviceSession
              * quality so use it for the scaling in the player replacing the
              * scaling it does upon rendering.
              */
-            visualComponent.addComponentListener(new ComponentAdapter()
-            {
-                @Override
-                public void componentResized(ComponentEvent e)
-                {
-                    playerVisualComponentResized(player, e);
-                }
-            });
+            visualComponent.addComponentListener(
+                    new ComponentAdapter()
+                    {
+                        @Override
+                        public void componentResized(ComponentEvent ev)
+                        {
+                            playerVisualComponentResized(player, ev);
+                        }
+                    });
 
             fireVideoEvent(
-                VideoEvent.VIDEO_ADDED, visualComponent, VideoEvent.REMOTE,
-                false);
+                    VideoEvent.VIDEO_ADDED, visualComponent, VideoEvent.REMOTE,
+                    false);
         }
     }
 
@@ -1119,13 +1120,17 @@ public class VideoMediaDeviceSession
          */
         if (!SwingUtilities.isEventDispatchThread())
         {
-            SwingUtilities.invokeLater(new Runnable()
-            {
-                public void run()
-                {
-                    playerSizeChange(sourceController, origin, width, height);
-                }
-            });
+            SwingUtilities.invokeLater(
+                    new Runnable()
+                    {
+                        public void run()
+                        {
+                            playerSizeChange(
+                                    sourceController,
+                                    origin,
+                                    width, height);
+                        }
+                    });
             return;
         }
 
@@ -1145,16 +1150,15 @@ public class VideoMediaDeviceSession
              */
             try
             {
-                Dimension preferredSize = visualComponent.getPreferredSize();
+                Dimension prefSize = visualComponent.getPreferredSize();
 
-                if ((preferredSize == null)
-                        || (preferredSize.width < 1)
-                        || (preferredSize.height < 1)
+                if ((prefSize == null)
+                        || (prefSize.width < 1) || (prefSize.height < 1)
                         || !VideoLayout.areAspectRatiosEqual(
-                                preferredSize,
+                                prefSize,
                                 width, height)
-                        || (preferredSize.width < width)
-                        || (preferredSize.height < height))
+                        || (prefSize.width < width)
+                        || (prefSize.height < height))
                 {
                     visualComponent.setPreferredSize(
                             new Dimension(width, height));
@@ -1179,23 +1183,23 @@ public class VideoMediaDeviceSession
      *
      * @param player the <tt>Player</tt> rendering remote content the visual
      * <tt>Component</tt> of which has been resized
-     * @param e a <tt>ComponentEvent</tt> which specifies the resized
+     * @param ev a <tt>ComponentEvent</tt> which specifies the resized
      * <tt>Component</tt>
      */
     private void playerVisualComponentResized(
             Processor player,
-            ComponentEvent e)
+            ComponentEvent ev)
     {
         if (playerScaler == null)
             return;
 
-        Component visualComponent = e.getComponent();
+        Component visualComponent = ev.getComponent();
 
         /*
-         * When the visualComponent is not in an UI hierarchy, its size isn't
+         * When the visualComponent is not in an UI hierarchy, its size is not
          * expected to be representative of what the user is seeing.
          */
-        if (visualComponent.getParent() == null)
+        if (visualComponent.isDisplayable())
             return;
 
         Dimension outputSize = visualComponent.getSize();
@@ -1603,9 +1607,10 @@ public class VideoMediaDeviceSession
 
         if (outputSize != null)
         {
-            /* We have been explicitly told to use a specified output size so
-             * create a custom SwScale that will scale and convert color spaces
-             * in one call.
+            /*
+             * We have been explicitly told to use a specific output size so
+             * insert a SwScale into the codec chain which is to take care of
+             * the specified output size.
              */
             scaler = new SwScale();
             scaler.setOutputSize(outputSize);

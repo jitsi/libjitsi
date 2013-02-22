@@ -8,6 +8,9 @@ package org.jitsi.util.swing;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.beans.*;
+
+import javax.swing.*;
 
 /**
  * Implements a <tt>Container</tt> for video/visual <tt>Component</tt>s.
@@ -32,6 +35,14 @@ public class VideoContainer
      */
     public static final Color DEFAULT_BACKGROUND_COLOR = Color.BLACK;
 
+    private static final String PREFERRED_SIZE_PROPERTY_NAME = "preferredSize";
+
+    /**
+     * The number of times that <tt>add</tt> or <tt>remove</tt> methods are
+     * currently being executed on this instance. Decreases the number of
+     * unnecessary invocations to {@link #doLayout()}, {@link #repaint()} and
+     * {@link #validate()}.
+     */
     private int inAddOrRemove;
 
     /**
@@ -43,8 +54,23 @@ public class VideoContainer
      */
     private final Component noVideoComponent;
 
+    private final PropertyChangeListener propertyChangeListener
+        = new PropertyChangeListener()
+        {
+            public void propertyChange(PropertyChangeEvent ev)
+            {
+                VideoContainer.this.propertyChange(ev);
+            }
+        };
+
     private final Object syncRoot = new Object();
 
+    /**
+     * The indicator which determines whether this instance is aware that
+     * {@link #doLayout()}, {@link #repaint()} and/or {@link #validate()} are to
+     * be invoked (as soon as {@link #inAddOrRemove} decreases from a positive
+     * number to zero). 
+     */
     private boolean validateAndRepaint;
 
     /**
@@ -165,7 +191,10 @@ public class VideoContainer
 
                     if (isDisplayable())
                     {
-                        validate();
+                        if (isValid())
+                            doLayout();
+                        else
+                            validate();
                         repaint();
                     }
                     else
@@ -175,10 +204,39 @@ public class VideoContainer
         }
     }
 
+    /**
+     * Notifies this instance that a specific <tt>Component</tt> has been added
+     * to or removed from this <tt>Container</tt>.
+     *
+     * @param ev a <tt>ContainerEvent</tt> which details the specifics of the
+     * notification such as the <tt>Component</tt> that has been added or
+     * removed
+     */
     private void onContainerEvent(ContainerEvent ev)
     {
         try
         {
+            Component component = ev.getChild();
+
+            switch (ev.getID())
+            {
+            case ContainerEvent.COMPONENT_ADDED:
+                component.addPropertyChangeListener(
+                        PREFERRED_SIZE_PROPERTY_NAME,
+                        propertyChangeListener);
+                break;
+            case ContainerEvent.COMPONENT_REMOVED:
+                component.removePropertyChangeListener(
+                        PREFERRED_SIZE_PROPERTY_NAME,
+                        propertyChangeListener);
+                break;
+            }
+
+            /*
+             * If an explicit background color is to be displayed by this
+             * Component, make sure that its opaque property i.e. transparency
+             * does not interfere with that display.
+             */
             if (DEFAULT_BACKGROUND_COLOR != null)
             {
                 int componentCount = getComponentCount();
@@ -199,6 +257,39 @@ public class VideoContainer
             {
                 if (inAddOrRemove != 0)
                     validateAndRepaint = true;
+            }
+        }
+    }
+
+    /**
+     * Notifies this instance about a change in the value of a property of a
+     * <tt>Component</tt> contained by this <tt>Container</tt>. Since the
+     * <tt>VideoLayout</tt> of this <tt>Container</tt> sizes the contained
+     * <tt>Component</tt>s based on their <tt>preferredSize</tt>s, this
+     * <tt>Container</tt> invokes {@link #doLayout()}, {@link #repaint()} and/or
+     * {@link #validate()} upon changes in the values of the property in
+     * question.
+     *
+     * @param ev a <tt>PropertyChangeEvent</tt> which details the specifics of
+     * the notification such as the name of the property whose value changed and
+     * the <tt>Component</tt> which fired the notification
+     */
+    private void propertyChange(PropertyChangeEvent ev)
+    {
+        if (PREFERRED_SIZE_PROPERTY_NAME.equals(ev.getPropertyName())
+                && SwingUtilities.isEventDispatchThread())
+        {
+            /*
+             * The goal is to invoke doLayout, repaint and/or validate. These
+             * methods and the specifics with respect to avoiding unnecessary
+             * calls to them are already dealt with by enterAddOrRemove,
+             * exitAddOrRemove and validateAndRepaint.
+             */
+            synchronized (syncRoot)
+            {
+                enterAddOrRemove();
+                validateAndRepaint = true;
+                exitAddOrRemove();
             }
         }
     }

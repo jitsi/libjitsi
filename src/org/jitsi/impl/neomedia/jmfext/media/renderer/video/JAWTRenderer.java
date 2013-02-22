@@ -188,6 +188,20 @@ public class JAWTRenderer
     private int height = 0;
 
     /**
+     * The <tt>Runnable</tt> which is executed to bring the invocations of
+     * {@link #reflectInputFormatOnComponent()} into the AWT event dispatching
+     * thread.
+     */
+    private final Runnable reflectInputFormatOnComponentInEventDispatchThread
+        = new Runnable()
+        {
+            public void run()
+            {
+                reflectInputFormatOnComponentInEventDispatchThread();
+            }
+        };
+
+    /**
      * The last known width of the input processed by this
      * <tt>JAWTRenderer</tt>.
      */
@@ -215,14 +229,14 @@ public class JAWTRenderer
 
     /**
      * Gets the region in the component of this <tt>VideoRenderer</tt> where the
-     * video is rendered.
+     * video is rendered. <tt>JAWTRenderer</tt> always uses the entire component
+     * i.e. always returns <tt>null</tt>.
      *
      * @return the region in the component of this <tt>VideoRenderer</tt> where
      * the video is rendered; <tt>null</tt> if the entire component is used
      */
     public Rectangle getBounds()
     {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -246,46 +260,46 @@ public class JAWTRenderer
                 componentClassName.append("Android");
             componentClassName.append("VideoComponent");
 
-            Class<?> componentClass;
+            Throwable reflectiveOperationException = null;
 
             try
             {
-                componentClass = Class.forName(componentClassName.toString());
+                Class<?> componentClass
+                    = Class.forName(componentClassName.toString());
+                Constructor<?> componentConstructor
+                    = componentClass.getConstructor(JAWTRenderer.class);
+
+                component = (Component) componentConstructor.newInstance(this);
             }
             catch (ClassNotFoundException cnfe)
             {
-                throw new RuntimeException(cnfe);
-            }
-
-            Constructor<?> componentConstructor;
-
-            try
-            {
-                componentConstructor
-                    = componentClass.getConstructor(JAWTRenderer.class);
-            }
-            catch (NoSuchMethodException nsme)
-            {
-                throw new RuntimeException(nsme);
-            }
-            try
-            {
-                component = (Component) componentConstructor.newInstance(this);
+                reflectiveOperationException = cnfe;
             }
             catch (IllegalAccessException iae)
             {
-                throw new RuntimeException(iae);
+                reflectiveOperationException = iae;
             }
             catch (InstantiationException ie)
             {
-                throw new RuntimeException(ie);
+                reflectiveOperationException = ie;
             }
             catch (InvocationTargetException ite)
             {
-                throw new RuntimeException(ite);
+                reflectiveOperationException = ite;
             }
+            catch (NoSuchMethodException nsme)
+            {
+                reflectiveOperationException = nsme;
+            }
+            if (reflectiveOperationException != null)
+                throw new RuntimeException(reflectiveOperationException);
 
-            reflectInputFormatOnComponent();
+            /*
+             * XXX The component has not been exposed outside of this instance
+             * yet so it seems relatively safe to set its properties outside the
+             * AWT event dispatching thread.
+             */
+            reflectInputFormatOnComponentInEventDispatchThread();
         }
         return component;
     }
@@ -418,10 +432,10 @@ public class JAWTRenderer
 
         if ((format != null)
                 && (format != this.inputFormat)
-                && !format.equals(this.inputFormat))
+                && !format.equals(this.inputFormat)
+                && (setInputFormat(format) == null))
         {
-            if (setInputFormat(format) == null)
-                return BUFFER_PROCESSED_FAILED;
+            return BUFFER_PROCESSED_FAILED;
         }
 
         if (handle == 0)
@@ -458,9 +472,29 @@ public class JAWTRenderer
     /**
      * Sets properties of the AWT <tt>Component</tt> of this <tt>Renderer</tt>
      * which depend on the properties of the <tt>inputFormat</tt> of this
-     * <tt>Renderer</tt>.
+     * <tt>Renderer</tt>. Makes sure that the procedure is executed on the AWT
+     * event dispatching thread because an AWT <tt>Component</tt>'s properties
+     * (such as <tt>preferredSize</tt>) should be accessed in the AWT event
+     * dispatching thread.
      */
     private void reflectInputFormatOnComponent()
+    {
+        if (SwingUtilities.isEventDispatchThread())
+            reflectInputFormatOnComponentInEventDispatchThread();
+        else
+        {
+            SwingUtilities.invokeLater(
+                    reflectInputFormatOnComponentInEventDispatchThread);
+        }
+    }
+
+    /**
+     * Sets properties of the AWT <tt>Component</tt> of this <tt>Renderer</tt>
+     * which depend on the properties of the <tt>inputFormat</tt> of this
+     * <tt>Renderer</tt>. The invocation is presumed to be performed on the AWT
+     * event dispatching thread.
+     */
+    private void reflectInputFormatOnComponentInEventDispatchThread()
     {
         /*
          * Reflect the width and height of the input onto the prefSize of our
@@ -491,30 +525,37 @@ public class JAWTRenderer
 
             /*
              * If the component does not have a size, it looks strange given
-             * that we know a prefSize for it.
+             * that we know a prefSize for it. However, if the component has
+             * already been added into a Container, the Container will dictate
+             * the size as part of its layout logic.
              */
-            Dimension size = component.getSize();
-
-            if ((size.width < 1) || (size.height < 1))
+            if (component.isPreferredSizeSet()
+                    && (component.getParent() == null))
             {
+                Dimension size = component.getSize();
+
                 prefSize = component.getPreferredSize();
-                component.setSize(prefSize.width, prefSize.height);
+                if ((size.width < 1) || (size.height < 1)
+                        || !VideoLayout.areAspectRatiosEqual(
+                                size,
+                                prefSize.width, prefSize.height))
+                {
+                    component.setSize(prefSize.width, prefSize.height);
+                }
             }
         }
     }
 
     /**
      * Sets the region in the component of this <tt>VideoRenderer</tt> where the
-     * video is to be rendered.
+     * video is to be rendered. <tt>JAWTRenderer</tt> always uses the entire
+     * component and, consequently, the method does nothing.
      *
      * @param bounds the region in the component of this <tt>VideoRenderer</tt>
      * where the video is to be rendered; <tt>null</tt> if the entire component
      * is to be used
      */
-    public void setBounds(Rectangle bounds)
-    {
-        // TODO Auto-generated method stub
-    }
+    public void setBounds(Rectangle bounds) {}
 
     /**
      * Sets the AWT <tt>Component</tt> into which this <tt>VideoRenderer</tt> is
@@ -529,7 +570,6 @@ public class JAWTRenderer
      */
     public boolean setComponent(Component component)
     {
-        // We cannot draw into any other AWT Component but our own.
         return false;
     }
 
@@ -557,6 +597,14 @@ public class JAWTRenderer
          */
         if (oldInputFormat == inputFormat)
             return newInputFormat;
+
+        if (logger.isDebugEnabled())
+        {
+            logger.debug(
+                    getClass().getName()
+                        + " 0x" + Integer.toHexString(hashCode())
+                        + " set to input in " + inputFormat);
+        }
 
         /*
          * Know the width and height of the input because we'll be depicting it
