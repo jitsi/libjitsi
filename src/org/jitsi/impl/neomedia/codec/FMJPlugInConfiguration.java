@@ -45,8 +45,6 @@ public class FMJPlugInConfiguration
             "org.jitsi.impl.neomedia.codec.audio.speex.JNIDecoder",
             "org.jitsi.impl.neomedia.codec.audio.speex.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.audio.speex.SpeexResampler",
-            "org.jitsi.impl.neomedia.codec.audio.speex.JavaDecoder",
-            "org.jitsi.impl.neomedia.codec.audio.speex.JavaEncoder",
             "org.jitsi.impl.neomedia.codec.audio.mp3.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.audio.ilbc.JavaDecoder",
             "org.jitsi.impl.neomedia.codec.audio.ilbc.JavaEncoder",
