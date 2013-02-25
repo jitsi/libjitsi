@@ -190,9 +190,9 @@ public class Silk_wrappers_FLP
          * test of the AR2_Q13
          * 
          */
-        short[] ar2_q13 = new short[ Silk_define.NB_SUBFR * Silk_define.SHAPE_LPC_ORDER_MAX ];
-        String ar2_q13_filename = "D:/gsoc/ar2_q13";
-       
+//        short[] ar2_q13 = new short[ Silk_define.NB_SUBFR * Silk_define.SHAPE_LPC_ORDER_MAX ];
+//        String ar2_q13_filename = "D:/gsoc/ar2_q13";
+//
 //        /*
 //         * Option 1:
 //         */
@@ -372,8 +372,8 @@ public class Silk_wrappers_FLP
         /**
          * test of x_16
          */
-        short x_16_test[] = new short[ Silk_define.MAX_FRAME_LENGTH ];
-        String x_16_filename = "D:/gsoc/x_16";
+//        short x_16_test[] = new short[ Silk_define.MAX_FRAME_LENGTH ];
+//        String x_16_filename = "D:/gsoc/x_16";
 //        /*
 //         * Option 1:
 //         */
