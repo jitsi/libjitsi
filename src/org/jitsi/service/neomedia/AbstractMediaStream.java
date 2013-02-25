@@ -7,9 +7,6 @@
 package org.jitsi.service.neomedia;
 
 import java.beans.*;
-import java.util.*;
-
-import org.jitsi.service.neomedia.format.*;
 
 /**
  * Abstract base implementation of <tt>MediaStream</tt> to ease the
