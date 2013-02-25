@@ -14,6 +14,7 @@ import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.portaudio.*;
 import org.jitsi.impl.neomedia.portaudio.*;
@@ -58,6 +59,12 @@ public class PortAudioRenderer
      * of view is represented by {@link #started}.
      */
     private static final byte FLAG_STARTED = 2;
+
+    /**
+     * The constant which expresses a non-existent time in milliseconds for the
+     * purposes of {@link #writeIsMalfunctioningSince}.
+     */
+    private static final long NEVER = DiagnosticsControl.NEVER;
 
     /**
      * The human-readable name of the <tt>PortAudioRenderer</tt> JMF plug-in.
@@ -124,6 +131,48 @@ public class PortAudioRenderer
      * controlled.
      */
     private final GainControl gainControl;
+
+    /**
+     * The <tt>DiagnosticsControl</tt> implementation of this instance which
+     * allows the diagnosis of the functional health of <tt>Pa_WriteStream</tt>.
+     */
+    private final DiagnosticsControl diagnosticsControl
+        = new DiagnosticsControl()
+        {
+            /**
+             * {@inheritDoc}
+             *
+             * <tt>PortAudioRenderer</tt>'s <tt>DiagnosticsControl</tt>
+             * implementation does not provide its own user interface and always
+             * returns <tt>null</tt>.
+             */
+            public java.awt.Component getControlComponent()
+            {
+                return null;
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            public long getMalfunctioningSince()
+            {
+                return writeIsMalfunctioningSince;
+            }
+
+            /**
+             * {@inheritDoc}
+             *
+             * Returns the identifier of the PortAudio device written through
+             * this <tt>PortAudioRenderer</tt>.
+             */
+            public String toString()
+            {
+                MediaLocator locator = getLocator();
+
+                return
+                    (locator == null) ? null : DataSource.getDeviceID(locator);
+            }
+        };
 
     /**
      * The flags which represent certain state of this
@@ -241,6 +290,14 @@ public class PortAudioRenderer
     private Format[] supportedInputFormats;
 
     /**
+     * The time in milliseconds at which <tt>Pa_WriteStream</tt> has started
+     * malfunctioning. For example, <tt>Pa_WriteStream</tt> returning
+     * <tt>paTimedOut</tt> and/or Windows Multimedia reporting
+     * <tt>MMSYSERR_NODRIVER</tt> (may) indicate abnormal functioning.
+     */
+    private long writeIsMalfunctioningSince = -1;
+
+    /**
      * Initializes a new <tt>PortAudioRenderer</tt> instance.
      */
     public PortAudioRenderer()
@@ -307,6 +364,9 @@ public class PortAudioRenderer
                     stream = 0;
                     started = false;
                     flags &= ~(FLAG_OPEN | FLAG_STARTED);
+
+                    if (writeIsMalfunctioningSince != NEVER)
+                        setWriteIsMalfunctioning(false);
                 }
                 catch (PortAudioException paex)
                 {
@@ -612,6 +672,10 @@ public class PortAudioRenderer
                 = Pa.GetSampleSize(sampleFormat)
                     * channels
                     * framesPerBuffer;
+
+            // Pa_WriteStream has not been invoked yet.
+            if (writeIsMalfunctioningSince != NEVER)
+                setWriteIsMalfunctioning(false);
         }
     }
 
@@ -680,7 +744,16 @@ public class PortAudioRenderer
         synchronized (this)
         {
             if (!started || (stream == 0))
+            {
+                /*
+                 * The execution is somewhat abnormal but it is not because of a
+                 * malfunction in Pa_WriteStream.
+                 */
+                if (writeIsMalfunctioningSince != NEVER)
+                    setWriteIsMalfunctioning(false);
+
                 return BUFFER_PROCESSED_OK;
+            }
             else
                 streamIsBusy = true;
         }
@@ -704,12 +777,6 @@ public class PortAudioRenderer
         }
         finally
         {
-            synchronized (this)
-            {
-                streamIsBusy = false;
-                notifyAll();
-            }
-
             /*
              * If a timeout has occurred in the method Pa.WriteStream, give the
              * application a little time to allow it to possibly get its act
@@ -717,12 +784,31 @@ public class PortAudioRenderer
              * soon as the wmme host API starts reporting that no device driver
              * is present.
              */
-            if ((Pa.paTimedOut == errorCode)
-                    || (Pa.HostApiTypeId.paMME.equals(hostApiType)
-                            && (Pa.MMSYSERR_NODRIVER == errorCode)))
+            boolean yield = false;
+
+            synchronized (this)
             {
-                PortAudioStream.yield();
+                streamIsBusy = false;
+                notifyAll();
+
+                if (errorCode == Pa.paNoError)
+                {
+                    // Pa_WriteStream appears to function normally.
+                    if (writeIsMalfunctioningSince != NEVER)
+                        setWriteIsMalfunctioning(false);
+                }
+                else if ((Pa.paTimedOut == errorCode)
+                        || (Pa.HostApiTypeId.paMME.equals(hostApiType)
+                                && (Pa.MMSYSERR_NODRIVER == errorCode)))
+                {
+                    if (writeIsMalfunctioningSince == NEVER)
+                        setWriteIsMalfunctioning(true);
+                    yield = true;
+                }
             }
+
+            if (yield)
+                PortAudioStream.yield();
         }
         return BUFFER_PROCESSED_OK;
     }
@@ -813,6 +899,26 @@ public class PortAudioRenderer
     }
 
     /**
+     * Indicates whether <tt>Pa_WriteStream</tt> is malfunctioning.
+     *
+     * @param malfunctioning <tt>true</tt> if <tt>Pa_WriteStream</tt> is
+     * malfunctioning; otherwise, <tt>false</tt>
+     */
+    private void setWriteIsMalfunctioning(boolean malfunctioning)
+    {
+        if (malfunctioning)
+        {
+            if (writeIsMalfunctioningSince == NEVER)
+            {
+                writeIsMalfunctioningSince = System.currentTimeMillis();
+                PortAudioSystem.monitorFunctionalHealth(diagnosticsControl);
+            }
+        }
+        else
+            writeIsMalfunctioningSince = NEVER;
+    }
+
+    /**
      * Starts the rendering process. Any audio data available in the internal
      * resources associated with this <tt>PortAudioRenderer</tt> will begin
      * being rendered.
@@ -849,6 +955,8 @@ public class PortAudioRenderer
                 flags &= ~FLAG_STARTED;
 
                 bufferLeft = null;
+                if (writeIsMalfunctioningSince != NEVER)
+                    setWriteIsMalfunctioning(false);
             }
             catch (PortAudioException paex)
             {

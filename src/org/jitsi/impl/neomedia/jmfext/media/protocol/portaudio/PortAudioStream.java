@@ -13,6 +13,7 @@ import javax.media.control.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.portaudio.*;
@@ -35,6 +36,12 @@ public class PortAudioStream
         = Logger.getLogger(PortAudioStream.class);
 
     /**
+     * The constant which expresses a non-existent time in milliseconds for the
+     * purposes of {@link #readIsMalfunctioningSince}.
+     */
+    private static final long NEVER = DiagnosticsControl.NEVER;
+
+    /**
      * The indicator which determines whether audio quality improvement is
      * enabled for this <tt>PortAudioStream</tt> in accord with the preferences
      * of the user.
@@ -52,7 +59,46 @@ public class PortAudioStream
      * name) of the PortAudio device read through this
      * <tt>PullBufferStream</tt>.
      */
-    private String deviceID = null;
+    private String deviceID;
+
+    /**
+     * The <tt>DiagnosticsControl</tt> implementation of this instance which
+     * allows the diagnosis of the functional health of <tt>Pa_ReadStream</tt>.
+     */
+    private final DiagnosticsControl diagnosticsControl
+        = new DiagnosticsControl()
+        {
+            /**
+             * {@inheritDoc}
+             *
+             * <tt>PortAudioStream</tt>'s <tt>DiagnosticsControl</tt>
+             * implementation does not provide its own user interface and always
+             * returns <tt>null</tt>.
+             */
+            public java.awt.Component getControlComponent()
+            {
+                return null;
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            public long getMalfunctioningSince()
+            {
+                return readIsMalfunctioningSince;
+            }
+
+            /**
+             * {@inheritDoc}
+             *
+             * Returns the identifier of the PortAudio device read through this
+             * <tt>PortAudioStream</tt>.
+             */
+            public String toString()
+            {
+                return deviceID;
+            }
+        };
 
     /**
      * The last-known <tt>Format</tt> of the media data made available by this
@@ -164,6 +210,14 @@ public class PortAudioStream
                     }
                 }
             };
+
+    /**
+     * The time in milliseconds at which <tt>Pa_ReadStream</tt> has started
+     * malfunctioning. For example, <tt>Pa_ReadStream</tt> returning
+     * <tt>paTimedOut</tt> and/or Windows Multimedia reporting
+     * <tt>MMSYSERR_NODRIVER</tt> (may) indicate abnormal functioning.
+     */
+    private long readIsMalfunctioningSince = NEVER;
 
     /**
      * Current sequence number.
@@ -336,6 +390,10 @@ public class PortAudioStream
                 (audioQualityImprovement && echoCancel)
                     ? echoCancelFilterLengthInMillis
                     : 0);
+
+        // Pa_ReadStream has not been invoked yet.
+        if (readIsMalfunctioningSince != NEVER)
+            setReadIsMalfunctioning(false);
     }
 
     /**
@@ -379,6 +437,16 @@ public class PortAudioStream
             {
                 message = null;
                 streamIsBusy = true;
+            }
+
+            if (message != null)
+            {
+                /*
+                 * There is certainly a problem but it is other than a
+                 * malfunction in Pa_ReadStream. 
+                 */
+                if (readIsMalfunctioningSince != NEVER)
+                    setReadIsMalfunctioning(false);
             }
         }
 
@@ -455,12 +523,6 @@ public class PortAudioStream
         }
         finally
         {
-            synchronized (this)
-            {
-               streamIsBusy = false;
-               notifyAll();
-            }
-
             /*
              * If a timeout has occurred in the method Pa.ReadStream, give the
              * application a little time to allow it to possibly get its act
@@ -468,12 +530,31 @@ public class PortAudioStream
              * soon as the wmme host API starts reporting that no device driver
              * is present.
              */
-            if ((Pa.paTimedOut == errorCode)
-                    || (Pa.HostApiTypeId.paMME.equals(hostApiType)
-                            && (Pa.MMSYSERR_NODRIVER == errorCode)))
+            boolean yield = false;
+
+            synchronized (this)
             {
-                yield();
+                streamIsBusy = false;
+                notifyAll();
+
+                if (errorCode == Pa.paNoError)
+                {
+                    // Pa_ReadStream appears to function normally.
+                    if (readIsMalfunctioningSince != NEVER)
+                        setReadIsMalfunctioning(false);
+                }
+                else if ((Pa.paTimedOut == errorCode)
+                        || (Pa.HostApiTypeId.paMME.equals(hostApiType)
+                                && (Pa.MMSYSERR_NODRIVER == errorCode)))
+                {
+                    if (readIsMalfunctioningSince == NEVER)
+                        setReadIsMalfunctioning(true);
+                    yield = true;
+                }
             }
+
+            if (yield)
+                yield();
         }
     }
 
@@ -588,6 +669,9 @@ public class PortAudioStream
                          * of using its Format from a previous open.
                          */
                         this.format = null;
+
+                        if (readIsMalfunctioningSince != NEVER)
+                            setReadIsMalfunctioning(false);
                     }
                 }
             }
@@ -609,6 +693,26 @@ public class PortAudioStream
                 PortAudioSystem.didPaOpenStream();
             }
         }
+    }
+
+    /**
+     * Indicates whether <tt>Pa_ReadStream</tt> is malfunctioning.
+     *
+     * @param malfunctioning <tt>true</tt> if <tt>Pa_ReadStream</tt> is
+     * malfunctioning; otherwise, <tt>false</tt>
+     */
+    private void setReadIsMalfunctioning(boolean malfunctioning)
+    {
+        if (malfunctioning)
+        {
+            if (readIsMalfunctioningSince == NEVER)
+            {
+                readIsMalfunctioningSince = System.currentTimeMillis();
+                PortAudioSystem.monitorFunctionalHealth(diagnosticsControl);
+            }
+        }
+        else
+            readIsMalfunctioningSince = NEVER;
     }
 
     /**
@@ -662,6 +766,9 @@ public class PortAudioStream
             {
                 Pa.StopStream(stream);
                 started = false;
+
+                if (readIsMalfunctioningSince != NEVER)
+                    setReadIsMalfunctioning(false);
             }
             catch (PortAudioException paex)
             {

@@ -453,12 +453,12 @@ public abstract class DeviceSystem
     }
 
     /**
-     * Gets the protocol of the <tt>MediaLocator</tt> of the
+     * Gets the protocol of the <tt>MediaLocator</tt>s of the
      * <tt>CaptureDeviceInfo</tt>s (to be) registered (with FMJ) by this
      * <tt>DeviceSystem</tt>. The protocol is a unique identifier of a
      * <tt>DeviceSystem</tt>.
      *
-     * @return the protocol of the <tt>MediaLocator</tt> of the
+     * @return the protocol of the <tt>MediaLocator</tt>s of the
      * <tt>CaptureDeviceInfo</tt>s (to be) registered (with FMJ) by this
      * <tt>DeviceSystem</tt>
      */
@@ -635,6 +635,9 @@ public abstract class DeviceSystem
 
     /**
      * Returns a human-readable representation of this <tt>DeviceSystem</tt>.
+     * The implementation of <tt>DeviceSystem</tt> returns the protocol of the
+     * <tt>MediaLocator</tt>s of the <tt>CaptureDeviceInfo</tt>s (to be)
+     * registered by this <tt>DeviceSystem</tt>.
      *
      * @return a <tt>String</tt> which represents this <tt>DeviceSystem</tt> in
      * a human-readable form

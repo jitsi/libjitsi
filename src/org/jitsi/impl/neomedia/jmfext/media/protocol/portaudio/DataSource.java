@@ -135,9 +135,7 @@ public class DataSource
         synchronized (getStreamSyncRoot())
         {
             for (Object stream : getStreams())
-            {
                 ((PortAudioStream) stream).setDeviceID(deviceID);
-            }
         }
     }
 

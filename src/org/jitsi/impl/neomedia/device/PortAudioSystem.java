@@ -14,6 +14,7 @@ import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.impl.neomedia.portaudio.*;
 import org.jitsi.util.*;
@@ -183,7 +184,7 @@ public class PortAudioSystem
     }
 
     @Override
-    public Renderer createRenderer(boolean playback)
+    public javax.media.Renderer createRenderer(boolean playback)
     {
         MediaLocator locator;
 
@@ -692,6 +693,22 @@ public class PortAudioSystem
     }
 
     /**
+     * Places a specific <tt>DiagnosticsControl</tt> under monitoring of its
+     * functional health because of a malfunction in its procedure/process. The
+     * monitoring will automatically cease after the procedure/process resumes
+     * executing normally or is garbage collected.
+     *
+     * @param diagnosticsControl the <tt>DiagnosticsControl</tt> to be placed
+     * under monitoring of its functional health because of a malfunction in its
+     * procedure/process
+     */
+    public static void monitorFunctionalHealth(
+            DiagnosticsControl diagnosticsControl)
+    {
+        // TODO Auto-generated method stub
+    }
+
+    /**
      * Reinitializes this <tt>PortAudioSystem</tt> in order to bring it up to
      * date with possible changes in the PortAudio devices. Invokes
      * <tt>Pa_UpdateAvailableDeviceList()</tt> to update the devices on the
@@ -749,6 +766,12 @@ public class PortAudioSystem
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * The implementation of <tt>PortAudioSystem</tt> always returns
+     * &quot;PortAudio&quot;.
+     */
     @Override
     public String toString()
     {
