@@ -24,15 +24,14 @@ import org.jitsi.service.neomedia.format.*;
  */
 public interface MediaStream
 {
-
     /**
-     * The name of the property which indicates whether the remote SSRC is
+     * The name of the property which indicates whether the local SSRC is
      * currently available.
      */
     public static final String PNAME_LOCAL_SSRC = "localSSRCAvailable";
 
     /**
-     * The name of the property which indicates whether the local SSRC is
+     * The name of the property which indicates whether the remote SSRC is
      * currently available.
      */
     public static final String PNAME_REMOTE_SSRC = "remoteSSRCAvailable";
