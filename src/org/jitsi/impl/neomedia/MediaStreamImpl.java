@@ -1779,7 +1779,9 @@ public class MediaStreamImpl
 
         handleAttributes(format, format.getAdvancedAttributes());
         handleAttributes(format, format.getFormatParameters());
-        deviceSession.setFormat(format);
+
+        if (deviceSession != null)
+            deviceSession.setFormat(format);
     }
 
     /**

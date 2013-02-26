@@ -461,10 +461,9 @@ public class Video4Linux2Stream
                         v4l2_requestbuffers)
                     == -1)
             {
-                throw
-                    new IOException(
-                            "ioctl: request= VIDIOC_REQBUFS, memory= "
-                                + requestbuffersMemory);
+                throw new IOException(
+                        "ioctl: request= VIDIOC_REQBUFS, memory= "
+                            + requestbuffersMemory);
             }
             requestbuffersCount
                 = Video4Linux2.v4l2_requestbuffers_getCount(
@@ -724,25 +723,20 @@ public class Video4Linux2Stream
                     v4l2_format)
                 == -1)
         {
-            throw
-                new IOException(
-                        "ioctl: request= VIDIOC_S_FMT"
-                            + ((size == null)
-                                ? ""
-                                : (", width= "
-                                    + size.width
-                                    + ", height= "
-                                    + size.height))
-                            + ", pixelformat= "
-                            + pixelformat);
+            throw new IOException(
+                    "ioctl: request= VIDIOC_S_FMT"
+                        + ((size == null)
+                            ? ""
+                            : (", size= " + size.width + "x" + size.height))
+                        + ", pixelformat= "
+                        + pixelformat);
         }
         else if (Video4Linux2.v4l2_pix_format_getPixelformat(fmtPix)
                 != pixelformat)
         {
-            throw
-                new IOException(
-                        "Failed to change the format of the V4L2 device to "
-                            + pixelformat);
+            throw new IOException(
+                    "Failed to change the format of the V4L2 device to "
+                        + pixelformat);
         }
     }
 
@@ -779,9 +773,8 @@ public class Video4Linux2Stream
                             v4l2_buffer)
                         == -1)
                 {
-                    throw
-                        new IOException(
-                                "ioctl: request= VIDIOC_QBUF, index= " + i);
+                    throw new IOException(
+                            "ioctl: request= VIDIOC_QBUF, index= " + i);
                 }
             }
         }

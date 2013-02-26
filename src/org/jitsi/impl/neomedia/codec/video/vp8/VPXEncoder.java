@@ -282,8 +282,9 @@ public class VPXEncoder
             frameCount++;
 
             YUVFormat format = (YUVFormat) inputBuffer.getFormat();
-            int width = (int) format.getSize().getWidth();
-            int height = (int) format.getSize().getHeight();
+            Dimension formatSize = format.getSize();
+            int width = formatSize.width;
+            int height = formatSize.height;
 
             if (width > 0 && height > 0 &&
                     (width != this.width || height != this.height))

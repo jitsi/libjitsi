@@ -174,8 +174,8 @@ public class ImageStream
     {
         VideoFormat format = (VideoFormat) getFormat();
         Dimension formatSize = format.getSize();
-        int width = (int) formatSize.getWidth();
-        int height = (int) formatSize.getHeight();
+        int width = formatSize.width;
+        int height = formatSize.height;
         BufferedImage scaledScreen = null;
         BufferedImage screen = null;
         byte data[] = null;

@@ -390,8 +390,7 @@ public class DataSource
             {
                 @SuppressWarnings("unchecked")
                 Vector<String> codecs
-                    = PlugInManager
-                        .getPlugInList(
+                    = PlugInManager.getPlugInList(
                             new VideoFormat(genericVideoFormat.getEncoding()),
                             null,
                             PlugInManager.CODEC);
@@ -399,8 +398,7 @@ public class DataSource
                 for (String codec : codecs)
                 {
                     Format[] supportedInputFormats
-                        = PlugInManager
-                            .getSupportedInputFormats(
+                        = PlugInManager.getSupportedInputFormats(
                                 codec,
                                 PlugInManager.CODEC);
 
@@ -412,10 +410,8 @@ public class DataSource
                                     .getSize();
 
                             if (size != null)
-                                specificFormats
-                                    .add(
-                                        genericFormat
-                                            .intersects(
+                                specificFormats.add(
+                                        genericFormat.intersects(
                                                 new VideoFormat(
                                                         null,
                                                         size,

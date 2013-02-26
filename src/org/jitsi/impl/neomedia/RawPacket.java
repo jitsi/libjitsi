@@ -620,13 +620,12 @@ public class RawPacket
         if (!getExtensionBit())
             return 0;
 
-        //the extension length comes after the RTP header, the CSRC list, and
-        //after two bytes in the extension header called "defined by profile"
-        int extLenIndex =  offset
-                        + FIXED_HEADER_SIZE
-                        + getCsrcCount()*4 + 2;
+        // The extension length comes after the RTP header, the CSRC list, and
+        // two bytes in the extension header called "defined by profile".
+        int extLenIndex = offset + FIXED_HEADER_SIZE + getCsrcCount() * 4 + 2;
 
-        return ((buffer[extLenIndex] << 8) | buffer[extLenIndex + 1]) * 4;
+        return
+            ((buffer[extLenIndex] << 8) | (buffer[extLenIndex + 1] & 0xFF)) * 4;
     }
 
     /**

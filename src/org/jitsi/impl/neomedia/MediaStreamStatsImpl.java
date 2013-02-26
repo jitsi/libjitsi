@@ -40,7 +40,7 @@ public class MediaStreamStatsImpl
         = Logger.getLogger(MediaStreamStatsImpl.class);
 
     /**
-     * Enumeation of the direction (DOWNLOAD or UPLOAD) used for the stats.
+     * Enumeration of the direction (DOWNLOAD or UPLOAD) used for the stats.
      */ 
     private enum StreamDirection
     {
@@ -352,13 +352,9 @@ public class MediaStreamStatsImpl
      */
     public Dimension getUploadVideoSize()
     {
-        Dimension videoSize = null;
-        VideoFormat format = this.getUploadVideoFormat();
-        if(format != null)
-        {
-            videoSize = format.getSize();
-        }
-        return videoSize;
+        VideoFormat format = getUploadVideoFormat();
+
+        return (format == null) ? null : format.getSize();
     }
 
     /**

@@ -1196,7 +1196,7 @@ public class VideoMediaDeviceSession
         Component visualComponent = ev.getComponent();
 
         /*
-         * When the visualComponent is not in an UI hierarchy, its size is not
+         * When the visualComponent is not in a UI hierarchy, its size is not
          * expected to be representative of what the user is seeing.
          */
         if (visualComponent.isDisplayable())
@@ -1206,7 +1206,8 @@ public class VideoMediaDeviceSession
         float outputWidth = outputSize.width;
         float outputHeight = outputSize.height;
 
-        if ((outputWidth < 1) || (outputHeight < 1))
+        if ((outputWidth < SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
+                || (outputHeight < SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
             return;
 
         /*
@@ -1472,35 +1473,33 @@ public class VideoMediaDeviceSession
         {
             Dimension deviceSize
                 = ((VideoFormat) getCaptureDeviceFormat()).getSize();
+            Dimension videoFormatSize;
 
             if ((deviceSize != null)
                     && ((deviceSize.width > outputSize.width)
                         || (deviceSize.height > outputSize.height)))
             {
-                VideoFormat videoFormat = (VideoFormat) format;
-
-                format
-                    = new VideoFormat(
-                            videoFormat.getEncoding(),
-                            outputSize,
-                            videoFormat.getMaxDataLength(),
-                            videoFormat.getDataType(),
-                            videoFormat.getFrameRate());
+                videoFormatSize = outputSize;
             }
             else
             {
-                VideoFormat videoFormat = (VideoFormat) format;
-
-                format
-                    = new VideoFormat(
-                            videoFormat.getEncoding(),
-                            deviceSize,
-                            videoFormat.getMaxDataLength(),
-                            videoFormat.getDataType(),
-                            videoFormat.getFrameRate());
-
+                videoFormatSize = deviceSize;
                 outputSize = null;
             }
+
+            VideoFormat videoFormat = (VideoFormat) format;
+
+            /*
+             * FIXME The assignment to the local variable format makes no
+             * difference because it is no longer user afterwards.
+             */
+            format
+                = new VideoFormat(
+                        videoFormat.getEncoding(),
+                        videoFormatSize,
+                        videoFormat.getMaxDataLength(),
+                        videoFormat.getDataType(),
+                        videoFormat.getFrameRate());
         }
         else
             outputSize = null;
@@ -1890,7 +1889,9 @@ public class VideoMediaDeviceSession
                     Dimension size = ((VideoFormat) inputFormat).getSize();
 
                     if ((size != null)
-                            && ((lastSize == null) || !lastSize.equals(size)))
+                            && (size.height >= MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
+                            && (size.width >= MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
+                            && !size.equals(lastSize))
                     {
                         lastSize = size;
                         playerSizeChange(
@@ -1922,12 +1923,14 @@ public class VideoMediaDeviceSession
                 if ((inputSize != null) && (inputSize.width > 0))
                 {
                     Dimension outputSize = getOutputSize();
+                    int outputWidth;
 
-                    if ((outputSize != null) && (outputSize.width > 0))
+                    if ((outputSize != null)
+                            && ((outputWidth = outputSize.width) > 0))
                     {
                         int outputHeight
                             = (int)
-                                (outputSize.width
+                                (outputWidth
                                     * inputSize.height
                                     / (float) inputSize.width);
                         int outputHeightDelta
@@ -1935,8 +1938,8 @@ public class VideoMediaDeviceSession
 
                         if ((outputHeightDelta < -1) || (outputHeightDelta > 1))
                         {
-                             outputSize.height = outputHeight;
-                             setOutputSize(outputSize);
+                             super.setOutputSize(
+                                     new Dimension(outputWidth, outputHeight));
                         }
                     }
                 }

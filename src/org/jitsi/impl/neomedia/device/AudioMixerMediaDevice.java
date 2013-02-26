@@ -712,7 +712,7 @@ public class AudioMixerMediaDevice
                         }
                         finally
                         {
-                            streamAudioLevelListeners.remove(dispatcher);
+                            streamAudioLevelListeners.remove(stream);
                         }
                     }
                 }

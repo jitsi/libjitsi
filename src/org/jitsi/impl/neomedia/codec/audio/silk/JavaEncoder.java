@@ -169,11 +169,14 @@ public class JavaEncoder
         //according to our configuration
         String satStr = cfg.getString(Constants.PROP_SILK_FEC_SAT, "0.5");
         float sat = Silk_define_FLP.LBRR_SPEECH_ACTIVITY_THRES;
-        try
+        if ((satStr != null) && (satStr.length() != 0))
         {
-            sat = Float.parseFloat(satStr);
+            try
+            {
+                sat = Float.parseFloat(satStr);
+            }
+            catch (NumberFormatException nfe) {}
         }
-        catch (Exception e){}
         Silk_define_FLP.LBRR_SPEECH_ACTIVITY_THRES = sat;
 
         addControl(this);

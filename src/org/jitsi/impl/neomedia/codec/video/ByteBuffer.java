@@ -54,7 +54,7 @@ public class ByteBuffer
 
         this.ptr = FFmpeg.av_malloc(capacity);
         if (this.ptr == 0)
-            throw new OutOfMemoryError("av_malloc(" + this.capacity + ")");
+            throw new OutOfMemoryError("av_malloc(" + capacity + ")");
         else
         {
             this.capacity = capacity;

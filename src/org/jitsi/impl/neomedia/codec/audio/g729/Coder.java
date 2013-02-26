@@ -84,6 +84,7 @@ class Coder
  * @param args speech_file  bitstream_file
  * @throws java.io.IOException
  */
+@SuppressWarnings("resource") // The method exists for informational and/or testing purposes only.
 public static void main(String[] args)
    throws IOException
 {

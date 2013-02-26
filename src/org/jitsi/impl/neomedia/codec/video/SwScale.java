@@ -27,7 +27,6 @@ import org.jitsi.util.*;
 public class SwScale
     extends AbstractCodec
 {
-
     /**
      * The <tt>Logger</tt> used by the <tt>SwScale</tt> class and its instances
      * for logging output.
@@ -38,7 +37,7 @@ public class SwScale
      * The minimum height and/or width of the input and/or output to be passed
      * to <tt>sws_scale</tt> in order to prevent its crashing.
      */
-    private static final int MIN_SWS_SCALE_HEIGHT_OR_WIDTH = 4;
+    public static final int MIN_SWS_SCALE_HEIGHT_OR_WIDTH = 4;
 
     /**
      * Gets the FFmpeg <tt>PixelFormat</tt> equivalent of a specific FMJ
