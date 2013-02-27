@@ -115,7 +115,6 @@ public class AudioSystemClipImpl
         {
             logger.error("Failed to get audio stream " + uri, ioex);
         }
-
         if (audioStream == null)
             return false;
 
@@ -125,18 +124,16 @@ public class AudioSystemClipImpl
         {
             Format rendererFormat = audioSystem.getFormat(audioStream);
 
-            if(rendererFormat == null)
-            {
+            if (rendererFormat == null)
                 return false;
-            }
 
             Format resamplerFormat = null;
 
             if (renderer.setInputFormat(rendererFormat) == null)
             {
                 /*
-                 * Try to negotiate a resampling of the audioStreamFormat to one
-                 * of the formats supported by the renderer.
+                 * Try to negotiate a resampling of the audioStream to one of
+                 * the formats supported by the renderer.
                  */
                 resampler = new SpeexResampler();
                 resamplerFormat = rendererFormat;
@@ -186,7 +183,7 @@ public class AudioSystemClipImpl
 
                 int bufferLength;
 
-                while(isStarted()
+                while (isStarted()
                         && ((bufferLength = audioStream.read(bufferData))
                                 != -1))
                 {

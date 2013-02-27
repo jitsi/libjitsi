@@ -165,6 +165,7 @@ public class PortAudioRenderer
              * Returns the identifier of the PortAudio device written through
              * this <tt>PortAudioRenderer</tt>.
              */
+            @Override
             public String toString()
             {
                 MediaLocator locator = getLocator();
@@ -419,53 +420,52 @@ public class PortAudioRenderer
         if (supportedInputFormats == null)
         {
             MediaLocator locator = getLocator();
+            String deviceID;
             int deviceIndex;
+            long deviceInfo;
 
             if ((locator == null)
+                    || ((deviceID = DataSource.getDeviceID(locator)) == null)
+                    || (deviceID.length() == 0)
                     || ((deviceIndex
                                 = Pa.getDeviceIndex(
-                                        DataSource.getDeviceID(locator)))
-                            == Pa.paNoDevice))
+                                        deviceID,
+                                        /* minInputChannels */ 0,
+                                        /* minOutputChannels */ 1))
+                            == Pa.paNoDevice)
+                    || ((deviceInfo = Pa.GetDeviceInfo(deviceIndex)) == 0))
             {
                 supportedInputFormats = SUPPORTED_INPUT_FORMATS;
             }
             else
             {
-                long deviceInfo = Pa.GetDeviceInfo(deviceIndex);
+                int minOutputChannels = 1;
+                /*
+                 * The maximum output channels may be a lot and checking all of
+                 * them will take a lot of time. Besides, we currently support
+                 * at most 2.
+                 */
+                int maxOutputChannels
+                    = Math.min(
+                            Pa.DeviceInfo_getMaxOutputChannels(deviceInfo),
+                            2);
+                List<Format> supportedInputFormats
+                    = new ArrayList<Format>(SUPPORTED_INPUT_FORMATS.length);
 
-                if (deviceInfo == 0)
-                    supportedInputFormats = SUPPORTED_INPUT_FORMATS;
-                else
+                for (Format supportedInputFormat : SUPPORTED_INPUT_FORMATS)
                 {
-                    int minOutputChannels = 1;
-                    /*
-                     * The maximum output channels may be a lot and checking all
-                     * of them will take a lot of time. Besides, we currently
-                     * support at most 2.
-                     */
-                    int maxOutputChannels
-                        = Math.min(
-                                Pa.DeviceInfo_getMaxOutputChannels(
-                                        deviceInfo),
-                                2);
-                    List<Format> supportedInputFormats
-                        = new ArrayList<Format>(SUPPORTED_INPUT_FORMATS.length);
-
-                    for (Format supportedInputFormat : SUPPORTED_INPUT_FORMATS)
-                    {
-                        getSupportedInputFormats(
-                                supportedInputFormat,
-                                deviceIndex,
-                                minOutputChannels,
-                                maxOutputChannels,
-                                supportedInputFormats);
-                    }
-                    this.supportedInputFormats
-                        = supportedInputFormats.isEmpty()
-                            ? EMPTY_SUPPORTED_INPUT_FORMATS
-                            : supportedInputFormats.toArray(
-                                    EMPTY_SUPPORTED_INPUT_FORMATS);
+                    getSupportedInputFormats(
+                            supportedInputFormat,
+                            deviceIndex,
+                            minOutputChannels,
+                            maxOutputChannels,
+                            supportedInputFormats);
                 }
+                this.supportedInputFormats
+                    = supportedInputFormats.isEmpty()
+                        ? EMPTY_SUPPORTED_INPUT_FORMATS
+                        : supportedInputFormats.toArray(
+                                EMPTY_SUPPORTED_INPUT_FORMATS);
             }
         }
         return
@@ -593,7 +593,11 @@ public class PortAudioRenderer
                 throw new ResourceUnavailableException("locator not set");
 
             String deviceID = DataSource.getDeviceID(locator);
-            int deviceIndex = Pa.getDeviceIndex(deviceID);
+            int deviceIndex
+                = Pa.getDeviceIndex(
+                        deviceID,
+                        /* minInputChannels */ 0,
+                        /* minOutputChannels */ 1);
 
             if (deviceIndex == Pa.paNoDevice)
             {

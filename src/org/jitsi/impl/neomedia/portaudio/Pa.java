@@ -438,15 +438,25 @@ public final class Pa
         throws PortAudioException;
 
     /**
-     * Returns the device index corresponding to the device ID, or Pa.paNoDevice
-     * if no device corresponds to this ID.
+     * Returns the PortAudio index of the device identified by a specific
+     * <tt>deviceID</tt> or {@link Pa#paNoDevice} if no such device exists. The
+     * <tt>deviceID</tt> is either a <tt>deviceUID</tt> or a (PortAudio device)
+     * name depending, for example, on operating system/API availability. Since
+     * at least names may not be unique, the PortAudio device to return the
+     * index of may be identified more specifically by the minimal numbers of
+     * channels to be required from the device for input and output. 
      *
-     * @param deviceID The device ID.
-     *
-     * @return The device index corresponding to the device ID, or Pa.paNoDevice
-     * if no device corresponds to this ID.
+     * @param deviceID a <tt>String</tt> identifying the PortAudio device to
+     * retrieve the index of. It is either a <tt>deviceUID</tt> or a (PortAudio
+     * device) name.
+     * @param minInputChannels
+     * @param minOutputChannels
+     * @return the PortAudio index of the device identified by the specified
+     * <tt>deviceID</tt> or <tt>Pa.paNoDevice</tt> if no such device exists
      */
-    public static int getDeviceIndex(String deviceID)
+    public static int getDeviceIndex(
+            String deviceID,
+            int minInputChannels, int minOutputChannels)
     {
         if(deviceID != null)
         {
@@ -470,10 +480,24 @@ public final class Pa
                 String deviceUID = Pa.DeviceInfo_getDeviceUID(deviceInfo);
 
                 if(deviceID.equals(
-                        (deviceUID == null)
+                        ((deviceUID == null) || (deviceUID.length() == 0))
                             ? Pa.DeviceInfo_getName(deviceInfo)
                             : deviceUID))
                 {
+                    /*
+                     * Resolve deviceID clashes by further identifying the
+                     * device through the numbers of channels that it supports
+                     * for input and output.
+                     */
+                    if ((minInputChannels > 0)
+                            && (Pa.DeviceInfo_getMaxInputChannels(deviceInfo)
+                                    < minInputChannels))
+                        continue;
+                    if ((minOutputChannels > 0)
+                            && (Pa.DeviceInfo_getMaxOutputChannels(deviceInfo)
+                                    < minOutputChannels))
+                        continue;
+
                     return deviceIndex;
                 }
             }

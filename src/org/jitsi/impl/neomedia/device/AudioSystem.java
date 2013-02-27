@@ -30,6 +30,11 @@ public abstract class AudioSystem
     extends DeviceSystem
 {
     /**
+     * The index of the capture devices.
+     */
+    public static final int CAPTURE_INDEX = 0;
+
+    /**
      * The constant/flag (to be) returned by {@link #getFeatures()} in order to
      * indicate that the respective <tt>AudioSystem</tt> supports toggling its
      * denoise functionality between on and off. The UI will look for the
@@ -57,9 +62,9 @@ public abstract class AudioSystem
      * preferred playback and notification audio devices.
      */
     public static final int FEATURE_NOTIFY_AND_PLAYBACK_DEVICES = 8;
-
-    public static final String LOCATOR_PROTOCOL_AUDIORECORD = "audiorecord";
     
+    public static final String LOCATOR_PROTOCOL_AUDIORECORD = "audiorecord";
+
     public static final String LOCATOR_PROTOCOL_JAVASOUND = "javasound";
 
     public static final String LOCATOR_PROTOCOL_OPENSLES = "opensles";
@@ -72,6 +77,16 @@ public abstract class AudioSystem
      * The <tt>Logger</tt> used by this instance for logging output.
      */
     private static Logger logger = Logger.getLogger(AudioSystem.class);
+
+    /**
+     * The index of the notify devices.
+     */
+    public static final int NOTIFY_INDEX = 1;
+
+    /**
+     * The index of the playback devices.
+     */
+    public static final int PLAYBACK_INDEX = 2;
 
     public static AudioSystem getAudioSystem(String locatorProtocol)
     {
@@ -115,21 +130,6 @@ public abstract class AudioSystem
     }
 
     /**
-     * The index of the capture devices.
-     */
-    public static final int CAPTURE_INDEX = 0;
-
-    /**
-     * The index of the notify devices.
-     */
-    public static final int NOTIFY_INDEX = 1;
-
-    /**
-     * The index of the playback devices.
-     */
-    public static final int PLAYBACK_INDEX = 2;
-
-    /**
      * The list of devices detected by this <tt>AudioSystem</tt> indexed by
      * their category which is among {@link #CAPTURE_INDEX},
      * {@link #NOTIFY_INDEX} and {@link #PLAYBACK_INDEX}.
@@ -149,16 +149,41 @@ public abstract class AudioSystem
     }
 
     /**
-     * Gets the list of a kind of devices: capture, notify or playback.
-     *
-     * @param index The index of the specific devices: capture, notify or
-     * playback.
-     *
-     * @return The list of a kind of devices: capture, notify or playback.
+     * Obtains an audio input stream from the URL provided.
+     * @param uri a valid uri to a sound resource.
+     * @return the input stream to audio data.
+     * @throws IOException if an I/O exception occurs
      */
-    public List<ExtendedCaptureDeviceInfo> getDevices(int index)
+    public InputStream getAudioInputStream(String uri)
+        throws IOException
     {
-        return devices[index].getDevices();
+        ResourceManagementService resources
+            = LibJitsi.getResourceManagementService();
+        URL url
+            = (resources == null)
+                ? null
+                : resources.getSoundURLForPath(uri);
+        AudioInputStream audioStream = null;
+
+        try
+        {
+            // Not found by the class loader? Perhaps it is a local file.
+            if (url == null)
+                url = new URL(uri);
+
+            audioStream
+                = javax.sound.sampled.AudioSystem.getAudioInputStream(url);
+        }
+        catch (MalformedURLException murle)
+        {
+            // Do nothing, the value of audioStream will remain equal to null.
+        }
+        catch (UnsupportedAudioFileException uafe)
+        {
+            logger.error("Unsupported format of audio stream " + url, uafe);
+        }
+
+        return audioStream;
     }
 
     /**
@@ -177,70 +202,43 @@ public abstract class AudioSystem
     }
 
     /**
-     * Sets the list of a kind of devices: capture, notify or playback.
+     * Gets the list of a kind of devices: capture, notify or playback.
      *
-     * @param activeCaptureDevices The list of a kind of devices: capture,
-     * notify or playback.
+     * @param index The index of the specific devices: capture, notify or
+     * playback.
+     *
+     * @return The list of a kind of devices: capture, notify or playback.
      */
-    protected void setCaptureDevices(
-            List<ExtendedCaptureDeviceInfo> activeCaptureDevices)
+    public List<ExtendedCaptureDeviceInfo> getDevices(int index)
     {
-        devices[CAPTURE_INDEX].setActiveDevices(activeCaptureDevices);
+        return devices[index].getDevices();
     }
 
     /**
-     * Selects the active device.
+     * Returns the FMJ format of a specific <tt>InputStream</tt> providing audio
+     * media.
      *
-     * @param index The index corresponding to a specific device kind:
-     * capture/notify/playback.
-     * @param device The selected active device.
-     * @param save Flag set to true in order to save this choice in the
-     * configuration. False otherwise.
+     * @param audioInputStream the <tt>InputStream</tt> providing audio media to
+     * determine the FMJ format of
+     * @return the FMJ format of the specified <tt>audioInputStream</tt> or
+     * <tt>null</tt> if such an FMJ format could not be determined
      */
-    public void setDevice(
-            int index,
-            ExtendedCaptureDeviceInfo device,
-            boolean save)
+    public Format getFormat(InputStream audioInputStream)
     {
-        devices[index].setDevice(
-                getLocatorProtocol(),
-                device,
-                save);
-    }
-
-    /**
-     * Sets the list of the active devices.
-     *
-     * @param activePlaybackDevices The list of the active devices.
-     */
-    protected void setPlaybackDevices(
-            List<ExtendedCaptureDeviceInfo> activePlaybackDevices)
-    {
-        devices[PLAYBACK_INDEX].setActiveDevices(activePlaybackDevices);
-        // The notify devices are the same as the playback devices.
-        devices[NOTIFY_INDEX].setActiveDevices(activePlaybackDevices);
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * Removes any capture, playback and notification devices previously
-     * detected by this <tt>AudioSystem</tt> and prepares it for the execution
-     * of its {@link DeviceSystem#doInitialize()} implementation (which detects
-     * all devices to be provided by this instance).
-     */
-    @Override
-    protected void preInitialize()
-    {
-        super.preInitialize();
-
-        if (devices == null)
+        if ((audioInputStream instanceof AudioInputStream))
         {
-            devices = new Devices[3];
-            devices[CAPTURE_INDEX] = new CaptureDevices(this);
-            devices[NOTIFY_INDEX] = new NotifyDevices(this);
-            devices[PLAYBACK_INDEX] = new PlaybackDevices(this);
+            AudioFormat audioInputStreamFormat
+                = ((AudioInputStream) audioInputStream).getFormat();
+
+            return
+                new javax.media.format.AudioFormat(
+                        javax.media.format.AudioFormat.LINEAR,
+                        audioInputStreamFormat.getSampleRate(),
+                        audioInputStreamFormat.getSampleSizeInBits(),
+                        audioInputStreamFormat.getChannels());
         }
+
+        return null;
     }
 
     /**
@@ -309,6 +307,28 @@ public abstract class AudioSystem
     }
 
     /**
+     * {@inheritDoc}
+     *
+     * Removes any capture, playback and notification devices previously
+     * detected by this <tt>AudioSystem</tt> and prepares it for the execution
+     * of its {@link DeviceSystem#doInitialize()} implementation (which detects
+     * all devices to be provided by this instance).
+     */
+    @Override
+    protected void preInitialize()
+    {
+        super.preInitialize();
+
+        if (devices == null)
+        {
+            devices = new Devices[3];
+            devices[CAPTURE_INDEX] = new CaptureDevices(this);
+            devices[NOTIFY_INDEX] = new NotifyDevices(this);
+            devices[PLAYBACK_INDEX] = new PlaybackDevices(this);
+        }
+    }
+
+    /**
      * Fires a new <tt>PropertyChangeEvent</tt> to the
      * <tt>PropertyChangeListener</tt>s registered with this
      * <tt>PropertyChangeNotifier</tt> in order to notify about a change in the
@@ -333,64 +353,47 @@ public abstract class AudioSystem
     }
 
     /**
-     * Obtains an audio input stream from the URL provided.
-     * @param uri a valid uri to a sound resource.
-     * @return the input stream to audio data.
-     * @throws IOException if an I/O exception occurs
+     * Sets the list of a kind of devices: capture, notify or playback.
+     *
+     * @param activeCaptureDevices The list of a kind of devices: capture,
+     * notify or playback.
      */
-    public InputStream getAudioInputStream(String uri)
-        throws IOException
+    protected void setCaptureDevices(
+            List<ExtendedCaptureDeviceInfo> activeCaptureDevices)
     {
-        AudioInputStream audioStream = null;
-
-        ResourceManagementService resources
-            = LibJitsi.getResourceManagementService();
-        URL url
-            = (resources == null)
-                ? null
-                : resources.getSoundURLForPath(uri);
-
-        try
-        {
-            if (url == null)
-            {
-                // Not found by the class loader. Perhaps it's a local file.
-                url = new URL(uri);
-            }
-
-            audioStream
-                = javax.sound.sampled.AudioSystem.getAudioInputStream(url);
-        }
-        catch (MalformedURLException e)
-        {
-            return null;
-        }
-        catch (UnsupportedAudioFileException uafex)
-        {
-            logger.error("Unsupported format of audio stream " + url, uafex);
-        }
-
-        return audioStream;
+        devices[CAPTURE_INDEX].setActiveDevices(activeCaptureDevices);
     }
 
     /**
-     * Returns the audio format for the <tt>InputStream</tt>. Or null
-     * if format cannot be obtained.
-     * @param audioInputStream the input stream.
-     * @return the format of the audio stream.
+     * Selects the active device.
+     *
+     * @param index The index corresponding to a specific device kind:
+     * capture/notify/playback.
+     * @param device The selected active device.
+     * @param save Flag set to true in order to save this choice in the
+     * configuration. False otherwise.
      */
-    public Format getFormat(InputStream audioInputStream)
+    public void setDevice(
+            int index,
+            ExtendedCaptureDeviceInfo device,
+            boolean save)
     {
-        if(!(audioInputStream instanceof AudioInputStream))
-            return null;
+        devices[index].setDevice(
+                getLocatorProtocol(),
+                device,
+                save);
+    }
 
-        AudioFormat audioStreamFormat =
-            ((AudioInputStream)audioInputStream).getFormat();
-
-        return new javax.media.format.AudioFormat(
-                    javax.media.format.AudioFormat.LINEAR,
-                    audioStreamFormat.getSampleRate(),
-                    audioStreamFormat.getSampleSizeInBits(),
-                    audioStreamFormat.getChannels());
+    /**
+     * Sets the list of the active devices.
+     *
+     * @param activePlaybackDevices The list of the active devices.
+     */
+    protected void setPlaybackDevices(
+            List<ExtendedCaptureDeviceInfo> activePlaybackDevices)
+    {
+        devices[PLAYBACK_INDEX].setActiveDevices(activePlaybackDevices);
+        // The notify devices are the same as the playback devices.
+        devices[NOTIFY_INDEX].setActiveDevices(activePlaybackDevices);
     }
 }

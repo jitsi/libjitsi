@@ -279,7 +279,10 @@ public class PortAudioStream
     private void connect()
         throws IOException
     {
-        int deviceIndex = Pa.getDeviceIndex(deviceID);
+        int deviceIndex
+            = Pa.getDeviceIndex(
+                    deviceID,
+                    /* minInputChannels */ 1, /* minOutputChannels */ 0);
 
         if (deviceIndex == Pa.paNoDevice)
         {

@@ -209,17 +209,28 @@ public class DataSource
      */
     public static String getDeviceID(MediaLocator locator)
     {
-        if (AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO.equalsIgnoreCase(
+        if (locator == null)
+        {
+            /*
+             * Explicitly throw a NullPointerException because the implicit one
+             * does not have a message and is thus a bit more difficult to
+             * debug.
+             */
+            throw new NullPointerException("locator");
+        }
+        else if (AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO.equalsIgnoreCase(
                 locator.getProtocol()))
         {
             String remainder = locator.getRemainder();
 
-            if (remainder.charAt(0) == '#')
+            if ((remainder != null) && (remainder.charAt(0) == '#'))
                 remainder = remainder.substring(1);
             return remainder;
         }
         else
+        {
             throw new IllegalArgumentException("locator.protocol");
+        }
     }
 
     /**
