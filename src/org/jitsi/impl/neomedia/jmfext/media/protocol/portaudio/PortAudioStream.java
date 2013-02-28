@@ -96,7 +96,26 @@ public class PortAudioStream
              */
             public String toString()
             {
-                return deviceID;
+                String id = PortAudioStream.this.deviceID;
+                String name = null;
+
+                if (deviceID != null)
+                {
+                    int index
+                        = Pa.getDeviceIndex(
+                                id,
+                                /* minInputChannels */ 1,
+                                /* minOutputChannels */ 0);
+
+                    if (index != Pa.paNoDevice)
+                    {
+                        long info = Pa.GetDeviceInfo(index);
+
+                        if (info != 0)
+                            name = Pa.DeviceInfo_getName(info);
+                    }
+                }
+                return name;
             }
         };
 

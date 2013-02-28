@@ -169,9 +169,30 @@ public class PortAudioRenderer
             public String toString()
             {
                 MediaLocator locator = getLocator();
+                String name = null;
 
-                return
-                    (locator == null) ? null : DataSource.getDeviceID(locator);
+                if (locator != null)
+                {
+                    String id = DataSource.getDeviceID(locator);
+
+                    if (id != null)
+                    {
+                        int index
+                            = Pa.getDeviceIndex(
+                                    id,
+                                    /* minInputChannels */ 0,
+                                    /* minOutputChannels */ 1);
+
+                        if (index != Pa.paNoDevice)
+                        {
+                            long info = Pa.GetDeviceInfo(index);
+
+                            if (info != 0)
+                                name = Pa.DeviceInfo_getName(info);
+                        }
+                    }
+                }
+                return name;
             }
         };
 
