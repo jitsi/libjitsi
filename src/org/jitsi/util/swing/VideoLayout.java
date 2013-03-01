@@ -421,13 +421,14 @@ public class VideoLayout
                 super.layoutComponent(
                         closeButton,
                         new Rectangle(
-                            local.getX() + local.getWidth()
-                                - closeButton.getWidth(),
-                            local.getY(),
-                            closeButton.getWidth(),
-                            closeButton.getHeight()),
-                            Component.CENTER_ALIGNMENT,
-                            Component.CENTER_ALIGNMENT);
+                                local.getX()
+                                    + local.getWidth()
+                                    - closeButton.getWidth(),
+                                local.getY(),
+                                closeButton.getWidth(),
+                                closeButton.getHeight()),
+                        Component.CENTER_ALIGNMENT,
+                        Component.CENTER_ALIGNMENT);
             }
         }
 
@@ -469,7 +470,7 @@ public class VideoLayout
             remotes = this.remotes;
 
         int remoteCount = remotes.size();
-        Dimension preferredLayoutSize;
+        Dimension prefLayoutSize;
 
         if (!conference && (remoteCount == 1))
         {
@@ -480,7 +481,7 @@ public class VideoLayout
              * out now and the local video will be laid out later/further
              * bellow.
              */
-            preferredLayoutSize = super.preferredLayoutSize(parent);
+            prefLayoutSize = super.preferredLayoutSize(parent);
         }
         else if (remoteCount > 0)
         {
@@ -488,66 +489,63 @@ public class VideoLayout
             int columnsMinus1 = columns - 1;
             int rows = (remoteCount + columnsMinus1) / columns;
             int i = 0;
-            Dimension[] preferredSizes = new Dimension[columns * rows];
+            Dimension[] prefSizes = new Dimension[columns * rows];
 
             for (Component remote : remotes)
             {
                 int column = columnsMinus1 - (i % columns);
                 int row = i / columns;
 
-                preferredSizes[column + row * columns]
-                    = remote.getPreferredSize();
+                prefSizes[column + row * columns] = remote.getPreferredSize();
 
                 i++;
                 if (i >= remoteCount)
                     break;
             }
 
-            int preferredLayoutWidth = 0;
+            int prefLayoutWidth = 0;
 
             for (int column = 0; column < columns; column++)
             {
-                int preferredColumnWidth = 0;
+                int prefColumnWidth = 0;
 
                 for (int row = 0; row < rows; row++)
                 {
-                    Dimension preferredSize
-                        = preferredSizes[column + row * columns];
+                    Dimension prefSize = prefSizes[column + row * columns];
 
-                    if (preferredSize != null)
-                        preferredColumnWidth += preferredSize.width;
+                    if (prefSize != null)
+                        prefColumnWidth += prefSize.width;
                 }
-                preferredColumnWidth /= rows;
+                prefColumnWidth /= rows;
 
-                preferredLayoutWidth += preferredColumnWidth;
+                prefLayoutWidth += prefColumnWidth;
             }
 
-            int preferredLayoutHeight = 0;
+            int prefLayoutHeight = 0;
 
             for (int row = 0; row < rows; row++)
             {
-                int preferredRowHeight = 0;
+                int prefRowHeight = 0;
 
                 for (int column = 0; column < columns; column++)
                 {
-                    Dimension preferredSize
-                        = preferredSizes[column + row * columns];
+                    Dimension prefSize = prefSizes[column + row * columns];
 
-                    if (preferredSize != null)
-                        preferredRowHeight = preferredSize.height;
+                    if (prefSize != null)
+                        prefRowHeight = prefSize.height;
                 }
-                preferredRowHeight /= columns;
+                prefRowHeight /= columns;
 
-                preferredLayoutHeight += preferredRowHeight;
+                prefLayoutHeight += prefRowHeight;
             }
 
-            preferredLayoutSize
+            prefLayoutSize
                 = new Dimension(
-                        preferredLayoutWidth + columnsMinus1 * HGAP,
-                        preferredLayoutHeight);
+                        prefLayoutWidth + columnsMinus1 * HGAP,
+                        prefLayoutHeight);
         }
         else
-            preferredLayoutSize = null;
+            prefLayoutSize = null;
 
         if (local != null)
         {
@@ -557,21 +555,18 @@ public class VideoLayout
              * the purposes of the preferredLayoutSize method it needs to be
              * considered only if there is no remote video whatsoever.
              */
-            if (!remotes.contains(local) && (preferredLayoutSize == null))
+            if (!remotes.contains(local) && (prefLayoutSize == null))
             {
-                Dimension preferredSize = local.getPreferredSize();
+                Dimension prefSize = local.getPreferredSize();
 
-                if (preferredSize != null)
+                if (prefSize != null)
                 {
-                    int preferredHeight
-                        = Math.round(
-                                preferredSize.height * LOCAL_TO_REMOTE_RATIO);
-                    int preferredWidth
-                        = Math.round(
-                                preferredSize.width * LOCAL_TO_REMOTE_RATIO);
+                    int prefHeight
+                        = Math.round(prefSize.height * LOCAL_TO_REMOTE_RATIO);
+                    int prefWidth
+                        = Math.round(prefSize.width * LOCAL_TO_REMOTE_RATIO);
 
-                    preferredLayoutSize
-                        = new Dimension(preferredWidth, preferredHeight);
+                    prefLayoutSize = new Dimension(prefWidth, prefHeight);
                 }
             }
 
@@ -590,9 +585,9 @@ public class VideoLayout
          */
 
         return
-            (preferredLayoutSize == null)
+            (prefLayoutSize == null)
                 ? super.preferredLayoutSize(parent)
-                : preferredLayoutSize;
+                : prefLayoutSize;
     }
 
     /**

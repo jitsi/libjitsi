@@ -57,22 +57,26 @@ public class FitLayout
         Dimension size;
 
         /*
-         * XXX The following is a quick and dirty hack for the purposes of video
-         * conferencing which adds transparent JPanels to VideoContainer and
-         * does not want them fitted because they contain VideoContainers
-         * themselves and the videos get fitted in them.
+         * XXX The following (mostly) represents a quick and dirty hack for the
+         * purposes of video conferencing which adds transparent JPanels to
+         * VideoContainer and does not want them fitted because they contain
+         * VideoContainers themselves and the videos get fitted in them.
          */
         if (((component instanceof JPanel)
                     && !component.isOpaque()
                     && (((Container) component).getComponentCount() > 1))
-                || (component instanceof VideoContainer))
+                || (component instanceof VideoContainer)
+                /*
+                 * If the specified component does not have a preferredSize, we
+                 * cannot know its aspect ratio and we are left with no choice
+                 * but to stretch it within the complete bounds.
+                 */
+                || ((size = component.getPreferredSize()) == null))
         {
             size = bounds.getSize();
         }
         else
         {
-            size = component.getPreferredSize();
-
             boolean scale = false;
             double widthRatio;
             double heightRatio;
