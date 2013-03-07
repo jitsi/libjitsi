@@ -14,6 +14,7 @@ import javax.media.format.*;
 import javax.media.renderer.*;
 import javax.swing.*;
 
+import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
 import org.jitsi.util.*;
 import org.jitsi.util.swing.*;
@@ -453,18 +454,29 @@ public class JAWTRenderer
                     return BUFFER_PROCESSED_FAILED;
             }
 
-            Component component = getComponent();
-            boolean repaint = false;
+            /*
+             * XXX If the size of the video frame to be displayed is tiny enough
+             * to crash sws_scale, then it may cause issues with other
+             * functionality as well. Stay on the safe side.
+             */
+            if ((size.width >= SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
+                    && (size.height >= SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
+            {
+                Component component = getComponent();
+                boolean repaint
+                    = process(
+                            handle,
+                            component,
+                            (int[]) buffer.getData(),
+                            buffer.getOffset(),
+                            bufferLength,
+                            size.width,
+                            size.height);
 
-            repaint
-                = process(
-                    handle,
-                    component,
-                    (int[]) buffer.getData(), buffer.getOffset(), bufferLength,
-                    size.width, size.height);
+                if (repaint)
+                    component.repaint();
+            }
 
-            if (repaint)
-                component.repaint();
             return BUFFER_PROCESSED_OK;
         }
     }

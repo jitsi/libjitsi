@@ -401,7 +401,7 @@ public class SwScale
         int outputHeight = outputSize.height;
 
         if ((outputWidth < MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
-                || (outputHeight <= MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
+                || (outputHeight < MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
         {
             return OUTPUT_BUFFER_NOT_FILLED; // Otherwise, sws_scale will crash.
         }

@@ -8,6 +8,8 @@ package org.jitsi.impl.neomedia.jmfext.media.renderer.video;
 
 import java.awt.*;
 
+import org.jitsi.impl.neomedia.codec.video.*;
+
 /**
  * Implements an AWT <tt>Component</tt> in which <tt>JAWTRenderer</tt> paints.
  *
@@ -96,7 +98,14 @@ public class JAWTRendererVideoComponent
     @Override
     public void paint(Graphics g)
     {
-        if (wantsPaint)
+        /*
+         * XXX If the size of this Component is tiny enough to crash sws_scale,
+         * then it may cause issues with other functionality as well. Stay on
+         * the safe side.
+         */
+        if (wantsPaint
+                && (getWidth() >= SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
+                && (getHeight() >= SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
         {
             synchronized (getHandleLock())
             {
