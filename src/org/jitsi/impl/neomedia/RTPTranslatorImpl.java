@@ -357,10 +357,8 @@ public class RTPTranslatorImpl
                 if (connectorDesc != null)
                 {
                     if (this.connector != null)
-                    {
                         this.connector.removeConnector(connectorDesc);
-                        connectorDesc.connector.close();
-                    }
+                    connectorDesc.connector.close();
                     streamRTPManagerDesc.connectorDesc = null;
                 }
 
