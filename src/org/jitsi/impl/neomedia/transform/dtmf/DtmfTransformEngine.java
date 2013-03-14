@@ -12,6 +12,8 @@ import javax.media.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
@@ -93,6 +95,13 @@ public class DtmfTransformEngine
     private Vector<DTMFRtpTone> currentTone = new Vector<DTMFRtpTone>(1, 1);
 
     /**
+     * The number of tone for which we have received a stop request. This is
+     * used to signal that stop is already received for "currentTone" not yet
+     * sent.
+     */
+    private int nbToneToStop = 0;
+
+    /**
      * The duration (in timestamp units or in other words ms*8) that we have
      * transmitted the current tone for.
      */
@@ -112,6 +121,19 @@ public class DtmfTransformEngine
      * Current duration of every event we send.
      */
     private int currentSpacingDuration = Format.NOT_SPECIFIED;
+
+    /**
+     * Tells if the current tone has been sent for at least the minimal
+     * duration.
+     */
+    private boolean lastMinimalDuration = false;
+
+    /**
+     * The minimal DTMF tone dration. The default value is <tt>560</tt>
+     * corresponding to 70 ms. This can be changed by using the
+     * "org.jitsi.impl.neomedia.transform.dtmf.minimalToneDuration" property. 
+     */
+    private int minimalToneDuration;
 
     /**
      * Creates an engine instance that will be replacing audio packets
@@ -257,8 +279,11 @@ public class DtmfTransformEngine
         boolean pktMarker = false;
         int pktDuration = 0;
 
+        checkIfCurrentToneMustBeStopped();
+
         if(toneTransmissionState == ToneTransmissionState.IDLE)
         {
+            lastMinimalDuration = false;
             currentDuration = 0;
             currentDuration += getCurrentSpacingDuration();
             pktDuration = currentDuration;
@@ -268,17 +293,23 @@ public class DtmfTransformEngine
 
             toneTransmissionState = ToneTransmissionState.SENDING;
         }
-        else if(toneTransmissionState == ToneTransmissionState.SENDING)
+        else if(toneTransmissionState == ToneTransmissionState.SENDING
+                || (toneTransmissionState == ToneTransmissionState.END_REQUESTED
+                    && !lastMinimalDuration))
         {
             currentDuration += getCurrentSpacingDuration();
             pktDuration = currentDuration;
+            if (currentDuration > minimalToneDuration)
+            {
+                lastMinimalDuration = true;
+            }
             // Check for long state event
             if (currentDuration > 0xFFFF)
             {
-                 // When duration > 0xFFFF we first send a packet with
-                 // duration = 0xFFFF. For the next packet, the duration
-                 // start from begining but the audioPacketTimestamp is set to the
-                 // time when the long duration event occurs.
+                // When duration > 0xFFFF we first send a packet with duration =
+                // 0xFFFF. For the next packet, the duration start from begining
+                // but the audioPacketTimestamp is set to the time when the long
+                // duration event occurs.
                 pktDuration = 0xFFFF;
                 currentDuration = 0;
                 currentTimestamp = audioPacketTimestamp;
@@ -289,17 +320,19 @@ public class DtmfTransformEngine
             // The first ending packet do have the End flag set.
             // But the 2 next will have the End flag set.
             //
-            // The audioPacketTimestamp and the duration field stay unchanged for
-            // the 3 last packets
+            // The audioPacketTimestamp and the duration field stay unchanged
+            // for the 3 last packets
             currentDuration += getCurrentSpacingDuration();
             pktDuration = currentDuration;
 
             pktEnd = true;
             remainingsEndPackets = 2;
 
-            toneTransmissionState = ToneTransmissionState.END_SEQUENCE_INITIATED;
+            toneTransmissionState
+                = ToneTransmissionState.END_SEQUENCE_INITIATED;
         }
-        else if(toneTransmissionState == ToneTransmissionState.END_SEQUENCE_INITIATED)
+        else if(toneTransmissionState
+                == ToneTransmissionState.END_SEQUENCE_INITIATED)
         {
             pktEnd = true;
             pktDuration = currentDuration;
@@ -329,10 +362,14 @@ public class DtmfTransformEngine
      * proper state so that it would start replacing packets with dtmf codes.
      *
      * @param tone the tone that we'd like to start sending.
+     * @param minimalToneDuration The minimal DTMF tone duration.
      */
-    public void startSending(DTMFRtpTone tone)
+    public void startSending(DTMFRtpTone tone, int minimalToneDuration)
     {
         currentTone.add(tone);
+        // Converts duration in ms into duration in timestamp units (here the
+        // codec of telephone-event is 8000 Hz).
+        this.minimalToneDuration = minimalToneDuration * 8;
     }
 
     /**
@@ -344,7 +381,7 @@ public class DtmfTransformEngine
      */
     public void stopSendingDTMF()
     {
-        toneTransmissionState = ToneTransmissionState.END_REQUESTED;
+        ++nbToneToStop;
     }
 
     /**
@@ -354,6 +391,19 @@ public class DtmfTransformEngine
     {
         if(dtmfDispatcher != null)
             dtmfDispatcher.stop();
+    }
+
+    /**
+     * Changes the current tone state, and requests to stop it if necessary.
+     */
+    private void checkIfCurrentToneMustBeStopped()
+    {
+        if(nbToneToStop > 0
+                && toneTransmissionState == ToneTransmissionState.SENDING)
+        {
+            --nbToneToStop;
+            toneTransmissionState = ToneTransmissionState.END_REQUESTED;
+        }
     }
 
     /**
