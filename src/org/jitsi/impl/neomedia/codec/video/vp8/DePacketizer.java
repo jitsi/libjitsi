@@ -43,7 +43,7 @@ public class DePacketizer
      * 'trace' being enable in the logger. This is because the output is long
      * and would be rarely used and to let compiler optimise the conditionals.
      */
-    private static final boolean TRACE = true;
+    private static final boolean TRACE = false;
 
     /**
      * Buffer used to store the payload of packets
