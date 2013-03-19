@@ -584,10 +584,15 @@ public class VideoLayout
          * preferredLayoutSize method does not have to consider it.
          */
 
-        return
-            (prefLayoutSize == null)
-                ? super.preferredLayoutSize(parent)
-                : prefLayoutSize;
+        if (prefLayoutSize == null)
+            prefLayoutSize = super.preferredLayoutSize(parent);
+        else if ((prefLayoutSize.height < 1) || (prefLayoutSize.width < 1))
+        {
+            prefLayoutSize.height = DEFAULT_HEIGHT_OR_WIDTH;
+            prefLayoutSize.width = DEFAULT_HEIGHT_OR_WIDTH;
+        }
+
+        return prefLayoutSize;
     }
 
     /**

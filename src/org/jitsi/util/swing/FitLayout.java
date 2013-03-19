@@ -25,6 +25,14 @@ public class FitLayout
     implements LayoutManager
 {
     /**
+     * The default height and width to be used by <tt>FitLayout</tt> and its
+     * extenders in order to avoid falling back to zero height and/or width.
+     * Introduced to mitigate issues arising from the fact that a
+     * <tt>Component</tt> zero height and/or width.
+     */
+    protected static final int DEFAULT_HEIGHT_OR_WIDTH = 16;
+
+    /**
      * {@inheritDoc}
      *
      * Does nothing because this <tt>LayoutManager</tt> lays out only the first
@@ -167,7 +175,9 @@ public class FitLayout
         return
             (component != null)
                 ? component.getMinimumSize()
-                : new Dimension(0, 0);
+                : new Dimension(
+                        DEFAULT_HEIGHT_OR_WIDTH,
+                        DEFAULT_HEIGHT_OR_WIDTH);
     }
 
     /**
@@ -185,7 +195,9 @@ public class FitLayout
         return
             (component != null)
                 ? component.getPreferredSize()
-                : new Dimension(0, 0);
+                : new Dimension(
+                        DEFAULT_HEIGHT_OR_WIDTH,
+                        DEFAULT_HEIGHT_OR_WIDTH);
     }
 
     /**

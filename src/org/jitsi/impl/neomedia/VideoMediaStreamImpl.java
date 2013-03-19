@@ -47,26 +47,126 @@ public class VideoMediaStreamImpl
         = Logger.getLogger(VideoMediaStreamImpl.class);
 
     /**
-     * Negotiated output size of the video stream.
-     * It may need to scale original capture device stream.
-     */
-    private Dimension outputSize;
-
-    /**
      * The indicator which determines whether RTCP feedback Picture Loss
      * Indication messages are to be used.
      */
     private static final boolean USE_PLI = true;
 
     /**
-     * The <tt>KeyFrameControl</tt> of this <tt>VideoMediaStream</tt>.
+     * Extracts and returns maximum resolution can receive from the image
+     * attribute.
+     *
+     * @param imgattr send/recv resolution string
+     * @return maximum resolution array (first element is send, second one is
+     * recv). Elements could be null if image attribute is not present or if
+     * resolution is a wildcard.
      */
-    private KeyFrameControl keyFrameControl;
+    public static java.awt.Dimension[] parseSendRecvResolution(String imgattr)
+    {
+        java.awt.Dimension res[] = new java.awt.Dimension[2];
+        String token = null;
+        Pattern pSendSingle = Pattern.compile("send \\[x=[0-9]+,y=[0-9]+\\]");
+        Pattern pRecvSingle = Pattern.compile("recv \\[x=[0-9]+,y=[0-9]+\\]");
+        Pattern pSendRange = Pattern.compile(
+                "send \\[x=\\[[0-9]+-[0-9]+\\],y=\\[[0-9]+-[0-9]+\\]\\]");
+        Pattern pRecvRange = Pattern.compile(
+                "recv \\[x=\\[[0-9]+-[0-9]+\\],y=\\[[0-9]+-[0-9]+\\]\\]");
+        Pattern pNumeric = Pattern.compile("[0-9]+");
+        Matcher mSingle = null;
+        Matcher mRange = null;
+        Matcher m = null;
 
-    /**
-     * The <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>.
-     */
-    private final QualityControlImpl qualityControl = new QualityControlImpl();
+        /* resolution (width and height) can be on four forms
+         *
+         * - single value [x=1920,y=1200]
+         * - range of values [x=[800-1024],y=[600-768]]
+         * - fixed range of values [x=[800,1024],y=[600,768]]
+         * - range of values with step [x=[800:32:1024],y=[600:32:768]]
+         *
+         * For the moment we only support the first two forms.
+         */
+
+        /* send part */
+        mSingle = pSendSingle.matcher(imgattr);
+        mRange = pSendRange.matcher(imgattr);
+
+        if(mSingle.find())
+        {
+            int val[] = new int[2];
+            int i = 0;
+            token = imgattr.substring(mSingle.start(), mSingle.end());
+            m = pNumeric.matcher(token);
+
+            while(m.find() && i < 2)
+            {
+                val[i] = Integer.parseInt(token.substring(m.start(), m.end()));
+            }
+
+            res[0] = new java.awt.Dimension(val[0], val[1]);
+        }
+        else if(mRange.find()) /* try with range */
+        {
+            /* have two value for width and two for height (min-max) */
+            int val[]  = new int[4];
+            int i = 0;
+            token = imgattr.substring(mRange.start(), mRange.end());
+            m = pNumeric.matcher(token);
+
+            while(m.find() && i < 4)
+            {
+                val[i] = Integer.parseInt(token.substring(m.start(), m.end()));
+                i++;
+            }
+
+            res[0] = new java.awt.Dimension(val[1], val[3]);
+        }
+
+        /* recv part */
+        mSingle = pRecvSingle.matcher(imgattr);
+        mRange = pRecvRange.matcher(imgattr);
+
+        if(mSingle.find())
+        {
+            int val[] = new int[2];
+            int i = 0;
+            token = imgattr.substring(mSingle.start(), mSingle.end());
+            m = pNumeric.matcher(token);
+
+            while(m.find() && i < 2)
+            {
+                val[i] = Integer.parseInt(token.substring(m.start(), m.end()));
+            }
+
+            res[1] = new java.awt.Dimension(val[0], val[1]);
+        }
+        else if(mRange.find()) /* try with range */
+        {
+            /* have two value for width and two for height (min-max) */
+            int val[]  = new int[4];
+            int i = 0;
+            token = imgattr.substring(mRange.start(), mRange.end());
+            m = pNumeric.matcher(token);
+
+            while(m.find() && i < 4)
+            {
+                val[i] = Integer.parseInt(token.substring(m.start(), m.end()));
+                i++;
+            }
+
+            res[1] = new java.awt.Dimension(val[1], val[3]);
+        }
+
+        token = null;
+        mSingle = null;
+        mRange = null;
+        m = null;
+        pRecvRange = null;
+        pSendSingle = null;
+        pRecvSingle = null;
+        pSendRange = null;
+
+        return res;
+    }
 
     /**
      * Selects the <tt>VideoFormat</tt> from the list of supported formats of a
@@ -114,26 +214,26 @@ public class VideoMediaStreamImpl
         {
             class FormatInfo
             {
-                public final VideoFormat format;
-
                 public final double difference;
 
                 public final Dimension dimension;
 
-                public FormatInfo(VideoFormat format)
-                {
-                    this.format = format;
-
-                    this.dimension = format.getSize();
-
-                    this.difference = getDifference(this.dimension);
-                }
+                public final VideoFormat format;
 
                 public FormatInfo(Dimension size)
                 {
                     this.format = null;
 
                     this.dimension = size;
+
+                    this.difference = getDifference(this.dimension);
+                }
+
+                public FormatInfo(VideoFormat format)
+                {
+                    this.format = format;
+
+                    this.dimension = format.getSize();
 
                     this.difference = getDifference(this.dimension);
                 }
@@ -284,6 +384,22 @@ public class VideoMediaStreamImpl
     private VideoListener deviceSessionVideoListener;
 
     /**
+     * The <tt>KeyFrameControl</tt> of this <tt>VideoMediaStream</tt>.
+     */
+    private KeyFrameControl keyFrameControl;
+
+    /**
+     * Negotiated output size of the video stream.
+     * It may need to scale original capture device stream.
+     */
+    private Dimension outputSize;
+
+    /**
+     * The <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>.
+     */
+    private final QualityControlImpl qualityControl = new QualityControlImpl();
+
+    /**
      * The facility which aids this instance in managing a list of
      * <tt>VideoListener</tt>s and firing <tt>VideoEvent</tt>s to them.
      * <p>
@@ -316,6 +432,22 @@ public class VideoMediaStreamImpl
         SrtpControl srtpControl)
     {
         super(connector, device, srtpControl);
+    }
+
+    /**
+     * Set remote SSRC.
+     *
+     * @param ssrc remote SSRC
+     */
+    @Override
+    protected void addRemoteSourceID(long ssrc)
+    {
+        super.addRemoteSourceID(ssrc);
+
+        MediaDeviceSession deviceSession = getDeviceSession();
+
+        if (deviceSession instanceof VideoMediaDeviceSession)
+            ((VideoMediaDeviceSession) deviceSession).setRemoteSSRC(ssrc);
     }
 
     /**
@@ -390,25 +522,6 @@ public class VideoMediaStreamImpl
         super.configureRTPManagerBufferControl(rtpManager, bufferControl);
 
         bufferControl.setBufferLength(BufferControl.MAX_VALUE);
-    }
-
-    /**
-     * Gets the visual <tt>Component</tt>, if any, depicting the video streamed
-     * from the local peer to the remote peer.
-     *
-     * @return the visual <tt>Component</tt> depicting the local video if local
-     * video is actually being streamed from the local peer to the remote peer;
-     * otherwise, <tt>null</tt>
-     */
-    public Component getLocalVisualComponent()
-    {
-        MediaDeviceSession deviceSession = getDeviceSession();
-
-        return
-            (deviceSession instanceof VideoMediaDeviceSession)
-                ? ((VideoMediaDeviceSession) deviceSession)
-                    .getLocalVisualComponent()
-                : null;
     }
 
     /**
@@ -580,6 +693,59 @@ public class VideoMediaStreamImpl
     }
 
     /**
+     * Implements {@link VideoMediaStream#getKeyFrameControl()}.
+     *
+     * {@inheritDoc}
+     * @see VideoMediaStream#getKeyFrameControl()
+     */
+    public KeyFrameControl getKeyFrameControl()
+    {
+        if (keyFrameControl == null)
+            keyFrameControl = new KeyFrameControlAdapter();
+        return keyFrameControl;
+    }
+
+    /**
+     * Gets the visual <tt>Component</tt>, if any, depicting the video streamed
+     * from the local peer to the remote peer.
+     *
+     * @return the visual <tt>Component</tt> depicting the local video if local
+     * video is actually being streamed from the local peer to the remote peer;
+     * otherwise, <tt>null</tt>
+     */
+    public Component getLocalVisualComponent()
+    {
+        MediaDeviceSession deviceSession = getDeviceSession();
+
+        return
+            (deviceSession instanceof VideoMediaDeviceSession)
+                ? ((VideoMediaDeviceSession) deviceSession)
+                    .getLocalVisualComponent()
+                : null;
+    }
+
+    /**
+     * The priority of the video is 5, which is meant to be higher than
+     * other threads and lower than the audio one.
+     * @return video priority.
+     */
+    @Override
+    protected int getPriority()
+    {
+        return 5;
+    }
+
+    /**
+     * Gets the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>.
+     *
+     * @return the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>
+     */
+    public QualityControl getQualityControl()
+    {
+        return qualityControl;
+    }
+
+    /**
      * Gets the visual <tt>Component</tt> where video from the remote peer is
      * being rendered or <tt>null</tt> if no video is currently being rendered.
      *
@@ -640,54 +806,6 @@ public class VideoMediaStreamImpl
     }
 
     /**
-     * Removes a specific <tt>VideoListener</tt> from this
-     * <tt>VideoMediaStream</tt> in order to have to no longer receive
-     * notifications when visual/video <tt>Component</tt>s are being added and
-     * removed.
-     *
-     * @param listener the <tt>VideoListener</tt> to no longer be notified when
-     * visual/video <tt>Component</tt>s are being added or removed in this
-     * <tt>VideoMediaStream</tt>
-     */
-    public void removeVideoListener(VideoListener listener)
-    {
-        videoNotifierSupport.removeVideoListener(listener);
-    }
-
-    /**
-     * Notifies this <tt>MediaStream</tt> implementation that its
-     * <tt>RTPConnector</tt> instance has changed from a specific old value to a
-     * specific new value. Allows extenders to override and perform additional
-     * processing after this <tt>MediaStream</tt> has changed its
-     * <tt>RTPConnector</tt> instance.
-     *
-     * @param oldValue the <tt>RTPConnector</tt> of this <tt>MediaStream</tt>
-     * implementation before it got changed to <tt>newValue</tt>
-     * @param newValue the current <tt>RTPConnector</tt> of this
-     * <tt>MediaStream</tt> which replaced <tt>oldValue</tt>
-     * @see MediaStreamImpl#rtpConnectorChanged(AbstractRTPConnector,
-     * AbstractRTPConnector)
-     */
-    @Override
-    protected void rtpConnectorChanged(
-            AbstractRTPConnector oldValue,
-            AbstractRTPConnector newValue)
-    {
-        super.rtpConnectorChanged(oldValue, newValue);
-
-        if (newValue != null)
-        {
-            MediaDeviceSession deviceSession = getDeviceSession();
-
-            if (deviceSession instanceof VideoMediaDeviceSession)
-            {
-                ((VideoMediaDeviceSession) deviceSession)
-                    .setConnector(newValue);
-            }
-        }
-    }
-
-    /**
      * Handles attributes contained in <tt>MediaFormat</tt>.
      *
      * @param format the <tt>MediaFormat</tt> to handle the attributes of
@@ -718,8 +836,8 @@ public class VideoMediaStreamImpl
 
                 if(key.equals("rtcp-fb"))
                 {
-                    if (value.equals("nack pli"))
-                        ; //USE_PLI = true;
+//                    if (value.equals("nack pli"))
+//                        USE_PLI = true;
                 }
                 else if(key.equals("imageattr"))
                 {
@@ -846,215 +964,6 @@ public class VideoMediaStreamImpl
     }
 
     /**
-     * Extracts and returns maximum resolution can receive from the image
-     * attribute.
-     *
-     * @param imgattr send/recv resolution string
-     * @return maximum resolution array (first element is send, second one is
-     * recv). Elements could be null if image attribute is not present or if
-     * resolution is a wildcard.
-     */
-    public static java.awt.Dimension[] parseSendRecvResolution(String imgattr)
-    {
-        java.awt.Dimension res[] = new java.awt.Dimension[2];
-        String token = null;
-        Pattern pSendSingle = Pattern.compile("send \\[x=[0-9]+,y=[0-9]+\\]");
-        Pattern pRecvSingle = Pattern.compile("recv \\[x=[0-9]+,y=[0-9]+\\]");
-        Pattern pSendRange = Pattern.compile(
-                "send \\[x=\\[[0-9]+-[0-9]+\\],y=\\[[0-9]+-[0-9]+\\]\\]");
-        Pattern pRecvRange = Pattern.compile(
-                "recv \\[x=\\[[0-9]+-[0-9]+\\],y=\\[[0-9]+-[0-9]+\\]\\]");
-        Pattern pNumeric = Pattern.compile("[0-9]+");
-        Matcher mSingle = null;
-        Matcher mRange = null;
-        Matcher m = null;
-
-        /* resolution (width and height) can be on four forms
-         *
-         * - single value [x=1920,y=1200]
-         * - range of values [x=[800-1024],y=[600-768]]
-         * - fixed range of values [x=[800,1024],y=[600,768]]
-         * - range of values with step [x=[800:32:1024],y=[600:32:768]]
-         *
-         * For the moment we only support the first two forms.
-         */
-
-        /* send part */
-        mSingle = pSendSingle.matcher(imgattr);
-        mRange = pSendRange.matcher(imgattr);
-
-        if(mSingle.find())
-        {
-            int val[] = new int[2];
-            int i = 0;
-            token = imgattr.substring(mSingle.start(), mSingle.end());
-            m = pNumeric.matcher(token);
-
-            while(m.find() && i < 2)
-            {
-                val[i] = Integer.parseInt(token.substring(m.start(), m.end()));
-            }
-
-            res[0] = new java.awt.Dimension(val[0], val[1]);
-        }
-        else if(mRange.find()) /* try with range */
-        {
-            /* have two value for width and two for height (min-max) */
-            int val[]  = new int[4];
-            int i = 0;
-            token = imgattr.substring(mRange.start(), mRange.end());
-            m = pNumeric.matcher(token);
-
-            while(m.find() && i < 4)
-            {
-                val[i] = Integer.parseInt(token.substring(m.start(), m.end()));
-                i++;
-            }
-
-            res[0] = new java.awt.Dimension(val[1], val[3]);
-        }
-
-        /* recv part */
-        mSingle = pRecvSingle.matcher(imgattr);
-        mRange = pRecvRange.matcher(imgattr);
-
-        if(mSingle.find())
-        {
-            int val[] = new int[2];
-            int i = 0;
-            token = imgattr.substring(mSingle.start(), mSingle.end());
-            m = pNumeric.matcher(token);
-
-            while(m.find() && i < 2)
-            {
-                val[i] = Integer.parseInt(token.substring(m.start(), m.end()));
-            }
-
-            res[1] = new java.awt.Dimension(val[0], val[1]);
-        }
-        else if(mRange.find()) /* try with range */
-        {
-            /* have two value for width and two for height (min-max) */
-            int val[]  = new int[4];
-            int i = 0;
-            token = imgattr.substring(mRange.start(), mRange.end());
-            m = pNumeric.matcher(token);
-
-            while(m.find() && i < 4)
-            {
-                val[i] = Integer.parseInt(token.substring(m.start(), m.end()));
-                i++;
-            }
-
-            res[1] = new java.awt.Dimension(val[1], val[3]);
-        }
-
-        token = null;
-        mSingle = null;
-        mRange = null;
-        m = null;
-        pRecvRange = null;
-        pSendSingle = null;
-        pRecvSingle = null;
-        pSendRange = null;
-
-        return res;
-    }
-
-    /**
-     * Set local SSRC.
-     *
-     * @param ssrc source ID
-     */
-    @Override
-    protected void setLocalSourceID(long ssrc)
-    {
-        super.setLocalSourceID(ssrc);
-
-        MediaDeviceSession deviceSession = getDeviceSession();
-
-        if (deviceSession instanceof VideoMediaDeviceSession)
-            ((VideoMediaDeviceSession) deviceSession).setLocalSSRC(ssrc);
-    }
-
-    /**
-     * Set remote SSRC.
-     *
-     * @param ssrc remote SSRC
-     */
-    @Override
-    protected void addRemoteSourceID(long ssrc)
-    {
-        super.addRemoteSourceID(ssrc);
-
-        MediaDeviceSession deviceSession = getDeviceSession();
-
-        if (deviceSession instanceof VideoMediaDeviceSession)
-            ((VideoMediaDeviceSession) deviceSession).setRemoteSSRC(ssrc);
-    }
-
-    /**
-     * The priority of the video is 5, which is meant to be higher than
-     * other threads and lower than the audio one.
-     * @return video priority.
-     */
-    @Override
-    protected int getPriority()
-    {
-        return 5;
-    }
-
-    /**
-     * Implements {@link VideoMediaStream#getKeyFrameControl()}.
-     *
-     * {@inheritDoc}
-     * @see VideoMediaStream#getKeyFrameControl()
-     */
-    public KeyFrameControl getKeyFrameControl()
-    {
-        if (keyFrameControl == null)
-            keyFrameControl = new KeyFrameControlAdapter();
-        return keyFrameControl;
-    }
-
-    /**
-     * Gets the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>.
-     *
-     * @return the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>
-     */
-    public QualityControl getQualityControl()
-    {
-        return qualityControl;
-    }
-
-    /**
-     * Updates the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>.
-     *
-     * @param advancedParams parameters of advanced attributes that may affect
-     * quality control
-     */
-    public void updateQualityControl(Map<String, String> advancedParams)
-    {
-        for(Map.Entry<String, String> entry : advancedParams.entrySet())
-        {
-            if(entry.getKey().equals("imageattr"))
-            {
-                Dimension res[] = parseSendRecvResolution(entry.getValue());
-
-                if(res != null)
-                {
-                    qualityControl.setRemoteSendMaxPreset(
-                            new QualityPreset(res[0]));
-                    qualityControl.setRemoteReceiveResolution(res[1]);
-                    outputSize = res[1];
-                    ((VideoMediaDeviceSession)getDeviceSession())
-                        .setOutputSize(outputSize);
-                }
-            }
-        }
-    }
-
-    /**
      * Move origin of a partial desktop streaming <tt>MediaDevice</tt>.
      *
      * @param x new x coordinate origin
@@ -1091,6 +1000,97 @@ public class VideoMediaStreamImpl
                     0,
                     screen.getIndex(),
                     x - bounds.x, y - bounds.y);
+        }
+    }
+
+    /**
+     * Removes a specific <tt>VideoListener</tt> from this
+     * <tt>VideoMediaStream</tt> in order to have to no longer receive
+     * notifications when visual/video <tt>Component</tt>s are being added and
+     * removed.
+     *
+     * @param listener the <tt>VideoListener</tt> to no longer be notified when
+     * visual/video <tt>Component</tt>s are being added or removed in this
+     * <tt>VideoMediaStream</tt>
+     */
+    public void removeVideoListener(VideoListener listener)
+    {
+        videoNotifierSupport.removeVideoListener(listener);
+    }
+
+    /**
+     * Notifies this <tt>MediaStream</tt> implementation that its
+     * <tt>RTPConnector</tt> instance has changed from a specific old value to a
+     * specific new value. Allows extenders to override and perform additional
+     * processing after this <tt>MediaStream</tt> has changed its
+     * <tt>RTPConnector</tt> instance.
+     *
+     * @param oldValue the <tt>RTPConnector</tt> of this <tt>MediaStream</tt>
+     * implementation before it got changed to <tt>newValue</tt>
+     * @param newValue the current <tt>RTPConnector</tt> of this
+     * <tt>MediaStream</tt> which replaced <tt>oldValue</tt>
+     * @see MediaStreamImpl#rtpConnectorChanged(AbstractRTPConnector,
+     * AbstractRTPConnector)
+     */
+    @Override
+    protected void rtpConnectorChanged(
+            AbstractRTPConnector oldValue,
+            AbstractRTPConnector newValue)
+    {
+        super.rtpConnectorChanged(oldValue, newValue);
+
+        if (newValue != null)
+        {
+            MediaDeviceSession deviceSession = getDeviceSession();
+
+            if (deviceSession instanceof VideoMediaDeviceSession)
+            {
+                ((VideoMediaDeviceSession) deviceSession)
+                    .setConnector(newValue);
+            }
+        }
+    }
+
+    /**
+     * Set local SSRC.
+     *
+     * @param ssrc source ID
+     */
+    @Override
+    protected void setLocalSourceID(long ssrc)
+    {
+        super.setLocalSourceID(ssrc);
+
+        MediaDeviceSession deviceSession = getDeviceSession();
+
+        if (deviceSession instanceof VideoMediaDeviceSession)
+            ((VideoMediaDeviceSession) deviceSession).setLocalSSRC(ssrc);
+    }
+
+    /**
+     * Updates the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>.
+     *
+     * @param advancedParams parameters of advanced attributes that may affect
+     * quality control
+     */
+    public void updateQualityControl(Map<String, String> advancedParams)
+    {
+        for(Map.Entry<String, String> entry : advancedParams.entrySet())
+        {
+            if(entry.getKey().equals("imageattr"))
+            {
+                Dimension res[] = parseSendRecvResolution(entry.getValue());
+
+                if(res != null)
+                {
+                    qualityControl.setRemoteSendMaxPreset(
+                            new QualityPreset(res[0]));
+                    qualityControl.setRemoteReceiveResolution(res[1]);
+                    outputSize = res[1];
+                    ((VideoMediaDeviceSession)getDeviceSession())
+                        .setOutputSize(outputSize);
+                }
+            }
         }
     }
 }

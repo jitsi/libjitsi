@@ -30,6 +30,15 @@ public class JAWTRenderer
     implements VideoRenderer
 {
     /**
+     * The default, initial height and width to set on the <tt>Component</tt>s
+     * of <tt>JAWTRenderer</tt>s before video frames with actual sizes are
+     * processed. Introduced to mitigate multiple failures to realize the actual
+     * video frame size and/or to properly scale the visual/video
+     * <tt>Component</tt>s.
+     */
+    private static final int DEFAULT_COMPONENT_HEIGHT_OR_WIDTH = 16;
+
+    /**
      * The <tt>Logger</tt> used by the <tt>JAWTRenderer</tt> class and its
      * instances for logging output.
      */
@@ -295,6 +304,13 @@ public class JAWTRenderer
             if (reflectiveOperationException != null)
                 throw new RuntimeException(reflectiveOperationException);
 
+            /*
+             * Make sure to have non-zero height and width because actual video
+             * frames may have not been processed yet.
+             */
+            component.setSize(
+                    DEFAULT_COMPONENT_HEIGHT_OR_WIDTH,
+                    DEFAULT_COMPONENT_HEIGHT_OR_WIDTH);
             /*
              * XXX The component has not been exposed outside of this instance
              * yet so it seems relatively safe to set its properties outside the
