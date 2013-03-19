@@ -56,7 +56,7 @@ public class VideoMediaStreamImpl
      * The indicator which determines whether RTCP feedback Picture Loss
      * Indication messages are to be used.
      */
-    private boolean usePLI = true;
+    private static final boolean USE_PLI = true;
 
     /**
      * The <tt>KeyFrameControl</tt> of this <tt>VideoMediaStream</tt>.
@@ -418,6 +418,11 @@ public class VideoMediaStreamImpl
      * the <tt>VideoListener</tt>s of this instance get <tt>VideoEvent</tt>s for
      * the new/current <tt>VideoMediaDeviceSession</tt> and not for the old one.
      *
+     * Note: this overloaded method gets executed in the
+     * <tt>MediaStreamImpl</tt> constructor. As a consequence we cannot assume
+     * proper initialization of the fields specific to
+     * <tt>VideoMediaStreamImpl</tt>.
+     *
      * @param oldValue the <tt>MediaDeviceSession</tt> with the
      * <tt>MediaDevice</tt> this instance used work with
      * @param newValue the <tt>MediaDeviceSession</tt> with the
@@ -509,7 +514,7 @@ public class VideoMediaStreamImpl
 
             if (rtpConnector != null)
                 newVideoMediaDeviceSession.setConnector(rtpConnector);
-            newVideoMediaDeviceSession.setRtcpFeedbackPLI(usePLI);
+            newVideoMediaDeviceSession.setRtcpFeedbackPLI(USE_PLI);
 
             /*
              * The newVideoMediaDeviceSession is being connected to this
@@ -714,7 +719,7 @@ public class VideoMediaStreamImpl
                 if(key.equals("rtcp-fb"))
                 {
                     if (value.equals("nack pli"))
-                        usePLI = true;
+                        ; //USE_PLI = true;
                 }
                 else if(key.equals("imageattr"))
                 {
