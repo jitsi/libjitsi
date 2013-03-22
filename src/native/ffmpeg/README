@@ -58,7 +58,7 @@ Apply the following to libavcodec/Makefile
 +OBJS-$(CONFIG_LIBMP3LAME_ENCODER)         += libmp3lame.o mpegaudiodecheader.o mpegaudiodata.o \
 
 ./configure \
-  --enable-static --disable-shared --shlibdir=. \
+  --disable-shared --enable-static --shlibdir=. \
   --disable-debug \
   --disable-everything --disable-network \
   --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-ffserver \
@@ -66,7 +66,7 @@ Apply the following to libavcodec/Makefile
   --enable-decoder=h263 --enable-encoder=h263p --enable-parser=h263 \
   --enable-libx264 --enable-gpl \
   --enable-decoder=h264 --enable-encoder=libx264 --enable-parser=h264 \
-  --enable-filter=buffer --enable-filter=hflip --enable-filter=scale --enable-filter=nullsink \
+  --enable-filter=hflip --enable-filter=scale --enable-filter=nullsink \
   --extra-cflags="-I$MP3LAME_HOME/include -I$X264_HOME" \
   --extra-ldflags="-L$MP3LAME_HOME/libmp3lame -L$MP3LAME_HOME/libmp3lame/.libs -L$X264_HOME"
 
