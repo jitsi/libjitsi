@@ -1183,29 +1183,55 @@ public class ZRTPTransformEngine
     /**
      * Gets the Hello packet Hash
      *
+     * 
+     * @param  index 
+     *         Hello hash of the Hello packet identfied by index. Index must
+     *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
+     *
      * @return the Hello packet hash
      */
-    public String getHelloHash()
+    public String getHelloHash(int index)
     {
         if (zrtpEngine != null)
-            return zrtpEngine.getHelloHash();
+            return zrtpEngine.getHelloHash(index);
         else
             return new String();
     }
 
     /**
      * Get the ZRTP Hello Hash data - separate strings.
+     * 
+     * @param  index 
+     *         Hello hash of the Hello packet identfied by index. Index must 
+     *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
      *
      * @return String array containing the version string at offset 0, the Hello
      *         hash value as hex-digits at offset 1. Hello hash is available
      *         immediately after class instantiation. Returns <code>null</code>
      *         if ZRTP is not available.
      */
-    public String[] getHelloHashSep() {
+    public String[] getHelloHashSep(int index) {
         if (zrtpEngine != null)
-            return zrtpEngine.getHelloHashSep();
+            return zrtpEngine.getHelloHashSep(index);
         else
             return null;
+    }
+
+    /**
+     * Get the peer's Hello Hash data.
+     * 
+     * Use this method to get the peer's Hello Hash data. The method returns the
+     * data as a string.
+     * 
+     * @return a String containing the Hello hash value as hex-digits. 
+     *         Peer Hello hash is available after we received a Hello packet 
+     *         from our peer. If peer's hello hash is not available return null.
+     */
+    public String getPeerHelloHash() {
+        if (zrtpEngine != null)
+            return zrtpEngine.getPeerHelloHash();
+        else
+            return new String();
     }
 
     /**
@@ -1480,4 +1506,24 @@ public class ZRTPTransformEngine
     {
          return ((zrtpEngine != null) ? zrtpEngine.getPeerZid() : null);
     }
+    /**
+     * Get number of supported ZRTP protocol versions.
+     *
+     * @return the number of supported ZRTP protocol versions.
+     */
+    public int getNumberSupportedVersions() 
+    {
+        return ((zrtpEngine != null) ? zrtpEngine.getNumberSupportedVersions(): 0);
+    }
+
+    /**
+     * Get negotiated ZRTP protocol version.
+     *
+     * @return the integer representation of the negotiated ZRTP protocol version.
+     */
+    public int getCurrentProtocolVersion() 
+    {
+        return ((zrtpEngine != null) ? zrtpEngine.getCurrentProtocolVersion() : 0);
+    }
+
 }

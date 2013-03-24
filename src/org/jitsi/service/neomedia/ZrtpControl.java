@@ -17,19 +17,37 @@ public interface ZrtpControl
     /**
      * Return the zrtp hello hash String.
      *
+     * @param  index 
+     *         Hello hash of the Hello packet identfied by index. Index must 
+     *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
      * @return String the zrtp hello hash.
      */
-    public String getHelloHash();
+    public String getHelloHash(int index);
 
     /**
      * Get the ZRTP Hello Hash data - separate strings.
      *
+     * @param  index 
+     *         Hello hash of the Hello packet identfied by index. Index must 
+     *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
      * @return String array containing the version string at offset 0, the Hello
      *         hash value as hex-digits at offset 1. Hello hash is available
      *         immediately after class instantiation. Returns <code>null</code>
      *         if ZRTP is not available.
      */
-    public String[] getHelloHashSep();
+    public String[] getHelloHashSep(int index);
+
+    /**
+     * Get the peer's Hello Hash data.
+     * 
+     * Use this method to get the peer's Hello Hash data. The method returns the
+     * data as a string.
+     * 
+     * @return a String containing the Hello hash value as hex-digits. 
+     *         Peer Hello hash is available after we received a Hello packet 
+     *         from our peer. If peer's hello hash is not available return null.
+     */
+    public String getPeerHelloHash(); 
 
     /**
      * Gets the SAS for the current media stream.
@@ -93,4 +111,18 @@ public interface ZrtpControl
      * @return the ZID data as String.
      */
     public String getPeerZidString();
+
+    /**
+     * Get number of supported ZRTP protocol versions.
+     *
+     * @return the number of supported ZRTP protocol versions.
+     */
+    public int getNumberSupportedVersions(); 
+
+    /**
+     * Get negotiated ZRTP protocol version.
+     *
+     * @return the integer representation of the negotiated ZRTP protocol version.
+     */
+    public int getCurrentProtocolVersion(); 
 }
