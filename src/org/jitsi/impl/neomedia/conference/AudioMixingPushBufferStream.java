@@ -324,17 +324,24 @@ public class AudioMixingPushBufferStream
 
         if (Format.byteArray.equals(outputDataType))
         {
-            byte[] outputData;
+            byte[] outputData = null;
+            Object o = buffer.getData();
+            if (o instanceof byte[])
+                outputData = (byte[]) o;
 
             switch (outputFormat.getSampleSizeInBits())
             {
             case 16:
-                outputData = new byte[outputSamples.length * 2];
+                if (outputData == null ||
+                        outputData.length < outputSamples.length * 2)
+                    outputData = new byte[outputSamples.length * 2];
                 for (int i = 0; i < outputSamples.length; i++)
                     ArrayIOUtils.writeInt16(outputSamples[i], outputData, i * 2);
                 break;
             case 32:
-                outputData = new byte[outputSamples.length * 4];
+                if (outputData == null ||
+                        outputData.length < outputSamples.length * 4)
+                    outputData = new byte[outputSamples.length * 4];
                 for (int i = 0; i < outputSamples.length; i++)
                     writeInt(outputSamples[i], outputData, i * 4);
                 break;
