@@ -102,6 +102,13 @@ public class DtmfTransformEngine
     private int nbToneToStop = 0;
 
     /**
+     * A mutex used to control the start and the stop of a tone and thereby to
+     * control concurrent modification access to "currentTone",
+     * "nbToneToStop" and "toneTransmissionState".
+     */
+    private Object startStopToneMutex = new Object();
+
+    /**
      * The duration (in timestamp units or in other words ms*8) that we have
      * transmitted the current tone for.
      */
@@ -291,7 +298,10 @@ public class DtmfTransformEngine
             pktMarker = true;
             currentTimestamp = audioPacketTimestamp;
 
-            toneTransmissionState = ToneTransmissionState.SENDING;
+            synchronized(startStopToneMutex)
+            {
+                toneTransmissionState = ToneTransmissionState.SENDING;
+            }
         }
         else if(toneTransmissionState == ToneTransmissionState.SENDING
                 || (toneTransmissionState == ToneTransmissionState.END_REQUESTED
@@ -328,8 +338,11 @@ public class DtmfTransformEngine
             pktEnd = true;
             remainingsEndPackets = 2;
 
-            toneTransmissionState
-                = ToneTransmissionState.END_SEQUENCE_INITIATED;
+            synchronized(startStopToneMutex)
+            {
+                toneTransmissionState
+                    = ToneTransmissionState.END_SEQUENCE_INITIATED;
+            }
         }
         else if(toneTransmissionState
                 == ToneTransmissionState.END_SEQUENCE_INITIATED)
@@ -340,8 +353,11 @@ public class DtmfTransformEngine
 
             if(remainingsEndPackets == 0)
             {
-                toneTransmissionState = ToneTransmissionState.IDLE;
-                currentTone.remove(0);
+                synchronized(startStopToneMutex)
+                {
+                    toneTransmissionState = ToneTransmissionState.IDLE;
+                    currentTone.remove(0);
+                }
             }
         }
 
@@ -366,7 +382,15 @@ public class DtmfTransformEngine
      */
     public void startSending(DTMFRtpTone tone, int minimalToneDuration)
     {
-        currentTone.add(tone);
+        synchronized(startStopToneMutex)
+        {
+            // If the GUI throws several start and only one stop (i.e. when
+            // holding a key pressed on Windows), then check that we have the
+            // good number of tone to stop. 
+            this.stopSendingDTMF();
+
+            currentTone.add(tone);
+        }
         // Converts duration in ms into duration in timestamp units (here the
         // codec of telephone-event is 8000 Hz).
         this.minimalToneDuration = minimalToneDuration * 8;
@@ -381,7 +405,22 @@ public class DtmfTransformEngine
      */
     public void stopSendingDTMF()
     {
-        ++nbToneToStop;
+        synchronized(startStopToneMutex)
+        {
+            // Check if there is currently one tone in a stopping state.
+            int stoppingTone =
+                (toneTransmissionState == ToneTransmissionState.END_REQUESTED
+                 || toneTransmissionState
+                     == ToneTransmissionState.END_SEQUENCE_INITIATED)
+                ? 1: 0;
+
+            // Verify that the number of tone to stop does not exceed the number
+            // of waiting or sending tones.
+            if(currentTone.size() > nbToneToStop + stoppingTone)
+            {
+                ++nbToneToStop;
+            }
+        }
     }
 
     /**
@@ -398,11 +437,14 @@ public class DtmfTransformEngine
      */
     private void checkIfCurrentToneMustBeStopped()
     {
-        if(nbToneToStop > 0
-                && toneTransmissionState == ToneTransmissionState.SENDING)
+        synchronized(startStopToneMutex)
         {
-            --nbToneToStop;
-            toneTransmissionState = ToneTransmissionState.END_REQUESTED;
+            if(nbToneToStop > 0
+                    && toneTransmissionState == ToneTransmissionState.SENDING)
+            {
+                --nbToneToStop;
+                toneTransmissionState = ToneTransmissionState.END_REQUESTED;
+            }
         }
     }
 
