@@ -496,7 +496,7 @@ public class VideoMediaStreamImpl
                 = NeomediaServiceUtils
                     .getMediaServiceImpl()
                         .getDeviceConfiguration()
-                            .getVideoMaxBandwidth();
+                            .getVideoRTPPacingThreshold();
 
             // maximum one packet for X milliseconds(the settings are for one
             // second)

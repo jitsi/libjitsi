@@ -11,6 +11,7 @@ import java.awt.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.service.neomedia.codec.*;
@@ -181,8 +182,14 @@ public class VPXEncoder
         }
         VPX.codec_enc_config_default(INTERFACE, cfg, 0);
 
+        int bitRate
+            = NeomediaServiceUtils
+                .getMediaServiceImpl()
+                    .getDeviceConfiguration()
+                        .getVideoBitrate();
+
         //set some settings
-        VPX.codec_enc_cfg_set_rc_target_bitrate(cfg, 192);
+        VPX.codec_enc_cfg_set_rc_target_bitrate(cfg, bitRate);
         VPX.codec_enc_cfg_set_rc_resize_allowed(cfg, 1);
         VPX.codec_enc_cfg_set_rc_end_usage(cfg, VPX.RC_MODE_CBR);
         VPX.codec_enc_cfg_set_kf_mode(cfg, VPX.KF_MODE_AUTO);

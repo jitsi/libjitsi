@@ -13,6 +13,7 @@ import javax.media.format.*;
 
 import net.sf.fmj.media.*;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.neomedia.codec.*;
 
@@ -201,7 +202,10 @@ public class JNIEncoder
         FFmpeg.avcodeccontext_set_size(avcontext, width, height);
         FFmpeg.avcodeccontext_set_qcompress(avcontext, 0.6f);
 
-        int bitRate = 256000;
+        int bitRate = NeomediaServiceUtils
+                .getMediaServiceImpl()
+                    .getDeviceConfiguration()
+                        .getVideoBitrate() * 1000;
         int frameRate = (int) outputVideoFormat.getFrameRate();
 
         if (frameRate == Format.NOT_SPECIFIED)
