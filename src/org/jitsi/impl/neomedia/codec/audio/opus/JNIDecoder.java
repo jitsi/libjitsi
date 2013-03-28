@@ -13,6 +13,7 @@ import net.sf.fmj.media.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
+import org.jitsi.util.*;
 
 import java.awt.*;
 
@@ -25,6 +26,12 @@ public class JNIDecoder
     extends AbstractCodecExt
     implements FECDecoderControl
 {
+    /**
+     * The <tt>Logger</tt> used by this <tt>JNIDecoder</tt> instance
+     * for logging output.
+     */
+    private static final Logger logger = Logger.getLogger(JNIDecoder.class);
+
     /**
      * The list of <tt>Format</tt>s of audio data supported as input by
      * <tt>JNIDecoder</tt> instances.
@@ -168,6 +175,13 @@ public class JNIDecoder
               (inputSequenceNumber != lastPacketSeq + 1) &&
               !(inputSequenceNumber == 0 && lastPacketSeq == 65535))
             decodeFec = true;
+        if ((inputBuffer.getFlags() & Buffer.FLAG_SKIP_FEC) != 0)
+        {
+            decodeFec = false;
+            if (logger.isTraceEnabled())
+                logger.trace("Not decoding FEC for " + inputSequenceNumber +
+                                " because SKIP_FEC is set");
+        }
 
         byte[] inputData = (byte[]) inputBuffer.getData();
         int inputOffset = inputBuffer.getOffset();

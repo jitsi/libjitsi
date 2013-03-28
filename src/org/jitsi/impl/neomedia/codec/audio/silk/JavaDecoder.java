@@ -206,6 +206,14 @@ public class JavaDecoder
                 nbPacketsLost += 65535 - lastPacketSeq + sequenceNumber - 1;
         }
 
+        if ((inputBuffer.getFlags() & Buffer.FLAG_SKIP_FEC) != 0)
+        {
+            decodeFEC = false;
+            if (logger.isTraceEnabled())
+                logger.trace("Not decoding FEC for " + sequenceNumber +
+                        " because SKIP_FEC is set");
+        }
+
         int processed;
 
         /* Decode packet normally */

@@ -140,8 +140,7 @@ public class JNIEncoder
      * The <tt>Logger</tt> used by this <tt>JNIEncoder</tt> instance
      * for logging output.
      */
-    private final Logger logger
-            = Logger.getLogger(JNIEncoder.class);
+    private static final Logger logger = Logger.getLogger(JNIEncoder.class);
 
     /**
      * The minimum expected packet loss percentage to set to the encoder.
