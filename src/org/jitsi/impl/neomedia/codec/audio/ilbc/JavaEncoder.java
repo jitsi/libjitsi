@@ -19,7 +19,7 @@ import org.jitsi.service.neomedia.codec.*;
  * @author Lyubomir Marinov
  */
 public class JavaEncoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
     /**
      * The <tt>ilbc_encoder</tt> adapted to <tt>Codec</tt> by this instance.
@@ -230,7 +230,8 @@ public class JavaEncoder
             byte[] output
                 = validateByteArraySize(
                         outputBuffer,
-                        outputOffset + outputLength);
+                        outputOffset + outputLength,
+                        true);
 
             enc.encode(output, outputOffset, input, inputOffset);
 

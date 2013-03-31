@@ -6,7 +6,6 @@
  */
 package org.jitsi.impl.neomedia.device;
 
-import java.util.*;
 
 /**
  * Manages the list of active (currently plugged-in) playback devices and
@@ -24,11 +23,6 @@ public class PlaybackDevices
     public static final String PROP_DEVICE = "playbackDevice";
 
     /**
-     * The list of active (actually plugged-in) playback devices.
-     */
-    private List<ExtendedCaptureDeviceInfo> activePlaybackDevices;
-
-    /**
      * Initializes the playback device list management.
      *
      * @param audioSystem The audio system managing this playback device list.
@@ -39,27 +33,6 @@ public class PlaybackDevices
     }
 
     /**
-     * Returns the list of the active devices.
-     *
-     * @return The list of the active devices.
-     */
-    public List<ExtendedCaptureDeviceInfo> getDevices()
-    {
-        List<ExtendedCaptureDeviceInfo> devices;
-
-        if (activePlaybackDevices == null)
-            devices = Collections.emptyList();
-        else
-        {
-            devices
-                = new ArrayList<ExtendedCaptureDeviceInfo>(
-                        activePlaybackDevices);
-        }
-
-        return devices;
-    }
-
-    /**
      * Returns the property of the capture devices.
      *
      * @return The property of the capture devices.
@@ -67,18 +40,5 @@ public class PlaybackDevices
     protected String getPropDevice()
     {
         return PROP_DEVICE;
-    }
-
-    /**
-     * Sets the list of the active devices.
-     *
-     * @param activeDevices The list of the active devices.
-     */
-    public void setActiveDevices(List<ExtendedCaptureDeviceInfo> activeDevices)
-    {
-        activePlaybackDevices
-            = (activeDevices == null)
-                ? null
-                : new ArrayList<ExtendedCaptureDeviceInfo>(activeDevices);
     }
 }

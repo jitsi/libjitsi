@@ -22,7 +22,7 @@ import org.jitsi.util.*;
  * @author Boris Grozev
  */
 public class JavaDecoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
     /**
      * The <tt>Logger</tt> used by this <tt>JavaDecoder</tt> instance

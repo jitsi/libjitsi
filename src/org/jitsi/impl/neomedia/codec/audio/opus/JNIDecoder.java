@@ -24,7 +24,7 @@ import java.util.*;
  * @author Boris Grozev
  */
 public class JNIDecoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
     implements FECDecoderControl
 {
     /**
@@ -211,7 +211,8 @@ public class JNIDecoder
 
         outputLength +=  Opus.decoder_get_nb_samples(decoder,
                 inputData, inputOffset, inputLength) * 2 /* sizeof(short) */;
-        byte[] outputData = validateByteArraySize(outputBuffer, outputLength);
+        byte[] outputData
+            = validateByteArraySize(outputBuffer, outputLength, false);
 
         int samplesCount = Opus.decode(decoder,
                                        inputData, inputOffset, inputLength,

@@ -17,6 +17,11 @@ import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.impl.neomedia.pulseaudio.*;
 import org.jitsi.service.version.*;
 
+/**
+ * Implements an <tt>AudioSystem</tt> using the native PulseAudio API/library.
+ *
+ * @author Lyubomir Marinov
+ */
 public class PulseAudioSystem
     extends AudioSystem
 {
@@ -59,6 +64,12 @@ public class PulseAudioSystem
 
     private long mainloop;
 
+    /**
+     * Initializes a new <tt>PulseAudioSystem</tt> instance.
+     *
+     * @throws Exception if anything goes wrong while initializing the new
+     * instance
+     */
     public PulseAudioSystem()
         throws Exception
     {
@@ -161,6 +172,13 @@ public class PulseAudioSystem
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * Overrides the implementation provided by <tt>AudioSystem</tt> because the
+     * PulseAudio <tt>Renderer</tt> implementation does not follow the
+     * convention of <tt>AudioSystem</tt>.
+     */
     @Override
     public Renderer createRenderer(boolean playback)
     {
@@ -170,13 +188,18 @@ public class PulseAudioSystem
             locator = null;
         else
         {
-            CaptureDeviceInfo notifyDevice
-                = getDevice(AudioSystem.NOTIFY_INDEX);
+            CaptureDeviceInfo device = getSelectedDevice(DataFlow.NOTIFY);
 
-            if (notifyDevice == null)
+            if (device == null)
+            {
+                /*
+                 * As AudioSystem does, no notification is to be sounded unless
+                 * there is a device with notify data flow.
+                 */
                 return null;
+            }
             else
-                locator = notifyDevice.getLocator();
+                locator = device.getLocator();
         }
 
         PulseAudioRenderer renderer
@@ -264,8 +287,8 @@ public class PulseAudioSystem
     {
         long context = getContext();
 
-        final List<ExtendedCaptureDeviceInfo> captureDevices
-            = new LinkedList<ExtendedCaptureDeviceInfo>();
+        final List<CaptureDeviceInfo2> captureDevices
+            = new LinkedList<CaptureDeviceInfo2>();
         final List<Format> captureDeviceFormats = new LinkedList<Format>();
         PA.source_info_cb_t sourceInfoListCallback
             = new PA.source_info_cb_t()
@@ -290,8 +313,8 @@ public class PulseAudioSystem
                 }
             };
 
-        final List<ExtendedCaptureDeviceInfo> playbackDevices
-            = new LinkedList<ExtendedCaptureDeviceInfo>();
+        final List<CaptureDeviceInfo2> playbackDevices
+            = new LinkedList<CaptureDeviceInfo2>();
         final List<Format> playbackDeviceFormats = new LinkedList<Format>();
         PA.sink_info_cb_t sinkInfoListCallback
             = new PA.sink_info_cb_t()
@@ -364,7 +387,7 @@ public class PulseAudioSystem
         {
             captureDevices.add(
                     0,
-                    new ExtendedCaptureDeviceInfo(
+                    new CaptureDeviceInfo2(
                             NULL_DEV_CAPTURE_DEVICE_INFO_NAME,
                             new MediaLocator(LOCATOR_PROTOCOL + ":"),
                             captureDeviceFormats.toArray(
@@ -377,7 +400,7 @@ public class PulseAudioSystem
         {
             playbackDevices.add(
                     0,
-                    new ExtendedCaptureDeviceInfo(
+                    new CaptureDeviceInfo2(
                             NULL_DEV_CAPTURE_DEVICE_INFO_NAME,
                             new MediaLocator(LOCATOR_PROTOCOL + ":"),
                             null,
@@ -453,7 +476,7 @@ public class PulseAudioSystem
     private void sinkInfoListCallback(
             long context,
             long sinkInfo,
-            List<ExtendedCaptureDeviceInfo> deviceList,
+            List<CaptureDeviceInfo2> deviceList,
             List<Format> formatList)
     {
         int sampleSpecFormat = PA.sink_info_get_sample_spec_format(sinkInfo);
@@ -467,7 +490,7 @@ public class PulseAudioSystem
         if (description == null)
             description = name;
         deviceList.add(
-                new ExtendedCaptureDeviceInfo(
+                new CaptureDeviceInfo2(
                         description,
                         new MediaLocator(
                                 LOCATOR_PROTOCOL
@@ -482,7 +505,7 @@ public class PulseAudioSystem
     private void sourceInfoListCallback(
             long context,
             long sourceInfo,
-            List<ExtendedCaptureDeviceInfo> deviceList,
+            List<CaptureDeviceInfo2> deviceList,
             List<Format> formatList)
     {
         int monitorOfSink = PA.source_info_get_monitor_of_sink(sourceInfo);
@@ -533,7 +556,7 @@ public class PulseAudioSystem
             if (description == null)
                 description = name;
             deviceList.add(
-                    new ExtendedCaptureDeviceInfo(
+                    new CaptureDeviceInfo2(
                             description,
                             new MediaLocator(
                                     LOCATOR_PROTOCOL

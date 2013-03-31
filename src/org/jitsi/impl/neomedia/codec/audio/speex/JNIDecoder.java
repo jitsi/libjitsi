@@ -22,7 +22,7 @@ import org.jitsi.service.neomedia.codec.*;
  * @author Lubomir Marinov
  */
 public class JNIDecoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
 
     /**
@@ -250,7 +250,8 @@ public class JNIDecoder
 
         if (outputLength > 0)
         {
-            byte[] output = validateByteArraySize(outputBuffer, outputLength);
+            byte[] output
+                = validateByteArraySize(outputBuffer, outputLength, false);
 
             if (0 == Speex.speex_decode_int(state, bits, output, 0))
             {

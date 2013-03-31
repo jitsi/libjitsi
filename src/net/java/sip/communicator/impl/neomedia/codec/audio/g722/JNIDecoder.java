@@ -17,7 +17,7 @@ import org.jitsi.service.neomedia.codec.*;
  * @author Lyubomir Marinov
  */
 public class JNIDecoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
     static final Format[] SUPPORTED_INPUT_FORMATS
         = new Format[]
@@ -106,7 +106,10 @@ public class JNIDecoder
         int outputOffset = outputBuffer.getOffset();
         int outputLength = inputBuffer.getLength() * 4;
         byte[] output
-            = validateByteArraySize(outputBuffer, outputOffset + outputLength);
+            = validateByteArraySize(
+                    outputBuffer,
+                    outputOffset + outputLength,
+                    true);
 
         g722_decoder_process(
                 decoder,

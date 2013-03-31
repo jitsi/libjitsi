@@ -22,7 +22,7 @@ import org.jitsi.util.*;
  * @author Boris Grozev
  */
 public class VPXDecoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
     /**
      * The decoder interface to use

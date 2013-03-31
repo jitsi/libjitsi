@@ -7,16 +7,18 @@
 package org.jitsi.impl.neomedia.device;
 
 import java.io.*;
+import java.lang.reflect.*;
 import java.net.*;
 import java.util.*;
 
+import javax.media.*;
+import javax.sound.sampled.*;
+
+import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.resources.*;
 import org.jitsi.util.*;
-
-import javax.media.*;
-import javax.sound.sampled.*;
 
 /**
  * Represents a <tt>DeviceSystem</tt> which provides support for the devices to
@@ -30,9 +32,17 @@ public abstract class AudioSystem
     extends DeviceSystem
 {
     /**
-     * The index of the capture devices.
+     * Enumerates the different types of media data flow of
+     * <tt>CaptureDeviceInfo2</tt>s contributed by an <tt>AudioSystem</tt>.
+     *
+     * @author Lyubomir Marinov
      */
-    public static final int CAPTURE_INDEX = 0;
+    public enum DataFlow
+    {
+        CAPTURE,
+        NOTIFY,
+        PLAYBACK
+    }
 
     /**
      * The constant/flag (to be) returned by {@link #getFeatures()} in order to
@@ -74,19 +84,15 @@ public abstract class AudioSystem
     public static final String LOCATOR_PROTOCOL_PULSEAUDIO = "pulseaudio";
 
     /**
+     * The protocol of the <tt>MediaLocator</tt>s identifying
+     * <tt>CaptureDeviceInfo</tt>s contributed by <tt>WASAPISystem</tt>.
+     */
+    public static final String LOCATOR_PROTOCOL_WASAPI = "wasapi";
+
+    /**
      * The <tt>Logger</tt> used by this instance for logging output.
      */
     private static Logger logger = Logger.getLogger(AudioSystem.class);
-
-    /**
-     * The index of the notify devices.
-     */
-    public static final int NOTIFY_INDEX = 1;
-
-    /**
-     * The index of the playback devices.
-     */
-    public static final int PLAYBACK_INDEX = 2;
 
     public static AudioSystem getAudioSystem(String locatorProtocol)
     {
@@ -149,6 +155,179 @@ public abstract class AudioSystem
     }
 
     /**
+     * {@inheritDoc}
+     *
+     * Delegates to {@link #createRenderer(boolean)} with the value of the
+     * <tt>playback</tt> argument set to true.
+     */
+    @Override
+    public Renderer createRenderer()
+    {
+        return createRenderer(true);
+    }
+
+    /**
+     * Initializes a new <tt>Renderer</tt> instance which is to either perform
+     * playback on or sound a notification through a device contributed by this
+     * system. The (default) implementation of <tt>AudioSystem</tt> ignores the
+     * value of the <tt>playback</tt> argument and delegates to
+     * {@link DeviceSystem#createRenderer()}.
+     *
+     * @param playback <tt>true</tt> if the new instance is to perform playback
+     * or <tt>false</tt> if the new instance is to sound a notification
+     * @return a new <tt>Renderer</tt> instance which is to either perform
+     * playback on or sound a notification through a device contributed by this
+     * system
+     */
+    public Renderer createRenderer(boolean playback)
+    {
+        String className = getRendererClassName();
+        Renderer renderer;
+
+        if (className == null)
+        {
+            /*
+             * There is no point in delegating to the super's createRenderer()
+             * because it will not have a class to instantiate.
+             */
+            renderer = null;
+        }
+        else
+        {
+            Class<?> clazz;
+
+            try
+            {
+                clazz = Class.forName(className);
+            }
+            catch (Throwable t)
+            {
+                if (t instanceof ThreadDeath)
+                    throw (ThreadDeath) t;
+                else
+                {
+                    clazz = null;
+                    logger.error("Failed to get class " + className, t);
+                }
+            }
+            if (clazz == null)
+            {
+                /*
+                 * There is no point in delegating to the super's
+                 * createRenderer() because it will fail to get the class.
+                 */
+                renderer = null;
+            }
+            else if (!Renderer.class.isAssignableFrom(clazz))
+            {
+                /*
+                 * There is no point in delegating to the super's
+                 * createRenderer() because it will fail to cast the new
+                 * instance to a Renderer.
+                 */
+                renderer = null;
+            }
+            else
+            {
+                boolean superCreateRenderer;
+
+                if (((getFeatures() & FEATURE_NOTIFY_AND_PLAYBACK_DEVICES) != 0)
+                        && AbstractAudioRenderer.class.isAssignableFrom(clazz))
+                {
+                    Constructor<?> constructor = null;
+
+                    try
+                    {
+                        constructor = clazz.getConstructor(boolean.class);
+                    }
+                    catch (NoSuchMethodException nsme)
+                    {
+                        /*
+                         * Such a constructor is optional so the failure to get
+                         * it will be swallowed and the super's
+                         * createRenderer() will be invoked.
+                         */
+                    }
+                    catch (SecurityException se)
+                    {
+                    }
+                    if ((constructor != null) && constructor.isAccessible())
+                    {
+                        superCreateRenderer = false;
+                        try
+                        {
+                            renderer
+                                = (Renderer) constructor.newInstance(playback);
+                        }
+                        catch (Throwable t)
+                        {
+                            if (t instanceof ThreadDeath)
+                                throw (ThreadDeath) t;
+                            else
+                            {
+                                renderer = null;
+                                logger.error(
+                                        "Failed to initialize a new "
+                                            + className + " instance",
+                                        t);
+                            }
+                        }
+                        if ((renderer != null) && !playback)
+                        {
+                            CaptureDeviceInfo device
+                                = getSelectedDevice(DataFlow.NOTIFY);
+
+                            if (device == null)
+                            {
+                                /*
+                                 * If there is no notification device, then no
+                                 * notification is to be sounded.
+                                 */
+                                renderer = null;
+                            }
+                            else
+                            {
+                                MediaLocator locator = device.getLocator();
+
+                                if (locator != null)
+                                {
+                                    ((AbstractAudioRenderer<?>) renderer)
+                                        .setLocator(locator);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        /*
+                         * The super's createRenderer() will be invoked because
+                         * either there is no non-default constructor or it is
+                         * not meant to be invoked by the public.
+                         */
+                        superCreateRenderer = true;
+                        renderer = null;
+                    }
+                }
+                else
+                {
+                    /*
+                     * The super's createRenderer() will be invoked because
+                     * either this AudioSystem does not distinguish between
+                     * playback and notify data flows or the Renderer
+                     * implementation class in not familiar.
+                     */
+                    superCreateRenderer = true;
+                    renderer = null;
+                }
+
+                if (superCreateRenderer && (renderer == null))
+                    renderer = super.createRenderer();
+            }
+        }
+        return renderer;
+    }
+
+    /**
      * Obtains an audio input stream from the URL provided.
      * @param uri a valid uri to a sound resource.
      * @return the input stream to audio data.
@@ -187,31 +366,35 @@ public abstract class AudioSystem
     }
 
     /**
-     * Gets the selected device for a specific kind: capture, notify or
-     * playback.
+     * Gets a <tt>CaptureDeviceInfo2</tt> which has been contributed by this
+     * <tt>AudioSystem</tt>, supports a specific flow of media data (i.e.
+     * capture, notify or playback) and is identified by a specific
+     * <tt>MediaLocator</tt>.
      *
-     * @param index The index of the specific devices: capture, notify or
-     * playback.
-     * @return The selected device for a specific kind: capture, notify or
-     * playback.
+     * @param dataFlow the flow of the media data supported by the
+     * <tt>CaptureDeviceInfo2</tt> to be returned
+     * @param locator the <tt>MediaLocator</tt> of the
+     * <tt>CaptureDeviceInfo2</tt> to be returned
+     * @return a <tt>CaptureDeviceInfo2</tt> which has been contributed by this
+     * instance, supports the specified <tt>dataFlow</tt> and is identified by
+     * the specified <tt>locator</tt>
      */
-    public ExtendedCaptureDeviceInfo getDevice(int index)
+    public CaptureDeviceInfo2 getDevice(DataFlow dataFlow, MediaLocator locator)
     {
-        return
-            devices[index].getDevice(getLocatorProtocol(), getDevices(index));
+        return devices[dataFlow.ordinal()].getDevice(locator);
     }
 
     /**
-     * Gets the list of a kind of devices: capture, notify or playback.
-     *
-     * @param index The index of the specific devices: capture, notify or
+     * Gets the list of devices with a specific data flow: capture, notify or
      * playback.
      *
-     * @return The list of a kind of devices: capture, notify or playback.
+     * @param dataFlow the data flow of the devices to retrieve: capture, notify
+     * or playback
+     * @return the list of devices with the specified <tt>dataFlow</tt>
      */
-    public List<ExtendedCaptureDeviceInfo> getDevices(int index)
+    public List<CaptureDeviceInfo2> getDevices(DataFlow dataFlow)
     {
-        return devices[index].getDevices();
+        return devices[dataFlow.ordinal()].getDevices();
     }
 
     /**
@@ -242,6 +425,22 @@ public abstract class AudioSystem
     }
 
     /**
+     * Gets the selected device for a specific data flow: capture, notify or
+     * playback.
+     *
+     * @param dataFlow the data flow of the selected device to retrieve:
+     * capture, notify or playback.
+     * @return the selected device for the specified <tt>dataFlow</tt>
+     */
+    public CaptureDeviceInfo2 getSelectedDevice(DataFlow dataFlow)
+    {
+        return
+            devices[dataFlow.ordinal()].getSelectedDevice(
+                    getLocatorProtocol(),
+                    getDevices(dataFlow));
+    }
+
+    /**
      * {@inheritDoc}
      *
      * Because <tt>AudioSystem</tt> may support playback and notification audio
@@ -255,7 +454,7 @@ public abstract class AudioSystem
         {
             try
             {
-                postInitializeSpecificDevices(CAPTURE_INDEX);
+                postInitializeSpecificDevices(DataFlow.CAPTURE);
             }
             finally
             {
@@ -263,11 +462,11 @@ public abstract class AudioSystem
                 {
                     try
                     {
-                        postInitializeSpecificDevices(NOTIFY_INDEX);
+                        postInitializeSpecificDevices(DataFlow.NOTIFY);
                     }
                     finally
                     {
-                        postInitializeSpecificDevices(PLAYBACK_INDEX);
+                        postInitializeSpecificDevices(DataFlow.PLAYBACK);
                     }
                 }
             }
@@ -282,28 +481,25 @@ public abstract class AudioSystem
      * Sets the device lists after the different audio systems (PortAudio,
      * PulseAudio, etc) have finished detecting their devices.
      *
-     * @param index The index corresponding to a specific device kind:
-     * capture/notify/playback.
+     * @param dataFlow the data flow of the devices to perform
+     * post-initialization on
      */
-    protected void postInitializeSpecificDevices(int index)
+    protected void postInitializeSpecificDevices(DataFlow dataFlow)
     {
         // Gets all current active devices.
-        List<ExtendedCaptureDeviceInfo> activeDevices = getDevices(index);
+        List<CaptureDeviceInfo2> activeDevices = getDevices(dataFlow);
         // Gets the default device.
-        Devices devices = this.devices[index];
+        Devices devices = this.devices[dataFlow.ordinal()];
         String locatorProtocol = getLocatorProtocol();
-        ExtendedCaptureDeviceInfo selectedActiveDevice
-            = devices.getDevice(locatorProtocol, activeDevices);
+        CaptureDeviceInfo2 selectedActiveDevice
+            = devices.getSelectedDevice(locatorProtocol, activeDevices);
 
         // Sets the default device as selected. The function will fire a
         // property change only if the device has changed from a previous
         // configuration. The "set" part is important because only the fired
         // property event provides a way to get the hotplugged devices working
         // during a call.
-        devices.setDevice(
-                locatorProtocol,
-                selectedActiveDevice,
-                false);
+        devices.setDevice(locatorProtocol, selectedActiveDevice, false);
     }
 
     /**
@@ -322,9 +518,9 @@ public abstract class AudioSystem
         if (devices == null)
         {
             devices = new Devices[3];
-            devices[CAPTURE_INDEX] = new CaptureDevices(this);
-            devices[NOTIFY_INDEX] = new NotifyDevices(this);
-            devices[PLAYBACK_INDEX] = new PlaybackDevices(this);
+            devices[DataFlow.CAPTURE.ordinal()] = new CaptureDevices(this);
+            devices[DataFlow.NOTIFY.ordinal()] = new NotifyDevices(this);
+            devices[DataFlow.PLAYBACK.ordinal()] = new PlaybackDevices(this);
         }
     }
 
@@ -355,30 +551,29 @@ public abstract class AudioSystem
     /**
      * Sets the list of a kind of devices: capture, notify or playback.
      *
-     * @param activeCaptureDevices The list of a kind of devices: capture,
-     * notify or playback.
+     * @param captureDevices The list of a kind of devices: capture, notify or
+     * playback.
      */
-    protected void setCaptureDevices(
-            List<ExtendedCaptureDeviceInfo> activeCaptureDevices)
+    protected void setCaptureDevices(List<CaptureDeviceInfo2> captureDevices)
     {
-        devices[CAPTURE_INDEX].setActiveDevices(activeCaptureDevices);
+        devices[DataFlow.CAPTURE.ordinal()].setDevices(captureDevices);
     }
 
     /**
      * Selects the active device.
      *
-     * @param index The index corresponding to a specific device kind:
-     * capture/notify/playback.
+     * @param dataFlow the data flow of the device to set: capture, notify or
+     * playback
      * @param device The selected active device.
      * @param save Flag set to true in order to save this choice in the
      * configuration. False otherwise.
      */
     public void setDevice(
-            int index,
-            ExtendedCaptureDeviceInfo device,
+            DataFlow dataFlow,
+            CaptureDeviceInfo2 device,
             boolean save)
     {
-        devices[index].setDevice(
+        devices[dataFlow.ordinal()].setDevice(
                 getLocatorProtocol(),
                 device,
                 save);
@@ -387,13 +582,12 @@ public abstract class AudioSystem
     /**
      * Sets the list of the active devices.
      *
-     * @param activePlaybackDevices The list of the active devices.
+     * @param playbackDevices The list of the active devices.
      */
-    protected void setPlaybackDevices(
-            List<ExtendedCaptureDeviceInfo> activePlaybackDevices)
+    protected void setPlaybackDevices(List<CaptureDeviceInfo2> playbackDevices)
     {
-        devices[PLAYBACK_INDEX].setActiveDevices(activePlaybackDevices);
+        devices[DataFlow.PLAYBACK.ordinal()].setDevices(playbackDevices);
         // The notify devices are the same as the playback devices.
-        devices[NOTIFY_INDEX].setActiveDevices(activePlaybackDevices);
+        devices[DataFlow.NOTIFY.ordinal()].setDevices(playbackDevices);
     }
 }

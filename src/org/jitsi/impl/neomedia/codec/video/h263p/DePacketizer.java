@@ -25,7 +25,7 @@ import org.jitsi.util.*;
  * @author Lubomir Marinov
  */
 public class DePacketizer
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
     /**
      * The <tt>Logger</tt> used by the <tt>DePacketizer</tt> class and its
@@ -143,8 +143,11 @@ public class DePacketizer
             ((in[inOffset + 1] & 0xF8) >> 3);
         int dataLength = inLength - plen - (vBit ? 1 : 0) - (pBit ? 0 : 2);
 
-        byte out[] = validateByteArraySize(outBuffer, outOffset + dataLength +
-                outputPaddingSize);
+        byte out[]
+            = validateByteArraySize(
+                    outBuffer,
+                    outOffset + dataLength + outputPaddingSize,
+                    true);
 
         if(pBit)
         {

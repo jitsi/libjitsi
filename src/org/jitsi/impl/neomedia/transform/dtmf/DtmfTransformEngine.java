@@ -12,8 +12,6 @@ import javax.media.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.service.configuration.*;
-import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;

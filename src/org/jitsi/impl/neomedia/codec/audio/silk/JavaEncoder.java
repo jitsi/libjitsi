@@ -25,7 +25,7 @@ import java.awt.*;
  * @author Boris Grozev
  */
 public class JavaEncoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
     implements PacketLossAwareEncoder
 {
     /**
@@ -225,7 +225,7 @@ public class JavaEncoder
             inputLength = encControl.packetSize;
 
         byte[] outputData
-            = validateByteArraySize(outputBuffer, MAX_BYTES_PER_FRAME);
+            = validateByteArraySize(outputBuffer, MAX_BYTES_PER_FRAME, false);
         int outputOffset = 0;
 
         int processed;

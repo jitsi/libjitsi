@@ -20,7 +20,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  */
 public class JNIEncoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
     /**
      * The <tt>Logger</tt> used by the <tt>JNIEncoder</tt> class and its

@@ -30,11 +30,6 @@ public class CaptureDevices
     public static final String PROP_DEVICE = "captureDevice";
 
     /**
-     * The list of active (actually plugged-in) capture devices.
-     */
-    private List<ExtendedCaptureDeviceInfo> activeCaptureDevices;
-
-    /**
      * Initializes the capture device list management.
      *
      * @param audioSystem The audio system managing this capture device list.
@@ -45,37 +40,32 @@ public class CaptureDevices
     }
 
     /**
-     * Returns the list of the active devices.
-     *
-     * @return The list of the active devices.
+     * {@inheritDoc}
      */
-    public List<ExtendedCaptureDeviceInfo> getDevices()
+    @Override
+    public List<CaptureDeviceInfo2> getDevices()
     {
-        List<ExtendedCaptureDeviceInfo> devices;
+        List<CaptureDeviceInfo2> devices = super.getDevices();
 
-        if(activeCaptureDevices == null)
-            devices = Collections.emptyList();
-        else
+        if (!devices.isEmpty())
         {
-            devices
-                = new ArrayList<ExtendedCaptureDeviceInfo>(
-                        activeCaptureDevices.size());
-
+            List<CaptureDeviceInfo2> thisDevices
+                = new ArrayList<CaptureDeviceInfo2>(devices.size());
             Format format = new AudioFormat(AudioFormat.LINEAR, -1, 16, -1);
 
-            for(ExtendedCaptureDeviceInfo device: activeCaptureDevices)
+            for(CaptureDeviceInfo2 device: devices)
             {
                 for(Format deviceFormat : device.getFormats())
                 {
                     if(deviceFormat.matches(format))
                     {
-                        devices.add(device);
+                        thisDevices.add(device);
                         break;
                     }
                 }
             }
+            devices = thisDevices;
         }
-
         return devices;
     }
 
@@ -90,19 +80,18 @@ public class CaptureDevices
     }
 
     /**
-     * Sets the list of the active devices.
-     *
-     * @param activeDevices The list of the active devices.
+     * {@inheritDoc}
      */
-    public void setActiveDevices(List<ExtendedCaptureDeviceInfo> activeDevices)
+    @Override
+    public void setDevices(List<CaptureDeviceInfo2> devices)
     {
-        if(activeDevices == null)
-            activeCaptureDevices = null;
-        else
+        super.setDevices(devices);
+
+        if (devices != null)
         {
             boolean commit = false;
 
-            for (CaptureDeviceInfo activeDevice : activeDevices)
+            for (CaptureDeviceInfo activeDevice : devices)
             {
                 CaptureDeviceManager.addDevice(activeDevice);
                 commit = true;
@@ -118,9 +107,6 @@ public class CaptureDevices
                     // Whatever.
                 }
             }
-
-            activeCaptureDevices
-                = new ArrayList<ExtendedCaptureDeviceInfo>(activeDevices);
         }
     }
 }

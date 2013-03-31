@@ -21,7 +21,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  */
 public class HFlip
-    extends AbstractCodecExt
+    extends AbstractCodec2
     implements Effect
 {
     /**

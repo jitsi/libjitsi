@@ -14,11 +14,18 @@ import javax.media.control.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.pulseaudio.*;
 import org.jitsi.util.*;
 
+/**
+ * Implements <tt>CaptureDevice</tt> and <tt>DataSource</tt> using the native
+ * PulseAudio API/library.
+ *
+ * @author Lyubomir Marinov
+ */
 public class DataSource
     extends AbstractPullBufferCaptureDevice
 {
@@ -69,6 +76,10 @@ public class DataSource
         SOFTWARE_GAIN = softwareGain;
     }
 
+    /**
+     * Implements a <tt>PullBufferStream</tt> using the native PulseAudio
+     * API/library.
+     */
     private class PulseAudioStream
         extends AbstractPullBufferStream
     {
@@ -103,6 +114,14 @@ public class DataSource
 
         private long stream;
 
+        /**
+         * Initializes a new <tt>PulseAudioStream</tt> which is to have its
+         * <tt>Format</tt>-related information abstracted by a specific
+         * <tt>FormatControl</tt>.
+         *
+         * @param formatControl the <tt>FormatControl</tt> which is to abstract
+         * the <tt>Format</tt>-related information of the new instance
+         */
         public PulseAudioStream(FormatControl formatControl)
         {
             super(DataSource.this, formatControl);
@@ -120,6 +139,9 @@ public class DataSource
                     : (GainControl) mediaServiceImpl.getInputVolumeControl();
         }
 
+        /**
+         * {@inheritDoc}
+         */
         public void read(Buffer buffer)
             throws IOException
         {
@@ -129,24 +151,11 @@ public class DataSource
                 if (stream == 0)
                     throw new IOException("stream");
 
-                Object data = buffer.getData();
-                byte[] bytes;
-
-                if (data instanceof byte[])
-                {
-                    bytes = (byte[]) data;
-                    if (bytes.length < fragsize)
-                    {
-                        bytes = new byte[fragsize];
-                        buffer.setData(bytes);
-                    }
-                }
-                else
-                {
-                    bytes = new byte[fragsize];
-                    buffer.setData(bytes);
-                }
-
+                byte[] data
+                    = AbstractCodec2.validateByteArraySize(
+                            buffer,
+                            fragsize,
+                            false);
                 int toRead = fragsize;
                 int offset = 0;
                 int length = 0;
@@ -166,7 +175,7 @@ public class DataSource
 
                     System.arraycopy(
                             this.buffer, this.offset,
-                            bytes, offset,
+                            data, offset,
                             toCopy);
 
                     this.offset += toCopy;
@@ -195,7 +204,7 @@ public class DataSource
                         {
                             AbstractVolumeControl.applyGain(
                                     gainControl,
-                                    bytes, 0, length);
+                                    data, 0, length);
                         }
                     }
                     else
@@ -595,7 +604,9 @@ public class DataSource
     {
     }
 
-    @Override
+    /**
+     * {@inheritDoc}
+     */
     protected AbstractPullBufferStream createStream(
             int streamIndex,
             FormatControl formatControl)

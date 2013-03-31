@@ -92,7 +92,7 @@ public class JavaDecoder
 
         // mismatch input format
         if (!(in instanceof AudioFormat)
-                || (null == AbstractCodecExt.matches(in, inputFormats)))
+                || (null == AbstractCodec2.matches(in, inputFormats)))
             return new Format[0];
 
         return getMatchingOutputFormats(in);

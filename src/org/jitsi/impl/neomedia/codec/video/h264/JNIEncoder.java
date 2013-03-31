@@ -336,7 +336,7 @@ public class JNIEncoder
             supportedOutputFormats = SUPPORTED_OUTPUT_FORMATS;
         // mismatch input format
         else if (!(in instanceof VideoFormat)
-                || (null == AbstractCodecExt.matches(in, inputFormats)))
+                || (null == AbstractCodec2.matches(in, inputFormats)))
             supportedOutputFormats = new Format[0];
         else
             supportedOutputFormats = getMatchingOutputFormats(in);
@@ -726,7 +726,7 @@ public class JNIEncoder
     {
         // mismatch input format
         if (!(format instanceof VideoFormat)
-                || (null == AbstractCodecExt.matches(format, inputFormats)))
+                || (null == AbstractCodec2.matches(format, inputFormats)))
             return null;
 
         YUVFormat yuvFormat = (YUVFormat) format;
@@ -734,7 +734,7 @@ public class JNIEncoder
         if (yuvFormat.getOffsetU() > yuvFormat.getOffsetV())
             return null;
 
-        inputFormat = AbstractCodecExt.specialize(yuvFormat, Format.byteArray);
+        inputFormat = AbstractCodec2.specialize(yuvFormat, Format.byteArray);
 
         // Return the selected inputFormat
         return inputFormat;
@@ -779,7 +779,7 @@ public class JNIEncoder
         // mismatch output format
         if (!(format instanceof VideoFormat)
                 || (null
-                        == AbstractCodecExt.matches(
+                        == AbstractCodec2.matches(
                                 format,
                                 getMatchingOutputFormats(inputFormat))))
             return null;

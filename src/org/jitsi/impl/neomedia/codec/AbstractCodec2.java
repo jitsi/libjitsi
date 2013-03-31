@@ -19,7 +19,7 @@ import net.sf.fmj.media.*;
  *
  * @author Lyubomir Marinov
  */
-public abstract class AbstractCodecExt
+public abstract class AbstractCodec2
     extends AbstractCodec
 {
     /**
@@ -107,7 +107,7 @@ public abstract class AbstractCodecExt
     private final Format[] supportedOutputFormats;
 
     /**
-     * Initializes a new <tt>AbstractCodecExt</tt> instance with a specific
+     * Initializes a new <tt>AbstractCodec2</tt> instance with a specific
      * <tt>PlugIn</tt> name, a specific <tt>Class</tt> of input and output
      * <tt>Format</tt>s and a specific list of <tt>Format</tt>s supported as
      * output.
@@ -118,7 +118,7 @@ public abstract class AbstractCodecExt
      * @param supportedOutputFormats the list of <tt>Format</tt>s supported by
      * the new instance as output
      */
-    protected AbstractCodecExt(
+    protected AbstractCodec2(
             String name,
             Class<? extends Format> formatClass,
             Format[] supportedOutputFormats)
@@ -309,7 +309,28 @@ public abstract class AbstractCodecExt
         outputBuffer.setOffset(offset);
     }
 
-    protected byte[] validateByteArraySize(Buffer buffer, int newSize)
+    /**
+     * Ensures that the value of the <tt>data</tt> property of a specific
+     * <tt>Buffer</tt> is an array of <tt>byte</tt>s whose length is at least a
+     * specific number of bytes.
+     *
+     * @param buffer the <tt>Buffer</tt> whose <tt>data</tt> property value is
+     * to be validated
+     * @param newSize the minimum length of the array of <tt>byte</tt> which is
+     * to be the value of the <tt>data</tt> property of <tt>buffer</tt>
+     * @param arraycopy <tt>true</tt> to copy the bytes which are in the
+     * value of the <tt>data</tt> property of <tt>buffer</tt> at the time of the
+     * invocation of the method if the value of the <tt>data</tt> property of
+     * <tt>buffer</tt> is an array of <tt>byte</tt> whose length is less than
+     * <tt>newSize</tt>; otherwise, <tt>false</tt>
+     * @return an array of <tt>byte</tt>s which is the value of the
+     * <tt>data</tt> property of <tt>buffer</tt> and whose length is at least
+     * <tt>newSize</tt> number of bytes
+     */
+    public static byte[] validateByteArraySize(
+            Buffer buffer,
+            int newSize,
+            boolean arraycopy)
     {
         Object data = buffer.getData();
         byte[] newBytes;
@@ -318,20 +339,28 @@ public abstract class AbstractCodecExt
         {
             byte[] bytes = (byte[]) data;
 
-            if (bytes.length >= newSize)
-                return bytes;
-
-            newBytes = new byte[newSize];
-            System.arraycopy(bytes, 0, newBytes, 0, bytes.length);
+            if (bytes.length < newSize)
+            {
+                newBytes = new byte[newSize];
+                buffer.setData(newBytes);
+                if (arraycopy)
+                    System.arraycopy(bytes, 0, newBytes, 0, bytes.length);
+                else
+                {
+                    buffer.setLength(0);
+                    buffer.setOffset(0);
+                }
+            }
+            else
+                newBytes = bytes;
         }
         else
         {
             newBytes = new byte[newSize];
+            buffer.setData(newBytes);
             buffer.setLength(0);
             buffer.setOffset(0);
         }
-
-        buffer.setData(newBytes);
         return newBytes;
     }
 

@@ -26,7 +26,7 @@ import org.jitsi.util.*;
  * @author Damian Minkov
  */
 public class DePacketizer
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
 
     /**
@@ -248,8 +248,9 @@ public class DePacketizer
 
         byte[] out
             = validateByteArraySize(
-                outBuffer,
-                outBuffer.getOffset() + newOutLength + outputPaddingSize);
+                    outBuffer,
+                    outBuffer.getOffset() + newOutLength + outputPaddingSize,
+                    true);
 
         if (start_bit)
         {
@@ -302,7 +303,8 @@ public class DePacketizer
         byte[] out
             = validateByteArraySize(
                 outBuffer,
-                outOffset + newOutLength + outputPaddingSize);
+                outOffset + newOutLength + outputPaddingSize,
+                true);
 
         System.arraycopy(NAL_PREFIX, 0, out, outOffset, NAL_PREFIX.length);
         outOffset += NAL_PREFIX.length;

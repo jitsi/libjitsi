@@ -22,7 +22,7 @@ import org.xiph.speex.*;
  * @author Lubomir Marinov
  */
 public class JavaEncoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
 
     /**

@@ -21,7 +21,7 @@ import org.jitsi.service.neomedia.codec.*;
  * @author Lubomir Marinov
  */
 public class JNIEncoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
 
     /**
@@ -343,7 +343,8 @@ public class JNIEncoder
 
         if (outputLength > 0)
         {
-            byte[] output = validateByteArraySize(outputBuffer, outputLength);
+            byte[] output
+                = validateByteArraySize(outputBuffer, outputLength, false);
 
             outputLength
                 = Speex.speex_bits_write(bits, output, 0, output.length);

@@ -25,7 +25,7 @@ import org.jitsi.util.*;
  * @author Boris Grozev
  */
 public class Packetizer
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
     /**
      * The <tt>Logger</tt> used by the <tt>Packetizer</tt> class and its
@@ -37,7 +37,7 @@ public class Packetizer
      * Maximum size of packets (excluding the payload descriptor and any other
      * headers (RTP, UDP))
      */
-    static final int MAX_SIZE = 1350;
+    private static final int MAX_SIZE = 1350;
 
     /**
      * Whether this is the first packet from the frame.
@@ -49,9 +49,11 @@ public class Packetizer
      */
     public Packetizer()
     {
-        super("VP8 Packetizer",
+        super(
+                "VP8 Packetizer",
                 VideoFormat.class,
-                new VideoFormat[] { new VideoFormat(Constants.VP8_RTP)});
+                new VideoFormat[] { new VideoFormat(Constants.VP8_RTP) });
+
         inputFormats = new VideoFormat[] { new VideoFormat(Constants.VP8)};
     }
 
@@ -60,7 +62,6 @@ public class Packetizer
      */
     protected void doClose()
     {
-        return;
     }
 
     /**
@@ -70,56 +71,42 @@ public class Packetizer
     {
         if(logger.isTraceEnabled())
             logger.trace("Opened VP8 packetizer");
-        return;
     }
 
     /**
      * {@inheritDoc}
-     * @param inputBuffer input <tt>Buffer</tt>
-     * @param outputBuffer output <tt>Buffer</tt>
-     * @return <tt>BUFFER_PROCESSED_OK</tt> or <tt>INPUT_BUFFER_NOT_CONSUMED</tt>
      */
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
-        if(inputBuffer.isDiscard() || ((byte[])inputBuffer.getData()).length == 0)
+        int inLen;
+
+        if(inputBuffer.isDiscard() || ((inLen = inputBuffer.getLength()) == 0))
         {
             outputBuffer.setDiscard(true);
             return BUFFER_PROCESSED_OK;
         }
+
         byte[] output;
         int offset;
-        final int pdMaxLen = DePacketizer.VP8PayloadDescriptor.MAX_LENGTH;
+        int pdMaxLen = DePacketizer.VP8PayloadDescriptor.MAX_LENGTH;
 
         //The input will fit in a single packet
-        if(inputBuffer.getLength() <= MAX_SIZE)
-        {
-            output = validateByteArraySize(outputBuffer,
-                                           inputBuffer.getLength() + pdMaxLen);
-            offset = pdMaxLen;
-        }
-        else
-        {
-            output = validateByteArraySize(outputBuffer, MAX_SIZE + pdMaxLen);
-            offset = pdMaxLen;
-        }
+        int inOff = inputBuffer.getOffset();
+        int len = (inLen <= MAX_SIZE) ? inLen : MAX_SIZE;
 
-        int len = inputBuffer.getLength() <= MAX_SIZE
-                    ? inputBuffer.getLength()
-                    : MAX_SIZE;
-
-        System.arraycopy((byte[])inputBuffer.getData(),
-                         inputBuffer.getOffset(),
-                         output,
-                         offset,
-                         len);
+        offset = pdMaxLen;
+        output = validateByteArraySize(outputBuffer, offset + len, true);
+        System.arraycopy(
+                (byte[]) inputBuffer.getData(), inOff,
+                output, offset,
+                len);
 
         //get the payload descriptor and copy it to the output
         byte[] pd = DePacketizer.VP8PayloadDescriptor.create(firstPacket);
-        System.arraycopy(pd,
-                            0,
-                            output,
-                            offset - pd.length,
-                            pd.length);
+        System.arraycopy(
+                pd, 0,
+                output, offset - pd.length,
+                pd.length);
         offset -= pd.length;
 
         //set up the output buffer
@@ -127,7 +114,7 @@ public class Packetizer
         outputBuffer.setOffset(offset);
         outputBuffer.setLength(len + pd.length);
 
-        if(inputBuffer.getLength() <= MAX_SIZE)
+        if(inLen <= MAX_SIZE)
         {
             firstPacket = true;
             return BUFFER_PROCESSED_OK;
@@ -135,8 +122,8 @@ public class Packetizer
         else
         {
             firstPacket = false;
-            inputBuffer.setLength(inputBuffer.getLength()- MAX_SIZE);
-            inputBuffer.setOffset(inputBuffer.getOffset()+ MAX_SIZE);
+            inputBuffer.setLength(inLen - MAX_SIZE);
+            inputBuffer.setOffset(inOff + MAX_SIZE);
             return INPUT_BUFFER_NOT_CONSUMED;
         }
     }

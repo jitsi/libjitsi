@@ -18,7 +18,7 @@ import org.jitsi.impl.neomedia.codec.*;
  * @author Lubomir Marinov
  */
 public class JavaDecoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
     private static final short BIT_0 = Ld8k.BIT_0;
 
@@ -145,7 +145,8 @@ public class JavaDecoder
         byte[] output
             = validateByteArraySize(
                     outputBuffer,
-                    outputBuffer.getOffset() + OUTPUT_FRAME_SIZE_IN_BYTES);
+                    outputBuffer.getOffset() + OUTPUT_FRAME_SIZE_IN_BYTES,
+                    true);
 
         writeShorts(sp16, output, outputBuffer.getOffset());
         outputBuffer.setLength(OUTPUT_FRAME_SIZE_IN_BYTES);

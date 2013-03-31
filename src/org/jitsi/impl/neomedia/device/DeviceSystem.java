@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.device;
 
 import java.io.*;
+import java.lang.reflect.*;
 import java.util.*;
 
 import javax.media.*;
@@ -201,6 +202,7 @@ public abstract class DeviceSystem
                     OSUtils.IS_ANDROID ? ".OpenSLESSystem" : null,
                     OSUtils.IS_LINUX ? ".PulseAudioSystem" : null,
                     OSUtils.IS_ANDROID ? null : ".PortAudioSystem",
+                    OSUtils.IS_WINDOWS ? ".WASAPISystem" : null,
                     ".NoneAudioSystem"
                 };
             break;
@@ -303,7 +305,7 @@ public abstract class DeviceSystem
                 {
                     try
                     {
-                        deviceSystem.initialize();
+                        invokeDeviceSystemInitialize(deviceSystem);
                     }
                     catch (Throwable t)
                     {
@@ -319,6 +321,110 @@ public abstract class DeviceSystem
                 }
             }
         }
+    }
+
+    /**
+     * Invokes {@link #initialize()} on a specific <tt>DeviceSystem</tt>. The
+     * method returns after the invocation returns.
+     *
+     * @param deviceSystem the <tt>DeviceSystem</tt> to invoke
+     * <tt>initialize()</tt> on
+     * @throws Exception if an error occurs during the initialization of
+     * <tt>initialize()</tt> on the specified <tt>deviceSystem</tt>
+     */
+    static void invokeDeviceSystemInitialize(DeviceSystem deviceSystem)
+        throws Exception
+    {
+        invokeDeviceSystemInitialize(deviceSystem, false);
+    }
+
+    /**
+     * Invokes {@link #initialize()} on a specific <tt>DeviceSystem</tt>.
+     *
+     * @param deviceSystem the <tt>DeviceSystem</tt> to invoke
+     * <tt>initialize()</tt> on
+     * @param asynchronous <tt>true</tt> if the invocation is to be performed in
+     * a separate thread and the method is to return immediately without waiting
+     * for the invocation to return; otherwise, <tt>false</tt>
+     * @throws Exception if an error occurs during the initialization of
+     * <tt>initialize()</tt> on the specified <tt>deviceSystem</tt>
+     */
+    static void invokeDeviceSystemInitialize(
+            final DeviceSystem deviceSystem,
+            boolean asynchronous)
+        throws Exception
+    {
+        if (OSUtils.IS_WINDOWS || asynchronous)
+        {
+            /*
+             * The use of Component Object Model (COM) technology is common on
+             * Windows. The initialization of the COM library is done per
+             * thread. However, there are multiple concurrency models which may
+             * interfere among themselves. Dedicate a new thread on which the
+             * COM library has surely not been initialized per invocation of
+             * initialize().
+             */
+
+            final Throwable[] exception = new Throwable[1];
+            Thread thread
+                = new Thread(
+                        deviceSystem.getClass().getName() + ".initialize()")
+                {
+                    @Override
+                    public void run()
+                    {
+                        try
+                        {
+                            deviceSystem.initialize();
+                        }
+                        catch (Throwable t)
+                        {
+                            exception[0] = t;
+                            if (t instanceof ThreadDeath)
+                                throw (ThreadDeath) t;
+                        }
+                    }
+                };
+
+            thread.setDaemon(true);
+            thread.start();
+
+            if (asynchronous)
+                return;
+
+            /*
+             * Wait for the initialize() invocation on deviceSystem to return
+             * i.e. the thread to die.
+             */
+            boolean interrupted = false;
+
+            while (thread.isAlive())
+            {
+                try
+                {
+                    thread.join();
+                }
+                catch (InterruptedException ie)
+                {
+                    interrupted = true;
+                }
+            }
+            if (interrupted)
+                Thread.currentThread().interrupt();
+
+            /* Re-throw any exception thrown by the thread. */
+            Throwable t = exception[0];
+
+            if (t != null)
+            {
+                if (t instanceof Exception)
+                    throw (Exception) t;
+                else
+                    throw new UndeclaredThrowableException(t);
+            }
+        }
+        else
+            deviceSystem.initialize();
     }
 
     /**
@@ -366,10 +472,17 @@ public abstract class DeviceSystem
         this.locatorProtocol = locatorProtocol;
         this.features = features;
 
-        initialize();
+        invokeDeviceSystemInitialize(this);
     }
 
-    public Renderer createRenderer(boolean playback)
+    /**
+     * Initializes a new <tt>Renderer</tt> instance which is to perform playback
+     * on a device contributed by this system.
+     *
+     * @return a new <tt>Renderer</tt> instance which is to perform playback on
+     * a device contributed by this system or <tt>null</tt>
+     */
+    public Renderer createRenderer()
     {
         String className = getRendererClassName();
 
@@ -385,9 +498,8 @@ public abstract class DeviceSystem
                     throw (ThreadDeath) t;
                 else
                 {
-                    logger.warn(
-                            "Failed to initialize a new "
-                                + className
+                    logger.error(
+                            "Failed to initialize a new " + className
                                 + " instance",
                             t);
                 }
@@ -494,11 +606,16 @@ public abstract class DeviceSystem
      * devices in the terms of the application so that they may be utilized. For
      * example, the capture devices are represented as
      * <tt>CaptureDeviceInfo</tt> instances registered with FMJ.
+     * <p>
+     * <b>Note</b>: The method is synchronized on this instance in order to
+     * guarantee that the whole initialization procedure (which includes
+     * {@link #doInitialize()}) executes once at any given time.
+     * </p>
      *
      * @throws Exception if an error occurs during the initialization of this
      * <tt>DeviceSystem</tt>
      */
-    protected final void initialize()
+    protected final synchronized void initialize()
         throws Exception
     {
         preInitialize();

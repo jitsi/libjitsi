@@ -25,7 +25,7 @@ import java.util.*;
  * @author Boris Grozev
  */
 public class JNIEncoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
     implements PacketLossAwareEncoder, FormatParametersAwareCodec
 {
     /**
@@ -378,7 +378,8 @@ public class JNIEncoder
 
         /* At long last, do the actual encoding. */
 
-        byte[] output = validateByteArraySize(outputBuffer, Opus.MAX_PACKET);
+        byte[] output
+            = validateByteArraySize(outputBuffer, Opus.MAX_PACKET, false);
 
         int outputLength = Opus.encode(encoder, input, inputOffset,
                 inputBytesNeeded / 2, output, Opus.MAX_PACKET);

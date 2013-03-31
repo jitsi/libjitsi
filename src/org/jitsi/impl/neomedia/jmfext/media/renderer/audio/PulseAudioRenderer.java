@@ -24,7 +24,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  */
 public class PulseAudioRenderer
-    extends AbstractAudioRenderer
+    extends AbstractAudioRenderer<PulseAudioSystem>
 {
     /**
      * The human-readable <tt>PlugIn</tt> name of the
@@ -66,14 +66,6 @@ public class PulseAudioRenderer
 
     private final String mediaRole;
 
-    /*
-     * TODO The field pulseAudioSystem has been introduced prior to
-     * AbstractAudioSystem and its field audioSystem. It would be a good idea to
-     * remove the field pulseAudioSystem in order to reduce the memory footprint
-     * of the PulseAudioRenderer instances.
-     */
-    private final PulseAudioSystem pulseAudioSystem;
-
     private long stream;
 
     private final PA.stream_request_cb_t writeCallback
@@ -81,25 +73,32 @@ public class PulseAudioRenderer
         {
             public void callback(long s, int nbytes)
             {
-                pulseAudioSystem.signalMainloop(false);
+                audioSystem.signalMainloop(false);
             }
         };
 
     /**
-     * Initializes a new <tt>PulseAudioRenderer</tt> instance.
+     * Initializes a new <tt>PulseAudioRenderer</tt> instance with a default
+     * PulseAudio media role.
      */
     public PulseAudioRenderer()
     {
         this(null);
     }
 
+    /**
+     * Initializes a new <tt>PulseAudioRenderer</tt> instance with a specific
+     * PulseAudio media role.
+     *
+     * @param mediaRole the PulseAudio media role to initialize the new instance
+     * with
+     */
     public PulseAudioRenderer(String mediaRole)
     {
         super(PulseAudioSystem.getPulseAudioSystem());
 
-        pulseAudioSystem = (PulseAudioSystem) audioSystem;
-        if (pulseAudioSystem == null)
-            throw new IllegalStateException("pulseAudioSystem");
+        if (audioSystem == null)
+            throw new IllegalStateException("audioSystem");
 
         this.mediaRole
             = (mediaRole == null)
@@ -129,7 +128,7 @@ public class PulseAudioRenderer
 
     public void close()
     {
-        pulseAudioSystem.lockMainloop();
+        audioSystem.lockMainloop();
         try
         {
             long stream = this.stream;
@@ -150,7 +149,7 @@ public class PulseAudioRenderer
                     corked = true;
                     dev = null;
 
-                    pulseAudioSystem.signalMainloop(false);
+                    audioSystem.signalMainloop(false);
 
                     if (cvolume != 0)
                         PA.cvolume_free(cvolume);
@@ -163,7 +162,7 @@ public class PulseAudioRenderer
         }
         finally
         {
-            pulseAudioSystem.unlockMainloop();
+            audioSystem.unlockMainloop();
         }
     }
 
@@ -180,7 +179,7 @@ public class PulseAudioRenderer
         }
         finally
         {
-            pulseAudioSystem.signalMainloop(false);
+            audioSystem.signalMainloop(false);
         }
     }
 
@@ -200,11 +199,18 @@ public class PulseAudioRenderer
         return locatorDev;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public String getName()
     {
         return PLUGIN_NAME;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Format[] getSupportedInputFormats()
     {
         return SUPPORTED_INPUT_FORMATS.clone();
@@ -213,7 +219,7 @@ public class PulseAudioRenderer
     public void open()
         throws ResourceUnavailableException
     {
-        pulseAudioSystem.lockMainloop();
+        audioSystem.lockMainloop();
         try
         {
             openWithMainloopLock();
@@ -222,7 +228,7 @@ public class PulseAudioRenderer
         }
         finally
         {
-            pulseAudioSystem.unlockMainloop();
+            audioSystem.unlockMainloop();
         }
     }
 
@@ -252,7 +258,7 @@ public class PulseAudioRenderer
         try
         {
             stream
-                = pulseAudioSystem.createStream(
+                = audioSystem.createStream(
                         sampleRate,
                         channels,
                         getClass().getName(),
@@ -301,7 +307,7 @@ public class PulseAudioRenderer
                     {
                         public void run()
                         {
-                            pulseAudioSystem.signalMainloop(false);
+                            audioSystem.signalMainloop(false);
                         }
                     };
 
@@ -329,7 +335,7 @@ public class PulseAudioRenderer
                     }
 
                     int state
-                        = pulseAudioSystem.waitForStreamState(
+                        = audioSystem.waitForStreamState(
                                 stream,
                                 PA.STREAM_READY);
 
@@ -391,17 +397,17 @@ public class PulseAudioRenderer
      * {@link AudioSystem#PROP_PLAYBACK_DEVICE} property of its associated
      * <tt>AudioSystem</tt> has changed.
      *
-     * @param event a <tt>PropertyChangeEvent</tt> which specifies details about
+     * @param ev a <tt>PropertyChangeEvent</tt> which specifies details about
      * the change such as the name of the property and its old and new values
      */
     @Override
-    protected void playbackDevicePropertyChange(PropertyChangeEvent event)
+    protected void playbackDevicePropertyChange(PropertyChangeEvent ev)
     {
         /*
          * FIXME Disabled due to freezes reported by Vincent Lucas and Kertesz
          * Laszlo on the dev mailing list.
          */
-        pulseAudioSystem.lockMainloop();
+        audioSystem.lockMainloop();
         try
         {
             /*
@@ -457,10 +463,13 @@ public class PulseAudioRenderer
         }
         finally
         {
-            pulseAudioSystem.unlockMainloop();
+            audioSystem.unlockMainloop();
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int process(Buffer buffer)
     {
         if (buffer.isDiscard())
@@ -470,14 +479,14 @@ public class PulseAudioRenderer
 
         int ret;
 
-        pulseAudioSystem.lockMainloop();
+        audioSystem.lockMainloop();
         try
         {
             ret = processWithMainloopLock(buffer);
         }
         finally
         {
-            pulseAudioSystem.unlockMainloop();
+            audioSystem.unlockMainloop();
         }
         if ((ret != BUFFER_PROCESSED_FAILED) && (buffer.getLength() > 0))
             ret |= INPUT_BUFFER_NOT_CONSUMED;
@@ -495,7 +504,7 @@ public class PulseAudioRenderer
 
         if (writableSize <= 0)
         {
-            pulseAudioSystem.waitMainloop();
+            audioSystem.waitMainloop();
             ret = BUFFER_PROCESSED_OK;
         }
         else
@@ -561,7 +570,7 @@ public class PulseAudioRenderer
 
         long o
             = PA.context_set_sink_input_volume(
-                    pulseAudioSystem.getContext(),
+                    audioSystem.getContext(),
                     PA.stream_get_index(stream),
                     cvolume,
                     null);
@@ -570,9 +579,12 @@ public class PulseAudioRenderer
             PA.operation_unref(o);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void start()
     {
-        pulseAudioSystem.lockMainloop();
+        audioSystem.lockMainloop();
         try
         {
             if (stream == 0)
@@ -591,20 +603,23 @@ public class PulseAudioRenderer
         }
         finally
         {
-            pulseAudioSystem.unlockMainloop();
+            audioSystem.unlockMainloop();
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void stop()
     {
-        pulseAudioSystem.lockMainloop();
+        audioSystem.lockMainloop();
         try
         {
             stopWithMainloopLock();
         }
         finally
         {
-            pulseAudioSystem.unlockMainloop();
+            audioSystem.unlockMainloop();
         }
     }
 

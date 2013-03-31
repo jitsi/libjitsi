@@ -8,6 +8,8 @@ package org.jitsi.impl.neomedia.device;
 
 import java.util.*;
 
+import javax.media.*;
+
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 
@@ -17,6 +19,7 @@ import org.jitsi.service.libjitsi.*;
  * and actually plugged-in).
  *
  * @author Vincent Lucas
+ * @author Lyubomir Marinov
  */
 public abstract class Devices
 {
@@ -36,13 +39,18 @@ public abstract class Devices
     /**
      * The selected active device.
      */
-    private ExtendedCaptureDeviceInfo device = null;
+    private CaptureDeviceInfo2 device;
 
     /**
      * The list of device ID/names saved by the configuration service and
      * previously saved given user preference order.
      */
     private final List<String> devicePreferences = new ArrayList<String>();
+
+    /**
+     * The list of <tt>CaptureDeviceInfo2</tt>s which are active/plugged-in.
+     */
+    private List<CaptureDeviceInfo2> devices;
 
     /**
      * Initializes the device list management.
@@ -55,6 +63,90 @@ public abstract class Devices
     }
 
     /**
+     * Adds a new device in the preferences (at the first active position if the
+     * isSelected argument is true).
+     *
+     * @param newsDeviceIdentifier The identifier of the device to add int first
+     * active position of the preferences.
+     * @param isSelected True if the device is the selected one.
+     */
+    private void addToDevicePreferences(
+            String newDeviceIdentifier,
+            boolean isSelected)
+    {
+        synchronized(devicePreferences)
+        {
+            devicePreferences.remove(newDeviceIdentifier);
+            // A selected device is placed on top of the list: this is the new
+            // preferred device.
+            if(isSelected)
+            {
+                devicePreferences.add(0, newDeviceIdentifier);
+            }
+            // If there is no active device or the device is not selected, then
+            // set the new device to the end of the device preference list.
+            else
+            {
+                devicePreferences.add(newDeviceIdentifier);
+            }
+        }
+    }
+
+    /**
+     * Gets a <tt>CapatureDeviceInfo2</tt> which is known to this instance and
+     * is identified by a specific <tt>MediaLocator</tt>.
+     *
+     * @param locator the <tt>MediaLocator</tt> of the
+     * <tt>CaptureDeviceInfo2</tt> to be returned
+     * @return a <tt>CaptureDeviceInfo2</tt> which is known to this instance and
+     * is identified by the specified <tt>locator</tt>
+     */
+    public CaptureDeviceInfo2 getDevice(MediaLocator locator)
+    {
+        CaptureDeviceInfo2 device = null;
+
+        if (devices != null)
+        {
+            for (CaptureDeviceInfo2 aDevice : devices)
+            {
+                MediaLocator aLocator = aDevice.getLocator();
+
+                if (locator.equals(aLocator))
+                {
+                    device = aDevice;
+                    break;
+                }
+            }
+        }
+        return device;
+    }
+
+    /**
+     * Returns the list of the <tt>CaptureDeviceInfo2</tt>s which are
+     * active/plugged-in.
+     *
+     * @return the list of the <tt>CaptureDeviceInfo2</tt>s which are
+     * active/plugged-in
+     */
+    public List<CaptureDeviceInfo2> getDevices()
+    {
+        List<CaptureDeviceInfo2> devices;
+
+        if (this.devices == null)
+            devices = Collections.emptyList();
+        else
+            devices = new ArrayList<CaptureDeviceInfo2>(this.devices);
+        return devices;
+    }
+
+    /**
+     * Returns the property of the capture devices.
+     *
+     * @return The property of the capture devices.
+     */
+    protected abstract String getPropDevice();
+
+    /**
      * Gets the selected active device.
      *
      * @param locator The string representation of the locator.
@@ -62,9 +154,9 @@ public abstract class Devices
      *
      * @return The selected active device.
      */
-    public ExtendedCaptureDeviceInfo getDevice(
+    public CaptureDeviceInfo2 getSelectedDevice(
             String locator,
-            List<ExtendedCaptureDeviceInfo> activeDevices)
+            List<CaptureDeviceInfo2> activeDevices)
     {
         if (activeDevices != null)
         {
@@ -78,7 +170,7 @@ public abstract class Devices
             // deliberately plugged in the device).
             for(int i = activeDevices.size() - 1; i >= 0; i--)
             {
-                ExtendedCaptureDeviceInfo activeDevice = activeDevices.get(i);
+                CaptureDeviceInfo2 activeDevice = activeDevices.get(i);
 
                 if(!devicePreferences.contains(
                             activeDevice.getModelIdentifier()))
@@ -114,7 +206,7 @@ public abstract class Devices
             {
                 for(String devicePreference : devicePreferences)
                 {
-                    for(ExtendedCaptureDeviceInfo activeDevice : activeDevices)
+                    for(CaptureDeviceInfo2 activeDevice : activeDevices)
                     {
                         // If we have found the "preferred" device among active
                         // device.
@@ -138,13 +230,6 @@ public abstract class Devices
         // Else if nothing was found, then returns null.
         return null;
     }
-
-    /**
-     * Returns the list of the active devices.
-     *
-     * @return The list of the active devices.
-     */
-    public abstract List<ExtendedCaptureDeviceInfo> getDevices();
 
     /**
      * Loads device name ordered with user's preference from the
@@ -211,124 +296,16 @@ public abstract class Devices
     }
 
     /**
-     * Saves the new selected device in top of the user preferences.
-     *
-     * @param locator The string representation of the locator.
-     * @param property the name of the <tt>ConfigurationService</tt> property
-     * into which the user's preference with respect to the specified
-     * <tt>CaptureDeviceInfo</tt> is to be saved
-     * @param selectedDevice The device selected by the user.
-     * @param isSelected True if the device is the selected one.
-     */
-    private void saveDevice(
-            String locator,
-            String property,
-            ExtendedCaptureDeviceInfo device,
-            boolean isSelected)
-    {
-        String selectedDeviceIdentifier
-            = (device == null)
-                ? NoneAudioSystem.LOCATOR_PROTOCOL
-                : device.getModelIdentifier();
-
-        // Sorts the user preferences to put the selected device on top.
-        addToDevicePreferences(
-                selectedDeviceIdentifier,
-                isSelected);
-
-        // Saves the user preferences.
-        writeDevicePreferences(locator, property);
-    }
-
-    /**
-     * Selects the active device.
-     *
-     * @param locator The string representation of the locator.
-     * @param device The selected active device.
-     * @param save Flag set to true in order to save this choice in the
-     * configuration. False otherwise.
-     */
-    public void setDevice(
-            String locator,
-            ExtendedCaptureDeviceInfo device,
-            boolean save)
-    {
-        // Checks if there is a change.
-        if ((device == null) || !device.equals(this.device))
-        {
-            ExtendedCaptureDeviceInfo oldValue = this.device;
-
-            // Saves the new selected device in top of the user preferences.
-            if (save)
-            {
-                saveDevice(
-                        locator,
-                        getPropDevice(),
-                        device,
-                        true);
-            }
-            this.device = device;
-
-            audioSystem.propertyChange(getPropDevice(), oldValue, this.device);
-        }
-    }
-
-    /**
-     * Sets the list of the active devices.
-     *
-     * @param activeDevices The list of the active devices.
-     */
-    public abstract void setActiveDevices(
-            List<ExtendedCaptureDeviceInfo> activeDevices);
-
-    /**
-     * Returns the property of the capture devices.
-     *
-     * @return The property of the capture devices.
-     */
-    protected abstract String getPropDevice();
-
-    /**
-     * Adds a new device in the preferences (at the first active position if the
-     * isSelected argument is true).
-     *
-     * @param newsDeviceIdentifier The identifier of the device to add int first
-     * active position of the preferences.
-     * @param isSelected True if the device is the selected one.
-     */
-    private void addToDevicePreferences(
-            String newDeviceIdentifier,
-            boolean isSelected)
-    {
-        synchronized(devicePreferences)
-        {
-            devicePreferences.remove(newDeviceIdentifier);
-            // A selected device is placed on top of the list: this is the new
-            // preferred device.
-            if(isSelected)
-            {
-                devicePreferences.add(0, newDeviceIdentifier);
-            }
-            // If there is no active device or the device is not selected, then
-            // set the new device to the end of the device preference list.
-            else
-            {
-                devicePreferences.add(newDeviceIdentifier);
-            }
-        }
-    }
-
-    /**
      * Renames the old fashioned identifier (name only), into new fashioned one
      * (UID, or name + transport type).
      *
      * @param activeDevices The list of the active devices.
      */
     private void renameOldFashionedIdentifier(
-            List<ExtendedCaptureDeviceInfo> activeDevices)
+            List<CaptureDeviceInfo2> activeDevices)
     {
         // Renames the old fashioned device identifier for all active devices.
-        for(ExtendedCaptureDeviceInfo activeDevice : activeDevices)
+        for(CaptureDeviceInfo2 activeDevice : activeDevices)
         {
             String name = activeDevice.getName();
             String id = activeDevice.getModelIdentifier();
@@ -364,6 +341,84 @@ public abstract class Devices
                 }
             }
         }
+    }
+
+    /**
+     * Saves the new selected device in top of the user preferences.
+     *
+     * @param locator The string representation of the locator.
+     * @param property the name of the <tt>ConfigurationService</tt> property
+     * into which the user's preference with respect to the specified
+     * <tt>CaptureDeviceInfo</tt> is to be saved
+     * @param selectedDevice The device selected by the user.
+     * @param isSelected True if the device is the selected one.
+     */
+    private void saveDevice(
+            String locator,
+            String property,
+            CaptureDeviceInfo2 device,
+            boolean isSelected)
+    {
+        String selectedDeviceIdentifier
+            = (device == null)
+                ? NoneAudioSystem.LOCATOR_PROTOCOL
+                : device.getModelIdentifier();
+
+        // Sorts the user preferences to put the selected device on top.
+        addToDevicePreferences(
+                selectedDeviceIdentifier,
+                isSelected);
+
+        // Saves the user preferences.
+        writeDevicePreferences(locator, property);
+    }
+
+    /**
+     * Selects the active device.
+     *
+     * @param locator The string representation of the locator.
+     * @param device The selected active device.
+     * @param save Flag set to true in order to save this choice in the
+     * configuration. False otherwise.
+     */
+    public void setDevice(
+            String locator,
+            CaptureDeviceInfo2 device,
+            boolean save)
+    {
+        // Checks if there is a change.
+        if ((device == null) || !device.equals(this.device))
+        {
+            CaptureDeviceInfo2 oldValue = this.device;
+
+            // Saves the new selected device in top of the user preferences.
+            if (save)
+            {
+                saveDevice(
+                        locator,
+                        getPropDevice(),
+                        device,
+                        true);
+            }
+            this.device = device;
+
+            audioSystem.propertyChange(getPropDevice(), oldValue, this.device);
+        }
+    }
+
+    /**
+     * Sets the list of <tt>CaptureDeviceInfo2</tt>s which are
+     * active/plugged-in.
+     *
+     * @param devices the list of <tt>CaptureDeviceInfo2</tt>s which are
+     * active/plugged-in
+     */
+    public void setDevices(List<CaptureDeviceInfo2> devices)
+    {
+        this.devices
+            = (devices == null)
+                ? null
+                : new ArrayList<CaptureDeviceInfo2>(devices);
     }
 
     /**

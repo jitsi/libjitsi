@@ -13,6 +13,7 @@ import javax.media.control.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
@@ -452,9 +453,9 @@ public class PortAudioStream
         synchronized (this)
         {
             if (stream == 0)
-                message = "This " + getClass().getName() + " is disconnected.";
+                message = getClass().getName() + " is disconnected.";
             else if (!started)
-                message = "This " + getClass().getName() + " is stopped.";
+                message = getClass().getName() + " is stopped.";
             else
             {
                 message = null;
@@ -492,24 +493,15 @@ public class PortAudioStream
              * Reuse the data of buffer in order to not perform unnecessary
              * allocations.
              */
-            Object data = buffer.getData();
-            byte[] bufferData = null;
-
-            if (data instanceof byte[])
-            {
-                bufferData = (byte[]) data;
-                if (bufferData.length < bytesPerBuffer)
-                    bufferData = null;
-            }
-            if (bufferData == null)
-            {
-                bufferData = new byte[bytesPerBuffer];
-                buffer.setData(bufferData);
-            }
+            byte[] data
+                = AbstractCodec2.validateByteArraySize(
+                        buffer,
+                        bytesPerBuffer,
+                        false);
 
             try
             {
-                Pa.ReadStream(stream, bufferData, framesPerBuffer);
+                Pa.ReadStream(stream, data, framesPerBuffer);
             }
             catch (PortAudioException pae)
             {
@@ -529,7 +521,7 @@ public class PortAudioStream
             {
                 AbstractVolumeControl.applyGain(
                         gainControl,
-                        bufferData, 0, bytesPerBuffer);
+                        data, 0, bytesPerBuffer);
             }
 
             long bufferTimeStamp = System.nanoTime();

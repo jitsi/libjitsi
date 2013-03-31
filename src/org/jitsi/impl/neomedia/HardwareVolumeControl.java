@@ -118,19 +118,14 @@ public class HardwareVolumeControl
      */
     protected String getCaptureDeviceUID()
     {
-        String deviceUID = null;
-
         AudioSystem audioSystem
             = mediaServiceImpl.getDeviceConfiguration().getAudioSystem();
-        ExtendedCaptureDeviceInfo captureDevice = (audioSystem == null)
-            ? null
-            : audioSystem.getDevice(AudioSystem.CAPTURE_INDEX);
-        if(captureDevice != null)
-        {
-            deviceUID = captureDevice.getUID();
-        }
+        CaptureDeviceInfo2 captureDevice
+            = (audioSystem == null)
+                ? null
+                : audioSystem.getSelectedDevice(AudioSystem.DataFlow.CAPTURE);
 
-        return deviceUID;
+        return (captureDevice == null) ? null : captureDevice.getUID();
     }
 
     /**

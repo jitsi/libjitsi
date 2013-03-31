@@ -70,6 +70,7 @@ public class DeviceConfiguration
             OSUtils.IS_ANDROID ? ".audio.AudioTrackRenderer" : null,
             OSUtils.IS_ANDROID ? ".audio.OpenSLESRenderer" : null,
             OSUtils.IS_LINUX ? ".audio.PulseAudioRenderer" : null,
+            OSUtils.IS_WINDOWS ? ".audio.WASAPIRenderer" : null,
             OSUtils.IS_ANDROID ? null : ".audio.PortAudioRenderer",
             ".video.JAWTRenderer"
         };
@@ -419,14 +420,14 @@ public class DeviceConfiguration
      * @return the CaptureDeviceInfo of a device that we could use for audio
      *         capture.
      */
-    public ExtendedCaptureDeviceInfo getAudioCaptureDevice()
+    public CaptureDeviceInfo2 getAudioCaptureDevice()
     {
         AudioSystem audioSystem = getAudioSystem();
 
         return
             (audioSystem == null)
                 ? null
-                : audioSystem.getDevice(AudioSystem.CAPTURE_INDEX);
+                : audioSystem.getSelectedDevice(AudioSystem.DataFlow.CAPTURE);
     }
 
     /**
@@ -439,9 +440,9 @@ public class DeviceConfiguration
      *         capture devices available through this
      *         <tt>DeviceConfiguration</tt>
      */
-    public List<ExtendedCaptureDeviceInfo> getAvailableAudioCaptureDevices()
+    public List<CaptureDeviceInfo2> getAvailableAudioCaptureDevices()
     {
-        return audioSystem.getDevices(AudioSystem.CAPTURE_INDEX);
+        return audioSystem.getDevices(AudioSystem.DataFlow.CAPTURE);
     }
 
     public AudioSystem getAudioSystem()
@@ -472,8 +473,8 @@ public class DeviceConfiguration
                 if (!NoneAudioSystem.LOCATOR_PROTOCOL.equalsIgnoreCase(
                         audioSystem.getLocatorProtocol()))
                 {
-                    List<ExtendedCaptureDeviceInfo> captureDevices
-                        = audioSystem.getDevices(AudioSystem.CAPTURE_INDEX);
+                    List<CaptureDeviceInfo2> captureDevices
+                        = audioSystem.getDevices(AudioSystem.DataFlow.CAPTURE);
 
                     if ((captureDevices == null)
                             || (captureDevices.size() <= 0))
@@ -486,16 +487,16 @@ public class DeviceConfiguration
                         }
                         else
                         {
-                            List<ExtendedCaptureDeviceInfo> notifyDevices
+                            List<CaptureDeviceInfo2> notifyDevices
                                 = audioSystem.getDevices(
-                                        AudioSystem.NOTIFY_INDEX);
+                                        AudioSystem.DataFlow.NOTIFY);
 
                             if ((notifyDevices == null)
                                     || (notifyDevices.size() <= 0))
                             {
-                                List<ExtendedCaptureDeviceInfo> playbackDevices
+                                List<CaptureDeviceInfo2> playbackDevices
                                     = audioSystem.getDevices(
-                                        AudioSystem.PLAYBACK_INDEX);
+                                        AudioSystem.DataFlow.PLAYBACK);
     
                                 if ((playbackDevices == null)
                                         || (playbackDevices.size() <= 0))
@@ -697,7 +698,7 @@ public class DeviceConfiguration
         return
             (audioSystem == null)
                 ? null
-                : audioSystem.getDevice(AudioSystem.NOTIFY_INDEX);
+                : audioSystem.getSelectedDevice(AudioSystem.DataFlow.NOTIFY);
     }
 
     /**

@@ -23,7 +23,7 @@ import org.jitsi.util.*;
  * @author Boris Grozev
  */
 public class VPXEncoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
     /**
      * VPX interface to use
@@ -270,7 +270,7 @@ public class VPXEncoder
             if(VPX.codec_cx_pkt_get_kind(pkt) == VPX.CODEC_CX_FRAME_PKT)
             {
                 int size = VPX.codec_cx_pkt_get_size(pkt);
-                output = validateByteArraySize(inputBuffer, size);
+                output = validateByteArraySize(inputBuffer, size, false);
                 VPX.memcpy(output,
                            VPX.codec_cx_pkt_get_data(pkt),
                            size);
@@ -345,7 +345,7 @@ public class VPXEncoder
             {
                 int size = VPX.codec_cx_pkt_get_size(pkt);
                 long data = VPX.codec_cx_pkt_get_data(pkt);
-                output = validateByteArraySize(outputBuffer, size);
+                output = validateByteArraySize(outputBuffer, size, false);
                 VPX.memcpy(output, data, size);
                 outputBuffer.setOffset(0);
                 outputBuffer.setLength(size);

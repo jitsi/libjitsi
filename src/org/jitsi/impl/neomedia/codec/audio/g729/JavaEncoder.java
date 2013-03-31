@@ -20,7 +20,7 @@ import org.jitsi.impl.neomedia.codec.*;
  * @author Lubomir Marinov
  */
 public class JavaEncoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
     private static final short BIT_1 = Ld8k.BIT_1;
 
@@ -224,7 +224,8 @@ public class JavaEncoder
         byte[] output
             = validateByteArraySize(
                     outputBuffer,
-                    outputBuffer.getOffset() + 2 * OUTPUT_FRAME_SIZE_IN_BYTES);
+                    outputBuffer.getOffset() + 2 * OUTPUT_FRAME_SIZE_IN_BYTES,
+                    true);
 
         packetize(
             serial,

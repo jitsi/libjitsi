@@ -25,7 +25,7 @@ import javax.media.format.*;
  * @author Boris Grozev
  */
 public class DePacketizer
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
     /**
      * Size of <tt>buffer</tt>
@@ -157,7 +157,10 @@ public class DePacketizer
             //start of a new frame, flush the buffer
             if(logger.isTraceEnabled())
                 logger.trace("Sending a frame, size=" + bufferPointer);
-            byte[] output = validateByteArraySize(outputBuffer, bufferPointer);
+
+            byte[] output
+                = validateByteArraySize(outputBuffer, bufferPointer, false);
+
             System.arraycopy(buffer, 0, output, 0, bufferPointer);
             outputBuffer.setFormat(new VideoFormat(Constants.VP8));
             outputBuffer.setLength(bufferPointer);

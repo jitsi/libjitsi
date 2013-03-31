@@ -167,8 +167,7 @@ public class JNIDecoder
 
         // mismatch input format
         if (!(inputFormat instanceof VideoFormat)
-                || (AbstractCodecExt.matches(inputFormat, inputFormats)
-                        == null))
+                || (AbstractCodec2.matches(inputFormat, inputFormats) == null))
             return new Format[0];
 
         // match input format

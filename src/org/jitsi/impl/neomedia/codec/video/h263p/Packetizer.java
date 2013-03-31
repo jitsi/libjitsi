@@ -162,8 +162,7 @@ public class Packetizer
 
         // mismatch input format
         if (!(inputFormat instanceof VideoFormat)
-                || (AbstractCodecExt.matches(inputFormat, inputFormats)
-                        == null))
+                || (AbstractCodec2.matches(inputFormat, inputFormats) == null))
         {
             return new Format[0];
         }
@@ -363,7 +362,7 @@ public class Packetizer
          * Packetizer.
          */
         if (!(in instanceof VideoFormat)
-                || null == AbstractCodecExt.matches(in, inputFormats))
+                || null == AbstractCodec2.matches(in, inputFormats))
             return null;
 
         inputFormat = in;
@@ -389,7 +388,7 @@ public class Packetizer
          */
         if (!(format instanceof VideoFormat)
                 || (null
-                        == AbstractCodecExt.matches(
+                        == AbstractCodec2.matches(
                                 format,
                                 getMatchingOutputFormats(inputFormat))))
             return null;

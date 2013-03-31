@@ -9,6 +9,7 @@ package org.jitsi.impl.neomedia.notify;
 import java.io.*;
 
 import javax.media.*;
+import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.codec.audio.speex.*;
 import org.jitsi.impl.neomedia.device.*;
@@ -24,6 +25,11 @@ import org.jitsi.util.*;
 public class AudioSystemClipImpl
     extends AbstractSCAudioClip
 {
+    /**
+     * The default length of {@link #bufferData}.
+     */
+    private static final int DEFAULT_BUFFER_DATA_LENGTH = 8 * 1024;
+
     /**
      * The <tt>Logger</tt> used by the <tt>AudioSystemClipImpl</tt> class and
      * its instances for logging output.
@@ -70,7 +76,7 @@ public class AudioSystemClipImpl
     protected void enterRunInPlayThread()
     {
         buffer = new Buffer();
-        bufferData = new byte[1024];
+        bufferData = new byte[DEFAULT_BUFFER_DATA_LENGTH];
         buffer.setData(bufferData);
 
         renderer = audioSystem.createRenderer(playback);
@@ -169,7 +175,18 @@ public class AudioSystemClipImpl
             else
             {
                 resamplerBuffer = new Buffer();
-                bufferData = new byte[bufferData.length];
+
+                int bufferDataLength = DEFAULT_BUFFER_DATA_LENGTH;
+
+                if (resamplerFormat instanceof AudioFormat)
+                {
+                    AudioFormat af = (AudioFormat) resamplerFormat;
+                    int frameSize
+                        = af.getSampleSizeInBits() / 8 * af.getChannels();
+
+                    bufferDataLength = bufferDataLength / frameSize * frameSize;
+                }
+                bufferData = new byte[bufferDataLength];
                 resamplerBuffer.setData(bufferData);
                 resamplerBuffer.setFormat(resamplerFormat);
 
@@ -212,7 +229,9 @@ public class AudioSystemClipImpl
             }
             catch (ResourceUnavailableException ruex)
             {
-                logger.error("Failed to open PortAudioRenderer.", ruex);
+                logger.error(
+                        "Failed to open " + renderer.getClass().getName(),
+                        ruex);
                 return false;
             }
         }
@@ -220,7 +239,9 @@ public class AudioSystemClipImpl
         {
             if (resampler != null)
             {
-                logger.error("Failed to open SpeexResampler.", ruex);
+                logger.error(
+                        "Failed to open " + resampler.getClass().getName(),
+                        ruex);
                 return false;
             }
         }

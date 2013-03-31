@@ -14,7 +14,7 @@ import javax.media.*;
  *
  * @author Vincent Lucas
  */
-public class ExtendedCaptureDeviceInfo
+public class CaptureDeviceInfo2
     extends CaptureDeviceInfo
 {
     /**
@@ -33,16 +33,25 @@ public class ExtendedCaptureDeviceInfo
     private final String modelIdentifier;
 
     /**
-     * Constructs a CaptureDeviceInfo object with the specified name, media
-     * locator, and array of Format objects.
+     * Initializes a new <tt>CaptureDeviceInfo2</tt> instance from a
+     * specific <tt>CaptureDeviceInfo</tt> instance and additional information
+     * specific to the <tt>CaptureDeviceInfo2</tt> class. Because the
+     * properties of the specified <tt>captureDeviceInfo</tt> are copied into
+     * the new instance, the constructor is to be used when a
+     * <tt>CaptureDeviceInfo</tt> exists for other purposes already; otherwise,
+     * it is preferable to use
+     * {@link #CaptureDeviceInfo2(String, MediaLocator, Format[], String, String, String)}.
      *
-     * @param captureDeiceInfo the device info.
-     * @param uid The device UID (unique identifier).
-     * @param transportType The device transport type.
-     * @param modelIdentifier The persistent identifier for the model of this
-     * device.
+     * @param captureDeiceInfo the <tt>CaptureDeviceInfo</tt> whose properties
+     * are to be copied into the new instance
+     * @param uid the unique identifier of the hardware device (interface) which
+     * is to be represented by the new instance
+     * @param transportType the transport type (e.g. USB) of the device to be
+     * represented by the new instance
+     * @param modelIdentifier the persistent identifier of the model of the
+     * hardware device to be represented by the new instance
      */
-    public ExtendedCaptureDeviceInfo(
+    public CaptureDeviceInfo2(
             CaptureDeviceInfo captureDeviceInfo,
             String uid,
             String transportType,
@@ -58,18 +67,22 @@ public class ExtendedCaptureDeviceInfo
     }
 
     /**
-     * Constructs a CaptureDeviceInfo object with the specified name, media
-     * locator, and array of Format objects.
+     * Initializes a new <tt>CaptureDeviceInfo2</tt> instance with the
+     * specified name, media locator, and array of Format objects.
      *
-     * @param name A String that contains the name of the device.
-     * @param locator The MediaLocator that uniquely specifies the device.
-     * @param formats An array of the output formats supported by the device.
-     * @param uid The device UID (unique identifier).
-     * @param transportType The device transport type.
-     * @param modelIdentifier The persistent identifier for the model of this
-     * device.
+     * @param name the human-readable name of the new instance
+     * @param locator the <tt>MediaLocator</tt> which uniquely identifies the
+     * device to be described by the new instance
+     * @param formats an array of the <tt>Format</tt>s supported by the device
+     * to be described by the new instance
+     * @param uid the unique identifier of the hardware device (interface) which
+     * is to be represented by the new instance
+     * @param transportType the transport type (e.g. USB) of the device to be
+     * represented by the new instance
+     * @param modelIdentifier the persistent identifier of the model of the
+     * hardware device to be represented by the new instance
      */
-    public ExtendedCaptureDeviceInfo(
+    public CaptureDeviceInfo2(
             String name,
             MediaLocator locator,
             Format[] formats,
@@ -98,9 +111,9 @@ public class ExtendedCaptureDeviceInfo
     {
         return
             (obj != null)
-                && (obj instanceof ExtendedCaptureDeviceInfo)
+                && (obj instanceof CaptureDeviceInfo2)
                 && getIdentifier().equals(
-                        ((ExtendedCaptureDeviceInfo) obj).getIdentifier());
+                        ((CaptureDeviceInfo2) obj).getIdentifier());
     }
 
     /**

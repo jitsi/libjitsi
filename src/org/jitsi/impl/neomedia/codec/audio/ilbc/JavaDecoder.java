@@ -21,7 +21,7 @@ import org.jitsi.service.neomedia.codec.*;
  * @author Lyubomir Marinov
  */
 public class JavaDecoder
-    extends AbstractCodecExt
+    extends AbstractCodec2
 {
 
     /**
@@ -128,12 +128,12 @@ public class JavaDecoder
                 offsets.add(new Integer(inputLength + (i * len)));
             }
         }
-        else
-            if (this.inputLength != inputLength)
-                initDec(inputLength);
+        else if (this.inputLength != inputLength)
+            initDec(inputLength);
 
         int outputLength = dec.ULP_inst.blockl * 2;
-        byte[] output = validateByteArraySize(outputBuffer, outputLength);
+        byte[] output
+            = validateByteArraySize(outputBuffer, outputLength, false);
         int outputOffset = 0;
 
         int offsetToAdd = 0;
@@ -152,9 +152,7 @@ public class JavaDecoder
         int flags = BUFFER_PROCESSED_OK;
 
         if(offsets.size() > 0)
-        {
             flags |= INPUT_BUFFER_NOT_CONSUMED;
-        }
 
         return flags;
     }

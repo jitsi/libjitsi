@@ -346,6 +346,8 @@
       <linkerarg value="-Wl,-read_only_relocs,suppress" if="is.running.macos" />
 
       <!-- Windows specific flags -->
+      <compilerarg value="-D_WIN32_WINNT=0x0502" if="is.running.windows" />
+      <compilerarg value="-DWINVER=0x0502" if="is.running.windows" />
       <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows" />
       <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
 
@@ -357,6 +359,39 @@
 
     <delete dir="${obj}" failonerror="false" />
     <delete file="${native_install_dir}/history.xml" failonerror="false" />
+  </target>
+
+  <!-- compile jnwasapi library -->
+  <target
+      depends="init-native"
+      description="Build jnwasapi shared library for Windows Vista, 7 and 8"
+      if="is.running.windows"
+      name="wasapi">
+    <cc
+        name="gcc"
+        objdir="${obj}"
+        outfile="${native_install_dir}/jnwasapi"
+        outtype="shared">
+      <compilerarg value="-DCOBJMACROS" />
+      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+      <compilerarg value="-D_WIN32_WINNT=0x0600" />
+      <compilerarg value="-DWINVER=0x0600" />
+      <compilerarg value="-m32" if="cross_32" />
+      <compilerarg value="-m64" if="cross_64" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/win32" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-std=c99" />
+      <compilerarg value="-Wall" />
+
+      <linkerarg value="-lole32" location="end" />
+      <linkerarg value="-m32" if="cross_32" />
+      <linkerarg value="-m64" if="cross_64" />
+      <linkerarg value="-ojnwasapi.dll" />
+      <linkerarg value="-Wl,--kill-at" />
+
+      <fileset dir="${src}/native/windows/wasapi" includes="*.c"/>
+    </cc>
   </target>
 
   <!-- compile jnportaudio library -->

@@ -73,9 +73,9 @@ public class AudioNotifierServiceImpl
     {
         AudioSystem audioSystem = getDeviceConfiguration().getAudioSystem();
         CaptureDeviceInfo notify
-            = audioSystem.getDevice(AudioSystem.NOTIFY_INDEX);
+            = audioSystem.getSelectedDevice(AudioSystem.DataFlow.NOTIFY);
         CaptureDeviceInfo playback
-            = audioSystem.getDevice(AudioSystem.PLAYBACK_INDEX);
+            = audioSystem.getSelectedDevice(AudioSystem.DataFlow.PLAYBACK);
 
         return
             (notify == null)

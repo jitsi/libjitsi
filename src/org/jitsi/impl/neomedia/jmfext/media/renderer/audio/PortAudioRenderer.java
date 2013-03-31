@@ -27,7 +27,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  */
 public class PortAudioRenderer
-    extends AbstractAudioRenderer
+    extends AbstractAudioRenderer<PortAudioSystem>
 {
     /**
      * The <tt>Logger</tt> used by the <tt>PortAudioRenderer</tt> class and its
@@ -436,6 +436,7 @@ public class PortAudioRenderer
      * @return an array of JMF <tt>Format</tt>s of audio data which this
      * <tt>Renderer</tt> is capable of rendering
      */
+    @Override
     public Format[] getSupportedInputFormats()
     {
         if (supportedInputFormats == null)
@@ -611,7 +612,10 @@ public class PortAudioRenderer
             MediaLocator locator = getLocator();
 
             if (locator == null)
-                throw new ResourceUnavailableException("locator not set");
+            {
+                throw new ResourceUnavailableException(
+                        "No locator/MediaLocator is set.");
+            }
 
             String deviceID = DataSource.getDeviceID(locator);
             int deviceIndex
@@ -709,12 +713,12 @@ public class PortAudioRenderer
      * {@link AudioSystem#PROP_PLAYBACK_DEVICE} property of its associated
      * <tt>AudioSystem</tt> has changed.
      *
-     * @param event a <tt>PropertyChangeEvent</tt> which specifies details about
+     * @param ev a <tt>PropertyChangeEvent</tt> which specifies details about
      * the change such as the name of the property and its old and new values
      */
     @Override
     protected synchronized void playbackDevicePropertyChange(
-            PropertyChangeEvent event)
+            PropertyChangeEvent ev)
     {
         /*
          * Stop, close, re-open and re-start this Renderer (performing whichever
@@ -856,8 +860,7 @@ public class PortAudioRenderer
                     ? numberOfBytesInBufferLeftToBytesPerBuffer
                     : length;
 
-            System
-                .arraycopy(
+            System.arraycopy(
                     buffer,
                     offset,
                     bufferLeft,
