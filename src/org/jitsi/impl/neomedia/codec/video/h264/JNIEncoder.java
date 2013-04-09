@@ -97,6 +97,11 @@ public class JNIEncoder
     public static final String MAIN_PROFILE = "main";
 
     /**
+     * The name of the high H.264 (encoding) profile.
+     */
+    public static final String HIGH_PROFILE = "high";
+
+    /**
      * The default value of the {@link #DEFAULT_PROFILE_PNAME}
      * <tt>ConfigurationService</tt> property.
      */
@@ -419,7 +424,9 @@ public class JNIEncoder
                 }
                 else if("h264.profile".equals(k))
                 {
-                    if(MAIN_PROFILE.equals(v) || BASELINE_PROFILE.equals(v))
+                    if(MAIN_PROFILE.equals(v)
+                       || BASELINE_PROFILE.equals(v)
+                       || HIGH_PROFILE.equals(v))
                         profile = v;
                 }
             }
@@ -505,9 +512,7 @@ public class JNIEncoder
         try
         {
             FFmpeg.avcodeccontext_set_profile(avctx,
-                    BASELINE_PROFILE.equalsIgnoreCase(profile)
-                        ? FFmpeg.FF_PROFILE_H264_BASELINE
-                        : FFmpeg.FF_PROFILE_H264_MAIN);
+                getProfileForConfig(profile));
         }
         catch (UnsatisfiedLinkError ule)
         {
@@ -841,5 +846,20 @@ public class JNIEncoder
             this.packetizationMode = "1";
         else
             throw new IllegalArgumentException("packetizationMode");
+    }
+
+    /**
+     * Checks the configuration and returns the profile to use.
+     * @param profile the profile setting.
+     * @return the profile FFmpeg to use.
+     */
+    private static int getProfileForConfig(String profile)
+    {
+        if(BASELINE_PROFILE.equalsIgnoreCase(profile))
+            return FFmpeg.FF_PROFILE_H264_BASELINE;
+        else if(HIGH_PROFILE.equalsIgnoreCase(profile))
+            return FFmpeg.FF_PROFILE_H264_HIGH;
+        else
+            return FFmpeg.FF_PROFILE_H264_MAIN;
     }
 }

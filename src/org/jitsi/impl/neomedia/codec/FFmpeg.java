@@ -117,6 +117,11 @@ public class FFmpeg
     public static final int FF_PROFILE_H264_MAIN = 77;
 
     /**
+     * The H264 high profile.
+     */
+    public static final int FF_PROFILE_H264_HIGH = 100;
+
+    /**
      * ARGB format.
      */
     public static final int PIX_FMT_ARGB = 27;
