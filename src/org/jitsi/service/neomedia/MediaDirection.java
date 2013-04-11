@@ -180,7 +180,7 @@ public enum MediaDirection
      * party's perspective of this <tt>MediaDirection</tt> applying a remote
      * party constraint. In other words, if I say I'll only be sending media
      * (i.e. <tt>SENDONLY</tt>) and you know that you can both send and receive
-     * (i.e. <tt>SENDRECV</tt>) then to you this mean that you'll be only
+     * (i.e. <tt>SENDRECV</tt>) then to you this means that you'll be only
      * receiving media (i.e. <tt>RECVONLY</tt>). If however I say that I can
      * only receive a particular media type (i.e. <tt>RECVONLY</tt>) and you
      * are in the same situation then this means that neither of us would be
