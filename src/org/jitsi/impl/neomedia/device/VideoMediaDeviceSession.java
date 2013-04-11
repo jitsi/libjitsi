@@ -28,6 +28,7 @@ import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.control.KeyFrameControl;
+import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.resources.*;
 import org.jitsi.util.*;
@@ -39,9 +40,11 @@ import org.jitsi.util.swing.*;
  *
  * @author Lyubomir Marinov
  * @author Sebastien Vincent
+ * @author Hristo Terezov
  */
 public class VideoMediaDeviceSession
     extends MediaDeviceSession
+    implements RTCPFeedbackCreateListener
 {
     /**
      * The <tt>Logger</tt> used by the <tt>VideoMediaDeviceSession</tt> class
@@ -127,7 +130,20 @@ public class VideoMediaDeviceSession
      */
     private final VideoNotifierSupport videoNotifierSupport
         = new VideoNotifierSupport(this, false);
-
+    
+    /**
+     * A list with RTCPFeedbackCreateListener which will be notified when 
+     * a RTCPFeedbackListener is created.
+     */
+    private List<RTCPFeedbackCreateListener> rtcpFeedbackCreateListners
+        = new LinkedList<RTCPFeedbackCreateListener>();
+    
+    /**
+     * RTCPFeedbackListener instance that will be passed to rtpConnectors
+     * to handle RTCP PLI requests.
+     */
+    private RTCPFeedbackListener encoder = null;
+    
     /**
      * Initializes a new <tt>VideoMediaDeviceSession</tt> instance which is to
      * represent the work of a <tt>MediaStream</tt> with a specific video
@@ -1324,7 +1340,7 @@ public class VideoMediaDeviceSession
                             public boolean requestKeyFrame()
                             {
                                 boolean requested = false;
-
+                                
                                 if (VideoMediaDeviceSession.this.usePLI)
                                 {
                                     try
@@ -1580,24 +1596,18 @@ public class VideoMediaDeviceSession
                 encoder.setAdditionalCodecSettings(
                         mediaFormat.getAdditionalCodecSettings());
             }
-
-            if (usePLI)
+            
+            this.encoder = encoder;
+            onRTCPFeedbackCreate(encoder);
+            synchronized (rtcpFeedbackCreateListners)
             {
-                /*
-                 * The H.264 encoder needs to be notified of RTCP feedback
-                 * messages.
-                 */
-                try
+                for(RTCPFeedbackCreateListener l : rtcpFeedbackCreateListners)
                 {
-                    ((ControlTransformInputStream)
-                            rtpConnector.getControlInputStream())
-                        .addRTCPFeedbackListener(encoder);
-                }
-                catch (IOException ioe)
-                {
-                    logger.error("Error cannot get RTCP input stream", ioe);
+                    l.onRTCPFeedbackCreate(encoder);
                 }
             }
+            
+            
             if (keyFrameControl != null)
                 encoder.setKeyFrameControl(keyFrameControl);
 
@@ -1642,6 +1652,64 @@ public class VideoMediaDeviceSession
         }
 
         return super.setProcessorFormat(trackControl, mediaFormat, format);
+    }
+    
+    /**
+     * Adds RTCPFeedbackCreateListener.
+     *
+     * @param listener the listener to be added.
+     */
+    public void addRTCPFeedbackCreateListner(RTCPFeedbackCreateListener listener)
+    {
+        synchronized (rtcpFeedbackCreateListners)
+        {
+            rtcpFeedbackCreateListners.add(listener);
+        }
+        
+        if(encoder != null)
+        {
+            listener.onRTCPFeedbackCreate(encoder);
+        }
+    }
+    
+    /**
+     * Removes RTCPFeedbackCreateListener.
+     *
+     * @param listener the listener to be added.
+     */
+    public void removeRTCPFeedbackCreateListner(RTCPFeedbackCreateListener listener)
+    {
+        synchronized (rtcpFeedbackCreateListners)
+        {
+            rtcpFeedbackCreateListners.remove(listener);
+        }
+    }
+    
+    /**
+     * Adds RTCPFeedbackListener to the stream when the listener is created.
+     *
+     * @param rtcpFeedbackListener the listener to be added.
+     */
+    public void onRTCPFeedbackCreate(RTCPFeedbackListener rtcpFeedbackListener)
+    {
+        if (!OSUtils.IS_ANDROID && usePLI
+                && "h264".equalsIgnoreCase(getFormat().getEncoding()))
+        {
+            /*
+             * The H.264 encoder needs to be notified of RTCP feedback
+             * messages.
+             */
+            try
+            {
+                ((ControlTransformInputStream)
+                        rtpConnector.getControlInputStream())
+                    .addRTCPFeedbackListener(rtcpFeedbackListener);
+            }
+            catch (IOException ioe)
+            {
+                logger.error("Error cannot get RTCP input stream", ioe);
+            }
+        }
     }
 
     /**

@@ -11,6 +11,7 @@ import java.util.*;
 import javax.media.*;
 import javax.media.protocol.*;
 
+import org.jitsi.impl.neomedia.AbstractRTPConnector;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
@@ -22,6 +23,7 @@ import org.jitsi.service.neomedia.format.*;
  * implemented with an RTP translator.
  *
  * @author Lyubomir Marinov
+ * @author Hristo Terezov
  */
 public class VideoTranslatorMediaDevice
     extends AbstractMediaDevice
@@ -74,6 +76,12 @@ public class VideoTranslatorMediaDevice
             MediaStreamMediaDeviceSession streamDeviceSession)
     {
         streamDeviceSessions.remove(streamDeviceSession);
+        if(deviceSession instanceof VideoMediaDeviceSession)
+        {
+            ((VideoMediaDeviceSession)deviceSession)
+                .removeRTCPFeedbackCreateListner(
+                    streamDeviceSession);
+        }
         if (streamDeviceSessions.isEmpty())
         {
             if(deviceSession != null)
@@ -113,9 +121,19 @@ public class VideoTranslatorMediaDevice
             }
 
             deviceSession = device.createSession();
+            if(deviceSession instanceof VideoMediaDeviceSession)
+            {
+                for (MediaStreamMediaDeviceSession streamDeviceSession
+                    : streamDeviceSessions)
+                {
+                    ((VideoMediaDeviceSession)deviceSession).addRTCPFeedbackCreateListner(streamDeviceSession);
+                }
+            }
             if (format != null)
                 deviceSession.setFormat(format);
+            
             deviceSession.start(startedDirection);
+            
         }
         return
             (deviceSession == null)
@@ -360,7 +378,7 @@ public class VideoTranslatorMediaDevice
         {
             return getConnectedCaptureDevice();
         }
-
+        
         /**
          * Notifies this instance that the value of its
          * <tt>startedDirection</tt> property has changed from a specific
@@ -381,5 +399,28 @@ public class VideoTranslatorMediaDevice
             VideoTranslatorMediaDevice.this
                     .updateDeviceSessionStartedDirection();
         }
+        
+        /**
+         * Sets the <tt>RTPConnector</tt> that will be used to initialize some 
+         * codec for RTCP feedback and adds the instance to 
+         * RTCPFeedbackCreateListners of deviceSession.
+         *
+         * @param rtpConnector the RTP connector
+         */
+        @Override
+        public void setConnector(AbstractRTPConnector rtpConnector)
+        {
+            super.setConnector(rtpConnector);
+            if(deviceSession != null 
+                && deviceSession instanceof VideoMediaDeviceSession)
+            {
+                ((VideoMediaDeviceSession) deviceSession)
+                    .addRTCPFeedbackCreateListner(this);
+            }
+        }
+       
+       
     }
+
+    
 }
