@@ -11,7 +11,7 @@ import java.util.*;
 import javax.media.*;
 import javax.media.protocol.*;
 
-import org.jitsi.impl.neomedia.AbstractRTPConnector;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
