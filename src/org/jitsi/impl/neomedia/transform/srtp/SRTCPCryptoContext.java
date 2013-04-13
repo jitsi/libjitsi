@@ -33,6 +33,8 @@ import org.bouncycastle.crypto.digests.*;
 import org.bouncycastle.crypto.engines.*;
 import org.bouncycastle.crypto.macs.*;
 import org.bouncycastle.crypto.params.*;
+import org.jitsi.bccontrib.macs.*;
+import org.jitsi.bccontrib.params.*;
 import org.jitsi.impl.neomedia.*;
 
 
