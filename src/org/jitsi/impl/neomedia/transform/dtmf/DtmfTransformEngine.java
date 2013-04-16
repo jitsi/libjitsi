@@ -141,6 +141,13 @@ public class DtmfTransformEngine
     private int minimalToneDuration;
 
     /**
+     * The maximal DTMF tone dration. The default value is -1 telling
+     * to stop only when the user asks to. This can be changed by using the
+     * "org.jitsi.impl.neomedia.transform.dtmf.maximalToneDuration" property. 
+     */
+    private int maximalToneDuration;
+
+    /**
      * Creates an engine instance that will be replacing audio packets
      * with DTMF ones upon request.
      *
@@ -307,9 +314,14 @@ public class DtmfTransformEngine
         {
             currentDuration += getCurrentSpacingDuration();
             pktDuration = currentDuration;
-            if (currentDuration > minimalToneDuration)
+            if(currentDuration > minimalToneDuration)
             {
                 lastMinimalDuration = true;
+            }
+            if(maximalToneDuration != -1
+                    && currentDuration > maximalToneDuration)
+            {
+                toneTransmissionState = ToneTransmissionState.END_REQUESTED;
             }
             // Check for long state event
             if (currentDuration > 0xFFFF)
@@ -377,8 +389,12 @@ public class DtmfTransformEngine
      *
      * @param tone the tone that we'd like to start sending.
      * @param minimalToneDuration The minimal DTMF tone duration.
+     * @param maximalToneDuration The maximal DTMF tone duration.
      */
-    public void startSending(DTMFRtpTone tone, int minimalToneDuration)
+    public void startSending(
+            DTMFRtpTone tone,
+            int minimalToneDuration,
+            int maximalToneDuration)
     {
         synchronized(startStopToneMutex)
         {
@@ -392,6 +408,15 @@ public class DtmfTransformEngine
         // Converts duration in ms into duration in timestamp units (here the
         // codec of telephone-event is 8000 Hz).
         this.minimalToneDuration = minimalToneDuration * 8;
+        this.maximalToneDuration = maximalToneDuration * 8;
+        if(maximalToneDuration == -1)
+        {
+            this.maximalToneDuration = -1;
+        }
+        else if(this.maximalToneDuration < this.minimalToneDuration)
+        {
+            this.maximalToneDuration = this.minimalToneDuration;
+        }
     }
 
     /**

@@ -563,6 +563,7 @@ public class AudioMediaStreamImpl
      * @param tone the <tt>DTMFTone</tt> to start sending.
      * @param dtmfMethod The kind of DTMF used (RTP, SIP-INOF or INBAND).
      * @param minimalToneDuration The minimal DTMF tone duration.
+     * @param maximalToneDuration The maximal DTMF tone duration.
      *
      * @throws IllegalArgumentException if <tt>dtmfMethod</tt> is not one of
      * {@link DTMFMethod#INBAND_DTMF}, {@link DTMFMethod#RTP_DTMF}, and
@@ -572,7 +573,8 @@ public class AudioMediaStreamImpl
     public void startSendingDTMF(
             DTMFTone tone,
             DTMFMethod dtmfMethod,
-            int minimalToneDuration)
+            int minimalToneDuration,
+            int maximalToneDuration)
     {
         switch (dtmfMethod)
         {
@@ -589,7 +591,10 @@ public class AudioMediaStreamImpl
                 DTMFRtpTone t = DTMFRtpTone.mapTone(tone);
 
                 if (t != null)
-                    dtmfTransfrmEngine.startSending(t, minimalToneDuration);
+                    dtmfTransfrmEngine.startSending(
+                            t,
+                            minimalToneDuration,
+                            maximalToneDuration);
             }
             break;
 

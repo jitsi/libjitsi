@@ -42,4 +42,12 @@ public interface SCAudioClip
      * Stops playing this audio.
      */
     public void stop();
+
+    /**
+     * Determines whether this audio is started i.e. a <tt>play</tt> method was
+     * invoked and no subsequent <tt>stop</tt> has been invoked yet.
+     *
+     * @return <tt>true</tt> if this audio is started; otherwise, <tt>false</tt>
+     */
+    public boolean isStarted();
 }

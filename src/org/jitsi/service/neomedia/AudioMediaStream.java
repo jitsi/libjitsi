@@ -82,11 +82,13 @@ public interface AudioMediaStream
      * @param tone the <tt>DTMFTone</tt> to start sending.
      * @param dtmfMethod The kind of DTMF used (RTP, SIP-INOF or INBAND).
      * @param minimalToneDuration The minimal DTMF tone duration.
+     * @param maximalToneDuration The maximal DTMF tone duration.
      */
     public void startSendingDTMF(
             DTMFTone tone,
             DTMFMethod dtmfMethod,
-            int minimalToneDuration);
+            int minimalToneDuration,
+            int maximalToneDuration);
 
     /**
      * Interrupts transmission of a <tt>DTMFTone</tt> started with the

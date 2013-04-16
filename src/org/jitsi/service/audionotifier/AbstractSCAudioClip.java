@@ -214,7 +214,7 @@ public abstract class AbstractSCAudioClip
      *
      * @return <tt>true</tt> if this audio is started; otherwise, <tt>false</tt>
      */
-    protected boolean isStarted()
+    public boolean isStarted()
     {
         synchronized (sync)
         {
