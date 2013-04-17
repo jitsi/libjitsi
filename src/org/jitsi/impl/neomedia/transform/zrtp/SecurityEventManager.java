@@ -168,6 +168,16 @@ public class SecurityEventManager extends ZrtpUserCallback
     }
 
     /**
+     * Sets current SAS verification status.
+     *
+     * @param isVerified flag indicating whether SAS has been verified.
+     */
+    public void setSASVerified(boolean isVerified)
+    {
+        this.isSasVerified = sas != null && isVerified;
+    }
+
+    /**
      * Show some information to user.
      * ZRTP calls this method to display some information to the user.
      * Along with the message ZRTP provides a severity indicator that defines:

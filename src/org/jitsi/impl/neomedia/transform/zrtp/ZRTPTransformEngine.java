@@ -1132,6 +1132,9 @@ public class ZRTPTransformEngine
     {
         if (zrtpEngine != null)
             zrtpEngine.SASVerified();
+
+        if(securityEventManager != null)
+            securityEventManager.setSASVerified(true);
     }
 
     /**
@@ -1141,6 +1144,9 @@ public class ZRTPTransformEngine
     {
         if (zrtpEngine != null)
             zrtpEngine.resetSASVerified();
+
+        if(securityEventManager != null)
+            securityEventManager.setSASVerified(false);
     }
 
     /**
