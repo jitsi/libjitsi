@@ -9,6 +9,7 @@ package org.jitsi.impl.neomedia.jmfext.media.renderer;
 import javax.media.*;
 
 import org.jitsi.impl.neomedia.control.*;
+import org.jitsi.util.*;
 
 /**
  * Provides an abstract base implementation of <tt>Renderer</tt> in order to
@@ -23,6 +24,13 @@ public abstract class AbstractRenderer<T extends Format>
     extends ControlsAdapter
     implements Renderer
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>AbstractRenderer</tt> class and its
+     * instance to print debugging information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(AbstractRenderer.class);
+
     /**
      * The <tt>Format</tt> of the media data processed as input by this
      * <tt>Renderer</tt>.
@@ -67,5 +75,34 @@ public abstract class AbstractRenderer<T extends Format>
 
         inputFormat = t;
         return inputFormat;
+    }
+
+    /**
+     * Changes the priority of the current thread to a specific value.
+     *
+     * @param threadPriority the priority to set the current thread to
+     */
+    protected static void useThreadPriority(int threadPriority)
+    {
+        Throwable throwable = null;
+
+        try
+        {
+            Thread.currentThread().setPriority(threadPriority);
+        }
+        catch (IllegalArgumentException iae)
+        {
+            throwable = iae;
+        }
+        catch (SecurityException se)
+        {
+            throwable = se;
+        }
+        if ((throwable != null) && logger.isDebugEnabled())
+        {
+            logger.debug(
+                    "Failed to use thread priority: " + threadPriority,
+                    throwable);
+        }
     }
 }

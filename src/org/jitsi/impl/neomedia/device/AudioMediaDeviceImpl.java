@@ -91,14 +91,14 @@ public class AudioMediaDeviceImpl
         super.connect(captureDevice);
 
         /*
-         * 1. Changing buffer size. The default buffer size (for JavaSound) is
-         * 125 milliseconds - 1/8 sec. On Mac OS X this leads to an exception
-         * and no audio capture. A value of 30 for the buffer fixes the problem
-         * and is OK when using some PSTN gateways.
+         * 1. Changing the buffer length to 30 ms. The default buffer size (for
+         * JavaSound) is 125 ms (i.e. 1/8 sec). On Mac OS X, this leads to an
+         * exception and no audio capture. A value of 30 ms for the buffer
+         * length fixes the problem and is OK when using some PSTN gateways.
          *
-         * 2. Changing to 60. When it is 30 there are some issues with Asterisk
-         * and NAT (we don't start to send stream and so Asterisk RTP part
-         * doesn't notice that we are behind NAT).
+         * 2. Changing to 60 ms. When it is 30 ms, there are some issues with
+         * Asterisk and NAT (we don't start to send a/the stream and Asterisk's
+         * RTP functionality doesn't notice that we're behind NAT).
          *
          * 3. Do not set buffer length on Linux as it completely breaks audio
          * capture.

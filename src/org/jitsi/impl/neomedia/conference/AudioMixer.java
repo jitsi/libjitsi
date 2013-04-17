@@ -1093,7 +1093,7 @@ public class AudioMixer
         {
             /*
              * AudioMixer has only one outputStream at a time and only its
-             * current outputStream known when it has to start (and stop).
+             * current outputStream knows when it has to start (and stop).
              */
             if (this.outputStream != outputStream)
                 return;

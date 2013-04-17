@@ -11,6 +11,8 @@ import java.beans.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import net.sf.fmj.media.util.*;
+
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
 
@@ -238,5 +240,14 @@ public abstract class AbstractAudioRenderer<T extends AudioSystem>
             return;
 
         this.locator = locator;
+    }
+
+    /**
+     * Changes the priority of the current thread to a value which is considered
+     * appropriate for the purposes of audio processing. 
+     */
+    public static void useAudioThreadPriority()
+    {
+        useThreadPriority(MediaThread.getAudioPriority());
     }
 }

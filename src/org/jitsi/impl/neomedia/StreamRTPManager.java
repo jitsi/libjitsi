@@ -114,6 +114,31 @@ public class StreamRTPManager
             translator.dispose(this);
     }
 
+    /**
+     * Gets a control of a specific type over this instance. Invokes
+     * {@link #getControl(String)}.
+     *
+     * @param controlType a <tt>Class</tt> which specifies the type of the
+     * control over this instance to get 
+     * @return a control of the specified <tt>controlType</tt> over this
+     * instance if this instance supports such a control; otherwise,
+     * <tt>null</tt>
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T getControl(Class<T> controlType)
+    {
+        return (T) getControl(controlType.getName());
+    }
+
+    /**
+     * Gets a control of a specific type over this instance.
+     *
+     * @param controlType a <tt>String</tt> which specifies the type (i.e. the
+     * name of the class) of the control over this instance to get 
+     * @return a control of the specified <tt>controlType</tt> over this
+     * instance if this instance supports such a control; otherwise,
+     * <tt>null</tt>
+     */
     public Object getControl(String controlType)
     {
         if (translator == null)

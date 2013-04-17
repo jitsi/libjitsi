@@ -597,7 +597,7 @@ public class CachingPushBufferStream
     {
         /*
          * Obviously, we cannot cache every Buffer because we will run out of
-         * memory. So wait for root to appear within cache (or for this instance
+         * memory. So wait for room to appear within cache (or for this instance
          * to be stopped, of course).
          */
         boolean interrupted = false;
@@ -626,7 +626,7 @@ public class CachingPushBufferStream
                 {
                     try
                     {
-                        cache.wait(DEFAULT_BUFFER_LENGTH);
+                        cache.wait(DEFAULT_BUFFER_LENGTH / 2);
                     }
                     catch (InterruptedException iex)
                     {

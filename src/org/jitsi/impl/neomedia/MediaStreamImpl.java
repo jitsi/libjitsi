@@ -1296,9 +1296,7 @@ public class MediaStreamImpl
             rtpManager.addSessionListener(this);
             rtpManager.addRemoteListener(this);
 
-            BufferControl bc
-                = (BufferControl)
-                    rtpManager.getControl(BufferControl.class.getName());
+            BufferControl bc = rtpManager.getControl(BufferControl.class);
             if (bc != null)
                 configureRTPManagerBufferControl(rtpManager, bc);
 

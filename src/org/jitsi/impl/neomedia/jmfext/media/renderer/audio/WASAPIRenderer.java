@@ -759,6 +759,8 @@ public class WASAPIRenderer
     {
         try
         {
+            useAudioThreadPriority();
+
             do
             {
                 long eventHandle;
