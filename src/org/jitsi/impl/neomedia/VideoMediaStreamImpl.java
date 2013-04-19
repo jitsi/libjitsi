@@ -498,9 +498,19 @@ public class VideoMediaStreamImpl
                         .getDeviceConfiguration()
                             .getVideoRTPPacingThreshold();
 
-            // maximum one packet for X milliseconds(the settings are for one
-            // second)
-            dataOutputStream.setMaxPacketsPerMillis(1, 1000 / maxBandwidth);
+            // Ignore the case of maxBandwidth > 1000, because in this case
+            // setMaxPacketsPerMillis fails. Effectively, this means that no
+            // pacing is performed when the user deliberately set the setting to
+            // over 1000 (1MByte/s according to the GUI). This is probably close
+            // to what the user expects, and makes more sense than failing with
+            // an exception.
+            // TODO: proper handling of maxBandwidth values >1000
+            if (maxBandwidth <= 1000)
+            {
+                // maximum one packet for X milliseconds(the settings are for
+                // one second)
+                dataOutputStream.setMaxPacketsPerMillis(1, 1000 / maxBandwidth);
+            }
         }
     }
 
