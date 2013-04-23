@@ -1045,6 +1045,10 @@ public class MediaServiceImpl
                 dataSource.connect();
 
                 Processor player = Manager.createProcessor(dataSource);
+                final VideoContainerHierarchyListener listener =
+                        new VideoContainerHierarchyListener(
+                                videoContainer, player);
+                videoContainer.addHierarchyListener(listener);
                 final MediaLocator locator = dataSource.getLocator();
 
                 player.addControllerListener(new ControllerListener()
@@ -1054,7 +1058,8 @@ public class MediaServiceImpl
                         controllerUpdateForPreview(
                                 event,
                                 videoContainer,
-                                locator);
+                                locator,
+                                listener);
                     }
                 });
                 player.configure();
@@ -1076,11 +1081,13 @@ public class MediaServiceImpl
      * @param event the event when player has ready visual component.
      * @param videoContainer the container.
      * @param locator input DataSource locator
+     * @param listener the hierarchy listener we created for the video container.
      */
     private static void controllerUpdateForPreview(
             ControllerEvent event,
             JComponent videoContainer,
-            MediaLocator locator)
+            MediaLocator locator,
+            VideoContainerHierarchyListener listener)
     {
         if (event instanceof ConfigureCompleteEvent)
         {
@@ -1137,6 +1144,8 @@ public class MediaServiceImpl
             Player player = (Player) event.getSourceController();
             Component video = player.getVisualComponent();
 
+            // sets the preview to the listener
+            listener.setPreview(video);
             showPreview(videoContainer, video, player);
         }
     }
@@ -1168,74 +1177,8 @@ public class MediaServiceImpl
 
         if (preview != null)
         {
-            HierarchyListener hierarchyListener = new HierarchyListener()
-            {
-                private Window window;
-
-                private WindowListener windowListener;
-
-                public void dispose()
-                {
-                    if (windowListener != null)
-                    {
-                        if (window != null)
-                        {
-                            window.removeWindowListener(windowListener);
-                            window = null;
-                        }
-                        windowListener = null;
-                    }
-                    preview.removeHierarchyListener(this);
-
-                    disposePlayer(player);
-
-                    /*
-                     * We've just disposed the player which created the preview
-                     * component so the preview component is of no use
-                     * regardless of whether the Media configuration form will
-                     * be redisplayed or not. And since the preview component
-                     * appears to be a huge object even after its player is
-                     * disposed, make sure to not reference it.
-                     */
-                    previewContainer.remove(preview);
-                }
-
-                public void hierarchyChanged(HierarchyEvent event)
-                {
-                    if ((event.getChangeFlags()
-                                    & HierarchyEvent.DISPLAYABILITY_CHANGED)
-                                == 0)
-                        return;
-
-                    if (!preview.isDisplayable())
-                    {
-                        dispose();
-                        return;
-                    }
-                    else
-                        player.start();
-
-                    if (windowListener == null)
-                    {
-                        window = SwingUtilities.windowForComponent(preview);
-                        if (window != null)
-                        {
-                            windowListener = new WindowAdapter()
-                            {
-                                @Override
-                                public void windowClosing(WindowEvent event)
-                                {
-                                    dispose();
-                                }
-                            };
-                            window.addWindowListener(windowListener);
-                        }
-                    }
-                }
-            };
-            preview.addHierarchyListener(hierarchyListener);
-
             previewContainer.add(preview);
+            player.start();
 
             if (previewContainer.isDisplayable())
             {
@@ -1253,11 +1196,21 @@ public class MediaServiceImpl
      * Dispose the player used for the preview.
      * @param player the player.
      */
-    private static void disposePlayer(Player player)
+    private static void disposePlayer(final Player player)
     {
-        player.stop();
-        player.deallocate();
-        player.close();
+        // launch disposing preview player in separate thread
+        // will lock renderer and can produce lock if user has quickly
+        // requested preview component and can lock ui thread
+        new Thread(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                player.stop();
+                player.deallocate();
+                player.close();
+            }
+        }).start();
     }
 
     /**
@@ -1618,5 +1571,136 @@ public class MediaServiceImpl
     public EncodingConfiguration createEmptyEncodingConfiguration()
     {
         return new EncodingConfigurationImpl();
+    }
+
+    /**
+     * The listener which will be notified for changes in the video container.
+     * Whether the container is displayable or not we will stop the player
+     * or start it.
+     */
+    private class VideoContainerHierarchyListener
+        implements HierarchyListener
+    {
+        /**
+         * The parent window.
+         */
+        private Window window;
+
+        /**
+         * The listener for the parent window. Used to dispose player on close.
+         */
+        private WindowListener windowListener;
+
+        /**
+         * The parent container of our preview.
+         */
+        private JComponent container;
+
+        /**
+         * The player showing the video preview.
+         */
+        private Player player;
+
+        /**
+         * The preview component of the player, must be set once the
+         * player has been realized.
+         */
+        private Component preview = null;
+
+        /**
+         * Creates VideoContainerHierarchyListener.
+         * @param container the video container.
+         * @param player the player.
+         */
+        VideoContainerHierarchyListener(JComponent container, Player player)
+        {
+            this.container = container;
+            this.player = player;
+        }
+
+        /**
+         * After the player has been realized the preview can be obtained and supplied
+         * to this listener. Normally done on player RealizeCompleteEvent.
+         * @param preview the preview.
+         */
+        void setPreview(Component preview)
+        {
+            this.preview = preview;
+        }
+
+        /**
+         * Disposes player and cleans listeners as we will no longer need them.
+         */
+        public void dispose()
+        {
+            if (windowListener != null)
+            {
+                if (window != null)
+                {
+                    window.removeWindowListener(windowListener);
+                    window = null;
+                }
+                windowListener = null;
+            }
+            container.removeHierarchyListener(this);
+
+            disposePlayer(player);
+
+            /*
+             * We've just disposed the player which created the preview
+             * component so the preview component is of no use
+             * regardless of whether the Media configuration form will
+             * be redisplayed or not. And since the preview component
+             * appears to be a huge object even after its player is
+             * disposed, make sure to not reference it.
+             */
+            if(preview != null)
+                container.remove(preview);
+        }
+
+        /**
+         * Change in container.
+         * @param event the event for the chnage.
+         */
+        public void hierarchyChanged(HierarchyEvent event)
+        {
+            if ((event.getChangeFlags()
+                    & HierarchyEvent.DISPLAYABILITY_CHANGED)
+                    == 0)
+                return;
+
+            if (!container.isDisplayable())
+            {
+                dispose();
+                return;
+            }
+            else
+            {
+                // if this is just a change in the video container
+                // and preview has not been created yet, do nothing
+                // otherwise start the player which will show in preview
+                if(preview != null)
+                {
+                    player.start();
+                }
+            }
+
+            if (windowListener == null)
+            {
+                window = SwingUtilities.windowForComponent(container);
+                if (window != null)
+                {
+                    windowListener = new WindowAdapter()
+                    {
+                        @Override
+                        public void windowClosing(WindowEvent event)
+                        {
+                            dispose();
+                        }
+                    };
+                    window.addWindowListener(windowListener);
+                }
+            }
+        }
     }
 }
