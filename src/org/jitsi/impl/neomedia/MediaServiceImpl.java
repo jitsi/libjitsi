@@ -1203,7 +1203,6 @@ public class MediaServiceImpl
         // requested preview component and can lock ui thread
         new Thread(new Runnable()
         {
-            @Override
             public void run()
             {
                 player.stop();
