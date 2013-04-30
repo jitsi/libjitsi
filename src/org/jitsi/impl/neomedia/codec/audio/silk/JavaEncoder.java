@@ -87,12 +87,6 @@ public class JavaEncoder
     private boolean alwaysAssumePacketLoss = true;
 
     /**
-     * The actual expected packet loss. Defaults to 0 and can be updated by
-     * outside classes through <tt>PacketLossUpdater</tt> instances.
-     */
-    private int expectedPacketLoss = 0;
-
-    /**
      * The duration an output <tt>Buffer</tt> produced by this <tt>Codec</tt>
      * in nanosecond.
      */
@@ -168,7 +162,7 @@ public class JavaEncoder
         //Update the statically defined value for "speech activity threshold"
         //according to our configuration
         String satStr = cfg.getString(Constants.PROP_SILK_FEC_SAT, "0.5");
-        float sat = Silk_define_FLP.LBRR_SPEECH_ACTIVITY_THRES;
+        float sat = DefineFLP.LBRR_SPEECH_ACTIVITY_THRES;
         if ((satStr != null) && (satStr.length() != 0))
         {
             try
@@ -177,7 +171,7 @@ public class JavaEncoder
             }
             catch (NumberFormatException nfe) {}
         }
-        Silk_define_FLP.LBRR_SPEECH_ACTIVITY_THRES = sat;
+        DefineFLP.LBRR_SPEECH_ACTIVITY_THRES = sat;
 
         addControl(this);
     }
@@ -193,10 +187,11 @@ public class JavaEncoder
     {
         encState = new SKP_Silk_encoder_state_FLP();
         encControl = new SKP_SILK_SDK_EncControlStruct();
-        if (Silk_enc_API.SKP_Silk_SDK_InitEncoder(encState, encControl) != 0)
-            throw
-                new ResourceUnavailableException(
-                        "Silk_enc_API.SKP_Silk_SDK_InitEncoder");
+        if (EncAPI.SKP_Silk_SDK_InitEncoder(encState, encControl) != 0)
+        {
+            throw new ResourceUnavailableException(
+                    "EncAPI.SKP_Silk_SDK_InitEncoder");
+        }
 
         AudioFormat inputFormat = (AudioFormat) getInputFormat();
         double sampleRate = inputFormat.getSampleRate();
@@ -231,7 +226,7 @@ public class JavaEncoder
         int processed;
 
         outputLength[0] = MAX_BYTES_PER_FRAME;
-        if (Silk_enc_API.SKP_Silk_SDK_Encode(
+        if (EncAPI.SKP_Silk_SDK_Encode(
                     encState, encControl,
                     inputData, inputOffset, inputLength,
                     outputData, outputOffset, outputLength)

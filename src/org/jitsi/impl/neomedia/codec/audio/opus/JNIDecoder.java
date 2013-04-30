@@ -22,6 +22,7 @@ import org.jitsi.util.*;
  * Implements an Opus decoder.
  *
  * @author Boris Grozev
+ * @author Lyubomir Marinov
  */
 public class JNIDecoder
     extends AbstractCodec2
@@ -81,21 +82,15 @@ public class JNIDecoder
     private long decoder = 0;
 
     /**
-     * Buffer used to store output decoded from FEC.
+     * The size in samples per channel of the last decoded frame in the terms of
+     * the Opus library.
      */
-    private final byte[] fecBuffer;
+    private int lastFrameSizeInSamplesPerChannel;
 
     /**
-     * Whether at least one packet has already been processed. Use this to
-     * prevent FEC data from trying to be decoded from the first packet in a
-     * session.
+     * The sequence number of the last processed <tt>Buffer</tt>.
      */
-    private boolean firstPacketProcessed = false;
-
-    /**
-     * Sequence number of the last packet processed
-     */
-    private long lastPacketSeq;
+    private long lastSeqNo = Buffer.SEQUENCE_UNKNOWN;
 
     /**
      * Number of packets decoded with FEC
@@ -103,27 +98,26 @@ public class JNIDecoder
     private int nbDecodedFec = 0;
 
     /**
-     * Output sample rate
+     * The size in bytes of an audio frame in the terms of the output
+     * <tt>AudioFormat</tt> of this instance i.e. based on the values of the
+     * <tt>sampleSizeInBits</tt> and <tt>channels</tt> properties of the
+     * <tt>outputFormat</tt> of this instance.
      */
-    private final int outputSampleRate = 48000;
+    private int outputFrameSize;
+
+    /**
+     * The sample rate of the audio data output by this instance.
+     */
+    private int outputSampleRate;
 
     /**
      * Initializes a new <tt>JNIDecoder</tt> instance.
      */
     public JNIDecoder()
     {
-        super(
-            "Opus JNI Decoder",
-            AudioFormat.class,
-            SUPPORTED_OUTPUT_FORMATS);
+        super("Opus JNI Decoder", AudioFormat.class, SUPPORTED_OUTPUT_FORMATS);
 
         inputFormats = SUPPORTED_INPUT_FORMATS;
-        fecBuffer
-            = new byte[
-                    2 /* channels */
-                        * 2 /* bytes per sample */
-                        * 120 /* max ms per opus packet */
-                        * (outputSampleRate / 1000) /* samples per ms */];
 
         addControl(this);
     }
@@ -136,6 +130,7 @@ public class JNIDecoder
         if (decoder != 0)
         {
             Opus.decoder_destroy(decoder);
+            decoder = 0;
         }
     }
 
@@ -153,123 +148,172 @@ public class JNIDecoder
     protected void doOpen()
         throws ResourceUnavailableException
     {
-        decoder = Opus.decoder_create(outputSampleRate, channels);
         if (decoder == 0)
-            throw new ResourceUnavailableException("opus_decoder_create");
+        {
+            decoder = Opus.decoder_create(outputSampleRate, channels);
+            if (decoder == 0)
+                throw new ResourceUnavailableException("opus_decoder_create");
+
+            lastFrameSizeInSamplesPerChannel = 0;
+            lastSeqNo = Buffer.SEQUENCE_UNKNOWN;
+        }
     }
 
     /**
      * Decodes an Opus packet
      *
-     * @param inputBuffer input <tt>Buffer</tt>
-     * @param outputBuffer output <tt>Buffer</tt>
+     * @param inBuffer input <tt>Buffer</tt>
+     * @param outBuffer output <tt>Buffer</tt>
      * @return <tt>BUFFER_PROCESSED_OK</tt> if <tt>inBuffer</tt> has been
      * successfully processed
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
-    protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
+    protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
-        Format inputFormat = inputBuffer.getFormat();
+        Format inFormat = inBuffer.getFormat();
 
-        if ((inputFormat != null)
-                && (inputFormat != this.inputFormat)
-                && !inputFormat.equals(this.inputFormat))
+        if ((inFormat != null)
+                && (inFormat != this.inputFormat)
+                && !inFormat.equals(this.inputFormat)
+                && (null == setInputFormat(inFormat)))
         {
-            if (null == setInputFormat(inputFormat))
-                return BUFFER_PROCESSED_FAILED;
+            return BUFFER_PROCESSED_FAILED;
         }
 
-        boolean decodeFec = false;
-        long inputSequenceNumber = inputBuffer.getSequenceNumber();
+        long seqNo = inBuffer.getSequenceNumber();
+        boolean decodeFEC = false;
 
-        /* Detect a missing packet, take care of wraps at 2^16 */
-        if(firstPacketProcessed &&
-              (inputSequenceNumber != lastPacketSeq + 1) &&
-              !(inputSequenceNumber == 0 && lastPacketSeq == 65535))
-            decodeFec = true;
-        if ((inputBuffer.getFlags() & Buffer.FLAG_SKIP_FEC) != 0)
-        {
-            decodeFec = false;
-            if (logger.isTraceEnabled())
-                logger.trace("Not decoding FEC for " + inputSequenceNumber +
-                                " because SKIP_FEC is set");
-        }
-
-        /* We figured out what should be decoded. Now decode it. */
-        int fecSamples = 0;
-        int outputLength = 0;
-        byte[] inputData = (byte[]) inputBuffer.getData();
-        int inputOffset = inputBuffer.getOffset();
-        int inputLength = inputBuffer.getLength();
-
-        if (decodeFec)
-        {
-            fecSamples
-                = Opus.decode(
-                        decoder,
-                        inputData, inputOffset, inputLength,
-                        fecBuffer, fecBuffer.length,
-                        1 /* decode fec */);
-            outputLength += fecSamples * 2;
-        }
-
-        outputLength
-            +=  Opus.decoder_get_nb_samples(
-                    decoder,
-                    inputData, inputOffset, inputLength)
-                * 2 /* sizeof(short) */;
-
-        byte[] outputData
-            = validateByteArraySize(outputBuffer, outputLength, false);
-        int samplesCount
-            = Opus.decode(
-                    decoder,
-                    inputData, inputOffset, inputLength,
-                    outputData, outputLength,
-                    0 /* no fec */);
-
-        if (fecSamples > 0)
+        /*
+         * Detect lost packets. (Take into account sequence number wrapping.)
+         */
+        if ((lastSeqNo != Buffer.SEQUENCE_UNKNOWN)
+                && (seqNo != lastSeqNo + 1)
+                && (seqNo > lastSeqNo)
+                && (lastFrameSizeInSamplesPerChannel > 0))
         {
             /*
-             * TODO: add output offset to Opus.decode(), so that we don't have
-             * to do this shift
+             * When no in-band forward error correction data is available, the
+             * Opus decoder will operate as if PLC has been specified.
              */
-            System.arraycopy(
-                    outputData, 0,
-                    outputData, fecSamples * 2,
-                    samplesCount * 2);
-            System.arraycopy(
-                    fecBuffer, 0,
-                    outputData, 0,
-                    fecSamples * 2);
+            decodeFEC = true;
+        }
+        if ((inBuffer.getFlags() & Buffer.FLAG_SKIP_FEC) != 0)
+        {
+            decodeFEC = false;
+            if (logger.isTraceEnabled())
+            {
+                logger.trace(
+                        "Not decoding FEC for " + seqNo
+                            + " because of Buffer.FLAG_SKIP_FEC.");
+            }
         }
 
-        if (outputLength > 0)
+        // After we have determined what is to be decoded, do decode it.
+        byte[] in = (byte[]) inBuffer.getData();
+        int inOffset = inBuffer.getOffset();
+        int inLength = inBuffer.getLength();
+        int outOffset = 0;
+        int outLength = 0;
+        int totalFrameSizeInSamplesPerChannel = 0;
+
+        if (decodeFEC)
         {
-            outputBuffer.setDuration(
-                    (samplesCount + fecSamples) * 1000 * 1000
-                        / outputSampleRate);
-            outputBuffer.setFormat(getOutputFormat());
-            outputBuffer.setLength(outputLength);
-            outputBuffer.setOffset(0);
-            if(fecSamples > 0)
+            byte[] out
+                = validateByteArraySize(
+                        outBuffer,
+                        outOffset
+                            + lastFrameSizeInSamplesPerChannel
+                                * outputFrameSize,
+                        outOffset != 0);
+            int frameSizeInSamplesPerChannel
+                = Opus.decode(
+                        decoder,
+                        in, inOffset, inLength,
+                        out, /* outOffset, */ lastFrameSizeInSamplesPerChannel,
+                        /* decodeFEC */ 0);
+
+            if (frameSizeInSamplesPerChannel > 0)
+            {
+                int frameSizeInBytes
+                    = frameSizeInSamplesPerChannel * outputFrameSize;
+
+                outLength += frameSizeInBytes;
+                outOffset += frameSizeInBytes;
+                totalFrameSizeInSamplesPerChannel
+                    += frameSizeInSamplesPerChannel;
+
+                outBuffer.setFlags(outBuffer.getFlags() | BUFFER_FLAG_FEC);
                 nbDecodedFec++;
+            }
+
+            lastSeqNo++;
+            if (lastSeqNo > 65535)
+                lastSeqNo = 0;
         }
         else
         {
-            outputBuffer.setLength(0);
-            discardOutputBuffer(outputBuffer);
+            int frameSizeInSamplesPerChannel
+                = Opus.decoder_get_nb_samples(decoder, in, inOffset, inLength);
+            byte[] out
+                = validateByteArraySize(
+                        outBuffer,
+                        outOffset
+                            + frameSizeInSamplesPerChannel * outputFrameSize,
+                        outOffset != 0);
+
+            frameSizeInSamplesPerChannel
+                = Opus.decode(
+                        decoder,
+                        in, inOffset, inLength,
+                        out, /* outOffset, */ frameSizeInSamplesPerChannel,
+                        /* decodeFEC */ 1);
+            if (frameSizeInSamplesPerChannel > 0)
+            {
+                int frameSizeInBytes
+                    = frameSizeInSamplesPerChannel * outputFrameSize;
+
+                outLength += frameSizeInBytes;
+                outOffset += frameSizeInBytes;
+                totalFrameSizeInSamplesPerChannel
+                    += frameSizeInSamplesPerChannel;
+
+                outBuffer.setFlags(outBuffer.getFlags() & ~BUFFER_FLAG_FEC);
+
+                /*
+                 * When we encounter a lost frame, we will presume that it was
+                 * of the same duration as the last received frame.
+                 */
+                lastFrameSizeInSamplesPerChannel = frameSizeInSamplesPerChannel;
+            }
+
+            lastSeqNo = seqNo;
         }
 
-        firstPacketProcessed = true;
+        if (outLength > 0)
+        {
+            outBuffer.setDuration(
+                    totalFrameSizeInSamplesPerChannel * channels * 1000L * 1000L
+                        / outputSampleRate);
+            outBuffer.setFormat(getOutputFormat());
+            outBuffer.setLength(outLength);
+            outBuffer.setOffset(0);
+        }
+        else
+        {
+            outBuffer.setLength(0);
+            discardOutputBuffer(outBuffer);
+        }
 
-        lastPacketSeq = inputSequenceNumber;
-        return BUFFER_PROCESSED_OK;
+        if (lastSeqNo == seqNo)
+            return BUFFER_PROCESSED_OK;
+        else
+            return INPUT_BUFFER_NOT_CONSUMED;
     }
 
     /**
-     * Returns the number of packets decoded with FEC
-     * @return
+     * Returns the number of packets decoded with FEC.
+     *
+     * @return the number of packets decoded with FEC
      */
     public int fecPacketsDecoded()
     {
@@ -277,10 +321,11 @@ public class JNIDecoder
     }
 
     /**
-     * Stub. Only added in order to implement the <tt>FECDecoderControl</tt>
-     * interface.
+     * Implements {@link Control#getControlComponent()}. <tt>JNIDecoder</tt>
+     * does not provide user interface of its own.
      *
-     * @return null
+     * @return <tt>null</tt> to signify that <tt>JNIDecoder</tt> does not
+     * provide user interface of its own 
      */
     public Component getControlComponent()
     {
@@ -288,12 +333,7 @@ public class JNIDecoder
     }
 
     /**
-     * Get all supported output <tt>Format</tt>s.
-     *
-     * @param inputFormat input <tt>Format</tt> to determine corresponding output
-     * <tt>Format/tt>s
-     * @return array of supported <tt>Format</tt>
-     * @see AbstractCodecExt#getMatchingOutputFormats(Format)
+     * {@inheritDoc}
      */
     @Override
     protected Format[] getMatchingOutputFormats(Format inputFormat)
@@ -317,52 +357,46 @@ public class JNIDecoder
     }
 
     /**
-     * Sets the <tt>Format</tt> of the media data to be input for processing in
-     * this <tt>Codec</tt>.
+     * {@inheritDoc}
      *
-     * @param format the <tt>Format</tt> of the media data to be input for
-     * processing in this <tt>Codec</tt>
-     * @return the <tt>Format</tt> of the media data to be input for processing
-     * in this <tt>Codec</tt> if <tt>format</tt> is compatible with this
-     * <tt>Codec</tt>; otherwise, <tt>null</tt>
-     * @see AbstractCodecExt#setInputFormat(Format)
+     * Makes sure that the <tt>outputFormat</tt> of this instance is in accord
+     * with the <tt>inputFormat</tt> of this instance.
      */
     @Override
     public Format setInputFormat(Format format)
     {
-        Format inputFormat = super.setInputFormat(format);
+        Format inFormat = super.setInputFormat(format);
 
-        if (inputFormat != null)
+        if (inFormat != null)
         {
-            double outputSampleRate;
-            int outputChannels;
+            double outSampleRate;
+            int outChannels;
 
             if (outputFormat == null)
             {
-                outputSampleRate = Format.NOT_SPECIFIED;
-                outputChannels = Format.NOT_SPECIFIED;
+                outSampleRate = Format.NOT_SPECIFIED;
+                outChannels = Format.NOT_SPECIFIED;
             }
             else
             {
-                AudioFormat outputAudioFormat = (AudioFormat) outputFormat;
+                AudioFormat outAudioFormat = (AudioFormat) outputFormat;
 
-                outputSampleRate = outputAudioFormat.getSampleRate();
-                outputChannels = outputAudioFormat.getChannels();
+                outSampleRate = outAudioFormat.getSampleRate();
+                outChannels = outAudioFormat.getChannels();
             }
 
-            AudioFormat inputAudioFormat = (AudioFormat) inputFormat;
-            double inputSampleRate = inputAudioFormat.getSampleRate();
-            int inputChannels = inputAudioFormat.getChannels();
+            AudioFormat inAudioFormat = (AudioFormat) inFormat;
+            double inSampleRate = inAudioFormat.getSampleRate();
+            int inChannels = inAudioFormat.getChannels();
 
-            if ((outputSampleRate != inputSampleRate)
-                    || (outputChannels != inputChannels))
+            if ((outSampleRate != inSampleRate) || (outChannels != inChannels))
             {
                 setOutputFormat(
                         new AudioFormat(
                                 AudioFormat.LINEAR,
-                                inputSampleRate,
+                                inSampleRate,
                                 16,
-                                inputChannels,
+                                inChannels,
                                 AudioFormat.LITTLE_ENDIAN,
                                 AudioFormat.SIGNED,
                                 /* frameSizeInBits */ Format.NOT_SPECIFIED,
@@ -370,6 +404,24 @@ public class JNIDecoder
                                 Format.byteArray));
             }
         }
-        return inputFormat;
+        return inFormat;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Format setOutputFormat(Format format)
+    {
+        Format setOutputFormat = super.setOutputFormat(format);
+
+        if (setOutputFormat != null)
+        {
+            AudioFormat af = (AudioFormat) setOutputFormat;
+
+            outputFrameSize = (af.getSampleSizeInBits() / 8) * af.getChannels();
+            outputSampleRate = (int) af.getSampleRate();
+        }
+        return setOutputFormat;
     }
 }

@@ -1,264 +1,446 @@
+/*
+ * Jitsi, the OpenSource Java VoIP and Instant Messaging client.
+ *
+ * Distributable under LGPL license.
+ * See terms of license at gnu.org.
+ */
+
 #include "org_jitsi_impl_neomedia_codec_audio_opus_Opus.h"
+
 #include <stdint.h>
 #include <opus.h>
 
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1size
-  (JNIEnv *enc, jclass clazz, jint channels)
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
+    (JNIEnv *env, jclass clazz, jlong decoder, jbyteArray input,
+        jint inputOffset, jint inputLength, jbyteArray output,
+        /* jint outputOffset, */ jint outputFrameSize, jint decodeFEC)
 {
-    return opus_encoder_get_size(channels);
-}
+    int ret;
 
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1create
-  (JNIEnv *env, jclass clazz, jint Fs, jint channels)
-{
-    int e;
-    OpusEncoder *enc = opus_encoder_create(Fs, channels, OPUS_APPLICATION_VOIP, &e);
-
-    if(e != OPUS_OK)
+    if (output)
     {
-        return (jlong) 0;
-    }
+        jbyte *input_;
 
-    return (jlong) (intptr_t) enc;
-}
+        if (input)
+        {
+            input_ = (*env)->GetPrimitiveArrayCritical(env, input, 0);
+            ret = input_ ? OPUS_OK : OPUS_ALLOC_FAIL;
+        }
+        else
+        {
+            input_ = 0;
+            ret = OPUS_OK;
+        }
+        if (OPUS_OK == ret)
+        {
+            jbyte *output_ = (*env)->GetPrimitiveArrayCritical(env, output, 0);
 
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1destroy
-  (JNIEnv *env, jclass clazz, jlong encoder)
-{
-    opus_encoder_destroy((OpusEncoder *)(intptr_t) encoder);
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1bitrate
-  (JNIEnv *env, jclass clazz, jlong encoder, jint bitrate)
-{
-    return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_BITRATE(bitrate));
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1bitrate
-  (JNIEnv *env, jclass clazz, jlong encoder)
-{
-    int x, ret;
-    ret = opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_GET_BITRATE(&x));
-    if(ret < 0)
-        return ret;
-    return x;
-}
-
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1bandwidth
-  (JNIEnv *env, jclass clazz, jlong encoder, jint bandwidth)
-{
-    return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_BANDWIDTH(bandwidth));
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1bandwidth
-  (JNIEnv *env, jclass clazz, jlong encoder)
-{
-    int x, ret;
-    ret = opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_GET_BANDWIDTH(&x));
-    if(ret<0) return ret;
-    return x;
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1vbr
-  (JNIEnv *env, jclass clazz, jlong encoder, jint use_vbr)
-{
-    return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_VBR(use_vbr));
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1vbr
-  (JNIEnv *env, jclass clazz, jlong encoder)
-{
-    int x, ret;
-    ret = opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_GET_VBR(&x));
-    if(ret<0) return ret;
-    return x;
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1vbr_1constraint
-  (JNIEnv *env, jclass clazz, jlong encoder, jint use_cvbr)
-{
-    return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_VBR_CONSTRAINT(use_cvbr));
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1vbr_1constraint
-  (JNIEnv *env, jclass clazz, jlong encoder)
-{
-    int x, ret;
-    ret = opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_GET_VBR_CONSTRAINT(&x));
-    if(ret<0) return ret;
-    return x;
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1complexity
-  (JNIEnv *env, jclass clazz, jlong encoder, jint complexity)
-{
-    return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_COMPLEXITY(complexity));
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1inband_1fec
-  (JNIEnv *env, jclass clazz, jlong encoder, jint use_inband_fec)
-{
-    return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_INBAND_FEC(use_inband_fec));
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1force_1channels
-  (JNIEnv *env, jclass clazz, jlong encoder, jint forcechannels)
-{
-    return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_FORCE_CHANNELS(forcechannels));
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1dtx
-  (JNIEnv *env, jclass clazz, jlong encoder, jint use_dtx)
-{
-    return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_DTX(use_dtx));
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1dtx
-  (JNIEnv *env, jclass clazz, jlong encoder)
-{
-    int x, ret;
-    ret = opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_GET_DTX(&x));
-    if(ret<0) return ret;
-    return x;
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1packet_1loss_1perc
-  (JNIEnv *env, jclass clazz, jlong encoder, jint percentage)
-{
-    return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_PACKET_LOSS_PERC(percentage));
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1max_1bandwidth
-  (JNIEnv *env, jclass clazz, jlong encoder, jint max_bandwidth)
-{
-    return (jint) opus_encoder_ctl((OpusEncoder *)(intptr_t)encoder, OPUS_SET_MAX_BANDWIDTH(max_bandwidth));
-}
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
-  (JNIEnv *env, jclass clazz, jlong encoder, jbyteArray input, jint inputOffset, jint frameSize, jbyteArray output, jint outputSize)
-{
-    jbyte *inputPtr = (*env)->GetByteArrayElements(env, input, NULL);
-    jbyte *outputPtr = (*env)->GetByteArrayElements(env, output, NULL);
-    jint ret;
-
-    if (inputPtr && outputPtr)
-    {
-        ret = opus_encode((OpusEncoder *)(intptr_t)encoder,
-                (opus_int16 *) (inputPtr + inputOffset),
-                (int) frameSize,
-                (unsigned char *)outputPtr,
-                (int) outputSize);
+            if (output_)
+            {
+                ret
+                    = opus_decode(
+                            (OpusDecoder *) (intptr_t) decoder,
+                            (unsigned char *)
+                                (input_ ? (input_ + inputOffset) : 0),
+                            inputLength,
+                            (opus_int16 *) (output_ /* + outputOffset */),
+                            outputFrameSize,
+                            decodeFEC);
+                (*env)->ReleasePrimitiveArrayCritical(env, output, output_, 0);
+            }
+            else
+                ret = OPUS_ALLOC_FAIL;
+            if (input)
+            {
+                (*env)->ReleasePrimitiveArrayCritical(
+                        env,
+                        input, input_, JNI_ABORT);
+            }
+        }
     }
     else
-        ret = 0;
-
-    if(inputPtr)
-        (*env)->ReleaseByteArrayElements(env, input, inputPtr, JNI_ABORT);
-    if(outputPtr)
-        (*env)->ReleaseByteArrayElements(env, output, outputPtr, 0);
-
+        ret = OPUS_BAD_ARG;
     return ret;
 }
 
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decoder_1get_1size
-  (JNIEnv *env, jclass clazz, jint channels)
+JNIEXPORT jlong JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decoder_1create
+    (JNIEnv *env, jclass clazz, jint Fs, jint channels)
+{
+    int error;
+    OpusDecoder *decoder = opus_decoder_create(Fs, channels, &error);
+
+    if (OPUS_OK != error)
+        decoder = 0;
+    return (jlong) (intptr_t) decoder;
+}
+
+JNIEXPORT void JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decoder_1destroy
+    (JNIEnv *env, jclass clazz, jlong decoder)
+{
+    opus_decoder_destroy((OpusDecoder *) (intptr_t) decoder);
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decoder_1get_1nb_1samples
+    (JNIEnv *env, jclass clazz, jlong decoder, jbyteArray packet, jint offset,
+        jint length)
+{
+    int ret;
+
+    if (packet)
+    {
+        jbyte *packet_ = (*env)->GetPrimitiveArrayCritical(env, packet, NULL);
+
+        if (packet_)
+        {
+            ret
+                = opus_decoder_get_nb_samples(
+                        (OpusDecoder *) (intptr_t) decoder,
+                        (unsigned char *) (packet_ + offset),
+                        length);
+            (*env)->ReleasePrimitiveArrayCritical(
+                    env,
+                    packet, packet_, JNI_ABORT);
+        }
+        else
+            ret = OPUS_ALLOC_FAIL;
+    }
+    else
+        ret = OPUS_BAD_ARG;
+    return ret;
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decoder_1get_1size
+    (JNIEnv *env, jclass clazz, jint channels)
 {
     return opus_decoder_get_size(channels);
 }
 
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decoder_1create
-  (JNIEnv *env, jclass clazz, jint Fs, jint channels)
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
+    (JNIEnv *env, jclass clazz, jlong encoder, jbyteArray input,
+        jint inputOffset, jint inputFrameSize, jbyteArray output,
+        /* jint outputOffset, */ jint outputLength)
 {
-    int e;
-    OpusDecoder *decoder = opus_decoder_create(Fs, channels, &e);
+    int ret;
 
-    if(e != OPUS_OK)
+    if (input && output)
     {
-        return (jlong) 0;
-    }
-    return (jlong)(intptr_t) decoder;
-}
+        jbyte *input_ = (*env)->GetPrimitiveArrayCritical(env, input, 0);
 
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decoder_1destroy
-  (JNIEnv *env, jclass clazz, jlong decoder)
-{
-    opus_decoder_destroy((OpusDecoder *)(intptr_t)decoder);
-}
+        if (input_)
+        {
+            jbyte *output_ = (*env)->GetPrimitiveArrayCritical(env, output, 0);
 
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
-  (JNIEnv *env, jclass clazz, jlong decoder, jbyteArray input, jint inputOffset, jint inputSize, jbyteArray output, jint outputSize, jint decodeFEC)
-{
-    jbyte *inputPtr = (*env)->GetByteArrayElements(env, input, NULL);
-    jbyte *outputPtr = (*env)->GetByteArrayElements(env, output, NULL);
-    jint ret;
-
-    if (inputPtr && outputPtr)
-    {
-        ret = opus_decode((OpusDecoder *)(intptr_t)decoder,
-                (unsigned char *) ((char *)inputPtr + inputOffset),
-        (int) inputSize,
-                (opus_int16 *)outputPtr,
-        (int) outputSize,
-        (int) decodeFEC);
+            if (output_)
+            {
+                ret
+                    = opus_encode(
+                            (OpusEncoder *) (intptr_t) encoder,
+                            (opus_int16 *) (input_ + inputOffset),
+                            inputFrameSize,
+                            (unsigned char *) (output_ /* + outputOffset */),
+                            outputLength);
+                (*env)->ReleasePrimitiveArrayCritical(env, output, output_, 0);
+            }
+            else
+                ret = OPUS_ALLOC_FAIL;
+            (*env)->ReleasePrimitiveArrayCritical(
+                    env,
+                    input, input_, JNI_ABORT);
+        }
+        else
+            ret = OPUS_ALLOC_FAIL;
     }
     else
-        ret = 0;
-
-    if(inputPtr)
-        (*env)->ReleaseByteArrayElements(env, input, inputPtr, JNI_ABORT);
-    if(outputPtr)
-        (*env)->ReleaseByteArrayElements(env, output, outputPtr, 0);
-
+        ret = OPUS_BAD_ARG;
     return ret;
 }
 
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_packet_1get_1bandwidth
-  (JNIEnv *env, jclass clazz, jbyteArray packet, jint offset)
+JNIEXPORT jlong JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1create
+    (JNIEnv *env, jclass clazz, jint Fs, jint channels)
 {
-    jbyte *packetPtr = (*env)->GetByteArrayElements(env, packet, NULL);
-    jint bandwidth = 0;
-    if(packetPtr){
-        bandwidth = (jint) opus_packet_get_bandwidth((unsigned char *)packetPtr+offset);
-    (*env)->ReleaseByteArrayElements(env, packet, packetPtr, JNI_ABORT);
-    }
-    return bandwidth;
+    int error;
+    OpusEncoder *encoder
+        = opus_encoder_create(Fs, channels, OPUS_APPLICATION_VOIP, &error);
+
+    if (OPUS_OK != error)
+        encoder = 0;
+    return (jlong) (intptr_t) encoder;
 }
 
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_packet_1get_1nb_1channels
-  (JNIEnv *env, jclass clazz, jbyteArray packet, jint offset)
+JNIEXPORT void JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1destroy
+    (JNIEnv *env, jclass clazz, jlong encoder)
 {
-    jbyte *packetPtr = (*env)->GetByteArrayElements(env, packet, NULL);
-    jint channels = 0;
-    if(packetPtr){
-        channels = (jint) opus_packet_get_nb_channels((unsigned char *)packetPtr+offset);
-    (*env)->ReleaseByteArrayElements(env, packet, packetPtr, JNI_ABORT);
-    }
-    return channels;
+    opus_encoder_destroy((OpusEncoder *) (intptr_t) encoder);
 }
 
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_packet_1get_1nb_1frames
-  (JNIEnv *env, jclass clazz, jbyteArray packet, jint offset, jint len)
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1bandwidth
+    (JNIEnv *env, jclass clazz, jlong encoder)
 {
-    jbyte *packetPtr = (*env)->GetByteArrayElements(env, packet, NULL);
-    jint frames = 0;
-    if(packetPtr){
-        frames = (jint) opus_packet_get_nb_frames((unsigned char *)packetPtr+offset, len);
-    (*env)->ReleaseByteArrayElements(env, packet, packetPtr, JNI_ABORT);
-    }
-    return frames;
+    opus_int32 x;
+    int ret
+        = opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_GET_BANDWIDTH(&x));
+
+    return (OPUS_OK == ret) ? x : ret;
 }
 
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decoder_1get_1nb_1samples
-  (JNIEnv *env, jclass clazz, jlong decoder, jbyteArray packet, jint offset, jint len)
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1bitrate
+    (JNIEnv *env, jclass clazz, jlong encoder)
 {
-    int samples= 0;
-    jbyte *packetPtr = (*env)->GetByteArrayElements(env, packet, NULL);
-    if(decoder && packetPtr)
+    opus_int32 x;
+    int ret
+        = opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_GET_BITRATE(&x));
+
+    return (OPUS_OK == ret) ? x : ret;
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1dtx
+    (JNIEnv *env, jclass clazz, jlong encoder)
+{
+    opus_int32 x;
+    int ret
+        = opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_GET_DTX(&x));
+
+    return (OPUS_OK == ret) ? x : ret;
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1size
+    (JNIEnv *enc, jclass clazz, jint channels)
+{
+    return opus_encoder_get_size(channels);
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1vbr
+    (JNIEnv *env, jclass clazz, jlong encoder)
+{
+    opus_int32 x;
+    int ret
+        = opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_GET_VBR(&x));
+
+    return (OPUS_OK == ret) ? x : ret;
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1vbr_1constraint
+    (JNIEnv *env, jclass clazz, jlong encoder)
+{
+    opus_int32 x;
+    int ret
+        = opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_GET_VBR_CONSTRAINT(&x));
+
+    return (OPUS_OK == ret) ? x : ret;
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1bandwidth
+    (JNIEnv *env, jclass clazz, jlong encoder, jint bandwidth)
+{
+    opus_int32 x = bandwidth;
+
+    return
+        opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_SET_BANDWIDTH(x));
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1bitrate
+    (JNIEnv *env, jclass clazz, jlong encoder, jint bitrate)
+{
+    opus_int32 x = bitrate;
+
+    return
+        opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_SET_BITRATE(x));
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1complexity
+    (JNIEnv *env, jclass clazz, jlong encoder, jint complexity)
+{
+    opus_int32 x = complexity;
+
+    return
+        opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_SET_COMPLEXITY(x));
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1dtx
+    (JNIEnv *env, jclass clazz, jlong encoder, jint dtx)
+{
+    opus_int32 x = dtx;
+
+    return
+        opus_encoder_ctl((OpusEncoder *) (intptr_t) encoder, OPUS_SET_DTX(x));
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1force_1channels
+    (JNIEnv *env, jclass clazz, jlong encoder, jint forcechannels)
+{
+    opus_int32 x = forcechannels;
+
+    return
+        opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_SET_FORCE_CHANNELS(x));
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1inband_1fec
+    (JNIEnv *env, jclass clazz, jlong encoder, jint inbandFEC)
+{
+    opus_int32 x = inbandFEC;
+
+    return
+        opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_SET_INBAND_FEC(x));
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1max_1bandwidth
+    (JNIEnv *env, jclass clazz, jlong encoder, jint maxBandwidth)
+{
+    opus_int32 x = maxBandwidth;
+
+    return
+        opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_SET_MAX_BANDWIDTH(x));
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1packet_1loss_1perc
+    (JNIEnv *env, jclass clazz, jlong encoder, jint packetLossPerc)
+{
+    opus_int32 x = packetLossPerc;
+
+    return
+        opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_SET_PACKET_LOSS_PERC(x));
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1vbr
+    (JNIEnv *env, jclass clazz, jlong encoder, jint vbr)
+{
+    opus_int32 x = vbr;
+
+    return
+        opus_encoder_ctl((OpusEncoder *) (intptr_t) encoder, OPUS_SET_VBR(x));
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1set_1vbr_1constraint
+  (JNIEnv *env, jclass clazz, jlong encoder, jint cvbr)
+{
+    opus_int32 x = cvbr;
+
+    return
+        opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_SET_VBR_CONSTRAINT(x));
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_packet_1get_1bandwidth
+    (JNIEnv *env, jclass clazz, jbyteArray data, jint offset)
+{
+    int ret;
+
+    if (data)
     {
-        samples = opus_decoder_get_nb_samples((OpusDecoder*)(intptr_t)decoder, (unsigned char *)packetPtr+offset, len);
+        jbyte *data_ = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
+
+        if (data_)
+        {
+            ret = opus_packet_get_bandwidth((unsigned char *) (data_ + offset));
+            (*env)->ReleasePrimitiveArrayCritical(env, data, data_, JNI_ABORT);
+        }
+        else
+            ret = OPUS_ALLOC_FAIL;
     }
-    if(packetPtr)
-    (*env)->ReleaseByteArrayElements(env, packet, packetPtr, JNI_ABORT);
-    return samples;
+    else
+        ret = OPUS_BAD_ARG;
+    return ret;
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_packet_1get_1nb_1channels
+    (JNIEnv *env, jclass clazz, jbyteArray data, jint offset)
+{
+    int ret;
+
+    if (data)
+    {
+        jbyte *data_ = (*env)->GetPrimitiveArrayCritical(env, data, NULL);
+
+        if (data_)
+        {
+            ret
+                = opus_packet_get_nb_channels(
+                        (unsigned char *) (data_ + offset));
+            (*env)->ReleasePrimitiveArrayCritical(env, data, data_, JNI_ABORT);
+        }
+        else
+            ret = OPUS_ALLOC_FAIL;
+    }
+    else
+        ret = OPUS_BAD_ARG;
+    return ret;
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_packet_1get_1nb_1frames
+    (JNIEnv *env, jclass clazz, jbyteArray packet, jint offset, jint length)
+{
+    int ret;
+
+    if (packet)
+    {
+        jbyte *packet_ = (*env)->GetPrimitiveArrayCritical(env, packet, NULL);
+
+        if (packet_)
+        {
+            ret
+                = opus_packet_get_nb_frames(
+                        (unsigned char *) (packet_ + offset),
+                        length);
+            (*env)->ReleasePrimitiveArrayCritical(
+                    env,
+                    packet, packet_, JNI_ABORT);
+        }
+        else
+            ret = OPUS_ALLOC_FAIL;
+    }
+    else
+        ret = OPUS_BAD_ARG;
+    return ret;
 }

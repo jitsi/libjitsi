@@ -25,11 +25,34 @@ public class JavaDecoder
     extends AbstractCodec2
 {
     /**
-     * The <tt>Logger</tt> used by this <tt>JavaDecoder</tt> instance
-     * for logging output.
+     * A private class, an instance of which is registered via
+     * <tt>addControl</tt>. This instance will be used by outside classes to
+     * access decoder statistics.
      */
-    private final Logger logger
-            = Logger.getLogger(JavaDecoder.class);
+    private class Stats implements FECDecoderControl
+    {
+        /**
+         * Returns the number packets for which FEC data was decoded in
+         * <tt>JavaDecoder.this</tt>
+         *
+         * @return Returns the number packets for which FEC data was decoded in
+         * <tt>JavaDecoder.this</tt>
+         */
+        public int fecPacketsDecoded()
+        {
+            return nbFECDecoded;
+        }
+
+        /**
+         * Stub. Always return <tt>null</tt>, as it's not used.
+         *
+         * @return <tt>null</tt>
+         */
+        public Component getControlComponent()
+        {
+            return null;
+        }
+    }
 
     /**
      * The duration of a frame in milliseconds as defined by the SILK standard.
@@ -78,28 +101,9 @@ public class JavaDecoder
     private int framesPerPayload;
 
     /**
-     * The length of an output frame as reported by
-     * {@link Silk_dec_API#SKP_Silk_SDK_Decode(Object, SKP_SILK_SDK_DecControlStruct, int, byte[], int, int, short[], int, short[])}.
+     * The sequence number of the last processed <tt>Buffer</tt>.
      */
-    private final short[] outputLength = new short[1];
-
-    /**
-     * Previous packet RTP sequence number
-     */
-    private long lastPacketSeq;
-
-    /**
-     * Whether at least one packet has already been processed. Use this to
-     * prevent FEC data from trying to be decoded from the first packet in a
-     * session.
-     */
-    private boolean firstPacketProcessed = false;
-
-    /**
-     * Temporary buffer used to hold the lbrr data when decoding FEC. Defined
-     * here to avoid using <tt>new</tt> in <tt>doProcess</tt>.
-     */
-    private byte[] lbrrData = new byte[JavaEncoder.MAX_BYTES_PER_FRAME];
+    private long lastSeqNo = Buffer.SEQUENCE_UNKNOWN;
 
     /**
      * Temporary buffer used when decoding FEC. Defined here to
@@ -108,9 +112,17 @@ public class JavaDecoder
     private short[] lbrrBytes = new short[1];
 
     /**
-     * Number of packets which: were successfully decoded
+     * Temporary buffer used to hold the lbrr data when decoding FEC. Defined
+     * here to avoid using <tt>new</tt> in <tt>doProcess</tt>.
      */
-    private int nbPacketsDecoded = 0;
+    private byte[] lbrrData = new byte[JavaEncoder.MAX_BYTES_PER_FRAME];
+
+    /**
+     * The <tt>Logger</tt> used by this <tt>JavaDecoder</tt> instance
+     * for logging output.
+     */
+    private final Logger logger
+            = Logger.getLogger(JavaDecoder.class);
 
     /**
      * Number of packets which: were missing, the following packet was available
@@ -125,10 +137,21 @@ public class JavaDecoder
     private int nbFECNotDecoded = 0;
 
     /**
+     * Number of packets which: were successfully decoded
+     */
+    private int nbPacketsDecoded = 0;
+
+    /**
      * Number of packets which: were missing, and the subsequent packet was also
      * missing.
      */
     private int nbPacketsLost = 0;
+
+    /**
+     * The length of an output frame as reported by
+     * {@link Silk_dec_API#SKP_Silk_SDK_Decode(Object, SKP_SILK_SDK_DecControlStruct, int, byte[], int, int, short[], int, short[])}.
+     */
+    private final short[] outputLength = new short[1];
 
     /**
      * Initializes a new <tt>JavaDecoder</tt> instance.
@@ -144,7 +167,7 @@ public class JavaDecoder
 
     protected void doClose()
     {
-        if(logger.isDebugEnabled())
+        if (logger.isDebugEnabled())
         {
             logger.debug("Packets decoded normally: " + nbPacketsDecoded);
             logger.debug("Packets decoded with FEC: " + nbFECDecoded);
@@ -162,10 +185,11 @@ public class JavaDecoder
         throws ResourceUnavailableException
     {
         decState = new SKP_Silk_decoder_state();
-        if (Silk_dec_API.SKP_Silk_SDK_InitDecoder(decState) != 0)
-            throw
-                new ResourceUnavailableException(
-                        "Silk_dec_API.SKP_Silk_SDK_InitDecoder");
+        if (DecAPI.SKP_Silk_SDK_InitDecoder(decState) != 0)
+        {
+            throw new ResourceUnavailableException(
+                    "DecAPI.SKP_Silk_SDK_InitDecoder");
+        }
 
         AudioFormat inputFormat = (AudioFormat) getInputFormat();
         double sampleRate = inputFormat.getSampleRate();
@@ -175,134 +199,178 @@ public class JavaDecoder
         decControl.API_sampleRate = (int) sampleRate;
 
         frameLength = (short) ((FRAME_DURATION * sampleRate * channels) / 1000);
+        lastSeqNo = Buffer.SEQUENCE_UNKNOWN;
     }
 
-    protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
+    protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
-        byte[] inputData = (byte[]) inputBuffer.getData();
-        int inputOffset = inputBuffer.getOffset();
-        int inputLength = inputBuffer.getLength();
+        byte[] in = (byte[]) inBuffer.getData();
+        int inOffset = inBuffer.getOffset();
+        int inLength = inBuffer.getLength();
 
-        short[] outputData = validateShortArraySize(outputBuffer, frameLength);
-        int outputOffset = 0;
+        short[] out = validateShortArraySize(outBuffer, frameLength);
+        int outOffset = 0;
 
         boolean decodeFEC = false;
 
-        /* Check whether a packet has been lost.
-         * If a packet has more than one frame, we go through each frame in a
-         * new call to <tt>process</tt>, so having the same sequence number as
-         * on the previous pass is fine. */
-        long sequenceNumber = inputBuffer.getSequenceNumber();
-        if(firstPacketProcessed &&
-                sequenceNumber != lastPacketSeq &&
-                sequenceNumber != lastPacketSeq+1 &&
-                /* RTP sequence number is a 16bit field */
-                !(lastPacketSeq == 65535 && sequenceNumber == 0))
+        /*
+         * Check whether a packet has been lost. If a packet has more than one
+         * frame, we go through each frame in a new call to the process method
+         * so having the same sequence number as on the previous pass is fine.
+         */
+        long seqNo = inBuffer.getSequenceNumber();
+        int nbPacketsLost = 0;
+
+        if ((lastSeqNo != Buffer.SEQUENCE_UNKNOWN)
+                && (seqNo != lastSeqNo)
+                && (seqNo != lastSeqNo + 1)
+                && (seqNo > lastSeqNo))
         {
             decodeFEC = true;
-            if(sequenceNumber > lastPacketSeq)
-                nbPacketsLost += (sequenceNumber-lastPacketSeq)-1;
-            else
-                nbPacketsLost += 65535 - lastPacketSeq + sequenceNumber - 1;
+            nbPacketsLost = (int) (seqNo - lastSeqNo - 1);
         }
-
-        if ((inputBuffer.getFlags() & Buffer.FLAG_SKIP_FEC) != 0)
+        if ((inBuffer.getFlags() & Buffer.FLAG_SKIP_FEC) != 0)
         {
             decodeFEC = false;
             if (logger.isTraceEnabled())
-                logger.trace("Not decoding FEC for " + sequenceNumber +
-                        " because SKIP_FEC is set");
+            {
+                logger.trace(
+                        "Not decoding FEC for " + seqNo
+                            + " because of Buffer.FLAG_SKIP_FEC.");
+            }
         }
+
+        int lostFlag = 0;
+
+        if (decodeFEC) /* Decode with FEC. */
+        {
+            lbrrBytes[0] = 0;
+            DecAPI.SKP_Silk_SDK_search_for_LBRR(
+                    in, inOffset, (short)inLength,
+                    nbPacketsLost /* lost_offset */,
+                    lbrrData, 0, lbrrBytes);
+            if (logger.isTraceEnabled())
+            {
+                logger.trace(
+                        "Packet loss detected. Last seen " + lastSeqNo
+                            + ", current " + seqNo);
+                logger.trace(
+                        "Looking for FEC data, found " + lbrrBytes[0]
+                            + "bytes");
+            }
+
+            outputLength[0] = frameLength;
+            if (lbrrBytes[0] == 0)
+            {
+                // No FEC data found, process the packet as lost.
+                lostFlag = 1;
+            }
+            else if(DecAPI.SKP_Silk_SDK_Decode(
+                        decState, decControl, 0,
+                        lbrrData, 0, lbrrBytes[0],
+                        out, outOffset, outputLength)
+                    == 0)
+            {
+                // Found FEC data, decode it.
+                nbFECDecoded++;
+
+                outBuffer.setDuration(FRAME_DURATION * 1000000);
+                outBuffer.setLength(outputLength[0]);
+                outBuffer.setOffset(outOffset);
+
+                outBuffer.setFlags(outBuffer.getFlags() | BUFFER_FLAG_FEC);
+                outBuffer.setFlags(outBuffer.getFlags() & ~BUFFER_FLAG_PLC);
+
+                /*
+                 * We have decoded the expected sequence number from the FEC
+                 * data.
+                 */
+                lastSeqNo++;
+                if (lastSeqNo > 65535)
+                    lastSeqNo = 0;
+                return INPUT_BUFFER_NOT_CONSUMED;
+            }
+            else
+            {
+                nbFECNotDecoded++;
+                if (nbPacketsLost > 0)
+                    this.nbPacketsLost += nbPacketsLost;
+                lastSeqNo = seqNo;
+                return BUFFER_PROCESSED_FAILED;
+            }
+        }
+        else if (nbPacketsLost > 0)
+            this.nbPacketsLost += nbPacketsLost;
 
         int processed;
 
-        /* Decode packet normally */
-        if(!decodeFEC)
+        /* Decode without FEC. */
         {
             outputLength[0] = frameLength;
-            if (Silk_dec_API.SKP_Silk_SDK_Decode(
+            if (DecAPI.SKP_Silk_SDK_Decode(
                         decState, decControl,
-                        0,
-                        inputData, inputOffset, inputLength,
-                        outputData, outputOffset, outputLength)
+                        lostFlag,
+                        in, inOffset, inLength,
+                        out, outOffset, outputLength)
                     == 0)
             {
-                outputBuffer.setDuration(FRAME_DURATION * 1000000);
-                outputBuffer.setLength(outputLength[0]);
-                outputBuffer.setOffset(outputOffset);
+                outBuffer.setDuration(FRAME_DURATION * 1000000);
+                outBuffer.setLength(outputLength[0]);
+                outBuffer.setOffset(outOffset);
 
-                if (decControl.moreInternalDecoderFrames == 0)
+                if (lostFlag == 0)
                 {
-                    nbPacketsDecoded++;
-                    processed = BUFFER_PROCESSED_OK;
-                }
-                else
-                {
-                    framesPerPayload++;
-                    if (framesPerPayload >= MAX_FRAMES_PER_PAYLOAD)
+                    outBuffer.setFlags(
+                            outBuffer.getFlags()
+                                & ~(BUFFER_FLAG_FEC | BUFFER_FLAG_PLC));
+
+                    if (decControl.moreInternalDecoderFrames == 0)
                     {
                         nbPacketsDecoded++;
                         processed = BUFFER_PROCESSED_OK;
                     }
                     else
                     {
-                        processed = INPUT_BUFFER_NOT_CONSUMED;
+                        framesPerPayload++;
+                        if (framesPerPayload >= MAX_FRAMES_PER_PAYLOAD)
+                        {
+                            nbPacketsDecoded++;
+                            processed = BUFFER_PROCESSED_OK;
+                        }
+                        else
+                            processed = INPUT_BUFFER_NOT_CONSUMED;
                     }
+                    lastSeqNo = seqNo;
+                }
+                else
+                {
+                    outBuffer.setFlags(outBuffer.getFlags() & ~BUFFER_FLAG_FEC);
+                    outBuffer.setFlags(outBuffer.getFlags() | BUFFER_FLAG_PLC);
+
+                    processed = INPUT_BUFFER_NOT_CONSUMED;
+                    // We have decoded the expected sequence number with PLC.
+                    lastSeqNo++;
+                    if (lastSeqNo > 65535)
+                        lastSeqNo = 0;
                 }
             }
             else
+            {
                 processed = BUFFER_PROCESSED_FAILED;
+                if (lostFlag == 1)
+                {
+                    nbFECNotDecoded++;
+                    if (nbPacketsLost > 0)
+                        this.nbPacketsLost += nbPacketsLost;
+                }
+                lastSeqNo = seqNo;
+            }
 
             if ((processed & INPUT_BUFFER_NOT_CONSUMED)
                     != INPUT_BUFFER_NOT_CONSUMED)
                 framesPerPayload = 0;
         }
-        else /* Decode the packet's FEC data */
-        {
-            outputLength[0] = frameLength;
 
-            lbrrBytes[0] = 0;
-            Silk_dec_API.SKP_Silk_SDK_search_for_LBRR(
-                    inputData, inputOffset, (short)inputLength,
-                    1 /* previous packet */,
-                    lbrrData, 0, lbrrBytes);
-
-            if(logger.isTraceEnabled())
-            {
-                logger.trace("Packet loss detected. Last seen " + lastPacketSeq
-                        + ", current " + sequenceNumber);
-                logger.trace("Looking for FEC data, found "
-                        + lbrrBytes[0] + "bytes");
-            }
-
-            if(lbrrBytes[0] == 0)
-            {
-                //No FEC data found, process the normal data in the packet next
-                nbFECNotDecoded++;
-                processed = INPUT_BUFFER_NOT_CONSUMED;
-            }
-            else if(Silk_dec_API.SKP_Silk_SDK_Decode(
-                            decState, decControl, 0,
-                            lbrrData, 0, lbrrBytes[0],
-                            outputData, outputOffset, outputLength)
-                    == 0)
-            {
-                //Found FEC data, decode it
-                nbFECDecoded++;
-
-                outputBuffer.setDuration(FRAME_DURATION * 1000000);
-                outputBuffer.setLength(outputLength[0]);
-                outputBuffer.setOffset(outputOffset);
-
-                //Go on and process the normal data in the packet next
-                processed = INPUT_BUFFER_NOT_CONSUMED;
-            }
-            else
-                processed = BUFFER_PROCESSED_FAILED;
-        }
-
-        lastPacketSeq = sequenceNumber;
-        firstPacketProcessed = true;
         return processed;
     }
 
@@ -321,35 +389,5 @@ public class JavaDecoder
                     inputFormat,
                     SUPPORTED_INPUT_FORMATS,
                     SUPPORTED_OUTPUT_FORMATS);
-    }
-
-    /**
-     * A private class, an instance of which is registered via
-     * <tt>addControl</tt>. This instance will be used by outside classes to
-     * access decoder statistics.
-     */
-    private class Stats implements FECDecoderControl
-    {
-        /**
-         * Returns the number packets for which FEC data was decoded in
-         * <tt>JavaDecoder.this</tt>
-         *
-         * @return Returns the number packets for which FEC data was decoded in
-         * <tt>JavaDecoder.this</tt>
-         */
-        public int fecPacketsDecoded()
-        {
-            return nbFECDecoded;
-        }
-
-        /**
-         * Stub. Always return <tt>null</tt>, as it's not used.
-         *
-         * @return <tt>null</tt>
-         */
-        public Component getControlComponent()
-        {
-            return null;
-        }
     }
 }

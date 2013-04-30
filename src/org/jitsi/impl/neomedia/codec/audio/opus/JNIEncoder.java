@@ -20,14 +20,22 @@ import java.awt.*;
 import java.util.*;
 
 /**
- * Implements an opus encoder.
+ * Implements an Opus encoder.
  *
  * @author Boris Grozev
+ * @author Lyubomir Marinov
  */
 public class JNIEncoder
     extends AbstractCodec2
-    implements PacketLossAwareEncoder, FormatParametersAwareCodec
+    implements FormatParametersAwareCodec,
+               PacketLossAwareEncoder
 {
+    /**
+     * The <tt>Logger</tt> used by this <tt>JNIEncoder</tt> instance
+     * for logging output.
+     */
+    private static final Logger logger = Logger.getLogger(JNIEncoder.class);
+
     /**
      * The list of <tt>Format</tt>s of audio data supported as input by
      * <tt>JNIEncoder</tt> instances.
@@ -37,9 +45,10 @@ public class JNIEncoder
     /**
      * The list of sample rates of audio data supported as input by
      * <tt>JNIEncoder</tt> instances.
-     * This codec does support 8, 12, 16, 24 and 48kHz input. Just enable them
-     * here if needed. The reason lower rates are disabled is that enabling for
-     * example 8kHz causes FMJ to always use it.
+     * <p>
+     * The implementation does support 8, 12, 16, 24 and 48kHz but the lower
+     * sample rates are not listed to prevent FMJ from defaulting to them.
+     * </p>
      */
     static final double[] SUPPORTED_INPUT_SAMPLE_RATES
         = new double[] { 48000 };
@@ -49,19 +58,22 @@ public class JNIEncoder
      * <tt>JNIEncoder</tt> instances.
      */
     private static final Format[] SUPPORTED_OUTPUT_FORMATS
-        = new Format[] { new AudioFormat(
-                Constants.OPUS_RTP,
-                48000,
-                Format.NOT_SPECIFIED,
-                1,
-                Format.NOT_SPECIFIED,
-                Format.NOT_SPECIFIED,
-                Format.NOT_SPECIFIED,
-                Format.NOT_SPECIFIED,
-                Format.byteArray) };
+        = new Format[]
+                {
+                    new AudioFormat(
+                            Constants.OPUS_RTP,
+                            48000,
+                            /* sampleSizeInBits */ Format.NOT_SPECIFIED,
+                            1,
+                            /* endian */ Format.NOT_SPECIFIED,
+                            /* signed */ Format.NOT_SPECIFIED,
+                            /* frameSizeInBits */ Format.NOT_SPECIFIED,
+                            /* frameRate */ Format.NOT_SPECIFIED,
+                            Format.byteArray)
+                };
 
     /**
-     * Set the supported input formats.
+     * Sets the supported input formats.
      */
     static
     {
@@ -86,23 +98,23 @@ public class JNIEncoder
                         1,
                         AudioFormat.LITTLE_ENDIAN,
                         AudioFormat.SIGNED,
-                        Format.NOT_SPECIFIED,
-                        Format.NOT_SPECIFIED,
+                        /* frameSizeInBits */ Format.NOT_SPECIFIED,
+                        /* frameRate */ Format.NOT_SPECIFIED,
                         Format.byteArray);
         }
         for (int i = 0; i < supportedInputCount; i++)
         {
             SUPPORTED_INPUT_FORMATS[i+supportedInputCount]
-                    = new AudioFormat(
-                    AudioFormat.LINEAR,
-                    SUPPORTED_INPUT_SAMPLE_RATES[i],
-                    16,
-                    2,
-                    AudioFormat.LITTLE_ENDIAN,
-                    AudioFormat.SIGNED,
-                    Format.NOT_SPECIFIED,
-                    Format.NOT_SPECIFIED,
-                    Format.byteArray);
+                = new AudioFormat(
+                        AudioFormat.LINEAR,
+                        SUPPORTED_INPUT_SAMPLE_RATES[i],
+                        16,
+                        2,
+                        AudioFormat.LITTLE_ENDIAN,
+                        AudioFormat.SIGNED,
+                        /* frameSizeInBits */ Format.NOT_SPECIFIED,
+                        /* frameRate */ Format.NOT_SPECIFIED,
+                        Format.byteArray);
         }
     }
 
@@ -112,9 +124,10 @@ public class JNIEncoder
     private int bandwidthConfig;
 
     /**
-     *  Bitrate in bits per second setting, obtained from the configuration.
+     * The bitrate in bits per second obtained from the configuration and set on
+     * {@link #encoder}.
      */
-    private int bitrateConfig;
+    private int bitrate;
 
     /**
      * Number of channels to use, default to 1.
@@ -132,15 +145,25 @@ public class JNIEncoder
     private long encoder = 0;
 
     /**
-     * Frame size in ms (2.5, 5, 10, 20, 40 or 60). Default to 20
+     * The size in bytes of an audio frame input by this instance. Automatically
+     * calculated, based on {@link #frameSizeInMillis} and the
+     * <tt>inputFormat</tt> of this instance.
      */
-    private double frameSize = 20;
+    private int frameSizeInBytes;
 
     /**
-     * The <tt>Logger</tt> used by this <tt>JNIEncoder</tt> instance
-     * for logging output.
+     * The size/duration in milliseconds of an audio frame output by this
+     * instance. The possible values are: 2.5, 5, 10, 20, 40 and 60. The default
+     * value is 20.
      */
-    private static final Logger logger = Logger.getLogger(JNIEncoder.class);
+    private final int frameSizeInMillis = 20;
+
+    /**
+     * The size in samples per channel of an audio frame input by this instance.
+     * Automatically calculated, based on {@link #frameSizeInMillis} and the
+     * <tt>inputFormat</tt> of this instance.
+     */
+    private int frameSizeInSamplesPerChannel;
 
     /**
      * The minimum expected packet loss percentage to set to the encoder.
@@ -154,12 +177,12 @@ public class JNIEncoder
      * need to be prepended to a subsequent input <tt>Buffer</tt> in order to
      * process a total of {@link #inputFrameSize()} bytes.
      */
-    private byte[] previousInput = null;
+    private byte[] prevIn = null;
 
     /**
-     * The length of the audio data in {@link #previousInput}.
+     * The length of the audio data in {@link #prevIn}.
      */
-    private int previousInputLength = 0;
+    private int prevInLength = 0;
 
     /**
      * Whether to use DTX, obtained from configuration.
@@ -177,9 +200,7 @@ public class JNIEncoder
      */
     public JNIEncoder()
     {
-        super("Opus JNI Encoder",
-               AudioFormat.class,
-               SUPPORTED_OUTPUT_FORMATS);
+        super("Opus JNI Encoder", AudioFormat.class, SUPPORTED_OUTPUT_FORMATS);
 
         inputFormats = SUPPORTED_INPUT_FORMATS;
 
@@ -187,6 +208,8 @@ public class JNIEncoder
     }
 
     /**
+     * {@inheritDoc}
+     *
      * @see AbstractCodecExt#doClose()
      */
     protected void doClose()
@@ -194,8 +217,10 @@ public class JNIEncoder
         if (encoder != 0)
         {
            Opus.encoder_destroy(encoder);
+           encoder = 0;
         }
     }
+
     /**
      * Opens this <tt>Codec</tt> and acquires the resources that it needs to
      * operate. A call to {@link PlugIn#open()} on this instance will result in
@@ -211,9 +236,9 @@ public class JNIEncoder
         throws ResourceUnavailableException
     {
         AudioFormat inputFormat = (AudioFormat) getInputFormat();
-        int sampleRate = (int)inputFormat.getSampleRate();
-        channels = inputFormat.getChannels();
+        int sampleRate = (int) inputFormat.getSampleRate();
 
+        channels = inputFormat.getChannels();
         encoder = Opus.encoder_create(sampleRate, channels);
         if (encoder == 0)
             throw new ResourceUnavailableException("opus_encoder_create()");
@@ -237,13 +262,13 @@ public class JNIEncoder
 
         Opus.encoder_set_bandwidth(encoder, bandwidthConfig);
 
-        bitrateConfig = 1000 * //configuration is in kilobits per second
+        bitrate = 1000 * //configuration is in kilobits per second
                 cfg.getInt(Constants.PROP_OPUS_BITRATE, 32);
-        if(bitrateConfig < 500)
-            bitrateConfig = 500;
-        if(bitrateConfig > 512000)
-            bitrateConfig = 512000;
-        Opus.encoder_set_bitrate(encoder, bitrateConfig);
+        if(bitrate < 500)
+            bitrate = 500;
+        if(bitrate > 512000)
+            bitrate = 512000;
+        Opus.encoder_set_bitrate(encoder, bitrate);
 
         complexityConfig = cfg.getInt(Constants.PROP_OPUS_COMPLEXITY, 10);
         Opus.encoder_set_complexity(encoder, complexityConfig);
@@ -269,144 +294,135 @@ public class JNIEncoder
                     : "nb") +
                 ", bitrate " + Opus.encoder_get_bitrate(encoder) + ", DTX " +
                 Opus.encoder_get_dtx(encoder) + ", FEC " + useFecConfig);
-                //TODO: add Opus.encoder_get_inband_fec()
+                // TODO Add Opus.encoder_get_inband_fec().
         }
     }
 
     /**
-     * Processes (encode) a specific input <tt>Buffer</tt>.
+     * Processes (i.e. encodes) a specific input <tt>Buffer</tt>.
      *
-     * @param inputBuffer input buffer
-     * @param outputBuffer output buffer
-     * @return <tt>BUFFER_PROCESSED_OK</tt> if buffer has been successfully
-     * processed
+     * @param inBuffer the <tt>Buffer</tt> from which the media to be encoded is
+     * to be read
+     * @param outBuffer the <tt>Buffer</tt> into which the encoded media is to
+     * be written 
+     * @return <tt>BUFFER_PROCESSED_OK</tt> if the specified <tt>inBuffer</tt>
+     * has been processed successfully
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
-    protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
+    protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
-        Format inputFormat = inputBuffer.getFormat();
+        Format inFormat = inBuffer.getFormat();
 
-        if ((inputFormat != null)
-                && (inputFormat != this.inputFormat)
-                && !inputFormat.equals(this.inputFormat))
+        if ((inFormat != null)
+                && (inFormat != this.inputFormat)
+                && !inFormat.equals(this.inputFormat)
+                && (null == setInputFormat(inFormat)))
         {
-            if (null == setInputFormat(inputFormat))
-                return BUFFER_PROCESSED_FAILED;
+            return BUFFER_PROCESSED_FAILED;
         }
 
-        byte[] input = (byte[]) inputBuffer.getData();
-        int inputLength = inputBuffer.getLength();
-        int inputOffset = inputBuffer.getOffset();
+        byte[] in = (byte[]) inBuffer.getData();
+        int inLength = inBuffer.getLength();
+        int inOffset = inBuffer.getOffset();
 
-
-        int inputBytesNeeded = inputFrameSize();
-
-        if ((previousInput != null) && (previousInputLength > 0))
+        if ((prevIn != null) && (prevInLength > 0))
         {
-            if (previousInputLength < inputBytesNeeded)
+            if (prevInLength < frameSizeInBytes)
             {
-                if (previousInput.length < inputBytesNeeded)
+                if (prevIn.length < frameSizeInBytes)
                 {
-                    byte[] newPreviousInput = new byte[inputBytesNeeded];
+                    byte[] newPrevInput = new byte[frameSizeInBytes];
 
-                    System.arraycopy(
-                            previousInput, 0,
-                            newPreviousInput, 0,
-                            previousInput.length);
-                    previousInput = newPreviousInput;
+                    System.arraycopy(prevIn, 0, newPrevInput, 0, prevIn.length);
+                    prevIn = newPrevInput;
                 }
 
-                int bytesToCopyFromInputToPreviousInput
-                    = Math.min(
-                            inputBytesNeeded - previousInputLength,
-                            inputLength);
+                int bytesToCopyFromInToPrevInput
+                    = Math.min(frameSizeInBytes - prevInLength, inLength);
 
-                if (bytesToCopyFromInputToPreviousInput > 0)
+                if (bytesToCopyFromInToPrevInput > 0)
                 {
                     System.arraycopy(
-                            input, inputOffset,
-                            previousInput, previousInputLength,
-                            bytesToCopyFromInputToPreviousInput);
-                    previousInputLength += bytesToCopyFromInputToPreviousInput;
-                    inputLength -= bytesToCopyFromInputToPreviousInput;
-                    inputBuffer.setLength(inputLength);
-                    inputBuffer.setOffset(
-                            inputOffset + bytesToCopyFromInputToPreviousInput);
+                            in, inOffset,
+                            prevIn, prevInLength,
+                            bytesToCopyFromInToPrevInput);
+                    prevInLength += bytesToCopyFromInToPrevInput;
+                    inLength -= bytesToCopyFromInToPrevInput;
+                    inBuffer.setLength(inLength);
+                    inBuffer.setOffset(inOffset + bytesToCopyFromInToPrevInput);
                 }
             }
 
-            if (previousInputLength == inputBytesNeeded)
+            if (prevInLength == frameSizeInBytes)
             {
-                input = previousInput;
-                inputOffset = 0;
-                previousInputLength = 0;
+                in = prevIn;
+                inOffset = 0;
+                prevInLength = 0;
             }
             else
             {
-                outputBuffer.setLength(0);
-                discardOutputBuffer(outputBuffer);
-                if (inputLength < 1)
+                outBuffer.setLength(0);
+                discardOutputBuffer(outBuffer);
+                if (inLength < 1)
                     return BUFFER_PROCESSED_OK;
                 else
                     return BUFFER_PROCESSED_OK | INPUT_BUFFER_NOT_CONSUMED;
             }
         }
-        else if (inputLength < 1)
+        else if (inLength < 1)
         {
-            outputBuffer.setLength(0);
-            discardOutputBuffer(outputBuffer);
+            outBuffer.setLength(0);
+            discardOutputBuffer(outBuffer);
             return BUFFER_PROCESSED_OK;
         }
-        else if (inputLength < inputBytesNeeded)
+        else if (inLength < frameSizeInBytes)
         {
-            if ((previousInput == null) || (previousInput.length < inputLength))
-                previousInput = new byte[inputBytesNeeded];
-            System.arraycopy(input, inputOffset, previousInput, 0, inputLength);
-            previousInputLength = inputLength;
-            outputBuffer.setLength(0);
-            discardOutputBuffer(outputBuffer);
+            if ((prevIn == null) || (prevIn.length < inLength))
+                prevIn = new byte[frameSizeInBytes];
+            System.arraycopy(in, inOffset, prevIn, 0, inLength);
+            prevInLength = inLength;
+            outBuffer.setLength(0);
+            discardOutputBuffer(outBuffer);
             return BUFFER_PROCESSED_OK;
         }
         else
         {
-            inputLength -= inputBytesNeeded;
-            inputBuffer.setLength(inputLength);
-            inputBuffer.setOffset(inputOffset + inputBytesNeeded);
+            inLength -= frameSizeInBytes;
+            inBuffer.setLength(inLength);
+            inBuffer.setOffset(inOffset + frameSizeInBytes);
         }
 
+        // At long last, do the actual encoding.
+        byte[] out = validateByteArraySize(outBuffer, Opus.MAX_PACKET, false);
+        int outLength
+            = Opus.encode(
+                    encoder,
+                    in, inOffset, frameSizeInSamplesPerChannel,
+                    out, /* 0, */ out.length);
 
-
-        /* At long last, do the actual encoding. */
-
-        byte[] output
-            = validateByteArraySize(outputBuffer, Opus.MAX_PACKET, false);
-
-        int outputLength = Opus.encode(encoder, input, inputOffset,
-                inputBytesNeeded / 2, output, Opus.MAX_PACKET);
-
-
-        if (outputLength < 0)  //error from opus_encode
+        if (outLength < 0)  // error from opus_encode
             return BUFFER_PROCESSED_FAILED;
 
-        if (outputLength > 0)
+        if (outLength > 0)
         {
-            outputBuffer.setDuration((long) this.frameSize * 1000 * 1000);
-            outputBuffer.setFormat(getOutputFormat());
-            outputBuffer.setLength(outputLength);
-            outputBuffer.setOffset(0);
+            outBuffer.setDuration(((long) frameSizeInMillis) * 1000 * 1000);
+            outBuffer.setFormat(getOutputFormat());
+            outBuffer.setLength(outLength);
+            outBuffer.setOffset(0);
         }
 
-        if (inputLength < 1)
+        if (inLength < 1)
             return BUFFER_PROCESSED_OK;
         else
             return BUFFER_PROCESSED_OK | INPUT_BUFFER_NOT_CONSUMED;
     }
 
     /**
-     * Stub. Only added in order to implement the
-     * <tt>Control</tt> interface.
+     * Implements {@link Control#getControlComponent()}. <tt>JNIEncoder</tt>
+     * does not provide user interface of its own.
      *
-     * @return null
+     * @return <tt>null</tt> to signify that <tt>JNIEncoder</tt> does not
+     * provide user interface of its own 
      */
     public Component getControlComponent()
     {
@@ -414,65 +430,46 @@ public class JNIEncoder
     }
 
     /**
-     * Get the output format.
+     * Gets the <tt>Format</tt> of the media output by this <tt>Codec</tt>.
      *
-     * @return output format
+     * @return the <tt>Format</tt> of the media output by this <tt>Codec</tt>
      * @see net.sf.fmj.media.AbstractCodec#getOutputFormat()
      */
     @Override
     public Format getOutputFormat()
     {
-        Format outputFormat = super.getOutputFormat();
+        Format f = super.getOutputFormat();
 
-        if ((outputFormat != null)
-                && (outputFormat.getClass() == AudioFormat.class))
+        if ((f != null) && (f.getClass() == AudioFormat.class))
         {
-            AudioFormat outputAudioFormat = (AudioFormat) outputFormat;
+            AudioFormat af = (AudioFormat) f;
 
-            outputFormat = setOutputFormat(
-                new AudioFormat(
-                            outputAudioFormat.getEncoding(),
-                            outputAudioFormat.getSampleRate(),
-                            outputAudioFormat.getSampleSizeInBits(),
-                            outputAudioFormat.getChannels(),
-                            outputAudioFormat.getEndian(),
-                            outputAudioFormat.getSigned(),
-                            outputAudioFormat.getFrameSizeInBits(),
-                            outputAudioFormat.getFrameRate(),
-                            outputAudioFormat.getDataType())
-                        {
-                            private static final long serialVersionUID = 0L;
+            f
+                = setOutputFormat(
+                        new AudioFormat(
+                                    af.getEncoding(),
+                                    af.getSampleRate(),
+                                    af.getSampleSizeInBits(),
+                                    af.getChannels(),
+                                    af.getEndian(),
+                                    af.getSigned(),
+                                    af.getFrameSizeInBits(),
+                                    af.getFrameRate(),
+                                    af.getDataType())
+                                {
+                                    private static final long serialVersionUID
+                                        = 0L;
 
-                            @Override
-                            public long computeDuration(long length)
-                            {
-                                return ((long) JNIEncoder.this.frameSize)*1000*1000;
-                            }
-                        });
+                                    @Override
+                                    public long computeDuration(long length)
+                                    {
+                                        return
+                                            ((long) frameSizeInMillis)
+                                                * 1000 * 1000;
+                                    }
+                                });
         }
-        return outputFormat;
-    }
-
-    /**
-     * Returns the number of bytes that we need to read from the input buffer
-     * in order ot fill a frame of <tt>frameSize</tt>. Depends on the input
-     * sample frequency, the number of channels and <tt>frameSize</tt>
-     *
-     * @return the number of bytes that we need to read from the input buffer
-     * in order ot fill a frame of <tt>frameSize</tt>. Depends on the input
-     * sample frequency, the number of channels and <tt>frameSize</tt>
-     */
-    private int inputFrameSize()
-    {
-        int fs =
-        (int) (
-           2 /* sizeof(short) */
-           * channels
-           *  ((AudioFormat)getInputFormat()).getSampleRate() /* samples in 1s */
-           *   frameSize /* milliseconds */
-           ) / 1000;
-
-        return fs;
+        return f;
     }
 
     /**
@@ -483,13 +480,18 @@ public class JNIEncoder
      */
     public void setExpectedPacketLoss(int percentage)
     {
-        if(opened)
-            Opus.encoder_set_packet_loss_perc(encoder,
+        if (opened)
+        {
+            Opus.encoder_set_packet_loss_perc(
+                    encoder,
                     (percentage > minPacketLoss) ? percentage : minPacketLoss);
-
-        if(logger.isTraceEnabled())
-            logger.trace("Updating expected packet loss: " + percentage
-                    + " (minimum " + minPacketLoss + ")");
+            if (logger.isTraceEnabled())
+            {
+                logger.trace(
+                        "Updating expected packet loss: " + percentage
+                            + " (minimum " + minPacketLoss + ")");
+            }
+        }
     }
 
     /**
@@ -499,32 +501,65 @@ public class JNIEncoder
      */
     public void setFormatParameters(Map<String, String> fmtps)
     {
-        if(logger.isDebugEnabled())
+        if (logger.isDebugEnabled())
             logger.debug("Setting format parameters: " + fmtps);
 
-        String str = fmtps.get("maxaveragebitrate");
-        /* TODO: Use the default value for the 'maxaveragebitrate' as defined here:
+        /*
+         * TODO Use the default value for maxaveragebitrate as defined at
          * http://tools.ietf.org/html/draft-spittka-payload-rtp-opus-02#section-6.1
          */
-        int maxBitrate = 40000;
+        int maxaveragebitrate = 40000;
+
         try
         {
-            maxBitrate = Integer.parseInt(str);
-        }
-        catch(Exception e)
-        {} //ignore parsing errors
+            String s = fmtps.get("maxaveragebitrate");
 
+            if ((s != null) && (s.length() != 0))
+                maxaveragebitrate = Integer.parseInt(s);
+        }
+        catch (Exception e)
+        {
+            // Ignore and fall back to the default value.
+        }
         Opus.encoder_set_bitrate(
                 encoder,
-                (maxBitrate<bitrateConfig) ? maxBitrate : bitrateConfig);
+                (maxaveragebitrate < bitrate) ? maxaveragebitrate : bitrate);
 
-        //DTX is off if not specified
+        // DTX is off unless specified.
         boolean useDtx = "1".equals(fmtps.get("usedtx"));
         Opus.encoder_set_dtx(encoder, (useDtx && useDtxConfig) ? 1 : 0);
 
-        //FEC is on if not specified
-        str = fmtps.get("useinbandfec");
-        boolean useFec = (str == null) || str.equals("1");
+        // FEC is on unless specified.
+        String s = fmtps.get("useinbandfec");
+        boolean useFec = (s == null) || s.equals("1");
         Opus.encoder_set_inband_fec(encoder, (useFec && useFecConfig) ? 1 : 0);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Automatically tracks and calculates the size in bytes of an audio frame
+     * (to be) output by this instance.
+     */
+    @Override
+    public Format setInputFormat(Format format)
+    {
+        Format oldValue = getInputFormat();
+        Format setInputFormat = super.setInputFormat(format);
+        Format newValue = getInputFormat();
+
+        if (oldValue != newValue)
+        {
+            AudioFormat af = (AudioFormat) newValue;
+            int sampleRate = (int) af.getSampleRate();
+
+            frameSizeInSamplesPerChannel
+                = (sampleRate * frameSizeInMillis) / 1000;
+            frameSizeInBytes
+                = 2 /* sizeof(opus_int16) */
+                    * channels
+                    * frameSizeInSamplesPerChannel;
+        }
+        return setInputFormat;
     }
 }

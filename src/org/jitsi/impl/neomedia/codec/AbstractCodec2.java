@@ -23,6 +23,19 @@ public abstract class AbstractCodec2
     extends AbstractCodec
 {
     /**
+     * The <tt>Buffer</tt> flag which indicates that the respective
+     * <tt>Buffer</tt> contains audio data which has been decoded as a result of
+     * the operation of FEC.
+     */
+    public static final int BUFFER_FLAG_FEC = (1 << 24);
+    /**
+     * The <tt>Buffer</tt> flag which indicates that the respective
+     * <tt>Buffer</tt> contains audio data which has been decoded as a result of
+     * the operation of PLC.
+     */
+    public static final int BUFFER_FLAG_PLC = (1 << 25);
+
+    /**
      * An empty array of <tt>Format</tt> element type. Explicitly defined to
      * reduce unnecessary allocations.
      */

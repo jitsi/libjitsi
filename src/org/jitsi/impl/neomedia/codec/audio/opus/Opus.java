@@ -7,9 +7,11 @@
 package org.jitsi.impl.neomedia.codec.audio.opus;
 
 /**
- * Implements an interface to the native opus library.
+ * Defines the API of the native opus library to be utilized by the libjitsi
+ * library.
  *
  * @author Boris Grozev
+ * @author Lyubomir Marinov
  */
 public class Opus
 {
@@ -61,7 +63,7 @@ public class Opus
     public static final int OPUS_OK = 0;
 
     /**
-     * Load the native library.
+     * Loads the native JNI library.
      */
     static
     {
@@ -85,21 +87,30 @@ public class Opus
     /**
      * Decodes an opus packet from <tt>input</tt> into <tt>output</tt>.
      *
-     * @param decoder The decoder to use
-     * @param input An array containing the opus packet.
-     * @param inputOffset The offset into <tt>input</tt> where the packets
-     * begins.
-     * @param inputSize Size of the packet in bytes.
-     * @param output Output buffer where the output will be stored.
-     * @param outputSize Size in bytes of the output buffer.
+     * @param decoder the <tt>OpusDecoder</tt> state to perform the decoding
+     * @param input an array of <tt>byte</tt>s which represents the input
+     * payload to decode. If <tt>null</tt>, indicates packet loss.
+     * @param inputOffset the offset in <tt>input</tt> at which the payload to
+     * be decoded begins
+     * @param inputLength the length in bytes in <tt>input</tt> beginning at
+     * <tt>inputOffset</tt> of the payload to be decoded 
+     * @param output an array of <tt>byte</tt>s into which the decoded signal is
+     * to be output
+     * @param outputOffset the offset in <tt>output</tt> at which the output of
+     * the decoded signal is to begin
+     * @param outputFrameSize the number of samples per channel <tt>output</tt>
+     * beginning at <tt>outputOffset</tt> of the maximum space available for
+     * output of the decoded signal
      * @param decodeFEC 0 to decode the packet normally, 1 to decode the FEC
-     * data in the packet.
-     *
-     * @return Number of samples decoded
+     * data in the packet
+     * @return the number of decoded samples written into <tt>output</tt>
+     * (beginning at <tt>outputOffset</tt>)
      */
-    public static native int decode(long decoder, byte[] input, int inputOffset,
-                                    int inputSize, byte[] output,
-                                    int outputSize, int decodeFEC);
+    public static native int decode(
+            long decoder,
+            byte[] input, int inputOffset, int inputLength,
+            byte[] output, /* int outputOffset, */ int outputFrameSize,
+            int decodeFEC);
 
     /**
      * Creates an OpusDecoder structure, returns a pointer to it or 0 on error.
@@ -120,15 +131,17 @@ public class Opus
 
     /**
      * Returns the number of samples in an opus packet
-
+     *
      * @param decoder The decoder to use.
      * @param packet Array holding the packet.
      * @param offset Offset into packet where the actual packet begins.
-     * @param len Length of the packet.
+     * @param length Length of the packet.
      *
      * @return the number of samples in <tt>packet</tt> .
      */
-    public static native int decoder_get_nb_samples(long decoder, byte[] packet, int offset, int len);
+    public static native int decoder_get_nb_samples(
+            long decoder,
+            byte[] packet, int offset, int length);
 
     /**
      * Returns the size in bytes required for an OpusDecoder structure.
@@ -145,17 +158,19 @@ public class Opus
      *
      * @param encoder The encoder to use.
      * @param input Array containing PCM encoded input.
-     * @param offset Offset to use into the <tt>input</tt> array
-     * @param frameSize The number of samples per channel in <tt>input</tt>.
+     * @param inputOffset Offset to use into the <tt>input</tt> array
+     * @param inputFrameSize The number of samples per channel in <tt>input</tt>.
      * @param output Array where the encoded packet will be stored.
-     * @param outputSize The number of available bytes in <tt>output</tt>.
+     * @param outputOffset
+     * @param outputLength The number of available bytes in <tt>output</tt>.
      *
      * @return The number of bytes written in <tt>output</tt>, or a negative
      * on error.
      */
-    public static native int encode(long encoder, byte[] input, int offset,
-                                    int frameSize, byte[] output,
-                                    int outputSize);
+    public static native int encode(
+            long encoder,
+            byte[] input, int inputOffset, int inputFrameSize,
+            byte[] output, /* int outputOffset, */ int outputLength);
 
     /**
      * Creates an OpusEncoder structure, returns a pointer to it casted to long.
@@ -277,14 +292,11 @@ public class Opus
      * DTX setting of the encoder.
      *
      * @param encoder The encoder to use
-     * @param use_dtx 0 to turn DTX off, non-zero to turn it on
+     * @param dtx 0 to turn DTX off, non-zero to turn it on
      *
      * @return OPUS_OK on success
      */
-    public static native int encoder_set_dtx(long encoder, int use_dtx);
-
-
-
+    public static native int encoder_set_dtx(long encoder, int dtx);
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
@@ -302,12 +314,12 @@ public class Opus
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
      * encoder FEC setting.
      * @param encoder The encoder to use
-     * @param use_inband_fec 0 to turn FEC off, non-zero to turn it on.
+     * @param inbandFEC 0 to turn FEC off, non-zero to turn it on.
      *
      * @return OPUS_OK on success
      */
     public static native int encoder_set_inband_fec(long encoder,
-                                                    int use_inband_fec);
+                                                    int inbandFEC);
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
@@ -329,23 +341,23 @@ public class Opus
      * encoder's expected packet loss percentage.
      *
      * @param encoder The encoder to use
-     * @param percentage 0 to turn DTX off, non-zero to turn it on
+     * @param packetLossPerc
      *
      * @return OPUS_OK on success.
      */
     public static native int encoder_set_packet_loss_perc(long encoder,
-                                                          int percentage);
+                                                          int packetLossPerc);
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
      * encoder VBR setting
      *
      * @param encoder The encoder to use
-     * @param use_vbr 0 to turn VBR off, non-zero to turn it on.
+     * @param vbr 0 to turn VBR off, non-zero to turn it on.
      *
      * @return OPUS_OK on success
      */
-    public static native int encoder_set_vbr(long encoder, int use_vbr);
+    public static native int encoder_set_vbr(long encoder, int vbr);
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
@@ -360,12 +372,12 @@ public class Opus
                                                         int use_cvbr);
 
     /**
-     * Returns the audio bandwidth of an opus packet, one of
+     * Returns the audio bandwidth of an Opus packet, one of
      * <tt>BANDWIDTH_FULLBAND</tt>, <tt>BANDWIDTH_MEDIUMBAND</tt>,
      * <tt>BANDWIDTH_NARROWBAND</tt>, <tt>BANDWIDTH_SUPERWIDEBAND</tt> or
      * <tt>BANDWIDTH_WIDEBAND</tt>, or <tt>INVALID_PACKET</tt> on error.
      *
-     * @param packet Array holding the packet.
+     * @param data Array holding the packet.
      * @param offset Offset into packet where the actual packet begins.
      *
      * @return one of  <tt>BANDWIDTH_FULLBAND</tt>,
@@ -373,28 +385,27 @@ public class Opus
      * <tt>BANDWIDTH_SUPERWIDEBAND</tt>, <tt>BANDWIDTH_WIDEBAND</tt>,
      * or <tt>INVALID_PACKET</tt> on error.
      */
-    public static native int packet_get_bandwidth(byte[] packet, int offset);
+    public static native int packet_get_bandwidth(byte[] data, int offset);
 
     /**
-     * Returns the number of channels encoded in an opus packet.
+     * Returns the number of channels encoded in an Opus packet.
      *
-     * @param packet Array holding the packet.
+     * @param data Array holding the packet.
      * @param offset Offset into packet where the actual packet begins.
      *
-     * @return the number of channels encoded in <tt>packet</tt>.
+     * @return the number of channels encoded in <tt>data</tt>.
      */
-    public static native int packet_get_nb_channels(byte[] packet, int offset);
+    public static native int packet_get_nb_channels(byte[] data, int offset);
 
     /**
-     * Returns the number of frames in an opus packet.
+     * Returns the number of frames in an Opus packet.
      *
      * @param packet Array holding the packet.
      * @param offset Offset into packet where the actual packet begins.
-     * @param len Length of the packet.
+     * @param length Length of the packet.
      *
      * @return the number of frames in <tt>packet</tt>.
      */
     public static native int packet_get_nb_frames(byte[] packet, int offset,
-                                                  int len);
-
+                                                  int length);
 }
