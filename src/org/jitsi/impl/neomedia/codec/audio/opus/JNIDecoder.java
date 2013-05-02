@@ -230,7 +230,7 @@ public class JNIDecoder
                         decoder,
                         in, inOffset, inLength,
                         out, /* outOffset, */ lastFrameSizeInSamplesPerChannel,
-                        /* decodeFEC */ 0);
+                        /* decodeFEC */ 1);
 
             if (frameSizeInSamplesPerChannel > 0)
             {
@@ -266,7 +266,7 @@ public class JNIDecoder
                         decoder,
                         in, inOffset, inLength,
                         out, /* outOffset, */ frameSizeInSamplesPerChannel,
-                        /* decodeFEC */ 1);
+                        /* decodeFEC */ 0);
             if (frameSizeInSamplesPerChannel > 0)
             {
                 int frameSizeInBytes
