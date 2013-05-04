@@ -16,7 +16,7 @@ import org.jitsi.impl.neomedia.codec.video.*;
  * @author Lyubomir Marinov
  */
 public class JAWTRendererVideoComponent
-    extends Canvas
+    extends AbstractAWTRendererVideoComponent
 {
     /**
      * The serial version UID of the <tt>JAWTRendererVideoComponent</tt> class
@@ -25,144 +25,33 @@ public class JAWTRendererVideoComponent
     private static final long serialVersionUID = 0L;
 
     /**
-     * The <tt>JAWTRenderer</tt> which paints in this
-     * <tt>JAWTRendererVideoComponent</tt>.
-     */
-    protected final JAWTRenderer renderer;
-
-    /**
-     * The indicator which determines whether the native counterpart of this
-     * <tt>JAWTRenderer</tt> wants <tt>paint</tt> calls on its AWT
-     * <tt>Component</tt> to be delivered. For example, after the native
-     * counterpart has been able to acquire the native handle of the AWT
-     * <tt>Component</tt>, it may be able to determine when the native
-     * handle needs painting without waiting for AWT to call <tt>paint</tt>
-     * on the <tt>Component</tt>. In such a scenario, the native counterpart
-     * may indicate with <tt>false</tt> that it does not need further
-     * <tt>paint</tt> deliveries.
-     */
-    private boolean wantsPaint = true;
-
-    /**
      * Initializes a new <tt>JAWTRendererVideoComponent</tt> instance.
      *
      * @param renderer
      */
     public JAWTRendererVideoComponent(JAWTRenderer renderer)
     {
-        this.renderer = renderer;
+        super(renderer);
     }
 
     /**
-     * Overrides {@link Component#addNotify()} to reset the indicator which
-     * determines whether the native counterpart of this <tt>JAWTRenderer</tt>
-     * wants <tt>paint</tt> calls on its AWT <tt>Component</tt> to be delivered.
+     * Paint this <tt>Component</tt> in the native counterpart of its
+     * associated <tt>AbstractAWTRenderer</tt>.
+     * @param handle the handle to the native counterpart of a
+     * <tt>AbstractAWTRenderer</tt> which is to draw into the specified AWT
+     * <tt>Component</tt>
+     * @param component the AWT <tt>Component</tt> into which the
+     * <tt>JAWTRenderer</tt> and its native counterpart specified by
+     * <tt>handle</tt> are to draw. The platform-specific info of
+     * <tt>component</tt> is guaranteed to be valid only during the execution of
+     * <tt>paint</tt>.
+     * @param g the <tt>Graphics</tt> context into which the drawing is to be
+     * performed
+     * @param zOrder
      */
-    @Override
-    public void addNotify()
+    protected boolean doPaint(long handle, Component component,
+            Graphics g, int zOrder)
     {
-        super.addNotify();
-
-        wantsPaint = true;
-    }
-
-    /**
-     * Gets the handle of the native counterpart of the
-     * <tt>JAWTRenderer</tt> which paints in this
-     * <tt>AWTVideoComponent</tt>.
-     *
-     * @return the handle of the native counterpart of the
-     * <tt>JAWTRenderer</tt> which paints in this <tt>AWTVideoComponent</tt>
-     */
-    protected long getHandle()
-    {
-        return renderer.getHandle();
-    }
-
-    /**
-     * Gets the synchronization lock which protects the access to the
-     * <tt>handle</tt> property of this <tt>AWTVideoComponent</tt>.
-     *
-     * @return the synchronization lock which protects the access to the
-     * <tt>handle</tt> property of this <tt>AWTVideoComponent</tt>
-     */
-    protected Object getHandleLock()
-    {
-        return renderer.getHandleLock();
-    }
-
-    /**
-     * Overrides {@link Canvas#paint(Graphics)} to paint this <tt>Component</tt>
-     * in the native counterpart of its associated <tt>JAWTRenderer</tt>.
-     */
-    @Override
-    public void paint(Graphics g)
-    {
-        /*
-         * XXX If the size of this Component is tiny enough to crash sws_scale,
-         * then it may cause issues with other functionality as well. Stay on
-         * the safe side.
-         */
-        if (wantsPaint
-                && (getWidth() >= SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
-                && (getHeight() >= SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
-        {
-            synchronized (getHandleLock())
-            {
-                long handle;
-
-                if ((handle = getHandle()) != 0)
-                {
-                    Container parent = getParent();
-                    int zOrder
-                        = (parent == null)
-                            ? -1
-                            : parent.getComponentZOrder(this);
-
-                    wantsPaint = JAWTRenderer.paint(handle, this, g, zOrder);
-                }
-            }
-        }
-    }
-
-    /**
-     * Overrides {@link Component#removeNotify()} to reset the indicator which
-     * determines whether the native counterpart of this <tt>JAWTRenderer</tt>
-     * wants <tt>paint</tt> calls on its AWT <tt>Component</tt> to be delivered.
-     */
-    @Override
-    public void removeNotify()
-    {
-        /*
-         * In case the associated JAWTRenderer has said that it does not
-         * want paint events/notifications, ask it again next time because
-         * the native handle of this Canvas may be recreated.
-         */
-        wantsPaint = true;
-
-        super.removeNotify();
-    }
-
-    /**
-     * Overrides {@link Canvas#update(Graphics)} to skip the filling with the
-     * background color in order to prevent flickering.
-     */
-    @Override
-    public void update(Graphics g)
-    {
-        synchronized (getHandleLock())
-        {
-            if (!wantsPaint || (getHandle() == 0))
-            {
-                super.update(g);
-                return;
-            }
-        }
-
-        /*
-         * Skip the filling with the background color because it causes
-         * flickering.
-         */
-        paint(g);
+        return JAWTRenderer.paint(handle, component, g, zOrder);
     }
 }

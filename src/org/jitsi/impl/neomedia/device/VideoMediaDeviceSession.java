@@ -19,6 +19,7 @@ import javax.media.protocol.*;
 import javax.swing.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.codec.video.h264.*;
 import org.jitsi.impl.neomedia.control.*;
@@ -26,6 +27,7 @@ import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.control.KeyFrameControl;
 import org.jitsi.service.neomedia.event.*;
@@ -967,6 +969,16 @@ public class VideoMediaDeviceSession
     protected void playerConfigureComplete(Processor player)
     {
         super.playerConfigureComplete(player);
+        
+        /* do not use other effect or codec (scaler) when FFmpeg decodes 
+         * H264/H263 with hardware acceleration, "decoded data have to go
+         * directly to rendering step!
+         */
+        if(hasHardwareDecoding())
+        {
+            logger.info("Player uses hardware decoding/rendering");
+            return;
+        }
 
         TrackControl[] trackControls = player.getTrackControls();
         SwScale playerScaler = null;
@@ -1590,7 +1602,7 @@ public class VideoMediaDeviceSession
 
                 encoder.setPacketizationMode(packetizationMode);
             }
-
+            
             // additionalCodecSettings
             {
                 encoder.setAdditionalCodecSettings(
@@ -2015,4 +2027,22 @@ public class VideoMediaDeviceSession
             return inputFormat;
         }
     }
+    
+    /**
+     * Returns whether or not current decoder uses hardware decoding feature.
+     * @return true if decoder uses hardware decoding, false otherwise.
+     */
+     private boolean hasHardwareDecoding()
+     {
+         boolean hardwareEnabled = NeomediaServiceUtils.getMediaServiceImpl().
+             isHardwareDecodingEnabled();
+         boolean h264 = getFormat().getJMFEncoding().equalsIgnoreCase(
+                 Constants.H264_RTP) && 
+                 FFmpeg.hw_decoder_is_supported(FFmpeg.CODEC_ID_H264);
+         boolean h263 = getFormat().getJMFEncoding().equalsIgnoreCase(
+                 Constants.H263P_RTP) && 
+                 FFmpeg.hw_decoder_is_supported(FFmpeg.CODEC_ID_H263);
+        
+         return hardwareEnabled && (h264 || h263);
+     }
 }

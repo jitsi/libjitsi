@@ -345,6 +345,14 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
+ * Method:    avcodeccontext_set_opaque
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_1set_1opaque
+  (JNIEnv *, jclass, jlong, jlong);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
  * Method:    avcodeccontext_set_rtp_payload_size
  * Signature: (JI)V
  */
@@ -622,6 +630,14 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_sws_1scale__JJI
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_sws_1scale__JLjava_lang_Object_2IIIIILjava_lang_Object_2III
   (JNIEnv *, jclass, jlong, jobject, jint, jint, jint, jint, jint, jobject, jint, jint, jint);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
+ * Method:    hw_decoder_is_supported
+ * Signature: (I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_hw_1decoder_1is_1supported
+  (JNIEnv *, jclass, jint);
 
 #ifdef __cplusplus
 }

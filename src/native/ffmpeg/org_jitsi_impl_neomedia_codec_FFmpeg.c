@@ -25,6 +25,8 @@
 
 #include <libswscale/swscale.h>
 
+#include "hw_decoder.h"
+
 #define DEFINE_AVCODECCONTEXT_F_PROPERTY_SETTER(name, property) \
     JNIEXPORT void JNICALL \
     Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_1set_1##name \
@@ -38,6 +40,14 @@
         (JNIEnv *env, jclass clazz, jlong ctx, jint property) \
     { \
         ((AVCodecContext *) (intptr_t) ctx)->property = (int) property; \
+    }
+
+#define DEFINE_AVCODECCONTEXT_J_PROPERTY_SETTER(name, property) \
+    JNIEXPORT void JNICALL \
+    Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodeccontext_1set_1##name \
+        (JNIEnv *env, jclass clazz, jlong ctx, jlong property) \
+    { \
+        ((AVCodecContext *) (intptr_t) ctx)->property = (long) property; \
     }
 
 JNIEXPORT void JNICALL
@@ -81,7 +91,21 @@ JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1close
     (JNIEnv *env, jclass clazz, jlong ctx)
 {
-    return (jint) avcodec_close((AVCodecContext *) (intptr_t) ctx);
+    AVCodecContext* avctx = (AVCodecContext*)(intptr_t)ctx;
+    jint ret = (jint) avcodec_close(avctx);
+    struct hw_decoder* obj = (struct hw_decoder*)avctx->opaque;
+
+    if(avctx->hwaccel_context)
+    {
+      free(avctx->hwaccel_context);
+    }
+
+    if(obj)
+    {
+        hw_decoder_free(&obj);
+    }
+
+    return ret;
 }
 
 JNIEXPORT jint JNICALL
@@ -98,6 +122,9 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1decode_1video__JJ_3Z_3BI
 
         if (buf_ptr) {
             AVPacket avpkt;
+            AVFrame* avframe = (AVFrame*)(intptr_t)frame;
+            AVCodecContext* avcontext = (AVCodecContext *) (intptr_t) ctx;
+
 
             av_init_packet(&avpkt);
             avpkt.data = (uint8_t *) buf_ptr;
@@ -105,12 +132,14 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1decode_1video__JJ_3Z_3BI
 
             ret
                 = avcodec_decode_video2(
-                    (AVCodecContext *) (intptr_t) ctx,
-                    (AVFrame *) (intptr_t) frame,
+                    avcontext,
+                    avframe,
                     &n_got_picture,
                     &avpkt);
 
             (*env)->ReleaseByteArrayElements (env, buf, buf_ptr, 0);
+
+            avframe->opaque = avcontext->opaque;
 
             if (got_picture) {
                 jboolean j_got_picture = n_got_picture ? JNI_TRUE : JNI_FALSE;
@@ -285,10 +314,31 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1open2
     }
     if (0 <= ret)
     {
+        /* only Linux supports hardware decoding at the moment */
+        AVCodecContext* avcontext = (AVCodecContext*)(intptr_t)ctx;
+        AVCodec* avcodec = (AVCodec*)(intptr_t)codec;
+
+#ifdef __linux__
+        /* hardware decoding supported ? */
+        if(avcontext->opaque)
+        {
+            avcontext->get_format = hw_ffmpeg_get_format;
+            avcontext->get_buffer = hw_ffmpeg_get_buffer;
+            avcontext->reget_buffer = hw_ffmpeg_get_buffer;
+            avcontext->release_buffer = hw_ffmpeg_release_buffer;
+            avcontext->thread_count = 1;
+            avcontext->active_thread_type = 0;
+            avcontext->draw_horiz_band = NULL;
+            avcontext->slice_flags = SLICE_FLAG_CODED_ORDER | SLICE_FLAG_ALLOW_FIELD;
+            /* reset opaque */
+            avcontext->opaque = NULL;
+        }
+#endif
+
         ret
             = avcodec_open2(
-                    (AVCodecContext *) (intptr_t) ctx,
-                    (AVCodec *) (intptr_t) codec,
+                    avcontext,
+                    avcodec,
                     &options_);
     }
     if (options_)
@@ -373,6 +423,8 @@ DEFINE_AVCODECCONTEXT_I_PROPERTY_SETTER(me_1range, me_range)
 DEFINE_AVCODECCONTEXT_I_PROPERTY_SETTER(me_1subpel_1quality, me_subpel_quality)
 DEFINE_AVCODECCONTEXT_I_PROPERTY_SETTER(pix_1fmt, pix_fmt)
 DEFINE_AVCODECCONTEXT_I_PROPERTY_SETTER(profile, profile)
+
+DEFINE_AVCODECCONTEXT_J_PROPERTY_SETTER(opaque, opaque)
 
 DEFINE_AVCODECCONTEXT_F_PROPERTY_SETTER(qcompress, qcompress)
 
@@ -880,3 +932,54 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_sws_1scale__JLjava_lang_Object_2IIIIIL
         ret = -1;
     return ret;
 }
+
+JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_hw_1decoder_1is_1supported
+  (JNIEnv* env, jclass class, jint codec_id)
+{
+    static int h264_supported = -1;
+    static int h263_supported = -1;
+    jboolean ret = JNI_FALSE;
+
+    (void)class;
+
+    switch(codec_id)
+    {
+    case CODEC_ID_H264:
+      if(h264_supported >= 0)
+      {
+          return h264_supported ? JNI_TRUE : JNI_FALSE;
+      }
+      break;
+    case CODEC_ID_H263:
+      if(h263_supported >= 0)
+      {
+          return h263_supported ? JNI_TRUE : JNI_FALSE;
+      }
+      break;
+    default:
+      break;
+    }
+
+#ifdef __linux__
+    ret = hw_decoder_is_codec_supported(codec_id) ? JNI_TRUE : JNI_FALSE;
+#else
+    /* for the moment other OS does not support hardware decoding */
+    (void)codec_id;
+    ret = JNI_FALSE;
+#endif
+
+    switch(codec_id)
+    {
+      case CODEC_ID_H264:
+        h264_supported = ret == JNI_TRUE ? 1 : 0;
+        break;
+      case CODEC_ID_H263:
+        h263_supported = ret == JNI_TRUE ? 1 : 0;
+        break;
+      default:
+        break;
+    }
+
+    return ret;
+}
+

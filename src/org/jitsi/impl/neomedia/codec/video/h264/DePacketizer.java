@@ -13,6 +13,7 @@ import javax.media.format.*;
 
 import net.sf.fmj.media.*;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
@@ -148,6 +149,16 @@ public class DePacketizer
      * this <tt>DePacketizer</tt> and in accord with {@link #requestKeyFrame}.
      */
     private Thread requestKeyFrameThread;
+    
+    /**
+     * If NAL unit contains multiple FU-A sequences.
+     */
+    private boolean multipleFUASeqs = false;
+   
+    /**
+     * If hardware decoding is used.
+     */
+    private boolean useHardwareDecoding = false;
 
     /**
      * Initializes a new <tt>DePacketizer</tt> instance which is to depacketize
@@ -159,7 +170,18 @@ public class DePacketizer
             "H264 DePacketizer",
             VideoFormat.class,
             new VideoFormat[] { new VideoFormat(Constants.H264) });
-
+        
+        /* if ffmpeg supports hardware decoding for H.264 and if configuration
+         * is set to use hardware decoding!
+         */
+    	MediaServiceImpl mediaImpl = NeomediaServiceUtils.getMediaServiceImpl();
+        
+    	// we have to use that for H.264 with multiple FU-A sequences support
+    	// since H.264 with hardware acceleration (at least with VAAPI) does
+    	// not support CODEC_FLAG2_CHUNKS flag
+        useHardwareDecoding = JNIDecoder.HARDWARE_DECODING &&
+            mediaImpl != null && mediaImpl.isHardwareDecodingEnabled();
+        
         List<Format> inputFormats = new ArrayList<Format>();
 
         inputFormats.add(new VideoFormat(Constants.H264_RTP));
@@ -231,10 +253,16 @@ public class DePacketizer
             octet
                 = (fu_indicator & 0xE0) /* forbidden_zero_bit & NRI */
                     | nal_unit_type;
+            
+            if(multipleFUASeqs && useHardwareDecoding)
+            {
+                newOutLength += outBuffer.getLength();
+            }
         }
         else if (!fuaStartedAndNotEnded)
         {
             outBuffer.setDiscard(true);
+            multipleFUASeqs = false;
             return BUFFER_PROCESSED_OK;
         }
         else
@@ -254,6 +282,11 @@ public class DePacketizer
 
         if (start_bit)
         {
+            if(multipleFUASeqs && useHardwareDecoding)
+            {
+                outOffset += outBuffer.getLength();
+            }
+            
             // Copy in the NAL start sequence and the (reconstructed) octet.
             System.arraycopy(NAL_PREFIX, 0, out, outOffset, NAL_PREFIX.length);
             outOffset += NAL_PREFIX.length;
@@ -397,6 +430,7 @@ public class DePacketizer
             requestKeyFrame = true;
 
             ret = reset(outBuffer);
+            multipleFUASeqs = false;
 
             if ((ret & OUTPUT_BUFFER_NOT_FILLED) == 0)
             {
@@ -447,6 +481,7 @@ public class DePacketizer
         // Single NAL Unit Packet
         if ((nal_unit_type >= 1) && (nal_unit_type <= 23))
         {
+            multipleFUASeqs = false;
             fuaStartedAndNotEnded = false;
             ret
                 = dePacketizeSingleNALUnitPacket(
@@ -459,9 +494,23 @@ public class DePacketizer
             ret = dePacketizeFUA(in, inOffset, inBuffer.getLength(), outBuffer);
             if (outBuffer.isDiscard())
                 fuaStartedAndNotEnded = false;
+            else if(useHardwareDecoding)
+            {
+                if(ret == BUFFER_PROCESSED_OK &&
+                        (inBuffer.getFlags() & Buffer.FLAG_RTP_MARKER) == 0)
+                {
+                    multipleFUASeqs = true;
+                    ret = OUTPUT_BUFFER_NOT_FILLED;
+                }
+                else if(ret == BUFFER_PROCESSED_OK)
+                {
+                    multipleFUASeqs = false;
+                }
+            }
         }
         else
         {
+            multipleFUASeqs = false;
             logger.warn(
                     "Dropping NAL unit of unsupported type " + nal_unit_type);
             this.nal_unit_type = nal_unit_type;

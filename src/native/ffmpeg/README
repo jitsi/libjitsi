@@ -85,6 +85,9 @@ Add the following to the configure line used for x86:
 Add the following to the configure line:
 --enable-pic --enable-pthreads --enable-decoder=mjpeg --enable-parser=mjpeg
 
+To have hardware decoding with VAAPI, add to the configure line:
+--extra-cflags="-I$VA_HOME/va" --extra-ldflags="-L$VA_HOME/va/.libs -ldl" --enable-vaapi --enable-hwaccel=h264_vaapi --enable-hwaccel=h263_vaapi
+
 - Mac OS X
 
 Add the following to the configure line:

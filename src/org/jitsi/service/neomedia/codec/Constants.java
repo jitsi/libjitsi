@@ -63,6 +63,16 @@ public class Constants
     public static final String ILBC = "ilbc";
 
     /**
+     * The FFMPEG_H264 constant (for hardware decoding).
+     */
+    public static final String FFMPEG_H264 = "ffmpeg_h264";
+
+    /**
+     * The FFMPEG_H263 constant (for hardware decoding).
+     */
+    public static final String FFMPEG_H263 = "ffmpeg_h263";
+
+    /**
      * mode    : Frame size for the encoding/decoding
      * 20 - 20 ms
      * 30 - 30 ms

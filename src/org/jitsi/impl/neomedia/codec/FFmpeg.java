@@ -213,11 +213,18 @@ public class FFmpeg
 
     static
     {
-        System.loadLibrary("jnffmpeg");
+        try
+        {
+            System.loadLibrary("jnffmpeg");
 
-        av_register_all();
-        avcodec_register_all();
-        avfilter_register_all();
+            av_register_all();
+            avcodec_register_all();
+            avfilter_register_all();
+        }
+        catch(Throwable t)
+        {
+            System.err.println("Failed to load jnffmpeg: " + t.toString());
+        }
 
         PIX_FMT_BGR32 = PIX_FMT_BGR32();
         PIX_FMT_BGR32_1 = PIX_FMT_BGR32_1();
@@ -554,6 +561,9 @@ public class FFmpeg
     public static native void avcodeccontext_set_refs(long ctx,
         int refs);
 
+    public static native void avcodeccontext_set_opaque(long ctx,
+        long opaque);
+
     /**
      * Set the RTP payload size.
      *
@@ -821,4 +831,14 @@ public class FFmpeg
         Object src, int srcFormat, int srcW, int srcH,
         int srcSliceY, int srcSliceH,
         Object dst, int dstFormat, int dstW, int dstH);
+
+    /**
+     * Returns whether or not hardware decoder is supported for the specified
+     * codec.
+     *
+     * @param codec ID of the codec.
+     * @return true if hardware decoding is supported, false otherwise.
+     */
+    public static native boolean hw_decoder_is_supported(int codec);
+
 }

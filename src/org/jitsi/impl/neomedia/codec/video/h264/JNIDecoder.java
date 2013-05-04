@@ -13,6 +13,7 @@ import javax.media.format.*;
 
 import net.sf.fmj.media.*;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.service.neomedia.codec.*;
@@ -34,6 +35,22 @@ public class JNIDecoder
      */
     private static final VideoFormat[] DEFAULT_OUTPUT_FORMATS
         = new VideoFormat[] { new AVFrameFormat(FFmpeg.PIX_FMT_YUV420P) };
+
+    /**
+     * The output <tt>VideoFormat</tt> for hardware decoder.
+     */
+    private static final VideoFormat[] HARDWARE_OUTPUT_FORMATS
+        = new VideoFormat[]
+                {
+                    new VideoFormat(Constants.FFMPEG_H264,
+                        null, -1, AVFrame.class, Format.NOT_SPECIFIED)
+                };
+
+    /**
+     * If decoder supports hardware decoding.
+     */
+    public static final boolean HARDWARE_DECODING =
+        FFmpeg.hw_decoder_is_supported(FFmpeg.CODEC_ID_H264);
 
     /**
      * Plugin name.
@@ -82,13 +99,34 @@ public class JNIDecoder
     private int width;
 
     /**
+     * If the decoder will use hardware decoding.
+     */
+    private boolean useHardwareDecoding = false;
+
+    /**
      * Initializes a new <tt>JNIDecoder</tt> instance which is to decode H.264
      * NAL units into frames in YUV format.
      */
     public JNIDecoder()
     {
+        MediaServiceImpl mediaImpl = NeomediaServiceUtils.getMediaServiceImpl();
+
+        /* if FFmpeg supports hardware decoding for H.264 and if configuration
+         * is set to use hardware decoding!
+         */
+        useHardwareDecoding = HARDWARE_DECODING &&
+            mediaImpl != null && mediaImpl.isHardwareDecodingEnabled();
+
         inputFormats = new VideoFormat[] { new VideoFormat(Constants.H264) };
-        outputFormats = DEFAULT_OUTPUT_FORMATS;
+        
+        if(useHardwareDecoding)
+        {
+            outputFormats = HARDWARE_OUTPUT_FORMATS;
+        }
+        else
+        {
+            outputFormats = DEFAULT_OUTPUT_FORMATS;
+        }
     }
 
     /**
@@ -149,14 +187,29 @@ public class JNIDecoder
     {
         VideoFormat inputVideoFormat = (VideoFormat) inputFormat;
 
-        return
-            new Format[]
-            {
-                new AVFrameFormat(
+        if(useHardwareDecoding)
+        {
+            return
+                new Format[]
+                {
+                    new VideoFormat(Constants.FFMPEG_H264,
+                            inputVideoFormat.getSize(),
+                            -1,
+                            AVFrame.class,
+                            ensureFrameRate(inputVideoFormat.getFrameRate())),
+                };
+        }
+        else
+        {
+            return
+                new Format[]
+                {
+                    new AVFrameFormat(
                         inputVideoFormat.getSize(),
                         ensureFrameRate(inputVideoFormat.getFrameRate()),
                         FFmpeg.PIX_FMT_YUV420P)
-            };
+                };
+        }
     }
 
     /**
@@ -224,9 +277,26 @@ public class JNIDecoder
         FFmpeg.avcodeccontext_set_workaround_bugs(avctx,
                 FFmpeg.FF_BUG_AUTODETECT);
 
-        /* allow to pass incomplete frame to decoder */
-        FFmpeg.avcodeccontext_add_flags2(avctx,
+        /* hardware decoding does not deals very well
+         * with the CODEC_FLAG2_CHUNKS flag
+         */
+        if(!useHardwareDecoding)
+        {
+            /* allow to pass incomplete frame to decoder */
+            FFmpeg.avcodeccontext_add_flags2(avctx,
                 FFmpeg.CODEC_FLAG2_CHUNKS);
+            
+            /* explicitely inform FFmpeg that we don't want to use hardware
+             * decoding either because we don't support it or configuration
+             * said so!
+             */
+            FFmpeg.avcodeccontext_set_opaque(avctx, 0);
+        }
+        else
+        {
+            /* explicitely inform FFmpeg that we will use hardware decoding */
+            FFmpeg.avcodeccontext_set_opaque(avctx, 0xBEEFACCE);
+        }
 
         if (FFmpeg.avcodec_open2(avctx, avcodec) < 0)
             throw new RuntimeException("Could not open codec CODEC_ID_H264");
@@ -299,11 +369,20 @@ public class JNIDecoder
             VideoFormat inFormat = (VideoFormat) in.getFormat();
             float outFrameRate = ensureFrameRate(inFormat.getFrameRate());
 
-            outputFormat
-                = new AVFrameFormat(
-                        outSize,
-                        outFrameRate,
-                        FFmpeg.PIX_FMT_YUV420P);
+            if(useHardwareDecoding)
+            {
+                outputFormat
+                    = new VideoFormat(Constants.FFMPEG_H264, outSize,
+                        -1, AVFrame.class, outFrameRate);
+            }
+            else
+            {
+                outputFormat
+                    = new AVFrameFormat(
+                            outSize,
+                            outFrameRate,
+                            FFmpeg.PIX_FMT_YUV420P);
+            }
         }
         out.setFormat(outputFormat);
 

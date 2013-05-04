@@ -74,6 +74,14 @@ public class MediaServiceImpl
         = "net.java.sip.communicator.service.media.DISABLE_VIDEO_SUPPORT";
 
     /**
+     * The name of the <tt>boolean</tt> <tt>ConfigurationService</tt> property
+     * which indicates whether the video hardware decoding is is to be enabled.
+     * Please note that it does not say if hardware capability is available!
+     */
+    public static final String ENABLE_VIDEO_HARDWARE_DECODING_PNAME
+        = "net.java.sip.communicator.impl.neomedia.codec.video.ENABLE_VIDEO_HARDWARE_DECODING";
+
+    /**
      * The prefix of the property names the values of which specify the dynamic
      * payload type preferences.
      */
@@ -1570,6 +1578,21 @@ public class MediaServiceImpl
     public EncodingConfiguration createEmptyEncodingConfiguration()
     {
         return new EncodingConfigurationImpl();
+    }
+
+    /**
+     * Returns whether or not hardware decoding is supported.
+     */
+    public boolean isHardwareDecodingEnabled()
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        if ((cfg != null) && cfg.getBoolean(
+                    ENABLE_VIDEO_HARDWARE_DECODING_PNAME, false))
+        {
+            return true;
+        }
+        return false;
     }
 
     /**

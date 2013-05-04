@@ -72,7 +72,8 @@ public class DeviceConfiguration
             OSUtils.IS_LINUX ? ".audio.PulseAudioRenderer" : null,
             OSUtils.IS_WINDOWS ? ".audio.WASAPIRenderer" : null,
             OSUtils.IS_ANDROID ? null : ".audio.PortAudioRenderer",
-            ".video.JAWTRenderer"
+            ".video.JAWTRenderer",
+            OSUtils.IS_LINUX ? ".video.HWRenderer" : null,
         };
 
     /**

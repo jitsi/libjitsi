@@ -299,6 +299,7 @@
       <linkerarg value="-L${ffmpeg}/libavformat" />
       <linkerarg value="-L${ffmpeg}/libavutil" />
       <linkerarg value="-L${ffmpeg}/libswscale" />
+
       <!--
         Depending on the way that lame is built, libmp3lame.a may be in
         libmp3lame/ or libmp3lame/.libs/.
@@ -319,11 +320,15 @@
       <linkerarg value="-lswscale" location="end" />
       <linkerarg value="-lmp3lame" location="end" />
       <linkerarg value="-lx264" location="end" />
+      <linkerarg value="-lva" location="end" if="is.running.linux" />
+      <linkerarg value="-lva-x11" location="end" if="is.running.linux" />
+      <linkerarg value="-lole32" location="end" if="is.running.windows" />
 
       <!-- Linux specific flags -->
       <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
       <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
-
+      <linkerarg value="-lX11" if="is.running.linux" location="end" />
+      <linkerarg value="-lavcodec" if="is.running.linux" location="end" />
       <linkerarg value="-Wl,-Bsymbolic" if="is.running.linux" />
 
       <!-- Mac OS X specific flags -->
@@ -346,7 +351,8 @@
       <linkerarg value="-Wl,-read_only_relocs,suppress" if="is.running.macos" />
 
       <!-- Windows specific flags -->
-      <compilerarg value="-D_WIN32_WINNT=0x0502" if="is.running.windows" />
+      <!-- Vista minimum! -->
+      <compilerarg value="-D_WIN32_WINNT=0x0600" if="is.running.windows" />
       <compilerarg value="-DWINVER=0x0502" if="is.running.windows" />
       <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows" />
       <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
@@ -947,6 +953,59 @@
         </cc>
     </target>
 
+    <!-- compile libhwrenderer -->
+    <target name="hwrenderer"
+            description="Build hwrenderer shared library"
+            depends="init-native">
+        <fail message="ffmpeg repository not set!" unless="ffmpeg" />
+        <cc outtype="shared" name="gcc"
+            outfile="${native_install_dir}/jnhwrenderer"
+            objdir="${obj}">
+                <compilerarg value="-std=c99" />
+                <compilerarg value="-D_XOPEN_SOURCE=600" />
+                <compilerarg value="-Wall" />
+                <compilerarg value="-Wextra" />
+                <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+                <compilerarg value="-fPIC" />
+                <compilerarg value="-O2" />
+                <compilerarg value="-Wall" />
+                <compilerarg value="-I${ffmpeg}" />
+                <compilerarg value="-shared" />
+                <compilerarg value="-ldl" />
+                <compilerarg value="-D_REENTRANT" />
+                <!--
+                <compilerarg value="-I${va}/va/" if="is.running.linux" />
+                <linkerarg value="-L${va}/va/.libs" if="is.running.linux" />
+                -->
+
+                <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux"/>
+                <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+                <linkerarg value="-L${system.JAVA_HOME}/jre/lib/i386" if="is.running.linux" />
+                <linkerarg value="-L${system.JAVA_HOME}/jre/lib/amd64" if="is.running.linux" />
+                <linkerarg value="-Wl,--no-undefined" />
+                <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
+                <linkerarg value="-lva" if="is.running.linux"/>
+                <linkerarg value="-lva-x11" if="is.running.linux"/>
+                <linkerarg value="-lX11" if="is.running.linux"/>
+
+                <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows"/>
+                <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
+                <linkerarg value="-L${system.JAVA_HOME}/lib" if="is.running.windows_32" />
+                <linkerarg value="-L${system.JAVA_HOME}/jre/bin" if="is.running.windows_64" />
+                <linkerarg value="-ohwrenderer.dll" if="is.running.windows" />
+                <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
+                <linkerarg value="-ljawt" location="end" />
+
+                <compilerarg value="-m32" if="cross_32" />
+                <compilerarg value="-m64" if="cross_64" />
+
+                <linkerarg value="-m32" if="cross_32" />
+                <linkerarg value="-m64" if="cross_64" />
+
+                <fileset dir="${src}/native/hwrenderer" includes="*.c"/>
+        </cc>
+    </target>
+  
   <!-- Cleanup object file and shared libraries -->
   <target name="clean-native" description="Clean all object file and libraries.">
     <delete failonerror="false" includeemptydirs="true">
