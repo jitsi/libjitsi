@@ -19,6 +19,8 @@ import org.jitsi.service.fileaccess.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
 
+import gnu.java.zrtp.utils.*;
+
 /**
  * JMF extension/connector to support GNU ZRTP4J.
  *
@@ -386,6 +388,14 @@ public class ZRTPTransformEngine
     private boolean enableParanoidMode = false;
 
     private ZRTCPTransformer zrtcpTransformer = null;
+    
+    /**
+     * Count successfully decrypted SRTP packets. Need to decide if RS2 will
+     * become valid.
+     * 
+     * @see stopZrtp
+     */
+    private long zrtpUnprotect;
 
     /**
      * Construct a ZRTPTransformEngine.
@@ -393,7 +403,13 @@ public class ZRTPTransformEngine
      */
     public ZRTPTransformEngine()
     {
-        senderZrtpSeqNo = 1;    // should be a random number
+        ZrtpFortuna secRand = ZrtpFortuna.getInstance();
+        byte[] random = new byte[2];
+        secRand.nextBytes(random);
+        
+        senderZrtpSeqNo = random[0];
+        senderZrtpSeqNo |= (random[1] << 8);
+        senderZrtpSeqNo &= 0x7fff;      // to avoid early roll-over
     }
 
     /**
@@ -612,11 +628,20 @@ public class ZRTPTransformEngine
 
     /**
      * Stop ZRTP engine.
+     * 
+     * The ZRTP stack stores RS2 without the valid flag. If we close the ZRTP
+     * stream then check if we need to set RS2 to vaild. This is the case if
+     * we received less than 10 good SRTP packets. In this case we enable RS2
+     * to make sure the ZRTP self-synchronization is active.
+     * 
+     * This handling is needed to comply to an upcoming newer ZRTP RFC.
      */
     public void stopZrtp()
     {
         if (zrtpEngine != null)
         {
+            if (zrtpUnprotect < 10)
+                zrtpEngine.setRs2Valid();
             zrtpEngine.stopZrtp();
             zrtpEngine = null;
             started = false;
