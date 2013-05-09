@@ -759,6 +759,8 @@ public class ZRTPTransformEngine
             {
                 zrtpEngine.conf2AckSecure();
             }
+            if (pkt2 != null)
+                zrtpUnprotect++;
 
             return pkt2;
         }
