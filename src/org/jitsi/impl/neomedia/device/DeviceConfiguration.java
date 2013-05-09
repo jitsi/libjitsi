@@ -99,6 +99,11 @@ public class DeviceConfiguration
         = 100;
 
     /**
+     * The default value for video codec bitrate.
+     */
+    public static final int DEFAULT_VIDEO_BITRATE = 128;
+
+    /**
      * The default frame rate, <tt>-1</tt> unlimited.
      */
     public static final int DEFAULT_VIDEO_FRAMERATE = -1;
@@ -112,11 +117,6 @@ public class DeviceConfiguration
      * The default value for video maximum bandwidth.
      */
     public static final int DEFAULT_VIDEO_RTP_PACING_THRESHOLD = 256;
-
-    /**
-     * The default value for video codec bitrate.
-     */
-    public static final int DEFAULT_VIDEO_BITRATE = 128;
 
     /**
      * The default video width.
@@ -155,6 +155,12 @@ public class DeviceConfiguration
         = PROP_AUDIO_SYSTEM + "." + DeviceSystem.PROP_DEVICES;
 
     /**
+     * The property we use to store the settings for video codec bitrate.
+     */
+    private static final String PROP_VIDEO_BITRATE
+        = "net.java.sip.communicator.impl.neomedia.video.bitrate";
+
+    /**
      * The <tt>ConfigurationService</tt> property which stores the device used
      * by <tt>DeviceConfiguration</tt> for video capture.
      */
@@ -179,12 +185,6 @@ public class DeviceConfiguration
      */
     private static final String PROP_VIDEO_RTP_PACING_THRESHOLD
         = "net.java.sip.communicator.impl.neomedia.video.maxbandwidth";
-
-    /**
-     * The property we use to store the settings for video codec bitrate.
-     */
-    private static final String PROP_VIDEO_BITRATE
-        = "net.java.sip.communicator.impl.neomedia.video.bitrate";
 
     /**
      * The name of the property which specifies the width of the video.
@@ -221,76 +221,6 @@ public class DeviceConfiguration
      * capture.
      */
     public static final String VIDEO_CAPTURE_DEVICE = "VIDEO_CAPTURE_DEVICE";
-
-    /**
-     * The currently selected audio system.
-     */
-    private AudioSystem audioSystem;
-
-    /**
-     * The frame rate.
-     */
-    private int frameRate = DEFAULT_VIDEO_FRAMERATE;
-
-    /**
-     * The <tt>Logger</tt> used by this instance for logging output.
-     */
-    private Logger logger = Logger.getLogger(DeviceConfiguration.class);
-
-    /**
-     * The device that we'll be using for video capture.
-     */
-    private CaptureDeviceInfo videoCaptureDevice;
-
-    /**
-     * Current setting for video maximum bandwidth.
-     */
-    private int videoMaxBandwidth = -1;
-
-    /**
-     * Current setting for video codec bitrate.
-     */
-    private int videoBitrate = -1;
-
-    /**
-     * The current resolution settings.
-     */
-    private Dimension videoSize;
-
-    /**
-     * Initializes a new <tt>DeviceConfiguration</tt> instance.
-     */
-    public DeviceConfiguration()
-    {
-        // these seem to be throwing exceptions every now and then so we'll
-        // blindly catch them for now
-        try
-        {
-            DeviceSystem.initializeDeviceSystems();
-            extractConfiguredCaptureDevices();
-
-            ConfigurationService cfg = LibJitsi.getConfigurationService();
-
-            if (cfg != null)
-            {
-                cfg.addPropertyChangeListener(PROP_VIDEO_HEIGHT, this);
-                cfg.addPropertyChangeListener(PROP_VIDEO_WIDTH, this);
-                cfg.addPropertyChangeListener(PROP_VIDEO_FRAMERATE, this);
-                cfg.addPropertyChangeListener(PROP_VIDEO_RTP_PACING_THRESHOLD,
-                                              this);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.error("Failed to initialize media.", ex);
-        }
-
-        registerCustomRenderers();
-        fixRenderers();
-
-        //Registers this device configuration to all reloadable device sytem.
-        registerToDeviceSystemPropertyChangeListener();
-    }
 
     /**
      * Fixes the list of <tt>Renderer</tt>s registered with FMJ in order to
@@ -359,6 +289,211 @@ public class DeviceConfiguration
     }
 
     /**
+     * The currently selected audio system.
+     */
+    private AudioSystem audioSystem;
+
+    /**
+     * The frame rate.
+     */
+    private int frameRate = DEFAULT_VIDEO_FRAMERATE;
+
+    /**
+     * The <tt>Logger</tt> used by this instance for logging output.
+     */
+    private final Logger logger = Logger.getLogger(DeviceConfiguration.class);
+
+    /**
+     * The value of the <tt>ConfigurationService</tt> property
+     * {@link MediaServiceImpl#DISABLE_SET_AUDIO_SYSTEM_PNAME} at the time of
+     * the initialization of this instance.
+     */
+    private final boolean setAudioSystemIsDisabled;
+
+    /**
+     * Current setting for video codec bitrate.
+     */
+    private int videoBitrate = -1;
+
+    /**
+     * The device that we'll be using for video capture.
+     */
+    private CaptureDeviceInfo videoCaptureDevice;
+
+    /**
+     * Current setting for video maximum bandwidth.
+     */
+    private int videoMaxBandwidth = -1;
+
+    /**
+     * The current resolution settings.
+     */
+    private Dimension videoSize;
+
+    /**
+     * Initializes a new <tt>DeviceConfiguration</tt> instance.
+     */
+    public DeviceConfiguration()
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        setAudioSystemIsDisabled
+            = (cfg != null)
+                && cfg.getBoolean(
+                        MediaServiceImpl.DISABLE_SET_AUDIO_SYSTEM_PNAME,
+                        false);
+
+        // these seem to be throwing exceptions every now and then so we'll
+        // blindly catch them for now
+        try
+        {
+            DeviceSystem.initializeDeviceSystems();
+            extractConfiguredCaptureDevices();
+        }
+        catch (Exception ex)
+        {
+            logger.error("Failed to initialize media.", ex);
+        }
+
+        if (cfg != null)
+        {
+            cfg.addPropertyChangeListener(PROP_VIDEO_HEIGHT, this);
+            cfg.addPropertyChangeListener(PROP_VIDEO_WIDTH, this);
+            cfg.addPropertyChangeListener(PROP_VIDEO_FRAMERATE, this);
+            cfg.addPropertyChangeListener(
+                    PROP_VIDEO_RTP_PACING_THRESHOLD,
+                    this);
+        }
+
+        registerCustomRenderers();
+        fixRenderers();
+
+        /*
+         * Adds this instance as a PropertyChangeListener to all DeviceSystems
+         * which support reinitialization/reloading in order to be able, for
+         * example, to switch from a default/automatic selection of "None" to a
+         * DeviceSystem which has started providing at least one device at
+         * runtime.
+         */
+        addDeviceSystemPropertyChangeListener();
+    }
+
+    /**
+     * Adds this instance as a <tt>PropertyChangeListener</tt> to all
+     * <tt>DeviceSystem</tt>s which support reinitialization/reloading in order
+     * to be able, for example, to switch from a default/automatic selection of
+     * &quot;None&quot; to an <tt>DeviceSystem</tt> which has started providing
+     * at least one device at runtime.
+     */
+    private void addDeviceSystemPropertyChangeListener()
+    {
+        // Track all kinds of DeviceSystems i.e audio and video.
+        for (MediaType mediaType: MediaType.values())
+        {
+            DeviceSystem[] deviceSystems
+                = DeviceSystem.getDeviceSystems(mediaType);
+
+            if (deviceSystems != null)
+            {
+                for (DeviceSystem deviceSystem : deviceSystems)
+                {
+                    // It only makes sense to track DeviceSystems which support
+                    // reinitialization/reloading.
+                    if ((deviceSystem.getFeatures()
+                                & DeviceSystem.FEATURE_REINITIALIZE)
+                            != 0)
+                    {
+                        deviceSystem.addPropertyChangeListener(this);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Detects audio capture devices configured through JMF and disable audio if
+     * none was found.
+     */
+    private void extractConfiguredAudioCaptureDevices()
+    {
+        if (logger.isInfoEnabled())
+            logger.info("Looking for configured audio devices.");
+
+        AudioSystem[] availableAudioSystems = getAvailableAudioSystems();
+
+        if ((availableAudioSystems != null)
+                && (availableAudioSystems.length != 0))
+        {
+            AudioSystem audioSystem = getAudioSystem();
+
+            if (audioSystem != null)
+            {
+                boolean audioSystemIsAvailable = setAudioSystemIsDisabled;
+
+                /*
+                 * XXX Presently, the method is used in execution paths which
+                 * require the user's selection (i.e. the value of the
+                 * associated ConfigurationService property) to be respected or
+                 * execute too early in the life of the library/application to
+                 * necessitate the preservation of the audioSystem value.
+                 */
+//                for (AudioSystem availableAudioSystem : availableAudioSystems)
+//                {
+//                    if (!NoneAudioSystem.LOCATOR_PROTOCOL.equals(
+//                                availableAudioSystem.getLocatorProtocol())
+//                            && availableAudioSystem.equals(audioSystem))
+//                    {
+//                        audioSystemIsAvailable = true;
+//                        break;
+//                    }
+//                }
+                if (!audioSystemIsAvailable)
+                    audioSystem = null;
+            }
+
+            if (audioSystem == null)
+            {
+                ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+                if (cfg != null)
+                {
+                    String locatorProtocol = cfg.getString(PROP_AUDIO_SYSTEM);
+
+                    if (locatorProtocol != null)
+                    {
+                        for (AudioSystem availableAudioSystem
+                                : availableAudioSystems)
+                        {
+                            if (locatorProtocol.equalsIgnoreCase(
+                                    availableAudioSystem.getLocatorProtocol()))
+                            {
+                                audioSystem = availableAudioSystem;
+                                break;
+                            }
+                        }
+                        /*
+                         * If the user is not presented with any user interface
+                         * which allows the selection of a particular
+                         * AudioSystem, always use the configured AudioSystem
+                         * regardless of whether it is available.
+                         */
+                        if (setAudioSystemIsDisabled && (audioSystem == null))
+                        {
+                            audioSystem
+                                = AudioSystem.getAudioSystem(locatorProtocol);
+                        }
+                    }
+                }
+
+                if (audioSystem == null)
+                    audioSystem = availableAudioSystems[0];
+
+                setAudioSystem(audioSystem, false);
+            }
+        }
+    }
+
+    /**
      * Detects capture devices configured through JMF and disable audio and/or
      * video transmission if none were found.
      */
@@ -404,14 +539,52 @@ public class DeviceConfiguration
             if ((videoCaptureDevice != null) && logger.isInfoEnabled())
             {
                 logger.info(
-                        "Found "
-                            + videoCaptureDevice.getName()
-                            + " as a "
-                            + format
-                            + " video capture device.");
+                        "Found " + videoCaptureDevice.getName() + " as a "
+                            + format + " video capture device.");
             }
         }
         return videoCaptureDevice;
+    }
+
+    /**
+     * Detects video capture devices configured through JMF and disable video if
+     * none was found.
+     */
+    private void extractConfiguredVideoCaptureDevices()
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        String videoCaptureDeviceString
+            = (cfg == null) ? null : cfg.getString(PROP_VIDEO_DEVICE);
+
+        if (NoneAudioSystem.LOCATOR_PROTOCOL.equalsIgnoreCase(
+                videoCaptureDeviceString))
+        {
+            videoCaptureDevice = null;
+        }
+        else
+        {
+            if (logger.isInfoEnabled())
+                logger.info("Scanning for configured Video Devices.");
+
+            Format[] formats
+                = new Format[]
+                        {
+                            new AVFrameFormat(),
+                            new VideoFormat(VideoFormat.RGB),
+                            new VideoFormat(VideoFormat.YUV),
+                            new VideoFormat(Constants.H264)
+                        };
+
+            for (Format format : formats)
+            {
+                videoCaptureDevice
+                    = extractConfiguredVideoCaptureDevice(format);
+                if (videoCaptureDevice != null)
+                    break;
+            }
+            if ((videoCaptureDevice == null) && logger.isInfoEnabled())
+                logger.info("No Video Device was found.");
+        }
     }
 
     /**
@@ -431,6 +604,24 @@ public class DeviceConfiguration
     }
 
     /**
+     * @return the audioNotifyDevice
+     */
+    public CaptureDeviceInfo getAudioNotifyDevice()
+    {
+        AudioSystem audioSystem = getAudioSystem();
+
+        return
+            (audioSystem == null)
+                ? null
+                : audioSystem.getSelectedDevice(AudioSystem.DataFlow.NOTIFY);
+    }
+
+    public AudioSystem getAudioSystem()
+    {
+        return audioSystem;
+    }
+
+    /**
      * Gets the list of audio capture devices which are available through this
      * <tt>DeviceConfiguration</tt>, amongst which is
      * {@link #getAudioCaptureDevice()} and represent acceptable values
@@ -443,11 +634,6 @@ public class DeviceConfiguration
     public List<CaptureDeviceInfo2> getAvailableAudioCaptureDevices()
     {
         return audioSystem.getDevices(AudioSystem.DataFlow.CAPTURE);
-    }
-
-    public AudioSystem getAudioSystem()
-    {
-        return audioSystem;
     }
 
     /**
@@ -520,51 +706,6 @@ public class DeviceConfiguration
         }
     }
 
-    public void setAudioSystem(AudioSystem audioSystem, boolean save)
-    {
-        if (this.audioSystem != audioSystem)
-        {
-            // Removes the registration to change listener only if this audio
-            // sytem does not supports reinitialize.
-            if (this.audioSystem != null
-                    && (this.audioSystem.getFeatures()
-                        & DeviceSystem.FEATURE_REINITIALIZE) == 0)
-            {
-                this.audioSystem.removePropertyChangeListener(this);
-            }
-
-            AudioSystem oldValue = this.audioSystem;
-
-            this.audioSystem = audioSystem;
-
-            // Registers the new selected audio system.  Even if every
-            // reloadable audio systems are already registered, the check for
-            // dupplicate entries will be done by the addPropertyChangeListener
-            // function.
-            if (this.audioSystem != null)
-            {
-                this.audioSystem.addPropertyChangeListener(this);
-            }
-
-            if (save)
-            {
-                ConfigurationService cfg = LibJitsi.getConfigurationService();
-
-                if (cfg != null)
-                {
-                    if (this.audioSystem == null)
-                        cfg.removeProperty(PROP_AUDIO_SYSTEM);
-                    else
-                        cfg.setProperty(
-                                PROP_AUDIO_SYSTEM,
-                                this.audioSystem.getLocatorProtocol());
-                }
-            }
-
-            firePropertyChange(PROP_AUDIO_SYSTEM, oldValue, this.audioSystem);
-        }
-    }
-
     /**
      * Gets the list of video capture devices which are available through this
      * <tt>DeviceConfiguration</tt>, amongst which is
@@ -622,6 +763,71 @@ public class DeviceConfiguration
     }
 
     /**
+     * Get the echo cancellation filter length (in milliseconds).
+     *
+     * @return echo cancel filter length in milliseconds
+     */
+    public long getEchoCancelFilterLengthInMillis()
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        long value = DEFAULT_AUDIO_ECHOCANCEL_FILTER_LENGTH_IN_MILLIS;
+
+        if (cfg != null)
+        {
+            value
+                = cfg.getLong(
+                        PROP_AUDIO_ECHOCANCEL_FILTER_LENGTH_IN_MILLIS,
+                        value);
+        }
+        return value;
+    }
+
+    /**
+     * Gets the frame rate set on this <tt>DeviceConfiguration</tt>.
+     *
+     * @return the frame rate set on this <tt>DeviceConfiguration</tt>. The
+     * default value is {@link #DEFAULT_VIDEO_FRAMERATE}
+     */
+    public int getFrameRate()
+    {
+        if (frameRate == -1)
+        {
+            ConfigurationService cfg = LibJitsi.getConfigurationService();
+            int value = DEFAULT_VIDEO_FRAMERATE;
+
+            if (cfg != null)
+                value = cfg.getInt(PROP_VIDEO_FRAMERATE, value);
+
+            frameRate = value;
+        }
+        return frameRate;
+    }
+
+    /**
+     * Gets the video bitrate.
+     *
+     * @return the video codec bitrate. The default value is
+     * {@link #DEFAULT_VIDEO_BITRATE}.
+     */
+    public int getVideoBitrate()
+    {
+        if (videoBitrate == -1)
+        {
+            ConfigurationService cfg = LibJitsi.getConfigurationService();
+            int value = DEFAULT_VIDEO_BITRATE;
+
+            if (cfg != null)
+                value = cfg.getInt(PROP_VIDEO_BITRATE, value);
+
+            if(value > 0)
+                videoBitrate = value;
+            else
+                videoBitrate = DEFAULT_VIDEO_BITRATE;
+        }
+        return videoBitrate;
+    }
+
+    /**
      * Returns a device that we could use for video capture.
      *
      * @param useCase <tt>MediaUseCase</tt> that will determined device
@@ -654,81 +860,69 @@ public class DeviceConfiguration
     }
 
     /**
-     * Sets the device which is to be used by this
-     * <tt>DeviceConfiguration</tt> for video capture.
+     * Gets the maximum allowed video bandwidth.
      *
-     * @param device a <tt>CaptureDeviceInfo</tt> describing device to be
-     *            used by this <tt>DeviceConfiguration</tt> for video
-     *            capture.
-     * @param save whether we will save this option or not.
+     * @return the maximum allowed video bandwidth. The default value is
+     * {@link #DEFAULT_VIDEO_RTP_PACING_THRESHOLD}.
      */
-    public void setVideoCaptureDevice(CaptureDeviceInfo device, boolean save)
+    public int getVideoRTPPacingThreshold()
     {
-        if (videoCaptureDevice != device)
+        if (videoMaxBandwidth == -1)
         {
-            CaptureDeviceInfo oldDevice = videoCaptureDevice;
+            ConfigurationService cfg = LibJitsi.getConfigurationService();
+            int value = DEFAULT_VIDEO_RTP_PACING_THRESHOLD;
 
-            videoCaptureDevice = device;
+            if (cfg != null)
+                value = cfg.getInt(PROP_VIDEO_RTP_PACING_THRESHOLD, value);
 
-            if (save)
+            if(value > 0)
+                videoMaxBandwidth = value;
+            else
+                videoMaxBandwidth = DEFAULT_VIDEO_RTP_PACING_THRESHOLD;
+        }
+        return videoMaxBandwidth;
+    }
+
+    /**
+     * Gets the video size set on this <tt>DeviceConfiguration</tt>.
+     *
+     * @return the video size set on this <tt>DeviceConfiguration</tt>
+     */
+    public Dimension getVideoSize()
+    {
+        if(videoSize == null)
+        {
+            ConfigurationService cfg = LibJitsi.getConfigurationService();
+            int height = DEFAULT_VIDEO_HEIGHT;
+            int width = DEFAULT_VIDEO_WIDTH;
+
+            if (cfg != null)
             {
-                ConfigurationService cfg = LibJitsi.getConfigurationService();
-
-                if (cfg != null)
-                {
-                    cfg.setProperty(
-                            PROP_VIDEO_DEVICE,
-                            (videoCaptureDevice == null)
-                                ? NoneAudioSystem.LOCATOR_PROTOCOL
-                                : videoCaptureDevice.getName());
-                }
+                height = cfg.getInt(PROP_VIDEO_HEIGHT, height);
+                width = cfg.getInt(PROP_VIDEO_WIDTH, width);
             }
 
-            firePropertyChange(VIDEO_CAPTURE_DEVICE, oldDevice, device);
+            videoSize = new Dimension(width, height);
         }
+        return videoSize;
     }
 
     /**
-     * @return the audioNotifyDevice
-     */
-    public CaptureDeviceInfo getAudioNotifyDevice()
-    {
-        AudioSystem audioSystem = getAudioSystem();
-
-        return
-            (audioSystem == null)
-                ? null
-                : audioSystem.getSelectedDevice(AudioSystem.DataFlow.NOTIFY);
-    }
-
-    /**
-     * Sets the indicator which determines whether echo cancellation is to be
-     * performed for captured audio.
+     * Gets the indicator which determines whether noise suppression is to be
+     * performed for captured audio
      *
-     * @param echoCancel <tt>true</tt> if echo cancellation is to be performed
-     * for captured audio; otherwise, <tt>false</tt>
-     */
-    public void setEchoCancel(boolean echoCancel)
-    {
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-
-        if (cfg != null)
-            cfg.setProperty(PROP_AUDIO_ECHOCANCEL, echoCancel);
-    }
-
-    /**
-     * Sets the indicator which determines whether noise suppression is to be
-     * performed for captured audio.
-     *
-     * @param denoise <tt>true</tt> if noise suppression is to be performed for
+     * @return <tt>true</tt> if noise suppression is to be performed for
      * captured audio; otherwise, <tt>false</tt>
      */
-    public void setDenoise(boolean denoise)
+    public boolean isDenoise()
     {
         ConfigurationService cfg = LibJitsi.getConfigurationService();
+        boolean value = DEFAULT_AUDIO_DENOISE;
 
         if (cfg != null)
-            cfg.setProperty(PROP_AUDIO_DENOISE, denoise);
+            value = cfg.getBoolean(PROP_AUDIO_DENOISE, value);
+
+        return value;
     }
 
     /**
@@ -749,41 +943,92 @@ public class DeviceConfiguration
     }
 
     /**
-     * Get the echo cancellation filter length (in milliseconds).
+     * Notifies this <tt>PropertyChangeListener</tt> about
+     * <tt>PropertyChangeEvent</tt>s fired by, for example, the
+     * <tt>ConfigurationService</tt> and the <tt>DeviceSystem</tt>s which
+     * support reinitialization/reloading.
      *
-     * @return echo cancel filter length in milliseconds
+     * @param ev the <tt>PropertyChangeEvent</tt> to notify this
+     * <tt>PropertyChangeListener</tt> about and which describes the source and
+     * other specifics of the notification
      */
-    public long getEchoCancelFilterLengthInMillis()
+    public void propertyChange(PropertyChangeEvent ev)
     {
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-        long value = DEFAULT_AUDIO_ECHOCANCEL_FILTER_LENGTH_IN_MILLIS;
+        String propertyName = ev.getPropertyName();
 
-        if (cfg != null)
+        if (AUDIO_CAPTURE_DEVICE.equals(propertyName)
+                || AUDIO_NOTIFY_DEVICE.equals(propertyName)
+                || AUDIO_PLAYBACK_DEVICE.equals(propertyName))
         {
-            value
-                = cfg.getLong(
-                        PROP_AUDIO_ECHOCANCEL_FILTER_LENGTH_IN_MILLIS,
-                        value);
+            /*
+             * The current audioSystem may represent a default/automatic
+             * selection which may have been selected because the user's
+             * selection may have been unavailable at the time. Make sure that
+             * the user's selection is respected if possible.
+             */
+            extractConfiguredAudioCaptureDevices();
+
+            /*
+             * The specified PropertyChangeEvent has been fired by a
+             * DeviceSystem i.e. a certain DeviceSystem is the source. Translate
+             * it to a PropertyChangeEvent fired by this instance.
+             */
+            AudioSystem audioSystem = getAudioSystem();
+
+            if (audioSystem != null)
+            {
+                CaptureDeviceInfo oldValue
+                    = (CaptureDeviceInfo) ev.getOldValue();
+                CaptureDeviceInfo newValue
+                    = (CaptureDeviceInfo) ev.getNewValue();
+                CaptureDeviceInfo device
+                    = (oldValue == null) ? newValue : oldValue;
+
+                // Fire an event on the selected device only if the event is
+                // generated by the selected audio system.
+                if ((device == null)
+                        || device.getLocator().getProtocol().equals(
+                                audioSystem.getLocatorProtocol()))
+                {
+                    firePropertyChange(propertyName, oldValue, newValue);
+                }
+            }
         }
-        return value;
-    }
+        else if (DeviceSystem.PROP_DEVICES.equals(propertyName))
+        {
+            if (ev.getSource() instanceof AudioSystem)
+            {
+                /*
+                 * The current audioSystem may represent a default/automatic
+                 * selection which may have been selected because the user's
+                 * selection may have been unavailable at the time. Make sure
+                 * that the user's selection is respected if possible.
+                 */
+                extractConfiguredAudioCaptureDevices();
 
-    /**
-     * Gets the indicator which determines whether noise suppression is to be
-     * performed for captured audio
-     *
-     * @return <tt>true</tt> if noise suppression is to be performed for
-     * captured audio; otherwise, <tt>false</tt>
-     */
-    public boolean isDenoise()
-    {
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-        boolean value = DEFAULT_AUDIO_DENOISE;
+                @SuppressWarnings("unchecked")
+                List<CaptureDeviceInfo> newValue
+                    = (List<CaptureDeviceInfo>) ev.getNewValue();
 
-        if (cfg != null)
-            value = cfg.getBoolean(PROP_AUDIO_DENOISE, value);
-
-        return value;
+                firePropertyChange(
+                        PROP_AUDIO_SYSTEM_DEVICES,
+                        ev.getOldValue(),
+                        newValue);
+            }
+        }
+        else if (PROP_VIDEO_FRAMERATE.equals(propertyName))
+        {
+            frameRate = -1;
+        }
+        else if (PROP_VIDEO_HEIGHT.equals(propertyName)
+                || PROP_VIDEO_WIDTH.equals(propertyName))
+        {
+            videoSize = null;
+        }
+        else if (PROP_VIDEO_RTP_PACING_THRESHOLD.equals(propertyName))
+        {
+            videoMaxBandwidth = -1;
+        }
     }
 
     /**
@@ -883,114 +1128,84 @@ public class DeviceConfiguration
         }
     }
 
-    /**
-     * Gets the maximum allowed video bandwidth.
-     *
-     * @return the maximum allowed video bandwidth. The default value is
-     * {@link #DEFAULT_VIDEO_RTP_PACING_THRESHOLD}.
-     */
-    public int getVideoRTPPacingThreshold()
+    public void setAudioSystem(AudioSystem audioSystem, boolean save)
     {
-        if (videoMaxBandwidth == -1)
+        if (this.audioSystem != audioSystem)
         {
-            ConfigurationService cfg = LibJitsi.getConfigurationService();
-            int value = DEFAULT_VIDEO_RTP_PACING_THRESHOLD;
+            if (setAudioSystemIsDisabled && save)
+            {
+                throw new IllegalStateException(
+                        MediaServiceImpl.DISABLE_SET_AUDIO_SYSTEM_PNAME);
+            }
 
-            if (cfg != null)
-                value = cfg.getInt(PROP_VIDEO_RTP_PACING_THRESHOLD, value);
+            // Removes the registration to change listener only if this audio
+            // system does not support reinitialize.
+            if ((this.audioSystem != null)
+                    && (this.audioSystem.getFeatures()
+                                & DeviceSystem.FEATURE_REINITIALIZE)
+                            == 0)
+            {
+                this.audioSystem.removePropertyChangeListener(this);
+            }
 
-            if(value > 0)
-                videoMaxBandwidth = value;
-            else
-                videoMaxBandwidth = DEFAULT_VIDEO_RTP_PACING_THRESHOLD;
+            AudioSystem oldValue = this.audioSystem;
+
+            this.audioSystem = audioSystem;
+
+            // Registers the new selected audio system.  Even if every
+            // FEATURE_REINITIALIZE audio system is registered already, the
+            // check for duplicate entries will be done by the
+            // addPropertyChangeListener method.
+            if (this.audioSystem != null)
+                this.audioSystem.addPropertyChangeListener(this);
+
+            if (save)
+            {
+                ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+                if (cfg != null)
+                {
+                    if (this.audioSystem == null)
+                        cfg.removeProperty(PROP_AUDIO_SYSTEM);
+                    else
+                        cfg.setProperty(
+                                PROP_AUDIO_SYSTEM,
+                                this.audioSystem.getLocatorProtocol());
+                }
+            }
+
+            firePropertyChange(PROP_AUDIO_SYSTEM, oldValue, this.audioSystem);
         }
-        return videoMaxBandwidth;
     }
 
     /**
-     * Sets and stores the maximum allowed video bandwidth.
+     * Sets the indicator which determines whether noise suppression is to be
+     * performed for captured audio.
      *
-     * @param videoMaxBandwidth the maximum allowed video bandwidth
+     * @param denoise <tt>true</tt> if noise suppression is to be performed for
+     * captured audio; otherwise, <tt>false</tt>
      */
-    public void setVideoRTPPacingThreshold(int videoMaxBandwidth)
+    public void setDenoise(boolean denoise)
     {
-        this.videoMaxBandwidth = videoMaxBandwidth;
-
         ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
-        {
-            if (videoMaxBandwidth != DEFAULT_VIDEO_RTP_PACING_THRESHOLD)
-                cfg.setProperty(PROP_VIDEO_RTP_PACING_THRESHOLD,
-                                videoMaxBandwidth);
-            else
-                cfg.removeProperty(PROP_VIDEO_RTP_PACING_THRESHOLD);
-        }
+            cfg.setProperty(PROP_AUDIO_DENOISE, denoise);
     }
 
     /**
-     * Gets the video bitrate.
+     * Sets the indicator which determines whether echo cancellation is to be
+     * performed for captured audio.
      *
-     * @return the video codec bitrate. The default value is
-     * {@link #DEFAULT_VIDEO_BITRATE}.
+     * @param echoCancel <tt>true</tt> if echo cancellation is to be performed
+     * for captured audio; otherwise, <tt>false</tt>
      */
-    public int getVideoBitrate()
+    public void setEchoCancel(boolean echoCancel)
     {
-        if (videoBitrate == -1)
-        {
-            ConfigurationService cfg = LibJitsi.getConfigurationService();
-            int value = DEFAULT_VIDEO_BITRATE;
-
-            if (cfg != null)
-                value = cfg.getInt(PROP_VIDEO_BITRATE, value);
-
-            if(value > 0)
-                videoBitrate = value;
-            else
-                videoBitrate = DEFAULT_VIDEO_BITRATE;
-        }
-        return videoBitrate;
-    }
-
-    /**
-     * Sets and stores the video bitrate.
-     *
-     * @param videoBitrate the video codec bitrate
-     */
-    public void setVideoBitrate(int videoBitrate)
-    {
-        this.videoBitrate = videoBitrate;
-
         ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
-        {
-            if (videoBitrate != DEFAULT_VIDEO_BITRATE)
-                cfg.setProperty(PROP_VIDEO_BITRATE, videoBitrate);
-            else
-                cfg.removeProperty(PROP_VIDEO_BITRATE);
-        }
-    }
-
-    /**
-     * Gets the frame rate set on this <tt>DeviceConfiguration</tt>.
-     *
-     * @return the frame rate set on this <tt>DeviceConfiguration</tt>. The
-     * default value is {@link #DEFAULT_VIDEO_FRAMERATE}
-     */
-    public int getFrameRate()
-    {
-        if (frameRate == -1)
-        {
-            ConfigurationService cfg = LibJitsi.getConfigurationService();
-            int value = DEFAULT_VIDEO_FRAMERATE;
-
-            if (cfg != null)
-                value = cfg.getInt(PROP_VIDEO_FRAMERATE, value);
-
-            frameRate = value;
-        }
-        return frameRate;
+            cfg.setProperty(PROP_AUDIO_ECHOCANCEL, echoCancel);
     }
 
     /**
@@ -1015,27 +1230,79 @@ public class DeviceConfiguration
     }
 
     /**
-     * Gets the video size set on this <tt>DeviceConfiguration</tt>.
+     * Sets and stores the video bitrate.
      *
-     * @return the video size set on this <tt>DeviceConfiguration</tt>
+     * @param videoBitrate the video codec bitrate
      */
-    public Dimension getVideoSize()
+    public void setVideoBitrate(int videoBitrate)
     {
-        if(videoSize == null)
-        {
-            ConfigurationService cfg = LibJitsi.getConfigurationService();
-            int height = DEFAULT_VIDEO_HEIGHT;
-            int width = DEFAULT_VIDEO_WIDTH;
+        this.videoBitrate = videoBitrate;
 
-            if (cfg != null)
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        if (cfg != null)
+        {
+            if (videoBitrate != DEFAULT_VIDEO_BITRATE)
+                cfg.setProperty(PROP_VIDEO_BITRATE, videoBitrate);
+            else
+                cfg.removeProperty(PROP_VIDEO_BITRATE);
+        }
+    }
+
+    /**
+     * Sets the device which is to be used by this
+     * <tt>DeviceConfiguration</tt> for video capture.
+     *
+     * @param device a <tt>CaptureDeviceInfo</tt> describing device to be
+     *            used by this <tt>DeviceConfiguration</tt> for video
+     *            capture.
+     * @param save whether we will save this option or not.
+     */
+    public void setVideoCaptureDevice(CaptureDeviceInfo device, boolean save)
+    {
+        if (videoCaptureDevice != device)
+        {
+            CaptureDeviceInfo oldDevice = videoCaptureDevice;
+
+            videoCaptureDevice = device;
+
+            if (save)
             {
-                height = cfg.getInt(PROP_VIDEO_HEIGHT, height);
-                width = cfg.getInt(PROP_VIDEO_WIDTH, width);
+                ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+                if (cfg != null)
+                {
+                    cfg.setProperty(
+                            PROP_VIDEO_DEVICE,
+                            (videoCaptureDevice == null)
+                                ? NoneAudioSystem.LOCATOR_PROTOCOL
+                                : videoCaptureDevice.getName());
+                }
             }
 
-            videoSize = new Dimension(width, height);
+            firePropertyChange(VIDEO_CAPTURE_DEVICE, oldDevice, device);
         }
-        return videoSize;
+    }
+
+    /**
+     * Sets and stores the maximum allowed video bandwidth.
+     *
+     * @param videoMaxBandwidth the maximum allowed video bandwidth
+     */
+    public void setVideoRTPPacingThreshold(int videoMaxBandwidth)
+    {
+        this.videoMaxBandwidth = videoMaxBandwidth;
+
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        if (cfg != null)
+        {
+            if (videoMaxBandwidth != DEFAULT_VIDEO_RTP_PACING_THRESHOLD)
+                cfg.setProperty(PROP_VIDEO_RTP_PACING_THRESHOLD,
+                                videoMaxBandwidth);
+            else
+                cfg.removeProperty(PROP_VIDEO_RTP_PACING_THRESHOLD);
+        }
     }
 
     /**
@@ -1068,253 +1335,5 @@ public class DeviceConfiguration
         firePropertyChange(
                 VIDEO_CAPTURE_DEVICE,
                 videoCaptureDevice, videoCaptureDevice);
-    }
-
-    /**
-     * Listens for changes in the configuration and if such happen
-     * we reset local values so next time we will update from
-     * the configuration.
-     *
-     * @param ev the property change event
-     */
-    public void propertyChange(PropertyChangeEvent ev)
-    {
-        String propertyName = ev.getPropertyName();
-
-        if (AUDIO_CAPTURE_DEVICE.equals(propertyName)
-                || AUDIO_NOTIFY_DEVICE.equals(propertyName)
-                || AUDIO_PLAYBACK_DEVICE.equals(propertyName))
-        {
-            CaptureDeviceInfo oldValue = (CaptureDeviceInfo) ev.getOldValue();
-            CaptureDeviceInfo newValue = (CaptureDeviceInfo) ev.getNewValue();
-
-            // Try to switch to a new active audio system if we are currently
-            // using the "none" system.
-            switchFromNoneToActiveAudioSystem(newValue);
-
-            CaptureDeviceInfo device = (oldValue == null) ? newValue : oldValue;
-
-            // Fire an event on the selected device only if the event is
-            // generated by the selected audio system.
-            if((device == null)
-                    || device.getLocator().getProtocol().equals(
-                            getAudioSystem().getLocatorProtocol()))
-            {
-                firePropertyChange(propertyName, oldValue, newValue);
-            }
-        }
-        else if (DeviceSystem.PROP_DEVICES.equals(propertyName))
-        {
-            if (ev.getSource() instanceof AudioSystem)
-            {
-                // Try to switch to a new active audio system if we are
-                // currently using the "none" system.
-                @SuppressWarnings("unchecked")
-                List<CaptureDeviceInfo> newValue
-                    = (List<CaptureDeviceInfo>) ev.getNewValue();
-
-                switchFromNoneToActiveAudioSystem(
-                        ((newValue == null) || newValue.isEmpty())
-                            ? null
-                            : newValue.get(0));
-
-                firePropertyChange(
-                        PROP_AUDIO_SYSTEM_DEVICES,
-                        ev.getOldValue(),
-                        newValue);
-            }
-        }
-        else if (PROP_VIDEO_FRAMERATE.equals(propertyName))
-        {
-            frameRate = -1;
-        }
-        else if (PROP_VIDEO_HEIGHT.equals(propertyName)
-                || PROP_VIDEO_WIDTH.equals(propertyName))
-        {
-            videoSize = null;
-        }
-        else if (PROP_VIDEO_RTP_PACING_THRESHOLD.equals(propertyName))
-        {
-            videoMaxBandwidth = -1;
-        }
-    }
-
-    /**
-     * Detects audio capture devices configured through JMF and disable audio if
-     * none was found.
-     */
-    private void extractConfiguredAudioCaptureDevices()
-    {
-        if (logger.isInfoEnabled())
-            logger.info("Looking for configured audio devices.");
-
-        AudioSystem[] availableAudioSystems = getAvailableAudioSystems();
-
-        if ((availableAudioSystems != null)
-                && (availableAudioSystems.length != 0))
-        {
-            AudioSystem audioSystem = getAudioSystem();
-
-            if (audioSystem != null)
-            {
-                boolean audioSystemIsAvailable = false;
-
-                for (AudioSystem availableAudioSystem : availableAudioSystems)
-                {
-                    if (availableAudioSystem.equals(audioSystem))
-                    {
-                        audioSystemIsAvailable = true;
-                        break;
-                    }
-                }
-                if (!audioSystemIsAvailable)
-                    audioSystem = null;
-            }
-
-            if (audioSystem == null)
-            {
-                ConfigurationService cfg = LibJitsi.getConfigurationService();
-
-                if (cfg != null)
-                {
-                    String locatorProtocol = cfg.getString(PROP_AUDIO_SYSTEM);
-
-                    if (locatorProtocol != null)
-                    {
-                        for (AudioSystem availableAudioSystem
-                                : availableAudioSystems)
-                        {
-                            if (locatorProtocol.equalsIgnoreCase(
-                                    availableAudioSystem.getLocatorProtocol()))
-                            {
-                                audioSystem = availableAudioSystem;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (audioSystem == null)
-                    audioSystem = availableAudioSystems[0];
-
-                setAudioSystem(audioSystem, false);
-            }
-        }
-    }
-
-    /**
-     * Detects video capture devices configured through JMF and disable video if
-     * none was found.
-     */
-    private void extractConfiguredVideoCaptureDevices()
-    {
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-        String videoCaptureDeviceString
-            = (cfg == null) ? null : cfg.getString(PROP_VIDEO_DEVICE);
-
-        if (NoneAudioSystem.LOCATOR_PROTOCOL.equalsIgnoreCase(
-                videoCaptureDeviceString))
-        {
-            videoCaptureDevice = null;
-        }
-        else
-        {
-            if (logger.isInfoEnabled())
-                logger.info("Scanning for configured Video Devices.");
-
-            Format[] formats
-                = new Format[]
-                        {
-                            new AVFrameFormat(),
-                            new VideoFormat(VideoFormat.RGB),
-                            new VideoFormat(VideoFormat.YUV),
-                            new VideoFormat(Constants.H264)
-                        };
-
-            for (Format format : formats)
-            {
-                videoCaptureDevice
-                    = extractConfiguredVideoCaptureDevice(format);
-                if (videoCaptureDevice != null)
-                    break;
-            }
-            if ((videoCaptureDevice == null) && logger.isInfoEnabled())
-                logger.info("No Video Device was found.");
-        }
-    }
-
-    /**
-     * Registers this device configuration to all reloadable device sytem, in
-     * order to receive events from device systems which are not currently
-     * selected. I.e. a device system which changes its number of device from 0
-     * to 1 or more, is becoming available and can be selected by the user.
-     */
-    private void registerToDeviceSystemPropertyChangeListener()
-    {
-        // Look at all kind of device systems: audio and video.
-        for(MediaType mediaType: MediaType.values())
-        {
-            DeviceSystem[] deviceSystems
-                = DeviceSystem.getDeviceSystems(mediaType);
-            if(deviceSystems != null)
-            {
-                for (DeviceSystem deviceSystem : deviceSystems)
-                {
-                    // If the device system is reloadable, then register this
-                    // device configuration.
-                    if((deviceSystem.getFeatures()
-                            & DeviceSystem.FEATURE_REINITIALIZE) != 0)
-                    {
-                        deviceSystem.addPropertyChangeListener(this);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Tries to automatically switch from the none audio system to a new active
-     * audio system: detected by an event showing that there is at least one
-     * device active for this system.
-     *
-     * @param newActiveDevice A device that have been recently detected has
-     * available.
-     */
-    private void switchFromNoneToActiveAudioSystem(
-            CaptureDeviceInfo newActiveDevice)
-    {
-        if(newActiveDevice != null)
-        {
-            String newActiveLocatorProtocol
-                = newActiveDevice.getLocator().getProtocol();
-
-            // If we are currently using the "none" system, and that the new
-            // available device uses a different system: then switch to the new
-            // audio system.
-            if(!newActiveLocatorProtocol.equals(
-                        NoneAudioSystem.LOCATOR_PROTOCOL)
-                    && getAudioSystem().getLocatorProtocol().equals(
-                            NoneAudioSystem.LOCATOR_PROTOCOL))
-            {
-                // If the AUDIO media type is disabled via
-                // MediaServiceImpl.DISABLE_AUDIO_SUPPORT_PNAME, then the
-                // DeviceSystem.initializeDeviceSystems will not instantiate
-                // any other audio system (except the "none" one). Thereby, the
-                // Audio.getAudioSystem will return null.
-                AudioSystem newActiveAudioSystem
-                    = AudioSystem.getAudioSystem(newActiveLocatorProtocol);
-
-                if(newActiveAudioSystem != null)
-                    setAudioSystem(newActiveAudioSystem, false);
-            }
-        }
-        // The device has been unplugged checks. It may be good to check if the
-        // current active audio system still has active devices. If not, then
-        // we will choose another audio system, or the "none" one if no audio
-        // system is available.
-        else
-        {
-            extractConfiguredAudioCaptureDevices();
-        }
     }
 }

@@ -365,17 +365,25 @@ public abstract class DeviceSystem
              * initialize().
              */
 
+            final String className = deviceSystem.getClass().getName();
             final Throwable[] exception = new Throwable[1];
             Thread thread
-                = new Thread(
-                        deviceSystem.getClass().getName() + ".initialize()")
+                = new Thread(className + ".initialize()")
                 {
                     @Override
                     public void run()
                     {
+                        boolean loggerIsTraceEnabled = logger.isTraceEnabled();
+
                         try
                         {
+                            if (loggerIsTraceEnabled)
+                                logger.trace("Will initialize " + className);
+
                             deviceSystem.initialize();
+
+                            if (loggerIsTraceEnabled)
+                                logger.trace("Did initialize " + className);
                         }
                         catch (Throwable t)
                         {

@@ -42,6 +42,74 @@ public abstract class AbstractCodec2
     public static final Format[] EMPTY_FORMATS = new Format[0];
 
     /**
+     * The maximum (RTP) sequence number value.
+     */
+    public static final int SEQUENCE_MAX = 65535;
+
+    /**
+     * The minimum (RTP) sequence number value.
+     */
+    public static final int SEQUENCE_MIN = 0;
+
+    /**
+     * Calculates the number of sequences which have been lost i.e. which have
+     * not been received.
+     *
+     * @param lastSeqNo the last received sequence number (prior to the current
+     * sequence number represented by <tt>seqNo</tt>.) May be
+     * {@link Buffer#SEQUENCE_UNKNOWN}. May be equal to <tt>seqNo</tt> for the
+     * purposes of Codec implementations which repeatedly process one and the
+     * same input Buffer multiple times.
+     * @param seqNo the current sequence number. May be equal to
+     * <tt>lastSeqNo</tt> for the purposes of Codec implementations which
+     * repeatedly process one and the same input Buffer multiple times.
+     * @return the number of sequences (between <tt>lastSeqNo</tt> and
+     * <tt>seqNo</tt>) which have been lost i.e. which have not been received
+     */
+    public static int calculateLostSeqNoCount(long lastSeqNo, long seqNo)
+    {
+    	if (lastSeqNo == Buffer.SEQUENCE_UNKNOWN)
+    		return 0;
+
+    	int delta = (int) (seqNo - lastSeqNo);
+
+    	/*
+    	 * We explicitly allow the same sequence number to be received multiple
+    	 * times for the purposes of Codec implementations which repeatedly
+    	 * process one and the same input Buffer multiple times.
+    	 */
+    	if (delta == 0)
+    		return 0;
+    	else if (delta > 0)
+    	{
+    		// The sequence number has not wrapped yet.
+    		return delta - 1;
+    	}
+    	else
+    	{
+    		// The sequence number has wrapped.
+    		return delta + SEQUENCE_MAX;
+    	}
+    }
+
+    /**
+     * Incements a specific sequence number and makes sure that the result stays
+     * within the range of valid RTP sequence number values.
+     *
+     * @param seqNo the sequence number to increment
+     * @return a sequence number which represents an increment over the
+     * specified <tt>seqNo</tt> within the range of valid RTP sequence number
+     * values
+     */
+    public static long incrementSeqNo(long seqNo)
+    {
+    	seqNo++;
+    	if (seqNo > SEQUENCE_MAX)
+    		seqNo = SEQUENCE_MIN;
+    	return seqNo;
+    }
+
+    /**
      * Utility to perform format matching.
      *
      * @param in input format

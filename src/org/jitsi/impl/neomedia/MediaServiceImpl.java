@@ -66,6 +66,16 @@ public class MediaServiceImpl
 
     /**
      * The name of the <tt>boolean</tt> <tt>ConfigurationService</tt> property
+     * which indicates whether the method
+     * {@link DeviceConfiguration#setAudioSystem(AudioSystem, boolean)} is to be
+     * considered disabled for the user i.e. the user is not presented with user
+     * interface which allows selecting a particular <tt>AudioSystem</tt>.
+     */
+    public static final String DISABLE_SET_AUDIO_SYSTEM_PNAME
+        = "net.java.sip.communicator.impl.neomedia.audiosystem.DISABLED";
+
+    /**
+     * The name of the <tt>boolean</tt> <tt>ConfigurationService</tt> property
      * which indicates whether the detection of video <tt>CaptureDevice</tt>s is
      * to be disabled. The default value is <tt>false</tt> i.e. the video
      * <tt>CaptureDevice</tt>s are detected.
