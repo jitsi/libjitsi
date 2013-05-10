@@ -181,29 +181,23 @@ public class JNIDecoder
         }
 
         long seqNo = inBuffer.getSequenceNumber();
-        boolean decodeFEC = false;
-
+        int lostSeqNoCount = calculateLostSeqNoCount(lastSeqNo, seqNo);
         /*
-         * Detect lost packets. (Take into account sequence number wrapping.)
+         * Detect the lost Buffers/packets and decode FEC/PLC. When no in-band
+         * forward error correction data is available, the Opus decoder will
+         * operate as if PLC has been specified.
          */
-        if ((lastSeqNo != Buffer.SEQUENCE_UNKNOWN)
-                && (seqNo != lastSeqNo + 1)
-                && (seqNo > lastSeqNo)
-                && (lastFrameSizeInSamplesPerChannel > 0))
-        {
-            /*
-             * When no in-band forward error correction data is available, the
-             * Opus decoder will operate as if PLC has been specified.
-             */
-            decodeFEC = true;
-        }
+        boolean decodeFEC
+        	= ((lostSeqNoCount != 0)
+        			&& (lastFrameSizeInSamplesPerChannel != 0));
+
         if ((inBuffer.getFlags() & Buffer.FLAG_SKIP_FEC) != 0)
         {
             decodeFEC = false;
             if (logger.isTraceEnabled())
             {
                 logger.trace(
-                        "Not decoding FEC for " + seqNo
+                        "Not decoding FEC/PLC for " + seqNo
                             + " because of Buffer.FLAG_SKIP_FEC.");
             }
         }
@@ -218,6 +212,9 @@ public class JNIDecoder
 
         if (decodeFEC)
         {
+        	inLength
+        		= (lostSeqNoCount == 1) ? inLength /* FEC */ : 0 /* PLC */;
+
             byte[] out
                 = validateByteArraySize(
                         outBuffer,
@@ -242,13 +239,15 @@ public class JNIDecoder
                 totalFrameSizeInSamplesPerChannel
                     += frameSizeInSamplesPerChannel;
 
-                outBuffer.setFlags(outBuffer.getFlags() | BUFFER_FLAG_FEC);
+                outBuffer.setFlags(
+                		outBuffer.getFlags()
+                			| (((in == null) || (inLength == 0))
+                					? BUFFER_FLAG_PLC
+        							: BUFFER_FLAG_FEC));
                 nbDecodedFec++;
             }
 
-            lastSeqNo++;
-            if (lastSeqNo > 65535)
-                lastSeqNo = 0;
+            lastSeqNo = incrementSeqNo(lastSeqNo);
         }
         else
         {
@@ -277,7 +276,9 @@ public class JNIDecoder
                 totalFrameSizeInSamplesPerChannel
                     += frameSizeInSamplesPerChannel;
 
-                outBuffer.setFlags(outBuffer.getFlags() & ~BUFFER_FLAG_FEC);
+                outBuffer.setFlags(
+                		outBuffer.getFlags()
+                			& ~(BUFFER_FLAG_FEC | BUFFER_FLAG_PLC));
 
                 /*
                  * When we encounter a lost frame, we will presume that it was

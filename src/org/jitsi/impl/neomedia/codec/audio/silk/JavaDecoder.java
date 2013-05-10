@@ -20,6 +20,7 @@ import org.jitsi.util.*;
  *
  * @author Dingxin Xu
  * @author Boris Grozev
+ * @author Lyubomir Marinov
  */
 public class JavaDecoder
     extends AbstractCodec2
@@ -211,31 +212,22 @@ public class JavaDecoder
         short[] out = validateShortArraySize(outBuffer, frameLength);
         int outOffset = 0;
 
-        boolean decodeFEC = false;
-
+        long seqNo = inBuffer.getSequenceNumber();
         /*
          * Check whether a packet has been lost. If a packet has more than one
          * frame, we go through each frame in a new call to the process method
          * so having the same sequence number as on the previous pass is fine.
          */
-        long seqNo = inBuffer.getSequenceNumber();
-        int nbPacketsLost = 0;
+        int lostSeqNoCount = calculateLostSeqNoCount(lastSeqNo, seqNo);
+        boolean decodeFEC = (lostSeqNoCount != 0);
 
-        if ((lastSeqNo != Buffer.SEQUENCE_UNKNOWN)
-                && (seqNo != lastSeqNo)
-                && (seqNo != lastSeqNo + 1)
-                && (seqNo > lastSeqNo))
-        {
-            decodeFEC = true;
-            nbPacketsLost = (int) (seqNo - lastSeqNo - 1);
-        }
         if ((inBuffer.getFlags() & Buffer.FLAG_SKIP_FEC) != 0)
         {
             decodeFEC = false;
             if (logger.isTraceEnabled())
             {
                 logger.trace(
-                        "Not decoding FEC for " + seqNo
+                        "Not decoding FEC/PLC for " + seqNo
                             + " because of Buffer.FLAG_SKIP_FEC.");
             }
         }
@@ -246,8 +238,8 @@ public class JavaDecoder
         {
             lbrrBytes[0] = 0;
             DecAPI.SKP_Silk_SDK_search_for_LBRR(
-                    in, inOffset, (short)inLength,
-                    nbPacketsLost /* lost_offset */,
+                    in, inOffset, (short) inLength,
+                    /* lost_offset */ lostSeqNoCount,
                     lbrrData, 0, lbrrBytes);
             if (logger.isTraceEnabled())
             {
@@ -256,7 +248,7 @@ public class JavaDecoder
                             + ", current " + seqNo);
                 logger.trace(
                         "Looking for FEC data, found " + lbrrBytes[0]
-                            + "bytes");
+                            + " bytes");
             }
 
             outputLength[0] = frameLength;
@@ -281,26 +273,21 @@ public class JavaDecoder
                 outBuffer.setFlags(outBuffer.getFlags() | BUFFER_FLAG_FEC);
                 outBuffer.setFlags(outBuffer.getFlags() & ~BUFFER_FLAG_PLC);
 
-                /*
-                 * We have decoded the expected sequence number from the FEC
-                 * data.
-                 */
-                lastSeqNo++;
-                if (lastSeqNo > 65535)
-                    lastSeqNo = 0;
+                // We have decoded the expected sequence number from FEC data.
+                lastSeqNo = incrementSeqNo(lastSeqNo);
                 return INPUT_BUFFER_NOT_CONSUMED;
             }
             else
             {
                 nbFECNotDecoded++;
-                if (nbPacketsLost > 0)
-                    this.nbPacketsLost += nbPacketsLost;
+                if (lostSeqNoCount != 0)
+                    this.nbPacketsLost += lostSeqNoCount;
                 lastSeqNo = seqNo;
                 return BUFFER_PROCESSED_FAILED;
             }
         }
-        else if (nbPacketsLost > 0)
-            this.nbPacketsLost += nbPacketsLost;
+        else if (lostSeqNoCount != 0)
+            this.nbPacketsLost += lostSeqNoCount;
 
         int processed;
 
@@ -349,9 +336,7 @@ public class JavaDecoder
 
                     processed = INPUT_BUFFER_NOT_CONSUMED;
                     // We have decoded the expected sequence number with PLC.
-                    lastSeqNo++;
-                    if (lastSeqNo > 65535)
-                        lastSeqNo = 0;
+                    lastSeqNo = incrementSeqNo(lastSeqNo);
                 }
             }
             else
@@ -360,8 +345,8 @@ public class JavaDecoder
                 if (lostFlag == 1)
                 {
                     nbFECNotDecoded++;
-                    if (nbPacketsLost > 0)
-                        this.nbPacketsLost += nbPacketsLost;
+                    if (lostSeqNoCount != 0)
+                        this.nbPacketsLost += lostSeqNoCount;
                 }
                 lastSeqNo = seqNo;
             }
