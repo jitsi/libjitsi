@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi;
 
+import org.jitsi.util.*;
+
 /**
  * Defines the native interface to Windows Audio Session API (WASAPI) and
  * related Core Audio APIs such as Multimedia Device (MMDevice) API as used by
@@ -101,6 +103,10 @@ public class WASAPI
         }
         catch (HResultException hre)
         {
+            Logger logger = Logger.getLogger(WASAPI.class);
+
+            logger.error("PSPropertyKeyFromString", hre);
+
             throw new RuntimeException(hre);
         }
     }
