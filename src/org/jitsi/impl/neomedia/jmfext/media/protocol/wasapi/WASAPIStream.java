@@ -285,6 +285,11 @@ public class WASAPIStream
                 throw (IOException) t;
             else
             {
+                logger.error(
+                        "Failed to connect a WASAPIStream"
+                            + " to an audio endpoint device.",
+                        t);
+
                 IOException ioe = new IOException();
 
                 ioe.initCause(t);
@@ -621,12 +626,7 @@ public class WASAPIStream
                  * AUDCLNT_E_NOT_STOPPED.
                  */
                 if (hre.getHResult() != AUDCLNT_E_NOT_STOPPED)
-                {
-                    String message = "IAudioClient_Start";
-
-                    logger.error(message, hre);
-                    throwNewIOException(message, hre);
-                }
+                    throwNewIOException("IAudioClient_Start", hre);
             }
         }
     }
@@ -654,10 +654,7 @@ public class WASAPIStream
             }
             catch (HResultException hre)
             {
-                String message = "IAudioClient_Stop";
-
-                logger.error(message, hre);
-                throwNewIOException(message, hre);
+                throwNewIOException("IAudioClient_Stop", hre);
             }
         }
     }

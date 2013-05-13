@@ -19,8 +19,9 @@
 #include <mmreg.h> /* WAVEFORMATEX */
 #include <objbase.h>
 #include <stdint.h> /* intptr_t */
-#include <stdio.h> /* fprintf, fflush */
+#include <stdio.h> /* fflush */
 #include <string.h>
+#include <tchar.h> /* _ftprintf */
 #include <windows.h> /* LoadLibrary, GetProcAddress */
 
 #ifndef __uuidof
@@ -53,7 +54,8 @@ ULONG STDMETHODCALLTYPE MMNotificationClient_Release
 static UINT32 WASAPI_audiocopy
     (void *src, jint srcSampleSize, jint srcChannels, void *dst,
         jint dstSampleSize, jint dstChannels, UINT32 numFramesRequested);
-static void WASAPI_throwNewHResultException(JNIEnv *, HRESULT);
+static void WASAPI_throwNewHResultException
+    (JNIEnv *, HRESULT, const char *func, unsigned int line);
 
 static jclass MMNotificationClient_class = 0;
 static jmethodID MMNotificationClient_onDefaultDeviceChangedMethodID = 0;
@@ -99,7 +101,8 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_CloseHandle
     {
         WASAPI_throwNewHResultException(
                 env,
-                HRESULT_FROM_WIN32(GetLastError()));
+                HRESULT_FROM_WIN32(GetLastError()),
+                __func__, __LINE__);
     }
 }
 
@@ -126,7 +129,10 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_CoCreateGuid
         if (written == 0)
         {
             str = NULL;
-            WASAPI_throwNewHResultException(env, E_OUTOFMEMORY);
+            WASAPI_throwNewHResultException(
+                    env,
+                    E_OUTOFMEMORY,
+                    __func__, __LINE__);
         }
         else if (written == toWrite)
         {
@@ -135,13 +141,16 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_CoCreateGuid
         else
         {
             str = NULL;
-            WASAPI_throwNewHResultException(env, E_FAIL);
+            WASAPI_throwNewHResultException(
+                    env,
+                    E_FAIL,
+                    __func__, __LINE__);
         }
     }
     else
     {
         str = NULL;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return str;
 }
@@ -164,7 +173,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_CoCreateInstanc
             hr = CLSIDFromString((LPOLESTR) szClsid, &clsid_);
             (*env)->ReleaseStringChars(env, clsid, szClsid);
             if (FAILED(hr))
-                WASAPI_throwNewHResultException(env, hr);
+                WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
         }
         else
             hr = E_OUTOFMEMORY;
@@ -184,7 +193,12 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_CoCreateInstanc
                 hr = IIDFromString((LPOLESTR) szIid, &iid_);
                 (*env)->ReleaseStringChars(env, iid, szIid);
                 if (FAILED(hr))
-                    WASAPI_throwNewHResultException(env, hr);
+                {
+                    WASAPI_throwNewHResultException(
+                            env,
+                            hr,
+                            __func__, __LINE__);
+                }
             }
             else
                 hr = E_OUTOFMEMORY;
@@ -216,7 +230,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_CoCreateInstanc
             else
             {
                 pv = NULL;
-                WASAPI_throwNewHResultException(env, hr);
+                WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
             }
         }
         else
@@ -235,7 +249,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_CoInitializeEx
         = CoInitializeEx((LPVOID) (intptr_t) pvReserved, (DWORD) dwCoInit);
 
     if (FAILED(hr))
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     return (jint) hr;
 }
 
@@ -286,13 +300,14 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_CreateEvent
         {
             WASAPI_throwNewHResultException(
                     env,
-                    HRESULT_FROM_WIN32(GetLastError()));
+                    HRESULT_FROM_WIN32(GetLastError()),
+                    __func__, __LINE__);
         }
     }
     else
     {
         ev = NULL;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jlong) (intptr_t) ev;
 }
@@ -311,7 +326,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioCaptureCl
     if (FAILED(hr))
     {
         numFramesInNextPacket = 0;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jint) numFramesInNextPacket;
 }
@@ -350,7 +365,10 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioCaptureCl
             if (length < numFramesToRead * dstFrameSize)
             {
                 numFramesRead = 0;
-                WASAPI_throwNewHResultException(env, E_INVALIDARG);
+                WASAPI_throwNewHResultException(
+                        env,
+                        E_INVALIDARG,
+                        __func__, __LINE__);
             }
             else
             {
@@ -376,12 +394,12 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioCaptureCl
                     numFramesRead);
         read = numFramesRead * dstFrameSize;
         if (FAILED(hr))
-            WASAPI_throwNewHResultException(env, hr);
+            WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     else
     {
         read = 0;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return read;
 }
@@ -407,7 +425,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1G
     if (FAILED(hr))
     {
         numBufferFrames = 0;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jint) numBufferFrames;
 }
@@ -426,7 +444,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1G
     if (FAILED(hr))
     {
         numPaddingFrames = 0;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jint) numPaddingFrames;
 }
@@ -447,7 +465,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1G
     if (FAILED(hr))
     {
         hnsDefaultDevicePeriod = 0;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jlong) hnsDefaultDevicePeriod;
 }
@@ -468,7 +486,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1G
     if (FAILED(hr))
     {
         hnsMinimumDevicePeriod = 0;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jlong) hnsMinimumDevicePeriod;
 }
@@ -490,7 +508,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1G
             hr = IIDFromString((LPOLESTR) szIid, &iid_);
             (*env)->ReleaseStringChars(env, iid, szIid);
             if (FAILED(hr))
-                WASAPI_throwNewHResultException(env, hr);
+                WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
         }
         else
             hr = E_OUTOFMEMORY;
@@ -507,7 +525,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1G
         if (FAILED(hr))
         {
             pv = NULL;
-            WASAPI_throwNewHResultException(env, hr);
+            WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
         }
     }
     else
@@ -540,7 +558,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1I
                     audioSessionGuid,
                     szAudioSessionGuid);
             if (FAILED(hr))
-                WASAPI_throwNewHResultException(env, hr);
+                WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
         }
         else
             hr = E_OUTOFMEMORY;
@@ -559,7 +577,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1I
                     (const WAVEFORMATEX *) (intptr_t) pFormat,
                     &audioSessionGuid_);
         if (FAILED(hr))
-            WASAPI_throwNewHResultException(env, hr);
+            WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jint) hr;
 }
@@ -593,7 +611,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1I
         break;
 
     default:
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jlong) (intptr_t) pClosestMatch;
 }
@@ -615,7 +633,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1S
                 (HANDLE) (intptr_t) eventHandle);
 
     if (FAILED(hr))
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
 }
 
 JNIEXPORT jint JNICALL
@@ -625,7 +643,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1S
     HRESULT hr = IAudioClient_Start((IAudioClient *) (intptr_t) thiz);
 
     if (FAILED(hr))
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     return (jint) hr;
 }
 
@@ -636,7 +654,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1S
     HRESULT hr = IAudioClient_Stop((IAudioClient *) (intptr_t) thiz);
 
     if (FAILED(hr))
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     return (jint) hr;
 }
 
@@ -692,12 +710,12 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioRenderCli
                     /* dwFlags */ 0);
         written = numFramesWritten * srcFrameSize;
         if (FAILED(hr))
-            WASAPI_throwNewHResultException(env, hr);
+            WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     else
     {
         written = 0;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return written;
 }
@@ -720,7 +738,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDevice_1Acti
             hr = IIDFromString((LPOLESTR) szIid, &iid_);
             (*env)->ReleaseStringChars(env, iid, szIid);
             if (FAILED(hr))
-                WASAPI_throwNewHResultException(env, hr);
+                WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
         }
         else
             hr = E_OUTOFMEMORY;
@@ -739,7 +757,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDevice_1Acti
         if (FAILED(hr))
         {
             pInterface = NULL;
-            WASAPI_throwNewHResultException(env, hr);
+            WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
         }
     }
     else
@@ -768,7 +786,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDevice_1GetI
     else
     {
         ret = NULL;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return ret;
 }
@@ -783,7 +801,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDevice_1GetS
     if (FAILED(hr))
     {
         dwState = 0;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jint) dwState;
 }
@@ -803,7 +821,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDevice_1Open
     if (FAILED(hr))
     {
         pProperties = NULL;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jlong) (intptr_t) pProperties;
 }
@@ -825,7 +843,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDevice_1Quer
             hr = IIDFromString((LPOLESTR) szIid, &iid_);
             (*env)->ReleaseStringChars(env, iid, szIid);
             if (FAILED(hr))
-                WASAPI_throwNewHResultException(env, hr);
+                WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
         }
         else
             hr = E_OUTOFMEMORY;
@@ -842,7 +860,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDevice_1Quer
         if (FAILED(hr))
         {
             pvObject = NULL;
-            WASAPI_throwNewHResultException(env, hr);
+            WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
         }
     }
     else
@@ -870,7 +888,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDeviceCollec
     if (FAILED(hr))
     {
         cDevices = 0;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jint) cDevices;
 }
@@ -889,7 +907,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDeviceCollec
     if (FAILED(hr))
     {
         pDevice = NULL;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jlong) (intptr_t) pDevice;
 }
@@ -916,7 +934,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDeviceEnumer
     if (FAILED(hr))
     {
         pDevices = NULL;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jlong) (intptr_t) pDevices;
 }
@@ -951,7 +969,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDeviceEnumer
         if (FAILED(hr))
         {
             pDevice = NULL;
-            WASAPI_throwNewHResultException(env, hr);
+            WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
         }
     }
     else
@@ -987,7 +1005,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMEndpoint_1Ge
     if (FAILED(hr))
     {
         dataFlow = EDataFlow_enum_count;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return (jint) dataFlow;
 }
@@ -1025,14 +1043,17 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IPropertyStore_
         else
         {
             ret = NULL;
-            WASAPI_throwNewHResultException(env, E_UNEXPECTED);
+            WASAPI_throwNewHResultException(
+                    env,
+                    E_UNEXPECTED,
+                    __func__, __LINE__);
         }
         PropVariantClear(&v);
     }
     else
     {
         ret = NULL;
-        WASAPI_throwNewHResultException(env, hr);
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     return ret;
 }
@@ -1069,7 +1090,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_PSPropertyKeyFr
             hr = E_OUTOFMEMORY;
         (*env)->ReleaseStringChars(env, pszString, pszString_);
         if (FAILED(hr))
-            WASAPI_throwNewHResultException(env, hr);
+            WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
     }
     else
         pkey = NULL;
@@ -1086,7 +1107,8 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_ResetEvent
     {
         WASAPI_throwNewHResultException(
                 env,
-                HRESULT_FROM_WIN32(GetLastError()));
+                HRESULT_FROM_WIN32(GetLastError()),
+                __func__, __LINE__);
     }
 }
 
@@ -1103,7 +1125,8 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_WaitForSingleOb
     {
         WASAPI_throwNewHResultException(
                 env,
-                HRESULT_FROM_WIN32(GetLastError()));
+                HRESULT_FROM_WIN32(GetLastError()),
+                __func__, __LINE__);
     }
     return ret;
 }
@@ -1647,20 +1670,64 @@ WASAPI_audiocopy
 }
 
 static void
-WASAPI_throwNewHResultException(JNIEnv *env, HRESULT hresult)
+WASAPI_throwNewHResultException
+    (JNIEnv *env, HRESULT hresult, const char *func, unsigned int line)
 {
-    jclass clazz = WASAPI_hResultExceptionClass;
-
-    if (clazz)
+    /*
+     * Print the system message (if any) which represents a human-readable
+     * format of the specified HRESULT value on the standard error to facilitate
+     * debugging.
+     */
     {
-        jmethodID methodID = WASAPI_hResultExceptionMethodID;
+        LPTSTR message = NULL;
+        DWORD length
+            = FormatMessage(
+                    FORMAT_MESSAGE_ALLOCATE_BUFFER
+                        | FORMAT_MESSAGE_FROM_SYSTEM
+                        | FORMAT_MESSAGE_IGNORE_INSERTS,
+                    /* lpSource */ NULL,
+                    hresult,
+                    /* dwLanguageId */ 0,
+                    (LPTSTR) &message,
+                    /* nSize */ 0,
+                    /* Arguments */ NULL);
+        BOOL printed = FALSE;
 
-        if (methodID)
+        if (message)
         {
-            jobject t = (*env)->NewObject(env, clazz, methodID, (jint) hresult);
+            if (length)
+            {
+                _ftprintf(stderr, TEXT("%s:%u: %s\r\n"), func, line, message);
+                printed = TRUE;
+            }
+            LocalFree(message);
+        }
+        if (!printed)
+        {
+            _ftprintf(
+                    stderr,
+                    TEXT("%s:%u: HRESULT 0x%x\r\n"),
+                    func, line,
+                    (unsigned int) hresult);
+        }
+        fflush(stderr);
+    }
 
-            if (t)
-                (*env)->Throw(env, (jthrowable) t);
+    {
+        jclass clazz = WASAPI_hResultExceptionClass;
+
+        if (clazz)
+        {
+            jmethodID methodID = WASAPI_hResultExceptionMethodID;
+
+            if (methodID)
+            {
+                jobject t
+                    = (*env)->NewObject(env, clazz, methodID, (jint) hresult);
+
+                if (t)
+                    (*env)->Throw(env, (jthrowable) t);
+            }
         }
     }
 }
