@@ -257,8 +257,15 @@ public class VideoLayout
          * in sync.
          */
 
+        List<Component> visibleRemotes = new ArrayList<Component>();
         List<Component> remotes;
         Component local = getLocal();
+
+        for (int i = 0; i < this.remotes.size(); i++)
+        {
+            if (this.remotes.get(i).isVisible())
+                visibleRemotes.add(this.remotes.get(i));
+        }
 
         /*
          * When there are multiple remote visual/video Components, the local one
@@ -266,15 +273,15 @@ public class VideoLayout
          * on top of a remote one. The same layout will be used when this
          * instance is dedicated to a telephony conference.
          */
-        if (conference || ((this.remotes.size() > 1) && (local != null)))
+        if (conference || ((visibleRemotes.size() > 1) && (local != null)))
         {
             remotes = new ArrayList<Component>();
-            remotes.addAll(this.remotes);
+            remotes.addAll(visibleRemotes);
             if (local != null)
                 remotes.add(local);
         }
         else
-            remotes = this.remotes;
+            remotes = visibleRemotes;
 
         int remoteCount = remotes.size();
         Dimension parentSize = parent.getSize();
@@ -450,8 +457,15 @@ public class VideoLayout
     @Override
     public Dimension preferredLayoutSize(Container parent)
     {
+        List<Component> visibleRemotes = new ArrayList<Component>();
         List<Component> remotes;
         Component local = getLocal();
+
+        for (int i = 0; i < this.remotes.size(); i++)
+        {
+            if (this.remotes.get(i).isVisible())
+                visibleRemotes.add(this.remotes.get(i));
+        }
 
         /*
          * When there are multiple remote visual/video Components, the local one
@@ -459,15 +473,15 @@ public class VideoLayout
          * on top of a remote one. The same layout will be used when this
          * instance is dedicated to a telephony conference.
          */
-        if (conference || ((this.remotes.size() > 1) && (local != null)))
+        if (conference || ((visibleRemotes.size() > 1) && (local != null)))
         {
             remotes = new ArrayList<Component>();
-            remotes.addAll(this.remotes);
+            remotes.addAll(visibleRemotes);
             if (local != null)
                 remotes.add(local);
         }
         else
-            remotes = this.remotes;
+            remotes = visibleRemotes;
 
         int remoteCount = remotes.size();
         Dimension prefLayoutSize;
