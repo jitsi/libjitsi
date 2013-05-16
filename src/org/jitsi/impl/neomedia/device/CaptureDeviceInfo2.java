@@ -109,11 +109,47 @@ public class CaptureDeviceInfo2
     @Override
     public boolean equals(Object obj)
     {
-        return
-            (obj != null)
-                && (obj instanceof CaptureDeviceInfo2)
-                && getIdentifier().equals(
-                        ((CaptureDeviceInfo2) obj).getIdentifier());
+        if (obj == null)
+            return false;
+        else if (obj == this)
+            return true;
+        else if (obj instanceof CaptureDeviceInfo2)
+        {
+            CaptureDeviceInfo2 cdi2 = (CaptureDeviceInfo2) obj;
+
+            // locator
+            MediaLocator locator = getLocator();
+            MediaLocator cdi2Locator = cdi2.getLocator();
+
+            if (locator == null)
+            {
+                if (cdi2Locator != null)
+                    return false;
+            }
+            else if (cdi2Locator == null)
+                return false;
+            else
+            {
+                // protocol
+                String protocol = locator.getProtocol();
+                String cdi2Protocol = cdi2Locator.getProtocol();
+
+                if (protocol == null)
+                {
+                    if (cdi2Protocol != null)
+                        return false;
+                }
+                else if (cdi2Protocol == null)
+                    return false;
+                else if (!protocol.equals(cdi2Protocol))
+                    return false;
+            }
+
+            // identifier
+            return getIdentifier().equals(cdi2.getIdentifier());
+        }
+        else
+            return false;
     }
 
     /**

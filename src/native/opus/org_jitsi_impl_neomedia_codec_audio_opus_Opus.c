@@ -22,7 +22,7 @@ Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
     {
         jbyte *input_;
 
-        if (input)
+        if (input && inputLength)
         {
             input_ = (*env)->GetPrimitiveArrayCritical(env, input, 0);
             ret = input_ ? OPUS_OK : OPUS_ALLOC_FAIL;
@@ -42,7 +42,7 @@ Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
                     = opus_decode(
                             (OpusDecoder *) (intptr_t) decoder,
                             (unsigned char *)
-                                (input_ ? (input_ + inputOffset) : 0),
+                                (input_ ? (input_ + inputOffset) : NULL),
                             inputLength,
                             (opus_int16 *) (output_ /* + outputOffset */),
                             outputFrameSize,
@@ -51,7 +51,7 @@ Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
             }
             else
                 ret = OPUS_ALLOC_FAIL;
-            if (input)
+            if (input_)
             {
                 (*env)->ReleasePrimitiveArrayCritical(
                         env,
