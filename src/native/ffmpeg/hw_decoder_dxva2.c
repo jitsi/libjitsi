@@ -161,7 +161,7 @@ typedef struct
 
 /* XXX Prefered format must come first */
 static const d3d_format_t d3d_formats[] = {
-    { "YV12",   MAKEFOURCC('Y','V','1','2'), 0 },
+/*    { "YV12",   MAKEFOURCC('Y','V','1','2'), 0 }, */
     { "NV12",   MAKEFOURCC('N','V','1','2'), 0 },
 /*    { "IMC3",   MAKEFOURCC('I','M','C','3'), 0 }, */
     { NULL, 0, 0 }
@@ -474,6 +474,7 @@ static int hw_dxva2_find_video_service_conversion(
  * \param codec_id ID of the codec.
  * \param input input GUID.
  * \param render render format.
+ * \param dsc DXVA2 video description.
  * \return 0 if success, -1 otherwise.
  */
 static int hw_dxva2_create_decoder(HINSTANCE dll,
@@ -481,12 +482,13 @@ static int hw_dxva2_create_decoder(HINSTANCE dll,
         DXVA2_ConfigPictureDecode* config,
         IDirectXVideoDecoderService* service,
         LPDIRECT3DSURFACE9* d3d_surfaces, int width, int height,
-        size_t nb_surfaces, int codec_id, GUID* input, D3DFORMAT* render)
+        size_t nb_surfaces, int codec_id, GUID* input, D3DFORMAT* render,
+        DXVA2_VideoDesc* dsc)
 {
     int w_surface = 0;
     int h_surface = 0;
 
-    if(!decoder || !d3d_surfaces || !nb_surfaces)
+    if(!decoder || !d3d_surfaces || !nb_surfaces || !dsc)
     {
         return -1;
     }
@@ -513,23 +515,22 @@ static int hw_dxva2_create_decoder(HINSTANCE dll,
         return -1; 
     }
 
-    DXVA2_VideoDesc dsc;
-    memset(&dsc, 0x00, sizeof(DXVA2_VideoDesc));
-    dsc.SampleWidth = width;
-    dsc.SampleHeight = height;
-    dsc.Format = *render;
-    dsc.InputSampleFreq.Numerator   = 0;
-    dsc.InputSampleFreq.Denominator = 0;
-    dsc.OutputFrameFreq = dsc.InputSampleFreq;
-    dsc.UABProtectionLevel = FALSE;
-    dsc.Reserved = 0;
+    memset(dsc, 0x00, sizeof(DXVA2_VideoDesc));
+    dsc->SampleWidth = width;
+    dsc->SampleHeight = height;
+    dsc->Format = *render;
+    dsc->InputSampleFreq.Numerator   = 0;
+    dsc->InputSampleFreq.Denominator = 0;
+    dsc->OutputFrameFreq = dsc->InputSampleFreq;
+    dsc->UABProtectionLevel = FALSE;
+    dsc->Reserved = 0;
 
-    DXVA2_ExtendedFormat *ext = &dsc.SampleFormat;
-    ext->SampleFormat = 0; //DXVA2_SampleUnknown;
+    DXVA2_ExtendedFormat *ext = &dsc->SampleFormat;
+    ext->SampleFormat = DXVA2_SampleProgressiveFrame;
     ext->VideoChromaSubsampling = 0; //DXVA2_VideoChromaSubsampling_Unknown;
     ext->NominalRange = 0; //DXVA2_NominalRange_Unknown;
     ext->VideoTransferMatrix = 0; //DXVA2_VideoTransferMatrix_Unknown;
-    ext->VideoLighting = 0; //DXVA2_VideoLighting_Unknown;
+    ext->VideoLighting = DXVA2_VideoLighting_dim;
     ext->VideoPrimaries = 0; //DXVA2_VideoPrimaries_Unknown;
     ext->VideoTransferFunction = 0; //DXVA2_VideoTransFunc_Unknown;
 
@@ -539,7 +540,7 @@ static int hw_dxva2_create_decoder(HINSTANCE dll,
     if(FAILED(IDirectXVideoDecoderService_GetDecoderConfigurations(
                     service,
                     input,
-                    &dsc,
+                    dsc,
                     NULL,
                     &cfg_count,
                     &cfg_list)))
@@ -555,14 +556,22 @@ static int hw_dxva2_create_decoder(HINSTANCE dll,
 
         int score = 0;
         if(cfg->ConfigBitstreamRaw == 1)
+        {
             score = 1;
+        }
         else if(codec_id == AV_CODEC_ID_H264 && cfg->ConfigBitstreamRaw == 2)
+        {
             score = 2;
+        }
         else
+        {
             continue;
+        }
 
         if(IsEqualGUID(&cfg->guidConfigBitstreamEncryption, &DXVA_NoEncrypt))
+        {
             score += 16;
+        }
 
         if(cfg_score < score)
         {
@@ -580,7 +589,7 @@ static int hw_dxva2_create_decoder(HINSTANCE dll,
     if(FAILED(IDirectXVideoDecoderService_CreateVideoDecoder(
                     service,
                     input,
-                    &dsc,
+                    dsc,
                     config,
                     surface_list,
                     nb_surfaces,
@@ -777,7 +786,8 @@ int hw_decoder_init(struct hw_decoder* obj, void* profile, int width,
                 &obj->context.config, obj->context.decoder_service,
                 obj->context.d3d_surfaces, width, height,
                 obj->context.nb_surfaces, obj->codec_id,
-                &obj->context.decoder_input, &obj->context.render_format) != 0)
+                &obj->context.decoder_input, &obj->context.render_format,
+                &obj->context.video_desc) != 0)
     {
         return -1;
     }

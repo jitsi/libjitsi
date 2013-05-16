@@ -125,7 +125,6 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1decode_1video__JJ_3Z_3BI
             AVFrame* avframe = (AVFrame*)(intptr_t)frame;
             AVCodecContext* avcontext = (AVCodecContext *) (intptr_t) ctx;
 
-
             av_init_packet(&avpkt);
             avpkt.data = (uint8_t *) buf_ptr;
             avpkt.size = (int) buf_size;
@@ -314,11 +313,10 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1open2
     }
     if (0 <= ret)
     {
-        /* only Linux supports hardware decoding at the moment */
         AVCodecContext* avcontext = (AVCodecContext*)(intptr_t)ctx;
         AVCodec* avcodec = (AVCodec*)(intptr_t)codec;
 
-#ifdef __linux__
+#if defined(__linux__) || defined(_WIN32) || defined(_WIN64)
         /* hardware decoding supported ? */
         if(avcontext->opaque)
         {
@@ -960,7 +958,7 @@ JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_codec_FFmpeg_hw_1decoder
       break;
     }
 
-#ifdef __linux__
+#if defined(__linux__) || defined(_WIN32) || defined(_WIN64)
     ret = hw_decoder_is_codec_supported(codec_id) ? JNI_TRUE : JNI_FALSE;
 #else
     /* for the moment other OS does not support hardware decoding */

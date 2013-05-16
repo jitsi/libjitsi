@@ -29,7 +29,7 @@ JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_vi
 
   (void)zOrder;
 
-  awt.version = JAWT_VERSION_1_3;
+  awt.version = JAWT_VERSION_1_4;
 
   if(JAWT_GetAWT(env, &awt) != JNI_FALSE)
   {

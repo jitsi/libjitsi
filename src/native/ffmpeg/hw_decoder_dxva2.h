@@ -53,6 +53,7 @@ struct hw_dxva2_context
   struct hw_dxva2_surface surfaces[DXVA2_MAX_SURFACES]; /**< DXVA2 surfaces. */
   LPDIRECT3DSURFACE9 d3d_surfaces[DXVA2_MAX_SURFACES]; /**< Raw surfaces. */
   size_t nb_surfaces; /**< Number of surfaces. */
+  DXVA2_VideoDesc video_desc; /**< Video description. */
 };
 
 /**
