@@ -85,7 +85,7 @@ static HRESULT hw_renderer_create_d3d_device(struct hw_renderer_dxva2 *obj,
     D3DPRESENT_PARAMETERS params;
     HRESULT hr;
 
-    ZeroMemory(&params, sizeof(D3DPRESENT_PARAMETERS));
+    memset(&params, 0x00, sizeof(D3DPRESENT_PARAMETERS));
 
     params.AutoDepthStencilFormat = D3DFMT_D16;
     params.BackBufferCount = 1;
@@ -117,7 +117,7 @@ static HRESULT hw_renderer_create_d3d_device(struct hw_renderer_dxva2 *obj,
                 obj->hwnd,
                 D3DCREATE_SOFTWARE_VERTEXPROCESSING,
                 &params,
-                &(obj->device));
+                &obj->device);
 
     if(FAILED(hr))
     {
@@ -146,6 +146,7 @@ static HRESULT hw_renderer_create_dxva2_processor(struct hw_renderer_dxva2* obj)
         /* find GUID for processor device */
         GUID* guids = NULL;
         UINT guids_count = 0;
+
 
         hr = IDirectXVideoProcessorService_GetVideoProcessorDeviceGuids(
                 obj->processor_service,
@@ -209,6 +210,8 @@ static HRESULT hw_renderer_create_dxva2_processor(struct hw_renderer_dxva2* obj)
 void hw_renderer_display(struct hw_renderer_dxva2* obj, void* hwnd,
         void* drawable, void* surface)
 {
+    HRESULT hr;
+
     /* basic checks */
     if(!obj || !surface || !hwnd || !drawable)
     {
@@ -218,13 +221,17 @@ void hw_renderer_display(struct hw_renderer_dxva2* obj, void* hwnd,
     DXVA2_VideoSample vs;
 
     memset(&vs, 0x00, sizeof(DXVA2_VideoSample));
-    vs.Start = 0;
+    vs.Start = 2;
     vs.End = 0;
     vs.SampleFormat = obj->decoder->context.video_desc.SampleFormat;
     vs.SrcRect.left = 0;
     vs.SrcRect.right = obj->decoder->context.video_desc.SampleWidth;
     vs.SrcRect.top = 0;
     vs.SrcRect.bottom = obj->decoder->context.video_desc.SampleHeight;
+    vs.DstRect.left = 0;
+    vs.DstRect.right = obj->decoder->context.video_desc.SampleWidth;
+    vs.DstRect.top = 0;
+    vs.DstRect.bottom = obj->decoder->context.video_desc.SampleHeight;
     vs.PlanarAlpha = DXVA2_Fixed32OpaqueAlpha();
     vs.SampleData = 0;
     vs.SrcSurface = surface;
@@ -254,10 +261,16 @@ void hw_renderer_display(struct hw_renderer_dxva2* obj, void* hwnd,
      * won't render anything until someting else have been rendered. */
     IDirect3DDevice9_SetFVF(obj->device, D3DFVF_XYZ);
     float verts[2][3]= {};
-    IDirect3DDevice9_DrawPrimitiveUP(obj->device, D3DPT_TRIANGLEFAN, 1, verts, 3 * sizeof(float));
+    IDirect3DDevice9_DrawPrimitiveUP(obj->device, D3DPT_TRIANGLEFAN, 1, verts,
+        3 * sizeof(float));
 
-    IDirectXVideoProcessor_VideoProcessBlt(obj->processor,
+    hr = IDirectXVideoProcessor_VideoProcessBlt(obj->processor,
             drawable, &blt, &vs, 1, NULL);
+
+    if(FAILED(hr))
+    {
+        printf("videoprocessblt failed: %x\n", (uint32_t)hr);fflush(stdout);
+    }
     IDirect3DSurface9_Release(vs.SrcSurface);
 }
 
@@ -301,7 +314,9 @@ jlong hw_renderer_open(JNIEnv* env, jclass clazz, jobject component)
             return 0;
         }
 
+        memset(renderer, 0x00, sizeof(struct hw_renderer_dxva2));
         renderer->d3d = d3d;
+        renderer->device = NULL;
         renderer->width = 0;
         renderer->height = 0;
         renderer->processor_service = NULL;
@@ -363,6 +378,10 @@ jboolean hw_renderer_paint(JAWT_DrawingSurfaceInfo* dsi, jclass clazz,
                     IDirect3DSurface9_Release(target);
                     clear = FALSE;
                 }
+                else
+                {
+                    printf("render target failed\n");fflush(stdout);
+                }
             }
 
             if(clear)
@@ -408,6 +427,12 @@ jboolean hw_renderer_process(JNIEnv* env, jclass clazz, jlong handle,
     (void)component;
     (void)offset;
     (void)length;
+    
+    if(avframe)
+    {
+        obj->avframe = avframe;
+        obj->decoder = avframe->opaque;
+    }
 
     if(!(obj->device)
             || (obj->width != width)
@@ -449,19 +474,18 @@ jboolean hw_renderer_process(JNIEnv* env, jclass clazz, jlong handle,
                 if(FAILED(hr))
                 {
                     /* TODO adds debug here */
+                    printf("create_dxva2_processor\n");fflush(stdout);
                 }
+            }
+            else
+            {
+                printf("create_d3d_device\n");fflush(stdout);
             }
             /*
              * If we failed to create the Direct3D device, we will try again
              * next time in the hope that we will succeed eventually.
              */
         }
-    }
-
-    if(avframe)
-    {
-        obj->avframe = avframe;
-        obj->decoder = avframe->opaque;
     }
 
     return JNI_TRUE;

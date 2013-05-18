@@ -500,16 +500,16 @@ static int hw_dxva2_create_decoder(HINSTANCE dll,
     w_surface = (width  + 15) & ~15;
     h_surface = (height + 15) & ~15;
 
-    LPDIRECT3DSURFACE9 surface_list[nb_surfaces];
+    //LPDIRECT3DSURFACE9 surface_list[nb_surfaces];
     if(FAILED(IDirectXVideoDecoderService_CreateSurface(service,
                     w_surface,
                     h_surface,
-                    nb_surfaces - 1,
+                    nb_surfaces,
                     *render,
                     D3DPOOL_DEFAULT,
                     0,
                     DXVA2_VideoDecoderRenderTarget,
-                    surface_list,
+                    d3d_surfaces,
                     NULL)))
     {
         return -1; 
@@ -591,7 +591,7 @@ static int hw_dxva2_create_decoder(HINSTANCE dll,
                     input,
                     dsc,
                     config,
-                    surface_list,
+                    d3d_surfaces,
                     nb_surfaces,
                     decoder)))
     {
@@ -607,7 +607,6 @@ static int hw_dxva2_create_decoder(HINSTANCE dll,
  * \param d3d_surfaces associated surfaces that will be closed.
  * \param nb_surfaces number of surfaces to deallocate.
  */
-
 static void hw_dxva2_close_decoder(IDirectXVideoDecoder** decoder,
         LPDIRECT3DSURFACE9* d3d_surfaces, size_t nb_surfaces)
 {
@@ -619,7 +618,11 @@ static void hw_dxva2_close_decoder(IDirectXVideoDecoder** decoder,
 
     for(size_t i = 0 ; i < nb_surfaces ; i++)
     {
-        IDirect3DSurface9_Release(d3d_surfaces[i]);
+        if(d3d_surfaces[i])
+        {
+            IDirect3DSurface9_Release(d3d_surfaces[i]);
+            d3d_surfaces[i] = NULL;
+        }
     }
 }
 
@@ -770,12 +773,12 @@ void hw_decoder_free(struct hw_decoder** obj)
 int hw_decoder_init(struct hw_decoder* obj, void* profile, int width,
         int height)
 {
-    if(obj->width != width && obj->height != height)
+    if(obj->context.decoder && obj->width != width && obj->height != height)
     {
         hw_dxva2_close_decoder(&obj->context.decoder, obj->context.d3d_surfaces,
                 obj->context.nb_surfaces);
     }
-    else
+    else if(obj->width != 0 && obj->height != 0) 
     {
         /* configuration has not changed so no init! */
         return 0;
@@ -800,6 +803,7 @@ int hw_decoder_init(struct hw_decoder* obj, void* profile, int width,
 
     obj->width = width;
     obj->height = height;
+
     return 0;
 }
 
@@ -879,7 +883,7 @@ enum PixelFormat hw_ffmpeg_get_format(struct AVCodecContext *avctx,
             continue;
         }
 
-        if(profile >= 0)
+        /* if(profile >= 0) */
         {
             struct hw_decoder* obj = hw_decoder_new(avctx->codec_id);
 
@@ -904,8 +908,7 @@ enum PixelFormat hw_ffmpeg_get_format(struct AVCodecContext *avctx,
                 avctx->hwaccel_context = hwaccel;
                 avctx->opaque = obj;
 
-                fprintf(stdout, "Use DXVA2 decoding!\n");
-                fflush(stdout);
+                fprintf(stdout, "Use DXVA2 decoding!\n");fflush(stdout);
                 return fmt[i];
             }
             else
@@ -938,7 +941,6 @@ int hw_ffmpeg_get_buffer(struct AVCodecContext* avctx, AVFrame* avframe)
         avframe->linesize[3] = 0;
         return 0;
     }
-
     return avcodec_default_get_buffer(avctx, avframe);
 }
 
@@ -946,7 +948,7 @@ void hw_ffmpeg_release_buffer(struct AVCodecContext* avctx, AVFrame* avframe)
 {
     if(avctx->hwaccel_context)
     {
-        struct hw_decoder* obj = avctx->hwaccel_context;
+        struct hw_decoder* obj = avctx->opaque;
 
         hw_decoder_release_surface(obj, avframe->data[3]);
         avframe->data[3] = NULL;

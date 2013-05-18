@@ -353,7 +353,7 @@
       <!-- Windows specific flags -->
       <!-- Vista minimum! -->
       <compilerarg value="-D_WIN32_WINNT=0x0600" if="is.running.windows" />
-      <compilerarg value="-DWINVER=0x0600" if="is.running.windows" />
+      <compilerarg value="-DWINVER=0x0502" if="is.running.windows" />
       <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows" />
       <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
 
@@ -989,17 +989,16 @@
                 <linkerarg value="-lX11" if="is.running.linux"/>
 
                 <compilerarg value="-D_WIN32_WINNT=0x0600" if="is.running.windows" />
-                <compilerarg value="-DWINVER=0x0600" if="is.running.windows" />
                 <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows"/>
                 <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
                 <linkerarg value="-L${system.JAVA_HOME}/lib" if="is.running.windows_32" />
                 <linkerarg value="-L${system.JAVA_HOME}/jre/bin" if="is.running.windows_64" />
-                <linkerarg value="-ohwrenderer.dll" if="is.running.windows" />
+                <linkerarg value="-ojnhwrenderer.dll" if="is.running.windows" />
                 <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
                 <linkerarg value="-ljawt" location="end" />
-                <linkerarg value="-lole32" location="end" if="is.running.windows" />
-                <linkerarg value="-ld3d9" location="end" if="is.running.windows" />
-                <linkerarg value="-ldxva2" location="end" if="is.running.windows" />
+                <linkerarg value="-lole32" location="end" />
+                <linkerarg value="-ld3d9" location="end" />
+                <linkerarg value="-ldxva2" location="end" />
 
                 <compilerarg value="-m32" if="cross_32" />
                 <compilerarg value="-m64" if="cross_64" />
