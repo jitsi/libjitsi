@@ -54,9 +54,34 @@ public class ConfigurationServiceImpl
         = "net.java.sip.communicator.SYS_PROPS_FILE_NAME";
 
     /**
+     * Name of the system file name property.
+     */
+    private static final String DEFAULT_PROPS_FILE_NAME
+                                                = "jitsi-defaults.properties";
+
+    /**
      * A reference to the currently used configuration file.
      */
     private File configurationFile = null;
+
+    /**
+     * A set of immutable properties deployed with the application during
+     * install time. The properties in this file will be impossible to override
+     * and attempts to do so will simply be ignored.
+     * @see #defaultProperties
+     */
+    private Map<String, String> immutableDefaultProperties
+                                                = new HashMap<String, String>();
+
+    /**
+     * A set of properties deployed with the application during install time.
+     * Contrary to the properties in {@link #immutableDefaultProperties} the
+     * ones in this map can be overridden with call to the
+     * <tt>setProperty()</tt> methods. Still, re-setting one of these properties
+     * to <tt>null</tt> would cause for its initial value to be restored.
+     */
+    private Map<String, String> defaultProperties
+                                                = new HashMap<String, String>();
 
     /**
      * Our event dispatcher.
@@ -239,6 +264,10 @@ public class ConfigurationServiceImpl
         if (isSystemProperty(propertyName))
             isSystem = true;
 
+        // ignore requests to override immutable properties:
+        if (immutableDefaultProperties.containsKey(propertyName))
+            return;
+
         if (property == null)
         {
             store.removeProperty(propertyName);
@@ -324,7 +353,17 @@ public class ConfigurationServiceImpl
      */
     public Object getProperty(String propertyName)
     {
-        return store.getProperty(propertyName);
+        Object result = immutableDefaultProperties.get(propertyName);
+
+        if (result != null)
+            return result;
+
+        result = store.getProperty(propertyName);
+
+        if (result != null)
+            return result;
+
+        return defaultProperties.get(propertyName);
     }
 
     /**
@@ -1364,6 +1403,15 @@ public class ConfigurationServiceImpl
         }
     }
 
+    /**
+     * Specifies the configuration store that this instance of the configuration
+     * service implementation must use.
+     *
+     * @param clazz the {@link ConfigurationStore} that this configuration
+     * service instance instance has to use.
+     *
+     * @throws IOException if loading properties from the specified store fails.
+     */
     private void setConfigurationStore(
             Class<? extends ConfigurationStore> clazz)
         throws IOException
@@ -1399,5 +1447,60 @@ public class ConfigurationServiceImpl
             if (exception != null)
                 throw new RuntimeException(exception);
         }
+    }
+
+    /**
+     * Loads the default properties maps from the Jitsi installation directory.
+     */
+    private void loadDefaultProperties()
+    {
+        try
+        {
+            Properties fileProps = new Properties();
+
+            fileProps.load(ClassLoader.getSystemClassLoader()
+                    .getSystemResourceAsStream(DEFAULT_PROPS_FILE_NAME));
+
+            // now get those properties and place them into the mutable and
+            // immutable properties maps.
+            for (Map.Entry<Object, Object> entry : fileProps.entrySet())
+            {
+                String name  = (String) entry.getKey();
+                String value = (String) entry.getValue();
+
+                if (   name == null
+                    || value == null
+                    || name.trim().length() == 0
+                    || value.trim().length() == 0)
+                {
+                    continue;
+                }
+
+                if (name.startsWith("!"))
+                {
+                    name = name.substring(1);
+
+                    if(name.trim().length() == 0)
+                    {
+                        continue;
+                    }
+
+                    //it seems that we have a valid default immutable property
+                    immutableDefaultProperties.put(name, value);
+                }
+                else
+                {
+                    //this property is a regular, mutable default property.
+                    defaultProperties.put(name, value);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            //we can function without defaults so we are just logging those.
+            logger.error("Failed to load property file: "
+                + DEFAULT_PROPS_FILE_NAME, ex);
+        }
+
     }
 }
