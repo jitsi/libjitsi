@@ -516,7 +516,10 @@ public class PortAudioStream
                 throw ioe;
             }
 
-            // if we have some volume setting apply them
+            /*
+             * Take into account the user's preferences with respect to the
+             * input volume.
+             */
             if (gainControl != null)
             {
                 AbstractVolumeControl.applyGain(

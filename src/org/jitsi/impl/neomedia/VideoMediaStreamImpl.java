@@ -327,12 +327,13 @@ public class VideoMediaStreamImpl
                     }
                 });
 
-                FormatInfo preferredFormat =
-                    new FormatInfo(new Dimension(preferredWidth, preferredHeight));
+                FormatInfo preferredFormat
+                    = new FormatInfo(
+                            new Dimension(preferredWidth, preferredHeight));
 
                 Dimension closestAspect = null;
-                // lets choose the closest size to the preferred one,
-                // finding the first sutable aspect
+                // Let's choose the closest size to the preferred one, finding
+                // the first suitable aspect
                 for(FormatInfo supported : supportedInfos)
                 {
                     // find the first matching aspect
@@ -357,13 +358,14 @@ public class VideoMediaStreamImpl
                     height = currentSize.height;
                 }
                 selectedFormat
-                    = (VideoFormat)new VideoFormat(
-                                        null,
-                                        new Dimension(width, height),
-                                        Format.NOT_SPECIFIED,
-                                        null,
-                                        Format.NOT_SPECIFIED)
-                                .intersects(selectedFormat);
+                    = (VideoFormat)
+                        new VideoFormat(
+                                null,
+                                new Dimension(width, height),
+                                Format.NOT_SPECIFIED,
+                                null,
+                                Format.NOT_SPECIFIED)
+                            .intersects(selectedFormat);
             }
         }
 

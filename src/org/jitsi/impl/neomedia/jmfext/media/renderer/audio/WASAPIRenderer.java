@@ -16,6 +16,7 @@ import java.util.concurrent.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.*;
 import org.jitsi.util.*;
@@ -174,7 +175,7 @@ public class WASAPIRenderer
      */
     public WASAPIRenderer(AudioSystem.DataFlow dataFlow)
     {
-        super(AudioSystem.LOCATOR_PROTOCOL_WASAPI);
+        super(AudioSystem.LOCATOR_PROTOCOL_WASAPI, dataFlow);
     }
 
     /**
@@ -195,6 +196,7 @@ public class WASAPIRenderer
     /**
      * {@inheritDoc}
      */
+    @Override
     public synchronized void close()
     {
         try
@@ -658,6 +660,17 @@ public class WASAPIRenderer
                         written = 0;
                     else
                     {
+                        /*
+                         * Take into account the user's preferences with respect
+                         * to the output volume.
+                         */
+                        if (gainControl != null)
+                        {
+                            AbstractVolumeControl.applyGain(
+                                    gainControl,
+                                    effectiveData, effectiveOffset, toWrite);
+                        }
+
                         try
                         {
                             written
@@ -819,8 +832,19 @@ public class WASAPIRenderer
                      */
                     if (numFramesRequested > 0)
                     {
-                        int toWrite = numFramesRequested * srcFrameSize;
+                        /*
+                         * Take into account the user's preferences with respect
+                         * to the output volume.
+                         */
+                        if ((gainControl != null) && (remainderLength != 0))
+                        {
+                            AbstractVolumeControl.applyGain(
+                                    gainControl,
+                                    remainder, 0, remainderLength);
+                        }
+
                         // Pad with silence in order to avoid underflows.
+                        int toWrite = numFramesRequested * srcFrameSize;
                         int silence = toWrite - remainderLength;
 
                         if (silence > 0)

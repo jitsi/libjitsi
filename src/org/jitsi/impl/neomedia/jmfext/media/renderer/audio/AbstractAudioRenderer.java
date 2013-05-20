@@ -13,6 +13,7 @@ import javax.media.format.*;
 
 import net.sf.fmj.media.util.*;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
 
@@ -40,6 +41,12 @@ public abstract class AbstractAudioRenderer<T extends AudioSystem>
      * {@link AudioSystem.DataFlow#PLAYBACK}.
      */
     protected final AudioSystem.DataFlow dataFlow;
+
+    /**
+     * The <tt>GainControl</tt> through which the volume/gain of the media
+     * rendered by this instance is (to be) controlled.
+     */
+    protected final GainControl gainControl;
 
     /**
      * The <tt>MediaLocator</tt> which specifies the playback device to be used
@@ -98,6 +105,26 @@ public abstract class AbstractAudioRenderer<T extends AudioSystem>
 
         this.audioSystem = audioSystem;
         this.dataFlow = dataFlow;
+
+        if (AudioSystem.DataFlow.PLAYBACK.equals(dataFlow))
+        {
+            /*
+             * XXX The Renderer implementations are probed for their
+             * supportedInputFormats during the initialization of
+             * MediaServiceImpl so the latter may not be available at this time.
+             * Which is not much of a problem given than the GainControl is of
+             * no interest during the probing of the supportedInputFormats.
+             */
+            MediaServiceImpl mediaServiceImpl
+                = NeomediaServiceUtils.getMediaServiceImpl();
+
+            gainControl
+                = (mediaServiceImpl == null)
+                    ? null
+                    : (GainControl) mediaServiceImpl.getOutputVolumeControl();
+        }
+        else
+            gainControl = null;
     }
 
     /**
@@ -110,10 +137,36 @@ public abstract class AbstractAudioRenderer<T extends AudioSystem>
      * <tt>CaptureDeviceInfo</tt> registered by the <tt>AudioSystem</tt> which
      * is to provide the playback devices to be used by the new instance
      */
-    @SuppressWarnings("unchecked")
     protected AbstractAudioRenderer(String locatorProtocol)
     {
-        this((T) AudioSystem.getAudioSystem(locatorProtocol));
+        this(locatorProtocol, AudioSystem.DataFlow.PLAYBACK);
+    }
+
+    /**
+     * Initializes a new <tt>AbstractAudioRenderer</tt> instance which is to use
+     * notification or playback devices provided by an <tt>AudioSystem</tt>
+     * specified by the protocol of the <tt>MediaLocator</tt>s of the
+     * <tt>CaptureDeviceInfo</tt>s registered by the <tt>AudioSystem</tt>.
+     *
+     * @param locatorProtocol the protocol of the <tt>MediaLocator</tt>s of the
+     * <tt>CaptureDeviceInfo</tt> registered by the <tt>AudioSystem</tt> which
+     * is to provide the notification or playback devices to be used by the new
+     * instance
+     * @param dataFlow the flow of the media data to be implemented by the new
+     * instance i.e. whether notification or playback devices provided by the
+     * specified <tt>audioSystem</tt> are to be used by the new instance. Must
+     * be either {@link AudioSystem.DataFlow#NOTIFY} or
+     * {@link AudioSystem.DataFlow#PLAYBACK}.
+     * @throws IllegalArgumentException if the specified <tt>dataFlow</tt> is
+     * neither <tt>AudioSystem.DataFlow.NOTIFY</tt> nor
+     * <tt>AudioSystem.DataFlow.PLAYBACK</tt>
+     */
+    @SuppressWarnings("unchecked")
+    protected AbstractAudioRenderer(
+            String locatorProtocol,
+            AudioSystem.DataFlow dataFlow)
+    {
+        this((T) AudioSystem.getAudioSystem(locatorProtocol), dataFlow);
     }
 
     /**
@@ -123,6 +176,23 @@ public abstract class AbstractAudioRenderer<T extends AudioSystem>
     {
         if (audioSystem != null)
             audioSystem.removePropertyChangeListener(propertyChangeListener);
+    }
+
+    /**
+     * Implements {@link javax.media.Controls#getControls()}. Gets the available
+     * controls over this instance. <tt>AbstractAudioRenderer</tt> returns a
+     * {@link GainControl} if available.
+     *
+     * @return an array of <tt>Object</tt>s which represent the available
+     * controls over this instance
+     */
+    @Override
+    public Object[] getControls()
+    {
+        return
+            (gainControl == null)
+                ? super.getControls()
+                : new Object[] { gainControl };
     }
 
     /**

@@ -127,12 +127,6 @@ public class PortAudioRenderer
     private int bytesPerBuffer;
 
     /**
-     * The <tt>GainControl</tt> through which volume/gain of rendered media is
-     * controlled.
-     */
-    private final GainControl gainControl;
-
-    /**
      * The <tt>DiagnosticsControl</tt> implementation of this instance which
      * allows the diagnosis of the functional health of <tt>Pa_WriteStream</tt>.
      */
@@ -328,34 +322,19 @@ public class PortAudioRenderer
     }
 
     /**
-     * Initializes a new <tt>PortAudioRenderer</tt> instance.
+     * Initializes a new <tt>PortAudioRenderer</tt> instance which is to either
+     * perform playback or sound a notification.
      *
-     * @param enableVolumeControl <tt>true</tt> to enable volume control;
-     * <tt>false</tt>, otherwise
+     * @param playback <tt>true</tt> if the new instance is to perform playback
+     * or <tt>false</tt> if the new instance is to sound a notification
      */
     public PortAudioRenderer(boolean enableVolumeControl)
     {
-        super(AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO);
-
-        if (enableVolumeControl)
-        {
-            /*
-             * XXX The Renderer implementations are probed for their
-             * supportedInputFormats during the initialization of
-             * MediaServiceImpl so the latter may not be available at this time.
-             * Which is not much of a problem given than the GainControl is of
-             * no interest during the probing of the supportedInputFormats.
-             */
-            MediaServiceImpl mediaServiceImpl
-                = NeomediaServiceUtils.getMediaServiceImpl();
-
-            gainControl
-                = (mediaServiceImpl == null)
-                    ? null
-                    : (GainControl) mediaServiceImpl.getOutputVolumeControl();
-        }
-        else
-            gainControl = null;
+        super(
+                AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO,
+                enableVolumeControl
+                    ? AudioSystem.DataFlow.PLAYBACK
+                    : AudioSystem.DataFlow.NOTIFY);
 
         /*
          * XXX We will add a PaUpdateAvailableDeviceListListener and will not
@@ -403,20 +382,6 @@ public class PortAudioRenderer
 
             super.close();
         }
-    }
-
-    /**
-     * Implements {@link javax.media.Controls#getControls()}. Gets the controls
-     * available for the owner of this instance. The current implementation
-     * returns an empty array because it has no available controls.
-     *
-     * @return an array of <tt>Object</tt>s which represent the controls
-     * available for the owner of this instance
-     */
-    @Override
-    public Object[] getControls()
-    {
-        return new Object[] { gainControl };
     }
 
     /**
@@ -882,7 +847,10 @@ public class PortAudioRenderer
 
         if (numberOfWrites > 0)
         {
-            // if we have some volume setting apply them
+            /*
+             * Take into account the user's preferences with respect to the
+             * output volume.
+             */
             if (gainControl != null)
             {
                 AbstractVolumeControl.applyGain(

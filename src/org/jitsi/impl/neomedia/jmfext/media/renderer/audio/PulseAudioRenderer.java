@@ -60,8 +60,6 @@ public class PulseAudioRenderer
      */
     private String dev;
 
-    private final GainControl gainControl;
-
     private float gainControlLevel;
 
     private final String mediaRole;
@@ -95,7 +93,12 @@ public class PulseAudioRenderer
      */
     public PulseAudioRenderer(String mediaRole)
     {
-        super(PulseAudioSystem.getPulseAudioSystem());
+        super(
+                PulseAudioSystem.getPulseAudioSystem(),
+                ((mediaRole == null)
+                        || PulseAudioSystem.MEDIA_ROLE_PHONE.equals(mediaRole))
+                    ? AudioSystem.DataFlow.PLAYBACK
+                    : AudioSystem.DataFlow.NOTIFY);
 
         if (audioSystem == null)
             throw new IllegalStateException("audioSystem");
@@ -104,28 +107,9 @@ public class PulseAudioRenderer
             = (mediaRole == null)
                 ? PulseAudioSystem.MEDIA_ROLE_PHONE
                 : mediaRole;
-
-        if (PulseAudioSystem.MEDIA_ROLE_PHONE.equals(this.mediaRole))
-        {
-            /*
-             * XXX The Renderer implementations are probed for their
-             * supportedInputFormats during the initialization of
-             * MediaServiceImpl so the latter may not be available at this time.
-             * Which is not much of a problem given than the GainControl is of
-             * no interest during the probing of the supportedInputFormats.
-             */
-            MediaServiceImpl mediaServiceImpl
-                = NeomediaServiceUtils.getMediaServiceImpl();
-
-            gainControl
-                = (mediaServiceImpl == null)
-                    ? null
-                    : (GainControl) mediaServiceImpl.getOutputVolumeControl();
-        }
-        else
-            gainControl = null;
     }
 
+    @Override
     public void close()
     {
         audioSystem.lockMainloop();
@@ -216,6 +200,7 @@ public class PulseAudioRenderer
         return SUPPORTED_INPUT_FORMATS.clone();
     }
 
+    @Override
     public void open()
         throws ResourceUnavailableException
     {
