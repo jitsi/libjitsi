@@ -13,11 +13,11 @@ import java.util.*;
 import javax.media.*;
 import javax.media.format.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.portaudio.*;
 import org.jitsi.impl.neomedia.portaudio.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -851,9 +851,11 @@ public class PortAudioRenderer
              * Take into account the user's preferences with respect to the
              * output volume.
              */
+            GainControl gainControl = getGainControl();
+
             if (gainControl != null)
             {
-                AbstractVolumeControl.applyGain(
+                BasicVolumeControl.applyGain(
                         gainControl,
                         buffer, offset, length);
             }

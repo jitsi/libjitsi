@@ -4,7 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package net.java.sip.communicator.impl.neomedia.directshow;
+package org.jitsi.impl.neomedia.directshow;
 
 /**
  * DirectShow capture device.
@@ -18,6 +18,17 @@ public class DSCaptureDevice
      * in order to avoid unnecessary allocations.
      */
     private static final DSFormat EMPTY_FORMATS[] = new DSFormat[0];
+
+    /**
+     * Get bytes from <tt>buf</tt> native pointer and copy them
+     * to <tt>ptr</tt> byte native pointer.
+     *
+     * @param ptr pointer to native data
+     * @param buf byte native pointer (see ByteBufferPool)
+     * @param length length of buf pointed by <tt>ptr</tt>
+     * @return length written to <tt>buf</tt>
+     */
+    public static native int getBytes(long ptr, long buf, int length);
 
     /**
      * Native pointer of <tt>DSCaptureDevice</tt>.
@@ -42,20 +53,37 @@ public class DSCaptureDevice
     }
 
     /**
-     * Open and initialize the capture device.
-     */
-    public void open()
-    {
-        open(ptr);
-    }
-
-    /**
      * Stop and close the capture device.
      */
     public void close()
     {
         close(ptr);
     }
+
+    /**
+     * Native method to close capture device.
+     *
+     * @param ptr native pointer of <tt>DSCaptureDevice</tt>
+     */
+    private native void close(long ptr);
+
+    /**
+     * Get current format.
+     *
+     * @return current format used
+     */
+    public DSFormat getFormat()
+    {
+        return getFormat(ptr);
+    }
+
+    /**
+     * Native method to get format on the capture device.
+     *
+     * @param ptr native pointer of <tt>DSCaptureDevice</tt>
+     * @return format current format
+     */
+    private native DSFormat getFormat(long ptr);
 
     /**
      * Get name of the capture device.
@@ -68,24 +96,12 @@ public class DSCaptureDevice
     }
 
     /**
-     * Set format to use with this capture device.
+     * Native method to get name of the capture device.
      *
-     * @param format format to set
+     * @param ptr native pointer of <tt>DSCaptureDevice</tt>
+     * @return name of the capture device
      */
-    public void setFormat(DSFormat format)
-    {
-        setFormat(ptr, format);
-    }
-
-    /**
-     * Get current format.
-     *
-     * @return current format used
-     */
-    public DSFormat getFormat()
-    {
-        return getFormat(ptr);
-    }
+    private native String getName(long ptr);
 
     /**
      * Get the supported video format this capture device supports.
@@ -105,12 +121,19 @@ public class DSCaptureDevice
     }
 
     /**
-     * Set a delegate to use when a frame is received.
-     * @param delegate delegate
+     * Native method to get supported formats from capture device.
+     *
+     * @param ptr native pointer of <tt>DSCaptureDevice</tt>
+     * @return array of native pointer corresponding to formats
      */
-    public void setDelegate(GrabberDelegate delegate)
+    private native DSFormat[] getSupportedFormats(long ptr);
+
+    /**
+     * Open and initialize the capture device.
+     */
+    public void open()
     {
-        setDelegate(ptr, delegate);
+        open(ptr);
     }
 
     /**
@@ -121,19 +144,30 @@ public class DSCaptureDevice
     private native void open(long ptr);
 
     /**
-     * Native method to close capture device.
-     *
-     * @param ptr native pointer of <tt>DSCaptureDevice</tt>
+     * Set a delegate to use when a frame is received.
+     * @param delegate delegate
      */
-    private native void close(long ptr);
+    public void setDelegate(GrabberDelegate delegate)
+    {
+        setDelegate(ptr, delegate);
+    }
 
     /**
-     * Native method to get name of the capture device.
-     *
-     * @param ptr native pointer of <tt>DSCaptureDevice</tt>
-     * @return name of the capture device
+     * Native method to set a delegate to use when a frame is received.
+     * @param ptr native pointer
+     * @param delegate delegate
      */
-    private native String getName(long ptr);
+    public native void setDelegate(long ptr, GrabberDelegate delegate);
+
+    /**
+     * Set format to use with this capture device.
+     *
+     * @param format format to set
+     */
+    public void setFormat(DSFormat format)
+    {
+        setFormat(ptr, format);
+    }
 
     /**
      * Native method to set format on the capture device.
@@ -144,43 +178,7 @@ public class DSCaptureDevice
     private native void setFormat(long ptr, DSFormat format);
 
     /**
-     * Native method to get format on the capture device.
-     *
-     * @param ptr native pointer of <tt>DSCaptureDevice</tt>
-     * @return format current format
-     */
-    private native DSFormat getFormat(long ptr);
-
-    /**
-     * Native method to get supported formats from capture device.
-     *
-     * @param ptr native pointer of <tt>DSCaptureDevice</tt>
-     * @return array of native pointer corresponding to formats
-     */
-    private native DSFormat[] getSupportedFormats(long ptr);
-
-    /**
-     * Native method to set a delegate to use when a frame is received.
-     * @param ptr native pointer
-     * @param delegate delegate
-     */
-    public native void setDelegate(long ptr, GrabberDelegate delegate);
-
-    /**
-     * Get bytes from <tt>buf</tt> native pointer and copy them
-     * to <tt>ptr</tt> byte native pointer.
-     *
-     * @param ptr pointer to native data
-     * @param buf byte native pointer (see ByteBufferPool)
-     * @param length length of buf pointed by <tt>ptr</tt>
-     * @return length written to <tt>buf</tt>
-     */
-    public static native int getBytes(long ptr, long buf, int length);
-
-    /**
      * Delegate class to handle grabbing frames.
-     *
-     * @author Sebastien Vincent
      */
     public static abstract class GrabberDelegate
     {
@@ -193,4 +191,3 @@ public class DSCaptureDevice
         public abstract void frameReceived(long ptr, int length);
     }
 }
-

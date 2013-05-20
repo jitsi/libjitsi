@@ -16,6 +16,7 @@ import net.sf.fmj.media.util.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Provides an abstract base implementation of <tt>Renderer</tt> which processes
@@ -46,7 +47,7 @@ public abstract class AbstractAudioRenderer<T extends AudioSystem>
      * The <tt>GainControl</tt> through which the volume/gain of the media
      * rendered by this instance is (to be) controlled.
      */
-    protected final GainControl gainControl;
+    private GainControl gainControl;
 
     /**
      * The <tt>MediaLocator</tt> which specifies the playback device to be used
@@ -66,6 +67,13 @@ public abstract class AbstractAudioRenderer<T extends AudioSystem>
                 AbstractAudioRenderer.this.propertyChange(ev);
             }
         };
+
+    /**
+     * The <tt>VolumeControl</tt> through which the volume/gain of the media
+     * rendered by this instance is (to be) controlled. If non-<tt>null</tt>,
+     * overrides {@link #gainControl}.
+     */
+    private VolumeControl volumeControl;
 
     /**
      * Initializes a new <tt>AbstractAudioRenderer</tt> instance which is to use
@@ -189,10 +197,30 @@ public abstract class AbstractAudioRenderer<T extends AudioSystem>
     @Override
     public Object[] getControls()
     {
+        GainControl gainControl = getGainControl();
+
         return
             (gainControl == null)
                 ? super.getControls()
                 : new Object[] { gainControl };
+    }
+
+    /**
+     * Gets the <tt>GainControl</tt>, if any, which controls the volume level of
+     * the audio (to be) played back by this <tt>Renderer</tt>.
+     *
+     * @return the <tt>GainControl</tt>, if any, which controls the volume level
+     * of the audio (to be) played back by this <tt>Renderer</tt>
+     */
+    protected GainControl getGainControl()
+    {
+        VolumeControl volumeControl = this.volumeControl;
+        GainControl gainControl = this.gainControl;
+
+        if (volumeControl instanceof GainControl)
+            gainControl = (GainControl) volumeControl;
+
+        return gainControl;
     }
 
     /**
@@ -310,6 +338,18 @@ public abstract class AbstractAudioRenderer<T extends AudioSystem>
             return;
 
         this.locator = locator;
+    }
+
+    /**
+     * Sets the <tt>VolumeControl</tt> which is to control the volume (level) of
+     * the audio (to be) played back by this <tt>Renderer</tt>.
+     *
+     * @param volumeControl the <tt>VolumeControl</tt> which is to control the
+     * volume (level) of the audio (to be) played back by this <tt>Renderer</tt>
+     */
+    public void setVolumeControl(VolumeControl volumeControl)
+    {
+        this.volumeControl = volumeControl;
     }
 
     /**

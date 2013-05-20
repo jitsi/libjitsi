@@ -6,7 +6,21 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.renderer.audio;
 
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.*;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.AUDCLNT_E_NOT_STOPPED;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.CloseHandle;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.CreateEvent;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_GetBufferSize;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_GetCurrentPadding;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_GetDefaultDevicePeriod;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_GetService;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_Release;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_Start;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_Stop;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioRenderClient_Release;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioRenderClient_Write;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IID_IAudioRenderClient;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.WAIT_FAILED;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.WaitForSingleObject;
 
 import java.beans.*;
 import java.lang.reflect.*;
@@ -16,9 +30,9 @@ import java.util.concurrent.*;
 import javax.media.*;
 import javax.media.format.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -664,9 +678,11 @@ public class WASAPIRenderer
                          * Take into account the user's preferences with respect
                          * to the output volume.
                          */
+                        GainControl gainControl = getGainControl();
+
                         if (gainControl != null)
                         {
-                            AbstractVolumeControl.applyGain(
+                            BasicVolumeControl.applyGain(
                                     gainControl,
                                     effectiveData, effectiveOffset, toWrite);
                         }
@@ -836,9 +852,11 @@ public class WASAPIRenderer
                          * Take into account the user's preferences with respect
                          * to the output volume.
                          */
+                        GainControl gainControl = getGainControl();
+
                         if ((gainControl != null) && (remainderLength != 0))
                         {
-                            AbstractVolumeControl.applyGain(
+                            BasicVolumeControl.applyGain(
                                     gainControl,
                                     remainder, 0, remainderLength);
                         }

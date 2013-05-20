@@ -12,6 +12,7 @@ import java.net.*;
 import java.util.*;
 
 import javax.media.*;
+import javax.media.control.*;
 import javax.media.protocol.*;
 import javax.media.rtp.*;
 
@@ -530,6 +531,12 @@ public class AudioMixerMediaDevice
                 = new LinkedList<MediaStreamMediaDeviceSession>();
 
         /**
+         * The <tt>VolumeControl</tt> which is to control the volume (level) of
+         * the audio (to be) played back by this instance.
+         */
+        private VolumeControl outputVolumeControl;
+
+        /**
          * Initializes a new <tt>AudioMixingMediaDeviceSession</tt> which is to
          * represent the <tt>MediaDeviceSession</tt> of this <tt>AudioMixer</tt>
          * with its <tt>MediaDevice</tt>
@@ -546,7 +553,7 @@ public class AudioMixerMediaDevice
          *
          * @param l the listener we'd like to add.
          */
-        public void addLocalUserAudioLevelListener(SimpleAudioLevelListener l)
+        void addLocalUserAudioLevelListener(SimpleAudioLevelListener l)
         {
             // If the listener is null, we have nothing more to do here.
             if (l == null)
@@ -683,6 +690,19 @@ public class AudioMixerMediaDevice
         }
 
         /**
+         * Sets the <tt>VolumeControl</tt> which is to control the volume
+         * (level) of the audio (to be) played back by this instance.
+         *
+         * @param outputVolumeControl the <tt>VolumeControl</tt> which is to be
+         * control the volume (level) of the audio (to be) played back by this
+         * instance
+         */
+        void setOutputVolumeControl(VolumeControl outputVolumeControl)
+        {
+            this.outputVolumeControl = outputVolumeControl;
+        }
+
+        /**
          * Sets <tt>listener</tt> as the list of listeners that will receive
          * notifications of audio level event changes in the data arriving from
          * <tt>stream</tt>.
@@ -692,7 +712,7 @@ public class AudioMixerMediaDevice
          * @param listener the listener we'd like to register for notifications
          * from <tt>stream</tt>.
          */
-        public void setStreamAudioLevelListener(
+        void setStreamAudioLevelListener(
                 ReceiveStream stream,
                 SimpleAudioLevelListener listener)
         {
@@ -735,13 +755,38 @@ public class AudioMixerMediaDevice
         }
 
         /**
+         * {@inheritDoc}
+         *
+         * Overrides the super implementation in order to configure the
+         * <tt>VolumeControl</tt> of the returned <tt>Renderer</tt> for the
+         * purposes of having call/telephony conference-specific volume
+         * (levels).
+         */
+        @Override
+        protected Renderer createRenderer(
+                Player player,
+                TrackControl trackControl)
+        {
+            Renderer renderer = super.createRenderer(player, trackControl);
+
+            if (renderer != null)
+            {
+                AudioMediaDeviceSession.setVolumeControl(
+                        renderer,
+                        outputVolumeControl);
+            }
+
+            return renderer;
+        }
+
+        /**
          * Removes <tt>l</tt> from the list of listeners that are being
          * notified of local audio levels.If <tt>l</tt> is not in the list,
          * the method has no effect.
          *
          * @param l the listener we'd like to remove.
          */
-        public void removeLocalUserAudioLevelListener(
+        void removeLocalUserAudioLevelListener(
                 SimpleAudioLevelListener l)
         {
             synchronized(localUserAudioLevelListenersSyncRoot)
@@ -1160,6 +1205,20 @@ public class AudioMixerMediaDevice
                             l);
                 }
             }
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * Overrides the super implementation to redirect/delegate the
+         * invocation to the master/audioMixerMediaDeviceSession because
+         * <tt>MediaStreamMediaDeviceSession</tt> does not perform
+         * playback/rendering.
+         */
+        public void setOutputVolumeControl(VolumeControl outputVolumeControl)
+        {
+            audioMixerMediaDeviceSession.setOutputVolumeControl(
+                    outputVolumeControl);
         }
 
         /**

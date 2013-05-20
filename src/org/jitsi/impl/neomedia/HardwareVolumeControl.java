@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia;
 
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -16,7 +17,7 @@ import org.jitsi.util.*;
  * @author Vincent Lucas
  */
 public class HardwareVolumeControl
-    extends AbstractVolumeControl
+    extends BasicVolumeControl
 {
     /**
      * The <tt>Logger</tt> used by the <tt>HarwareVolumeControl</tt>

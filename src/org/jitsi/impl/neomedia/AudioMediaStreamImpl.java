@@ -37,7 +37,6 @@ public class AudioMediaStreamImpl
     implements AudioMediaStream,
                PropertyChangeListener
 {
-
     /**
      * List of RTP format strings which are supported by SIP Communicator in
      * addition to the JMF standard formats.
@@ -104,6 +103,13 @@ public class AudioMediaStreamImpl
      * the remote peer(s).
      */
     private SimpleAudioLevelListener localUserAudioLevelListener;
+
+    /**
+     * The <tt>VolumeControl</tt> implementation which is to control the volume
+     * (level) of the audio received in/by this <tt>AudioMediaStream</tt> and
+     * played back.
+     */
+    private VolumeControl outputVolumeControl;
 
     /**
      * The listener which has been set on this instance to get notified of
@@ -340,6 +346,18 @@ public class AudioMediaStreamImpl
                     deviceSession.setStreamAudioLevelListener(
                             streamAudioLevelListener);
                 }
+
+                /*
+                 * The output volume (level) of the newValue will begin to be
+                 * controlled by the outputVolumeControl of this instance (of
+                 * course). The output volume (level) of the oldValue will
+                 * continue to be controlled by the outputVolumeControl of this
+                 * instance (as well). The latter behaviour should not present a
+                 * problem and keeps the design and implementation as simple as
+                 * possible.
+                 */
+                if (outputVolumeControl != null)
+                    deviceSession.setOutputVolumeControl(outputVolumeControl);
             }
         }
         finally
@@ -521,6 +539,22 @@ public class AudioMediaStreamImpl
                 deviceSession.setLocalUserAudioLevelListener(
                         localUserAudioLevelListener);
             }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void setOutputVolumeControl(VolumeControl outputVolumeControl)
+    {
+        if (this.outputVolumeControl != outputVolumeControl)
+        {
+            this.outputVolumeControl = outputVolumeControl;
+
+            AudioMediaDeviceSession deviceSession = getDeviceSession();
+
+            if (deviceSession != null)
+                deviceSession.setOutputVolumeControl(this.outputVolumeControl);
         }
     }
 

@@ -394,6 +394,40 @@
     </cc>
   </target>
 
+	  <!-- compile jndirectshow library -->
+	  <target name="directshow" description="Build jndirectshow shared library" if="is.running.windows"
+	    depends="init-native">
+	    <cc
+	        name="g++"
+	        objdir="${obj}"
+	        outfile="${native_install_dir}/jndirectshow"
+	        outtype="shared">
+	      <compilerarg value="-DCOBJMACROS" />
+	      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+	      <compilerarg value="-D_WIN32_WINNT=0x0502" />
+	      <compilerarg value="-DWINVER=0x0502" />
+	      <compilerarg value="-m32" if="cross_32" />
+	      <compilerarg value="-m64" if="cross_64" />
+	      <compilerarg value="-I${system.JAVA_HOME}/include" />
+	      <compilerarg value="-I${system.JAVA_HOME}/include/win32" />
+	      <compilerarg value="-O2" />
+	      <compilerarg value="-Wall" />
+
+	      <linkerarg value="-lole32" location="end" />
+		  <linkerarg value="-loleaut32" location="end" />
+		  <linkerarg value="-lstrmiids" location="end" />
+		  <linkerarg value="-luuid" location="end" />
+	      <linkerarg value="-Wl,-Bstatic" location="end" />
+	      <linkerarg value="-lstdc++" location="end" />
+	      <linkerarg value="-m32" if="cross_32" />
+	      <linkerarg value="-m64" if="cross_64" />
+	      <linkerarg value="-ojndirectshow.dll" />
+	      <linkerarg value="-Wl,--kill-at" />
+
+	      <fileset dir="${src}/native/windows/directshow" includes="*.cpp"/>
+	    </cc>
+	  </target>
+
   <!-- compile jnportaudio library -->
   <target name="portaudio" description="Build jnportaudio shared library" depends="init-native">
 
@@ -970,7 +1004,7 @@
     <echo message="'ant video4linux2 (Linux only)' to compile jvideo4linux2 shared library" />
     <echo message="'ant galagonotification (Linux only)' to compile galagonotification shared library" />
     <echo message="'ant localhostretriever (Windows only)' to compile LocalhostRetriever shared library" />
-    <echo message="'ant directshow (Windows only)' to compile jdirectshow shared library" />
+    <echo message="'ant directshow (Windows only)' to compile jndirectshow shared library" />
     <echo message="'ant aegeturleventhandler (Mac OS X only)' to compile AEGetURLEventHandler shared library" />
     <echo message="'ant sparkle (Mac OS X only)' to compile sparkle shared library" />
     <echo message="'ant win-coreaudio (Windows Vista, 7 and 8 only)' to compile jnwincoreaudio shared library (use -Darch=32 or -Darch=64 for cross-compiling)" />

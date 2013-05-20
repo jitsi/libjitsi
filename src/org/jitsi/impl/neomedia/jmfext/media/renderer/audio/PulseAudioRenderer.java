@@ -16,6 +16,7 @@ import javax.media.format.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.pulseaudio.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -331,7 +332,10 @@ public class PulseAudioRenderer
                             stream,
                             writeCallback);
 
-                    if (!SOFTWARE_GAIN && (gainControl != null))
+                    GainControl gainControl;
+
+                    if (!SOFTWARE_GAIN
+                            && ((gainControl = getGainControl()) != null))
                     {
                         cvolume = PA.cvolume_new();
 
@@ -501,13 +505,15 @@ public class PulseAudioRenderer
             if (length < writableSize)
                 writableSize = length;
 
+            GainControl gainControl = getGainControl();
+
             if (gainControl != null)
             {
                 if (SOFTWARE_GAIN || (cvolume == 0))
                 {
                     if (length > 0)
                     {
-                        AbstractVolumeControl.applyGain(
+                        BasicVolumeControl.applyGain(
                                 gainControl,
                                 data, offset, writableSize);
                     }
@@ -549,7 +555,7 @@ public class PulseAudioRenderer
     {
         int volume
             = PA.sw_volume_from_linear(
-                    level * (AbstractVolumeControl.MAX_VOLUME_PERCENT / 100));
+                    level * (BasicVolumeControl.MAX_VOLUME_PERCENT / 100));
 
         PA.cvolume_set(cvolume, channels, volume);
 

@@ -4,7 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package net.java.sip.communicator.impl.neomedia.directshow;
+package org.jitsi.impl.neomedia.directshow;
 
 /**
  * DirectShow capture device manager.
@@ -31,12 +31,6 @@ package net.java.sip.communicator.impl.neomedia.directshow;
  */
 public class DSManager
 {
-    static
-    {
-        /* load DLL */
-        System.loadLibrary("jndirectshow");
-    }
-
     /**
      * Empty array of <tt>DSCaptureDevice</tt>s. Explicitly defined in order to
      * avoid unnecessary allocations.
@@ -58,16 +52,35 @@ public class DSManager
      */
     private static Object sync = new Object();
 
-    /**
-     * Array of all <tt>DSCaptureDevice</tt> found
-     * on the OS.
-     */
-    private DSCaptureDevice[] devices = null;
+    static
+    {
+        System.loadLibrary("jndirectshow");
+    }
 
     /**
-     * Native pointer.
+     * Delete native pointer.
+     *
+     * @param ptr native pointer to delete
      */
-    private long ptr = 0;
+    private static native void destroy(long ptr);
+
+    /**
+     * Dispose the object.
+     */
+    public static synchronized void dispose()
+    {
+        synchronized(sync)
+        {
+            ref--;
+
+            if(ref == 0 && instance != null && instance.ptr != 0)
+            {
+                destroy(instance.ptr);
+            }
+            instance = null;
+            ref = 0;
+        }
+    }
 
     /**
      * Get the instance.
@@ -98,22 +111,22 @@ public class DSManager
     }
 
     /**
-     * Dispose the object.
+     * Initialize and gather existing capture device.
+     *
+     * @return native pointer
      */
-    public static synchronized void dispose()
-    {
-        synchronized(sync)
-        {
-            ref--;
+    private static native long init();
 
-            if(ref == 0 && instance != null && instance.ptr != 0)
-            {
-                destroy(instance.ptr);
-            }
-            instance = null;
-            ref = 0;
-        }
-    }
+    /**
+     * Array of all <tt>DSCaptureDevice</tt> found
+     * on the OS.
+     */
+    private DSCaptureDevice[] devices = null;
+
+    /**
+     * Native pointer.
+     */
+    private long ptr = 0;
 
     /**
      * Constructor.
@@ -159,20 +172,6 @@ public class DSManager
     }
 
     /**
-     * Initialize and gather existing capture device.
-     *
-     * @return native pointer
-     */
-    private static native long init();
-
-    /**
-     * Delete native pointer.
-     *
-     * @param ptr native pointer to delete
-     */
-    private static native void destroy(long ptr);
-
-    /**
      * Native method to get capture devices pointers.
      *
      * @param ptr native pointer of DSManager
@@ -180,4 +179,3 @@ public class DSManager
      */
     private native long[] getCaptureDevices(long ptr);
 }
-

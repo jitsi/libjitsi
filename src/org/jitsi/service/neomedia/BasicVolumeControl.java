@@ -19,11 +19,8 @@ import org.jitsi.service.neomedia.event.*;
 import org.jitsi.util.*;
 
 /**
- * Controls media service volume input or output. If a playback volume level
- * is set we change it on all current players, as we synchronize volume
- * on all players. Implements interface exposed from media service, also
- * implements the interface used in the Renderer part of JMF and merges the two
- * functionalities to work as one.
+ * Provides a basic implementation of <tt>VolumeControl</tt> which stores the
+ * volume level/value set on it in the <tt>ConfigurationService</tt>.
  *
  * @author Damian Minkov
  * @author Lyubomir Marinov
@@ -163,7 +160,6 @@ public class BasicVolumeControl
      *
      * @param gainInDb The gain in Db.
      * @param referencePowerLevel The reference power level.
-     *
      * @return The power level the signal, which corresponds to the measured
      * power level.
      */
@@ -238,13 +234,12 @@ public class BasicVolumeControl
             = volumeLevelConfigurationPropertyName;
 
         // Read the initial volume level from the ConfigurationService.
-        this.loadVolume();
+        loadVolume();
     }
 
     /**
-     * Register for gain change update events.
-     * A <code>GainChangeEvent</code> is posted when the state
-     * of the <code>GainControl</code> changes.
+     * Register for gain change update events. A <code>GainChangeEvent</code> is
+     * posted when the state of the <code>GainControl</code> changes.
      *
      * @param listener The object to deliver events to.
      */
@@ -288,22 +283,26 @@ public class BasicVolumeControl
     }
 
     /**
-     * Fire events informing for our current state.
+     * Fires a new <tt>GainChangeEvent</tt> to the <tt>GainChangeListener</tt>s
+     * added to this instance to notify about a change in the level of this
+     * <tt>GainControl</tt>.
      */
-    private void fireGainEvents()
+    private void fireGainChange()
     {
         if(gainChangeListeners != null)
         {
-            GainChangeEvent gainchangeevent
+            GainChangeEvent ev
                 = new GainChangeEvent(this, mute, db, volumeLevel);
 
-            for(GainChangeListener gainchangelistener : gainChangeListeners)
-                gainchangelistener.gainChange(gainchangeevent);
+            for(GainChangeListener l : gainChangeListeners)
+                l.gainChange(ev);
         }
     }
 
     /**
-     * Fire a change in volume to interested listeners.
+     * Fires a new <tt>VolumeChangeEvent</tt> to the
+     * <tt>VolumeChangeListener</tt>s added to this instance to notify about a
+     * change in the volume (level) of this <tt>VolumeControl</tt>.
      */
     private void fireVolumeChange()
     {
@@ -328,15 +327,15 @@ public class BasicVolumeControl
             }
         }
 
-        VolumeChangeEvent changeEvent
-            = new VolumeChangeEvent(this, volumeLevel, mute);
+        VolumeChangeEvent ev = new VolumeChangeEvent(this, volumeLevel, mute);
 
         for(VolumeChangeListener l : ls)
-            l.volumeChange(changeEvent);
+            l.volumeChange(ev);
     }
 
     /**
      * Not used.
+     *
      * @return null
      */
     public Component getControlComponent()
@@ -346,6 +345,7 @@ public class BasicVolumeControl
 
     /**
      * Get the current gain set for this object in dB.
+     *
      * @return The gain in dB.
      */
     public float getDB()
@@ -354,11 +354,9 @@ public class BasicVolumeControl
     }
 
     /**
-     * Get the current gain set for this
-     * object as a value between 0.0 and 1.0
+     * Get the current gain set for this object as a value between 0.0 and 1.0
      *
      * @return The gain in the level scale (0.0-1.0).
-     *
      * @see javax.media.GainControl
      */
     public float getLevel()
@@ -370,7 +368,6 @@ public class BasicVolumeControl
      * Returns the maximum allowed volume value.
      *
      * @return the maximum allowed volume value.
-     *
      * @see org.jitsi.service.neomedia.VolumeControl
      */
     public float getMaxValue()
@@ -382,7 +379,6 @@ public class BasicVolumeControl
      * Returns the minimum allowed volume value.
      *
      * @return the minimum allowed volume value.
-     *
      * @see org.jitsi.service.neomedia.VolumeControl
      */
     public float getMinValue()
@@ -474,15 +470,12 @@ public class BasicVolumeControl
     }
 
     /**
-     * Set the gain in decibels.
-     * Setting the gain to 0.0 (the default) implies that the audio
-     * signal is neither amplified nor attenuated.
-     * Positive values amplify the audio signal and negative values attenuate
-     * the signal.
+     * Set the gain in decibels. Setting the gain to 0.0 (the default) implies
+     * that the audio signal is neither amplified nor attenuated. Positive
+     * values amplify the audio signal and negative values attenuate the signal.
      *
      * @param gain The new gain in dB.
      * @return The gain that was actually set.
-     *
      * @see javax.media.GainControl
      */
     public float setDB(float gain)
@@ -505,7 +498,6 @@ public class BasicVolumeControl
      *
      * @param level The new gain value specified in the level scale.
      * @return The level that was actually set.
-     *
      * @see javax.media.GainControl
      */
     public float setLevel(float level)
@@ -525,7 +517,7 @@ public class BasicVolumeControl
             this.mute = mute;
 
             fireVolumeChange();
-            fireGainEvents();
+            fireGainChange();
         }
     }
 
@@ -539,7 +531,7 @@ public class BasicVolumeControl
      */
     public float setVolume(float value)
     {
-        return this.setVolumeLevel(value);
+        return setVolumeLevel(value);
     }
 
     /**
@@ -579,7 +571,7 @@ public class BasicVolumeControl
         }
 
         db = getDbFromPowerRatio(value, this.gainReferenceLevel);
-        fireGainEvents();
+        fireGainChange();
 
         return volumeLevel;
     }
@@ -592,6 +584,10 @@ public class BasicVolumeControl
      */
     protected void updateHardwareVolume()
     {
-        // Nothing to do. This AbstractVolumeControl only modifies the gain.
+        /*
+         * AbstractVolumeControl does not implement such functionality, the
+         * method is defined and invoked in order to allow extenders to provide
+         * such functionality.
+         */
     }
 }

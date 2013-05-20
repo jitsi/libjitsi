@@ -594,6 +594,28 @@ public class MediaDeviceSession
     }
 
     /**
+     * Initializes a <tt>Renderer</tt> instance which is to be utilized by a
+     * specific <tt>Player</tt> in order to play back the media represented by
+     * a specific <tt>TrackControl</tt>. Allows extenders to override and,
+     * optionally, perform additional configuration of the returned
+     * <tt>Renderer</tt>.
+     *
+     * @param player the <tt>Player</tt> which is to utilize the
+     * initialized/returned <tt>Renderer</tt>
+     * @param trackControl the <tt>TrackControl</tt> which represents the media
+     * to be played back (and, technically, on which the initialized/returned
+     * <tt>Renderer</tt> is to be set)
+     * @return the <tt>Renderer</tt> which is to be set on the specified
+     * <tt>trackControl</tt>. If <tt>null</tt>,
+     * {@link TrackControl#setRenderer(Renderer)} is not invoked on the
+     * specified <tt>trackControl</tt>.
+     */
+    protected Renderer createRenderer(Player player, TrackControl trackControl)
+    {
+        return getDevice().createRenderer();
+    }
+
+    /**
      * Makes sure {@link #captureDevice} is disconnected.
      */
     private void disconnectCaptureDevice()
@@ -1221,12 +1243,10 @@ public class MediaDeviceSession
 
         if ((tcs != null) && (tcs.length != 0))
         {
-            AbstractMediaDevice device = getDevice();
-
             for (int i = 0; i < tcs.length; i++)
             {
                 TrackControl tc = tcs[i];
-                Renderer renderer = device.createRenderer();
+                Renderer renderer = createRenderer(player, tc);
 
                 if (renderer != null)
                 {

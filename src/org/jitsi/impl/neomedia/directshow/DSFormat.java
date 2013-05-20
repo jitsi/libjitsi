@@ -4,7 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package net.java.sip.communicator.impl.neomedia.directshow;
+package org.jitsi.impl.neomedia.directshow;
 
 /**
  * DirectShow video format.
@@ -14,22 +14,22 @@ package net.java.sip.communicator.impl.neomedia.directshow;
 public class DSFormat
 {
 
-    static
-    {
-        System.loadLibrary("jndirectshow");
-
-        RGB24 = getRGB24PixelFormat();
-        RGB32 = getRGB32PixelFormat();
-        ARGB32 = getARGBPixelFormat();
-        YUY2 = getYUY2PixelFormat();
-        UYVY = getUYVYPixelFormat();
-        NV12 = getNV12PixelFormat();
-        Y411 = getY411PixelFormat();
-        Y41P = getY41PPixelFormat();
-        I420 = getI420PixelFormat();
-    }
+    /**
+     * The ARGB32 constant.
+     */
+    public static final long ARGB32;
 
     /* supported formats */
+
+    /**
+     * The I420 constant.
+     */
+    public static final long I420;
+
+    /**
+     * The NV12 constant.
+     */
+    public static final long NV12;
 
     /**
      * The RGB24 constant.
@@ -40,16 +40,6 @@ public class DSFormat
      * The RGB32 constant.
      */
     public static final long RGB32;
-
-    /**
-     * The ARGB32 constant.
-     */
-    public static final long ARGB32;
-
-    /**
-     * The YUY2 constant.
-     */
-    public static final long YUY2;
 
     /**
      * The UYVY constant.
@@ -67,88 +57,24 @@ public class DSFormat
     public static final long Y41P;
 
     /**
-     * The NV12 constant.
+     * The YUY2 constant.
      */
-    public static final long NV12;
+    public static final long YUY2;
 
-    /**
-     * The I420 constant.
-     */
-    public static final long I420;
-
-    /**
-     * Video width.
-     */
-    private int width = 0;
-
-    /**
-     * Video height.
-     */
-    private int height = 0;
-
-    /**
-     * Color space.
-     */
-    private long pixelFormat = -1;
-
-    /**
-     * Constructor.
-     *
-     * @param width video width
-     * @param height video height
-     * @param pixelFormat pixel format
-     */
-    public DSFormat(int width, int height, long pixelFormat)
+    static
     {
-        this.width = width;
-        this.height = height;
-        this.pixelFormat = pixelFormat;
+        System.loadLibrary("jndirectshow");
+
+        RGB24 = getRGB24PixelFormat();
+        RGB32 = getRGB32PixelFormat();
+        ARGB32 = getARGBPixelFormat();
+        YUY2 = getYUY2PixelFormat();
+        UYVY = getUYVYPixelFormat();
+        NV12 = getNV12PixelFormat();
+        Y411 = getY411PixelFormat();
+        Y41P = getY41PPixelFormat();
+        I420 = getI420PixelFormat();
     }
-
-    /**
-     * Get video width.
-     *
-     * @return video width
-     */
-    public int getWidth()
-    {
-        return width;
-    }
-
-    /**
-     * Get video height.
-     *
-     * @return video height
-     */
-    public int getHeight()
-    {
-        return height;
-    }
-
-    /**
-     * Get color space.
-     *
-     * @return color space
-     */
-    public long getPixelFormat()
-    {
-        return pixelFormat;
-    }
-
-    /* RGB */
-    /**
-     * Get the RGB24 native pixel format
-     *
-     * @return RGB24 native format value
-     */
-    public static native long getRGB24PixelFormat();
-
-    /**
-     * Get the RGB32 native pixel format
-     *
-     * @return RGB32 native format value
-     */
-    public static native long getRGB32PixelFormat();
 
     /**
      * Get the ARGB32 native pixel format
@@ -156,8 +82,6 @@ public class DSFormat
      * @return ARGB32 native format value
      */
     public static native long getARGBPixelFormat();
-
-    /* YUV */
 
     /**
      * Get the AYUV native pixel format
@@ -167,18 +91,18 @@ public class DSFormat
     public static native long getAYUVPixelFormat();
 
     /**
-     * Get the YUY2 native pixel format
+     * Get the I420 native pixel format
      *
-     * @return YUY2 native format value
+     * @return I420 native format value
      */
-    public static native long getYUY2PixelFormat();
+    public static native long getI420PixelFormat();
 
     /**
-     * Get the UYVY native pixel format
+     * Get the IF09 native pixel format
      *
-     * @return UYVY native format value
+     * @return IF09 native format value
      */
-    public static native long getUYVYPixelFormat();
+    public static native long getIF09PixelFormat();
 
     /**
      * Get the IMC1 native pixel format
@@ -209,11 +133,11 @@ public class DSFormat
     public static native long getIMC4PixelFormat();
 
     /**
-     * Get the YV12 native pixel format
+     * Get the IYUV native pixel format
      *
-     * @return YV12 native format value
+     * @return IYUV native format value
      */
-    public static native long getYV12PixelFormat();
+    public static native long getIYUVPixelFormat();
 
     /**
      * Get the NV12 native pixel format
@@ -222,19 +146,29 @@ public class DSFormat
      */
     public static native long getNV12PixelFormat();
 
+    /* YUV */
+
+    /* RGB */
     /**
-     * Get the IF09 native pixel format
+     * Get the RGB24 native pixel format
      *
-     * @return IF09 native format value
+     * @return RGB24 native format value
      */
-    public static native long getIF09PixelFormat();
+    public static native long getRGB24PixelFormat();
 
     /**
-     * Get the IYUV native pixel format
+     * Get the RGB32 native pixel format
      *
-     * @return IYUV native format value
+     * @return RGB32 native format value
      */
-    public static native long getIYUVPixelFormat();
+    public static native long getRGB32PixelFormat();
+
+    /**
+     * Get the UYVY native pixel format
+     *
+     * @return UYVY native format value
+     */
+    public static native long getUYVYPixelFormat();
 
     /**
      * Get the Y211 native pixel format
@@ -258,6 +192,20 @@ public class DSFormat
     public static native long getY41PPixelFormat();
 
     /**
+     * Get the YUY2 native pixel format
+     *
+     * @return YUY2 native format value
+     */
+    public static native long getYUY2PixelFormat();
+
+    /**
+     * Get the YV12 native pixel format
+     *
+     * @return YV12 native format value
+     */
+    public static native long getYV12PixelFormat();
+
+    /**
      * Get the YVU9 native pixel format
      *
      * @return YVU9 native format value
@@ -272,10 +220,61 @@ public class DSFormat
     public static native long getYVYUPixelFormat();
 
     /**
-     * Get the I420 native pixel format
-     *
-     * @return I420 native format value
+     * Video height.
      */
-    public static native long getI420PixelFormat();
-}
+    private int height = 0;
 
+    /**
+     * Color space.
+     */
+    private long pixelFormat = -1;
+
+    /**
+     * Video width.
+     */
+    private int width = 0;
+
+    /**
+     * Constructor.
+     *
+     * @param width video width
+     * @param height video height
+     * @param pixelFormat pixel format
+     */
+    public DSFormat(int width, int height, long pixelFormat)
+    {
+        this.width = width;
+        this.height = height;
+        this.pixelFormat = pixelFormat;
+    }
+
+    /**
+     * Get video height.
+     *
+     * @return video height
+     */
+    public int getHeight()
+    {
+        return height;
+    }
+
+    /**
+     * Get color space.
+     *
+     * @return color space
+     */
+    public long getPixelFormat()
+    {
+        return pixelFormat;
+    }
+
+    /**
+     * Get video width.
+     *
+     * @return video width
+     */
+    public int getWidth()
+    {
+        return width;
+    }
+}

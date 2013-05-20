@@ -15,12 +15,11 @@ import javax.media.*;
 import javax.media.control.*;
 import javax.media.format.*;
 
-import net.java.sip.communicator.impl.neomedia.directshow.*;
-
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.impl.neomedia.directshow.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.util.*;
 
