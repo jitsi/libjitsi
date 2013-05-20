@@ -9,8 +9,10 @@ package org.jitsi.impl.configuration;
 import java.util.*;
 
 /**
+ * A simple in-memory {@link ConfigurationStore} implementation that only uses
+ * a hashtable.
  *
- * @param <T> the hashtable extension
+ * @param <T> the hashtable extension that descendants are going to use.
  * @author Lyubomir Marinov
  */
 @SuppressWarnings("rawtypes")
@@ -25,6 +27,13 @@ public abstract class HashtableConfigurationStore<T extends Hashtable>
      */
     protected final T properties;
 
+    /**
+     * Creates an instance of this class using <tt>properties</tt> as the set
+     * of properties where it will be storing an retrieving properties.
+     *
+     * @param properties the map that this store will use for storing and
+     * retrieving properties.
+     */
     protected HashtableConfigurationStore(T properties)
     {
         this.properties = properties;
