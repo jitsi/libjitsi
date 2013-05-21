@@ -111,6 +111,7 @@ public class ConfigurationServiceImpl
         {
             debugPrintSystemProperties();
             preloadSystemPropertyFiles();
+            loadDefaultProperties();
             reloadConfiguration();
         }
         catch (IOException ex)
@@ -417,6 +418,9 @@ public class ConfigurationServiceImpl
      * exactPrefixMatch=false would return both properties as the second prefix
      * includes the requested prefix string.
      * <p>
+     * In addition to stored properties this method will also search the default
+     * mutable and immutable properties.
+     *
      * @param prefix a String containing the prefix (the non dotted non-caps
      * part of a property name) that we're looking for.
      * @param exactPrefixMatch a boolean indicating whether the returned
@@ -429,9 +433,73 @@ public class ConfigurationServiceImpl
     public List<String> getPropertyNamesByPrefix(String prefix,
             boolean exactPrefixMatch)
     {
-        List<String> resultKeySet = new LinkedList<String>();
+        HashSet<String> resultKeySet = new HashSet<String>();
 
-        for (String key : store.getPropertyNames())
+        //first fill in the names from the immutable default property set
+        Set<String> propertyNameSet;
+        String[] namesArray;
+
+        if(immutableDefaultProperties.size() > 0)
+        {
+            propertyNameSet = immutableDefaultProperties.keySet();
+
+            namesArray
+                = propertyNameSet.toArray( new String[propertyNameSet.size()] );
+
+            getPropertyNamesByPrefix(prefix,
+                                     exactPrefixMatch,
+                                     namesArray,
+                                     resultKeySet);
+        }
+
+        //now get property names from the current store.
+        getPropertyNamesByPrefix(prefix,
+                                 exactPrefixMatch,
+                                 store.getPropertyNames(),
+                                 resultKeySet);
+
+        //finally, get property names from mutable default property set.
+        if(immutableDefaultProperties.size() > 0)
+        {
+            propertyNameSet = defaultProperties.keySet();
+
+            namesArray
+                = propertyNameSet.toArray( new String[propertyNameSet.size()] );
+
+            getPropertyNamesByPrefix(prefix,
+                                     exactPrefixMatch,
+                                     namesArray,
+                                     resultKeySet);
+        }
+
+        return new ArrayList<String>( resultKeySet );
+    }
+
+    /**
+     * Updates the specified <tt>String</tt> <tt>resulSet</tt> to contain all
+     * property names in the <tt>names</tt> array that partially or completely
+     * match the specified prefix. Depending on the value of the
+     * <tt>exactPrefixMatch</tt> parameter the method will (when false)
+     * or will not (when exactPrefixMatch is true) include property names that
+     * have prefixes longer than the specified <tt>prefix</tt> param.
+     *
+     * @param prefix a String containing the prefix (the non dotted non-caps
+     * part of a property name) that we're looking for.
+     * @param exactPrefixMatch a boolean indicating whether the returned
+     * property names should all have a prefix that is an exact match of the
+     * the <tt>prefix</tt> param or whether properties with prefixes that
+     * contain it but are longer than it are also accepted.
+     * @param names the list of names that we'd like to search.
+     *
+     * @return a reference to the updated result set.
+     */
+    private Set<String> getPropertyNamesByPrefix(
+                            String      prefix,
+                            boolean     exactPrefixMatch,
+                            String[]    names,
+                            Set<String> resultSet)
+    {
+        for (String key : names)
         {
             int ix = key.lastIndexOf('.');
 
@@ -443,16 +511,16 @@ public class ConfigurationServiceImpl
             if(exactPrefixMatch)
             {
                 if(prefix.equals(keyPrefix))
-                    resultKeySet.add(key);
+                    resultSet.add(key);
             }
             else
             {
                 if(keyPrefix.startsWith(prefix))
-                    resultKeySet.add(key);
+                    resultSet.add(key);
             }
         }
 
-        return resultKeySet;
+        return resultSet;
     }
 
     /**
@@ -1471,7 +1539,7 @@ public class ConfigurationServiceImpl
             Properties fileProps = new Properties();
 
             fileProps.load(ClassLoader.getSystemClassLoader()
-                    .getSystemResourceAsStream(DEFAULT_PROPS_FILE_NAME));
+                .getSystemResourceAsStream(DEFAULT_PROPS_FILE_NAME));
 
             // now get those properties and place them into the mutable and
             // immutable properties maps.
