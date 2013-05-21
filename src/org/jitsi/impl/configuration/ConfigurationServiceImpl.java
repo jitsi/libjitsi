@@ -126,10 +126,15 @@ public class ConfigurationServiceImpl
      * (PropertyVetoException) have been received, the property will be actually
      * changed and a PropertyChangeEvent will be dispatched.
      * <p>
-     * @param propertyName String
-     * @param property Object
+     * @param propertyName the name of the property
+     * @param property the object that we'd like to be come the new value of the
+     * property.
+     *
+     * @throws ConfigPropertyVetoException in case someone is not happy with the
+     * change.
      */
     public void setProperty(String propertyName, Object property)
+        throws ConfigPropertyVetoException
     {
         setProperty(propertyName, property, false);
     }
@@ -150,9 +155,13 @@ public class ConfigurationServiceImpl
      *                 property set. If the property has previously been
      *                 specified as system then this value is internally forced
      *                 to true.
+     * @throws ConfigPropertyVetoException in case someone is not happy with the
+     * change.
      */
-    public void setProperty(String propertyName, Object property,
+    public void setProperty(String propertyName,
+                            Object property,
                             boolean isSystem)
+        throws ConfigPropertyVetoException
     {
         Object oldValue = getProperty(propertyName);
 
@@ -191,9 +200,12 @@ public class ConfigurationServiceImpl
      * configuration file which is known to be slow because it involves
      * converting the whole store to a string representation and writing a file
      * to the disk.
+     *
+     * @throws ConfigPropertyVetoException in case someone is not happy with the
+     * change.
      */
     public void setProperties(Map<String, Object> properties)
-        // throws PropertyVetoException
+        throws ConfigPropertyVetoException
     {
         //first check whether the changes are ok with everyone
         Map<String, Object> oldValues
