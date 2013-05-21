@@ -54,10 +54,17 @@ public class ConfigurationServiceImpl
         = "net.java.sip.communicator.SYS_PROPS_FILE_NAME";
 
     /**
-     * Name of the system file name property.
+     * Name of the file containing default properties.
      */
     private static final String DEFAULT_PROPS_FILE_NAME
-                                                = "jitsi-defaults.properties";
+                                         = "jitsi-defaults.properties";
+
+    /**
+     * Name of the file containing overrides (possibly set by the deployer)
+     * for any of the default properties.
+     */
+    private static final String DEFAULT_OVERRIDES_PROPS_FILE_NAME
+                                         = "jitsi-default-overrides.properties";
 
     /**
      * A reference to the currently used configuration file.
@@ -1530,16 +1537,30 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Loads the default properties maps from the Jitsi installation directory.
+     * Loads the default propertiy maps from the Jitsi installation directory
+     * then overrides them with the default override values.
      */
     private void loadDefaultProperties()
+    {
+        loadDefaultProperties(DEFAULT_PROPS_FILE_NAME);
+        loadDefaultProperties(DEFAULT_OVERRIDES_PROPS_FILE_NAME);
+    }
+
+    /**
+     * Loads the specified default properties maps from the Jitsi installation
+     * directory. Typically this file is to be called for the default properties
+     * and the admin overrides.
+     *
+     * @param  fileName the name of the file we need to load.
+     */
+    private void loadDefaultProperties(String fileName)
     {
         try
         {
             Properties fileProps = new Properties();
 
             fileProps.load(ClassLoader.getSystemClassLoader()
-                .getSystemResourceAsStream(DEFAULT_PROPS_FILE_NAME));
+                .getSystemResourceAsStream(fileName));
 
             // now get those properties and place them into the mutable and
             // immutable properties maps.
@@ -1550,8 +1571,7 @@ public class ConfigurationServiceImpl
 
                 if (   name == null
                     || value == null
-                    || name.trim().length() == 0
-                    || value.trim().length() == 0)
+                    || name.trim().length() == 0)
                 {
                     continue;
                 }
@@ -1579,8 +1599,9 @@ public class ConfigurationServiceImpl
         {
             //we can function without defaults so we are just logging those.
             logger.error("Failed to load property file: "
-                + DEFAULT_PROPS_FILE_NAME, ex);
+                + fileName, ex);
         }
-
     }
+
+
 }
