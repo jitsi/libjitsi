@@ -55,7 +55,7 @@ public class ImgStreamingSystem
 
         String name = "Desktop Streaming";
         int i = 0;
-        boolean multipleMonitorOneScreen = false;
+        boolean multipleMonitorsOneScreen = false;
         Dimension screenSize = null;
 
         /*
@@ -81,7 +81,7 @@ public class ImgStreamingSystem
                 if(screenSize.width == size.width ||
                         screenSize.height == size.height)
                 {
-                    multipleMonitorOneScreen = true;
+                    multipleMonitorsOneScreen = true;
                 }
             }
             catch(Exception e)
@@ -108,16 +108,16 @@ public class ImgStreamingSystem
                             32, // bitsPerPixel
                             2 /* red */, 3 /* green */,  4 /* blue */)
                 };
-            CaptureDeviceInfo devInfo
+            CaptureDeviceInfo cdi
                 = new CaptureDeviceInfo(
                         name + " " + i,
                         new MediaLocator(LOCATOR_PROTOCOL + ":" + i),
                         formats);
 
-            CaptureDeviceManager.addDevice(devInfo);
+            CaptureDeviceManager.addDevice(cdi);
             i++;
 
-            if(multipleMonitorOneScreen)
+            if(multipleMonitorsOneScreen)
                 break;
         }
 

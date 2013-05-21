@@ -43,6 +43,109 @@ public class MediaDeviceImpl
         = Logger.getLogger(MediaDeviceImpl.class);
 
     /**
+     * Creates a new <tt>CaptureDevice</tt> which traces calls to a specific
+     * <tt>CaptureDevice</tt> for debugging purposes.
+     *
+     * @param captureDevice the <tt>CaptureDevice</tt> which is to have its
+     * calls traced for debugging output
+     * @param logger the <tt>Logger</tt> to be used for logging the trace
+     * messages
+     * @return a new <tt>CaptureDevice</tt> which traces the calls to the
+     * specified <tt>captureDevice</tt>
+     */
+    public static CaptureDevice createTracingCaptureDevice(
+            CaptureDevice captureDevice,
+            final Logger logger)
+    {
+        if (captureDevice instanceof PushBufferDataSource)
+            captureDevice
+                = new CaptureDeviceDelegatePushBufferDataSource(
+                        captureDevice)
+                {
+                    @Override
+                    public void connect()
+                        throws IOException
+                    {
+                        super.connect();
+
+                        if (logger.isTraceEnabled())
+                            logger
+                                .trace(
+                                    "Connected "
+                                        + MediaDeviceImpl
+                                            .toString(this.captureDevice));
+                    }
+
+                    @Override
+                    public void disconnect()
+                    {
+                        super.disconnect();
+
+                        if (logger.isTraceEnabled())
+                            logger
+                                .trace(
+                                    "Disconnected "
+                                        + MediaDeviceImpl
+                                            .toString(this.captureDevice));
+                    }
+
+                    @Override
+                    public void start()
+                        throws IOException
+                    {
+                        super.start();
+
+                        if (logger.isTraceEnabled())
+                            logger
+                                .trace(
+                                    "Started "
+                                        + MediaDeviceImpl
+                                            .toString(this.captureDevice));
+                    }
+
+                    @Override
+                    public void stop()
+                        throws IOException
+                    {
+                        super.stop();
+
+                        if (logger.isTraceEnabled())
+                            logger
+                                .trace(
+                                    "Stopped "
+                                        + MediaDeviceImpl
+                                            .toString(this.captureDevice));
+                    }
+                };
+        return captureDevice;
+    }
+
+    /**
+     * Returns a human-readable representation of a specific
+     * <tt>CaptureDevice</tt> in the form of a <tt>String</tt> value.
+     *
+     * @param captureDevice the <tt>CaptureDevice</tt> to get a human-readable
+     * representation of
+     * @return a <tt>String</tt> value which gives a human-readable
+     * representation of the specified <tt>captureDevice</tt>
+     */
+    private static String toString(CaptureDevice captureDevice)
+    {
+        StringBuffer str = new StringBuffer();
+
+        str.append("CaptureDevice with hashCode ");
+        str.append(captureDevice.hashCode());
+        str.append(" and captureDeviceInfo ");
+
+        CaptureDeviceInfo captureDeviceInfo
+            = captureDevice.getCaptureDeviceInfo();
+        MediaLocator mediaLocator = captureDeviceInfo.getLocator();
+
+        str.append((mediaLocator == null) ? captureDeviceInfo : mediaLocator);
+        return str.toString();
+    }
+
+    /**
      * The <tt>CaptureDeviceInfo</tt> of the device that this instance is
      * representing.
      */
@@ -53,19 +156,6 @@ public class MediaDeviceImpl
      * that it wraps.
      */
     private final MediaType mediaType;
-
-    /**
-     * Initializes a new <tt>MediaDeviceImpl</tt> instance with a specific
-     * <tt>MediaType</tt> and with <tt>MediaDirection</tt> which does not allow
-     * sending.
-     *
-     * @param mediaType the <tt>MediaType</tt> of the new instance
-     */
-    public MediaDeviceImpl(MediaType mediaType)
-    {
-        this.captureDeviceInfo = null;
-        this.mediaType = mediaType;
-    }
 
     /**
      * Initializes a new <tt>MediaDeviceImpl</tt> instance which is to provide
@@ -88,6 +178,19 @@ public class MediaDeviceImpl
             throw new NullPointerException("mediaType");
 
         this.captureDeviceInfo = captureDeviceInfo;
+        this.mediaType = mediaType;
+    }
+
+    /**
+     * Initializes a new <tt>MediaDeviceImpl</tt> instance with a specific
+     * <tt>MediaType</tt> and with <tt>MediaDirection</tt> which does not allow
+     * sending.
+     *
+     * @param mediaType the <tt>MediaType</tt> of the new instance
+     */
+    public MediaDeviceImpl(MediaType mediaType)
+    {
+        this.captureDeviceInfo = null;
         this.mediaType = mediaType;
     }
 
@@ -165,84 +268,6 @@ public class MediaDeviceImpl
             getDirection().allowsSending()
                 ? (DataSource) createCaptureDevice()
                 : null;
-    }
-
-    /**
-     * Creates a new <tt>CaptureDevice</tt> which traces calls to a specific
-     * <tt>CaptureDevice</tt> for debugging purposes.
-     *
-     * @param captureDevice the <tt>CaptureDevice</tt> which is to have its
-     * calls traced for debugging output
-     * @param logger the <tt>Logger</tt> to be used for logging the trace
-     * messages
-     * @return a new <tt>CaptureDevice</tt> which traces the calls to the
-     * specified <tt>captureDevice</tt>
-     */
-    public static CaptureDevice createTracingCaptureDevice(
-            CaptureDevice captureDevice,
-            final Logger logger)
-    {
-        if (captureDevice instanceof PushBufferDataSource)
-            captureDevice
-                = new CaptureDeviceDelegatePushBufferDataSource(
-                        captureDevice)
-                {
-                    @Override
-                    public void connect()
-                        throws IOException
-                    {
-                        super.connect();
-
-                        if (logger.isTraceEnabled())
-                            logger
-                                .trace(
-                                    "Connected "
-                                        + MediaDeviceImpl
-                                            .toString(this.captureDevice));
-                    }
-
-                    @Override
-                    public void disconnect()
-                    {
-                        super.disconnect();
-
-                        if (logger.isTraceEnabled())
-                            logger
-                                .trace(
-                                    "Disconnected "
-                                        + MediaDeviceImpl
-                                            .toString(this.captureDevice));
-                    }
-
-                    @Override
-                    public void start()
-                        throws IOException
-                    {
-                        super.start();
-
-                        if (logger.isTraceEnabled())
-                            logger
-                                .trace(
-                                    "Started "
-                                        + MediaDeviceImpl
-                                            .toString(this.captureDevice));
-                    }
-
-                    @Override
-                    public void stop()
-                        throws IOException
-                    {
-                        super.stop();
-
-                        if (logger.isTraceEnabled())
-                            logger
-                                .trace(
-                                    "Stopped "
-                                        + MediaDeviceImpl
-                                            .toString(this.captureDevice));
-                    }
-                };
-        return captureDevice;
     }
 
     /**
@@ -339,6 +364,22 @@ public class MediaDeviceImpl
     {
         return mediaType;
     }
+    
+    /**
+     * Gets the list of <tt>MediaFormat</tt>s supported by this
+     * <tt>MediaDevice</tt> and enabled in <tt>encodingConfiguration</tt>.
+     *
+     * @param encodingConfiguration the <tt>EncodingConfiguration</tt> instance
+     * to use
+     * @return the list of <tt>MediaFormat</tt>s supported by this device
+     * and enabled in <tt>encodingConfiguration</tt>.
+     * @see MediaDevice#getSupportedFormats()
+     */
+    public List<MediaFormat> getSupportedFormats(
+            EncodingConfiguration encodingConfiguration)
+    {
+            return getSupportedFormats(null, null, encodingConfiguration);
+    }
 
     /**
      * Gets the list of <tt>MediaFormat</tt>s supported by this
@@ -362,22 +403,6 @@ public class MediaDeviceImpl
                     receivePreset,
                     NeomediaServiceUtils.getMediaServiceImpl()
                             .getCurrentEncodingConfiguration());
-    }
-    
-    /**
-     * Gets the list of <tt>MediaFormat</tt>s supported by this
-     * <tt>MediaDevice</tt> and enabled in <tt>encodingConfiguration</tt>.
-     *
-     * @param encodingConfiguration the <tt>EncodingConfiguration</tt> instance
-     * to use
-     * @return the list of <tt>MediaFormat</tt>s supported by this device
-     * and enabled in <tt>encodingConfiguration</tt>.
-     * @see MediaDevice#getSupportedFormats()
-     */
-    public List<MediaFormat> getSupportedFormats(
-            EncodingConfiguration encodingConfiguration)
-    {
-            return getSupportedFormats(null, null, encodingConfiguration);
     }
 
     /**
@@ -491,30 +516,5 @@ public class MediaDeviceImpl
             (captureDeviceInfo == null)
                 ? super.toString()
                 : captureDeviceInfo.toString();
-    }
-
-    /**
-     * Returns a human-readable representation of a specific
-     * <tt>CaptureDevice</tt> in the form of a <tt>String</tt> value.
-     *
-     * @param captureDevice the <tt>CaptureDevice</tt> to get a human-readable
-     * representation of
-     * @return a <tt>String</tt> value which gives a human-readable
-     * representation of the specified <tt>captureDevice</tt>
-     */
-    private static String toString(CaptureDevice captureDevice)
-    {
-        StringBuffer str = new StringBuffer();
-
-        str.append("CaptureDevice with hashCode ");
-        str.append(captureDevice.hashCode());
-        str.append(" and captureDeviceInfo ");
-
-        CaptureDeviceInfo captureDeviceInfo
-            = captureDevice.getCaptureDeviceInfo();
-        MediaLocator mediaLocator = captureDeviceInfo.getLocator();
-
-        str.append((mediaLocator == null) ? captureDeviceInfo : mediaLocator);
-        return str.toString();
     }
 }

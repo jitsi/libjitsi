@@ -18,23 +18,17 @@ import org.jitsi.service.neomedia.device.*;
  */
 public class ScreenDeviceImpl implements ScreenDevice
 {
+    /**
+     * An array with <tt>ScreenDevice</tt> element type which is empty.
+     * Explicitly defined to reduce allocations, garbage collection.
+     */
     private static final ScreenDevice[] EMPTY_SCREEN_DEVICE_ARRAY
         = new ScreenDevice[0];
 
     /**
-     * AWT <tt>GraphicsDevice</tt>.
-     */
-    final GraphicsDevice screen;
-
-    /**
-     * Screen index.
-     */
-    private final int index;
-
-    /**
-     * Returns all available <tt>ScreenDevice</tt> device.
+     * Returns all available <tt>ScreenDevice</tt>s.
      *
-     * @return array of <tt>ScreenDevice</tt> device
+     * @return an array of all available <tt>ScreenDevice</tt>s
      */
     public static ScreenDevice[] getAvailableScreenDevices()
     {
@@ -77,26 +71,42 @@ public class ScreenDeviceImpl implements ScreenDevice
         return (screens == null) ? EMPTY_SCREEN_DEVICE_ARRAY : screens;
     }
 
+    /**
+     * Gets the default <tt>ScreenDevice</tt>. The implementation attempts to
+     * return the <tt>ScreenDevice</tt> with the highest resolution.
+     *
+     * @return the default <tt>ScreenDevice</tt>
+     */
     public static ScreenDevice getDefaultScreenDevice()
     {
-        ScreenDevice[] screens = getAvailableScreenDevices();
         int width = 0;
         int height = 0;
         ScreenDevice best = null;
 
-        for (ScreenDevice screen : screens)
+        for (ScreenDevice screen : getAvailableScreenDevices())
         {
-            java.awt.Dimension res = screen.getSize();
+            Dimension size = screen.getSize();
 
-            if ((res != null) && ((width < res.width) || (height < res.height)))
+            if ((size != null)
+                    && ((width < size.width) || (height < size.height)))
             {
-                width = res.width;
-                height = res.height;
+                width = size.width;
+                height = size.height;
                 best = screen;
             }
         }
         return best;
     }
+
+    /**
+     * Screen index.
+     */
+    private final int index;
+
+    /**
+     * AWT <tt>GraphicsDevice</tt>.
+     */
+    private final GraphicsDevice screen;
 
     /**
      * Constructor.
@@ -108,42 +118,6 @@ public class ScreenDeviceImpl implements ScreenDevice
     {
         this.index = index;
         this.screen = screen;
-    }
-
-    /**
-     * Get the screen index.
-     *
-     * @return screen index
-     */
-    public int getIndex()
-    {
-        return index;
-    }
-
-    /**
-     * Get current resolution of <tt>ScreenDevice</tt> device.
-     *
-     * @return current resolution of the screen
-     */
-    public Dimension getSize()
-    {
-        /* get current display resolution */
-        DisplayMode mode = screen.getDisplayMode();
-
-        return
-            (mode == null)
-                ? null
-                : new Dimension(mode.getWidth(), mode.getHeight());
-    }
-
-    /**
-     * Get the identifier of the screen.
-     *
-     * @return ID of the screen
-     */
-    public String getName()
-    {
-        return screen.getIDstring();
     }
 
     /**
@@ -165,5 +139,42 @@ public class ScreenDeviceImpl implements ScreenDevice
     public Rectangle getBounds()
     {
         return screen.getDefaultConfiguration().getBounds();
+    }
+
+    /**
+     * Get the screen index.
+     *
+     * @return screen index
+     */
+    public int getIndex()
+    {
+        return index;
+    }
+
+    /**
+     * Get the identifier of the screen.
+     *
+     * @return ID of the screen
+     */
+    public String getName()
+    {
+        return screen.getIDstring();
+    }
+
+    /**
+     * Gets the (current) size/resolution of this <tt>ScreenDevice</tt>.
+     *
+     * @return the (current) size/resolution of this <tt>ScreenDevice</tt>
+     */
+    public Dimension getSize()
+    {
+        DisplayMode displayMode = screen.getDisplayMode();
+
+        return
+            (displayMode == null)
+                ? null
+                : new Dimension(
+                        displayMode.getWidth(),
+                        displayMode.getHeight());
     }
 }

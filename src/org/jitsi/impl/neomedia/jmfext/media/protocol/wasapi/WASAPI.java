@@ -64,6 +64,10 @@ public class WASAPI
 
     public static final long PKEY_Device_FriendlyName;
 
+    public static final int RPC_E_CHANGED_MODE = 0x80010106;
+
+    public static final int S_FALSE = 1;
+
     public static final int S_OK = 0;
 
     private static final int SEVERITY_ERROR = 1;

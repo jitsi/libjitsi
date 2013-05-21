@@ -82,6 +82,49 @@ public class WASAPISystem
     }
 
     /**
+     * Invokes the Windows API function <tt>CoInitializeEx</tt> (by way of
+     * {@link WASAPI#CoInitializeEx(long, int)}) with arguments suitable to the
+     * operation of <tt>WASAPIRenderer</tt>, <tt>WASAPIStream</tt> and
+     * <tt>WASAPISystem</tt>.
+     * <p>
+     * Generally, the WASAPI integration is designed with
+     * <tt>COINIT_MULTITHREADED</tt> in mind. However, it may turn out that it
+     * works with <tt>COINIT_APARTMENTTHREADED</tt> as well.
+     * </p>
+     *
+     * @return the value returned by the invocation of the Windows API function
+     * <tt>CoInitializeEx</tt>
+     * @throws HResultException if the invocation of the method
+     * <tt>WASAPI.CoInitializeEx</tt> throws such an exception
+     */
+    public static int CoInitializeEx()
+        throws HResultException
+    {
+        int hr;
+
+        try
+        {
+            hr = WASAPI.CoInitializeEx(0, COINIT_MULTITHREADED);
+        }
+        catch (HResultException hre)
+        {
+            hr = hre.getHResult();
+            switch (hr)
+            {
+            case RPC_E_CHANGED_MODE:
+                hr = S_FALSE;
+                // Do fall through.
+            case S_FALSE:
+            case S_OK:
+                break;
+            default:
+                throw hre;
+            }
+        }
+        return hr;
+    }
+
+    /**
      * {@inheritDoc}
      */
     protected void doInitialize()
@@ -92,7 +135,7 @@ public class WASAPISystem
          * so we cannot be sure that the COM library has been initialized for
          * the current thread.
          */
-        CoInitializeEx(0, COINIT_MULTITHREADED);
+        WASAPISystem.CoInitializeEx();
 
         if (iMMDeviceEnumerator == 0)
         {
@@ -627,6 +670,18 @@ public class WASAPISystem
             AudioFormat[] formats)
         throws HResultException
     {
+
+        /*
+         * The Windows API function CoInitializeEx must be invoked on the
+         * current thread. Generally, the COM library must be initialized on a
+         * thread before calling any of the library functions (with a few
+         * exceptions) on that thread. Technically, that general requirement is
+         * not trivial to implement in the multi-threaded architecture of FMJ.
+         * Practically, we will perform the invocations where we have seen the
+         * return value CO_E_NOTINITIALIZED.
+         */
+        WASAPISystem.CoInitializeEx();
+
         String id = locator.getRemainder();
         long iMMDevice = getIMMDevice(id);
 

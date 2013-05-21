@@ -869,7 +869,7 @@ public class VideoMediaStreamImpl
 
                     if(res != null)
                     {
-                        outputSize = res[1];
+                        setOutputSize(res[1]);
 
                         qualityControl.setRemoteSendMaxPreset(
                                 new QualityPreset(res[0]));
@@ -886,7 +886,7 @@ public class VideoMediaStreamImpl
                             || ((outputSize.width < dim.width)
                                     && (outputSize.height < dim.height)))
                     {
-                        outputSize = dim;
+                        setOutputSize(dim);
                         ((VideoMediaDeviceSession)getDeviceSession())
                             .setOutputSize(outputSize);
                     }
@@ -899,7 +899,7 @@ public class VideoMediaStreamImpl
                             || ((outputSize.width < dim.width)
                                     && (outputSize.height < dim.height)))
                     {
-                        outputSize = dim;
+                        setOutputSize(dim);
                         ((VideoMediaDeviceSession)getDeviceSession())
                             .setOutputSize(outputSize);
                     }
@@ -913,7 +913,7 @@ public class VideoMediaStreamImpl
                                     && (outputSize.height < dim.height)))
                     {
                         // X-Lite does not display anything if we send 640x480.
-                        outputSize = dim;
+                        setOutputSize(dim);
                         ((VideoMediaDeviceSession)getDeviceSession())
                             .setOutputSize(outputSize);
                     }
@@ -936,7 +936,7 @@ public class VideoMediaStreamImpl
                                 || ((outputSize.width < dim.width)
                                         && (outputSize.height < dim.height)))
                         {
-                            outputSize = dim;
+                            setOutputSize(dim);
                             ((VideoMediaDeviceSession)getDeviceSession())
                                 .setOutputSize(outputSize);
                         }
@@ -950,10 +950,10 @@ public class VideoMediaStreamImpl
                     width = value;
                     if(height != null)
                     {
-                        outputSize
-                            = new Dimension(
-                                    Integer.parseInt(width),
-                                    Integer.parseInt(height));
+                        setOutputSize(
+                                new Dimension(
+                                        Integer.parseInt(width),
+                                        Integer.parseInt(height)));
                         ((VideoMediaDeviceSession)getDeviceSession())
                             .setOutputSize(outputSize);
                     }
@@ -963,10 +963,10 @@ public class VideoMediaStreamImpl
                     height = value;
                     if(width != null)
                     {
-                        outputSize
-                            = new Dimension(
-                                    Integer.parseInt(width),
-                                    Integer.parseInt(height));
+                        setOutputSize(
+                                new Dimension(
+                                        Integer.parseInt(width),
+                                        Integer.parseInt(height)));
                         ((VideoMediaDeviceSession)getDeviceSession())
                             .setOutputSize(outputSize);
                     }
@@ -1080,6 +1080,17 @@ public class VideoMediaStreamImpl
     }
 
     /**
+     * Sets the size/resolution of the video to be output by this instance.
+     *
+     * @param outputSize the size/resolution of the video to be output by this
+     * instance
+     */
+    private void setOutputSize(Dimension outputSize)
+    {
+        this.outputSize = outputSize;
+    }
+
+    /**
      * Updates the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>.
      *
      * @param advancedParams parameters of advanced attributes that may affect
@@ -1098,7 +1109,7 @@ public class VideoMediaStreamImpl
                     qualityControl.setRemoteSendMaxPreset(
                             new QualityPreset(res[0]));
                     qualityControl.setRemoteReceiveResolution(res[1]);
-                    outputSize = res[1];
+                    setOutputSize(res[1]);
                     ((VideoMediaDeviceSession)getDeviceSession())
                         .setOutputSize(outputSize);
                 }
