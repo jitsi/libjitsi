@@ -64,7 +64,7 @@ public class ConfigurationServiceImpl
      * for any of the default properties.
      */
     private static final String DEFAULT_OVERRIDES_PROPS_FILE_NAME
-                                         = "jitsi-default-overrides.properties";
+                                             = "jitsi-default-overrides.properties";
 
     /**
      * A reference to the currently used configuration file.
@@ -1587,11 +1587,19 @@ public class ConfigurationServiceImpl
 
                     //it seems that we have a valid default immutable property
                     immutableDefaultProperties.put(name, value);
+
+                    //in case this is an override, make sure we remove previous
+                    //definitions of this property
+                    defaultProperties.remove(name);
                 }
                 else
                 {
                     //this property is a regular, mutable default property.
                     defaultProperties.put(name, value);
+
+                    //in case this is an override, make sure we remove previous
+                    //definitions of this property
+                    immutableDefaultProperties.remove(name);
                 }
             }
         }
