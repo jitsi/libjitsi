@@ -11,7 +11,6 @@ import javax.media.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
-import org.jitsi.impl.neomedia.directshow.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.directshow.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -20,22 +19,23 @@ import org.jitsi.util.*;
  * Discovers and registers DirectShow video capture devices with JMF.
  *
  * @author Sebastien Vincent
+ * @author Lyubomir Marinov
  */
 public class DirectShowSystem
     extends DeviceSystem
 {
+    /**
+     * The protocol of the <tt>MediaLocator</tt>s identifying QuickTime/QTKit
+     * capture devices.
+     */
+    private static final String LOCATOR_PROTOCOL = LOCATOR_PROTOCOL_DIRECTSHOW;
+
     /**
      * The <tt>Logger</tt> used by the <tt>DirectShowSystem</tt> class and its
      * instances for logging output.
      */
     private static final Logger logger
         = Logger.getLogger(DirectShowSystem.class);
-
-    /**
-     * The protocol of the <tt>MediaLocator</tt>s identifying QuickTime/QTKit
-     * capture devices.
-     */
-    private static final String LOCATOR_PROTOCOL = LOCATOR_PROTOCOL_DIRECTSHOW;
 
     /**
      * Constructor. Discover and register DirectShow capture devices
@@ -53,60 +53,71 @@ public class DirectShowSystem
     protected void doInitialize()
         throws Exception
     {
-        DSCaptureDevice devices[] = DSManager.getInstance().getCaptureDevices();
-        boolean captureDeviceInfoIsAdded = false;
+        DSManager manager = new DSManager();
 
-        for(int i = 0, count = (devices == null) ? 0 : devices.length;
-                i < count;
-                i++)
+        try
         {
-            long pixelFormat = devices[i].getFormat().getPixelFormat();
-            int ffmpegPixFmt = (int) DataSource.getFFmpegPixFmt(pixelFormat);
-            Format format = null;
+            DSCaptureDevice devices[] = manager.getCaptureDevices();
+            boolean captureDeviceInfoIsAdded = false;
 
-            if(ffmpegPixFmt != FFmpeg.PIX_FMT_NONE)
+            for(int i = 0, count = (devices == null) ? 0 : devices.length;
+                    i < count;
+                    i++)
             {
-                format = new AVFrameFormat(ffmpegPixFmt, (int) pixelFormat);
-            }
-            else
-            {
-                logger.warn("No support for this webcam: " +
-                        devices[i].getName() + "(format " + pixelFormat +
-                        " not supported)");
-                continue;
-            }
+                DSCaptureDevice device = devices[i];
+                long pixelFormat = device.getFormat().getPixelFormat();
+                int ffmpegPixFmt
+                    = (int) DataSource.getFFmpegPixFmt(pixelFormat);
+                Format format = null;
+                String name = device.getName();
 
-            if(logger.isInfoEnabled())
-            {
-                for(DSFormat f : devices[i].getSupportedFormats())
+                if(ffmpegPixFmt != FFmpeg.PIX_FMT_NONE)
                 {
-                    if(f.getWidth() != 0 && f.getHeight() != 0)
-                        logger.info(
-                                "Webcam available resolution for "
-                                    + devices[i].getName()
-                                    + ":"
-                                    + f.getWidth() + "x" + f.getHeight());
+                    format = new AVFrameFormat(ffmpegPixFmt, (int) pixelFormat);
                 }
+                else
+                {
+                    logger.warn(
+                            "No support for this webcam: " + name + "(format "
+                                + pixelFormat + " not supported)");
+                    continue;
+                }
+
+                if(logger.isInfoEnabled())
+                {
+                    for(DSFormat f : device.getSupportedFormats())
+                    {
+                        if(f.getWidth() != 0 && f.getHeight() != 0)
+                        {
+                            logger.info(
+                                    "Webcam available resolution for " + name
+                                        + ":" + f.getWidth() + "x"
+                                        + f.getHeight());
+                        }
+                    }
+                }
+
+                CaptureDeviceInfo cdi
+                    = new CaptureDeviceInfo(
+                            name,
+                            new MediaLocator(
+                                    LOCATOR_PROTOCOL + ':' + name),
+                            new Format[] { format });
+
+                if(logger.isInfoEnabled())
+                    logger.info("Found[" + i + "]: " + cdi.getName());
+
+                CaptureDeviceManager.addDevice(cdi);
+                captureDeviceInfoIsAdded = true;
             }
 
-            CaptureDeviceInfo device
-                = new CaptureDeviceInfo(
-                        devices[i].getName(),
-                        new MediaLocator(
-                                LOCATOR_PROTOCOL + ':' + devices[i].getName()),
-                        new Format[] { format });
-
-            if(logger.isInfoEnabled())
-                logger.info("Found[" + i + "]: " + device.getName());
-
-            CaptureDeviceManager.addDevice(device);
-            captureDeviceInfoIsAdded = true;
+            if (captureDeviceInfoIsAdded
+                    && !MediaServiceImpl.isJmfRegistryDisableLoad())
+                CaptureDeviceManager.commit();
         }
-
-        if (captureDeviceInfoIsAdded
-                && !MediaServiceImpl.isJmfRegistryDisableLoad())
-            CaptureDeviceManager.commit();
-
-        DSManager.dispose();
+        finally
+        {
+            manager.dispose();
+        }
     }
 }

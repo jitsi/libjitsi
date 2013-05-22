@@ -13,13 +13,11 @@ import java.util.List;
 
 import javax.media.*;
 import javax.media.control.*;
-import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.impl.neomedia.directshow.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.util.*;
 
@@ -100,30 +98,18 @@ public class DataSource
     /**
      * DirectShow capture device.
      */
-    private DSCaptureDevice device = null;
-
-    /**
-     * Delegate grabber. Each frame captured by device will be pass through this
-     * grabber.
-     */
-    private DSCaptureDevice.GrabberDelegate grabber = null;
+    private DSCaptureDevice device;
 
     /**
      * DirectShow manager.
      */
-    private DSManager manager = null;
-
-    /**
-     * Last known native DirectShow format.
-     */
-    private DSFormat nativeFormat = null;
+    private DSManager manager;
 
     /**
      * Constructor.
      */
     public DataSource()
     {
-        manager = DSManager.getInstance();
     }
 
     /**
@@ -135,8 +121,6 @@ public class DataSource
     public DataSource(MediaLocator locator)
     {
         super(locator);
-
-        manager = DSManager.getInstance();
     }
 
     /**
@@ -201,18 +185,22 @@ public class DataSource
 
         if (logger.isTraceEnabled())
         {
-            DSFormat deviceFmts[] = device.getSupportedFormats();
+            DSCaptureDevice device = this.device;
 
-            for (DSFormat deviceFmt : deviceFmts)
+            if (device != null)
             {
-                logger.trace(
-                        "width= " + deviceFmt.getWidth()
-                            + ", height= " + deviceFmt.getHeight()
-                            + ", pixelFormat= " + deviceFmt.getPixelFormat());
+                DSFormat supportedFormats[] = device.getSupportedFormats();
+
+                for (DSFormat supportedFormat : supportedFormats)
+                {
+                    logger.trace(
+                            "width= " + supportedFormat.getWidth()
+                                + ", height= " + supportedFormat.getHeight()
+                                + ", pixelFormat= "
+                                + supportedFormat.getPixelFormat());
+                }
             }
         }
-
-        grabber = stream.grabber;
 
         return stream;
     }
@@ -227,17 +215,41 @@ public class DataSource
      * @see AbstractPushBufferCaptureDevice#doConnect()
      */
     @Override
-    protected void doConnect() throws IOException
+    protected void doConnect()
+        throws IOException
     {
-        if (logger.isInfoEnabled())
-            logger.info("doConnect");
-
-        if(manager == null)
-            manager = DSManager.getInstance();
-
-        setLocator(getLocator());
-
         super.doConnect();
+
+        boolean connected = false;
+
+        try
+        {
+            DSCaptureDevice device = getDevice();
+
+            device.connect();
+
+            synchronized (getStreamSyncRoot())
+            {
+                for (Object stream : getStreams())
+                    ((DirectShowStream) stream).setDevice(device);
+            }
+
+            connected = true;
+        }
+        finally
+        {
+            if (!connected)
+            {
+                /*
+                 * The connect attempt has failed but it may have been
+                 * successful up to the point of failure thus partially
+                 * modifying the state. The disconnect procedure is prepared to
+                 * deal with a partially modified state and will restore it to
+                 * its pristine form.
+                 */
+                doDisconnect();
+            }
+        }
     }
 
     /**
@@ -249,61 +261,93 @@ public class DataSource
     @Override
     protected void doDisconnect()
     {
-        if (logger.isInfoEnabled())
-            logger.info("doDisconnect");
-
-        super.doDisconnect();
-
-        if(manager != null)
+        try
         {
-            device.setDelegate(null);
-            device = null;
+            synchronized (getStreamSyncRoot())
+            {
+                for (Object stream : getStreams())
+                {
+                    try
+                    {
+                        ((DirectShowStream) stream).setDevice(null);
+                    }
+                    catch (IOException ioe)
+                    {
+                        logger.error(
+                                "Failed to disconnect "
+                                    + stream.getClass().getName(),
+                                ioe);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            if (device != null)
+            {
+                device.disconnect();
+                device = null;
+            }
+            if (manager != null)
+            {
+                manager.dispose();
+                manager = null;
+            }
 
-            DSManager.dispose();
-            manager = null;
+            super.doDisconnect();
         }
     }
 
-    /**
-     * Starts the transfer of media data from this <tt>DataSource</tt>.
-     *
-     * @throws IOException if anything goes wrong while starting the transfer of
-     * media data from this <tt>DataSource</tt>
-     * @see AbstractPushBufferCaptureDevice#doStart()
-     */
-    @Override
-    protected void doStart() throws IOException
+    private DSCaptureDevice getDevice()
     {
-        if (logger.isInfoEnabled())
-            logger.info("start");
+        DSCaptureDevice device = this.device;
 
-        /* Open and start the capture. */
-        device.open();
-        if(nativeFormat != null)
-            device.setFormat(nativeFormat);
+        if (device == null)
+        {
+            MediaLocator locator = getLocator();
 
-        device.setDelegate(grabber);
+            if (locator == null)
+                throw new IllegalStateException("locator");
+            if (!locator.getProtocol().equalsIgnoreCase(
+                    DeviceSystem.LOCATOR_PROTOCOL_DIRECTSHOW))
+                throw new IllegalStateException("locator.protocol");
 
-        super.doStart();
-    }
+            String remainder = locator.getRemainder();
 
-    /**
-     * Stops the transfer of media data from this <tt>DataSource</tt>.
-     *
-     * @throws IOException if anything goes wrong while stopping the transfer of
-     * media data from this <tt>DataSource</tt>
-     * @see AbstractPushBufferCaptureDevice#doStop()
-     */
-    @Override
-    protected void doStop() throws IOException
-    {
-        if (logger.isInfoEnabled())
-            logger.info("stop");
+            if (remainder == null)
+                throw new IllegalStateException("locator.remainder");
 
-        super.doStop();
+            if (manager == null)
+                manager = new DSManager();
+            try
+            {
+                /*
+                 * Find the device specified by the locator using matching by
+                 * name.
+                 */
+                for (DSCaptureDevice d : manager.getCaptureDevices())
+                {
+                    if (remainder.equals(d.getName()))
+                    {
+                        device = d;
+                        break;
+                    }
+                }
 
-        /* Stop and close the capture. */
-        device.close();
+                if (device != null)
+                    this.device = device;
+            }
+            finally
+            {
+                if (this.device == null)
+                {
+                    manager.dispose();
+                    manager = null;
+                }
+            }
+        }
+
+        return device;
     }
 
     /**
@@ -324,8 +368,10 @@ public class DataSource
     @Override
     protected Format[] getSupportedFormats(int streamIndex)
     {
-        if(device == null)
-            return new Format[0];
+        DSCaptureDevice device = this.device;
+
+        if (device == null)
+            return super.getSupportedFormats(streamIndex);
 
         DSFormat[] deviceFmts = device.getSupportedFormats();
         List<Format> fmts = new ArrayList<Format>(deviceFmts.length);
@@ -344,18 +390,6 @@ public class DataSource
                             pixFmt, (int) devicePixFmt));
         }
         return fmts.toArray(new Format[fmts.size()]);
-    }
-
-    /**
-     * Sets the <tt>DSCaptureDevice</tt> which represents the media source of
-     * this <tt>DataSource</tt>.
-     *
-     * @param device the <tt>DSCaptureDevice</tt> which represents the media
-     * source of this <tt>DataSource</tt>
-     */
-    private void setDevice(DSCaptureDevice device)
-    {
-        this.device = device;
     }
 
     /**
@@ -382,87 +416,31 @@ public class DataSource
             int streamIndex,
             Format oldValue, Format newValue)
     {
-        if(newValue instanceof VideoFormat)
+        if (newValue instanceof AVFrameFormat)
         {
-            if(newValue instanceof AVFrameFormat)
+            AVFrameFormat avFrameFormat = (AVFrameFormat) newValue;
+            long pixFmt = avFrameFormat.getDeviceSystemPixFmt();
+
+            if (pixFmt != -1)
             {
-                AVFrameFormat avFrameFormat = (AVFrameFormat) newValue;
-                long pixFmt = avFrameFormat.getDeviceSystemPixFmt();
+                Dimension size = avFrameFormat.getSize();
 
-                if(pixFmt != -1)
+                /*
+                 * We will set the native format in doStart() because a
+                 * connect-disconnect-connect sequence of the native capture
+                 * device may reorder its formats in a different way.
+                 * Consequently, in the absence of further calls to
+                 * setFormat() by JMF, a crash may occur later (typically,
+                 * during scaling) because of a wrong format.
+                 */
+                if (size != null)
                 {
-                    Dimension size = avFrameFormat.getSize();
-
-                    /*
-                     * We will set the native format in doStart() because a
-                     * connect-disconnect-connect sequence of the native capture
-                     * device may reorder its formats in a different way.
-                     * Consequently, in the absence of further calls to
-                     * setFormat() by JMF, a crash may occur later (typically,
-                     * during scaling) because of a wrong format.
-                     */
-                    nativeFormat
-                        = new DSFormat(size.width, size.height, pixFmt);
+                    // This DataSource supports setFormat.
+                    return newValue;
                 }
             }
-
-            // This DataSource supports setFormat.
-            return newValue;
         }
-        else
-            return super.setFormat(streamIndex, oldValue, newValue);
-    }
 
-    /**
-     * Sets the <tt>MediaLocator</tt> which specifies the media source of this
-     * <tt>DataSource</tt>.
-     *
-     * @param locator the <tt>MediaLocator</tt> which specifies the media source
-     * of this <tt>DataSource</tt>
-     * @see DataSource#setLocator(MediaLocator)
-     */
-    @Override
-    public void setLocator(MediaLocator locator)
-    {
-        DSCaptureDevice device = null;
-        logger.info("set locator to " + locator);
-
-        if(getLocator() == null)
-            super.setLocator(locator);
-        locator = getLocator();
-        logger.info("getLocator() returns " + locator);
-
-        if((locator != null) &&
-                DeviceSystem.LOCATOR_PROTOCOL_DIRECTSHOW.equalsIgnoreCase(
-                        locator.getProtocol()))
-        {
-            DSCaptureDevice[] devices = manager.getCaptureDevices();
-
-            logger.info("Search directshow device...");
-
-            /* find device */
-            for(int i = 0 ; i < devices.length ; i++)
-            {
-                if(devices[i].getName().equals(locator.getRemainder()))
-                {
-                    device = devices[i];
-                    logger.info("Set directshow device: " + device);
-                    break;
-                }
-            }
-
-            if(device == null)
-            {
-                logger.info("No devices matches locator's remainder: " +
-                        locator.getRemainder());
-            }
-        }
-        else
-        {
-            logger.info(
-                    "MediaLocator either null or does not have right protocol");
-            device = null;
-        }
-        setDevice(device);
+        return super.setFormat(streamIndex, oldValue, newValue);
     }
 }

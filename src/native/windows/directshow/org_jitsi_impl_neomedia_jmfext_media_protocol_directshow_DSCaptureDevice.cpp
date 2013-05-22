@@ -6,19 +6,20 @@
  */
 
 /**
- * \file org_jitsi_impl_neomedia_directshow_DSCaptureDevice.cpp
+ * \file org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice.cpp
  * \brief JNI part of DSCaptureDevice.
  * \author Sebastien Vincent
+ * \author Lyubomir Marinov
  */
 
 #include "DSCaptureDevice.h"
-#include "VideoFormat.h"
+#include "DSFormat.h"
 
 #ifdef __cplusplus
-extern "C" { /* } */
+extern "C" {
 #endif
 
-#include "org_jitsi_impl_neomedia_directshow_DSCaptureDevice.h"
+#include "org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice.h"
 
 /**
  * \class Grabber.
@@ -51,9 +52,7 @@ public:
         m_dev = NULL;
 
         if(m_bytes != NULL)
-        {
             delete[] m_bytes;
-        }
     }
 
     /**
@@ -68,9 +67,7 @@ public:
         JNIEnv* env = NULL;
 
         if(m_vm->AttachCurrentThreadAsDaemon((void**)&env, NULL) != 0)
-        {
             return E_FAIL;
-        }
 
         delegateClass = env->GetObjectClass(m_delegate);
         if(delegateClass)
@@ -87,7 +84,7 @@ public:
                 size_t width = 0;
                 size_t height = 0;
                 size_t bytesPerPixel = 0;
-                VideoFormat format = m_dev->getFormat();
+                DSFormat format = m_dev->getFormat();
                 /* get width and height */
                 width = format.width;
                 height = format.height;
@@ -103,16 +100,12 @@ public:
                 length = sample->GetActualDataLength();
 
                 if(length == 0)
-                {
                     return S_OK;
-                }
 
                 if(!m_bytes || m_bytesLength < length)
                 {
                     if(m_bytes)
-                    {
                         delete[] m_bytes;
-                    }
 
                     m_bytes = new BYTE[length];
                     m_bytesLength = length;
@@ -167,32 +160,71 @@ public:
     DSCaptureDevice* m_dev;
 };
 
-/**
- * \brief Open native capture device.
- * \param env JNI environment
- * \param obj DSCaptureDevice object
- * \param ptr native pointer of DSCaptureDevice
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_directshow_DSCaptureDevice_open
-  (JNIEnv* env, jobject obj, jlong ptr)
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_getBytes
+  (JNIEnv* env, jclass clazz, jlong ptr, jlong buf, jint len)
 {
-    DSCaptureDevice* dev = reinterpret_cast<DSCaptureDevice*>(ptr);
-
-    dev->buildGraph();
-    dev->start();
+    /* copy data */
+    memcpy((void*)buf, (void*)ptr, len);
+    return len;
 }
 
 /**
- * \brief Close native capture device.
+ * \brief Connects to the specified capture device.
  * \param env JNI environment
  * \param obj DSCaptureDevice object
- * \param ptr native pointer of DSCaptureDevice
+ * \param ptr a pointer to a DSCaptureDevice instance to connect to
  */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_directshow_DSCaptureDevice_close
+JNIEXPORT void JNICALL
+Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_connect
+    (JNIEnv* env, jobject obj, jlong ptr)
+{
+    DSCaptureDevice* thiz = reinterpret_cast<DSCaptureDevice*>(ptr);
+
+    thiz->buildGraph();
+}
+
+/**
+ * \brief Disconnects from the specified capture device.
+ * \param env JNI environment
+ * \param obj DSCaptureDevice object
+ * \param ptr a pointer to a DSCaptureDevice instance to disconnect from
+ */
+JNIEXPORT void JNICALL
+Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_disconnect
+    (JNIEnv* env, jobject obj, jlong ptr)
+{
+    /* TODO Auto-generated method stub */
+}
+
+/**
+ * \brief Get current format.
+ * \param env JNI environment
+ * \param obj object
+ * \param native pointer
+ * \return current format
+ */
+JNIEXPORT jobject JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_getFormat
   (JNIEnv* env, jobject obj, jlong ptr)
 {
     DSCaptureDevice* dev = reinterpret_cast<DSCaptureDevice*>(ptr);
-    dev->stop();
+    DSFormat fmt = dev->getFormat();
+    jclass clazzDSFormat = NULL;
+    jmethodID initDSFormat = NULL;
+    jobject ret = NULL;
+
+    /* get DSFormat class to instantiate some object */
+    clazzDSFormat = env->FindClass("org/jitsi/impl/neomedia/jmfext/media/protocol/directshow/DSFormat");
+    if(clazzDSFormat == NULL)
+        return NULL;
+
+    initDSFormat = env->GetMethodID(clazzDSFormat, "<init>", "(IIJ)V");
+
+    if(initDSFormat == NULL)
+        return NULL;
+
+    ret = env->NewObject(clazzDSFormat, initDSFormat, static_cast<size_t>(fmt.width),
+            static_cast<size_t>(fmt.height), static_cast<jlong>(fmt.pixelFormat));
+    return ret;
 }
 
 /**
@@ -202,7 +234,7 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_directshow_DSCaptureDevice_c
  * \param ptr native pointer of DSCaptureDevice
  * \return name of the native capture device
  */
-JNIEXPORT jstring JNICALL Java_org_jitsi_impl_neomedia_directshow_DSCaptureDevice_getName
+JNIEXPORT jstring JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_getName
   (JNIEnv* env, jobject obj, jlong ptr)
 {
     DSCaptureDevice* dev = reinterpret_cast<DSCaptureDevice*>(ptr);
@@ -220,109 +252,38 @@ JNIEXPORT jstring JNICALL Java_org_jitsi_impl_neomedia_directshow_DSCaptureDevic
 }
 
 /**
- * \brief Set format of native capture device.
- * \param env JNI environment
- * \param obj DSCaptureDevice object
- * \param ptr native pointer of DSCaptureDevice
- * \param format DSFormat to set
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_directshow_DSCaptureDevice_setFormat
-  (JNIEnv* env, jobject obj, jlong ptr, jobject format)
-{
-    DSCaptureDevice* dev = reinterpret_cast<DSCaptureDevice*>(ptr);
-    VideoFormat fmt;
-    jclass clazz = env->GetObjectClass(format);
-
-    if(clazz)
-    {
-        jfieldID fieldH = env->GetFieldID(clazz, "height", "I");
-        jfieldID fieldW = env->GetFieldID(clazz, "width", "I");
-        jfieldID fieldF = env->GetFieldID(clazz, "pixelFormat", "J");
-        jlong f = env->GetLongField(format, fieldF);
-        jint w = env->GetIntField(format, fieldW);
-        jint h = env->GetIntField(format, fieldH);
-
-        fmt.width = w;
-        fmt.height = h;
-        fmt.pixelFormat = (unsigned long)f;
-
-        dev->setFormat(fmt);
-        dev->start();
-    }
-}
-
-/**
- * \brief Get current format.
- * \param env JNI environment
- * \param obj object
- * \param native pointer
- * \return current format
- */
-JNIEXPORT jobject JNICALL Java_org_jitsi_impl_neomedia_directshow_DSCaptureDevice_getFormat
-  (JNIEnv* env, jobject obj, jlong ptr)
-{
-    DSCaptureDevice* dev = reinterpret_cast<DSCaptureDevice*>(ptr);
-    VideoFormat fmt = dev->getFormat();
-    jclass clazzDSFormat = NULL;
-    jmethodID initDSFormat = NULL;
-    jobject ret = NULL;
-
-    /* get DSFormat class to instantiate some object */
-    clazzDSFormat = env->FindClass("org/jitsi/impl/neomedia/directshow/DSFormat");
-    if(clazzDSFormat == NULL)
-    {
-        return NULL;
-    }
-
-    initDSFormat = env->GetMethodID(clazzDSFormat, "<init>", "(IIJ)V");
-
-    if(initDSFormat == NULL)
-    {
-        return NULL;
-    }
-
-    ret = env->NewObject(clazzDSFormat, initDSFormat, static_cast<size_t>(fmt.width),
-            static_cast<size_t>(fmt.height), static_cast<jlong>(fmt.pixelFormat));
-    return ret;
-}
-
-/**
  * \brief Get formats supported by native capture device.
  * \param env JNI environment
  * \param obj DSCaptureDevice object
  * \param ptr native pointer of DSCaptureDevice
  * \return array of DSFormat object
  */
-JNIEXPORT jobjectArray JNICALL Java_org_jitsi_impl_neomedia_directshow_DSCaptureDevice_getSupportedFormats
+JNIEXPORT jobjectArray JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_getSupportedFormats
   (JNIEnv* env, jobject obj, jlong ptr)
 {
     jobjectArray ret = NULL;
     DSCaptureDevice* dev = reinterpret_cast<DSCaptureDevice*>(ptr);
-    std::list<VideoFormat> formats;
+    std::list<DSFormat> formats;
     jclass clazzDSFormat = NULL;
     jmethodID initDSFormat = NULL;
     jsize i = 0;
 
     /* get DSFormat class to instantiate some object */
-    clazzDSFormat = env->FindClass("org/jitsi/impl/neomedia/directshow/DSFormat");
+    clazzDSFormat = env->FindClass("org/jitsi/impl/neomedia/jmfext/media/protocol/directshow/DSFormat");
     if(clazzDSFormat == NULL)
-    {
         return NULL;
-    }
 
     initDSFormat = env->GetMethodID(clazzDSFormat, "<init>", "(IIJ)V");
 
     if(initDSFormat == NULL)
-    {
         return NULL;
-    }
 
     formats = dev->getSupportedFormats();
 
     ret = env->NewObjectArray(static_cast<jsize>(formats.size()), clazzDSFormat, NULL);
-    for(std::list<VideoFormat>::iterator it = formats.begin() ; it != formats.end() ; ++it)
+    for(std::list<DSFormat>::iterator it = formats.begin() ; it != formats.end() ; ++it)
     {
-        VideoFormat tmp = (*it);
+        DSFormat tmp = (*it);
         jobject o = env->NewObject(clazzDSFormat, initDSFormat, static_cast<size_t>(tmp.width),
             static_cast<size_t>(tmp.height), static_cast<jlong>(tmp.pixelFormat));
 
@@ -350,7 +311,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jitsi_impl_neomedia_directshow_DSCapture
  * \param ptr native pointer on DSCaptureDevice
  * \param delegate delegate object
  */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_directshow_DSCaptureDevice_setDelegate
+JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_setDelegate
   (JNIEnv* env, jobject obj, jlong ptr, jobject delegate)
 {
     Grabber* grab = NULL;
@@ -378,22 +339,60 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_directshow_DSCaptureDevice_s
     {
         jobject tmp_delegate = ((Grabber*)prev)->m_delegate;
         if(tmp_delegate)
-        {
             env->DeleteGlobalRef(tmp_delegate);
-        }
         delete prev;
     }
 }
 
-
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_directshow_DSCaptureDevice_getBytes
-  (JNIEnv* env, jclass clazz, jlong ptr, jlong buf, jint len)
+/**
+ * \brief Set format of native capture device.
+ * \param env JNI environment
+ * \param obj DSCaptureDevice object
+ * \param ptr native pointer of DSCaptureDevice
+ * \param format DSFormat to set
+ */
+JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_setFormat
+  (JNIEnv* env, jobject obj, jlong ptr, jobject format)
 {
-    /* copy data */
-    memcpy((void*)buf, (void*)ptr, len);
-    return len;
+    DSCaptureDevice* dev = reinterpret_cast<DSCaptureDevice*>(ptr);
+    DSFormat fmt;
+    jclass clazz = env->GetObjectClass(format);
+
+    if(clazz)
+    {
+        jfieldID fieldH = env->GetFieldID(clazz, "height", "I");
+        jfieldID fieldW = env->GetFieldID(clazz, "width", "I");
+        jfieldID fieldF = env->GetFieldID(clazz, "pixelFormat", "J");
+        jlong f = env->GetLongField(format, fieldF);
+        jint w = env->GetIntField(format, fieldW);
+        jint h = env->GetIntField(format, fieldH);
+
+        fmt.width = w;
+        fmt.height = h;
+        fmt.pixelFormat = (unsigned long)f;
+
+        dev->setFormat(fmt);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_start
+    (JNIEnv *env, jobject obj, jlong ptr)
+{
+    DSCaptureDevice *thiz = reinterpret_cast<DSCaptureDevice *>(ptr);
+
+    thiz->start();
+}
+
+JNIEXPORT void JNICALL
+Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_stop
+    (JNIEnv *env, jobject obj, jlong ptr)
+{
+    DSCaptureDevice *thiz = reinterpret_cast<DSCaptureDevice *>(ptr);
+
+    thiz->stop();
 }
 
 #ifdef __cplusplus
-}
+} /* extern "C" { */
 #endif

@@ -6,15 +6,14 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.protocol.directshow;
 
+import java.awt.*;
 import java.io.*;
 
 import javax.media.*;
 import javax.media.control.*;
-import javax.media.format.*;
 import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.codec.video.*;
-import org.jitsi.impl.neomedia.directshow.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 
 /**
@@ -32,7 +31,7 @@ public class DirectShowStream
      * ourselves because DirectShow will buffer them all and the video will
      * be late.
      */
-    private boolean automaticallyDropsLateVideoFrames = false;
+    private final boolean automaticallyDropsLateVideoFrames = false;
 
     /**
      * The pool of <tt>ByteBuffer</tt>s this instances is using to transfer the
@@ -58,23 +57,29 @@ public class DirectShowStream
     private long dataTimeStamp;
 
     /**
+     * The <tt>DSCaptureDevice</tt> which identifies the DirectShow video
+     * capture device this <tt>SourceStream</tt> is to capture data from.
+     */
+    private DSCaptureDevice device;
+
+    /**
      * The last-known <tt>Format</tt> of the media data made available by this
      * <tt>PushBufferStream</tt>.
      */
-    private final Format format;
+    private Format format;
 
     /**
      * Delegate class to handle video data.
      */
-    final DSCaptureDevice.GrabberDelegate grabber
+    private final DSCaptureDevice.GrabberDelegate grabber
         = new DSCaptureDevice.GrabberDelegate()
-        {
-            @Override
-            public void frameReceived(long ptr, int length)
-            {
-                processFrame(ptr, length);
-            }
-        };
+                {
+                    @Override
+                    public void frameReceived(long ptr, int length)
+                    {
+                        processFrame(ptr, length);
+                    }
+                };
 
     /**
      * The captured media data to become the value of {@link #data} as soon as
@@ -111,8 +116,70 @@ public class DirectShowStream
     DirectShowStream(DataSource dataSource, FormatControl formatControl)
     {
         super(dataSource, formatControl);
+    }
 
-        format = (VideoFormat) formatControl.getFormat();
+    /**
+     * Connects this <tt>SourceStream</tt> to the DirectShow video capture
+     * device identified by {@link #device}.
+     *
+     * @throws IOException if anything goes wrong while this
+     * <tt>SourceStream</tt> connects to the DirectShow video capture device
+     * identified by <tt>device</tt>
+     */
+    private void connect()
+        throws IOException
+    {
+        if (device == null)
+            throw new IOException("device == null");
+        else
+        {
+            Format format = getFormat();
+
+            if (format instanceof AVFrameFormat)
+            {
+                AVFrameFormat avFrameFormat = (AVFrameFormat) format;
+                Dimension size = avFrameFormat.getSize();
+
+                if (size == null)
+                    throw new IOException("format.size == null");
+                else
+                {
+                    device.setFormat(
+                            new DSFormat(
+                                    size.width, size.height,
+                                    avFrameFormat.getDeviceSystemPixFmt()));
+                    this.format = format;
+                }
+            }
+            else
+                throw new IOException("!(format instanceof AVFrameFormat)");
+
+            device.setDelegate(grabber);
+        }
+    }
+
+    /**
+     * Disconnects this <tt>SourceStream</tt> from the DirectShow video capture
+     * device it has previously connected to during the execution of
+     * {@link #connect()}.
+     *
+     * @throws IOException if anything goes wrong while this
+     * <tt>SourceStream</tt> disconnects from the DirectShow video capture
+     * device it has previously connected to during the execution of
+     * <tt>connect()</tt>
+     */
+    private void disconnect()
+        throws IOException
+    {
+        try
+        {
+            stop();
+        }
+        finally
+        {
+            if (device != null)
+                device.setDelegate(null);
+        }
     }
 
     /**
@@ -128,7 +195,7 @@ public class DirectShowStream
     @Override
     protected Format doGetFormat()
     {
-        return (this.format == null) ? super.doGetFormat() : this.format;
+        return (format == null) ? super.doGetFormat() : format;
     }
 
     /**
@@ -393,6 +460,31 @@ public class DirectShowStream
     }
 
     /**
+     * Sets the <tt>DSCaptureDevice</tt> of this instance which identifies the
+     * DirectShow video capture device this <tt>SourceStream</tt> is to capture
+     * data from.
+     *
+     * @param device a <tt>DSCaptureDevice</tt> which identifies the DirectShow
+     * video capture device this <tt>SourceStream</tt> is to capture data from
+     * @throws IOException if anything goes wrong while setting the specified
+     * <tt>device</tt> on this instance
+     */
+    void setDevice(DSCaptureDevice device)
+        throws IOException
+    {
+        if (this.device != device)
+        {
+            if (this.device != null)
+                disconnect();
+
+            this.device = device;
+
+            if (this.device != null)
+                connect();
+        }
+    }
+
+    /**
      * Starts the transfer of media data from this <tt>PushBufferStream</tt>.
      *
      * @throws IOException if anything goes wrong while starting the transfer of
@@ -404,18 +496,36 @@ public class DirectShowStream
     {
         super.start();
 
-        if(!automaticallyDropsLateVideoFrames)
+        boolean started = false;
+
+        try
         {
-            transferDataThread
-                = new Thread(getClass().getSimpleName())
+            if(!automaticallyDropsLateVideoFrames)
+            {
+                if (transferDataThread == null)
                 {
-                    @Override
-                    public void run()
-                    {
-                        runInTransferDataThread();
-                    }
-                };
-            transferDataThread.start();
+                    transferDataThread
+                        = new Thread(getClass().getSimpleName())
+                        {
+                            @Override
+                            public void run()
+                            {
+                                runInTransferDataThread();
+                            }
+                        };
+                    transferDataThread.start();
+                }
+            }
+
+            if (device != null)
+                device.start();
+
+            started = true;
+        }
+        finally
+        {
+            if (!started)
+                stop();
         }
     }
 
@@ -431,6 +541,9 @@ public class DirectShowStream
     {
         try
         {
+            if (device != null)
+                device.stop();
+
             transferDataThread = null;
 
             synchronized (dataSyncRoot)

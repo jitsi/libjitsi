@@ -12,8 +12,8 @@
  * \date 2010
  */
 
-#ifndef DS_CAPTURE_DEVICE_H
-#define DS_CAPTURE_DEVICE_H
+#ifndef _ORG_JITSI_IMPL_NEOMEDIA_JMFEXT_MEDIA_PROTOCOL_DIRECTSHOW_DSCAPTUREDEVICE_H_
+#define _ORG_JITSI_IMPL_NEOMEDIA_JMFEXT_MEDIA_PROTOCOL_DIRECTSHOW_DSCAPTUREDEVICE_H_
 
 #include <list>
 
@@ -22,7 +22,7 @@
 #include <dshow.h>
 #include <qedit.h>
 
-#include "VideoFormat.h"
+#include "DSFormat.h"
 
 /**
  * \class DSGrabberCallback
@@ -34,12 +34,12 @@ public:
     /**
      * \brief Constructor.
      */
-    DSGrabberCallback();
+    DSGrabberCallback() {};
 
     /**
      * \brief Destructor.
      */
-    virtual ~DSGrabberCallback();
+    virtual ~DSGrabberCallback() {};
 
     /**
      * \brief Method callback when device capture a frame.
@@ -120,13 +120,13 @@ public:
      * \return true if change is successful, false otherwise (format unsupported, ...)
      * \note This method stop stream so you have to call start() after.
      */
-    bool setFormat(const VideoFormat& format);
+    bool setFormat(const DSFormat& format);
 
     /**
      * \brief Get list of supported formats.
      * \return list of supported formats.
      */
-    std::list<VideoFormat> getSupportedFormats() const;
+    std::list<DSFormat> getSupportedFormats() const;
 
     /**
      * \brief Build the filter graph for this capture device.
@@ -163,7 +163,7 @@ public:
      * \brief Get current format.
      * \return current format
      */
-    VideoFormat getFormat() const;
+    DSFormat getFormat() const;
 
     /**
      * \brief Get current bit per pixel.
@@ -194,9 +194,9 @@ private:
     DSGrabberCallback* m_callback;
 
     /**
-     * \brief List of VideoFormat.
+     * \brief List of DSFormat.
      */
-    std::list<VideoFormat> m_formats;
+    std::list<DSFormat> m_formats;
     
     /**
      * \brief Reference of the filter graph.
@@ -236,7 +236,7 @@ private:
     /**
      * \brief Current format.
      */
-    VideoFormat m_format;
+    DSFormat m_format;
 
     /**
      * \brief Current bit per pixel.
@@ -249,4 +249,4 @@ private:
     bool m_flip;
 };
 
-#endif /* DS_CAPTURE_DEVICE_H */
+#endif /* _ORG_JITSI_IMPL_NEOMEDIA_JMFEXT_MEDIA_PROTOCOL_DIRECTSHOW_DSCAPTUREDEVICE_H_ */

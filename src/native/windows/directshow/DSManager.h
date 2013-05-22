@@ -9,11 +9,12 @@
  * \file DSManager.h
  * \brief DirectShow capture devices manager.
  * \author Sebastien Vincent
+ * \author Lyubomir Marinov
  * \date 2010
  */
 
-#ifndef DS_MANAGER_H
-#define DS_MANAGER_H
+#ifndef _ORG_JITSI_IMPL_NEOMEDIA_JMFEXT_MEDIA_PROTOCOL_DIRECTSHOW_DSMANAGER_H_
+#define _ORG_JITSI_IMPL_NEOMEDIA_JMFEXT_MEDIA_PROTOCOL_DIRECTSHOW_DSMANAGER_H_
 
 #include <list>
 
@@ -29,36 +30,14 @@ class DSManager
 {
 public:
     /**
+     * \brief Constructor.
+     */
+    DSManager();
+
+    /**
      * \brief Destructor.
      */
     ~DSManager();
-
-    /**
-     * \brief Initialize DirectShow manager.
-     *
-     * Call this method to initialize DirectShow capture devices.
-     * It can also be used to reinitialize and update list of current
-     * devices but be sure to not use any of previous DSCaptureDevice after.
-     *
-     * \return true if initialize succeed, false otherwise
-     * \note You MUST call before any use of DirectShow.
-     */
-    static bool initialize();
-
-    /**
-     * \brief Destroy DirectShow manager.
-     * \note You MUST call this method when you have finished 
-     * using DirectShow.
-     */
-    static void destroy();
-
-    /**
-     * \brief Get unique instance.
-     * \return DirectShow manager instance
-     * \note You MUST call DSManager::initialize before
-     * any use of this method or you will get NULL as return value.
-     */
-    static DSManager* getInstance();
 
     /**
      * \brief Get all available capture video devices.
@@ -66,23 +45,7 @@ public:
      */
     std::list<DSCaptureDevice*> getDevices() const;
 
-    /**
-     * \brief Get number of devices.
-     * \return number of available devices
-     */
-    size_t getDevicesCount();
-
 private:
-    /**
-     * \brief Unique instance of DirectShow manager.
-     */
-    static DSManager* m_instance;
-
-    /**
-     * \brief Constructor.
-     */
-    DSManager();
-
     /**
      * \brief Get and initialize video capture devices.
      */
@@ -94,14 +57,9 @@ private:
     std::list<DSCaptureDevice*> m_devices;
 
     /**
-     * \brief Easy use of template-based list iterator.
-     */
-    typedef std::list<DSCaptureDevice*>::iterator DeviceListIterator;
-
-    /**
      * If COM backend is initialized.
      */
-    bool comInited;
+    bool _coUninitialize;
 };
 
-#endif /* DS_MANAGER_H */
+#endif /* _ORG_JITSI_IMPL_NEOMEDIA_JMFEXT_MEDIA_PROTOCOL_DIRECTSHOW_DSMANAGER_H_ */

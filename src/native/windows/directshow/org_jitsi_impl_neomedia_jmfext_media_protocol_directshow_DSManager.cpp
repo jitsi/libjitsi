@@ -6,39 +6,33 @@
  */
 
 /**
- * \file org_jitsi_impl_neomedia_directshow_DSManager.cpp
+ * \file org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSManager.cpp
  * \brief JNI part of DSManager.
  * \author Sebastien Vincent
+ * \author Lyubomir Marinov
  */
 
 #include "DSManager.h"
 
 #ifdef __cplusplus
-extern "C" { /* } */
+extern "C" {
 #endif
 
-#include "org_jitsi_impl_neomedia_directshow_DSManager.h"
+#include "org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSManager.h"
 
 #include <stdint.h>
-
 /**
  * \brief Initialize DSManager singleton.
  * \param env JNI environment
  * \param clazz DSManager class
  * \return native pointer on DSManager singleton instance
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_directshow_DSManager_init
-  (JNIEnv* env, jclass clazz)
+JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSManager_destroy
+  (JNIEnv* env, jclass clazz, jlong ptr)
 {
-    if(DSManager::initialize())
-    {
-        DSManager* manager = DSManager::getInstance();
-        return (jlong) (intptr_t) manager;
-    }
-    else
-    {
-        return 0;
-    }
+    DSManager *thiz = reinterpret_cast<DSManager *>(ptr);
+
+    delete thiz;
 }
 
 /**
@@ -47,10 +41,10 @@ JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_directshow_DSManager_init
  * \param clazz DSManager class
  * \return native pointer on DSManager singleton instance
  */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_directshow_DSManager_destroy
-  (JNIEnv* env, jclass clazz, jlong ptr)
+JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSManager_init
+  (JNIEnv* env, jclass clazz)
 {
-    DSManager::destroy();
+    return (jlong) (intptr_t) new DSManager();
 }
 
 /**
@@ -60,7 +54,7 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_directshow_DSManager_destroy
  * \param jlong native pointer of DSManager
  * \return array of native DSCaptureDevice pointers
  */
-JNIEXPORT jlongArray JNICALL Java_org_jitsi_impl_neomedia_directshow_DSManager_getCaptureDevices
+JNIEXPORT jlongArray JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSManager_getCaptureDevices
   (JNIEnv* env, jobject obj, jlong ptr)
 {
     jlongArray ret = NULL;
@@ -72,9 +66,7 @@ JNIEXPORT jlongArray JNICALL Java_org_jitsi_impl_neomedia_directshow_DSManager_g
 
     ret = env->NewLongArray(static_cast<jsize>(devices.size()));
     if(!ret)
-    {
         return NULL;
-    }
 
     for(std::list<DSCaptureDevice*>::iterator it = devices.begin() ; it != devices.end() ; ++it)
     {
@@ -88,5 +80,5 @@ JNIEXPORT jlongArray JNICALL Java_org_jitsi_impl_neomedia_directshow_DSManager_g
 }
 
 #ifdef __cplusplus
-}
+} /* extern "C" { */
 #endif

@@ -9,6 +9,7 @@
  * \file DSManager.cpp
  * \brief DirectShow capture devices manager.
  * \author Sebastien Vincent
+ * \author Lyubomir Marinov
  * \date 2010
  */
 
@@ -18,90 +19,42 @@
 #include "DSCaptureDevice.h"
 #include <qedit.h>
 
-/* initialization of static member variables */
-DSManager* DSManager::m_instance = NULL;
-
-DSManager* DSManager::getInstance()
-{
-    return m_instance;
-}
-
 DSManager::DSManager()
 {
-    DWORD ret = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-    if(ret != S_OK && ret != S_FALSE)
-    {
-        //seems to be a problem with COM initialization
-        /*
-           printf("problem\n");fflush(stdout);
-           if(ret == RPC_E_CHANGED_MODE)
-           {
-           printf("rpc\n");fflush(stdout);
-           }
-           else if(ret == E_INVALIDARG)
-           {
-           printf("invalid arg\n");fflush(stdout);
-           }
-           else if(ret == E_OUTOFMEMORY)
-           {
-           printf("outofmemory\n");fflush(stdout);
-           }
-           else if(ret == E_UNEXPECTED)
-           {
-           printf("unexpected\n");fflush(stdout);
-           }
-           */
+    HRESULT hr = ::CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
-        comInited = false;
-        return;
-    }
+    if (SUCCEEDED(hr))
+        initCaptureDevices();
 
-    comInited = true;
-    initCaptureDevices();
+    /*
+     * Each successful call to CoInitializeEx must be balanced by a
+     * corresponding call to CoUninitialize in order to close the COM library
+     * gracefully on a thread. Unfortunately, the multithreaded architectures of
+     * FMJ and libjitsi do not really guarantee that the destructor of this
+     * DSManager will be invoked on the same thread on which the constructor of
+     * this DSManager has been invoked in the first place.
+     */
+    _coUninitialize = false;
 }
 
 DSManager::~DSManager()
 {
     for(std::list<DSCaptureDevice*>::iterator it = m_devices.begin() ; it != m_devices.end() ; ++it)
-    {
         delete *it;
-    }
     m_devices.clear();
 
-    /* one CoUninitialize per CoInitialize */
-    if(comInited)
-    {
-        CoUninitialize();
-    }
-}
-
-bool DSManager::initialize()
-{
-    if(!m_instance)
-    {
-        m_instance = new DSManager();
-    }
-
-    return m_instance != NULL;
-}
-
-void DSManager::destroy()
-{
-    if(m_instance)
-    {
-        delete m_instance;
-        m_instance = NULL;
-    }
+    /*
+     * Each successful call to CoInitializeEx must be balanced by a
+     * corresponding call to CoUninitialize in order to close the COM library
+     * gracefully on a thread.
+     */
+    if (_coUninitialize)
+        ::CoUninitialize();
 }
 
 std::list<DSCaptureDevice*> DSManager::getDevices() const
 {
     return m_devices;
-}
-
-size_t DSManager::getDevicesCount()
-{
-    return m_devices.size();
 }
 
 void DSManager::initCaptureDevices()
@@ -116,9 +69,7 @@ void DSManager::initCaptureDevices()
     {
         /* clean up our list in case of reinitialization */
         for(std::list<DSCaptureDevice*>::iterator it = m_devices.begin() ; it != m_devices.end() ; ++it)
-        {
             delete *it;
-        }
         m_devices.clear();
     }
 
@@ -127,9 +78,7 @@ void DSManager::initCaptureDevices()
             IID_ICreateDevEnum, (void**)&devEnum);
 
     if(FAILED(ret))
-    {
         return;
-    }
 
     ret = devEnum->CreateClassEnumerator(CLSID_VideoInputDeviceCategory, 
             &monikerEnum, 0);

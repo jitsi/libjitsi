@@ -9,6 +9,7 @@
  * \file DSCaptureDevice.cpp
  * \brief DirectShow capture device.
  * \author Sebastien Vincent
+ * \author Lyubomir Marinov
  * \date 2010
  */
 
@@ -16,15 +17,6 @@
 
 DEFINE_GUID(CLSID_SampleGrabber, 0xc1f400a0, 0x3f08, 0x11d3, 0x9f, 0x0b, 0x00, 0x60, 0x08, 0x03, 0x9e, 0x37);
 DEFINE_GUID(CLSID_NullRenderer, 0xc1f400a4, 0x3f08, 0x11d3, 0x9f, 0x0b, 0x00, 0x60, 0x08, 0x03, 0x9e, 0x37);
-
-/* implementation of ISampleGrabber */
-DSGrabberCallback::DSGrabberCallback()
-{
-}
-
-DSGrabberCallback::~DSGrabberCallback()
-{
-}
 
 STDMETHODIMP DSGrabberCallback::SampleCB(double time, IMediaSample* sample)
 {
@@ -74,9 +66,7 @@ STDMETHODIMP_(ULONG) DSGrabberCallback::Release()
 DSCaptureDevice::DSCaptureDevice(const WCHAR* name)
 {
     if(name)
-    {
         m_name = wcsdup(name);
-    }
 
     m_flip = false;
     m_callback = NULL;
@@ -97,56 +87,36 @@ DSCaptureDevice::~DSCaptureDevice()
     {
         /* remove all added filters from filter graph */
         if(m_srcFilter)
-        {
             m_filterGraph->RemoveFilter(m_srcFilter);
-        }
 
         if(m_renderer)
-        {
             m_filterGraph->RemoveFilter(m_renderer);
-        }
 
         if(m_sampleGrabberFilter)
-        {
             m_filterGraph->RemoveFilter(m_sampleGrabberFilter);
-        }
     }
 
     /* clean up COM stuff */
     if(m_renderer)
-    {
         m_renderer->Release();
-    }
 
     if(m_sampleGrabber)
-    {
         m_sampleGrabber->Release();
-    }
 
     if(m_sampleGrabberFilter)
-    {
         m_sampleGrabberFilter->Release();
-    }
 
     if(m_srcFilter)
-    {
         m_srcFilter->Release();
-    }
 
     if(m_captureGraphBuilder)
-    {
         m_captureGraphBuilder->Release();
-    }
 
     if(m_filterGraph)
-    {
         m_filterGraph->Release();
-    }
 
     if(m_name)
-    {
         free(m_name);
-    }
 }
 
 const WCHAR* DSCaptureDevice::getName() const
@@ -154,14 +124,11 @@ const WCHAR* DSCaptureDevice::getName() const
     return m_name;
 }
 
-bool DSCaptureDevice::setFormat(const VideoFormat& format)
+bool DSCaptureDevice::setFormat(const DSFormat& format)
 {
     HRESULT ret;
     IAMStreamConfig* streamConfig = NULL;
     AM_MEDIA_TYPE* mediaType = NULL;
-
-    /* force to stop */
-    stop();
 
     /* get the right interface to change capture settings */
     ret = m_captureGraphBuilder->FindInterface(&PIN_CATEGORY_CAPTURE, &MEDIATYPE_Video,
@@ -253,33 +220,24 @@ bool DSCaptureDevice::initDevice(IMoniker* moniker)
     HRESULT ret = 0;
 
     if(!m_name || !moniker)
-    {
         return false;
-    }
  
     if(m_filterGraph)
-    {
-        /* already initialized */
-        return false;
-    }
+        return false; /* This instance has already been initialized. */
 
     /* create the filter and capture graph */
     ret = CoCreateInstance(CLSID_FilterGraph, NULL, CLSCTX_INPROC_SERVER,
         IID_IFilterGraph2, (void**)&m_filterGraph);
 
     if(FAILED(ret))
-    {
         return false;
-    }
 
     ret = CoCreateInstance(CLSID_CaptureGraphBuilder2, NULL,
         CLSCTX_INPROC_SERVER, IID_ICaptureGraphBuilder2, 
         (void**)&m_captureGraphBuilder);
 
     if(FAILED(ret))
-    {
         return false;
-    }
 
     m_captureGraphBuilder->SetFiltergraph(m_filterGraph);
 
@@ -287,40 +245,30 @@ bool DSCaptureDevice::initDevice(IMoniker* moniker)
     ret = m_filterGraph->QueryInterface(IID_IMediaControl, (void**)&m_graphController);
 
     if(FAILED(ret))
-    {
         return false;
-    }
 
     /* add source filter to the filter graph */
     ret = moniker->BindToObject(NULL, NULL, IID_IBaseFilter, (void**)&m_srcFilter);
     if(ret != S_OK)
-    {
         return false;
-    }
 
     WCHAR* name = wcsdup(m_name);
     ret = m_filterGraph->AddFilter(m_srcFilter, name);
     free(name);
     if(ret != S_OK)
-    {
         return false;
-    }
 
     ret = CoCreateInstance(CLSID_SampleGrabber, NULL, CLSCTX_INPROC_SERVER, IID_IBaseFilter,
         (void**)&m_sampleGrabberFilter);
 
     if(ret != S_OK)
-    {
         return false;
-    }
 
     /* get sample grabber */
     ret = m_sampleGrabberFilter->QueryInterface(IID_ISampleGrabber, (void**)&m_sampleGrabber);
 
     if(ret != S_OK)
-    {
         return false;
-    }
 
     /* and sample grabber to the filter graph */
     ret = m_filterGraph->AddFilter(m_sampleGrabberFilter, L"SampleGrabberFilter");
@@ -336,18 +284,14 @@ bool DSCaptureDevice::initDevice(IMoniker* moniker)
     /* set the callback handler */
 
     if(ret != S_OK)
-    {
         return false;
-    }
 
     /* set renderer */
     ret = CoCreateInstance(CLSID_NullRenderer, NULL, CLSCTX_INPROC_SERVER,
         IID_IBaseFilter, (void**)&m_renderer);
 
     if(ret != S_OK)
-    {
         return false;
-    }
 
     /* add renderer to the filter graph */
     m_filterGraph->AddFilter(m_renderer, L"NullRenderer");
@@ -384,9 +328,7 @@ bool DSCaptureDevice::initDevice(IMoniker* moniker)
                 }
 
                 if((caps & VideoControlFlag_FlipHorizontal) != 0)
-                {
                     caps = caps & ~(VideoControlFlag_FlipHorizontal);
-                }
 
                 videoControl->SetMode(pin, caps);
             }
@@ -422,7 +364,7 @@ void DSCaptureDevice::initSupportedFormats()
         {
             if(streamConfig->GetStreamCaps(i, &mediaType, allocBytes) == S_OK)
             {
-                struct VideoFormat format;
+                struct DSFormat format;
                 VIDEOINFOHEADER* hdr = (VIDEOINFOHEADER*)mediaType->pbFormat;
 
                 if(hdr)
@@ -441,74 +383,50 @@ void DSCaptureDevice::initSupportedFormats()
     }
 }
 
-std::list<VideoFormat> DSCaptureDevice::getSupportedFormats() const
+std::list<DSFormat> DSCaptureDevice::getSupportedFormats() const
 {
     return m_formats;
 }
 
 bool DSCaptureDevice::buildGraph()
 {
-    REFERENCE_TIME start = 0;
-    REFERENCE_TIME stop = MAXLONGLONG;
-    HRESULT ret = 0;
+    HRESULT hr
+        = m_captureGraphBuilder->RenderStream(
+                &PIN_CATEGORY_PREVIEW,
+                &MEDIATYPE_Video,
+                m_srcFilter,
+                m_sampleGrabberFilter,
+                m_renderer);
 
-#ifndef RENDERER_DEBUG
-    ret = m_captureGraphBuilder->RenderStream(&PIN_CATEGORY_PREVIEW, &MEDIATYPE_Video,
-        m_srcFilter, m_sampleGrabberFilter,
-        m_renderer);
-#else
-    ret = m_captureGraphBuilder->RenderStream(&PIN_CATEGORY_PREVIEW, &MEDIATYPE_Video,
-        m_srcFilter, m_sampleGrabberFilter,
-        NULL);
-#endif
-
-    if(FAILED(ret))
+    if (SUCCEEDED(hr))
     {
-        /* fprintf(stderr, "problem render stream\n"); */
-        return false;
+        REFERENCE_TIME start = 0;
+        REFERENCE_TIME stop = MAXLONGLONG;
+
+        hr
+            = m_captureGraphBuilder->ControlStream(
+                    &PIN_CATEGORY_PREVIEW,
+                    &MEDIATYPE_Video,
+                    m_srcFilter,
+                    &start, &stop,
+                    1, 2);
+        return SUCCEEDED(hr);
     }
-
-    /* start capture */
-    ret = m_captureGraphBuilder->ControlStream(&PIN_CATEGORY_PREVIEW, &MEDIATYPE_Video,
-        m_srcFilter, &start, &stop, 1, 2);
-
-    /* we need this to finalize graph (maybe other filter will be added) */
-    //m_graphController->Run();
-    //this->stop();
-
-    return !FAILED(ret);
+    else
+        return false;
 }
 
 bool DSCaptureDevice::start()
 {
-    if(!m_renderer || !m_sampleGrabberFilter || !m_srcFilter || !m_graphController)
-    {
-        return false;
-    }
-
-    m_graphController->Run();
-    m_renderer->Run(0);
-    m_sampleGrabberFilter->Run(0);
-    m_srcFilter->Run(0);
-    return true;
+    return m_graphController ? SUCCEEDED(m_graphController->Run()) : false;
 }
 
 bool DSCaptureDevice::stop()
 {
-    if(!m_renderer || !m_sampleGrabberFilter || !m_srcFilter || !m_graphController)
-    {
-        return false;
-    }
-
-    m_srcFilter->Stop();
-    m_sampleGrabberFilter->Stop();
-    m_renderer->Stop();
-    m_graphController->Stop();
-
-    return true;
+    return m_graphController ? SUCCEEDED(m_graphController->Stop()) : false;
 }
 
-VideoFormat DSCaptureDevice::getFormat() const
+DSFormat DSCaptureDevice::getFormat() const
 {
     return m_format;
 }
