@@ -18,6 +18,7 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.pulseaudio.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -202,7 +203,7 @@ public class DataSource
                     {
                         if (length > 0)
                         {
-                            AbstractVolumeControl.applyGain(
+                            BasicVolumeControl.applyGain(
                                     gainControl,
                                     data, 0, length);
                         }
@@ -536,8 +537,7 @@ public class DataSource
         {
             int volume
                 = PA.sw_volume_from_linear(
-                        level
-                            * (AbstractVolumeControl.MAX_VOLUME_PERCENT / 100));
+                        level * (BasicVolumeControl.MAX_VOLUME_PERCENT / 100));
 
             PA.cvolume_set(cvolume, channels, volume);
 

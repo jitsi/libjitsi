@@ -34,10 +34,17 @@ import org.jitsi.util.*;
 public class MediaUtils
 {
     /**
-     * The constant which stands for an empty array of <tt>MediaFormat</tt>s.
-     * Explicitly defined in order to reduce unnecessary allocations.
+     * An empty array with <tt>MediaFormat</tt> element type. Explicitly defined
+     * in order to reduce unnecessary allocations, garbage collection.
      */
     public static final MediaFormat[] EMPTY_MEDIA_FORMATS = new MediaFormat[0];
+
+    /**
+     * The <tt>Map</tt> of JMF-specific encodings to well-known encodings as
+     * defined in RFC 3551.
+     */
+    private static final Map<String, String> jmfEncodingToEncodings
+        = new HashMap<String, String>();
 
     /**
      * The maximum number of channels for audio that is available through
@@ -56,13 +63,6 @@ public class MediaUtils
      * <tt>MediaUtils</tt>.
      */
     public static final int MAX_AUDIO_SAMPLE_SIZE_IN_BITS;
-
-    /**
-     * The <tt>Map</tt> of JMF-specific encodings to well-known encodings as
-     * defined in RFC 3551.
-     */
-    private static final Map<String, String> jmfEncodingToEncodings
-        = new HashMap<String, String>();
 
     /**
      * The <tt>MediaFormat</tt>s which do not have RTP payload types assigned by
@@ -215,8 +215,8 @@ public class MediaUtils
             = new HashMap<String, String>();
 
         /*
-         * Disable PLI since we use the periodic intra-refresh feature of
-         * FFmpeg/x264.
+         * Disable PLI because the periodic intra-refresh feature of FFmpeg/x264
+         * is used.
          */
         // h264AdvancedAttributes.put("rtcp-fb", "nack pli");
 
@@ -228,7 +228,6 @@ public class MediaUtils
         java.awt.Dimension res = (screen == null) ? null : screen.getSize();
 
         h264AdvancedAttributes.put("imageattr", createImageAttr(null, res));
-
 
         if ((cfg == null)
                 || cfg
@@ -517,6 +516,82 @@ public class MediaUtils
     }
 
     /**
+     * Creates value of an imgattr.
+     *
+     * http://tools.ietf.org/html/draft-ietf-mmusic-image-attributes-04
+     *
+     * @param sendSize maximum size peer can send
+     * @param maxRecvSize maximum size peer can display
+     * @return string that represent imgattr that can be encoded via SIP/SDP or
+     * XMPP/Jingle
+     */
+    public static String createImageAttr(
+            java.awt.Dimension sendSize,
+            java.awt.Dimension maxRecvSize)
+    {
+        StringBuffer img = new StringBuffer();
+
+        /* send width */
+        if(sendSize != null)
+        {
+            /* single value => send [x=width,y=height] */
+            /*img.append("send [x=");
+            img.append((int)sendSize.getWidth());
+            img.append(",y=");
+            img.append((int)sendSize.getHeight());
+            img.append("]");*/
+            /* send [x=[min-max],y=[min-max]] */
+            img.append("send [x=[0-");
+            img.append((int)sendSize.getWidth());
+            img.append("],y=[0-");
+            img.append((int)sendSize.getHeight());
+            img.append("]]");
+            /*
+            else
+            {
+                // range
+                img.append(" send [x=[");
+                img.append((int)minSendSize.getWidth());
+                img.append("-");
+                img.append((int)maxSendSize.getWidth());
+                img.append("],y=[");
+                img.append((int)minSendSize.getHeight());
+                img.append("-");
+                img.append((int)maxSendSize.getHeight());
+                img.append("]]");
+            }
+            */
+        }
+        else
+        {
+            /* can send "all" sizes */
+            img.append("send *");
+        }
+
+        /* receive size */
+        if(maxRecvSize != null)
+        {
+            /* basically we can receive any size up to our
+             * screen display size
+             */
+
+            /* recv [x=[min-max],y=[min-max]] */
+            img.append(" recv [x=[0-");
+            img.append((int)maxRecvSize.getWidth());
+            img.append("],y=[0-");
+            img.append((int)maxRecvSize.getHeight());
+            img.append("]]");
+        }
+        else
+        {
+            /* accept all sizes */
+            img.append(" recv *");
+        }
+
+        return img.toString();
+    }
+
+    /**
      * Gets a <tt>MediaFormat</tt> predefined in <tt>MediaUtils</tt> which
      * represents a specific JMF <tt>Format</tt>. If there is no such
      * representing <tt>MediaFormat</tt> in <tt>MediaUtils</tt>, returns
@@ -614,6 +689,49 @@ public class MediaUtils
     }
 
     /**
+     * Gets the <tt>MediaFormat</tt>s (expressed as an array) corresponding to
+     * a specific RTP payload type.
+     *
+     * @param rtpPayloadType the RTP payload type to retrieve the
+     * corresponding <tt>MediaFormat</tt>s for
+     * @return an array of <tt>MediaFormat</tt>s corresponding to the specified
+     * RTP payload type
+     */
+    public static MediaFormat[] getMediaFormats(byte rtpPayloadType)
+    {
+        MediaFormat[] mediaFormats
+            = rtpPayloadTypeStrToMediaFormats.get(Byte.toString(rtpPayloadType));
+
+        return
+            (mediaFormats == null)
+                ? EMPTY_MEDIA_FORMATS
+                : mediaFormats.clone();
+    }
+
+    /**
+     * Gets the <tt>MediaFormat</tt>s known to <tt>MediaUtils</tt> and being of
+     * the specified <tt>MediaType</tt>.
+     *
+     * @param mediaType the <tt>MediaType</tt> of the <tt>MediaFormat</tt>s to
+     * get
+     * @return the <tt>MediaFormat</tt>s known to <tt>MediaUtils</tt> and being
+     * of the specified <tt>mediaType</tt>
+     */
+    public static MediaFormat[] getMediaFormats(MediaType mediaType)
+    {
+        List<MediaFormat> mediaFormats = new ArrayList<MediaFormat>();
+
+        for (MediaFormat[] formats : rtpPayloadTypeStrToMediaFormats.values())
+            for (MediaFormat format : formats)
+                if (format.getMediaType().equals(mediaType))
+                    mediaFormats.add(format);
+        for (MediaFormat format : rtpPayloadTypelessMediaFormats)
+            if (format.getMediaType().equals(mediaType))
+                mediaFormats.add(format);
+        return mediaFormats.toArray(EMPTY_MEDIA_FORMATS);
+    }
+
+    /**
      * Gets the <tt>MediaFormat</tt>s predefined in <tt>MediaUtils</tt> with a
      * specific well-known encoding (name) as defined by RFC 3551 "RTP Profile
      * for Audio and Video Conferences with Minimal Control".
@@ -661,65 +779,6 @@ public class MediaUtils
             }
         }
         return mediaFormats;
-    }
-
-    /**
-     * Gets the <tt>MediaFormat</tt>s known to <tt>MediaUtils</tt> and being of
-     * the specified <tt>MediaType</tt>.
-     *
-     * @param mediaType the <tt>MediaType</tt> of the <tt>MediaFormat</tt>s to
-     * get
-     * @return the <tt>MediaFormat</tt>s known to <tt>MediaUtils</tt> and being
-     * of the specified <tt>mediaType</tt>
-     */
-    public static MediaFormat[] getMediaFormats(MediaType mediaType)
-    {
-        List<MediaFormat> mediaFormats = new ArrayList<MediaFormat>();
-
-        for (MediaFormat[] formats : rtpPayloadTypeStrToMediaFormats.values())
-            for (MediaFormat format : formats)
-                if (format.getMediaType().equals(mediaType))
-                    mediaFormats.add(format);
-        for (MediaFormat format : rtpPayloadTypelessMediaFormats)
-            if (format.getMediaType().equals(mediaType))
-                mediaFormats.add(format);
-        return mediaFormats.toArray(EMPTY_MEDIA_FORMATS);
-    }
-
-    /**
-     * Gets the <tt>MediaFormat</tt>s (expressed as an array) corresponding to
-     * a specific RTP payload type.
-     *
-     * @param rtpPayloadType the RTP payload type to retrieve the
-     * corresponding <tt>MediaFormat</tt>s for
-     * @return an array of <tt>MediaFormat</tt>s corresponding to the specified
-     * RTP payload type
-     */
-    public static MediaFormat[] getMediaFormats(byte rtpPayloadType)
-    {
-        MediaFormat[] mediaFormats
-            = rtpPayloadTypeStrToMediaFormats.get(Byte.toString(rtpPayloadType));
-
-        return
-            (mediaFormats == null)
-                ? EMPTY_MEDIA_FORMATS
-                : mediaFormats.clone();
-    }
-
-    /**
-     * Gets the well-known encoding (name) as defined in RFC 3551 "RTP Profile
-     * for Audio and Video Conferences with Minimal Control" corresponding to a
-     * given JMF-specific encoding.
-     *
-     * @param jmfEncoding the JMF encoding to get the corresponding well-known
-     * encoding of
-     * @return the well-known encoding (name) as defined in RFC 3551 "RTP
-     * Profile for Audio and Video Conferences with Minimal Control"
-     * corresponding to <tt>jmfEncoding</tt> if any; otherwise, <tt>null</tt>
-     */
-    public static String jmfEncodingToEncoding(String jmfEncoding)
-    {
-        return jmfEncodingToEncodings.get(jmfEncoding);
     }
 
     /**
@@ -782,77 +841,18 @@ public class MediaUtils
 
 
     /**
-     * Creates value of an imgattr.
+     * Gets the well-known encoding (name) as defined in RFC 3551 "RTP Profile
+     * for Audio and Video Conferences with Minimal Control" corresponding to a
+     * given JMF-specific encoding.
      *
-     * http://tools.ietf.org/html/draft-ietf-mmusic-image-attributes-04
-     *
-     * @param sendSize maximum size peer can send
-     * @param maxRecvSize maximum size peer can display
-     * @return string that represent imgattr that can be encoded via SIP/SDP or
-     * XMPP/Jingle
+     * @param jmfEncoding the JMF encoding to get the corresponding well-known
+     * encoding of
+     * @return the well-known encoding (name) as defined in RFC 3551 "RTP
+     * Profile for Audio and Video Conferences with Minimal Control"
+     * corresponding to <tt>jmfEncoding</tt> if any; otherwise, <tt>null</tt>
      */
-    public static String createImageAttr(java.awt.Dimension sendSize,
-            java.awt.Dimension maxRecvSize)
+    public static String jmfEncodingToEncoding(String jmfEncoding)
     {
-        StringBuffer img = new StringBuffer();
-
-        /* send width */
-        if(sendSize != null)
-        {
-            /* single value => send [x=width,y=height] */
-            /*img.append("send [x=");
-            img.append((int)sendSize.getWidth());
-            img.append(",y=");
-            img.append((int)sendSize.getHeight());
-            img.append("]");*/
-            /* send [x=[min-max],y=[min-max]] */
-            img.append("send [x=[0-");
-            img.append((int)sendSize.getWidth());
-            img.append("],y=[0-");
-            img.append((int)sendSize.getHeight());
-            img.append("]]");
-            /*
-            else
-            {
-                // range
-                img.append(" send [x=[");
-                img.append((int)minSendSize.getWidth());
-                img.append("-");
-                img.append((int)maxSendSize.getWidth());
-                img.append("],y=[");
-                img.append((int)minSendSize.getHeight());
-                img.append("-");
-                img.append((int)maxSendSize.getHeight());
-                img.append("]]");
-            }
-            */
-        }
-        else
-        {
-            /* can send "all" sizes */
-            img.append("send *");
-        }
-
-        /* receive size */
-        if(maxRecvSize != null)
-        {
-            /* basically we can receive any size up to our
-             * screen display size
-             */
-
-            /* recv [x=[min-max],y=[min-max]] */
-            img.append(" recv [x=[0-");
-            img.append((int)maxRecvSize.getWidth());
-            img.append("],y=[0-");
-            img.append((int)maxRecvSize.getHeight());
-            img.append("]]");
-        }
-        else
-        {
-            /* accept all sizes */
-            img.append(" recv *");
-        }
-
-        return img.toString();
+        return jmfEncodingToEncodings.get(jmfEncoding);
     }
 }

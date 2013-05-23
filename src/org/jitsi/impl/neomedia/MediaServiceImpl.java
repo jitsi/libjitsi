@@ -748,7 +748,7 @@ public class MediaServiceImpl
         if (outputVolumeControl == null)
         {
             outputVolumeControl
-                = new AbstractVolumeControl(
+                = new BasicVolumeControl(
                         VolumeControl.PLAYBACK_VOLUME_LEVEL_PROPERTY_NAME);
         }
         return outputVolumeControl;
@@ -785,7 +785,7 @@ public class MediaServiceImpl
             if (inputVolumeControl == null)
             {
                 inputVolumeControl
-                    = new AbstractVolumeControl(
+                    = new BasicVolumeControl(
                             VolumeControl.CAPTURE_VOLUME_LEVEL_PROPERTY_NAME);
             }
         }
@@ -799,7 +799,7 @@ public class MediaServiceImpl
      */
     public List<ScreenDevice> getAvailableScreenDevices()
     {
-        ScreenDevice screens[] = ScreenDeviceImpl.getAvailableScreenDevices();
+        ScreenDevice[] screens = ScreenDeviceImpl.getAvailableScreenDevices();
         List<ScreenDevice> screenList;
 
         if ((screens != null) && (screens.length != 0))
@@ -816,23 +816,7 @@ public class MediaServiceImpl
      */
     public ScreenDevice getDefaultScreenDevice()
     {
-        List<ScreenDevice> screens = getAvailableScreenDevices();
-        int width = 0;
-        int height = 0;
-        ScreenDevice best = null;
-
-        for (ScreenDevice screen : screens)
-        {
-            java.awt.Dimension res = screen.getSize();
-
-            if ((res != null) && ((width < res.width) || (height < res.height)))
-            {
-                width = res.width;
-                height = res.height;
-                best = screen;
-            }
-        }
-        return best;
+        return ScreenDeviceImpl.getDefaultScreenDevice();
     }
 
     /**

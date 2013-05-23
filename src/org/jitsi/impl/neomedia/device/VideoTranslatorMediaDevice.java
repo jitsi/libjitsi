@@ -123,10 +123,14 @@ public class VideoTranslatorMediaDevice
             deviceSession = device.createSession();
             if(deviceSession instanceof VideoMediaDeviceSession)
             {
+                VideoMediaDeviceSession videoMediaDeviceSession
+                    = (VideoMediaDeviceSession) deviceSession;
+
                 for (MediaStreamMediaDeviceSession streamDeviceSession
-                    : streamDeviceSessions)
+                        : streamDeviceSessions)
                 {
-                    ((VideoMediaDeviceSession)deviceSession).addRTCPFeedbackCreateListner(streamDeviceSession);
+                    videoMediaDeviceSession.addRTCPFeedbackCreateListner(
+                            streamDeviceSession);
                 }
             }
             if (format != null)
@@ -380,6 +384,25 @@ public class VideoTranslatorMediaDevice
         }
         
         /**
+         * Sets the <tt>RTPConnector</tt> that will be used to initialize some 
+         * codec for RTCP feedback and adds the instance to 
+         * RTCPFeedbackCreateListners of deviceSession.
+         *
+         * @param rtpConnector the RTP connector
+         */
+        @Override
+        public void setConnector(AbstractRTPConnector rtpConnector)
+        {
+            super.setConnector(rtpConnector);
+            if(deviceSession != null 
+                && deviceSession instanceof VideoMediaDeviceSession)
+            {
+                ((VideoMediaDeviceSession) deviceSession)
+                    .addRTCPFeedbackCreateListner(this);
+            }
+        }
+
+        /**
          * Notifies this instance that the value of its
          * <tt>startedDirection</tt> property has changed from a specific
          * <tt>oldValue</tt> to a specific <tt>newValue</tt>.
@@ -399,28 +422,5 @@ public class VideoTranslatorMediaDevice
             VideoTranslatorMediaDevice.this
                     .updateDeviceSessionStartedDirection();
         }
-        
-        /**
-         * Sets the <tt>RTPConnector</tt> that will be used to initialize some 
-         * codec for RTCP feedback and adds the instance to 
-         * RTCPFeedbackCreateListners of deviceSession.
-         *
-         * @param rtpConnector the RTP connector
-         */
-        @Override
-        public void setConnector(AbstractRTPConnector rtpConnector)
-        {
-            super.setConnector(rtpConnector);
-            if(deviceSession != null 
-                && deviceSession instanceof VideoMediaDeviceSession)
-            {
-                ((VideoMediaDeviceSession) deviceSession)
-                    .addRTCPFeedbackCreateListner(this);
-            }
-        }
-       
-       
     }
-
-    
 }

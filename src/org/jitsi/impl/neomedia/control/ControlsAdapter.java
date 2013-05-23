@@ -10,7 +10,7 @@ package org.jitsi.impl.neomedia.control;
  * Provides a default implementation of <tt>Controls</tt> which does not expose
  * any controls.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class ControlsAdapter
     extends AbstractControls

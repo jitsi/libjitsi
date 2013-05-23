@@ -15,7 +15,6 @@ import java.awt.*;
  */
 public interface ScreenDevice
 {
-
     /**
      * Determines whether this screen contains a specified point.
      *

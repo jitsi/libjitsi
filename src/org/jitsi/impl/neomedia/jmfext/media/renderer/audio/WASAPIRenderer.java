@@ -6,7 +6,21 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.renderer.audio;
 
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.*;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.AUDCLNT_E_NOT_STOPPED;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.CloseHandle;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.CreateEvent;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_GetBufferSize;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_GetCurrentPadding;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_GetDefaultDevicePeriod;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_GetService;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_Release;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_Start;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_Stop;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioRenderClient_Release;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioRenderClient_Write;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IID_IAudioRenderClient;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.WAIT_FAILED;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.WaitForSingleObject;
 
 import java.beans.*;
 import java.lang.reflect.*;
@@ -18,6 +32,7 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -174,7 +189,7 @@ public class WASAPIRenderer
      */
     public WASAPIRenderer(AudioSystem.DataFlow dataFlow)
     {
-        super(AudioSystem.LOCATOR_PROTOCOL_WASAPI);
+        super(AudioSystem.LOCATOR_PROTOCOL_WASAPI, dataFlow);
     }
 
     /**
@@ -195,6 +210,7 @@ public class WASAPIRenderer
     /**
      * {@inheritDoc}
      */
+    @Override
     public synchronized void close()
     {
         try
@@ -658,6 +674,19 @@ public class WASAPIRenderer
                         written = 0;
                     else
                     {
+                        /*
+                         * Take into account the user's preferences with respect
+                         * to the output volume.
+                         */
+                        GainControl gainControl = getGainControl();
+
+                        if (gainControl != null)
+                        {
+                            BasicVolumeControl.applyGain(
+                                    gainControl,
+                                    effectiveData, effectiveOffset, toWrite);
+                        }
+
                         try
                         {
                             written
@@ -819,8 +848,21 @@ public class WASAPIRenderer
                      */
                     if (numFramesRequested > 0)
                     {
-                        int toWrite = numFramesRequested * srcFrameSize;
+                        /*
+                         * Take into account the user's preferences with respect
+                         * to the output volume.
+                         */
+                        GainControl gainControl = getGainControl();
+
+                        if ((gainControl != null) && (remainderLength != 0))
+                        {
+                            BasicVolumeControl.applyGain(
+                                    gainControl,
+                                    remainder, 0, remainderLength);
+                        }
+
                         // Pad with silence in order to avoid underflows.
+                        int toWrite = numFramesRequested * srcFrameSize;
                         int silence = toWrite - remainderLength;
 
                         if (silence > 0)

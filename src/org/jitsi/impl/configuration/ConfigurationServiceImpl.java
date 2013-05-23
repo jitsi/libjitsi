@@ -54,9 +54,41 @@ public class ConfigurationServiceImpl
         = "net.java.sip.communicator.SYS_PROPS_FILE_NAME";
 
     /**
+     * Name of the file containing default properties.
+     */
+    private static final String DEFAULT_PROPS_FILE_NAME
+                                         = "jitsi-defaults.properties";
+
+    /**
+     * Name of the file containing overrides (possibly set by the deployer)
+     * for any of the default properties.
+     */
+    private static final String DEFAULT_OVERRIDES_PROPS_FILE_NAME
+                                             = "jitsi-default-overrides.properties";
+
+    /**
      * A reference to the currently used configuration file.
      */
     private File configurationFile = null;
+
+    /**
+     * A set of immutable properties deployed with the application during
+     * install time. The properties in this file will be impossible to override
+     * and attempts to do so will simply be ignored.
+     * @see #defaultProperties
+     */
+    private Map<String, String> immutableDefaultProperties
+                                                = new HashMap<String, String>();
+
+    /**
+     * A set of properties deployed with the application during install time.
+     * Contrary to the properties in {@link #immutableDefaultProperties} the
+     * ones in this map can be overridden with call to the
+     * <tt>setProperty()</tt> methods. Still, re-setting one of these properties
+     * to <tt>null</tt> would cause for its initial value to be restored.
+     */
+    private Map<String, String> defaultProperties
+                                                = new HashMap<String, String>();
 
     /**
      * Our event dispatcher.
@@ -86,6 +118,7 @@ public class ConfigurationServiceImpl
         {
             debugPrintSystemProperties();
             preloadSystemPropertyFiles();
+            loadDefaultProperties();
             reloadConfiguration();
         }
         catch (IOException ex)
@@ -101,10 +134,15 @@ public class ConfigurationServiceImpl
      * (PropertyVetoException) have been received, the property will be actually
      * changed and a PropertyChangeEvent will be dispatched.
      * <p>
-     * @param propertyName String
-     * @param property Object
+     * @param propertyName the name of the property
+     * @param property the object that we'd like to be come the new value of the
+     * property.
+     *
+     * @throws ConfigPropertyVetoException in case someone is not happy with the
+     * change.
      */
     public void setProperty(String propertyName, Object property)
+        throws ConfigPropertyVetoException
     {
         setProperty(propertyName, property, false);
     }
@@ -125,9 +163,13 @@ public class ConfigurationServiceImpl
      *                 property set. If the property has previously been
      *                 specified as system then this value is internally forced
      *                 to true.
+     * @throws ConfigPropertyVetoException in case someone is not happy with the
+     * change.
      */
-    public void setProperty(String propertyName, Object property,
+    public void setProperty(String propertyName,
+                            Object property,
                             boolean isSystem)
+        throws ConfigPropertyVetoException
     {
         Object oldValue = getProperty(propertyName);
 
@@ -166,9 +208,12 @@ public class ConfigurationServiceImpl
      * configuration file which is known to be slow because it involves
      * converting the whole store to a string representation and writing a file
      * to the disk.
+     *
+     * @throws ConfigPropertyVetoException in case someone is not happy with the
+     * change.
      */
     public void setProperties(Map<String, Object> properties)
-        // throws PropertyVetoException
+        throws ConfigPropertyVetoException
     {
         //first check whether the changes are ok with everyone
         Map<String, Object> oldValues
@@ -238,6 +283,10 @@ public class ConfigurationServiceImpl
 
         if (isSystemProperty(propertyName))
             isSystem = true;
+
+        // ignore requests to override immutable properties:
+        if (immutableDefaultProperties.containsKey(propertyName))
+            return;
 
         if (property == null)
         {
@@ -324,7 +373,17 @@ public class ConfigurationServiceImpl
      */
     public Object getProperty(String propertyName)
     {
-        return store.getProperty(propertyName);
+        Object result = immutableDefaultProperties.get(propertyName);
+
+        if (result != null)
+            return result;
+
+        result = store.getProperty(propertyName);
+
+        if (result != null)
+            return result;
+
+        return defaultProperties.get(propertyName);
     }
 
     /**
@@ -366,6 +425,9 @@ public class ConfigurationServiceImpl
      * exactPrefixMatch=false would return both properties as the second prefix
      * includes the requested prefix string.
      * <p>
+     * In addition to stored properties this method will also search the default
+     * mutable and immutable properties.
+     *
      * @param prefix a String containing the prefix (the non dotted non-caps
      * part of a property name) that we're looking for.
      * @param exactPrefixMatch a boolean indicating whether the returned
@@ -378,9 +440,73 @@ public class ConfigurationServiceImpl
     public List<String> getPropertyNamesByPrefix(String prefix,
             boolean exactPrefixMatch)
     {
-        List<String> resultKeySet = new LinkedList<String>();
+        HashSet<String> resultKeySet = new HashSet<String>();
 
-        for (String key : store.getPropertyNames())
+        //first fill in the names from the immutable default property set
+        Set<String> propertyNameSet;
+        String[] namesArray;
+
+        if(immutableDefaultProperties.size() > 0)
+        {
+            propertyNameSet = immutableDefaultProperties.keySet();
+
+            namesArray
+                = propertyNameSet.toArray( new String[propertyNameSet.size()] );
+
+            getPropertyNamesByPrefix(prefix,
+                                     exactPrefixMatch,
+                                     namesArray,
+                                     resultKeySet);
+        }
+
+        //now get property names from the current store.
+        getPropertyNamesByPrefix(prefix,
+                                 exactPrefixMatch,
+                                 store.getPropertyNames(),
+                                 resultKeySet);
+
+        //finally, get property names from mutable default property set.
+        if(immutableDefaultProperties.size() > 0)
+        {
+            propertyNameSet = defaultProperties.keySet();
+
+            namesArray
+                = propertyNameSet.toArray( new String[propertyNameSet.size()] );
+
+            getPropertyNamesByPrefix(prefix,
+                                     exactPrefixMatch,
+                                     namesArray,
+                                     resultKeySet);
+        }
+
+        return new ArrayList<String>( resultKeySet );
+    }
+
+    /**
+     * Updates the specified <tt>String</tt> <tt>resulSet</tt> to contain all
+     * property names in the <tt>names</tt> array that partially or completely
+     * match the specified prefix. Depending on the value of the
+     * <tt>exactPrefixMatch</tt> parameter the method will (when false)
+     * or will not (when exactPrefixMatch is true) include property names that
+     * have prefixes longer than the specified <tt>prefix</tt> param.
+     *
+     * @param prefix a String containing the prefix (the non dotted non-caps
+     * part of a property name) that we're looking for.
+     * @param exactPrefixMatch a boolean indicating whether the returned
+     * property names should all have a prefix that is an exact match of the
+     * the <tt>prefix</tt> param or whether properties with prefixes that
+     * contain it but are longer than it are also accepted.
+     * @param names the list of names that we'd like to search.
+     *
+     * @return a reference to the updated result set.
+     */
+    private Set<String> getPropertyNamesByPrefix(
+                            String      prefix,
+                            boolean     exactPrefixMatch,
+                            String[]    names,
+                            Set<String> resultSet)
+    {
+        for (String key : names)
         {
             int ix = key.lastIndexOf('.');
 
@@ -392,16 +518,16 @@ public class ConfigurationServiceImpl
             if(exactPrefixMatch)
             {
                 if(prefix.equals(keyPrefix))
-                    resultKeySet.add(key);
+                    resultSet.add(key);
             }
             else
             {
                 if(keyPrefix.startsWith(prefix))
-                    resultKeySet.add(key);
+                    resultSet.add(key);
             }
         }
 
-        return resultKeySet;
+        return resultSet;
     }
 
     /**
@@ -1364,6 +1490,15 @@ public class ConfigurationServiceImpl
         }
     }
 
+    /**
+     * Specifies the configuration store that this instance of the configuration
+     * service implementation must use.
+     *
+     * @param clazz the {@link ConfigurationStore} that this configuration
+     * service instance instance has to use.
+     *
+     * @throws IOException if loading properties from the specified store fails.
+     */
     private void setConfigurationStore(
             Class<? extends ConfigurationStore> clazz)
         throws IOException
@@ -1400,4 +1535,80 @@ public class ConfigurationServiceImpl
                 throw new RuntimeException(exception);
         }
     }
+
+    /**
+     * Loads the default propertiy maps from the Jitsi installation directory
+     * then overrides them with the default override values.
+     */
+    private void loadDefaultProperties()
+    {
+        loadDefaultProperties(DEFAULT_PROPS_FILE_NAME);
+        loadDefaultProperties(DEFAULT_OVERRIDES_PROPS_FILE_NAME);
+    }
+
+    /**
+     * Loads the specified default properties maps from the Jitsi installation
+     * directory. Typically this file is to be called for the default properties
+     * and the admin overrides.
+     *
+     * @param  fileName the name of the file we need to load.
+     */
+    private void loadDefaultProperties(String fileName)
+    {
+        try
+        {
+            Properties fileProps = new Properties();
+
+            fileProps.load(ClassLoader.getSystemResourceAsStream(fileName));
+
+            // now get those properties and place them into the mutable and
+            // immutable properties maps.
+            for (Map.Entry<Object, Object> entry : fileProps.entrySet())
+            {
+                String name  = (String) entry.getKey();
+                String value = (String) entry.getValue();
+
+                if (   name == null
+                    || value == null
+                    || name.trim().length() == 0)
+                {
+                    continue;
+                }
+
+                if (name.startsWith("!"))
+                {
+                    name = name.substring(1);
+
+                    if(name.trim().length() == 0)
+                    {
+                        continue;
+                    }
+
+                    //it seems that we have a valid default immutable property
+                    immutableDefaultProperties.put(name, value);
+
+                    //in case this is an override, make sure we remove previous
+                    //definitions of this property
+                    defaultProperties.remove(name);
+                }
+                else
+                {
+                    //this property is a regular, mutable default property.
+                    defaultProperties.put(name, value);
+
+                    //in case this is an override, make sure we remove previous
+                    //definitions of this property
+                    immutableDefaultProperties.remove(name);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            //we can function without defaults so we are just logging those.
+            logger.error("Failed to load property file: "
+                + fileName, ex);
+        }
+    }
+
+
 }

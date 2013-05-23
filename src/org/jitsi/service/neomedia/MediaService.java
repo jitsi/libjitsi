@@ -34,35 +34,31 @@ public interface MediaService
     public static final String DEFAULT_DEVICE = "defaultDevice";
 
     /**
-     * Returns the default <tt>MediaDevice</tt> for the specified media
-     * <tt>type</tt>.
+     * Adds a <tt>PropertyChangeListener</tt> to be notified about changes in
+     * the values of the properties of this instance.
      *
-     * @param mediaType a <tt>MediaType</tt> value indicating the kind of device
-     * that we are trying to obtain.
-     * @param useCase <tt>MediaUseCase</tt> value indicating for the use-case of
-     * device that we are trying to obtain.
-     *
-     * @return the currently default <tt>MediaDevice</tt> for the specified
-     * <tt>MediaType</tt>, or <tt>null</tt> if no such device exists.
+     * @param listener the <tt>PropertyChangeListener</tt> to be notified about
+     * changes in the values of the properties of this instance
      */
-    public MediaDevice getDefaultDevice(
-            MediaType mediaType,
-            MediaUseCase useCase);
+    public void addPropertyChangeListener(PropertyChangeListener listener);
 
     /**
-     * Returns a list containing all devices known to this service
-     * implementation and handling the specified <tt>MediaType</tt>.
+     * Those interested in Recorder events add listener through MediaService.
+     * This way they don't need to have access to the Recorder instance.
+     * Adds a new <tt>Recorder.Listener</tt> to the list of listeners
+     * interested in notifications from a <tt>Recorder</tt>.
      *
-     * @param mediaType the media type (i.e. AUDIO or VIDEO) that we'd like
-     * to obtain the device list for.
-     * @param useCase <tt>MediaUseCase</tt> value indicating for the use-case of
-     * device that we are trying to obtain.
-     *
-     * @return the list of <tt>MediaDevice</tt>s currently known to handle the
-     * specified <tt>mediaType</tt>.
+     * @param listener the new <tt>Recorder.Listener</tt> to be added to the
+     * list of listeners interested in notifications from <tt>Recorder</tt>s.
      */
-    public List<MediaDevice> getDevices(MediaType mediaType,
-            MediaUseCase useCase);
+    public void addRecorderListener(Recorder.Listener listener);
+
+    /**
+     * Returns a new <tt>EncodingConfiguration</tt> instance.
+     *
+     * @return a new <tt>EncodingConfiguration</tt> instance.
+     */
+    public EncodingConfiguration createEmptyEncodingConfiguration();
 
     /**
      * Create a <tt>MediaStream</tt> which will use a specific
@@ -148,67 +144,6 @@ public interface MediaService
     public MediaDevice createMixer(MediaDevice device);
 
     /**
-     * Gets the <tt>MediaFormatFactory</tt> through which <tt>MediaFormat</tt>
-     * instances may be created for the purposes of working with the
-     * <tt>MediaStream</tt>s created by this <tt>MediaService</tt>.
-     *
-     * @return the <tt>MediaFormatFactory</tt> through which
-     * <tt>MediaFormat</tt> instances may be created for the purposes of working
-     * with the <tt>MediaStream</tt>s created by this <tt>MediaService</tt>
-     */
-    public MediaFormatFactory getFormatFactory();
-
-    /**
-     * Initializes a new <tt>ZrtpControl</tt> instance which is to control all
-     * ZRTP options.
-     *
-     * @return a new <tt>ZrtpControl</tt> instance which is to control all ZRTP
-     * options
-     */
-    public ZrtpControl createZrtpControl();
-
-    /**
-     * Initializes a new <tt>SDesControl</tt> instance which is to control all
-     * SDes options.
-     *
-     * @return a new <tt>SDesControl</tt> instance which is to control all SDes
-     * options
-     */
-    public SDesControl createSDesControl();
-
-    /**
-     * Gets the <tt>VolumeControl</tt> which controls the volume level of audio
-     * output/playback.
-     *
-     * @return the <tt>VolumeControl</tt> which controls the volume level of
-     * audio output/playback
-     */
-    public VolumeControl getOutputVolumeControl();
-
-    /**
-     * Gets the <tt>VolumeControl</tt> which controls the volume level of audio
-     * input/capture.
-     *
-     * @return the <tt>VolumeControl</tt> which controls the volume level of
-     * audio input/capture
-     */
-    public VolumeControl getInputVolumeControl();
-
-    /**
-     * Get available <tt>ScreenDevice</tt>s.
-     *
-     * @return screens
-     */
-    public List<ScreenDevice> getAvailableScreenDevices();
-
-    /**
-     * Get default <tt>ScreenDevice</tt> device.
-     *
-     * @return default screen device
-     */
-    public ScreenDevice getDefaultScreenDevice();
-
-    /**
      * Creates a new <tt>Recorder</tt> instance that can be used to record a
      * call which captures and plays back media using a specific
      * <tt>MediaDevice</tt>.
@@ -220,6 +155,85 @@ public interface MediaService
      * <tt>MediaDevice</tt>
      */
     public Recorder createRecorder(MediaDevice device);
+
+    /**
+     * Initializes a new <tt>RTPTranslator</tt> which is to forward RTP and RTCP
+     * traffic between multiple <tt>MediaStream</tt>s.
+     *
+     * @return a new <tt>RTPTranslator</tt> which is to forward RTP and RTCP
+     * traffic between multiple <tt>MediaStream</tt>s
+     */
+    public RTPTranslator createRTPTranslator();
+
+    /**
+     * Initializes a new <tt>SDesControl</tt> instance which is to control all
+     * SDes options.
+     *
+     * @return a new <tt>SDesControl</tt> instance which is to control all SDes
+     * options
+     */
+    public SDesControl createSDesControl();
+
+    /**
+     * Initializes a new <tt>ZrtpControl</tt> instance which is to control all
+     * ZRTP options.
+     *
+     * @return a new <tt>ZrtpControl</tt> instance which is to control all ZRTP
+     * options
+     */
+    public ZrtpControl createZrtpControl();
+
+    /**
+     * Get available <tt>ScreenDevice</tt>s.
+     *
+     * @return screens
+     */
+    public List<ScreenDevice> getAvailableScreenDevices();
+
+    /**
+     * Returns the current <tt>EncodingConfiguration</tt> instance.
+     *
+     * @return the current <tt>EncodingConfiguration</tt> instance.
+     */
+    public EncodingConfiguration getCurrentEncodingConfiguration();
+
+    /**
+     * Returns the default <tt>MediaDevice</tt> for the specified media
+     * <tt>type</tt>.
+     *
+     * @param mediaType a <tt>MediaType</tt> value indicating the kind of device
+     * that we are trying to obtain.
+     * @param useCase <tt>MediaUseCase</tt> value indicating for the use-case of
+     * device that we are trying to obtain.
+     *
+     * @return the currently default <tt>MediaDevice</tt> for the specified
+     * <tt>MediaType</tt>, or <tt>null</tt> if no such device exists.
+     */
+    public MediaDevice getDefaultDevice(
+            MediaType mediaType,
+            MediaUseCase useCase);
+
+    /**
+     * Get default <tt>ScreenDevice</tt> device.
+     *
+     * @return default screen device
+     */
+    public ScreenDevice getDefaultScreenDevice();
+
+    /**
+     * Returns a list containing all devices known to this service
+     * implementation and handling the specified <tt>MediaType</tt>.
+     *
+     * @param mediaType the media type (i.e. AUDIO or VIDEO) that we'd like
+     * to obtain the device list for.
+     * @param useCase <tt>MediaUseCase</tt> value indicating for the use-case of
+     * device that we are trying to obtain.
+     *
+     * @return the list of <tt>MediaDevice</tt>s currently known to handle the
+     * specified <tt>mediaType</tt>.
+     */
+    public List<MediaDevice> getDevices(MediaType mediaType,
+            MediaUseCase useCase);
 
     /**
      * Returns a {@link Map} that binds indicates whatever preferences the
@@ -237,16 +251,24 @@ public interface MediaService
     public Map<MediaFormat, Byte> getDynamicPayloadTypePreferences();
 
     /**
-     * Creates a preview component for the specified device(video device) used
-     * to show video preview from it.
+     * Gets the <tt>MediaFormatFactory</tt> through which <tt>MediaFormat</tt>
+     * instances may be created for the purposes of working with the
+     * <tt>MediaStream</tt>s created by this <tt>MediaService</tt>.
      *
-     * @param device the video device
-     * @param preferredWidth the width we prefer for the component
-     * @param preferredHeight the height we prefer for the component
-     * @return the preview component.
+     * @return the <tt>MediaFormatFactory</tt> through which
+     * <tt>MediaFormat</tt> instances may be created for the purposes of working
+     * with the <tt>MediaStream</tt>s created by this <tt>MediaService</tt>
      */
-    public Object getVideoPreviewComponent(
-            MediaDevice device, int preferredWidth, int preferredHeight);
+    public MediaFormatFactory getFormatFactory();
+
+    /**
+     * Gets the <tt>VolumeControl</tt> which controls the volume level of audio
+     * input/capture.
+     *
+     * @return the <tt>VolumeControl</tt> which controls the volume level of
+     * audio input/capture
+     */
+    public VolumeControl getInputVolumeControl();
 
     /**
      * Get a <tt>MediaDevice</tt> for a part of desktop streaming/sharing.
@@ -262,16 +284,6 @@ public interface MediaService
             int width, int height, int x, int y);
 
     /**
-     * If the <tt>MediaDevice</tt> corresponds to partial desktop streaming
-     * device.
-     *
-     * @param mediaDevice <tt>MediaDevice</tt>
-     * @return true if <tt>MediaDevice</tt> is a partial desktop streaming
-     * device, false otherwise
-     */
-    public boolean isPartialStreaming(MediaDevice mediaDevice);
-
-    /**
      * Get origin for desktop streaming device.
      *
      * @param mediaDevice media device
@@ -281,24 +293,13 @@ public interface MediaService
             MediaDevice mediaDevice);
 
     /**
-     * Those interested in Recorder events add listener through MediaService.
-     * This way they don't need to have access to the Recorder instance.
-     * Adds a new <tt>Recorder.Listener</tt> to the list of listeners
-     * interested in notifications from a <tt>Recorder</tt>.
+     * Gets the <tt>VolumeControl</tt> which controls the volume level of audio
+     * output/playback.
      *
-     * @param listener the new <tt>Recorder.Listener</tt> to be added to the
-     * list of listeners interested in notifications from <tt>Recorder</tt>s.
+     * @return the <tt>VolumeControl</tt> which controls the volume level of
+     * audio output/playback
      */
-    public void addRecorderListener(Recorder.Listener listener);
-
-    /**
-     * Removes an existing <tt>Recorder.Listener</tt> from the list of listeners
-     * interested in notifications from <tt>Recorder</tt>s.
-     *
-     * @param listener the existing <tt>Listener</tt> to be removed from the
-     * list of listeners interested in notifications from <tt>Recorder</tt>s
-     */
-    public void removeRecorderListener(Recorder.Listener listener);
+    public VolumeControl getOutputVolumeControl();
 
     /**
      * Gives access to currently registered <tt>Recorder.Listener</tt>s.
@@ -307,22 +308,26 @@ public interface MediaService
     public Iterator<Recorder.Listener> getRecorderListeners();
 
     /**
-     * Initializes a new <tt>RTPTranslator</tt> which is to forward RTP and RTCP
-     * traffic between multiple <tt>MediaStream</tt>s.
+     * Creates a preview component for the specified device(video device) used
+     * to show video preview from it.
      *
-     * @return a new <tt>RTPTranslator</tt> which is to forward RTP and RTCP
-     * traffic between multiple <tt>MediaStream</tt>s
+     * @param device the video device
+     * @param preferredWidth the width we prefer for the component
+     * @param preferredHeight the height we prefer for the component
+     * @return the preview component.
      */
-    public RTPTranslator createRTPTranslator();
+    public Object getVideoPreviewComponent(
+            MediaDevice device, int preferredWidth, int preferredHeight);
 
     /**
-     * Adds a <tt>PropertyChangeListener</tt> to be notified about changes in
-     * the values of the properties of this instance.
+     * If the <tt>MediaDevice</tt> corresponds to partial desktop streaming
+     * device.
      *
-     * @param listener the <tt>PropertyChangeListener</tt> to be notified about
-     * changes in the values of the properties of this instance
+     * @param mediaDevice <tt>MediaDevice</tt>
+     * @return true if <tt>MediaDevice</tt> is a partial desktop streaming
+     * device, false otherwise
      */
-    public void addPropertyChangeListener(PropertyChangeListener listener);
+    public boolean isPartialStreaming(MediaDevice mediaDevice);
 
     /**
      * Removes a <tt>PropertyChangeListener</tt> to no longer be notified about
@@ -334,16 +339,11 @@ public interface MediaService
     public void removePropertyChangeListener(PropertyChangeListener listener);
 
     /**
-     * Returns a new <tt>EncodingConfiguration</tt> instance.
+     * Removes an existing <tt>Recorder.Listener</tt> from the list of listeners
+     * interested in notifications from <tt>Recorder</tt>s.
      *
-     * @return a new <tt>EncodingConfiguration</tt> instance.
+     * @param listener the existing <tt>Listener</tt> to be removed from the
+     * list of listeners interested in notifications from <tt>Recorder</tt>s
      */
-    public EncodingConfiguration createEmptyEncodingConfiguration();
-
-    /**
-     * Returns the current <tt>EncodingConfiguration</tt> instance.
-     *
-     * @return the current <tt>EncodingConfiguration</tt> instance.
-     */
-    public EncodingConfiguration getCurrentEncodingConfiguration();
+    public void removeRecorderListener(Recorder.Listener listener);
 }

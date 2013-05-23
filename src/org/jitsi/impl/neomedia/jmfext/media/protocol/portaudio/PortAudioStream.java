@@ -18,6 +18,7 @@ import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.portaudio.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -516,10 +517,13 @@ public class PortAudioStream
                 throw ioe;
             }
 
-            // if we have some volume setting apply them
+            /*
+             * Take into account the user's preferences with respect to the
+             * input volume.
+             */
             if (gainControl != null)
             {
-                AbstractVolumeControl.applyGain(
+                BasicVolumeControl.applyGain(
                         gainControl,
                         data, 0, bytesPerBuffer);
             }

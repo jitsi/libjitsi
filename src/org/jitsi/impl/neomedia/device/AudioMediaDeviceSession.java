@@ -11,6 +11,8 @@ import javax.media.control.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.audiolevel.*;
+import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.util.*;
 
@@ -19,6 +21,7 @@ import org.jitsi.util.*;
  *
  * @author Emil Ivov
  * @author Damian Minkov
+ * @author Lyubomir Marinov
  */
 public class AudioMediaDeviceSession
     extends MediaDeviceSession
@@ -36,6 +39,12 @@ public class AudioMediaDeviceSession
      */
     private final AudioLevelEffect localUserAudioLevelEffect
         = new AudioLevelEffect();
+
+    /**
+     * The <tt>VolumeControl</tt> which is to control the volume (level) of the
+     * audio (to be) played back by this instance.
+     */
+    private VolumeControl outputVolumeControl;
 
     /**
      * The effect that we will register with our stream in order to measure
@@ -73,6 +82,24 @@ public class AudioMediaDeviceSession
                 amds.streamAudioLevelEffect.getAudioLevelListener());
         setLocalUserAudioLevelListener(
                 amds.localUserAudioLevelEffect.getAudioLevelListener());
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Overrides the super implementation in order to configure the
+     * <tt>VolumeControl</tt> of the returned <tt>Renderer</tt> for the purposes
+     * of having call/telephony conference-specific volume (levels).
+     */
+    @Override
+    protected Renderer createRenderer(Player player, TrackControl trackControl)
+    {
+        Renderer renderer = super.createRenderer(player, trackControl);
+
+        if (renderer != null)
+            setVolumeControl(renderer, outputVolumeControl);
+
+        return renderer;
     }
 
     /**
@@ -190,7 +217,9 @@ public class AudioMediaDeviceSession
             TrackControl tcs[] = processor.getTrackControls();
 
             if (tcs != null)
+            {
                 for (TrackControl tc : tcs)
+                {
                     if (tc.getFormat() instanceof AudioFormat)
                     {
                         //we assume a single track
@@ -198,11 +227,12 @@ public class AudioMediaDeviceSession
                                 new Codec[] { localUserAudioLevelEffect });
                         break;
                     }
+                }
+            }
         }
         catch (UnsupportedPlugInException ex)
         {
-            logger.error(
-                "Effects are not supported by the datasource.", ex);
+            logger.error("Effects are not supported by the datasource.", ex);
         }
     }
 
@@ -247,6 +277,19 @@ public class AudioMediaDeviceSession
     }
 
     /**
+     * Sets the <tt>VolumeControl</tt> which is to control the volume (level) of
+     * the audio (to be) played back by this instance.
+     *
+     * @param outputVolumeControl the <tt>VolumeControl</tt> which is to be
+     * control the volume (level) of the audio (to be) played back by this
+     * instance
+     */
+    public void setOutputVolumeControl(VolumeControl outputVolumeControl)
+    {
+        this.outputVolumeControl = outputVolumeControl;
+    }
+
+    /**
      * Sets <tt>listener</tt> as the <tt>SimpleAudioLevelListener</tt> that we
      * are going to notify every time a change occurs in the audio level of
      * the media that this device session is receiving from the remote party.
@@ -262,5 +305,29 @@ public class AudioMediaDeviceSession
     public void setStreamAudioLevelListener(SimpleAudioLevelListener listener)
     {
         streamAudioLevelEffect.setAudioLevelListener(listener);
+    }
+
+    /**
+     * Implements a utility which facilitates setting a specific
+     * <tt>VolumeControl</tt> on a specific <tt>Renderer</tt> for the purposes
+     * of control over the volume (level) of the audio (to be) played back by
+     * the specified <tt>Renderer</tt>.
+     *
+     * @param renderer the <tt>Renderer</tt> on which the specified
+     * <tt>volumeControl</tt> is to be set
+     * @param volumeControl the <tt>VolumeControl</tt> to be set on the
+     * specified <tt>renderer</tt>
+     */
+    public static void setVolumeControl(
+            Renderer renderer,
+            VolumeControl volumeControl)
+    {
+        if (renderer instanceof AbstractAudioRenderer)
+        {
+            AbstractAudioRenderer<?> abstractAudioRenderer
+                = (AbstractAudioRenderer<?>) renderer;
+
+            abstractAudioRenderer.setVolumeControl(volumeControl);
+        }
     }
 }

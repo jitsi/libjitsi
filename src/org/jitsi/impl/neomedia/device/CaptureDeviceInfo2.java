@@ -13,6 +13,7 @@ import javax.media.*;
  * <tt>CaptureDeviceInfo</tt>.
  *
  * @author Vincent Lucas
+ * @author Lyubomir Marinov
  */
 public class CaptureDeviceInfo2
     extends CaptureDeviceInfo
@@ -40,7 +41,8 @@ public class CaptureDeviceInfo2
      * the new instance, the constructor is to be used when a
      * <tt>CaptureDeviceInfo</tt> exists for other purposes already; otherwise,
      * it is preferable to use
-     * {@link #CaptureDeviceInfo2(String, MediaLocator, Format[], String, String, String)}.
+     * {@link #CaptureDeviceInfo2(String, MediaLocator, Format[], String,
+     * String, String)}.
      *
      * @param captureDeiceInfo the <tt>CaptureDeviceInfo</tt> whose properties
      * are to be copied into the new instance

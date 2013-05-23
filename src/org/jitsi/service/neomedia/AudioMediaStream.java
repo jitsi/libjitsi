@@ -58,6 +58,17 @@ public interface AudioMediaStream
                                             SimpleAudioLevelListener listener);
 
     /**
+     * Sets the <tt>VolumeControl</tt> which is to control the volume (level)
+     * of the audio received in/by this <tt>AudioMediaStream</tt> and played
+     * back.
+     * 
+     * @param outputVolumeControl the <tt>VolumeControl</tt> which is to control
+     * the volume (level) of the audio received in this
+     * <tt>AudioMediaStream</tt> and played back
+     */
+    public void setOutputVolumeControl(VolumeControl outputVolumeControl);
+
+    /**
      * Sets <tt>listener</tt> as the <tt>SimpleAudioLevelListener</tt>
      * registered to receive notifications for changes in the levels of the
      * party that's at the other end of this stream.

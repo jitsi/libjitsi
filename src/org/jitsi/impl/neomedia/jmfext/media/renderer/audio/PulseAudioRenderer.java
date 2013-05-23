@@ -16,6 +16,7 @@ import javax.media.format.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.pulseaudio.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -60,8 +61,6 @@ public class PulseAudioRenderer
      */
     private String dev;
 
-    private final GainControl gainControl;
-
     private float gainControlLevel;
 
     private final String mediaRole;
@@ -95,7 +94,12 @@ public class PulseAudioRenderer
      */
     public PulseAudioRenderer(String mediaRole)
     {
-        super(PulseAudioSystem.getPulseAudioSystem());
+        super(
+                PulseAudioSystem.getPulseAudioSystem(),
+                ((mediaRole == null)
+                        || PulseAudioSystem.MEDIA_ROLE_PHONE.equals(mediaRole))
+                    ? AudioSystem.DataFlow.PLAYBACK
+                    : AudioSystem.DataFlow.NOTIFY);
 
         if (audioSystem == null)
             throw new IllegalStateException("audioSystem");
@@ -104,28 +108,9 @@ public class PulseAudioRenderer
             = (mediaRole == null)
                 ? PulseAudioSystem.MEDIA_ROLE_PHONE
                 : mediaRole;
-
-        if (PulseAudioSystem.MEDIA_ROLE_PHONE.equals(this.mediaRole))
-        {
-            /*
-             * XXX The Renderer implementations are probed for their
-             * supportedInputFormats during the initialization of
-             * MediaServiceImpl so the latter may not be available at this time.
-             * Which is not much of a problem given than the GainControl is of
-             * no interest during the probing of the supportedInputFormats.
-             */
-            MediaServiceImpl mediaServiceImpl
-                = NeomediaServiceUtils.getMediaServiceImpl();
-
-            gainControl
-                = (mediaServiceImpl == null)
-                    ? null
-                    : (GainControl) mediaServiceImpl.getOutputVolumeControl();
-        }
-        else
-            gainControl = null;
     }
 
+    @Override
     public void close()
     {
         audioSystem.lockMainloop();
@@ -216,6 +201,7 @@ public class PulseAudioRenderer
         return SUPPORTED_INPUT_FORMATS.clone();
     }
 
+    @Override
     public void open()
         throws ResourceUnavailableException
     {
@@ -346,7 +332,10 @@ public class PulseAudioRenderer
                             stream,
                             writeCallback);
 
-                    if (!SOFTWARE_GAIN && (gainControl != null))
+                    GainControl gainControl;
+
+                    if (!SOFTWARE_GAIN
+                            && ((gainControl = getGainControl()) != null))
                     {
                         cvolume = PA.cvolume_new();
 
@@ -516,13 +505,15 @@ public class PulseAudioRenderer
             if (length < writableSize)
                 writableSize = length;
 
+            GainControl gainControl = getGainControl();
+
             if (gainControl != null)
             {
                 if (SOFTWARE_GAIN || (cvolume == 0))
                 {
                     if (length > 0)
                     {
-                        AbstractVolumeControl.applyGain(
+                        BasicVolumeControl.applyGain(
                                 gainControl,
                                 data, offset, writableSize);
                     }
@@ -564,7 +555,7 @@ public class PulseAudioRenderer
     {
         int volume
             = PA.sw_volume_from_linear(
-                    level * (AbstractVolumeControl.MAX_VOLUME_PERCENT / 100));
+                    level * (BasicVolumeControl.MAX_VOLUME_PERCENT / 100));
 
         PA.cvolume_set(cvolume, channels, volume);
 
