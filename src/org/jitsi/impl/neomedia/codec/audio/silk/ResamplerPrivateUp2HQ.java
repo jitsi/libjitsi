@@ -8,7 +8,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Upsample by a factor 2, high quality.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -16,8 +16,8 @@ public class ResamplerPrivateUp2HQ
 {
     /**
      * Upsample by a factor 2, high quality.
-     * Uses 2nd order allpass filters for the 2x upsampling, followed by a      
-     * notch filter just above Nyquist.   
+     * Uses 2nd order allpass filters for the 2x upsampling, followed by a
+     * notch filter just above Nyquist.
      * @param S Resampler state [ 6 ].
      * @param S_offset offset of valid data.
      * @param out Output signal [ 2 * len ].
@@ -43,9 +43,9 @@ public class ResamplerPrivateUp2HQ
         assert( ResamplerRom.SKP_Silk_resampler_up2_hq_0[ 1 ] < 0 );
         assert( ResamplerRom.SKP_Silk_resampler_up2_hq_1[ 0 ] > 0 );
         assert( ResamplerRom.SKP_Silk_resampler_up2_hq_1[ 1 ] < 0 );
-        
+
         /* Internal variables and state are in Q10 format */
-        for( k = 0; k < len; k++ ) 
+        for( k = 0; k < len; k++ )
         {
             /* Convert to Q10 */
             in32 = in[ in_offset+k ] << 10;
@@ -67,9 +67,9 @@ public class ResamplerPrivateUp2HQ
             out32_2 = Macros.SKP_SMLAWB( out32_2, S[ S_offset+4 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 1 ] );
             out32_1 = Macros.SKP_SMLAWB( out32_2, S[ S_offset+4 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 0 ] );
             S[ S_offset+5 ]  = out32_2 - S[ S_offset+5 ];
-            
+
             /* Apply gain in Q15, convert back to int16 and store to output */
-            out[ out_offset + 2 * k ] = (short)SigProcFIX.SKP_SAT16( 
+            out[ out_offset + 2 * k ] = (short)SigProcFIX.SKP_SAT16(
                 Macros.SKP_SMLAWB( 256, out32_1, ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 3 ] ) >> 9 );
 
             /* First all-pass section for odd output sample */
@@ -89,13 +89,13 @@ public class ResamplerPrivateUp2HQ
             out32_2 = Macros.SKP_SMLAWB( out32_2, S[ S_offset+5 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 1 ] );
             out32_1 = Macros.SKP_SMLAWB( out32_2, S[ S_offset+5 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 0 ] );
             S[ S_offset+4 ]  = out32_2 - S[ S_offset+4 ];
-            
+
             /* Apply gain in Q15, convert back to int16 and store to output */
-            out[ out_offset + 2 * k + 1 ] = (short)SigProcFIX.SKP_SAT16(  
+            out[ out_offset + 2 * k + 1 ] = (short)SigProcFIX.SKP_SAT16(
                 Macros.SKP_SMLAWB( 256, out32_1, ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 3 ] ) >> 9 );
         }
     }
-    
+
     /**
      * the wrapper method.
      * @param SS Resampler state (unused).

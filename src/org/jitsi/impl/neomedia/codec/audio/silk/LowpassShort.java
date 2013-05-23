@@ -6,19 +6,19 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
-/**                                                                   
- * First order low-pass filter, with input as SKP_int16, running at     
- * 48 kHz     
- *                                                           
+/**
+ * First order low-pass filter, with input as SKP_int16, running at
+ * 48 kHz
+ *
  * @author Dingxin Xu
  */
-public class LowpassShort 
+public class LowpassShort
 {
     /**
      * First order low-pass filter, with input as SKP_int16, running at 48 kHz.
      * @param in Q15 48 kHz signal; [len]
      * @param in_offset offset of valid data.
-     * @param S Q25 state; length = 1 
+     * @param S Q25 state; length = 1
      * @param S_offset offset of valid data.
      * @param out Q25 48 kHz signal; [len]
      * @param out_offset offset of valid data.
@@ -36,9 +36,9 @@ public class LowpassShort
     {
         int        k;
         int    in_tmp, out_tmp, state;
-        
+
         state = S[ S_offset + 0 ];
-        for( k = 0; k < len; k++ ) {    
+        for( k = 0; k < len; k++ ) {
             in_tmp   = ( 768 * in[in_offset + k] );    /* multiply by 0.75, going from Q15 to Q25 */
             out_tmp  = state + in_tmp;                      /* zero at nyquist                         */
             state    = in_tmp - ( out_tmp >> 1 );   /* pole                                    */

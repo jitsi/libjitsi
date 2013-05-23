@@ -215,7 +215,7 @@ public class CaptureDeviceDelegatePullBufferDataSource
                 : new FormatControl[0];
     }
 
-    
+
     /**
      * Implements {@link CaptureDevice#getCaptureDeviceInfo()}. Delegates to the
      * wrapped <tt>CaptureDevice</tt> if available; otherwise, returns

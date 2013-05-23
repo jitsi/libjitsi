@@ -70,6 +70,7 @@ public class LibJitsiOSGiImpl
      * known to this implementation of the <tt>libjitsi</tt> library; otherwise,
      * <tt>null</tt>
      */
+    @Override
     protected <T> T getService(Class<T> serviceClass)
     {
         @SuppressWarnings("rawtypes")

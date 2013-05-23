@@ -96,7 +96,7 @@ public class SDesControlImpl
 
     public void cleanup()
     {
-        if (engine != null) 
+        if (engine != null)
         {
             engine.close();
             engine = null;
@@ -191,7 +191,7 @@ public class SDesControlImpl
      * Chooses a supported crypto attribute from the peer's list of supplied
      * attributes and creates the local crypto attribute. Used when the control
      * is running in the role as responder.
-     * 
+     *
      * @param peerAttributes The peer's crypto attribute offering.
      *
      * @return The local crypto attribute for the answer of the offer or null if
@@ -220,7 +220,7 @@ public class SDesControlImpl
      * Select the local crypto attribute from the initial offering (@see
      * {@link #getInitiatorCryptoAttributes()}) based on the peer's first
      * matching cipher suite.
-     * 
+     *
      * @param peerAttributes The peer's crypto offers.
      *
      * @return A SrtpCryptoAttribute when a matching cipher suite was found.

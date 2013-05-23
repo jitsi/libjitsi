@@ -11,7 +11,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class ResamplerPrivateCopy 
+public class ResamplerPrivateCopy
 {
     /**
      * Simple copy.

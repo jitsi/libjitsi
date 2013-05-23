@@ -9,13 +9,13 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 /**
  * This file has been automatically generated.
  * ROM usage:  5.32 kB
- * 
+ *
  * @author Dingxin Xu
  */
-public class TablesNLSFCB010FLP 
-{    
+public class TablesNLSFCB010FLP
+{
 //    const SKP_float SKP_Silk_NLSF_MSVQ_CB0_10_rates[ NLSF_MSVQ_CB0_10_VECTORS ] =
-    static final float SKP_Silk_NLSF_MSVQ_CB0_10_rates[] = 
+    static final float SKP_Silk_NLSF_MSVQ_CB0_10_rates[] =
     {
           4.62500000000000000000f,      5.21875000000000000000f,
           5.28125000000000000000f,      5.31250000000000000000f,
@@ -699,7 +699,7 @@ public class TablesNLSFCB010FLP
           0.01083374023437500000f,      0.01101684570312499800f,
          -0.00137329101562500000f,     -0.00595092773437500000f
     };
-    
+
 //    const SKP_Silk_NLSF_CBS_FLP SKP_Silk_NLSF_CB0_10_Stage_info_FLP[ NLSF_MSVQ_CB0_10_STAGES ] =
 //    {
 //            {  64, &SKP_Silk_NLSF_MSVQ_CB0_10[ 10 *   0 ], &SKP_Silk_NLSF_MSVQ_CB0_10_rates[   0 ] },

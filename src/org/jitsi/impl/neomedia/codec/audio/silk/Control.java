@@ -12,7 +12,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class Control 
+public class Control
 {
 }
 
@@ -42,13 +42,13 @@ class SKP_SILK_SDK_EncControlStruct
     /**
      * (Input) Bitrate during active speech in bits/second; internally limited.
      */
-    int bitRate;                        
+    int bitRate;
 
     /**
      * (Inpupt) Uplink packet loss in percent (0-100).
      */
     int packetLossPercentage;
-    
+
     /**
      * (Input) Complexity mode; 0 is lowest; 1 is medium and 2 is highest complexity.
      */
@@ -96,4 +96,4 @@ class SKP_SILK_SDK_DecControlStruct
      * (Output) Distance between main payload and redundant payload in packets.
      */
     int inBandFECOffset;
-} 
+}

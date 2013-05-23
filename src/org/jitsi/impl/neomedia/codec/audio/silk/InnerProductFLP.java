@@ -8,11 +8,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * inner product of two SKP_float arrays, with result as double.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class InnerProductFLP 
+public class InnerProductFLP
 {
     /**
      * inner product of two SKP_float arrays, with result as double.
@@ -37,16 +37,16 @@ public class InnerProductFLP
         /* 4x unrolled loop */
         result = 0.0f;
         dataSize4 = dataSize & 0xFFFC;
-        for( i = 0; i < dataSize4; i += 4 ) 
+        for( i = 0; i < dataSize4; i += 4 )
         {
-            result += data1[ data1_offset + i + 0 ] * data2[ data2_offset + i + 0 ] + 
+            result += data1[ data1_offset + i + 0 ] * data2[ data2_offset + i + 0 ] +
                       data1[ data1_offset + i + 1 ] * data2[ data2_offset + i + 1 ] +
                       data1[ data1_offset + i + 2 ] * data2[ data2_offset + i + 2 ] +
                       data1[ data1_offset + i + 3 ] * data2[ data2_offset + i + 3 ];
         }
 
         /* add any remaining products */
-        for( ; i < dataSize; i++ ) 
+        for( ; i < dataSize; i++ )
         {
             result += data1[ data1_offset+i ] * data2[ data2_offset+i ];
         }

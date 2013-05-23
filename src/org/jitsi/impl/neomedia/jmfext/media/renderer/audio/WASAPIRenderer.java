@@ -146,7 +146,7 @@ public class WASAPIRenderer
 
     /**
      * The number of channels which which this <tt>Renderer</tt> has been
-     * opened. 
+     * opened.
      */
     private int srcChannels;
 
@@ -366,7 +366,7 @@ public class WASAPIRenderer
                         /*
                          * We will very likely be inefficient if we fail to
                          * synchronize with the scheduling period of the audio
-                         * engine but we have to make do with what we have. 
+                         * engine but we have to make do with what we have.
                          */
                         if (periodicity <= 1)
                         {

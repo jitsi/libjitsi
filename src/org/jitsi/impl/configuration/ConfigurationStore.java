@@ -49,7 +49,7 @@ public interface ConfigurationStore
 
     /**
      * Determines whether a specific name stands for a system property.
-     * 
+     *
      * @param name the name of a property which is to be determined whether it
      * is a system property
      * @return <tt>true</tt> if the specified name stands for a system property;

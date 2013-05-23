@@ -154,6 +154,7 @@ public class PushBufferDataSourceAdapter
      * @return an array of <tt>PushBufferStream</tt>s through which this
      * <tt>PushBufferDataSource</tt> gives access to its media data
      */
+    @Override
     public PushBufferStream[] getStreams()
     {
         synchronized (streams)
@@ -459,7 +460,7 @@ public class PushBufferDataSourceAdapter
                  * implementation (e.g. PortAudio) a little time to possibly get
                  * its act together.
                  */
-                yield = (!bufferIsWritten && (streamReadException != null)); 
+                yield = (!bufferIsWritten && (streamReadException != null));
             }
 
             if (bufferIsWritten)

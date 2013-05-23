@@ -300,7 +300,7 @@ public class SwScale
         /* if size is set for element 0 (YUVFormat), it is also set
          * for element 1 (RGBFormat) and so on...
          */
-        Dimension size = ((VideoFormat) supportedOutputFormats[0]).getSize();
+        Dimension size = supportedOutputFormats[0].getSize();
 
         /* no specified size set so return the same size as input
          * in output format supported
@@ -622,7 +622,7 @@ public class SwScale
     /**
      * Sets the size i.e. width and height of the current <tt>outputFormat</tt>
      * of this <tt>SwScale</tt>
-     * 
+     *
      * @param size the size i.e. width and height to be set on the current
      * <tt>outputFormat</tt> of this <tt>SwScale</tt>
      */

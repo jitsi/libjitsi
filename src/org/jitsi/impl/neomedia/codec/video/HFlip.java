@@ -107,6 +107,7 @@ public class HFlip
      *
      * @see AbstractCodecExt#doClose()
      */
+    @Override
     protected synchronized void doClose()
     {
         try
@@ -130,6 +131,7 @@ public class HFlip
      * cannot be allocated
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected synchronized void doOpen()
         throws ResourceUnavailableException
     {
@@ -153,6 +155,7 @@ public class HFlip
      * @return <tt>BUFFER_PROCESSED_OK</tt> if the processing is successful
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
+    @Override
     protected synchronized int doProcess(
             Buffer inputBuffer,
             Buffer outputBuffer)

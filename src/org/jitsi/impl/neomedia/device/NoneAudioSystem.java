@@ -23,6 +23,7 @@ public class NoneAudioSystem
         super(LOCATOR_PROTOCOL);
     }
 
+    @Override
     protected void doInitialize()
         throws Exception
     {

@@ -52,14 +52,14 @@ class PredLt3
  * @param exc_offset     input: excitation vector offset
  * @param t0             input : pitch lag
  * @param frac           input : Fraction of pitch lag (-1, 0, 1)  / 3
- * @param l_subfr        input : length of subframe.  
+ * @param l_subfr        input : length of subframe.
  */
-static void pred_lt_3(         
-  float[] exc,          
+static void pred_lt_3(
+  float[] exc,
   int exc_offset,
-  int t0,               
-  int frac,             
-  int l_subfr           
+  int t0,
+  int frac,
+  int l_subfr
 )
 {
   int L_INTER10 = Ld8k.L_INTER10;

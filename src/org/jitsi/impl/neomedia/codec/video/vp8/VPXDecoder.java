@@ -99,6 +99,7 @@ public class VPXDecoder
     /**
      * {@inheritDoc}
      */
+    @Override
     protected void doClose()
     {
         if(logger.isDebugEnabled())
@@ -118,6 +119,7 @@ public class VPXDecoder
      *
      * @throws ResourceUnavailableException if initialization failed
      */
+    @Override
     protected void doOpen() throws ResourceUnavailableException
     {
         context = VPX.codec_ctx_malloc();
@@ -144,6 +146,7 @@ public class VPXDecoder
      * @return <tt>BUFFER_PROCESSED_OK</tt> if <tt>inBuffer</tt> has been
      * successfully processed
      */
+    @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
         if(leftoverFrames)
@@ -242,6 +245,7 @@ public class VPXDecoder
      * @return array of matching outputs or null if there are no matching
      * outputs.
      */
+    @Override
     protected Format[] getMatchingOutputFormats(Format inputFormat)
     {
         VideoFormat inputVideoFormat = (VideoFormat) inputFormat;

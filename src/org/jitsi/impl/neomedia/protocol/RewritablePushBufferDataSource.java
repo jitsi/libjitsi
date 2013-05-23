@@ -68,6 +68,7 @@ public class RewritablePushBufferDataSource
      * @return an array of <tt>PushBufferStream</tt> instances with enabled mute
      * support
      */
+    @Override
     public PushBufferStream[] getStreams()
     {
         PushBufferStream[] streams = dataSource.getStreams();

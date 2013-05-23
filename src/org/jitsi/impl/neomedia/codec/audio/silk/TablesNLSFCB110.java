@@ -13,12 +13,12 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class TablesNLSFCB110 
+public class TablesNLSFCB110
 {
     static final int NLSF_MSVQ_CB1_10_STAGES =      6;
     static final int NLSF_MSVQ_CB1_10_VECTORS =     72;
-        
-    static final int[] SKP_Silk_NLSF_MSVQ_CB1_10_CDF = 
+
+    static final int[] SKP_Silk_NLSF_MSVQ_CB1_10_CDF =
     {
                 0,
             17096,
@@ -102,18 +102,18 @@ public class TablesNLSFCB110
 
     static private int [] SKP_Silk_NLSF_MSVQ_CB1_10_CDF_0
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_10_CDF, 0, SKP_Silk_NLSF_MSVQ_CB1_10_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB1_10_CDF_33 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB1_10_CDF_33
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_10_CDF, 33, SKP_Silk_NLSF_MSVQ_CB1_10_CDF.length);
     static private int [] SKP_Silk_NLSF_MSVQ_CB1_10_CDF_42
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_10_CDF, 42, SKP_Silk_NLSF_MSVQ_CB1_10_CDF.length);
     static private int [] SKP_Silk_NLSF_MSVQ_CB1_10_CDF_51
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_10_CDF, 51, SKP_Silk_NLSF_MSVQ_CB1_10_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB1_10_CDF_60 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB1_10_CDF_60
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_10_CDF, 60, SKP_Silk_NLSF_MSVQ_CB1_10_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB1_10_CDF_69 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB1_10_CDF_69
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_10_CDF, 69, SKP_Silk_NLSF_MSVQ_CB1_10_CDF.length);
 
-    static final int[][] SKP_Silk_NLSF_MSVQ_CB1_10_CDF_start_ptr = 
+    static final int[][] SKP_Silk_NLSF_MSVQ_CB1_10_CDF_start_ptr =
     {
         SKP_Silk_NLSF_MSVQ_CB1_10_CDF_0,
         SKP_Silk_NLSF_MSVQ_CB1_10_CDF_33,
@@ -121,7 +121,7 @@ public class TablesNLSFCB110
         SKP_Silk_NLSF_MSVQ_CB1_10_CDF_51,
         SKP_Silk_NLSF_MSVQ_CB1_10_CDF_60,
         SKP_Silk_NLSF_MSVQ_CB1_10_CDF_69
-        
+
     };
 
     static final int[] SKP_Silk_NLSF_MSVQ_CB1_10_CDF_middle_idx =
@@ -174,7 +174,7 @@ public class TablesNLSFCB110
                    99,              103
     };
 
-    static final int[] SKP_Silk_NLSF_MSVQ_CB1_10_ndelta_min_Q15 =    
+    static final int[] SKP_Silk_NLSF_MSVQ_CB1_10_ndelta_min_Q15 =
     {
                   462,
                     3,
@@ -562,7 +562,7 @@ public class TablesNLSFCB110
         new SKP_Silk_NLSF_CBS(8, SKP_Silk_NLSF_MSVQ_CB1_10_Q15, 10 *  56, SKP_Silk_NLSF_MSVQ_CB1_10_rates_Q5, 56 ),
         new SKP_Silk_NLSF_CBS(8, SKP_Silk_NLSF_MSVQ_CB1_10_Q15, 10 *  64, SKP_Silk_NLSF_MSVQ_CB1_10_rates_Q5, 64 ),
     };
-    
+
     static final  SKP_Silk_NLSF_CB_struct SKP_Silk_NLSF_CB1_10 =
         new SKP_Silk_NLSF_CB_struct
     (

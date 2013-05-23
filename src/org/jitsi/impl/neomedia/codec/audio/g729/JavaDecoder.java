@@ -91,6 +91,7 @@ public class JavaDecoder
     /*
      * Implements AbstractCodecExt#doClose().
      */
+    @Override
     protected void doClose()
     {
         serial = null;
@@ -109,6 +110,7 @@ public class JavaDecoder
      * <tt>Codec</tt> needs to operate cannot be acquired
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected void doOpen()
         throws ResourceUnavailableException
     {
@@ -120,6 +122,7 @@ public class JavaDecoder
     /*
      * Implements AbstractCodecExt#doProcess(Buffer, Buffer).
      */
+    @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
         byte[] input = (byte[]) inputBuffer.getData();

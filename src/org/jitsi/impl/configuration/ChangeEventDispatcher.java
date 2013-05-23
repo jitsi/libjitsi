@@ -232,7 +232,7 @@ public class ChangeEventDispatcher
      *              change to be rolled back.
      */
     public void fireVetoableChange(String propertyName,
-                                   Object oldValue, Object newValue) 
+                                   Object oldValue, Object newValue)
         //throws PropertyVetoException
     {
         if (vetoableChangeListeners != null || vetoableChangeChildren != null)
@@ -255,7 +255,7 @@ public class ChangeEventDispatcher
      * @exception PropertyVetoException if at least one of the recipients has
      * vetoed the change.
      */
-    public void fireVetoableChange(PropertyChangeEvent evt) 
+    public void fireVetoableChange(PropertyChangeEvent evt)
         // throws PropertyVetoException
     {
         Object oldValue = evt.getOldValue();

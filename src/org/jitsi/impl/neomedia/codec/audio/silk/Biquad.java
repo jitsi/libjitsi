@@ -7,12 +7,12 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * Second order ARMA filter 
+ * Second order ARMA filter
  * Can handle slowly varying filter coefficients
  *
  * @author Jing Dai
  */
-public class Biquad 
+public class Biquad
 {
     /**
      * Second order ARMA filter
@@ -51,7 +51,7 @@ public class Biquad
 
             S0 = Macros.SKP_SMLABB( S1, in16, B[ 1 ] );
             S0 += ( Macros.SKP_SMULWB( out32, A0_neg ) << 3 );
-            
+
 
             S1 = ( Macros.SKP_SMULWB( out32, A1_neg ) << 3 );
             S1 = Macros.SKP_SMLABB( S1, in16, B[ 2 ] );

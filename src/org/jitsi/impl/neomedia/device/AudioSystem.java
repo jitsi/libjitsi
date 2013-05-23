@@ -72,7 +72,7 @@ public abstract class AudioSystem
      * preferred playback and notification audio devices.
      */
     public static final int FEATURE_NOTIFY_AND_PLAYBACK_DEVICES = 8;
-    
+
     public static final String LOCATOR_PROTOCOL_AUDIORECORD = "audiorecord";
 
     public static final String LOCATOR_PROTOCOL_JAVASOUND = "javasound";
@@ -532,7 +532,7 @@ public abstract class AudioSystem
      * specific new value. <tt>PropertyChangeNotifier</tt> does not check
      * whether the specified <tt>oldValue</tt> and <tt>newValue</tt> are indeed
      * different.
-     * 
+     *
      * @param property the name of the property of this
      * <tt>PropertyChangeNotifier</tt> which had its value changed
      * @param oldValue the value of the property with the specified name before

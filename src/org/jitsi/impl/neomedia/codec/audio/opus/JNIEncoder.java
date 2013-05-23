@@ -81,7 +81,7 @@ public class JNIEncoder
          * If the Opus class or its supporting JNI library are not functional,
          * it is too late to discover the fact in #doOpen() because a JNIEncoder
          * instance has already been initialized and it has already signaled
-         * that the Opus codec is supported. 
+         * that the Opus codec is supported.
          */
         Opus.assertOpusIsFunctional();
 
@@ -212,6 +212,7 @@ public class JNIEncoder
      *
      * @see AbstractCodecExt#doClose()
      */
+    @Override
     protected void doClose()
     {
         if (encoder != 0)
@@ -232,6 +233,7 @@ public class JNIEncoder
      * <tt>Codec</tt> needs to operate cannot be acquired
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected void doOpen()
         throws ResourceUnavailableException
     {
@@ -304,11 +306,12 @@ public class JNIEncoder
      * @param inBuffer the <tt>Buffer</tt> from which the media to be encoded is
      * to be read
      * @param outBuffer the <tt>Buffer</tt> into which the encoded media is to
-     * be written 
+     * be written
      * @return <tt>BUFFER_PROCESSED_OK</tt> if the specified <tt>inBuffer</tt>
      * has been processed successfully
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
+    @Override
     protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
         Format inFormat = inBuffer.getFormat();
@@ -422,7 +425,7 @@ public class JNIEncoder
      * does not provide user interface of its own.
      *
      * @return <tt>null</tt> to signify that <tt>JNIEncoder</tt> does not
-     * provide user interface of its own 
+     * provide user interface of its own
      */
     public Component getControlComponent()
     {

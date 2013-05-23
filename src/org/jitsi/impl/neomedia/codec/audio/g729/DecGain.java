@@ -52,12 +52,12 @@ private final float[/* 4 */] past_qua_en={-14.0f,-14.0f,-14.0f,-14.0f};
  * @param gain_code     output: quantized fcb gain
  */
 void dec_gain(
- int index,        
- float code[],        
- int l_subfr,           
- int bfi,              
- FloatReference gain_pit,    
- FloatReference gain_code      
+ int index,
+ float code[],
+ int l_subfr,
+ int bfi,
+ FloatReference gain_pit,
+ FloatReference gain_code
 )
 {
    int NCODE2 = Ld8k.NCODE2;

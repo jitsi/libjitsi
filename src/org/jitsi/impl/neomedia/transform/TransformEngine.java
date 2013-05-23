@@ -10,7 +10,7 @@ package org.jitsi.impl.neomedia.transform;
  * Defines how to get <tt>PacketTransformer</tt>s for RTP and RTCP packets. A
  * single <tt>PacketTransformer</tt> can be used for both RTP and RTCP packets
  * or there can be two separate <tt>PacketTransformer</tt>s.
- * 
+ *
  * @author Bing SU (nova.su@gmail.com)
  */
 public interface TransformEngine

@@ -36,12 +36,13 @@ class SKP_Silk_nsq_state implements Cloneable
     int     rand_seed;
     int     prev_inv_gain_Q16;
     int     rewhite_flag;
-    
+
     /**
      * override clone mthod.
      */
     //TODO:
-    public Object clone() 
+    @Override
+    public Object clone()
     {
         SKP_Silk_nsq_state clone = null;
         try {
@@ -52,7 +53,7 @@ class SKP_Silk_nsq_state implements Cloneable
         }
         return clone;
     }
-    
+
     /**
      * set all fields of the instance to zero
      */
@@ -62,20 +63,20 @@ class SKP_Silk_nsq_state implements Cloneable
         Arrays.fill(this.sLPC_Q14, 0);
         Arrays.fill(this.sLTP_shp_Q10, 0);
         Arrays.fill(this.xq, (short)0);
-        
+
         this.lagPrev = 0;
         this.prev_inv_gain_Q16 = 0;
         this.rand_seed = 0;
         this.rewhite_flag = 0;
         this.sLF_AR_shp_Q12 = 0;
         this.sLTP_buf_idx = 0;
-        this.sLTP_shp_buf_idx = 0;       
+        this.sLTP_shp_buf_idx = 0;
     }
 }/* FIX*/
 
 /**
  * Class for Low BitRate Redundant (LBRR) information.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -84,7 +85,7 @@ class SKP_SILK_LBRR_struct
     byte[]        payload = new byte[Define.MAX_ARITHM_BYTES];
     int         nBytes;                         /* Number of bytes in payload                               */
     int         usage;                          /* Tells how the payload should be used as FEC              */
-    
+
     public void memZero()
     {
         this.nBytes = 0;
@@ -95,7 +96,7 @@ class SKP_SILK_LBRR_struct
 
 /**
  * VAD state.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -111,11 +112,11 @@ class SKP_Silk_VAD_state
     int[]     inv_NL = new int[ Define.VAD_N_BANDS ];          /* Inverse noise energy level in each band                  */
     int[]     NoiseLevelBias = new int[ Define.VAD_N_BANDS ];  /* Noise level estimator bias/offset                        */
     int   counter;                        /* Frame counter used in the initial phase                  */
-} 
+}
 
 /**
  * Range encoder/decoder state.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -123,15 +124,15 @@ class SKP_Silk_range_coder_state
 {
     int   bufferLength;
     int   bufferIx;
-    long  base_Q32;        
-    long  range_Q16;         
+    long  base_Q32;
+    long  range_Q16;
     int   error;
     byte[] buffer = new byte[Define.MAX_ARITHM_BYTES];/* Buffer containing payload                                */
-} 
+}
 
 /**
  * Input frequency range detection struct.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -146,11 +147,11 @@ class SKP_Silk_detect_SWB_state
 
 /**
  * Variable cut-off low-pass filter state.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-class SKP_Silk_LP_state 
+class SKP_Silk_LP_state
 {
     int[] In_LP_State = new int[ 2 ];           /* Low pass filter state */
     int   transition_frame_no;        /* Counter which is mapped to a cut-off frequency */
@@ -159,7 +160,7 @@ class SKP_Silk_LP_state
 
 /**
  * Class for one stage of MSVQ.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -188,15 +189,15 @@ class SKP_Silk_NLSF_CBS
     int      nVectors;
     short[]   CB_NLSF_Q15;
     short[]   Rates_Q5;
-}    
+}
 
 /**
  * Class containing NLSF MSVQ codebook.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-class SKP_Silk_NLSF_CB_struct 
+class SKP_Silk_NLSF_CB_struct
 {
     public SKP_Silk_NLSF_CB_struct(int nStates, SKP_Silk_NLSF_CBS[] CBStages, int[] NDeltaMin_Q15,
                                     int[] CDF, int[][] StartPtr, int[] MiddleIx)
@@ -207,7 +208,7 @@ class SKP_Silk_NLSF_CB_struct
         this.NDeltaMin_Q15 = NDeltaMin_Q15;
         this.nStages       = nStates;
         this.StartPtr      = StartPtr;
-        
+
     }
     public SKP_Silk_NLSF_CB_struct()
     {
@@ -217,7 +218,7 @@ class SKP_Silk_NLSF_CB_struct
     int                 nStages;
 
     /* Fields for (de)quantizing */
-//TODO:CBStates should be defined as an array or an object reference?  
+//TODO:CBStates should be defined as an array or an object reference?
     SKP_Silk_NLSF_CBS[]     CBStages;
     int[]                 NDeltaMin_Q15;
 
@@ -229,7 +230,7 @@ class SKP_Silk_NLSF_CB_struct
 
 /**
  * Encoder state.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -281,7 +282,7 @@ class SKP_Silk_encoder_state
 
     SKP_Silk_NLSF_CB_struct[]   psNLSF_CB = new SKP_Silk_NLSF_CB_struct[ 2 ];                /* Pointers to voiced/unvoiced NLSF codebooks */
 
-    /* Struct for Inband LBRR */ 
+    /* Struct for Inband LBRR */
     SKP_SILK_LBRR_struct[]      LBRR_buffer = new SKP_SILK_LBRR_struct[ Define.MAX_LBRR_DELAY ];
     /*
      * LBRR_buffer is an array of references, which has to be created manually.
@@ -294,7 +295,7 @@ class SKP_Silk_encoder_state
     }
     int                         oldest_LBRR_idx;
     int                         useInBandFEC;                   /* Saves the API setting for query                                      */
-    int                         LBRR_enabled;                   
+    int                         LBRR_enabled;
     int                         LBRR_GainIncreases;             /* Number of shifts to Gains to get LBRR rate Voiced frames             */
 
     /* Bitrate control */
@@ -320,7 +321,7 @@ class SKP_Silk_encoder_state
 
 /**
  * Encoder control.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -348,7 +349,7 @@ class SKP_Silk_encoder_control
 
 /**
  * Class for Packet Loss Concealment.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -366,10 +367,10 @@ class SKP_Silk_encoder_control
     int[]     prevGain_Q16 = new int[ Define.NB_SUBFR ];
     int       fs_kHz;
 }
- 
+
  /**
   * Class for CNG.
-  * 
+  *
   * @author Jing Dai
   * @author Dingxin Xu
   */
@@ -382,10 +383,10 @@ class SKP_Silk_encoder_control
      int     rand_seed;
      int     fs_kHz;
  }
- 
+
  /**
   * Deocder state
-  * 
+  *
   * @author Jing Dai
   * @author Dingxin Xu
   */
@@ -428,8 +429,8 @@ class SKP_Silk_encoder_control
     /* Parameters used to investigate if inband FEC is used */
     int         vadFlag;
     int         no_FEC_counter;                             /* Counts number of frames wo inband FEC                                */
-    int         inband_FEC_offset;                          /* 0: no FEC, 1: FEC with 1 packet offset, 2: FEC w 2 packets offset    */ 
-  
+    int         inband_FEC_offset;                          /* 0: no FEC, 1: FEC with 1 packet offset, 2: FEC w 2 packets offset    */
+
     SKP_Silk_CNG_struct sCNG = new SKP_Silk_CNG_struct();
 
     /* Stuff used for PLC */
@@ -440,7 +441,7 @@ class SKP_Silk_encoder_control
 
  /**
   * Decoder control.
-  * 
+  *
   * @author Jing Dai
   * @author Dingxin Xu
   */
@@ -451,10 +452,10 @@ class SKP_Silk_decoder_control
     int[]             Gains_Q16 = new int[ Define.NB_SUBFR ];
     int               Seed;
     /* holds interpolated and final coefficients, 4-byte aligned */
-    //TODO: 
+    //TODO:
     int[]            dummy_int32PredCoef_Q12 = new int[2];
     short[][]        PredCoef_Q12 = new short[2][Define.MAX_LPC_ORDER];
-    
+
     short[]           LTPCoef_Q14 = new short[ Define.LTP_ORDER * Define.NB_SUBFR ];
     int               LTP_scale_Q14;
 

@@ -478,7 +478,7 @@ public class CachingPushBufferStream
                 if (inputLength < outputLength)
                     outputLength = inputLength;
                 System.arraycopy(
-                    (byte[]) inputData,
+                    inputData,
                     inputOffset,
                     outputBytes,
                     outputOffset,

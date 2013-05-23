@@ -3,9 +3,9 @@
  *
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
- * 
+ *
  * Some of the code in this class is derived from ccRtp's SRTP implementation,
- * which has the following copyright notice: 
+ * which has the following copyright notice:
  *
   Copyright (C) 2004-2006 the Minisip Team
 
@@ -30,16 +30,16 @@ import org.bouncycastle.crypto.*;
 /**
  * SRTPCipherCTR implements SRTP Counter Mode AES Encryption (AES-CM).
  * Counter Mode AES Encryption algorithm is defined in RFC3711, section 4.1.1.
- * 
+ *
  * Other than Null Cipher, RFC3711 defined two two encryption algorithms:
  * Counter Mode AES Encryption and F8 Mode AES encryption. Both encryption
  * algorithms are capable to encrypt / decrypt arbitrary length data, and the
- * size of packet data is not required to be a multiple of the AES block 
+ * size of packet data is not required to be a multiple of the AES block
  * size (128bit). So, no padding is needed.
- * 
+ *
  * Please note: these two encryption algorithms are specially defined by SRTP.
- * They are not common AES encryption modes, so you will not be able to find a 
- * replacement implementation in common cryptographic libraries. 
+ * They are not common AES encryption modes, so you will not be able to find a
+ * replacement implementation in common cryptographic libraries.
  *
  * As defined by RFC3711: Counter Mode Encryption is mandatory..
  *
@@ -47,10 +47,10 @@ import org.bouncycastle.crypto.*;
  * -------------------------------------------------------------------------
  *   encryption           AES-CM, NULL          AES-f8        AES-CM
  *   message integrity    HMAC-SHA1                -          HMAC-SHA1
- *   key derivation       (PRF) AES-CM             -          AES-CM 
+ *   key derivation       (PRF) AES-CM             -          AES-CM
  *
  * We use AESCipher to handle basic AES encryption / decryption.
- * 
+ *
  * @author Werner Dittmann (Werner.Dittmann@t-online.de)
  * @author Bing SU (nova.su@gmail.com)
  */
@@ -98,7 +98,7 @@ public class SRTPCipherCTR
     /**
      * Computes the cipher stream for AES CM mode. See section 4.1.1 in RFC3711
      * for detailed description.
-     * 
+     *
      * @param out
      *            byte array holding the output cipher stream
      * @param length

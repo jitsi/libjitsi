@@ -9,11 +9,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 /**
  * Upsample by a factor 4.
  * Note: very low quality, only use with output sampling rates above 96 kHz.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class ResamplerPrivateUp4 
+public class ResamplerPrivateUp4
 {
     /**
      * Upsample by a factor 4.
@@ -44,7 +44,7 @@ public class ResamplerPrivateUp4
         assert( ResamplerRom.SKP_Silk_resampler_up2_lq_1 < 0 );
 
         /* Internal variables and state are in Q10 format */
-        for( k = 0; k < len; k++ ) 
+        for( k = 0; k < len; k++ )
         {
             /* Convert to Q10 */
             in32 = in[ in_offset+k ] << 10;

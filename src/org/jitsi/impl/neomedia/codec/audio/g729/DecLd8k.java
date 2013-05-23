@@ -81,30 +81,30 @@ private final float[/* M */] lsp_old={
        0.9595f,  0.8413f,  0.6549f,  0.4154f,  0.1423f,
       -0.1423f, -0.4154f, -0.6549f, -0.8413f, -0.9595f};
 
-/** 
+/**
  * Filter's memory
  */
-private final float[] mem_syn = new float[M];      
+private final float[] mem_syn = new float[M];
 
 /**
  * pitch sharpening of previous fr
  */
-private float sharp ; 
+private float sharp ;
 
-/** 
+/**
 * integer delay of previous frame
 */
-private int old_t0;   
+private int old_t0;
 
 /**
  * fixed codebook gain
  */
-private final FloatReference gain_code = new FloatReference();  
+private final FloatReference gain_code = new FloatReference();
 
 /**
  * adaptive codebook gain
  */
-private final FloatReference gain_pitch = new FloatReference();       
+private final FloatReference gain_pitch = new FloatReference();
 
 private final DecGain decGain = new DecGain();
 private final Lspdec lspdec = new Lspdec();
@@ -141,11 +141,11 @@ void init_decod_ld8k()
  * @return              output: integer delay of first subframe
  */
 int decod_ld8k(
- int parm[],        
- int voicing,          
- float synth[],         
+ int parm[],
+ int voicing,
+ float synth[],
  int synth_offset,
- float A_t[]          
+ float A_t[]
 )
 {
    int parm_offset = 0;

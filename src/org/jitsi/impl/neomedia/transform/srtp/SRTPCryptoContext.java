@@ -305,19 +305,19 @@ public class SRTPCryptoContext
 
     /**
      * Close the crypto context.
-     * 
-     * The close functions deletes key data and performs a cleanup of the 
+     *
+     * The close functions deletes key data and performs a cleanup of the
      * crypto context.
-     * 
+     *
      * Clean up key data, maybe this is the second time however, sometimes
      * we cannot know if the CryptoCOntext was used and the application called
      * deriveSrtpKeys(...) .
-     * 
+     *
      */
     public void close()
     {
         Arrays.fill(masterKey, (byte)0);
-        Arrays.fill(masterSalt, (byte)0);        
+        Arrays.fill(masterSalt, (byte)0);
     }
 
     /**
@@ -573,7 +573,7 @@ public class SRTPCryptoContext
         final int payloadOffset = pkt.getHeaderLength();
         final int payloadLength = pkt.getPayloadLength();
 
-        SRTPCipherF8.process(cipher, pkt.getBuffer(), pkt.getOffset() + payloadOffset, 
+        SRTPCipherF8.process(cipher, pkt.getBuffer(), pkt.getOffset() + payloadOffset,
             payloadLength, ivStore, cipherF8);
     }
 

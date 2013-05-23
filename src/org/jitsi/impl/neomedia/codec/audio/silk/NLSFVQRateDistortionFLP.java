@@ -11,8 +11,8 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  *
  * @author Dingxin Xu
  */
-public class NLSFVQRateDistortionFLP 
-{     
+public class NLSFVQRateDistortionFLP
+{
     /**
      * Rate-Distortion calculations for multiple input data vectors.
      * @param pRD Rate-distortion values [psNLSF_CBS_FLP->nVectors*N]
@@ -20,9 +20,9 @@ public class NLSFVQRateDistortionFLP
      * @param in Input vectors to be quantized
      * @param w Weight vector
      * @param rate_acc Accumulated rates from previous stage
-     * @param mu Weight between weighted error and rate 
-     * @param N Number of input vectors to be quantized 
-     * @param LPC_order  LPC order 
+     * @param mu Weight between weighted error and rate
+     * @param N Number of input vectors to be quantized
+     * @param LPC_order  LPC order
      */
     static void SKP_Silk_NLSF_VQ_rate_distortion_FLP(
               float             []pRD,               /* O   Rate-distortion values [psNLSF_CBS_FLP->nVectors*N] */
@@ -40,7 +40,7 @@ public class NLSFVQRateDistortionFLP
         int   i, n;
 
         /* Compute weighted quantization errors for all input vectors over one codebook stage */
-        NLSFVQSumErrorFLP.SKP_Silk_NLSF_VQ_sum_error_FLP( pRD, in, w, psNLSF_CBS_FLP.CB, 
+        NLSFVQSumErrorFLP.SKP_Silk_NLSF_VQ_sum_error_FLP( pRD, in, w, psNLSF_CBS_FLP.CB,
                 N, psNLSF_CBS_FLP.nVectors, LPC_order );
 
         /* Loop over input vectors */

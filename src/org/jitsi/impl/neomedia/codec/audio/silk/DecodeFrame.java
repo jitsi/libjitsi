@@ -12,7 +12,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class DecodeFrame 
+public class DecodeFrame
 {
     /**
      * Decode frame.
@@ -25,8 +25,8 @@ public class DecodeFrame
      * @param nBytes payload length.
      * @param action action from Jitter buffer.
      * @param decBytes Used bytes to decoder this frame.
-     * @return the returned value carries the error message. 
-     * 0 indicates OK; other indicates error.     
+     * @return the returned value carries the error message.
+     * 0 indicates OK; other indicates error.
      */
     static int SKP_Silk_decode_frame(
         SKP_Silk_decoder_state        psDec,             /* I/O  Pointer to Silk decoder state               */
@@ -47,7 +47,7 @@ public class DecodeFrame
 
         L = psDec.frame_length;
         sDecCtrl.LTP_scale_Q14 = 0;
-        
+
         /* Safety checks */
         Typedef.SKP_assert( L > 0 && L <= Define.MAX_FRAME_LENGTH );
 
@@ -80,7 +80,7 @@ public class DecodeFrame
 
                 /* Avoid crashing */
                 decBytes[0] = psDec.sRC.bufferLength;
-                
+
                 if( psDec.sRC.error == Define.RANGE_CODER_DEC_PAYLOAD_TOO_LONG ) {
                     ret = Errors.SKP_SILK_DEC_PAYLOAD_TOO_LARGE;
                 } else {
@@ -89,7 +89,7 @@ public class DecodeFrame
             } else {
                 decBytes[0] = psDec.sRC.bufferLength - psDec.nBytesLeft;
                 psDec.nFramesDecoded++;
-            
+
                 /* Update lengths. Sampling frequency could have changed */
                 L = psDec.frame_length;
 
@@ -117,7 +117,7 @@ public class DecodeFrame
             /* Handle packet loss by extrapolation */
             PLC.SKP_Silk_PLC( psDec, sDecCtrl, pOut, pOut_offset, L, action );
             psDec.lossCnt++;
-        
+
         }
 
         /*************************/
@@ -138,7 +138,7 @@ public class DecodeFrame
         /********************************************/
         /* HP filter output                            */
         /********************************************/
-        Typedef.SKP_assert( ( ( psDec.fs_kHz == 12 ) && ( L % 3 ) == 0 ) || 
+        Typedef.SKP_assert( ( ( psDec.fs_kHz == 12 ) && ( L % 3 ) == 0 ) ||
                     ( ( psDec.fs_kHz != 12 ) && ( L % 2 ) == 0 ) );
         Biquad.SKP_Silk_biquad( pOut, pOut_offset, psDec.HP_B, psDec.HP_A, psDec.HPState, pOut, pOut_offset, L );
 
@@ -149,7 +149,7 @@ public class DecodeFrame
 
         /* Update some decoder state variables */
         psDec.lagPrev = sDecCtrl.pitchL[ Define.NB_SUBFR - 1 ];
-        
+
         return ret;
     }
 }

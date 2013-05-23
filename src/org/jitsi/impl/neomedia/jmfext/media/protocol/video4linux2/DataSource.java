@@ -87,6 +87,7 @@ public class DataSource
      * <tt>PullBufferDataSource</tt> and which has its <tt>Format</tt>-related
      * information abstracted by the specified <tt>formatControl</tt>
      */
+    @Override
     protected Video4Linux2Stream createStream(
             int streamIndex,
             FormatControl formatControl)
@@ -143,6 +144,7 @@ public class DataSource
      * Closes the connection to the media source specified by the
      * <tt>MediaLocator</tt> of this <tt>DataSource</tt>.
      */
+    @Override
     protected void doDisconnect()
     {
         try

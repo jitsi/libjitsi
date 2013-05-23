@@ -93,7 +93,7 @@ public class Opus
      * @param inputOffset the offset in <tt>input</tt> at which the payload to
      * be decoded begins
      * @param inputLength the length in bytes in <tt>input</tt> beginning at
-     * <tt>inputOffset</tt> of the payload to be decoded 
+     * <tt>inputOffset</tt> of the payload to be decoded
      * @param output an array of <tt>byte</tt>s into which the decoded signal is
      * to be output
      * @param outputOffset the offset in <tt>output</tt> at which the output of

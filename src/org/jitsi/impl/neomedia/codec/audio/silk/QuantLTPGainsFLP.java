@@ -7,21 +7,21 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- *  
+ *
  * @author Dingxin Xu
  */
-public class QuantLTPGainsFLP 
+public class QuantLTPGainsFLP
 {
 
     /**
-     * 
-     * @param B (Un-)quantized LTP gains 
+     *
+     * @param B (Un-)quantized LTP gains
      * @param cbk_index Codebook index
      * @param periodicity_index Periodicity index
      * @param W Error weights
      * @param mu Mu value (R/D tradeoff)
      * @param lowComplexity Flag for low complexity
-     */ 
+     */
     static void SKP_Silk_quant_LTP_gains_FLP(
               float        B[],                                 /* I/O  (Un-)quantized LTP gains                */
               int          cbk_index[],                         /* O    Codebook index                          */
@@ -72,7 +72,7 @@ public class QuantLTPGainsFLP
 
                 float [] rate_dist_subfr_ptr = new float[1];
                 rate_dist_subfr_ptr[0] = rate_dist_subfr;
-                
+
                 VQNearestNeighborFLP.SKP_Silk_VQ_WMat_EC_FLP(
                     temp_idx,         /* O    index of best codebook vector                           */
                     j,
@@ -123,13 +123,13 @@ public class QuantLTPGainsFLP
 
 //        cbk_ptr_Q14 = SKP_Silk_LTP_vq_ptrs_Q14[ *periodicity_index ];
         cbk_ptr_Q14 = TablesLTP.SKP_Silk_LTP_vq_ptrs_Q14[periodicity_index[0]];
-        
+
         for( j = 0; j < Define.NB_SUBFR; j++ ) {
 //            SKP_short2float_array( &B[ j * LTP_ORDER ],
 //                &cbk_ptr_Q14[ cbk_index[ j ] * LTP_ORDER ],
 //                LTP_ORDER );
-            SigProcFLP.SKP_short2float_array(B, j*Define.LTP_ORDER, 
-                    cbk_ptr_Q14, cbk_index[ j ] * Define.LTP_ORDER, 
+            SigProcFLP.SKP_short2float_array(B, j*Define.LTP_ORDER,
+                    cbk_ptr_Q14, cbk_index[ j ] * Define.LTP_ORDER,
                     Define.LTP_ORDER);
         }
 

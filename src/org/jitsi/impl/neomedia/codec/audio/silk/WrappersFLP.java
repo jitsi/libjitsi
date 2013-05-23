@@ -7,19 +7,19 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class WrappersFLP 
+public class WrappersFLP
 {
     /* Wrappers. Calls flp / fix code */
     static long ar2_q13_file_offset = 0;
     static long x_16_file_offset = 0;
     static int frame_cnt = 0;
-    
+
     /* Convert AR filter coefficients to NLSF parameters */
-    static void SKP_Silk_A2NLSF_FLP( 
+    static void SKP_Silk_A2NLSF_FLP(
               float[]               pNLSF,             /* O    NLSF vector      [ LPC_order ]          */
               float[]               pAR,               /* I    LPC coefficients [ LPC_order ]          */
         final int                   LPC_order          /* I    LPC order                               */
@@ -29,20 +29,20 @@ public class WrappersFLP
         int[]   NLSF_fix = new int[  Define.MAX_LPC_ORDER ];
         int[] a_fix_Q16 = new int[ Define.MAX_LPC_ORDER ];
 
-        for( i = 0; i < LPC_order; i++ ) 
+        for( i = 0; i < LPC_order; i++ )
         {
             a_fix_Q16[ i ] = SigProcFLP.SKP_float2int( pAR[ i ] * 65536.0f );
         }
         A2NLSF.SKP_Silk_A2NLSF( NLSF_fix, a_fix_Q16, LPC_order );
 
-        for( i = 0; i < LPC_order; i++ ) 
+        for( i = 0; i < LPC_order; i++ )
         {
             pNLSF[ i ] = NLSF_fix[ i ] * ( 1.0f / 32768.0f );
         }
     }
 
     /* Convert LSF parameters to AR prediction filter coefficients */
-    static void SKP_Silk_NLSF2A_stable_FLP( 
+    static void SKP_Silk_NLSF2A_stable_FLP(
               float []                pAR,               /* O    LPC coefficients [ LPC_order ]          */
               float[]                 pNLSF,             /* I    NLSF vector      [ LPC_order ]          */
         final int                     LPC_order          /* I    LPC order                               */
@@ -52,14 +52,14 @@ public class WrappersFLP
         int[]   NLSF_fix = new int[  Define.MAX_LPC_ORDER ];
         short[] a_fix_Q12 = new short[ Define.MAX_LPC_ORDER ];
 
-        for( i = 0; i < LPC_order; i++ ) 
+        for( i = 0; i < LPC_order; i++ )
         {
             NLSF_fix[ i ] = SigProcFLP.SKP_float2int( pNLSF[ i ] * 32768.0f );
         }
 
         NLSF2AStable.SKP_Silk_NLSF2A_stable( a_fix_Q12, NLSF_fix, LPC_order );
 
-        for( i = 0; i < LPC_order; i++ ) 
+        for( i = 0; i < LPC_order; i++ )
         {
             pAR[ i ] = a_fix_Q12[ i ] / 4096.0f;
         }
@@ -76,7 +76,7 @@ public class WrappersFLP
         int   i;
         int[]   NLSF_Q15 = new int[ Define.MAX_LPC_ORDER ], ndelta_min_Q15 = new int[ Define.MAX_LPC_ORDER + 1 ];
 
-        for( i = 0; i < LPC_order; i++ ) 
+        for( i = 0; i < LPC_order; i++ )
         {
             NLSF_Q15[       i ] = SigProcFLP.SKP_float2int( pNLSF[       i ] * 32768.0f );
             ndelta_min_Q15[ i ] = SigProcFLP.SKP_float2int( pNDelta_min[ i ] * 32768.0f );
@@ -113,9 +113,9 @@ public class WrappersFLP
 
         /* Interpolate two vectors */
         Interpolate.SKP_Silk_interpolate( xi_int, x0_int, x1_int, ifact_Q2, d );
-        
+
         /* Convert output from fix to flp */
-        for( i = 0; i < d; i++ ) 
+        for( i = 0; i < d; i++ )
         {
             xi[ i ] = xi_int[ i ] * ( 1.0f / 32768.0f );
         }
@@ -131,7 +131,7 @@ public class WrappersFLP
         int pIn_offset
     )
     {
-        int i, ret; 
+        int i, ret;
         int[] SA_Q8 = new int[1], SNR_dB_Q7 = new int[1], Tilt_Q15 = new int[1];
         int[] Quality_Bands_Q15 = new int[ Define.VAD_N_BANDS ];
 
@@ -139,7 +139,7 @@ public class WrappersFLP
             pIn,pIn_offset, psEnc.sCmn.frame_length );
 
         psEnc.speech_activity = SA_Q8[0] / 256.0f;
-        for( i = 0; i < Define.VAD_N_BANDS; i++ ) 
+        for( i = 0; i < Define.VAD_N_BANDS; i++ )
         {
             psEncCtrl.input_quality_bands[ i ] = Quality_Bands_Q15[ i ] / 32768.0f;
         }
@@ -180,7 +180,7 @@ public class WrappersFLP
 
         /* Convert control struct to fix control struct */
         /* Noise shape parameters */
-        for( i = 0; i < Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX; i++ ) 
+        for( i = 0; i < Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX; i++ )
         {
             AR2_Q13[ i ] = (short)SigProcFIX.SKP_SAT16( SigProcFLP.SKP_float2int( psEncCtrl.AR2[ i ] * 8192.0f ) );
         }
@@ -188,7 +188,7 @@ public class WrappersFLP
         /*TEST************************************************************************/
         /*
          * test of the AR2_Q13
-         * 
+         *
          */
 //        short[] ar2_q13 = new short[ Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX ];
 //        String ar2_q13_filename = "D:/gsoc/ar2_q13";
@@ -202,8 +202,8 @@ public class WrappersFLP
 //            ar2_q13_datain = new DataInputStream(
 //                                                 new FileInputStream(
 //                                                     new File(ar2_q13_filename)));
-//            
-//            for( i = 0; i < Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX; i++ ) 
+//
+//            for( i = 0; i < Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX; i++ )
 //            {
 //     //           AR2_Q13[ i ] = (short)SigProcFIX.SKP_SAT16( SigProcFLP.SKP_float2int( psEncCtrl.AR2[ i ] * 8192.0f ) );
 //                  try
@@ -215,7 +215,7 @@ public class WrappersFLP
 //                {
 //                    // TODO Auto-generated catch block
 //                    e.printStackTrace();
-//                }             
+//                }
 //            }
 //            try
 //            {
@@ -242,7 +242,7 @@ public class WrappersFLP
 //            try
 //            {
 //                ar2_q13_datain_rand.seek(ar2_q13_file_offset);
-//                for( i = 0; i < Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX; i++ ) 
+//                for( i = 0; i < Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX; i++ )
 //                {
 //         //           AR2_Q13[ i ] = (short)SigProcFIX.SKP_SAT16( SigProcFLP.SKP_float2int( psEncCtrl.AR2[ i ] * 8192.0f ) );
 //                      try
@@ -254,7 +254,7 @@ public class WrappersFLP
 //                    {
 //                        // TODO Auto-generated catch block
 //                        e.printStackTrace();
-//                    }             
+//                    }
 //                }
 //                ar2_q13_file_offset += i;
 //            }
@@ -263,7 +263,7 @@ public class WrappersFLP
 //                // TODO Auto-generated catch block
 //                e.printStackTrace();
 //            }
-//            
+//
 //            try
 //            {
 //                ar2_q13_datain_rand.close();
@@ -279,7 +279,7 @@ public class WrappersFLP
 //            // TODO Auto-generated catch block
 //            e1.printStackTrace();
 //        }
-        
+
         /**
          * Option 3:
          */
@@ -290,8 +290,8 @@ public class WrappersFLP
 //            ar2_q13_datain = new DataInputStream(
 //                                                 new FileInputStream(
 //                                                     new File(ar2_q13_filename)));
-//            
-//            for( i = 0; i < Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX; i++ ) 
+//
+//            for( i = 0; i < Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX; i++ )
 //            {
 //     //           AR2_Q13[ i ] = (short)SigProcFIX.SKP_SAT16( SigProcFLP.SKP_float2int( psEncCtrl.AR2[ i ] * 8192.0f ) );
 //                  try
@@ -303,7 +303,7 @@ public class WrappersFLP
 //                {
 //                    // TODO Auto-generated catch block
 //                    e.printStackTrace();
-//                }             
+//                }
 //            }
 //            try
 //            {
@@ -321,35 +321,35 @@ public class WrappersFLP
 //            e.printStackTrace();
 //        }
         /*TEST End***********************************************************************/
-        
-        for( i = 0; i < Define.NB_SUBFR; i++ ) 
+
+        for( i = 0; i < Define.NB_SUBFR; i++ )
         {
             LF_shp_Q14[ i ] =   ( SigProcFLP.SKP_float2int( psEncCtrl.LF_AR_shp[ i ]     * 16384.0f ) << 16 ) |
                                   ( 0x0000FFFF & SigProcFLP.SKP_float2int( psEncCtrl.LF_MA_shp[ i ]     * 16384.0f ) );
             Tilt_Q14[ i ]   =        SigProcFLP.SKP_float2int( psEncCtrl.Tilt[ i ]          * 16384.0f );
-            HarmShapeGain_Q14[ i ] = SigProcFLP.SKP_float2int( psEncCtrl.HarmShapeGain[ i ] * 16384.0f );    
+            HarmShapeGain_Q14[ i ] = SigProcFLP.SKP_float2int( psEncCtrl.HarmShapeGain[ i ] * 16384.0f );
         }
         Lambda_Q10 = SigProcFLP.SKP_float2int( psEncCtrl.Lambda * 1024.0f );
 
         /* prediction and coding parameters */
-        for( i = 0; i < Define.NB_SUBFR * Define.LTP_ORDER; i++ ) 
+        for( i = 0; i < Define.NB_SUBFR * Define.LTP_ORDER; i++ )
         {
             LTPCoef_Q14[ i ] = ( short )SigProcFLP.SKP_float2int( psEncCtrl.LTPCoef[ i ] * 16384.0f );
         }
 
-        for( j = 0; j < Define.NB_SUBFR >> 1; j++ ) 
+        for( j = 0; j < Define.NB_SUBFR >> 1; j++ )
         {
-            for( i = 0; i < Define.MAX_LPC_ORDER; i++ ) 
+            for( i = 0; i < Define.MAX_LPC_ORDER; i++ )
             {
                 PredCoef_Q12[ j ][ i ] = ( short )SigProcFLP.SKP_float2int( psEncCtrl.PredCoef[ j ][ i ] * 4096.0f );
             }
         }
 
-        for( i = 0; i < Define.NB_SUBFR; i++ ) 
+        for( i = 0; i < Define.NB_SUBFR; i++ )
         {
             tmp_float = SigProcFIX.SKP_LIMIT( ( psEncCtrl.Gains[ i ] * 65536.0f ), 2147483000.0f, -2147483000.0f );
             Gains_Q16[ i ] = SigProcFLP.SKP_float2int( tmp_float );
-            if( psEncCtrl.Gains[ i ] > 0.0f ) 
+            if( psEncCtrl.Gains[ i ] > 0.0f )
             {
                 assert( tmp_float >= 0.0f );
                 assert( Gains_Q16[ i ] >= 0 );
@@ -357,17 +357,17 @@ public class WrappersFLP
         }
 
         if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) {
-            
+
             LTP_scale_Q14 = TablesOther.SKP_Silk_LTPScales_table_Q14[ psEncCtrl.sCmn.LTP_scaleIndex ];
-        } 
-        else 
+        }
+        else
         {
             LTP_scale_Q14 = 0;
         }
 
         /* Convert input to fix */
         SigProcFLP.SKP_float2short_array( x_16,0, x,x_offset, psEnc.sCmn.frame_length );
-        
+
         /*TEST************************************************************************/
         /**
          * test of x_16
@@ -411,7 +411,7 @@ public class WrappersFLP
 //            // TODO Auto-generated catch block
 //            e.printStackTrace();
 //        }
-        
+
         /*
          * Option 2:
          */
@@ -458,7 +458,7 @@ public class WrappersFLP
 //            // TODO Auto-generated catch block
 //            e.printStackTrace();
 //        }
-        
+
         /**
          * Optino 3:
          */
@@ -499,7 +499,7 @@ public class WrappersFLP
 //        }
 //        frame_cnt++;
         /*TEST END************************************************************************/
-        
+
         /* Call NSQ */
         short[] PredCoef_Q12_dim1_tmp= new short[PredCoef_Q12.length * PredCoef_Q12[0].length];
         int PredCoef_Q12_offset = 0;
@@ -508,28 +508,28 @@ public class WrappersFLP
             System.arraycopy(PredCoef_Q12[PredCoef_Q12_i],0, PredCoef_Q12_dim1_tmp, PredCoef_Q12_offset, PredCoef_Q12[PredCoef_Q12_i].length);
             PredCoef_Q12_offset += PredCoef_Q12[PredCoef_Q12_i].length;
         }
-        if( useLBRR!=0 ) 
+        if( useLBRR!=0 )
         {
-//            psEnc.NoiseShapingQuantizer( psEnc.sCmn, psEncCtrl.sCmn, psEnc.sNSQ_LBRR, 
-//                x_16, q, psEncCtrl.sCmn.NLSFInterpCoef_Q2, PredCoef_Q12[ 0 ], LTPCoef_Q14, AR2_Q13, 
+//            psEnc.NoiseShapingQuantizer( psEnc.sCmn, psEncCtrl.sCmn, psEnc.sNSQ_LBRR,
+//                x_16, q, psEncCtrl.sCmn.NLSFInterpCoef_Q2, PredCoef_Q12[ 0 ], LTPCoef_Q14, AR2_Q13,
 //                HarmShapeGain_Q14, Tilt_Q14, LF_shp_Q14, Gains_Q16, Lambda_Q10, LTP_scale_Q14 );\
-               psEnc.NoiseShapingQuantizer( psEnc.sCmn, psEncCtrl.sCmn, psEnc.sNSQ_LBRR, 
-                    x_16, q, psEncCtrl.sCmn.NLSFInterpCoef_Q2, PredCoef_Q12_dim1_tmp, LTPCoef_Q14, AR2_Q13, 
+               psEnc.NoiseShapingQuantizer( psEnc.sCmn, psEncCtrl.sCmn, psEnc.sNSQ_LBRR,
+                    x_16, q, psEncCtrl.sCmn.NLSFInterpCoef_Q2, PredCoef_Q12_dim1_tmp, LTPCoef_Q14, AR2_Q13,
                     HarmShapeGain_Q14, Tilt_Q14, LF_shp_Q14, Gains_Q16, Lambda_Q10, LTP_scale_Q14 );
-//             psEnc.NoiseShapingQuantizer( &psEnc->sCmn, &psEncCtrl->sCmn, &psEnc->sNSQ_LBRR, 
-//          x_16, q, psEncCtrl->sCmn.NLSFInterpCoef_Q2, PredCoef_Q12[ 0 ], LTPCoef_Q14, AR2_Q13, 
+//             psEnc.NoiseShapingQuantizer( &psEnc->sCmn, &psEncCtrl->sCmn, &psEnc->sNSQ_LBRR,
+//          x_16, q, psEncCtrl->sCmn.NLSFInterpCoef_Q2, PredCoef_Q12[ 0 ], LTPCoef_Q14, AR2_Q13,
 //          HarmShapeGain_Q14, Tilt_Q14, LF_shp_Q14, Gains_Q16, Lambda_Q10, LTP_scale_Q14 );
-        } 
+        }
         else
         {
-//            psEnc.NoiseShapingQuantizer( psEnc.sCmn, psEncCtrl.sCmn, psEnc.sNSQ, 
-//                x_16, q, psEncCtrl.sCmn.NLSFInterpCoef_Q2, PredCoef_Q12[ 0 ], LTPCoef_Q14, AR2_Q13, 
+//            psEnc.NoiseShapingQuantizer( psEnc.sCmn, psEncCtrl.sCmn, psEnc.sNSQ,
+//                x_16, q, psEncCtrl.sCmn.NLSFInterpCoef_Q2, PredCoef_Q12[ 0 ], LTPCoef_Q14, AR2_Q13,
 //                HarmShapeGain_Q14, Tilt_Q14, LF_shp_Q14, Gains_Q16, Lambda_Q10, LTP_scale_Q14 );
-               psEnc.NoiseShapingQuantizer( psEnc.sCmn, psEncCtrl.sCmn, psEnc.sNSQ, 
-                    x_16, q, psEncCtrl.sCmn.NLSFInterpCoef_Q2, PredCoef_Q12_dim1_tmp, LTPCoef_Q14, AR2_Q13, 
+               psEnc.NoiseShapingQuantizer( psEnc.sCmn, psEncCtrl.sCmn, psEnc.sNSQ,
+                    x_16, q, psEncCtrl.sCmn.NLSFInterpCoef_Q2, PredCoef_Q12_dim1_tmp, LTPCoef_Q14, AR2_Q13,
                     HarmShapeGain_Q14, Tilt_Q14, LF_shp_Q14, Gains_Q16, Lambda_Q10, LTP_scale_Q14 );
-//               psEnc.NoiseShapingQuantizer( &psEnc->sCmn, &psEncCtrl->sCmn, &psEnc->sNSQ, 
-//                    x_16, q, psEncCtrl->sCmn.NLSFInterpCoef_Q2, PredCoef_Q12[ 0 ], LTPCoef_Q14, AR2_Q13, 
+//               psEnc.NoiseShapingQuantizer( &psEnc->sCmn, &psEncCtrl->sCmn, &psEnc->sNSQ,
+//                    x_16, q, psEncCtrl->sCmn.NLSFInterpCoef_Q2, PredCoef_Q12[ 0 ], LTPCoef_Q14, AR2_Q13,
 //                    HarmShapeGain_Q14, Tilt_Q14, LF_shp_Q14, Gains_Q16, Lambda_Q10, LTP_scale_Q14 );
         }
     }

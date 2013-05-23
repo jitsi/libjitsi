@@ -177,6 +177,7 @@ public class JNIDecoder
      * output <tt>Format/tt>s
      * @return an array of supported output <tt>Format</tt>s
      */
+    @Override
     public Format[] getSupportedOutputFormats(Format inputFormat)
     {
         Format[] supportedOutputFormats;
@@ -246,6 +247,7 @@ public class JNIDecoder
      * @return <tt>BUFFER_PROCESSED_OK</tt> if <tt>in</tt> has been successfully
      * processed
      */
+    @Override
     public synchronized int process(Buffer in, Buffer out)
     {
         if (!checkInputBuffer(in))

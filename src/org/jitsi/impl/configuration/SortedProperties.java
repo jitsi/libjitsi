@@ -70,7 +70,7 @@ public class SortedProperties
          * We discovered a special case related to the Properties
          * ConfigurationService implementation during testing in which the key
          * was a String composed of null characters only (which would be
-         * trimmed) consumed megabytes of heap. Do now allow such keys. 
+         * trimmed) consumed megabytes of heap. Do now allow such keys.
          */
         if (key.toString().trim().length() == 0)
             return null;

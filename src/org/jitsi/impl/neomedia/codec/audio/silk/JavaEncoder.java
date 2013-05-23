@@ -176,12 +176,14 @@ public class JavaEncoder
         addControl(this);
     }
 
+    @Override
     protected void doClose()
     {
         encState = null;
         encControl = null;
     }
 
+    @Override
     protected void doOpen()
         throws ResourceUnavailableException
     {
@@ -210,6 +212,7 @@ public class JavaEncoder
         encControl.useInBandFEC = useFec ? 1 : 0;
     }
 
+    @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
         short[] inputData = (short[]) inputBuffer.getData();

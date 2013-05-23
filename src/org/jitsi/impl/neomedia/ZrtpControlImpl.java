@@ -135,7 +135,7 @@ public class ZrtpControlImpl
         if(zrtpEngine == null)
         {
             zrtpEngine = new ZRTPTransformEngine();
-            
+
             // NOTE: set paranoid mode before initializing
             // zrtpEngine.setParanoidMode(paranoidMode);
             zrtpEngine.initialize(
@@ -249,8 +249,8 @@ public class ZrtpControlImpl
     /**
      * Return the zrtp hello hash String.
      *
-     * @param  index 
-     *         Hello hash of the Hello packet identfied by index. Index must 
+     * @param  index
+     *         Hello hash of the Hello packet identfied by index. Index must
      *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
      * @return String the zrtp hello hash.
      */
@@ -262,8 +262,8 @@ public class ZrtpControlImpl
     /**
      * Get the ZRTP Hello Hash data - separate strings.
      *
-     * @param  index 
-     *         Hello hash of the Hello packet identfied by index. Index must 
+     * @param  index
+     *         Hello hash of the Hello packet identfied by index. Index must
      *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
      * @return String array containing the version string at offset 0, the Hello
      *         hash value as hex-digits at offset 1. Hello hash is available
@@ -277,12 +277,12 @@ public class ZrtpControlImpl
 
     /**
      * Get the peer's Hello Hash data.
-     * 
+     *
      * Use this method to get the peer's Hello Hash data. The method returns the
      * data as a string.
-     * 
-     * @return a String containing the Hello hash value as hex-digits. 
-     *         Peer Hello hash is available after we received a Hello packet 
+     *
+     * @return a String containing the Hello hash value as hex-digits.
+     *         Peer Hello hash is available after we received a Hello packet
      *         from our peer. If peer's hello hash is not available return null.
      */
     public String getPeerHelloHash() {
@@ -297,7 +297,7 @@ public class ZrtpControlImpl
      *
      * @return the number of supported ZRTP protocol versions.
      */
-    public int getNumberSupportedVersions() 
+    public int getNumberSupportedVersions()
     {
         return ((zrtpEngine != null) ? zrtpEngine.getNumberSupportedVersions(): 0);
     }
@@ -307,7 +307,7 @@ public class ZrtpControlImpl
      *
      * @return the integer representation of the negotiated ZRTP protocol version.
      */
-    public int getCurrentProtocolVersion() 
+    public int getCurrentProtocolVersion()
     {
         return ((zrtpEngine != null) ? zrtpEngine.getCurrentProtocolVersion() : 0);
     }

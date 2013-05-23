@@ -8,7 +8,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Residual energy.
- * 
+ *
  * @author Dingxin Xu
  */
 public class ResidualEnergyFLP
@@ -17,7 +17,7 @@ public class ResidualEnergyFLP
 
     static final int  MAX_ITERATIONS_RESIDUAL_NRG = 10;
     static final float  REGULARIZATION_FACTOR = 1e-8f;
-    
+
 
     /**
      * Residual energy: nrg = wxx - 2 * wXx * c + c' * wXX * c.
@@ -27,7 +27,7 @@ public class ResidualEnergyFLP
      * @param wXX_offset offset of valid data.
      * @param wXx Weighted correlation vector
      * @param wxx Weighted correlation value
-     * @param D Dimension 
+     * @param D Dimension
      * @return Weighted residual energy
      */
     static float SKP_Silk_residual_energy_covar_FLP(           /* O    Weighted residual energy                */
@@ -88,7 +88,7 @@ public class ResidualEnergyFLP
 
     /**
      * Calculates residual energies of input subframes where all subframes have LPC_order
-     * of preceeding samples 
+     * of preceeding samples
      * @param nrgs Residual energy per subframe
      * @param x Input signal
      * @param a AR coefs for each frame half
@@ -96,7 +96,7 @@ public class ResidualEnergyFLP
      * @param subfr_length Subframe length
      * @param LPC_order LPC order
      */
-    static void SKP_Silk_residual_energy_FLP(  
+    static void SKP_Silk_residual_energy_FLP(
               float nrgs[],                     /* O    Residual energy per subframe    */
         final float x[],                        /* I    Input signal                    */
         final float a[][ ],    /* I    AR coefs for each frame half    */

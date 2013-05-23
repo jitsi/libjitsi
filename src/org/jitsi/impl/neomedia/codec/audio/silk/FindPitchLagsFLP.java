@@ -7,14 +7,14 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class FindPitchLagsFLP 
+public class FindPitchLagsFLP
 {
     /**
-     * 
+     *
      * @param psEnc Encoder state FLP.
      * @param psEncCtrl Encoder control FLP.
      * @param res Residual.
@@ -57,9 +57,9 @@ public class FindPitchLagsFLP
             /*************************************/
             /* Estimate LPC AR coeficients */
             /*************************************/
-            
+
             /* Calculate windowed signal */
-            
+
             /* First LA_LTP samples */
 //            x_buf_ptr = x_buf + buf_len - psPredSt->pitch_LPC_win_length;
             x_buf_ptr = x_buf;
@@ -94,7 +94,7 @@ public class FindPitchLagsFLP
 
             /* Bandwidth expansion */
             BwexpanderFLP.SKP_Silk_bwexpander_FLP( A,0, psEnc.sCmn.pitchEstimationLPCOrder, DefineFLP.FIND_PITCH_BANDWITH_EXPANSION );
-            
+
             /*****************************************/
             /* LPC analysis filtering               */
             /*****************************************/
@@ -116,10 +116,10 @@ public class FindPitchLagsFLP
             int[] lagIndex_djinnaddress = {psEncCtrl.sCmn.lagIndex};
             int[] contourIndex_djinnaddress = {psEncCtrl.sCmn.contourIndex};
             float[] LTPCorr_djinnaddress = {psEnc.LTPCorr};
-            psEncCtrl.sCmn.sigtype = PitchAnalysisCoreFLP.SKP_Silk_pitch_analysis_core_FLP( res, psEncCtrl.sCmn.pitchL, lagIndex_djinnaddress, 
-                    contourIndex_djinnaddress, LTPCorr_djinnaddress, psEnc.sCmn.prevLag, psEnc.pitchEstimationThreshold, 
+            psEncCtrl.sCmn.sigtype = PitchAnalysisCoreFLP.SKP_Silk_pitch_analysis_core_FLP( res, psEncCtrl.sCmn.pitchL, lagIndex_djinnaddress,
+                    contourIndex_djinnaddress, LTPCorr_djinnaddress, psEnc.sCmn.prevLag, psEnc.pitchEstimationThreshold,
                 thrhld, psEnc.sCmn.fs_kHz, psEnc.sCmn.pitchEstimationComplexity );
-            psEncCtrl.sCmn.lagIndex = lagIndex_djinnaddress[0];    
+            psEncCtrl.sCmn.lagIndex = lagIndex_djinnaddress[0];
             psEncCtrl.sCmn.contourIndex = contourIndex_djinnaddress[0];
             psEnc.LTPCorr = LTPCorr_djinnaddress[0];
         }

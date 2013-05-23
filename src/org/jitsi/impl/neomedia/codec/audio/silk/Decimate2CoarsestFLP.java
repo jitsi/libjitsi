@@ -11,13 +11,13 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class Decimate2CoarsestFLP 
+public class Decimate2CoarsestFLP
 {
     /* coefficients for coarsest 2-fold resampling */
     /* note that these differ from the interpolator with the same filter orders! */
     static float A20cst_FLP[  ] = {0.289001464843750f};
     static float A21cst_FLP[  ] = {0.780487060546875f};
-    
+
     /**
      * downsample by a factor 2, coarsest.
      * @param in 16 kHz signal [2*len].
@@ -45,7 +45,7 @@ public class Decimate2CoarsestFLP
         int k;
 
         /* de-interleave allpass inputs */
-        for ( k = 0; k < len; k++ ) 
+        for ( k = 0; k < len; k++ )
         {
             scratch[ scratch_offset + k ]       = in[ in_offset + 2 * k + 0 ];
             scratch[ scratch_offset + k + len ] = in[ in_offset + 2 * k + 1 ];
@@ -56,7 +56,7 @@ public class Decimate2CoarsestFLP
         AllpassIntFLP.SKP_Silk_allpass_int_FLP( scratch,scratch_offset+len, S,S_offset+1, A20cst_FLP[ 0 ], scratch,scratch_offset,         len );
 
         /* add two allpass outputs */
-        for ( k = 0; k < len; k++ ) 
+        for ( k = 0; k < len; k++ )
         {
             out[ out_offset+k ] = 0.5f * ( scratch[ scratch_offset + k ] + scratch[ scratch_offset + k + 2 * len ] );
         }

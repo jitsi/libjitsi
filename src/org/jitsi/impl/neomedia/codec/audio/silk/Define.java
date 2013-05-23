@@ -14,7 +14,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class Define 
+public class Define
 {
     static final int MAX_FRAMES_PER_PACKET =                  5;
 
@@ -37,7 +37,7 @@ public class Define
 
     /* Integration/hysteresis threshold for lowering internal sample frequency */
     /* 30000000 -> 6 sec if bitrate is 5000 bps below limit; 3 sec if bitrate is 10000 bps below limit */
-    static final int ACCUM_BITS_DIFF_THRESHOLD =              30000000; 
+    static final int ACCUM_BITS_DIFF_THRESHOLD =              30000000;
     static final int TARGET_RATE_TAB_SZ =                     8;
 
     /* DTX settings                                 */
@@ -79,12 +79,12 @@ public class Define
 
     /* Activate bandwidth transition filtering for mode switching */
     static final int SWITCH_TRANSITION_FILTERING =            1;
-    
+
     /* Decoder Parameters */
     static final int DEC_HP_ORDER =                           2;
 
     /* Maximum sampling frequency, should be 16 for embedded */
-    static final int MAX_FS_KHZ =                             24; 
+    static final int MAX_FS_KHZ =                             24;
     static final int MAX_API_FS_KHZ=                          48;
 
     /* Signal Types used by silk */
@@ -95,7 +95,7 @@ public class Define
     static final int NO_VOICE_ACTIVITY =                      0;
     static final int VOICE_ACTIVITY =                         1;
 
-    /* Number of samples per frame */ 
+    /* Number of samples per frame */
     static final int FRAME_LENGTH_MS =                        20; /* 20 ms */
     static final int MAX_FRAME_LENGTH =                       (FRAME_LENGTH_MS * MAX_FS_KHZ);
 
@@ -198,7 +198,7 @@ public class Define
 
     static final int MAX_MATRIX_SIZE =                        MAX_LPC_ORDER; /* Max of LPC Order and LTP order */
 
-//TODO: convert a macro to a method.    
+//TODO: convert a macro to a method.
     static int NSQ_LPC_BUF_LENGTH()
     {
         if(MAX_LPC_ORDER > DECISION_DELAY)
@@ -218,7 +218,7 @@ public class Define
 
     static final int VAD_INTERNAL_SUBFRAMES_LOG2 =            2;
     static final int VAD_INTERNAL_SUBFRAMES =                 (1 << VAD_INTERNAL_SUBFRAMES_LOG2);
-        
+
     static final int VAD_NOISE_LEVEL_SMOOTH_COEF_Q16 =        1024;    /* Must be <  4096                                  */
     static final int VAD_NOISE_LEVELS_BIAS =                  50 ;
 
@@ -246,7 +246,7 @@ public class Define
     {
         if(NLSF_MSVQ_MAX_VECTORS_IN_STAGE > ( MAX_NLSF_MSVQ_SURVIVORS_LC_MODE * NLSF_MSVQ_MAX_VECTORS_IN_STAGE_TWO_TO_END ))
             return NLSF_MSVQ_MAX_VECTORS_IN_STAGE;
-        else 
+        else
             return MAX_NLSF_MSVQ_SURVIVORS_LC_MODE * NLSF_MSVQ_MAX_VECTORS_IN_STAGE_TWO_TO_END;
     }
 
@@ -257,7 +257,7 @@ public class Define
         else
             return MAX_NLSF_MSVQ_SURVIVORS * NLSF_MSVQ_MAX_VECTORS_IN_STAGE_TWO_TO_END;
     }
-    
+
     static final int NLSF_MSVQ_SURV_MAX_REL_RD  =             4;
 
     /* Transition filtering for mode switching */
@@ -270,8 +270,8 @@ public class Define
     static final int TRANSITION_FRAMES_DOWN =       ( TRANSITION_TIME_DOWN_MS / FRAME_LENGTH_MS );
     static final int TRANSITION_INT_STEPS_UP =      ( TRANSITION_FRAMES_UP    / ( TRANSITION_INT_NUM - 1 )  );
     static final int TRANSITION_INT_STEPS_DOWN =    ( TRANSITION_FRAMES_DOWN  / ( TRANSITION_INT_NUM - 1 )  );
-    
-//TODO:no need to convert from C to Java?    
+
+//TODO:no need to convert from C to Java?
     /* Row based */
 //    #define matrix_ptr(Matrix_base_adr, row, column, N)         *(Matrix_base_adr + ((row)*(N)+(column)))
 //    #define matrix_adr(Matrix_base_adr, row, column, N)          (Matrix_base_adr + ((row)*(N)+(column)))

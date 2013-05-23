@@ -50,6 +50,7 @@ public class QuickTimeSystem
         super(MediaType.VIDEO, LOCATOR_PROTOCOL);
     }
 
+    @Override
     protected void doInitialize()
         throws Exception
     {

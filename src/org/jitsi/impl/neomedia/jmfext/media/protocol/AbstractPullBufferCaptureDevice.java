@@ -44,6 +44,7 @@ public abstract class AbstractPullBufferCaptureDevice
                             .createFrameRateControl();
             }
 
+            @Override
             protected AbstractPullBufferStream createStream(
                     int streamIndex,
                     FormatControl formatControl)
@@ -54,29 +55,34 @@ public abstract class AbstractPullBufferCaptureDevice
                             formatControl);
             }
 
+            @Override
             protected void doConnect()
                 throws IOException
             {
                 AbstractPullBufferCaptureDevice.this.doConnect();
             }
 
+            @Override
             protected void doDisconnect()
             {
                 AbstractPullBufferCaptureDevice.this.doDisconnect();
             }
 
+            @Override
             protected void doStart()
                 throws IOException
             {
                 AbstractPullBufferCaptureDevice.this.doStart();
             }
 
+            @Override
             protected void doStop()
                 throws IOException
             {
                 AbstractPullBufferCaptureDevice.this.doStop();
             }
 
+            @Override
             public CaptureDeviceInfo getCaptureDeviceInfo()
             {
                 return
@@ -84,6 +90,7 @@ public abstract class AbstractPullBufferCaptureDevice
                             .getCaptureDeviceInfo();
             }
 
+            @Override
             protected Format getFormat(int streamIndex, Format oldValue)
             {
                 return
@@ -92,6 +99,7 @@ public abstract class AbstractPullBufferCaptureDevice
                             oldValue);
             }
 
+            @Override
             protected Format[] getSupportedFormats(int streamIndex)
             {
                 return
@@ -99,6 +107,7 @@ public abstract class AbstractPullBufferCaptureDevice
                             .getSupportedFormats(streamIndex);
             }
 
+            @Override
             protected Format setFormat(
                     int streamIndex,
                     Format oldValue, Format newValue)
@@ -136,6 +145,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * to the media source specified by the <tt>MediaLocator</tt> of this
      * <tt>DataSource</tt>
      */
+    @Override
     public void connect()
         throws IOException
     {
@@ -181,6 +191,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * <tt>MediaLocator</tt> of this <tt>DataSource</tt>. If such a connection
      * has not been opened, the call is ignored.
      */
+    @Override
     public void disconnect()
     {
         impl.disconnect();
@@ -269,6 +280,7 @@ public abstract class AbstractPullBufferCaptureDevice
      *
      * @return the content type of the media represented by this instance
      */
+    @Override
     public String getContentType()
     {
         return ContentDescriptor.RAW;
@@ -283,6 +295,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * type available for this instance if such a control is indeed available;
      * otherwise, <tt>null</tt>
      */
+    @Override
     public Object getControl(String controlType)
     {
         return impl.getControl(controlType);
@@ -295,6 +308,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * @return an array of <tt>Object</tt>s which represent the controls
      * available for this instance
      */
+    @Override
     public Object[] getControls()
     {
         return impl.getControls();
@@ -307,6 +321,7 @@ public abstract class AbstractPullBufferCaptureDevice
      *
      * @return the duration of the media represented by this instance
      */
+    @Override
     public Time getDuration()
     {
         return DURATION_UNBOUNDED;
@@ -354,7 +369,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * {@link #streams()} and its return value.
      *
      * @return the <tt>Object</tt> which is to synchronize the access to
-     * {@link #streams()} and its return value 
+     * {@link #streams()} and its return value
      */
     protected Object getStreamSyncRoot()
     {
@@ -368,6 +383,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * @return an array of the <tt>PullBufferStream</tt>s through which this
      * <tt>PullBufferDataSource</tt> gives access to its media data
      */
+    @Override
     public PullBufferStream[] getStreams()
     {
         return impl.getStreams(PullBufferStream.class);
@@ -394,7 +410,7 @@ public abstract class AbstractPullBufferCaptureDevice
 
     /**
      * Sets a specific <tt>CaptureDeviceInfo</tt> on this
-     * <tt>CaptureDevice</tt>. 
+     * <tt>CaptureDevice</tt>.
      *
      * @param deviceInfo the <tt>CaptureDeviceInfo</tt> on this
      * <tt>CaptureDevice</tt>
@@ -442,6 +458,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * @throws IOException if anything goes wrong while starting the transfer of
      * media data from this <tt>DataSource</tt>
      */
+    @Override
     public synchronized void start()
         throws IOException
     {
@@ -454,6 +471,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * @throws IOException if anything goes wrong while stopping the transfer of
      * media data from this <tt>DataSource</tt>
      */
+    @Override
     public synchronized void stop()
         throws IOException
     {
@@ -464,7 +482,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * Gets the internal array of <tt>AbstractPushBufferStream</tt>s through
      * which this <tt>AbstractPushBufferCaptureDevice</tt> gives access to its
      * media data.
-     * 
+     *
      * @return the internal array of <tt>AbstractPushBufferStream</tt>s through
      * which this <tt>AbstractPushBufferCaptureDevice</tt> gives access to its
      * media data

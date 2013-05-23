@@ -8,11 +8,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Downsample by a factor 2, mediocre quality.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class ResamplerDown2 
+public class ResamplerDown2
 {
     /**
      * Downsample by a factor 2, mediocre quality.

@@ -29,7 +29,7 @@ public class AudioNotifierServiceImpl
     /**
      * The cache of <tt>SCAudioClip</tt> instances which we may reuse. The reuse
      * is complex because a <tt>SCAudioClip</tt> may be used by a single user at
-     * a time. 
+     * a time.
      */
     private Map<AudioKey, SCAudioClip> audios;
 

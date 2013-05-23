@@ -50,9 +50,9 @@ class DeAcelp
  * @param cod       output: innovative codevector
  */
 static void decod_ACELP(
- int sign,             
- int index,            
- float cod[]            
+ int sign,
+ int index,
+ float cod[]
 )
 {
    int L_SUBFR = Ld8k.L_SUBFR;

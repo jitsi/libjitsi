@@ -56,12 +56,12 @@ class Coder
      * Init the Ld8k Coder
      */
     private final CodLd8k codLd8k = new CodLd8k();
-   
+
     /**
      *  Transmitted parameters
      */
     private final int[] prm = new int[PRM_SIZE];
-    
+
     /**
      * Initialization of the coder.
      */

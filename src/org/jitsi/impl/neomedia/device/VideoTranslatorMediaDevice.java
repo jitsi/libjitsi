@@ -100,6 +100,7 @@ public class VideoTranslatorMediaDevice
      * captured by this <tt>MediaDevice</tt>
      * @see AbstractMediaDevice#createOutputDataSource()
      */
+    @Override
     protected synchronized DataSource createOutputDataSource()
     {
         if (deviceSession == null)
@@ -135,9 +136,9 @@ public class VideoTranslatorMediaDevice
             }
             if (format != null)
                 deviceSession.setFormat(format);
-            
+
             deviceSession.start(startedDirection);
-            
+
         }
         return
             (deviceSession == null)
@@ -245,7 +246,7 @@ public class VideoTranslatorMediaDevice
                 remotePreset,
                 encodingConfiguration);
     }
-    
+
     /**
      * Gets the actual <tt>MediaDevice</tt> which this <tt>MediaDevice</tt> is
      * effectively built on top of and forwarding to.
@@ -382,10 +383,10 @@ public class VideoTranslatorMediaDevice
         {
             return getConnectedCaptureDevice();
         }
-        
+
         /**
-         * Sets the <tt>RTPConnector</tt> that will be used to initialize some 
-         * codec for RTCP feedback and adds the instance to 
+         * Sets the <tt>RTPConnector</tt> that will be used to initialize some
+         * codec for RTCP feedback and adds the instance to
          * RTCPFeedbackCreateListners of deviceSession.
          *
          * @param rtpConnector the RTP connector
@@ -394,7 +395,7 @@ public class VideoTranslatorMediaDevice
         public void setConnector(AbstractRTPConnector rtpConnector)
         {
             super.setConnector(rtpConnector);
-            if(deviceSession != null 
+            if(deviceSession != null
                 && deviceSession instanceof VideoMediaDeviceSession)
             {
                 ((VideoMediaDeviceSession) deviceSession)

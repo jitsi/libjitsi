@@ -56,16 +56,16 @@ class Lpc
  * @param r         (o) auto-correlation vector r[0:M]
  */
 static void autocorr(
-     float[] x,             
+     float[] x,
      int x_offset,
-     int m,              
-     float[] r            
+     int m,
+     float[] r
 )
 {
    int L_WINDOW = Ld8k.L_WINDOW;
    float[] hamwindow = TabLd8k.hamwindow;
 
-   float[] y = new float[L_WINDOW];  
+   float[] y = new float[L_WINDOW];
    float sum;
    int i, j;
 
@@ -91,7 +91,7 @@ static void autocorr(
  */
 static void lag_window(
      int m,
-     float   r[] 
+     float   r[]
 )
 {
    float[] lwindow = TabLd8k.lwindow;
@@ -111,11 +111,11 @@ static void lag_window(
  * @param rc        (o) reflection coefficients rc[0:M-1]
  * @return          prediction error (energy)
  */
-static float levinson(        
- float[] r,            
- float[] a,            
+static float levinson(
+ float[] r,
+ float[] a,
  int a_offset,
- float[] rc             
+ float[] rc
 )
 {
    int M = Ld8k.M;
@@ -149,11 +149,11 @@ static float levinson(
 }
 
 /**                                                                                         *
- * Compute the LSPs from  the LP coefficients a[] using Chebyshev   
- * polynomials. The found LSPs are in the cosine domain with values 
- * in the range from 1 down to -1.                                  
- * The table grid[] contains the points (in the cosine domain) at   
- * which the polynomials are evaluated. The table corresponds to    
+ * Compute the LSPs from  the LP coefficients a[] using Chebyshev
+ * polynomials. The found LSPs are in the cosine domain with values
+ * in the range from 1 down to -1.
+ * The table grid[] contains the points (in the cosine domain) at
+ * which the polynomials are evaluated. The table corresponds to
  * NO_POINTS frequencies uniformly spaced between 0 and pi.
  *
  * @param a         (i) LP filter coefficients
@@ -162,10 +162,10 @@ static float levinson(
  * @param old_lsp   (i) LSP vector from past frame
  */
 static void az_lsp(
-  float[] a,  
+  float[] a,
   int a_offset,
-  float[] lsp,   
-  float[] old_lsp   
+  float[] lsp,
+  float[] old_lsp
 )
 {
  int GRID_POINTS = Ld8k.GRID_POINTS;
@@ -281,9 +281,9 @@ static void az_lsp(
  * @return      the value of the polynomial C(x)
  */
 private static float chebyshev(
-  float x,       
-  float[] f,       
-  int n            
+  float x,
+  float[] f,
+  int n
 )
 {
   float b1, b2, b0, x2;

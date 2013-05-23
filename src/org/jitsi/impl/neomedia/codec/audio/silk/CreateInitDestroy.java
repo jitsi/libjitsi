@@ -12,7 +12,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class CreateInitDestroy 
+public class CreateInitDestroy
 {
     /**
      * Initialize decoder state.
@@ -34,7 +34,7 @@ public class CreateInitDestroy
 
         /* Reset CNG state */
         CNG.SKP_Silk_CNG_Reset( psDec );
-        
+
         PLC.SKP_Silk_PLC_Reset(psDec);
         return(0);
     }

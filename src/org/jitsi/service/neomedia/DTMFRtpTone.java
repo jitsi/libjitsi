@@ -140,6 +140,7 @@ public final class DTMFRtpTone
      * @return  <tt>true</tt> if target represents the same tone as this
      * object.
      */
+    @Override
     public boolean equals(Object target)
     {
         if(!(target instanceof DTMFRtpTone))
@@ -160,6 +161,7 @@ public final class DTMFRtpTone
      * @return  a hash code value for this object (same as calling
      * getValue().hashCode()).
      */
+    @Override
     public int hashCode()
     {
         return getValue().hashCode();

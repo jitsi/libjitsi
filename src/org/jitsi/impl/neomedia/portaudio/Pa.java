@@ -444,7 +444,7 @@ public final class Pa
      * name depending, for example, on operating system/API availability. Since
      * at least names may not be unique, the PortAudio device to return the
      * index of may be identified more specifically by the minimal numbers of
-     * channels to be required from the device for input and output. 
+     * channels to be required from the device for input and output.
      *
      * @param deviceID a <tt>String</tt> identifying the PortAudio device to
      * retrieve the index of. It is either a <tt>deviceUID</tt> or a (PortAudio
@@ -602,7 +602,7 @@ public final class Pa
                 {
                     double suggestedLatency
                         = Double.parseDouble(suggestedLatencyString);
-    
+
                     if (suggestedLatency != LATENCY_UNSPECIFIED)
                         return suggestedLatency;
                 }

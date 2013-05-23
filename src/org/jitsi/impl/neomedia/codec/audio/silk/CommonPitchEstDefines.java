@@ -12,7 +12,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class CommonPitchEstDefines 
+public class CommonPitchEstDefines
 {
     static final int PITCH_EST_MAX_FS_KHZ =               24; /* Maximum sampling frequency used */
 

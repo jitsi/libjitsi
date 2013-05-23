@@ -8,15 +8,15 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Interpolate two vectors.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class Interpolate 
+public class Interpolate
 {
     /**
      * Interpolate two vectors.
-     * 
+     *
      * @param xi interpolated vector.
      * @param x0 first vector.
      * @param x1 second vector.
@@ -36,7 +36,7 @@ public class Interpolate
         assert( ifact_Q2 >= 0 );
         assert( ifact_Q2 <= ( 1 << 2 ) );
 
-        for( i = 0; i < d; i++ ) 
+        for( i = 0; i < d; i++ )
         {
             xi[ i ] = ( x0[ i ] + ( ( x1[ i ] - x0[ i ] ) * ifact_Q2 >> 2 ) );
         }

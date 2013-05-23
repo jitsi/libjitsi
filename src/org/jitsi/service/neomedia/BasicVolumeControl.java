@@ -198,7 +198,7 @@ public class BasicVolumeControl
      * Because the instances of <tt>AbstractVolumeControl</tt> are global at the
      * time of this writing and, consequently, they cause the
      * <tt>VolumeChangeListener</tt>s to be leaked, the listeners are referenced
-     * using <tt>WeakReference</tt>s. 
+     * using <tt>WeakReference</tt>s.
      * </p>
      */
     private final List<WeakReference<VolumeChangeListener>>

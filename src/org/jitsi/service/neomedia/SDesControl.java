@@ -10,7 +10,7 @@ import ch.imvs.sdes4j.srtp.*;
 
 /**
  * SDES based SRTP MediaStream encryption control.
- * 
+ *
  * @author Ingo Bauersachs
  */
 public interface SDesControl
@@ -25,14 +25,14 @@ public interface SDesControl
 
     /**
      * Set the enabled SDES ciphers.
-     * 
+     *
      * @param ciphers The list of enabled ciphers.
      */
     public void setEnabledCiphers(Iterable<String> ciphers);
 
     /**
      * Gets all supported cipher suites.
-     * 
+     *
      * @return all supported cipher suites.
      */
     public Iterable<String> getSupportedCryptoSuites();
@@ -48,7 +48,7 @@ public interface SDesControl
      * Chooses a supported crypto attribute from the peer's list of supplied
      * attributes and creates the local crypto attribute. Used when the control
      * is running in the role as responder.
-     * 
+     *
      * @param peerAttributes The peer's crypto attribute offering.
      *
      * @return The local crypto attribute for the answer of the offer or null if
@@ -61,7 +61,7 @@ public interface SDesControl
      * Select the local crypto attribute from the initial offering (@see
      * {@link #getInitiatorCryptoAttributes()}) based on the peer's first
      * matching cipher suite.
-     * 
+     *
      * @param peerAttributes The peer's crypto offers.
      *
      * @return A SrtpCryptoAttribute when a matching cipher suite was found.

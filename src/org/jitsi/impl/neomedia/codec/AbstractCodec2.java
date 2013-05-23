@@ -287,6 +287,7 @@ public abstract class AbstractCodec2
      * @return array of supported output format
      * @see AbstractCodec#getSupportedOutputFormats(Format)
      */
+    @Override
     public Format[] getSupportedOutputFormats(Format inputFormat)
     {
         if (inputFormat == null)
@@ -332,6 +333,7 @@ public abstract class AbstractCodec2
      * problems occurred
      * @see AbstractCodec#process(Buffer, Buffer)
      */
+    @Override
     public int process(Buffer inputBuffer, Buffer outputBuffer)
     {
         if (!checkInputBuffer(inputBuffer))

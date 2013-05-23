@@ -200,6 +200,7 @@ public class Video4Linux2Stream
      * this <tt>PullBufferStream</tt> into the specified <tt>buffer</tt>
      * @see AbstractVideoPullBufferStream#doRead(Buffer)
      */
+    @Override
     protected void doRead(Buffer buffer)
         throws IOException
     {

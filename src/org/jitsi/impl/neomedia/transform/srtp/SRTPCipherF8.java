@@ -3,9 +3,9 @@
  *
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
- * 
+ *
  * Some of the code in this class is derived from ccRtp's SRTP implementation,
- * which has the following copyright notice: 
+ * which has the following copyright notice:
  *
   Copyright (C) 2004-2006 the Minisip Team
 
@@ -33,27 +33,27 @@ import org.bouncycastle.crypto.params.*;
 /**
  * SRTPCipherF8 implements SRTP F8 Mode AES Encryption (AES-f8).
  * F8 Mode AES Encryption algorithm is defined in RFC3711, section 4.1.2.
- * 
+ *
  * Other than Null Cipher, RFC3711 defined two two encryption algorithms:
  * Counter Mode AES Encryption and F8 Mode AES encryption. Both encryption
  * algorithms are capable to encrypt / decrypt arbitrary length data, and the
- * size of packet data is not required to be a multiple of the AES block 
+ * size of packet data is not required to be a multiple of the AES block
  * size (128bit). So, no padding is needed.
- * 
+ *
  * Please note: these two encryption algorithms are specially defined by SRTP.
- * They are not common AES encryption modes, so you will not be able to find a 
- * replacement implementation in common cryptographic libraries. 
- * 
+ * They are not common AES encryption modes, so you will not be able to find a
+ * replacement implementation in common cryptographic libraries.
+ *
  * As defined by RFC3711: F8 mode encryption is optional.
  *
  *                        mandatory to impl     optional      default
  * -------------------------------------------------------------------------
  *   encryption           AES-CM, NULL          AES-f8        AES-CM
  *   message integrity    HMAC-SHA1                -          HMAC-SHA1
- *   key derivation       (PRF) AES-CM             -          AES-CM 
+ *   key derivation       (PRF) AES-CM             -          AES-CM
  *
  * We use AESCipher to handle basic AES encryption / decryption.
- * 
+ *
  * @author Bing SU (nova.su@gmail.com)
  * @author Werner Dittmann <werner.dittmann@t-online.de>
  */
@@ -142,11 +142,11 @@ public class SRTPCipherF8
             processBlock(cipher, f8ctx, data, off, data, off, inLen);
         }
     }
-    
+
     /**
      * Encrypt / Decrypt a block using F8 Mode AES algorithm, read len bytes
      * data from in at inOff and write the output into out at outOff
-     * 
+     *
      * @param f8ctx
      *            F8 encryption context
      * @param in
@@ -161,7 +161,7 @@ public class SRTPCipherF8
      *            length of the input data
      */
     private static void processBlock(BlockCipher cipher, F8Context f8ctx,
-            byte[] in, int inOff, byte[] out, int outOff, int len) 
+            byte[] in, int inOff, byte[] out, int outOff, int len)
     {
         /*
          * XOR the previous key stream with IV'
@@ -171,7 +171,7 @@ public class SRTPCipherF8
             f8ctx.S[i] ^= f8ctx.ivAccent[i];
 
         /*
-         * Now XOR (S(n-1) xor IV') with the current counter, then increment 
+         * Now XOR (S(n-1) xor IV') with the current counter, then increment
          * the counter
          */
         f8ctx.S[12] ^= f8ctx.J >> 24;

@@ -74,6 +74,7 @@ public class JNIDecoder
      *
      * @see AbstractCodecExt#doClose()
      */
+    @Override
     protected void doClose()
     {
         g722_decoder_close(decoder);
@@ -84,6 +85,7 @@ public class JNIDecoder
      * @throws ResourceUnavailableException
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected void doOpen()
         throws ResourceUnavailableException
     {
@@ -99,6 +101,7 @@ public class JNIDecoder
      * @return
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
+    @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
         byte[] input = (byte[]) inputBuffer.getData();

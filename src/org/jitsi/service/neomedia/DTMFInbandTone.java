@@ -166,7 +166,7 @@ public class DTMFInbandTone
      * impulses. Thus, set it up 150 ms.
      */
     private static final int toneDuration = 150;
-    
+
     /**
      * The default duration of an inband DTMF tone in ms.
      * 45 ms c.f.
@@ -216,7 +216,7 @@ public class DTMFInbandTone
      * Returns this tone value as a string representation.
      *
      * @return this tone value.
-     */ 
+     */
     public String getValue()
     {
         return this.value;

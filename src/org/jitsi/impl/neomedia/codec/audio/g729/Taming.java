@@ -52,22 +52,22 @@ void init_exc_err()
 }
 
 /**
- * Computes the accumulated potential error in the     
+ * Computes the accumulated potential error in the
  * adaptive codebook contribution
  *
  * @param t0        (i) integer part of pitch delay
  * @param t0_frac   (i) fractional part of pitch delay
  * @return          flag set to 1 if taming is necessary
  */
-int test_err( 
-int t0,    
-int t0_frac  
+int test_err(
+int t0,
+int t0_frac
 )
 {
     float INV_L_SUBFR = Ld8k.INV_L_SUBFR;
     int L_INTER10 = Ld8k.L_INTER10;
     int L_SUBFR = Ld8k.L_SUBFR;
-    float THRESH_ERR = Ld8k.THRESH_ERR; 
+    float THRESH_ERR = Ld8k.THRESH_ERR;
 
     int i, t1, zone1, zone2, flag;
     float maxloc;
@@ -76,10 +76,10 @@ int t0_frac
 
     i = t1 - L_SUBFR - L_INTER10;
     if(i < 0) i = 0;
-    zone1 = (int) ( (float)i * INV_L_SUBFR);
+    zone1 = (int) ( i * INV_L_SUBFR);
 
     i = t1 + L_INTER10 - 2;
-    zone2 = (int)( (float)i * INV_L_SUBFR);
+    zone2 = (int)( i * INV_L_SUBFR);
 
     maxloc = -1.0f;
     flag = 0 ;
@@ -101,7 +101,7 @@ int t0_frac
  * @param t0            (i) integer part of pitch delay
  */
 void update_exc_err(
- float gain_pit, 
+ float gain_pit,
  int t0
 )
 {
@@ -122,10 +122,10 @@ void update_exc_err(
     }
 
     else {
-        zone1 = (int) ((float)n * INV_L_SUBFR);
+        zone1 = (int) (n * INV_L_SUBFR);
 
         i = t0 - 1;
-        zone2 = (int)((float)i * INV_L_SUBFR);
+        zone2 = (int)(i * INV_L_SUBFR);
 
         for(i = zone1; i <= zone2; i++) {
             temp = 1.0f + gain_pit * exc_err[i];

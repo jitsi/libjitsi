@@ -67,7 +67,7 @@ public class ByteBuffer
      * specific block of native memory. Since the specified native memory has
      * been allocated outside the new instance, the new instance will not
      * automatically free it.
-     * 
+     *
      * @param ptr a pointer to the block of native memory to be represented by
      * the new instance
      */

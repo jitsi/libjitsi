@@ -8,7 +8,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Split signal into two decimated bands using first-order allpass filters.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -50,7 +50,7 @@ public class AnaFiltBank1
         int    in32, X, Y, out_1, out_2;
 
         /* Internal variables and state are in Q10 format */
-        for( k = 0; k < N2; k++ ) 
+        for( k = 0; k < N2; k++ )
         {
             /* Convert to Q10 */
             in32 = in[ in_offset + 2 * k ] << 10;

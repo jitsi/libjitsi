@@ -18,7 +18,7 @@ import org.jitsi.impl.neomedia.control.*;
  * Represents a <tt>PushBufferDataSource</tt> which is also a
  * <tt>CaptureDevice</tt> through delegation to a specific
  * <tt>CaptureDevice</tt>.
- * 
+ *
  * @author Lubomir Marinov
  */
 public class CaptureDeviceDelegatePushBufferDataSource
@@ -44,7 +44,7 @@ public class CaptureDeviceDelegatePushBufferDataSource
      * Initializes a new <tt>CaptureDeviceDelegatePushBufferDataSource</tt>
      * instance which delegates to a specific <tt>CaptureDevice</tt> in order to
      * implement its <tt>CaptureDevice</tt> functionality.
-     * 
+     *
      * @param captureDevice the <tt>CaptureDevice</tt> the new instance is to
      * delegate to in order to provide its <tt>CaptureDevice</tt> functionality
      */
@@ -61,6 +61,7 @@ public class CaptureDeviceDelegatePushBufferDataSource
      * @throws IOException if the wrapped <tt>CaptureDevice</tt> throws such an
      * exception
      */
+    @Override
     public void connect()
         throws IOException
     {
@@ -72,6 +73,7 @@ public class CaptureDeviceDelegatePushBufferDataSource
      * Implements {@link CaptureDevice#disconnect()}. Delegates to the wrapped
      * <tt>CaptureDevice</tt> if available; otherwise, does nothing.
      */
+    @Override
     public void disconnect()
     {
         if (captureDevice != null)
@@ -103,6 +105,7 @@ public class CaptureDeviceDelegatePushBufferDataSource
      * wrapped <tt>CaptureDevice</tt> if it implements <tt>DataSource</tt>;
      * otherwise, <tt>ContentDescriptor#CONTENT_UNKNOWN</tt>
      */
+    @Override
     public String getContentType()
     {
         if (captureDevice instanceof DataSource)
@@ -121,6 +124,7 @@ public class CaptureDeviceDelegatePushBufferDataSource
      * <tt>controlType</tt> of the wrapped <tt>CaptureDevice</tt> if it
      * implements <tt>DataSource</tt>; otherwise, <tt>null</tt>
      */
+    @Override
     public Object getControl(String controlType)
     {
         if (captureDevice instanceof DataSource)
@@ -137,6 +141,7 @@ public class CaptureDeviceDelegatePushBufferDataSource
      * it implements <tt>DataSource</tt>; otherwise, an empty array with
      * <tt>Object</tt> element type
      */
+    @Override
     public Object[] getControls()
     {
         if (captureDevice instanceof DataSource)
@@ -153,6 +158,7 @@ public class CaptureDeviceDelegatePushBufferDataSource
      * its implementation of <tt>DataSource</tt> if any; otherwise, returns
      * <tt>DataSource#DURATION_UNKNOWN</tt>
      */
+    @Override
     public Time getDuration()
     {
         if (captureDevice instanceof DataSource)
@@ -187,6 +193,7 @@ public class CaptureDeviceDelegatePushBufferDataSource
      * <tt>CaptureDevice</tt> if it implements <tt>PushBufferDataSource</tt>;
      * otherwise, an empty array with <tt>PushBufferStream</tt> element type
      */
+    @Override
     public PushBufferStream[] getStreams()
     {
         if (captureDevice instanceof PushBufferDataSource)
@@ -201,6 +208,7 @@ public class CaptureDeviceDelegatePushBufferDataSource
      * @throws IOException if the wrapped <tt>CaptureDevice</tt> throws such an
      * exception
      */
+    @Override
     public void start()
         throws IOException
     {
@@ -215,6 +223,7 @@ public class CaptureDeviceDelegatePushBufferDataSource
      * @throws IOException if the wrapped <tt>CaptureDevice</tt> throws such an
      * exception
      */
+    @Override
     public void stop()
         throws IOException
     {

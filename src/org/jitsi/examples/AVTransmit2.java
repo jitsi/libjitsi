@@ -114,7 +114,7 @@ public class AVTransmit2
             /*
              * The AVTransmit2 example sends only and the AVReceive2 receives
              * only. In a call, the MediaStream's direction will most commonly
-             * be set to SENDRECV.   
+             * be set to SENDRECV.
              */
             mediaStream.setDirection(MediaDirection.SENDONLY);
 
@@ -124,7 +124,7 @@ public class AVTransmit2
             /*
              * The AVTransmit2 and AVReceive2 examples use the H.264 video
              * codec. Its RTP transmission has no static RTP payload type number
-             * assigned.   
+             * assigned.
              */
             byte dynamicRTPPayloadType;
 
@@ -286,7 +286,7 @@ public class AVTransmit2
     /**
      * The list of command-line arguments accepted as valid by the
      * <tt>AVTransmit2</tt> application along with their human-readable usage
-     * descriptions. 
+     * descriptions.
      */
     private static final String[][] ARGS
         = {
@@ -385,7 +385,7 @@ public class AVTransmit2
      * application on the command line
      * @return a <tt>Map</tt> containing the arguments specified to the
      * <tt>AVTransmit2</tt> application on the command line in the form of
-     * name-value associations 
+     * name-value associations
      */
     static Map<String, String> parseCommandLineArgs(String[] args)
     {

@@ -8,14 +8,14 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * shell coder; pulse-subframe length is hardcoded.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class ShellCoder 
+public class ShellCoder
 {
     /**
-     * 
+     *
      * @param out combined pulses vector [len]
      * @param out_offset offset of valid data.
      * @param in input vector       [2 * len]
@@ -37,7 +37,7 @@ public class ShellCoder
     }
 
     /**
-     * 
+     *
      * @param sRC compressor data structure
      * @param p_child1 pulse amplitude of first child subframe
      * @param p pulse amplitude of current subframe
@@ -53,7 +53,7 @@ public class ShellCoder
         final int[] cdf;
         int cdf_offset;
 
-        if( p > 0 ) 
+        if( p > 0 )
         {
             cdf = shell_table;
             cdf_offset =  TablesPulsesPerBlock.SKP_Silk_shell_code_table_offsets[ p ] ;
@@ -62,7 +62,7 @@ public class ShellCoder
     }
 
     /**
-     * 
+     *
      * @param p_child1  pulse amplitude of first child subframe
      * @param p_child1_offset offset of valid data.
      * @param p_child2 pulse amplitude of second child subframe
@@ -90,11 +90,11 @@ public class ShellCoder
             cdf_middle = ( p >> 1 );
             cdf = shell_table;
             cdf_offset = TablesPulsesPerBlock.SKP_Silk_shell_code_table_offsets[ p ];
-            
+
             RangeCoder.SKP_Silk_range_decoder( p_child1, p_child1_offset, sRC, cdf, cdf_offset, cdf_middle );
             p_child2[ p_child2_offset + 0 ] = p - p_child1[ p_child1_offset + 0 ];
-        } 
-        else 
+        }
+        else
         {
             p_child1[ p_child1_offset + 0 ] = 0;
             p_child2[ p_child2_offset + 0 ] = 0;
@@ -106,7 +106,7 @@ public class ShellCoder
      * @param sRC compressor data structure.
      * @param pulses0 data: nonnegative pulse amplitudes.
      * @param pulses0_offset valid data
-     */ 
+     */
     static void SKP_Silk_shell_encoder(
         SKP_Silk_range_coder_state sRC,               /* I/O  compressor data structure                   */
         int[]                      pulses0,           /* I    data: nonnegative pulse amplitudes          */
@@ -183,7 +183,7 @@ public class ShellCoder
         decode_split( pulses1, 4, pulses1, 5, sRC, pulses2[ 2 ], TablesPulsesPerBlock.SKP_Silk_shell_code_table1 );
         decode_split( pulses0, pulses0_offset + 8, pulses0, pulses0_offset + 9, sRC, pulses1[ 4 ], TablesPulsesPerBlock.SKP_Silk_shell_code_table0 );
         decode_split( pulses0, pulses0_offset + 10,pulses0, pulses0_offset + 11, sRC, pulses1[ 5 ], TablesPulsesPerBlock.SKP_Silk_shell_code_table0 );
-        
+
         decode_split( pulses1, 6, pulses1, 7, sRC, pulses2[ 3 ], TablesPulsesPerBlock.SKP_Silk_shell_code_table1 );
         decode_split( pulses0, pulses0_offset + 12, pulses0, pulses0_offset + 13, sRC, pulses1[ 6 ], TablesPulsesPerBlock.SKP_Silk_shell_code_table0 );
         decode_split( pulses0, pulses0_offset + 14, pulses0, pulses0_offset + 15, sRC, pulses1[ 7 ], TablesPulsesPerBlock.SKP_Silk_shell_code_table0 );

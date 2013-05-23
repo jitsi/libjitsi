@@ -11,7 +11,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class TablesLTP 
+public class TablesLTP
 {
     static int[] SKP_Silk_LTP_per_index_CDF = {
              0,  20992,  40788,  65535
@@ -76,7 +76,7 @@ public class TablesLTP
         SKP_Silk_LTP_gain_BITS_Q6_2
     };
 
-    static short[][] SKP_Silk_LTP_gain_vq_0_Q14 = 
+    static short[][] SKP_Silk_LTP_gain_vq_0_Q14 =
     {
     {
            594,    984,   2840,   1021,    669
@@ -110,7 +110,7 @@ public class TablesLTP
     }
     };
 
-    static short[][]  SKP_Silk_LTP_gain_vq_1_Q14 = 
+    static short[][]  SKP_Silk_LTP_gain_vq_1_Q14 =
     {
     {
           1655,   2918,   5001,   3010,   1775
@@ -174,7 +174,7 @@ public class TablesLTP
     }
     };
 
-    static short[][] SKP_Silk_LTP_gain_vq_2_Q14 = 
+    static short[][] SKP_Silk_LTP_gain_vq_2_Q14 =
     {
     {
           -278,    415,   9345,   7106,   -431
@@ -297,7 +297,7 @@ public class TablesLTP
            518,    -66,   1718,    415,  11435
     }
     };
-    
+
     private static final short[] SKP_Silk_LTP_gain_vq_0_Q14_00 =
         {
 //        {
@@ -331,7 +331,7 @@ public class TablesLTP
               1435,   -644,   3993,   -612,  -2063
 //        }
         };
-    private static final short[] SKP_Silk_LTP_gain_vq_1_Q14_00 = 
+    private static final short[] SKP_Silk_LTP_gain_vq_1_Q14_00 =
     {
 //        {
               1655,   2918,   5001,   3010,   1775,
@@ -394,7 +394,7 @@ public class TablesLTP
               5237,  -1144,   6510,    455,    512
 //        }
     };
-    private static final short[] SKP_Silk_LTP_gain_vq_2_Q14_00 = 
+    private static final short[] SKP_Silk_LTP_gain_vq_2_Q14_00 =
     {
 //        {
               -278,    415,   9345,   7106,   -431,
@@ -523,8 +523,8 @@ public class TablesLTP
         SKP_Silk_LTP_gain_vq_1_Q14_00,
         SKP_Silk_LTP_gain_vq_2_Q14_00
     };
-     
+
     static int[] SKP_Silk_LTP_vq_sizes = {
-        10, 20, 40 
+        10, 20, 40
     };
 }

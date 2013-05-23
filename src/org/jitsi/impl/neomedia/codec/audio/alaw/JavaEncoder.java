@@ -74,6 +74,7 @@ public class JavaEncoder
      * @param in the input format.
      * @return the possible output formats.
      */
+    @Override
     protected Format[] getMatchingOutputFormats(Format in)
     {
         AudioFormat inFormat = (AudioFormat) in;
@@ -98,12 +99,14 @@ public class JavaEncoder
      * @throws ResourceUnavailableException if open failed (which cannot
      * happend for this codec since no resources are to be opened)
      */
+    @Override
     public void open() throws ResourceUnavailableException
     {}
 
     /**
      * No resources used to be cleared.
      */
+    @Override
     public void close()
     {}
 

@@ -8,21 +8,21 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  *  NLSF stabilizer:
- *  - Moves NLSFs further apart if they are too close                                                   
- *  - Moves NLSFs away from borders if they are too close    
- *    - High effort to achieve a modification with minimum Euclidean distance to input vector                   
- *    - Output are sorted NLSF coefficients   
- *  
+ *  - Moves NLSFs further apart if they are too close
+ *  - Moves NLSFs away from borders if they are too close
+ *    - High effort to achieve a modification with minimum Euclidean distance to input vector
+ *    - Output are sorted NLSF coefficients
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class NLSFStabilize 
+public class NLSFStabilize
 {
     /**
      * Constant Definitions.
      */
     static final int MAX_LOOPS  =      20;
-    
+
     /**
      * NLSF stabilizer, for a single input data vector.
      * @param NLSF_Q15 Unstable/stabilized normalized LSF vector in Q15 [L].
@@ -77,20 +77,20 @@ public class NLSFStabilize
             if( I == 0 ) {
                 /* Move away from lower limit */
                 NLSF_Q15[ NLSF_Q15_offset + 0] = NDeltaMin_Q15[0];
-            
+
             } else if( I == L) {
                 /* Move away from higher limit */
                 NLSF_Q15[ NLSF_Q15_offset + L-1] = (1<<15) - NDeltaMin_Q15[L];
-            
+
             } else {
-                /* Find the lower extreme for the location of the current center frequency */ 
+                /* Find the lower extreme for the location of the current center frequency */
                 min_center_Q15 = 0;
                 for( k = 0; k < I; k++ ) {
                     min_center_Q15 += NDeltaMin_Q15[k];
                 }
                 min_center_Q15 += ( NDeltaMin_Q15[I] >> 1 );
 
-                
+
                 /* Find the upper extreme for the location of the current center frequency */
                 max_center_Q15 = (1<<15);
                 for( k = L; k > I; k-- ) {
@@ -113,10 +113,10 @@ public class NLSFStabilize
             /* Best case:  O(n)   for an already sorted array            */
             /* Worst case: O(n^2) for an inversely sorted array          */
             Sort.SKP_Silk_insertion_sort_increasing_all_values(NLSF_Q15,  NLSF_Q15_offset + 0, L);
-                
+
             /* First NLSF should be no less than NDeltaMin[0] */
             NLSF_Q15[ NLSF_Q15_offset + 0] = SigProcFIX.SKP_max_int( NLSF_Q15[ NLSF_Q15_offset + 0], NDeltaMin_Q15[0] );
-            
+
             /* Keep delta_min distance between the NLSFs */
             for( i = 1; i < L; i++ )
                 NLSF_Q15[ NLSF_Q15_offset + i] = SigProcFIX.SKP_max_int( NLSF_Q15[ NLSF_Q15_offset + i], NLSF_Q15[ NLSF_Q15_offset + i-1] + NDeltaMin_Q15[i] );
@@ -125,11 +125,11 @@ public class NLSFStabilize
             NLSF_Q15[ NLSF_Q15_offset + L-1] = SigProcFIX.SKP_min_int( NLSF_Q15[ NLSF_Q15_offset + L-1], (1<<15) - NDeltaMin_Q15[L] );
 
             /* Keep NDeltaMin distance between the NLSFs */
-            for( i = L-2; i >= 0; i-- ) 
+            for( i = L-2; i >= 0; i-- )
                 NLSF_Q15[ NLSF_Q15_offset + i] = SigProcFIX.SKP_min_int( NLSF_Q15[ NLSF_Q15_offset + i], NLSF_Q15[ NLSF_Q15_offset + i+1] - NDeltaMin_Q15[i+1] );
         }
     }
-    
+
     /**
      * NLSF stabilizer, over multiple input column data vectors.
      * @param NLSF_Q15 Unstable/stabilized normalized LSF vectors in Q15 [LxN].
@@ -145,7 +145,7 @@ public class NLSFStabilize
     )
     {
         int n;
-        
+
         /* loop over input data */
         for( n = 0; n < N; n++ ) {
             SKP_Silk_NLSF_stabilize( NLSF_Q15, n * L, NDeltaMin_Q15, L );

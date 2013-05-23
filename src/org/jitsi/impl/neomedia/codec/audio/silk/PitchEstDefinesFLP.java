@@ -8,7 +8,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Definitions For FLP pitch estimator.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */

@@ -84,9 +84,9 @@ static void corr_xy2(
  * @param d     (o) :Correlations between h[] and x[]
  */
 static void cor_h_x(
-     float h[], 
-     float x[],     
-     float d[]      
+     float h[],
+     float x[],
+     float d[]
 )
 {
    int L_SUBFR = Ld8k.L_SUBFR;

@@ -96,6 +96,7 @@ public class PortAudioStream
              * Returns the identifier of the PortAudio device read through this
              * <tt>PortAudioStream</tt>.
              */
+            @Override
             public String toString()
             {
                 String id = PortAudioStream.this.deviceID;
@@ -467,7 +468,7 @@ public class PortAudioStream
             {
                 /*
                  * There is certainly a problem but it is other than a
-                 * malfunction in Pa_ReadStream. 
+                 * malfunction in Pa_ReadStream.
                  */
                 if (readIsMalfunctioningSince != NEVER)
                     setReadIsMalfunctioning(false);
@@ -593,7 +594,7 @@ public class PortAudioStream
         /*
          * We should better not short-circuit because the deviceID may be the
          * same but it eventually resolves to a deviceIndex and may have changed
-         * after hotplugging. 
+         * after hotplugging.
          */
 
         // DataSource#disconnect

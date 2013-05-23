@@ -6,10 +6,10 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
-public class LTPAnalysisFilterFLP 
+public class LTPAnalysisFilterFLP
 {
     /**
-     * 
+     *
      * @param LTP_res LTP res NB_SUBFR*(pre_lgth+subfr_lngth)
      * @param x Input signal, with preceeding samples
      * @param x_offset offset of valid data.
@@ -18,7 +18,7 @@ public class LTPAnalysisFilterFLP
      * @param invGains Inverse quantization gains
      * @param subfr_length Length of each subframe
      * @param pre_length Preceeding samples for each subframe.
-     */ 
+     */
     static void SKP_Silk_LTP_analysis_filter_FLP(
               float         []LTP_res,                   /* O    LTP res NB_SUBFR*(pre_lgth+subfr_lngth) */
         final float         []x,                         /* I    Input signal, with preceeding samples   */
@@ -33,7 +33,7 @@ public class LTPAnalysisFilterFLP
         final float []x_ptr;
         float [] x_lag_ptr;
         int x_ptr_offset, x_lag_ptr_offset;
-        
+
         float   Btmp[] = new float[ Define.LTP_ORDER ];
         float   []LTP_res_ptr;
         int     LTP_res_ptr_offset;
@@ -51,11 +51,11 @@ public class LTPAnalysisFilterFLP
             for( i = 0; i < Define.LTP_ORDER; i++ ) {
                 Btmp[ i ] = B[ k * Define.LTP_ORDER + i ];
             }
-            
+
             /* LTP analysis FIR filter */
             for( i = 0; i < subfr_length + pre_length; i++ ) {
                 LTP_res_ptr[ LTP_res_ptr_offset + i ] = x_ptr[ x_ptr_offset + i ];
-                /* Subtract long-term prediction */ 
+                /* Subtract long-term prediction */
                 for( j = 0; j < Define.LTP_ORDER; j++ ) {
                     LTP_res_ptr[ LTP_res_ptr_offset + i ] -= Btmp[ j ] * x_lag_ptr[ x_lag_ptr_offset + Define.LTP_ORDER / 2 - j ];
                 }
@@ -64,7 +64,7 @@ public class LTPAnalysisFilterFLP
             }
 
             /* Update pointers */
-            LTP_res_ptr_offset += subfr_length + pre_length; 
+            LTP_res_ptr_offset += subfr_length + pre_length;
             x_ptr_offset       += subfr_length;
         }
     }

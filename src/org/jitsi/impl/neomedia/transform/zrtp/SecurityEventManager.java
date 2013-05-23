@@ -432,7 +432,7 @@ public class SecurityEventManager extends ZrtpUserCallback
 
     /**
      * Gets the SAS for the current media stream.
-     * 
+     *
      * @return the four character ZRTP SAS.
      */
     public String getSecurityString()
@@ -442,7 +442,7 @@ public class SecurityEventManager extends ZrtpUserCallback
 
     /**
      * Gets the cipher information for the current media stream.
-     * 
+     *
      * @return the cipher information string.
      */
     public String getCipherString()
@@ -452,7 +452,7 @@ public class SecurityEventManager extends ZrtpUserCallback
 
     /**
      * Gets the status of the SAS verification.
-     * 
+     *
      * @return true when the SAS has been verified.
      */
     public boolean isSecurityVerified()

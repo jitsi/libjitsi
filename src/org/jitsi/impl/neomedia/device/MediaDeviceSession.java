@@ -1054,7 +1054,7 @@ public class MediaDeviceSession
      * to ensure that the existence of the <tt>Processor</tt> is really in
      * accord with the rest of the state of this instance. Overall, the method
      * is to be considered private and is to not be invoked outside the
-     * <tt>MediaDeviceSession</tt> class. 
+     * <tt>MediaDeviceSession</tt> class.
      * </p>
      *
      * @return the JMF <tt>Processor</tt> which transcodes the

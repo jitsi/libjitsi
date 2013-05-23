@@ -8,12 +8,12 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Perceptual parameters.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
 //TODO: float or double???
-public class PerceptualParametersFLP 
+public class PerceptualParametersFLP
 {
     /* reduction in coding SNR during low speech activity */
     static final float BG_SNR_DECR_dB =                             3.0f;

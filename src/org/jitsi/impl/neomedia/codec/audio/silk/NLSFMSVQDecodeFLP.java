@@ -8,10 +8,10 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * NLSF vector decoder.
- * 
+ *
  * @author Dingxin Xu
  */
-public class NLSFMSVQDecodeFLP 
+public class NLSFMSVQDecodeFLP
 {
     /**
      * NLSF vector decoder.
@@ -23,7 +23,7 @@ public class NLSFMSVQDecodeFLP
      */
     static void SKP_Silk_NLSF_MSVQ_decode_FLP(
               float                 []pNLSF,             /* O    Decoded output vector [ LPC_ORDER ]     */
-        final  SKP_Silk_NLSF_CB_FLP psNLSF_CB_FLP,     /* I    NLSF codebook struct                    */  
+        final  SKP_Silk_NLSF_CB_FLP psNLSF_CB_FLP,     /* I    NLSF codebook struct                    */
         final int                   []NLSFIndices,       /* I    NLSF indices [ nStages ]                */
               int                   NLSFIndices_offset,
         final int                   LPC_order           /* I    LPC order used                          */
@@ -44,7 +44,7 @@ public class NLSFMSVQDecodeFLP
 
         /* Initialize with the codebook vector from stage 0 */
         System.arraycopy(pCB_element, pCB_element_offset, pNLSF, 0, LPC_order);
-              
+
         for( s = 1; s < psNLSF_CB_FLP.nStages; s++ ) {
             /* Check that each index is within valid range */
             assert( 0 <= NLSFIndices[ NLSFIndices_offset+s ] && NLSFIndices[ NLSFIndices_offset+s ] < psNLSF_CB_FLP.CBStages[ s ].nVectors );

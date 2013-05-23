@@ -15,7 +15,7 @@ import org.jitsi.util.*;
 /**
  * A base class that manages encoding configurations. It holds information
  * about supported formats.
- * 
+ *
  * @author Damian Minkov
  * @author Lyubomir Marinov
  * @author Boris Grozev

@@ -34,7 +34,7 @@ package org.jitsi.impl.neomedia.codec.audio.g729;
  *          codebook index2 (signs)      4 bit
  *          pitch and codebook gains   4+3 bit
  * </pre>
- * 
+ *
  * @author Lubomir Marinov (translation of ITU-T C source code to Java)
  */
 class Bits
@@ -72,8 +72,8 @@ class Bits
  * @param bits       output: serial bits
  */
 static void prm2bits_ld8k(
- int  prm[],         
- short bits[]      
+ int  prm[],
+ short bits[]
 )
 {
    int PRM_SIZE = Ld8k.PRM_SIZE;
@@ -103,9 +103,9 @@ static void prm2bits_ld8k(
  * @param bitstream_offset  input: bitstream offset
  */
 private static void int2bin(
- int  value,          
- int  no_of_bits,       
- short[] bitstream,       
+ int  value,
+ int  no_of_bits,
+ short[] bitstream,
  int bitstream_offset
 )
 {
@@ -150,7 +150,7 @@ static void bits2prm_ld8k(short[] bits, int[] prm)
 static void bits2prm_ld8k(
  short bits[],
  int bits_offset,
- int  prm[], 
+ int  prm[],
  int prm_offset
 )
 {
@@ -174,9 +174,9 @@ static void bits2prm_ld8k(
  * @param bitstream_offset  input : array offset
  * @return                   decimal value of bit pattern
  */
-private static int bin2int( 
- int  no_of_bits,   
- short[] bitstream,     
+private static int bin2int(
+ int  no_of_bits,
+ short[] bitstream,
  int bitstream_offset
 )
 {

@@ -11,7 +11,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class TablesGain 
+public class TablesGain
 {
     static int[][] SKP_Silk_gain_CDF = {
             { 0, 18, 45, 94, 181, 320, 519, 777, 1093, 1468, 1909, 2417, 2997,

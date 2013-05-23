@@ -683,7 +683,7 @@ public class DeviceConfiguration
                                 List<CaptureDeviceInfo2> playbackDevices
                                     = audioSystem.getDevices(
                                         AudioSystem.DataFlow.PLAYBACK);
-    
+
                                 if ((playbackDevices == null)
                                         || (playbackDevices.size() <= 0))
                                 {

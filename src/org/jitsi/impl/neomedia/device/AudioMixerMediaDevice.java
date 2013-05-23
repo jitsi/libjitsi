@@ -200,6 +200,7 @@ public class AudioMixerMediaDevice
      * captured by this <tt>MediaDevice</tt>
      * @see AbstractMediaDevice#createOutputDataSource()
      */
+    @Override
     public AudioMixingPushBufferDataSource createOutputDataSource()
     {
         return getAudioMixer().createOutputDataSource();
@@ -463,7 +464,7 @@ public class AudioMixerMediaDevice
     {
         return device.getSupportedFormats();
     }
-    
+
     /**
      * Gets the list of <tt>MediaFormat</tt>s supported by this
      * <tt>MediaDevice</tt> and enabled in <tt>encodingConfiguration</tt>.
@@ -637,7 +638,7 @@ public class AudioMixerMediaDevice
              * contributions but ours.
              */
             super.addPlaybackDataSource(
-                    (AudioMixingPushBufferDataSource) getCaptureDevice());
+                    getCaptureDevice());
         }
 
         /**
@@ -1215,6 +1216,7 @@ public class AudioMixerMediaDevice
          * <tt>MediaStreamMediaDeviceSession</tt> does not perform
          * playback/rendering.
          */
+        @Override
         public void setOutputVolumeControl(VolumeControl outputVolumeControl)
         {
             audioMixerMediaDeviceSession.setOutputVolumeControl(

@@ -109,6 +109,7 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
      * @param clockRate clock rate
      * @param pref a positive int indicating the preference for that encoding.
      */
+    @Override
     protected void setEncodingPreference(
             String encoding, double clockRate,
             int pref)
@@ -145,6 +146,7 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
      * @return array of <tt>MediaFormat</tt> supported for the
      * <tt>MediaType</tt>
      */
+    @Override
     public MediaFormat[] getAllEncodings(MediaType type)
     {
         return MediaUtils.getMediaFormats(type);
@@ -161,6 +163,7 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
      * format has been assigned a preference higher, equal to, or greater than
      * the one of the second
      */
+    @Override
     protected int compareEncodingPreferences(MediaFormat enc1, MediaFormat enc2)
     {
         int res = getPriority(enc2) - getPriority(enc1);

@@ -12,21 +12,21 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * Coeffients are stored in a packed format:
  * { B1_Q14[1], B2_Q14[1], -A1_Q14[1], -A1_Q14[2], -A2_Q14[1], -A2_Q14[2], gain_Q16 }
  * where it is assumed that B*_Q14[0], B*_Q14[2], A*_Q14[0] are all 16384.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class ResamplerPrivateARMA4 
+public class ResamplerPrivateARMA4
 {
     /**
-     * 
+     *
      * @param S State vector [ 4 ].
      * @param S_offset offset of valid data.
      * @param out Output signal.
      * @param out_offset  offset of valid data.
      * @param in Input signal.
      * @param in_offset offset of valid data.
-     * @param Coef ARMA coefficients [ 7 ]. 
+     * @param Coef ARMA coefficients [ 7 ].
      * @param Coef_offset offset of valid data.
      * @param len Signal length.
      */

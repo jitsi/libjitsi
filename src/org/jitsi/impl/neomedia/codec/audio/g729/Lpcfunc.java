@@ -50,8 +50,8 @@ class Lpcfunc
  * @param a_offset  input: predictor coeffs a offset.
  */
 private static void lsp_az(
- float[] lsp,            
- float[] a,        
+ float[] lsp,
+ float[] a,
  int a_offset
 )
 {
@@ -87,9 +87,9 @@ private static void lsp_az(
  * @param f             output: the coefficients of F1 or F2
  */
 private static void get_lsp_pol(
-   float lsp[],       
+   float lsp[],
    int lsp_offset,
-   float f[]              
+   float f[]
 )
 {
   int NC = Ld8k.NC;
@@ -118,14 +118,14 @@ private static void get_lsp_pol(
  * @param m     input : length
  */
 static void lsf_lsp(
- float lsf[],     
- float lsp[],      
+ float lsf[],
+ float lsp[],
  int m
 )
 {
     int     i;
     for ( i = 0; i < m; i++ )
-        lsp[i] = (float)Math.cos((double)lsf[i]);
+        lsp[i] = (float)Math.cos(lsf[i]);
 }
 
 /**
@@ -136,15 +136,15 @@ static void lsf_lsp(
  * @param m     input: length
  */
 static void lsp_lsf(
- float lsp[],      
- float lsf[],     
+ float lsp[],
+ float lsf[],
  int m
 )
 {
     int     i;
 
     for ( i = 0; i < m; i++ )
-        lsf[i] = (float)Math.acos((double)lsp[i]);
+        lsf[i] = (float)Math.acos(lsp[i]);
 }
 
 
@@ -158,11 +158,11 @@ static void lsp_lsf(
  * @param ap         output: weighted coefficients ap[0:m]
  */
 static void weight_az(
- float[] a,              
+ float[] a,
  int a_offset,
- float gamma,           
- int m,                 
- float[] ap           
+ float gamma,
+ int m,
+ float[] ap
 )
 {
     float fac;
@@ -185,9 +185,9 @@ static void weight_az(
  * @param az         output: filter parameters in 2 subfr (dim 2(m+1))
  */
 static void int_qlpc(
- float lsp_old[],       
- float lsp_new[],       
- float az[]            
+ float lsp_old[],
+ float lsp_new[],
+ float az[]
 )
 {
   int M = Ld8k.M;
@@ -211,11 +211,11 @@ static void int_qlpc(
  * @param az        output: filter parameters in 2 subfr (dim 2(m+1))
  */
 static void int_lpc(
- float lsp_old[],    
- float lsp_new[],    
- float lsf_int[],      
- float lsf_new[],       
- float az[]           
+ float lsp_old[],
+ float lsp_new[],
+ float lsf_int[],
+ float lsf_new[],
+ float az[]
 )
 {
     int M = Ld8k.M;

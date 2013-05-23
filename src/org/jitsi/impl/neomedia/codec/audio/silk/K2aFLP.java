@@ -7,17 +7,17 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * step up function, converts reflection coefficients to 
+ * step up function, converts reflection coefficients to
  * prediction coefficients.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class K2aFLP 
+public class K2aFLP
 {
     /**
      * step up function, converts reflection coefficients to prediction coefficients.
-     * 
+     *
      * @param A prediction coefficients [order].
      * @param rc reflection coefficients [order].
      * @param order prediction order.
@@ -37,7 +37,7 @@ public class K2aFLP
             {
                 Atmp[ n ] = A[ n ];
             }
-            for( n = 0; n < k; n++ ) 
+            for( n = 0; n < k; n++ )
             {
                 A[ n ] += Atmp[ k - n - 1 ] * rc[ k ];
             }

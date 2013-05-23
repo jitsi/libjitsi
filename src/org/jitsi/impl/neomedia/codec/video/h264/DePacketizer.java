@@ -322,6 +322,7 @@ public class DePacketizer
     /**
      * Close the <tt>Codec</tt>.
      */
+    @Override
     protected synchronized void doClose()
     {
         // If requestKeyFrameThread is running, tell it to perish.
@@ -340,6 +341,7 @@ public class DePacketizer
      * <tt>Codec</tt> needs to operate cannot be acquired
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected synchronized void doOpen()
         throws ResourceUnavailableException
     {
@@ -360,6 +362,7 @@ public class DePacketizer
      * @return <tt>BUFFER_PROCESSED_OK</tt> if buffer has been successfully
      * processed
      */
+    @Override
     @SuppressWarnings("fallthrough")
     protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
@@ -732,6 +735,7 @@ public class DePacketizer
                 requestKeyFrameThread
                     = new Thread()
                     {
+                        @Override
                         public void run()
                         {
                             try

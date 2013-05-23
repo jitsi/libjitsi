@@ -248,28 +248,28 @@ public class TablesNLSFCB016
             65535
     };
 
-    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_0 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_0
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB0_16_CDF, 0, SKP_Silk_NLSF_MSVQ_CB0_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_129 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_129
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB0_16_CDF, 129, SKP_Silk_NLSF_MSVQ_CB0_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_146 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_146
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB0_16_CDF, 146, SKP_Silk_NLSF_MSVQ_CB0_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_155 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_155
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB0_16_CDF, 155, SKP_Silk_NLSF_MSVQ_CB0_16_CDF.length);
     static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_164
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB0_16_CDF, 164, SKP_Silk_NLSF_MSVQ_CB0_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_173 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_173
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB0_16_CDF, 173, SKP_Silk_NLSF_MSVQ_CB0_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_182 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_182
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB0_16_CDF, 182, SKP_Silk_NLSF_MSVQ_CB0_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_191 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_191
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB0_16_CDF, 191, SKP_Silk_NLSF_MSVQ_CB0_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_200 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_200
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB0_16_CDF, 200, SKP_Silk_NLSF_MSVQ_CB0_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_209 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_209
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB0_16_CDF, 209, SKP_Silk_NLSF_MSVQ_CB0_16_CDF.length);
-    
-    static final int[][] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_start_ptr = 
+
+    static final int[][] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_start_ptr =
     {
          SKP_Silk_NLSF_MSVQ_CB0_16_CDF_0,
          SKP_Silk_NLSF_MSVQ_CB0_16_CDF_129,
@@ -283,7 +283,7 @@ public class TablesNLSFCB016
          SKP_Silk_NLSF_MSVQ_CB0_16_CDF_209
     };
 
-    static final int[] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_middle_idx =    
+    static final int[] SKP_Silk_NLSF_MSVQ_CB0_16_CDF_middle_idx =
     {
           42,
            8,
@@ -297,7 +297,7 @@ public class TablesNLSFCB016
            9
     };
 
-    static final short[] SKP_Silk_NLSF_MSVQ_CB0_16_rates_Q5 =    
+    static final short[] SKP_Silk_NLSF_MSVQ_CB0_16_rates_Q5 =
     {
                   176,              181,
                   182,              183,

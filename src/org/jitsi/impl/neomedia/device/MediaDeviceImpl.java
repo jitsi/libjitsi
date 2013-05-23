@@ -262,6 +262,7 @@ public class MediaDeviceImpl
      * captured by this <tt>MediaDevice</tt>
      * @see AbstractMediaDevice#createOutputDataSource()
      */
+    @Override
     protected DataSource createOutputDataSource()
     {
         return
@@ -364,7 +365,7 @@ public class MediaDeviceImpl
     {
         return mediaType;
     }
-    
+
     /**
      * Gets the list of <tt>MediaFormat</tt>s supported by this
      * <tt>MediaDevice</tt> and enabled in <tt>encodingConfiguration</tt>.

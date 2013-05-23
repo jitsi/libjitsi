@@ -12,11 +12,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * a piecewise linear approximation maps LSF <-> cos(LSF)
  * therefore the result is not accurate LSFs, but the two
  * function are accurate inverses of each other.
- *  
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class NLSF2A 
+public class NLSF2A
 {
     /**
      * helper function for NLSF2A(..).
@@ -41,7 +41,7 @@ public class NLSF2A
             ftmp = cLSF[cLSF_offset + 2*k];            // Q20
             int test = ftmp * out[k];
             long test2 =  SigProcFIX.SKP_SMULL(ftmp, out[k]);
-            
+
             out[k+1] = ( out[k-1] << 1 ) - (int)SigProcFIX.SKP_RSHIFT_ROUND64( SigProcFIX.SKP_SMULL( ftmp , out[k] ), 20 );
 
             for( n = k; n > 1; n-- ) {
@@ -50,7 +50,7 @@ public class NLSF2A
             out[1] -= ftmp;
         }
     }
-    
+
     /**
      * compute whitening filter coefficients from normalized line spectral frequencies.
      * @param a monic whitening filter coefficients in Q12,  [d].
@@ -65,17 +65,17 @@ public class NLSF2A
     {
         int k, i, dd;
         int[] cos_LSF_Q20=new int[SigProcFIX.SKP_Silk_MAX_ORDER_LPC];
-        
+
         int[] P = new int[SigProcFIX.SKP_Silk_MAX_ORDER_LPC/2+1];
         int[] Q = new int[SigProcFIX.SKP_Silk_MAX_ORDER_LPC/2+1];
-        
+
         int Ptmp, Qtmp;
         int f_int;
         int f_frac;
         int cos_val, delta;
         int[] a_int32 = new int[SigProcFIX.SKP_Silk_MAX_ORDER_LPC];
-        
-        int maxabs, absval, idx=0, sc_Q16; 
+
+        int maxabs, absval, idx=0, sc_Q16;
 
         Typedef.SKP_assert(SigProcFIX.LSF_COS_TAB_SZ_FIX == 128);
 
@@ -85,12 +85,12 @@ public class NLSF2A
             Typedef.SKP_assert(NLSF[k] <= 32767 );
 
             /* f_int on a scale 0-127 (rounded down) */
-            f_int = ( NLSF[k] >> (15 - 7) ); 
-            
-            /* f_frac, range: 0..255 */
-            f_frac = NLSF[k] - ( f_int << (15 - 7) ); 
+            f_int = ( NLSF[k] >> (15 - 7) );
 
-            
+            /* f_frac, range: 0..255 */
+            f_frac = NLSF[k] - ( f_int << (15 - 7) );
+
+
             Typedef.SKP_assert(f_int >= 0);
             Typedef.SKP_assert(f_int < SigProcFIX.LSF_COS_TAB_SZ_FIX );
 
@@ -102,14 +102,14 @@ public class NLSF2A
             cos_LSF_Q20[k] = ( cos_val << 8 ) + ( delta * f_frac ); /* Q20 */
 
         }
-        
+
         dd = ( d >> 1 );
-        
+
         /* generate even and odd polynomials using convolution */
         SKP_Silk_NLSF2A_find_poly( P, cos_LSF_Q20, 0, dd );
         SKP_Silk_NLSF2A_find_poly( Q, cos_LSF_Q20, 1, dd );
 
-        
+
         /* convert even and odd polynomials to int Q12 filter coefs */
         for( k = 0; k < dd; k++ ) {
             Ptmp = P[k+1] + P[k];
@@ -130,26 +130,26 @@ public class NLSF2A
                 if( absval > maxabs ) {
                     maxabs = absval;
                     idx       = k;
-                }    
+                }
             }
-        
-            if( maxabs > Typedef.SKP_int16_MAX ) {    
+
+            if( maxabs > Typedef.SKP_int16_MAX ) {
                 /* Reduce magnitude of prediction coefficients */
-                maxabs = SigProcFIX.SKP_min( maxabs, 98369 ); // ( SKP_int32_MAX / ( 65470 >> 2 ) ) + SKP_int16_MAX = 98369 
-                sc_Q16 = 65470 - ( ( (65470 >> 2) * (maxabs - Typedef.SKP_int16_MAX) ) / 
+                maxabs = SigProcFIX.SKP_min( maxabs, 98369 ); // ( SKP_int32_MAX / ( 65470 >> 2 ) ) + SKP_int16_MAX = 98369
+                sc_Q16 = 65470 - ( ( (65470 >> 2) * (maxabs - Typedef.SKP_int16_MAX) ) /
                         ( ( maxabs * (idx + 1)) >> 2 ) );
                 Bwexpander32.SKP_Silk_bwexpander_32( a_int32, d, sc_Q16 );
 
             } else {
                 break;
             }
-        }    
+        }
 
         /* Reached the last iteration */
         if( i == 10 ) {
             Typedef.SKP_assert(false);
             for( k = 0; k < d; k++ ) {
-                a_int32[k] = SigProcFIX.SKP_SAT16( a_int32[k] ); 
+                a_int32[k] = SigProcFIX.SKP_SAT16( a_int32[k] );
             }
         }
 

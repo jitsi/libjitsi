@@ -152,20 +152,20 @@ public class VideoMediaDeviceSession
      * Remote SSRC.
      */
     private long remoteSSRC = -1;
-    
+
     /**
-     * A list with RTCPFeedbackCreateListener which will be notified when 
+     * A list with RTCPFeedbackCreateListener which will be notified when
      * a RTCPFeedbackListener is created.
      */
     private List<RTCPFeedbackCreateListener> rtcpFeedbackCreateListners
         = new LinkedList<RTCPFeedbackCreateListener>();
-    
+
     /**
      * The <tt>RTPConnector</tt> with which the <tt>RTPManager</tt> of this
      * instance is to be or is already initialized.
      */
     private AbstractRTPConnector rtpConnector;
-    
+
     /**
      * Use or not RTCP feedback Picture Loss Indication.
      */
@@ -203,7 +203,7 @@ public class VideoMediaDeviceSession
         {
             rtcpFeedbackCreateListners.add(listener);
         }
-        
+
         if (encoder != null)
             listener.onRTCPFeedbackCreate(encoder);
     }
@@ -1210,7 +1210,7 @@ public class VideoMediaDeviceSession
      * event
      * @param origin {@link VideoEvent#LOCAL} or {@link VideoEvent#REMOTE} which
      * specifies the origin of the visual <tt>Component</tt> displaying video
-     * which is concerned 
+     * which is concerned
      * @param width the width reported in the event
      * @param height the height reported in the event
      * @see SizeChangeEvent
@@ -1340,7 +1340,7 @@ public class VideoMediaDeviceSession
             return;
 
         // Preserve the aspect ratio.
-        outputHeight = outputWidth * inputHeight / (float) inputWidth;
+        outputHeight = outputWidth * inputHeight / inputWidth;
 
         // Fit the output video into the visualComponent.
         boolean scale = false;
@@ -1350,14 +1350,14 @@ public class VideoMediaDeviceSession
         if (Math.abs(outputWidth - inputWidth) < 1)
         {
             scale = true;
-            widthRatio = outputWidth / (float) inputWidth;
+            widthRatio = outputWidth / inputWidth;
         }
         else
             widthRatio = 1;
         if (Math.abs(outputHeight - inputHeight) < 1)
         {
             scale = true;
-            heightRatio = outputHeight / (float) inputHeight;
+            heightRatio = outputHeight / inputHeight;
         }
         else
             heightRatio = 1;
@@ -1443,6 +1443,7 @@ public class VideoMediaDeviceSession
      * <tt>MediaDeviceSession</tt> is to output the media captured by its
      * <tt>MediaDevice</tt>
      */
+    @Override
     public void setFormat(MediaFormat format)
     {
         if(format instanceof VideoMediaFormat &&
@@ -1477,7 +1478,7 @@ public class VideoMediaDeviceSession
 
         super.setFormat(format);
     }
-    
+
     /**
      * Sets the <tt>KeyFrameControl</tt> to be used by this
      * <tt>VideoMediaDeviceSession</tt> as a means of control over its
@@ -1500,7 +1501,7 @@ public class VideoMediaDeviceSession
                 this.keyFrameControl.addKeyFrameRequester(-1, keyFrameRequester);
         }
     }
-    
+
     /**
      * Set the local SSRC.
      *
@@ -1510,7 +1511,7 @@ public class VideoMediaDeviceSession
     {
         this.localSSRC = localSSRC;
     }
-    
+
     /**
      * Sets the size of the output video.
      *
@@ -1649,7 +1650,7 @@ public class VideoMediaDeviceSession
          * will want to base the decision on the format of the capture device
          * and not on the operating system. In a perfect worlds, we will
          * re-implement the functionality bellow using a Control interface and
-         * we will not bother with inserting customized codecs. 
+         * we will not bother with inserting customized codecs.
          */
         if (!OSUtils.IS_ANDROID
                 && "h264/rtp".equalsIgnoreCase(format.getEncoding()))
@@ -1674,7 +1675,7 @@ public class VideoMediaDeviceSession
                 encoder.setAdditionalCodecSettings(
                         mediaFormat.getAdditionalCodecSettings());
             }
-            
+
             this.encoder = encoder;
             onRTCPFeedbackCreate(encoder);
             synchronized (rtcpFeedbackCreateListners)
@@ -1684,8 +1685,8 @@ public class VideoMediaDeviceSession
                     l.onRTCPFeedbackCreate(encoder);
                 }
             }
-            
-            
+
+
             if (keyFrameControl != null)
                 encoder.setKeyFrameControl(keyFrameControl);
 
@@ -1763,7 +1764,7 @@ public class VideoMediaDeviceSession
                             public boolean requestKeyFrame()
                             {
                                 boolean requested = false;
-                                
+
                                 if (VideoMediaDeviceSession.this.usePLI)
                                 {
                                     try

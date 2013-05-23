@@ -37,10 +37,10 @@ public class DecodeParameters
         int[]   NLSFIndices = new int[ Define.NLSF_MSVQ_MAX_CB_STAGES ];
         int[]   pNLSF_Q15 = new int[ Define.MAX_LPC_ORDER ];
         int []  pNLSF0_Q15 = new int[ Define.MAX_LPC_ORDER ];
-        
+
         short[] cbk_ptr_Q14;
         SKP_Silk_NLSF_CB_struct psNLSF_CB = null;
-        
+
         SKP_Silk_range_coder_state  psRC = psDec.sRC;
         /************************/
         /* Decode sampling rate */
@@ -49,7 +49,7 @@ public class DecodeParameters
         if( psDec.nFramesDecoded == 0 ) {
             RangeCoder.SKP_Silk_range_decoder( Ix_ptr, 0, psRC, TablesOther.SKP_Silk_SamplingRates_CDF, 0, TablesOther.SKP_Silk_SamplingRates_offset );
             Ix = Ix_ptr[0];
-            
+
             /* check that sampling rate is supported */
             if( Ix < 0 || Ix > 3 ) {
                 psRC.error = Define.RANGE_CODER_ILLEGAL_SAMPLING_RATE;
@@ -79,7 +79,7 @@ public class DecodeParameters
         /****************/
         /* Decode gains */
         /****************/
-        /* first subframe */    
+        /* first subframe */
         if( psDec.nFramesDecoded == 0 ) {
             /* first frame in packet: independent coding */
             RangeCoder.SKP_Silk_range_decoder( GainsIndices, 0, psRC, TablesGain.SKP_Silk_gain_CDF[ psDecCtrl.sigtype ], 0, TablesGain.SKP_Silk_gain_CDF_offset );
@@ -92,13 +92,13 @@ public class DecodeParameters
         for( i = 1; i < Define.NB_SUBFR; i++ ) {
             RangeCoder.SKP_Silk_range_decoder( GainsIndices, i, psRC, TablesGain.SKP_Silk_delta_gain_CDF, 0, TablesGain.SKP_Silk_delta_gain_CDF_offset );
         }
-        
+
         /* Dequant Gains */
         int LastGainIndex_ptr[] = new int[1];
         LastGainIndex_ptr[0] = psDec.LastGainIndex;
         GainQuant.SKP_Silk_gains_dequant( psDecCtrl.Gains_Q16, GainsIndices, LastGainIndex_ptr, psDec.nFramesDecoded );
         psDec.LastGainIndex = LastGainIndex_ptr[0];
-        
+
         /****************/
         /* Decode NLSFs */
         /****************/
@@ -108,7 +108,7 @@ public class DecodeParameters
         /* Arithmetically decode NLSF path */
         RangeCoder.SKP_Silk_range_decoder_multi( NLSFIndices, psRC, psNLSF_CB.StartPtr, psNLSF_CB.MiddleIx, psNLSF_CB.nStages );
 
-        
+
         /* From the NLSF path, decode an NLSF vector */
         NLSFMSVQDecode.SKP_Silk_NLSF_MSVQ_decode( pNLSF_Q15, psNLSF_CB, NLSFIndices, psDec.LPC_order );
 
@@ -118,11 +118,11 @@ public class DecodeParameters
         /************************************/
         int[] NLSFInterpCoef_Q2_ptr = new int[1];
         NLSFInterpCoef_Q2_ptr[0] = psDecCtrl.NLSFInterpCoef_Q2;
-        
-        RangeCoder.SKP_Silk_range_decoder( NLSFInterpCoef_Q2_ptr, 0, psRC, TablesOther.SKP_Silk_NLSF_interpolation_factor_CDF, 0, 
+
+        RangeCoder.SKP_Silk_range_decoder( NLSFInterpCoef_Q2_ptr, 0, psRC, TablesOther.SKP_Silk_NLSF_interpolation_factor_CDF, 0,
                 TablesOther.SKP_Silk_NLSF_interpolation_factor_offset );
         psDecCtrl.NLSFInterpCoef_Q2 = NLSFInterpCoef_Q2_ptr[0];
-        
+
         /* If just reset, e.g., because internal Fs changed, do not allow interpolation */
         /* improves the case of packet loss in the first frame after a switch           */
         if( psDec.first_frame_after_reset == 1 ) {
@@ -133,10 +133,10 @@ public class DecodeParameters
             /* Convert NLSF parameters to AR prediction filter coefficients */
             NLSF2AStable.SKP_Silk_NLSF2A_stable( psDecCtrl.PredCoef_Q12[ 1 ], pNLSF_Q15, psDec.LPC_order );
             if( psDecCtrl.NLSFInterpCoef_Q2 < 4 ) {
-                /* Calculation of the interpolated NLSF0 vector from the interpolation factor, */ 
+                /* Calculation of the interpolated NLSF0 vector from the interpolation factor, */
                 /* the previous NLSF1, and the current NLSF1                                   */
                 for( i = 0; i < psDec.LPC_order; i++ ) {
-                    pNLSF0_Q15[ i ] = psDec.prevNLSF_Q15[ i ] + ( ( psDecCtrl.NLSFInterpCoef_Q2 * 
+                    pNLSF0_Q15[ i ] = psDec.prevNLSF_Q15[ i ] + ( ( psDecCtrl.NLSFInterpCoef_Q2 *
                             ( pNLSF_Q15[ i ] - psDec.prevNLSF_Q15[ i ] ) ) >> 2 );
                 }
 
@@ -149,7 +149,7 @@ public class DecodeParameters
         }
 
         System.arraycopy(pNLSF_Q15, 0, psDec.prevNLSF_Q15, 0, psDec.LPC_order);
-            
+
         /* After a packet loss do BWE of LPC coefs */
         if( psDec.lossCnt !=0 ) {
             Bwexpander.SKP_Silk_bwexpander( psDecCtrl.PredCoef_Q12[ 0 ], psDec.LPC_order, Define.BWE_AFTER_LOSS_Q16 );
@@ -170,7 +170,7 @@ public class DecodeParameters
             } else {
                 RangeCoder.SKP_Silk_range_decoder(Ixs, 0, psRC, TablesPitchLag.SKP_Silk_pitch_lag_SWB_CDF, 0, TablesPitchLag.SKP_Silk_pitch_lag_SWB_CDF_offset);
             }
-            
+
             /* Get countour index */
             if( psDec.fs_kHz == 8 ) {
                 /* Less codevectors used in 8 khz mode */
@@ -180,26 +180,26 @@ public class DecodeParameters
 //                SKP_Silk_range_decoder( &Ixs[ 1 ], psRC, SKP_Silk_pitch_contour_CDF, SKP_Silk_pitch_contour_CDF_offset );
                 RangeCoder.SKP_Silk_range_decoder( Ixs, 1, psRC, TablesPitchLag.SKP_Silk_pitch_contour_CDF, 0, TablesPitchLag.SKP_Silk_pitch_contour_CDF_offset );
             }
-            
+
             /* Decode pitch values */
             DecodePitch.SKP_Silk_decode_pitch( Ixs[ 0 ], Ixs[ 1 ], psDecCtrl.pitchL, psDec.fs_kHz );
-            
+
             /********************/
             /* Decode LTP gains */
             /********************/
             /* Decode PERIndex value */
             int PERIndex_ptr[] = new int[1];
             PERIndex_ptr[0] =  psDecCtrl.PERIndex;
-            
-            RangeCoder.SKP_Silk_range_decoder( PERIndex_ptr, 0,  psRC, TablesLTP.SKP_Silk_LTP_per_index_CDF, 0, 
+
+            RangeCoder.SKP_Silk_range_decoder( PERIndex_ptr, 0,  psRC, TablesLTP.SKP_Silk_LTP_per_index_CDF, 0,
                     TablesLTP.SKP_Silk_LTP_per_index_CDF_offset );
             psDecCtrl.PERIndex = PERIndex_ptr[0];
-            
+
             /* Decode Codebook Index */
             cbk_ptr_Q14 = TablesLTP.SKP_Silk_LTP_vq_ptrs_Q14[ psDecCtrl.PERIndex ]; // set pointer to start of codebook
-            
+
             for( k = 0; k < Define.NB_SUBFR; k++ ) {
-                RangeCoder.SKP_Silk_range_decoder( Ix_ptr, 0, psRC, TablesLTP.SKP_Silk_LTP_gain_CDF_ptrs[psDecCtrl.PERIndex],  0 , 
+                RangeCoder.SKP_Silk_range_decoder( Ix_ptr, 0, psRC, TablesLTP.SKP_Silk_LTP_gain_CDF_ptrs[psDecCtrl.PERIndex],  0 ,
                         TablesLTP.SKP_Silk_LTP_gain_CDF_offsets[ psDecCtrl.PERIndex ] );
                 Ix = Ix_ptr[0];
                 for( i = 0; i < Define.LTP_ORDER; i++ ) {
@@ -238,7 +238,7 @@ public class DecodeParameters
         vadFlag_ptr[0] = psDec.vadFlag;
         RangeCoder.SKP_Silk_range_decoder( vadFlag_ptr, 0, psRC, TablesOther.SKP_Silk_vadflag_CDF, 0, TablesOther.SKP_Silk_vadflag_offset );
         psDec.vadFlag = vadFlag_ptr[0];
-        
+
         /**************************************/
         /* Decode Frame termination indicator */
         /**************************************/
@@ -246,14 +246,14 @@ public class DecodeParameters
         FrameTermination_ptr[0] = psDec.FrameTermination;
         RangeCoder.SKP_Silk_range_decoder( FrameTermination_ptr, 0, psRC, TablesOther.SKP_Silk_FrameTermination_CDF, 0, TablesOther.SKP_Silk_FrameTermination_offset );
         psDec.FrameTermination = FrameTermination_ptr[0];
-        
+
         /****************************************/
         /* get number of bytes used so far      */
         /****************************************/
         int nBytesUsed_ptr[] = new int[1];
         RangeCoder.SKP_Silk_range_coder_get_length( psRC, nBytesUsed_ptr );
         nBytesUsed = nBytesUsed_ptr[0];
-        
+
         psDec.nBytesLeft = psRC.bufferLength - nBytesUsed;
         if( psDec.nBytesLeft < 0 ) {
             psRC.error = Define.RANGE_CODER_READ_BEYOND_BUFFER;

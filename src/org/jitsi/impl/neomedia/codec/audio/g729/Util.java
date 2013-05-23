@@ -53,8 +53,8 @@ class Util
  * @param L     (i)    : length of vector
  */
 static void set_zero(
-  float  x[],      
-  int L         
+  float  x[],
+  int L
 )
 {
     set_zero(x, 0, L);
@@ -85,9 +85,9 @@ static void set_zero(float[] x, int offset, int length)
  * @param L     (i)   : vector length
  */
 static void copy(
-  float  x[],    
-  float  y[],     
-  int L           
+  float  x[],
+  float  y[],
+  int L
 )
 {
     copy(x, 0, y, L);

@@ -8,21 +8,21 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * scale a vector.
- * 
+ *
  * @author Dingxin Xu
  */
 public class ScaleVectorFLP
 {
     /**
      * multiply a vector by a constant.
-     * @param data1 
+     * @param data1
      * @param gain
      * @param dataSize
      */
-    static void SKP_Silk_scale_vector_FLP( 
-        float           []data1, 
+    static void SKP_Silk_scale_vector_FLP(
+        float           []data1,
         int             data1_offset,
-        float           gain, 
+        float           gain,
         int             dataSize
     )
     {

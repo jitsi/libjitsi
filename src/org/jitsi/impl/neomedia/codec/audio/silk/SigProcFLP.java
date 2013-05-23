@@ -17,7 +17,7 @@ class SigProcFLPConstants
     static final int SigProc_PITCH_EST_MIN_COMPLEX =       0;
     static final int SigProc_PITCH_EST_MID_COMPLEX =       1;
     static final int SigProc_PITCH_EST_MAX_COMPLEX =       2;
-    
+
     static final float PI =              3.1415926536f;
 }
 
@@ -56,13 +56,13 @@ public class SigProcFLP
     (
         short[]       out,
         int out_offset,
-        float[]       in, 
+        float[]       in,
         int in_offset,
         int       length
-    ) 
+    )
     {
         int k;
-        for (k = length-1; k >= 0; k--) 
+        for (k = length-1; k >= 0; k--)
         {
             double x = in[in_offset+k];
             out[out_offset+k] = (short)SigProcFIX.SKP_SAT16( (int)(( x > 0 ) ? x + 0.5 : x - 0.5) );
@@ -70,7 +70,7 @@ public class SigProcFLP
     }
 
     /* floating-point to integer conversion (rounding) */
-    static int SKP_float2int(double x) 
+    static int SKP_float2int(double x)
     {
         return (int)( ( x > 0 ) ? x + 0.5 : x - 0.5 );
     }
@@ -83,7 +83,7 @@ public class SigProcFLP
         short[]           in,
         int in_offset,
         int       length
-    ) 
+    )
     {
         int k;
         for (k = length-1; k >= 0; k--)

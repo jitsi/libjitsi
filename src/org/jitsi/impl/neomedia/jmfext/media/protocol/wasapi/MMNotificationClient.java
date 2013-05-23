@@ -16,7 +16,7 @@ import org.jitsi.util.*;
  * automatically registered with all <tt>IMMDeviceEnumerator</tt> instances.
  * Invocations of methods on the <tt>IMMNotificationClient</tt> instance by
  * Windows Audio Session API (WASAPI) are forwarded by <tt>WASAPI</tt> to the
- * respective static methods of the <tt>MMNotificationClient</tt> class. 
+ * respective static methods of the <tt>MMNotificationClient</tt> class.
  *
  * @author Lyubomir Marinov
  */

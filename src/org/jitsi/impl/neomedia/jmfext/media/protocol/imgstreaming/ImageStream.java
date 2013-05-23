@@ -91,6 +91,7 @@ public class ImageStream
      * <tt>PullBufferStream</tt> reads into the specified <tt>Buffer</tt>
      * @see AbstractVideoPullBufferStream#doRead(Buffer)
      */
+    @Override
     protected void doRead(Buffer buffer)
         throws IOException
     {

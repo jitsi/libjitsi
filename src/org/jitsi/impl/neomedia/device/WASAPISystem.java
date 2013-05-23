@@ -47,7 +47,7 @@ public class WASAPISystem
     /**
      * The pointer to the native <tt>IMMDeviceEnumerator</tt> interface instance
      * which this <tt>WASAPISystem</tt> uses to enumerate the audio endpoint
-     * devices. 
+     * devices.
      */
     private long iMMDeviceEnumerator;
 
@@ -127,6 +127,7 @@ public class WASAPISystem
     /**
      * {@inheritDoc}
      */
+    @Override
     protected void doInitialize()
         throws Exception
     {

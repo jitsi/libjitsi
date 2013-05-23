@@ -7,15 +7,15 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class LevinsondurbinFLP 
+public class LevinsondurbinFLP
 {
     /**
      * Solve the normal equations using the Levinson-Durbin recursion.
-     * 
+     *
      * @param A prediction coefficients [order].
      * @param A_offset offset of valid data.
      * @param corr input auto-correlations [order + 1].
@@ -31,7 +31,7 @@ public class LevinsondurbinFLP
     {
         int   i, mHalf, m;
         float min_nrg, nrg, t, km, Atmp1, Atmp2;
-        
+
         min_nrg = 1e-12f * corr[ 0 ] + 1e-9f;
         nrg = corr[ 0 ];
         nrg = Math.max(min_nrg, nrg);
@@ -42,7 +42,7 @@ public class LevinsondurbinFLP
         for( m = 1; m < order; m++ )
         {
             t = corr[ m + 1 ];
-            for( i = 0; i < m; i++ ) 
+            for( i = 0; i < m; i++ )
             {
                 t -= A[ A_offset+i ] * corr[ m - i ];
             }
@@ -55,14 +55,14 @@ public class LevinsondurbinFLP
             nrg = Math.max(min_nrg, nrg);
 
             mHalf = m >> 1;
-            for( i = 0; i < mHalf; i++ ) 
+            for( i = 0; i < mHalf; i++ )
             {
                 Atmp1 = A[ A_offset+i ];
                 Atmp2 = A[ A_offset + m - i - 1 ];
                 A[ A_offset + m - i - 1 ] -= km * Atmp1;
                 A[ A_offset+i ]         -= km * Atmp2;
             }
-            if( (m & 1) != 0) 
+            if( (m & 1) != 0)
             {
                 A[ A_offset+mHalf ]     -= km * A[ A_offset+mHalf ];
             }

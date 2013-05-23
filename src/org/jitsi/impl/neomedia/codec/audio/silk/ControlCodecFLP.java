@@ -9,14 +9,14 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 import java.util.*;
 
 /**
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
 public class ControlCodecFLP {
     /**
      * Control encoder SNR.
-     * 
+     *
      * @param psEnc
      *            Pointer to Silk encoder state FLP
      * @param API_fs_Hz
@@ -39,7 +39,7 @@ public class ControlCodecFLP {
      *            Complexity (0->low; 1->medium; 2->high).
      * @return
      */
-    static int SKP_Silk_control_encoder_FLP( 
+    static int SKP_Silk_control_encoder_FLP(
         SKP_Silk_encoder_state_FLP  psEnc,              /* I/O  Pointer to Silk encoder state FLP       */
         final int                   API_fs_Hz,          /* I    External (API) sampling rate (Hz)       */
         final int                   max_internal_fs_kHz,/* I    Maximum internal sampling rate (kHz)    */
@@ -59,14 +59,14 @@ public class ControlCodecFLP {
 
         /* State machine for the SWB/WB switching */
         fs_kHz = psEnc.sCmn.fs_kHz;
-        
+
         /* Only switch during low speech activity, when no frames are sitting in the payload buffer */
         if( API_fs_Hz == 8000 || fs_kHz == 0 || API_fs_Hz < fs_kHz * 1000 || fs_kHz > max_internal_fs_kHz )
         {
             /* Switching is not possible, encoder just initialized, internal mode higher than external, */
             /* or internal mode higher than maximum allowed internal mode                               */
             fs_kHz = Math.min( API_fs_Hz/1000, max_internal_fs_kHz );
-        } 
+        }
         else
         {
             /* Accumulate the difference between the target rate and limit for switching down */
@@ -80,28 +80,28 @@ public class ControlCodecFLP {
                 {
                     if( ( psEnc.sCmn.sLP.transition_frame_no == 0 ) &&                         /* Transition phase not active */
                         ( psEnc.sCmn.bitrateDiff <= -Define.ACCUM_BITS_DIFF_THRESHOLD ||              /* Bitrate threshold is met */
-                        ( psEnc.sCmn.sSWBdetect.WB_detected * psEnc.sCmn.fs_kHz == 24 ) ) ) 
+                        ( psEnc.sCmn.sSWBdetect.WB_detected * psEnc.sCmn.fs_kHz == 24 ) ) )
                     { /* Forced down-switching due to WB input */
                         psEnc.sCmn.sLP.transition_frame_no = 1;                                /* Begin transition phase */
                         psEnc.sCmn.sLP.mode                = 0;                                /* Switch down */
-                    } 
-                    else if( 
+                    }
+                    else if(
                         ( psEnc.sCmn.sLP.transition_frame_no >= Define.TRANSITION_FRAMES_DOWN ) &&    /* Transition phase complete */
-                        ( psEnc.sCmn.sLP.mode == 0 ) ) 
+                        ( psEnc.sCmn.sLP.mode == 0 ) )
                     {                                       /* Ready to switch down */
                         psEnc.sCmn.sLP.transition_frame_no = 0;                                /* Ready for new transition phase */
                         psEnc.sCmn.bitrateDiff = 0;
-                        
+
                         /* Switch to a lower sample frequency */
-                        if( psEnc.sCmn.fs_kHz == 24 ) 
+                        if( psEnc.sCmn.fs_kHz == 24 )
                         {
                             fs_kHz = 16;
-                        } 
+                        }
                         else if( psEnc.sCmn.fs_kHz == 16 )
                         {
                             fs_kHz = 12;
-                        } 
-                        else 
+                        }
+                        else
                         {
                             assert( psEnc.sCmn.fs_kHz == 12 );
                             fs_kHz = 8;
@@ -110,20 +110,20 @@ public class ControlCodecFLP {
                 }
                 else
                 {
-                    if( psEnc.sCmn.bitrateDiff <= -Define.ACCUM_BITS_DIFF_THRESHOLD ) 
+                    if( psEnc.sCmn.bitrateDiff <= -Define.ACCUM_BITS_DIFF_THRESHOLD )
                     {               /* Bitrate threshold is met */
                         psEnc.sCmn.bitrateDiff = 0;
-                        
+
                         /* Switch to a lower sample frequency */
-                        if( psEnc.sCmn.fs_kHz == 24 ) 
+                        if( psEnc.sCmn.fs_kHz == 24 )
                         {
                             fs_kHz = 16;
-                        } 
+                        }
                         else if( psEnc.sCmn.fs_kHz == 16 )
                         {
                             fs_kHz = 12;
-                        } 
-                        else 
+                        }
+                        else
                         {
                             assert( psEnc.sCmn.fs_kHz == 12 );
                             fs_kHz = 8;
@@ -131,29 +131,29 @@ public class ControlCodecFLP {
                     }
                 }
                 /* Check if we should switch up */
-                if(Define.SWITCH_TRANSITION_FILTERING != 0) 
+                if(Define.SWITCH_TRANSITION_FILTERING != 0)
                 {
                     if( ( ( psEnc.sCmn.fs_kHz * 1000 < API_fs_Hz ) &&
-                        ( TargetRate_bps >= psEnc.sCmn.bitrate_threshold_up ) && 
-                        ( psEnc.sCmn.sSWBdetect.WB_detected * psEnc.sCmn.fs_kHz != 16 ) ) && 
-                        ( ( psEnc.sCmn.fs_kHz == 16 ) && ( max_internal_fs_kHz >= 24 ) || 
+                        ( TargetRate_bps >= psEnc.sCmn.bitrate_threshold_up ) &&
+                        ( psEnc.sCmn.sSWBdetect.WB_detected * psEnc.sCmn.fs_kHz != 16 ) ) &&
+                        ( ( psEnc.sCmn.fs_kHz == 16 ) && ( max_internal_fs_kHz >= 24 ) ||
                           ( psEnc.sCmn.fs_kHz == 12 ) && ( max_internal_fs_kHz >= 16 ) ||
-                          ( psEnc.sCmn.fs_kHz ==  8 ) && ( max_internal_fs_kHz >= 12 ) ) 
+                          ( psEnc.sCmn.fs_kHz ==  8 ) && ( max_internal_fs_kHz >= 12 ) )
     //    #if SWITCH_TRANSITION_FILTERING
-                          && ( psEnc.sCmn.sLP.transition_frame_no == 0 ) ) 
+                          && ( psEnc.sCmn.sLP.transition_frame_no == 0 ) )
                     { /* No transition phase running, ready to switch */
                             psEnc.sCmn.sLP.mode = 1; /* Switch up */
     //    #else
     //                    ) {
     //    #endif
                         psEnc.sCmn.bitrateDiff = 0;
-    
+
                         /* Switch to a higher sample frequency */
-                        if( psEnc.sCmn.fs_kHz == 8 ) 
+                        if( psEnc.sCmn.fs_kHz == 8 )
                         {
                             fs_kHz = 12;
-                        } 
-                        else if( psEnc.sCmn.fs_kHz == 12 ) 
+                        }
+                        else if( psEnc.sCmn.fs_kHz == 12 )
                         {
                             fs_kHz = 16;
                         }
@@ -161,33 +161,33 @@ public class ControlCodecFLP {
                         {
                             assert( psEnc.sCmn.fs_kHz == 16 );
                             fs_kHz = 24;
-                        } 
+                        }
                     }
                 }
-                else 
+                else
                 {
                     /* Check if we should switch up */
                     if( ( ( psEnc.sCmn.fs_kHz * 1000 < API_fs_Hz ) &&
-                        ( TargetRate_bps >= psEnc.sCmn.bitrate_threshold_up ) && 
-                        ( psEnc.sCmn.sSWBdetect.WB_detected * psEnc.sCmn.fs_kHz != 16 ) ) && 
-                        ( ( psEnc.sCmn.fs_kHz == 16 ) && ( max_internal_fs_kHz >= 24 ) || 
+                        ( TargetRate_bps >= psEnc.sCmn.bitrate_threshold_up ) &&
+                        ( psEnc.sCmn.sSWBdetect.WB_detected * psEnc.sCmn.fs_kHz != 16 ) ) &&
+                        ( ( psEnc.sCmn.fs_kHz == 16 ) && ( max_internal_fs_kHz >= 24 ) ||
                           ( psEnc.sCmn.fs_kHz == 12 ) && ( max_internal_fs_kHz >= 16 ) ||
-                          ( psEnc.sCmn.fs_kHz ==  8 ) && ( max_internal_fs_kHz >= 12 ) ) 
+                          ( psEnc.sCmn.fs_kHz ==  8 ) && ( max_internal_fs_kHz >= 12 ) )
 //    //    #if SWITCH_TRANSITION_FILTERING
-//                          && ( psEnc.sCmn.sLP.transition_frame_no == 0 ) ) 
+//                          && ( psEnc.sCmn.sLP.transition_frame_no == 0 ) )
 //                    { /* No transition phase running, ready to switch */
 //                            psEnc.sCmn.sLP.mode = 1; /* Switch up */
 //    //    #else
                         ) {
     //    #endif
                         psEnc.sCmn.bitrateDiff = 0;
-    
+
                         /* Switch to a higher sample frequency */
-                        if( psEnc.sCmn.fs_kHz == 8 ) 
+                        if( psEnc.sCmn.fs_kHz == 8 )
                         {
                             fs_kHz = 12;
-                        } 
-                        else if( psEnc.sCmn.fs_kHz == 12 ) 
+                        }
+                        else if( psEnc.sCmn.fs_kHz == 12 )
                         {
                             fs_kHz = 16;
                         }
@@ -195,7 +195,7 @@ public class ControlCodecFLP {
                         {
                             assert( psEnc.sCmn.fs_kHz == 16 );
                             fs_kHz = 24;
-                        } 
+                        }
                     }
                 }
             }
@@ -205,13 +205,13 @@ public class ControlCodecFLP {
         {
             /* After switching up, stop transition filter during speech inactivity */
             if( ( psEnc.sCmn.sLP.mode == 1 ) &&
-                ( psEnc.sCmn.sLP.transition_frame_no >= Define.TRANSITION_FRAMES_UP ) && 
-                ( psEnc.speech_activity < 0.5f ) && 
-                ( psEnc.sCmn.nFramesInPayloadBuf == 0 ) ) 
+                ( psEnc.sCmn.sLP.transition_frame_no >= Define.TRANSITION_FRAMES_UP ) &&
+                ( psEnc.speech_activity < 0.5f ) &&
+                ( psEnc.sCmn.nFramesInPayloadBuf == 0 ) )
             {
-                
+
                 psEnc.sCmn.sLP.transition_frame_no = 0;
-    
+
                 /* Reset transition filter state */
                 Arrays.fill(psEnc.sCmn.sLP.In_LP_State, 0, 2, 0);
             }
@@ -222,13 +222,13 @@ public class ControlCodecFLP {
         {
             /* Allocate space for worst case temporary upsampling, 8 to 48 kHz, so a factor 6 */
             short[] x_buf_API_fs_Hz = new short[ ( Define.MAX_API_FS_KHZ / 8 ) * ( 2 * Define.MAX_FRAME_LENGTH + Define.LA_SHAPE_MAX ) ];
-            short[] x_bufFIX = new short[               2 * Define.MAX_FRAME_LENGTH + Define.LA_SHAPE_MAX ]; 
+            short[] x_bufFIX = new short[               2 * Define.MAX_FRAME_LENGTH + Define.LA_SHAPE_MAX ];
 
             int nSamples_temp = 2 * psEnc.sCmn.frame_length + psEnc.sCmn.la_shape;
 
             SigProcFLP.SKP_float2short_array( x_bufFIX, 0, psEnc.x_buf, 0, 2 * Define.MAX_FRAME_LENGTH + Define.LA_SHAPE_MAX );
 
-            if( fs_kHz * 1000 < API_fs_Hz && psEnc.sCmn.fs_kHz != 0 ) 
+            if( fs_kHz * 1000 < API_fs_Hz && psEnc.sCmn.fs_kHz != 0 )
             {
                 /* Resample buffered data in x_buf to API_fs_Hz */
 
@@ -246,14 +246,14 @@ public class ControlCodecFLP {
                 /* Initialize the resampler for enc_API.c preparing resampling from API_fs_Hz to fs_kHz */
                 ret += Resampler.SKP_Silk_resampler_init( psEnc.sCmn.resampler_state, API_fs_Hz, fs_kHz * 1000 );
 
-            } 
+            }
             else
             {
                 /* Copy data */
                 System.arraycopy(x_bufFIX, 0, x_buf_API_fs_Hz, 0, nSamples_temp);
             }
 
-            if( 1000 * fs_kHz != API_fs_Hz ) 
+            if( 1000 * fs_kHz != API_fs_Hz )
             {
                 /* Correct resampler state (unless resampling by a factor 1) by resampling buffered data from API_fs_Hz to fs_kHz */
                 ret += Resampler.SKP_Silk_resampler( psEnc.sCmn.resampler_state, x_bufFIX,0, x_buf_API_fs_Hz,0, nSamples_temp );
@@ -265,7 +265,7 @@ public class ControlCodecFLP {
 
         /* Set internal sampling frequency */
         if( psEnc.sCmn.fs_kHz != fs_kHz ) {
-//TODO:whether need to set 0 explicitly???            
+//TODO:whether need to set 0 explicitly???
             /* reset part of the state */
 //            SKP_memset( &psEnc->sShape,          0,                            sizeof( SKP_Silk_shape_state_FLP ) );
             psEnc.sShape.memZero();
@@ -276,7 +276,7 @@ public class ControlCodecFLP {
 //            SKP_memset( &psEnc->sPred,           0,                            sizeof( SKP_Silk_predict_state_FLP ) );
             psEnc.sPred.memZero();
 //            SKP_memset( psEnc->sNSQ.xq,          0, ( 2 * MAX_FRAME_LENGTH ) * sizeof( SKP_float ) );
-//TODO: psEnc.sNSQ.vq is of short[], why sizeof(SKP_float)???            
+//TODO: psEnc.sNSQ.vq is of short[], why sizeof(SKP_float)???
             Arrays.fill(psEnc.sNSQ.xq, 0, 2 * Define.MAX_FRAME_LENGTH, (short)0);
 //            SKP_memset( psEnc->sNSQ_LBRR.xq,     0, ( 2 * MAX_FRAME_LENGTH ) * sizeof( SKP_float ) );
             Arrays.fill(psEnc.sNSQ_LBRR.xq, (short)0);
@@ -285,7 +285,7 @@ public class ControlCodecFLP {
             {
                 psEnc.sCmn.LBRR_buffer[i].memZero();
             }
-            
+
             if(Define.SWITCH_TRANSITION_FILTERING != 0)
             {
                 Arrays.fill(psEnc.sCmn.sLP.In_LP_State, 0, 2, 0);
@@ -293,7 +293,7 @@ public class ControlCodecFLP {
                 {
                     /* Begin transition phase */
                     psEnc.sCmn.sLP.transition_frame_no = 1;
-                } 
+                }
                 else
                 {
                     /* End transition phase */
@@ -320,7 +320,7 @@ public class ControlCodecFLP {
             psEnc.sNSQ_LBRR.prev_inv_gain_Q16  = 65536;
 
             psEnc.sCmn.fs_kHz = fs_kHz;
-            if( psEnc.sCmn.fs_kHz == 8 ) 
+            if( psEnc.sCmn.fs_kHz == 8 )
             {
                 psEnc.sCmn.predictLPCOrder = Define.MIN_LPC_ORDER;
 //                psEnc.sCmn.psNLSF_CB[ 0 ]  = &SKP_Silk_NLSF_CB0_10;
@@ -331,8 +331,8 @@ public class ControlCodecFLP {
                 psEnc.sCmn.psNLSF_CB[ 1 ]  = TablesNLSFCB110.SKP_Silk_NLSF_CB1_10;
                 psEnc.psNLSF_CB_FLP[  0 ]  = TablesNLSFCB010FLP.SKP_Silk_NLSF_CB0_10_FLP;
                 psEnc.psNLSF_CB_FLP[  1 ]  = TablesNLSFCB110FLP.SKP_Silk_NLSF_CB1_10_FLP;
-            } 
-            else 
+            }
+            else
             {
                 psEnc.sCmn.predictLPCOrder = Define.MAX_LPC_ORDER;
                 psEnc.sCmn.psNLSF_CB[ 0 ]  = TablesNLSFCB016.SKP_Silk_NLSF_CB0_16;
@@ -347,25 +347,25 @@ public class ControlCodecFLP {
             psEnc.sPred.min_pitch_lag =  3 * fs_kHz;
             psEnc.sPred.max_pitch_lag = 18 * fs_kHz;
             psEnc.sPred.pitch_LPC_win_length = Define.FIND_PITCH_LPC_WIN_MS * fs_kHz;
-            if( psEnc.sCmn.fs_kHz == 24 ) 
+            if( psEnc.sCmn.fs_kHz == 24 )
             {
                 psEnc.mu_LTP = DefineFLP.MU_LTP_QUANT_SWB;
                 psEnc.sCmn.bitrate_threshold_up   = Typedef.SKP_int32_MAX;
-                psEnc.sCmn.bitrate_threshold_down = Define.SWB2WB_BITRATE_BPS; 
-            } 
-            else if( psEnc.sCmn.fs_kHz == 16 ) 
+                psEnc.sCmn.bitrate_threshold_down = Define.SWB2WB_BITRATE_BPS;
+            }
+            else if( psEnc.sCmn.fs_kHz == 16 )
             {
                 psEnc.mu_LTP = DefineFLP.MU_LTP_QUANT_WB;
                 psEnc.sCmn.bitrate_threshold_up   = Define.WB2SWB_BITRATE_BPS;
-                psEnc.sCmn.bitrate_threshold_down = Define.WB2MB_BITRATE_BPS; 
-            } 
-            else if( psEnc.sCmn.fs_kHz == 12 ) 
+                psEnc.sCmn.bitrate_threshold_down = Define.WB2MB_BITRATE_BPS;
+            }
+            else if( psEnc.sCmn.fs_kHz == 12 )
             {
                 psEnc.mu_LTP = DefineFLP.MU_LTP_QUANT_MB;
                 psEnc.sCmn.bitrate_threshold_up   = Define.MB2WB_BITRATE_BPS;
                 psEnc.sCmn.bitrate_threshold_down = Define.MB2NB_BITRATE_BPS;
-            } 
-            else 
+            }
+            else
             {
                 psEnc.mu_LTP = DefineFLP.MU_LTP_QUANT_NB;
                 psEnc.sCmn.bitrate_threshold_up   = Define.NB2MB_BITRATE_BPS;
@@ -378,13 +378,13 @@ public class ControlCodecFLP {
         }
 
         /* Check that settings are valid */
-        if( Define.LOW_COMPLEXITY_ONLY !=0 && Complexity != 0 ) 
-        { 
+        if( Define.LOW_COMPLEXITY_ONLY !=0 && Complexity != 0 )
+        {
             ret = Errors.SKP_SILK_ENC_INVALID_COMPLEXITY_SETTING;
         }
 
         /* Set encoding complexity */
-        if( Complexity == 0 || Define.LOW_COMPLEXITY_ONLY !=0 ) 
+        if( Complexity == 0 || Define.LOW_COMPLEXITY_ONLY !=0 )
         {
             /* Low complexity */
             psEnc.sCmn.Complexity                  = 0;
@@ -398,7 +398,7 @@ public class ControlCodecFLP {
             psEnc.sCmn.useInterpolatedNLSFs        = 0;
             psEnc.sCmn.LTPQuantLowComplexity       = 1;
             psEnc.sCmn.NLSF_MSVQ_Survivors         = Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE;
-        } 
+        }
         else if( Complexity == 1 )
         {
             /* Medium complexity */
@@ -428,8 +428,8 @@ public class ControlCodecFLP {
             psEnc.sCmn.useInterpolatedNLSFs        = 1;
             psEnc.sCmn.LTPQuantLowComplexity       = 0;
             psEnc.sCmn.NLSF_MSVQ_Survivors         = Define.MAX_NLSF_MSVQ_SURVIVORS;
-        } 
-        else 
+        }
+        else
         {
             ret = Errors.SKP_SILK_ENC_INVALID_COMPLEXITY_SETTING;
         }
@@ -443,49 +443,49 @@ public class ControlCodecFLP {
 
         /* Set bitrate/coding quality */
         TargetRate_bps = Math.min( TargetRate_bps, 100000 );
-        if( psEnc.sCmn.fs_kHz == 8 ) 
+        if( psEnc.sCmn.fs_kHz == 8 )
         {
             TargetRate_bps = Math.max( TargetRate_bps, Define.MIN_TARGET_RATE_NB_BPS );
         }
-        else if( psEnc.sCmn.fs_kHz == 12 ) 
+        else if( psEnc.sCmn.fs_kHz == 12 )
         {
             TargetRate_bps = Math.max( TargetRate_bps, Define.MIN_TARGET_RATE_MB_BPS );
         }
-        else if( psEnc.sCmn.fs_kHz == 16 ) 
+        else if( psEnc.sCmn.fs_kHz == 16 )
         {
             TargetRate_bps = Math.max( TargetRate_bps, Define.MIN_TARGET_RATE_WB_BPS );
-        } 
-        else 
+        }
+        else
         {
             TargetRate_bps = Math.max( TargetRate_bps, Define.MIN_TARGET_RATE_SWB_BPS );
         }
-        if( TargetRate_bps != psEnc.sCmn.TargetRate_bps ) 
+        if( TargetRate_bps != psEnc.sCmn.TargetRate_bps )
         {
             psEnc.sCmn.TargetRate_bps = TargetRate_bps;
 
             /* If new TargetRate_bps, translate to SNR_dB value */
-            if( psEnc.sCmn.fs_kHz == 8 ) 
+            if( psEnc.sCmn.fs_kHz == 8 )
             {
                 rateTable = TablesOther.TargetRate_table_NB;
             }
-            else if( psEnc.sCmn.fs_kHz == 12 ) 
+            else if( psEnc.sCmn.fs_kHz == 12 )
             {
                 rateTable = TablesOther.TargetRate_table_MB;
-            } 
-            else if( psEnc.sCmn.fs_kHz == 16 ) 
+            }
+            else if( psEnc.sCmn.fs_kHz == 16 )
             {
                 rateTable = TablesOther.TargetRate_table_WB;
-            } 
+            }
             else
             {
                 rateTable = TablesOther.TargetRate_table_SWB;
             }
-            for( k = 1; k < Define.TARGET_RATE_TAB_SZ; k++ ) 
+            for( k = 1; k < Define.TARGET_RATE_TAB_SZ; k++ )
             {
                 /* Find bitrate interval in table and interpolate */
                 if( TargetRate_bps < rateTable[ k ] )
                 {
-                    frac = (float)( TargetRate_bps - rateTable[ k - 1 ] ) / 
+                    frac = (float)( TargetRate_bps - rateTable[ k - 1 ] ) /
                            (float)( rateTable[ k ] - rateTable[ k - 1 ] );
                     psEnc.SNR_dB = 0.5f * ( TablesOther.SNR_table_Q1[ k - 1 ] + frac * ( TablesOther.SNR_table_Q1[ k ] - TablesOther.SNR_table_Q1[ k - 1 ] ) );
                     break;
@@ -494,17 +494,17 @@ public class ControlCodecFLP {
         }
 
         /* Set packet size */
-        if( ( PacketSize_ms !=  20 ) && 
-            ( PacketSize_ms !=  40 ) && 
-            ( PacketSize_ms !=  60 ) && 
-            ( PacketSize_ms !=  80 ) && 
+        if( ( PacketSize_ms !=  20 ) &&
+            ( PacketSize_ms !=  40 ) &&
+            ( PacketSize_ms !=  60 ) &&
+            ( PacketSize_ms !=  80 ) &&
             ( PacketSize_ms != 100 ) )
         {
             ret = Errors.SKP_SILK_ENC_PACKET_SIZE_NOT_SUPPORTED;
-        } 
-        else 
+        }
+        else
         {
-            if( PacketSize_ms != psEnc.sCmn.PacketSize_ms ) 
+            if( PacketSize_ms != psEnc.sCmn.PacketSize_ms )
             {
                 psEnc.sCmn.PacketSize_ms = PacketSize_ms;
 
@@ -514,7 +514,7 @@ public class ControlCodecFLP {
         }
 
         /* Set packet loss rate measured by farend */
-        if( ( PacketLoss_perc < 0 ) || ( PacketLoss_perc > 100 ) ) 
+        if( ( PacketLoss_perc < 0 ) || ( PacketLoss_perc > 100 ) )
         {
             ret = Errors.SKP_SILK_ENC_INVALID_LOSS_RATE;
         }
@@ -523,24 +523,24 @@ public class ControlCodecFLP {
 //    #if USE_LBRR
         if(Define.USE_LBRR != 0)
         {
-        if( INBandFEC_enabled < 0 || INBandFEC_enabled > 1 ) 
+        if( INBandFEC_enabled < 0 || INBandFEC_enabled > 1 )
         {
             ret = Errors.SKP_SILK_ENC_INVALID_INBAND_FEC_SETTING;
         }
-        
+
         /* Only change settings if first frame in packet */
-        if( psEnc.sCmn.nFramesInPayloadBuf == 0 ) 
-        {            
+        if( psEnc.sCmn.nFramesInPayloadBuf == 0 )
+        {
             psEnc.sCmn.LBRR_enabled = INBandFEC_enabled;
-            if( psEnc.sCmn.fs_kHz == 8 ) 
+            if( psEnc.sCmn.fs_kHz == 8 )
             {
                 LBRRRate_thres_bps = Define.INBAND_FEC_MIN_RATE_BPS - 9000;
             }
-            else if( psEnc.sCmn.fs_kHz == 12 ) 
+            else if( psEnc.sCmn.fs_kHz == 12 )
             {
                 LBRRRate_thres_bps = Define.INBAND_FEC_MIN_RATE_BPS - 6000;;
             }
-            else if( psEnc.sCmn.fs_kHz == 16 ) 
+            else if( psEnc.sCmn.fs_kHz == 16 )
             {
                 LBRRRate_thres_bps = Define.INBAND_FEC_MIN_RATE_BPS - 3000;
             }
@@ -549,7 +549,7 @@ public class ControlCodecFLP {
                 LBRRRate_thres_bps = Define.INBAND_FEC_MIN_RATE_BPS;
             }
 
-            if( psEnc.sCmn.TargetRate_bps >= LBRRRate_thres_bps ) 
+            if( psEnc.sCmn.TargetRate_bps >= LBRRRate_thres_bps )
             {
                 /* Set gain increase / rate reduction for LBRR usage */
                 /* Coarsely tuned with PESQ for now. */
@@ -558,18 +558,18 @@ public class ControlCodecFLP {
                 psEnc.sCmn.LBRR_GainIncreases = Math.max( 8 - ( psEnc.sCmn.PacketLoss_perc >> 1 ), 0 );
 
                 /* Set main stream rate compensation */
-                if( psEnc.sCmn.LBRR_enabled != 0 && psEnc.sCmn.PacketLoss_perc > Define.LBRR_LOSS_THRES ) 
+                if( psEnc.sCmn.LBRR_enabled != 0 && psEnc.sCmn.PacketLoss_perc > Define.LBRR_LOSS_THRES )
                 {
                     /* Tuned to give aprox same mean / weighted bitrate as no inband FEC */
                     psEnc.inBandFEC_SNR_comp = 6.0f - 0.5f * psEnc.sCmn.LBRR_GainIncreases;
-                } 
-                else 
+                }
+                else
                 {
                     psEnc.inBandFEC_SNR_comp = 0;
                     psEnc.sCmn.LBRR_enabled  = 0;
                 }
-            } 
-            else 
+            }
+            else
             {
                 psEnc.inBandFEC_SNR_comp     = 0;
                 psEnc.sCmn.LBRR_enabled      = 0;
@@ -579,7 +579,7 @@ public class ControlCodecFLP {
 //    #else
         else
         {
-        if( INBandFEC_enabled != 0 ) 
+        if( INBandFEC_enabled != 0 )
         {
             ret = Errors.SKP_SILK_ENC_INVALID_INBAND_FEC_SETTING;
         }
@@ -596,7 +596,7 @@ public class ControlCodecFLP {
 
         return ret;
     }
-    
+
     /**
      * Control low bitrate redundancy usage.
      * @param psEnc Encoder state FLP.
@@ -605,7 +605,7 @@ public class ControlCodecFLP {
     static void SKP_Silk_LBRR_ctrl_FLP(
             SKP_Silk_encoder_state_FLP psEnc,    /* I/O Encoder state FLP*/
             SKP_Silk_encoder_control   psEncCtrl /* I/O Encoder control */
-     ) 
+     )
     {
         int LBRR_usage;
 
@@ -632,7 +632,7 @@ public class ControlCodecFLP {
 
 /**
  * The NSQ callback implementation.
- * 
+ *
  * @author Dingxin Xu
  */
 class NSQImplNSQ implements NoiseShapingQuantizerFP
@@ -649,7 +649,7 @@ class NSQImplNSQ implements NoiseShapingQuantizerFP
 
 /**
  * The NSQ callback implementation
- * 
+ *
  * @author Dingxin Xu
  */
 class NSQImplNSQDelDec implements NoiseShapingQuantizerFP

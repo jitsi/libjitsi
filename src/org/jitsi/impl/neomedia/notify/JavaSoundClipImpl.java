@@ -21,7 +21,7 @@ import org.jitsi.service.audionotifier.*;
  */
 public class JavaSoundClipImpl
     extends AbstractSCAudioClip
-               
+
 {
     private static Constructor<AudioClip> acConstructor = null;
 
@@ -141,6 +141,7 @@ public class JavaSoundClipImpl
      *
      * Plays the <tt>java.applet.AudioClip</tt> wrapped by this instance.
      */
+    @Override
     protected boolean runOnceInPlayThread()
     {
         if (audioClip == null)

@@ -100,7 +100,7 @@ public class MediaServiceImpl
 
     /**
      * The name of the <tt>System</tt> boolean property which specifies whether
-     * the loading of the JMF/FMJ <tt>Registry</tt> is to be disabled. 
+     * the loading of the JMF/FMJ <tt>Registry</tt> is to be disabled.
      */
     private static final String JMF_REGISTRY_DISABLE_LOAD
         = "net.sf.fmj.utility.JmfRegistry.disableLoad";

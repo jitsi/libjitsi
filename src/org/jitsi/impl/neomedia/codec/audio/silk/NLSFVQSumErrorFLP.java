@@ -11,7 +11,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  *
  * @author Dingxin Xu
  */
-public class NLSFVQSumErrorFLP 
+public class NLSFVQSumErrorFLP
 {
     /**
      * compute weighted quantization errors for LPC_order element input vectors, over one codebook stage.

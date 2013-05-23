@@ -1254,7 +1254,7 @@ public class MediaStreamImpl
         /*
          * TODO Returning an unmodifiable view of remoteSourceIDs prevents
          * modifications of private state from the outside but it does not
-         * prevent ConcurrentModificationException. 
+         * prevent ConcurrentModificationException.
          */
         return Collections.unmodifiableList(remoteSourceIDs);
     }

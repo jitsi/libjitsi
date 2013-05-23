@@ -66,25 +66,25 @@ class Postfil
 */
 
 /* Static arrays and variables */
-/** 
+/**
  * s.t. numerator coeff.
  */
 private final float[] apond2 = new float[LONG_H_ST];
 
-/** 
+/**
  * s.t. postfilter memory
  */
-private final float[] mem_stp = new float[M];           
+private final float[] mem_stp = new float[M];
 
-/** 
+/**
  * null memory to compute h_st
  */
-private final float[] mem_zero = new float[M];          
+private final float[] mem_zero = new float[M];
 
-/** 
+/**
  * A(gamma2) residual
  */
-private final float[] res2 = new float[SIZ_RES2];       
+private final float[] res2 = new float[SIZ_RES2];
 
 /* Static pointers */
 private int res2_ptr;
@@ -94,7 +94,7 @@ private int ptr_mem_stp_offset;
 /**
  * for gain adjustment
  */
-private float gain_prec;        
+private float gain_prec;
 
 /**
  * Initialize postfilter functions
@@ -137,12 +137,12 @@ void init_post_filter()
  * @return                  voicing decision 0 = uv,  > 0 delay
  */
 int post(
- int t0,                
- float[] signal_ptr,     
+ int t0,
+ float[] signal_ptr,
  int signal_ptr_offset,
- float[] coeff,          
+ float[] coeff,
  int coeff_offset,
- float[] sig_out,       
+ float[] sig_out,
  int sig_out_offset
 )
 {
@@ -197,14 +197,14 @@ int post(
  * @return                      voicing decision 0 = uv,  > 0 delay
  */
 private int pst_ltp(
- int t0,                
- float[] ptr_sig_in,    
+ int t0,
+ float[] ptr_sig_in,
  int ptr_sig_in_offset,
- float[] ptr_sig_pst0,   
+ float[] ptr_sig_pst0,
  int ptr_sig_pst0_offset
 )
 {
-    int vo;               
+    int vo;
 
 /* Declare variables                                 */
     int ltpdel, phase;
@@ -291,18 +291,18 @@ private int pst_ltp(
  * @param num_gltp          output: numerator of LTP gain
  * @param den_gltp          output: denominator of LTP gain
  * @param y_up
- * @param off_yup           
+ * @param off_yup
  */
 private void search_del(
- int t0,                
- float[] ptr_sig_in,     
+ int t0,
+ float[] ptr_sig_in,
  int ptr_sig_in_offset,
- IntReference ltpdel,           
- IntReference phase,            
- FloatReference num_gltp,      
- FloatReference den_gltp,       
- float[] y_up,           
- IntReference off_yup         
+ IntReference ltpdel,
+ IntReference phase,
+ FloatReference num_gltp,
+ FloatReference den_gltp,
+ float[] y_up,
+ IntReference off_yup
 )
 {
     float[] tab_hup_s = TabLd8k.tab_hup_s;
@@ -339,7 +339,7 @@ private void search_del(
         return;
     }
 
-    
+
     /* Selects best of 3 integer delays  */
     /* Maximum of 3 numerators around t0 */
     /* coder LTP delay                   */
@@ -557,13 +557,13 @@ private void search_del(
  * @param gain_plt      input : filter gain
  */
 private void filt_plt(
- float[] s_in,      
+ float[] s_in,
  int s_in_offset,
- float[] s_ltp,    
+ float[] s_ltp,
  int s_ltp_offset,
- float[] s_out,    
+ float[] s_out,
  int s_out_offset,
- float gain_plt  
+ float gain_plt
 )
 {
 
@@ -597,14 +597,14 @@ private void filt_plt(
  * @param den            denominator of LTP gain
  */
 private void compute_ltp_l(
- float[] s_in,      
+ float[] s_in,
  int s_in_offset,
- int ltpdel,      
- int phase,      
- float[] y_up,       
+ int ltpdel,
+ int phase,
+ float[] y_up,
  int y_up_offset,
- FloatReference num,        
- FloatReference den        
+ FloatReference num,
+ FloatReference den
 )
 {
     float[] tab_hup_l = TabLd8k.tab_hup_l;
@@ -659,11 +659,11 @@ private void compute_ltp_l(
  * @param den2  input : denominator of gain2
  * @return      1 = 1st gain, 2 = 2nd gain
  */
-private int select_ltp( 
- float num1,       
- float den1,       
- float num2,       
- float den2        
+private int select_ltp(
+ float num1,
+ float den1,
+ float num2,
+ float den2
 )
 {
     if(den2 == 0.f) {
@@ -686,12 +686,12 @@ private int select_ltp(
  * @param apond1                input : coefficients of denominator
  * @param sig_ltp_ptr           in/out: input of 1/A(gamma1) : scaled by 1/g0
  * @param sig_ltp_ptr_offset    input : input of 1/A(gamma1) ... offset
- * @return  1st parcor calcul. on composed filter 
+ * @return  1st parcor calcul. on composed filter
  */
 private float calc_st_filt(
- float[] apond2,    
- float[] apond1,     
- float[] sig_ltp_ptr,  
+ float[] apond2,
+ float[] apond1,
+ float[] sig_ltp_ptr,
  int sig_ltp_ptr_offset
 )
 {
@@ -729,7 +729,7 @@ private float calc_st_filt(
  * @return      1st parcor
  */
 private float calc_rc0_h(
- float[] h     
+ float[] h
 )
 {
     float acf0, acf1;
@@ -775,10 +775,10 @@ private float calc_rc0_h(
  * @param parcor0           input : parcor0 (mu = parcor0 * gamma3)
  */
 private void filt_mu(
- float[] sig_in,    
- float[] sig_out,    
+ float[] sig_in,
+ float[] sig_out,
  int sig_out_offset,
- float parcor0      
+ float parcor0
 )
 {
     int n;
@@ -814,11 +814,11 @@ private void filt_mu(
  * @return gain_prec        last value of gain for subframe
  */
 private float scale_st(
- float[] sig_in,     
+ float[] sig_in,
  int sig_in_offset,
- float[] sig_out,    
+ float[] sig_out,
  int sig_out_offset,
- float gain_prec   
+ float gain_prec
 )
 {
     float gain_in, gain_out;

@@ -14,7 +14,7 @@ public class LPCStabilize
     /**
      * LPC stabilizer, for a single input data vector.
      * @param a_Q12 stabilized LPC vector [L]
-     * @param a_Q16 LPC vector [L] 
+     * @param a_Q16 LPC vector [L]
      * @param bwe_Q16 Bandwidth expansion factor
      * @param L  Number of LPC parameters in the input vector
      */
@@ -45,7 +45,7 @@ public class LPCStabilize
                     idx    = i;
                 }
             }
-        
+
             if( maxabs >= LPC_STABILIZE_LPC_MAX_ABS_VALUE_Q16 ) {
                 /* Reduce magnitude of prediction coefficients */
                 sc_Q16 = ( Integer.MAX_VALUE / ( maxabs >> 4 ) );
@@ -76,10 +76,10 @@ public class LPCStabilize
     }
 
     /**
-     * 
+     *
      * @param a_QQ Stabilized LPC vector, Q(24-rshift) [L]
      * @param a_Q24 LPC vector [L]
-     * @param QQ Q domain of output LPC vector 
+     * @param QQ Q domain of output LPC vector
      * @param L  Number of LPC parameters in the input vector
      */
     static void SKP_Silk_LPC_fit(
@@ -108,7 +108,7 @@ public class LPCStabilize
                     idx    = i;
                 }
             }
-        
+
             maxabs = ( maxabs >> rshift );
             if( maxabs >= Short.MAX_VALUE ) {
                 /* Reduce magnitude of prediction coefficients */

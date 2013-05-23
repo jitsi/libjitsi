@@ -23,7 +23,7 @@ import org.jitsi.util.*;
  * Represents a <tt>PushBufferDataSource</tt> which provides a single
  * <tt>PushBufferStream</tt> containing the result of the audio mixing of
  * <tt>DataSource</tt>s.
- * 
+ *
  * @author Lubomir Marinov
  */
 public class AudioMixingPushBufferDataSource
@@ -81,7 +81,7 @@ public class AudioMixingPushBufferDataSource
      * Initializes a new <tt>AudioMixingPushBufferDataSource</tt> instance which
      * gives access to the result of the audio mixing performed by a specific
      * <tt>AudioMixer</tt>.
-     * 
+     *
      * @param audioMixer the <tt>AudioMixer</tt> performing audio mixing,
      * managing the input <tt>DataSource</tt>s and pushing the data of the new
      * output <tt>PushBufferDataSource</tt>
@@ -96,7 +96,7 @@ public class AudioMixingPushBufferDataSource
      * <tt>AudioMixer</tt> of this instance and to not have its audio
      * contributions included in the mixing output represented by this
      * <tt>DataSource</tt>.
-     * 
+     *
      * @param inputDataSource a <tt>DataSource</tt> to be added for mixing to
      * the <tt>AudioMixer</tt> associate with this instance and to not have its
      * audio contributions included in the mixing output represented by this
@@ -124,6 +124,7 @@ public class AudioMixingPushBufferDataSource
      *
      * @throws IOException if the <tt>AudioMixer</tt> fails to connect
      */
+    @Override
     public synchronized void connect()
         throws IOException
     {
@@ -140,6 +141,7 @@ public class AudioMixingPushBufferDataSource
      * that one of its output <tt>PushBufferDataSources</tt> has been
      * disconnected.
      */
+    @Override
     public synchronized void disconnect()
     {
         try
@@ -194,6 +196,7 @@ public class AudioMixingPushBufferDataSource
      * being made available by this <tt>DataSource</tt> i.e. the associated
      * <tt>AudioMixer</tt>
      */
+    @Override
     public String getContentType()
     {
         return audioMixer.getContentType();
@@ -208,6 +211,7 @@ public class AudioMixingPushBufferDataSource
      * with the specified type if such a control is available; otherwise,
      * <tt>null</tt>
      */
+    @Override
     public Object getControl(String controlType)
     {
         return AbstractControls.getControl(this, controlType);
@@ -221,6 +225,7 @@ public class AudioMixingPushBufferDataSource
      * @return an array of <tt>Object</tt>s which represent the controls
      * available for this <tt>DataSource</tt>
      */
+    @Override
     public Object[] getControls()
     {
         BufferControl bufferControl = getBufferControl();
@@ -254,6 +259,7 @@ public class AudioMixingPushBufferDataSource
      * @return a <tt>Time</tt> value which represents the duration of the media
      * being made available through this <tt>DataSource</tt>
      */
+    @Override
     public Time getDuration()
     {
         return audioMixer.getDuration();
@@ -281,6 +287,7 @@ public class AudioMixingPushBufferDataSource
      * from the associated <tt>AudioMixer</tt> and mixes its inputs if this
      * <tt>DataSource</tt> is connected; otherwise, an empty array
      */
+    @Override
     public synchronized PushBufferStream[] getStreams()
     {
         if (connected && (outputStream == null))
@@ -326,6 +333,7 @@ public class AudioMixingPushBufferDataSource
      * @throws IOException if anything wrong happens while starting the output
      * <tt>PushBufferStream</tt> of this <tt>DataSource</tt>
      */
+    @Override
     public synchronized void start()
         throws IOException
     {
@@ -346,6 +354,7 @@ public class AudioMixingPushBufferDataSource
      * @throws IOException if anything wrong happens while stopping the output
      * <tt>PushBufferStream</tt> of this <tt>DataSource</tt>
      */
+    @Override
     public synchronized void stop()
         throws IOException
     {

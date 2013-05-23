@@ -18,13 +18,13 @@ import java.util.logging.*;
  * will not allow the JVM to delete files that are open. This causes problems
  * with items such as JARs that get opened by a URLClassLoader and can therefore
  * not be deleted by the JVM (including deleteOnExit).
- * 
+ *
  * The caller should not need to create an instance of this class, although it
  * is possible. Simply use the static methods to perform the required
  * operations. Note that all files created by this class should be considered as
  * deleted at JVM exit (although the actual deletion may be delayed). If
  * persistent temporary files are required, use {@link java.io.File} instead.
- * 
+ *
  * Refer to Sun bugs 4171239 and 4950148 for more details.
  */
 public class TempFileManager {
@@ -37,7 +37,7 @@ public class TempFileManager {
      * should be considered as deleted at JVM exit; therefore, do not use this
      * method to create files that need to be persistent between application
      * runs.
-     * 
+     *
      * @param prefix
      *            the prefix string used in generating the file name; must be at
      *            least three characters long
@@ -92,7 +92,7 @@ public class TempFileManager {
     /**
      * Deletes all of the files in the given directory, recursing into any sub
      * directories found. Also deletes the root directory.
-     * 
+     *
      * @param rootDir
      *            the root directory to be recursively deleted
      * @throws IOException

@@ -507,8 +507,7 @@ public abstract class AbstractBufferCaptureDevice
          */
         @SuppressWarnings("unchecked")
         Vector<CaptureDeviceInfo> captureDeviceInfos
-            = (Vector<CaptureDeviceInfo>)
-                CaptureDeviceManager.getDeviceList(null);
+            = CaptureDeviceManager.getDeviceList(null);
         MediaLocator locator = captureDevice.getLocator();
 
         for (CaptureDeviceInfo captureDeviceInfo : captureDeviceInfos)
@@ -584,7 +583,7 @@ public abstract class AbstractBufferCaptureDevice
      * {@link #streams()} and its return value.
      *
      * @return the <tt>Object</tt> which is to synchronize the access to
-     * {@link #streams()} and its return value 
+     * {@link #streams()} and its return value
      */
     Object getStreamSyncRoot()
     {

@@ -9,17 +9,17 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 /**
  * compute inverse of LPC prediction gain, and
  * test if LPC coefficients are stable (all poles within unit circle)
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class LPCInvPredGainFLP 
+public class LPCInvPredGainFLP
 {
     static final float RC_THRESHOLD =       0.9999f;
-    
+
     /**
-     *     compute inverse of LPC prediction gain, and                          
-     *  test if LPC coefficients are stable (all poles within unit circle)   
+     *     compute inverse of LPC prediction gain, and
+     *  test if LPC coefficients are stable (all poles within unit circle)
      *  this code is based on SKP_Silk_a2k_FLP().
      * @param invGain inverse prediction gain, energy domain
      * @param A prediction coefficients [order]
@@ -44,7 +44,7 @@ public class LPCInvPredGainFLP
             Anew[i_djinn] = A[A_offset+i_djinn];
 
         invGain[0] = 1.0f;
-        for( k = order - 1; k > 0; k-- ) 
+        for( k = order - 1; k > 0; k-- )
         {
             rc = -Anew[ k ];
             if (rc > RC_THRESHOLD || rc < -RC_THRESHOLD)

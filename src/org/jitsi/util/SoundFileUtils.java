@@ -16,7 +16,7 @@ import java.util.*;
  * @author Dmitri Melnikov
  * @author Vincent Lucas
  */
-public class SoundFileUtils 
+public class SoundFileUtils
 {
     /**
      * Different extension of a sound file
@@ -35,13 +35,13 @@ public class SoundFileUtils
 
     /**
      * The file extension and the format of call recording to be used by
-     * default. 
+     * default.
      */
     public static final String DEFAULT_CALL_RECORDING_FORMAT = mp3;
 
     /**
      * Checks whether this file is a sound file.
-     * 
+     *
      * @param f <tt>File</tt> to check
      * @return <tt>true</tt> if it's a sound file, <tt>false</tt> otherwise
      */
@@ -68,7 +68,7 @@ public class SoundFileUtils
 
     /**
      * Checks whether this file is a sound file.
-     * 
+     *
      * @param f <tt>File</tt> to check
      * @param soundFormats The sound formats to restrict the file name
      * extension. If soundFormats is null, then every sound format defined by
@@ -111,8 +111,8 @@ public class SoundFileUtils
      *
      * @param f which wants the extension
      * @return Return the extension as a String
-     */  
-    public static String getExtension(File f) 
+     */
+    public static String getExtension(File f)
     {
         String s = f.getName();
         int i = s.lastIndexOf('.');

@@ -73,6 +73,7 @@ public class JavaDecoder
      *
      * @see AbstractCodecExt#doClose()
      */
+    @Override
     protected void doClose()
     {
         dec = null;
@@ -84,6 +85,7 @@ public class JavaDecoder
      *
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected void doOpen()
     {
     }
@@ -96,6 +98,7 @@ public class JavaDecoder
      * @return
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
+    @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
         byte[] input = (byte[]) inputBuffer.getData();

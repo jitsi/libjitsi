@@ -136,14 +136,14 @@ public class DtmfTransformEngine
     /**
      * The minimal DTMF tone dration. The default value is <tt>560</tt>
      * corresponding to 70 ms. This can be changed by using the
-     * "org.jitsi.impl.neomedia.transform.dtmf.minimalToneDuration" property. 
+     * "org.jitsi.impl.neomedia.transform.dtmf.minimalToneDuration" property.
      */
     private int minimalToneDuration;
 
     /**
      * The maximal DTMF tone dration. The default value is -1 telling
      * to stop only when the user asks to. This can be changed by using the
-     * "org.jitsi.impl.neomedia.transform.dtmf.maximalToneDuration" property. 
+     * "org.jitsi.impl.neomedia.transform.dtmf.maximalToneDuration" property.
      */
     private int maximalToneDuration;
 
@@ -161,8 +161,8 @@ public class DtmfTransformEngine
 
     /**
      * Close the transformer and underlying transform engine.
-     * 
-     * Nothing to do here. 
+     *
+     * Nothing to do here.
      */
     public void close()
     {
@@ -400,7 +400,7 @@ public class DtmfTransformEngine
         {
             // If the GUI throws several start and only one stop (i.e. when
             // holding a key pressed on Windows), then check that we have the
-            // good number of tone to stop. 
+            // good number of tone to stop.
             this.stopSendingDTMF();
 
             currentTone.add(tone);

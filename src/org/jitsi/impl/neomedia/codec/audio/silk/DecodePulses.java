@@ -36,24 +36,24 @@ public class DecodePulses
         int[]   pulses_ptr;
         int     pulses_ptr_offset;
         int[]   cdf_ptr;
-        
+
         /*********************/
         /* Decode rate level */
         /*********************/
         int RateLevelIndex_ptr[] = new int[1];
         RateLevelIndex_ptr[0] = psDecCtrl.RateLevelIndex;
-        RangeCoder.SKP_Silk_range_decoder( RateLevelIndex_ptr, 0, psRC, 
+        RangeCoder.SKP_Silk_range_decoder( RateLevelIndex_ptr, 0, psRC,
                 TablesPulsesPerBlock.SKP_Silk_rate_levels_CDF[ psDecCtrl.sigtype ], 0, TablesPulsesPerBlock.SKP_Silk_rate_levels_CDF_offset );
         psDecCtrl.RateLevelIndex = RateLevelIndex_ptr[0];
-        
+
         /* Calculate number of shell blocks */
         iter = frame_length / Define.SHELL_CODEC_FRAME_LENGTH;
-        
+
         /***************************************************/
         /* Sum-Weighted-Pulses Decoding                    */
         /***************************************************/
         cdf_ptr = TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF[ psDecCtrl.RateLevelIndex ];
-        
+
         for( i = 0; i < iter; i++ ) {
             nLshifts[ i ] = 0;
             RangeCoder.SKP_Silk_range_decoder( sum_pulses, i, psRC, cdf_ptr, 0, TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF_offset );
@@ -61,11 +61,11 @@ public class DecodePulses
             /* LSB indication */
             while( sum_pulses[ i ] == ( Define.MAX_PULSES + 1 ) ) {
                 nLshifts[ i ]++;
-                RangeCoder.SKP_Silk_range_decoder( sum_pulses, i, psRC, 
+                RangeCoder.SKP_Silk_range_decoder( sum_pulses, i, psRC,
                         TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF[ Define.N_RATE_LEVELS - 1 ], 0, TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF_offset );
             }
         }
-        
+
         /***************************************************/
         /* Shell decoding                                  */
         /***************************************************/
@@ -86,7 +86,7 @@ public class DecodePulses
                 nLS = nLshifts[ i ];
                 pulses_ptr = q;
                 pulses_ptr_offset = Macros.SKP_SMULBB(i, Define.SHELL_CODEC_FRAME_LENGTH);
-                
+
                 for( k = 0; k < Define.SHELL_CODEC_FRAME_LENGTH; k++ ) {
                     abs_q = pulses_ptr[pulses_ptr_offset + k];
                     for( j = 0; j < nLS; j++ ) {
@@ -104,7 +104,7 @@ public class DecodePulses
         /****************************************/
         /* Decode and add signs to pulse signal */
         /****************************************/
-        CodeSigns.SKP_Silk_decode_signs( psRC, q, frame_length, psDecCtrl.sigtype, 
+        CodeSigns.SKP_Silk_decode_signs( psRC, q, frame_length, psDecCtrl.sigtype,
                 psDecCtrl.QuantOffsetType, psDecCtrl.RateLevelIndex);
     }
 }

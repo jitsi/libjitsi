@@ -7,13 +7,13 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * 
+ *
  * @author Dingxin Xu
  */
-public class FindLPCFLP 
+public class FindLPCFLP
 {
     /**
-     * 
+     *
      * @param NLSF NLSFs.
      * @param interpIndex NLSF interp. index for NLSF interp.
      * @param prev_NLSFq Previous NLSFs, for NLSF interpolation.
@@ -44,14 +44,14 @@ public class FindLPCFLP
         interpIndex[0] = 4;
 
         /* Burg AR analysis for the full frame */
-        res_nrg = BurgModifiedFLP.SKP_Silk_burg_modified_FLP( a, x, 0, subfr_length, Define.NB_SUBFR, 
+        res_nrg = BurgModifiedFLP.SKP_Silk_burg_modified_FLP( a, x, 0, subfr_length, Define.NB_SUBFR,
                 DefineFLP.FIND_LPC_COND_FAC, LPC_order );
 
         if( useInterpNLSFs == 1 ) {
 
             /* Optimal solution for last 10 ms; subtract residual energy here, as that's easier than        */
             /* adding it to the residual energy of the first 10 ms in each iteration of the search below    */
-            res_nrg -= BurgModifiedFLP.SKP_Silk_burg_modified_FLP( a_tmp, x, ( Define.NB_SUBFR / 2 ) * subfr_length, 
+            res_nrg -= BurgModifiedFLP.SKP_Silk_burg_modified_FLP( a_tmp, x, ( Define.NB_SUBFR / 2 ) * subfr_length,
                 subfr_length, Define.NB_SUBFR / 2, DefineFLP.FIND_LPC_COND_FAC, LPC_order );
 
             /* Convert to NLSFs */
@@ -68,8 +68,8 @@ public class FindLPCFLP
 
                 /* Calculate residual energy with LSF interpolation */
                 LPCAnalysisFilterFLP.SKP_Silk_LPC_analysis_filter_FLP( LPC_res, a_tmp, x, 0, 2 * subfr_length, LPC_order );
-                res_nrg_interp = 
-                    EnergyFLP.SKP_Silk_energy_FLP( LPC_res, LPC_order,                subfr_length - LPC_order ) + 
+                res_nrg_interp =
+                    EnergyFLP.SKP_Silk_energy_FLP( LPC_res, LPC_order,                subfr_length - LPC_order ) +
                     EnergyFLP.SKP_Silk_energy_FLP( LPC_res, LPC_order + subfr_length, subfr_length - LPC_order );
 
                 /* Determine whether current interpolated NLSFs are best so far */

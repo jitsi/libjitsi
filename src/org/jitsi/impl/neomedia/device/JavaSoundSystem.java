@@ -1,6 +1,6 @@
 /*
  * Jitsi, the OpenSource Java VoIP and Instant Messaging client.
- * 
+ *
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
@@ -10,7 +10,7 @@ import java.lang.reflect.*;
 
 /**
  * Auto-detection of FMJ audio capture devices.
- * 
+ *
  * @author Ken Larson
  */
 public class JavaSoundSystem
@@ -24,6 +24,7 @@ public class JavaSoundSystem
         super(LOCATOR_PROTOCOL);
     }
 
+    @Override
     protected void doInitialize()
         throws Exception
     {

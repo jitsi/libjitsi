@@ -1,6 +1,6 @@
 /*
  * Jitsi, the OpenSource Java VoIP and Instant Messaging client.
- * 
+ *
  * Distributable under LGPL license. See terms of license at gnu.org.
  */
 package org.jitsi.impl.neomedia.codec.audio.ulaw;
@@ -26,6 +26,7 @@ public class JavaDecoder
         PLUGIN_NAME = "Mu-Law Decoder";
     }
 
+    @Override
     public Object[] getControls()
     {
         if (controls == null)
@@ -39,6 +40,7 @@ public class JavaDecoder
         return controls;
     }
 
+    @Override
     protected Format[] getMatchingOutputFormats(Format in)
     {
         AudioFormat af = (AudioFormat) in;
@@ -72,6 +74,7 @@ public class JavaDecoder
     }
 
     /** Initializes the codec. */
+    @Override
     public void open()
     {
         initTables();

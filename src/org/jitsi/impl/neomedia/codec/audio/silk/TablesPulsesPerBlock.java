@@ -11,13 +11,13 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class TablesPulsesPerBlock 
+public class TablesPulsesPerBlock
 {
     static int[] SKP_Silk_max_pulses_table = {
              6,      8,     12,     18
     };
 
-    static int[][] SKP_Silk_pulses_per_block_CDF  = 
+    static int[][] SKP_Silk_pulses_per_block_CDF  =
     {
     {
              0,  47113,  61501,  64590,  65125,  65277,  65352,  65407,
@@ -73,7 +73,7 @@ public class TablesPulsesPerBlock
 
     static final int SKP_Silk_pulses_per_block_CDF_offset = 6;
 
-    static short[][]  SKP_Silk_pulses_per_block_BITS_Q6  = 
+    static short[][]  SKP_Silk_pulses_per_block_BITS_Q6  =
     {
     {
             30,    140,    282,    444,    560,    625,    654,    677,
@@ -122,7 +122,7 @@ public class TablesPulsesPerBlock
     }
     };
 
-    static int[][] SKP_Silk_rate_levels_CDF  = 
+    static int[][] SKP_Silk_rate_levels_CDF  =
     {
     {
              0,   2005,  12717,  20281,  31328,  36234,  45816,  57753,
@@ -136,7 +136,7 @@ public class TablesPulsesPerBlock
 
     static final int SKP_Silk_rate_levels_CDF_offset = 4;
 
-    static short[][] SKP_Silk_rate_levels_BITS_Q6  = 
+    static short[][] SKP_Silk_rate_levels_BITS_Q6  =
     {
     {
            322,    167,    199,    164,    239,    178,    157,    231,

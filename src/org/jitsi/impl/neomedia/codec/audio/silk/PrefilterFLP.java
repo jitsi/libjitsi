@@ -12,7 +12,7 @@ import java.util.*;
  *
  * @author Dingxin Xu
  */
-public class PrefilterFLP 
+public class PrefilterFLP
 {
     /**
      * SKP_Silk_prefilter. Main Prefilter Function.
@@ -49,10 +49,10 @@ public class PrefilterFLP
         pxw = xw;
         pxw_offset = 0;
         lag = P.lagPrev;
-        for( k = 0; k < Define.NB_SUBFR; k++ ) 
+        for( k = 0; k < Define.NB_SUBFR; k++ )
         {
             /* Update Variables that change per sub frame */
-            if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) 
+            if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED )
             {
                 lag = psEncCtrl.sCmn.pitchL[ k ];
             }
@@ -65,16 +65,16 @@ public class PrefilterFLP
             Tilt      =  psEncCtrl.Tilt[ k ];
             LF_MA_shp =  psEncCtrl.LF_MA_shp[ k ];
             LF_AR_shp =  psEncCtrl.LF_AR_shp[ k ];
-//TODO: copy the psEncCtrl.AR1 to a local buffer or use a reference(pointer) to the struct???            
+//TODO: copy the psEncCtrl.AR1 to a local buffer or use a reference(pointer) to the struct???
 //            AR1_shp   = psEncCtrl.AR1;
 //            AR1_shp_offset = k * Define.SHAPE_LPC_ORDER_MAX;
             Arrays.fill(AR1_shp, 0);
-            System.arraycopy(psEncCtrl.AR1,  k * Define.SHAPE_LPC_ORDER_MAX, 
+            System.arraycopy(psEncCtrl.AR1,  k * Define.SHAPE_LPC_ORDER_MAX,
                     AR1_shp, 0, psEncCtrl.AR1.length-k * Define.SHAPE_LPC_ORDER_MAX);
 
             /* Short term FIR filtering*/
-            LPCAnalysisFilterFLP.SKP_Silk_LPC_analysis_filter_FLP( st_res, AR1_shp, 
-                    px, px_offset - psEnc.sCmn.shapingLPCOrder, 
+            LPCAnalysisFilterFLP.SKP_Silk_LPC_analysis_filter_FLP( st_res, AR1_shp,
+                    px, px_offset - psEnc.sCmn.shapingLPCOrder,
                     psEnc.sCmn.subfr_length + psEnc.sCmn.shapingLPCOrder, psEnc.sCmn.shapingLPCOrder );
 
             pst_res = st_res;
@@ -82,8 +82,8 @@ public class PrefilterFLP
 
             /* reduce (mainly) low frequencies during harmonic emphasis */
             B[ 0 ] =  psEncCtrl.GainsPre[ k ];
-            B[ 1 ] = -psEncCtrl.GainsPre[ k ] * 
-                ( psEncCtrl.HarmBoost[ k ] * HarmShapeGain + PerceptualParametersFLP.INPUT_TILT + 
+            B[ 1 ] = -psEncCtrl.GainsPre[ k ] *
+                ( psEncCtrl.HarmBoost[ k ] * HarmShapeGain + PerceptualParametersFLP.INPUT_TILT +
                         psEncCtrl.coding_quality * PerceptualParametersFLP.HIGH_RATE_INPUT_TILT );
             pxw[ pxw_offset + 0 ] = B[ 0 ] * pst_res[ pst_res_offset + 0 ] + B[ 1 ] * P.sHarmHP;
             for( j = 1; j < psEnc.sCmn.subfr_length; j++ ) {
@@ -92,7 +92,7 @@ public class PrefilterFLP
             P.sHarmHP = pst_res[ pst_res_offset + psEnc.sCmn.subfr_length - 1 ];
 
             SKP_Silk_prefilt_FLP( P, pxw, pxw_offset, pxw, pxw_offset, HarmShapeFIR, Tilt, LF_MA_shp, LF_AR_shp, lag, psEnc.sCmn.subfr_length );
-            
+
             px_offset  += psEnc.sCmn.subfr_length;
             pxw_offset += psEnc.sCmn.subfr_length;
         }
@@ -100,7 +100,7 @@ public class PrefilterFLP
     }
 
     /**
-     * SKP_Silk_prefilter_part1. Prefilter for finding Quantizer input signal.  
+     * SKP_Silk_prefilter_part1. Prefilter for finding Quantizer input signal.
      * @param P
      * @param st_res
      * @param st_res_offset
@@ -129,7 +129,7 @@ public class PrefilterFLP
     {
         int   i;
         int   idx, LTP_shp_buf_idx;
-        float n_Tilt, n_LF, n_LTP; 
+        float n_Tilt, n_LF, n_LTP;
         float sLF_AR_shp, sLF_MA_shp;
         float []LTP_shp_buf;
 
@@ -138,7 +138,7 @@ public class PrefilterFLP
         LTP_shp_buf_idx = P.sLTP_shp_buf_idx1;
         sLF_AR_shp      = P.sLF_AR_shp1;
         sLF_MA_shp      = P.sLF_MA_shp1;
-            
+
         for( i = 0; i < length; i++ ) {
             if( lag > 0 ) {
                 assert( Define.HARM_SHAPE_FIR_TAPS == 3 );

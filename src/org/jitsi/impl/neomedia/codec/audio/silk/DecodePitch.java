@@ -12,11 +12,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class DecodePitch 
+public class DecodePitch
 {
     /**
      * Pitch analyzer function.
-     * @param lagIndex 
+     * @param lagIndex
      * @param contourIndex
      * @param pitch_lags 4 pitch values.
      * @param Fs_kHz sampling frequency(kHz).

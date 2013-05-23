@@ -8,11 +8,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * class for IIR/FIR resamplers.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class ResamplerPrivate 
+public class ResamplerPrivate
 {
     /**
      * Number of input samples to process in the inner loop.

@@ -10,7 +10,7 @@ import java.util.*;
 
 /**
  * Set decoder sampling rate.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -29,9 +29,9 @@ public class DecoderSetFs
         if( psDec.fs_kHz != fs_kHz ) {
             psDec.fs_kHz  = fs_kHz;
             psDec.frame_length = Define.FRAME_LENGTH_MS*fs_kHz;
-            
+
             psDec.subfr_length = (Define.FRAME_LENGTH_MS/Define.NB_SUBFR)*fs_kHz;
-            
+
             if( psDec.fs_kHz == 8 ) {
                 psDec.LPC_order = Define.MIN_LPC_ORDER;
                 psDec.psNLSF_CB[0]   = TablesNLSFCB010.SKP_Silk_NLSF_CB0_10;
@@ -43,11 +43,11 @@ public class DecoderSetFs
             }
             /* Reset part of the decoder state */
             Arrays.fill(psDec.sLPC_Q14, 0, Define.MAX_LPC_ORDER, 0);
-            
+
             Arrays.fill(psDec.outBuf, 0, Define.MAX_FRAME_LENGTH, (short)0);
-            
+
             Arrays.fill(psDec.prevNLSF_Q15, 0, Define.MAX_LPC_ORDER, 0);
-            
+
 
             psDec.sLTP_buf_idx            = 0;
             psDec.lagPrev                 = 100;
@@ -71,7 +71,7 @@ public class DecoderSetFs
                 /* unsupported sampling rate */
                 Typedef.SKP_assert( false );
             }
-        } 
+        }
         /* Check that settings are valid */
         Typedef.SKP_assert( psDec.frame_length > 0 && psDec.frame_length <= Define.MAX_FRAME_LENGTH );
     }

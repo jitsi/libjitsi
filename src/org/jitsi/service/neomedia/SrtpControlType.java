@@ -9,7 +9,7 @@ package org.jitsi.service.neomedia;
 /**
  * The <tt>SrtpControlType</tt> enumeration contains all currently known
  * <tt>SrtpControl</tt> implementations.
- * 
+ *
  * @author Ingo Bauersachs
  */
 public enum SrtpControlType

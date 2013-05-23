@@ -55,15 +55,15 @@ class Lspgetq
  * @param fg_sum        input : present MA prediction coef.
  */
 static void lsp_get_quant(
- float  lspcb1[][/* M */],   
- float  lspcb2[][/* M */],    
- int    code0,          
- int    code1,          
- int    code2,         
- float  fg[][/* M */],   
- float  freq_prev[][/* M */], 
- float  lspq[],        
- float  fg_sum[]      
+ float  lspcb1[][/* M */],
+ float  lspcb2[][/* M */],
+ int    code0,
+ int    code1,
+ int    code2,
+ float  fg[][/* M */],
+ float  freq_prev[][/* M */],
+ float  lspq[],
+ float  fg_sum[]
 )
 {
    float GAP1 = Ld8k.GAP1;
@@ -125,7 +125,7 @@ static void lsp_expand_1(
  * @param gap   input : gap
  */
 static void lsp_expand_2(
- float  buf[],          
+ float  buf[],
  float gap
 )
 {
@@ -151,8 +151,8 @@ static void lsp_expand_2(
  * @param gap   input:  gap
  */
 static void lsp_expand_1_2(
- float  buf[],         
- float  gap            
+ float  buf[],
+ float  gap
 )
 {
    int M = Ld8k.M;
@@ -187,11 +187,11 @@ static void lsp_expand_1_2(
  * @param fg_sum        (i) Q15 : present MA prediction coef.
  */
 private static void lsp_prev_compose(
-  float lsp_ele[],      
-  float lsp[],           
-  float fg[][/* M */],       
-  float freq_prev[][/* M */],     
-  float fg_sum[]               
+  float lsp_ele[],
+  float lsp[],
+  float fg[][/* M */],
+  float freq_prev[][/* M */],
+  float fg_sum[]
 )
 {
    int M = Ld8k.M;
@@ -215,11 +215,11 @@ private static void lsp_prev_compose(
  * @param fg_sum_inv    (i) Q12 : inverse previous LSP vector
  */
 static void lsp_prev_extract(
-  float lsp[/* M */],               
-  float lsp_ele[/* M */],           
-  float fg[/* MA_NP */][/* M */],         
-  float freq_prev[/* MA_NP */][/* M */],  
-  float fg_sum_inv[/* M */]        
+  float lsp[/* M */],
+  float lsp_ele[/* M */],
+  float fg[/* MA_NP */][/* M */],
+  float freq_prev[/* MA_NP */][/* M */],
+  float fg_sum_inv[/* M */]
 )
 {
   int M = Ld8k.M;
@@ -244,7 +244,7 @@ static void lsp_prev_extract(
  */
 static void lsp_prev_update(
   float lsp_ele[/* M */],
-  float freq_prev[/* MA_NP */][/* M */]  
+  float freq_prev[/* MA_NP */][/* M */]
 )
 {
   int M = Ld8k.M;
@@ -264,7 +264,7 @@ static void lsp_prev_update(
  * @param buf in/out: LSP parameters
  */
 private static void lsp_stability(
- float  buf[]          
+ float  buf[]
 )
 {
    float GAP3 = Ld8k.GAP3;

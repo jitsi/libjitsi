@@ -332,6 +332,7 @@ public class JNIEncoder
      * <tt>Format</tt>s
      * @return array of formats supported at output
      */
+    @Override
     public Format[] getSupportedOutputFormats(Format in)
     {
         Format[] supportedOutputFormats;
@@ -591,6 +592,7 @@ public class JNIEncoder
      * @return <tt>BUFFER_PROCESSED_OK</tt> if buffer has been successfully
      * processed
      */
+    @Override
     public synchronized int process(Buffer inBuffer, Buffer outBuffer)
     {
         if (isEOM(inBuffer))

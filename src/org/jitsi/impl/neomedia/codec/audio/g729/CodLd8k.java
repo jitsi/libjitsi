@@ -176,7 +176,7 @@ void init_coder_ld8k()
  * @param ana   output: analysis parameters
  */
 void coder_ld8k(
- int ana[]  
+ int ana[]
 )
 {
   /* LPC coefficients */
