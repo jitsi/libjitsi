@@ -34,6 +34,10 @@ public class DSCaptureDevice
      */
     private static final DSFormat EMPTY_FORMATS[] = new DSFormat[0];
 
+    public static final int S_FALSE = 1;
+
+    public static final int S_OK = 0;
+
     /**
      * Get bytes from <tt>buf</tt> native pointer and copy them
      * to <tt>ptr</tt> byte native pointer.
@@ -141,7 +145,7 @@ public class DSCaptureDevice
      */
     public DSFormat[] getSupportedFormats()
     {
-        DSFormat formats[] = getSupportedFormats(ptr);
+        DSFormat[] formats = getSupportedFormats(ptr);
 
         return (formats == null) ? EMPTY_FORMATS : formats;
     }
@@ -174,10 +178,13 @@ public class DSCaptureDevice
      * Set format to use with this capture device.
      *
      * @param format format to set
+     * @return an <tt>HRESULT</tt> value indicating whether the specified
+     * <tt>format</tt> was successfully set or describing a failure
+     * 
      */
-    public void setFormat(DSFormat format)
+    public int setFormat(DSFormat format)
     {
-        setFormat(ptr, format);
+        return setFormat(ptr, format);
     }
 
     /**
@@ -185,20 +192,22 @@ public class DSCaptureDevice
      *
      * @param ptr native pointer of <tt>DSCaptureDevice</tt>
      * @param format format to set
+     * @return an <tt>HRESULT</tt> value indicating whether the specified
+     * <tt>format</tt> was successfully set or describing a failure
      */
-    private native void setFormat(long ptr, DSFormat format);
+    private native int setFormat(long ptr, DSFormat format);
 
-    public void start()
+    public int start()
     {
-        start(ptr);
+        return start(ptr);
     }
 
-    private native void start(long ptr);
+    private native int start(long ptr);
 
-    public void stop()
+    public int stop()
     {
-        stop(ptr);
+        return stop(ptr);
     }
 
-    private native void stop(long ptr);
+    private native int stop(long ptr);
 }

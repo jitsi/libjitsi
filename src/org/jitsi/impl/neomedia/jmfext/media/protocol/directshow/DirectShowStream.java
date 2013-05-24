@@ -15,6 +15,7 @@ import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
+import org.jitsi.util.*;
 
 /**
  * Implements a <tt>PushBufferStream</tt> using DirectShow.
@@ -25,6 +26,13 @@ import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 public class DirectShowStream
     extends AbstractPushBufferStream
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>DirectShowStream</tt> class and its
+     * instances to print out debugging information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(DirectShowStream.class);
+
     /**
      * The indicator which determines whether {@link #grabber}
      * automatically drops late frames. If <tt>false</tt>, we have to drop them
@@ -132,30 +140,7 @@ public class DirectShowStream
         if (device == null)
             throw new IOException("device == null");
         else
-        {
-            Format format = getFormat();
-
-            if (format instanceof AVFrameFormat)
-            {
-                AVFrameFormat avFrameFormat = (AVFrameFormat) format;
-                Dimension size = avFrameFormat.getSize();
-
-                if (size == null)
-                    throw new IOException("format.size == null");
-                else
-                {
-                    device.setFormat(
-                            new DSFormat(
-                                    size.width, size.height,
-                                    avFrameFormat.getDeviceSystemPixFmt()));
-                    this.format = format;
-                }
-            }
-            else
-                throw new IOException("!(format instanceof AVFrameFormat)");
-
             device.setDelegate(grabber);
-        }
     }
 
     /**
@@ -196,6 +181,88 @@ public class DirectShowStream
     protected Format doGetFormat()
     {
         return (format == null) ? super.doGetFormat() : format;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Overrides the super implementation to enable setting the <tt>Format</tt>
+     * of this <tt>DirectShowStream</tt> after the <tt>DataSource</tt> which
+     * provides it has been connected.
+     */
+    @Override
+    protected Format doSetFormat(Format format)
+    {
+        if (isSupportedFormat(format))
+        {
+            if (device == null)
+                return format;
+            else
+            {
+                try
+                {
+                    setDeviceFormat(format);
+                }
+                catch (IOException ioe)
+                {
+                    logger.error(
+                            "Failed to set format on DirectShowStream: "
+                                + format,
+                            ioe);
+                    /*
+                     * Ignore the exception because the method is to report
+                     * failures by returning null (which will be achieved
+                     * outside the catch block).
+                     */
+                }
+                return format.matches(this.format) ? format : null;
+            }
+        }
+        else
+            return super.doSetFormat(format);
+    }
+
+    /**
+     * Determines whether a specific <tt>Format</tt> appears to be suitable for
+     * attempts to be set on <tt>DirectShowStream</tt> instances.
+     * <p>
+     * <b>Note</b>: If the method returns <tt>true</tt>, an actual attempt to
+     * set the specified <tt>format</tt> on an specific
+     * <tt>DirectShowStream</tt> instance may still fail but that will be
+     * because the finer-grained properties of the <tt>format</tt> are not
+     * supported by that <tt>DirectShowStream</tt> instance.
+     * </p>
+     *
+     * @param format the <tt>Format</tt> to be checked whether it appears to be
+     * suitable for attempts to be set on <tt>DirectShowStream</tt> instances
+     * @return <tt>true</tt> if the specified <tt>format</tt> appears to be
+     * suitable for attempts to be set on <tt>DirectShowStream</tt> instance;
+     * otherwise, <tt>false</tt>
+     */
+    static boolean isSupportedFormat(Format format)
+    {
+        if (format instanceof AVFrameFormat)
+        {
+            AVFrameFormat avFrameFormat = (AVFrameFormat) format;
+            long pixFmt = avFrameFormat.getDeviceSystemPixFmt();
+
+            if (pixFmt != -1)
+            {
+                Dimension size = avFrameFormat.getSize();
+
+                /*
+                 * We will set the native format in doStart() because a
+                 * connect-disconnect-connect sequence of the native capture
+                 * device may reorder its formats in a different way.
+                 * Consequently, in the absence of further calls to
+                 * setFormat() by JMF, a crash may occur later (typically,
+                 * during scaling) because of a wrong format.
+                 */
+                if (size != null)
+                    return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -485,6 +552,55 @@ public class DirectShowStream
     }
 
     /**
+     * Sets a specific <tt>Format</tt> on the <tt>DSCaptureDevice</tt> of this
+     * instance.
+     *
+     * @param format the <tt>Format</tt> to set on the <tt>DSCaptureDevice</tt>
+     * of this instance
+     * @throws IOException if setting the specified <tt>format</tt> on the
+     * <tt>DSCaptureDevice</tt> of this instance fails
+     */
+    private void setDeviceFormat(Format format)
+        throws IOException
+    {
+        if (format == null)
+            throw new IOException("format == null");
+        else if (format instanceof AVFrameFormat)
+        {
+            AVFrameFormat avFrameFormat = (AVFrameFormat) format;
+            Dimension size = avFrameFormat.getSize();
+
+            if (size == null)
+                throw new IOException("format.size == null");
+            else
+            {
+                int hresult
+                    = device.setFormat(
+                            new DSFormat(
+                                    size.width, size.height,
+                                    avFrameFormat.getDeviceSystemPixFmt()));
+
+                switch (hresult)
+                {
+                case DSCaptureDevice.S_FALSE:
+                case DSCaptureDevice.S_OK:
+                    this.format = format;
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug(
+                                "Set format on DirectShowStream: " + format);
+                    }
+                    break;
+                default:
+                    throwNewHResultException(hresult);
+                }
+            }
+        }
+        else
+            throw new IOException("!(format instanceof AVFrameFormat)");
+    }
+
+    /**
      * Starts the transfer of media data from this <tt>PushBufferStream</tt>.
      *
      * @throws IOException if anything goes wrong while starting the transfer of
@@ -500,6 +616,8 @@ public class DirectShowStream
 
         try
         {
+            setDeviceFormat(getFormat());
+
             if(!automaticallyDropsLateVideoFrames)
             {
                 if (transferDataThread == null)
@@ -517,8 +635,7 @@ public class DirectShowStream
                 }
             }
 
-            if (device != null)
-                device.start();
+            device.start();
 
             started = true;
         }
@@ -541,8 +658,7 @@ public class DirectShowStream
     {
         try
         {
-            if (device != null)
-                device.stop();
+            device.stop();
 
             transferDataThread = null;
 
@@ -569,5 +685,20 @@ public class DirectShowStream
 
             byteBufferPool.drain();
         }
+    }
+
+    /**
+     * Throws a new <tt>IOException</tt> the detail message of which describes
+     * a specific <tt>HRESULT</tt> value indicating a failure.
+     *
+     * @param hresult the <tt>HRESUlT</tt> to be described by the detail message
+     * of the new <tt>IOException</tt> to be thrown
+     * @throws IOException
+     */
+    private void throwNewHResultException(int hresult)
+        throws IOException
+    {
+        throw new IOException(
+                "HRESULT 0x" + Long.toHexString(hresult & 0xffffffffL));
     }
 }

@@ -66,25 +66,25 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_direct
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice
  * Method:    setFormat
- * Signature: (JLorg/jitsi/impl/neomedia/jmfext/media/protocol/directshow/DSFormat;)V
+ * Signature: (JLorg/jitsi/impl/neomedia/jmfext/media/protocol/directshow/DSFormat;)I
  */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_setFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_setFormat
   (JNIEnv *, jobject, jlong, jobject);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice
  * Method:    start
- * Signature: (J)V
+ * Signature: (J)I
  */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_start
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_start
   (JNIEnv *, jobject, jlong);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice
  * Method:    stop
- * Signature: (J)V
+ * Signature: (J)I
  */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_stop
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_stop
   (JNIEnv *, jobject, jlong);
 
 #ifdef __cplusplus

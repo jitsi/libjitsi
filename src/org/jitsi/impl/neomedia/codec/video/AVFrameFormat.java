@@ -263,6 +263,12 @@ public class AVFrameFormat
     @Override
     public String toString()
     {
-        return super.toString() + ", pixFmt= " + pixFmt;
+        StringBuilder s = new StringBuilder(super.toString());
+
+        if (pixFmt != NOT_SPECIFIED)
+            s.append(", pixFmt= ").append(pixFmt);
+        if (deviceSystemPixFmt != NOT_SPECIFIED)
+            s.append(", deviceSystemPixFmt= ").append(deviceSystemPixFmt);
+        return s.toString();
     }
 }

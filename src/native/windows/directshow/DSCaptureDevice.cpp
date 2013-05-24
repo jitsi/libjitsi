@@ -63,6 +63,26 @@ STDMETHODIMP_(ULONG) DSGrabberCallback::Release()
     return 1;
 }
 
+static void
+_DeleteMediaType(AM_MEDIA_TYPE *mt)
+{
+    if (mt)
+    {
+        if (mt->cbFormat && mt->pbFormat)
+        {
+            ::CoTaskMemFree((LPVOID) mt->pbFormat);
+            mt->cbFormat = 0;
+            mt->pbFormat = NULL;
+        }
+        if (mt->pUnk)
+        {
+            mt->pUnk->Release();
+            mt->pUnk = NULL;
+        }
+        ::CoTaskMemFree(mt);
+    }
+}
+
 DSCaptureDevice::DSCaptureDevice(const WCHAR* name)
 {
     if(name)
@@ -124,84 +144,89 @@ const WCHAR* DSCaptureDevice::getName() const
     return m_name;
 }
 
-bool DSCaptureDevice::setFormat(const DSFormat& format)
+HRESULT DSCaptureDevice::setFormat(const DSFormat& format)
 {
-    HRESULT ret;
+    HRESULT hr;
     IAMStreamConfig* streamConfig = NULL;
-    AM_MEDIA_TYPE* mediaType = NULL;
 
     /* get the right interface to change capture settings */
-    ret = m_captureGraphBuilder->FindInterface(&PIN_CATEGORY_CAPTURE, &MEDIATYPE_Video,
-        m_srcFilter, IID_IAMStreamConfig, (void**)&streamConfig);
-
-    if(!FAILED(ret))
+    hr
+        = m_captureGraphBuilder->FindInterface(
+                &PIN_CATEGORY_CAPTURE,
+                &MEDIATYPE_Video,
+                m_srcFilter,
+                IID_IAMStreamConfig,
+                (void**) &streamConfig);
+    if(SUCCEEDED(hr))
     {
-        size_t bitCount = 0;
         int nb = 0;
         int size = 0;
-        BYTE* allocBytes = NULL;
-        AM_MEDIA_TYPE* mt;
-        bool found = false;
+        AM_MEDIA_TYPE* mediaType = NULL;
+        size_t bitCount = 0;
 
-        streamConfig->GetNumberOfCapabilities(&nb, &size);
-        allocBytes = new BYTE[size];
- 
-        for(int i = 0 ; i < nb ; i++)
+        hr = streamConfig->GetNumberOfCapabilities(&nb, &size);
+        if (SUCCEEDED(hr) && nb)
         {
-            if(streamConfig->GetStreamCaps(i, &mt, allocBytes) == S_OK)
-            {
-                VIDEOINFOHEADER* hdr = (VIDEOINFOHEADER*)mt->pbFormat;
+            BYTE* scc = new BYTE[size];
 
-                if(hdr)
+            if (scc)
+            {
+                for (int i = 0 ; i < nb ; i++)
                 {
-                    if((long)format.height == hdr->bmiHeader.biHeight && 
-                        (long)format.width == hdr->bmiHeader.biWidth)
+                    AM_MEDIA_TYPE* mt;
+
+                    if (streamConfig->GetStreamCaps(i, &mt, scc) == S_OK)
                     {
-                        mediaType = mt;
-                        if(format.pixelFormat == MEDIASUBTYPE_ARGB32.Data1 || 
-                            format.pixelFormat == MEDIASUBTYPE_RGB32.Data1)
+                        VIDEOINFOHEADER* hdr = (VIDEOINFOHEADER*) mt->pbFormat;
+
+                        if (hdr
+                                && ((long) format.height
+                                        == hdr->bmiHeader.biHeight)
+                                && ((long) format.width
+                                        == hdr->bmiHeader.biWidth))
                         {
-                            bitCount = 32;
-                        }
-                        else if(format.pixelFormat == MEDIASUBTYPE_RGB24.Data1)
-                        {
-                            bitCount = 24;
+                            mediaType = mt;
+                            if ((format.pixelFormat
+                                        == MEDIASUBTYPE_ARGB32.Data1)
+                                    || (format.pixelFormat
+                                            == MEDIASUBTYPE_RGB32.Data1))
+                                bitCount = 32;
+                            else if (format.pixelFormat
+                                    == MEDIASUBTYPE_RGB24.Data1)
+                                bitCount = 24;
+                            else
+                                bitCount = hdr->bmiHeader.biBitCount;
+                            break;
                         }
                         else
-                        {
-                            bitCount = hdr->bmiHeader.biBitCount;
-                        }
-
-                        found = true;
-                        break;
+                            _DeleteMediaType(mt);
                     }
                 }
-            }
-        }
 
-        if(found)
-        {
-            ret = streamConfig->SetFormat(mediaType);
-
-            if(FAILED(ret))
-            {
-                fprintf(stderr, "Failed to set format\n");
-                fflush(stderr);
+                delete[] scc;
             }
             else
+                hr = E_OUTOFMEMORY;
+        }
+
+        if (mediaType)
+        {
+            hr = streamConfig->SetFormat(mediaType);
+            if (SUCCEEDED(hr))
             {
                 m_bitPerPixel = bitCount;
                 m_format = format;
                 m_format.mediaType = mediaType->subtype;
             }
+            _DeleteMediaType(mediaType);
         }
-        
-        delete allocBytes;
+        else if (SUCCEEDED(hr))
+            hr = E_FAIL;
 
         streamConfig->Release();
     }
 
-    return !FAILED(ret);
+    return hr;
 }
 
 DSGrabberCallback* DSCaptureDevice::getCallback()
@@ -215,7 +240,7 @@ void DSCaptureDevice::setCallback(DSGrabberCallback* callback)
     m_sampleGrabber->SetCallback(callback, 0);
 }
 
-bool DSCaptureDevice::initDevice(IMoniker* moniker)
+HRESULT DSCaptureDevice::initDevice(IMoniker* moniker)
 {
     HRESULT ret = 0;
 
@@ -338,7 +363,7 @@ bool DSCaptureDevice::initDevice(IMoniker* moniker)
         videoControl->Release();
     }
 
-    return setFormat(m_formats.front());
+    return S_OK;
 }
 
 void DSCaptureDevice::initSupportedFormats()
@@ -416,14 +441,14 @@ bool DSCaptureDevice::buildGraph()
         return false;
 }
 
-bool DSCaptureDevice::start()
+HRESULT DSCaptureDevice::start()
 {
-    return m_graphController ? SUCCEEDED(m_graphController->Run()) : false;
+    return m_graphController ? m_graphController->Run() : E_FAIL;
 }
 
-bool DSCaptureDevice::stop()
+HRESULT DSCaptureDevice::stop()
 {
-    return m_graphController ? SUCCEEDED(m_graphController->Stop()) : false;
+    return m_graphController ? m_graphController->Stop() : E_FAIL;
 }
 
 DSFormat DSCaptureDevice::getFormat() const

@@ -417,31 +417,10 @@ public class DataSource
             int streamIndex,
             Format oldValue, Format newValue)
     {
-        if (newValue instanceof AVFrameFormat)
-        {
-            AVFrameFormat avFrameFormat = (AVFrameFormat) newValue;
-            long pixFmt = avFrameFormat.getDeviceSystemPixFmt();
-
-            if (pixFmt != -1)
-            {
-                Dimension size = avFrameFormat.getSize();
-
-                /*
-                 * We will set the native format in doStart() because a
-                 * connect-disconnect-connect sequence of the native capture
-                 * device may reorder its formats in a different way.
-                 * Consequently, in the absence of further calls to
-                 * setFormat() by JMF, a crash may occur later (typically,
-                 * during scaling) because of a wrong format.
-                 */
-                if (size != null)
-                {
-                    // This DataSource supports setFormat.
-                    return newValue;
-                }
-            }
-        }
-
-        return super.setFormat(streamIndex, oldValue, newValue);
+        // This DataSource supports setFormat.
+        return
+            DirectShowStream.isSupportedFormat(newValue)
+                ? newValue
+                : super.setFormat(streamIndex, oldValue, newValue);
     }
 }

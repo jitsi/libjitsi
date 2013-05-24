@@ -18,6 +18,7 @@
 #include "DSManager.h"
 #include "DSCaptureDevice.h"
 #include <qedit.h>
+#include <stdio.h>
 
 DSManager::DSManager()
 {
@@ -74,15 +75,21 @@ void DSManager::initCaptureDevices()
     }
 
     /* get the available devices list */
-    ret = CoCreateInstance(CLSID_SystemDeviceEnum, NULL, CLSCTX_INPROC_SERVER,
-            IID_ICreateDevEnum, (void**)&devEnum);
-
+    ret
+        = CoCreateInstance(
+                CLSID_SystemDeviceEnum,
+                NULL,
+                CLSCTX_INPROC_SERVER,
+                IID_ICreateDevEnum,
+                (void**) &devEnum);
     if(FAILED(ret))
         return;
 
-    ret = devEnum->CreateClassEnumerator(CLSID_VideoInputDeviceCategory, 
-            &monikerEnum, 0);
-
+    ret
+        = devEnum->CreateClassEnumerator(
+                CLSID_VideoInputDeviceCategory,
+                &monikerEnum,
+                0);
     /* error or no devices */
     if(FAILED(ret) || ret == S_FALSE)
     {
@@ -119,7 +126,6 @@ void DSManager::initCaptureDevices()
         if(!FAILED(ret))
         {
             VariantInit(&name);
-
             ret = propertyBag->Read(L"FriendlyName", &name, 0);
             if(FAILED(ret))
             {
@@ -129,20 +135,15 @@ void DSManager::initCaptureDevices()
                 continue;
             }
 
-            /* create a new capture device */
+            /*
+             * Initialize a new DSCaptureDevice instance and add it to the list
+             * of DSCaptureDevice instances.
+             */
             captureDevice = new DSCaptureDevice(name.bstrVal);
-            /* wprintf(L"%ws\n", name.bstrVal); */
-
-            if(captureDevice && captureDevice->initDevice(moniker))
-            {
-                /* initialization success, add to the list */
+            if(captureDevice && SUCCEEDED(captureDevice->initDevice(moniker)))
                 m_devices.push_back(captureDevice);
-            }
             else
-            {
-                /* printf("failed to initialize device\n"); */
                 delete captureDevice;
-            }
 
             /* clean up */
             VariantClear(&name);

@@ -109,18 +109,18 @@ public:
     /**
      * \brief Initialize the device.
      * \param moniker moniker of the capture device
-     * \return true if initialization succeed, false otherwise (in this
-     * case the capture device have to be deleted)
+     * \return S_OK or S_FALSE on success or an HRESULT value describing a
+     * failure
      */
-    bool initDevice(IMoniker* moniker);
+    HRESULT initDevice(IMoniker* moniker);
 
     /**
      * \brief Set video format.
      * \param format video format
-     * \return true if change is successful, false otherwise (format unsupported, ...)
-     * \note This method stop stream so you have to call start() after.
+     * \return S_OK or S_FALSE on success or an HRESULT value describing a
+     * failure
      */
-    bool setFormat(const DSFormat& format);
+    HRESULT setFormat(const DSFormat& format);
 
     /**
      * \brief Get list of supported formats.
@@ -149,15 +149,17 @@ public:
 
     /**
      * \brief Start capture device.
-     * \return false if problem, true otherwise
+     * \return S_OK or S_FALSE on success or an HRESULT value describing a
+     * failure
      */
-    bool start();
+    HRESULT start();
 
     /**
      * \brief Stop capture device.
-     * \return false if problem, true otherwise
+     * \return S_OK or S_FALSE on success or an HRESULT value describing a
+     * failure
      */
-    bool stop();
+    HRESULT stop();
 
     /**
      * \brief Get current format.

@@ -351,46 +351,69 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_direct
  * \param ptr native pointer of DSCaptureDevice
  * \param format DSFormat to set
  */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_setFormat
-  (JNIEnv* env, jobject obj, jlong ptr, jobject format)
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_setFormat
+    (JNIEnv* env, jobject obj, jlong ptr, jobject format)
 {
-    DSCaptureDevice* dev = reinterpret_cast<DSCaptureDevice*>(ptr);
-    DSFormat fmt;
+    DSCaptureDevice* thiz = reinterpret_cast<DSCaptureDevice*>(ptr);
     jclass clazz = env->GetObjectClass(format);
+    HRESULT hr;
 
-    if(clazz)
+    if (clazz)
     {
-        jfieldID fieldH = env->GetFieldID(clazz, "height", "I");
-        jfieldID fieldW = env->GetFieldID(clazz, "width", "I");
-        jfieldID fieldF = env->GetFieldID(clazz, "pixelFormat", "J");
-        jlong f = env->GetLongField(format, fieldF);
-        jint w = env->GetIntField(format, fieldW);
-        jint h = env->GetIntField(format, fieldH);
+        jfieldID heightFieldID = env->GetFieldID(clazz, "height", "I");
 
-        fmt.width = w;
-        fmt.height = h;
-        fmt.pixelFormat = (unsigned long)f;
+        if (heightFieldID)
+        {
+            jfieldID widthFieldID = env->GetFieldID(clazz, "width", "I");
 
-        dev->setFormat(fmt);
+            if (widthFieldID)
+            {
+                jfieldID pixelFormatFieldID
+                    = env->GetFieldID(clazz, "pixelFormat", "J");
+
+                if (pixelFormatFieldID)
+                {
+                    DSFormat format_;
+
+                    format_.height = env->GetIntField(format, heightFieldID);
+                    format_.pixelFormat
+                        = (unsigned long)
+                            (env->GetLongField(format, pixelFormatFieldID));
+                    format_.width = env->GetIntField(format, widthFieldID);
+
+                    hr = thiz->setFormat(format_);
+                }
+                else
+                    hr = E_FAIL;
+            }
+            else
+                hr = E_FAIL;
+        }
+        else
+            hr = E_FAIL;
     }
+    else
+        hr = E_FAIL;
+    return hr;
 }
 
-JNIEXPORT void JNICALL
+JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_start
     (JNIEnv *env, jobject obj, jlong ptr)
 {
     DSCaptureDevice *thiz = reinterpret_cast<DSCaptureDevice *>(ptr);
 
-    thiz->start();
+    return (jint) (thiz->start());
 }
 
-JNIEXPORT void JNICALL
+JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_stop
     (JNIEnv *env, jobject obj, jlong ptr)
 {
     DSCaptureDevice *thiz = reinterpret_cast<DSCaptureDevice *>(ptr);
 
-    thiz->stop();
+    return (jint) (thiz->stop());
 }
 
 #ifdef __cplusplus

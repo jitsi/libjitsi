@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.device;
 
+import java.util.*;
+
 import javax.media.*;
 
 import org.jitsi.impl.neomedia.*;
@@ -66,47 +68,60 @@ public class DirectShowSystem
                     i++)
             {
                 DSCaptureDevice device = devices[i];
-                long pixelFormat = device.getFormat().getPixelFormat();
-                int ffmpegPixFmt
-                    = (int) DataSource.getFFmpegPixFmt(pixelFormat);
-                Format format = null;
+                DSFormat[] dsFormats = device.getSupportedFormats();
                 String name = device.getName();
 
-                if(ffmpegPixFmt != FFmpeg.PIX_FMT_NONE)
-                {
-                    format = new AVFrameFormat(ffmpegPixFmt, (int) pixelFormat);
-                }
-                else
+                if (dsFormats.length == 0)
                 {
                     logger.warn(
-                            "No support for this webcam: " + name + "(format "
-                                + pixelFormat + " not supported)");
+                            "Camera '" + name
+                                + "' reported no supported formats.");
                     continue;
                 }
 
+                List<Format> formats
+                    = new ArrayList<Format>(dsFormats.length);
+
+                for (DSFormat dsFormat : dsFormats)
+                {
+                    long pixelFormat = dsFormat.getPixelFormat();
+                    int ffmpegPixFmt
+                        = (int) DataSource.getFFmpegPixFmt(pixelFormat);
+
+                    if (ffmpegPixFmt != FFmpeg.PIX_FMT_NONE)
+                    {
+                        Format format
+                            = new AVFrameFormat(
+                                    ffmpegPixFmt,
+                                    (int) pixelFormat);
+
+                        if (!formats.contains(format))
+                            formats.add(format);
+                    }
+                }
+                if (formats.isEmpty())
+                {
+                    logger.warn(
+                            "No support for the formats of camera '" + name
+                                + "': " + Arrays.toString(dsFormats));
+                    continue;
+                }
+
+                Format[] formatsArray
+                    = formats.toArray(new Format[formats.size()]);
+
                 if(logger.isInfoEnabled())
                 {
-                    for(DSFormat f : device.getSupportedFormats())
-                    {
-                        if(f.getWidth() != 0 && f.getHeight() != 0)
-                        {
-                            logger.info(
-                                    "Webcam available resolution for " + name
-                                        + ":" + f.getWidth() + "x"
-                                        + f.getHeight());
-                        }
-                    }
+                    logger.info(
+                            "Support for the formats of camera '" + name
+                                + "': " + Arrays.toString(formatsArray));
                 }
 
                 CaptureDeviceInfo cdi
                     = new CaptureDeviceInfo(
                             name,
-                            new MediaLocator(
-                                    LOCATOR_PROTOCOL + ':' + name),
-                            new Format[] { format });
-
-                if(logger.isInfoEnabled())
-                    logger.info("Found[" + i + "]: " + cdi.getName());
+                            new MediaLocator(LOCATOR_PROTOCOL + ':' + name),
+                            formatsArray);
 
                 CaptureDeviceManager.addDevice(cdi);
                 captureDeviceInfoIsAdded = true;
