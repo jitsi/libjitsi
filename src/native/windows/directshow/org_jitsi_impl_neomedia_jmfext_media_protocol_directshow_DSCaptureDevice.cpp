@@ -210,21 +210,24 @@ JNIEXPORT jobject JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_dir
     DSFormat fmt = dev->getFormat();
     jclass clazzDSFormat = NULL;
     jmethodID initDSFormat = NULL;
-    jobject ret = NULL;
 
     /* get DSFormat class to instantiate some object */
     clazzDSFormat = env->FindClass("org/jitsi/impl/neomedia/jmfext/media/protocol/directshow/DSFormat");
     if(clazzDSFormat == NULL)
         return NULL;
 
-    initDSFormat = env->GetMethodID(clazzDSFormat, "<init>", "(IIJ)V");
+    initDSFormat = env->GetMethodID(clazzDSFormat, "<init>", "(III)V");
 
     if(initDSFormat == NULL)
         return NULL;
 
-    ret = env->NewObject(clazzDSFormat, initDSFormat, static_cast<size_t>(fmt.width),
-            static_cast<size_t>(fmt.height), static_cast<jlong>(fmt.pixelFormat));
-    return ret;
+    return
+        env->NewObject(
+                clazzDSFormat,
+                initDSFormat,
+                static_cast<jint>(fmt.width),
+                static_cast<jint>(fmt.height),
+                static_cast<jint>(fmt.pixelFormat));
 }
 
 /**
@@ -273,7 +276,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protoco
     if(clazzDSFormat == NULL)
         return NULL;
 
-    initDSFormat = env->GetMethodID(clazzDSFormat, "<init>", "(IIJ)V");
+    initDSFormat = env->GetMethodID(clazzDSFormat, "<init>", "(III)V");
 
     if(initDSFormat == NULL)
         return NULL;
@@ -284,8 +287,13 @@ JNIEXPORT jobjectArray JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protoco
     for(std::list<DSFormat>::iterator it = formats.begin() ; it != formats.end() ; ++it)
     {
         DSFormat tmp = (*it);
-        jobject o = env->NewObject(clazzDSFormat, initDSFormat, static_cast<size_t>(tmp.width),
-            static_cast<size_t>(tmp.height), static_cast<jlong>(tmp.pixelFormat));
+        jobject o
+            = env->NewObject(
+                    clazzDSFormat,
+                    initDSFormat,
+                    static_cast<jint>(tmp.width),
+                    static_cast<jint>(tmp.height),
+                    static_cast<jint>(tmp.pixelFormat));
 
         if(o == NULL)
         {
@@ -370,7 +378,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_se
             if (widthFieldID)
             {
                 jfieldID pixelFormatFieldID
-                    = env->GetFieldID(clazz, "pixelFormat", "J");
+                    = env->GetFieldID(clazz, "pixelFormat", "I");
 
                 if (pixelFormatFieldID)
                 {
@@ -378,7 +386,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_se
 
                     format_.height = env->GetIntField(format, heightFieldID);
                     format_.pixelFormat
-                        = (unsigned long)
+                        = (DWORD)
                             (env->GetLongField(format, pixelFormatFieldID));
                     format_.width = env->GetIntField(format, widthFieldID);
 

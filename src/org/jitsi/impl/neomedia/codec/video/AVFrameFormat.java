@@ -266,9 +266,16 @@ public class AVFrameFormat
         StringBuilder s = new StringBuilder(super.toString());
 
         if (pixFmt != NOT_SPECIFIED)
-            s.append(", pixFmt= ").append(pixFmt);
+            s.append(", pixFmt ").append(pixFmt);
         if (deviceSystemPixFmt != NOT_SPECIFIED)
-            s.append(", deviceSystemPixFmt= ").append(deviceSystemPixFmt);
+        {
+            s.append(", deviceSystemPixFmt 0x");
+            /*
+             * The value is likely more suitably displayed as unsigned and
+             * hexadecimal.
+             */
+            s.append(Long.toHexString(deviceSystemPixFmt & 0xffffffffL));
+        }
         return s.toString();
     }
 }

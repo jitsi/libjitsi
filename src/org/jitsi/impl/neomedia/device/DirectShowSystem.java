@@ -84,16 +84,13 @@ public class DirectShowSystem
 
                 for (DSFormat dsFormat : dsFormats)
                 {
-                    long pixelFormat = dsFormat.getPixelFormat();
-                    int ffmpegPixFmt
-                        = (int) DataSource.getFFmpegPixFmt(pixelFormat);
+                    int pixelFormat = dsFormat.getPixelFormat();
+                    int ffmpegPixFmt = DataSource.getFFmpegPixFmt(pixelFormat);
 
                     if (ffmpegPixFmt != FFmpeg.PIX_FMT_NONE)
                     {
                         Format format
-                            = new AVFrameFormat(
-                                    ffmpegPixFmt,
-                                    (int) pixelFormat);
+                            = new AVFrameFormat(ffmpegPixFmt, pixelFormat);
 
                         if (!formats.contains(format))
                             formats.add(format);
