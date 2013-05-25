@@ -384,11 +384,14 @@ public class DataSource
             int devicePixFmt = deviceFmt.getPixelFormat();
             int pixFmt = getFFmpegPixFmt(devicePixFmt);
 
-            fmts.add(
-                    new AVFrameFormat(
-                            size,
-                            Format.NOT_SPECIFIED,
-                            pixFmt, devicePixFmt));
+            if (pixFmt != FFmpeg.PIX_FMT_NONE)
+            {
+                fmts.add(
+                        new AVFrameFormat(
+                                size,
+                                Format.NOT_SPECIFIED,
+                                pixFmt, devicePixFmt));
+            }
         }
         return fmts.toArray(new Format[fmts.size()]);
     }

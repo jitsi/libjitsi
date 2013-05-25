@@ -65,7 +65,16 @@ public class HFlip
      * The pointer to the <tt>AVFilterGraph</tt> instance which contains the
      * FFmpeg hflip filter represented by this <tt>Effect</tt>.
      */
-    private long graph;
+    private long graph = 0;
+
+    /**
+     * The indicator which determines whether the fact that {@link #graph} is
+     * equal to zero means that an attempt to initialize it is to be made. If
+     * <tt>false</tt>, indicates that such an attempt has already been made and
+     * has failed. In other words, prevents multiple initialization attempts
+     * with the same parameters.
+     */
+    private boolean graphIsPending = true;
 
     /**
      * The height of {@link #graph}.
@@ -189,6 +198,10 @@ public class HFlip
             long buffer = 0;
             long ffsink = 0;
 
+            if (graphIsPending)
+            {
+            graphIsPending = false;
+
             graph = FFmpeg.avfilter_graph_alloc();
             if (graph == 0)
                 errorReason = "avfilter_graph_alloc";
@@ -266,14 +279,17 @@ public class HFlip
                     graph = 0;
                 }
             }
+            }
             if (graph == 0)
             {
                 if (errorReason != null)
                 {
-                    if (error == 0)
-                        logger.error(errorReason);
-                    else
-                        logger.error(errorReason + ": " + error);
+                    StringBuilder msg = new StringBuilder(errorReason);
+
+                    if (error != 0)
+                        msg.append(": ").append(error);
+                    msg.append(", format ").append(format);
+                    logger.error(msg);
                 }
                 return BUFFER_PROCESSED_FAILED;
             }
@@ -347,6 +363,7 @@ public class HFlip
         {
             FFmpeg.avfilter_graph_free(graph);
             graph = 0;
+            graphIsPending = true;
 
             width = 0;
             height = 0;

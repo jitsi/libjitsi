@@ -171,6 +171,8 @@ HRESULT DSCaptureDevice::setFormat(const DSFormat& format)
 
             if (scc)
             {
+                DWORD pixfmt = format.pixelFormat;
+
                 for (int i = 0 ; i < nb ; i++)
                 {
                     AM_MEDIA_TYPE* mt;
@@ -180,19 +182,17 @@ HRESULT DSCaptureDevice::setFormat(const DSFormat& format)
                         VIDEOINFOHEADER* hdr = (VIDEOINFOHEADER*) mt->pbFormat;
 
                         if (hdr
+                                && (mt->subtype.Data1 == pixfmt)
                                 && ((long) format.height
                                         == hdr->bmiHeader.biHeight)
                                 && ((long) format.width
                                         == hdr->bmiHeader.biWidth))
                         {
                             mediaType = mt;
-                            if ((format.pixelFormat
-                                        == MEDIASUBTYPE_ARGB32.Data1)
-                                    || (format.pixelFormat
-                                            == MEDIASUBTYPE_RGB32.Data1))
+                            if ((pixfmt == MEDIASUBTYPE_ARGB32.Data1)
+                                    || (pixfmt == MEDIASUBTYPE_RGB32.Data1))
                                 bitCount = 32;
-                            else if (format.pixelFormat
-                                    == MEDIASUBTYPE_RGB24.Data1)
+                            else if (pixfmt == MEDIASUBTYPE_RGB24.Data1)
                                 bitCount = 24;
                             else
                                 bitCount = hdr->bmiHeader.biBitCount;

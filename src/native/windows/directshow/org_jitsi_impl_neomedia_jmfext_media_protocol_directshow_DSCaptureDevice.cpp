@@ -387,7 +387,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_se
                     format_.height = env->GetIntField(format, heightFieldID);
                     format_.pixelFormat
                         = (DWORD)
-                            (env->GetLongField(format, pixelFormatFieldID));
+                            (env->GetIntField(format, pixelFormatFieldID));
                     format_.width = env->GetIntField(format, widthFieldID);
 
                     hr = thiz->setFormat(format_);

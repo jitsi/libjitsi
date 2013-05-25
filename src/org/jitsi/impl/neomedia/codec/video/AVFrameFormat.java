@@ -11,6 +11,8 @@ import java.awt.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import org.jitsi.util.*;
+
 /**
  * Implements a <tt>VideoFormat</tt> for a <tt>Buffer</tt> carrying
  * <tt>AVFrame</tt> as its <tt>data</tt>. While the <tt>AVFrameFormat</tt> class
@@ -28,6 +30,12 @@ public class AVFrameFormat
      * The encoding of the <tt>AVFrameFormat</tt> instances.
      */
     public static final String AVFRAME = "AVFrame";
+
+    /**
+     * The <tt>Logger</tt> used by the <tt>AVFrameFormat</tt> class and its
+     * instances to print out debugging information.
+     */
+    private static final Logger logger = Logger.getLogger(AVFrameFormat.class);
 
     /**
      * Serial version UID.
@@ -78,6 +86,16 @@ public class AVFrameFormat
             int pixFmt, int deviceSystemPixFmt)
     {
         super(AVFRAME, size, NOT_SPECIFIED, AVFrame.class, frameRate);
+
+        if ((pixFmt == NOT_SPECIFIED) && (deviceSystemPixFmt != NOT_SPECIFIED))
+        {
+            logger.warn(
+                    "Specifying a device system-specific pixel format 0x"
+                        + Long.toHexString(deviceSystemPixFmt & 0xffffffffL)
+                        + " without a matching FFmpeg pixel format may"
+                        + " eventually lead to a failure.",
+                    new Throwable());
+        }
 
         this.pixFmt = pixFmt;
         this.deviceSystemPixFmt = deviceSystemPixFmt;

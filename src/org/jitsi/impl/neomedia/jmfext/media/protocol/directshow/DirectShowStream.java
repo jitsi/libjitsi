@@ -288,7 +288,8 @@ public class DirectShowStream
                 if(nextData != null)
                 {
                     nextData.setLength(
-                            DSCaptureDevice.getBytes(ptr,
+                            DSCaptureDevice.getBytes(
+                                    ptr,
                                     nextData.getPtr(),
                                     nextData.getCapacity()));
                     nextDataTimeStamp = System.nanoTime();
