@@ -20,64 +20,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <dshow.h>
-#include <qedit.h>
 
+#include "BasicSampleGrabberCB.h"
 #include "DSFormat.h"
-
-/**
- * \class DSGrabberCallback
- * \brief Callback when DirectShow device capture frames.
- */
-class DSGrabberCallback : public ISampleGrabberCB
-{
-public:
-    /**
-     * \brief Constructor.
-     */
-    DSGrabberCallback() {};
-
-    /**
-     * \brief Destructor.
-     */
-    virtual ~DSGrabberCallback() {};
-
-    /**
-     * \brief Method callback when device capture a frame.
-     * \param time time when frame was received
-     * \param sample media sample
-     * \see ISampleGrabberCB
-     */
-    virtual STDMETHODIMP SampleCB(double time, IMediaSample* sample);
-
-    /**
-     * \brief Method callback when device buffer a frame.
-     * \param time time when frame was received
-     * \param buffer raw buffer
-     * \param len length of buffer
-     * \see ISampleGrabberCB
-     */
-    virtual STDMETHODIMP BufferCB(double time, BYTE* buffer, long len);
-
-    /**
-     * \brief Query if this COM object has the interface iid.
-     * \param iid interface requested
-     * \param ptr if method succeed, an object corresponding
-     * to the interface requested will be copied in this pointer
-     */
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(const IID& iid, void** ptr);
-
-    /**
-     * \brief Adding a reference.
-     * \return number of reference hold
-     */
-    STDMETHODIMP_(ULONG) AddRef();
-
-    /**
-     * \brief Release a reference.
-     * \return number of reference hold
-     */
-    STDMETHODIMP_(ULONG) Release();
-};
 
 /**
  * \class DSCaptureDevice
@@ -139,13 +84,13 @@ public:
      * \brief get callback object.
      * \return callback
      */
-    DSGrabberCallback* getCallback();
+    BasicSampleGrabberCB* getCallback() { return m_callback; }
 
     /**
      * \brief Set callback object when receiving new frames.
      * \param callback callback object to set
      */
-    void setCallback(DSGrabberCallback* callback);
+    void setCallback(BasicSampleGrabberCB *callback);
 
     /**
      * \brief Start capture device.
@@ -173,12 +118,6 @@ public:
      */
     size_t getBitPerPixel();
 
-    /**
-     * \brief If the image is flipped vertically.
-     * \return true if image is flipped vertically, false otherwise
-     */
-    bool isFlip();
-
 private:
     /**
      * \brief Initialize list of supported size.
@@ -193,7 +132,7 @@ private:
     /**
      * \brief Callback.
      */
-    DSGrabberCallback* m_callback;
+    BasicSampleGrabberCB* m_callback;
 
     /**
      * \brief List of DSFormat.
@@ -244,11 +183,6 @@ private:
      * \brief Current bit per pixel.
      */
     size_t m_bitPerPixel;
-
-    /**
-     * \brief If the video is already flipped.
-     */
-    bool m_flip;
 };
 
 #endif /* _ORG_JITSI_IMPL_NEOMEDIA_JMFEXT_MEDIA_PROTOCOL_DIRECTSHOW_DSCAPTUREDEVICE_H_ */

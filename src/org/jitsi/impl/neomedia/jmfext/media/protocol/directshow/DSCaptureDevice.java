@@ -15,17 +15,23 @@ package org.jitsi.impl.neomedia.jmfext.media.protocol.directshow;
 public class DSCaptureDevice
 {
     /**
-     * Delegate class to handle grabbing frames.
+     * The Java equivalent of the DirectShow <tt>ISampleGrabberCB</tt> interface
+     * as it is utilized by <tt>DSCaptureDevice</tt>.
      */
-    public static abstract class GrabberDelegate
+    public interface ISampleGrabberCB
     {
         /**
-         * Callback method when receiving frames.
+         * Notifies this instance that a specific video frame has been
+         * captured/grabbed.
          *
-         * @param ptr native pointer to data
-         * @param length length of data
+         * @param a pointer to the native <tt>DSCaptureDevice</tt> which is the
+         * source of the notification
+         * @param ptr a pointer to the captured/grabbed video frame i.e. to the
+         * data of the DirectShow <tt>IMediaSample</tt> 
+         * @param length the length in bytes of the valid data pointed to by
+         * <tt>ptr</tt>
          */
-        public abstract void frameReceived(long ptr, int length);
+        void SampleCB(long source, long ptr, int length);
     }
 
     /**
@@ -38,16 +44,7 @@ public class DSCaptureDevice
 
     public static final int S_OK = 0;
 
-    /**
-     * Get bytes from <tt>buf</tt> native pointer and copy them
-     * to <tt>ptr</tt> byte native pointer.
-     *
-     * @param ptr pointer to native data
-     * @param buf byte native pointer (see ByteBufferPool)
-     * @param length length of buf pointed by <tt>ptr</tt>
-     * @return length written to <tt>buf</tt>
-     */
-    public static native int getBytes(long ptr, long buf, int length);
+    static native int samplecopy(long thiz, long src, long dst, int length);
 
     /**
      * Native pointer of <tt>DSCaptureDevice</tt>.
@@ -162,7 +159,7 @@ public class DSCaptureDevice
      * Set a delegate to use when a frame is received.
      * @param delegate delegate
      */
-    public void setDelegate(GrabberDelegate delegate)
+    public void setDelegate(ISampleGrabberCB delegate)
     {
         setDelegate(ptr, delegate);
     }
@@ -172,7 +169,7 @@ public class DSCaptureDevice
      * @param ptr native pointer
      * @param delegate delegate
      */
-    private native void setDelegate(long ptr, GrabberDelegate delegate);
+    private native void setDelegate(long ptr, ISampleGrabberCB delegate);
 
     /**
      * Set format to use with this capture device.

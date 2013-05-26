@@ -7,13 +7,17 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_S_FALSE
+#define org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_S_FALSE 1L
+#undef org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_S_OK
+#define org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_S_OK 0L
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice
- * Method:    getBytes
- * Signature: (JJI)I
+ * Method:    samplecopy
+ * Signature: (JJJI)I
  */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_getBytes
-  (JNIEnv *, jclass, jlong, jlong, jint);
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_samplecopy
+  (JNIEnv *, jclass, jlong, jlong, jlong, jint);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice
@@ -58,7 +62,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protoco
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice
  * Method:    setDelegate
- * Signature: (JLorg/jitsi/impl/neomedia/jmfext/media/protocol/directshow/DSCaptureDevice/GrabberDelegate;)V
+ * Signature: (JLorg/jitsi/impl/neomedia/jmfext/media/protocol/directshow/DSCaptureDevice/ISampleGrabberCB;)V
  */
 JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_setDelegate
   (JNIEnv *, jobject, jlong, jobject);

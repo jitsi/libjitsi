@@ -34,6 +34,49 @@ public class DirectShowStream
         = Logger.getLogger(DirectShowStream.class);
 
     /**
+     * Determines whether a specific <tt>Format</tt> appears to be suitable for
+     * attempts to be set on <tt>DirectShowStream</tt> instances.
+     * <p>
+     * <b>Note</b>: If the method returns <tt>true</tt>, an actual attempt to
+     * set the specified <tt>format</tt> on an specific
+     * <tt>DirectShowStream</tt> instance may still fail but that will be
+     * because the finer-grained properties of the <tt>format</tt> are not
+     * supported by that <tt>DirectShowStream</tt> instance.
+     * </p>
+     *
+     * @param format the <tt>Format</tt> to be checked whether it appears to be
+     * suitable for attempts to be set on <tt>DirectShowStream</tt> instances
+     * @return <tt>true</tt> if the specified <tt>format</tt> appears to be
+     * suitable for attempts to be set on <tt>DirectShowStream</tt> instance;
+     * otherwise, <tt>false</tt>
+     */
+    static boolean isSupportedFormat(Format format)
+    {
+        if (format instanceof AVFrameFormat)
+        {
+            AVFrameFormat avFrameFormat = (AVFrameFormat) format;
+            long pixFmt = avFrameFormat.getDeviceSystemPixFmt();
+
+            if (pixFmt != -1)
+            {
+                Dimension size = avFrameFormat.getSize();
+
+                /*
+                 * We will set the native format in doStart() because a
+                 * connect-disconnect-connect sequence of the native capture
+                 * device may reorder its formats in a different way.
+                 * Consequently, in the absence of further calls to
+                 * setFormat() by JMF, a crash may occur later (typically,
+                 * during scaling) because of a wrong format.
+                 */
+                if (size != null)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * The indicator which determines whether {@link #grabber}
      * automatically drops late frames. If <tt>false</tt>, we have to drop them
      * ourselves because DirectShow will buffer them all and the video will
@@ -65,6 +108,19 @@ public class DirectShowStream
     private long dataTimeStamp;
 
     /**
+     * Delegate class to handle video data.
+     */
+    private final DSCaptureDevice.ISampleGrabberCB delegate
+        = new DSCaptureDevice.ISampleGrabberCB()
+                {
+                    @Override
+                    public void SampleCB(long source, long ptr, int length)
+                    {
+                        DirectShowStream.this.SampleCB(source, ptr, length);
+                    }
+                };
+
+    /**
      * The <tt>DSCaptureDevice</tt> which identifies the DirectShow video
      * capture device this <tt>SourceStream</tt> is to capture data from.
      */
@@ -75,19 +131,6 @@ public class DirectShowStream
      * <tt>PushBufferStream</tt>.
      */
     private Format format;
-
-    /**
-     * Delegate class to handle video data.
-     */
-    private final DSCaptureDevice.GrabberDelegate grabber
-        = new DSCaptureDevice.GrabberDelegate()
-                {
-                    @Override
-                    public void frameReceived(long ptr, int length)
-                    {
-                        processFrame(ptr, length);
-                    }
-                };
 
     /**
      * The captured media data to become the value of {@link #data} as soon as
@@ -140,7 +183,7 @@ public class DirectShowStream
         if (device == null)
             throw new IOException("device == null");
         else
-            device.setDelegate(grabber);
+            device.setDelegate(delegate);
     }
 
     /**
@@ -220,122 +263,6 @@ public class DirectShowStream
         }
         else
             return super.doSetFormat(format);
-    }
-
-    /**
-     * Determines whether a specific <tt>Format</tt> appears to be suitable for
-     * attempts to be set on <tt>DirectShowStream</tt> instances.
-     * <p>
-     * <b>Note</b>: If the method returns <tt>true</tt>, an actual attempt to
-     * set the specified <tt>format</tt> on an specific
-     * <tt>DirectShowStream</tt> instance may still fail but that will be
-     * because the finer-grained properties of the <tt>format</tt> are not
-     * supported by that <tt>DirectShowStream</tt> instance.
-     * </p>
-     *
-     * @param format the <tt>Format</tt> to be checked whether it appears to be
-     * suitable for attempts to be set on <tt>DirectShowStream</tt> instances
-     * @return <tt>true</tt> if the specified <tt>format</tt> appears to be
-     * suitable for attempts to be set on <tt>DirectShowStream</tt> instance;
-     * otherwise, <tt>false</tt>
-     */
-    static boolean isSupportedFormat(Format format)
-    {
-        if (format instanceof AVFrameFormat)
-        {
-            AVFrameFormat avFrameFormat = (AVFrameFormat) format;
-            long pixFmt = avFrameFormat.getDeviceSystemPixFmt();
-
-            if (pixFmt != -1)
-            {
-                Dimension size = avFrameFormat.getSize();
-
-                /*
-                 * We will set the native format in doStart() because a
-                 * connect-disconnect-connect sequence of the native capture
-                 * device may reorder its formats in a different way.
-                 * Consequently, in the absence of further calls to
-                 * setFormat() by JMF, a crash may occur later (typically,
-                 * during scaling) because of a wrong format.
-                 */
-                if (size != null)
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Process received frames from DirectShow capture device
-     *
-     * @param ptr native pointer to data
-     * @param length length of data
-     */
-    private void processFrame(long ptr, int length)
-    {
-        boolean transferData = false;
-
-        synchronized (dataSyncRoot)
-        {
-            if(!automaticallyDropsLateVideoFrames && (data != null))
-            {
-                if (nextData != null)
-                {
-                    nextData.free();
-                    nextData = null;
-                }
-                nextData = byteBufferPool.getBuffer(length);
-                if(nextData != null)
-                {
-                    nextData.setLength(
-                            DSCaptureDevice.getBytes(
-                                    ptr,
-                                    nextData.getPtr(),
-                                    nextData.getCapacity()));
-                    nextDataTimeStamp = System.nanoTime();
-                }
-
-                return;
-            }
-
-            if (data != null)
-            {
-                data.free();
-                data = null;
-            }
-            data = byteBufferPool.getBuffer(length);
-            if(data != null)
-            {
-                data.setLength(
-                        DSCaptureDevice.getBytes(
-                                ptr,
-                                data.getPtr(),
-                                data.getCapacity()));
-                dataTimeStamp = System.nanoTime();
-            }
-
-            if (nextData != null)
-            {
-                nextData.free();
-                nextData = null;
-            }
-
-            if(automaticallyDropsLateVideoFrames)
-                transferData = (data != null);
-            else
-            {
-                transferData = false;
-                dataSyncRoot.notifyAll();
-            }
-        }
-
-        if(transferData)
-        {
-            BufferTransferHandler transferHandler = this.transferHandler;
-
-            if(transferHandler != null)
-                transferHandler.transferData(this);
-        }
     }
 
     /**
@@ -524,6 +451,79 @@ public class DirectShowStream
                 else
                     transferData = true;
             }
+        }
+    }
+
+    /**
+     * Process received frames from DirectShow capture device
+     *
+     * @param a pointer to the native <tt>DSCaptureDevice</tt> which is the
+     * source of the notification
+     * @param ptr native pointer to data
+     * @param length length of data
+     */
+    private void SampleCB(long source, long ptr, int length)
+    {
+        boolean transferData = false;
+
+        synchronized (dataSyncRoot)
+        {
+            if(!automaticallyDropsLateVideoFrames && (data != null))
+            {
+                if (nextData != null)
+                {
+                    nextData.free();
+                    nextData = null;
+                }
+                nextData = byteBufferPool.getBuffer(length);
+                if(nextData != null)
+                {
+                    nextData.setLength(
+                            DSCaptureDevice.samplecopy(
+                                    source,
+                                    ptr, nextData.getPtr(), length));
+                    nextDataTimeStamp = System.nanoTime();
+                }
+
+                return;
+            }
+
+            if (data != null)
+            {
+                data.free();
+                data = null;
+            }
+            data = byteBufferPool.getBuffer(length);
+            if(data != null)
+            {
+                data.setLength(
+                        DSCaptureDevice.samplecopy(
+                                source,
+                                ptr, data.getPtr(), length));
+                dataTimeStamp = System.nanoTime();
+            }
+
+            if (nextData != null)
+            {
+                nextData.free();
+                nextData = null;
+            }
+
+            if(automaticallyDropsLateVideoFrames)
+                transferData = (data != null);
+            else
+            {
+                transferData = false;
+                dataSyncRoot.notifyAll();
+            }
+        }
+
+        if(transferData)
+        {
+            BufferTransferHandler transferHandler = this.transferHandler;
+
+            if(transferHandler != null)
+                transferHandler.transferData(this);
         }
     }
 
