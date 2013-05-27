@@ -41,6 +41,7 @@ import org.jitsi.util.swing.*;
  * @author Lyubomir Marinov
  * @author Sebastien Vincent
  * @author Hristo Terezov
+ * @author Boris Grozev
  */
 public class VideoMediaDeviceSession
     extends MediaDeviceSession
@@ -706,7 +707,7 @@ public class VideoMediaDeviceSession
      * @param player the <tt>Player</tt> to dispose of
      * @see MediaDeviceSession#disposePlayer(Player)
      */
-    private void disposeLocalPlayer(Player player)
+    protected void disposeLocalPlayer(Player player)
     {
         /*
          * The player is being disposed so let the (interested) listeners know
@@ -1682,7 +1683,6 @@ public class VideoMediaDeviceSession
                 }
             }
 
-
             if (keyFrameControl != null)
                 encoder.setKeyFrameControl(keyFrameControl);
 
@@ -1822,7 +1822,7 @@ public class VideoMediaDeviceSession
 
             synchronized (localPlayerSyncRoot)
             {
-                localPlayer = this.localPlayer;
+                localPlayer = getLocalPlayer();
             }
             if (newValue.allowsSending())
             {
@@ -1895,6 +1895,20 @@ public class VideoMediaDeviceSession
                             false);
                 }
             }
+        }
+    }
+
+    /**
+     * Return the <tt>Player</tt> instance which provides the local visual/video
+     * <tt>Component</tt>.
+     * @return the <tt>Player</tt> instance which provides the local visual/video
+     * <tt>Component</tt>.
+     */
+    protected Player getLocalPlayer()
+    {
+        synchronized (localPlayerSyncRoot)
+        {
+            return localPlayer;
         }
     }
 
