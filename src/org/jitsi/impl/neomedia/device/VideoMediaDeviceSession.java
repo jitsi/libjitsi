@@ -167,7 +167,8 @@ public class VideoMediaDeviceSession
     private AbstractRTPConnector rtpConnector;
 
     /**
-     * Use or not RTCP feedback Picture Loss Indication.
+     * Use or not RTCP feedback Picture Loss Indication to request keyframes.
+     * Does not affect handling of received RTCP feedback events.
      */
     private boolean usePLI = false;
 
@@ -1019,20 +1020,15 @@ public class VideoMediaDeviceSession
     }
 
     /**
-     * Adds RTCPFeedbackListener to the stream when the listener is created.
+     * Notifies this <tt>VideoMediaDeviceSession</tt> of a new
+     * <tt>RTCPFeedbackListener</tt>
      *
      * @param rtcpFeedbackListener the listener to be added.
      */
     public void onRTCPFeedbackCreate(RTCPFeedbackListener rtcpFeedbackListener)
     {
-        if (!OSUtils.IS_ANDROID
-                && usePLI
-                && "h264".equalsIgnoreCase(getFormat().getEncoding()))
+        if (rtpConnector != null)
         {
-            /*
-             * The H.264 encoder needs to be notified of RTCP feedback
-             * messages.
-             */
             try
             {
                 ((ControlTransformInputStream)
@@ -1770,8 +1766,8 @@ public class VideoMediaDeviceSession
                                     try
                                     {
                                         new RTCPFeedbackPacket(
-                                                    1,
-                                                    206,
+                                                    RTCPFeedbackEvent.FMT_PLI,
+                                                    RTCPFeedbackEvent.PT_PS,
                                                     localSSRC,
                                                     remoteSSRC)
                                                 .writeTo(

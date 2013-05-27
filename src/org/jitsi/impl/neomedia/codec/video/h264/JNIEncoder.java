@@ -700,6 +700,11 @@ public class JNIEncoder
             {
                 case RTCPFeedbackEvent.FMT_PLI:
                 case RTCPFeedbackEvent.FMT_FIR:
+                    if (logger.isTraceEnabled())
+                    {
+                        logger.trace("Scheduling a key-frame, because we" +
+                                " received an RTCP PLI or FIR.");
+                    }
                     keyFrameRequest();
                     break;
                 default:
