@@ -548,12 +548,22 @@ public class PortAudioSystem
                 = Pa.DeviceInfo_getTransportType(deviceInfo);
             String deviceUID
                 = Pa.DeviceInfo_getDeviceUID(deviceInfo);
-            String modelIdentifier = null;
-            if(CoreAudioDevice.isLoaded)
+            String modelIdentifier;
+            String locatorRemainder;
+
+            if (deviceUID == null)
+            {
+                modelIdentifier = null;
+                locatorRemainder = name;
+            }
+            else
+            {
                 modelIdentifier
-                    = CoreAudioDevice.getDeviceModelIdentifier(deviceUID);
-            String deviceLocatorID
-                = (deviceUID != null)? deviceUID: name;
+                    = CoreAudioDevice.isLoaded
+                        ? CoreAudioDevice.getDeviceModelIdentifier(deviceUID)
+                        : null;
+                locatorRemainder = deviceUID;
+            }
 
             /*
              * TODO The intention of reinitialize() was to perform the
@@ -589,7 +599,7 @@ public class PortAudioSystem
                     = new CaptureDeviceInfo2(
                             name,
                             new MediaLocator(
-                                    LOCATOR_PROTOCOL + ":#" + deviceLocatorID),
+                                    LOCATOR_PROTOCOL + ":#" + locatorRemainder),
                             new Format[]
                             {
                                 new AudioFormat(
