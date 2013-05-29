@@ -6,21 +6,7 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.renderer.audio;
 
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.AUDCLNT_E_NOT_STOPPED;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.CloseHandle;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.CreateEvent;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_GetBufferSize;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_GetCurrentPadding;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_GetDefaultDevicePeriod;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_GetService;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_Release;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_Start;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioClient_Stop;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioRenderClient_Release;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IAudioRenderClient_Write;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.IID_IAudioRenderClient;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.WAIT_FAILED;
-import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.WaitForSingleObject;
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.*;
 
 import java.beans.*;
 import java.lang.reflect.*;
@@ -49,7 +35,7 @@ public class WASAPIRenderer
      * The default base of the endpoint buffer capacity in milliseconds to
      * initialize new <tt>IAudioClient</tt> instances with.
      */
-    private static final long DEFAULT_BUFFER_DURATION = 20;
+    private static final long DEFAULT_BUFFER_DURATION = 60;
 
     /**
      * The <tt>Logger</tt> used by the <tt>WASAPIRenderer</tt> class and its
@@ -72,6 +58,18 @@ public class WASAPIRenderer
      * {@link #process(Buffer)}.
      */
     private boolean busy;
+
+    /**
+     * The length in milliseconds of the interval between successive, periodic
+     * processing passes by the audio engine on the data in the endpoint buffer.
+     */
+    private long devicePeriod = WASAPISystem.DEFAULT_DEVICE_PERIOD;
+
+    /**
+     * The value of {@link #devicePeriod} expressed in terms of numbers of
+     * frames (i.e. takes the sample rate into account).
+     */
+    private int devicePeriodInFrames;
 
     /**
      * The number of channels with which {@link #iAudioClient} has been
@@ -123,12 +121,6 @@ public class WASAPIRenderer
      * The maximum capacity in frames of the endpoint buffer.
      */
     private int numBufferFrames;
-
-    /**
-     * The length in milliseconds of the periodic interval separating successive
-     * processing passes by the audio engine on the data in the endpoint buffer.
-     */
-    private long periodicity = DEFAULT_BUFFER_DURATION / 2;
 
     /**
      * The data which has remained unwritten during earlier invocations of
@@ -297,7 +289,6 @@ public class WASAPIRenderer
 
             // Assert that inputFormat is set.
             AudioFormat[] formats = getFormatsToInitializeIAudioClient();
-
             long eventHandle = CreateEvent(0, false, false, null);
 
             try
@@ -353,27 +344,33 @@ public class WASAPIRenderer
                          * specify the default scheduling period for a
                          * shared-mode stream.
                          */
-                        periodicity
-                            = IAudioClient_GetDefaultDevicePeriod(iAudioClient);
+                        devicePeriod
+                            = IAudioClient_GetDefaultDevicePeriod(iAudioClient)
+                                / 10000L;
                         numBufferFrames
                             = IAudioClient_GetBufferSize(iAudioClient);
 
-                        long bufferDuration
-                            = numBufferFrames * 1000
-                                / (int) format.getSampleRate();
+                        int sampleRate = (int) format.getSampleRate();
 
-                        periodicity /= 10000;
                         /*
                          * We will very likely be inefficient if we fail to
                          * synchronize with the scheduling period of the audio
                          * engine but we have to make do with what we have.
                          */
-                        if (periodicity <= 1)
+                        if (devicePeriod <= 1)
                         {
-                            periodicity = bufferDuration / 2;
-                            if (periodicity < DEFAULT_BUFFER_DURATION / 2)
-                                periodicity = DEFAULT_BUFFER_DURATION / 2;
+                            long bufferDuration
+                                = numBufferFrames * 1000L / sampleRate;
+
+                            devicePeriod = bufferDuration / 2;
+                            if ((devicePeriod
+                                        > WASAPISystem.DEFAULT_DEVICE_PERIOD)
+                                    || (devicePeriod <= 1))
+                                devicePeriod
+                                    = WASAPISystem.DEFAULT_DEVICE_PERIOD;
                         }
+                        devicePeriodInFrames
+                            = (int) (devicePeriod * sampleRate / 1000L);
 
                         dstChannels = format.getChannels();
                         dstSampleSize
@@ -486,25 +483,26 @@ public class WASAPIRenderer
      */
     private void popFromRemainder(int length)
     {
+        remainderLength = pop(remainder, remainderLength, length);
+    }
+
+    public static int pop(byte[] array, int arrayLength, int length)
+    {
         if (length < 0)
             throw new IllegalArgumentException("length");
         if (length == 0)
-            return;
+            return arrayLength;
 
-        int newRemainderLength = remainderLength - length;
+        int newArrayLength = arrayLength - length;
 
-        if (newRemainderLength > 0)
+        if (newArrayLength > 0)
         {
-            for (int i = 0, j = length;
-                    i < newRemainderLength;
-                    i++, j++)
-            {
-                remainder[i] = remainder[j];
-            }
-            remainderLength = newRemainderLength;
+            for (int i = 0, j = length; i < newArrayLength; i++, j++)
+                array[i] = array[j];
         }
         else
-            remainderLength = 0;
+            newArrayLength = 0;
+        return newArrayLength;
     }
 
     /**
@@ -573,7 +571,7 @@ public class WASAPIRenderer
                          * buffer into which this Renderer can write data.
                          */
                         ret |= INPUT_BUFFER_NOT_CONSUMED;
-                        sleep = periodicity;
+                        sleep = devicePeriod;
                     }
                     else
                     {
@@ -604,7 +602,7 @@ public class WASAPIRenderer
                         else
                         {
                             ret |= INPUT_BUFFER_NOT_CONSUMED;
-                            sleep = periodicity;
+                            sleep = devicePeriod;
                         }
                     }
                 }
@@ -849,17 +847,15 @@ public class WASAPIRenderer
                     if (numFramesRequested > 0)
                     {
                         /*
-                         * Take into account the user's preferences with respect
-                         * to the output volume.
+                         * Write as much from remainder as possible while
+                         * minimizing the risk of audio glitches and the amount
+                         * of artificial/induced silence.
                          */
-                        GainControl gainControl = getGainControl();
+                        int remainderFrames = remainderLength / srcFrameSize;
 
-                        if ((gainControl != null) && (remainderLength != 0))
-                        {
-                            BasicVolumeControl.applyGain(
-                                    gainControl,
-                                    remainder, 0, remainderLength);
-                        }
+                        if ((numFramesRequested > remainderFrames)
+                                && (remainderFrames >= devicePeriodInFrames))
+                            numFramesRequested = remainderFrames;
 
                         // Pad with silence in order to avoid underflows.
                         int toWrite = numFramesRequested * srcFrameSize;
@@ -872,6 +868,19 @@ public class WASAPIRenderer
                                     remainderLength, toWrite,
                                     (byte) 0);
                             remainderLength = toWrite;
+                        }
+
+                        /*
+                         * Take into account the user's preferences with respect
+                         * to the output volume.
+                         */
+                        GainControl gainControl = getGainControl();
+
+                        if ((gainControl != null) && (toWrite != 0))
+                        {
+                            BasicVolumeControl.applyGain(
+                                    gainControl,
+                                    remainder, 0, toWrite);
                         }
 
                         int written;
@@ -906,7 +915,7 @@ public class WASAPIRenderer
 
                 try
                 {
-                    wfso = WaitForSingleObject(eventHandle, periodicity);
+                    wfso = WaitForSingleObject(eventHandle, devicePeriod);
                 }
                 catch (HResultException hre)
                 {
@@ -1087,7 +1096,7 @@ public class WASAPIRenderer
         {
             try
             {
-                wait(periodicity);
+                wait(devicePeriod);
             }
             catch (InterruptedException ie)
             {
@@ -1113,7 +1122,7 @@ public class WASAPIRenderer
         {
             try
             {
-                wait(periodicity);
+                wait(devicePeriod);
             }
             catch (InterruptedException ie)
             {

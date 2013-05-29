@@ -33,6 +33,12 @@ public class WASAPISystem
     private static String audioSessionGuid;
 
     /**
+     * The default interval in milliseconds between periodic processing passes
+     * by the audio engine.
+     */
+    public static final long DEFAULT_DEVICE_PERIOD = 10;
+
+    /**
      * The protocol of the <tt>MediaLocator</tt> identifying
      * <tt>CaptureDeviceInfo</tt> contributed by <tt>WASAPISystem</tt>.
      */
@@ -43,43 +49,6 @@ public class WASAPISystem
      * log debugging information.
      */
     private static final Logger logger = Logger.getLogger(WASAPISystem.class);
-
-    /**
-     * The pointer to the native <tt>IMMDeviceEnumerator</tt> interface instance
-     * which this <tt>WASAPISystem</tt> uses to enumerate the audio endpoint
-     * devices.
-     */
-    private long iMMDeviceEnumerator;
-
-    /**
-     * The <tt>IMMNotificationClient</tt> which is to notify this
-     * <tt>WASAPISystem</tt> when an audio endpoint device is added or removed,
-     * when the state or properties of an endpoint device change, or when there
-     * is a change in the default role assigned to an endpoint device.
-     */
-    private IMMNotificationClient pNotify;
-
-    /**
-     * A <tt>WAVEFORMATEX</tt> instance allocated in {@link #preInitialize()},
-     * freed in {@link #postInitialize()} and made available during the
-     * execution of {@link #doInitialize()} in order to minimize memory
-     * fragmentation.
-     */
-    private long waveformatex;
-
-    /**
-     * Initializes a new <tt>WASAPISystem</tt> instance.
-     *
-     * @throws Exception if anything goes wrong while initializing the new
-     * <tt>WASAPISystem</tt> instance
-     */
-    WASAPISystem()
-        throws Exception
-    {
-        super(
-                LOCATOR_PROTOCOL,
-                FEATURE_NOTIFY_AND_PLAYBACK_DEVICES | FEATURE_REINITIALIZE);
-    }
 
     /**
      * Invokes the Windows API function <tt>CoInitializeEx</tt> (by way of
@@ -122,6 +91,164 @@ public class WASAPISystem
             }
         }
         return hr;
+    }
+
+    /**
+     * Gets an array of alternative <tt>AudioFormat</tt>s based on
+     * <tt>format</tt> with which an attempt is to be made to initialize a new
+     * <tt>IAudioClient</tt> instance.
+     *
+     * @param format the <tt>AudioFormat</tt> on which the alternative
+     * <tt>AudioFormat</tt>s are to be based
+     * @return an array of alternative <tt>AudioFormat</tt>s based on
+     * <tt>format</tt> with which an attempt is to be made to initialize a new
+     * <tt>IAudioClient</tt> instance
+     */
+    public static AudioFormat[] getFormatsToInitializeIAudioClient(
+            AudioFormat format)
+    {
+        // We are able to convert between mono and stereo.
+        int channels;
+
+        switch (format.getChannels())
+        {
+        case 1:
+            channels = 2;
+            break;
+        case 2:
+            channels = 1;
+            break;
+        default:
+            return new AudioFormat[] { format };
+        }
+        return
+            new AudioFormat[]
+                    {
+                        /*
+                         * Regardless of the differences in the states of the
+                         * support of mono and stereo in the library at the time
+                         * of this writing, try to initialize a new IAudioClient
+                         * instance with a format which will not require
+                         * conversion between mono and stereo.
+                         */
+                        format,
+                        new AudioFormat(
+                                format.getEncoding(),
+                                format.getSampleRate(),
+                                format.getSampleSizeInBits(),
+                                channels,
+                                AudioFormat.LITTLE_ENDIAN,
+                                AudioFormat.SIGNED,
+                                Format.NOT_SPECIFIED /* frameSizeInBits */,
+                                Format.NOT_SPECIFIED /* frameRate */,
+                                format.getDataType())
+                    };
+    }
+
+    /**
+     * Gets the size in bytes of an audio sample of a specific
+     * <tt>AudioFormat</tt>.
+     *
+     * @param format the <tt>AudioFormat</tt> to get the size in bytes of an
+     * audio sample of
+     * @return the size in bytes of an audio sample of the specified
+     * <tt>format</tt>
+     */
+    public static int getSampleSizeInBytes(AudioFormat format)
+    {
+        int sampleSizeInBits = format.getSampleSizeInBits();
+
+        switch (sampleSizeInBits)
+        {
+        case 8:
+            return 1;
+        case 16:
+            return 2;
+        default:
+            return sampleSizeInBits / 8;
+        }
+    }
+
+    /**
+     * Sets the fields of a specific <tt>WAVEFORMATEX</tt> instance from a
+     * specific <tt>AudioFormat</tt> instance so that the two of them are
+     * equivalent in terms of the formats of audio data that they describe.
+     *
+     * @param waveformatex the <tt>WAVEFORMATEX</tt> instance to set the fields
+     * of from the specified <tt>audioFormat</tt>
+     * @param audioFormat the <tt>AudioFormat</tt> instance to set the fields of
+     * the specified <tt>waveformatex</tt> from
+     */
+    public static void WAVEFORMATEX_fill(
+            long waveformatex,
+            AudioFormat audioFormat)
+    {
+        if (!AudioFormat.LINEAR.equals(audioFormat.getEncoding()))
+            throw new IllegalArgumentException("audioFormat.encoding");
+
+        int channels = audioFormat.getChannels();
+
+        if (channels == Format.NOT_SPECIFIED)
+            throw new IllegalArgumentException("audioFormat.channels");
+
+        int sampleRate = (int) audioFormat.getSampleRate();
+
+        if (sampleRate == Format.NOT_SPECIFIED)
+            throw new IllegalArgumentException("audioFormat.sampleRate");
+
+        int sampleSizeInBits = audioFormat.getSampleSizeInBits();
+
+        if (sampleSizeInBits == Format.NOT_SPECIFIED)
+            throw new IllegalArgumentException("audioFormat.sampleSizeInBits");
+
+        char nBlockAlign = (char) ((channels * sampleSizeInBits) / 8);
+
+        WASAPI.WAVEFORMATEX_fill(
+                waveformatex,
+                WAVE_FORMAT_PCM,
+                (char) channels,
+                sampleRate,
+                sampleRate * nBlockAlign,
+                nBlockAlign,
+                (char) sampleSizeInBits,
+                /* cbSize */ (char) 0);
+    }
+
+    /**
+     * The pointer to the native <tt>IMMDeviceEnumerator</tt> interface instance
+     * which this <tt>WASAPISystem</tt> uses to enumerate the audio endpoint
+     * devices.
+     */
+    private long iMMDeviceEnumerator;
+
+    /**
+     * The <tt>IMMNotificationClient</tt> which is to notify this
+     * <tt>WASAPISystem</tt> when an audio endpoint device is added or removed,
+     * when the state or properties of an endpoint device change, or when there
+     * is a change in the default role assigned to an endpoint device.
+     */
+    private IMMNotificationClient pNotify;
+
+    /**
+     * A <tt>WAVEFORMATEX</tt> instance allocated in {@link #preInitialize()},
+     * freed in {@link #postInitialize()} and made available during the
+     * execution of {@link #doInitialize()} in order to minimize memory
+     * fragmentation.
+     */
+    private long waveformatex;
+
+    /**
+     * Initializes a new <tt>WASAPISystem</tt> instance.
+     *
+     * @throws Exception if anything goes wrong while initializing the new
+     * <tt>WASAPISystem</tt> instance
+     */
+    WASAPISystem()
+        throws Exception
+    {
+        super(
+                LOCATOR_PROTOCOL,
+                FEATURE_NOTIFY_AND_PLAYBACK_DEVICES | FEATURE_REINITIALIZE);
     }
 
     /**
@@ -328,58 +455,6 @@ public class WASAPISystem
         {
             super.finalize();
         }
-    }
-
-    /**
-     * Gets an array of alternative <tt>AudioFormat</tt>s based on
-     * <tt>format</tt> with which an attempt is to be made to initialize a new
-     * <tt>IAudioClient</tt> instance.
-     *
-     * @param format the <tt>AudioFormat</tt> on which the alternative
-     * <tt>AudioFormat</tt>s are to be based
-     * @return an array of alternative <tt>AudioFormat</tt>s based on
-     * <tt>format</tt> with which an attempt is to be made to initialize a new
-     * <tt>IAudioClient</tt> instance
-     */
-    public static AudioFormat[] getFormatsToInitializeIAudioClient(
-            AudioFormat format)
-    {
-        // We are able to convert between mono and stereo.
-        int channels;
-
-        switch (format.getChannels())
-        {
-        case 1:
-            channels = 2;
-            break;
-        case 2:
-            channels = 1;
-            break;
-        default:
-            return new AudioFormat[] { format };
-        }
-        return
-            new AudioFormat[]
-                    {
-                        /*
-                         * Regardless of the differences in the states of the
-                         * support of mono and stereo in the library at the time
-                         * of this writing, try to initialize a new IAudioClient
-                         * instance with a format which will not require
-                         * conversion between mono and stereo.
-                         */
-                        format,
-                        new AudioFormat(
-                                format.getEncoding(),
-                                format.getSampleRate(),
-                                format.getSampleSizeInBits(),
-                                channels,
-                                AudioFormat.LITTLE_ENDIAN,
-                                AudioFormat.SIGNED,
-                                Format.NOT_SPECIFIED /* frameSizeInBits */,
-                                Format.NOT_SPECIFIED /* frameRate */,
-                                format.getDataType())
-                    };
     }
 
     /**
@@ -610,30 +685,6 @@ public class WASAPISystem
     protected String getRendererClassName()
     {
         return WASAPIRenderer.class.getName();
-    }
-
-    /**
-     * Gets the size in bytes of an audio sample of a specific
-     * <tt>AudioFormat</tt>.
-     *
-     * @param format the <tt>AudioFormat</tt> to get the size in bytes of an
-     * audio sample of
-     * @return the size in bytes of an audio sample of the specified
-     * <tt>format</tt>
-     */
-    public static int getSampleSizeInBytes(AudioFormat format)
-    {
-        int sampleSizeInBits = format.getSampleSizeInBits();
-
-        switch (sampleSizeInBits)
-        {
-        case 8:
-            return 1;
-        case 16:
-            return 2;
-        default:
-            return sampleSizeInBits / 8;
-        }
     }
 
     /**
@@ -967,50 +1018,5 @@ public class WASAPISystem
     public String toString()
     {
         return "Windows Audio Session API (WASAPI)";
-    }
-
-    /**
-     * Sets the fields of a specific <tt>WAVEFORMATEX</tt> instance from a
-     * specific <tt>AudioFormat</tt> instance so that the two of them are
-     * equivalent in terms of the formats of audio data that they describe.
-     *
-     * @param waveformatex the <tt>WAVEFORMATEX</tt> instance to set the fields
-     * of from the specified <tt>audioFormat</tt>
-     * @param audioFormat the <tt>AudioFormat</tt> instance to set the fields of
-     * the specified <tt>waveformatex</tt> from
-     */
-    public static void WAVEFORMATEX_fill(
-            long waveformatex,
-            AudioFormat audioFormat)
-    {
-        if (!AudioFormat.LINEAR.equals(audioFormat.getEncoding()))
-            throw new IllegalArgumentException("audioFormat.encoding");
-
-        int channels = audioFormat.getChannels();
-
-        if (channels == Format.NOT_SPECIFIED)
-            throw new IllegalArgumentException("audioFormat.channels");
-
-        int sampleRate = (int) audioFormat.getSampleRate();
-
-        if (sampleRate == Format.NOT_SPECIFIED)
-            throw new IllegalArgumentException("audioFormat.sampleRate");
-
-        int sampleSizeInBits = audioFormat.getSampleSizeInBits();
-
-        if (sampleSizeInBits == Format.NOT_SPECIFIED)
-            throw new IllegalArgumentException("audioFormat.sampleSizeInBits");
-
-        char nBlockAlign = (char) ((channels * sampleSizeInBits) / 8);
-
-        WASAPI.WAVEFORMATEX_fill(
-                waveformatex,
-                WAVE_FORMAT_PCM,
-                (char) channels,
-                sampleRate,
-                sampleRate * nBlockAlign,
-                nBlockAlign,
-                (char) sampleSizeInBits,
-                /* cbSize */ (char) 0);
     }
 }

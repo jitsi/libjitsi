@@ -10,223 +10,23 @@ import java.io.*;
 import java.util.*;
 
 import javax.media.*;
+import javax.media.format.*;
 import javax.media.protocol.*;
 
+import net.sf.fmj.media.util.*;
+
+import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
 import org.jitsi.util.*;
 
 /**
  * Implements <tt>PushBufferDataSource</tt> for a specific
  * <tt>PullBufferDataSource</tt>.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class PushBufferDataSourceAdapter
     extends PushBufferDataSourceDelegate<PullBufferDataSource>
 {
-
-    /**
-     * The <tt>Logger</tt> used by the <tt>PushBufferDataSourceAdapter</tt>
-     * class and its instances for logging output.
-     */
-    private static final Logger logger
-        = Logger.getLogger(PushBufferDataSourceAdapter.class);
-
-    /**
-     * The indicator which determines whether the
-     * <tt>PushBufferStreamAdapater</tt> instances should wait for their
-     * {@link PushBufferStreamAdapter#streamReadThread}s to exit before their
-     * {@link PushBufferStreamAdapter#stop()} returns.
-     */
-    private static final boolean STRICT_STOP = false;
-
-    /**
-     * The indicator which determines whether {@link #start()} has been called
-     * on this <tt>DataSource</tt> without a subsequent call to {@link #stop()}.
-     */
-    private boolean started = false;
-
-    /**
-     * The <tt>PushBufferStream</tt>s through which this
-     * <tt>PushBufferDataSource</tt> gives access to its media data.
-     */
-    private final List<PushBufferStreamAdapter> streams
-        = new ArrayList<PushBufferStreamAdapter>();
-
-    /**
-     * Initializes a new <tt>PushBufferDataSourceAdapter</tt> which is to
-     * implement <tt>PushBufferDataSource</tt> capabilities for a specific
-     * <tt>PullBufferDataSource</tt>.
-     *
-     * @param dataSource the <tt>PullBufferDataSource</tt> the new instance is
-     * to implement <tt>PushBufferDataSource</tt> capabilities for
-     */
-    public PushBufferDataSourceAdapter(PullBufferDataSource dataSource)
-    {
-        super(dataSource);
-    }
-
-    /**
-     * Implements {@link DataSource#disconnect()}. Disposes of the
-     * <tt>PushBufferStreamAdapter</tt>s which wrap the
-     * <tt>PullBufferStream</tt>s of the <tt>PullBufferDataSource</tt> wrapped
-     * by this instance.
-     */
-    @Override
-    public void disconnect()
-    {
-        synchronized (streams)
-        {
-            Iterator<PushBufferStreamAdapter> streamIter = streams.iterator();
-
-            while (streamIter.hasNext())
-            {
-                PushBufferStreamAdapter stream = streamIter.next();
-
-                streamIter.remove();
-                stream.close();
-            }
-        }
-
-        super.disconnect();
-    }
-
-    /**
-     * Implements {@link DataSource#start()}. Starts the wrapped
-     * <tt>PullBufferDataSource</tt> and the pushing from the
-     * <tt>PushBufferStreamAdapter</tt>s which wrap the
-     * <tt>PullBufferStream</tt>s of the <tt>PullBufferDataSource</tt> wrapped
-     * by this instance.
-     *
-     * @throws IOException if anything wrong happens while starting the wrapped
-     * <tt>PullBufferDataSource</tt> or the pushing from the
-     * <tt>PushBufferStreamAdapter</tt>s which wrap the
-     * <tt>PullBufferStream</tt>s of the <tt>PullBufferDataSource</tt> wrapped
-     * by this instance
-     */
-    @Override
-    public void start()
-        throws IOException
-    {
-        super.start();
-
-        synchronized (streams)
-        {
-            started = true;
-
-            for (PushBufferStreamAdapter stream : streams)
-                stream.start();
-        }
-    }
-
-    /**
-     * Implements {@link DataSource#start()}. Stops the wrapped
-     * <tt>PullBufferDataSource</tt> and the pushing from the
-     * <tt>PushBufferStreamAdapter</tt>s which wrap the
-     * <tt>PullBufferStream</tt>s of the <tt>PullBufferDataSource</tt> wrapped
-     * by this instance.
-     *
-     * @throws IOException if anything wrong happens while stopping the wrapped
-     * <tt>PullBufferDataSource</tt> or the pushing from the
-     * <tt>PushBufferStreamAdapter</tt>s which wrap the
-     * <tt>PullBufferStream</tt>s of the <tt>PullBufferDataSource</tt> wrapped
-     * by this instance
-     */
-    @Override
-    public void stop()
-        throws IOException
-    {
-        synchronized (streams)
-        {
-            started = false;
-
-            for (PushBufferStreamAdapter stream : streams)
-                stream.stop();
-        }
-
-        super.stop();
-    }
-
-    /**
-     * Implements {@link PushBufferDataSource#getStreams()}. Gets the
-     * <tt>PushBufferStream</tt>s through which this
-     * <tt>PushBufferDataSource</tt> gives access to its media data.
-     *
-     * @return an array of <tt>PushBufferStream</tt>s through which this
-     * <tt>PushBufferDataSource</tt> gives access to its media data
-     */
-    @Override
-    public PushBufferStream[] getStreams()
-    {
-        synchronized (streams)
-        {
-            PullBufferStream[] dataSourceStreams = dataSource.getStreams();
-            int dataSourceStreamCount;
-
-            /*
-             * I don't know whether dataSource returns a copy of its internal
-             * storage so I'm not sure if it's safe to modify dataSourceStreams.
-             */
-            if (dataSourceStreams != null)
-            {
-                dataSourceStreams = dataSourceStreams.clone();
-                dataSourceStreamCount = dataSourceStreams.length;
-            }
-            else
-                dataSourceStreamCount = 0;
-
-            /*
-             * Dispose of the PushBufferStreamAdapters which adapt
-             * PullBufferStreams which are no longer returned by dataSource.
-             */
-            Iterator<PushBufferStreamAdapter> streamIter = streams.iterator();
-
-            while (streamIter.hasNext())
-            {
-                PushBufferStreamAdapter streamAdapter = streamIter.next();
-                PullBufferStream stream = streamAdapter.stream;
-                boolean removeStream = true;
-
-                for (int dataSourceStreamIndex = 0;
-                        dataSourceStreamIndex < dataSourceStreamCount;
-                        dataSourceStreamIndex++)
-                    if (stream == dataSourceStreams[dataSourceStreamIndex])
-                    {
-                        removeStream = false;
-                        dataSourceStreams[dataSourceStreamIndex] = null;
-                        break;
-                    }
-                if (removeStream)
-                {
-                    streamIter.remove();
-                    streamAdapter.close();
-                }
-            }
-
-            /*
-             * Create PushBufferStreamAdapters for the PullBufferStreams
-             * returned by dataSource which are not adapted yet.
-             */
-            for (int dataSourceStreamIndex = 0;
-                    dataSourceStreamIndex < dataSourceStreamCount;
-                    dataSourceStreamIndex++)
-            {
-                PullBufferStream dataSourceStream
-                    = dataSourceStreams[dataSourceStreamIndex];
-
-                if (dataSourceStream != null)
-                {
-                    PushBufferStreamAdapter stream
-                        = new PushBufferStreamAdapter(dataSourceStream);
-
-                    streams.add(stream);
-                    if (started)
-                        stream.start();
-                }
-            }
-
-            return streams.toArray(EMPTY_STREAMS);
-        }
-    }
 
     /**
      * Implements <tt>PushBufferStream</tt> for a specific
@@ -503,40 +303,44 @@ public class PushBufferDataSourceAdapter
 
                 if (streamReadThread == null)
                 {
-                    streamReadThread = new Thread()
-                    {
-                        @Override
-                        public void run()
+                    streamReadThread
+                        = new Thread(getClass().getName() + ".streamReadThread")
                         {
-                            try
+                            @Override
+                            public void run()
                             {
-                                while (true)
+                                try
+                                {
+                                    setStreamReadThreadPriority(stream);
+
+                                    while (true)
+                                    {
+                                        synchronized (streamReadThreadSyncRoot)
+                                        {
+                                            if (!PushBufferStreamAdapter.this.started)
+                                                break;
+                                            if (streamReadThread
+                                                    != Thread.currentThread())
+                                                break;
+                                        }
+                                        runInStreamReadThread();
+                                    }
+                                }
+                                finally
                                 {
                                     synchronized (streamReadThreadSyncRoot)
                                     {
-                                        if (!PushBufferStreamAdapter.this.started)
-                                            break;
                                         if (streamReadThread
-                                                != Thread.currentThread())
-                                            break;
-                                    }
-                                    runInStreamReadThread();
-                                }
-                            }
-                            finally
-                            {
-                                synchronized (streamReadThreadSyncRoot)
-                                {
-                                    if (streamReadThread
-                                            == Thread.currentThread())
-                                    {
-                                        streamReadThread = null;
-                                        streamReadThreadSyncRoot.notifyAll();
+                                                == Thread.currentThread())
+                                        {
+                                            streamReadThread = null;
+                                            streamReadThreadSyncRoot
+                                                .notifyAll();
+                                        }
                                     }
                                 }
                             }
-                        }
-                    };
+                        };
                     streamReadThread.setDaemon(true);
                     streamReadThread.start();
                 }
@@ -580,5 +384,244 @@ public class PushBufferDataSourceAdapter
                     streamReadThread = null;
             }
         }
+    }
+
+    /**
+     * The <tt>Logger</tt> used by the <tt>PushBufferDataSourceAdapter</tt>
+     * class and its instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(PushBufferDataSourceAdapter.class);
+
+    /**
+     * The indicator which determines whether the
+     * <tt>PushBufferStreamAdapater</tt> instances should wait for their
+     * {@link PushBufferStreamAdapter#streamReadThread}s to exit before their
+     * {@link PushBufferStreamAdapter#stop()} returns.
+     */
+    private static final boolean STRICT_STOP = false;
+
+    /**
+     * The indicator which determines whether {@link #start()} has been called
+     * on this <tt>DataSource</tt> without a subsequent call to {@link #stop()}.
+     */
+    private boolean started = false;
+
+    /**
+     * The <tt>PushBufferStream</tt>s through which this
+     * <tt>PushBufferDataSource</tt> gives access to its media data.
+     */
+    private final List<PushBufferStreamAdapter> streams
+        = new ArrayList<PushBufferStreamAdapter>();
+
+    /**
+     * Initializes a new <tt>PushBufferDataSourceAdapter</tt> which is to
+     * implement <tt>PushBufferDataSource</tt> capabilities for a specific
+     * <tt>PullBufferDataSource</tt>.
+     *
+     * @param dataSource the <tt>PullBufferDataSource</tt> the new instance is
+     * to implement <tt>PushBufferDataSource</tt> capabilities for
+     */
+    public PushBufferDataSourceAdapter(PullBufferDataSource dataSource)
+    {
+        super(dataSource);
+    }
+
+    /**
+     * Implements {@link DataSource#disconnect()}. Disposes of the
+     * <tt>PushBufferStreamAdapter</tt>s which wrap the
+     * <tt>PullBufferStream</tt>s of the <tt>PullBufferDataSource</tt> wrapped
+     * by this instance.
+     */
+    @Override
+    public void disconnect()
+    {
+        synchronized (streams)
+        {
+            Iterator<PushBufferStreamAdapter> streamIter = streams.iterator();
+
+            while (streamIter.hasNext())
+            {
+                PushBufferStreamAdapter stream = streamIter.next();
+
+                streamIter.remove();
+                stream.close();
+            }
+        }
+
+        super.disconnect();
+    }
+
+    /**
+     * Implements {@link PushBufferDataSource#getStreams()}. Gets the
+     * <tt>PushBufferStream</tt>s through which this
+     * <tt>PushBufferDataSource</tt> gives access to its media data.
+     *
+     * @return an array of <tt>PushBufferStream</tt>s through which this
+     * <tt>PushBufferDataSource</tt> gives access to its media data
+     */
+    @Override
+    public PushBufferStream[] getStreams()
+    {
+        synchronized (streams)
+        {
+            PullBufferStream[] dataSourceStreams = dataSource.getStreams();
+            int dataSourceStreamCount;
+
+            /*
+             * I don't know whether dataSource returns a copy of its internal
+             * storage so I'm not sure if it's safe to modify dataSourceStreams.
+             */
+            if (dataSourceStreams != null)
+            {
+                dataSourceStreams = dataSourceStreams.clone();
+                dataSourceStreamCount = dataSourceStreams.length;
+            }
+            else
+                dataSourceStreamCount = 0;
+
+            /*
+             * Dispose of the PushBufferStreamAdapters which adapt
+             * PullBufferStreams which are no longer returned by dataSource.
+             */
+            Iterator<PushBufferStreamAdapter> streamIter = streams.iterator();
+
+            while (streamIter.hasNext())
+            {
+                PushBufferStreamAdapter streamAdapter = streamIter.next();
+                PullBufferStream stream = streamAdapter.stream;
+                boolean removeStream = true;
+
+                for (int dataSourceStreamIndex = 0;
+                        dataSourceStreamIndex < dataSourceStreamCount;
+                        dataSourceStreamIndex++)
+                    if (stream == dataSourceStreams[dataSourceStreamIndex])
+                    {
+                        removeStream = false;
+                        dataSourceStreams[dataSourceStreamIndex] = null;
+                        break;
+                    }
+                if (removeStream)
+                {
+                    streamIter.remove();
+                    streamAdapter.close();
+                }
+            }
+
+            /*
+             * Create PushBufferStreamAdapters for the PullBufferStreams
+             * returned by dataSource which are not adapted yet.
+             */
+            for (int dataSourceStreamIndex = 0;
+                    dataSourceStreamIndex < dataSourceStreamCount;
+                    dataSourceStreamIndex++)
+            {
+                PullBufferStream dataSourceStream
+                    = dataSourceStreams[dataSourceStreamIndex];
+
+                if (dataSourceStream != null)
+                {
+                    PushBufferStreamAdapter stream
+                        = new PushBufferStreamAdapter(dataSourceStream);
+
+                    streams.add(stream);
+                    if (started)
+                        stream.start();
+                }
+            }
+
+            return streams.toArray(EMPTY_STREAMS);
+        }
+    }
+
+    /**
+     * Sets the priority of the <tt>streamReadThread</tt> of a
+     * <tt>PushBufferStreamAdapter</tt> that adapts a specific
+     * <tt>PullBufferStream</tt> in accord with the <tt>Format</tt> of the media
+     * data.
+     *
+     * @param stream the <tt>PullBufferStream</tt> adapted by a
+     * <tt>PushBufferStreamAdapter</tt> that is to have the priority of its
+     * <tt>streamReadThread</tt> set
+     */
+    private static void setStreamReadThreadPriority(PullBufferStream stream)
+    {
+        try
+        {
+            Format format = stream.getFormat();
+            int threadPriority;
+
+            if (format instanceof AudioFormat)
+                threadPriority = MediaThread.getAudioPriority();
+            else if (format instanceof VideoFormat)
+                threadPriority = MediaThread.getVideoPriority();
+            else
+                return;
+
+            AbstractRenderer.useThreadPriority(threadPriority);
+        }
+        catch (Throwable t)
+        {
+            if (t instanceof ThreadDeath)
+                throw (ThreadDeath) t;
+
+            logger.warn("Failed to set the priority of streamReadThread");
+        }
+    }
+
+    /**
+     * Implements {@link DataSource#start()}. Starts the wrapped
+     * <tt>PullBufferDataSource</tt> and the pushing from the
+     * <tt>PushBufferStreamAdapter</tt>s which wrap the
+     * <tt>PullBufferStream</tt>s of the <tt>PullBufferDataSource</tt> wrapped
+     * by this instance.
+     *
+     * @throws IOException if anything wrong happens while starting the wrapped
+     * <tt>PullBufferDataSource</tt> or the pushing from the
+     * <tt>PushBufferStreamAdapter</tt>s which wrap the
+     * <tt>PullBufferStream</tt>s of the <tt>PullBufferDataSource</tt> wrapped
+     * by this instance
+     */
+    @Override
+    public void start()
+        throws IOException
+    {
+        super.start();
+
+        synchronized (streams)
+        {
+            started = true;
+
+            for (PushBufferStreamAdapter stream : streams)
+                stream.start();
+        }
+    }
+
+    /**
+     * Implements {@link DataSource#start()}. Stops the wrapped
+     * <tt>PullBufferDataSource</tt> and the pushing from the
+     * <tt>PushBufferStreamAdapter</tt>s which wrap the
+     * <tt>PullBufferStream</tt>s of the <tt>PullBufferDataSource</tt> wrapped
+     * by this instance.
+     *
+     * @throws IOException if anything wrong happens while stopping the wrapped
+     * <tt>PullBufferDataSource</tt> or the pushing from the
+     * <tt>PushBufferStreamAdapter</tt>s which wrap the
+     * <tt>PullBufferStream</tt>s of the <tt>PullBufferDataSource</tt> wrapped
+     * by this instance
+     */
+    @Override
+    public void stop()
+        throws IOException
+    {
+        synchronized (streams)
+        {
+            started = false;
+
+            for (PushBufferStreamAdapter stream : streams)
+                stream.stop();
+        }
+
+        super.stop();
     }
 }
