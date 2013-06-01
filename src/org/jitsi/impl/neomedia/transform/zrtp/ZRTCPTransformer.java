@@ -20,7 +20,7 @@ public class ZRTCPTransformer
 {
     /**
      * We support different SRTCP contexts for input and output traffic:
-     * 
+     *
      * Transform() uses the srtcpOut to perform encryption
      * reverseTransform() uses srtcpIn to perform decryption
      */
@@ -29,18 +29,18 @@ public class ZRTCPTransformer
 
     /**
      * Close the transformer engine.
-     * 
+     *
      * The close functions closes all stored default crypto contexts. This deletes key data
      * and forces a cleanup of the crypto contexts.
      */
-    public void close() 
+    public void close()
     {
-        if (srtcpOut != null) 
+        if (srtcpOut != null)
         {
             srtcpOut.close();
             srtcpOut = null;
         }
-        if (srtcpIn != null) 
+        if (srtcpIn != null)
         {
             srtcpIn.close();
             srtcpIn = null;
@@ -48,14 +48,14 @@ public class ZRTCPTransformer
     }
     /**
      * Encrypt a SRTCP packet
-     * 
+     *
      * Currently SRTCP packet encryption / decryption is not supported
      * So this method does not change the packet content
-     * 
+     *
      * @param pkt plain SRTCP packet to be encrypted
      * @return encrypted SRTCP packet
      */
-    public RawPacket transform(RawPacket pkt) 
+    public RawPacket transform(RawPacket pkt)
     {
         if (srtcpOut == null)
         {
@@ -66,14 +66,14 @@ public class ZRTCPTransformer
 
     /**
      * Decrypt a SRTCP packet
-     * 
+     *
      * Currently SRTCP packet encryption / decryption is not supported
      * So this method does not change the packet content
-     * 
+     *
      * @param pkt encrypted SRTCP packet to be decrypted
      * @return decrypted SRTCP packet
      */
-    public RawPacket reverseTransform(RawPacket pkt) 
+    public RawPacket reverseTransform(RawPacket pkt)
     {
         if (srtcpIn == null)
         {

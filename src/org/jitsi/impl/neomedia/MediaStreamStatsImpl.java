@@ -41,7 +41,7 @@ public class MediaStreamStatsImpl
 
     /**
      * Enumeration of the direction (DOWNLOAD or UPLOAD) used for the stats.
-     */ 
+     */
     private enum StreamDirection
     {
         DOWNLOAD,
@@ -582,7 +582,7 @@ public class MediaStreamStatsImpl
         {
             return 0;
         }
-        return ((double) 100 * nbLost) / ((double)(nbLostAndRecv));
+        return ((double) 100 * nbLost) / ((nbLostAndRecv));
     }
 
     /**

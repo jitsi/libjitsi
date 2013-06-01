@@ -18,7 +18,7 @@ import javax.swing.*;
  * ratio. <tt>FitLayout</tt> is appropriate for <tt>Container</tt>s which
  * display a single image or video <tt>Component</tt> in its entirety for which
  * preserving the aspect ratio is important.
- * 
+ *
  * @author Lyubomir Marinov
  */
 public class FitLayout

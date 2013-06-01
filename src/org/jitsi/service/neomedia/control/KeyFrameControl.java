@@ -142,7 +142,7 @@ public interface KeyFrameControl
     {
         /**
          * The name of the <tt>ConfigurationService</tt> property which
-         * specifies the preferred <tt>KeyFrameRequester</tt> to be used. 
+         * specifies the preferred <tt>KeyFrameRequester</tt> to be used.
          */
         public static final String PREFERRED_PNAME
             = "net.java.sip.communicator.impl.neomedia.codec.video.h264."

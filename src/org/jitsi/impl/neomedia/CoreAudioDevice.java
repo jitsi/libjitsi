@@ -64,9 +64,12 @@ public class CoreAudioDevice
 
     public static native void freeDevices();
 
-    public static String getDeviceModelIdentifier(
-            String deviceUID)
+    public static String getDeviceModelIdentifier(String deviceUID)
     {
+        // Prevent an access violation in getDeviceModelIdentifierBytes.
+        if (deviceUID == null)
+            throw new NullPointerException("deviceUID");
+
         byte[] deviceModelIdentifierBytes
             = getDeviceModelIdentifierBytes(deviceUID);
         String deviceModelIdentifier

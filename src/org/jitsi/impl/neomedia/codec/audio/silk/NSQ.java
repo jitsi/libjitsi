@@ -9,13 +9,13 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 import java.util.*;
 
 /**
- * 
+ *
  * @author Dingxin Xu
  */
-public class NSQ 
+public class NSQ
 {
     /**
-     * 
+     *
      * @param psEncC Encoder State
      * @param psEncCtrlC Encoder Control
      * @param NSQ NSQ state
@@ -88,10 +88,10 @@ public class NSQ
 //TODO: use a local copy of the parameter short x[], which is supposed to be input;
         short[] x_tmp = x.clone();
         int     x_tmp_offset = 0;
-//TODO: use a local copy of the parameter byte[] q, which is supposed to be output;     
+//TODO: use a local copy of the parameter byte[] q, which is supposed to be output;
         byte[]  q_tmp = q.clone();
         int     q_tmp_offset = 0;
-        
+
         for( k = 0; k < Define.NB_SUBFR; k++ ) {
             A_Q12      = PredCoef_Q12;
             A_Q12_offset = (( k >> 1 ) | ( 1 - LSF_interpolation_flag )) * Define.MAX_LPC_ORDER;
@@ -114,26 +114,26 @@ public class NSQ
                 /* Re-whitening */
                 if( ( k & ( 3 - ( LSF_interpolation_flag << 1 ) ) ) == 0 ) {
                     /* Rewhiten with new A coefs */
-                    
+
                     start_idx = psEncC.frame_length - lag - psEncC.predictLPCOrder - Define.LTP_ORDER / 2;
                     start_idx = SigProcFIX.SKP_LIMIT_int( start_idx, 0, psEncC.frame_length - psEncC.predictLPCOrder ); /* Limit */
-                    
+
                     Arrays.fill(FiltState, 0, psEncC.predictLPCOrder, 0);
-                    MA.SKP_Silk_MA_Prediction( NSQ.xq, start_idx + k * ( psEncC.frame_length >> 2 ), 
+                    MA.SKP_Silk_MA_Prediction( NSQ.xq, start_idx + k * ( psEncC.frame_length >> 2 ),
                         A_Q12, A_Q12_offset, FiltState, sLTP, start_idx, psEncC.frame_length - start_idx, psEncC.predictLPCOrder );
 
                     NSQ.rewhite_flag = 1;
                     NSQ.sLTP_buf_idx = psEncC.frame_length;
                 }
             }
-            
-            SKP_Silk_nsq_scale_states( NSQ, x_tmp, x_tmp_offset, x_sc_Q10, psEncC.subfr_length, sLTP, 
+
+            SKP_Silk_nsq_scale_states( NSQ, x_tmp, x_tmp_offset, x_sc_Q10, psEncC.subfr_length, sLTP,
                     sLTP_Q16, k, LTP_scale_Q14, Gains_Q16, psEncCtrlC.pitchL );
 
 
-            SKP_Silk_noise_shape_quantizer( NSQ, psEncCtrlC.sigtype, x_sc_Q10, q_tmp, q_tmp_offset, pxq, pxq_offset, 
+            SKP_Silk_noise_shape_quantizer( NSQ, psEncCtrlC.sigtype, x_sc_Q10, q_tmp, q_tmp_offset, pxq, pxq_offset,
                     sLTP_Q16, A_Q12, A_Q12_offset, B_Q14, B_Q14_offset,
-                AR_shp_Q13, AR_shp_Q13_offset, lag, HarmShapeFIRPacked_Q14, Tilt_Q14[ k ], LF_shp_Q14[ k ], Gains_Q16[ k ], Lambda_Q10, 
+                AR_shp_Q13, AR_shp_Q13_offset, lag, HarmShapeFIRPacked_Q14, Tilt_Q14[ k ], LF_shp_Q14[ k ], Gains_Q16[ k ], Lambda_Q10,
                 offset_Q10, psEncC.subfr_length, psEncC.shapingLPCOrder, psEncC.predictLPCOrder
             );
 
@@ -149,11 +149,11 @@ public class NSQ
     /* Save quantized speech and noise shaping signals */
         System.arraycopy(NSQ.xq, psEncC.frame_length, NSQ.xq, 0, psEncC.frame_length);
         System.arraycopy(NSQ.sLTP_shp_Q10, psEncC.frame_length, NSQ.sLTP_shp_Q10, 0, psEncC.frame_length);
-        
-//TODO: copy back the q_tmp to the output parameter q;        
+
+//TODO: copy back the q_tmp to the output parameter q;
         System.arraycopy(q_tmp, 0, q, 0, q.length);
     }
-    
+
     /**
      * SKP_Silk_noise_shape_quantizer.
      * @param NSQ NSQ state
@@ -224,7 +224,7 @@ public class NSQ
         shp_lag_ptr_offset = NSQ.sLTP_shp_buf_idx - lag + Define.HARM_SHAPE_FIR_TAPS / 2;
         pred_lag_ptr = sLTP_Q16;
         pred_lag_ptr_offset = NSQ.sLTP_buf_idx - lag + Define.LTP_ORDER / 2;
-        
+
         /* Setup short term AR state */
         psLPC_Q14     = NSQ.sLPC_Q14;
         psLPC_Q14_offset = Define.MAX_LPC_ORDER - 1;
@@ -241,7 +241,7 @@ public class NSQ
 
             /* dither = rand_seed < 0 ? 0xFFFFFFFF : 0; */
             dither = ( NSQ.rand_seed >> 31 );
-                    
+
             /* Short-term prediction */
             assert( ( predictLPCOrder  & 1 ) == 0 );    /* check that order is even */
 //            SKP_assert( ( (SKP_int64)a_Q12 & 3 ) == 0 );    /* check that array starts at 4-byte aligned address */
@@ -298,7 +298,7 @@ public class NSQ
             n_AR_Q10 = ( n_AR_Q10 >> 1 );   /* Q11 -> Q10 */
             n_AR_Q10  = Macros.SKP_SMLAWB( n_AR_Q10, NSQ.sLF_AR_shp_Q12, Tilt_Q14 );
 
-            n_LF_Q10   = ( Macros.SKP_SMULWB( NSQ.sLTP_shp_Q10[ NSQ.sLTP_shp_buf_idx - 1 ], LF_shp_Q14 ) << 2 ); 
+            n_LF_Q10   = ( Macros.SKP_SMULWB( NSQ.sLTP_shp_Q10[ NSQ.sLTP_shp_buf_idx - 1 ], LF_shp_Q14 ) << 2 );
             n_LF_Q10   = Macros.SKP_SMLAWT( n_LF_Q10, NSQ.sLF_AR_shp_Q12, LF_shp_Q14 );
 
             assert( lag > 0 || sigtype == Define.SIG_TYPE_UNVOICED );
@@ -306,7 +306,7 @@ public class NSQ
             /* Long-term shaping */
             if( lag > 0 ) {
                 /* Symmetric, packed FIR coefficients */
-                n_LTP_Q14 = Macros.SKP_SMULWB((shp_lag_ptr[ shp_lag_ptr_offset+0 ] + shp_lag_ptr[ shp_lag_ptr_offset-2 ] ), 
+                n_LTP_Q14 = Macros.SKP_SMULWB((shp_lag_ptr[ shp_lag_ptr_offset+0 ] + shp_lag_ptr[ shp_lag_ptr_offset-2 ] ),
                         HarmShapeFIRPacked_Q14 );
                 n_LTP_Q14 = Macros.SKP_SMLAWT(n_LTP_Q14, shp_lag_ptr[ shp_lag_ptr_offset-1 ],HarmShapeFIRPacked_Q14 );
                 shp_lag_ptr_offset++;
@@ -319,9 +319,9 @@ public class NSQ
             //r = x[ i ] - LTP_pred - LPC_pred + n_AR + n_Tilt + n_LF + n_LTP;
             tmp   = ( LTP_pred_Q14 - n_LTP_Q14 );                       /* Add Q14 stuff */
             tmp   = SigProcFIX.SKP_RSHIFT_ROUND( tmp, 4 );                                 /* round to Q10  */
-            tmp   = ( tmp + LPC_pred_Q10 );                             /* add Q10 stuff */ 
-            tmp   = ( tmp - n_AR_Q10 );                                 /* subtract Q10 stuff */ 
-            tmp   = ( tmp - n_LF_Q10 );                                 /* subtract Q10 stuff */ 
+            tmp   = ( tmp + LPC_pred_Q10 );                             /* add Q10 stuff */
+            tmp   = ( tmp - n_AR_Q10 );                                 /* subtract Q10 stuff */
+            tmp   = ( tmp - n_LF_Q10 );                                 /* subtract Q10 stuff */
             r_Q10 = ( x_sc_Q10[ i ] - tmp );
 
             /* Flip sign depending on dither */
@@ -352,11 +352,11 @@ public class NSQ
             /* Add predictions */
             LPC_exc_Q10 = ( exc_Q10 + SigProcFIX.SKP_RSHIFT_ROUND( LTP_pred_Q14, 4 ) );
             xq_Q10      = ( LPC_exc_Q10 + LPC_pred_Q10 );
-            
+
             /* Scale XQ back to normal level before saving */
             xq[ xq_offset + i ] = (  short)SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( Macros.SKP_SMULWW( xq_Q10, Gain_Q16 ), 10 ) );
-            
-            
+
+
             /* Update states */
             psLPC_Q14_offset++;
             psLPC_Q14[psLPC_Q14_offset] = ( xq_Q10 << 4 );
@@ -376,9 +376,9 @@ public class NSQ
     }
 
     /**
-     * 
+     *
      * @param NSQ NSQ state
-     * @param x input in Q0 
+     * @param x input in Q0
      * @param x_offset
      * @param x_sc_Q10 input scaled with 1/Gain
      * @param length length of input

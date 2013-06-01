@@ -62,7 +62,7 @@ public class AVReceive2
      * received
      * @param remoteHost the name of the host from which the media is
      * transmitted
-     * @param remotePortBase the port from which the media is transmitted 
+     * @param remotePortBase the port from which the media is transmitted
      * @throws Exception if any error arises during the parsing of the specified
      * <tt>localPortBase</tt>, <tt>remoteHost</tt> and <tt>remotePortBase</tt>
      */
@@ -117,7 +117,7 @@ public class AVReceive2
             /*
              * The AVTransmit2 example sends only and the AVReceive2 receives
              * only. In a call, the MediaStream's direction will most commonly
-             * be set to SENDRECV.   
+             * be set to SENDRECV.
              */
             mediaStream.setDirection(MediaDirection.RECVONLY);
 
@@ -127,7 +127,7 @@ public class AVReceive2
             /*
              * The AVTransmit2 and AVReceive2 examples use the H.264 video
              * codec. Its RTP transmission has no static RTP payload type number
-             * assigned.   
+             * assigned.
              */
             byte dynamicRTPPayloadType;
 
@@ -289,7 +289,7 @@ public class AVReceive2
     /**
      * The list of command-line arguments accepted as valid by the
      * <tt>AVReceive2</tt> application along with their human-readable usage
-     * descriptions. 
+     * descriptions.
      */
     private static final String[][] ARGS
         = {

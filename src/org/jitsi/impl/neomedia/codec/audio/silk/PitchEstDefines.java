@@ -12,7 +12,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class PitchEstDefines 
+public class PitchEstDefines
 {
     static final int PITCH_EST_SHORTLAG_BIAS_Q15 =        6554;    /* 0.2f. for logarithmic weighting    */
     static final int PITCH_EST_PREVLAG_BIAS_Q15 =         6554;    /* Prev lag bias    */

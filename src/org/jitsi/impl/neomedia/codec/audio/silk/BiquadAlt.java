@@ -8,11 +8,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Second order ARMA filter, alternative implementation.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class BiquadAlt 
+public class BiquadAlt
 {
     /**
      * Second order ARMA filter, alternative implementation.
@@ -45,8 +45,8 @@ public class BiquadAlt
         A0_U_Q28 = ( -A_Q28[ 0 ] ) >> 14;       /* upper part */
         A1_L_Q28 = ( -A_Q28[ 1 ] ) & 0x00003FFF;        /* lower part */
         A1_U_Q28 = ( -A_Q28[ 1 ] ) >> 14;       /* upper part */
-        
-        for( k = 0; k < len; k++ ) 
+
+        for( k = 0; k < len; k++ )
         {
             /* S[ 0 ], S[ 1 ]: Q12 */
             inval = in[ in_offset+k ];

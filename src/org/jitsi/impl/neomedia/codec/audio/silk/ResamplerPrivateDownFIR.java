@@ -8,14 +8,14 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Resample with a 2x downsampler (optional), a 2nd order AR filter followed by FIR interpolation.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class ResamplerPrivateDownFIR 
+public class ResamplerPrivateDownFIR
 {
     /**
-     * Resample with a 2x downsampler (optional), 
+     * Resample with a 2x downsampler (optional),
      * a 2nd order AR filter followed by FIR interpolation.
      * @param SS Resampler state.
      * @param out Output signal.
@@ -43,8 +43,8 @@ public class ResamplerPrivateDownFIR
         short[] interpol_ptr, FIR_Coefs;
         int interpol_ptr_offset, FIR_Coefs_offset;
 
-        /* Copy buffered samples to start of buffer */    
-//TODO: arrayCopy();        
+        /* Copy buffered samples to start of buffer */
+//TODO: arrayCopy();
 //        SKP_memcpy( buf2, S->sFIR, RESAMPLER_DOWN_ORDER_FIR * sizeof( SKP_int32 ) );
         for(int i_djinn=0; i_djinn<ResamplerRom.RESAMPLER_DOWN_ORDER_FIR; i_djinn++)
             buf2[i_djinn] = S.sFIR[i_djinn];
@@ -54,11 +54,11 @@ public class ResamplerPrivateDownFIR
 
         /* Iterate over blocks of frameSizeIn input samples */
         index_increment_Q16 = S.invRatio_Q16;
-        while( true ) 
+        while( true )
         {
             nSamplesIn = Math.min( inLen, S.batchSize );
 
-            if( S.input2x == 1 ) 
+            if( S.input2x == 1 )
             {
                 /* Downsample 2x */
                 ResamplerDown2.SKP_Silk_resampler_down2( S.sDown2,0, buf1,0, in,in_offset, nSamplesIn );
@@ -77,7 +77,7 @@ public class ResamplerPrivateDownFIR
             max_index_Q16 = nSamplesIn << 16;
 
             /* Interpolate filtered signal */
-            if( S.FIR_Fracs == 1 ) 
+            if( S.FIR_Fracs == 1 )
             {
                 for( index_Q16 = 0; index_Q16 < max_index_Q16; index_Q16 += index_increment_Q16 )
                 {
@@ -96,10 +96,10 @@ public class ResamplerPrivateDownFIR
                     /* Scale down, saturate and store in output array */
                     out[out_offset++] = (short)SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( res_Q6, 6 ) );
                 }
-            } 
-            else 
+            }
+            else
             {
-                for( index_Q16 = 0; index_Q16 < max_index_Q16; index_Q16 += index_increment_Q16 ) 
+                for( index_Q16 = 0; index_Q16 < max_index_Q16; index_Q16 += index_increment_Q16 )
                 {
                     /* Integer part gives pointer to buffered input */
                     buf_ptr = buf2;
@@ -136,7 +136,7 @@ public class ResamplerPrivateDownFIR
             in_offset += nSamplesIn << S.input2x;
             inLen -= nSamplesIn << S.input2x;
 
-            if( inLen > S.input2x ) 
+            if( inLen > S.input2x )
             {
                 /* More iterations to do; copy last part of filtered signal to beginning of buffer */
 //TODO: arrayCopy();
@@ -151,7 +151,7 @@ public class ResamplerPrivateDownFIR
         }
 
         /* Copy last part of filtered signal to the state for the next call */
-//TODO: arrayCopy();        
+//TODO: arrayCopy();
 //        SKP_memcpy( S->sFIR, &buf2[ nSamplesIn ], RESAMPLER_DOWN_ORDER_FIR * sizeof( SKP_int32 ) );
         for(int i_djinn=0; i_djinn<ResamplerRom.RESAMPLER_DOWN_ORDER_FIR; i_djinn++)
             S.sFIR[i_djinn] = buf2[nSamplesIn+i_djinn];

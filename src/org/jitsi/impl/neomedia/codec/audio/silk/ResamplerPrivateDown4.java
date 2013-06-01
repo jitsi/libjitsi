@@ -7,16 +7,16 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * Downsample by a factor 4. 
+ * Downsample by a factor 4.
  * Note: very low quality, only use with input sampling rates above 96 kHz.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
 public class ResamplerPrivateDown4
 {
     /**
-     * Downsample by a factor 4. 
+     * Downsample by a factor 4.
      * Note: very low quality, only use with input sampling rates above 96 kHz.
      * @param S State vector [ 2 ].
      * @param S_offset offset of valid data.
@@ -43,7 +43,7 @@ public class ResamplerPrivateDown4
         assert( ResamplerRom.SKP_Silk_resampler_down2_1 < 0 );
 
         /* Internal variables and state are in Q10 format */
-        for( k = 0; k < len4; k++ ) 
+        for( k = 0; k < len4; k++ )
         {
             /* Add two input samples and convert to Q10 */
             in32 = ( in[ in_offset + 4 * k ] + in[ in_offset + 4 * k + 1 ] ) << 9 ;

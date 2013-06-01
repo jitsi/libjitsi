@@ -8,17 +8,17 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Encoder API.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class EncAPI 
+public class EncAPI
 {
     /***
      * TODO: TEST
      */
     static int frame_cnt = 0;
-    
+
     /**
      * Read control structure from encoder.
      * @param encState State Vecotr.
@@ -32,7 +32,7 @@ public class EncAPI
     )
     {
         SKP_Silk_encoder_state_FLP psEnc;
-        int ret = 0;    
+        int ret = 0;
 
         psEnc = ( SKP_Silk_encoder_state_FLP )encState;
 
@@ -62,11 +62,11 @@ public class EncAPI
         SKP_Silk_encoder_state_FLP psEnc;
         int ret = 0;
 
-            
+
         psEnc = ( SKP_Silk_encoder_state_FLP )encState;
 
         /* Reset Encoder */
-        if( (ret += InitEncoderFLP.SKP_Silk_init_encoder_FLP( psEnc )) != 0 ) 
+        if( (ret += InitEncoderFLP.SKP_Silk_init_encoder_FLP( psEnc )) != 0 )
         {
             assert( false );
         }
@@ -78,7 +78,7 @@ public class EncAPI
         }
         return ret;
     }
-    
+
     /**
      * Encode frame with Silk.
      * @param encState State
@@ -92,7 +92,7 @@ public class EncAPI
      * @return
      */
     static int SKP_Silk_SDK_Encode
-    ( 
+    (
         Object                         encState,      /* I/O: State                                           */
         SKP_SILK_SDK_EncControlStruct  encControl,    /* I:   Control structure                               */
         final short[]                  samplesIn,     /* I:   Speech sample input vector                      */
@@ -115,14 +115,14 @@ public class EncAPI
         if( ( ( encControl.API_sampleRate        !=  8000 ) &&
               ( encControl.API_sampleRate        != 12000 ) &&
               ( encControl.API_sampleRate        != 16000 ) &&
-              ( encControl.API_sampleRate        != 24000 ) && 
+              ( encControl.API_sampleRate        != 24000 ) &&
               ( encControl.API_sampleRate        != 32000 ) &&
               ( encControl.API_sampleRate        != 44100 ) &&
               ( encControl.API_sampleRate        != 48000 ) ) ||
             ( ( encControl.maxInternalSampleRate !=  8000 ) &&
               ( encControl.maxInternalSampleRate != 12000 ) &&
               ( encControl.maxInternalSampleRate != 16000 ) &&
-              ( encControl.maxInternalSampleRate != 24000 ) ) ) 
+              ( encControl.maxInternalSampleRate != 24000 ) ) )
         {
             ret = Errors.SKP_SILK_ENC_FS_NOT_SUPPORTED;
             assert( false );
@@ -145,7 +145,7 @@ public class EncAPI
 
         /* Only accept input lengths that are a multiplum of 10 ms */
         input_ms = 1000 * nSamplesIn / API_fs_Hz;
-        if( ( input_ms % 10) != 0 || nSamplesIn < 0 ) 
+        if( ( input_ms % 10) != 0 || nSamplesIn < 0 )
         {
             ret = Errors.SKP_SILK_ENC_INPUT_INVALID_NO_OF_SAMPLES;
             assert( false );
@@ -153,14 +153,14 @@ public class EncAPI
         }
 
         /* Make sure no more than one packet can be produced */
-        if( nSamplesIn > ( psEnc.sCmn.PacketSize_ms * API_fs_Hz / 1000 ) ) 
+        if( nSamplesIn > ( psEnc.sCmn.PacketSize_ms * API_fs_Hz / 1000 ) )
         {
             ret = Errors.SKP_SILK_ENC_INPUT_INVALID_NO_OF_SAMPLES;
             assert( false );
             return( ret );
         }
-        if( ( ret = ControlCodecFLP.SKP_Silk_control_encoder_FLP( psEnc, API_fs_Hz, max_internal_fs_kHz, PacketSize_ms, TargetRate_bps, 
-                        PacketLoss_perc, UseInBandFEC, UseDTX, input_ms, Complexity) ) != 0 ) 
+        if( ( ret = ControlCodecFLP.SKP_Silk_control_encoder_FLP( psEnc, API_fs_Hz, max_internal_fs_kHz, PacketSize_ms, TargetRate_bps,
+                        PacketLoss_perc, UseInBandFEC, UseDTX, input_ms, Complexity) ) != 0 )
         {
             assert( false );
             return( ret );
@@ -176,21 +176,21 @@ public class EncAPI
         while( true )
         {
             nSamplesToBuffer = psEnc.sCmn.frame_length - psEnc.sCmn.inputBufIx;
-            if( API_fs_Hz == Macros.SKP_SMULBB( 1000, psEnc.sCmn.fs_kHz ) ) 
-            { 
+            if( API_fs_Hz == Macros.SKP_SMULBB( 1000, psEnc.sCmn.fs_kHz ) )
+            {
                 nSamplesToBuffer  = Math.min( nSamplesToBuffer, nSamplesIn );
                 nSamplesFromInput = nSamplesToBuffer;
                 /* Copy to buffer */
                 System.arraycopy(samplesIn, samplesIn_offset, psEnc.sCmn.inputBuf, psEnc.sCmn.inputBufIx, nSamplesFromInput);
-            } 
-            else 
-            {  
+            }
+            else
+            {
                 nSamplesToBuffer  = Math.min( nSamplesToBuffer, nSamplesIn * psEnc.sCmn.fs_kHz * 1000 / API_fs_Hz );
                 nSamplesFromInput = ( nSamplesToBuffer * API_fs_Hz / ( psEnc.sCmn.fs_kHz * 1000 ) );
                 /* Resample and write to buffer */
-                ret += Resampler.SKP_Silk_resampler(psEnc.sCmn.resampler_state, 
+                ret += Resampler.SKP_Silk_resampler(psEnc.sCmn.resampler_state,
                         psEnc.sCmn.inputBuf, psEnc.sCmn.inputBufIx, samplesIn, samplesIn_offset, nSamplesFromInput);
-                
+
 ///*TEST****************************************************************************/
 //                /**
 //                 * test for inputbuf
@@ -209,7 +209,7 @@ public class EncAPI
 //                    {
 //                        try
 //                        {
-//                            
+//
 //                            int res = inputbuf_datain.read(buffer);
 //                            if(res != buffer.length)
 //                            {
@@ -222,7 +222,7 @@ public class EncAPI
 //                            // TODO Auto-generated catch block
 //                            e.printStackTrace();
 //                        }
-//                    } 
+//                    }
 //                }
 //                catch (FileNotFoundException e)
 //                {
@@ -245,38 +245,38 @@ public class EncAPI
 //                    }
 //                }
 //                frame_cnt++;
-///*TEST END****************************************************************************/     
-            } 
+///*TEST END****************************************************************************/
+            }
             samplesIn_offset              += nSamplesFromInput;
             nSamplesIn             -= nSamplesFromInput;
-            psEnc.sCmn.inputBufIx += nSamplesToBuffer;        
-            
+            psEnc.sCmn.inputBufIx += nSamplesToBuffer;
+
             /* Silk encoder */
-            if( psEnc.sCmn.inputBufIx >= psEnc.sCmn.frame_length ) 
+            if( psEnc.sCmn.inputBufIx >= psEnc.sCmn.frame_length )
             {
                 /* Enough data in input buffer, so encode */
-                if( MaxBytesOut == 0 ) 
+                if( MaxBytesOut == 0 )
                 {
                     /* No payload obtained so far */
                     MaxBytesOut = nBytesOut[0];
                     short MaxBytesOut_ptr[] = new short[1];
                     MaxBytesOut_ptr[0] = MaxBytesOut;
-//                    if( ( ret = Silk_encode_frame_FLP.SKP_Silk_encode_frame_FLP( psEnc, outData, outData_offset, 
+//                    if( ( ret = Silk_encode_frame_FLP.SKP_Silk_encode_frame_FLP( psEnc, outData, outData_offset,
 //                            MaxBytesOut_ptr, psEnc.sCmn.inputBuf, psEnc.sCmn.inputBufIx ) ) != 0 )
-                    if( ( ret = EncodeFrameFLP.SKP_Silk_encode_frame_FLP( psEnc, outData, outData_offset, 
+                    if( ( ret = EncodeFrameFLP.SKP_Silk_encode_frame_FLP( psEnc, outData, outData_offset,
                             MaxBytesOut_ptr, psEnc.sCmn.inputBuf, 0 ) ) != 0 )
                     {
                         assert( false );
                     }
                     MaxBytesOut = MaxBytesOut_ptr[0];
-                } 
+                }
                 else
                 {
                     /* outData already contains a payload */
 //                    if( ( ret = Silk_encode_frame_FLP.SKP_Silk_encode_frame_FLP( psEnc, outData, outData_offset,
-//                            nBytesOut, psEnc.sCmn.inputBuf, psEnc.sCmn.inputBufIx) ) != 0 ) 
+//                            nBytesOut, psEnc.sCmn.inputBuf, psEnc.sCmn.inputBufIx) ) != 0 )
                     if( ( ret = EncodeFrameFLP.SKP_Silk_encode_frame_FLP( psEnc, outData, outData_offset,
-                           nBytesOut, psEnc.sCmn.inputBuf, 0) ) != 0 ) 
+                           nBytesOut, psEnc.sCmn.inputBuf, 0) ) != 0 )
                     {
                         assert( false );
                     }
@@ -284,7 +284,7 @@ public class EncAPI
                     assert( nBytesOut[0] == 0 );
                 }
                 psEnc.sCmn.inputBufIx = 0;
-            } 
+            }
             else
             {
                 break;

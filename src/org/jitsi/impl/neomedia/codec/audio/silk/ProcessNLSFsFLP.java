@@ -11,7 +11,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  *
  * @author Dingxin Xu
  */
-public class ProcessNLSFsFLP 
+public class ProcessNLSFsFLP
 {
     /**
      * Limit, stabilize, convert and quantize NLSFs.
@@ -44,7 +44,7 @@ public class ProcessNLSFsFLP
         if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) {
             NLSF_mu          = 0.002f - 0.001f * psEnc.speech_activity;
             NLSF_mu_fluc_red = 0.1f   - 0.05f  * psEnc.speech_activity;
-        } else { 
+        } else {
             NLSF_mu          = 0.005f - 0.004f * psEnc.speech_activity;
             NLSF_mu_fluc_red = 0.2f   - 0.1f   * ( psEnc.speech_activity + psEncCtrl.sparseness );
         }
@@ -58,7 +58,7 @@ public class ProcessNLSFsFLP
 
             /* Calculate the interpolated NLSF vector for the first half */
             NLSF_interpolation_factor = 0.25f * psEncCtrl.sCmn.NLSFInterpCoef_Q2;
-            WrappersFLP.SKP_Silk_interpolate_wrapper_FLP( pNLSF0_temp, psEnc.sPred.prev_NLSFq, pNLSF, 
+            WrappersFLP.SKP_Silk_interpolate_wrapper_FLP( pNLSF0_temp, psEnc.sPred.prev_NLSFq, pNLSF,
                 NLSF_interpolation_factor, psEnc.sCmn.predictLPCOrder );
 
             /* Calculate first half NLSF weights for the interpolated NLSFs */
@@ -75,8 +75,8 @@ public class ProcessNLSFsFLP
         psNLSF_CB_FLP = psEnc.psNLSF_CB_FLP[ psEncCtrl.sCmn.sigtype ];
 
         /* Quantize NLSF parameters given the trained NLSF codebooks */
-        NLSFMSVQEncodeFLP.SKP_Silk_NLSF_MSVQ_encode_FLP( psEncCtrl.sCmn.NLSFIndices, pNLSF, psNLSF_CB_FLP, psEnc.sPred.prev_NLSFq, 
-                pNLSFW, NLSF_mu, NLSF_mu_fluc_red, psEnc.sCmn.NLSF_MSVQ_Survivors, 
+        NLSFMSVQEncodeFLP.SKP_Silk_NLSF_MSVQ_encode_FLP( psEncCtrl.sCmn.NLSFIndices, pNLSF, psNLSF_CB_FLP, psEnc.sPred.prev_NLSFq,
+                pNLSFW, NLSF_mu, NLSF_mu_fluc_red, psEnc.sCmn.NLSF_MSVQ_Survivors,
                 psEnc.sCmn.predictLPCOrder, psEnc.sCmn.first_frame_after_reset );
 
         /* Convert quantized NLSFs back to LPC coefficients */
@@ -84,7 +84,7 @@ public class ProcessNLSFsFLP
 
         if( doInterpolate ) {
             /* Calculate the interpolated, quantized NLSF vector for the first half */
-            WrappersFLP.SKP_Silk_interpolate_wrapper_FLP( pNLSF0_temp, psEnc.sPred.prev_NLSFq, pNLSF, 
+            WrappersFLP.SKP_Silk_interpolate_wrapper_FLP( pNLSF0_temp, psEnc.sPred.prev_NLSFq, pNLSF,
                 NLSF_interpolation_factor, psEnc.sCmn.predictLPCOrder );
 
             /* Convert back to LPC coefficients */

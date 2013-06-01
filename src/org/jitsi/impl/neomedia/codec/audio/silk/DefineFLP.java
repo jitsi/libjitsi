@@ -11,7 +11,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class DefineFLP 
+public class DefineFLP
 {
     /*******************/
     /* Pitch estimator */
@@ -66,7 +66,7 @@ public class DefineFLP
     /***********/
 
     /* Required speech activity for counting frame as active */
-    static final float WB_DETECT_ACTIVE_SPEECH_LEVEL_THRES =            0.7f;        
+    static final float WB_DETECT_ACTIVE_SPEECH_LEVEL_THRES =            0.7f;
 
     static final float SPEECH_ACTIVITY_DTX_THRES =                      0.1f;
 

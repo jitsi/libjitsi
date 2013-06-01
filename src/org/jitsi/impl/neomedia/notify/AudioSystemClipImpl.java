@@ -109,6 +109,7 @@ public class AudioSystemClipImpl
         }
     }
 
+    @Override
     protected boolean runOnceInPlayThread()
     {
         InputStream audioStream = null;

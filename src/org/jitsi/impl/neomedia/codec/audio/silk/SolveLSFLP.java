@@ -9,7 +9,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 public class SolveLSFLP
 {
     /**
-     * Function to solve linear equation Ax = b, when A is a MxM  
+     * Function to solve linear equation Ax = b, when A is a MxM
      * symmetric square matrix - using LDL factorisation.
      * @param A Symmetric square matrix, out: reg.
      * @param A_offset offset of valid data.
@@ -25,7 +25,7 @@ public class SolveLSFLP
         final float                 []b,                 /* I    Pointer to b vector                     */
               float                 []x,                  /* O    Pointer to x solution vector            */
               int                   x_offset
-    )   
+    )
     {
         int i;
 //        float L[][] = new float[Define.MAX_MATRIX_SIZE][Define.MAX_MATRIX_SIZE];
@@ -51,7 +51,7 @@ public class SolveLSFLP
         SKP_Silk_SolveWithLowerTriangularWdiagOnes_FLP( L_tmp, M, b, T );
 
         /****************************************************
-        D*(L^T)*x = T <=> (L^T)*x = inv(D)*T, because D is 
+        D*(L^T)*x = T <=> (L^T)*x = inv(D)*T, because D is
         diagonal just multiply with 1/d_i
         ****************************************************/
         for( i = 0; i < M; i++ ) {
@@ -66,7 +66,7 @@ public class SolveLSFLP
     }
 
     /**
-     * Function to solve linear equation (A^T)x = b, when A is a MxM lower 
+     * Function to solve linear equation (A^T)x = b, when A is a MxM lower
      * triangular, with ones on the diagonal. (ie then A^T is upper triangular)
      * @param L Pointer to Lower Triangular Matrix
      * @param M Dim of Matrix equation
@@ -78,7 +78,7 @@ public class SolveLSFLP
         final float     []L,     /* (I) Pointer to Lower Triangular Matrix */
         int             M,      /* (I) Dim of Matrix equation */
         final float     []b,     /* (I) b Vector */
-        float           []x,      /* (O) x Vector */  
+        float           []x,      /* (O) x Vector */
         int             x_offset
     )
     {
@@ -87,10 +87,10 @@ public class SolveLSFLP
 //        const SKP_float *ptr1;
         int i,j;
         float temp;
-//TODO:ignore const        
+//TODO:ignore const
         float []ptr1;
         int ptr1_offset;
-        
+
         for( i = M - 1; i >= 0; i-- ) {
 //            ptr1 =  matrix_adr( L, 0, i, M );
             ptr1 = L;
@@ -100,12 +100,12 @@ public class SolveLSFLP
                 temp += ptr1[ ptr1_offset + j * M ] * x[ x_offset + j ];
             }
             temp = b[ i ] - temp;
-            x[ x_offset + i ] = temp;      
+            x[ x_offset + i ] = temp;
         }
     }
 
     /**
-     * Function to solve linear equation Ax = b, when A is a MxM lower 
+     * Function to solve linear equation Ax = b, when A is a MxM lower
      * triangular matrix, with ones on the diagonal.
      * @param L Pointer to Lower Triangular Matrix
      * @param M Pointer to Lower Triangular Matrix
@@ -116,7 +116,7 @@ public class SolveLSFLP
         final float     []L,     /* (I) Pointer to Lower Triangular Matrix */
         int             M,      /* (I) Pointer to Lower Triangular Matrix */
         final float     []b,     /* (I) b Vector */
-        float           []x      /* (O) x Vector */  
+        float           []x      /* (O) x Vector */
     )
     {
 //        SKP_int   i, j;
@@ -124,10 +124,10 @@ public class SolveLSFLP
 //        const SKP_float *ptr1;
         int i,j;
         float temp;
-//TODO:ignore const  
+//TODO:ignore const
         float []ptr1;
         int ptr1_offset;
-        
+
         for( i = 0; i < M; i++ ) {
 //            ptr1 =  matrix_adr( L, i, 0, M );
             ptr1 = L;
@@ -140,15 +140,15 @@ public class SolveLSFLP
             x[ i ] = temp;
         }
     }
-    
+
     /**
      * LDL Factorisation. Finds the upper triangular matrix L and the diagonal
-     * Matrix D (only the diagonal elements returned in a vector)such that 
+     * Matrix D (only the diagonal elements returned in a vector)such that
      * the symmetric matric A is given by A = L*D*L'.
      * @param A Pointer to Symetric Square Matrix
      * @param A_offset offset of valid data.
      * @param M Size of Matrix
-     * @param L Pointer to Square Upper triangular Matrix 
+     * @param L Pointer to Square Upper triangular Matrix
      * @param Dinv Pointer to vector holding the inverse diagonal elements of D
      */
     static void SKP_Silk_LDL_FLP(
@@ -169,10 +169,10 @@ public class SolveLSFLP
         int ptr1_offset, ptr2_offset;
         double temp, diag_min_value;
         float v[] = new float[ Define.MAX_MATRIX_SIZE ], D[] = new float[ Define.MAX_MATRIX_SIZE ]; // temp arrays
-        
+
         assert( M <= Define.MAX_MATRIX_SIZE );
 
-        diag_min_value = DefineFLP.FIND_LTP_COND_FAC * 0.5f * ( A[ A_offset + 0 ] + A[ A_offset + M * M - 1 ] ); 
+        diag_min_value = DefineFLP.FIND_LTP_COND_FAC * 0.5f * ( A[ A_offset + 0 ] + A[ A_offset + M * M - 1 ] );
         for( loop_count = 0; loop_count < M && err == 1; loop_count++ ) {
             err = 0;
             for( j = 0; j < M; j++ ) {
@@ -199,23 +199,23 @@ public class SolveLSFLP
                 Dinv[ j ] = ( float )( 1.0f / temp );
 //                matrix_ptr( L, j, j, M ) = 1.0f;
                 L[j*M+j] = 1.0f;
-                
+
 //                ptr1 = matrix_adr( A, j, 0, M );
 //                ptr2 = matrix_adr( L, j + 1, 0, M);
                 ptr1 = A;
                 ptr1_offset = A_offset + j*M;
                 ptr2 = L;
                 ptr2_offset = (j+1)*M;
-                
+
                 for( i = j + 1; i < M; i++ ) {
                     temp = 0.0;
-                    for( k = 0; k < j; k++ ) {                
+                    for( k = 0; k < j; k++ ) {
                         temp += ptr2[ ptr2_offset + k ] * v[ k ];
                     }
 //                    matrix_ptr( L, i, j, M ) = ( SKP_float )( ( ptr1[ i ] - temp ) * Dinv[ j ] );
                     L[i*M+j] = (float) ( ( ptr1[ ptr1_offset + i ] - temp ) * Dinv[ j ] );
                     ptr2_offset += M; // go to next column
-                }   
+                }
             }
         }
         assert( err == 0 );

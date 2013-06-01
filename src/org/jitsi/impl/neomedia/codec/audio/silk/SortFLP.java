@@ -7,20 +7,20 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * Insertion sort (fast for already almost sorted arrays):  
+ * Insertion sort (fast for already almost sorted arrays):
  *    Best case:  O(n)   for an already sorted array
  *    Worst case: O(n^2) for an inversely sorted array
- *    
+ *
  * To be implemented:
  * Shell short: http://en.wikipedia.org/wiki/Shell_sort
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class SortFLP 
+public class SortFLP
 {
     /**
-     * 
+     *
      * @param a Unsorted / Sorted vector
      * @param a_offset
      * @param index Index vector for the sorted elements
@@ -82,7 +82,7 @@ public class SortFLP
     }
 
     /**
-     * 
+     *
      * @param a Unsorted / Sorted vector.
      * @param a_offset offset of valid data.
      * @param index Index vector for the sorted elements.
@@ -144,10 +144,10 @@ public class SortFLP
     }
 
     /**
-     * 
+     *
      * @param a Unsorted / Sorted vector
      * @param a_offset offset of valid data.
-     * @param L Vector length 
+     * @param L Vector length
      */
     static void SKP_Silk_insertion_sort_increasing_all_values_FLP
     (

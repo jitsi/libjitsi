@@ -57,6 +57,7 @@ public class Packetizer
                     };
     }
 
+    @Override
     public Object[] getControls()
     {
         if (controls == null)
@@ -70,6 +71,7 @@ public class Packetizer
         return controls;
     }
 
+    @Override
     protected Format[] getMatchingOutputFormats(Format in)
     {
         AudioFormat af = (AudioFormat) in;
@@ -92,6 +94,7 @@ public class Packetizer
         return supportedOutputFormats;
     }
 
+    @Override
     public void open()
         throws ResourceUnavailableException
     {

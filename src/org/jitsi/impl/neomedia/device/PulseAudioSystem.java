@@ -282,6 +282,7 @@ public class PulseAudioSystem
         return ret;
     }
 
+    @Override
     protected synchronized void doInitialize()
         throws Exception
     {

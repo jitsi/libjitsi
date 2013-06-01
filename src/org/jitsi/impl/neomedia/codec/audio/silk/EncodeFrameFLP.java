@@ -10,7 +10,7 @@ import java.util.*;
 
 /**
  * Encode frame.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -30,7 +30,7 @@ public class EncodeFrameFLP
      * @param pIn_offset offset of valid data.
      * @return
      */
-    static int SKP_Silk_encode_frame_FLP( 
+    static int SKP_Silk_encode_frame_FLP(
         SKP_Silk_encoder_state_FLP      psEnc,             /* I/O  Encoder state FLP                       */
               byte[]                    pCode,
               int                       pCode_offset,
@@ -82,7 +82,7 @@ public class EncodeFrameFLP
             System.arraycopy(pIn, pIn_offset, pIn_HP, 0, psEnc.sCmn.frame_length);
         }
 
-        
+
 //        /*TEST****************************************************************************/
 //        /**
 //         * test for psEnc.x_buf
@@ -101,7 +101,7 @@ public class EncodeFrameFLP
 //            {
 //                try
 //                {
-//                    
+//
 //                    int res = pin_hp_datain.read(buffer);
 //                    if(res != buffer.length)
 //                    {
@@ -114,7 +114,7 @@ public class EncodeFrameFLP
 //                    // TODO Auto-generated catch block
 //                    e.printStackTrace();
 //                }
-//            } 
+//            }
 //        }
 //        catch (FileNotFoundException e)
 //        {
@@ -137,14 +137,14 @@ public class EncodeFrameFLP
 //            }
 //        }
 //        frame_cnt++;
-/*TEST END****************************************************************************/        
+/*TEST END****************************************************************************/
         if (Define.SWITCH_TRANSITION_FILTERING != 0) {
             /* Ensure smooth bandwidth transitions */
             LPVariableCutoff.SKP_Silk_LP_variable_cutoff( psEnc.sCmn.sLP, pIn_HP_LP, 0, pIn_HP, 0, psEnc.sCmn.frame_length );
         } else {
             System.arraycopy(pIn_HP, 0, pIn_HP_LP, 0, psEnc.sCmn.frame_length);
         }
-        
+
 ///*TEST****************************************************************************/
 //        /**
 //         * test for psEnc.x_buf
@@ -163,7 +163,7 @@ public class EncodeFrameFLP
 //            {
 //                try
 //                {
-//                    
+//
 //                    int res = pin_hp_lp_datain.read(buffer);
 //                    if(res != buffer.length)
 //                    {
@@ -176,7 +176,7 @@ public class EncodeFrameFLP
 //                    // TODO Auto-generated catch block
 //                    e.printStackTrace();
 //                }
-//            } 
+//            }
 //        }
 //        catch (FileNotFoundException e)
 //        {
@@ -199,9 +199,9 @@ public class EncodeFrameFLP
 //            }
 //        }
 //        frame_cnt++;
-///*TEST END****************************************************************************/             
-        
-        
+///*TEST END****************************************************************************/
+
+
 ///*TEST****************************************************************************/
 //        /**
 //         * test for psEnc.x_buf
@@ -220,7 +220,7 @@ public class EncodeFrameFLP
 //            {
 //                try
 //                {
-//                    
+//
 //                    int res = x_buf_datain.read(buffer);
 //                    if(res != 4)
 //                    {
@@ -233,7 +233,7 @@ public class EncodeFrameFLP
 //                    // TODO Auto-generated catch block
 //                    e.printStackTrace();
 //                }
-//            } 
+//            }
 //        }
 //        catch (FileNotFoundException e)
 //        {
@@ -260,7 +260,7 @@ public class EncodeFrameFLP
         /*******************************************/
         /* Copy new frame to front of input buffer */
         /*******************************************/
-        SigProcFLP.SKP_short2float_array( x_frame, x_frame_offset +psEnc.sCmn.la_shape, 
+        SigProcFLP.SKP_short2float_array( x_frame, x_frame_offset +psEnc.sCmn.la_shape,
                 pIn_HP_LP, 0, psEnc.sCmn.frame_length );
 
 ///*TEST****************************************************************************/
@@ -281,7 +281,7 @@ public class EncodeFrameFLP
 //            {
 //                try
 //                {
-//                    
+//
 //                    int res = x_buf_datain.read(buffer);
 //                    if(res != 4)
 //                    {
@@ -294,7 +294,7 @@ public class EncodeFrameFLP
 //                    // TODO Auto-generated catch block
 //                    e.printStackTrace();
 //                }
-//            } 
+//            }
 //        }
 //        catch (FileNotFoundException e)
 //        {
@@ -317,7 +317,7 @@ public class EncodeFrameFLP
 //            }
 //        }
 //        frame_cnt++;
-///*TEST END****************************************************************************/        
+///*TEST END****************************************************************************/
 
         /* Add tiny signal to avoid high CPU load from denormalized floating point numbers */
         for( k = 0; k < 8; k++ ) {
@@ -345,7 +345,7 @@ public class EncodeFrameFLP
 //            {
 //                try
 //                {
-//                    
+//
 //                    int res = x_buf_datain.read(buffer);
 //                    if(res != 4)
 //                    {
@@ -359,7 +359,7 @@ public class EncodeFrameFLP
 //                    // TODO Auto-generated catch block
 //                    e.printStackTrace();
 //                }
-//            } 
+//            }
 //        }
 //        catch (FileNotFoundException e)
 //        {
@@ -382,7 +382,7 @@ public class EncodeFrameFLP
 //            }
 //        }
 //        frame_cnt++;
-/*TEST END****************************************************************************/        
+/*TEST END****************************************************************************/
         /*****************************************/
         /* Find pitch lags, initial LPC analysis */
         /*****************************************/
@@ -391,7 +391,7 @@ public class EncodeFrameFLP
         /************************/
         /* Noise shape analysis */
         /************************/
-        NoiseShapeAnalysisFLP.SKP_Silk_noise_shape_analysis_FLP( psEnc, sEncCtrl, 
+        NoiseShapeAnalysisFLP.SKP_Silk_noise_shape_analysis_FLP( psEnc, sEncCtrl,
                 res_pitch_frame, res_pitch_frame_offset, x_frame, x_frame_offset );
 
         /*****************************************/
@@ -408,7 +408,7 @@ public class EncodeFrameFLP
         /* Process gains                        */
         /****************************************/
         ProcessGainsFLP.SKP_Silk_process_gains_FLP( psEnc, sEncCtrl );
-        
+
         /****************************************/
         /* Low Bitrate Redundant Encoding       */
         /****************************************/
@@ -442,7 +442,7 @@ public class EncodeFrameFLP
         /****************************************/
         /* Initialize arithmetic coder          */
         /****************************************/
-        if( psEnc.sCmn.nFramesInPayloadBuf == 0 ) 
+        if( psEnc.sCmn.nFramesInPayloadBuf == 0 )
         {
             RangeCoder.SKP_Silk_range_enc_init( psEnc.sCmn.sRC );
             psEnc.sCmn.nBytesInPayloadBuf = 0;
@@ -458,9 +458,9 @@ public class EncodeFrameFLP
         /* Update Buffers and State             */
         /****************************************/
         /* Update input buffer */
-        System.arraycopy(psEnc.x_buf, psEnc.x_buf_offset + psEnc.sCmn.frame_length, 
+        System.arraycopy(psEnc.x_buf, psEnc.x_buf_offset + psEnc.sCmn.frame_length,
                 psEnc.x_buf, psEnc.x_buf_offset, psEnc.sCmn.frame_length + psEnc.sCmn.la_shape);
-        
+
         /* Parameters needed for next frame */
         psEnc.sCmn.prev_sigtype = sEncCtrl.sCmn.sigtype;
         psEnc.sCmn.prevLag      = sEncCtrl.sCmn.pitchL[ Define.NB_SUBFR - 1];
@@ -501,20 +501,20 @@ public class EncodeFrameFLP
                 RangeCoder.SKP_Silk_range_enc_wrap_up( psEnc.sCmn.sRC );
                 System.arraycopy(psEnc.sCmn.sRC.buffer, 0, pCode, pCode_offset, nBytes[0]);
 
-                if( frame_terminator > Define.SKP_SILK_MORE_FRAMES && 
+                if( frame_terminator > Define.SKP_SILK_MORE_FRAMES &&
                         pnBytesOut[0] >= nBytes[0] + psEnc.sCmn.LBRR_buffer[ LBRR_idx ].nBytes ) {
                     /* Get old packet and add to payload. */
-                    System.arraycopy(psEnc.sCmn.LBRR_buffer[ LBRR_idx ].payload, 0, 
+                    System.arraycopy(psEnc.sCmn.LBRR_buffer[ LBRR_idx ].payload, 0,
                             pCode, pCode_offset+nBytes[0], psEnc.sCmn.LBRR_buffer[ LBRR_idx ].nBytes);
                     nBytes[0] += psEnc.sCmn.LBRR_buffer[ LBRR_idx ].nBytes;
                 }
                 pnBytesOut[0] = (short) nBytes[0];
-            
+
                 /* Update FEC buffer */
-                System.arraycopy(LBRRpayload, 0, 
+                System.arraycopy(LBRRpayload, 0,
                         psEnc.sCmn.LBRR_buffer[ psEnc.sCmn.oldest_LBRR_idx ].payload, 0, nBytesLBRR[0]);
                 psEnc.sCmn.LBRR_buffer[ psEnc.sCmn.oldest_LBRR_idx ].nBytes = nBytesLBRR[0];
-                /* The below line describes how FEC should be used */ 
+                /* The below line describes how FEC should be used */
                 psEnc.sCmn.LBRR_buffer[ psEnc.sCmn.oldest_LBRR_idx ].usage = sEncCtrl.sCmn.LBRR_usage;
                 psEnc.sCmn.oldest_LBRR_idx = ( ( psEnc.sCmn.oldest_LBRR_idx + 1 ) & Define.LBRR_IDX_MASK );
 
@@ -551,12 +551,12 @@ public class EncodeFrameFLP
         psEnc.sCmn.nBytesInPayloadBuf = nBytes[0];
 
         if( psEnc.speech_activity > DefineFLP.WB_DETECT_ACTIVE_SPEECH_LEVEL_THRES ) {
-            psEnc.sCmn.sSWBdetect.ActiveSpeech_ms = SigProcFIX.SKP_ADD_POS_SAT32( psEnc.sCmn.sSWBdetect.ActiveSpeech_ms, Define.FRAME_LENGTH_MS ); 
+            psEnc.sCmn.sSWBdetect.ActiveSpeech_ms = SigProcFIX.SKP_ADD_POS_SAT32( psEnc.sCmn.sSWBdetect.ActiveSpeech_ms, Define.FRAME_LENGTH_MS );
         }
 
         return( ret );
     }
-    
+
     /**
      * Low Bitrate Redundancy (LBRR) encoding. Reuse all parameters but encode with lower bitrate.
      * @param psEnc Encoder state FLP.
@@ -605,9 +605,9 @@ public class EncodeFrameFLP
             if( psEnc.sCmn.Complexity > 0 && psEnc.sCmn.TargetRate_bps > Rate_only_parameters ) {
                 if( psEnc.sCmn.nFramesInPayloadBuf == 0 ) {
                     /* First frame in packet copy everything */
-//TODO:use clone rather than memory copy.               
+//TODO:use clone rather than memory copy.
                     psEnc.sNSQ_LBRR = (SKP_Silk_nsq_state) psEnc.sNSQ.clone();
-                    
+
                     psEnc.sCmn.LBRRprevLastGainIndex = psEnc.sShape.LastGainIndex;
                     /* Increase Gains to get target LBRR rate */
                     psEncCtrl.sCmn.GainsIndices[ 0 ] += psEnc.sCmn.LBRR_GainIncreases;
@@ -616,7 +616,7 @@ public class EncodeFrameFLP
                 /* Decode to get Gains in sync with decoder */
                 int LBRRprevLastGainIndex_ptr[] = new int[1];
                 LBRRprevLastGainIndex_ptr[0] = psEnc.sCmn.LBRRprevLastGainIndex;
-                GainQuant.SKP_Silk_gains_dequant( Gains_Q16, psEncCtrl.sCmn.GainsIndices, 
+                GainQuant.SKP_Silk_gains_dequant( Gains_Q16, psEncCtrl.sCmn.GainsIndices,
                     LBRRprevLastGainIndex_ptr, psEnc.sCmn.nFramesInPayloadBuf );
                 psEnc.sCmn.LBRRprevLastGainIndex = LBRRprevLastGainIndex_ptr[0];
 
@@ -673,8 +673,8 @@ public class EncodeFrameFLP
                 if( pnBytesOut[0] >= nBytes[0] ) {
                     RangeCoder.SKP_Silk_range_enc_wrap_up( psEnc.sCmn.sRC_LBRR );
                     System.arraycopy(psEnc.sCmn.sRC_LBRR.buffer, 0, pCode, 0, nBytes[0]);
-                    
-                    pnBytesOut[0] = (short) nBytes[0];               
+
+                    pnBytesOut[0] = (short) nBytes[0];
                 } else {
                     /* Not enough space: Payload will be discarded */
                     pnBytesOut[0] = 0;
@@ -692,7 +692,7 @@ public class EncodeFrameFLP
             /* Restore original Gains */
             System.arraycopy(TempGainsIndices, 0, psEncCtrl.sCmn.GainsIndices, 0, Define.NB_SUBFR);
             System.arraycopy(TempGains, 0, psEncCtrl.Gains, 0, Define.NB_SUBFR);
-        
+
             /* Restore LTP scale index and typeoffset */
             psEncCtrl.sCmn.LTP_scaleIndex = LTP_scaleIndex;
             psEnc.sCmn.typeOffsetPrev     = typeOffset;

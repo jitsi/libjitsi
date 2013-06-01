@@ -7,14 +7,14 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class FindLTPFLP 
+public class FindLTPFLP
 {
     /**
-     * 
+     *
      * @param b LTP coefs.
      * @param WLTP Weight for LTP quantization.
      * @param LTPredCodGain LTP coding gain.
@@ -32,7 +32,7 @@ public class FindLTPFLP
         float LTPredCodGain[],          /* O    LTP coding gain                         */
         final float r_first[],          /* I    LPC residual, signal + state for 10 ms  */
         final float r_last[],           /* I    LPC residual, signal + state for 10 ms  */
-        int   r_last_offset,      
+        int   r_last_offset,
         final int   lag[   ],           /* I    LTP lags                                */
         final float Wght[  ],           /* I    Weights                                 */
         final int   subfr_length,       /* I    Subframe length                         */
@@ -54,7 +54,7 @@ public class FindLTPFLP
         int WLTP_ptr_offset = 0;
         r_ptr    = r_first;
         r_ptr_offset = mem_offset;
-        
+
         for( k = 0; k < Define.NB_SUBFR; k++ ) {
             if( k == ( Define.NB_SUBFR >> 1 ) ) { /* Shift residual for last 10 ms */
                 r_ptr = r_last;
@@ -65,24 +65,24 @@ public class FindLTPFLP
 
             CorrMatrixFLP.SKP_Silk_corrMatrix_FLP(lag_ptr, lag_ptr_offset, subfr_length, Define.LTP_ORDER, WLTP_ptr, WLTP_ptr_offset);
             CorrMatrixFLP.SKP_Silk_corrVector_FLP(lag_ptr, lag_ptr_offset, r_ptr, r_ptr_offset, subfr_length, Define.LTP_ORDER, Rr);
-            
+
 
             rr[k] = (float) EnergyFLP.SKP_Silk_energy_FLP(r_ptr, r_ptr_offset, subfr_length);
-            
+
             regu = DefineFLP.LTP_DAMPING * ( rr[ k ] + 1.0f );
-            
+
             RegularizeCorrelationsFLP.SKP_Silk_regularize_correlations_FLP(WLTP_ptr, WLTP_ptr_offset, rr, k, regu, Define.LTP_ORDER);
             SolveLSFLP.SKP_Silk_solve_LDL_FLP( WLTP_ptr, WLTP_ptr_offset, Define.LTP_ORDER, Rr, b_ptr, b_ptr_offset );
 
             /* Calculate residual energy */
-            nrg[ k ] = ResidualEnergyFLP.SKP_Silk_residual_energy_covar_FLP( b_ptr, b_ptr_offset, 
+            nrg[ k ] = ResidualEnergyFLP.SKP_Silk_residual_energy_covar_FLP( b_ptr, b_ptr_offset,
                 WLTP_ptr, WLTP_ptr_offset, Rr, rr[ k ], Define.LTP_ORDER );
 
             temp = Wght[ k ] / ( nrg[ k ] * Wght[ k ] + 0.01f * subfr_length );
             ScaleVectorFLP.SKP_Silk_scale_vector_FLP( WLTP_ptr, WLTP_ptr_offset, temp, Define.LTP_ORDER * Define.LTP_ORDER );
 //            w[ k ] = matrix_ptr( WLTP_ptr, LTP_ORDER / 2, LTP_ORDER / 2, LTP_ORDER );
             w[k] = WLTP_ptr[WLTP_ptr_offset + ((Define.LTP_ORDER/2) * Define.LTP_ORDER + Define.LTP_ORDER/2)];
-        
+
             r_ptr_offset    += subfr_length;
             b_ptr_offset    += Define.LTP_ORDER;
             WLTP_ptr_offset += Define.LTP_ORDER * Define.LTP_ORDER;
@@ -96,7 +96,7 @@ public class FindLTPFLP
                 LPC_res_nrg     += rr[  k ] * Wght[ k ];
                 LPC_LTP_res_nrg += nrg[ k ] * Wght[ k ];
             }
-            
+
             assert( LPC_LTP_res_nrg > 0 );
             LTPredCodGain[0] = 3.0f * MainFLP.SKP_Silk_log2( LPC_res_nrg / LPC_LTP_res_nrg );
         }

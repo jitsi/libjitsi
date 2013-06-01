@@ -8,13 +8,13 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Encode quantization indices of excitation.
- * 
+ *
  * @author Dingxin Xu
  */
-public class EncodePulses 
+public class EncodePulses
 {
     /**
-     * 
+     *
      * @param pulses_comb
      * @param pulses_in
      * @param pulses_in_offset offset of valid data.
@@ -28,7 +28,7 @@ public class EncodePulses
         int         pulses_in_offset,
         int         max_pulses,             /* I    max value for sum of pulses */
         int         len                     /* I    number of output values */
-    ) 
+    )
     {
         int k, sum;
 
@@ -77,7 +77,7 @@ public class EncodePulses
         /****************************/
         /* Calculate number of shell blocks */
         iter = frame_length / Define.SHELL_CODEC_FRAME_LENGTH;
-        
+
         /* Take the absolute value of the pulses */
         for( i = 0; i < frame_length; i+=4 ) {
             abs_pulses[i+0] = q[i+0] > 0 ? q[i+0] : (-q[i+0]);
@@ -94,15 +94,15 @@ public class EncodePulses
 
             while( true ) {
                 /* 1+1 -> 2 */
-                scale_down = combine_and_check( pulses_comb, abs_pulses_ptr, abs_pulses_ptr_offset, 
+                scale_down = combine_and_check( pulses_comb, abs_pulses_ptr, abs_pulses_ptr_offset,
                         TablesPulsesPerBlock.SKP_Silk_max_pulses_table[ 0 ], 8 );
 
                 /* 2+2 -> 4 */
-                scale_down += combine_and_check( pulses_comb, pulses_comb, 0, 
+                scale_down += combine_and_check( pulses_comb, pulses_comb, 0,
                         TablesPulsesPerBlock.SKP_Silk_max_pulses_table[ 1 ], 4 );
 
                 /* 4+4 -> 8 */
-                scale_down += combine_and_check( pulses_comb, pulses_comb, 0, 
+                scale_down += combine_and_check( pulses_comb, pulses_comb, 0,
                         TablesPulsesPerBlock.SKP_Silk_max_pulses_table[ 2 ], 2 );
 
                 /* 8+8 -> 16 */
@@ -113,7 +113,7 @@ public class EncodePulses
 
                 if( scale_down !=0 ) {
                     /* We need to down scale the quantization signal */
-                    nRshifts[ i ]++;                
+                    nRshifts[ i ]++;
                     for( k = 0; k < Define.SHELL_CODEC_FRAME_LENGTH; k++ ) {
                         abs_pulses_ptr[ abs_pulses_ptr_offset + k ] = ( abs_pulses_ptr[ abs_pulses_ptr_offset + k ] >>1 );
                     }
@@ -145,7 +145,7 @@ public class EncodePulses
                 RateLevelIndex = k;
             }
         }
-        RangeCoder.SKP_Silk_range_encoder( psRC, RateLevelIndex, 
+        RangeCoder.SKP_Silk_range_encoder( psRC, RateLevelIndex,
                 TablesPulsesPerBlock.SKP_Silk_rate_levels_CDF[ sigtype ], 0);
 
         /***************************************************/
@@ -158,10 +158,10 @@ public class EncodePulses
             } else {
                 RangeCoder.SKP_Silk_range_encoder( psRC, Define.MAX_PULSES + 1, cdf_ptr, 0);
                 for( k = 0; k < nRshifts[ i ] - 1; k++ ) {
-                    RangeCoder.SKP_Silk_range_encoder( psRC, Define.MAX_PULSES + 1, 
+                    RangeCoder.SKP_Silk_range_encoder( psRC, Define.MAX_PULSES + 1,
                             TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF[ Define.N_RATE_LEVELS - 1 ], 0);
                 }
-                RangeCoder.SKP_Silk_range_encoder( psRC, sum_pulses[ i ], 
+                RangeCoder.SKP_Silk_range_encoder( psRC, sum_pulses[ i ],
                         TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF[ Define.N_RATE_LEVELS - 1 ], 0);
             }
         }

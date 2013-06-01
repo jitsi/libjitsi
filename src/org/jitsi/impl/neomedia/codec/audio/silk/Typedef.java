@@ -11,15 +11,15 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class Typedef 
+public class Typedef
 {
     static int SKP_STR_CASEINSENSITIVE_COMPARE(String x, String y)
     {
         return x.compareTo(y);
     }
-    
-    static final long SKP_int64_MAX =  0x7FFFFFFFFFFFFFFFL;   //  2^63 - 1  
-    static final long SKP_int64_MIN =  0x8000000000000000L;   // -2^63     
+
+    static final long SKP_int64_MAX =  0x7FFFFFFFFFFFFFFFL;   //  2^63 - 1
+    static final long SKP_int64_MIN =  0x8000000000000000L;   // -2^63
     static final int SKP_int32_MAX =  0x7FFFFFFF;             //  2^31 - 1 =  2147483647
     static final int SKP_int32_MIN =  0x80000000;             // -2^31     = -2147483648
     static final short SKP_int16_MAX =  0x7FFF;               //  2^15 - 1 =  32767
@@ -36,7 +36,7 @@ public class Typedef
 
     static final boolean SKP_TRUE =       true;
     static final boolean SKP_FALSE =      false;
-        
+
     /* assertions */
     static void SKP_assert(boolean COND)
     {

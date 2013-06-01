@@ -112,6 +112,7 @@ public class Video4Linux2System
         return captureDeviceInfoIsAdded;
     }
 
+    @Override
     protected void doInitialize()
         throws Exception
     {

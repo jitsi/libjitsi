@@ -9,9 +9,9 @@ package org.jitsi.impl.neomedia.transform.srtp;
 /**
  * The <tt>SRTPContextFactory</tt> creates the initial crypto contexts for RTP
  * and RTCP encryption using the supplied key material.
- * 
+ *
  * @author Bing SU (nova.su@gmail.com)
- * 
+ *
  */
 public class SRTPContextFactory
 {
@@ -44,16 +44,16 @@ public class SRTPContextFactory
                                                masterKey,
                                                masterSalt,
                                                srtpPolicy);
-        defaultContextControl = new SRTCPCryptoContext(0, 
+        defaultContextControl = new SRTCPCryptoContext(0,
                                                        masterKey,
-                                                       masterSalt, 
+                                                       masterSalt,
                                                        srtcpPolicy);
     }
 
     /**
      * Close the transformer engine.
-     * 
-     * The close functions closes all stored default crypto contexts. This 
+     *
+     * The close functions closes all stored default crypto contexts. This
      * deletes key data and forces a cleanup of the crypto contexts.
      */
     public void close()

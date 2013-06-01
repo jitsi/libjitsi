@@ -356,11 +356,11 @@ public class ZRTPTransformEngine
 
     /**
      * Enable or disable paranoid mode.
-     * 
+     *
      * The Paranoid mode controls the behaviour and handling of the SAS verify
-     * flag. If Panaoid mode is set to flase then ZRtp applies the normal 
+     * flag. If Panaoid mode is set to flase then ZRtp applies the normal
      * handling. If Paranoid mode is set to true then the handling is:
-     * 
+     *
      * <ul>
      * <li> Force the SAS verify flag to be false at srtpSecretsOn() callback.
      *      This gives the user interface (UI) the indication to handle the SAS
@@ -369,30 +369,30 @@ public class ZRTPTransformEngine
      *      thus the other also must report the SAS as <b>not verified</b>.</li>
      * <li> ignore the <code>SASVerified()</code> function, thus do not set the
      *      SAS to verified in the ZRTP cache. </li>
-     * <li> Disable the <b>Trusted PBX MitM</b> feature. Just send the 
+     * <li> Disable the <b>Trusted PBX MitM</b> feature. Just send the
      *      <code>SASRelay</code> packet but do not process the relayed data.
      *      This protects the user from a malicious "trusted PBX".</li>
      * </ul>
      * ZRtp performs alls other steps during the ZRTP negotiations as usual, in
      * particular it computes, compares, uses, and stores the retained secrets.
      * This avoids unnecessary warning messages. The user may enable or disable
-     * the Paranoid mode on a call-by-call basis without breaking the key 
+     * the Paranoid mode on a call-by-call basis without breaking the key
      * continuity data.
-     * 
+     *
      * <b>Implementation note:</b></br>
      * An application shall always display the SAS code if the SAS verify flag
-     * is <code>false</code>. The application shall also use mechanisms to 
+     * is <code>false</code>. The application shall also use mechanisms to
      * remind the user to compare the SAS code, for example useing larger fonts,
      * different colours and other display features.
      */
     private boolean enableParanoidMode = false;
 
     private ZRTCPTransformer zrtcpTransformer = null;
-    
+
     /**
      * Count successfully decrypted SRTP packets. Need to decide if RS2 will
      * become valid.
-     * 
+     *
      * @see stopZrtp
      */
     private long zrtpUnprotect;
@@ -406,7 +406,7 @@ public class ZRTPTransformEngine
         ZrtpFortuna secRand = ZrtpFortuna.getInstance();
         byte[] random = new byte[2];
         secRand.nextBytes(random);
-        
+
         senderZrtpSeqNo = random[0];
         senderZrtpSeqNo |= (random[1] << 8);
         senderZrtpSeqNo &= 0x7fff;      // to avoid early roll-over
@@ -582,6 +582,7 @@ public class ZRTPTransformEngine
             // may fail.
             new Timer().schedule(new TimerTask()
             {
+                @Override
                 public void run()
                 {
                     ZRTPTransformEngine.this.muted = false;
@@ -617,8 +618,8 @@ public class ZRTPTransformEngine
 
     /**
      * Close the transformer and underlying transform engine.
-     * 
-     * The close functions closes all stored crypto contexts. This deletes key data 
+     *
+     * The close functions closes all stored crypto contexts. This deletes key data
      * and forces a cleanup of the crypto contexts.
      */
     public void close()
@@ -628,12 +629,12 @@ public class ZRTPTransformEngine
 
     /**
      * Stop ZRTP engine.
-     * 
+     *
      * The ZRTP stack stores RS2 without the valid flag. If we close the ZRTP
      * stream then check if we need to set RS2 to vaild. This is the case if
      * we received less than 10 good SRTP packets. In this case we enable RS2
      * to make sure the ZRTP self-synchronization is active.
-     * 
+     *
      * This handling is needed to comply to an upcoming newer ZRTP RFC.
      */
     public void stopZrtp()
@@ -648,17 +649,17 @@ public class ZRTPTransformEngine
         }
         // The SRTP transformer are usually already closed durin security-off
         // processing. Check here again just in case ...
-        if (srtpOutTransformer != null) 
+        if (srtpOutTransformer != null)
         {
             srtpOutTransformer.close();
             srtpOutTransformer = null;
         }
-        if (srtpInTransformer != null) 
+        if (srtpInTransformer != null)
         {
             srtpInTransformer.close();
             srtpOutTransformer = null;
         }
-        if (zrtcpTransformer != null) 
+        if (zrtcpTransformer != null)
         {
             zrtcpTransformer.close();
             zrtcpTransformer = null;
@@ -1221,8 +1222,8 @@ public class ZRTPTransformEngine
     /**
      * Gets the Hello packet Hash
      *
-     * 
-     * @param  index 
+     *
+     * @param  index
      *         Hello hash of the Hello packet identfied by index. Index must
      *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
      *
@@ -1238,9 +1239,9 @@ public class ZRTPTransformEngine
 
     /**
      * Get the ZRTP Hello Hash data - separate strings.
-     * 
-     * @param  index 
-     *         Hello hash of the Hello packet identfied by index. Index must 
+     *
+     * @param  index
+     *         Hello hash of the Hello packet identfied by index. Index must
      *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
      *
      * @return String array containing the version string at offset 0, the Hello
@@ -1257,12 +1258,12 @@ public class ZRTPTransformEngine
 
     /**
      * Get the peer's Hello Hash data.
-     * 
+     *
      * Use this method to get the peer's Hello Hash data. The method returns the
      * data as a string.
-     * 
-     * @return a String containing the Hello hash value as hex-digits. 
-     *         Peer Hello hash is available after we received a Hello packet 
+     *
+     * @return a String containing the Hello hash value as hex-digits.
+     *         Peer Hello hash is available after we received a Hello packet
      *         from our peer. If peer's hello hash is not available return null.
      */
     public String getPeerHelloHash() {
@@ -1392,17 +1393,17 @@ public class ZRTPTransformEngine
      *
      * For further explanation of paranoid mode refer to the documentation
      * of ZRtp class.
-     * 
+     *
      * @param yesNo
      *    If set to true then paranoid mode is enabled.
      */
     public void setParanoidMode(boolean yesNo) {
         enableParanoidMode = yesNo;
     }
-    
+
     /**
      * Check status of paranoid mode.
-     * 
+     *
      * @return
      *    Returns true if paranoid mode is enabled.
      */
@@ -1414,9 +1415,9 @@ public class ZRTPTransformEngine
      * Check the state of the enrollment mode.
      *
      * If true then we will set the enrollment flag (E) in the confirm
-     * packets and performs the enrollment actions. A MitM (PBX) 
+     * packets and performs the enrollment actions. A MitM (PBX)
      * enrollment service sets this flag.
-     * 
+     *
      * @return status of the enrollmentMode flag.
      */
     public boolean isEnrollmentMode() {
@@ -1549,7 +1550,7 @@ public class ZRTPTransformEngine
      *
      * @return the number of supported ZRTP protocol versions.
      */
-    public int getNumberSupportedVersions() 
+    public int getNumberSupportedVersions()
     {
         return ((zrtpEngine != null) ? zrtpEngine.getNumberSupportedVersions(): 0);
     }
@@ -1559,7 +1560,7 @@ public class ZRTPTransformEngine
      *
      * @return the integer representation of the negotiated ZRTP protocol version.
      */
-    public int getCurrentProtocolVersion() 
+    public int getCurrentProtocolVersion()
     {
         return ((zrtpEngine != null) ? zrtpEngine.getCurrentProtocolVersion() : 0);
     }

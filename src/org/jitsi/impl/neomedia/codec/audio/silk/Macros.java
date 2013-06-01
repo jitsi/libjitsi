@@ -8,11 +8,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Translated from what is an inline header file for general platform.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class Macros 
+public class Macros
 {
     // (a32 * (SKP_int32)((SKP_int16)(b32))) >> 16 output have to be 32bit int
     static int SKP_SMULWB(int a32, int b32)
@@ -96,7 +96,7 @@ public class Macros
         else
             return ( (a^0x80000000) & b & 0x80000000) != 0 ? Integer.MAX_VALUE : a-b;
     }
-        
+
     static int SKP_Silk_CLZ16(short in16)
     {
         return Integer.numberOfLeadingZeros(in16 & 0x0000FFFF) - 16;

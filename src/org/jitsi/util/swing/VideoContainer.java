@@ -69,7 +69,7 @@ public class VideoContainer
      * The indicator which determines whether this instance is aware that
      * {@link #doLayout()}, {@link #repaint()} and/or {@link #validate()} are to
      * be invoked (as soon as {@link #inAddOrRemove} decreases from a positive
-     * number to zero). 
+     * number to zero).
      */
     private boolean validateAndRepaint;
 

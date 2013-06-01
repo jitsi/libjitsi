@@ -26,7 +26,7 @@ class SigProcFIXConstants
     static final int SKP_Silk_PITCH_EST_MIN_COMPLEX =       0;
     static final int SKP_Silk_PITCH_EST_MID_COMPLEX =       1;
     static final int SKP_Silk_PITCH_EST_MAX_COMPLEX =       2;
-    
+
     /* parameter defining the size and accuracy of the piecewise linear  */
     /* cosine approximatin table.                                        */
     static final int LSF_COS_TAB_SZ_FIX =     128;
@@ -34,13 +34,13 @@ class SigProcFIXConstants
 //    (to see rom table value, refer to LSFCosTable.java)
 }
 
-public class SigProcFIX 
+public class SigProcFIX
     extends SigProcFIXConstants
 {
     /**
      * Rotate a32 right by 'rot' bits. Negative rot values result in rotating
      * left. Output is 32bit int.
-     * 
+     *
      * @param a32
      * @param rot
      * @return
@@ -367,14 +367,14 @@ public class SigProcFIX
         else
             return ( (a^0x8000000000000000L) & b & 0x8000000000000000L) != 0 ? Long.MAX_VALUE : a-b;
     }
-    
-    /* Saturation for positive input values */ 
+
+    /* Saturation for positive input values */
     static long SKP_POS_SAT32(long a)
     {
         return ((a) > Integer.MAX_VALUE ? Integer.MAX_VALUE : (a));
     }
 
-    /* Add with saturation for positive input values */ 
+    /* Add with saturation for positive input values */
     static byte SKP_ADD_POS_SAT8(byte a, byte b)
     {
         return ((a+b) & 0x80) != 0? Byte.MAX_VALUE  : (byte)(a+b);
@@ -781,11 +781,11 @@ public class SigProcFIX
     }
 
     /**
-     * PSEUDO-RANDOM GENERATOR                                                          
-     * Make sure to store the result as the seed for the next call (also in between     
-     * frames), otherwise result won't be random at all. When only using some of the    
-     * bits, take the most significant bits by right-shifting. Do not just mask off     
-     * the lowest bits. 
+     * PSEUDO-RANDOM GENERATOR
+     * Make sure to store the result as the seed for the next call (also in between
+     * frames), otherwise result won't be random at all. When only using some of the
+     * bits, take the most significant bits by right-shifting. Do not just mask off
+     * the lowest bits.
      * SKP_RAND(seed)                   (SKP_MLA_ovflw(907633515, (seed), 196314165))
      * @param seed
      * @return
@@ -797,9 +797,9 @@ public class SigProcFIX
 
     // Add some multiplication functions that can be easily mapped to ARM.
 
-//       SKP_SMMUL: Signed top word multiply. 
-//            ARMv6        2 instruction cycles. 
-//            ARMv3M+        3 instruction cycles. use SMULL and ignore LSB registers.(except xM) 
+//       SKP_SMMUL: Signed top word multiply.
+//            ARMv6        2 instruction cycles.
+//            ARMv3M+        3 instruction cycles. use SMULL and ignore LSB registers.(except xM)
 //  #define SKP_SMMUL(a32, b32)            (SKP_int32)SKP_RSHIFT(SKP_SMLAL(SKP_SMULWB((a32), (b32)), (a32), SKP_RSHIFT_ROUND((b32), 16)), 16)
 //     the following seems faster on x86
 //    #define SKP_SMMUL(a32, b32)              (SKP_int32)SKP_RSHIFT64(SKP_SMULL((a32), (b32)), 32)

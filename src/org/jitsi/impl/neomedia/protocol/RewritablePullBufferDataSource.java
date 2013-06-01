@@ -115,6 +115,7 @@ public class RewritablePullBufferDataSource
      * @return an array of <tt>PullBufferStream</tt> instances with enabled mute
      * support
      */
+    @Override
     public PullBufferStream[] getStreams()
     {
         PullBufferStream[] streams = dataSource.getStreams();

@@ -47,8 +47,8 @@ class PParity
  * @param pitch_index   input : index for which parity is computed
  * @return              parity bit (XOR of 6 MSB bits)
  */
-static int parity_pitch(   
-  int pitch_index     
+static int parity_pitch(
+  int pitch_index
 )
 {
     int temp, sum, i, bit;
@@ -72,9 +72,9 @@ static int parity_pitch(
  * @param parity        input : parity bit
  * @return              0 = no error, 1= error
  */
-static int check_parity_pitch(  
-  int pitch_index,      
-  int parity            
+static int check_parity_pitch(
+  int pitch_index,
+  int parity
 )
 {
     int temp, sum, i, bit;

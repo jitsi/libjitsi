@@ -98,7 +98,7 @@ public abstract class PushBufferDataSourceDelegate<T extends DataSource>
 
     /**
      * Implements {@link DataSource#getLocator()}. Delegates to the wrapped
-     * <tt>DataSource</tt>. 
+     * <tt>DataSource</tt>.
      *
      * @return a <tt>MediaLocator</tt> value which describes the locator of the
      * wrapped <tt>DataSource</tt>

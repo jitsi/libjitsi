@@ -253,7 +253,7 @@ public class AudioMediaStreamImpl
          * There isn't a particular reason why we'd choose 100 or 120. It may be
          * that 120 is divided by 30 (which is used by iLBC, for example) and
          * 100 isn't. Anyway, what matters most is that it's proportional to the
-         * latency of the playback. 
+         * latency of the playback.
          */
         long bufferLength = 120;
 

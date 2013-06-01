@@ -97,10 +97,10 @@ public class AudioLevelEffect
                 eventDispatcher.setAudioLevelListener(audioLevelListener);
         }
     }
-    
+
     /**
      * Returns audio level listener.
-     * 
+     *
      * @return audio level listener or <tt>null</tt> if not exist
      */
     public SimpleAudioLevelListener getAudioLevelListener()
@@ -227,7 +227,7 @@ public class AudioLevelEffect
         /*
          * At long last, do the job which this AudioLevelEffect exists for i.e.
          * deliver the data to eventDispatcher so that its audio level gets
-         * calculated and delivered to audioEventListener. 
+         * calculated and delivered to audioEventListener.
          */
         eventDispatcher.addData(outputBuffer);
 

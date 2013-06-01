@@ -4,9 +4,9 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  *
- * 
+ *
  * Some of the code in this class is derived from ccRtp's SRTP implementation,
- * which has the following copyright notice: 
+ * which has the following copyright notice:
  *
   Copyright (C) 2004-2006 the Minisip Team
 
@@ -43,23 +43,23 @@ import org.jitsi.impl.neomedia.*;
  * There can be multiple SRTP sources in one SRTP session. And each SRTP stream
  * has a corresponding SRTPCryptoContext object, identified by SSRC. In this
  * way, different sources can be protected independently.
- * 
+ *
  * SRTPCryptoContext class acts as a manager class and maintains all the
  * information used in SRTP transformation. It is responsible for deriving
- * encryption keys / salting keys / authentication keys from master keys. And 
+ * encryption keys / salting keys / authentication keys from master keys. And
  * it will invoke certain class to encrypt / decrypt (transform / reverse
  * transform) RTP packets. It will hold a replay check db and do replay check
  * against incoming packets.
- * 
+ *
  * Refer to section 3.2 in RFC3711 for detailed description of cryptographic
  * context.
- * 
+ *
  * Cryptographic related parameters, i.e. encryption mode / authentication mode,
  * master encryption key and master salt key are determined outside the scope
  * of SRTP implementation. They can be assigned manually, or can be assigned
  * automatically using some key management protocol, such as MIKEY (RFC3830) or
  * Phil Zimmermann's ZRTP protocol.
- * 
+ *
  * @author Bing SU (nova.su@gmail.com)
  */
 public class SRTCPCryptoContext
@@ -68,27 +68,27 @@ public class SRTCPCryptoContext
      * The replay check windows size
      */
     private static final long REPLAY_WINDOW_SIZE = 64;
-    
+
     /**
      * RTCP SSRC of this cryptographic context
      */
     private long ssrcCtx;
-    
+
     /**
      * Master key identifier
      */
     private byte[] mki;
-   
+
     /**
      * Index received so far
      */
     private int receivedIndex = 0;
-    
+
     /**
      * Index sent so far
      */
     private int sentIndex = 0;
-    
+
     /**
      * Bit mask for replay check
      */
@@ -98,7 +98,7 @@ public class SRTCPCryptoContext
      * Master encryption key
      */
     private byte[] masterKey;
-    
+
     /**
      * Master salting key
      */
@@ -113,7 +113,7 @@ public class SRTCPCryptoContext
      * Derived session authentication key
      */
     private byte[] authKey;
-    
+
     /**
      * Derived session salting key
      */
@@ -123,26 +123,26 @@ public class SRTCPCryptoContext
      * Encryption / Authentication policy for this session
      */
     private final SRTPPolicy policy;
-    
+
     /**
      * The HMAC object we used to do packet authentication
      */
     private Mac mac;             // used for various HMAC computations
-    
+
     // The symmetric cipher engines we need here
     private BlockCipher cipher = null;
     private BlockCipher cipherF8 = null; // used inside F8 mode only
-    
+
     // implements the counter cipher mode for RTP according to RFC 3711
     private final SRTPCipherCTR cipherCtr = new SRTPCipherCTR();
 
     // Here some fields that a allocated here or in constructor. The methods
     // use these fields to avoid too many new operations
-    
+
     private final byte[] tagStore;
     private final byte[] ivStore = new byte[16];
     private final byte[] rbStore = new byte[4];
-    
+
     // this is some working store, used by some methods to avoid new operations
     // the methods must use this only to store some reults for immediate processing
     private final byte[] tempStore = new byte[100];
@@ -150,7 +150,7 @@ public class SRTCPCryptoContext
     /**
      * Construct an empty SRTPCryptoContext using ssrc.
      * The other parameters are set to default null value.
-     * 
+     *
      * @param ssrc SSRC of this SRTPCryptoContext
      */
     public SRTCPCryptoContext(long ssrcIn)
@@ -168,7 +168,7 @@ public class SRTCPCryptoContext
 
     /**
      * Construct a normal SRTPCryptoContext based on the given parameters.
-     * 
+     *
      * @param ssrc
      *            the RTP SSRC that this SRTP cryptographic context protects.
      * @param masterKey
@@ -186,7 +186,7 @@ public class SRTCPCryptoContext
      */
     @SuppressWarnings("fallthrough")
     public SRTCPCryptoContext(long ssrcIn,
-            byte[] masterK, byte[] masterS, SRTPPolicy policyIn) 
+            byte[] masterK, byte[] masterS, SRTPPolicy policyIn)
     {
         ssrcCtx = ssrcIn;
         mki = null;
@@ -213,7 +213,7 @@ public class SRTCPCryptoContext
         case SRTPPolicy.AESCM_ENCRYPTION:
             cipher = new AESFastEngine();
             encKey = new byte[this.policy.getEncKeyLength()];
-            saltKey = new byte[this.policy.getSaltKeyLength()];    
+            saltKey = new byte[this.policy.getSaltKeyLength()];
             break;
 
         case SRTPPolicy.TWOFISHF8_ENCRYPTION:
@@ -225,7 +225,7 @@ public class SRTCPCryptoContext
             saltKey = new byte[this.policy.getSaltKeyLength()];
             break;
         }
-        
+
         switch (policy.getAuthType()) {
         case SRTPPolicy.NULL_AUTHENTICATION:
             authKey = null;
@@ -237,7 +237,7 @@ public class SRTCPCryptoContext
             authKey = new byte[policy.getAuthKeyLength()];
             tagStore = new byte[mac.getMacSize()];
             break;
-            
+
         case SRTPPolicy.SKEIN_AUTHENTICATION:
             mac = new SkeinMac();
             authKey = new byte[policy.getAuthKeyLength()];
@@ -251,24 +251,24 @@ public class SRTCPCryptoContext
 
     /**
      * Close the crypto context.
-     * 
-     * The close functions deletes key data and performs a cleanup of the 
+     *
+     * The close functions deletes key data and performs a cleanup of the
      * crypto context.
-     * 
+     *
      * Clean up key data, maybe this is the second time. However, sometimes
      * we cannot know if the CryptoContext was used and the application called
      * deriveSrtpKeys(...) tah would have cleaned the key data.
-     * 
+     *
      */
     public void close()
     {
         Arrays.fill(masterKey, (byte)0);
-        Arrays.fill(masterSalt, (byte)0);        
+        Arrays.fill(masterSalt, (byte)0);
     }
 
     /**
      * Get the authentication tag length of this SRTP cryptographic context
-     * 
+     *
      * @return the authentication tag length of this SRTP cryptographic context
      */
     public int getAuthTagLength()
@@ -278,7 +278,7 @@ public class SRTCPCryptoContext
 
     /**
      * Get the MKI length of this SRTP cryptographic context
-     * 
+     *
      * @return the MKI length of this SRTP cryptographic context
      */
     public int getMKILength()
@@ -299,27 +299,27 @@ public class SRTCPCryptoContext
     }
 
     /**
-     * Transform a RTP packet into a SRTP packet. 
+     * Transform a RTP packet into a SRTP packet.
      * This method is called when a normal RTP packet ready to be sent.
-     * 
+     *
      * Operations done by the transformation may include: encryption, using
      * either Counter Mode encryption, or F8 Mode encryption, adding
      * authentication tag, currently HMC SHA1 method.
-     * 
+     *
      * Both encryption and authentication functionality can be turned off
      * as long as the SRTPPolicy used in this SRTPCryptoContext is requires no
      * encryption and no authentication. Then the packet will be sent out
      * untouched. However this is not encouraged. If no SRTP feature is enabled,
      * then we shall not use SRTP TransformConnector. We should use the original
-     * method (RTPManager managed transportation) instead.  
-     * 
+     * method (RTPManager managed transportation) instead.
+     *
      * @param pkt the RTP packet that is going to be sent out
      */
     public void transformPacket(RawPacket pkt)
     {
         boolean encrypt = false;
         /* Encrypt the packet using Counter Mode encryption */
-        if (policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION || 
+        if (policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION ||
                 policy.getEncType() == SRTPPolicy.TWOFISH_ENCRYPTION)
         {
             processPacketAESCM(pkt, sentIndex);
@@ -336,13 +336,13 @@ public class SRTCPCryptoContext
         int index = 0;
         if (encrypt)
             index = sentIndex | 0x80000000;
-        
+
         // Grow packet storage in one step
         pkt.grow(4 + policy.getAuthTagLength());
 
         // Authenticate the packet
         // The authenticate method gets the index via parameter and stores
-        // it in network order in rbStore variable. 
+        // it in network order in rbStore variable.
         if (policy.getAuthType() != SRTPPolicy.NULL_AUTHENTICATION)
         {
             authenticatePacket(pkt, index);
@@ -356,20 +356,20 @@ public class SRTCPCryptoContext
     /**
      * Transform a SRTCP packet into a RTCP packet.
      * This method is called when a SRTCP packet was received.
-     * 
+     *
      * Operations done by the this operation include:
      * Authentication check, Packet replay check and decryption.
-     * 
+     *
      * Both encryption and authentication functionality can be turned off
      * as long as the SRTPPolicy used in this SRTPCryptoContext requires no
      * encryption and no authentication. Then the packet will be sent out
      * untouched. However this is not encouraged. If no SRTCP feature is enabled,
      * then we shall not use SRTP TransformConnector. We should use the original
-     * method (RTPManager managed transportation) instead.  
-     * 
-     * @param pkt the received RTCP packet 
+     * method (RTPManager managed transportation) instead.
+     *
+     * @param pkt the received RTCP packet
      * @return true if the packet can be accepted
-     *         false if authentication or replay check failed 
+     *         false if authentication or replay check failed
      */
     public boolean reverseTransformPacket(RawPacket pkt)
     {
@@ -381,7 +381,7 @@ public class SRTCPCryptoContext
             decrypt = true;
 
         int index = indexEflag & ~0x80000000;
-        
+
         /* Replay control */
         if (!checkReplay(index))
         {
@@ -433,7 +433,7 @@ public class SRTCPCryptoContext
     }
 
     /**
-     * Perform Counter Mode AES encryption / decryption 
+     * Perform Counter Mode AES encryption / decryption
      * @param pkt the RTP packet to be encrypted / decrypted
      */
     public void processPacketAESCM(RawPacket pkt, int index)
@@ -470,7 +470,7 @@ public class SRTCPCryptoContext
 
         ivStore[14] = ivStore[15] = 0;
 
-        // Encrypted part excludes fixed header (8 bytes)  
+        // Encrypted part excludes fixed header (8 bytes)
         final int payloadOffset = 8;
         final int payloadLength = pkt.getLength() - payloadOffset;
 
@@ -494,7 +494,7 @@ public class SRTCPCryptoContext
         ivStore[1] = 0;
         ivStore[2] = 0;
         ivStore[3] = 0;
-      
+
         // Need the encryption flag
         index = index | 0x80000000;
 
@@ -503,12 +503,12 @@ public class SRTCPCryptoContext
         ivStore[5] = (byte) (index >> 16);
         ivStore[6] = (byte) (index >> 8);
         ivStore[7] = (byte) index;
-        
+
         // The fixed header follows and fills the rest of the IV
         System.arraycopy(pkt.getBuffer(), pkt.getOffset(), ivStore, 8, 8);
 
         // Encrypted part excludes fixed header (8 bytes), index (4 bytes), and
-        // authentication tag (variable according to policy)  
+        // authentication tag (variable according to policy)
         final int payloadOffset = 8;
         final int payloadLength
             = pkt.getLength() - (4 + policy.getAuthTagLength());
@@ -520,7 +520,7 @@ public class SRTCPCryptoContext
 
     /**
      * Authenticate a packet.
-     * 
+     *
      * Calculated authentication tag is stored in tagStore area.
      *
      * @param pkt the RTP packet to be authenticated
@@ -539,13 +539,13 @@ public class SRTCPCryptoContext
 
     /**
      * Checks if a packet is a replayed on based on its sequence number.
-     * 
+     *
      * This method supports a 64 packet history relative the the given
      * sequence number.
      *
-     * Sequence Number is guaranteed to be real (not faked) through 
+     * Sequence Number is guaranteed to be real (not faked) through
      * authentication.
-     * 
+     *
      * @param index index number of the SRTCP packet
      * @return true if this sequence number indicates the packet is not a
      * replayed one, false if not
@@ -587,8 +587,8 @@ public class SRTCPCryptoContext
     /**
      * Compute the initialization vector, used later by encryption algorithms,
      * based on the label.
-     * 
-     * @param label label specified for each type of iv 
+     *
+     * @param label label specified for each type of iv
      */
     private void computeIv(byte label)
     {
@@ -602,7 +602,7 @@ public class SRTCPCryptoContext
 
     /**
      * Derives the srtcp session keys from the master key.
-     * 
+     *
      */
     public void deriveSrtcpKeys()
     {
@@ -658,9 +658,9 @@ public class SRTCPCryptoContext
 
     /**
      * Update the SRTP packet index.
-     * 
-     * This method is called after all checks were successful. 
-     * 
+     *
+     * This method is called after all checks were successful.
+     *
      * @param index index number of the accepted packet
      */
     private void update(int index)
@@ -683,16 +683,16 @@ public class SRTCPCryptoContext
 
     /**
      * Derive a new SRTPCryptoContext for use with a new SSRC
-     * 
+     *
      * This method returns a new SRTPCryptoContext initialized with the data of
      * this SRTPCryptoContext. Replacing the SSRC, Roll-over-Counter, and the
      * key derivation rate the application cab use this SRTPCryptoContext to
      * encrypt / decrypt a new stream (Synchronization source) inside one RTP
      * session.
-     * 
+     *
      * Before the application can use this SRTPCryptoContext it must call the
      * deriveSrtpKeys method.
-     * 
+     *
      * @param ssrc
      *            The SSRC for this context
      * @return a new SRTPCryptoContext with all relevant data set.

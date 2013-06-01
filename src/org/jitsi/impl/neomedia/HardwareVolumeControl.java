@@ -90,6 +90,7 @@ public class HardwareVolumeControl
     /**
      * Modifies the hardware microphone sensibility (hardware amplification).
      */
+    @Override
     protected void updateHardwareVolume()
     {
         // Gets the selected input dvice UID.
@@ -209,6 +210,7 @@ public class HardwareVolumeControl
      *
      * @see org.jitsi.service.neomedia.VolumeControl
      */
+    @Override
     public float getVolume()
     {
         String deviceUID = getCaptureDeviceUID();

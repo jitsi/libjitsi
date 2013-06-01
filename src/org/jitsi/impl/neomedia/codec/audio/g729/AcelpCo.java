@@ -48,7 +48,7 @@ class AcelpCo
  *
  * @param x             (i)     :Target vector
  * @param h             (i)     :Impulse response of filters
- * @param t0            (i)     :Pitch lag   
+ * @param t0            (i)     :Pitch lag
  * @param pitch_sharp   (i)     :Last quantized pitch gain
  * @param i_subfr       (i)     :Indicator of 1st subframe,
  * @param code          (o)     :Innovative codebook
@@ -56,15 +56,15 @@ class AcelpCo
  * @param sign          (o)     :Signs of 4 pulses
  * @return              index of pulses positions
  */
-int ACELP_codebook(    
-  float x[],            
-  float h[],          
-  int   t0,          
-  float pitch_sharp,    
-  int i_subfr,         
-  float code[],       
-  float y[],            
-  IntReference sign             
+int ACELP_codebook(
+  float x[],
+  float h[],
+  int   t0,
+  float pitch_sharp,
+  int i_subfr,
+  float code[],
+  float y[],
+  IntReference sign
 )
 {
   int DIM_RR = Ld8k.DIM_RR;
@@ -108,15 +108,15 @@ int ACELP_codebook(
     return index;
 }
 
-/**                                          
+/**
  * Compute  correlations of h[]  needed for the codebook search.
  *
  * @param h     (i) :Impulse response of filters
- * @param rr    (o) :Correlations of H[] 
+ * @param rr    (o) :Correlations of H[]
  */
 private void cor_h(
-  float[] h,     
-  float[] rr   
+  float[] h,
+  float[] rr
 )
 {
   int MSIZE = Ld8k.MSIZE;
@@ -401,19 +401,19 @@ private int extra;
  * @param rr        (i) : autocorrelations of impulse response h[]
  * @param h         (i) : impulse response of filters
  * @param cod       (o) : selected algebraic codeword
- * @param y         (o) : output: selected algebraic codeword 
+ * @param y         (o) : output: selected algebraic codeword
  * @param signs     (o) : signs of 4 pulses
  * @param i_subfr   (i) subframe flag
  * @return          pulse positions
  */
-private int d4i40_17(    
-  float dn[],         
-  float rr[],          
-  float h[],         
-  float cod[],         
-  float y[],           
-  IntReference   signs,        
-  int   i_subfr         
+private int d4i40_17(
+  float dn[],
+  float rr[],
+  float h[],
+  float cod[],
+  float y[],
+  IntReference   signs,
+  int   i_subfr
 )
 {
     int L_SUBFR = Ld8k.L_SUBFR;

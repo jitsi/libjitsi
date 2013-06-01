@@ -8,7 +8,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Correlation matrix computations for LS estimate.
- * 
+ *
  * @author Dingxin Xu
  */
 public class CorrMatrixFLP
@@ -36,14 +36,14 @@ public class CorrMatrixFLP
         int lag;
         final float []ptr1;
         int ptr1_offset;
-        
+
         ptr1 = x; /* Points to first sample of column 0 of X: X[:,0] */
         ptr1_offset = x_offset + Order-1;
         for( lag = 0; lag < Order; lag++ ) {
             /* Calculate X[:,lag]'*t */
             Xt[lag] = (float) InnerProductFLP.SKP_Silk_inner_product_FLP(ptr1, ptr1_offset, t, t_offset, L);
             ptr1_offset--;                                 /* Next column of X */
-        }   
+        }
     }
 
     /**
@@ -71,19 +71,19 @@ public class CorrMatrixFLP
 
         ptr1 = x; /* First sample of column 0 of X */
         ptr1_offset = x_offset + Order-1;
-        
+
         energy = EnergyFLP.SKP_Silk_energy_FLP(ptr1, ptr1_offset, L);/* X[:,0]'*X[:,0] */
-        
+
 //        matrix_ptr( XX, 0, 0, Order ) = ( SKP_float )energy;
         XX[XX_offset + 0]  = (float) energy;
-        
+
         for( j = 1; j < Order; j++ ) {
             /* Calculate X[:,j]'*X[:,j] */
             energy += ptr1[ ptr1_offset -j ] * ptr1[ ptr1_offset-j ] - ptr1[ ptr1_offset + L - j ] * ptr1[ ptr1_offset + L - j ];
 //            matrix_ptr( XX, j, j, Order ) = ( SKP_float )energy;
             XX[XX_offset + j*Order+j] = (float) energy;
         }
-     
+
         ptr2 = x;                     /* First sample of column 1 of X */
         ptr2_offset = x_offset + Order - 2;
         for( lag = 1; lag < Order; lag++ ) {

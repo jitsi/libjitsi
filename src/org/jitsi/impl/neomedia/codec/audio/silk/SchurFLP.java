@@ -7,21 +7,21 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class SchurFLP 
+public class SchurFLP
 {
     /**
-     * 
+     *
      * @param refl_coef reflection coefficients (length order)
      * @param ref1_coef_offset offset of valid data.
      * @param auto_corr autotcorreation sequence (length order+1)
      * @param auto_corr_offset offset of valid data.
      * @param order order
      */
-    static void SKP_Silk_schur_FLP(  
+    static void SKP_Silk_schur_FLP(
             float       refl_coef[],        /* O    reflection coefficients (length order)      */
             int ref1_coef_offset,
             float auto_corr[],        /* I    autotcorreation sequence (length order+1)   */

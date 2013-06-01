@@ -60,6 +60,7 @@ public class JNIEncoder
      *
      * @see AbstractCodecExt#doClose()
      */
+    @Override
     protected void doClose()
     {
         g722_encoder_close(encoder);
@@ -70,6 +71,7 @@ public class JNIEncoder
      * @throws ResourceUnavailableException
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected void doOpen()
         throws ResourceUnavailableException
     {
@@ -85,6 +87,7 @@ public class JNIEncoder
      * @return
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
+    @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
         int inputOffset = inputBuffer.getOffset();

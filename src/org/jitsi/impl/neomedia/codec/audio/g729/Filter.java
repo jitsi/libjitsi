@@ -53,11 +53,11 @@ class Filter
  * @param l         input : dimension of all vectors
  */
 static void convolve(
- float x[],        
+ float x[],
  int x_offset,
- float h[],            
- float y[],            
- int  l              
+ float h[],
+ float y[],
+ int  l
 )
 {
    float temp;
@@ -77,7 +77,7 @@ static void convolve(
  *
  * @param a          input : predictor coefficients a[0:m]
  * @param a_offset   input : predictor coefficients a offset
- * @param x          input : excitation signal  
+ * @param x          input : excitation signal
  * @param x_offset   input : excitation signal offset
  * @param y          output: filtered output signal
  * @param y_offset   output: filtered output signal offset
@@ -87,16 +87,16 @@ static void convolve(
  * @param update     input : 0 = no memory update, 1 = update
  */
 static void syn_filt(
- float a[],     
+ float a[],
  int a_offset,
- float x[],     
+ float x[],
  int x_offset,
- float y[],    
+ float y[],
  int y_offset,
- int  l,       
- float mem[],   
+ int  l,
+ float mem[],
  int mem_offset,
- int  update    
+ int  update
 )
 {
    int L_SUBFR = Ld8k.L_SUBFR;
@@ -141,14 +141,14 @@ static void syn_filt(
  * @param y_offset  input : output signal y offset
  * @param l         input : dimension of x and y
  */
-static void residu(    
- float[] a,      
+static void residu(
+ float[] a,
  int a_offset,
- float[] x,      
+ float[] x,
  int x_offset,
- float[] y,  
+ float[] y,
  int y_offset,
- int  l      
+ int  l
 )
 {
   int M = Ld8k.M;

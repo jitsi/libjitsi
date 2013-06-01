@@ -7,11 +7,11 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class BwexpanderFLP 
+public class BwexpanderFLP
 {
     /**
      * Chirp (bw expand) LP AR filter.
@@ -20,7 +20,7 @@ public class BwexpanderFLP
      * @param d length of ar.
      * @param chirp chirp factor (typically in range (0..1) ).
      */
-    static void SKP_Silk_bwexpander_FLP( 
+    static void SKP_Silk_bwexpander_FLP(
         float[]           ar,        /* I/O  AR filter to be expanded (without leading 1)    */
         int ar_offset,
         final int       d,          /* I    length of ar                                    */
@@ -30,7 +30,7 @@ public class BwexpanderFLP
         int   i;
         float cfac = chirp;
 
-        for( i = 0; i < d - 1; i++ ) 
+        for( i = 0; i < d - 1; i++ )
         {
             ar[ ar_offset+i ] *=  cfac;
             cfac    *=  chirp;

@@ -9,7 +9,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 import java.util.*;
 
 /**
- * 
+ *
  * @author Dingxin Xu
  */
 class NSQDelDecStruct
@@ -42,7 +42,7 @@ class NSQDelDecStruct
 }
 
 /**
- * 
+ *
  * @author Dingxin Xu
  */
 class NSQ_sample_struct implements Cloneable
@@ -52,8 +52,9 @@ class NSQ_sample_struct implements Cloneable
     int xq_Q14;
     int LF_AR_Q12;
     int sLTP_shp_Q10;
-    int LPC_exc_Q16;    
-    public Object clone() 
+    int LPC_exc_Q16;
+    @Override
+    public Object clone()
     {
         NSQ_sample_struct clone = null;
         try {
@@ -67,10 +68,10 @@ class NSQ_sample_struct implements Cloneable
 }
 
 /**
- * 
+ *
  * @author Dingxin Xu
  */
-public class NSQDelDec 
+public class NSQDelDec
 {
     static void SKP_Silk_NSQ_del_dec(
         SKP_Silk_encoder_state    psEncC,             /* I/O  Encoder State                       */
@@ -126,10 +127,10 @@ public class NSQDelDec
       //TODO: use a local copy of the parameter short x[], which is supposed to be input;
         short[] x_tmp = x.clone();
         int     x_tmp_offset = 0;
-//TODO: use a local copy of the parameter byte[] q, which is supposed to be output;     
+//TODO: use a local copy of the parameter byte[] q, which is supposed to be output;
         byte[]  q_tmp = q.clone();
         int     q_tmp_offset = 0;
-        
+
         /* Initialize delayed decision states */
 //        SKP_memset( psDelDec, 0, psEncC.nStatesDelayedDecision * sizeof( NSQ_del_dec_struct ) );
 //TODO:
@@ -156,7 +157,7 @@ public class NSQDelDec
         /* For voiced frames limit the decision delay to lower than the pitch lag */
         if( psEncCtrlC.sigtype == Define.SIG_TYPE_VOICED ) {
             for( k = 0; k < Define.NB_SUBFR; k++ ) {
-                decisionDelay = ( decisionDelay < (psEncCtrlC.pitchL[ k ] - Define.LTP_ORDER / 2 - 1) ? 
+                decisionDelay = ( decisionDelay < (psEncCtrlC.pitchL[ k ] - Define.LTP_ORDER / 2 - 1) ?
                         decisionDelay:(psEncCtrlC.pitchL[ k ] - Define.LTP_ORDER / 2 - 1));
             }
         }
@@ -205,7 +206,7 @@ public class NSQDelDec
                                 assert( psDelDec[ i ].RD_Q10 >= 0 );
                             }
                         }
-                        
+
                         /* Copy final part of signals from winner state to output and long-term filter states */
                         psDD = psDelDec[ Winner_ind ];
                         last_smple_idx = smpl_buf_idx + decisionDelay;
@@ -214,11 +215,11 @@ public class NSQDelDec
 //                            q[   i - decisionDelay ] = ( SKP_int )SKP_RSHIFT( psDD.Q_Q10[ last_smple_idx ], 10 );
                             q_tmp[   q_tmp_offset + i - decisionDelay ] = (byte) ( psDD.Q_Q10[ last_smple_idx ] >> 10 );
 
-//                            pxq[ i - decisionDelay ] = ( SKP_int16 )SKP_SAT16( SKP_RSHIFT_ROUND( 
-//                                SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ], 
+//                            pxq[ i - decisionDelay ] = ( SKP_int16 )SKP_SAT16( SKP_RSHIFT_ROUND(
+//                                SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ],
 //                                psDD.Gain_Q16[ last_smple_idx ] ), 10 ) );
-                            pxq[ pxq_offset + i - decisionDelay ] = (short) SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( 
-                                    Macros.SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ], 
+                            pxq[ pxq_offset + i - decisionDelay ] = (short) SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND(
+                                    Macros.SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ],
                                     psDD.Gain_Q16[ last_smple_idx ] ), 10 ) );
                             NSQ.sLTP_shp_Q10[ NSQ.sLTP_shp_buf_idx - decisionDelay + i ] = psDD.Shape_Q10[ last_smple_idx ];
                         }
@@ -229,10 +230,10 @@ public class NSQDelDec
                     /* Rewhiten with new A coefs */
                     start_idx = psEncC.frame_length - lag - psEncC.predictLPCOrder - Define.LTP_ORDER / 2;
                     start_idx = SigProcFIX.SKP_LIMIT_int( start_idx, 0, psEncC.frame_length - psEncC.predictLPCOrder );
-                    
+
 //                    SKP_memset( FiltState, 0, psEncC.predictLPCOrder * sizeof( SKP_int32 ) );
                     Arrays.fill(FiltState, 0, psEncC.predictLPCOrder, 0);
-                    MA.SKP_Silk_MA_Prediction( NSQ.xq, start_idx + k * psEncC.subfr_length, 
+                    MA.SKP_Silk_MA_Prediction( NSQ.xq, start_idx + k * psEncC.subfr_length,
                         A_Q12, A_Q12_offset, FiltState, sLTP, start_idx, psEncC.frame_length - start_idx, psEncC.predictLPCOrder );
 
                     NSQ.sLTP_buf_idx = psEncC.frame_length;
@@ -245,18 +246,18 @@ public class NSQDelDec
             HarmShapeFIRPacked_Q14  =                        ( HarmShapeGain_Q14[ k ] >> 2 );
             HarmShapeFIRPacked_Q14 |= ( ( HarmShapeGain_Q14[ k ] >> 1 ) << 16 );
 
-            SKP_Silk_nsq_del_dec_scale_states( NSQ, psDelDec, x_tmp, x_tmp_offset, x_sc_Q10, 
+            SKP_Silk_nsq_del_dec_scale_states( NSQ, psDelDec, x_tmp, x_tmp_offset, x_sc_Q10,
                 subfr_length, sLTP, sLTP_Q16, k, psEncC.nStatesDelayedDecision, smpl_buf_idx,
                 LTP_scale_Q14, Gains_Q16, psEncCtrlC.pitchL );
 
             int smpl_buf_idx_ptr[] = new int[1];
             smpl_buf_idx_ptr[0] = smpl_buf_idx;
             SKP_Silk_noise_shape_quantizer_del_dec( NSQ, psDelDec, psEncCtrlC.sigtype, x_sc_Q10, q_tmp, q_tmp_offset, pxq, pxq_offset,
-                    sLTP_Q16, A_Q12, A_Q12_offset, B_Q14, B_Q14_offset, AR_shp_Q13, AR_shp_Q13_offset, lag, HarmShapeFIRPacked_Q14, Tilt_Q14[ k ], 
-                    LF_shp_Q14[ k ], Gains_Q16[ k ], Lambda_Q10, offset_Q10, psEncC.subfr_length, subfr++, psEncC.shapingLPCOrder, psEncC.predictLPCOrder, 
+                    sLTP_Q16, A_Q12, A_Q12_offset, B_Q14, B_Q14_offset, AR_shp_Q13, AR_shp_Q13_offset, lag, HarmShapeFIRPacked_Q14, Tilt_Q14[ k ],
+                    LF_shp_Q14[ k ], Gains_Q16[ k ], Lambda_Q10, offset_Q10, psEncC.subfr_length, subfr++, psEncC.shapingLPCOrder, psEncC.predictLPCOrder,
                 psEncC.nStatesDelayedDecision, smpl_buf_idx_ptr, decisionDelay );
             smpl_buf_idx = smpl_buf_idx_ptr[0];
-            
+
             x_tmp_offset   += psEncC.subfr_length;
             q_tmp_offset   += psEncC.subfr_length;
             pxq_offset += psEncC.subfr_length;
@@ -271,7 +272,7 @@ public class NSQDelDec
                 Winner_ind = k;
             }
         }
-        
+
         /* Copy final part of signals from winner state to output and long-term filter states */
         psDD = psDelDec[ Winner_ind ];
         psEncCtrlC.Seed = psDD.SeedInit;
@@ -279,7 +280,7 @@ public class NSQDelDec
         for( i = 0; i < decisionDelay; i++ ) {
             last_smple_idx = ( last_smple_idx - 1 ) & Define.DECISION_DELAY_MASK;
             q_tmp[q_tmp_offset + i - decisionDelay] = ( byte )( psDD.Q_Q10[ last_smple_idx ] >> 10 );
-            pxq[ pxq_offset + i - decisionDelay ] = ( short )SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( 
+            pxq[ pxq_offset + i - decisionDelay ] = ( short )SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND(
                 Macros.SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ], psDD.Gain_Q16[ last_smple_idx ] ), 10 ) );
             NSQ.sLTP_shp_Q10[ NSQ.sLTP_shp_buf_idx - decisionDelay + i ] = psDD.Shape_Q10[ last_smple_idx ];
             sLTP_Q16[          NSQ.sLTP_buf_idx     - decisionDelay + i ] = psDD.Pred_Q16[  last_smple_idx ];
@@ -287,7 +288,7 @@ public class NSQDelDec
         }
 //        SKP_memcpy( NSQ.sLPC_Q14, &psDD.sLPC_Q14[ psEncC.subfr_length ], NSQ_LPC_BUF_LENGTH * sizeof( SKP_int32 ) );
         System.arraycopy(psDD.sLPC_Q14, psEncC.subfr_length, NSQ.sLPC_Q14, 0, Define.NSQ_LPC_BUF_LENGTH());
-        
+
         /* Update states */
         NSQ.sLF_AR_shp_Q12    = psDD.LF_AR_Q12;
         NSQ.prev_inv_gain_Q16 = NSQ.prev_inv_gain_Q16;
@@ -298,8 +299,8 @@ public class NSQDelDec
 //        SKP_memcpy( NSQ.sLTP_shp_Q10, &NSQ.sLTP_shp_Q10[ psEncC.frame_length ], psEncC.frame_length * sizeof( SKP_int32 ) );
         System.arraycopy(NSQ.xq, psEncC.frame_length, NSQ.xq, 0, psEncC.frame_length);
         System.arraycopy(NSQ.sLTP_shp_Q10, psEncC.frame_length, NSQ.sLTP_shp_Q10, 0, psEncC.frame_length);
-//TODO: copy back the q_tmp to the output parameter q;        
-        System.arraycopy(q_tmp, 0, q, 0, q.length);        
+//TODO: copy back the q_tmp to the output parameter q;
+        System.arraycopy(q_tmp, 0, q, 0, q.length);
     }
 
     /**
@@ -490,18 +491,18 @@ public class NSQDelDec
                 n_AR_Q10 = ( n_AR_Q10 >> 1 );           /* Q11 -> Q10 */
                 n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psDD.LF_AR_Q12, Tilt_Q14 );
 
-                n_LF_Q10   = ( Macros.SKP_SMULWB( psDD.Shape_Q10[ smpl_buf_idx[0] ], LF_shp_Q14 ) << 2 ); 
-                n_LF_Q10   = Macros.SKP_SMLAWT( n_LF_Q10, psDD.LF_AR_Q12, LF_shp_Q14 );       
+                n_LF_Q10   = ( Macros.SKP_SMULWB( psDD.Shape_Q10[ smpl_buf_idx[0] ], LF_shp_Q14 ) << 2 );
+                n_LF_Q10   = Macros.SKP_SMLAWT( n_LF_Q10, psDD.LF_AR_Q12, LF_shp_Q14 );
 
                 /* Input minus prediction plus noise feedback                       */
                 /* r = x[ i ] - LTP_pred - LPC_pred + n_AR + n_Tilt + n_LF + n_LTP  */
                 tmp   = ( LTP_pred_Q14 - n_LTP_Q14 );                       /* Add Q14 stuff */
                 tmp   = SigProcFIX.SKP_RSHIFT_ROUND( tmp, 4 );                                 /* round to Q10  */
-                tmp   = ( tmp + LPC_pred_Q10 );                             /* add Q10 stuff */ 
-                tmp   = ( tmp - n_AR_Q10 );                                 /* subtract Q10 stuff */ 
-                tmp   = ( tmp - n_LF_Q10 );                                 /* subtract Q10 stuff */ 
+                tmp   = ( tmp + LPC_pred_Q10 );                             /* add Q10 stuff */
+                tmp   = ( tmp - n_AR_Q10 );                                 /* subtract Q10 stuff */
+                tmp   = ( tmp - n_LF_Q10 );                                 /* subtract Q10 stuff */
                 r_Q10 = ( x_Q10[ i ] - tmp );                               /* residual error Q10 */
-                
+
                 /* Flip sign depending on dither */
                 r_Q10 = ( r_Q10 ^ dither ) - dither;
                 r_Q10 = ( r_Q10 - offset_Q10 );
@@ -532,7 +533,7 @@ public class NSQDelDec
                 }
 
                 if( rd1_Q10 < rd2_Q10 ) {
-                    psSS[ 0 ].RD_Q10 = ( psDD.RD_Q10 + rd1_Q10 ); 
+                    psSS[ 0 ].RD_Q10 = ( psDD.RD_Q10 + rd1_Q10 );
                     psSS[ 1 ].RD_Q10 = ( psDD.RD_Q10 + rd2_Q10 );
                     psSS[ 0 ].Q_Q10 = q1_Q10;
                     psSS[ 1 ].Q_Q10 = q2_Q10;
@@ -621,9 +622,9 @@ public class NSQDelDec
 
             /* Replace a state if best from second set outperforms worst in first set */
             if( RDmin_Q10 < RDmax_Q10 ) {
-//                SKP_Silk_copy_del_dec_state( &psDelDec[ RDmax_ind ], &psDelDec[ RDmin_ind ], i ); 
+//                SKP_Silk_copy_del_dec_state( &psDelDec[ RDmax_ind ], &psDelDec[ RDmin_ind ], i );
                 SKP_Silk_copy_del_dec_state( psDelDec[ RDmax_ind ], psDelDec[ RDmin_ind ], i );
-//TODO:how to copy a struct ???                
+//TODO:how to copy a struct ???
 //                SKP_memcpy( &psSampleState[ RDmax_ind ][ 0 ], &psSampleState[ RDmin_ind ][ 1 ], sizeof( NSQ_sample_struct ) );
                 psSampleState[ RDmax_ind ][ 0 ] = (NSQ_sample_struct) psSampleState[ RDmin_ind ][ 1 ].clone();
             }
@@ -632,7 +633,7 @@ public class NSQDelDec
             psDD = psDelDec[ Winner_ind ];
             if( subfr > 0 || i >= decisionDelay ) {
                 q[  q_offset + i - decisionDelay ] = ( byte )( psDD.Q_Q10[ last_smple_idx ] >> 10 );
-                xq[ xq_offset + i - decisionDelay ] = ( short )SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( 
+                xq[ xq_offset + i - decisionDelay ] = ( short )SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND(
                     Macros.SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ], psDD.Gain_Q16[ last_smple_idx ] ), 10 ) );
                 NSQ.sLTP_shp_Q10[ NSQ.sLTP_shp_buf_idx - decisionDelay ] = psDD.Shape_Q10[ last_smple_idx ];
                 sLTP_Q16[          NSQ.sLTP_buf_idx     - decisionDelay ] = psDD.Pred_Q16[  last_smple_idx ];
@@ -643,7 +644,7 @@ public class NSQDelDec
             /* Update states */
             for( k = 0; k < nStatesDelayedDecision; k++ ) {
                 psDD                                     = psDelDec[ k ];
-//TODO: psSS is an array of reference rather than a reference.                
+//TODO: psSS is an array of reference rather than a reference.
 //                psSS                                     = &psSampleState[ k ][ 0 ];
                 psSS                                     = psSampleState[ k ];
                 psDD.LF_AR_Q12                          = psSS[0].LF_AR_Q12;
@@ -666,7 +667,7 @@ public class NSQDelDec
     }
 
     /**
-     * 
+     *
      * @param NSQ NSQ state
      * @param psDelDec Delayed decision states
      * @param x Input in Q0
@@ -725,13 +726,13 @@ public class NSQDelDec
 
             for( k = 0; k < nStatesDelayedDecision; k++ ) {
                 psDD = psDelDec[ k ];
-                
+
                 /* Scale scalar states */
                 psDD.LF_AR_Q12 = Macros.SKP_SMULWW( gain_adj_Q16, psDD.LF_AR_Q12 );
-                
+
                 /* scale short term state */
                 for( i = 0; i < Define.NSQ_LPC_BUF_LENGTH(); i++ ) {
-                    psDD.sLPC_Q14[ Define.NSQ_LPC_BUF_LENGTH() - i - 1 ] = Macros.SKP_SMULWW( gain_adj_Q16, 
+                    psDD.sLPC_Q14[ Define.NSQ_LPC_BUF_LENGTH() - i - 1 ] = Macros.SKP_SMULWW( gain_adj_Q16,
                             psDD.sLPC_Q14[ Define.NSQ_LPC_BUF_LENGTH() - i - 1 ] );
                 }
                 for( i = 0; i < Define.DECISION_DELAY; i++ ) {
@@ -770,7 +771,7 @@ public class NSQDelDec
     }
 
     /**
-     * 
+     *
      * @param DD_dst Dst del dec state
      * @param DD_src Src del dec state
      * @param LPC_state_idx Index to LPC buffer
@@ -780,7 +781,7 @@ public class NSQDelDec
             NSQDelDecStruct  DD_src,                /* I    Src del dec state                   */
             int                 LPC_state_idx           /* I    Index to LPC buffer                 */
     )
-    {        
+    {
         System.arraycopy(DD_src.RandState, 0, DD_dst.RandState, 0, Define.DECISION_DELAY);
         System.arraycopy(DD_src.Q_Q10, 0, DD_dst.Q_Q10, 0, Define.DECISION_DELAY);
         System.arraycopy(DD_src.Pred_Q16, 0, DD_dst.Pred_Q16, 0, Define.DECISION_DELAY);

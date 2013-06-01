@@ -16,7 +16,7 @@ class InlinesConstants
     static final int SKP_SIN_APPROX_CONST0 =      1073735400;
     static final int SKP_SIN_APPROX_CONST1 =       -82778932;
     static final int SKP_SIN_APPROX_CONST2 =         1059577;
-    static final int SKP_SIN_APPROX_CONST3 =           -5013;    
+    static final int SKP_SIN_APPROX_CONST3 =           -5013;
 }
 
 public class Inlines
@@ -47,11 +47,11 @@ public class Inlines
         lz[0] = lzeros;
         frac_Q7[0] = SigProcFIX.SKP_ROR32(in, 24 - lzeros) & 0x7f;
     }
-    
+
     /**
-     * Approximation of square root                                          
-     * Accuracy: < +/- 10% for output values > 15                            
-                 < +/- 2.5% for output values > 120         
+     * Approximation of square root
+     * Accuracy: < +/- 10% for output values > 15
+                 < +/- 2.5% for output values > 120
      * @param x
      * @return
      */
@@ -60,7 +60,7 @@ public class Inlines
         int y;
         int[] lz = new int[1], frac_Q7 = new int[1];
 
-        if( x <= 0 ) 
+        if( x <= 0 )
         {
             return 0;
         }
@@ -71,7 +71,7 @@ public class Inlines
         {
             y = 32768;
         }
-        else 
+        else
         {
             y = 46214;        /* 46214 = sqrt(2) * 32768 */
         }
@@ -84,9 +84,9 @@ public class Inlines
 
         return y;
     }
-    
+
     /**
-     * returns the number of left shifts before overflow for a 16 bit 
+     * returns the number of left shifts before overflow for a 16 bit
      * number (ITU definition with norm(0)=0).
      * @param a
      * @return
@@ -96,7 +96,7 @@ public class Inlines
       int a32;
 
       /* if ((a == 0) || (a == SKP_int16_MIN)) return(0); */
-      if ((a << 1) == 0) 
+      if ((a << 1) == 0)
           return(0);
 
       a32 = a;
@@ -105,18 +105,18 @@ public class Inlines
 
       return Integer.numberOfLeadingZeros(a32) - 17;
     }
-    
+
     /**
-     * returns the number of left shifts before overflow for a 32 bit 
+     * returns the number of left shifts before overflow for a 32 bit
      * number (ITU definition with norm(0)=0)
      * @param a
      * @return
      */
-    static int SKP_Silk_norm32(int a) 
+    static int SKP_Silk_norm32(int a)
     {
-      
+
       /* if ((a == 0) || (a == Interger.MIN_VALUE)) return(0); */
-      if ((a << 1) == 0) 
+      if ((a << 1) == 0)
           return(0);
 
       /* if (a < 0) a = -a - 1; */
@@ -133,7 +133,7 @@ public class Inlines
      * @return returns a good approximation of "(a32 << Qres) / b32"
      */
     static int SKP_DIV32_varQ         /* O    returns a good approximation of "(a32 << Qres) / b32" */
-    ( 
+    (
         final int        a32,         /* I    numerator (Q0)                  */
         final int        b32,         /* I    denominator (Q0)                */
         final int        Qres         /* I    Q-domain of result (>= 0)       */
@@ -165,17 +165,17 @@ public class Inlines
 
         /* Convert to Qres domain */
         lshift = 29 + a_headrm - b_headrm - Qres;
-        if( lshift <= 0 ) 
+        if( lshift <= 0 )
         {
             return SigProcFIX.SKP_LSHIFT_SAT32(result, -lshift);
-        } 
-        else 
+        }
+        else
         {
             if( lshift < 32)
             {
                 return result>>lshift;
-            } 
-            else 
+            }
+            else
             {
                 /* Avoid undefined result */
                 return 0;
@@ -219,7 +219,7 @@ public class Inlines
 
         /* Convert to Qres domain */
         lshift = 61 - b_headrm - Qres;
-        if( lshift <= 0 ) 
+        if( lshift <= 0 )
         {
             return SigProcFIX.SKP_LSHIFT_SAT32(result, -lshift);
         }
@@ -238,10 +238,10 @@ public class Inlines
     }
 
     /**
-     * Sine approximation; an input of 65536 corresponds to 2 * pi 
-     * Uses polynomial expansion of the input to the power 0, 2, 4 and 6 
-     * The relative error is below 1e-5 
-     * 
+     * Sine approximation; an input of 65536 corresponds to 2 * pi
+     * Uses polynomial expansion of the input to the power 0, 2, 4 and 6
+     * The relative error is below 1e-5
+     *
      * @param x
      * @return returns approximately 2^24 * sin(x * 2 * pi / 65536).
      */
@@ -256,17 +256,17 @@ public class Inlines
         /* Split range in four quadrants */
         if( x <= 32768 )
         {
-            if( x < 16384 ) 
+            if( x < 16384 )
             {
                 /* Return cos(pi/2 - x) */
                 x = 16384 - x;
-            } 
+            }
             else
             {
                 /* Return cos(x - pi/2) */
                 x -= 16384;
             }
-            if( x < 1100 ) 
+            if( x < 1100 )
             {
                 /* Special case: high accuracy */
                 return Macros.SKP_SMLAWB( 1 << 24, x*x, -5053 );
@@ -275,20 +275,20 @@ public class Inlines
             y_Q30 = Macros.SKP_SMLAWB( SKP_SIN_APPROX_CONST2, x, SKP_SIN_APPROX_CONST3 );
             y_Q30 = Macros.SKP_SMLAWW( SKP_SIN_APPROX_CONST1, x, y_Q30 );
             y_Q30 = Macros.SKP_SMLAWW( SKP_SIN_APPROX_CONST0 + 66, x, y_Q30 );
-        } 
+        }
         else
         {
-            if( x < 49152 ) 
+            if( x < 49152 )
             {
                 /* Return -cos(3*pi/2 - x) */
                 x = 49152 - x;
             }
-            else 
+            else
             {
                 /* Return -cos(x - 3*pi/2) */
                 x -= 49152;
             }
-            if( x < 1100 ) 
+            if( x < 1100 )
             {
                 /* Special case: high accuracy */
                 return Macros.SKP_SMLAWB( -1 << 24, x*x , 5053 );
@@ -300,10 +300,10 @@ public class Inlines
         }
         return SigProcFIX.SKP_RSHIFT_ROUND( y_Q30, 6 );
     }
-    
+
     /**
-     * Cosine approximation; an input of 65536 corresponds to 2 * pi 
-     * The relative error is below 1e-5 
+     * Cosine approximation; an input of 65536 corresponds to 2 * pi
+     * The relative error is below 1e-5
      * @param x
      * @return returns approximately 2^24 * cos(x * 2 * pi / 65536).
      */

@@ -289,7 +289,7 @@ public class XMLConfigurationStore
     /**
      * Creates new entries in the XML <tt>doc</tt> for every element in the
      * <tt>newProperties</tt> table.
-     * 
+     *
      * @param doc the XML <tt>Document</tt> where the new entries should be
      *            created
      * @param newProperties the table containing the properties that are to be
@@ -473,7 +473,7 @@ public class XMLConfigurationStore
      * specified properties object and not from the system properties since if
      * any intentional change (through a configuration form) has occurred it
      * will have been made there.
-     * 
+     *
      * @param node the root node that we should update together with its
      * children
      * @param propertyName a String containing the prefix describing the
@@ -570,7 +570,7 @@ public class XMLConfigurationStore
         /**
          * Return the actual value of the property as recorded in the System
          * properties.
-         * 
+         *
          * @return the valued of the property as recorded in the System props.
          */
         public Object getValue()

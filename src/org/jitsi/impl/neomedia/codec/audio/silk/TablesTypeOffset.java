@@ -12,14 +12,14 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Dingxin Xu
  */
 public class TablesTypeOffset
-{    
+{
     static final int[] SKP_Silk_type_offset_CDF = {
              0,  37522,  41030,  44212,  65535
     };
 
     static final int SKP_Silk_type_offset_CDF_offset = 2;
 
-    static final int[][] SKP_Silk_type_offset_joint_CDF = 
+    static final int[][] SKP_Silk_type_offset_joint_CDF =
     {
     {
              0,  57686,  61230,  62358,  65535

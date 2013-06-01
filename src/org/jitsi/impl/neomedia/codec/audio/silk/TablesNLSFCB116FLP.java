@@ -9,10 +9,10 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 /**
  * This file has been automatically generated.
  * ROM usage:  7.14 kB
- * 
+ *
  * @author Dingxin Xu
  */
-public class TablesNLSFCB116FLP 
+public class TablesNLSFCB116FLP
 {
 //    const SKP_float SKP_Silk_NLSF_MSVQ_CB1_16_rates[ NLSF_MSVQ_CB1_16_VECTORS ] =
     static final float SKP_Silk_NLSF_MSVQ_CB1_16_rates[] =

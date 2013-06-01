@@ -272,7 +272,7 @@ class ilbc_common {
            }
 
            hlp = (freq[ilbc_constants.LPC_FILTERORDER - 1] - freq[0]) /
-               (float) (ilbc_constants.LPC_FILTERORDER - 1);
+               (ilbc_constants.LPC_FILTERORDER - 1);
 
            for (i=1; i < ilbc_constants.LPC_FILTERORDER; i++) {
                freq[i] = freq[i - 1] + hlp;

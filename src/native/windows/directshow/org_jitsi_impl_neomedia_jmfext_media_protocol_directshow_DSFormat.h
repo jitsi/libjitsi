@@ -9,162 +9,162 @@ extern "C" {
 #endif
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getARGBPixelFormat
- * Signature: ()J
+ * Method:    ARGB32
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getARGBPixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_ARGB32
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getAYUVPixelFormat
- * Signature: ()J
+ * Method:    AYUV
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getAYUVPixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_AYUV
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getI420PixelFormat
- * Signature: ()J
+ * Method:    I420
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getI420PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_I420
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getIF09PixelFormat
- * Signature: ()J
+ * Method:    IF09
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getIF09PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_IF09
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getIMC1PixelFormat
- * Signature: ()J
+ * Method:    IMC1
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getIMC1PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_IMC1
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getIMC2PixelFormat
- * Signature: ()J
+ * Method:    IMC2
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getIMC2PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_IMC2
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getIMC3PixelFormat
- * Signature: ()J
+ * Method:    IMC3
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getIMC3PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_IMC3
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getIMC4PixelFormat
- * Signature: ()J
+ * Method:    IMC4
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getIMC4PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_IMC4
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getIYUVPixelFormat
- * Signature: ()J
+ * Method:    IYUV
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getIYUVPixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_IYUV
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getNV12PixelFormat
- * Signature: ()J
+ * Method:    NV12
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getNV12PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_NV12
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getRGB24PixelFormat
- * Signature: ()J
+ * Method:    RGB24
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getRGB24PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_RGB24
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getRGB32PixelFormat
- * Signature: ()J
+ * Method:    RGB32
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getRGB32PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_RGB32
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getUYVYPixelFormat
- * Signature: ()J
+ * Method:    UYVY
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getUYVYPixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_UYVY
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getY211PixelFormat
- * Signature: ()J
+ * Method:    Y211
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getY211PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_Y211
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getY411PixelFormat
- * Signature: ()J
+ * Method:    Y411
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getY411PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_Y411
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getY41PPixelFormat
- * Signature: ()J
+ * Method:    Y41P
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getY41PPixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_Y41P
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getYUY2PixelFormat
- * Signature: ()J
+ * Method:    YUY2
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getYUY2PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_YUY2
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getYV12PixelFormat
- * Signature: ()J
+ * Method:    YV12
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getYV12PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_YV12
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getYVU9PixelFormat
- * Signature: ()J
+ * Method:    YVU9
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getYVU9PixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_YVU9
   (JNIEnv *, jclass);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    getYVYUPixelFormat
- * Signature: ()J
+ * Method:    YVYU
+ * Signature: ()I
  */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_getYVYUPixelFormat
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_YVYU
   (JNIEnv *, jclass);
 
 #ifdef __cplusplus

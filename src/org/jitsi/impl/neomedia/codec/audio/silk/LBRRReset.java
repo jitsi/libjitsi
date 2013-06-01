@@ -11,14 +11,14 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class LBRRReset 
+public class LBRRReset
 {
     /**
      * Resets LBRR buffer, used if packet size changes.
-     * 
+     *
      * @param psEncC state
      */
-    static void SKP_Silk_LBRR_reset( 
+    static void SKP_Silk_LBRR_reset(
         SKP_Silk_encoder_state      psEncC             /* I/O  state                                       */
     )
     {

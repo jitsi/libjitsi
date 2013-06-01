@@ -12,7 +12,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class MA 
+public class MA
 {
     /**
      * Variable order MA filter.
@@ -38,12 +38,12 @@ public class MA
     {
         int   k, d, in16;
         int out32;
-        
+
         for( k = 0; k < len; k++ ) {
             in16 = in[ in_offset + k ];
             out32 = Macros.SKP_SMLABB(S[0], in16, B[ 0 ]);
             out32 = SigProcFIX.SKP_RSHIFT_ROUND( out32, 13 );
-            
+
             for( d = 1; d < order; d++ ) {
                 S[ d - 1 ] = Macros.SKP_SMLABB( S[ d ], in16, B[ d ] );
             }
@@ -53,13 +53,13 @@ public class MA
             out[ out_offset + k ] = (short)SigProcFIX.SKP_SAT16( out32 );
         }
     }
-    
+
     /**
      * Variable order MA prediction error filter.
      * @param in Input signal.
      * @param in_offset offset of valid data.
      * @param B MA prediction coefficients, Q12 [order].
-     * @param B_offset 
+     * @param B_offset
      * @param S State vector [order].
      * @param out Output signal.
      * @param out_offset offset of valid data.
@@ -85,7 +85,7 @@ public class MA
             in16 = in[ in_offset + k ];
             out32 = ( in16 << 12 ) - S[ 0 ];
             out32 = SigProcFIX.SKP_RSHIFT_ROUND( out32, 12 );
-            
+
             for( d = 0; d < order - 1; d++ ) {
                 S[ d ] = SigProcFIX.SKP_SMLABB_ovflw( S[ d + 1 ], in16, B[ B_offset + d ] );
             }
@@ -95,9 +95,9 @@ public class MA
             out[ out_offset + k ] = (short)SigProcFIX.SKP_SAT16( out32 );
         }
     }
-    
+
     /**
-     * 
+     *
      * @param in input signal.
      * @param in_offset offset of valid data.
      * @param B MA prediction coefficients, Q13 [order].
@@ -124,7 +124,7 @@ public class MA
             in16 = in[ in_offset + k ];
             out32 = ( in16 << 13 ) - S[ 0 ];
             out32 = SigProcFIX.SKP_RSHIFT_ROUND( out32, 13 );
-            
+
             for( d = 0; d < order - 1; d++ ) {
                 S[ d ] = Macros.SKP_SMLABB( S[ d + 1 ], in16, B[ d ] );
             }
@@ -134,9 +134,9 @@ public class MA
             out[ out_offset + k ] = ( short )SigProcFIX.SKP_SAT16( out32 );
         }
     }
-    
+
     /**
-     * 
+     *
      * @param in Input signal.
      * @param in_offset offset of valid data.
      * @param B MA prediction coefficients, Q12 [order].

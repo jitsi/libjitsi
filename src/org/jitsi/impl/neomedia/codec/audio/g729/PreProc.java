@@ -59,12 +59,12 @@ class PreProc
 /**
  * High-pass fir memory
  */
-private float x0, x1; 
+private float x0, x1;
 
 /**
  * High-pass iir memory
  */
-private float y1, y2;         
+private float y1, y2;
 
 /**
  * Init Pre Process
@@ -78,14 +78,14 @@ void init_pre_process()
 /**
  * Pre Process
  *
- * @param signal            (i/o)  : signal   
+ * @param signal            (i/o)  : signal
  * @param signal_offset     (input)  : signal offset
  * @param lg                (i)    : length of signal
  */
 void pre_process(
-   float[] signal,      
+   float[] signal,
    int signal_offset,
-   int lg               
+   int lg
 )
 {
   float[] a140 = TabLd8k.a140;

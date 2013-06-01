@@ -104,6 +104,7 @@ public class JNIEncoder
      *
      * @see AbstractCodecExt#doClose()
      */
+    @Override
     protected synchronized void doClose()
     {
         if (avctx != 0)
@@ -128,6 +129,7 @@ public class JNIEncoder
      * <tt>Codec</tt> needs to operate cannot be acquired
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected synchronized void doOpen()
         throws ResourceUnavailableException
     {
@@ -204,6 +206,7 @@ public class JNIEncoder
      * @param outputBuffer
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
+    @Override
     protected synchronized int doProcess(
             Buffer inputBuffer,
             Buffer outputBuffer)
@@ -246,7 +249,7 @@ public class JNIEncoder
                     return OUTPUT_BUFFER_NOT_FILLED;
             }
         }
-        else 
+        else
         {
             inputBuffer.setLength(inputLength - frameSizeInBytes);
             inputBuffer.setOffset(inputOffset + frameSizeInBytes);

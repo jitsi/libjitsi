@@ -7,11 +7,11 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class Decimate2CoarseFLP 
+public class Decimate2CoarseFLP
 {
     /* coefficients for coarser 2-fold resampling */
     static float A20c_FLP[  ] = {0.064666748046875f, 0.508514404296875f};
@@ -21,7 +21,7 @@ public class Decimate2CoarseFLP
      * downsample by a factor 2, coarser.
      * @param in 16 kHz signal [2*len].
      * @param in_offset offset of the valid data.
-     * @param S state vector [4]. 
+     * @param S state vector [4].
      * @param S_offset offset of the valid data.
      * @param out 8 kHz signal [len]
      * @param out_offset offset of the valid data.
@@ -54,14 +54,14 @@ public class Decimate2CoarseFLP
         /* allpass filters */
         AllpassIntFLP.SKP_Silk_allpass_int_FLP( scratch,scratch_offset, S,S_offset, A21c_FLP[ 0 ], scratch,scratch_offset + 2 * len, len );
         AllpassIntFLP.SKP_Silk_allpass_int_FLP( scratch,scratch_offset + 2 * len, S,S_offset + 1, A21c_FLP[ 1 ], scratch,scratch_offset, len );
-        
+
         AllpassIntFLP.SKP_Silk_allpass_int_FLP( scratch,scratch_offset + len, S,S_offset + 2, A20c_FLP[ 0 ], scratch,scratch_offset + 2 * len, len );
         AllpassIntFLP.SKP_Silk_allpass_int_FLP( scratch,scratch_offset + 2 * len, S,S_offset + 3, A20c_FLP[ 1 ], scratch,scratch_offset + len, len );
-        
+
         /* add two allpass outputs */
-        for ( k = 0; k < len; k++ ) 
+        for ( k = 0; k < len; k++ )
         {
             out[ out_offset+k ] = 0.5f * ( scratch[ scratch_offset+k ] + scratch[ scratch_offset + k + len ] );
-        }       
+        }
     }
 }

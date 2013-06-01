@@ -7,13 +7,13 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * 
+ *
  * @author Dingxin Xu
  */
 public class RegularizeCorrelationsFLP
 {
     /**
-     * 
+     *
      * @param XX Correlation matrices
      * @param xx Correlation values
      * @param xx_offset offset of valid data.
@@ -24,7 +24,7 @@ public class RegularizeCorrelationsFLP
         float                 []XX,                /* I/O  Correlation matrices                    */
         int                   XX_offset,
         float                 []xx,                /* I/O  Correlation values                      */
-        int                   xx_offset,       
+        int                   xx_offset,
         float                 noise,              /* I    Noise energy to add                     */
         int                   D                   /* I    Dimension of XX                         */
    )

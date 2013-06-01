@@ -13,7 +13,7 @@ import java.util.*;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class CNG 
+public class CNG
 {
     /**
      * Generates excitation for CNG LPC synthesis.
@@ -24,7 +24,7 @@ public class CNG
      * @param Gain_Q16 Gain to apply
      * @param length Length
      * @param rand_seed Seed to random index generator
-     * 
+     *
      */
     static void SKP_Silk_CNG_exc(
             short                     residual[],         /* O    CNG residual signal Q0                      */
@@ -45,7 +45,7 @@ public class CNG
         }
 
         seed = rand_seed[0];
-        
+
         for( i = 0; i < length; i++ ) {
             seed = SigProcFIX.SKP_RAND( seed );
             idx = ( ( seed >> 24 ) & exc_mask );
@@ -96,9 +96,9 @@ public class CNG
         int tmp_32, Gain_Q26, max_Gain_Q16;
         short[] LPC_buf = new short[Define.MAX_LPC_ORDER];
         short[] CNG_sig = new short[Define.MAX_FRAME_LENGTH];
-        
+
         SKP_Silk_CNG_struct  psCNG;
-        
+
         psCNG = psDec.sCNG;
 
         if( psDec.fs_kHz != psCNG.fs_kHz ) {
@@ -138,22 +138,22 @@ public class CNG
             /* Generate CNG excitation */
             int[] psCNG_rand_seed_ptr = new int[1];
             psCNG_rand_seed_ptr[0] = psCNG.rand_seed;
-            
+
              SKP_Silk_CNG_exc( CNG_sig, 0,  psCNG.CNG_exc_buf_Q10, 0,
                         psCNG.CNG_smth_Gain_Q16, length, psCNG_rand_seed_ptr );
              psCNG.rand_seed = psCNG_rand_seed_ptr[0];
-             
+
             /* Convert CNG NLSF to filter representation */
             NLSF2AStable.SKP_Silk_NLSF2A_stable( LPC_buf, psCNG.CNG_smth_NLSF_Q15, psDec.LPC_order );
 
             Gain_Q26 = 1 << 26; /* 1.0 */
-            
+
             /* Generate CNG signal, by synthesis filtering */
             if( psDec.LPC_order == 16 ) {
-                LPCSynthesisOrder16.SKP_Silk_LPC_synthesis_order16( CNG_sig, LPC_buf, 
+                LPCSynthesisOrder16.SKP_Silk_LPC_synthesis_order16( CNG_sig, LPC_buf,
                         Gain_Q26, psCNG.CNG_synth_state, CNG_sig, length );
             } else {
-                LPCSynthesisFilter.SKP_Silk_LPC_synthesis_filter( CNG_sig, LPC_buf, 
+                LPCSynthesisFilter.SKP_Silk_LPC_synthesis_filter( CNG_sig, LPC_buf,
                         Gain_Q26, psCNG.CNG_synth_state, CNG_sig, length, psDec.LPC_order );
             }
             /* Mix with signal */

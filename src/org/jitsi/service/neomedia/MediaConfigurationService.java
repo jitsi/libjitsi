@@ -11,21 +11,21 @@ import org.jitsi.service.neomedia.codec.*;
 /**
  * An interface that exposes the <tt>Component</tt>s used in media
  * configuration user interfaces.
- * 
+ *
  * @author Boris Grozev
  */
 public interface MediaConfigurationService
 {
     /**
      * Returns a <tt>Component</tt> for audio configuration
-     * 
+     *
      * @return A <tt>Component</tt> for audio configuration
      */
     public Component createAudioConfigPanel();
 
     /**
      * Returns a <tt>Component</tt> for video configuration
-     * 
+     *
      * @return A <tt>Component</tt> for video configuration
      */
     public Component createVideoConfigPanel();

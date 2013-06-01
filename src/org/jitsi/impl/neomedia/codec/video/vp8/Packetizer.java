@@ -60,6 +60,7 @@ public class Packetizer
     /**
      * {@inheritDoc}
      */
+    @Override
     protected void doClose()
     {
     }
@@ -67,6 +68,7 @@ public class Packetizer
     /**
      * {@inheritDoc}
      */
+    @Override
     protected void doOpen()
     {
         if(logger.isTraceEnabled())
@@ -76,6 +78,7 @@ public class Packetizer
     /**
      * {@inheritDoc}
      */
+    @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
         int inLen;
@@ -97,7 +100,7 @@ public class Packetizer
         offset = pdMaxLen;
         output = validateByteArraySize(outputBuffer, offset + len, true);
         System.arraycopy(
-                (byte[]) inputBuffer.getData(), inOff,
+                inputBuffer.getData(), inOff,
                 output, offset,
                 len);
 

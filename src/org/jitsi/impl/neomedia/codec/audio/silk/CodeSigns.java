@@ -11,7 +11,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class CodeSigns 
+public class CodeSigns
 {
     /* shifting avoids if-statement */
 //    #define SKP_enc_map(a)                  ( SKP_RSHIFT( (a), 15 ) + 1 )
@@ -52,13 +52,13 @@ public class CodeSigns
         cdf[ 0 ] = 0;
         cdf[ 1 ] = TablesSign.SKP_Silk_sign_CDF[ i ];
         cdf[ 2 ] = 65535;
-        
-        for( i = 0; i < length; i++ ) 
+
+        for( i = 0; i < length; i++ )
         {
             if( q[ i ] != 0 )
             {
 //                inData = SKP_enc_map( q[ i ] ); /* - = 0, + = 1 */
-                inData = (q[i] >>15) + 1; /* - = 0, + = 1 */       
+                inData = (q[i] >>15) + 1; /* - = 0, + = 1 */
                 RangeCoder.SKP_Silk_range_encoder( sRC, inData, cdf, 0 );
             }
         }
@@ -91,15 +91,15 @@ public class CodeSigns
         cdf[ 0 ] = 0;
         cdf[ 1 ] = TablesSign.SKP_Silk_sign_CDF[ i ];
         cdf[ 2 ] = 65535;
-        
+
         for( i = 0; i < length; i++ ) {
-            if( q[ i ] > 0 ) {                
+            if( q[ i ] > 0 ) {
                 RangeCoder.SKP_Silk_range_decoder( data_ptr, 0, sRC, cdf, 0, 1 );
                 data = data_ptr[0];
                 /* attach sign */
                 /* implementation with shift, subtraction, multiplication */
 //                q[ i ] *= SKP_dec_map( data );
-                q[ i ] *= (data<<1) - 1; 
+                q[ i ] *= (data<<1) - 1;
             }
         }
     }

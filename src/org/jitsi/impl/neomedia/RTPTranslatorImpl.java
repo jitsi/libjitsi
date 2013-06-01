@@ -520,7 +520,7 @@ public class RTPTranslatorImpl
      * @param offset the position within <tt>buffer</tt> at which the valid data
      * begins
      * @param length the number of bytes in <tt>buffer</tt> which constitute the
-     * valid data 
+     * valid data
      */
     private static void logRTCP(
             Object obj, String methodName,
@@ -569,7 +569,7 @@ public class RTPTranslatorImpl
      * @param read the number of bytes in <tt>buffer</tt> beginning at
      * <tt>offset</tt> which represent the received RTP or RTCP packet
      * @return the number of bytes in <tt>buffer</tt> beginning at
-     * <tt>offset</tt> which represent the received RTP or RTCP packet 
+     * <tt>offset</tt> which represent the received RTP or RTCP packet
      * @throws IOException if an I/O error occurs while the method processes the
      * specified RTP or RTCP packet
      */

@@ -9,10 +9,10 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 /**
  * Calculates the reflection coefficients from the input vector
  * Input vector contains nb_subfr sub vectors of length L_sub + D
- * 
+ *
  * @author Dingxin Xu
  */
-public class BurgModifiedFLP 
+public class BurgModifiedFLP
 {
     static final int MAX_FRAME_SIZE = 544; // subfr_length * nb_subfr = ( 0.005 * 24000 + 16 ) * 4 = 544
     static final int MAX_NB_SUBFR = 4;
@@ -42,9 +42,9 @@ public class BurgModifiedFLP
         double          C0, num, nrg_f, nrg_b, rc, Atmp, tmp1, tmp2;
         float []x_ptr;
         int x_ptr_offset;
-        double          C_first_row[] = new double [ SigProcFIX.SKP_Silk_MAX_ORDER_LPC ], 
+        double          C_first_row[] = new double [ SigProcFIX.SKP_Silk_MAX_ORDER_LPC ],
                         C_last_row[]  = new double [ SigProcFIX.SKP_Silk_MAX_ORDER_LPC ];
-        double          CAf[] = new double [ SigProcFIX.SKP_Silk_MAX_ORDER_LPC + 1 ], 
+        double          CAf[] = new double [ SigProcFIX.SKP_Silk_MAX_ORDER_LPC + 1 ],
                         CAb[] = new double [ SigProcFIX.SKP_Silk_MAX_ORDER_LPC + 1 ];
         double          Af[] = new double [ SigProcFIX.SKP_Silk_MAX_ORDER_LPC ];
 
@@ -57,7 +57,7 @@ public class BurgModifiedFLP
             x_ptr = x;
             x_ptr_offset = x_offset + s * subfr_length;
             for( n = 1; n < D + 1; n++ ) {
-                C_first_row[ n - 1 ] += InnerProductFLP.SKP_Silk_inner_product_FLP( x_ptr, x_ptr_offset, 
+                C_first_row[ n - 1 ] += InnerProductFLP.SKP_Silk_inner_product_FLP( x_ptr, x_ptr_offset,
                         x_ptr, x_ptr_offset + n, subfr_length - n );
             }
         }

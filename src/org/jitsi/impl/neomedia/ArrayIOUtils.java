@@ -21,7 +21,7 @@ public class ArrayIOUtils
      * {@link #readShort(byte[], int)} is that the read short integer is an
      * <tt>int</tt> which has been formed by reading two bytes, not a
      * <tt>short</tt>.
-     * 
+     *
      * @param input the series of bytes to read the short integer from
      * @param inputOffset the offset in <tt>input</tt> at which the reading of
      * the short integer is to start
@@ -57,7 +57,7 @@ public class ArrayIOUtils
      * offset in it. The difference with {@link #writeShort(short, byte[], int)}
      * is that the input is an <tt>int</tt> and just two bytes of it are
      * written.
-     * 
+     *
      * @param input the short integer to be written out as a series of bytes
      * specified as an integer i.e. the value to be converted is contained in
      * only two of the four bytes made available by the integer

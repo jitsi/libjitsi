@@ -22,7 +22,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  */
 public class DataSource
-    extends AbstractPullBufferCaptureDevice
+    extends AbstractPushBufferCaptureDevice
 {
     /**
      * The <tt>Logger</tt> used by the <tt>DataSource</tt> class and its
@@ -52,7 +52,8 @@ public class DataSource
     /**
      * {@inheritDoc}
      */
-    protected AbstractPullBufferStream createStream(
+    @Override
+    protected WASAPIStream createStream(
             int streamIndex,
             FormatControl formatControl)
     {

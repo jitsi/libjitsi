@@ -6,21 +6,21 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
-public class LTPScaleCtrlFLP 
+public class LTPScaleCtrlFLP
 {
     static final int NB_THRESHOLDS = 11;
 
     /**
      * Table containing trained thresholds for LTP scaling.
      */
-    static final float LTPScaleThresholds[] = 
+    static final float LTPScaleThresholds[] =
     {
         0.95f, 0.8f, 0.50f, 0.400f, 0.3f, 0.2f,
         0.15f, 0.1f, 0.08f, 0.075f, 0.0f
     };
 
     /**
-     * 
+     *
      * @param psEnc Encoder state FLP
      * @param psEncCtrl Encoder control FLP
      */
@@ -34,16 +34,16 @@ public class LTPScaleCtrlFLP
 
         /* 1st order high-pass filter */
         //g_HP(n) = g(n) - g(n-1) + 0.5 * g_HP(n-1);       // tune the 0.5: higher means longer impact of jump
-        psEnc.HPLTPredCodGain =Math.max( psEncCtrl.LTPredCodGain - psEnc.prevLTPredCodGain, 0.0f ) 
+        psEnc.HPLTPredCodGain =Math.max( psEncCtrl.LTPredCodGain - psEnc.prevLTPredCodGain, 0.0f )
                                 + 0.5f * psEnc.HPLTPredCodGain;
-        
+
         psEnc.prevLTPredCodGain = psEncCtrl.LTPredCodGain;
 
         /* combine input and filtered input */
         g_out = 0.5f * psEncCtrl.LTPredCodGain + ( 1.0f - 0.5f ) * psEnc.HPLTPredCodGain;
         g_limit = SigProcFLP.SKP_sigmoid( 0.5f * ( g_out - 6 ) );
-        
-        
+
+
         /* Default is minimum scaling */
         psEncCtrl.sCmn.LTP_scaleIndex = 0;
 
@@ -54,7 +54,7 @@ public class LTPScaleCtrlFLP
 
         /* Only scale if first frame in packet 0% */
         if( psEnc.sCmn.nFramesInPayloadBuf == 0 ){
-            
+
             frames_per_packet = psEnc.sCmn.PacketSize_ms / Define.FRAME_LENGTH_MS;
 
             round_loss += ( frames_per_packet - 1 );
@@ -62,8 +62,8 @@ public class LTPScaleCtrlFLP
 //            thrld2 = LTPScaleThresholds[ Math.min( round_loss + 1, NB_THRESHOLDS - 1 ) ];
             thrld1 = LTPScaleThresholds[ round_loss < (NB_THRESHOLDS - 1) ? round_loss : (NB_THRESHOLDS - 1)];
             thrld2 = LTPScaleThresholds[ (round_loss + 1) < (NB_THRESHOLDS - 1) ? (round_loss + 1):(NB_THRESHOLDS - 1)];
-        
-        
+
+
             if( g_limit > thrld1 ) {
                 /* High Scaling */
                 psEncCtrl.sCmn.LTP_scaleIndex = 2;

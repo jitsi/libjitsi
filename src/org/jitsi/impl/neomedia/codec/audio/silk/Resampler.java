@@ -10,7 +10,7 @@ import java.util.*;
 
 /**
  * Interface to collection of resamplers.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -39,17 +39,17 @@ import java.util.*;
  * Input signals sampled above 48 kHz are first downsampled to at most 48 kHz.
  * Output signals sampled above 48 kHz are upsampled from at most 48 kHz.
  */
-public class Resampler 
+public class Resampler
 {
     /**
      * Greatest common divisor.
      * @param a
-     * @param b 
+     * @param b
      */
     static int gcd(int a, int b)
     {
         int tmp;
-        while( b > 0 ) 
+        while( b > 0 )
         {
             tmp = a - b * (a/b);
             a   = b;
@@ -59,13 +59,13 @@ public class Resampler
     }
 
     /**
-     * Initialize/reset the resampler state for a given pair of input/output sampling rates. 
+     * Initialize/reset the resampler state for a given pair of input/output sampling rates.
      * @param S resampler state.
      * @param Fs_Hz_in Input sampling rate (Hz).
      * @param Fs_Hz_out Output sampling rate (Hz).
      * @return
      */
-    static int SKP_Silk_resampler_init( 
+    static int SKP_Silk_resampler_init(
         SKP_Silk_resampler_state_struct    S,        /* I/O: Resampler state             */
         int                            Fs_Hz_in,    /* I:    Input sampling rate (Hz)    */
         int                            Fs_Hz_out    /* I:    Output sampling rate (Hz)    */
@@ -81,7 +81,7 @@ public class Resampler
         /* Input checking */
         if(ResamplerStructs.RESAMPLER_SUPPORT_ABOVE_48KHZ != 0)
         {
-            if( Fs_Hz_in < 8000 || Fs_Hz_in > 192000 || Fs_Hz_out < 8000 || Fs_Hz_out > 192000 ) 
+            if( Fs_Hz_in < 8000 || Fs_Hz_in > 192000 || Fs_Hz_out < 8000 || Fs_Hz_out > 192000 )
             {
                 assert( false );
                 return -1;
@@ -89,65 +89,65 @@ public class Resampler
         }
         else
         {
-            if( Fs_Hz_in < 8000 || Fs_Hz_in >  48000 || Fs_Hz_out < 8000 || Fs_Hz_out >  48000 ) 
+            if( Fs_Hz_in < 8000 || Fs_Hz_in >  48000 || Fs_Hz_out < 8000 || Fs_Hz_out >  48000 )
             {
                 assert( false );
                 return -1;
             }
         }
-        
+
         if(ResamplerStructs.RESAMPLER_SUPPORT_ABOVE_48KHZ != 0)
         {
             /* Determine pre downsampling and post upsampling */
-            if( Fs_Hz_in > 96000 ) 
+            if( Fs_Hz_in > 96000 )
             {
                 S.nPreDownsamplers = 2;
                 S.down_pre_function = "SKP_Silk_resampler_private_down4";
                 S.downPreCB = new DownPreImplDown4();
-            } 
-            else if( Fs_Hz_in > 48000 ) 
+            }
+            else if( Fs_Hz_in > 48000 )
             {
                 S.nPreDownsamplers = 1;
                 S.down_pre_function = "SKP_Silk_resampler_down2";
                 S.downPreCB = new DownPreImplDown2();
-            } 
-            else 
+            }
+            else
             {
                 S.nPreDownsamplers = 0;
                 S.down_pre_function = null;
                 S.downPreCB = null;
             }
-    
-            if( Fs_Hz_out > 96000 ) 
+
+            if( Fs_Hz_out > 96000 )
             {
                 S.nPostUpsamplers = 2;
                 S.up_post_function = "SKP_Silk_resampler_private_up4";
                 S.upPostCB = new UpPostImplUp4();
-            } 
+            }
             else if( Fs_Hz_out > 48000 )
             {
                 S.nPostUpsamplers = 1;
                 S.up_post_function = "SKP_Silk_resampler_up2";
                 S.upPostCB = new UpPostImplUp2();
-            } 
-            else 
+            }
+            else
             {
                 S.nPostUpsamplers = 0;
                 S.up_post_function = null;
                 S.upPostCB = null;
             }
-    
-            if( S.nPreDownsamplers + S.nPostUpsamplers > 0 ) 
+
+            if( S.nPreDownsamplers + S.nPostUpsamplers > 0 )
             {
                 /* Ratio of output/input samples */
                 S.ratio_Q16 = ( ( Fs_Hz_out<<13 ) / Fs_Hz_in )<<3;
                 /* Make sure the ratio is rounded up */
-                while( Macros.SKP_SMULWW( S.ratio_Q16, Fs_Hz_in ) < Fs_Hz_out ) 
+                while( Macros.SKP_SMULWW( S.ratio_Q16, Fs_Hz_in ) < Fs_Hz_out )
                     S.ratio_Q16++;
-    
+
                 /* Batch size is 10 ms */
                 S.batchSizePrePost = Fs_Hz_in/100 ;
-    
+
                 /* Convert sampling rate to those after pre-downsampling and before post-upsampling */
                 Fs_Hz_in  = Fs_Hz_in >>  S.nPreDownsamplers ;
                 Fs_Hz_out = Fs_Hz_out >> S.nPostUpsamplers  ;
@@ -157,25 +157,25 @@ public class Resampler
         /* Number of samples processed per batch */
         /* First, try 10 ms frames */
         S.batchSize = Fs_Hz_in/100;
-        if( ( S.batchSize*100 != Fs_Hz_in ) || ( Fs_Hz_in % 100 != 0 ) ) 
+        if( ( S.batchSize*100 != Fs_Hz_in ) || ( Fs_Hz_in % 100 != 0 ) )
         {
             /* No integer number of input or output samples with 10 ms frames, use greatest common divisor */
             cycleLen = Fs_Hz_in / gcd( Fs_Hz_in, Fs_Hz_out );
             cyclesPerBatch = ResamplerPrivate.RESAMPLER_MAX_BATCH_SIZE_IN / cycleLen;
-            if( cyclesPerBatch == 0 ) 
+            if( cyclesPerBatch == 0 )
             {
                 /* cycleLen too big, let's just use the maximum batch size. Some distortion will result. */
                 S.batchSize = ResamplerPrivate.RESAMPLER_MAX_BATCH_SIZE_IN;
                 assert( false );
-            } 
-            else 
+            }
+            else
             {
                 S.batchSize = cyclesPerBatch * cycleLen;
             }
         }
 
         /* Find resampler with the right sampling ratio */
-        if( Fs_Hz_out > Fs_Hz_in ) 
+        if( Fs_Hz_out > Fs_Hz_in )
         {
             /* Upsample */
             if( Fs_Hz_out == Fs_Hz_in * 2 )
@@ -183,30 +183,30 @@ public class Resampler
                 /* Special case: directly use 2x upsampler */
                 S.resampler_function = "SKP_Silk_resampler_private_up2_HQ_wrapper";
                 S.resamplerCB = new ResamplerImplWrapper();
-            } 
+            }
             else
             {
                 /* Default resampler */
                 S.resampler_function = "SKP_Silk_resampler_private_IIR_FIR";
                 S.resamplerCB = new ResamplerImplIIRFIR();
                 up2 = 1;
-                if( Fs_Hz_in > 24000 ) 
+                if( Fs_Hz_in > 24000 )
                 {
                     /* Low-quality all-pass upsampler */
                     S.up2_function = "SKP_Silk_resampler_up2";
                     S.up2CB = new Up2ImplUp2();
-                   
-                } 
+
+                }
                 else
                 {
                     /* High-quality all-pass upsampler */
                     S.up2_function = "SKP_Silk_resampler_private_up2_HQ";
                     S.up2CB = new Up2ImplHQ();
-                    
+
                 }
             }
-        } 
-        else if ( Fs_Hz_out < Fs_Hz_in ) 
+        }
+        else if ( Fs_Hz_out < Fs_Hz_in )
         {
             /* Downsample */
             if( Fs_Hz_out * 4 == Fs_Hz_in * 3 )
@@ -215,35 +215,35 @@ public class Resampler
                 S.Coefs = ResamplerRom.SKP_Silk_Resampler_3_4_COEFS;
                 S.resampler_function = "SKP_Silk_resampler_private_down_FIR";
                 S.resamplerCB = new ResamplerImplDownFIR();
-            } 
+            }
             else if( Fs_Hz_out * 3 == Fs_Hz_in * 2 )
             {        /* Fs_out : Fs_in = 2 : 3 */
                 S.FIR_Fracs = 2;
                 S.Coefs = ResamplerRom.SKP_Silk_Resampler_2_3_COEFS;
                 S.resampler_function = "SKP_Silk_resampler_private_down_FIR";
                 S.resamplerCB = new ResamplerImplDownFIR();
-            } 
+            }
             else if( Fs_Hz_out * 2 == Fs_Hz_in )
             {                      /* Fs_out : Fs_in = 1 : 2 */
                 S.FIR_Fracs = 1;
                 S.Coefs = ResamplerRom.SKP_Silk_Resampler_1_2_COEFS;
                 S.resampler_function = "SKP_Silk_resampler_private_down_FIR";
                 S.resamplerCB = new ResamplerImplDownFIR();
-            } 
-            else if( Fs_Hz_out * 8 == Fs_Hz_in * 3 ) 
+            }
+            else if( Fs_Hz_out * 8 == Fs_Hz_in * 3 )
             {        /* Fs_out : Fs_in = 3 : 8 */
                 S.FIR_Fracs = 3;
                 S.Coefs = ResamplerRom.SKP_Silk_Resampler_3_8_COEFS;
                 S.resampler_function = "SKP_Silk_resampler_private_down_FIR";
                 S.resamplerCB = new ResamplerImplDownFIR();
-            } 
-            else if( Fs_Hz_out * 3 == Fs_Hz_in ) 
+            }
+            else if( Fs_Hz_out * 3 == Fs_Hz_in )
             {                      /* Fs_out : Fs_in = 1 : 3 */
                 S.FIR_Fracs = 1;
                 S.Coefs = ResamplerRom.SKP_Silk_Resampler_1_3_COEFS;
                 S.resampler_function = "SKP_Silk_resampler_private_down_FIR";
                 S.resamplerCB = new ResamplerImplDownFIR();
-            } 
+            }
             else if( Fs_Hz_out * 4 == Fs_Hz_in )
             {                      /* Fs_out : Fs_in = 1 : 4 */
                 S.FIR_Fracs = 1;
@@ -251,7 +251,7 @@ public class Resampler
                 S.Coefs = ResamplerRom.SKP_Silk_Resampler_1_2_COEFS;
                 S.resampler_function = "SKP_Silk_resampler_private_down_FIR";
                 S.resamplerCB = new ResamplerImplDownFIR();
-            } 
+            }
             else if( Fs_Hz_out * 6 == Fs_Hz_in )
             {                      /* Fs_out : Fs_in = 1 : 6 */
                 S.FIR_Fracs = 1;
@@ -259,57 +259,57 @@ public class Resampler
                 S.Coefs = ResamplerRom.SKP_Silk_Resampler_1_3_COEFS;
                 S.resampler_function = "SKP_Silk_resampler_private_down_FIR";
                 S.resamplerCB = new ResamplerImplDownFIR();
-            } 
+            }
             else if( Fs_Hz_out * 441 == Fs_Hz_in * 80 )
             {     /* Fs_out : Fs_in = 80 : 441 */
                 S.Coefs = ResamplerRom.SKP_Silk_Resampler_80_441_ARMA4_COEFS;
                 S.resampler_function = "SKP_Silk_resampler_private_IIR_FIR";
                 S.resamplerCB = new ResamplerImplIIRFIR();
-            } 
-            else if( Fs_Hz_out * 441 == Fs_Hz_in * 120 ) 
+            }
+            else if( Fs_Hz_out * 441 == Fs_Hz_in * 120 )
             {    /* Fs_out : Fs_in = 120 : 441 */
                 S.Coefs = ResamplerRom.SKP_Silk_Resampler_120_441_ARMA4_COEFS;
                 S.resampler_function = "SKP_Silk_resampler_private_IIR_FIR";
                 S.resamplerCB = new ResamplerImplIIRFIR();
-            } 
+            }
             else if( Fs_Hz_out * 441 == Fs_Hz_in * 160 )
             {    /* Fs_out : Fs_in = 160 : 441 */
                 S.Coefs = ResamplerRom.SKP_Silk_Resampler_160_441_ARMA4_COEFS;
                 S.resampler_function = "SKP_Silk_resampler_private_IIR_FIR";
                 S.resamplerCB = new ResamplerImplIIRFIR();
-            } 
-            else if( Fs_Hz_out * 441 == Fs_Hz_in * 240 ) 
+            }
+            else if( Fs_Hz_out * 441 == Fs_Hz_in * 240 )
             {    /* Fs_out : Fs_in = 240 : 441 */
                 S.Coefs = ResamplerRom.SKP_Silk_Resampler_240_441_ARMA4_COEFS;
                 S.resampler_function = "SKP_Silk_resampler_private_IIR_FIR";
                 S.resamplerCB = new ResamplerImplIIRFIR();
-            } 
+            }
             else if( Fs_Hz_out * 441 == Fs_Hz_in * 320 )
             {    /* Fs_out : Fs_in = 320 : 441 */
                 S.Coefs = ResamplerRom.SKP_Silk_Resampler_320_441_ARMA4_COEFS;
                 S.resampler_function = "SKP_Silk_resampler_private_IIR_FIR";
                 S.resamplerCB = new ResamplerImplIIRFIR();
-            } 
+            }
             else
             {
                 /* Default resampler */
                 S.resampler_function = "SKP_Silk_resampler_private_IIR_FIR";
                 S.resamplerCB = new ResamplerImplIIRFIR();
                 up2 = 1;
-                if( Fs_Hz_in > 24000 ) 
+                if( Fs_Hz_in > 24000 )
                 {
                     /* Low-quality all-pass upsampler */
                     S.up2_function = "SKP_Silk_resampler_up2";
                     S.up2CB = new Up2ImplUp2();
                 }
-                else 
+                else
                 {
                     /* High-quality all-pass upsampler */
                     S.up2_function = "SKP_Silk_resampler_private_up2_HQ";
                     S.up2CB = new Up2ImplHQ();
                 }
             }
-        } 
+        }
         else
         {
             /* Input and output sampling rates are equal: copy */
@@ -322,7 +322,7 @@ public class Resampler
         /* Ratio of input/output samples */
         S.invRatio_Q16 = ( ( Fs_Hz_in << 14 + up2 - down2 ) / Fs_Hz_out ) << 2 ;
         /* Make sure the ratio is rounded up */
-        while( Macros.SKP_SMULWW( S.invRatio_Q16, Fs_Hz_out << down2 ) < ( Fs_Hz_in << up2 ) ) 
+        while( Macros.SKP_SMULWW( S.invRatio_Q16, Fs_Hz_out << down2 ) < ( Fs_Hz_in << up2 ) )
         {
             S.invRatio_Q16++;
         }
@@ -337,7 +337,7 @@ public class Resampler
      * @param S Resampler state.
      * @return
      */
-    static int SKP_Silk_resampler_clear( 
+    static int SKP_Silk_resampler_clear(
         SKP_Silk_resampler_state_struct    S            /* I/O: Resampler state             */
     )
     {
@@ -362,7 +362,7 @@ public class Resampler
      * @param inLen Number of input samples
      * @return
      */
-    static int SKP_Silk_resampler( 
+    static int SKP_Silk_resampler(
         SKP_Silk_resampler_state_struct    S,            /* I/O: Resampler state             */
         short[]                                out,    /* O:    Output signal                 */
         int out_offset,
@@ -372,12 +372,12 @@ public class Resampler
     )
     {
         /* Verify that state was initialized and has not been corrupted */
-        if( S.magic_number != 123456789 ) 
+        if( S.magic_number != 123456789 )
         {
             assert( false );
             return -1;
         }
-        
+
         if (ResamplerStructs.RESAMPLER_SUPPORT_ABOVE_48KHZ != 0)
         {
             if( S.nPreDownsamplers + S.nPostUpsamplers > 0 ) {
@@ -396,7 +396,7 @@ public class Resampler
 
                     if( S.nPreDownsamplers > 0 ) {
                         S.down_pre_function(S.sDownPre, in_buf, 0, in, in_offset, nSamplesIn);
-                        
+
                         if( S.nPostUpsamplers > 0 ) {
                             S.resampler_function(S, out_buf, 0, in_buf, 0, ( nSamplesIn >> S.nPreDownsamplers ));
                             S.up_post_function(S.sUpPost, out, out_offset, out_buf, 0, ( nSamplesOut >> S.nPostUpsamplers ));
@@ -429,7 +429,7 @@ class DownPreImplDown4 implements DownPreFP
 {
     public void down_pre_function(int[] state, short[] out, int outOffset,
             short[] in, int inOffset, int len) {
-        ResamplerPrivateDown4.SKP_Silk_resampler_private_down4(state, 0, 
+        ResamplerPrivateDown4.SKP_Silk_resampler_private_down4(state, 0,
                 out, outOffset, in, inOffset, len);
     }
 }
@@ -437,7 +437,7 @@ class DownPreImplDown2 implements DownPreFP
 {
     public void down_pre_function(int[] state, short[] out, int outOffset,
             short[] in, int inOffset, int len) {
-        ResamplerDown2.SKP_Silk_resampler_down2(state, 0, 
+        ResamplerDown2.SKP_Silk_resampler_down2(state, 0,
                 out, outOffset, in, inOffset, len);
     }
 }
@@ -446,33 +446,33 @@ class UpPostImplUp4 implements UpPostFP
 {
     public void up_post_function(int[] state, short[] out, int outOffset,
             short[] in, int inOffset, int len) {
-        ResamplerPrivateUp4.SKP_Silk_resampler_private_up4(state, 0, 
+        ResamplerPrivateUp4.SKP_Silk_resampler_private_up4(state, 0,
                 out, outOffset, in, inOffset, len);
     }
-    
+
 }
 class UpPostImplUp2 implements UpPostFP
 {
     public void up_post_function(int[] state, short[] out, int outOffset,
             short[] in, int inOffset, int len) {
-        ResamplerUp2.SKP_Silk_resampler_up2(state, 0, 
+        ResamplerUp2.SKP_Silk_resampler_up2(state, 0,
                 out, outOffset, in, inOffset, len);
-    }    
+    }
 }
 /*----------------------------------------------------------------*/
 class ResamplerImplWrapper implements ResamplerFP
 {
     public void resampler_function(Object state, short[] out, int outOffset,
             short[] in, int inOffset, int len) {
-        ResamplerPrivateUp2HQ.SKP_Silk_resampler_private_up2_HQ_wrapper(state, 
+        ResamplerPrivateUp2HQ.SKP_Silk_resampler_private_up2_HQ_wrapper(state,
                 out, outOffset, in, inOffset, len);
-    }    
+    }
 }
 class ResamplerImplIIRFIR implements ResamplerFP
 {
     public void resampler_function(Object state, short[] out, int outOffset,
             short[] in, int inOffset, int len) {
-        ResamplerPrivateIIRFIR.SKP_Silk_resampler_private_IIR_FIR(state, 
+        ResamplerPrivateIIRFIR.SKP_Silk_resampler_private_IIR_FIR(state,
                 out, outOffset, in, inOffset, len);
     }
 }
@@ -480,9 +480,9 @@ class ResamplerImplDownFIR implements ResamplerFP
 {
     public void resampler_function(Object state, short[] out, int outOffset,
             short[] in, int inOffset, int len) {
-        ResamplerPrivateDownFIR.SKP_Silk_resampler_private_down_FIR(state, 
+        ResamplerPrivateDownFIR.SKP_Silk_resampler_private_down_FIR(state,
                 out, outOffset, in, inOffset, len);
-    }    
+    }
 }
 class ResamplerImplCopy implements ResamplerFP
 {
@@ -490,14 +490,14 @@ class ResamplerImplCopy implements ResamplerFP
             short[] in, int inOffset, int len) {
         ResamplerPrivateCopy.SKP_Silk_resampler_private_copy(state, out, outOffset, in, inOffset, len);
     }
-    
+
 }
 /*----------------------------------------------------------------*/
 class Up2ImplUp2 implements Up2FP
 {
     public void up2_function(int[] state, short[] out, int outOffset,
             short[] in, int inOffset, int len) {
-        ResamplerUp2.SKP_Silk_resampler_up2(state, 0, 
+        ResamplerUp2.SKP_Silk_resampler_up2(state, 0,
                 out, outOffset, in, inOffset, len);
     }
 }
@@ -505,9 +505,9 @@ class Up2ImplHQ implements Up2FP
 {
     public void up2_function(int[] state, short[] out, int outOffset,
             short[] in, int inOffset, int len) {
-        ResamplerPrivateUp2HQ.SKP_Silk_resampler_private_up2_HQ(state, 0, 
+        ResamplerPrivateUp2HQ.SKP_Silk_resampler_private_up2_HQ(state, 0,
                 out, outOffset, in, inOffset, len);
     }
-    
+
 }
 /*************************************************************************************/

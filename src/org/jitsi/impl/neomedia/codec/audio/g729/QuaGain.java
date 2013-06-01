@@ -57,13 +57,13 @@ private final float[/* 4 */] past_qua_en={-14.0f,-14.0f,-14.0f,-14.0f};
  * @param tameflag      input : flag set to 1 if taming is needed
  * @return              quantizer index
  */
-int qua_gain(           
-  float code[],        
-  float[] g_coeff,      
-  int l_subfr,          
-  FloatReference gain_pit,      
-  FloatReference gain_code,    
-  int tameflag          
+int qua_gain(
+  float code[],
+  float[] g_coeff,
+  int l_subfr,
+  FloatReference gain_pit,
+  FloatReference gain_code,
+  int tameflag
 )
 {
    float FLT_MAX_G729 = Ld8k.FLT_MAX_G729;
@@ -181,10 +181,10 @@ int qua_gain(
  * @param gcode0        input : presearch for gain codebook
  */
 private void   gbk_presel(
- float best_gain[],     
- IntReference cand1,          
- IntReference cand2,          
- float gcode0           
+ float best_gain[],
+ IntReference cand1,
+ IntReference cand2,
+ float gcode0
 )
 {
    float INV_COEF = Ld8k.INV_COEF;

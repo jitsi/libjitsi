@@ -8,7 +8,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Convert input to a linear scale.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -17,11 +17,11 @@ public class Log2lin
     /**
      * Approximation of 2^() (very close inverse of Silk_lin2log.SKP_Silk_lin2log())
      * Convert input to a linear scale.
-     * 
+     *
      * @param inLog_Q7 Input on log scale
      * @return
      */
-    static int SKP_Silk_log2lin( final int inLog_Q7 )    /* I:    Input on log scale */ 
+    static int SKP_Silk_log2lin( final int inLog_Q7 )    /* I:    Input on log scale */
     {
         int out, frac_Q7;
 
@@ -30,7 +30,7 @@ public class Log2lin
         }
 
         out = ( 1 << ( inLog_Q7 >> 7 ) );
-        
+
         frac_Q7 = inLog_Q7 & 0x7F;
         if( inLog_Q7 < 2048 ) {
             /* Piece-wise parabolic approximation */

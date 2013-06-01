@@ -44,6 +44,7 @@ public class ImgStreamingSystem
         super(MediaType.VIDEO, LOCATOR_PROTOCOL, FEATURE_REINITIALIZE);
     }
 
+    @Override
     protected void doInitialize()
         throws Exception
     {

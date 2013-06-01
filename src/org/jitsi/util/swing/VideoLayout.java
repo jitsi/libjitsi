@@ -210,7 +210,7 @@ public class VideoLayout
 
     /**
      * Returns the constraints for the given component.
-     * 
+     *
      * @param c the component for which constraints we're looking for
      * @return the constraints for the given component
      */

@@ -98,7 +98,7 @@ public class JavaEncoder
                 }
             }
 
-            sample = (int) ((short) (inputSample + inputBias));
+            sample = ((short) (inputSample + inputBias));
 
             if (sample >= 0)
             {

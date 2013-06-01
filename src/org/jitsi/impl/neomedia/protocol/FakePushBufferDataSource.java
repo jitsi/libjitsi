@@ -80,6 +80,7 @@ public class FakePushBufferDataSource
      * <tt>PushBufferDataSource</tt> and which has its <tt>Format</tt>-related
      * information abstracted by the specified <tt>formatControl</tt>
      */
+    @Override
     protected AbstractPushBufferStream createStream(
             int streamIndex,
             FormatControl formatControl)

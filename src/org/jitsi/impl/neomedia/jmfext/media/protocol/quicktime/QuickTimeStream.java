@@ -152,6 +152,7 @@ public class QuickTimeStream
                      * represents additional details about the output video
                      * samples
                      */
+                    @Override
                     public void outputVideoFrameWithSampleBuffer(
                             CVImageBuffer videoFrame,
                             QTSampleBuffer sampleBuffer)
@@ -724,7 +725,7 @@ public class QuickTimeStream
      *
      * @param frameRate the output frame rate to be set on the
      * <tt>QTCaptureDecompressedVideoOutput</tt> represented by this
-     * <tt>QuickTimeStream</tt> 
+     * <tt>QuickTimeStream</tt>
      * @return the output frame rate of the
      * <tt>QTCaptureDecompressedVideoOutput</tt> represented by this
      * <tt>QuickTimeStream</tt>

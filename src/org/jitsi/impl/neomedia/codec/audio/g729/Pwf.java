@@ -55,11 +55,11 @@ private final float[/* 2 */]   lar_old = {0.0f, 0.0f};
  * @param r_c           input : Reflection coefficients
  */
 void perc_var(
- float[] gamma1,         
- float[] gamma2,        
- float[] lsfint,         
- float[] lsfnew,        
- float[] r_c             
+ float[] gamma1,
+ float[] gamma2,
+ float[] lsfint,
+ float[] lsfnew,
+ float[] r_c
 )
 {
     float ALPHA = Ld8k.ALPHA;
@@ -87,7 +87,7 @@ void perc_var(
 
     /* reflection coefficients --> lar */
     for (i=0; i<2; i++)
-        lar_new[lar_new_offset + i] = (float)Math.log10( (double)( ( 1.0f + r_c[i]) / (1.0f - r_c[i])));
+        lar_new[lar_new_offset + i] = (float)Math.log10( ( 1.0f + r_c[i]) / (1.0f - r_c[i]));
 
     /* Interpolation of lar for the 1st subframe */
     for (i=0; i<2; i++) {

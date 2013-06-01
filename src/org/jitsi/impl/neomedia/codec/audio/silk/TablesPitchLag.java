@@ -11,7 +11,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class TablesPitchLag 
+public class TablesPitchLag
 {
     static int[] SKP_Silk_pitch_lag_NB_CDF = {
             0,    194,    395,    608,    841,   1099,   1391,   1724,

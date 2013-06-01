@@ -8,7 +8,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Error messages.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */

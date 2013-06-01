@@ -7,19 +7,19 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * Compute inverse of LPC prediction gain, and                          
+ * Compute inverse of LPC prediction gain, and
  * test if LPC coefficients are stable (all poles within unit circle)
  *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class LPCInvPredGain 
+public class LPCInvPredGain
 {
     static final int  QA =          16;
     static final int A_LIMIT =    65520;
-    
+
     /**
-     * Compute inverse of LPC prediction gain, and                          
+     * Compute inverse of LPC prediction gain, and
      * test if LPC coefficients are stable (all poles within unit circle).
      * @param invGain_Q30 Inverse prediction gain, Q30 energy domain
      * @param A_Q12 Prediction coefficients, Q12 [order]
@@ -46,7 +46,7 @@ public class LPCInvPredGain
         }
 
         invGain_Q30[0] = ( 1 << 30 );
-        
+
         for( k = order - 1; k > 0; k-- ) {
             /* Check for stability */
             if( ( Anew_QA[ k ] > A_LIMIT ) || ( Anew_QA[ k ] < -A_LIMIT ) ) {
@@ -55,13 +55,13 @@ public class LPCInvPredGain
 
             /* Set RC equal to negated AR coef */
             rc_Q31 = -( Anew_QA[ k ] << (31 - QA) );
-            
+
             /* rc_mult1_Q30 range: [ 1 : 2^30-1 ] */
             rc_mult1_Q30 = ( Typedef.SKP_int32_MAX >> 1 ) - SigProcFIX.SKP_SMMUL( rc_Q31, rc_Q31 );
             Typedef.SKP_assert( rc_mult1_Q30 > ( 1 << 15 ) );                   /* reduce A_LIMIT if fails */
             Typedef.SKP_assert( rc_mult1_Q30 < ( 1 << 30 ) );
 
-            /* rc_mult2_Q16 range: [ 2^16 : SKP_int32_MAX ] */        
+            /* rc_mult2_Q16 range: [ 2^16 : SKP_int32_MAX ] */
             rc_mult2_Q16 = Inlines.SKP_INVERSE32_varQ( rc_mult1_Q30, 46 );      /* 16 = 46 - 30 */
 
             /* Update inverse gain */
@@ -74,8 +74,8 @@ public class LPCInvPredGain
             /* Swap pointers */
             Aold_QA = Anew_QA;
             Anew_QA = Atmp_QA[ k & 1 ];
-            
-            /* Update AR coefficient */        
+
+            /* Update AR coefficient */
             headrm = Macros.SKP_Silk_CLZ32( rc_mult2_Q16 ) - 1;
             rc_mult2_Q16 = ( rc_mult2_Q16 << headrm );          /* Q: 16 + headrm */
             for( n = 0; n < k; n++ ) {
@@ -92,7 +92,7 @@ public class LPCInvPredGain
         /* Set RC equal to negated AR coef */
         rc_Q31 = -( Anew_QA[ 0 ] <<( 31 - QA ));
 
-        /* Range: [ 1 : 2^30 ] */   
+        /* Range: [ 1 : 2^30 ] */
         rc_mult1_Q30 = ( Typedef.SKP_int32_MAX >> 1 ) - SigProcFIX.SKP_SMMUL( rc_Q31, rc_Q31 );
 
         /* Update inverse gain */
@@ -139,13 +139,13 @@ public class LPCInvPredGain
 
             /* Set RC equal to negated AR coef */
             rc_Q31 = -( Anew_QA[ k ] <<(31 - QA) );
-            
+
             /* rc_mult1_Q30 range: [ 1 : 2^30-1 ] */
             rc_mult1_Q30 = ( Typedef.SKP_int32_MAX >> 1 ) - SigProcFIX.SKP_SMMUL( rc_Q31, rc_Q31 );
             assert( rc_mult1_Q30 > ( 1 << 15 ) );                   /* reduce A_LIMIT if fails */
             assert( rc_mult1_Q30 < ( 1 << 30 ) );
 
-            /* rc_mult2_Q16 range: [ 2^16 : SKP_int32_MAX ] */   
+            /* rc_mult2_Q16 range: [ 2^16 : SKP_int32_MAX ] */
             rc_mult2_Q16 = Inlines.SKP_INVERSE32_varQ( rc_mult1_Q30, 46 );      /* 16 = 46 - 30 */
 
             /* Update inverse gain */
@@ -157,7 +157,7 @@ public class LPCInvPredGain
             /* Swap pointers */
             Aold_QA = Anew_QA;
             Anew_QA = Atmp_QA[ k & 1 ];
-            
+
             /* Update AR coefficient */
             headrm = Macros.SKP_Silk_CLZ32( rc_mult2_Q16 ) - 1;
             rc_mult2_Q16 = ( rc_mult2_Q16 << headrm );          /* Q: 16 + headrm */

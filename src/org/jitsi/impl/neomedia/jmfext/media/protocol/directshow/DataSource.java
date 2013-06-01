@@ -35,8 +35,8 @@ public class DataSource
      * The map of DirectShow pixel formats to FFmpeg pixel formats which allows
      * converting between the two.
      */
-    private static final long[] DS_TO_FFMPEG_PIX_FMTS
-        = new long[]
+    private static final int[] DS_TO_FFMPEG_PIX_FMTS
+        = new int[]
                 {
                     DSFormat.RGB24,
                     FFmpeg.PIX_FMT_RGB24,
@@ -71,7 +71,7 @@ public class DataSource
      * @param ffmpegPixFmt FFmpeg format
      * @return the DirectShow pixel format matching the specified FFmpeg format
      */
-    public static long getDSPixFmt(int ffmpegPixFmt)
+    public static int getDSPixFmt(int ffmpegPixFmt)
     {
         for (int i = 0; i < DS_TO_FFMPEG_PIX_FMTS.length; i += 2)
             if (DS_TO_FFMPEG_PIX_FMTS[i + 1] == ffmpegPixFmt)
@@ -87,7 +87,7 @@ public class DataSource
      * FFmpeg pixel format of
      * @return the FFmpeg pixel format matching the specified DirectShow pixel
      */
-    public static long getFFmpegPixFmt(long dsPixFmt)
+    public static int getFFmpegPixFmt(int dsPixFmt)
     {
         for (int i = 0; i < DS_TO_FFMPEG_PIX_FMTS.length; i += 2)
             if (DS_TO_FFMPEG_PIX_FMTS[i] == dsPixFmt)
@@ -177,6 +177,7 @@ public class DataSource
      * information abstracted by the specified <tt>formatControl</tt>
      * @see AbstractPushBufferCaptureDevice#createStream(int, FormatControl)
      */
+    @Override
     protected AbstractPushBufferStream createStream(
             int streamIndex,
             FormatControl formatControl)
@@ -380,14 +381,17 @@ public class DataSource
         {
             Dimension size
                 = new Dimension(deviceFmt.getWidth(), deviceFmt.getHeight());
-            long devicePixFmt = deviceFmt.getPixelFormat();
-            int pixFmt = (int) getFFmpegPixFmt(devicePixFmt);
+            int devicePixFmt = deviceFmt.getPixelFormat();
+            int pixFmt = getFFmpegPixFmt(devicePixFmt);
 
-            fmts.add(
-                    new AVFrameFormat(
-                            size,
-                            Format.NOT_SPECIFIED,
-                            pixFmt, (int) devicePixFmt));
+            if (pixFmt != FFmpeg.PIX_FMT_NONE)
+            {
+                fmts.add(
+                        new AVFrameFormat(
+                                size,
+                                Format.NOT_SPECIFIED,
+                                pixFmt, devicePixFmt));
+            }
         }
         return fmts.toArray(new Format[fmts.size()]);
     }
@@ -416,31 +420,10 @@ public class DataSource
             int streamIndex,
             Format oldValue, Format newValue)
     {
-        if (newValue instanceof AVFrameFormat)
-        {
-            AVFrameFormat avFrameFormat = (AVFrameFormat) newValue;
-            long pixFmt = avFrameFormat.getDeviceSystemPixFmt();
-
-            if (pixFmt != -1)
-            {
-                Dimension size = avFrameFormat.getSize();
-
-                /*
-                 * We will set the native format in doStart() because a
-                 * connect-disconnect-connect sequence of the native capture
-                 * device may reorder its formats in a different way.
-                 * Consequently, in the absence of further calls to
-                 * setFormat() by JMF, a crash may occur later (typically,
-                 * during scaling) because of a wrong format.
-                 */
-                if (size != null)
-                {
-                    // This DataSource supports setFormat.
-                    return newValue;
-                }
-            }
-        }
-
-        return super.setFormat(streamIndex, oldValue, newValue);
+        // This DataSource supports setFormat.
+        return
+            DirectShowStream.isSupportedFormat(newValue)
+                ? newValue
+                : super.setFormat(streamIndex, oldValue, newValue);
     }
 }

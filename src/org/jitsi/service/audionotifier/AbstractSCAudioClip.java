@@ -155,12 +155,12 @@ public abstract class AbstractSCAudioClip
     {
         boolean interrupted = false;
 
-        synchronized (sync) 
+        synchronized (sync)
         {
             started = false;
             sync.notifyAll();
 
-            while (command != null) 
+            while (command != null)
             {
                 try
                 {
@@ -286,7 +286,7 @@ public abstract class AbstractSCAudioClip
                                      * sync i.e. be ready with setting up the
                                      * whole AbstractSCAudioClip state;
                                      * otherwise, this Runnable will most likely
-                                     * prematurely seize to exist. 
+                                     * prematurely seize to exist.
                                      */
                                     if (!equals(command))
                                         return;
@@ -485,7 +485,7 @@ public abstract class AbstractSCAudioClip
      * default value is <tt>false</tt> i.e. this instance is valid by default.
      *
      * @param invalid <tt>true</tt> to mark this instance invalid or
-     * <tt>false</tt> to mark it valid 
+     * <tt>false</tt> to mark it valid
      */
     public void setInvalid(boolean invalid)
     {

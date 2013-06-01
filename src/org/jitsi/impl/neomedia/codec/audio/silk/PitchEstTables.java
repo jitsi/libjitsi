@@ -12,14 +12,14 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class PitchEstTables 
+public class PitchEstTables
 {
     static short[][] SKP_Silk_CB_lags_stage2 =
     {
         {0, 2,-1,-1,-1, 0, 0, 1, 1, 0, 1},
         {0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0},
         {0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0},
-        {0,-1, 2, 1, 0, 1, 1, 0, 0,-1,-1} 
+        {0,-1, 2, 1, 0, 1, 1, 0, 0,-1,-1}
     };
 
     static short[][] SKP_Silk_CB_lags_stage3 =
@@ -55,14 +55,14 @@ public class PitchEstTables
         }
     };
 
-    static short[] SKP_Silk_cbk_sizes_stage3 = 
+    static short[] SKP_Silk_cbk_sizes_stage3 =
     {
         CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MIN,
         CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MID,
         CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MAX
     };
 
-    static short[] SKP_Silk_cbk_offsets_stage3 = 
+    static short[] SKP_Silk_cbk_offsets_stage3 =
     {
         ((CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MAX - CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MIN) >> 1),
         ((CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MAX - CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MID) >> 1),

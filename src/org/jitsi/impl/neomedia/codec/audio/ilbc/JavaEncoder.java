@@ -96,6 +96,7 @@ public class JavaEncoder
      *
      * @see AbstractCodecExt#doClose()
      */
+    @Override
     protected void doClose()
     {
         enc = null;
@@ -111,6 +112,7 @@ public class JavaEncoder
      *
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected void doOpen()
     {
         int mode = Constants.ILBC_MODE;
@@ -183,6 +185,7 @@ public class JavaEncoder
      * @return
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
+    @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
         int inputLength = inputBuffer.getLength();

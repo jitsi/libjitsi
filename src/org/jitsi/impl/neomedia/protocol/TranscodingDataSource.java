@@ -22,7 +22,7 @@ import org.jitsi.impl.neomedia.control.*;
  * input <tt>DataSource</tt> into a specific output <tt>Format</tt>. The
  * transcoding is attempted only for tracks which actually support it for the
  * specified output <tt>Format</tt>.
- * 
+ *
  * @author Lubomir Marinov
  */
 public class TranscodingDataSource
@@ -57,7 +57,7 @@ public class TranscodingDataSource
      * Initializes a new <tt>TranscodingDataSource</tt> instance to transcode
      * the tracks of a specific <tt>DataSource</tt> into a specific output
      * <tt>Format</tt>.
-     * 
+     *
      * @param inputDataSource the <tt>DataSource</tt> which is to have its
      * tracks transcoded in a specific outptu <tt>Format</tt>
      * @param outputFormat the <tt>Format</tt> in which the new instance is to
@@ -83,6 +83,7 @@ public class TranscodingDataSource
      * @throws IOException if creating the transcoding <tt>Processor</tt>,
      * setting its <tt>Format</tt> or connecting to it fails
      */
+    @Override
     public synchronized void connect()
         throws IOException
     {
@@ -119,11 +120,11 @@ public class TranscodingDataSource
             for (TrackControl trackControl : trackControls)
             {
                 Format trackFormat = trackControl.getFormat();
-    
+
                 /*
                  * XXX We only care about AudioFormat here and we assume
                  * outputFormat is of such type because it is in our current and
-                 * only use case of TranscodingDataSource 
+                 * only use case of TranscodingDataSource
                  */
                 if ((trackFormat instanceof AudioFormat)
                         && !trackFormat.matches(outputFormat))
@@ -166,6 +167,7 @@ public class TranscodingDataSource
      * <tt>DataSource</tt> of the transcodingProcessor and disposes of the
      * <tt>transcodingProcessor</tt>.
      */
+    @Override
     public synchronized void disconnect()
     {
         if (outputDataSource == null)
@@ -196,6 +198,7 @@ public class TranscodingDataSource
      * @return a <tt>String</tt> value which describes the type of the content
      * made available by this <tt>DataSource</tt>
      */
+    @Override
     public synchronized String getContentType()
     {
         return
@@ -214,6 +217,7 @@ public class TranscodingDataSource
      * with the specified type if such a control is available; otherwise,
      * <tt>null</tt>
      */
+    @Override
     public synchronized Object getControl(String controlType)
     {
         /*
@@ -231,6 +235,7 @@ public class TranscodingDataSource
      * @return an array of <tt>Object</tt>s which represent the controls
      * available for this instance
      */
+    @Override
     public synchronized Object[] getControls()
     {
         return
@@ -246,6 +251,7 @@ public class TranscodingDataSource
      * @return a <tt>Time</tt> value which describes the duration of the content
      * made available by this instance
      */
+    @Override
     public synchronized Time getDuration()
     {
         return
@@ -258,7 +264,7 @@ public class TranscodingDataSource
      * Gets the output streams that this instance provides. Some of them may be
      * the result of transcoding the tracks of the input <tt>DataSource</tt> of
      * this instance in the output <tt>Format</tt> of this instance.
-     * 
+     *
      * @return an array of <tt>SourceStream</tt>s which represents the
      * collection of output streams that this instance provides
      */
@@ -281,6 +287,7 @@ public class TranscodingDataSource
      *
      * @throws IOException if starting the transcoding fails
      */
+    @Override
     public synchronized void start()
         throws IOException
     {
@@ -299,6 +306,7 @@ public class TranscodingDataSource
      *
      * @throws IOException if stopping the transcoding fails
      */
+    @Override
     public synchronized void stop()
         throws IOException
     {

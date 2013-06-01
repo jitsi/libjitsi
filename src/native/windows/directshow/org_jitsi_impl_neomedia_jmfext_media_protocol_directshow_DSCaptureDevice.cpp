@@ -12,6 +12,7 @@
  * \author Lyubomir Marinov
  */
 
+#include "BasicSampleGrabberCB.h"
 #include "DSCaptureDevice.h"
 #include "DSFormat.h"
 
@@ -22,10 +23,10 @@ extern "C" {
 #include "org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice.h"
 
 /**
- * \class Grabber.
+ * \class SampleGrabberCB.
  * \brief Frame grabber.
  */
-class Grabber : public DSGrabberCallback
+class SampleGrabberCB : public BasicSampleGrabberCB
 {
 public:
     /**
@@ -33,27 +34,13 @@ public:
      * \param vm Java Virtual Machine
      * \param delegate delegate Java object
      */
-    Grabber(JavaVM* vm, jobject delegate, DSCaptureDevice* dev)
-    {
-        this->m_vm = vm;
-        this->m_delegate = delegate;
-        this->m_dev = dev;
-        m_bytes = NULL;
-        m_bytesLength = 0;
-    }
+    SampleGrabberCB(JavaVM* vm, jobject delegate, DSCaptureDevice* dev)
+        : _delegate(delegate), _dev(dev), _vm(vm) {}
 
     /**
      * \brief Destructor.
      */
-    virtual ~Grabber()
-    {
-        m_vm = NULL;
-        m_delegate = NULL;
-        m_dev = NULL;
-
-        if(m_bytes != NULL)
-            delete[] m_bytes;
-    }
+    virtual ~SampleGrabberCB() {}
 
     /**
      * \brief Method callback when device capture a frame.
@@ -61,104 +48,97 @@ public:
      * \param sample media sample
      * \see ISampleGrabberCB
      */
-    virtual STDMETHODIMP SampleCB(double time, IMediaSample* sample)
+    STDMETHODIMP SampleCB(double time, IMediaSample* sample)
     {
-        jclass delegateClass = NULL;
-        JNIEnv* env = NULL;
+        LONG length = sample->GetActualDataLength();
 
-        if(m_vm->AttachCurrentThreadAsDaemon((void**)&env, NULL) != 0)
+        if (length == 0)
+            return S_OK;
+
+        JNIEnv *env = NULL;
+
+        if (_vm->AttachCurrentThreadAsDaemon((void **) &env, NULL) != 0)
             return E_FAIL;
 
-        delegateClass = env->GetObjectClass(m_delegate);
-        if(delegateClass)
+        jclass clazz = env->GetObjectClass(_delegate);
+
+        if (clazz)
         {
-            jmethodID methodid = NULL;
+            jmethodID methodID = env->GetMethodID(clazz, "SampleCB", "(JJI)V");
 
-            methodid = env->GetMethodID(delegateClass,"frameReceived",
-                    "(JI)V");
-            if(methodid)
+            if (methodID)
             {
-                BYTE* data = NULL;
-                size_t length = 0;
-                bool flipImage = false;
-                size_t width = 0;
-                size_t height = 0;
-                size_t bytesPerPixel = 0;
-                DSFormat format = m_dev->getFormat();
-                /* get width and height */
-                width = format.width;
-                height = format.height;
-                bytesPerPixel = m_dev->getBitPerPixel() / 8;
+                BYTE *data = NULL;
+                HRESULT hr = sample->GetPointer(&data);
 
-                /* flip image for RGB content */
-                flipImage = !m_dev->isFlip() &&
-                    (format.mediaType == MEDIASUBTYPE_ARGB32 ||
-                    format.mediaType == MEDIASUBTYPE_RGB32 ||
-                    format.mediaType == MEDIASUBTYPE_RGB24);
+                if (FAILED(hr))
+                    return hr;
 
-                sample->GetPointer(&data);
-                length = sample->GetActualDataLength();
-
-                if(length == 0)
-                    return S_OK;
-
-                if(!m_bytes || m_bytesLength < length)
-                {
-                    if(m_bytes)
-                        delete[] m_bytes;
-
-                    m_bytes = new BYTE[length];
-                    m_bytesLength = length;
-                }
-
-                /* it seems that images is always inversed,
-                 * the following code from lti-civil is always used to flip
-                 * images
-                 */
-                if(flipImage)
-                {
-                    for(size_t row = 0 ; row < height ; row++)
-                    {
-                        memcpy((m_bytes + row * width * bytesPerPixel), data + (height - 1 - row) * width * bytesPerPixel,
-                                width * bytesPerPixel);
-                    }
-                }
-                else
-                {
-                    memcpy(m_bytes, data, length);
-                }
-
-                env->CallVoidMethod(m_delegate, methodid, (jlong)m_bytes, (jlong)length);
+                env->CallVoidMethod(
+                        _delegate,
+                        methodID,
+                        (jlong) (intptr_t) _dev,
+                        (jlong) (intptr_t) data,
+                        (jint) length);
             }
         }
         return S_OK;
     }
 
     /**
-     * \brief Java VM.
-     */
-    JavaVM* m_vm;
-
-    /**
      * \brief Delegate Java object.
      */
-    jobject m_delegate;
+    jobject const _delegate;
 
-    /**
-     * \brief Internal buffer.
-     */
-    BYTE* m_bytes;
-
-    /**
-     * \brief Length of internal buffer.
-     */
-    size_t m_bytesLength;
+private:
 
     /**
      * \brief DirectShow device.
      */
-    DSCaptureDevice* m_dev;
+    DSCaptureDevice * const _dev;
+
+    /**
+     * \brief Java VM.
+     */
+    JavaVM * const _vm;
 };
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_samplecopy
+    (JNIEnv *env, jclass clazz, jlong thiz, jlong src, jlong dst, jint length)
+{
+    DSCaptureDevice* thiz_ = reinterpret_cast<DSCaptureDevice *>(thiz);
+    /* It appears that RGB is always flipped. */
+    DSFormat fmt = thiz_->getFormat();
+    bool flip
+        = (fmt.mediaType == MEDIASUBTYPE_ARGB32)
+            || (fmt.mediaType == MEDIASUBTYPE_RGB32)
+            || (fmt.mediaType == MEDIASUBTYPE_RGB24);
+    BYTE *src_ = (BYTE *) (intptr_t) src;
+    BYTE *dst_ = (BYTE *) (intptr_t) dst;
+
+    if (flip)
+    {
+        size_t height = fmt.height;
+
+        if (height > 1)
+        {
+            size_t stride = fmt.width * (thiz_->getBitPerPixel() / 8);
+
+            src_ += (height - 1) * stride;
+            for (size_t row = 0; row < height; row++)
+            {
+                memcpy(dst_, src_, stride);
+                dst_ += stride;
+                src_ -= stride;
+            }
+            return length;
+        }
+    }
+
+    memcpy(dst_, src_, length);
+    return length;
+}
 
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_getBytes
   (JNIEnv* env, jclass clazz, jlong ptr, jlong buf, jint len)
@@ -210,21 +190,24 @@ JNIEXPORT jobject JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_dir
     DSFormat fmt = dev->getFormat();
     jclass clazzDSFormat = NULL;
     jmethodID initDSFormat = NULL;
-    jobject ret = NULL;
 
     /* get DSFormat class to instantiate some object */
     clazzDSFormat = env->FindClass("org/jitsi/impl/neomedia/jmfext/media/protocol/directshow/DSFormat");
     if(clazzDSFormat == NULL)
         return NULL;
 
-    initDSFormat = env->GetMethodID(clazzDSFormat, "<init>", "(IIJ)V");
+    initDSFormat = env->GetMethodID(clazzDSFormat, "<init>", "(III)V");
 
     if(initDSFormat == NULL)
         return NULL;
 
-    ret = env->NewObject(clazzDSFormat, initDSFormat, static_cast<size_t>(fmt.width),
-            static_cast<size_t>(fmt.height), static_cast<jlong>(fmt.pixelFormat));
-    return ret;
+    return
+        env->NewObject(
+                clazzDSFormat,
+                initDSFormat,
+                static_cast<jint>(fmt.width),
+                static_cast<jint>(fmt.height),
+                static_cast<jint>(fmt.pixelFormat));
 }
 
 /**
@@ -273,7 +256,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protoco
     if(clazzDSFormat == NULL)
         return NULL;
 
-    initDSFormat = env->GetMethodID(clazzDSFormat, "<init>", "(IIJ)V");
+    initDSFormat = env->GetMethodID(clazzDSFormat, "<init>", "(III)V");
 
     if(initDSFormat == NULL)
         return NULL;
@@ -284,8 +267,13 @@ JNIEXPORT jobjectArray JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protoco
     for(std::list<DSFormat>::iterator it = formats.begin() ; it != formats.end() ; ++it)
     {
         DSFormat tmp = (*it);
-        jobject o = env->NewObject(clazzDSFormat, initDSFormat, static_cast<size_t>(tmp.width),
-            static_cast<size_t>(tmp.height), static_cast<jlong>(tmp.pixelFormat));
+        jobject o
+            = env->NewObject(
+                    clazzDSFormat,
+                    initDSFormat,
+                    static_cast<jint>(tmp.width),
+                    static_cast<jint>(tmp.height),
+                    static_cast<jint>(tmp.pixelFormat));
 
         if(o == NULL)
         {
@@ -314,9 +302,9 @@ JNIEXPORT jobjectArray JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protoco
 JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_setDelegate
   (JNIEnv* env, jobject obj, jlong ptr, jobject delegate)
 {
-    Grabber* grab = NULL;
+    SampleGrabberCB* grab = NULL;
     DSCaptureDevice* dev = reinterpret_cast<DSCaptureDevice*>(ptr);
-    DSGrabberCallback* prev = dev->getCallback();
+    BasicSampleGrabberCB* prev = dev->getCallback();
 
     if(delegate != NULL)
     {
@@ -326,7 +314,7 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_direct
             JavaVM* vm = NULL;
             /* get JavaVM */
             env->GetJavaVM(&vm);
-            grab = new Grabber(vm, delegate, dev);
+            grab = new SampleGrabberCB(vm, delegate, dev);
             dev->setCallback(grab);
         }
     }
@@ -337,7 +325,7 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_direct
 
     if(prev)
     {
-        jobject tmp_delegate = ((Grabber*)prev)->m_delegate;
+        jobject tmp_delegate = ((SampleGrabberCB *) prev)->_delegate;
         if(tmp_delegate)
             env->DeleteGlobalRef(tmp_delegate);
         delete prev;
@@ -351,46 +339,69 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_direct
  * \param ptr native pointer of DSCaptureDevice
  * \param format DSFormat to set
  */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_setFormat
-  (JNIEnv* env, jobject obj, jlong ptr, jobject format)
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_setFormat
+    (JNIEnv* env, jobject obj, jlong ptr, jobject format)
 {
-    DSCaptureDevice* dev = reinterpret_cast<DSCaptureDevice*>(ptr);
-    DSFormat fmt;
+    DSCaptureDevice* thiz = reinterpret_cast<DSCaptureDevice*>(ptr);
     jclass clazz = env->GetObjectClass(format);
+    HRESULT hr;
 
-    if(clazz)
+    if (clazz)
     {
-        jfieldID fieldH = env->GetFieldID(clazz, "height", "I");
-        jfieldID fieldW = env->GetFieldID(clazz, "width", "I");
-        jfieldID fieldF = env->GetFieldID(clazz, "pixelFormat", "J");
-        jlong f = env->GetLongField(format, fieldF);
-        jint w = env->GetIntField(format, fieldW);
-        jint h = env->GetIntField(format, fieldH);
+        jfieldID heightFieldID = env->GetFieldID(clazz, "height", "I");
 
-        fmt.width = w;
-        fmt.height = h;
-        fmt.pixelFormat = (unsigned long)f;
+        if (heightFieldID)
+        {
+            jfieldID widthFieldID = env->GetFieldID(clazz, "width", "I");
 
-        dev->setFormat(fmt);
+            if (widthFieldID)
+            {
+                jfieldID pixelFormatFieldID
+                    = env->GetFieldID(clazz, "pixelFormat", "I");
+
+                if (pixelFormatFieldID)
+                {
+                    DSFormat format_;
+
+                    format_.height = env->GetIntField(format, heightFieldID);
+                    format_.pixelFormat
+                        = (DWORD)
+                            (env->GetIntField(format, pixelFormatFieldID));
+                    format_.width = env->GetIntField(format, widthFieldID);
+
+                    hr = thiz->setFormat(format_);
+                }
+                else
+                    hr = E_FAIL;
+            }
+            else
+                hr = E_FAIL;
+        }
+        else
+            hr = E_FAIL;
     }
+    else
+        hr = E_FAIL;
+    return hr;
 }
 
-JNIEXPORT void JNICALL
+JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_start
     (JNIEnv *env, jobject obj, jlong ptr)
 {
     DSCaptureDevice *thiz = reinterpret_cast<DSCaptureDevice *>(ptr);
 
-    thiz->start();
+    return (jint) (thiz->start());
 }
 
-JNIEXPORT void JNICALL
+JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_stop
     (JNIEnv *env, jobject obj, jlong ptr)
 {
     DSCaptureDevice *thiz = reinterpret_cast<DSCaptureDevice *>(ptr);
 
-    thiz->stop();
+    return (jint) (thiz->stop());
 }
 
 #ifdef __cplusplus

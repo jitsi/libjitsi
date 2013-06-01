@@ -73,6 +73,7 @@ public class JavaDecoder
      * Returns the name of this plugin/codec.
      * @return the name.
      */
+    @Override
     public String getName()
     {
         return "Speex Java Decoder";
@@ -84,6 +85,7 @@ public class JavaDecoder
      * @param in the input format.
      * @return array of formats supported at output
      */
+    @Override
     public Format[] getSupportedOutputFormats(Format in)
     {
         // null input format
@@ -122,12 +124,14 @@ public class JavaDecoder
     /**
      * Does nothing.
      */
+    @Override
     public void open()
     {}
 
     /**
      * Does nothing.
      */
+    @Override
     public void close()
     {}
 
@@ -163,6 +167,7 @@ public class JavaDecoder
      * @param outputBuffer the result data.
      * @return state of the process.
      */
+    @Override
     public int process(Buffer inputBuffer, Buffer outputBuffer)
     {
         if (!checkInputBuffer(inputBuffer))

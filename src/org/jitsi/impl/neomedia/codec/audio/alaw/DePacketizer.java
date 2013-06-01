@@ -73,12 +73,14 @@ public class DePacketizer
     /**
      * Initializes the codec.
      */
+    @Override
     public void open()
     {}
 
     /**
      * Clean up
      */
+    @Override
     public void close()
     {}
 

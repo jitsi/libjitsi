@@ -80,6 +80,7 @@ public class DePacketizer
     /**
      * {@inheritDoc}
      */
+    @Override
     protected void doClose()
     {
         return;
@@ -88,6 +89,7 @@ public class DePacketizer
     /**
      * {@inheritDoc}
      */
+    @Override
     protected void doOpen() throws ResourceUnavailableException
     {
         if(logger.isTraceEnabled())
@@ -99,6 +101,7 @@ public class DePacketizer
     /**
      * {@inheritDoc}
      */
+    @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
         int ret;

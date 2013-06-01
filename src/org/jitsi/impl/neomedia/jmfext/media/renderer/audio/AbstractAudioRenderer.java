@@ -354,7 +354,7 @@ public abstract class AbstractAudioRenderer<T extends AudioSystem>
 
     /**
      * Changes the priority of the current thread to a value which is considered
-     * appropriate for the purposes of audio processing. 
+     * appropriate for the purposes of audio processing.
      */
     public static void useAudioThreadPriority()
     {

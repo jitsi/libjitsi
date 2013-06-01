@@ -13,13 +13,13 @@ import java.util.*;
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class StructsFLP 
+public class StructsFLP
 {
 }
 
 /**
  * Noise shaping analysis state.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -29,7 +29,7 @@ class SKP_Silk_shape_state_FLP
     float   HarmBoost_smth;
     float   HarmShapeGain_smth;
     float   Tilt_smth;
-    
+
     /**
      * set all fields of the instance to zero
      */
@@ -43,8 +43,8 @@ class SKP_Silk_shape_state_FLP
 }
 
 /**
- * Prefilter state 
- * 
+ * Prefilter state
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -64,7 +64,7 @@ class SKP_Silk_prefilter_state_FLP
     float   sHarmHP;
     int   rand_seed;
     int     lagPrev;
-    
+
     /**
      * set all fields of the instance to zero
      */
@@ -74,7 +74,7 @@ class SKP_Silk_prefilter_state_FLP
         Arrays.fill(this.sAR_shp2, 0);
         Arrays.fill(this.sLTP_shp1, 0);
         Arrays.fill(this.sLTP_shp2, 0);
-        
+
         this.sLTP_shp_buf_idx1 = 0;
         this.sLTP_shp_buf_idx2 = 0;
         this.sAR_shp_buf_idx2 = 0;
@@ -86,11 +86,11 @@ class SKP_Silk_prefilter_state_FLP
         this.rand_seed = 0;
         this.lagPrev = 0;
     }
-} 
+}
 
 /**
  * Prediction analysis state
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -100,7 +100,7 @@ class SKP_Silk_predict_state_FLP
     int     min_pitch_lag;                      /* Lowest possible pitch lag (samples)  */
     int     max_pitch_lag;                      /* Highest possible pitch lag (samples) */
     float[]   prev_NLSFq = new float[ Define.MAX_LPC_ORDER ];        /* Previously quantized NLSF vector     */
-    
+
     /**
      * set all fields of the instance to zero
      */
@@ -123,14 +123,14 @@ class SKP_Silk_NLSF_CBS_FLP
     {
         super();
     }
-    
+
     public SKP_Silk_NLSF_CBS_FLP(int nVectors, float[] CB, float[] Rates)
     {
         this.nVectors = nVectors;
         this.CB = CB;
         this.Rates = Rates;
     }
-    
+
     public SKP_Silk_NLSF_CBS_FLP(int nVectors, float[] CB, int CB_offset, float[] Rates, int Rates_offset)
     {
         this.nVectors = nVectors;
@@ -143,16 +143,16 @@ class SKP_Silk_NLSF_CBS_FLP
     int         nVectors;
     float[]     CB;
     float[]     Rates;
-} 
+}
 
-class SKP_Silk_NLSF_CB_FLP 
+class SKP_Silk_NLSF_CB_FLP
 {
     public SKP_Silk_NLSF_CB_FLP()
     {
         super();
     }
-    
-    public SKP_Silk_NLSF_CB_FLP(int nStages, SKP_Silk_NLSF_CBS_FLP[] CBStages, 
+
+    public SKP_Silk_NLSF_CB_FLP(int nStages, SKP_Silk_NLSF_CBS_FLP[] CBStages,
             float[] NDeltaMin, int[] CDF, int[][] StartPtr, int[] MiddleIx)
     {
         this.nStages = nStages;
@@ -162,7 +162,7 @@ class SKP_Silk_NLSF_CB_FLP
         this.StartPtr = StartPtr;
         this.MiddleIx = MiddleIx;
     }
-//const SKP_int32                         nStages;    
+//const SKP_int32                         nStages;
     int                         nStages;
 
     /* fields for (de)quantizing */
@@ -176,7 +176,7 @@ class SKP_Silk_NLSF_CB_FLP
     int[][] StartPtr;
 //    const SKP_int                           *MiddleIx;
     int[] MiddleIx;
-} 
+}
 
 /************************************/
 /* Noise shaping quantization state */
@@ -184,7 +184,7 @@ class SKP_Silk_NLSF_CB_FLP
 
 /**
  * Encoder state FLP.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -204,19 +204,19 @@ class SKP_Silk_encoder_state_FLP
     SKP_Silk_nsq_state                  sNSQ_LBRR = new SKP_Silk_nsq_state();                  /* Noise Shape Quantizer State ( for low bitrate redundancy )*/
 
     /* Function pointer to noise shaping quantizer (will be set to SKP_Silk_NSQ or SKP_Silk_NSQ_del_dec) */
-//    void    (* NoiseShapingQuantizer)( SKP_Silk_encoder_state *, SKP_Silk_encoder_control *, SKP_Silk_nsq_state *, const SKP_int16 *, 
-//                                       SKP_int8 *, const SKP_int, const SKP_int16 *, const SKP_int16 *, const SKP_int16 *, const SKP_int *, 
+//    void    (* NoiseShapingQuantizer)( SKP_Silk_encoder_state *, SKP_Silk_encoder_control *, SKP_Silk_nsq_state *, const SKP_int16 *,
+//                                       SKP_int8 *, const SKP_int, const SKP_int16 *, const SKP_int16 *, const SKP_int16 *, const SKP_int *,
 //                                        const SKP_int *, const SKP_int32 *, const SKP_int32 *, SKP_int, const SKP_int
 //    );
     NoiseShapingQuantizerFP noiseShapingQuantizerCB;
-    void    NoiseShapingQuantizer( SKP_Silk_encoder_state psEnc, SKP_Silk_encoder_control psEncCtrl, SKP_Silk_nsq_state NSQ, final short[]x , 
-        byte[]q , final int arg6, final short[] arg7, final short[]arg8, final short[]arg9, final int[]arg10, 
+    void    NoiseShapingQuantizer( SKP_Silk_encoder_state psEnc, SKP_Silk_encoder_control psEncCtrl, SKP_Silk_nsq_state NSQ, final short[]x ,
+        byte[]q , final int arg6, final short[] arg7, final short[]arg8, final short[]arg9, final int[]arg10,
          final int []arg11, final int[]arg12, final int[]arg13, int arg14 , final int arg15
     )
     {
         noiseShapingQuantizerCB.NoiseShapingQuantizer(psEnc, psEncCtrl, NSQ, x, q, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15);
     }
-    
+
 
     /* Buffer for find pitch and noise shape analysis */
     float[]                         x_buf = new float[ 2 * Define.MAX_FRAME_LENGTH + Define.LA_SHAPE_MAX ];/* Buffer for find pitch and noise shape analysis */
@@ -237,11 +237,11 @@ class SKP_Silk_encoder_state_FLP
     float                           inBandFEC_SNR_comp;         /* Compensation to SNR_DB when using inband FEC Voiced */
 
     SKP_Silk_NLSF_CB_FLP[]  psNLSF_CB_FLP = new SKP_Silk_NLSF_CB_FLP[ 2 ];        /* Pointers to voiced/unvoiced NLSF codebooks */
-} 
+}
 
 /**
  * Encoder control FLP
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -258,7 +258,7 @@ class SKP_Silk_encoder_control_FLP
     /* Prediction and coding parameters */
     int[]                   Gains_Q16 = new int[ Define.NB_SUBFR ];
 //TODO:    SKP_array_of_int16_4_byte_aligned( PredCoef_Q12[ 2 ], MAX_LPC_ORDER );
-    int dummy_int32PredCoef_Q12[] = new int[ 2 ];                                
+    int dummy_int32PredCoef_Q12[] = new int[ 2 ];
     short PredCoef_Q12[][] = new short[ 2 ][Define.MAX_LPC_ORDER];
 
     short[]                   LTPCoef_Q14 = new short[ Define.LTP_ORDER * Define.NB_SUBFR ];
@@ -296,19 +296,19 @@ class SKP_Silk_encoder_control_FLP
     float[]                   input_quality_bands = new float[ Define.VAD_N_BANDS ];
     float                   input_tilt;
     float[]                   ResNrg = new float[ Define.NB_SUBFR ];                 /* Residual energy per subframe */
-} 
+}
 
 interface NoiseShapingQuantizerFP
 {
     /* Function pointer to noise shaping quantizer (will be set to SKP_Silk_NSQ or SKP_Silk_NSQ_del_dec) */
-  void    NoiseShapingQuantizer( SKP_Silk_encoder_state psEnc, SKP_Silk_encoder_control psEncCtrl, SKP_Silk_nsq_state NSQ, final short[]x , 
-                                     byte[]q , final int arg6, final short[] arg7, final short[]arg8, final short[]arg9, final int[]arg10, 
+  void    NoiseShapingQuantizer( SKP_Silk_encoder_state psEnc, SKP_Silk_encoder_control psEncCtrl, SKP_Silk_nsq_state NSQ, final short[]x ,
+                                     byte[]q , final int arg6, final short[] arg7, final short[]arg8, final short[]arg9, final int[]arg10,
                                       final int []arg11, final int[]arg12, final int[]arg13, int arg14 , final int arg15
   );
-  
+
     /* Function pointer to noise shaping quantizer (will be set to SKP_Silk_NSQ or SKP_Silk_NSQ_del_dec) */
-//  void    (* NoiseShapingQuantizer)( SKP_Silk_encoder_state *, SKP_Silk_encoder_control *, SKP_Silk_nsq_state *, const SKP_int16 *, 
-//                                     SKP_int8 *, const SKP_int, const SKP_int16 *, const SKP_int16 *, const SKP_int16 *, const SKP_int *, 
+//  void    (* NoiseShapingQuantizer)( SKP_Silk_encoder_state *, SKP_Silk_encoder_control *, SKP_Silk_nsq_state *, const SKP_int16 *,
+//                                     SKP_int8 *, const SKP_int, const SKP_int16 *, const SKP_int16 *, const SKP_int16 *, const SKP_int *,
 //                                      const SKP_int *, const SKP_int32 *, const SKP_int32 *, SKP_int, const SKP_int
 //  );
 }

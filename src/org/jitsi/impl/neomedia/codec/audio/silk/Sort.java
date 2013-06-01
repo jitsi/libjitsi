@@ -9,16 +9,16 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 /**
  * Insertion sort (fast for already almost sorted arrays):
  *    Best case:  O(n)   for an already sorted array
- *    Worst case: O(n^2) for an inversely sorted array                                                            
+ *    Worst case: O(n^2) for an inversely sorted array
  * Shell short:    http://en.wikipedia.org/wiki/Shell_sort
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class Sort 
+public class Sort
 {
     /**
-     * 
+     *
      * @param a Unsorted / Sorted vector
      * @param index Index vector for the sorted elements
      * @param L Vector length
@@ -71,7 +71,7 @@ public class Sort
     }
 
     /**
-     * 
+     *
      * @param a Unsorted / Sorted vector
      * @param index Index vector for the sorted elements
      * @param L Vector length
@@ -124,7 +124,7 @@ public class Sort
     }
 
     /**
-     * 
+     *
      * @param a Unsorted / Sorted vector
      * @param index Index vector for the sorted elements
      * @param L Vector length
@@ -153,7 +153,7 @@ public class Sort
         /* Sort vector elements by value, decreasing order */
         for( i = 1; i < K; i++ ) {
             value = a[ i ];
-            for( j = i - 1; ( j >= 0 ) && ( value > a[ j ] ); j-- ) {    
+            for( j = i - 1; ( j >= 0 ) && ( value > a[ j ] ); j-- ) {
                 a[ j + 1 ]     = a[ j ];     /* Shift value */
                 index[ j + 1 ] = index[ j ]; /* Shift index */
             }
@@ -166,7 +166,7 @@ public class Sort
         for( i = K; i < L; i++ ) {
             value = a[ i ];
             if( value > a[ K - 1 ] ) {
-                for( j = K - 2; ( j >= 0 ) && ( value > a[ j ] ); j-- ) {    
+                for( j = K - 2; ( j >= 0 ) && ( value > a[ j ] ); j-- ) {
                     a[ j + 1 ]     = a[ j ];     /* Shift value */
                     index[ j + 1 ] = index[ j ]; /* Shift index */
                 }
@@ -177,7 +177,7 @@ public class Sort
     }
 
     /**
-     * 
+     *
      * @param a Unsorted / Sorted vector
      * @param a_offset offset of valid data.
      * @param L Vector length
@@ -205,7 +205,7 @@ public class Sort
     }
 
     /**
-     * 
+     *
      * @param a Unsorted / Sorted vector
      * @param index Index vector for the sorted elements
      * @param L Vector length
@@ -220,12 +220,12 @@ public class Sort
     {
         int    value, inc_Q16_tmp;
         int      i, j, inc, idx;
-       
+
         /* Safety checks */
         Typedef.SKP_assert( K >  0 );
         Typedef.SKP_assert( L >  0 );
         Typedef.SKP_assert( L >= K );
-        
+
         /* Calculate initial step size */
         inc_Q16_tmp = ( L << 15 );
 //        inc = SKP_RSHIFT( inc_Q16_tmp, 16 );
@@ -271,9 +271,9 @@ public class Sort
             }
         }
     }
-    
+
     /**
-     * 
+     *
      * @param a Unsorted / Sorted vector.
      * @param index Index vector for the sorted elements.
      * @param L Vector length.
@@ -286,17 +286,17 @@ public class Sort
     {
         int    value, inc_Q16_tmp;
         int      i, j, inc, idx;
-       
+
         /* Safety checks */
         Typedef.SKP_assert( L >  0 );
-     
+
         /* Calculate initial step size */
 //        inc_Q16_tmp = SKP_LSHIFT( (int)L, 15 );
         inc_Q16_tmp = ( L << 15 );
 //        inc = SKP_RSHIFT( inc_Q16_tmp, 16 );
         inc = ( inc_Q16_tmp >> 16 );
 
-        
+
         /* Write start indices in index vector */
         for( i = 0; i < L; i++ ) {
             index[ i ] = i;

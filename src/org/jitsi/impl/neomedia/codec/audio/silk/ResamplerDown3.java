@@ -8,11 +8,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Downsample by a factor 3, low quality.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class ResamplerDown3 
+public class ResamplerDown3
 {
     static final int ORDER_FIR =                  4;
 
@@ -22,7 +22,7 @@ public class ResamplerDown3
      * @param S_offset offset of valid data.
      * @param out Output signal [ floor(inLen/3) ]
      * @param out_offset offset of valid data.
-     * @param in Input signal [ inLen ] 
+     * @param in Input signal [ inLen ]
      * @param in_offset offset of valid data.
      * @param inLen Number of input samples
      */
@@ -40,7 +40,7 @@ public class ResamplerDown3
         int[] buf = new int[ ResamplerPrivate.RESAMPLER_MAX_BATCH_SIZE_IN + ORDER_FIR ];
         int buf_ptr;
 
-        /* Copy buffered samples to start of buffer */    
+        /* Copy buffered samples to start of buffer */
         for(int i_djinn=0; i_djinn<ORDER_FIR; i_djinn++)
             buf[i_djinn] = S[S_offset+i_djinn];
 
@@ -50,7 +50,7 @@ public class ResamplerDown3
             nSamplesIn = Math.min( inLen, ResamplerPrivate.RESAMPLER_MAX_BATCH_SIZE_IN );
 
             /* Second-order AR filter (output in Q8) */
-            ResamplerPrivateAR2.SKP_Silk_resampler_private_AR2( S,ORDER_FIR, buf,ORDER_FIR, in,in_offset, 
+            ResamplerPrivateAR2.SKP_Silk_resampler_private_AR2( S,ORDER_FIR, buf,ORDER_FIR, in,in_offset,
                     ResamplerRom.SKP_Silk_Resampler_1_3_COEFS_LQ,0, nSamplesIn );
 
             /* Interpolate filtered signal */
@@ -73,7 +73,7 @@ public class ResamplerDown3
             in_offset += nSamplesIn;
             inLen -= nSamplesIn;
 
-            if( inLen > 0 ) 
+            if( inLen > 0 )
             {
                 /* More iterations to do; copy last part of filtered signal to beginning of buffer */
                 for(int i_djinn=0; i_djinn<ORDER_FIR; i_djinn++)

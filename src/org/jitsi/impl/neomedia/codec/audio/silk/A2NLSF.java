@@ -5,7 +5,7 @@
  * See terms of license at gnu.org.
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
-             
+
 class A2NLSF_constants
 {
     /* Number of binary divisions, when not in low complexity mode */
@@ -19,19 +19,19 @@ class A2NLSF_constants
 
 /**
  * Conversion between prediction filter coefficients and NLSFs.
- * Requires the order to be an even number.                     
- * A piecewise linear approximation maps LSF <-> cos(LSF). 
- * Therefore the result is not accurate NLSFs, but the two.    
+ * Requires the order to be an even number.
+ * A piecewise linear approximation maps LSF <-> cos(LSF).
+ * Therefore the result is not accurate NLSFs, but the two.
  * function are accurate inverses of each other.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
 public class A2NLSF
     extends A2NLSF_constants
-{ 
+{
     /**
-     * Helper function for A2NLSF(..).                
+     * Helper function for A2NLSF(..).
      * Transforms polynomials from cos(n*f) to cos(f)^n.
      * @param p Polynomial
      * @param dd Polynomial order (= filter order / 2 )
@@ -42,20 +42,20 @@ public class A2NLSF
     )
     {
         int k, n;
-        
-        for( k = 2; k <= dd; k++ ) 
+
+        for( k = 2; k <= dd; k++ )
         {
-            for( n = dd; n > k; n-- ) 
+            for( n = dd; n > k; n-- )
             {
                 p[ n - 2 ] -= p[ n ];
             }
             p[ k - 2 ] -= p[ k ] << 1 ;
         }
-    }    
-     
+    }
+
     /**
-     * Helper function for A2NLSF(..).           
-     * Polynomial evaluation. 
+     * Helper function for A2NLSF(..).
+     * Polynomial evaluation.
      * @param p Polynomial, QPoly
      * @param x Evaluation point, Q12
      * @param dd  Order
@@ -72,7 +72,7 @@ public class A2NLSF
 
         y32 = p[ dd ];                                    /* QPoly */
         x_Q16 = x << 4;
-        for( n = dd - 1; n >= 0; n-- ) 
+        for( n = dd - 1; n >= 0; n-- )
         {
             y32 = Macros.SKP_SMLAWW( p[ n ], y32, x_Q16 );       /* QPoly */
         }
@@ -81,17 +81,17 @@ public class A2NLSF
 
     static void SKP_Silk_A2NLSF_init(
          int[]    a_Q16,
-         int[]            P, 
-         int[]            Q, 
+         int[]            P,
+         int[]            Q,
          final int        dd
-    ) 
+    )
     {
         int k;
 
         /* Convert filter coefs to even and odd polynomials */
         P[dd] = 1 << QPoly;
         Q[dd] = 1 << QPoly;
-        for( k = 0; k < dd; k++ ) 
+        for( k = 0; k < dd; k++ )
         {
             if( QPoly < 16 )
             {
@@ -113,10 +113,10 @@ public class A2NLSF
         /* Divide out zeros as we have that for even filter orders, */
         /* z =  1 is always a root in Q, and                        */
         /* z = -1 is always a root in P                             */
-        for( k = dd; k > 0; k-- ) 
+        for( k = dd; k > 0; k-- )
         {
-            P[ k - 1 ] -= P[ k ]; 
-            Q[ k - 1 ] += Q[ k ]; 
+            P[ k - 1 ] -= P[ k ];
+            Q[ k - 1 ] += Q[ k ];
         }
 
         /* Transform polynomials from cos(n*f) to cos(f)^n */
@@ -156,11 +156,11 @@ public class A2NLSF
 
         /* Find roots, alternating between P and Q */
         p = P;    /* Pointer to polynomial */
-        
+
         xlo = LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ 0 ]; // Q12
         ylo = SKP_Silk_A2NLSF_eval_poly( p, xlo, dd );
 
-        if( ylo < 0 ) 
+        if( ylo < 0 )
         {
             /* Set the first NLSF to zero and move on to the next */
             NLSF[ 0 ] = 0;
@@ -174,13 +174,13 @@ public class A2NLSF
         }
         k = 1;                          /* Loop counter */
         i = 0;                          /* Counter for bandwidth expansions applied */
-        while( true ) 
+        while( true )
         {
             /* Evaluate polynomial */
             if(OVERSAMPLE_COSINE_TABLE!=0)
             {
                 xhi = LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[   k       >> 1 ] +
-                  ( ( LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ ( k + 1 ) >> 1 ] - 
+                  ( ( LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ ( k + 1 ) >> 1 ] -
                       LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[   k       >> 1 ] ) >> 1 );    /* Q12 */
             }
             else
@@ -189,24 +189,24 @@ public class A2NLSF
             }
 
             yhi = SKP_Silk_A2NLSF_eval_poly( p, xhi, dd );
-            
+
             /* Detect zero crossing */
-            if( ( ylo <= 0 && yhi >= 0 ) || ( ylo >= 0 && yhi <= 0 ) ) 
+            if( ( ylo <= 0 && yhi >= 0 ) || ( ylo >= 0 && yhi <= 0 ) )
             {
                 /* Binary division */
                 if(OVERSAMPLE_COSINE_TABLE!=0)
                    ffrac = -128;
                 else
                    ffrac = -256;
-                
-                for( m = 0; m < BIN_DIV_STEPS_A2NLSF_FIX; m++ ) 
+
+                for( m = 0; m < BIN_DIV_STEPS_A2NLSF_FIX; m++ )
                 {
                     /* Evaluate polynomial */
                     xmid = SigProcFIX.SKP_RSHIFT_ROUND( xlo + xhi, 1 );
                     ymid = SKP_Silk_A2NLSF_eval_poly( p, xmid, dd );
 
                     /* Detect zero crossing */
-                    if( ( ylo <= 0 && ymid >= 0 ) || ( ylo >= 0 && ymid <= 0 ) ) 
+                    if( ( ylo <= 0 && ymid >= 0 ) || ( ylo >= 0 && ymid <= 0 ) )
                     {
                         /* Reduce frequency */
                         xhi = xmid;
@@ -223,67 +223,67 @@ public class A2NLSF
                             ffrac = ffrac + (128>>m);
                     }
                 }
-                
+
                 /* Interpolate */
-                if( Math.abs( ylo ) < 65536 ) 
+                if( Math.abs( ylo ) < 65536 )
                 {
                     /* Avoid dividing by zero */
                     den = ylo - yhi;
                     nom = ( ylo << ( 8 - BIN_DIV_STEPS_A2NLSF_FIX ) ) + ( den >> 1 );
-                    if( den != 0 ) 
+                    if( den != 0 )
                     {
                         ffrac += nom / den;
                     }
                 }
-                else 
+                else
                 {
                     /* No risk of dividing by zero because abs(ylo - yhi) >= abs(ylo) >= 65536 */
                     ffrac += ylo / ( ( ylo - yhi ) >> ( 8 - BIN_DIV_STEPS_A2NLSF_FIX ) );
                 }
                 if(OVERSAMPLE_COSINE_TABLE!=0)
-                    NLSF[ root_ix ] = Math.min( ( k << 7 ) + ffrac, Typedef.SKP_int16_MAX ); 
+                    NLSF[ root_ix ] = Math.min( ( k << 7 ) + ffrac, Typedef.SKP_int16_MAX );
                 else
-                    NLSF[ root_ix ] = Math.min( ( k << 8 ) + ffrac, Typedef.SKP_int16_MAX ); 
+                    NLSF[ root_ix ] = Math.min( ( k << 8 ) + ffrac, Typedef.SKP_int16_MAX );
 
                 assert( NLSF[ root_ix ] >=     0 );
                 assert( NLSF[ root_ix ] <= 32767 );
 
                 root_ix++;        /* Next root */
-                if( root_ix >= d ) 
+                if( root_ix >= d )
                 {
                     /* Found all roots */
                     break;
                 }
                 /* Alternate pointer to polynomial */
                 p = PQ[ root_ix & 1 ];
-                
+
                 /* Evaluate polynomial */
                 if(OVERSAMPLE_COSINE_TABLE!=0)
                     xlo = LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ ( k - 1 ) >> 1 ] +
-                      ( ( LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[   k       >> 1 ] - 
+                      ( ( LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[   k       >> 1 ] -
                           LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ ( k - 1 ) >> 1 ] ) >> 1 ); // Q12
                 else
                     xlo = LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ k - 1 ]; // Q12
 
                 ylo = ( 1 - ( root_ix & 2 ) ) << 12;
-            } 
+            }
             else
             {
                 /* Increment loop counter */
                 k++;
                 xlo    = xhi;
                 ylo    = yhi;
-                
+
                 if (OVERSAMPLE_COSINE_TABLE != 0)
                 {
-                    if( k > 2 * SigProcFIX.LSF_COS_TAB_SZ_FIX ) 
+                    if( k > 2 * SigProcFIX.LSF_COS_TAB_SZ_FIX )
                     {
                         i++;
-                        if( i > MAX_ITERATIONS_A2NLSF_FIX ) 
+                        if( i > MAX_ITERATIONS_A2NLSF_FIX )
                         {
                             /* Set NLSFs to white spectrum and exit */
                             NLSF[ 0 ] = ( 1 << 15 ) / ( d + 1 );
-                            for( k = 1; k < d; k++ ) 
+                            for( k = 1; k < d; k++ )
                             {
                                 NLSF[ k ] = Macros.SKP_SMULBB( k + 1, NLSF[ 0 ] );
                             }
@@ -297,14 +297,14 @@ public class A2NLSF
                         p = P;                            /* Pointer to polynomial */
                         xlo = LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ 0 ]; // Q12
                         ylo = SKP_Silk_A2NLSF_eval_poly( p, xlo, dd );
-                        if( ylo < 0 ) 
+                        if( ylo < 0 )
                         {
                             /* Set the first NLSF to zero and move on to the next */
                             NLSF[ 0 ] = 0;
                             p = Q;                        /* Pointer to polynomial */
                             ylo = SKP_Silk_A2NLSF_eval_poly( p, xlo, dd );
                             root_ix = 1;                /* Index of current root */
-                        } 
+                        }
                         else
                         {
                             root_ix = 0;                /* Index of current root */
@@ -314,14 +314,14 @@ public class A2NLSF
                 }
                 else
                 {
-                    if( k > SigProcFIX.LSF_COS_TAB_SZ_FIX ) 
+                    if( k > SigProcFIX.LSF_COS_TAB_SZ_FIX )
                     {
                         i++;
-                        if( i > MAX_ITERATIONS_A2NLSF_FIX ) 
+                        if( i > MAX_ITERATIONS_A2NLSF_FIX )
                         {
                             /* Set NLSFs to white spectrum and exit */
                             NLSF[ 0 ] = ( 1 << 15 ) / ( d + 1 );
-                            for( k = 1; k < d; k++ ) 
+                            for( k = 1; k < d; k++ )
                             {
                                 NLSF[ k ] = Macros.SKP_SMULBB( k + 1, NLSF[ 0 ] );
                             }
@@ -335,14 +335,14 @@ public class A2NLSF
                         p = P;                            /* Pointer to polynomial */
                         xlo = LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ 0 ]; // Q12
                         ylo = SKP_Silk_A2NLSF_eval_poly( p, xlo, dd );
-                        if( ylo < 0 ) 
+                        if( ylo < 0 )
                         {
                             /* Set the first NLSF to zero and move on to the next */
                             NLSF[ 0 ] = 0;
                             p = Q;                        /* Pointer to polynomial */
                             ylo = SKP_Silk_A2NLSF_eval_poly( p, xlo, dd );
                             root_ix = 1;                /* Index of current root */
-                        } 
+                        }
                         else
                         {
                             root_ix = 0;                /* Index of current root */

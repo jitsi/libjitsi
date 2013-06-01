@@ -280,7 +280,7 @@ public class CsrcTransformEngine
         {
             isRunning = true;
 
-            // Audio levels are received in RTP audio streams only. 
+            // Audio levels are received in RTP audio streams only.
             if(!(mediaStream instanceof AudioMediaStreamImpl))
                 return;
 

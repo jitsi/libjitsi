@@ -23,7 +23,7 @@ public interface SrtpListener
      * established the param multiStreamData holds the data needed for the
      * slave streams to establish their sessions. If this is a securityTurnedOn
      * event on non master stream the multiStreamData is null.
-     * 
+     *
      * @param sessionType the type of the call session - audio or video.
      * @param cipher the security cipher that encrypts the call
      * @param sender the control that initiated the event.
@@ -34,7 +34,7 @@ public interface SrtpListener
 
     /**
      * Indicates that the security has been turned off.
-     * 
+     *
      * @param sessionType the type of the call session - audio or video.
      */
     public void securityTurnedOff(int sessionType);
@@ -42,10 +42,10 @@ public interface SrtpListener
     /**
      * Indicates that a security message has occurred associated with a
      * failure/warning or information coming from the encryption protocol.
-     * 
+     *
      * @param message the message.
      * @param i18nMessage the internationalized message
-     * @param severity severity level 
+     * @param severity severity level
      */
     public void securityMessageReceived(String message,
                                 String i18nMessage,

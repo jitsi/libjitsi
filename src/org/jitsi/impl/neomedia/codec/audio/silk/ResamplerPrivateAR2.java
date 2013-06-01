@@ -8,11 +8,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Second order AR filter with single delay elements.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class ResamplerPrivateAR2 
+public class ResamplerPrivateAR2
 {
     /**
      * Second order AR filter with single delay elements.
@@ -41,7 +41,7 @@ public class ResamplerPrivateAR2
         int    k;
         int    out32;
 
-        for( k = 0; k < len; k++ ) 
+        for( k = 0; k < len; k++ )
         {
             out32       = S[ S_offset ] + ( in[ in_offset+k ] << 8 );
             out_Q8[ out_Q8_offset+k ] = out32;

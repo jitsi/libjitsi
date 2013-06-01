@@ -8,11 +8,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * first-order allpass filter.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class AllpassIntFLP 
+public class AllpassIntFLP
 {
     /**
      * first-order allpass filter.
@@ -21,11 +21,11 @@ public class AllpassIntFLP
      * @param S  I/O: state [1].
      * @param S_offset offset of valid data.
      * @param A coefficient (0 <= A < 1).
-     * @param out output signal [len]. 
+     * @param out output signal [len].
      * @param out_offset offset of valid data.
      * @param len number of samples.
      */
-//TODO:float or double ???    
+//TODO:float or double ???
     static void SKP_Silk_allpass_int_FLP
     (
         float[]           in,        /* I:   input signal [len]          */
@@ -42,7 +42,7 @@ public class AllpassIntFLP
         int k;
 
         S0 = S[ S_offset ];
-        for ( k = len-1; k >= 0; k-- ) 
+        for ( k = len-1; k >= 0; k-- )
         {
             Y2        = in[in_offset] - S0;
             X2        = Y2 * A;

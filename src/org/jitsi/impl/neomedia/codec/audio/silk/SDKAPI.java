@@ -10,14 +10,14 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  *
  * @author Jing Dai
  */
-public class SDKAPI 
+public class SDKAPI
 {
     static final int SILK_MAX_FRAMES_PER_PACKET = 5;
 }
 
 /**
  * Struct for TOC (Table of Contents).
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -29,4 +29,4 @@ class SKP_Silk_TOC_struct
     int     corrupt;                                    /* Packet is corrupt                    */
     int[]     vadFlags = new int[SDKAPI.SILK_MAX_FRAMES_PER_PACKET ]; /* VAD flag for each frame in packet    */
     int[]     sigtypeFlags = new int[SDKAPI.SILK_MAX_FRAMES_PER_PACKET ]; /* Signal type for each frame in packet */
-} 
+}

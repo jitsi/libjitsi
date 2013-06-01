@@ -21,12 +21,12 @@ public class InitEncoderFLP
      */
     static int SKP_Silk_init_encoder_FLP(
         SKP_Silk_encoder_state_FLP      psEnc              /* I/O  Encoder state FLP                       */
-    ) 
+    )
     {
         int ret = 0;
 
         /* Clear the entire encoder state */
-//TODO: psEnc = new SKP_Silk_encoder_state_FLP();        
+//TODO: psEnc = new SKP_Silk_encoder_state_FLP();
 //        SKP_memset( psEnc, 0, sizeof( SKP_Silk_encoder_state_FLP ) );
 
         /* Initialize to 24 kHz API sampling, 24 kHz max internal sampling, 20 ms packets, 25 kbps, 0% packet loss, and init non-zero values */

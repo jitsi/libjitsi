@@ -69,6 +69,7 @@ public class DePacketizer
     /**
      * Close the <tt>Codec</tt>.
      */
+    @Override
     protected void doClose()
     {
     }
@@ -84,6 +85,7 @@ public class DePacketizer
      * <tt>Codec</tt> needs to operate cannot be acquired
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected void doOpen()
         throws ResourceUnavailableException
     {
@@ -97,6 +99,7 @@ public class DePacketizer
      * @return <tt>BUFFER_PROCESSED_OK</tt> if buffer has been successfully
      * processed
      */
+    @Override
     protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
         long sequenceNumber = inBuffer.getSequenceNumber();

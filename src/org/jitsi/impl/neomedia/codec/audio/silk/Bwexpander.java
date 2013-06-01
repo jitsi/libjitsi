@@ -20,7 +20,7 @@ public class Bwexpander
      * @param d Length of ar.
      * @param chirp_Q16 Chirp factor (typically in the range 0 to 1).
      */
-    static void SKP_Silk_bwexpander( 
+    static void SKP_Silk_bwexpander(
             short            []ar,        /* I/O  AR filter to be expanded (without leading 1)    */
             final int        d,          /* I    Length of ar                                    */
             int              chirp_Q16   /* I    Chirp factor (typically in the range 0 to 1)    */

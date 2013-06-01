@@ -134,6 +134,7 @@ public class VPXEncoder
     /**
      * {@inheritDoc}
      */
+    @Override
     protected void doClose()
     {
         if(logger.isDebugEnabled())
@@ -161,6 +162,7 @@ public class VPXEncoder
      *
      * @throws ResourceUnavailableException
      */
+    @Override
     protected void doOpen() throws ResourceUnavailableException
     {
         img = VPX.img_malloc();
@@ -255,6 +257,7 @@ public class VPXEncoder
      * @return <tt>BUFFER_PROCESSED_OK</tt> if <tt>inBuffer</tt> has been
      * successfully processed
      */
+    @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
         if(inputBuffer.isDiscard())

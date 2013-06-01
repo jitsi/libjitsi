@@ -62,7 +62,7 @@ private float x0, x1;
 /**
  * High-pass iir memory
  */
-private float y1, y2;         
+private float y1, y2;
 
 /**
  * Init Post Process.
@@ -80,8 +80,8 @@ void init_post_process()
  * @param lg            (i)    : lenght of signal
  */
 void post_process(
-   float signal[],     
-   int lg             
+   float signal[],
+   int lg
 )
 {
   float[] a100 = TabLd8k.a100;

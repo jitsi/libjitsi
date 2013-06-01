@@ -54,7 +54,7 @@ public class SRTPTransformer
 
     /**
      * Initializes a new <tt>SRTPTransformer</tt> instance.
-     * 
+     *
      * @param factory the context factory to be used by the new
      * instance for both directions.
      */
@@ -65,7 +65,7 @@ public class SRTPTransformer
 
     /**
      * Constructs a SRTPTransformer object.
-     * 
+     *
      * @param forwardFactory The associated context factory for forward
      *            transformations.
      * @param reverseFactory The associated context factory for reverse

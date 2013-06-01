@@ -8,11 +8,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Convert NLSF parameters to stable AR prediction filter coefficients.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class NLSF2AStable 
+public class NLSF2AStable
 {
     /**
      * Convert NLSF parameters to stable AR prediction filter coefficients.
@@ -21,7 +21,7 @@ public class NLSF2AStable
      * @param LPC_order LPC/LSF order.
      */
     static void SKP_Silk_NLSF2A_stable(
-            short                       pAR_Q12[],   /* O    Stabilized AR coefs [LPC_order]     */ 
+            short                       pAR_Q12[],   /* O    Stabilized AR coefs [LPC_order]     */
             int                         pNLSF[],     /* I    NLSF vector         [LPC_order]     */
             final int                   LPC_order                   /* I    LPC/LSF order                       */
     )
@@ -31,7 +31,7 @@ public class NLSF2AStable
         int invGain_Q30_ptr[] = new int[1];
         NLSF2A.SKP_Silk_NLSF2A( pAR_Q12, pNLSF, LPC_order );
 
-        
+
         /* Ensure stable LPCs */
         for( i = 0; i < Define.MAX_LPC_STABILIZE_ITERATIONS; i++ ) {
             if( LPCInvPredGain.SKP_Silk_LPC_inverse_pred_gain( invGain_Q30_ptr, pAR_Q12, LPC_order ) == 1 ) {

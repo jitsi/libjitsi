@@ -142,6 +142,7 @@ public class SpeexResampler
     /**
      * @see AbstractCodecExt#doClose()
      */
+    @Override
     protected void doClose()
     {
         if (resampler != 0)
@@ -162,6 +163,7 @@ public class SpeexResampler
      * <tt>Codec</tt> needs to operate cannot be acquired
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected void doOpen()
         throws ResourceUnavailableException
     {
@@ -177,6 +179,7 @@ public class SpeexResampler
      * successfully processed
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
+    @Override
     protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
         Format inFormat = inBuffer.getFormat();

@@ -20,64 +20,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <dshow.h>
-#include <qedit.h>
 
+#include "BasicSampleGrabberCB.h"
 #include "DSFormat.h"
-
-/**
- * \class DSGrabberCallback
- * \brief Callback when DirectShow device capture frames.
- */
-class DSGrabberCallback : public ISampleGrabberCB
-{
-public:
-    /**
-     * \brief Constructor.
-     */
-    DSGrabberCallback() {};
-
-    /**
-     * \brief Destructor.
-     */
-    virtual ~DSGrabberCallback() {};
-
-    /**
-     * \brief Method callback when device capture a frame.
-     * \param time time when frame was received
-     * \param sample media sample
-     * \see ISampleGrabberCB
-     */
-    virtual STDMETHODIMP SampleCB(double time, IMediaSample* sample);
-
-    /**
-     * \brief Method callback when device buffer a frame.
-     * \param time time when frame was received
-     * \param buffer raw buffer
-     * \param len length of buffer
-     * \see ISampleGrabberCB
-     */
-    virtual STDMETHODIMP BufferCB(double time, BYTE* buffer, long len);
-
-    /**
-     * \brief Query if this COM object has the interface iid.
-     * \param iid interface requested
-     * \param ptr if method succeed, an object corresponding
-     * to the interface requested will be copied in this pointer
-     */
-    virtual HRESULT STDMETHODCALLTYPE QueryInterface(const IID& iid, void** ptr);
-
-    /**
-     * \brief Adding a reference.
-     * \return number of reference hold
-     */
-    STDMETHODIMP_(ULONG) AddRef();
-
-    /**
-     * \brief Release a reference.
-     * \return number of reference hold
-     */
-    STDMETHODIMP_(ULONG) Release();
-};
 
 /**
  * \class DSCaptureDevice
@@ -109,18 +54,18 @@ public:
     /**
      * \brief Initialize the device.
      * \param moniker moniker of the capture device
-     * \return true if initialization succeed, false otherwise (in this
-     * case the capture device have to be deleted)
+     * \return S_OK or S_FALSE on success or an HRESULT value describing a
+     * failure
      */
-    bool initDevice(IMoniker* moniker);
+    HRESULT initDevice(IMoniker* moniker);
 
     /**
      * \brief Set video format.
      * \param format video format
-     * \return true if change is successful, false otherwise (format unsupported, ...)
-     * \note This method stop stream so you have to call start() after.
+     * \return S_OK or S_FALSE on success or an HRESULT value describing a
+     * failure
      */
-    bool setFormat(const DSFormat& format);
+    HRESULT setFormat(const DSFormat& format);
 
     /**
      * \brief Get list of supported formats.
@@ -139,25 +84,27 @@ public:
      * \brief get callback object.
      * \return callback
      */
-    DSGrabberCallback* getCallback();
+    BasicSampleGrabberCB* getCallback() { return m_callback; }
 
     /**
      * \brief Set callback object when receiving new frames.
      * \param callback callback object to set
      */
-    void setCallback(DSGrabberCallback* callback);
+    void setCallback(BasicSampleGrabberCB *callback);
 
     /**
      * \brief Start capture device.
-     * \return false if problem, true otherwise
+     * \return S_OK or S_FALSE on success or an HRESULT value describing a
+     * failure
      */
-    bool start();
+    HRESULT start();
 
     /**
      * \brief Stop capture device.
-     * \return false if problem, true otherwise
+     * \return S_OK or S_FALSE on success or an HRESULT value describing a
+     * failure
      */
-    bool stop();
+    HRESULT stop();
 
     /**
      * \brief Get current format.
@@ -170,12 +117,6 @@ public:
      * \return bit per pixel of images
      */
     size_t getBitPerPixel();
-
-    /**
-     * \brief If the image is flipped vertically.
-     * \return true if image is flipped vertically, false otherwise
-     */
-    bool isFlip();
 
 private:
     /**
@@ -191,7 +132,7 @@ private:
     /**
      * \brief Callback.
      */
-    DSGrabberCallback* m_callback;
+    BasicSampleGrabberCB* m_callback;
 
     /**
      * \brief List of DSFormat.
@@ -242,11 +183,6 @@ private:
      * \brief Current bit per pixel.
      */
     size_t m_bitPerPixel;
-
-    /**
-     * \brief If the video is already flipped.
-     */
-    bool m_flip;
 };
 
 #endif /* _ORG_JITSI_IMPL_NEOMEDIA_JMFEXT_MEDIA_PROTOCOL_DIRECTSHOW_DSCAPTUREDEVICE_H_ */

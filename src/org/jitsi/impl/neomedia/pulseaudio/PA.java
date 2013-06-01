@@ -246,7 +246,7 @@ public final class PA
      * connected to in the server.
      *
      * @param s the <tt>pa_stream</tt> of which to get the name of the sink or
-     * source it is connected to in the server 
+     * source it is connected to in the server
      * @return the name of the sink or source the specified <tt>pa_stream</tt>
      * is connected to in the server
      */

@@ -7,11 +7,11 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class NoiseShapeAnalysisFLP 
+public class NoiseShapeAnalysisFLP
 {
     /**
      * Compute noise shaping coefficients and initial gain values.
@@ -29,7 +29,7 @@ public class NoiseShapeAnalysisFLP
         float[]                 pitch_res,         /* I    LPC residual from pitch analysis        */
         int                     pitch_res_offset,
         float[]                 x,                  /* I    Input signal [frame_length + la_shape]  */
-        int                     x_offset          
+        int                     x_offset
     )
     {
         SKP_Silk_shape_state_FLP psShapeSt = psEnc.sShape;
@@ -53,7 +53,7 @@ public class NoiseShapeAnalysisFLP
         psEncCtrl.current_SNR_dB = psEnc.SNR_dB - 0.05f * psEnc.BufferedInChannel_ms;
 
         /* Reduce SNR_dB if inband FEC used */
-        if( psEnc.speech_activity > DefineFLP.LBRR_SPEECH_ACTIVITY_THRES ) 
+        if( psEnc.speech_activity > DefineFLP.LBRR_SPEECH_ACTIVITY_THRES )
         {
             psEncCtrl.current_SNR_dB -= psEnc.inBandFEC_SNR_comp;
         }
@@ -69,16 +69,16 @@ public class NoiseShapeAnalysisFLP
 
         /* Reduce coding SNR during low speech activity */
         b = 1.0f - psEnc.speech_activity;
-        SNR_adj_dB = psEncCtrl.current_SNR_dB - 
+        SNR_adj_dB = psEncCtrl.current_SNR_dB -
             PerceptualParametersFLP.BG_SNR_DECR_dB * psEncCtrl.coding_quality * ( 0.5f + 0.5f * psEncCtrl.input_quality ) * b * b;
 
-        if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) 
+        if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED )
         {
             /* Reduce gains for periodic signals */
             SNR_adj_dB += PerceptualParametersFLP.HARM_SNR_INCR_dB * psEnc.LTPCorr;
-        } 
+        }
         else
-        { 
+        {
             /* For unvoiced signals and low-quality input, adjust the quality slower than SNR_dB setting */
             SNR_adj_dB += ( -0.4f * psEncCtrl.current_SNR_dB + 6.0f ) * ( 1.0f - psEncCtrl.input_quality );
         }
@@ -87,13 +87,13 @@ public class NoiseShapeAnalysisFLP
         /* SPARSENESS PROCESSING */
         /*************************/
         /* Set quantizer offset */
-        if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) 
+        if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED )
         {
             /* Initally set to 0; may be overruled in process_gains(..) */
             psEncCtrl.sCmn.QuantOffsetType = 0;
             psEncCtrl.sparseness = 0.0f;
-        } 
-        else 
+        }
+        else
         {
             /* Sparseness measure, based on relative fluctuations of energy per 2 milliseconds */
             nSamples = 2 * psEnc.sCmn.fs_kHz;
@@ -101,11 +101,11 @@ public class NoiseShapeAnalysisFLP
             log_energy_prev  = 0.0f;
             pitch_res_ptr = pitch_res;
             pitch_res_ptr_offset = pitch_res_offset;
-            for( k = 0; k < Define.FRAME_LENGTH_MS / 2; k++ ) 
+            for( k = 0; k < Define.FRAME_LENGTH_MS / 2; k++ )
             {
                 nrg = nSamples + ( float )EnergyFLP.SKP_Silk_energy_FLP( pitch_res_ptr,pitch_res_ptr_offset, nSamples );
                 log_energy = MainFLP.SKP_Silk_log2( nrg );
-                if( k > 0 ) 
+                if( k > 0 )
                 {
                     energy_variation += Math.abs( log_energy - log_energy_prev );
                 }
@@ -115,7 +115,7 @@ public class NoiseShapeAnalysisFLP
             psEncCtrl.sparseness = SigProcFLP.SKP_sigmoid( 0.4f * ( energy_variation - 5.0f ) );
 
             /* Set quantization offset depending on sparseness measure */
-            if( psEncCtrl.sparseness > PerceptualParametersFLP.SPARSENESS_THRESHOLD_QNT_OFFSET ) 
+            if( psEncCtrl.sparseness > PerceptualParametersFLP.SPARSENESS_THRESHOLD_QNT_OFFSET )
             {
                 psEncCtrl.sCmn.QuantOffsetType = 0;
             }
@@ -123,7 +123,7 @@ public class NoiseShapeAnalysisFLP
             {
                 psEncCtrl.sCmn.QuantOffsetType = 1;
             }
-            
+
             /* Increase coding SNR for sparse signals */
             SNR_adj_dB += PerceptualParametersFLP.SPARSE_SNR_INCR_dB * ( psEncCtrl.sparseness - 0.5f );
         }
@@ -134,7 +134,7 @@ public class NoiseShapeAnalysisFLP
         delta  = PerceptualParametersFLP.LOW_RATE_BANDWIDTH_EXPANSION_DELTA * ( 1.0f - 0.75f * psEncCtrl.coding_quality );
         BWExp1 = PerceptualParametersFLP.BANDWIDTH_EXPANSION - delta;
         BWExp2 = PerceptualParametersFLP.BANDWIDTH_EXPANSION + delta;
-        if( psEnc.sCmn.fs_kHz == 24 ) 
+        if( psEnc.sCmn.fs_kHz == 24 )
         {
             /* Less bandwidth expansion for super wideband */
             BWExp1 = 1.0f - ( 1.0f - BWExp1 ) * PerceptualParametersFLP.SWB_BANDWIDTH_EXPANSION_REDUCTION;
@@ -146,7 +146,7 @@ public class NoiseShapeAnalysisFLP
         /********************************************/
         /* Compute noise shaping AR coefs and gains */
         /********************************************/
-        for( k = 0; k < Define.NB_SUBFR; k++ ) 
+        for( k = 0; k < Define.NB_SUBFR; k++ )
         {
             /* Apply window */
             ApplySineWindowFLP.SKP_Silk_apply_sine_window_FLP( x_windowed,0, x_ptr,x_ptr_offset, 0, Define.SHAPE_LPC_WIN_MS * psEnc.sCmn.fs_kHz );
@@ -158,7 +158,7 @@ public class NoiseShapeAnalysisFLP
             AutocorrelationFLP.SKP_Silk_autocorrelation_FLP(auto_corr,0, x_windowed,0, Define.SHAPE_LPC_WIN_MS * psEnc.sCmn.fs_kHz, psEnc.sCmn.shapingLPCOrder + 1);
 
             /* Add white noise, as a fraction of energy */
-            auto_corr[ 0 ] += auto_corr[ 0 ] * PerceptualParametersFLP.SHAPE_WHITE_NOISE_FRACTION; 
+            auto_corr[ 0 ] += auto_corr[ 0 ] * PerceptualParametersFLP.SHAPE_WHITE_NOISE_FRACTION;
 
             /* Convert correlations to prediction coefficients, and compute residual energy */
             nrg = LevinsondurbinFLP.SKP_Silk_levinsondurbin_FLP( psEncCtrl.AR2,k * Define.SHAPE_LPC_ORDER_MAX, auto_corr, psEnc.sCmn.shapingLPCOrder );
@@ -171,8 +171,8 @@ public class NoiseShapeAnalysisFLP
 
             /* Compute noise shaping filter coefficients */
 //            SKP_memcpy(
-//                &psEncCtrl->AR1[ k * SHAPE_LPC_ORDER_MAX ], 
-//                &psEncCtrl->AR2[ k * SHAPE_LPC_ORDER_MAX ], 
+//                &psEncCtrl->AR1[ k * SHAPE_LPC_ORDER_MAX ],
+//                &psEncCtrl->AR2[ k * SHAPE_LPC_ORDER_MAX ],
 //                psEnc->sCmn.shapingLPCOrder * sizeof( SKP_float ) );
             for(int i_djinn=0; i_djinn<psEnc.sCmn.shapingLPCOrder; i_djinn++)
                 psEncCtrl.AR1[ k * Define.SHAPE_LPC_ORDER_MAX + i_djinn ] = psEncCtrl.AR2[ k * Define.SHAPE_LPC_ORDER_MAX + i_djinn ];
@@ -183,7 +183,7 @@ public class NoiseShapeAnalysisFLP
             /* Increase residual energy */
             nrg += PerceptualParametersFLP.SHAPE_MIN_ENERGY_RATIO * auto_corr[ 0 ];
             psEncCtrl.Gains[ k ] = ( float )Math.sqrt( nrg );
-            
+
             /* Ratio of prediction gains, in energy domain */
             float[] pre_nrg_djinnaddress = {pre_nrg};
             LPCInvPredGainFLP.SKP_Silk_LPC_inverse_pred_gain_FLP( pre_nrg_djinnaddress, psEncCtrl.AR2,k * Define.SHAPE_LPC_ORDER_MAX, psEnc.sCmn.shapingLPCOrder );
@@ -200,9 +200,9 @@ public class NoiseShapeAnalysisFLP
         /*****************/
         /* Increase gains during low speech activity and put lower limit on gains */
         gain_mult = ( float )Math.pow( 2.0f, -0.16f * SNR_adj_dB );
-        gain_add  = ( float )Math.pow( 2.0f,  0.16f * PerceptualParametersFLP.NOISE_FLOOR_dB ) + 
+        gain_add  = ( float )Math.pow( 2.0f,  0.16f * PerceptualParametersFLP.NOISE_FLOOR_dB ) +
                     ( float )Math.pow( 2.0f,  0.16f * PerceptualParametersFLP.RELATIVE_MIN_GAIN_dB ) * psEnc.avgGain;
-        for( k = 0; k < Define.NB_SUBFR; k++ ) 
+        for( k = 0; k < Define.NB_SUBFR; k++ )
         {
             psEncCtrl.Gains[ k ] *= gain_mult;
             psEncCtrl.Gains[ k ] += gain_add;
@@ -213,14 +213,14 @@ public class NoiseShapeAnalysisFLP
         /* Decrease level during fricatives (de-essing) */
         /************************************************/
         gain_mult = 1.0f + PerceptualParametersFLP.INPUT_TILT + psEncCtrl.coding_quality * PerceptualParametersFLP.HIGH_RATE_INPUT_TILT;
-        if( psEncCtrl.input_tilt <= 0.0f && psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_UNVOICED ) 
+        if( psEncCtrl.input_tilt <= 0.0f && psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_UNVOICED )
         {
             float essStrength = -psEncCtrl.input_tilt * psEnc.speech_activity * ( 1.0f - psEncCtrl.sparseness );
-            if( psEnc.sCmn.fs_kHz == 24 ) 
+            if( psEnc.sCmn.fs_kHz == 24 )
             {
                 gain_mult *= ( float )Math.pow( 2.0f, -0.16f * PerceptualParametersFLP.DE_ESSER_COEF_SWB_dB * essStrength );
-            } 
-            else if( psEnc.sCmn.fs_kHz == 16 ) 
+            }
+            else if( psEnc.sCmn.fs_kHz == 16 )
             {
                 gain_mult *= (float)Math.pow( 2.0f, -0.16f * PerceptualParametersFLP.DE_ESSER_COEF_WB_dB * essStrength );
             }
@@ -230,7 +230,7 @@ public class NoiseShapeAnalysisFLP
             }
         }
 
-        for( k = 0; k < Define.NB_SUBFR; k++ ) 
+        for( k = 0; k < Define.NB_SUBFR; k++ )
         {
             psEncCtrl.GainsPre[ k ] *= gain_mult;
         }
@@ -240,17 +240,17 @@ public class NoiseShapeAnalysisFLP
         /************************************************/
         /* Less low frequency shaping for noisy inputs */
         strength = PerceptualParametersFLP.LOW_FREQ_SHAPING * ( 1.0f + PerceptualParametersFLP.LOW_QUALITY_LOW_FREQ_SHAPING_DECR * ( psEncCtrl.input_quality_bands[ 0 ] - 1.0f ) );
-        if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) 
+        if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED )
         {
             /* Reduce low frequencies quantization noise for periodic signals, depending on pitch lag */
             /*f = 400; freqz([1, -0.98 + 2e-4 * f], [1, -0.97 + 7e-4 * f], 2^12, Fs); axis([0, 1000, -10, 1])*/
-            for( k = 0; k < Define.NB_SUBFR; k++ ) 
+            for( k = 0; k < Define.NB_SUBFR; k++ )
             {
                 b = 0.2f / psEnc.sCmn.fs_kHz + 3.0f / psEncCtrl.sCmn.pitchL[ k ];
                 psEncCtrl.LF_MA_shp[ k ] = -1.0f + b;
                 psEncCtrl.LF_AR_shp[ k ] =  1.0f - b - b * strength;
             }
-            Tilt = - PerceptualParametersFLP.HP_NOISE_COEF - 
+            Tilt = - PerceptualParametersFLP.HP_NOISE_COEF -
                 (1 - PerceptualParametersFLP.HP_NOISE_COEF) * PerceptualParametersFLP.HARM_HP_NOISE_COEF * psEnc.speech_activity;
         }
         else
@@ -258,7 +258,7 @@ public class NoiseShapeAnalysisFLP
             b = 1.3f / psEnc.sCmn.fs_kHz;
             psEncCtrl.LF_MA_shp[ 0 ] = -1.0f + b;
             psEncCtrl.LF_AR_shp[ 0 ] =  1.0f - b - b * strength * 0.6f;
-            for( k = 1; k < Define.NB_SUBFR; k++ ) 
+            for( k = 1; k < Define.NB_SUBFR; k++ )
             {
                 psEncCtrl.LF_MA_shp[ k ] = psEncCtrl.LF_MA_shp[ k - 1 ];
                 psEncCtrl.LF_AR_shp[ k ] = psEncCtrl.LF_AR_shp[ k - 1 ];
@@ -275,13 +275,13 @@ public class NoiseShapeAnalysisFLP
         /* More harmonic boost for noisy input signals */
         HarmBoost += PerceptualParametersFLP.LOW_INPUT_QUALITY_HARMONIC_BOOST * ( 1.0f - psEncCtrl.input_quality );
 
-        if( Define.USE_HARM_SHAPING!=0 && psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) 
+        if( Define.USE_HARM_SHAPING!=0 && psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED )
         {
             /* Harmonic noise shaping */
             HarmShapeGain = PerceptualParametersFLP.HARMONIC_SHAPING;
 
             /* More harmonic noise shaping for high bitrates or noisy input */
-            HarmShapeGain += PerceptualParametersFLP.HIGH_RATE_OR_LOW_QUALITY_HARMONIC_SHAPING * 
+            HarmShapeGain += PerceptualParametersFLP.HIGH_RATE_OR_LOW_QUALITY_HARMONIC_SHAPING *
                 ( 1.0f - ( 1.0f - psEncCtrl.coding_quality ) * psEncCtrl.input_quality );
 
             /* Less harmonic noise shaping for less periodic signals */
@@ -295,7 +295,7 @@ public class NoiseShapeAnalysisFLP
         /*************************/
         /* Smooth over subframes */
         /*************************/
-        for( k = 0; k < Define.NB_SUBFR; k++ ) 
+        for( k = 0; k < Define.NB_SUBFR; k++ )
         {
             psShapeSt.HarmBoost_smth     += PerceptualParametersFLP.SUBFR_SMTH_COEF * ( HarmBoost - psShapeSt.HarmBoost_smth );
             psEncCtrl.HarmBoost[ k ]      = psShapeSt.HarmBoost_smth;
@@ -305,9 +305,9 @@ public class NoiseShapeAnalysisFLP
             psEncCtrl.Tilt[ k ]           = psShapeSt.Tilt_smth;
         }
     }
-    
+
     /**
-     * 
+     *
      * @param a Unstable/stabilized LPC vector [L].
      * @param a_offset offset of valid data.
      * @param bwe Bandwidth expansion factor.
@@ -332,32 +332,32 @@ public class NoiseShapeAnalysisFLP
         /* Limit range of the LPCs */
         /***************************/
         /* Limit the maximum absolute value of the prediction coefficients */
-        for( k = 0; k < 1000; k++ ) 
+        for( k = 0; k < 1000; k++ )
         {
             /* Find maximum absolute value and its index */
             maxabs = -1.0f;
-            for( i = 0; i < L; i++ ) 
+            for( i = 0; i < L; i++ )
             {
                 absval = Math.abs( a[ a_offset+i ] );
                 if( absval > maxabs ) {
                     maxabs = absval;
                     idx    = i;
-                }   
+                }
             }
-        
-            if( maxabs >= maxVal ) 
-            {    
+
+            if( maxabs >= maxVal )
+            {
                 /* Reduce magnitude of prediction coefficients */
-                sc = 0.995f * ( 1.0f - ( 1.0f - maxVal / maxabs ) / ( idx + 1 ) ); 
+                sc = 0.995f * ( 1.0f - ( 1.0f - maxVal / maxabs ) / ( idx + 1 ) );
                 BwexpanderFLP.SKP_Silk_bwexpander_FLP( a,a_offset, L, sc );
             }
-            else 
+            else
             {
                 break;
             }
         }
         /* Reached the last iteration */
-        if( k == 1000 ) 
+        if( k == 1000 )
         {
             assert( false );
         }
@@ -365,23 +365,23 @@ public class NoiseShapeAnalysisFLP
         /**********************/
         /* Ensure stable LPCs */
         /**********************/
-        for( k = 0; k < 1000; k++ ) 
+        for( k = 0; k < 1000; k++ )
         {
-            if( LPCInvPredGainFLP.SKP_Silk_LPC_inverse_pred_gain_FLP( invGain, a,a_offset, L ) == 1 ) 
-            { 
+            if( LPCInvPredGainFLP.SKP_Silk_LPC_inverse_pred_gain_FLP( invGain, a,a_offset, L ) == 1 )
+            {
                 BwexpanderFLP.SKP_Silk_bwexpander_FLP( a,a_offset, L, 0.997f );
             }
-            else 
+            else
             {
                 break;
             }
         }
 
         /* Reached the last iteration */
-        if( k == 1000 ) 
+        if( k == 1000 )
         {
             assert( false );
-            for( i = 0; i < L; i++ ) 
+            for( i = 0; i < L; i++ )
             {
                 a[ i ] = 0.0f;
             }

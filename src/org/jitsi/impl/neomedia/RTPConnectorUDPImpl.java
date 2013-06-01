@@ -74,6 +74,7 @@ public class RTPConnectorUDPImpl
      * @throws IOException if an error occurs during the creation of the RTCP
      * packet input stream
      */
+    @Override
     protected RTPConnectorInputStream createControlInputStream()
         throws IOException
     {
@@ -87,6 +88,7 @@ public class RTPConnectorUDPImpl
      * @throws IOException if an error occurs during the creation of the RTCP
      * packet output stream
      */
+    @Override
     protected RTPConnectorOutputStream createControlOutputStream()
         throws IOException
     {
@@ -100,6 +102,7 @@ public class RTPConnectorUDPImpl
      * @throws IOException if an error occurs during the creation of the RTP
      * packet input stream
      */
+    @Override
     protected RTPConnectorInputStream createDataInputStream()
         throws IOException
     {
@@ -113,6 +116,7 @@ public class RTPConnectorUDPImpl
      * @throws IOException if an error occurs during the creation of the RTP
      * packet output stream
      */
+    @Override
     protected RTPConnectorOutputStream createDataOutputStream()
         throws IOException
     {

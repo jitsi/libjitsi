@@ -8,11 +8,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * NLSF vector decoder.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class NLSFMSVQDecode 
+public class NLSFMSVQDecode
 {
     /**
      * NLSF vector decoder.
@@ -20,7 +20,7 @@ public class NLSFMSVQDecode
      * @param psNLSF_CB NLSF codebook struct.
      * @param NLSFIndices NLSF indices          [nStages x 1].
      * @param LPC_order LPC order used.
-     */ 
+     */
     static void SKP_Silk_NLSF_MSVQ_decode(
             int                         []pNLSF_Q15,     /* O    Pointer to decoded output vector [LPC_ORDER x 1]    */
             SKP_Silk_NLSF_CB_struct     psNLSF_CB,     /* I    Pointer to NLSF codebook struct                     */
@@ -39,12 +39,12 @@ public class NLSFMSVQDecode
         /* Point to the first vector element */
         pCB_element = psNLSF_CB.CBStages[ 0 ].CB_NLSF_Q15;
         pCB_element_offset =  ( NLSFIndices[ 0 ] * LPC_order );
-        
+
         /* Initialize with the codebook vector from stage 0 */
         for( i = 0; i < LPC_order; i++ ) {
             pNLSF_Q15[ i ] = pCB_element[ pCB_element_offset + i ];
         }
-              
+
         for( s = 1; s < psNLSF_CB.nStages; s++ ) {
             /* Check that each index is within valid range */
             Typedef.SKP_assert( 0 <= NLSFIndices[ s ] && NLSFIndices[ s ] < psNLSF_CB.CBStages[ s ].nVectors );

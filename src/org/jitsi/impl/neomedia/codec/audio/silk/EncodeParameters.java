@@ -8,10 +8,10 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Encode parameters to create the payload.
- * 
+ *
  * @author Dingxin Xu
  */
-public class EncodeParameters 
+public class EncodeParameters
 {
     /**
      * Encode parameters to create the payload.

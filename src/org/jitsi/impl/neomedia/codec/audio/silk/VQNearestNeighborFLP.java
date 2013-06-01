@@ -7,17 +7,17 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * 
+ *
  * @author Dingxin Xu
  */
-public class VQNearestNeighborFLP 
+public class VQNearestNeighborFLP
 {
     /**
      * entropy constrained MATRIX-weighted VQ, for a single input data vector.
      * @param ind Index of best codebook vector
      * @param rate_dist Best weighted quant. error + mu * rate
      * @param in Input vector to be quantized
-     * @param W Weighting matrix 
+     * @param W Weighting matrix
      * @param cb Codebook
      * @param cl_Q6 Code length for each codebook vector
      * @param mu Tradeoff between WSSE and rate
@@ -50,10 +50,10 @@ public class VQNearestNeighborFLP
         /* Loop over codebook */
 //        *rate_dist = SKP_float_MAX;
         rate_dist[0] = Float.MAX_VALUE;
-        
+
         cb_row = cb;
         cb_row_offset = 0;
-        
+
         for( k = 0; k < L; k++ ) {
             /* Calc difference between in vector and cbk vector */
             diff[ 0 ] = in[ in_offset + 0 ] - cb_row[ 0 ] * DefineFLP.Q14_CONVERSION_FAC;
@@ -67,25 +67,25 @@ public class VQNearestNeighborFLP
 
             /* Add weighted quantization error, assuming W is symmetric */
             /* first row of W */
-            sum1 += diff[ 0 ] * ( W[ W_offset + 0 ] * diff[ 0 ] + 
-                         2.0f * ( W[ W_offset + 1 ] * diff[ 1 ] + 
-                                  W[ W_offset + 2 ] * diff[ 2 ] + 
-                                  W[ W_offset + 3 ] * diff[ 3 ] + 
+            sum1 += diff[ 0 ] * ( W[ W_offset + 0 ] * diff[ 0 ] +
+                         2.0f * ( W[ W_offset + 1 ] * diff[ 1 ] +
+                                  W[ W_offset + 2 ] * diff[ 2 ] +
+                                  W[ W_offset + 3 ] * diff[ 3 ] +
                                   W[ W_offset + 4 ] * diff[ 4 ] ) );
 
             /* second row of W */
-            sum1 += diff[ 1 ] * ( W[ W_offset + 6 ] * diff[ 1 ] + 
-                         2.0f * ( W[ W_offset + 7 ] * diff[ 2 ] + 
-                                  W[ W_offset + 8 ] * diff[ 3 ] + 
+            sum1 += diff[ 1 ] * ( W[ W_offset + 6 ] * diff[ 1 ] +
+                         2.0f * ( W[ W_offset + 7 ] * diff[ 2 ] +
+                                  W[ W_offset + 8 ] * diff[ 3 ] +
                                   W[ W_offset + 9 ] * diff[ 4 ] ) );
 
             /* third row of W */
-            sum1 += diff[ 2 ] * ( W[ W_offset + 12 ] * diff[ 2 ] + 
-                        2.0f *  ( W[ W_offset + 13 ] * diff[ 3 ] + 
+            sum1 += diff[ 2 ] * ( W[ W_offset + 12 ] * diff[ 2 ] +
+                        2.0f *  ( W[ W_offset + 13 ] * diff[ 3 ] +
                                   W[ W_offset + 14 ] * diff[ 4 ] ) );
 
             /* fourth row of W */
-            sum1 += diff[ 3 ] * ( W[ W_offset + 18 ] * diff[ 3 ] + 
+            sum1 += diff[ 3 ] * ( W[ W_offset + 18 ] * diff[ 3 ] +
                          2.0f * ( W[ W_offset + 19 ] * diff[ 4 ] ) );
 
             /* last row of W */

@@ -10,10 +10,10 @@ import java.util.*;
 
 /**
  * NLSF vector encoder.
- * 
+ *
  * @author Dingxin Xu
  */
-public class NLSFMSVQEncodeFLP 
+public class NLSFMSVQEncodeFLP
 {
     /**
      * NLSF vector encoder.
@@ -23,9 +23,9 @@ public class NLSFMSVQEncodeFLP
      * @param pNLSF_q_prev Prev. quantized NLSF vector [LPC_ORDER]
      * @param pW NLSF weight vector [ LPC_ORDER ]
      * @param NLSF_mu Rate weight for the RD optimization
-     * @param NLSF_mu_fluc_red Fluctuation reduction error weight 
+     * @param NLSF_mu_fluc_red Fluctuation reduction error weight
      * @param NLSF_MSVQ_Survivors  Max survivors from each stage
-     * @param LPC_order LPC order 
+     * @param LPC_order LPC order
      * @param deactivate_fluc_red Deactivate fluctuation reduction
      */
     static void SKP_Silk_NLSF_MSVQ_encode_FLP(
@@ -53,7 +53,7 @@ public class NLSFMSVQEncodeFLP
         int     pPath_new[];
         float   pRes[];
         float   pRes_new[];
-        if(Define.LOW_COMPLEXITY_ONLY == 1) 
+        if(Define.LOW_COMPLEXITY_ONLY == 1)
         {
             pRateDist =    new float[Define.NLSF_MSVQ_TREE_SEARCH_MAX_VECTORS_EVALUATED_LC_MODE()];
             pRate =        new float[Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE ];
@@ -98,7 +98,7 @@ public class NLSFMSVQEncodeFLP
 
         /* Clear accumulated rates */
         Arrays.fill(pRate, 0, NLSF_MSVQ_Survivors, 0);
-        
+
         /* Copy NLSFs into residual signal vector */
         System.arraycopy(pNLSF, 0, pRes, 0, LPC_order);
 
@@ -120,9 +120,9 @@ public class NLSFMSVQEncodeFLP
                  if( s == psNLSF_CB_FLP.nStages - 1 ) {
                     cur_survivors = 1;
                  }
-            }           
+            }
             /* Nearest neighbor clustering for multiple input data vectors */
-            NLSFVQRateDistortionFLP.SKP_Silk_NLSF_VQ_rate_distortion_FLP( pRateDist, pCurrentCBStage, 
+            NLSFVQRateDistortionFLP.SKP_Silk_NLSF_VQ_rate_distortion_FLP( pRateDist, pCurrentCBStage,
                     pRes, pW, pRate, NLSF_mu, prev_survivors, LPC_order );
 
             /* Sort the rate-distortion errors */
@@ -135,14 +135,14 @@ public class NLSFMSVQEncodeFLP
             }
 
             /* Update accumulated codebook contributions for the 'cur_survivors' best codebook indices */
-            for( k = 0; k < cur_survivors; k++ ) { 
+            for( k = 0; k < cur_survivors; k++ ) {
                 if( s > 0 ) {
                     /* Find the indices of the input and the codebook vector */
                     if( pCurrentCBStage.nVectors == 8 ) {
                         input_index = ( pTempIndices[ k ] >> 3 );
                         cb_index    = pTempIndices[ k ] & 7;
                     } else {
-                        input_index = pTempIndices[ k ] / pCurrentCBStage.nVectors;  
+                        input_index = pTempIndices[ k ] / pCurrentCBStage.nVectors;
                         cb_index    = pTempIndices[ k ] - input_index * pCurrentCBStage.nVectors;
                     }
                 } else {
@@ -200,15 +200,15 @@ public class NLSFMSVQEncodeFLP
             /* NLSF fluctuation reduction */
             /******************************/
             if( deactivate_fluc_red != 1 ) {
-            
+
                 /* Search among all survivors, now taking also weighted fluctuation errors into account */
                 bestRateDist = Float.MAX_VALUE;
                 for( s = 0; s < cur_survivors; s++ ) {
                     /* Decode survivor to compare with previous quantized NLSF vector */
-                    NLSFMSVQDecodeFLP.SKP_Silk_NLSF_MSVQ_decode_FLP( pNLSF, psNLSF_CB_FLP, 
+                    NLSFMSVQDecodeFLP.SKP_Silk_NLSF_MSVQ_decode_FLP( pNLSF, psNLSF_CB_FLP,
                             pPath_new, s * psNLSF_CB_FLP.nStages, LPC_order );
 
-                    /* Compare decoded NLSF vector with the previously quantized vector */ 
+                    /* Compare decoded NLSF vector with the previously quantized vector */
                     wsse = 0;
                     for( i = 0; i < LPC_order; i += 2 ) {
                         /* Compute weighted squared quantization error for index i */

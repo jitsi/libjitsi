@@ -10,11 +10,11 @@ import java.util.*;
 
 /**
  * Classes for IIR/FIR resamplers.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class ResamplerStructs 
+public class ResamplerStructs
 {
     /**
      * Flag to enable support for input/output sampling rates above 48 kHz. Turn off for embedded devices.
@@ -30,31 +30,31 @@ public class ResamplerStructs
     int[]       sIIR = new int[ ResamplerStructs.SKP_Silk_RESAMPLER_MAX_IIR_ORDER ];        /* this must be the first element of this struct */
     int[]       sFIR = new int[ ResamplerStructs.SKP_Silk_RESAMPLER_MAX_FIR_ORDER ];
     int[]       sDown2 = new int[ 2 ];
-    
+
     String resampler_function;
     ResamplerFP resamplerCB;
     void resampler_function( Object state, short[] out, int out_offset, short[] in, int in_offset, int len )
     {
         resamplerCB.resampler_function(state, out, out_offset, in, in_offset, len);
     }
-    
+
     String up2_function;
     Up2FP up2CB;
     void up2_function(  int[] state, short[] out, int out_offset, short[] in, int in_offset, int len )
     {
         up2CB.up2_function(state, out, out_offset, in, in_offset, len);
-        
+
     }
-    
+
     int       batchSize;
     int       invRatio_Q16;
     int       FIR_Fracs;
     int       input2x;
     short[]   Coefs;
-    
+
     int[]       sDownPre = new int[ 2 ];
     int[]       sUpPost = new int[ 2 ];
-    
+
     String down_pre_function;
     DownPreFP  downPreCB;
     void down_pre_function ( int[] state, short[] out, int out_offset, short[] in, int in_offset, int len )
@@ -73,7 +73,7 @@ public class ResamplerStructs
     int       nPreDownsamplers;
     int       nPostUpsamplers;
     int magic_number;
-    
+
     /**
      * set all fields of the instance to zero.
      */
@@ -86,7 +86,7 @@ public class ResamplerStructs
 //            }
 //        }
         this.Coefs = null;
-        
+
         Arrays.fill(this.sDown2, 0);
         Arrays.fill(this.sDownPre, 0);
         Arrays.fill(this.sFIR, 0);
@@ -109,7 +109,7 @@ public class ResamplerStructs
         this.up2_function = null;
         this.up2CB = null;
         this.up_post_function = null;
-        this.upPostCB = null;    
+        this.upPostCB = null;
     }
 }
  /*************************************************************************************/
@@ -130,4 +130,3 @@ public class ResamplerStructs
      void up_post_function ( int[] state, short[] out, int out_offset, short[] in, int in_offset, int len );
  }
  /*************************************************************************************/
- 

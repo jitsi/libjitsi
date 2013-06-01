@@ -50,17 +50,17 @@ class Pitch
  *                          s[-PIT_MAX : l_frame-1]
  * @param signal_offset     input : signal offset
  * @param pit_min           input : minimum pitch lag
- * @param pit_max           input : maximum pitch lag 
+ * @param pit_max           input : maximum pitch lag
  * @param l_frame           input : error minimization window
  * @return                  open-loop pitch lag
  */
-static int pitch_ol(           
-   float[] signal,     
-                        
+static int pitch_ol(
+   float[] signal,
+
    int signal_offset,
-   int pit_min,         
-   int pit_max,         
-   int l_frame          
+   int pit_min,
+   int pit_max,
+   int l_frame
 )
 {
     float THRESHPIT = Ld8k.THRESHPIT;
@@ -113,13 +113,13 @@ static int pitch_ol(
  * @param cor_max           input : normalized correlation of selected lag
  * @return lag found
  */
-private static int lag_max(  
-  float[] signal,       
+private static int lag_max(
+  float[] signal,
   int signal_offset,
-  int l_frame,         
-  int lagmax,       
-  int lagmin,      
-  FloatReference cor_max    
+  int l_frame,
+  int lagmax,
+  int lagmin,
+  FloatReference cor_max
 )
 {
     float FLT_MIN_G729 = Ld8k.FLT_MIN_G729;
@@ -166,15 +166,15 @@ private static int lag_max(
  * @param exc           input : excitation buffer
  * @param exc_offset    input : excitation buffer offset
  * @param xn            input : target vector
- * @param h             input : impulse response of filters. 
+ * @param h             input : impulse response of filters.
  * @param l_subfr       input : Length of frame to compute pitch
  * @param t0_min        input : minimum value in the searched range
  * @param t0_max        input : maximum value in the searched range
  * @param i_subfr       input : indicator for first subframe
  * @param pit_frac      output: chosen fraction
- * @return          integer part of pitch period  
+ * @return          integer part of pitch period
  */
-static int pitch_fr3(    
+static int pitch_fr3(
  float[] exc,           /*                  */
  int exc_offset,
  float xn[],            /*                        */
@@ -282,14 +282,14 @@ static int pitch_fr3(
  * @param corr_norm_offset      input: normalized correlation offset
  */
 private static void norm_corr(
- float[] exc,          
+ float[] exc,
  int exc_offset,
- float xn[],          
- float h[],             
- int l_subfr,          
- int t_min,             
- int t_max,            
- float corr_norm[], 
+ float xn[],
+ float h[],
+ int l_subfr,
+ int t_min,
+ int t_max,
+ float corr_norm[],
  int corr_norm_offset
 )
 {
@@ -349,11 +349,11 @@ private static void norm_corr(
  * @param l_subfr   input : vector dimension
  * @return          pitch gain
  */
-static float g_pitch(        
- float xn[],           
- float y1[],           
- float g_coeff[],       
- int l_subfr            
+static float g_pitch(
+ float xn[],
+ float y1[],
+ float g_coeff[],
+ int l_subfr
 )
 {
     float GAIN_PIT_MAX = Ld8k.GAIN_PIT_MAX;
@@ -408,21 +408,21 @@ static float g_pitch(
  *
  * @param T0            input : Pitch delay
  * @param T0_frac       input : Fractional pitch delay
- * @param T0_min        in/out: Minimum search delay 
+ * @param T0_min        in/out: Minimum search delay
  * @param T0_max        in/out: Maximum search delay
  * @param pit_min       input : Minimum pitch delay
  * @param pit_max       input : Maximum pitch delay
  * @param pit_flag      input : Flag for 1st subframe
  * @return              Return index of encoding
  */
-static int  enc_lag3(     
-  int  T0,        
-  int  T0_frac,   
-  IntReference  T0_min,  
-  IntReference  T0_max,   
-  int pit_min,   
-  int pit_max,  
-  int  pit_flag 
+static int  enc_lag3(
+  int  T0,
+  int  T0_frac,
+  IntReference  T0_min,
+  IntReference  T0_max,
+  int pit_min,
+  int pit_max,
+  int  pit_flag
 )
 {
   int index;
@@ -467,10 +467,10 @@ static int  enc_lag3(
  * @param frac       input : fraction value to evaluate
  * @return           interpolated value
  */
-private static float interpol_3(  
- float[] x,              
+private static float interpol_3(
+ float[] x,
  int x_offset,
- int frac               
+ int frac
 )
 {
   int L_INTER4 = Ld8k.L_INTER4;
@@ -511,6 +511,6 @@ private static float inv_sqrt(
  float x
 )
 {
-   return (1.0f / (float)Math.sqrt((double)x) );
+   return (1.0f / (float)Math.sqrt(x) );
 }
 }

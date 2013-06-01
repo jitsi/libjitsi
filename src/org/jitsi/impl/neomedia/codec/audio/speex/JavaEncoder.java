@@ -103,6 +103,7 @@ public class JavaEncoder
      *
      * @see AbstractCodecExt#doClose()
      */
+    @Override
     public void doClose()
     {
     }
@@ -118,6 +119,7 @@ public class JavaEncoder
      * <tt>Codec</tt> needs to operate cannot be acquired
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     public void doOpen()
         throws ResourceUnavailableException
     {
@@ -131,6 +133,7 @@ public class JavaEncoder
      * @return state of the process
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
+    @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
         Format newFormat = inputBuffer.getFormat();

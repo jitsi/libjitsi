@@ -8,14 +8,14 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Downsample by a factor 2/3, low quality.
- * 
+ *
  * @author Jing Dai.
  * @author Dingxin Xu
  */
-public class ResamplerDown23 
+public class ResamplerDown23
 {
     static final int ORDER_FIR =                  4;
-    
+
     /**
      * Downsample by a factor 2/3, low quality.
      * @param S State vector [ 6 ]
@@ -40,23 +40,23 @@ public class ResamplerDown23
         int[] buf = new int[ ResamplerPrivate.RESAMPLER_MAX_BATCH_SIZE_IN + ORDER_FIR ];
         int buf_ptr;
 
-        /* Copy buffered samples to start of buffer */    
+        /* Copy buffered samples to start of buffer */
         for(int i_djinn=0; i_djinn<ORDER_FIR; i_djinn++)
             buf[i_djinn] = S[S_offset+i_djinn];
 
         /* Iterate over blocks of frameSizeIn input samples */
-        while( true ) 
+        while( true )
         {
             nSamplesIn = Math.min( inLen, ResamplerPrivate.RESAMPLER_MAX_BATCH_SIZE_IN );
 
             /* Second-order AR filter (output in Q8) */
-            ResamplerPrivateAR2.SKP_Silk_resampler_private_AR2( S,ORDER_FIR, buf,ORDER_FIR, in,in_offset, 
+            ResamplerPrivateAR2.SKP_Silk_resampler_private_AR2( S,ORDER_FIR, buf,ORDER_FIR, in,in_offset,
                     ResamplerRom.SKP_Silk_Resampler_2_3_COEFS_LQ,0, nSamplesIn );
 
             /* Interpolate filtered signal */
             buf_ptr = 0;
             counter = nSamplesIn;
-            while( counter > 2 ) 
+            while( counter > 2 )
             {
                 /* Inner product */
                 res_Q6 = Macros.SKP_SMULWB(         buf[ buf_ptr   ], ResamplerRom.SKP_Silk_Resampler_2_3_COEFS_LQ[ 2 ] );
@@ -87,8 +87,8 @@ public class ResamplerDown23
                 /* More iterations to do; copy last part of filtered signal to beginning of buffer */
                 for(int i_djinn=0; i_djinn<ORDER_FIR; i_djinn++)
                     buf[i_djinn] = buf[nSamplesIn+i_djinn];
-            } 
-            else 
+            }
+            else
             {
                 break;
             }

@@ -82,7 +82,7 @@ public abstract class AbstractRenderer<T extends Format>
      *
      * @param threadPriority the priority to set the current thread to
      */
-    protected static void useThreadPriority(int threadPriority)
+    public static void useThreadPriority(int threadPriority)
     {
         Throwable throwable = null;
 
@@ -98,9 +98,9 @@ public abstract class AbstractRenderer<T extends Format>
         {
             throwable = se;
         }
-        if ((throwable != null) && logger.isDebugEnabled())
+        if (throwable != null)
         {
-            logger.debug(
+            logger.warn(
                     "Failed to use thread priority: " + threadPriority,
                     throwable);
         }

@@ -8,11 +8,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * Up-sample by a factor 2, low quality.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class ResamplerUp2 
+public class ResamplerUp2
 {
     /**
      * Up-sample by a factor 2, low quality.
@@ -40,7 +40,7 @@ public class ResamplerUp2
         assert( ResamplerRom.SKP_Silk_resampler_up2_lq_0 > 0 );
         assert( ResamplerRom.SKP_Silk_resampler_up2_lq_1 < 0 );
         /* Internal variables and state are in Q10 format */
-        for( k = 0; k < len; k++ ) 
+        for( k = 0; k < len; k++ )
         {
             /* Convert to Q10 */
             in32 = in[ in_offset+k ] << 10;

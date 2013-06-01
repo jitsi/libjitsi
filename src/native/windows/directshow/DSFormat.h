@@ -22,7 +22,7 @@ struct DSFormat
 {
     size_t width; /**< Video width */
     size_t height; /**< Video height */
-    unsigned long pixelFormat; /**< Pixel format */
+    DWORD pixelFormat; /**< Pixel format */
     GUID mediaType; /**< Media type */
 };
 

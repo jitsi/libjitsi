@@ -17,8 +17,8 @@ public class TablesNLSFCB116
 {
     static final int  NLSF_MSVQ_CB1_16_STAGES =      10;
     static final int  NLSF_MSVQ_CB1_16_VECTORS =     104;
-    
-    static final int[] SKP_Silk_NLSF_MSVQ_CB1_16_CDF =    
+
+    static final int[] SKP_Silk_NLSF_MSVQ_CB1_16_CDF =
     {
                 0,
             19099,
@@ -135,28 +135,28 @@ public class TablesNLSFCB116
             59515,
             65535
     };
-    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_0 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_0
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_16_CDF, 0, SKP_Silk_NLSF_MSVQ_CB1_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_33 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_33
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_16_CDF, 33, SKP_Silk_NLSF_MSVQ_CB1_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_42 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_42
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_16_CDF, 42, SKP_Silk_NLSF_MSVQ_CB1_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_51 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_51
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_16_CDF, 51, SKP_Silk_NLSF_MSVQ_CB1_16_CDF.length);
     static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_60
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_16_CDF, 60, SKP_Silk_NLSF_MSVQ_CB1_16_CDF.length);
     static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_69
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_16_CDF, 69, SKP_Silk_NLSF_MSVQ_CB1_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_78 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_78
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_16_CDF, 78, SKP_Silk_NLSF_MSVQ_CB1_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_87 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_87
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_16_CDF, 87, SKP_Silk_NLSF_MSVQ_CB1_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_96 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_96
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_16_CDF, 96, SKP_Silk_NLSF_MSVQ_CB1_16_CDF.length);
-    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_105 
+    static private int [] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_105
         = Tables.copyOfRange(SKP_Silk_NLSF_MSVQ_CB1_16_CDF, 105, SKP_Silk_NLSF_MSVQ_CB1_16_CDF.length);
-    
-    static final int[][] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_start_ptr =    
+
+    static final int[][] SKP_Silk_NLSF_MSVQ_CB1_16_CDF_start_ptr =
     {
          SKP_Silk_NLSF_MSVQ_CB1_16_CDF_0 ,
          SKP_Silk_NLSF_MSVQ_CB1_16_CDF_33 ,
@@ -170,7 +170,7 @@ public class TablesNLSFCB116
          SKP_Silk_NLSF_MSVQ_CB1_16_CDF_105
     };
 
-    static final int[]  SKP_Silk_NLSF_MSVQ_CB1_16_CDF_middle_idx = 
+    static final int[]  SKP_Silk_NLSF_MSVQ_CB1_16_CDF_middle_idx =
     {
            5,
            2,
@@ -184,7 +184,7 @@ public class TablesNLSFCB116
            4
     };
 
-    static final short[] SKP_Silk_NLSF_MSVQ_CB1_16_rates_Q5 =    
+    static final short[] SKP_Silk_NLSF_MSVQ_CB1_16_rates_Q5 =
     {
                    57,               98,
                   133,              134,
@@ -261,7 +261,7 @@ public class TablesNLSFCB116
                   792
     };
 
-    static final short[] SKP_Silk_NLSF_MSVQ_CB1_16_Q15 =    
+    static final short[] SKP_Silk_NLSF_MSVQ_CB1_16_Q15 =
     {
                  1309,             3060,             5071,             6996,
                  9028,            10938,            12934,            14891,
@@ -680,7 +680,7 @@ public class TablesNLSFCB116
                   126,             -248,              193,              -55,
                    16,               39,               14,               50
     };
-    
+
     static final  SKP_Silk_NLSF_CBS[] SKP_Silk_NLSF_CB1_16_Stage_info =
     {
         new SKP_Silk_NLSF_CBS(32,  SKP_Silk_NLSF_MSVQ_CB1_16_Q15, 16 *   0, SKP_Silk_NLSF_MSVQ_CB1_16_rates_Q5, 0),
@@ -694,7 +694,7 @@ public class TablesNLSFCB116
         new SKP_Silk_NLSF_CBS(8,   SKP_Silk_NLSF_MSVQ_CB1_16_Q15, 16 *  88, SKP_Silk_NLSF_MSVQ_CB1_16_rates_Q5, 88),
         new SKP_Silk_NLSF_CBS(8,   SKP_Silk_NLSF_MSVQ_CB1_16_Q15, 16 *  96, SKP_Silk_NLSF_MSVQ_CB1_16_rates_Q5, 96),
     };
-    
+
     static final  SKP_Silk_NLSF_CB_struct SKP_Silk_NLSF_CB1_16 =
         new SKP_Silk_NLSF_CB_struct
     (
@@ -704,5 +704,5 @@ public class TablesNLSFCB116
             SKP_Silk_NLSF_MSVQ_CB1_16_CDF,
             SKP_Silk_NLSF_MSVQ_CB1_16_CDF_start_ptr,
             SKP_Silk_NLSF_MSVQ_CB1_16_CDF_middle_idx
-    );    
+    );
 }

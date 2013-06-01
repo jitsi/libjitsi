@@ -8,7 +8,7 @@ package org.jitsi.impl.neomedia.portaudio;
 
 /**
  * Implements <tt>Exception</tt> for the PortAudio capture and playback system.
- * 
+ *
  * @author Lyubomir Marinov
  * @author Damian Minkov
  */

@@ -126,6 +126,7 @@ public class JNIEncoder
     /**
      * @see AbstractCodecExt#doClose()
      */
+    @Override
     protected void doClose()
     {
         // state
@@ -155,6 +156,7 @@ public class JNIEncoder
      * <tt>Codec</tt> needs to operate cannot be acquired
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected void doOpen()
         throws ResourceUnavailableException
     {
@@ -172,6 +174,7 @@ public class JNIEncoder
      * processed
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
+    @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
     {
         Format inputFormat = inputBuffer.getFormat();
@@ -236,7 +239,7 @@ public class JNIEncoder
             sampleRate = inputSampleRate;
             this.frameSize = frameSize * 2 /* (sampleSizeInBits / 8) */;
             duration
-                = (((long) frameSize) * 1000 * 1000000) / ((long) sampleRate);
+                = (((long) frameSize) * 1000 * 1000000) / (sampleRate);
         }
 
         /*

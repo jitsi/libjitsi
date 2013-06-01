@@ -12,14 +12,14 @@ import org.jitsi.impl.neomedia.*;
  * Encapsulate the concept of packet transformation. Given a packet,
  * <tt>PacketTransformer</tt> can either transform it or reverse the
  * transformation.
- * 
+ *
  * @author Bing SU (nova.su@gmail.com)
  */
 public interface PacketTransformer
 {
     /**
      * Transforms a specific packet.
-     * 
+     *
      * @param pkt the packet to be transformed
      * @return the transformed packet
      */

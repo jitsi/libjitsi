@@ -11,7 +11,7 @@ import java.util.*;
 
 /**
  * The call recording interface. Provides the capability to start and stop call
- * recording. 
+ * recording.
  *
  * @author Dmitri Melnikov
  * @author Lubomir Marinov

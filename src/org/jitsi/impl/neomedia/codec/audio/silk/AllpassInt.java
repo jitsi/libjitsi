@@ -7,18 +7,18 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * First-order allpass filter with 
+ * First-order allpass filter with
  * transfer function:
- * 
- *         A + Z^(-1) 
- * H(z) = ------------ 
- *        1 + A*Z^(-1) 
  *
- * Implemented using minimum multiplier filter design. 
- *  
+ *         A + Z^(-1)
+ * H(z) = ------------
+ *        1 + A*Z^(-1)
+ *
+ * Implemented using minimum multiplier filter design.
+ *
  * Reference: http://www.univ.trieste.it/~ramponi/teaching/
  * DSP/materiale/Ch6(2).pdf
- * 
+ *
  * @author Dingxin Xu
  */
 public class AllpassInt

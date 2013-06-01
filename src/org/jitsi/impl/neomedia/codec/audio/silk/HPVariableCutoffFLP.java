@@ -7,11 +7,11 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class HPVariableCutoffFLP 
+public class HPVariableCutoffFLP
 {
     /**
      * TODO: TEST
@@ -41,7 +41,7 @@ public class HPVariableCutoffFLP
         /*********************************************/
         /* Estimate low end of pitch frequency range */
         /*********************************************/
-        if( psEnc.sCmn.prev_sigtype == Define.SIG_TYPE_VOICED ) 
+        if( psEnc.sCmn.prev_sigtype == Define.SIG_TYPE_VOICED )
         {
 
             /* Difference, in log domain */
@@ -54,7 +54,7 @@ public class HPVariableCutoffFLP
             pitch_freq_log += 0.5f * ( 0.6f - quality );
 
             delta_freq = pitch_freq_log - psEnc.variable_HP_smth1;
-            if( delta_freq < 0.0 ) 
+            if( delta_freq < 0.0 )
             {
                 /* Less smoothing for decreasing pitch frequency, to track something close to the minimum */
                 delta_freq *= 3.0f;
@@ -62,7 +62,7 @@ public class HPVariableCutoffFLP
 
             /* Limit delta, to reduce impact of outliers */
             delta_freq = SigProcFLP.SKP_LIMIT_float( delta_freq, -DefineFLP.VARIABLE_HP_MAX_DELTA_FREQ, DefineFLP.VARIABLE_HP_MAX_DELTA_FREQ );
-        
+
             /* Update smoother */
             smth_coef = DefineFLP.VARIABLE_HP_SMTH_COEF1 * psEnc.speech_activity;
             psEnc.variable_HP_smth1 += smth_coef * delta_freq;
@@ -97,7 +97,7 @@ public class HPVariableCutoffFLP
         /********************/
         /* High-pass filter */
         /********************/
-        
+
 //      /*TEST****************************************************************************/
 //      /**
 //       * test for B_Q28
@@ -116,7 +116,7 @@ public class HPVariableCutoffFLP
 //          {
 //              try
 //              {
-//                  
+//
 //                  int res = b_q28_datain.read(buffer);
 //                  if(res != buffer.length)
 //                  {
@@ -129,7 +129,7 @@ public class HPVariableCutoffFLP
 //                  // TODO Auto-generated catch block
 //                  e.printStackTrace();
 //              }
-//          } 
+//          }
 //      }
 //      catch (FileNotFoundException e)
 //      {
@@ -152,8 +152,8 @@ public class HPVariableCutoffFLP
 //          }
 //      }
 ////      frame_cnt++;
-///*TEST END****************************************************************************/               
-//        
+///*TEST END****************************************************************************/
+//
 ///*TEST****************************************************************************/
 //      /**
 //       * test for psEnc.x_buf
@@ -172,7 +172,7 @@ public class HPVariableCutoffFLP
 //          {
 //              try
 //              {
-//                  
+//
 //                  int res = a_q28_datain.read(buffer);
 //                  if(res != buffer.length)
 //                  {
@@ -185,7 +185,7 @@ public class HPVariableCutoffFLP
 //                  // TODO Auto-generated catch block
 //                  e.printStackTrace();
 //              }
-//          } 
+//          }
 //      }
 //      catch (FileNotFoundException e)
 //      {
@@ -208,8 +208,8 @@ public class HPVariableCutoffFLP
 //          }
 //      }
 ////      frame_cnt++;
-///*TEST END****************************************************************************/        
-//      
+///*TEST END****************************************************************************/
+//
 //      /*TEST****************************************************************************/
 //      /**
 //       * test for psEnc.sCmn.In_HP_State
@@ -228,7 +228,7 @@ public class HPVariableCutoffFLP
 //          {
 //              try
 //              {
-//                  
+//
 //                  int res = in_hp_state_datain.read(buffer);
 //                  if(res != buffer.length)
 //                  {
@@ -241,7 +241,7 @@ public class HPVariableCutoffFLP
 //                  // TODO Auto-generated catch block
 //                  e.printStackTrace();
 //              }
-//          } 
+//          }
 //      }
 //      catch (FileNotFoundException e)
 //      {
@@ -264,8 +264,8 @@ public class HPVariableCutoffFLP
 //          }
 //      }
 ////      frame_cnt++;
-///*TEST END****************************************************************************/   
-      
+///*TEST END****************************************************************************/
+
 //      /*TEST****************************************************************************/
 //      /**
 //       * test for in
@@ -284,7 +284,7 @@ public class HPVariableCutoffFLP
 //          {
 //              try
 //              {
-//                  
+//
 //                  int res = in_test_datain.read(buffer);
 //                  if(res != buffer.length)
 //                  {
@@ -297,7 +297,7 @@ public class HPVariableCutoffFLP
 //                  // TODO Auto-generated catch block
 //                  e.printStackTrace();
 //              }
-//          } 
+//          }
 //      }
 //      catch (FileNotFoundException e)
 //      {
@@ -320,8 +320,8 @@ public class HPVariableCutoffFLP
 //          }
 //      }
 //      frame_cnt++;
-///*TEST END****************************************************************************/   
-      
+///*TEST END****************************************************************************/
+
         BiquadAlt.SKP_Silk_biquad_alt( in,in_offset, B_Q28, A_Q28, psEnc.sCmn.In_HP_State, out,out_offset, psEnc.sCmn.frame_length );
     }
 }

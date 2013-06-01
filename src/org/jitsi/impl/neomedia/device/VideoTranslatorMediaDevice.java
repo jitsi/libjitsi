@@ -6,7 +6,9 @@
  */
 package org.jitsi.impl.neomedia.device;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 import javax.media.*;
 import javax.media.protocol.*;
@@ -17,6 +19,7 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.util.event.*;
 
 /**
  * Implements a <tt>MediaDevice</tt> which is to be used in video conferencing
@@ -24,10 +27,12 @@ import org.jitsi.service.neomedia.format.*;
  *
  * @author Lyubomir Marinov
  * @author Hristo Terezov
+ * @author Boris Grozev
  */
 public class VideoTranslatorMediaDevice
     extends AbstractMediaDevice
-    implements MediaDeviceWrapper
+    implements MediaDeviceWrapper,
+        VideoListener
 {
     /**
      * The <tt>MediaDevice</tt> which this instance enables to be used in a
@@ -36,11 +41,11 @@ public class VideoTranslatorMediaDevice
     private final MediaDeviceImpl device;
 
     /**
-     * The <tt>MediaDeviceSession</tt> of {@link #device} the
+     * The <tt>VideoMediaDeviceSession</tt> of {@link #device} the
      * <tt>outputDataSource</tt> of which is the <tt>captureDevice</tt> of
      * {@link #streamDeviceSessions}.
      */
-    private MediaDeviceSession deviceSession;
+    private VideoMediaDeviceSession deviceSession;
 
     /**
      * The <tt>MediaStreamMediaDeviceSession</tt>s sharing the
@@ -76,16 +81,18 @@ public class VideoTranslatorMediaDevice
             MediaStreamMediaDeviceSession streamDeviceSession)
     {
         streamDeviceSessions.remove(streamDeviceSession);
-        if(deviceSession instanceof VideoMediaDeviceSession)
+        if(deviceSession != null)
         {
-            ((VideoMediaDeviceSession)deviceSession)
-                .removeRTCPFeedbackCreateListner(
+            deviceSession.removeRTCPFeedbackCreateListner(
                     streamDeviceSession);
         }
         if (streamDeviceSessions.isEmpty())
         {
             if(deviceSession != null)
+            {
+                deviceSession.removeVideoListener(this);
                 deviceSession.close();
+            }
             deviceSession = null;
         }
         else
@@ -100,6 +107,7 @@ public class VideoTranslatorMediaDevice
      * captured by this <tt>MediaDevice</tt>
      * @see AbstractMediaDevice#createOutputDataSource()
      */
+    @Override
     protected synchronized DataSource createOutputDataSource()
     {
         if (deviceSession == null)
@@ -120,24 +128,24 @@ public class VideoTranslatorMediaDevice
                             streamDeviceSession.getStartedDirection());
             }
 
-            deviceSession = device.createSession();
-            if(deviceSession instanceof VideoMediaDeviceSession)
+            MediaDeviceSession newDeviceSession = device.createSession();
+            if(newDeviceSession instanceof VideoMediaDeviceSession)
             {
-                VideoMediaDeviceSession videoMediaDeviceSession
-                    = (VideoMediaDeviceSession) deviceSession;
+                deviceSession = (VideoMediaDeviceSession)newDeviceSession;
+                deviceSession.addVideoListener(this);
 
                 for (MediaStreamMediaDeviceSession streamDeviceSession
                         : streamDeviceSessions)
                 {
-                    videoMediaDeviceSession.addRTCPFeedbackCreateListner(
+                    deviceSession.addRTCPFeedbackCreateListner(
                             streamDeviceSession);
                 }
             }
             if (format != null)
                 deviceSession.setFormat(format);
-            
+
             deviceSession.start(startedDirection);
-            
+
         }
         return
             (deviceSession == null)
@@ -245,7 +253,7 @@ public class VideoTranslatorMediaDevice
                 remotePreset,
                 encodingConfiguration);
     }
-    
+
     /**
      * Gets the actual <tt>MediaDevice</tt> which this <tt>MediaDevice</tt> is
      * effectively built on top of and forwarding to.
@@ -286,6 +294,57 @@ public class VideoTranslatorMediaDevice
         if (!startDirection.allowsSending())
             stopDirection = stopDirection.or(MediaDirection.SENDONLY);
         deviceSession.stop(stopDirection);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Forwards <tt>event</tt>, to each of the managed
+     * <tt>MediaStreamMediaDeviceSession</tt> instances. The event is expected
+     * to come from <tt>this.deviceSession</tt>, since <tt>this</tt> is
+     * registered there as a <tt>VideoListener</tt>.
+     */
+    @Override
+    public void videoAdded(VideoEvent event)
+    {
+        for (MediaStreamMediaDeviceSession sds : streamDeviceSessions)
+        {
+            sds.fireVideoEvent(event, false);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Forwards <tt>event</tt>, to each of the managed
+     * <tt>MediaStreamMediaDeviceSession</tt> instances. The event is expected
+     * to come from <tt>this.deviceSession</tt>, since <tt>this</tt> is
+     * registered there as a <tt>VideoListener</tt>.
+     */
+    @Override
+    public void videoRemoved(VideoEvent event)
+    {
+        for (MediaStreamMediaDeviceSession sds : streamDeviceSessions)
+        {
+            sds.fireVideoEvent(event, false);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Forwards <tt>event</tt>, to each of the managed
+     * <tt>MediaStreamMediaDeviceSession</tt> instances. The event is expected
+     * to come from <tt>this.deviceSession</tt>, since <tt>this</tt> is
+     * registered there as a <tt>VideoListener</tt>.
+     */
+    @Override
+    public void videoUpdate(VideoEvent event)
+    {
+        for (MediaStreamMediaDeviceSession sds : streamDeviceSessions)
+        {
+            sds.fireVideoEvent(event, false);
+        }
     }
 
     /**
@@ -382,10 +441,10 @@ public class VideoTranslatorMediaDevice
         {
             return getConnectedCaptureDevice();
         }
-        
+
         /**
-         * Sets the <tt>RTPConnector</tt> that will be used to initialize some 
-         * codec for RTCP feedback and adds the instance to 
+         * Sets the <tt>RTPConnector</tt> that will be used to initialize some
+         * codec for RTCP feedback and adds the instance to
          * RTCPFeedbackCreateListners of deviceSession.
          *
          * @param rtpConnector the RTP connector
@@ -394,11 +453,9 @@ public class VideoTranslatorMediaDevice
         public void setConnector(AbstractRTPConnector rtpConnector)
         {
             super.setConnector(rtpConnector);
-            if(deviceSession != null 
-                && deviceSession instanceof VideoMediaDeviceSession)
+            if(deviceSession != null)
             {
-                ((VideoMediaDeviceSession) deviceSession)
-                    .addRTCPFeedbackCreateListner(this);
+                deviceSession.addRTCPFeedbackCreateListner(this);
             }
         }
 
@@ -422,5 +479,65 @@ public class VideoTranslatorMediaDevice
             VideoTranslatorMediaDevice.this
                     .updateDeviceSessionStartedDirection();
         }
+
+        /**
+         * {@inheritDoc}
+         * Returns the local visual <tt>Component</tt> for this
+         * <tt>MediaStreamMediaDeviceSession</tt>, which, if present, is
+         * maintained in <tt>this.deviceSession</tt>.
+         */
+        @Override
+        public Component getLocalVisualComponent()
+        {
+            if (deviceSession != null)
+                return deviceSession.getLocalVisualComponent();
+            return null;
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * Creates, if necessary, the local visual <tt>Component</tt> depicting
+         * the video being streamed from the local peer to a remote peer. The
+         * <tt>Component</tt> is provided by the single <tt>Player</tt>
+         * instance, which is maintained for this
+         * <tt>VideoTranslatorMediaDevice</tt> and is managed by
+         * <tt>this.deviceSession</tt>.
+         */
+        @Override
+        protected Component createLocalVisualComponent()
+        {
+            if (deviceSession != null)
+                return deviceSession.createLocalVisualComponent();
+            return null;
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * Returns the <tt>Player</tt> instance which provides the local
+         * visual/video <tt>Component</tt>. A single <tt>Player</tt> is
+         * maintained for this <tt>VideoTranslatorMediaDevice</tt>, and it is
+         * managed by <tt>this.deviceSession</tt>.
+         */
+        @Override
+        protected Player getLocalPlayer()
+        {
+            if (deviceSession != null)
+                return deviceSession.getLocalPlayer();
+            return null;
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * Does nothing, because there is no <tt>Player</tt> associated with
+         * this <tt>MediaStreamMediaDeviceSession</tt> and therefore nothing to
+         * dispose of.
+         * @param player the <tt>Player</tt> to dispose of.
+         */
+        @Override
+        protected void disposeLocalPlayer(Player player){}
+
     }
 }

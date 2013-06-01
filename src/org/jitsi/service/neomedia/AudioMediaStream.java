@@ -61,7 +61,7 @@ public interface AudioMediaStream
      * Sets the <tt>VolumeControl</tt> which is to control the volume (level)
      * of the audio received in/by this <tt>AudioMediaStream</tt> and played
      * back.
-     * 
+     *
      * @param outputVolumeControl the <tt>VolumeControl</tt> which is to control
      * the volume (level) of the audio received in this
      * <tt>AudioMediaStream</tt> and played back

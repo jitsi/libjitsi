@@ -8,10 +8,10 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
  * processing of gains.
- * 
+ *
  * @author Dingxin Xu
  */
-public class ProcessGainsFLP 
+public class ProcessGainsFLP
 {
     /**
      * Processing of gains.
@@ -31,7 +31,7 @@ public class ProcessGainsFLP
         /* Gain reduction when LTP coding gain is high */
         if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) {
             s = 1.0f - 0.5f * SigProcFLP.SKP_sigmoid( 0.25f * ( psEncCtrl.LTPredCodGain - 12.0f ) );
-            for( k = 0; k < Define.NB_SUBFR; k++ ) {   
+            for( k = 0; k < Define.NB_SUBFR; k++ ) {
                 psEncCtrl.Gains[ k ] *= s;
             }
         }
@@ -48,13 +48,13 @@ public class ProcessGainsFLP
 
         /* Prepare gains for noise shaping quantization */
         for( k = 0; k < Define.NB_SUBFR; k++ ) {
-            pGains_Q16[ k ] = ( int ) ( psEncCtrl.Gains[ k ] * 65536.0f ); 
+            pGains_Q16[ k ] = ( int ) ( psEncCtrl.Gains[ k ] * 65536.0f );
         }
 
         /* Noise shaping quantization */
         int[] LastGainIndex_ptr = new int[1];
         LastGainIndex_ptr[0] = psShapeSt.LastGainIndex;
-        GainQuant.SKP_Silk_gains_quant( psEncCtrl.sCmn.GainsIndices, pGains_Q16, 
+        GainQuant.SKP_Silk_gains_quant( psEncCtrl.sCmn.GainsIndices, pGains_Q16,
                 LastGainIndex_ptr, psEnc.sCmn.nFramesInPayloadBuf );
         psShapeSt.LastGainIndex = LastGainIndex_ptr[0];
         /* Overwrite unquantized gains with quantized gains and convert back to Q0 from Q16 */
@@ -73,12 +73,12 @@ public class ProcessGainsFLP
 
         /* Quantizer boundary adjustment */
         if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) {
-            psEncCtrl.Lambda = 1.2f - 0.4f * psEnc.speech_activity 
-                                     - 0.3f * psEncCtrl.input_quality   
+            psEncCtrl.Lambda = 1.2f - 0.4f * psEnc.speech_activity
+                                     - 0.3f * psEncCtrl.input_quality
                                      + 0.2f * psEncCtrl.sCmn.QuantOffsetType
                                      - 0.1f * psEncCtrl.coding_quality;
         } else {
-            psEncCtrl.Lambda = 1.2f - 0.4f * psEnc.speech_activity 
+            psEncCtrl.Lambda = 1.2f - 0.4f * psEnc.speech_activity
                                      - 0.4f * psEncCtrl.input_quality
                                      + 0.4f * psEncCtrl.sCmn.QuantOffsetType
                                      - 0.1f * psEncCtrl.coding_quality;

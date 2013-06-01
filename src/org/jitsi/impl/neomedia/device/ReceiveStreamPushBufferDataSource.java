@@ -116,6 +116,7 @@ public class ReceiveStreamPushBufferDataSource
      * @return an array of the <tt>PushBufferStream</tt>s of the wrapped
      * <tt>DataSource</tt> of the <tt>ReceiveStream</tt>
      */
+    @Override
     public PushBufferStream[] getStreams()
     {
         return dataSource.getStreams();

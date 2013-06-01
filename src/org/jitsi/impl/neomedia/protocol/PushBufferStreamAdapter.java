@@ -61,6 +61,7 @@ public class PushBufferStreamAdapter
      * @return number of bytes read
      * @throws IOException if I/O related errors occurred during read operation
      */
+    @Override
     protected int read(byte[] buffer, int offset, int length)
         throws IOException
     {

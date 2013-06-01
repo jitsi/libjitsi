@@ -52,13 +52,13 @@ class DecLag3
  * @param T0         output: integer part of pitch lag
  * @param T0_frac    output: fractional part of pitch lag
  */
-static void dec_lag3(     
-  int index,       
+static void dec_lag3(
+  int index,
   int pit_min,
-  int pit_max,    
-  int i_subfr, 
-  IntReference T0,         
-  IntReference T0_frac  
+  int pit_max,
+  int i_subfr,
+  IntReference T0,
+  IntReference T0_frac
 )
 {
   int i;

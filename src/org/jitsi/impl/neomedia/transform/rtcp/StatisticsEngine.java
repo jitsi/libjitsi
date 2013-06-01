@@ -77,8 +77,8 @@ public class StatisticsEngine
 
     /**
      * Close the transformer and underlying transform engine.
-     * 
-     * Nothing to do here. 
+     *
+     * Nothing to do here.
      */
     public void close()
     {

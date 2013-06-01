@@ -44,15 +44,15 @@ class QuaLsp
 */
 
 /* static memory */
-/** 
+/**
  * previous LSP vector
  */
-private final float[][] freq_prev = new float[Ld8k.MA_NP][Ld8k.M];   
+private final float[][] freq_prev = new float[Ld8k.MA_NP][Ld8k.M];
 
-/** 
+/**
  * previous LSP vector(init)
  */
-private static final float[/* M */] FREQ_PREV_RESET = { 
+private static final float[/* M */] FREQ_PREV_RESET = {
  0.285599f,  0.571199f,  0.856798f,  1.142397f,  1.427997f,
  1.713596f,  1.999195f,  2.284795f,  2.570394f,  2.855993f
 };     /* PI*(float)(j+1)/(float)(M+1) */
@@ -63,7 +63,7 @@ private static final float[/* M */] FREQ_PREV_RESET = {
  * @param ana       (o) : indexes
  */
 void qua_lsp(
-  float lsp[],  
+  float lsp[],
   float lsp_q[],
   int ana[]
 )
@@ -104,12 +104,12 @@ void lsp_encw_reset()
  *
  * @param flsp_in       input : Original LSP parameters
  * @param lspq_out      output: Quantized LSP parameters
- * @param code          output: codes of the selected LSP 
+ * @param code          output: codes of the selected LSP
  */
 private void lsp_qua_cs(
- float[]  flsp_in,      
- float[]  lspq_out,     
- int[]  code            
+ float[]  flsp_in,
+ float[]  lspq_out,
+ int[]  code
 )
 {
    int M = Ld8k.M;
@@ -141,16 +141,16 @@ private void lsp_qua_cs(
  * @param code_ana       output:codes of the selected LSP
  */
 private void relspwed(
- float  lsp[],                 
- float  wegt[],                
- float  lspq[],                
- float  lspcb1[][/* M */],            
- float  lspcb2[][/* M */],           
- float  fg[/* MODE */][/* MA_NP */][/* M */],     
- float  freq_prev[/* MA_NP */][/* M */],   
- float  fg_sum[/* MODE */][/* M */],        
- float  fg_sum_inv[/* MODE */][/* M */],   
- int    code_ana[]             
+ float  lsp[],
+ float  wegt[],
+ float  lspq[],
+ float  lspcb1[][/* M */],
+ float  lspcb2[][/* M */],
+ float  fg[/* MODE */][/* MA_NP */][/* M */],
+ float  freq_prev[/* MA_NP */][/* M */],
+ float  fg_sum[/* MODE */][/* M */],
+ float  fg_sum_inv[/* MODE */][/* M */],
+ int    code_ana[]
 )
 {
    float GAP1 = Ld8k.GAP1;
@@ -228,8 +228,8 @@ private void relspwed(
  * @return          selected code
  */
 private int lsp_pre_select(
- float  rbuf[],         
- float  lspcb1[][/* M */]   
+ float  rbuf[],
+ float  lspcb1[][/* M */]
 )
 {
    float FLT_MAX_G729 = Ld8k.FLT_MAX_G729;
@@ -269,10 +269,10 @@ private int lsp_pre_select(
  * @return          selected codebook index
  */
 private int lsp_select_1(
- float  rbuf[],        
- float  lspcb1[],      
- float  wegt[],         
- float  lspcb2[][/* M */]   
+ float  rbuf[],
+ float  lspcb1[],
+ float  wegt[],
+ float  lspcb2[][/* M */]
 )
 {
    float FLT_MAX_G729 = Ld8k.FLT_MAX_G729;
@@ -315,10 +315,10 @@ private int lsp_select_1(
  * @return          selected codebook index
  */
 private int lsp_select_2(
- float  rbuf[],         
- float  lspcb1[],      
- float  wegt[],         
- float  lspcb2[][/* M */]    
+ float  rbuf[],
+ float  lspcb1[],
+ float  wegt[],
+ float  lspcb2[][/* M */]
 )
 {
    float FLT_MAX_G729 = Ld8k.FLT_MAX_G729;
@@ -361,10 +361,10 @@ private int lsp_select_2(
  * @return          distortion
  */
 private float lsp_get_tdist(
- float  wegt[],        
- float  buf[],        
- float  rbuf[],     
- float  fg_sum[]      
+ float  wegt[],
+ float  buf[],
+ float  rbuf[],
+ float  fg_sum[]
 )
 {
    int M = Ld8k.M;
@@ -387,7 +387,7 @@ private float lsp_get_tdist(
  * @return          the selected mode
  */
 private int lsp_last_select(
- float  tdist[]   
+ float  tdist[]
 )
 {
    int mode_index = 0;     /*output: the selected mode  */
@@ -402,8 +402,8 @@ private int lsp_last_select(
  * @param wegt      output: M weighting coefficients
  */
 private void get_wegt(
- float  flsp[],        
- float  wegt[]        
+ float  flsp[],
+ float  wegt[]
 )
 {
    float CONST12 = Ld8k.CONST12;

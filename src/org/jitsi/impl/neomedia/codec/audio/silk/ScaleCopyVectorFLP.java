@@ -11,7 +11,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  *
  * @author Dingxin Xu
  */
-public class ScaleCopyVectorFLP 
+public class ScaleCopyVectorFLP
 {
     /**
      * copy and multiply a vector by a constant.
@@ -22,12 +22,12 @@ public class ScaleCopyVectorFLP
      * @param gain
      * @param dataSize
      */
-    static void SKP_Silk_scale_copy_vector_FLP( 
-            float           []data_out, 
+    static void SKP_Silk_scale_copy_vector_FLP(
+            float           []data_out,
             int             data_out_offset,
-            final float     []data_in, 
+            final float     []data_in,
             int             data_in_offset,
-            float           gain, 
+            float           gain,
             int             dataSize
     )
     {

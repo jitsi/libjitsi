@@ -91,12 +91,12 @@ class Decoder
      *  postfilter output
      */
     private final float[]  pst_out = new float[L_FRAME];
-    
+
     /**
      * voicing for previous subframe
      */
     private int voicing;
-    
+
     /**
      * Initialization of decoder
      */

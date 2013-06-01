@@ -607,6 +607,7 @@ public class DataSource
     /**
      * {@inheritDoc}
      */
+    @Override
     protected AbstractPullBufferStream createStream(
             int streamIndex,
             FormatControl formatControl)
@@ -614,6 +615,7 @@ public class DataSource
         return new PulseAudioStream(formatControl);
     }
 
+    @Override
     protected void doDisconnect()
     {
         synchronized (getStreamSyncRoot())

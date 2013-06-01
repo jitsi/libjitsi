@@ -14,7 +14,7 @@ import org.jitsi.impl.neomedia.transform.*;
 /**
  * SRTCPTransformer implements PacketTransformer.
  * It encapsulate the encryption / decryption logic for SRTCP packets
- * 
+ *
  * @author Bing SU (nova.su@gmail.com)
  * @author Werner Dittmann &lt;Werner.Dittmann@t-online.de>
  */
@@ -31,7 +31,7 @@ public class SRTCPTransformer
 
     /**
      * Constructs a SRTCPTransformer object.
-     * 
+     *
      * @param factory The associated context factory for both
      *            transform directions.
      */
@@ -42,7 +42,7 @@ public class SRTCPTransformer
 
     /**
      * Constructs a SRTCPTransformer object.
-     * 
+     *
      * @param forwardFactory The associated context factory for forward
      *            transformations.
      * @param reverseFactory The associated context factory for reverse
@@ -62,7 +62,7 @@ public class SRTCPTransformer
      * engine. It closes all stored crypto contexts. It deletes key data and
      * forces a cleanup of the crypto contexts.
      */
-    public void close() 
+    public void close()
     {
         synchronized (contexts)
         {
@@ -73,11 +73,11 @@ public class SRTCPTransformer
             Iterator<Map.Entry<Long, SRTCPCryptoContext>> iter
                 = contexts.entrySet().iterator();
 
-            while (iter.hasNext()) 
+            while (iter.hasNext())
             {
                 Map.Entry<Long, SRTCPCryptoContext> entry = iter.next();
                 SRTCPCryptoContext context = entry.getValue();
-    
+
                 iter.remove();
                 if (context != null)
                     context.close();
@@ -112,7 +112,7 @@ public class SRTCPTransformer
 
     /**
      * Decrypts a SRTCP packet
-     * 
+     *
      * @param pkt encrypted SRTCP packet to be decrypted
      * @return decrypted SRTCP packet
      */
@@ -128,7 +128,7 @@ public class SRTCPTransformer
 
     /**
      * Encrypts a SRTCP packet
-     * 
+     *
      * @param pkt plain SRTCP packet to be encrypted
      * @return encrypted SRTCP packet
      */

@@ -7,18 +7,18 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 /**
- * LPC analysis filter                     
- * NB! State is kept internally and the    
- * filter always starts with zero state    
- * first Order output samples are not set 
- * 
+ * LPC analysis filter
+ * NB! State is kept internally and the
+ * filter always starts with zero state
+ * first Order output samples are not set
+ *
  * @author Jing Dai
  * @author Dignxin Xu
  */
-public class LPCAnalysisFilterFLP 
+public class LPCAnalysisFilterFLP
 {
     /**
-     * 
+     *
      * @param r_LPC LPC residual signal
      * @param PredCoef LPC coefficients
      * @param s Input signal
@@ -37,7 +37,7 @@ public class LPCAnalysisFilterFLP
     {
         assert( Order <= length );
 
-        switch( Order ) 
+        switch( Order )
         {
             case 8:
                 SKP_Silk_LPC_analysis_filter8_FLP(  r_LPC, PredCoef, s, s_offset, length );
@@ -86,13 +86,13 @@ public class LPCAnalysisFilterFLP
         float[] s_ptr;
         int s_ptr_offset;
 
-        for ( ; ix < length; ix++) 
+        for ( ; ix < length; ix++)
         {
             s_ptr = s;
             s_ptr_offset = s_offset + ix - 1;
 
             /* short-term prediction */
-            LPC_pred = s_ptr[ s_ptr_offset ]   * PredCoef[ 0 ]  + 
+            LPC_pred = s_ptr[ s_ptr_offset ]   * PredCoef[ 0 ]  +
                        s_ptr[s_ptr_offset-1]  * PredCoef[ 1 ]  +
                        s_ptr[s_ptr_offset-2]  * PredCoef[ 2 ]  +
                        s_ptr[s_ptr_offset-3]  * PredCoef[ 3 ]  +
@@ -135,13 +135,13 @@ public class LPCAnalysisFilterFLP
         float[] s_ptr;
         int s_ptr_offset;
 
-        for ( ; ix < length; ix++) 
+        for ( ; ix < length; ix++)
         {
             s_ptr = s;
             s_ptr_offset = s_offset + ix - 1;
 
             /* short-term prediction */
-            LPC_pred = s_ptr[ s_ptr_offset ]   * PredCoef[ 0 ]  + 
+            LPC_pred = s_ptr[ s_ptr_offset ]   * PredCoef[ 0 ]  +
                        s_ptr[s_ptr_offset-1]  * PredCoef[ 1 ]  +
                        s_ptr[s_ptr_offset-2]  * PredCoef[ 2 ]  +
                        s_ptr[s_ptr_offset-3]  * PredCoef[ 3 ]  +
@@ -162,8 +162,8 @@ public class LPCAnalysisFilterFLP
     /**
      * 10th order LPC analysis filter, does not write first 10 samples
      * @param r_LPC LPC residual signal
-     * @param PredCoef LPC coefficients 
-     * @param s Input signal 
+     * @param PredCoef LPC coefficients
+     * @param s Input signal
      * @param s_offset offset of valid data.
      * @param length Length of input signal
      */
@@ -185,7 +185,7 @@ public class LPCAnalysisFilterFLP
             s_ptr_offset = s_offset + ix - 1;
 
             /* short-term prediction */
-            LPC_pred = s_ptr[ s_ptr_offset ]   * PredCoef[ 0 ]  + 
+            LPC_pred = s_ptr[ s_ptr_offset ]   * PredCoef[ 0 ]  +
                        s_ptr[s_ptr_offset-1]  * PredCoef[ 1 ]  +
                        s_ptr[s_ptr_offset-2]  * PredCoef[ 2 ]  +
                        s_ptr[s_ptr_offset-3]  * PredCoef[ 3 ]  +
@@ -204,7 +204,7 @@ public class LPCAnalysisFilterFLP
     /**
      * 8th order LPC analysis filter, does not write first 8 samples.
      * @param r_LPC LPC residual signal
-     * @param PredCoef LPC coefficients 
+     * @param PredCoef LPC coefficients
      * @param s Input signal
      * @param s_offset offset of valid data.
      * @param length  Length of input signal
@@ -227,7 +227,7 @@ public class LPCAnalysisFilterFLP
             s_ptr_offset = s_offset + ix - 1;
 
             /* short-term prediction */
-            LPC_pred = s_ptr[  s_ptr_offset ] * PredCoef[ 0 ]  + 
+            LPC_pred = s_ptr[  s_ptr_offset ] * PredCoef[ 0 ]  +
                        s_ptr[ s_ptr_offset-1 ] * PredCoef[ 1 ]  +
                        s_ptr[ s_ptr_offset-2 ] * PredCoef[ 2 ]  +
                        s_ptr[ s_ptr_offset-3 ] * PredCoef[ 3 ]  +

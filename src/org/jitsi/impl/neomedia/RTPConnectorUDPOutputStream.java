@@ -48,6 +48,7 @@ public class RTPConnectorUDPOutputStream
      * <tt>packet</tt> through this <tt>OutputDataStream</tt> to the specified
      * <tt>target</tt>
      */
+    @Override
     protected void sendToTarget(RawPacket packet, InetSocketAddress target)
         throws IOException
     {
@@ -65,6 +66,7 @@ public class RTPConnectorUDPOutputStream
      *
      * @param packet packet to log
      */
+    @Override
     protected void doLogPacket(RawPacket packet, InetSocketAddress target)
     {
         // Do not log the packet if this one has been processed (and already

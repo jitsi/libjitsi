@@ -9,11 +9,11 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 /**
  * Filter coefficients for IIR/FIR polyphase resampling.
  * Total size: 550 Words (1.1 kB).
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
-public class ResamplerRom 
+public class ResamplerRom
 {
     static final int RESAMPLER_DOWN_ORDER_FIR =               12;
     static final int RESAMPLER_ORDER_FIR_144 =                6;
@@ -21,7 +21,7 @@ public class ResamplerRom
     /* Tables for 2x downsampler. Values above 32767 intentionally wrap to a negative value. */
     static final short SKP_Silk_resampler_down2_0 = 9872;
     static final short SKP_Silk_resampler_down2_1 = (short) 39809;
-    
+
     /* Tables for 2x upsampler, low quality. Values above 32767 intentionally wrap to a negative value. */
     static final short SKP_Silk_resampler_up2_lq_0 = 8102;
     static final short SKP_Silk_resampler_up2_lq_1 = (short) 36783;
@@ -43,7 +43,7 @@ public class ResamplerRom
            -45,     -4,    237,   -847,   2540,  14662,
     };
 
-    static short[] SKP_Silk_Resampler_2_3_COEFS = 
+    static short[] SKP_Silk_Resampler_2_3_COEFS =
     {
         -11891, -12486,
             20,    211,   -657,    688,   8423,  15911,
@@ -56,7 +56,7 @@ public class ResamplerRom
            158,   -295,   -400,   1265,   4832,   7968,
     };
 
-    static short[] SKP_Silk_Resampler_3_8_COEFS = 
+    static short[] SKP_Silk_Resampler_3_8_COEFS =
     {
          13270, -13738,
           -294,   -123,    747,   2043,   3339,   3995,
@@ -64,20 +64,20 @@ public class ResamplerRom
            -33,   -389,    143,   1141,   2503,   3653,
     };
 
-    static short[] SKP_Silk_Resampler_1_3_COEFS = 
+    static short[] SKP_Silk_Resampler_1_3_COEFS =
     {
          16643, -14000,
           -331,     19,    581,   1421,   2290,   2845,
     };
 
-    static short[] SKP_Silk_Resampler_2_3_COEFS_LQ = 
+    static short[] SKP_Silk_Resampler_2_3_COEFS_LQ =
     {
          -2797,  -6507,
           4697,  10739,
           1567,   8276,
     };
 
-    static short[] SKP_Silk_Resampler_1_3_COEFS_LQ = 
+    static short[] SKP_Silk_Resampler_1_3_COEFS_LQ =
     {
          16777,  -9792,
            890,   1614,   2148,
@@ -91,12 +91,12 @@ public class ResamplerRom
          31454,  24746,  -9706,  -3386, -17911, -13243,  24797
     };
 
-    static short[] SKP_Silk_Resampler_240_441_ARMA4_COEFS = 
+    static short[] SKP_Silk_Resampler_240_441_ARMA4_COEFS =
     {
          28721,  11254,   3189,  -2546,  -1495, -12618,  11562
     };
 
-    static short[] SKP_Silk_Resampler_160_441_ARMA4_COEFS = 
+    static short[] SKP_Silk_Resampler_160_441_ARMA4_COEFS =
     {
          23492,  -6457,  14358,  -4856,  14654, -13008,   4456
     };
@@ -106,13 +106,13 @@ public class ResamplerRom
          19311, -15569,  19489,  -6950,  21441, -13559,   2370
     };
 
-    static short[] SKP_Silk_Resampler_80_441_ARMA4_COEFS = 
+    static short[] SKP_Silk_Resampler_80_441_ARMA4_COEFS =
     {
          13248, -23849,  24126,  -9486,  26806, -14286,   1065
     };
 
     /* Table with interplation fractions of 1/288 : 2/288 : 287/288 (432 Words) */
-    static short[][] SKP_Silk_resampler_frac_FIR_144 = 
+    static short[][] SKP_Silk_resampler_frac_FIR_144 =
     {
         { -647,  1884, 30078},
         { -625,  1736, 30044},

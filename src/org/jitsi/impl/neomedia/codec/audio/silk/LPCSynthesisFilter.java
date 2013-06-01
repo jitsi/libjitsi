@@ -12,7 +12,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
  *
  * @author Jing Dai
  */
-public class LPCSynthesisFilter 
+public class LPCSynthesisFilter
 {
     /**
      * even order AR filter.

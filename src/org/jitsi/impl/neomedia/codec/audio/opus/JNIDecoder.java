@@ -66,7 +66,7 @@ public class JNIDecoder
          * If the Opus class or its supporting JNI library are not functional,
          * it is too late to discover the fact in #doOpen() because a JNIDecoder
          * instance has already been initialized and it has already signaled
-         * that the Opus codec is supported. 
+         * that the Opus codec is supported.
          */
         Opus.assertOpusIsFunctional();
     }
@@ -125,6 +125,7 @@ public class JNIDecoder
     /**
      * @see AbstractCodecExt#doClose()
      */
+    @Override
     protected void doClose()
     {
         if (decoder != 0)
@@ -145,6 +146,7 @@ public class JNIDecoder
      * <tt>Codec</tt> needs to operate cannot be acquired
      * @see AbstractCodecExt#doOpen()
      */
+    @Override
     protected void doOpen()
         throws ResourceUnavailableException
     {
@@ -168,6 +170,7 @@ public class JNIDecoder
      * successfully processed
      * @see AbstractCodecExt#doProcess(Buffer, Buffer)
      */
+    @Override
     protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
         Format inFormat = inBuffer.getFormat();
@@ -326,7 +329,7 @@ public class JNIDecoder
      * does not provide user interface of its own.
      *
      * @return <tt>null</tt> to signify that <tt>JNIDecoder</tt> does not
-     * provide user interface of its own 
+     * provide user interface of its own
      */
     public Component getControlComponent()
     {

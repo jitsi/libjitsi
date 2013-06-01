@@ -9,7 +9,7 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 /**
  * 16th order AR filter.
  * Coefficients are in Q12.
- * 
+ *
  * @author Jing Dai
  * @author Dingxin Xu
  */
@@ -59,7 +59,7 @@ public class LPCSynthesisOrder16
             S[ 10 ] = SA;
             out32_Q10 = SigProcFIX.SKP_SMLAWB_ovflw( out32_Q10, SA, A_Q12[ 4 ] );
             out32_Q10 = SigProcFIX.SKP_SMLAWB_ovflw( out32_Q10, SB, A_Q12[ 5 ] );
-            
+
             SA = S[ 9 ];
             S[ 9 ] = SB;
 
@@ -74,7 +74,7 @@ public class LPCSynthesisOrder16
             S[ 6 ] = SA;
             out32_Q10 = SigProcFIX.SKP_SMLAWB_ovflw( out32_Q10, SA, A_Q12[ 8 ] );
             out32_Q10 = SigProcFIX.SKP_SMLAWB_ovflw( out32_Q10, SB, A_Q12[ 9 ] );
-            
+
             SA = S[ 5 ];
             S[ 5 ] = SB;
 
@@ -82,7 +82,7 @@ public class LPCSynthesisOrder16
             S[ 4 ] = SA;
             out32_Q10 = SigProcFIX.SKP_SMLAWB_ovflw( out32_Q10, SA, A_Q12[ 10 ] );
             out32_Q10 = SigProcFIX.SKP_SMLAWB_ovflw( out32_Q10, SB, A_Q12[ 11 ] );
-            
+
             SA = S[ 3 ];
             S[ 3 ] = SB;
 

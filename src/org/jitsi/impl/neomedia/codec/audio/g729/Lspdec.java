@@ -52,7 +52,7 @@ private final float[][] freq_prev = new float[MA_NP][M];
 /**
  * Previous LSP vector(init)
  */
-private static final float[/* M */] FREQ_PREV_RESET = { 
+private static final float[/* M */] FREQ_PREV_RESET = {
  0.285599f,  0.571199f,  0.856798f,  1.142397f,  1.427997f,
  1.713596f,  1.999195f,  2.284795f,  2.570394f,  2.855993f
 };     /* PI*(float)(j+1)/(float)(M+1) */
@@ -65,7 +65,7 @@ private int prev_ma;
 /**
  * Previous LSP vector
  */
-private final float[] prev_lsp = new float[M]; 
+private final float[] prev_lsp = new float[M];
 
 
 /**
@@ -92,10 +92,10 @@ void lsp_decw_reset()
  * @param erase         input : frame erase information
  */
 private void lsp_iqua_cs(
- int    prm[],        
+ int    prm[],
  int prm_offset,
- float  lsp_q[],       
- int    erase           
+ float  lsp_q[],
+ int    erase
 )
 {
    int NC0 = Ld8k.NC0;
@@ -148,10 +148,10 @@ private void lsp_iqua_cs(
  * @param bfi            input : frame erase information
  */
 void d_lsp(
-    int     index[],  
+    int     index[],
     int index_offset,
-    float   lsp_q[],  
-    int     bfi         
+    float   lsp_q[],
+    int     bfi
 )
 {
    int i;
