@@ -62,6 +62,10 @@ public class TransformUDPInputStream
         PacketTransformer transformer = getTransformer();
         RawPacket pkt = super.createRawPacket(datagramPacket);
 
+        /* Don't try to transform invalid packets */
+        if (pkt.isInvalid())
+            return pkt;
+
         return (transformer == null) ? pkt : transformer.reverseTransform(pkt);
     }
 

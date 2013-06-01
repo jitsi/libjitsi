@@ -21,6 +21,7 @@ package org.jitsi.impl.neomedia;
  * @author Bing SU (nova.su@gmail.com)
  * @author Emil Ivov
  * @author Damian Minkov
+ * @author Boris Grozev
  */
 public class RawPacket
 {
@@ -470,7 +471,7 @@ public class RawPacket
      */
     public int getPaddingSize()
     {
-        if ((buffer[offset] & 0x4) == 0)
+        if ((buffer[offset] & 0x20) == 0)
             return 0;
         else
             return buffer[offset + length - 1];
@@ -957,5 +958,25 @@ public class RawPacket
 
         return readUnsignedShortAsInt(
                     offset + FIXED_HEADER_SIZE + getCsrcCount()*4);
+    }
+
+    /**
+     * Perform checks on the packet represented by this instance and
+     * return <tt>true</tt> if it is found to be invalid. A return value of
+     * <tt>false</tt> does not necessarily mean that the packet is valid.
+     *
+     * @return <tt>true</tt> if the RTP/RTCP packet represented by this
+     * instance is found to be invalid, <tt>false</tt> otherwise.
+     */
+    public boolean isInvalid()
+    {
+        if (buffer == null)
+            return true;
+        if (buffer.length < offset + length)
+            return true;
+        if (length < FIXED_HEADER_SIZE || length < getHeaderLength())
+            return true;
+
+        return false;
     }
 }
