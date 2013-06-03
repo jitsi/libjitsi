@@ -146,14 +146,14 @@ public class AudioMediaDeviceImpl
                         captureDeviceSharing
                             = createCaptureDeviceSharing(captureDevice);
                         captureDevice
-                            = captureDeviceSharing.createOutputDataSource();
+                            = captureDeviceSharing.createOutDataSource();
                     }
                 }
                 if ((captureDevice == null) && createCaptureDeviceIfNull)
                     captureDevice = superCreateCaptureDevice();
             }
             else
-                captureDevice = captureDeviceSharing.createOutputDataSource();
+                captureDevice = captureDeviceSharing.createOutDataSource();
         }
         return captureDevice;
     }

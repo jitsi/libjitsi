@@ -24,7 +24,7 @@ import org.jitsi.util.*;
  * <tt>PushBufferStream</tt> containing the result of the audio mixing of
  * <tt>DataSource</tt>s.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class AudioMixingPushBufferDataSource
     extends PushBufferDataSource
@@ -45,7 +45,7 @@ public class AudioMixingPushBufferDataSource
      * <tt>DataSource</tt>s and pushing the data of this output
      * <tt>PushBufferDataSource</tt>.
      */
-    private final AudioMixer audioMixer;
+    final AudioMixer audioMixer;
 
     /**
      * The indicator which determines whether this <tt>DataSource</tt> is
@@ -54,11 +54,17 @@ public class AudioMixingPushBufferDataSource
     private boolean connected;
 
     /**
+     * The indicator which determines whether this <tt>DataSource</tt> is set
+     * to transmit "silence" instead of the actual media.
+     */
+    private boolean mute = false;
+
+    /**
      * The one and only <tt>PushBufferStream</tt> this
      * <tt>PushBufferDataSource</tt> provides to its clients and containing the
      * result of the audio mixing performed by <tt>audioMixer</tt>.
      */
-    private AudioMixingPushBufferStream outputStream;
+    private AudioMixingPushBufferStream outStream;
 
     /**
      * The indicator which determines whether this <tt>DataSource</tt> is
@@ -67,15 +73,10 @@ public class AudioMixingPushBufferDataSource
     private boolean started;
 
     /**
-     * The indicator which determines whether this <tt>DataSource</tt> is set
-     * to transmit "silence" instead of the actual media.
-     */
-    private boolean mute = false;
-
-    /**
      * The tones to send via inband DTMF, if not empty.
      */
-    private LinkedList<DTMFInbandTone> tones = new LinkedList<DTMFInbandTone>();
+    private final LinkedList<DTMFInbandTone> tones
+        = new LinkedList<DTMFInbandTone>();
 
     /**
      * Initializes a new <tt>AudioMixingPushBufferDataSource</tt> instance which
@@ -92,29 +93,29 @@ public class AudioMixingPushBufferDataSource
     }
 
     /**
+     * Adds a new inband DTMF tone to send.
+     *
+     * @param tone the DTMF tone to send.
+     */
+    public void addDTMF(DTMFInbandTone tone)
+    {
+        tones.add(tone);
+    }
+
+    /**
      * Adds a new input <tt>DataSource</tt> to be mixed by the associated
      * <tt>AudioMixer</tt> of this instance and to not have its audio
      * contributions included in the mixing output represented by this
      * <tt>DataSource</tt>.
      *
-     * @param inputDataSource a <tt>DataSource</tt> to be added for mixing to
+     * @param inDataSource a <tt>DataSource</tt> to be added for mixing to
      * the <tt>AudioMixer</tt> associate with this instance and to not have its
      * audio contributions included in the mixing output represented by this
      * <tt>DataSource</tt>
      */
-    public void addInputDataSource(DataSource inputDataSource)
+    public void addInDataSource(DataSource inDataSource)
     {
-        audioMixer.addInputDataSource(inputDataSource, this);
-    }
-
-    /**
-     * The input <tt>DataSource</tt> has been updated.
-     * @param inputDataSource the <tt>DataSource</tt> that was updated.
-     */
-    public void updateInputDataSource(DataSource inputDataSource)
-    {
-        // just update the input streams
-        audioMixer.getOutputStream();
+        audioMixer.addInDataSource(inDataSource, this);
     }
 
     /**
@@ -155,7 +156,7 @@ public class AudioMixingPushBufferDataSource
 
         if (connected)
         {
-            outputStream = null;
+            outStream = null;
             connected = false;
 
             audioMixer.disconnect();
@@ -240,12 +241,9 @@ public class AudioMixingPushBufferDataSource
             Object[] controls = new Object[1 + formatControls.length];
 
             controls[0] = bufferControl;
-            System
-                .arraycopy(
-                    formatControls,
-                    0,
-                    controls,
-                    1,
+            System.arraycopy(
+                    formatControls, 0,
+                    controls, 1,
                     formatControls.length);
             return controls;
         }
@@ -279,6 +277,20 @@ public class AudioMixingPushBufferDataSource
     }
 
     /**
+     * Gets the next inband DTMF tone signal.
+     *
+     * @param sampleRate The sampling frequency (codec clock rate) in Hz of the
+     * stream which will encapsulate this signal.
+     * @param sampleSizeInBits The size of each sample (8 for a byte, 16 for a
+     * short and 32 for an int)
+     * @return The data array containing the DTMF signal.
+     */
+    public int[] getNextToneSignal(double sampleRate, int sampleSizeInBits)
+    {
+        return tones.poll().getAudioSamples(sampleRate, sampleSizeInBits);
+    }
+
+    /**
      * Implements {@link PushBufferDataSource#getStreams()}. Gets a
      * <tt>PushBufferStream</tt> which reads data from the associated
      * <tt>AudioMixer</tt> and mixes its inputs.
@@ -290,38 +302,69 @@ public class AudioMixingPushBufferDataSource
     @Override
     public synchronized PushBufferStream[] getStreams()
     {
-        if (connected && (outputStream == null))
+        if (connected && (outStream == null))
         {
-            AudioMixerPushBufferStream audioMixerOutputStream
-                = audioMixer.getOutputStream();
+            AudioMixerPushBufferStream audioMixerOutStream
+                = audioMixer.getOutStream();
 
-            if (audioMixerOutputStream != null)
+            if (audioMixerOutStream != null)
             {
-                outputStream
+                outStream
                     = new AudioMixingPushBufferStream(
-                            audioMixerOutputStream,
+                            audioMixerOutStream,
                             this);
                 if (started)
                     try
                     {
-                        outputStream.start();
+                        outStream.start();
                     }
                     catch (IOException ioex)
                     {
-                        logger
-                            .error(
+                        logger.error(
                                 "Failed to start "
-                                    + outputStream.getClass().getSimpleName()
-                                    + " with hashCode "
-                                    + outputStream.hashCode(),
+                                    + outStream.getClass().getSimpleName()
+                                    + " with hashCode " + outStream.hashCode(),
                                 ioex);
                     }
             }
         }
         return
-            (outputStream == null)
+            (outStream == null)
                 ? new PushBufferStream[0]
-                : new PushBufferStream[] { outputStream };
+                : new PushBufferStream[] { outStream };
+    }
+
+    /**
+     * Determines whether this <tt>DataSource</tt> is mute.
+     *
+     * @return <tt>true</tt> if this <tt>DataSource</tt> is mute; otherwise,
+     *         <tt>false</tt>
+     */
+    public boolean isMute()
+    {
+        return mute;
+    }
+
+    /**
+     * Determines whether this <tt>DataSource</tt> sends a DTMF tone.
+     *
+     * @return <tt>true</tt> if this <tt>DataSource</tt> is sending a DTMF tone;
+     * otherwise, <tt>false</tt>.
+     */
+    public boolean isSendingDTMF()
+    {
+        return !tones.isEmpty();
+    }
+
+    /**
+     * Sets the mute state of this <tt>DataSource</tt>.
+     *
+     * @param mute <tt>true</tt> to mute this <tt>DataSource</tt>; otherwise,
+     *            <tt>false</tt>
+     */
+    public void setMute(boolean mute)
+    {
+        this.mute = mute;
     }
 
     /**
@@ -340,8 +383,8 @@ public class AudioMixingPushBufferDataSource
         if (!started)
         {
             started = true;
-            if (outputStream != null)
-                outputStream.start();
+            if (outStream != null)
+                outStream.start();
         }
     }
 
@@ -361,72 +404,19 @@ public class AudioMixingPushBufferDataSource
         if (started)
         {
             started = false;
-            if (outputStream != null)
-                outputStream.stop();
+            if (outStream != null)
+                outStream.stop();
         }
     }
 
     /**
-     * Determines whether this <tt>DataSource</tt> is mute.
+     * The input <tt>DataSource</tt> has been updated.
      *
-     * @return <tt>true</tt> if this <tt>DataSource</tt> is mute; otherwise,
-     *         <tt>false</tt>
+     * @param inDataSource the <tt>DataSource</tt> that was updated.
      */
-    public boolean isMute()
+    public void updateInDataSource(DataSource inDataSource)
     {
-        return this.mute;
-    }
-
-    /**
-     * Sets the mute state of this <tt>DataSource</tt>.
-     *
-     * @param mute <tt>true</tt> to mute this <tt>DataSource</tt>; otherwise,
-     *            <tt>false</tt>
-     */
-    public void setMute(boolean mute)
-    {
-        if (this.mute != mute)
-        {
-            this.mute = mute;
-        }
-    }
-
-    /**
-     * Adds a new inband DTMF tone to send.
-     *
-     * @param tone the DTMF tone to send.
-     */
-    public void addDTMF(DTMFInbandTone tone)
-    {
-        this.tones.add(tone);
-    }
-
-    /**
-     * Determines whether this <tt>DataSource</tt> sends a DTMF tone.
-     *
-     * @return <tt>true</tt> if this <tt>DataSource</tt> is sending a DTMF tone;
-     * otherwise, <tt>false</tt>.
-     */
-    public boolean isSendingDTMF()
-    {
-        return !this.tones.isEmpty();
-    }
-
-    /**
-     * Gets the next inband DTMF tone signal.
-     *
-     * @param samplingFrequency The sampling frequency (codec clock rate) in Hz
-     * of the stream which will encapsulate this signal.
-     * @param sampleSizeInBits The size of each sample (8 for a byte, 16 for a
-     * short and 32 for an int)
-     *
-     * @return The data array containing the DTMF signal.
-     */
-    public int[] getNextToneSignal(
-            double samplingFrequency,
-            int sampleSizeInBits)
-    {
-        DTMFInbandTone tone = tones.poll();
-        return tone.getAudioSamples(samplingFrequency, sampleSizeInBits);
+        // just update the input streams
+        audioMixer.getOutStream();
     }
 }
