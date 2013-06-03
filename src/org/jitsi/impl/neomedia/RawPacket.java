@@ -974,7 +974,7 @@ public class RawPacket
             return true;
         if (buffer.length < offset + length)
             return true;
-        if (length < FIXED_HEADER_SIZE || length < getHeaderLength())
+        if (length < FIXED_HEADER_SIZE)
             return true;
 
         return false;
