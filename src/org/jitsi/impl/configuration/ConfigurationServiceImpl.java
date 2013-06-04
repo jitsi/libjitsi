@@ -1559,7 +1559,20 @@ public class ConfigurationServiceImpl
         {
             Properties fileProps = new Properties();
 
-            fileProps.load(ClassLoader.getSystemResourceAsStream(fileName));
+            InputStream fileStream;
+            if(OSUtils.IS_ANDROID)
+            {
+                fileStream
+                        = getClass().getClassLoader()
+                                .getResourceAsStream(fileName);
+            }
+            else
+            {
+                fileStream = ClassLoader.getSystemResourceAsStream(fileName);
+            }
+
+            fileProps.load(fileStream);
+            fileStream.close();
 
             // now get those properties and place them into the mutable and
             // immutable properties maps.
