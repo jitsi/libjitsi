@@ -214,6 +214,13 @@ public class HardwareVolumeControl
     public float getVolume()
     {
         String deviceUID = getCaptureDeviceUID();
-        return this.getInputDeviceVolume(deviceUID);
+        float volume = this.getInputDeviceVolume(deviceUID);
+        // If the hardware voume for this device is not available, then switch
+        // to the software volume.
+        if(volume == -1)
+        {
+            volume = super.getVolume();
+        }
+        return volume;
     }
 }
