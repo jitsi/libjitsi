@@ -371,14 +371,6 @@ public class DtmfTransformEngine
             }
         }
 
-        // skip packets before reaching minimal duration
-        if(minimalToneDuration != -1
-            && currentDuration < minimalToneDuration)
-        {
-            // do not send packets
-            return null;
-        }
-
         dtmfPkt.init(
             toneCode,
             pktEnd,
