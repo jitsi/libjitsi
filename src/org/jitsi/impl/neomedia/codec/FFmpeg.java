@@ -482,10 +482,12 @@ public class FFmpeg
         int chromaoffset);
 
     /**
-     * Set the gop size (key frame interval).
+     * Sets the maximum number of pictures in a group of pictures i.e. the
+     * maximum interval between keyframes. 
      *
-     * @param ctx the <tt>AVCodecContext</tt> to set the gop size of
-     * @param gop_size key frame interval
+     * @param ctx the <tt>AVCodecContext</tt> to set the <tt>gop_size</tt> of
+     * @param gop_size the maximum number of pictures in a group of pictures
+     * i.e. the maximum interval between keyframes
      */
     public static native void avcodeccontext_set_gop_size(long ctx,
         int gop_size);

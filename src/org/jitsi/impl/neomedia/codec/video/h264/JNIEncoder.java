@@ -25,7 +25,7 @@ import org.jitsi.service.neomedia.event.*;
 import org.jitsi.util.*;
 
 /**
- * Implements an H.264 encoder.
+ * Implements an FMJ H.264 encoder using FFmpeg (and x264).
  *
  * @author Damian Minkov
  * @author Lyubomir Marinov
@@ -38,18 +38,18 @@ public class JNIEncoder
     /**
      * The available presets we can use with the encoder.
      */
-    public static final String[] AVAILABLE_PRESETS =
-    {
-        "ultrafast",
-        "superfast",
-        "veryfast",
-        "faster",
-        "fast",
-        "medium",
-        "slow",
-        "slower",
-        "veryslow"
-    };
+    public static final String[] AVAILABLE_PRESETS
+        = {
+            "ultrafast",
+            "superfast",
+            "veryfast",
+            "faster",
+            "fast",
+            "medium",
+            "slow",
+            "slower",
+            "veryslow"
+        };
 
     /**
      * The name of the baseline H.264 (encoding) profile.
@@ -57,10 +57,42 @@ public class JNIEncoder
     public static final String BASELINE_PROFILE = "baseline";
 
     /**
+     * The default value of the {@link #DEFAULT_INTRA_REFRESH_PNAME}
+     * <tt>ConfigurationService</tt> property.
+     */
+    public static final boolean DEFAULT_DEFAULT_INTRA_REFRESH = true;
+
+    /**
+     * The name of the main H.264 (encoding) profile.
+     */
+    public static final String MAIN_PROFILE = "main";
+
+    /**
+     * The default value of the {@link #DEFAULT_PROFILE_PNAME}
+     * <tt>ConfigurationService</tt> property.
+     */
+    public static final String DEFAULT_DEFAULT_PROFILE = MAIN_PROFILE;
+
+    /**
      * The frame rate to be assumed by <tt>JNIEncoder</tt> instances in the
      * absence of any other frame rate indication.
      */
-    static final int DEFAULT_FRAME_RATE = 15;
+    public static final int DEFAULT_FRAME_RATE = 15;
+
+    /**
+     * The name of the boolean <tt>ConfigurationService</tt> property which
+     * specifies whether Periodic Intra Refresh is to be used by default. The
+     * default value is <tt>true</tt>. The value may be overridden by
+     * {@link #setAdditionalCodecSettings(Map)}.
+     */
+    public static final String DEFAULT_INTRA_REFRESH_PNAME
+        = "org.jitsi.impl.neomedia.codec.video.h264.defaultIntraRefresh";
+
+    /**
+     * The default maximum GOP (group of pictures) size i.e. the maximum
+     * interval between keyframes. The x264 library defaults to 250.
+     */
+    public static final int DEFAULT_KEYINT = 150;
 
     /**
      * The default value of the {@link #PRESET_PNAME}
@@ -81,31 +113,24 @@ public class JNIEncoder
             + "defaultProfile";
 
     /**
-     * Key frame every 150 frames.
+     * The name of the high H.264 (encoding) profile.
      */
-    static final int IFRAME_INTERVAL = 150;
+    public static final String HIGH_PROFILE = "high";
+
+    /**
+     * The name of the integer <tt>ConfigurationService</tt> property which
+     * specifies the maximum GOP (group of pictures) size i.e. the maximum
+     * interval between keyframes. FFmpeg calls it <tt>gop_size</tt>, x264
+     * refers to it <tt>keyint</tt> or <tt>i_keyint_max</tt>.
+     */
+    public static final String KEYINT_PNAME
+        = "org.jitsi.impl.neomedia.codec.video.h264.keyint";
 
     /**
      * The logger used by the <tt>JNIEncoder</tt> class and its instances for
      * logging output.
      */
     private static final Logger logger = Logger.getLogger(JNIEncoder.class);
-
-    /**
-     * The name of the main H.264 (encoding) profile.
-     */
-    public static final String MAIN_PROFILE = "main";
-
-    /**
-     * The name of the high H.264 (encoding) profile.
-     */
-    public static final String HIGH_PROFILE = "high";
-
-    /**
-     * The default value of the {@link #DEFAULT_PROFILE_PNAME}
-     * <tt>ConfigurationService</tt> property.
-     */
-    public static final String DEFAULT_DEFAULT_PROFILE = MAIN_PROFILE;
 
     /**
      * The name of the format parameter which specifies the packetization mode
@@ -124,9 +149,11 @@ public class JNIEncoder
     private static final String PLUGIN_NAME = "H.264 Encoder";
 
     /**
-     * A preset is a collection of options that will provide a certain encoding
-     * speed to compression ratio. A slower preset will provide
-     * better compression (compression is quality per size).
+     * The name of the <tt>ConfigurationService</tt> property which specifies
+     * the x264 preset to be used by <tt>JNIEncoder</tt>. A preset is a
+     * collection of x264 options that will provide a certain encoding speed to
+     * compression ratio. A slower preset will provide better compression i.e.
+     * quality per size.
      */
     public static final String PRESET_PNAME
         = "org.jitsi.impl.neomedia.codec.video.h264.preset";
@@ -145,10 +172,29 @@ public class JNIEncoder
                     PACKETIZATION_MODE_FMTP, "1")
         };
 
+    public static final int X264_KEYINT_MAX_INFINITE = 1 << 30;
+
+    public static final int X264_KEYINT_MIN_AUTO = 0;
+
     /**
-     * Additional codec settings.
+     * Checks the configuration and returns the profile to use.
+     * @param profile the profile setting.
+     * @return the profile FFmpeg to use.
      */
-    private Map<String, String> additionalSettings = null;
+    private static int getProfileForConfig(String profile)
+    {
+        if(BASELINE_PROFILE.equalsIgnoreCase(profile))
+            return FFmpeg.FF_PROFILE_H264_BASELINE;
+        else if(HIGH_PROFILE.equalsIgnoreCase(profile))
+            return FFmpeg.FF_PROFILE_H264_HIGH;
+        else
+            return FFmpeg.FF_PROFILE_H264_MAIN;
+    }
+
+    /**
+     * The additional settings of this <tt>Codec</tt>.
+     */
+    private Map<String, String> additionalCodecSettings;
 
     /**
      * The codec we will use.
@@ -161,16 +207,13 @@ public class JNIEncoder
     private long avFrame;
 
     /**
-     * Force encoder to send a key frame.
-     * First frame have to be a keyframe.
+     * The indicator which determines whether the generation of a keyframe is to
+     * be forced during a subsequent execution of
+     * {@link #process(Buffer, Buffer)}. The first frame to undergo encoding is
+     * naturally a keyframe and, for the sake of clarity, the initial value is
+     * <tt>true</tt>.
      */
     private boolean forceKeyFrame = true;
-
-    /**
-     * Next interval for an automatic keyframe.
-     */
-    @SuppressWarnings("unused")
-    private int framesSinceLastIFrame = IFRAME_INTERVAL + 1;
 
     /**
      * The <tt>KeyFrameControl</tt> used by this <tt>JNIEncoder</tt> to
@@ -208,12 +251,12 @@ public class JNIEncoder
     private int rawFrameLen;
 
     /**
-     * Peer that receive stream from latest ffmpeg/x264 aware peer does not
-     * manage to decode the first keyframe and must wait for the next periodic
-     * intra refresh to display the video to the user.
-     *
-     * Temporary solution for this problem: send the two first frames as
-     * keyframes to display video stream.
+     * The indicator which determines whether two consecutive frames at the
+     * beginning of the video transmission have been encoded as keyframes. The
+     * first frame is a keyframe but it is at the very beginning of the video
+     * transmission and, consequently, there is a higher risk that pieces of it
+     * will be lost on their way through the network. To mitigate possible
+     * issues in the case of network loss, the second frame is also a keyframe.
      */
     private boolean secondKeyFrame = true;
 
@@ -350,6 +393,43 @@ public class JNIEncoder
     }
 
     /**
+     * Determines whether the encoding of {@link #avFrame} is to produce a
+     * keyframe. The returned value will be set on <tt>avFrame</tt> via a call
+     * to {@link FFmpeg#avframe_set_key_frame(long, boolean)}.
+     *
+     * @return <tt>true</tt> if the encoding of <tt>avFrame</tt> is to produce a
+     * keyframe; otherwise, <tt>false</tt>
+     */
+    private boolean isKeyFrame()
+    {
+        boolean keyFrame;
+
+        if (forceKeyFrame)
+        {
+            keyFrame = true;
+
+            /*
+             * The first frame is a keyframe but it is at the very beginning of
+             * the video transmission and, consequently, there is a higher risk
+             * that pieces of it will be lost on their way through the network.
+             * To mitigate possible issues in the case of network loss, the
+             * second frame is also a keyframe.
+             */
+            if (secondKeyFrame)
+            {
+                secondKeyFrame = false;
+                forceKeyFrame = true;
+            }
+            else
+                forceKeyFrame = false;
+        }
+        else
+            keyFrame = false;
+
+        return keyFrame;
+    }
+
+    /**
      * Notifies this <tt>JNIEncoder</tt> that the remote peer has requested a
      * key frame from this local peer.
      *
@@ -358,10 +438,11 @@ public class JNIEncoder
      */
     private boolean keyFrameRequest()
     {
-        if (System.currentTimeMillis()
-                > (lastKeyFrameRequestTime + PLI_INTERVAL))
+        long now = System.currentTimeMillis();
+
+        if (now > (lastKeyFrameRequestTime + PLI_INTERVAL))
         {
-            lastKeyFrameRequestTime = System.currentTimeMillis();
+            lastKeyFrameRequestTime = now;
             forceKeyFrame = true;
         }
         return true;
@@ -399,35 +480,44 @@ public class JNIEncoder
 
         int width = size.width, height = size.height;
 
-        boolean useIntraRefresh = true;
         /*
          * XXX We do not currently negotiate the profile so, regardless of the
          * many AVCodecContext properties we have set above, force the default
          * profile configuration.
          */
         ConfigurationService cfg = LibJitsi.getConfigurationService();
-        String profile
-            = (cfg == null)
-                ? null
-                : cfg.getString(DEFAULT_PROFILE_PNAME, DEFAULT_DEFAULT_PROFILE);
+        boolean intraRefresh = DEFAULT_DEFAULT_INTRA_REFRESH;
+        int keyint = DEFAULT_KEYINT;
+        String preset = DEFAULT_PRESET;
+        String profile = DEFAULT_DEFAULT_PROFILE;
 
-        if(additionalSettings != null)
+        if (cfg != null)
         {
-            for(Map.Entry<String, String> e : additionalSettings.entrySet())
+            intraRefresh
+                = cfg.getBoolean(DEFAULT_INTRA_REFRESH_PNAME, intraRefresh);
+            keyint = cfg.getInt(KEYINT_PNAME, keyint);
+            preset = cfg.getString(PRESET_PNAME, preset);
+            profile = cfg.getString(DEFAULT_PROFILE_PNAME, profile);
+        }
+
+        if (additionalCodecSettings != null)
+        {
+            for (Map.Entry<String, String> e
+                    : additionalCodecSettings.entrySet())
             {
                 String k = e.getKey();
                 String v = e.getValue();
 
-                if("h264.intrarefresh".equals(k))
+                if ("h264.intrarefresh".equals(k))
                 {
                     if("false".equals(v))
-                        useIntraRefresh = false;
+                        intraRefresh = false;
                 }
-                else if("h264.profile".equals(k))
+                else if ("h264.profile".equals(k))
                 {
-                    if(MAIN_PROFILE.equals(v)
-                       || BASELINE_PROFILE.equals(v)
-                       || HIGH_PROFILE.equals(v))
+                    if (BASELINE_PROFILE.equals(v)
+                            || HIGH_PROFILE.equals(v)
+                            || MAIN_PROFILE.equals(v))
                         profile = v;
                 }
             }
@@ -442,16 +532,18 @@ public class JNIEncoder
 
         FFmpeg.avcodeccontext_set_qcompress(avctx, 0.6f);
 
-        int bitRate = NeomediaServiceUtils
-                .getMediaServiceImpl()
-                    .getDeviceConfiguration()
-                        .getVideoBitrate() * 1000;
+        int bitRate
+            = 1000
+                * NeomediaServiceUtils
+                    .getMediaServiceImpl()
+                        .getDeviceConfiguration()
+                            .getVideoBitrate();
         int frameRate = Format.NOT_SPECIFIED;
 
-        /* Allow the outputFormat to request a certain frameRate. */
+        // Allow the outputFormat to request a certain frameRate.
         if (outputVideoFormat != null)
             frameRate = (int) outputVideoFormat.getFrameRate();
-        /* Otherwise, output in the frameRate of the inputFormat. */
+        // Otherwise, output in the frameRate of the inputFormat.
         if ((frameRate == Format.NOT_SPECIFIED) && (inputVideoFormat != null))
             frameRate = (int) inputVideoFormat.getFrameRate();
         if (frameRate == Format.NOT_SPECIFIED)
@@ -480,10 +572,10 @@ public class JNIEncoder
 
         FFmpeg.avcodeccontext_add_flags(avctx,
                 FFmpeg.CODEC_FLAG_LOOP_FILTER);
-        if(useIntraRefresh)
+        if (intraRefresh)
         {
             /*
-             * The flag is ignored in newer FFmpeg versions and we set the
+             * The flag is ignored in newer FFmpeg versions and we set the x264
              * "intra-refresh" option for them. Anyway, the flag is set for the
              * older FFmpeg versions.
              */
@@ -496,13 +588,13 @@ public class JNIEncoder
         FFmpeg.avcodeccontext_set_me_cmp(avctx, FFmpeg.FF_CMP_CHROMA);
         FFmpeg.avcodeccontext_set_scenechange_threshold(avctx, 40);
         FFmpeg.avcodeccontext_set_rc_buffer_size(avctx, 10);
-        FFmpeg.avcodeccontext_set_gop_size(avctx, IFRAME_INTERVAL);
+        FFmpeg.avcodeccontext_set_gop_size(avctx, keyint);
         FFmpeg.avcodeccontext_set_i_quant_factor(avctx, 1f / 1.4f);
 
         FFmpeg.avcodeccontext_set_refs(avctx, 1);
-        //FFmpeg.avcodeccontext_set_trellis(avctx, 2);
+        // FFmpeg.avcodeccontext_set_trellis(avctx, 2);
 
-        FFmpeg.avcodeccontext_set_keyint_min(avctx, 0);
+        FFmpeg.avcodeccontext_set_keyint_min(avctx, X264_KEYINT_MIN_AUTO);
 
         if ((null == packetizationMode) || "0".equals(packetizationMode))
         {
@@ -520,11 +612,6 @@ public class JNIEncoder
             logger.warn("The FFmpeg JNI library is out-of-date.");
         }
 
-        String preset
-            = (cfg == null)
-                ? DEFAULT_PRESET
-                : cfg.getString(PRESET_PNAME, DEFAULT_PRESET);
-
         if (FFmpeg.avcodec_open2(
                     avctx,
                     avcodec,
@@ -537,7 +624,8 @@ public class JNIEncoder
                      * FFmpeg will fail.
                      */
                     //"crf" /* constant quality mode, constant ratefactor */, "0",
-                    "intra-refresh", useIntraRefresh ? "1" : "0",
+                    "intra-refresh", intraRefresh ? "1" : "0",
+                    "keyint", Integer.toString(keyint),
                     "partitions", "b8x8,i4x4,p8x8",
                     "preset", preset,
                     "thread_type", "slice",
@@ -545,8 +633,8 @@ public class JNIEncoder
                 < 0)
         {
             throw new ResourceUnavailableException(
-                    "Could not open codec."
-                        + " (size= " + width + "x" + height + ")");
+                    "Could not open codec. (size= " + width + "x" + height
+                        + ")");
         }
 
         rawFrameLen = (width * height * 3) / 2;
@@ -570,12 +658,12 @@ public class JNIEncoder
         {
             keyFrameRequestee
                 = new KeyFrameControl.KeyFrameRequestee()
-                {
-                    public boolean keyFrameRequest()
-                    {
-                        return JNIEncoder.this.keyFrameRequest();
-                    }
-                };
+                        {
+                            public boolean keyFrameRequest()
+                            {
+                                return JNIEncoder.this.keyFrameRequest();
+                            }
+                        };
         }
         if (keyFrameControl != null)
             keyFrameControl.addKeyFrameRequestee(-1, keyFrameRequestee);
@@ -620,60 +708,24 @@ public class JNIEncoder
             return BUFFER_PROCESSED_OK;
         }
 
-        // copy data to avframe
+        // Copy the data of inBuffer into avFrame.
         FFmpeg.memcpy(
                 rawFrameBuffer,
                 (byte[]) inBuffer.getData(), inBuffer.getOffset(),
                 rawFrameLen);
 
-        if (/* framesSinceLastIFrame >= IFRAME_INTERVAL || */ forceKeyFrame)
-        {
-            FFmpeg.avframe_set_key_frame(avFrame, true);
-            framesSinceLastIFrame = 0;
+        FFmpeg.avframe_set_key_frame(avFrame, isKeyFrame());
 
-            /* send keyframe for the first two frames */
-            if(secondKeyFrame)
-            {
-                secondKeyFrame = false;
-                forceKeyFrame = true;
-            }
-            else
-            {
-                forceKeyFrame = false;
-            }
-        }
-        else
-        {
-            framesSinceLastIFrame++;
-            FFmpeg.avframe_set_key_frame(avFrame, false);
-        }
-
-        /*
-         * Do not always allocate a new data array for outBuffer, try to reuse
-         * the existing one if it is suitable.
-         */
-        Object outData = outBuffer.getData();
-        byte[] out;
-
-        if (outData instanceof byte[])
-        {
-            out = (byte[]) outData;
-            if (out.length < rawFrameLen)
-                out = null;
-        }
-        else
-            out = null;
-        if (out == null)
-        {
-            out = new byte[rawFrameLen];
-            outBuffer.setData(out);
-        }
-
-        // encode data
-        int outputLength
+        // Encode avFrame into the data of outBuffer.
+        byte[] out
+            = AbstractCodec2.validateByteArraySize(
+                    outBuffer,
+                    rawFrameLen,
+                    false);
+        int outLength
             = FFmpeg.avcodec_encode_video(avctx, out, out.length, avFrame);
 
-        outBuffer.setLength(outputLength);
+        outBuffer.setLength(outLength);
         outBuffer.setOffset(0);
         outBuffer.setTimeStamp(inBuffer.getTimeStamp());
         return BUFFER_PROCESSED_OK;
@@ -714,13 +766,15 @@ public class JNIEncoder
     }
 
     /**
-     * Sets additional settings for the codec.
+     * Sets additional settings on this <tt>Codec</tt>.
      *
-     * @param settings additional settings
+     * @param additionalCodecSettings the additional settings to be set on this
+     * <tt>Codec</tt>
      */
-    public void setAdditionalCodecSettings(Map<String, String> settings)
+    public void setAdditionalCodecSettings(
+            Map<String, String> additionalCodecSettings)
     {
-        additionalSettings = settings;
+        this.additionalCodecSettings = additionalCodecSettings;
     }
 
     /**
@@ -853,20 +907,5 @@ public class JNIEncoder
             this.packetizationMode = "1";
         else
             throw new IllegalArgumentException("packetizationMode");
-    }
-
-    /**
-     * Checks the configuration and returns the profile to use.
-     * @param profile the profile setting.
-     * @return the profile FFmpeg to use.
-     */
-    private static int getProfileForConfig(String profile)
-    {
-        if(BASELINE_PROFILE.equalsIgnoreCase(profile))
-            return FFmpeg.FF_PROFILE_H264_BASELINE;
-        else if(HIGH_PROFILE.equalsIgnoreCase(profile))
-            return FFmpeg.FF_PROFILE_H264_HIGH;
-        else
-            return FFmpeg.FF_PROFILE_H264_MAIN;
     }
 }

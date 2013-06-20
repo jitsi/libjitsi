@@ -1677,10 +1677,8 @@ public class VideoMediaDeviceSession
             onRTCPFeedbackCreate(encoder);
             synchronized (rtcpFeedbackCreateListners)
             {
-                for(RTCPFeedbackCreateListener l : rtcpFeedbackCreateListners)
-                {
+                for (RTCPFeedbackCreateListener l : rtcpFeedbackCreateListners)
                     l.onRTCPFeedbackCreate(encoder);
-                }
             }
 
             if (keyFrameControl != null)

@@ -78,9 +78,9 @@ public class DePacketizer
      * frames from <tt>JNIEncoder</tt> in the scenario of perfect transmission.
      */
     private static final long TIME_FROM_KEY_FRAME_TO_REQUEST_KEY_FRAME
-        = ((JNIEncoder.IFRAME_INTERVAL * 4)
-                / (JNIEncoder.DEFAULT_FRAME_RATE * 3))
-            * 1000;
+        = ((JNIEncoder.DEFAULT_KEYINT * 4L)
+                / (JNIEncoder.DEFAULT_FRAME_RATE * 3L))
+            * 1000L;
 
     /**
      * The Unspecified <tt>nal_unit_type</tt> as defined by the ITU-T
