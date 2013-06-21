@@ -68,7 +68,7 @@
         destfile="${libjitsi.jar}">
       <fileset casesensitive="no" dir="${dest}">
         <include name="**/*.class" />
-      	<include name="**/*.properties" />
+        <include name="**/*.properties" />
         <exclude name="${dest}/libjitsi.jar" />
       </fileset>
     </jar>    
@@ -146,10 +146,6 @@
 
   <!-- build all binaries and the libjitsi.jar -->
   <target name="dist" depends="make">
-      <mkdir dir="${dist}/windows"/>
-      <mkdir dir="${dist}/macosx"/>
-      <mkdir dir="${dist}/linux"/>
-
       <zip destfile="${dist}/windows/libjitsi${build.label}-x86.zip">
           <zipfileset file="libjitsi.jar" />
           <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
@@ -179,6 +175,14 @@
           <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
           <zipfileset dir="lib/native/linux-64" includes="*.so"
                       prefix="lib/native/linux-64"/>
+      </zip>
+      <zip destfile="${dist}/src/libjitsi-src${build.label}.zip">
+        <zipfileset dir="." prefix="${packname.src}">
+            <exclude name="classes/"/>
+            <exclude name="dist/"/>
+            <exclude name=".git/"/>
+            <exclude name="libjitsi.jar"/>
+        </zipfileset>
       </zip>
   </target>
 
