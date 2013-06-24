@@ -201,8 +201,8 @@ public abstract class DeviceSystem
                     OSUtils.IS_ANDROID ? ".AudioRecordSystem" : null,
                     OSUtils.IS_ANDROID ? ".OpenSLESSystem" : null,
                     OSUtils.IS_LINUX ? ".PulseAudioSystem" : null,
-                    OSUtils.IS_ANDROID ? null : ".PortAudioSystem",
                     OSUtils.IS_WINDOWS ? ".WASAPISystem" : null,
+                    OSUtils.IS_ANDROID ? null : ".PortAudioSystem",
                     ".NoneAudioSystem"
                 };
             break;

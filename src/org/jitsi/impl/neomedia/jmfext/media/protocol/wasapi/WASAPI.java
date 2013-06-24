@@ -76,12 +76,34 @@ public class WASAPI
 
     public static final int STGM_READ = 0x0;
 
+    /**
+     * The return value of {@link #WaitForSingleObject(long, long)} which
+     * indicates that the specified object is a mutex that was not released by
+     * the thread that owned the mutex before the owning thread terminated.
+     * Ownership of the mutex is granted to the calling thread and the mutex
+     * state is set to non-signaled.
+     */
     public static final int WAIT_ABANDONED = 0x00000080;
 
+    /**
+     * The return value of {@link #WaitForSingleObject(long, long)} which
+     * indicates that the function has failed. Normally, the function will throw
+     * an {@link HResultException} in the case and
+     * {@link HResultException#getHResult()} will return <tt>WAIT_FAILED</tt>.
+     */
     public static final int WAIT_FAILED = 0xffffffff;
 
+    /**
+     * The return value of {@link #WaitForSingleObject(long, long)} which
+     * indicates that the specified object is signaled.
+     */
     public static final int WAIT_OBJECT_0 = 0x00000000;
 
+    /**
+     * The return value of {@link #WaitForSingleObject(long, long)} which
+     * indicates that the specified time-out interval has elapsed and the state
+     * of the specified object is non-signaled.
+     */
     public static final int WAIT_TIMEOUT = 0x00000102;
 
     public static final char WAVE_FORMAT_PCM = 1;
@@ -302,6 +324,23 @@ public class WASAPI
     public static native void ResetEvent(long hEvent)
         throws HResultException;
 
+    /**
+     * Waits until the specified object is in the signaled state or the
+     * specified time-out interval elapses.
+     *
+     * @param hHandle a <tt>HANDLE</tt> to the object to wait for
+     * @param dwMilliseconds the time-out interval in milliseconds to wait. If a
+     * nonzero value is specified, the function waits until the specified object
+     * is signaled or the specified time-out interval elapses. If
+     * <tt>dwMilliseconds</tt> is zero, the function does not enter a wait state
+     * if the specified object is not signaled; it always returns immediately.
+     * If <tt>dwMilliseconds</tt> is <tt>INFINITE</tt>, the function will return
+     * only when the specified object is signaled.
+     * @return one of the <tt>WAIT_XXX</tt> constant values defined by the
+     * <tt>WASAPI</tt> class to indicate the event that caused the function to
+     * return
+     * @throws HResultException if the return value is {@link #WAIT_FAILED}
+     */
     public static native int WaitForSingleObject(
             long hHandle,
             long dwMilliseconds)

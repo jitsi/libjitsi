@@ -38,17 +38,146 @@ class AudioMixerPushBufferStream
     implements PushBufferStream
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>AudioMixerPushBufferStream</tt> class
-     * and its instances for logging output.
+     * Describes a specific set of audio samples read from a specific set of
+     * input streams specified by their <tt>InStreamDesc</tt>s.
      */
-    private static final Logger logger
-        = Logger.getLogger(AudioMixerPushBufferStream.class);
+    private static class InSampleDesc
+    {
+        /**
+         * The <tt>Buffer</tt> into which media data is to be read from
+         * {@link #inStreams}.
+         */
+        private SoftReference<Buffer> buffer;
+
+        /**
+         * The <tt>AudioFormat</tt> of {@link #inSamples}.
+         */
+        private final AudioFormat format;
+
+        /**
+         * The set of audio samples read from {@link #inStreams}.
+         */
+        public final int[][] inSamples;
+
+        /**
+         * The set of input streams from which {@link #inSamples} were read.
+         */
+        public final InStreamDesc[] inStreams;
+
+        /**
+         * The time stamp of <tt>inSamples</tt> to be reported in the
+         * <tt>Buffer</tt>s of the <tt>AudioMixingPushBufferStream</tt>s when
+         * mixes are read from them.
+         */
+        private long timeStamp = Buffer.TIME_UNKNOWN;
+
+        /**
+         * Initializes a new <tt>InSampleDesc</tt> instance which is to
+         * describe a specific set of audio samples read from a specific set of
+         * input streams specified by their <tt>InStreamDesc</tt>s.
+         *
+         * @param inSamples the set of audio samples read from
+         * <tt>inStreams</tt>
+         * @param inStreams the set of input streams from which
+         * <tt>inSamples</tt> were read
+         * @param format the <tt>AudioFormat</tt> of <tt>inSamples</tt>
+         */
+        public InSampleDesc(
+                int[][] inSamples,
+                InStreamDesc[] inStreams,
+                AudioFormat format)
+        {
+            this.inSamples = inSamples;
+            this.inStreams = inStreams;
+            this.format = format;
+        }
+
+        /**
+         * Gets the <tt>Buffer</tt> into which media data is to be read from the
+         * input streams associated with this instance.
+         *
+         * @param create the indicator which determines whether the
+         * <tt>Buffer</tt> is to be created in case it does not exist
+         * @return the <tt>Buffer</tt> into which media data is to be read from
+         * the input streams associated with this instance
+         */
+        public Buffer getBuffer(boolean create)
+        {
+            Buffer buffer = (this.buffer == null) ? null : this.buffer.get();
+
+            if ((buffer == null) && create)
+            {
+                buffer = new Buffer();
+                setBuffer(buffer);
+            }
+            return buffer;
+        }
+
+        /**
+         * Gets the time stamp of <tt>inSamples</tt> to be reported in the
+         * <tt>Buffer</tt>s of the <tt>AudioMixingPushBufferStream</tt>s when
+         * mixes are read from them.
+         *
+         * @return the time stamp of <tt>inSamples</tt> to be reported in the
+         * <tt>Buffer</tt>s of the <tt>AudioMixingPushBufferStream</tt>s when
+         * mixes are read from them
+         */
+        public long getTimeStamp()
+        {
+            return timeStamp;
+        }
+
+        /**
+         * Sets the <tt>Buffer</tt> into which media data is to be read from the
+         * input streams associated with this instance.
+         *
+         * @param buffer the <tt>Buffer</tt> into which media data is to be read
+         * from the input streams associated with this instance
+         */
+        public void setBuffer(Buffer buffer)
+        {
+            this.buffer
+                = (buffer == null) ? null : new SoftReference<Buffer>(buffer);
+        }
+
+        /**
+         * Sets the time stamp of <tt>inSamples</tt> to be reported in the
+         * <tt>Buffer</tt>s of the <tt>AudioMixingPushBufferStream</tt>s when
+         * mixes are read from them.
+         *
+         * @param timeStamp the time stamp of <tt>inSamples</tt> to be
+         * reported in the <tt>Buffer</tt>s of the
+         * <tt>AudioMixingPushBufferStream</tt>s when mixes are read from them
+         */
+        public void setTimeStamp(long timeStamp)
+        {
+            if (this.timeStamp == Buffer.TIME_UNKNOWN)
+                this.timeStamp = timeStamp;
+            else
+            {
+                /*
+                 * Setting the timeStamp more than once does not make sense
+                 * because the inStreams will report different timeStamps so
+                 * only one should be picked up where the very reading from
+                 * inStreams takes place.
+                 */
+                throw new IllegalStateException("timeStamp");
+            }
+        }
+    }
 
     /**
      * The factor which scales a <tt>short</tt> value to an <tt>int</tt> value.
      */
     private static final float INT_TO_SHORT_RATIO
         = Integer.MAX_VALUE / (float) Short.MAX_VALUE;
+
+    /**
+     * The <tt>Logger</tt> used by the <tt>AudioMixerPushBufferStream</tt> class
+     * and its instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(AudioMixerPushBufferStream.class);
 
     /**
      * The factor which scales an <tt>int</tt> value to a <tt>short</tt> value.
@@ -71,47 +200,36 @@ class AudioMixerPushBufferStream
     private final AudioMixer audioMixer;
 
     /**
-     * The <tt>SourceStream</tt>s (in the form of <tt>InputStreamDesc</tt> so
+     * The <tt>SourceStream</tt>s (in the form of <tt>InStreamDesc</tt> so
      * that this instance can track back the
      * <tt>AudioMixingPushBufferDataSource</tt> which outputs the mixed audio
      * stream and determine whether the associated <tt>SourceStream</tt> is to
      * be included into the mix) from which this instance reads its data.
      */
-    private InputStreamDesc[] inputStreams;
+    private InStreamDesc[] inStreams;
 
     /**
      * The <tt>Object</tt> which synchronizes the access to
-     * {@link #inputStreams}-related members.
+     * {@link #inStreams}-related members.
      */
-    private final Object inputStreamsSyncRoot = new Object();
-
-    /**
-     * The cache of <tt>int</tt> arrays managed by this instance for the
-     * purposes of reducing garbage collection.
-     */
-    private SoftReference<List<int[]>> intArrays;
-
-    /**
-     * The <tt>Object</tt> which synchronizes the access to {@link #intArrays}.
-     */
-    private final Object intArraysSyncRoot = new Object();
+    private final Object inStreamsSyncRoot = new Object();
 
     /**
      * The <tt>AudioFormat</tt> of the <tt>Buffer</tt> read during the last read
-     * from one of the {@link #inputStreams}. Only used for debugging purposes.
+     * from one of the {@link #inStreams}. Only used for debugging purposes.
      */
-    private AudioFormat lastReadInputFormat;
+    private AudioFormat lastReadInFormat;
 
     /**
      * The <tt>AudioFormat</tt> of the data this instance outputs.
      */
-    private final AudioFormat outputFormat;
+    private final AudioFormat outFormat;
 
     /**
      * The <tt>AudioMixingPushBufferStream</tt>s to which this instance pushes
      * data for audio mixing.
      */
-    private final List<AudioMixingPushBufferStream> outputStreams
+    private final List<AudioMixingPushBufferStream> outStreams
         = new ArrayList<AudioMixingPushBufferStream>();
 
     /**
@@ -144,15 +262,15 @@ class AudioMixerPushBufferStream
      *
      * @param audioMixer the <tt>AudioMixer</tt> which creates this instance and
      * for which it is to output data
-     * @param outputFormat the <tt>AudioFormat</tt> in which the new instance is
-     * to output data
+     * @param outFormat the <tt>AudioFormat</tt> in which the new instance is to
+     * output data
      */
     public AudioMixerPushBufferStream(
             AudioMixer audioMixer,
-            AudioFormat outputFormat)
+            AudioFormat outFormat)
     {
         this.audioMixer = audioMixer;
-        this.outputFormat = outputFormat;
+        this.outFormat = outFormat;
     }
 
     /**
@@ -160,24 +278,24 @@ class AudioMixerPushBufferStream
      * such streams to which this instance is to push the data for audio mixing
      * it reads from its input <tt>SourceStream</tt>s.
      *
-     * @param outputStream the <tt>AudioMixingPushBufferStream</tt> to add to
+     * @param outStream the <tt>AudioMixingPushBufferStream</tt> to add to
      * the collection of such streams to which this instance is to push the data
      * for audio mixing it reads from its input <tt>SourceStream</tt>s
-     * @throws IOException if <tt>outputStream</tt> was the first
+     * @throws IOException if <tt>outStream</tt> was the first
      * <tt>AudioMixingPushBufferStream</tt> and the <tt>AudioMixer</tt> failed
      * to start
      */
-    void addOutputStream(AudioMixingPushBufferStream outputStream)
+    void addOutStream(AudioMixingPushBufferStream outStream)
         throws IOException
     {
-        if (outputStream == null)
-            throw new IllegalArgumentException("outputStream");
+        if (outStream == null)
+            throw new IllegalArgumentException("outStream");
 
-        synchronized (outputStreams)
+        synchronized (outStreams)
         {
-            if (!outputStreams.contains(outputStream)
-                    && outputStreams.add(outputStream)
-                    && (outputStreams.size() == 1))
+            if (!outStreams.contains(outStream)
+                    && outStreams.add(outStream)
+                    && (outStreams.size() == 1))
             {
                 boolean started = false;
 
@@ -189,61 +307,9 @@ class AudioMixerPushBufferStream
                 finally
                 {
                     if (!started)
-                        outputStreams.remove(outputStream);
+                        outStreams.remove(outStream);
                 }
             }
-        }
-    }
-
-    public int[] allocateIntArray(int minSize)
-    {
-        synchronized (intArraysSyncRoot)
-        {
-            List<int[]> intArrays
-                = (this.intArrays == null) ? null : this.intArrays.get();
-
-            if (intArrays != null)
-            {
-                Iterator<int[]> i = intArrays.iterator();
-
-                while (i.hasNext())
-                {
-                    int[] intArray = i.next();
-
-                    if (intArray.length >= minSize)
-                    {
-                        i.remove();
-                        return intArray;
-                    }
-                }
-            }
-        }
-
-        return new int[minSize];
-    }
-
-    public void deallocateIntArray(int[] intArray)
-    {
-        if (intArray == null)
-            return;
-
-        synchronized (intArraysSyncRoot)
-        {
-            List<int[]> intArrays;
-
-            if ((this.intArrays == null)
-                    || ((intArrays = this.intArrays.get()) == null))
-            {
-                intArrays = new LinkedList<int[]>();
-                this.intArrays = new SoftReference<List<int[]>>(intArrays);
-            }
-
-            if (intArrays.size() != 0)
-                for (int[] element : intArrays)
-                    if (element == intArray)
-                        return;
-
-            intArrays.add(intArray);
         }
     }
 
@@ -256,11 +322,11 @@ class AudioMixerPushBufferStream
      */
     public boolean endOfStream()
     {
-        synchronized (inputStreamsSyncRoot)
+        synchronized (inStreamsSyncRoot)
         {
-            if (inputStreams != null)
-                for (InputStreamDesc inputStreamDesc : inputStreams)
-                    if (!inputStreamDesc.getInputStream().endOfStream())
+            if (inStreams != null)
+                for (InStreamDesc inStreamDesc : inStreams)
+                    if (!inStreamDesc.getInStream().endOfStream())
                         return false;
         }
         return true;
@@ -268,34 +334,34 @@ class AudioMixerPushBufferStream
 
     /**
      * Attempts to equalize the length in milliseconds of the buffering
-     * performed by the <tt>inputStreams</tt> in order to always read and mix
+     * performed by the <tt>inStreams</tt> in order to always read and mix
      * one and the same length in milliseconds.
      */
-    void equalizeInputStreamBufferLength()
+    void equalizeInStreamBufferLength()
     {
-        synchronized (inputStreamsSyncRoot)
+        synchronized (inStreamsSyncRoot)
         {
-            if ((inputStreams == null) || (inputStreams.length < 1))
+            if ((inStreams == null) || (inStreams.length < 1))
                 return;
 
             /*
-             * The first inputStream is expected to be from the CaptureDevice
+             * The first inStream is expected to be from the CaptureDevice
              * and no custom BufferControl is provided for it so the
              * bufferLength is whatever it says.
              */
-            BufferControl bufferControl = getBufferControl(inputStreams[0]);
+            BufferControl bufferControl = getBufferControl(inStreams[0]);
             long bufferLength
                 = (bufferControl == null)
                     ? CachingPushBufferStream.DEFAULT_BUFFER_LENGTH
                     : bufferControl.getBufferLength();
 
-            for (int i = 1; i < inputStreams.length; i++)
+            for (int i = 1; i < inStreams.length; i++)
             {
-                BufferControl inputStreamBufferControl
-                    = getBufferControl(inputStreams[i]);
+                BufferControl inStreamBufferControl
+                    = getBufferControl(inStreams[i]);
 
-                if (inputStreamBufferControl != null)
-                    inputStreamBufferControl.setBufferLength(bufferLength);
+                if (inStreamBufferControl != null)
+                    inStreamBufferControl.setBufferLength(bufferLength);
             }
         }
     }
@@ -306,7 +372,7 @@ class AudioMixerPushBufferStream
      * <tt>DataSource</tt>, its transcoding <tt>DataSource</tt> if any or the
      * very input stream.
      *
-     * @param inputStreamDesc an <tt>InputStreamDesc</tt> which describes the
+     * @param inStreamDesc an <tt>InStreamDesc</tt> which describes the
      * input stream and its originating <tt>DataSource</tt>s from which the
      * <tt>BufferControl</tt> is to be retrieved
      * @return the <tt>BufferControl</tt> of the specified input stream found in
@@ -314,21 +380,21 @@ class AudioMixerPushBufferStream
      * or the very input stream if such a control exists; otherwise,
      * <tt>null</tt>
      */
-    private BufferControl getBufferControl(InputStreamDesc inputStreamDesc)
+    private BufferControl getBufferControl(InStreamDesc inStreamDesc)
     {
-        InputDataSourceDesc inputDataSourceDesc
-            = inputStreamDesc.inputDataSourceDesc;
+        InDataSourceDesc inDataSourceDesc
+            = inStreamDesc.inDataSourceDesc;
 
-        // Try the DataSource which directly provides the specified inputStream.
-        DataSource effectiveInputDataSource
-            = inputDataSourceDesc.getEffectiveInputDataSource();
+        // Try the DataSource which directly provides the specified inStream.
+        DataSource effectiveInDataSource
+            = inDataSourceDesc.getEffectiveInDataSource();
         String bufferControlType = BufferControl.class.getName();
 
-        if (effectiveInputDataSource != null)
+        if (effectiveInDataSource != null)
         {
             BufferControl bufferControl
                 = (BufferControl)
-                    effectiveInputDataSource.getControl(bufferControlType);
+                    effectiveInDataSource.getControl(bufferControlType);
 
             if (bufferControl != null)
                 return bufferControl;
@@ -336,25 +402,25 @@ class AudioMixerPushBufferStream
 
         /*
          * If transcoding is taking place and the transcodingDataSource does not
-         * have a BufferControl, try the inputDataSource which is being
+         * have a BufferControl, try the inDataSource which is being
          * transcoded.
          */
-        DataSource inputDataSource = inputDataSourceDesc.inputDataSource;
+        DataSource inDataSource = inDataSourceDesc.inDataSource;
 
-        if ((inputDataSource != null)
-                && (inputDataSource != effectiveInputDataSource))
+        if ((inDataSource != null)
+                && (inDataSource != effectiveInDataSource))
         {
             BufferControl bufferControl
-                = (BufferControl) inputDataSource.getControl(bufferControlType);
+                = (BufferControl) inDataSource.getControl(bufferControlType);
 
             if (bufferControl != null)
                 return bufferControl;
         }
 
-        // If everything else has failed, try the very inputStream.
+        // If everything else has failed, try the very inStream.
         return
             (BufferControl)
-                inputStreamDesc.getInputStream().getControl(bufferControlType);
+                inStreamDesc.getInStream().getControl(bufferControlType);
     }
 
     /**
@@ -382,18 +448,18 @@ class AudioMixerPushBufferStream
     {
         long contentLength = 0;
 
-        synchronized (inputStreamsSyncRoot)
+        synchronized (inStreamsSyncRoot)
         {
-            if (inputStreams != null)
-                for (InputStreamDesc inputStreamDesc : inputStreams)
+            if (inStreams != null)
+                for (InStreamDesc inStreamDesc : inStreams)
                 {
-                    long inputContentLength
-                        = inputStreamDesc.getInputStream().getContentLength();
+                    long inContentLength
+                        = inStreamDesc.getInStream().getContentLength();
 
-                    if (LENGTH_UNKNOWN == inputContentLength)
+                    if (LENGTH_UNKNOWN == inContentLength)
                         return LENGTH_UNKNOWN;
-                    if (contentLength < inputContentLength)
-                        contentLength = inputContentLength;
+                    if (contentLength < inContentLength)
+                        contentLength = inContentLength;
                 }
         }
         return contentLength;
@@ -409,21 +475,21 @@ class AudioMixerPushBufferStream
      */
     public AudioFormat getFormat()
     {
-        return outputFormat;
+        return outFormat;
     }
 
     /**
      * Gets the <tt>SourceStream</tt>s (in the form of
-     * <tt>InputStreamDesc</tt>s) from which this instance reads audio samples.
+     * <tt>InStreamDesc</tt>s) from which this instance reads audio samples.
      *
-     * @return an array of <tt>InputStreamDesc</tt>s which describe the input
+     * @return an array of <tt>InStreamDesc</tt>s which describe the input
      * <tt>SourceStream</tt>s from which this instance reads audio samples
      */
-    InputStreamDesc[] getInputStreams()
+    InStreamDesc[] getInStreams()
     {
-        synchronized (inputStreamsSyncRoot)
+        synchronized (inStreamsSyncRoot)
         {
-            return (inputStreams == null) ? null : inputStreams.clone();
+            return (inStreams == null) ? null : inStreams.clone();
         }
     }
 
@@ -442,54 +508,57 @@ class AudioMixerPushBufferStream
     public void read(Buffer buffer)
         throws IOException
     {
-        InputSampleDesc inputSampleDesc;
-        int inputStreamCount;
+        InSampleDesc inSampleDesc;
+        int inStreamCount;
+        AudioFormat format = getFormat();
 
-        synchronized (inputStreamsSyncRoot)
+        synchronized (inStreamsSyncRoot)
         {
-            InputStreamDesc[] thisInputStreams = this.inputStreams;
+            InStreamDesc[] inStreams = this.inStreams;
 
-            if ((thisInputStreams == null) || (thisInputStreams.length == 0))
+            if ((inStreams == null) || (inStreams.length == 0))
                 return;
             else
             {
-                inputSampleDesc = (InputSampleDesc) buffer.getData();
-                inputStreamCount = thisInputStreams.length;
-                if (inputSampleDesc != null)
+                inSampleDesc = (InSampleDesc) buffer.getData();
+                // format
+                if ((inSampleDesc != null) && inSampleDesc.format != format)
+                    inSampleDesc = null;
+                // inStreams
+                inStreamCount = inStreams.length;
+                if (inSampleDesc != null)
                 {
-                    InputStreamDesc[] inputSampleDescInputStreams
-                        = inputSampleDesc.inputStreams;
+                    InStreamDesc[] inSampleDescInStreams
+                        = inSampleDesc.inStreams;
 
-                    if (inputSampleDescInputStreams.length == inputStreamCount)
+                    if (inSampleDescInStreams.length == inStreamCount)
                     {
-                        for (int i = 0; i < inputStreamCount; i++)
-                            if (inputSampleDescInputStreams[i]
-                                    != thisInputStreams[i])
+                        for (int i = 0; i < inStreamCount; i++)
+                            if (inSampleDescInStreams[i] != inStreams[i])
                             {
-                                inputSampleDesc = null;
+                                inSampleDesc = null;
                                 break;
                             }
                     }
                     else
-                        inputSampleDesc = null;
+                        inSampleDesc = null;
                 }
-                if (inputSampleDesc == null)
+                if (inSampleDesc == null)
                 {
-                    inputSampleDesc
-                        = new InputSampleDesc(
-                                new int[inputStreamCount][],
-                                thisInputStreams.clone());
+                    inSampleDesc
+                        = new InSampleDesc(
+                                new int[inStreamCount][],
+                                inStreams.clone(),
+                                format);
                 }
             }
         }
 
-        AudioFormat outputFormat = getFormat();
-        int maxInputSampleCount;
+        int maxInSampleCount;
 
         try
         {
-            maxInputSampleCount
-                = readInputPushBufferStreams(outputFormat, inputSampleDesc);
+            maxInSampleCount = readInPushBufferStreams(format, inSampleDesc);
         }
         catch (UnsupportedFormatException ufex)
         {
@@ -499,22 +568,22 @@ class AudioMixerPushBufferStream
             throw ioex;
         }
 
-        maxInputSampleCount
+        maxInSampleCount
             = Math.max(
-                    maxInputSampleCount,
-                    readInputPullBufferStreams(
-                        outputFormat,
-                        maxInputSampleCount,
-                        inputSampleDesc));
+                    maxInSampleCount,
+                    readInPullBufferStreams(
+                            format,
+                            maxInSampleCount,
+                            inSampleDesc));
 
-        buffer.setData(inputSampleDesc);
-        buffer.setLength(maxInputSampleCount);
+        buffer.setData(inSampleDesc);
+        buffer.setLength(maxInSampleCount);
 
         /*
          * Convey the timeStamp so that it can be reported by the Buffers of
          * the AudioMixingPushBufferStreams when mixes are read from them.
          */
-        long timeStamp = inputSampleDesc.getTimeStamp();
+        long timeStamp = inSampleDesc.getTimeStamp();
 
         if (timeStamp != Buffer.TIME_UNKNOWN)
             buffer.setTimeStamp(timeStamp);
@@ -527,13 +596,13 @@ class AudioMixerPushBufferStream
      * the <tt>PullBufferStream</tt>s but the very <tt>PullBufferStream</tt> may
      * not honor the request.
      *
-     * @param outputFormat the <tt>AudioFormat</tt> in which the audio samples
+     * @param outFormat the <tt>AudioFormat</tt> in which the audio samples
      * read from the <tt>PullBufferStream</tt>s are to be converted before being
      * returned
-     * @param outputSampleCount the maximum number of audio samples to be read
+     * @param outSampleCount the maximum number of audio samples to be read
      * from each of the <tt>PullBufferStream</tt>s but the very
      * <tt>PullBufferStream</tt>s may not honor the request
-     * @param inputSampleDesc an <tt>InputStreamDesc</tt> which specifies the
+     * @param inSampleDesc an <tt>InStreamDesc</tt> which specifies the
      * input streams to be read and the collection of audio samples in which the
      * read audio samples are to be returned
      * @return the maximum number of audio samples actually read from the input
@@ -541,23 +610,22 @@ class AudioMixerPushBufferStream
      * @throws IOException if anything goes wrong while reading the specified
      * input streams
      */
-    private int readInputPullBufferStreams(
-            AudioFormat outputFormat,
-            int outputSampleCount,
-            InputSampleDesc inputSampleDesc)
+    private int readInPullBufferStreams(
+            AudioFormat outFormat,
+            int outSampleCount,
+            InSampleDesc inSampleDesc)
         throws IOException
     {
-        InputStreamDesc[] inputStreams = inputSampleDesc.inputStreams;
-        int maxInputSampleCount = 0;
+        InStreamDesc[] inStreams = inSampleDesc.inStreams;
+        int maxInSampleCount = 0;
 
-        for (InputStreamDesc inputStream : inputStreams)
-            if (inputStream.getInputStream() instanceof PullBufferStream)
-                throw
-                    new UnsupportedOperationException(
-                            AudioMixerPushBufferStream.class.getSimpleName()
-                                + ".readInputPullBufferStreams"
-                                + "(AudioFormat,int,InputSampleDesc)");
-        return maxInputSampleCount;
+        for (InStreamDesc inStream : inStreams)
+            if (inStream.getInStream() instanceof PullBufferStream)
+                throw new UnsupportedOperationException(
+                        AudioMixerPushBufferStream.class.getSimpleName()
+                            + ".readInPullBufferStreams"
+                            + "(AudioFormat,int,InSampleDesc)");
+        return maxInSampleCount;
     }
 
     /**
@@ -567,174 +635,173 @@ class AudioMixerPushBufferStream
      * <tt>PushBufferStream</tt> but the very <tt>PushBufferStream</tt> may not
      * honor the request.
      *
-     * @param inputStreamDesc an <tt>InputStreamDesc</tt> which specifies the
+     * @param inStreamDesc an <tt>InStreamDesc</tt> which specifies the
      * input <tt>PushBufferStream</tt> to read from
-     * @param outputFormat the <tt>AudioFormat</tt> to which the samples read
-     * from <tt>inputStream</tt> are to be converted before being returned
+     * @param outFormat the <tt>AudioFormat</tt> to which the samples read
+     * from <tt>inStream</tt> are to be converted before being returned
      * @param sampleCount the maximum number of samples which the read operation
-     * should attempt to read from <tt>inputStream</tt> but the very
-     * <tt>inputStream</tt> may not honor the request
-     * @param outputBuffer the <tt>Buffer</tt> into which the array of
-     * <tt>int</tt> audio samples read from the specified <tt>inputStream</tt>
+     * should attempt to read from <tt>inStream</tt> but the very
+     * <tt>inStream</tt> may not honor the request
+     * @param outBuffer the <tt>Buffer</tt> into which the array of
+     * <tt>int</tt> audio samples read from the specified <tt>inStream</tt>
      * is to be written
      * @throws IOException if anything wrong happens while reading
-     * <tt>inputStream</tt>
+     * <tt>inStream</tt>
      * @throws UnsupportedFormatException if converting the samples read from
-     * <tt>inputStream</tt> to <tt>outputFormat</tt> fails
+     * <tt>inStream</tt> to <tt>outFormat</tt> fails
      */
-    private void readInputPushBufferStream(
-            InputStreamDesc inputStreamDesc,
-            AudioFormat outputFormat,
+    private void readInPushBufferStream(
+            InStreamDesc inStreamDesc,
+            AudioFormat outFormat,
             int sampleCount,
-            Buffer outputBuffer)
+            Buffer outBuffer)
         throws IOException,
                UnsupportedFormatException
     {
-        PushBufferStream inputStream
-            = (PushBufferStream) inputStreamDesc.getInputStream();
-        AudioFormat inputStreamFormat
-            = (AudioFormat) inputStream.getFormat();
-        Buffer inputBuffer = inputStreamDesc.getBuffer(true);
+        PushBufferStream inStream
+            = (PushBufferStream) inStreamDesc.getInStream();
+        AudioFormat inStreamFormat = (AudioFormat) inStream.getFormat();
+        Buffer inBuffer = inStreamDesc.getBuffer(true);
 
         if (sampleCount != 0)
         {
-            Class<?> inputDataType = inputStreamFormat.getDataType();
-
-            if (Format.byteArray.equals(inputDataType))
+            if (Format.byteArray.equals(inStreamFormat.getDataType()))
             {
-                Object data = inputBuffer.getData();
+                Object data = inBuffer.getData();
                 int length
-                    = sampleCount
-                        * (inputStreamFormat.getSampleSizeInBits() / 8);
+                    = sampleCount * (inStreamFormat.getSampleSizeInBits() / 8);
 
                 if (!(data instanceof byte[])
                         || (((byte[]) data).length != length))
-                    inputBuffer.setData(new byte[length]);
-                inputBuffer.setLength(0);
-                inputBuffer.setOffset(0);
+                    inBuffer.setData(new byte[length]);
+                inBuffer.setLength(0);
+                inBuffer.setOffset(0);
             }
             else
             {
                 throw new UnsupportedFormatException(
                         "!Format.getDataType().equals(byte[].class)",
-                        inputStreamFormat);
+                        inStreamFormat);
             }
         }
 
         audioMixer.read(
-                inputStream,
-                inputBuffer,
-                inputStreamDesc.inputDataSourceDesc.inputDataSource);
+                inStream,
+                inBuffer,
+                inStreamDesc.inDataSourceDesc.inDataSource);
 
         /*
-         * If the media is to be discarded, don't even bother with the
-         * checks and the conversion.
+         * If the media is to be discarded, don't even bother with the checks
+         * and the conversion.
          */
-        if (inputBuffer.isDiscard())
+        if (inBuffer.isDiscard())
         {
-            outputBuffer.setDiscard(true);
+            outBuffer.setDiscard(true);
             return;
         }
 
-        int inputLength = inputBuffer.getLength();
+        int inLength = inBuffer.getLength();
 
-        if (inputLength <= 0)
+        if (inLength <= 0)
         {
-            outputBuffer.setDiscard(true);
+            outBuffer.setDiscard(true);
             return;
         }
 
-        AudioFormat inputFormat = (AudioFormat) inputBuffer.getFormat();
+        AudioFormat inFormat = (AudioFormat) inBuffer.getFormat();
 
-        if (inputFormat == null)
-            inputFormat = inputStreamFormat;
+        if (inFormat == null)
+            inFormat = inStreamFormat;
 
-        if (logger.isTraceEnabled()
-                && (lastReadInputFormat != null)
-                && !lastReadInputFormat.matches(inputFormat))
+        if (logger.isTraceEnabled())
         {
-            lastReadInputFormat = inputFormat;
-            logger.trace(
-                    "Read inputSamples in different format "
-                        + lastReadInputFormat);
+            if (lastReadInFormat == null)
+                lastReadInFormat = inFormat;
+            else if (!lastReadInFormat.matches(inFormat))
+            {
+                lastReadInFormat = inFormat;
+                logger.trace(
+                        "Read inSamples in different format "
+                            + lastReadInFormat);
+            }
         }
 
-        int inputFormatSigned = inputFormat.getSigned();
+        int inFormatSigned = inFormat.getSigned();
 
-        if ((inputFormatSigned != AudioFormat.SIGNED)
-                && (inputFormatSigned != Format.NOT_SPECIFIED))
+        if ((inFormatSigned != AudioFormat.SIGNED)
+                && (inFormatSigned != Format.NOT_SPECIFIED))
         {
             throw new UnsupportedFormatException(
                     "AudioFormat.getSigned()",
-                    inputFormat);
+                    inFormat);
         }
 
-        int inputChannels = inputFormat.getChannels();
-        int outputChannels = outputFormat.getChannels();
+        int inChannels = inFormat.getChannels();
+        int outChannels = outFormat.getChannels();
 
-        if ((inputChannels != outputChannels)
-                && (inputChannels != Format.NOT_SPECIFIED)
-                && (outputChannels != Format.NOT_SPECIFIED))
+        if ((inChannels != outChannels)
+                && (inChannels != Format.NOT_SPECIFIED)
+                && (outChannels != Format.NOT_SPECIFIED))
         {
             logger.error(
-                    "Read inputFormat with channels "
-                        + inputChannels
-                        + " while expected outputFormat channels is "
-                        + outputChannels);
+                    "Read inFormat with channels " + inChannels
+                        + " while expected outFormat channels is "
+                        + outChannels);
             throw new UnsupportedFormatException(
                     "AudioFormat.getChannels()",
-                    inputFormat);
+                    inFormat);
         }
 
         // Warn about different sampleRates.
-        double inputSampleRate = inputFormat.getSampleRate();
-        double outputSampleRate = outputFormat.getSampleRate();
+        double inSampleRate = inFormat.getSampleRate();
+        double outSampleRate = outFormat.getSampleRate();
 
-        if (inputSampleRate != outputSampleRate)
+        if (inSampleRate != outSampleRate)
         {
             logger.warn(
-                    "Read inputFormat with sampleRate "
-                        + inputSampleRate
-                        + " while expected outputFormat sampleRate is "
-                        + outputSampleRate);
+                    "Read inFormat with sampleRate " + inSampleRate
+                        + " while expected outFormat sampleRate is "
+                        + outSampleRate);
         }
 
-        Object inputData = inputBuffer.getData();
+        Object inData = inBuffer.getData();
 
-        if (inputData == null)
+        if (inData == null)
         {
-            outputBuffer.setDiscard(true);
+            outBuffer.setDiscard(true);
         }
-        else if (inputData instanceof byte[])
+        else if (inData instanceof byte[])
         {
-            int inputSampleSizeInBits = inputFormat.getSampleSizeInBits();
-            int outputSampleSizeInBits = outputFormat.getSampleSizeInBits();
+            int inSampleSizeInBits = inFormat.getSampleSizeInBits();
+            int outSampleSizeInBits = outFormat.getSampleSizeInBits();
 
             if (logger.isTraceEnabled()
-                    && (inputSampleSizeInBits != outputSampleSizeInBits))
+                    && (inSampleSizeInBits != outSampleSizeInBits))
             {
                 logger.trace(
-                        "Read inputFormat with sampleSizeInBits "
-                            + inputSampleSizeInBits
+                        "Read inFormat with sampleSizeInBits "
+                            + inSampleSizeInBits
                             + ". Will convert to sampleSizeInBits "
-                            + outputSampleSizeInBits);
+                            + outSampleSizeInBits);
             }
 
-            byte[] inputSamples = (byte[]) inputData;
-            int outputLength;
-            int[] outputSamples;
+            byte[] inSamples = (byte[]) inData;
+            int outLength;
+            int[] outSamples;
 
-            switch (inputSampleSizeInBits)
+            switch (inSampleSizeInBits)
             {
             case 16:
-                outputLength = inputLength / 2;
-                outputSamples
-                    = validateIntArraySize(outputBuffer, outputLength);
-                for (int i = 0; i < outputLength; i++)
+                outLength = inLength / 2;
+                outSamples
+                    = audioMixer.intArrayCache.validateIntArraySize(
+                            outBuffer,
+                            outLength);
+                for (int i = 0; i < outLength; i++)
                 {
-                    int sample = ArrayIOUtils.readInt16(inputSamples, i * 2);
+                    int sample = ArrayIOUtils.readInt16(inSamples, i * 2);
 
-                    switch (outputSampleSizeInBits)
+                    switch (outSampleSizeInBits)
                     {
                     case 16:
                         break;
@@ -746,21 +813,23 @@ class AudioMixerPushBufferStream
                     default:
                         throw new UnsupportedFormatException(
                                 "AudioFormat.getSampleSizeInBits()",
-                                outputFormat);
+                                outFormat);
                     }
 
-                    outputSamples[i] = sample;
+                    outSamples[i] = sample;
                 }
                 break;
             case 32:
-                outputLength = inputSamples.length / 4;
-                outputSamples
-                    = validateIntArraySize(outputBuffer, outputLength);
-                for (int i = 0; i < outputLength; i++)
+                outLength = inSamples.length / 4;
+                outSamples
+                    = audioMixer.intArrayCache.validateIntArraySize(
+                            outBuffer,
+                            outLength);
+                for (int i = 0; i < outLength; i++)
                 {
-                    int sample = readInt(inputSamples, i * 4);
+                    int sample = ArrayIOUtils.readInt(inSamples, i * 4);
 
-                    switch (outputSampleSizeInBits)
+                    switch (outSampleSizeInBits)
                     {
                     case 16:
                         sample = Math.round(sample * SHORT_TO_INT_RATIO);
@@ -772,10 +841,10 @@ class AudioMixerPushBufferStream
                     default:
                         throw new UnsupportedFormatException(
                                 "AudioFormat.getSampleSizeInBits()",
-                                outputFormat);
+                                outFormat);
                     }
 
-                    outputSamples[i] = sample;
+                    outSamples[i] = sample;
                 }
                 break;
             case 8:
@@ -783,20 +852,20 @@ class AudioMixerPushBufferStream
             default:
                 throw new UnsupportedFormatException(
                         "AudioFormat.getSampleSizeInBits()",
-                        inputFormat);
+                        inFormat);
             }
 
-            outputBuffer.setFlags(inputBuffer.getFlags());
-            outputBuffer.setFormat(outputFormat);
-            outputBuffer.setLength(outputLength);
-            outputBuffer.setOffset(0);
-            outputBuffer.setTimeStamp(inputBuffer.getTimeStamp());
+            outBuffer.setFlags(inBuffer.getFlags());
+            outBuffer.setFormat(outFormat);
+            outBuffer.setLength(outLength);
+            outBuffer.setOffset(0);
+            outBuffer.setTimeStamp(inBuffer.getTimeStamp());
         }
         else
         {
             throw new UnsupportedFormatException(
-                    "Format.getDataType().equals(" + inputData.getClass() + ")",
-                    inputFormat);
+                    "Format.getDataType().equals(" + inData.getClass() + ")",
+                    inFormat);
         }
     }
 
@@ -804,10 +873,10 @@ class AudioMixerPushBufferStream
      * Reads audio samples from the input <tt>PushBufferStream</tt>s of this
      * instance and converts them to a specific output <tt>AudioFormat</tt>.
      *
-     * @param outputFormat the <tt>AudioFormat</tt> in which the audio samples
+     * @param outFormat the <tt>AudioFormat</tt> in which the audio samples
      * read from the <tt>PushBufferStream</tt>s are to be converted before being
      * returned
-     * @param inputSampleDesc an <tt>InputSampleDesc</tt> which specifies the
+     * @param inSampleDesc an <tt>InSampleDesc</tt> which specifies the
      * input streams to be read and  the collection of audio samples in which
      * the read audio samples are to be returned
      * @return the maximum number of audio samples actually read from the input
@@ -815,30 +884,30 @@ class AudioMixerPushBufferStream
      * @throws IOException if anything wrong happens while reading the specified
      * input streams
      * @throws UnsupportedFormatException if any of the input streams provides
-     * media in a format different than <tt>outputFormat</tt>
+     * media in a format different than <tt>outFormat</tt>
      */
-    private int readInputPushBufferStreams(
-            AudioFormat outputFormat,
-            InputSampleDesc inputSampleDesc)
+    private int readInPushBufferStreams(
+            AudioFormat outFormat,
+            InSampleDesc inSampleDesc)
         throws IOException,
                UnsupportedFormatException
     {
-        InputStreamDesc[] inputStreams = inputSampleDesc.inputStreams;
-        Buffer buffer = inputSampleDesc.getBuffer(true);
-        int maxInputSampleCount = 0;
-        int[][] inputSamples = inputSampleDesc.inputSamples;
+        InStreamDesc[] inStreams = inSampleDesc.inStreams;
+        Buffer buffer = inSampleDesc.getBuffer(true);
+        int maxInSampleCount = 0;
+        int[][] inSamples = inSampleDesc.inSamples;
 
-        for (int i = 0; i < inputStreams.length; i++)
+        for (int i = 0; i < inStreams.length; i++)
         {
-            InputStreamDesc inputStreamDesc = inputStreams[i];
-            SourceStream inputStream = inputStreamDesc.getInputStream();
+            InStreamDesc inStreamDesc = inStreams[i];
+            SourceStream inStream = inStreamDesc.getInStream();
 
-            if (inputStream instanceof PushBufferStream)
+            if (inStream instanceof PushBufferStream)
             {
                 buffer.setDiscard(false);
                 buffer.setLength(0);
-                readInputPushBufferStream(
-                        inputStreamDesc, outputFormat, maxInputSampleCount,
+                readInPushBufferStream(
+                        inStreamDesc, outFormat, maxInSampleCount,
                         buffer);
 
                 int sampleCount;
@@ -868,18 +937,16 @@ class AudioMixerPushBufferStream
                     if ((TRACE_NON_CONTRIBUTING_READ_COUNT > 0)
                             && logger.isTraceEnabled())
                     {
-                        inputStreamDesc.nonContributingReadCount++;
-                        if (inputStreamDesc.nonContributingReadCount
+                        inStreamDesc.nonContributingReadCount++;
+                        if (inStreamDesc.nonContributingReadCount
                                 >= TRACE_NON_CONTRIBUTING_READ_COUNT)
                         {
                             logger.trace(
                                     "Failed to read actual inputSamples more than "
-                                        + inputStreamDesc
-                                                .nonContributingReadCount
+                                        + inStreamDesc.nonContributingReadCount
                                         + " times from inputStream with hash code "
-                                        + inputStreamDesc
-                                                .getInputStream().hashCode());
-                            inputStreamDesc.nonContributingReadCount = 0;
+                                        + inStreamDesc.getInStream().hashCode());
+                            inStreamDesc.nonContributingReadCount = 0;
                         }
                     }
                 }
@@ -898,10 +965,10 @@ class AudioMixerPushBufferStream
                     if (samples.length > sampleCount)
                         Arrays.fill(samples, sampleCount, samples.length, 0);
 
-                    inputSamples[i] = samples;
+                    inSamples[i] = samples;
 
-                    if (maxInputSampleCount < samples.length)
-                        maxInputSampleCount = samples.length;
+                    if (maxInSampleCount < samples.length)
+                        maxInSampleCount = samples.length;
 
                     /*
                      * Convey the timeStamp so that it can be set to the Buffers
@@ -910,35 +977,16 @@ class AudioMixerPushBufferStream
                      * timeStamps, only use the first meaningful timestamp for
                      * now.
                      */
-                    if (inputSampleDesc.getTimeStamp() == Buffer.TIME_UNKNOWN)
-                        inputSampleDesc.setTimeStamp(buffer.getTimeStamp());
+                    if (inSampleDesc.getTimeStamp() == Buffer.TIME_UNKNOWN)
+                        inSampleDesc.setTimeStamp(buffer.getTimeStamp());
 
                     continue;
                 }
             }
 
-            inputSamples[i] = null;
+            inSamples[i] = null;
         }
-        return maxInputSampleCount;
-    }
-
-    /**
-     * Reads an integer from a specific series of bytes starting the reading at
-     * a specific offset in it.
-     *
-     * @param input the series of bytes to read an integer from
-     * @param inputOffset the offset in <tt>input</tt> at which the reading of
-     * the integer is to start
-     * @return an integer read from the specified series of bytes starting at
-     * the specified offset in it
-     */
-    private static int readInt(byte[] input, int inputOffset)
-    {
-        return
-            (input[inputOffset + 3] << 24)
-                | ((input[inputOffset + 2] & 0xFF) << 16)
-                | ((input[inputOffset + 1] & 0xFF) << 8)
-                | (input[inputOffset] & 0xFF);
+        return maxInSampleCount;
     }
 
     /**
@@ -946,21 +994,21 @@ class AudioMixerPushBufferStream
      * collection of such streams to which this instance pushes the data for
      * audio mixing it reads from its input <tt>SourceStream</tt>s.
      *
-     * @param outputStream the <tt>AudioMixingPushBufferStream</tt> to remove
+     * @param outStream the <tt>AudioMixingPushBufferStream</tt> to remove
      * from the collection of such streams to which this instance pushes the
      * data for audio mixing it reads from its input <tt>SourceStream</tt>s
-     * @throws IOException if <tt>outputStream</tt> was the last
+     * @throws IOException if <tt>outStream</tt> was the last
      * <tt>AudioMixingPushBufferStream</tt> and the <tt>AudioMixer</tt> failed
      * to stop
      */
-    void removeOutputStream(AudioMixingPushBufferStream outputStream)
+    void removeOutStream(AudioMixingPushBufferStream outStream)
         throws IOException
     {
-        synchronized (outputStreams)
+        synchronized (outStreams)
         {
-            if ((outputStream != null)
-                    && outputStreams.remove(outputStream)
-                    && outputStreams.isEmpty())
+            if ((outStream != null)
+                    && outStreams.remove(outStream)
+                    && outStreams.isEmpty())
                 audioMixer.stop(this);
         }
     }
@@ -974,96 +1022,107 @@ class AudioMixerPushBufferStream
      * the output mix are not pushed to the
      * <tt>AudioMixingPushBufferStream</tt>.
      *
-     * @param outputStream the <tt>AudioMixingPushBufferStream</tt> to push the
+     * @param outStream the <tt>AudioMixingPushBufferStream</tt> to push the
      * specified set of audio samples to
-     * @param inputSampleDesc the set of audio samples to be pushed to
-     * <tt>outputStream</tt> for audio mixing
-     * @param maxInputSampleCount the maximum number of audio samples available
-     * in <tt>inputSamples</tt>
+     * @param inSampleDesc the set of audio samples to be pushed to
+     * <tt>outStream</tt> for audio mixing
+     * @param maxInSampleCount the maximum number of audio samples available
+     * in <tt>inSamples</tt>
      */
-    private void setInputSamples(
-        AudioMixingPushBufferStream outputStream,
-        InputSampleDesc inputSampleDesc,
-        int maxInputSampleCount)
+    private void setInSamples(
+            AudioMixingPushBufferStream outStream,
+            InSampleDesc inSampleDesc,
+            int maxInSampleCount)
     {
-        int[][] inputSamples = inputSampleDesc.inputSamples;
-        InputStreamDesc[] inputStreams = inputSampleDesc.inputStreams;
+        int[][] inSamples = inSampleDesc.inSamples;
+        InStreamDesc[] inStreams = inSampleDesc.inStreams;
 
-        inputSamples = inputSamples.clone();
+        inSamples = inSamples.clone();
 
         CaptureDevice captureDevice = audioMixer.captureDevice;
-        AudioMixingPushBufferDataSource outputDataSource
-            = outputStream.getDataSource();
-        boolean outputDataSourceIsSendingDTMF
+        AudioMixingPushBufferDataSource outDataSource
+            = outStream.getDataSource();
+        boolean outDataSourceIsSendingDTMF
             = (captureDevice instanceof AudioMixingPushBufferDataSource)
-                ? outputDataSource.isSendingDTMF()
+                ? outDataSource.isSendingDTMF()
                 : false;
-        boolean outputDataSourceIsMute = outputDataSource.isMute();
+        boolean outDataSourceIsMute = outDataSource.isMute();
 
-        for (int i = 0; i < inputSamples.length; i++)
+        for (int i = 0, o = 0; i < inSamples.length; i++)
         {
-            InputStreamDesc inputStreamDesc = inputStreams[i];
-            DataSource inputDataSource
-                = inputStreamDesc.inputDataSourceDesc.inputDataSource;
+            InStreamDesc inStreamDesc = inStreams[i];
+            DataSource inDataSource
+                = inStreamDesc.inDataSourceDesc.inDataSource;
 
-            if (outputDataSourceIsSendingDTMF
-                    && (inputDataSource == captureDevice))
+            if (outDataSourceIsSendingDTMF && (inDataSource == captureDevice))
             {
-                PushBufferStream inputStream
-                    = (PushBufferStream) inputStreamDesc.getInputStream();
-                AudioFormat inputStreamFormat
-                    = (AudioFormat) inputStream.getFormat();
-
-                double sampleRate = inputStreamFormat.getSampleRate();
-                int sampleSizeInBits = inputStreamFormat.getSampleSizeInBits();
-
+                PushBufferStream inStream
+                    = (PushBufferStream) inStreamDesc.getInStream();
+                AudioFormat inStreamFormat = (AudioFormat) inStream.getFormat();
                 // Generate the inband DTMF signal.
-                inputSamples[i]
-                    = outputDataSource.getNextToneSignal(
-                            sampleRate,
-                            sampleSizeInBits);
-                if (maxInputSampleCount < inputSamples[i].length)
-                    maxInputSampleCount = inputSamples[i].length;
+                int[] nextToneSignal
+                    = outDataSource.getNextToneSignal(
+                            inStreamFormat.getSampleRate(),
+                            inStreamFormat.getSampleSizeInBits());
+
+                inSamples[i] = nextToneSignal;
+                if (maxInSampleCount < nextToneSignal.length)
+                    maxInSampleCount = nextToneSignal.length;
             }
-            else if (outputDataSource.equals(
-                        inputStreamDesc.getOutputDataSource())
-                    || (outputDataSourceIsMute
-                            && (inputDataSource == captureDevice)))
+            else if (outDataSource.equals(inStreamDesc.getOutDataSource())
+                    || (outDataSourceIsMute && (inDataSource == captureDevice)))
             {
-                inputSamples[i] = null;
+                inSamples[i] = null;
+            }
+
+            /*
+             * Have the samples of the contributing streams at the head of the
+             * sample set (and the non-contributing at the tail) in order to
+             * optimize determining the number of contributing streams later on
+             * and, consequently, the mixing.
+             */
+            int[] inStreamSamples = inSamples[i];
+
+            if (inStreamSamples != null)
+            {
+                if (i != o)
+                {
+                    inSamples[o] = inStreamSamples;
+                    inSamples[i] = null;
+                }
+                o++;
             }
         }
 
-        outputStream.setInputSamples(
-                inputSamples,
-                maxInputSampleCount,
-                inputSampleDesc.getTimeStamp());
+        outStream.setInSamples(
+                inSamples,
+                maxInSampleCount,
+                inSampleDesc.getTimeStamp());
     }
 
     /**
-     * Sets the <tt>SourceStream</tt>s (in the form of <tt>InputStreamDesc</tt>)
+     * Sets the <tt>SourceStream</tt>s (in the form of <tt>InStreamDesc</tt>)
      * from which this instance is to read audio samples and push them to the
      * <tt>AudioMixingPushBufferStream</tt>s for audio mixing.
      *
-     * @param inputStreams the <tt>SourceStream</tt>s (in the form of
-     * <tt>InputStreamDesc</tt>) from which this instance is to read audio
+     * @param inStreams the <tt>SourceStream</tt>s (in the form of
+     * <tt>InStreamDesc</tt>) from which this instance is to read audio
      * samples and push them to the <tt>AudioMixingPushBufferStream</tt>s for
      * audio mixing
      */
-    void setInputStreams(Collection<InputStreamDesc> inputStreams)
+    void setInStreams(Collection<InStreamDesc> inStreams)
     {
-        InputStreamDesc[] oldValue;
-        InputStreamDesc[] newValue
-            = (null == inputStreams)
+        InStreamDesc[] oldValue;
+        InStreamDesc[] newValue
+            = (null == inStreams)
                 ? null
-                : inputStreams.toArray(
-                        new InputStreamDesc[inputStreams.size()]);
+                : inStreams.toArray(new InStreamDesc[inStreams.size()]);
 
-        synchronized (inputStreamsSyncRoot)
+        synchronized (inStreamsSyncRoot)
         {
-            oldValue = this.inputStreams;
+            oldValue = this.inStreams;
 
-            this.inputStreams = newValue;
+            this.inStreams = newValue;
         }
 
         boolean valueIsChanged = !Arrays.equals(oldValue, newValue);
@@ -1078,36 +1137,36 @@ class AudioMixerPushBufferStream
 
             boolean skippedForTransferHandler = false;
 
-            for (InputStreamDesc inputStreamDesc : newValue)
+            for (InStreamDesc inStreamDesc : newValue)
             {
-                SourceStream inputStream = inputStreamDesc.getInputStream();
+                SourceStream inStream = inStreamDesc.getInStream();
 
-                if (!(inputStream instanceof PushBufferStream))
+                if (!(inStream instanceof PushBufferStream))
                     continue;
                 if (!skippedForTransferHandler)
                 {
                     skippedForTransferHandler = true;
                     continue;
                 }
-                if (!(inputStream instanceof CachingPushBufferStream))
+                if (!(inStream instanceof CachingPushBufferStream))
                 {
-                    PushBufferStream cachingInputStream
+                    PushBufferStream cachingInStream
                         = new CachingPushBufferStream(
-                                (PushBufferStream) inputStream);
+                                (PushBufferStream) inStream);
 
-                    inputStreamDesc.setInputStream(cachingInputStream);
+                    inStreamDesc.setInStream(cachingInStream);
                     if (logger.isTraceEnabled())
                         logger.trace(
                                 "Created CachingPushBufferStream"
                                     + " with hashCode "
-                                    + cachingInputStream.hashCode()
-                                    + " for inputStream with hashCode "
-                                    + inputStream.hashCode());
+                                    + cachingInStream.hashCode()
+                                    + " for inStream with hashCode "
+                                    + inStream.hashCode());
                 }
             }
 
             setTransferHandler(newValue, transferHandler);
-            equalizeInputStreamBufferLength();
+            equalizeInStreamBufferLength();
 
             if (logger.isTraceEnabled())
             {
@@ -1117,15 +1176,13 @@ class AudioMixerPushBufferStream
 
                 if (difference > 0)
                     logger.trace(
-                            "Added "
-                                + difference
-                                + " inputStream(s) and the total is "
+                            "Added " + difference
+                                + " inStream(s) and the total is "
                                 + newValueLength);
                 else if (difference < 0)
                     logger.trace(
-                            "Removed "
-                                + difference
-                                + " inputStream(s) and the total is "
+                            "Removed " + difference
+                                + " inStream(s) and the total is "
                                 + newValueLength);
             }
         }
@@ -1144,47 +1201,46 @@ class AudioMixerPushBufferStream
      */
     public void setTransferHandler(BufferTransferHandler transferHandler)
     {
-        throw
-            new UnsupportedOperationException(
-                    AudioMixerPushBufferStream.class.getSimpleName()
-                        + ".setTransferHandler(BufferTransferHandler)");
+        throw new UnsupportedOperationException(
+                AudioMixerPushBufferStream.class.getSimpleName()
+                    + ".setTransferHandler(BufferTransferHandler)");
     }
 
     /**
      * Sets a specific <tt>BufferTransferHandler</tt> to a specific collection
-     * of <tt>SourceStream</tt>s (in the form of <tt>InputStreamDesc</tt>)
+     * of <tt>SourceStream</tt>s (in the form of <tt>InStreamDesc</tt>)
      * abstracting the differences among the various types of
      * <tt>SourceStream</tt>s.
      *
-     * @param inputStreams the input <tt>SourceStream</tt>s to which the
+     * @param inStreams the input <tt>SourceStream</tt>s to which the
      * specified <tt>BufferTransferHandler</tt> is to be set
      * @param transferHandler the <tt>BufferTransferHandler</tt> to be set to
-     * the specified <tt>inputStreams</tt>
+     * the specified <tt>inStreams</tt>
      */
     private void setTransferHandler(
-        InputStreamDesc[] inputStreams,
-        BufferTransferHandler transferHandler)
+            InStreamDesc[] inStreams,
+            BufferTransferHandler transferHandler)
     {
-        if ((inputStreams == null) || (inputStreams.length <= 0))
+        if ((inStreams == null) || (inStreams.length <= 0))
             return;
 
         boolean transferHandlerIsSet = false;
 
-        for (InputStreamDesc inputStreamDesc : inputStreams)
+        for (InStreamDesc inStreamDesc : inStreams)
         {
-            SourceStream inputStream = inputStreamDesc.getInputStream();
+            SourceStream inStream = inStreamDesc.getInStream();
 
-            if (inputStream instanceof PushBufferStream)
+            if (inStream instanceof PushBufferStream)
             {
-                BufferTransferHandler inputStreamTransferHandler;
-                PushBufferStream inputPushBufferStream
-                    = (PushBufferStream) inputStream;
+                BufferTransferHandler inStreamTransferHandler;
+                PushBufferStream inPushBufferStream
+                    = (PushBufferStream) inStream;
 
                 if (transferHandler == null)
-                    inputStreamTransferHandler = null;
+                    inStreamTransferHandler = null;
                 else if (transferHandlerIsSet)
                 {
-                    inputStreamTransferHandler = new BufferTransferHandler()
+                    inStreamTransferHandler = new BufferTransferHandler()
                     {
                         public void transferData(PushBufferStream stream)
                         {
@@ -1198,15 +1254,15 @@ class AudioMixerPushBufferStream
                 }
                 else
                 {
-                    inputStreamTransferHandler
+                    inStreamTransferHandler
                         = new StreamSubstituteBufferTransferHandler(
-                                    transferHandler,
-                                    inputPushBufferStream,
-                                    this);
+                                transferHandler,
+                                inPushBufferStream,
+                                this);
                 }
 
-                inputPushBufferStream.setTransferHandler(
-                        inputStreamTransferHandler);
+                inPushBufferStream.setTransferHandler(
+                        inStreamTransferHandler);
 
                 transferHandlerIsSet = true;
             }
@@ -1234,180 +1290,35 @@ class AudioMixerPushBufferStream
             throw new UndeclaredThrowableException(ex);
         }
 
-        InputSampleDesc inputSampleDesc = (InputSampleDesc) buffer.getData();
-        int[][] inputSamples = inputSampleDesc.inputSamples;
-        int maxInputSampleCount = buffer.getLength();
+        InSampleDesc inSampleDesc = (InSampleDesc) buffer.getData();
+        int[][] inSamples = inSampleDesc.inSamples;
+        int maxInSampleCount = buffer.getLength();
 
-        if ((inputSamples == null)
-                || (inputSamples.length == 0)
-                || (maxInputSampleCount <= 0))
+        if ((inSamples == null)
+                || (inSamples.length == 0)
+                || (maxInSampleCount <= 0))
             return;
 
-        AudioMixingPushBufferStream[] outputStreams;
+        AudioMixingPushBufferStream[] outStreams;
 
-        synchronized (this.outputStreams)
+        synchronized (this.outStreams)
         {
-            outputStreams
-                = this.outputStreams.toArray(
+            outStreams
+                = this.outStreams.toArray(
                         new AudioMixingPushBufferStream[
-                                this.outputStreams.size()]);
+                                this.outStreams.size()]);
         }
-        for (AudioMixingPushBufferStream outputStream : outputStreams)
-            setInputSamples(outputStream, inputSampleDesc, maxInputSampleCount);
+        for (AudioMixingPushBufferStream outStream : outStreams)
+            setInSamples(outStream, inSampleDesc, maxInSampleCount);
 
         /*
          * The input samples have already been delivered to the output streams
          * and are no longer necessary.
          */
-        for (int i = 0; i < inputSamples.length; i++)
+        for (int i = 0; i < inSamples.length; i++)
         {
-            deallocateIntArray(inputSamples[i]);
-            inputSamples[i] = null;
-        }
-    }
-
-    private int[] validateIntArraySize(Buffer buffer, int newSize)
-    {
-        Object data = buffer.getData();
-        int[] intArray;
-
-        if (data instanceof int[])
-        {
-            intArray = (int[]) data;
-            if (intArray.length < newSize)
-            {
-                deallocateIntArray(intArray);
-                intArray = null;
-            }
-        }
-        else
-            intArray = null;
-        if (intArray == null)
-        {
-            intArray = allocateIntArray(newSize);
-            buffer.setData(intArray);
-        }
-        return intArray;
-    }
-
-    /**
-     * Describes a specific set of audio samples read from a specific set of
-     * input streams specified by their <tt>InputStreamDesc</tt>s.
-     */
-    private static class InputSampleDesc
-    {
-        /**
-         * The <tt>Buffer</tt> into which media data is to be read from
-         * {@link #inputStreams}.
-         */
-        private SoftReference<Buffer> buffer;
-
-        /**
-         * The set of audio samples read from {@link #inputStreams}.
-         */
-        public final int[][] inputSamples;
-
-        /**
-         * The set of input streams from which {@link #inputSamples} were read.
-         */
-        public final InputStreamDesc[] inputStreams;
-
-        /**
-         * The time stamp of <tt>inputSamples</tt> to be reported in the
-         * <tt>Buffer</tt>s of the <tt>AudioMixingPushBufferStream</tt>s when
-         * mixes are read from them.
-         */
-        private long timeStamp = Buffer.TIME_UNKNOWN;
-
-        /**
-         * Initializes a new <tt>InputSampleDesc</tt> instance which is to
-         * describe a specific set of audio samples read from a specific set of
-         * input streams specified by their <tt>InputStreamDesc</tt>s.
-         *
-         * @param inputSamples the set of audio samples read from
-         * <tt>inputStreams</tt>
-         * @param inputStreams the set of input streams from which
-         * <tt>inputSamples</tt> were read
-         */
-        public InputSampleDesc(
-                int[][] inputSamples,
-                InputStreamDesc[] inputStreams)
-        {
-            this.inputSamples = inputSamples;
-            this.inputStreams = inputStreams;
-        }
-
-        /**
-         * Gets the <tt>Buffer</tt> into which media data is to be read from the
-         * input streams associated with this instance.
-         *
-         * @param create the indicator which determines whether the
-         * <tt>Buffer</tt> is to be created in case it does not exist
-         * @return the <tt>Buffer</tt> into which media data is to be read from
-         * the input streams associated with this instance
-         */
-        public Buffer getBuffer(boolean create)
-        {
-            Buffer buffer = (this.buffer == null) ? null : this.buffer.get();
-
-            if ((buffer == null) && create)
-            {
-                buffer = new Buffer();
-                setBuffer(buffer);
-            }
-            return buffer;
-        }
-
-        /**
-         * Gets the time stamp of <tt>inputSamples</tt> to be reported in the
-         * <tt>Buffer</tt>s of the <tt>AudioMixingPushBufferStream</tt>s when
-         * mixes are read from them.
-         *
-         * @return the time stamp of <tt>inputSamples</tt> to be reported in the
-         * <tt>Buffer</tt>s of the <tt>AudioMixingPushBufferStream</tt>s when
-         * mixes are read from them
-         */
-        public long getTimeStamp()
-        {
-            return timeStamp;
-        }
-
-        /**
-         * Sets the <tt>Buffer</tt> into which media data is to be read from the
-         * input streams associated with this instance.
-         *
-         * @param buffer the <tt>Buffer</tt> into which media data is to be read
-         * from the input streams associated with this instance
-         */
-        public void setBuffer(Buffer buffer)
-        {
-            this.buffer
-                = (buffer == null) ? null : new SoftReference<Buffer>(buffer);
-        }
-
-        /**
-         * Sets the time stamp of <tt>inputSamples</tt> to be reported in the
-         * <tt>Buffer</tt>s of the <tt>AudioMixingPushBufferStream</tt>s when
-         * mixes are read from them.
-         *
-         * @param timeStamp the time stamp of <tt>inputSamples</tt> to be
-         * reported in the <tt>Buffer</tt>s of the
-         * <tt>AudioMixingPushBufferStream</tt>s when mixes are read from them
-         */
-        public void setTimeStamp(long timeStamp)
-        {
-            if (this.timeStamp == Buffer.TIME_UNKNOWN)
-                this.timeStamp = timeStamp;
-            else
-            {
-                /*
-                 * Setting the timeStamp more than once does not make sense
-                 * because the inputStreams will report different timeStamps so
-                 * only one should be picked up where the very reading from
-                 * inputStreams takes place.
-                 */
-                throw new IllegalStateException("timeStamp");
-            }
+            audioMixer.intArrayCache.deallocateIntArray(inSamples[i]);
+            inSamples[i] = null;
         }
     }
 }

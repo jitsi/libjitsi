@@ -326,7 +326,7 @@ public class SpeexResampler
             if (resampler == 0)
                 return BUFFER_PROCESSED_FAILED;
 
-            byte[] input = (byte[]) inBuffer.getData();
+            byte[] in = (byte[]) inBuffer.getData();
             int inLength = inBuffer.getLength();
             int frameSize
                 = channels * (inAudioFormat.getSampleSizeInBits() / 8);
@@ -337,17 +337,26 @@ public class SpeexResampler
              */
             int inSampleCount = inLength / frameSize;
             int outSampleCount = (inSampleCount * outSampleRate) / inSampleRate;
-            byte[] output
+            byte[] out
                 = validateByteArraySize(
                         outBuffer,
                         outSampleCount * frameSize,
                         false);
 
-            outSampleCount
-                = Speex.speex_resampler_process_interleaved_int(
-                        resampler,
-                        input, inBuffer.getOffset(), inSampleCount,
-                        output, 0, outSampleCount);
+            /*
+             * XXX The method Speex.speex_resampler_process_interleaved_int will
+             * crash if in is null.
+             */
+            if (inSampleCount == 0)
+                outSampleCount = 0;
+            else
+            {
+                outSampleCount
+                    = Speex.speex_resampler_process_interleaved_int(
+                            resampler,
+                            in, inBuffer.getOffset(), inSampleCount,
+                            out, 0, outSampleCount);
+            }
             outBuffer.setFormat(outAudioFormat);
             outBuffer.setLength(outSampleCount * frameSize);
             outBuffer.setOffset(0);

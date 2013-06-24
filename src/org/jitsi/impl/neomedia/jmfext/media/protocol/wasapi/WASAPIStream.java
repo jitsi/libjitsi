@@ -816,6 +816,11 @@ public class WASAPIStream
                 }
                 catch (HResultException hre)
                 {
+                    /*
+                     * WaitForSingleObject will throw HResultException only in
+                     * the case of WAIT_FAILED. Event if it didn't, it would
+                     * still be a failure from our point of view.
+                     */
                     wfso = WAIT_FAILED;
                     logger.error("WaitForSingleObject", hre);
                 }
@@ -823,7 +828,7 @@ public class WASAPIStream
                  * If the function WaitForSingleObject fails once, it will very
                  * likely fail forever. Bail out of a possible busy wait.
                  */
-                if (wfso == WAIT_FAILED)
+                if ((wfso == WAIT_FAILED) || (wfso == WAIT_ABANDONED))
                     break;
             }
             while (true);

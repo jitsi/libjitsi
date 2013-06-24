@@ -26,23 +26,23 @@ import org.jitsi.util.*;
  * extracted into its own file for the sake of clarity.
  * </p>
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
-class InputDataSourceDesc
+class InDataSourceDesc
 {
-
-    /**
-     * The <tt>Logger</tt> used by the <tt>InputDataSourceDesc</tt> class and
-     * its instances for logging output.
-     */
-    private static final Logger logger
-        = Logger.getLogger(InputDataSourceDesc.class);
 
     /**
      * The constant which represents an empty array with <tt>SourceStream</tt>
      * element type. Explicitly defined in order to avoid unnecessary allocations.
      */
     private static final SourceStream[] EMPTY_STREAMS = new SourceStream[0];
+
+    /**
+     * The <tt>Logger</tt> used by the <tt>InDataSourceDesc</tt> class and
+     * its instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(InDataSourceDesc.class);
 
     /**
      * The indicator which determines whether the effective input
@@ -60,41 +60,41 @@ class InputDataSourceDesc
      * The <tt>DataSource</tt> for which additional information is described by
      * this instance.
      */
-    public final DataSource inputDataSource;
+    public final DataSource inDataSource;
 
     /**
      * The <tt>AudioMixingPushBufferDataSource</tt> in which the mix
-     * contributions of {@link #inputDataSource} are to not be included.
+     * contributions of {@link #inDataSource} are to not be included.
      */
-    public final AudioMixingPushBufferDataSource outputDataSource;
+    public final AudioMixingPushBufferDataSource outDataSource;
 
     /**
      * The <tt>DataSource</tt>, if any, which transcodes the tracks of
-     * {@link #inputDataSource} in the output <tt>Format</tt> of the associated
+     * {@link #inDataSource} in the output <tt>Format</tt> of the associated
      * <tt>AudioMixer</tt>.
      */
     private DataSource transcodingDataSource;
 
     /**
-     * Initializes a new <tt>InputDataSourceDesc</tt> instance which is to
+     * Initializes a new <tt>InDataSourceDesc</tt> instance which is to
      * describe additional information about a specific input
      * <tt>DataSource</tt> of an <tt>AudioMixer</tt>. Associates the specified
      * <tt>DataSource</tt> with the <tt>AudioMixingPushBufferDataSource</tt> in
      * which the mix contributions of the specified input <tt>DataSource</tt>
      * are to not be included.
      *
-     * @param inputDataSource a <tt>DataSourc</tt> for which additional
+     * @param inDataSource a <tt>DataSourc</tt> for which additional
      * information is to be described by the new instance
-     * @param outputDataSource the <tt>AudioMixingPushBufferDataSource</tt> in
-     * which the mix contributions of <tt>inputDataSource</tt> are to not be
+     * @param outDataSource the <tt>AudioMixingPushBufferDataSource</tt> in
+     * which the mix contributions of <tt>inDataSource</tt> are to not be
      * included
      */
-    public InputDataSourceDesc(
-        DataSource inputDataSource,
-        AudioMixingPushBufferDataSource outputDataSource)
+    public InDataSourceDesc(
+            DataSource inDataSource,
+            AudioMixingPushBufferDataSource outDataSource)
     {
-        this.inputDataSource = inputDataSource;
-        this.outputDataSource = outputDataSource;
+        this.inDataSource = inDataSource;
+        this.outDataSource = outDataSource;
     }
 
     /**
@@ -103,7 +103,7 @@ class InputDataSourceDesc
      * effective input <tt>DataSource</tt> is to be asynchronously connected,
      * the completion of the connect procedure will be reported to the specified
      * <tt>AudioMixer</tt> by calling its
-     * {@link AudioMixer#connected(InputDataSourceDesc)}.
+     * {@link AudioMixer#connected(InDataSourceDesc)}.
      *
      * @param audioMixer the <tt>AudioMixer</tt> requesting the effective input
      * <tt>DataSource</tt> described by this instance to be connected
@@ -113,12 +113,12 @@ class InputDataSourceDesc
     synchronized void connect(final AudioMixer audioMixer)
         throws IOException
     {
-        final DataSource effectiveInputDataSource
+        final DataSource effectiveInDataSource
             = (transcodingDataSource == null)
-                ? inputDataSource
+                ? inDataSource
                 : transcodingDataSource;
 
-        if (effectiveInputDataSource instanceof TranscodingDataSource)
+        if (effectiveInDataSource instanceof TranscodingDataSource)
         {
             if (connectThread == null)
             {
@@ -129,28 +129,26 @@ class InputDataSourceDesc
                     {
                         try
                         {
-                            audioMixer
-                                .connect(
-                                    effectiveInputDataSource,
-                                    inputDataSource);
-                            synchronized (InputDataSourceDesc.this)
+                            audioMixer.connect(
+                                    effectiveInDataSource,
+                                    inDataSource);
+                            synchronized (InDataSourceDesc.this)
                             {
                                 connected = true;
                             }
-                            audioMixer.connected(InputDataSourceDesc.this);
+                            audioMixer.connected(InDataSourceDesc.this);
                         }
                         catch (IOException ioex)
                         {
-                            logger
-                                .error(
-                                    "Failed to connect to inputDataSource "
-                                        + MediaStreamImpl
-                                            .toString(inputDataSource),
+                            logger.error(
+                                    "Failed to connect to inDataSource "
+                                        + MediaStreamImpl.toString(
+                                                inDataSource),
                                     ioex);
                         }
                         finally
                         {
-                            synchronized (InputDataSourceDesc.this)
+                            synchronized (InDataSourceDesc.this)
                             {
                                 if (connectThread == Thread.currentThread())
                                     connectThread = null;
@@ -164,7 +162,7 @@ class InputDataSourceDesc
         }
         else
         {
-            audioMixer.connect(effectiveInputDataSource, inputDataSource);
+            audioMixer.connect(effectiveInDataSource, inDataSource);
             connected = true;
         }
     }
@@ -174,18 +172,18 @@ class InputDataSourceDesc
      * the input <tt>DataSource</tt> described by this instance into a specific
      * output <tt>Format</tt>.
      *
-     * @param outputFormat the <tt>Format</tt> in which the tracks of the input
+     * @param outFormat the <tt>Format</tt> in which the tracks of the input
      * <tt>DataSource</tt> described by this instance are to be transcoded
      * @return <tt>true</tt> if a new transcoding <tt>DataSource</tt> has been
      * created for the input <tt>DataSource</tt> described by this instance;
      * otherwise, <tt>false</tt>
      */
-    synchronized boolean createTranscodingDataSource(Format outputFormat)
+    synchronized boolean createTranscodingDataSource(Format outFormat)
     {
         if (transcodingDataSource == null)
         {
             setTranscodingDataSource(
-                new TranscodingDataSource(inputDataSource, outputFormat));
+                    new TranscodingDataSource(inDataSource, outFormat));
             return true;
         }
         else
@@ -200,7 +198,7 @@ class InputDataSourceDesc
     {
         if (connected)
         {
-            getEffectiveInputDataSource().disconnect();
+            getEffectiveInDataSource().disconnect();
             connected = false;
         }
     }
@@ -218,12 +216,12 @@ class InputDataSourceDesc
      */
     public synchronized Object getControl(String controlType)
     {
-        DataSource effectiveInputDataSource = getEffectiveInputDataSource();
+        DataSource effectiveInDataSource = getEffectiveInDataSource();
 
         return
-            (effectiveInputDataSource == null)
+            (effectiveInDataSource == null)
                 ? null
-                : effectiveInputDataSource.getControl(controlType);
+                : effectiveInDataSource.getControl(controlType);
     }
 
     /**
@@ -235,12 +233,22 @@ class InputDataSourceDesc
      * <tt>AudioMixer</tt> directly reads in order to retrieve the mix
      * contribution of the <tt>DataSource</tt> described by this instance
      */
-    public synchronized DataSource getEffectiveInputDataSource()
+    public synchronized DataSource getEffectiveInDataSource()
     {
         return
             (transcodingDataSource == null)
-                ? inputDataSource
+                ? inDataSource
                 : (connected ? transcodingDataSource : null);
+    }
+
+    /**
+     * Returns this instance's <tt>inDataSource</tt>
+     *
+     * @return this instance's <tt>inDataSource</tt>
+     */
+    public DataSource getInDataSource()
+    {
+        return inDataSource;
     }
 
     /**
@@ -255,16 +263,29 @@ class InputDataSourceDesc
         if (!connected)
             return EMPTY_STREAMS;
 
-        DataSource inputDataSource = getEffectiveInputDataSource();
+        DataSource inDataSource = getEffectiveInDataSource();
 
-        if (inputDataSource instanceof PushBufferDataSource)
-            return ((PushBufferDataSource) inputDataSource).getStreams();
-        else if (inputDataSource instanceof PullBufferDataSource)
-            return ((PullBufferDataSource) inputDataSource).getStreams();
-        else if (inputDataSource instanceof TranscodingDataSource)
-            return ((TranscodingDataSource) inputDataSource).getStreams();
+        if (inDataSource instanceof PushBufferDataSource)
+            return ((PushBufferDataSource) inDataSource).getStreams();
+        else if (inDataSource instanceof PullBufferDataSource)
+            return ((PullBufferDataSource) inDataSource).getStreams();
+        else if (inDataSource instanceof TranscodingDataSource)
+            return ((TranscodingDataSource) inDataSource).getStreams();
         else
             return null;
+    }
+
+    /**
+     * Returns the <tt>TranscodingDataSource</tt> object used in this instance.
+     *
+     * @return the <tt>TranscodingDataSource</tt> object used in this instance.
+     */
+    public TranscodingDataSource getTranscodingDataSource()
+    {
+        return
+            (transcodingDataSource == null)
+                ? null
+                : (TranscodingDataSource) transcodingDataSource;
     }
 
     /**
@@ -294,7 +315,7 @@ class InputDataSourceDesc
         throws IOException
     {
         if (connected)
-            getEffectiveInputDataSource().start();
+            getEffectiveInDataSource().start();
     }
 
     /**
@@ -308,28 +329,6 @@ class InputDataSourceDesc
         throws IOException
     {
         if (connected)
-            getEffectiveInputDataSource().stop();
-    }
-
-    /**
-     * Returns this instance's <tt>inputDataSource</tt>
-     *
-     * @return this instance's <tt>inputDataSource</tt>
-     */
-    public DataSource getInputDataSource()
-    {
-        return inputDataSource;
-    }
-
-    /**
-     * Returns the <tt>TranscodingDataSource</tt> object used in this instance.
-     *
-     * @return the <tt>TranscodingDataSource</tt> object used in this instance.
-     */
-    public TranscodingDataSource getTranscodingDataSource()
-    {
-        return (transcodingDataSource == null)?
-                null
-                : (TranscodingDataSource) transcodingDataSource;
+            getEffectiveInDataSource().stop();
     }
 }

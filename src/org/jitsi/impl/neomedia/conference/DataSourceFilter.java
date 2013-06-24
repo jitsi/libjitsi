@@ -12,11 +12,10 @@ import javax.media.protocol.*;
  * Represents a filter which determines whether a specific <tt>DataSource</tt>
  * is to be selected or deselected by the caller of the filter.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public interface DataSourceFilter
 {
-
     /**
      * Determines whether a specific <tt>DataSource</tt> is accepted by this
      * filter i.e. whether the caller of this filter should include it in its

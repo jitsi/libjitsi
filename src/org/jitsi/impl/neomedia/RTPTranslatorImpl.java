@@ -213,7 +213,6 @@ public class RTPTranslatorImpl
      * Creates {@link #fakeSendStream} if it does not exist yet and is
      * considered necessary; otherwise, does nothing.
      */
-    @SuppressWarnings("unused")
     private synchronized void createFakeSendStreamIfNecessary()
     {
         /*
@@ -225,8 +224,7 @@ public class RTPTranslatorImpl
          * because there is no other remote peer to disperse the received RTP
          * and RTCP to.
          */
-        if (CREATE_FAKE_SEND_STREAM_IF_NECESSARY
-                && (fakeSendStream == null)
+        if ((fakeSendStream == null)
                 && sendStreams.isEmpty()
                 && (streamRTPManagers.size() > 1))
         {
@@ -614,7 +612,14 @@ public class RTPTranslatorImpl
         else if (logger.isTraceEnabled())
             logRTCP(this, "read", buffer, offset, read);
 
-        createFakeSendStreamIfNecessary();
+        /*
+         * TODO A deadlock between PushSourceStreamImpl.removeStreams and
+         * createFakeSendStreamIfNecessary has been reported. Since the latter
+         * method is disabled at the time of this writing, do not even try to
+         * execute it and thus avoid the deadlock in question. 
+         */
+        if (CREATE_FAKE_SEND_STREAM_IF_NECESSARY)
+            createFakeSendStreamIfNecessary();
 
         OutputDataStreamImpl outputStream
             = data

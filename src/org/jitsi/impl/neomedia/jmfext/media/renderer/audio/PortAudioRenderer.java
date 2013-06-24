@@ -61,12 +61,6 @@ public class PortAudioRenderer
     private static final byte FLAG_STARTED = 2;
 
     /**
-     * The constant which expresses a non-existent time in milliseconds for the
-     * purposes of {@link #writeIsMalfunctioningSince}.
-     */
-    private static final long NEVER = DiagnosticsControl.NEVER;
-
-    /**
      * The human-readable name of the <tt>PortAudioRenderer</tt> JMF plug-in.
      */
     private static final String PLUGIN_NAME = "PortAudio Renderer";
@@ -311,7 +305,7 @@ public class PortAudioRenderer
      * <tt>paTimedOut</tt> and/or Windows Multimedia reporting
      * <tt>MMSYSERR_NODRIVER</tt> (may) indicate abnormal functioning.
      */
-    private long writeIsMalfunctioningSince = -1;
+    private long writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
 
     /**
      * Initializes a new <tt>PortAudioRenderer</tt> instance.
@@ -366,7 +360,7 @@ public class PortAudioRenderer
                     started = false;
                     flags &= ~(FLAG_OPEN | FLAG_STARTED);
 
-                    if (writeIsMalfunctioningSince != NEVER)
+                    if (writeIsMalfunctioningSince != DiagnosticsControl.NEVER)
                         setWriteIsMalfunctioning(false);
                 }
                 catch (PortAudioException paex)
@@ -668,7 +662,7 @@ public class PortAudioRenderer
                     * framesPerBuffer;
 
             // Pa_WriteStream has not been invoked yet.
-            if (writeIsMalfunctioningSince != NEVER)
+            if (writeIsMalfunctioningSince != DiagnosticsControl.NEVER)
                 setWriteIsMalfunctioning(false);
         }
     }
@@ -743,7 +737,7 @@ public class PortAudioRenderer
                  * The execution is somewhat abnormal but it is not because of a
                  * malfunction in Pa_WriteStream.
                  */
-                if (writeIsMalfunctioningSince != NEVER)
+                if (writeIsMalfunctioningSince != DiagnosticsControl.NEVER)
                     setWriteIsMalfunctioning(false);
 
                 return BUFFER_PROCESSED_OK;
@@ -788,14 +782,14 @@ public class PortAudioRenderer
                 if (errorCode == Pa.paNoError)
                 {
                     // Pa_WriteStream appears to function normally.
-                    if (writeIsMalfunctioningSince != NEVER)
+                    if (writeIsMalfunctioningSince != DiagnosticsControl.NEVER)
                         setWriteIsMalfunctioning(false);
                 }
                 else if ((Pa.paTimedOut == errorCode)
                         || (Pa.HostApiTypeId.paMME.equals(hostApiType)
                                 && (Pa.MMSYSERR_NODRIVER == errorCode)))
                 {
-                    if (writeIsMalfunctioningSince == NEVER)
+                    if (writeIsMalfunctioningSince == DiagnosticsControl.NEVER)
                         setWriteIsMalfunctioning(true);
                     yield = true;
                 }
@@ -899,21 +893,21 @@ public class PortAudioRenderer
     /**
      * Indicates whether <tt>Pa_WriteStream</tt> is malfunctioning.
      *
-     * @param malfunctioning <tt>true</tt> if <tt>Pa_WriteStream</tt> is
+     * @param writeIsMalfunctioning <tt>true</tt> if <tt>Pa_WriteStream</tt> is
      * malfunctioning; otherwise, <tt>false</tt>
      */
-    private void setWriteIsMalfunctioning(boolean malfunctioning)
+    private void setWriteIsMalfunctioning(boolean writeIsMalfunctioning)
     {
-        if (malfunctioning)
+        if (writeIsMalfunctioning)
         {
-            if (writeIsMalfunctioningSince == NEVER)
+            if (writeIsMalfunctioningSince == DiagnosticsControl.NEVER)
             {
                 writeIsMalfunctioningSince = System.currentTimeMillis();
                 PortAudioSystem.monitorFunctionalHealth(diagnosticsControl);
             }
         }
         else
-            writeIsMalfunctioningSince = NEVER;
+            writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
     }
 
     /**
@@ -953,7 +947,7 @@ public class PortAudioRenderer
                 flags &= ~FLAG_STARTED;
 
                 bufferLeft = null;
-                if (writeIsMalfunctioningSince != NEVER)
+                if (writeIsMalfunctioningSince != DiagnosticsControl.NEVER)
                     setWriteIsMalfunctioning(false);
             }
             catch (PortAudioException paex)

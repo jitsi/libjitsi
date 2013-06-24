@@ -6,6 +6,8 @@
  */
 package org.jitsi.service.neomedia;
 
+import org.jitsi.service.protocol.*;
+
 /**
  * Manages the generation of the inband DMTF signal. A signal is identified by a
  * value (1, 2, 3, 4, 5, 6, 7, 8, 9, *, #, A, B, C and D) and each signal is
@@ -28,154 +30,148 @@ public class DTMFInbandTone
     /**
      * The first set of frequencies in Hz which composes an inband DTMF.
      */
-    private static final double[] frequencyList1 =
-    new double[]
-    {
-        697.0, 770.0, 852.0, 941.0
-    };
+    private static final double[] FREQUENCY_LIST_1
+        = new double[] { 697.0, 770.0, 852.0, 941.0 };
 
     /**
      * The second set of frequencies in Hz which composes an inband DTMF.
      */
-    private static final double[] frequencyList2 =
-    new double[]
-    {
-        1209.0, 1336.0, 1477.0, 1633.0
-    };
+    private static final double[] FREQUENCY_LIST_2
+        = new double[] { 1209.0, 1336.0, 1477.0, 1633.0 };
 
     /**
      * The "0" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_0 = new DTMFInbandTone("0",
-            frequencyList1[3],
-            frequencyList2[1]);
+            FREQUENCY_LIST_1[3],
+            FREQUENCY_LIST_2[1]);
 
     /**
      * The "1" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_1 = new DTMFInbandTone("1",
-            frequencyList1[0],
-            frequencyList2[0]);
+            FREQUENCY_LIST_1[0],
+            FREQUENCY_LIST_2[0]);
 
     /**
      * The "2" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_2 = new DTMFInbandTone("2",
-            frequencyList1[0],
-            frequencyList2[1]);
+            FREQUENCY_LIST_1[0],
+            FREQUENCY_LIST_2[1]);
 
     /**
      * The "3" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_3 = new DTMFInbandTone("3",
-            frequencyList1[0],
-            frequencyList2[2]);
+            FREQUENCY_LIST_1[0],
+            FREQUENCY_LIST_2[2]);
 
     /**
      * The "4" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_4 = new DTMFInbandTone("4",
-            frequencyList1[1],
-            frequencyList2[0]);
+            FREQUENCY_LIST_1[1],
+            FREQUENCY_LIST_2[0]);
 
     /**
      * The "5" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_5 = new DTMFInbandTone("5",
-            frequencyList1[1],
-            frequencyList2[1]);
+            FREQUENCY_LIST_1[1],
+            FREQUENCY_LIST_2[1]);
 
     /**
      * The "6" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_6 = new DTMFInbandTone("6",
-            frequencyList1[1],
-            frequencyList2[2]);
+            FREQUENCY_LIST_1[1],
+            FREQUENCY_LIST_2[2]);
 
     /**
      * The "7" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_7 = new DTMFInbandTone("7",
-            frequencyList1[2],
-            frequencyList2[0]);
+            FREQUENCY_LIST_1[2],
+            FREQUENCY_LIST_2[0]);
 
     /**
      * The "8" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_8 = new DTMFInbandTone("8",
-            frequencyList1[2],
-            frequencyList2[1]);
+            FREQUENCY_LIST_1[2],
+            FREQUENCY_LIST_2[1]);
 
     /**
      * The "9" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_9 = new DTMFInbandTone("9",
-            frequencyList1[2],
-            frequencyList2[2]);
+            FREQUENCY_LIST_1[2],
+            FREQUENCY_LIST_2[2]);
 
     /**
      * The "*" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_STAR =
         new DTMFInbandTone("*",
-            frequencyList1[3],
-            frequencyList2[0]);
+            FREQUENCY_LIST_1[3],
+            FREQUENCY_LIST_2[0]);
 
     /**
      * The "#" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_SHARP =
         new DTMFInbandTone("#",
-            frequencyList1[3],
-            frequencyList2[2]);
+            FREQUENCY_LIST_1[3],
+            FREQUENCY_LIST_2[2]);
 
     /**
      * The "A" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_A = new DTMFInbandTone("A",
-            frequencyList1[0],
-            frequencyList2[3]);
+            FREQUENCY_LIST_1[0],
+            FREQUENCY_LIST_2[3]);
 
     /**
      * The "B" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_B = new DTMFInbandTone("B",
-            frequencyList1[1],
-            frequencyList2[3]);
+            FREQUENCY_LIST_1[1],
+            FREQUENCY_LIST_2[3]);
 
     /**
      * The "C" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_C = new DTMFInbandTone("C",
-            frequencyList1[2],
-            frequencyList2[3]);
+            FREQUENCY_LIST_1[2],
+            FREQUENCY_LIST_2[3]);
 
     /**
      * The "D" DTMF Inband Tone.
      */
     public static final DTMFInbandTone DTMF_INBAND_D = new DTMFInbandTone("D",
-            frequencyList1[3],
-            frequencyList2[3]);
+            FREQUENCY_LIST_1[3],
+            FREQUENCY_LIST_2[3]);
 
     /**
      * The default duration of an inband DTMF tone in ms.
      * 50 ms c.f.
      * http://nemesis.lonestar.org/reference/telecom/signaling/dtmf.html
-     * which cites the norm ANSI T1.401-1988 (but unavailable to me).
-     * But when testing it at 50 ms, the asterisk servers miss some DTMF tone
-     * impulses. Thus, set it up 150 ms.
+     * which cites the norm ANSI T1.401-1988.
+     * But when testing it at 50 ms, the Asterisk servers miss some DTMF tone
+     * impulses. Thus, set up to 150 ms.
      */
-    private static final int toneDuration = 150;
+    private static final int TONE_DURATION = 150;
 
     /**
      * The default duration of an inband DTMF tone in ms.
      * 45 ms c.f.
      * http://nemesis.lonestar.org/reference/telecom/signaling/dtmf.html
-     * which cites the norm ANSI T1.401-1988 (but unavailable to me).
-     * Moreover the minimum duty cycle (signal tone + silence) for
+     * which cites the norm ANSI T1.401-1988.
+     * Moreover, the minimum duty cycle (signal tone + silence) for
      * ANSI-compliance shall be greater or equal to 100 ms.
      */
-    private static final int interDigitInterval = 45;
+    private static final int INTER_DIGIT_INTERVAL = 45;
 
     /**
      * The value which identifies the current inband tone. Available values are
@@ -314,48 +310,46 @@ public class DTMFInbandTone
      * Generates a signal sample for the current tone signal and stores it into
      * the byte data array.
      *
-     * @param samplingFrequency The sampling frequency (codec clock rate) in Hz
-     * of the stream which will encapsulate this signal.
+     * @param sampleRate The sampling frequency (codec clock rate) in Hz of the
+     * stream which will encapsulate this signal.
      * @param sampleSizeInBits The size of each sample (8 for a byte, 16 for a
      * short and 32 for an int)
-     *
      * @return The data array containing the DTMF signal.
      */
-    public int[] getAudioSamples(
-            double samplingFrequency,
-            int sampleSizeInBits)
+    public int[] getAudioSamples(double sampleRate, int sampleSizeInBits)
     {
-        int sampleNumber = 0;
+        /*
+         * TODO Rounding the sampleRate to an integer so early will lead to a
+         * very inaccurate or at least not quite expected number of samples.
+         */
+        int kHz = (int) (sampleRate / 1000.0);
+        int nbToneSamples = kHz * DTMFInbandTone.TONE_DURATION;
+        int nbInterDigitSamples = kHz * DTMFInbandTone.INTER_DIGIT_INTERVAL;
 
-        int nbToneSamples = ((int) (samplingFrequency / 1000.0)) *
-            DTMFInbandTone.toneDuration;
-        int nbInterDigitSamples = ((int) (samplingFrequency / 1000.0)) *
-            DTMFInbandTone.interDigitInterval;
+        int[] samples
+            = new int[nbInterDigitSamples + nbToneSamples + nbInterDigitSamples];
 
-        int[] sampleData =
-            new int[nbInterDigitSamples + nbToneSamples + nbInterDigitSamples];
-
-        while(sampleNumber < nbInterDigitSamples)
+        /*
+         * The leading nbInterDigitSamples should be zeroes. They are because we
+         * have just allocated the array.
+         */
+        for (int sampleNumber = nbInterDigitSamples,
+                    endSampleNumber = nbInterDigitSamples + nbToneSamples;
+                sampleNumber < endSampleNumber;
+                sampleNumber++)
         {
-            sampleData[sampleNumber] = 0;
-            ++sampleNumber;
+            samples[sampleNumber]
+                = getAudioSampleDiscrete(
+                        sampleRate,
+                        sampleNumber,
+                        sampleSizeInBits);
         }
-        while(sampleNumber < nbInterDigitSamples + nbToneSamples)
-        {
-            sampleData[sampleNumber] = getAudioSampleDiscrete(
-                    samplingFrequency,
-                    sampleNumber,
-                    sampleSizeInBits);
+        /*
+         * The trailing nbInterDigitSamples should be zeroes. They are because
+         * we have just allocated the array.
+         */
 
-            ++sampleNumber;
-        }
-        while(sampleNumber < sampleData.length)
-        {
-            sampleData[sampleNumber] = 0;
-            ++sampleNumber;
-        }
-
-        return sampleData;
+        return samples;
     }
 
     /**
@@ -366,58 +360,41 @@ public class DTMFInbandTone
      * @return the corresponding DTMF tone which contains a value as an
      * identifier and two frequencies composing the inband tone.
      */
-    public static DTMFInbandTone
-        mapTone(org.jitsi.service.protocol.DTMFTone tone)
+    public static DTMFInbandTone mapTone(DTMFTone tone)
     {
-        if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_0))
+        if(tone.equals(DTMFTone.DTMF_0))
             return DTMFInbandTone.DTMF_INBAND_0;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_1))
+        else if(tone.equals(DTMFTone.DTMF_1))
             return DTMFInbandTone.DTMF_INBAND_1;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_2))
+        else if(tone.equals(DTMFTone.DTMF_2))
             return DTMFInbandTone.DTMF_INBAND_2;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_3))
+        else if(tone.equals(DTMFTone.DTMF_3))
             return DTMFInbandTone.DTMF_INBAND_3;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_4))
+        else if(tone.equals(DTMFTone.DTMF_4))
             return DTMFInbandTone.DTMF_INBAND_4;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_5))
+        else if(tone.equals(DTMFTone.DTMF_5))
             return DTMFInbandTone.DTMF_INBAND_5;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_6))
+        else if(tone.equals(DTMFTone.DTMF_6))
             return DTMFInbandTone.DTMF_INBAND_6;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_7))
+        else if(tone.equals(DTMFTone.DTMF_7))
             return DTMFInbandTone.DTMF_INBAND_7;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_8))
+        else if(tone.equals(DTMFTone.DTMF_8))
             return DTMFInbandTone.DTMF_INBAND_8;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_9))
+        else if(tone.equals(DTMFTone.DTMF_9))
             return DTMFInbandTone.DTMF_INBAND_9;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_A))
+        else if(tone.equals(DTMFTone.DTMF_A))
             return DTMFInbandTone.DTMF_INBAND_A;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_B))
+        else if(tone.equals(DTMFTone.DTMF_B))
             return DTMFInbandTone.DTMF_INBAND_B;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_C))
+        else if(tone.equals(DTMFTone.DTMF_C))
             return DTMFInbandTone.DTMF_INBAND_C;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_D))
+        else if(tone.equals(DTMFTone.DTMF_D))
             return DTMFInbandTone.DTMF_INBAND_D;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_SHARP))
+        else if(tone.equals(DTMFTone.DTMF_SHARP))
             return DTMFInbandTone.DTMF_INBAND_SHARP;
-        else if(tone.equals(
-            org.jitsi.service.protocol.DTMFTone.DTMF_STAR))
+        else if(tone.equals(DTMFTone.DTMF_STAR))
             return DTMFInbandTone.DTMF_INBAND_STAR;
-
-        return null;
+        else
+            return null;
     }
 }

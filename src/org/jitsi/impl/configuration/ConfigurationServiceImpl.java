@@ -466,7 +466,7 @@ public class ConfigurationServiceImpl
                                  resultKeySet);
 
         //finally, get property names from mutable default property set.
-        if(immutableDefaultProperties.size() > 0)
+        if(defaultProperties.size() > 0)
         {
             propertyNameSet = defaultProperties.keySet();
 
@@ -1559,7 +1559,20 @@ public class ConfigurationServiceImpl
         {
             Properties fileProps = new Properties();
 
-            fileProps.load(ClassLoader.getSystemResourceAsStream(fileName));
+            InputStream fileStream;
+            if(OSUtils.IS_ANDROID)
+            {
+                fileStream
+                        = getClass().getClassLoader()
+                                .getResourceAsStream(fileName);
+            }
+            else
+            {
+                fileStream = ClassLoader.getSystemResourceAsStream(fileName);
+            }
+
+            fileProps.load(fileStream);
+            fileStream.close();
 
             // now get those properties and place them into the mutable and
             // immutable properties maps.
@@ -1575,7 +1588,7 @@ public class ConfigurationServiceImpl
                     continue;
                 }
 
-                if (name.startsWith("!"))
+                if (name.startsWith("*"))
                 {
                     name = name.substring(1);
 
@@ -1605,8 +1618,11 @@ public class ConfigurationServiceImpl
         catch (Exception ex)
         {
             //we can function without defaults so we are just logging those.
-            logger.error("Failed to load property file: "
-                + fileName, ex);
+            logger.info("No defaults property file loaded: " + fileName
+                + ". Not a problem.");
+
+            if(logger.isDebugEnabled())
+                logger.debug("load exception", ex);
         }
     }
 

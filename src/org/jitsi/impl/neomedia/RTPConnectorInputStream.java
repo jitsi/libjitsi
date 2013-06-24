@@ -341,7 +341,8 @@ public abstract class RTPConnectorInputStream
                  * If we got extended, the delivery of the packet may have been
                  * canceled.
                  */
-                if ((pkt != null) && (transferHandler != null) && !closed)
+                if ((pkt != null) && (!pkt.isInvalid())
+                        && (transferHandler != null) && !closed)
                     transferHandler.transferData(this);
             }
         }

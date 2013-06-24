@@ -203,7 +203,7 @@ public class AudioMixerMediaDevice
     @Override
     public AudioMixingPushBufferDataSource createOutputDataSource()
     {
-        return getAudioMixer().createOutputDataSource();
+        return getAudioMixer().createOutDataSource();
     }
 
     /**
@@ -513,7 +513,7 @@ public class AudioMixerMediaDevice
         AudioMixer audioMixer = this.audioMixer;
 
         if (audioMixer != null)
-            audioMixer.removeInputDataSources(dataSourceFilter);
+            audioMixer.removeInDataSources(dataSourceFilter);
     }
 
     /**
@@ -673,7 +673,7 @@ public class AudioMixerMediaDevice
         @Override
         protected DataSource createCaptureDevice()
         {
-            return getAudioMixer().getLocalOutputDataSource();
+            return getAudioMixer().getLocalOutDataSource();
         }
 
         /**
@@ -1044,7 +1044,7 @@ public class AudioMixerMediaDevice
                         .getDataSource();
             if (captureDevice instanceof AudioMixingPushBufferDataSource)
                 ((AudioMixingPushBufferDataSource) captureDevice)
-                    .addInputDataSource(playbackDataSource);
+                    .addInDataSource(playbackDataSource);
 
             audioMixerMediaDeviceSession.addPlaybackDataSource(
                     playbackDataSource);
@@ -1094,7 +1094,7 @@ public class AudioMixerMediaDevice
             if (captureDevice instanceof AudioMixingPushBufferDataSource)
             {
                 ((AudioMixingPushBufferDataSource) captureDevice)
-                    .updateInputDataSource(playbackDataSource);
+                    .updateInDataSource(playbackDataSource);
             }
         }
 

@@ -16,6 +16,7 @@ import java.util.concurrent.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.*;
 import org.jitsi.service.neomedia.*;
@@ -49,6 +50,11 @@ public class WASAPIRenderer
      */
     private static final String PLUGIN_NAME
         = "Windows Audio Session API (WASAPI) Renderer";
+
+    /**
+     * The duration in milliseconds of the endpoint buffer.
+     */
+    private long bufferDuration;
 
     /**
      * The indicator which determines whether the audio stream represented by
@@ -161,6 +167,23 @@ public class WASAPIRenderer
      * an intervening invocation of {@link #stop()}.
      */
     private boolean started;
+
+    /**
+     * The time in milliseconds at which the writing to the render endpoint
+     * buffer has started malfunctioning. For example, {@link #remainder} being
+     * full from the point of view of {@link #process(Buffer)} for an extended
+     * period of time may indicate abnormal functioning.
+     */
+    private long writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
+
+    /**
+     * The maximum interval of time in milliseconds that the writing to the
+     * render endpoint buffer is allowed to be under suspicion that it is
+     * malfunctioning. If it remains under suspicion after the maximum interval
+     * of time has elapsed, the writing to the render endpoing buffer is to be
+     * considered malfunctioning for real. 
+     */
+    private long writeIsMalfunctioningTimeout;
 
     /**
      * Initializes a new <tt>WASAPIRenderer</tt> instance which is to perform
@@ -352,6 +375,7 @@ public class WASAPIRenderer
 
                         int sampleRate = (int) format.getSampleRate();
 
+                        bufferDuration = numBufferFrames * 1000L / sampleRate;
                         /*
                          * We will very likely be inefficient if we fail to
                          * synchronize with the scheduling period of the audio
@@ -359,9 +383,6 @@ public class WASAPIRenderer
                          */
                         if (devicePeriod <= 1)
                         {
-                            long bufferDuration
-                                = numBufferFrames * 1000L / sampleRate;
-
                             devicePeriod = bufferDuration / 2;
                             if ((devicePeriod
                                         > WASAPISystem.DEFAULT_DEVICE_PERIOD)
@@ -387,6 +408,10 @@ public class WASAPIRenderer
                          * of underflow.
                          */
                         remainderLength = remainder.length;
+
+                        writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
+                        writeIsMalfunctioningTimeout
+                            = 2 * Math.max(bufferDuration, devicePeriod);
 
                         this.eventHandle = eventHandle;
                         eventHandle = 0;
@@ -572,6 +597,14 @@ public class WASAPIRenderer
                          */
                         ret |= INPUT_BUFFER_NOT_CONSUMED;
                         sleep = devicePeriod;
+                        /*
+                         * The writing to the render endpoint buffer may or may
+                         * not be malfunctioning, it depends on the interval of
+                         * time that the state remains unchanged.
+                         */
+                        if (writeIsMalfunctioningSince
+                                == DiagnosticsControl.NEVER)
+                            setWriteIsMalfunctioning(true);
                     }
                     else
                     {
@@ -598,11 +631,28 @@ public class WASAPIRenderer
                                 buffer.setOffset(offset + toCopy);
                                 ret |= INPUT_BUFFER_NOT_CONSUMED;
                             }
+
+                            /*
+                             * Writing from the input Buffer into remainder has
+                             * occurred so it does not look like the writing to
+                             * the render endpoint buffer is malfunctioning.
+                             */
+                            if (writeIsMalfunctioningSince
+                                    != DiagnosticsControl.NEVER)
+                                setWriteIsMalfunctioning(false);
                         }
                         else
                         {
                             ret |= INPUT_BUFFER_NOT_CONSUMED;
                             sleep = devicePeriod;
+                            /*
+                             * No writing from the input Buffer into remainder
+                             * has occurred so it is possible that the writing
+                             * to the render endpoint buffer is malfunctioning.
+                             */
+                            if (writeIsMalfunctioningSince
+                                    == DiagnosticsControl.NEVER)
+                                setWriteIsMalfunctioning(true);
                         }
                     }
                 }
@@ -733,6 +783,41 @@ public class WASAPIRenderer
                             // We have consumed frames from remainder.
                             popFromRemainder(written);
                         }
+
+                        if (writeIsMalfunctioningSince
+                                != DiagnosticsControl.NEVER)
+                            setWriteIsMalfunctioning(false);
+                    }
+                }
+
+                /*
+                 * If the writing to the render endpoint buffer is
+                 * malfunctioning, fail the processing of the input Buffer in
+                 * order to avoid blocking of the Codec chain.
+                 */
+                if (((ret & INPUT_BUFFER_NOT_CONSUMED)
+                            == INPUT_BUFFER_NOT_CONSUMED)
+                        && (writeIsMalfunctioningSince
+                                != DiagnosticsControl.NEVER))
+                {
+                    long writeIsMalfunctioningDuration
+                        = System.currentTimeMillis()
+                            - writeIsMalfunctioningSince;
+
+                    if (writeIsMalfunctioningDuration
+                            > writeIsMalfunctioningTimeout)
+                    {
+                        /*
+                         * The writing to the render endpoint buffer has taken
+                         * too long so whatever is in remainder is surely
+                         * out-of-date.
+                         */
+                        remainderLength = 0;
+                        ret = BUFFER_PROCESSED_FAILED;
+                        logger.warn(
+                                "Audio endpoint device appears to be"
+                                    + " malfunctioning: "
+                                    + getLocator());
                     }
                 }
             }
@@ -899,7 +984,14 @@ public class WASAPIRenderer
                             written = 0;
                             logger.error("IAudioRenderClient_Write", hre);
                         }
-                        popFromRemainder(written);
+                        if (written != 0)
+                        {
+                            popFromRemainder(written);
+
+                            if (writeIsMalfunctioningSince
+                                    != DiagnosticsControl.NEVER)
+                                setWriteIsMalfunctioning(false);
+                        }
                     }
                 }
                 finally
@@ -919,6 +1011,11 @@ public class WASAPIRenderer
                 }
                 catch (HResultException hre)
                 {
+                    /*
+                     * WaitForSingleObject will throw HResultException only in
+                     * the case of WAIT_FAILED. Event if it didn't, it would
+                     * still be a failure from our point of view.
+                     */
                     wfso = WAIT_FAILED;
                     logger.error("WaitForSingleObject", hre);
                 }
@@ -926,7 +1023,7 @@ public class WASAPIRenderer
                  * If the function WaitForSingleObject fails once, it will very
                  * likely fail forever. Bail out of a possible busy wait.
                  */
-                if (wfso == WAIT_FAILED)
+                if ((wfso == WAIT_FAILED) || (wfso == WAIT_ABANDONED))
                     break;
             }
             while (true);
@@ -961,6 +1058,26 @@ public class WASAPIRenderer
             srcFrameSize = srcSampleSize * srcChannels;
         }
         return setInputFormat;
+    }
+
+    /**
+     * Indicates whether the writing to the render endpoint buffer is
+     * malfunctioning. Keeps track of the time at which the malfunction has
+     * started.
+     *
+     * @param writeIsMalfunctioning <tt>true</tt> if the writing to the render
+     * endpoint buffer is (believed to be) malfunctioning; otherwise,
+     * <tt>false</tt>
+     */
+    private void setWriteIsMalfunctioning(boolean writeIsMalfunctioning)
+    {
+        if (writeIsMalfunctioning)
+        {
+            if (writeIsMalfunctioningSince == DiagnosticsControl.NEVER)
+                writeIsMalfunctioningSince = System.currentTimeMillis();
+        }
+        else
+            writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
     }
 
     /**
@@ -1076,6 +1193,8 @@ public class WASAPIRenderer
                 started = false;
 
                 waitWhileEventHandleCmd();
+
+                writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
             }
             catch (HResultException hre)
             {

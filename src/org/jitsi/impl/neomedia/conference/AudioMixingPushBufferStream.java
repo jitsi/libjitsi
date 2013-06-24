@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.conference;
 
 import java.io.*;
+import java.util.*;
 
 import javax.media.*;
 import javax.media.format.*;
@@ -35,6 +36,36 @@ public class AudioMixingPushBufferStream
         = Logger.getLogger(AudioMixingPushBufferStream.class);
 
     /**
+     * Gets the maximum possible value for an audio sample of a specific
+     * <tt>AudioFormat</tt>.
+     *
+     * @param outFormat the <tt>AudioFormat</tt> of which to get the maximum
+     * possible value for an audio sample
+     * @return the maximum possible value for an audio sample of the specified
+     * <tt>AudioFormat</tt>
+     * @throws UnsupportedFormatException if the specified <tt>outFormat</tt>
+     * is not supported by the underlying implementation
+     */
+    private static int getMaxOutSample(AudioFormat outFormat)
+        throws UnsupportedFormatException
+    {
+        switch(outFormat.getSampleSizeInBits())
+        {
+        case 8:
+            return Byte.MAX_VALUE;
+        case 16:
+            return Short.MAX_VALUE;
+        case 32:
+            return Integer.MAX_VALUE;
+        case 24:
+        default:
+            throw new UnsupportedFormatException(
+                    "Format.getSampleSizeInBits()",
+                    outFormat);
+        }
+    }
+
+    /**
      * The <tt>AudioMixerPushBufferStream</tt> which reads data from the input
      * <tt>DataSource</tt>s and pushes it to this instance to be mixed.
      */
@@ -51,23 +82,23 @@ public class AudioMixingPushBufferStream
      * The collection of input audio samples still not mixed and read through
      * this <tt>AudioMixingPushBufferStream</tt>.
      */
-    private int[][] inputSamples;
+    private int[][] inSamples;
 
     /**
      * The maximum number of per-stream audio samples available through
-     * <tt>inputSamples</tt>.
+     * <tt>inSamples</tt>.
      */
-    private int maxInputSampleCount;
+    private int maxInSampleCount;
 
     /**
      * The <tt>Object</tt> which synchronizes the access to the data to be read
-     * from this <tt>PushBufferStream</tt> i.e. to {@link #inputSamples},
-     * {@link #maxInputSampleCount} and {@link #timeStamp}.
+     * from this <tt>PushBufferStream</tt> i.e. to {@link #inSamples},
+     * {@link #maxInSampleCount} and {@link #timeStamp}.
      */
     private final Object readSyncRoot = new Object();
 
     /**
-     * The time stamp of {@link #inputSamples} to be reported in the specified
+     * The time stamp of {@link #inSamples} to be reported in the specified
      * <tt>Buffer</tt> when data is read from this instance.
      */
     private long timeStamp;
@@ -93,8 +124,8 @@ public class AudioMixingPushBufferStream
      * input data to not be mixed in the output of the new instance
      */
     AudioMixingPushBufferStream(
-        AudioMixerPushBufferStream audioMixerStream,
-        AudioMixingPushBufferDataSource dataSource)
+            AudioMixerPushBufferStream audioMixerStream,
+            AudioMixingPushBufferDataSource dataSource)
     {
         this.audioMixerStream = audioMixerStream;
         this.dataSource = dataSource;
@@ -111,7 +142,7 @@ public class AudioMixingPushBufferStream
     public boolean endOfStream()
     {
         /*
-         * TODO If the inputSamples haven't been consumed yet, don't report the
+         * TODO If the inSamples haven't been consumed yet, don't report the
          * end of this stream even if the wrapped stream has reached its end.
          */
         return audioMixerStream.endOfStream();
@@ -171,117 +202,101 @@ public class AudioMixingPushBufferStream
     }
 
     /**
-     * Gets the maximum possible value for an audio sample of a specific
-     * <tt>AudioFormat</tt>.
-     *
-     * @param outputFormat the <tt>AudioFormat</tt> of which to get the maximum
-     * possible value for an audio sample
-     * @return the maximum possible value for an audio sample of the specified
-     * <tt>AudioFormat</tt>
-     * @throws UnsupportedFormatException if the specified <tt>outputFormat</tt>
-     * is not supported by the underlying implementation
-     */
-    private static int getMaxOutputSample(AudioFormat outputFormat)
-        throws UnsupportedFormatException
-    {
-        switch(outputFormat.getSampleSizeInBits())
-        {
-        case 8:
-            return Byte.MAX_VALUE;
-        case 16:
-            return Short.MAX_VALUE;
-        case 32:
-            return Integer.MAX_VALUE;
-        case 24:
-        default:
-            throw
-                new UnsupportedFormatException(
-                        "Format.getSampleSizeInBits()",
-                        outputFormat);
-        }
-    }
-
-    /**
      * Mixes as in audio mixing a specified collection of audio sample sets and
      * returns the resulting mix audio sample set in a specific
      * <tt>AudioFormat</tt>.
      *
-     * @param inputSamples the collection of audio sample sets to be mixed into
+     * @param inSamples the collection of audio sample sets to be mixed into
      * one audio sample set in the sense of audio mixing
-     * @param outputFormat the <tt>AudioFormat</tt> in which the resulting mix
-     * audio sample set is to be produced
-     * @param outputSampleCount the size of the resulting mix audio sample set
+     * @param outFormat the <tt>AudioFormat</tt> in which the resulting mix
+     * audio sample set is to be produced. The <tt>format</tt> property of the
+     * specified <tt>outBuffer</tt> is expected to be set to the same value but
+     * it is provided as a method argument in order to avoid casting from
+     * <tt>Format</tt> to <tt>AudioFormat</tt>.
+     * @param outSampleCount the size of the resulting mix audio sample set
      * to be produced
      * @return the resulting audio sample set of the audio mixing of the
      * specified input audio sample sets
      */
-    private static int[] mix(
-        int[][] inputSamples,
-        AudioFormat outputFormat,
-        int outputSampleCount)
+    private int[] mix(
+            int[][] inSamples,
+            AudioFormat outFormat,
+            int outSampleCount)
     {
-        int[] outputSamples = new int[outputSampleCount];
+        int[] outSamples
+            = dataSource.audioMixer.intArrayCache.allocateIntArray(
+                    outSampleCount);
 
         /*
          * The trivial case of performing audio mixing the audio of a single
          * stream. Then there is nothing to mix and the input becomes the
          * output.
          */
-        if (inputSamples.length == 1)
+        if ((inSamples.length == 1) || (inSamples[1] == null))
         {
-            int[] inputStreamSamples = inputSamples[0];
+            int[] inStreamSamples = inSamples[0];
+            int inStreamSampleCount;
 
-            if (inputStreamSamples != null)
+            if (inStreamSamples == null)
             {
-                System.arraycopy(
-                        inputStreamSamples, 0,
-                        outputSamples, 0,
-                        inputStreamSamples.length);
+                inStreamSampleCount = 0;
             }
-            return outputSamples;
+            else
+            {
+                inStreamSampleCount
+                    = Math.min(inStreamSamples.length, outSampleCount);
+                System.arraycopy(
+                        inStreamSamples, 0,
+                        outSamples, 0,
+                        inStreamSampleCount);
+            }
+            if (inStreamSampleCount != outSampleCount)
+                Arrays.fill(outSamples, inStreamSampleCount, outSampleCount, 0);
+            return outSamples;
         }
 
-        int maxOutputSample;
+        int maxOutSample;
 
         try
         {
-            maxOutputSample = getMaxOutputSample(outputFormat);
+            maxOutSample = getMaxOutSample(outFormat);
         }
         catch (UnsupportedFormatException ufex)
         {
             throw new UnsupportedOperationException(ufex);
         }
 
-        for (int[] inputStreamSamples : inputSamples)
+        Arrays.fill(outSamples, 0, outSampleCount, 0);
+        for (int[] inStreamSamples : inSamples)
         {
-            if (inputStreamSamples == null)
+            if (inStreamSamples == null)
                 continue;
 
-            int inputStreamSampleCount = inputStreamSamples.length;
+            int inStreamSampleCount
+                = Math.min(inStreamSamples.length, outSampleCount);
 
-            if (inputStreamSampleCount <= 0)
+            if (inStreamSampleCount == 0)
                 continue;
 
-            for (int i = 0; i < inputStreamSampleCount; i++)
+            for (int i = 0; i < inStreamSampleCount; i++)
             {
-                int inputStreamSample = inputStreamSamples[i];
-                int outputSample = outputSamples[i];
+                int inStreamSample = inStreamSamples[i];
+                int outSample = outSamples[i];
 
-                outputSamples[i]
-                    = inputStreamSample
-                            + outputSample
-                            - Math.round(
-                                    inputStreamSample
-                                        * (outputSample
-                                                / (float) maxOutputSample));
+                outSamples[i]
+                    = inStreamSample
+                        + outSample
+                        - Math.round(
+                                inStreamSample
+                                    * (outSample / (float) maxOutSample));
             }
         }
-        return outputSamples;
+        return outSamples;
     }
 
     /**
      * Implements {@link PushBufferStream#read(Buffer)}. If
-     * <tt>inputSamples</tt> are available, mixes them and writes the mix to the
+     * <tt>inSamples</tt> are available, mixes them and writes the mix to the
      * specified <tt>Buffer</tt> performing the necessary data type conversions.
      *
      * @param buffer the <tt>Buffer</tt> to receive the data read from this
@@ -292,77 +307,76 @@ public class AudioMixingPushBufferStream
     public void read(Buffer buffer)
         throws IOException
     {
-        int[][] inputSamples;
-        int maxInputSampleCount;
+        int[][] inSamples;
+        int maxInSampleCount;
         long timeStamp;
 
         synchronized (readSyncRoot)
         {
-            inputSamples = this.inputSamples;
-            maxInputSampleCount = this.maxInputSampleCount;
+            inSamples = this.inSamples;
+            maxInSampleCount = this.maxInSampleCount;
             timeStamp = this.timeStamp;
 
-            this.inputSamples = null;
-            this.maxInputSampleCount = 0;
+            this.inSamples = null;
+            this.maxInSampleCount = 0;
             this.timeStamp = Buffer.TIME_UNKNOWN;
         }
 
-        int inputSampleCount = (inputSamples == null) ? 0 : inputSamples.length;
-
-        if ((inputSampleCount == 0)
-                || (maxInputSampleCount <= 0))
+        if ((inSamples == null)
+                || (inSamples.length == 0)
+                || (maxInSampleCount <= 0))
         {
-            buffer.setLength(0);
+            buffer.setDiscard(true);
             return;
         }
 
-        AudioFormat outputFormat = getFormat();
-        int[] outputSamples
-            = mix(inputSamples, outputFormat, maxInputSampleCount);
+        AudioFormat outFormat = getFormat();
+        int[] outSamples = mix(inSamples, outFormat, maxInSampleCount);
+        int outSampleCount = Math.min(maxInSampleCount, outSamples.length);
 
-        Class<?> outputDataType = outputFormat.getDataType();
-
-        if (Format.byteArray.equals(outputDataType))
+        if (Format.byteArray.equals(outFormat.getDataType()))
         {
-            byte[] outputData = null;
+            int outLength;
             Object o = buffer.getData();
-            if (o instanceof byte[])
-                outputData = (byte[]) o;
+            byte[] outData = null;
 
-            switch (outputFormat.getSampleSizeInBits())
+            if (o instanceof byte[])
+                outData = (byte[]) o;
+
+            switch (outFormat.getSampleSizeInBits())
             {
             case 16:
-                if (outputData == null ||
-                        outputData.length < outputSamples.length * 2)
-                    outputData = new byte[outputSamples.length * 2];
-                for (int i = 0; i < outputSamples.length; i++)
-                    ArrayIOUtils.writeInt16(outputSamples[i], outputData, i * 2);
+                outLength = outSampleCount * 2;
+                if ((outData == null) || (outData.length < outLength))
+                    outData = new byte[outLength];
+                for (int i = 0; i < outSampleCount; i++)
+                    ArrayIOUtils.writeInt16(outSamples[i], outData, i * 2);
                 break;
             case 32:
-                if (outputData == null ||
-                        outputData.length < outputSamples.length * 4)
-                    outputData = new byte[outputSamples.length * 4];
-                for (int i = 0; i < outputSamples.length; i++)
-                    writeInt(outputSamples[i], outputData, i * 4);
+                outLength = outSampleCount * 4;
+                if ((outData == null) || (outData.length < outLength))
+                    outData = new byte[outLength];
+                for (int i = 0; i < outSampleCount; i++)
+                    ArrayIOUtils.writeInt(outSamples[i], outData, i * 4);
                 break;
             case 8:
             case 24:
             default:
-                throw
-                    new UnsupportedOperationException(
-                            "AudioMixingPushBufferStream.read(Buffer)");
+                throw new UnsupportedOperationException(
+                        "AudioMixingPushBufferStream.read(Buffer)");
             }
 
-            buffer.setData(outputData);
-            buffer.setFormat(outputFormat);
-            buffer.setLength(outputData.length);
+            buffer.setData(outData);
+            buffer.setFormat(outFormat);
+            buffer.setLength(outLength);
             buffer.setOffset(0);
             buffer.setTimeStamp(timeStamp);
         }
         else
-            throw
-                new UnsupportedOperationException(
-                        "AudioMixingPushBufferStream.read(Buffer)");
+        {
+            throw new UnsupportedOperationException(
+                    "AudioMixingPushBufferStream.read(Buffer)");
+        }
     }
 
     /**
@@ -370,22 +384,19 @@ public class AudioMixingPushBufferStream
      * audio mixing by this stream when data is read from it. Triggers a push to
      * the clients of this stream.
      *
-     * @param inputSamples the collection of audio sample sets to be mixed by
+     * @param inSamples the collection of audio sample sets to be mixed by
      * this stream when data is read from it
-     * @param maxInputSampleCount the maximum number of per-stream audio samples
-     * available through <tt>inputSamples</tt>
-     * @param timeStamp the time stamp of <tt>inputSamples</tt> to be reported
+     * @param maxInSampleCount the maximum number of per-stream audio samples
+     * available through <tt>inSamples</tt>
+     * @param timeStamp the time stamp of <tt>inSamples</tt> to be reported
      * in the specified <tt>Buffer</tt> when data is read from this instance
      */
-    void setInputSamples(
-            int[][] inputSamples,
-            int maxInputSampleCount,
-            long timeStamp)
+    void setInSamples(int[][] inSamples, int maxInSampleCount, long timeStamp)
     {
         synchronized (readSyncRoot)
         {
-            this.inputSamples = inputSamples;
-            this.maxInputSampleCount = maxInputSampleCount;
+            this.inSamples = inSamples;
+            this.maxInSampleCount = maxInSampleCount;
         }
 
         BufferTransferHandler transferHandler = this.transferHandler;
@@ -417,13 +428,10 @@ public class AudioMixingPushBufferStream
     synchronized void start()
         throws IOException
     {
-        audioMixerStream.addOutputStream(this);
+        audioMixerStream.addOutStream(this);
         if (logger.isTraceEnabled())
-            logger
-                .trace(
-                    "Started "
-                        + getClass().getSimpleName()
-                        + " with hashCode "
+            logger.trace(
+                    "Started " + getClass().getSimpleName() + " with hashCode "
                         + hashCode());
     }
 
@@ -436,32 +444,10 @@ public class AudioMixingPushBufferStream
     synchronized void stop()
         throws IOException
     {
-        audioMixerStream.removeOutputStream(this);
+        audioMixerStream.removeOutStream(this);
         if (logger.isTraceEnabled())
-            logger
-                .trace(
-                    "Stopped "
-                        + getClass().getSimpleName()
-                        + " with hashCode "
+            logger.trace(
+                    "Stopped " + getClass().getSimpleName() + " with hashCode "
                         + hashCode());
-    }
-
-    /**
-     * Converts an integer to a series of bytes and writes the result into a
-     * specific output array of bytes starting the writing at a specific offset
-     * in it.
-     *
-     * @param input the integer to be written out as a series of bytes
-     * @param output the output to receive the conversion of the specified
-     * integer to a series of bytes
-     * @param outputOffset the offset in <tt>output</tt> at which the writing of
-     * the result of the conversion is to be started
-     */
-    private static void writeInt(int input, byte[] output, int outputOffset)
-    {
-        output[outputOffset] = (byte) (input & 0xFF);
-        output[outputOffset + 1] = (byte) ((input >>> 8) & 0xFF);
-        output[outputOffset + 2] = (byte) ((input >>> 16) & 0xFF);
-        output[outputOffset + 3] = (byte) (input >> 24);
     }
 }

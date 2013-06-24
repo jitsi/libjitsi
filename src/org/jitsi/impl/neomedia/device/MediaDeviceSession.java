@@ -1808,9 +1808,7 @@ public class MediaDeviceSession
         DataSource captureDevice = this.captureDevice;
 
         if (captureDevice instanceof InbandDTMFDataSource)
-        {
             ((InbandDTMFDataSource) captureDevice).addDTMF(tone);
-        }
     }
 
     /**
