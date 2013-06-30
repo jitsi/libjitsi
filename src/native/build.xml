@@ -384,49 +384,56 @@
       <compilerarg value="-std=c99" />
       <compilerarg value="-Wall" />
 
+      <linkerarg value="-lmsdmo" location="end" />
       <linkerarg value="-lole32" location="end" />
       <linkerarg value="-m32" if="cross_32" />
       <linkerarg value="-m64" if="cross_64" />
       <linkerarg value="-ojnwasapi.dll" />
+      <linkerarg value="-static-libgcc" />
+      <linkerarg value="-Wl,--as-needed" />
       <linkerarg value="-Wl,--kill-at" />
 
       <fileset dir="${src}/native/windows/wasapi" includes="*.c"/>
     </cc>
   </target>
 
-	  <!-- compile jndirectshow library -->
-	  <target name="directshow" description="Build jndirectshow shared library" if="is.running.windows"
-	    depends="init-native">
-	    <cc
-	        name="g++"
-	        objdir="${obj}"
-	        outfile="${native_install_dir}/jndirectshow"
-	        outtype="shared">
-	      <compilerarg value="-DCOBJMACROS" />
-	      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
-	      <compilerarg value="-D_WIN32_WINNT=0x0502" />
-	      <compilerarg value="-DWINVER=0x0502" />
-	      <compilerarg value="-m32" if="cross_32" />
-	      <compilerarg value="-m64" if="cross_64" />
-	      <compilerarg value="-I${system.JAVA_HOME}/include" />
-	      <compilerarg value="-I${system.JAVA_HOME}/include/win32" />
-	      <compilerarg value="-O2" />
-	      <compilerarg value="-Wall" />
+    <!-- compile jndirectshow library -->
+    <target name="directshow" description="Build jndirectshow shared library" if="is.running.windows"
+      depends="init-native">
+      <cc
+          name="g++"
+          objdir="${obj}"
+          outfile="${native_install_dir}/jndirectshow"
+          outtype="shared">
+        <compilerarg value="-DCOBJMACROS" />
+        <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+        <compilerarg value="-D_WIN32_WINNT=0x0502" />
+        <compilerarg value="-DWINVER=0x0502" />
+          <compilerarg value="-fno-exceptions" />
+          <compilerarg value="-fno-rtti" />
+        <compilerarg value="-m32" if="cross_32" />
+        <compilerarg value="-m64" if="cross_64" />
+        <compilerarg value="-I${system.JAVA_HOME}/include" />
+        <compilerarg value="-I${system.JAVA_HOME}/include/win32" />
+        <compilerarg value="-O2" />
+        <compilerarg value="-Wall" />
 
-	      <linkerarg value="-lole32" location="end" />
-		  <linkerarg value="-loleaut32" location="end" />
-		  <linkerarg value="-lstrmiids" location="end" />
-		  <linkerarg value="-luuid" location="end" />
-	      <linkerarg value="-Wl,-Bstatic" location="end" />
-	      <linkerarg value="-lstdc++" location="end" />
-	      <linkerarg value="-m32" if="cross_32" />
-	      <linkerarg value="-m64" if="cross_64" />
-	      <linkerarg value="-ojndirectshow.dll" />
-	      <linkerarg value="-Wl,--kill-at" />
+        <linkerarg value="-lole32" location="end" />
+        <linkerarg value="-loleaut32" location="end" />
+        <linkerarg value="-lstrmiids" location="end" />
+        <linkerarg value="-luuid" location="end" />
+        <linkerarg value="-Wl,-Bstatic" location="end" />
+        <linkerarg value="-lstdc++" location="end" />
+        <linkerarg value="-m32" if="cross_32" />
+        <linkerarg value="-m64" if="cross_64" />
+        <linkerarg value="-ojndirectshow.dll" />
+        <linkerarg value="-static-libgcc" />
+        <linkerarg value="-Wl,--as-needed" />
+        <linkerarg value="-Wl,--kill-at" />
 
-	      <fileset dir="${src}/native/windows/directshow" includes="*.cpp"/>
-	    </cc>
-	  </target>
+        <fileset dir="${src}/native/windows/directshow" includes="*.cpp"/>
+      </cc>
+    </target>
 
   <!-- compile jnportaudio library -->
   <target name="portaudio" description="Build jnportaudio shared library" depends="init-native">
