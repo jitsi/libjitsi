@@ -149,19 +149,17 @@ public abstract class Devices
     /**
      * Gets the selected active device.
      *
-     * @param locator The string representation of the locator.
-     * @param activeDevices The list of the active devices.
-     *
-     * @return The selected active device.
+     * @param activeDevices the list of the active devices
+     * @return the selected active device
      */
     public CaptureDeviceInfo2 getSelectedDevice(
-            String locator,
             List<CaptureDeviceInfo2> activeDevices)
     {
         if (activeDevices != null)
         {
             String property = getPropDevice();
-            loadDevicePreferences(locator, property);
+
+            loadDevicePreferences(property);
             renameOldFashionedIdentifier(activeDevices);
 
             // Search if an active device is a new one (is not stored in the
@@ -192,11 +190,7 @@ public abstract class Devices
 
                     // Adds the device in the preference list (to the end of the
                     // list, or on top if selected.
-                    saveDevice(
-                            locator,
-                            property,
-                            activeDevice,
-                            isSelected);
+                    saveDevice(property, activeDevice, isSelected);
                 }
             }
 
@@ -235,55 +229,41 @@ public abstract class Devices
      * Loads device name ordered with user's preference from the
      * <tt>ConfigurationService</tt>.
      *
-     * @param locator The string representation of the locator.
      * @param property the name of the <tt>ConfigurationService</tt> property
      * which specifies the user's preference.
      */
-    private void loadDevicePreferences(String locator, String property)
+    private void loadDevicePreferences(String property)
     {
         ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
         {
-            String new_property
-                = DeviceConfiguration.PROP_AUDIO_SYSTEM
-                    + "."
-                    + locator
-                    + "."
-                    + property
-                    + "_list";
-
-            String deviceIdentifiersString = cfg.getString(new_property);
+            String newProperty
+                = audioSystem.getPropertyName(property + "_list");
+            String deviceIdentifiersString = cfg.getString(newProperty);
 
             synchronized(devicePreferences)
             {
                 if (deviceIdentifiersString != null)
                 {
                     devicePreferences.clear();
-                    // We must parse the string in order to load the device
-                    // list.
-                    String[] deviceIdentifiers = deviceIdentifiersString
-                        .substring(2, deviceIdentifiersString.length() - 2)
-                        .split("\", \"");
-                    for(int i = 0; i < deviceIdentifiers.length; ++i)
-                    {
-                        devicePreferences.add(deviceIdentifiers[i]);
-                    }
+                    // Parse the string into a device list.
+                    String[] deviceIdentifiers
+                        = deviceIdentifiersString
+                            .substring(2, deviceIdentifiersString.length() - 2)
+                                .split("\", \"");
+
+                    for (String deviceIdentifier : deviceIdentifiers)
+                        devicePreferences.add(deviceIdentifier);
                 }
-                // Else, use the old property to load the last preferred device.
-                // This whole "else" block may be removed in the future.
                 else
                 {
-                    String old_property
-                        = DeviceConfiguration.PROP_AUDIO_SYSTEM
-                        + "."
-                        + locator
-                        + "."
-                        + property;
+                    // Use the old/legacy property to load the last preferred
+                    // device.
+                    String oldProperty = audioSystem.getPropertyName(property);
 
-                    deviceIdentifiersString = cfg.getString(old_property);
-
-                    if (deviceIdentifiersString != null
+                    deviceIdentifiersString = cfg.getString(oldProperty);
+                    if ((deviceIdentifiersString != null)
                             && !NoneAudioSystem.LOCATOR_PROTOCOL
                                 .equalsIgnoreCase(deviceIdentifiersString))
                     {
@@ -346,7 +326,6 @@ public abstract class Devices
     /**
      * Saves the new selected device in top of the user preferences.
      *
-     * @param locator The string representation of the locator.
      * @param property the name of the <tt>ConfigurationService</tt> property
      * into which the user's preference with respect to the specified
      * <tt>CaptureDeviceInfo</tt> is to be saved
@@ -354,7 +333,6 @@ public abstract class Devices
      * @param isSelected True if the device is the selected one.
      */
     private void saveDevice(
-            String locator,
             String property,
             CaptureDeviceInfo2 device,
             boolean isSelected)
@@ -370,39 +348,33 @@ public abstract class Devices
                 isSelected);
 
         // Saves the user preferences.
-        writeDevicePreferences(locator, property);
+        writeDevicePreferences(property);
     }
 
     /**
      * Selects the active device.
      *
-     * @param locator The string representation of the locator.
-     * @param device The selected active device.
-     * @param save Flag set to true in order to save this choice in the
-     * configuration. False otherwise.
+     * @param device the selected active device
+     * @param save <tt>true</tt> to save the choice in the configuration;
+     * <tt>false</tt>, otherwise
      */
     public void setDevice(
-            String locator,
             CaptureDeviceInfo2 device,
             boolean save)
     {
         // Checks if there is a change.
         if ((device == null) || !device.equals(this.device))
         {
+            String property = getPropDevice();
             CaptureDeviceInfo2 oldValue = this.device;
 
             // Saves the new selected device in top of the user preferences.
             if (save)
-            {
-                saveDevice(
-                        locator,
-                        getPropDevice(),
-                        device,
-                        true);
-            }
+                saveDevice(property, device, true);
+
             this.device = device;
 
-            audioSystem.propertyChange(getPropDevice(), oldValue, this.device);
+            audioSystem.propertyChange(property, oldValue, this.device);
         }
     }
 
@@ -424,20 +396,15 @@ public abstract class Devices
     /**
      * Saves the device preferences and write it to the configuration file.
      *
-     * @param locator The string representation of the locator.
      * @param property the name of the <tt>ConfigurationService</tt> property
      */
-    private void writeDevicePreferences(String locator, String property)
+    private void writeDevicePreferences(String property)
     {
         ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
         {
-            property
-                = DeviceConfiguration.PROP_AUDIO_SYSTEM
-                    + "." + locator
-                    + "." + property
-                    + "_list";
+            property = audioSystem.getPropertyName(property + "_list");
 
             StringBuilder value = new StringBuilder("[\"");
 

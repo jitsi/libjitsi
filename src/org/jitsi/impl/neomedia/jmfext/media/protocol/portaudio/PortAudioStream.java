@@ -387,34 +387,47 @@ public class PortAudioStream
                         Format.NOT_SPECIFIED /* frameRate */,
                         Format.byteArray);
 
-        MediaServiceImpl mediaServiceImpl
-            = NeomediaServiceUtils.getMediaServiceImpl();
-        boolean denoise = DeviceConfiguration.DEFAULT_AUDIO_DENOISE;
-        boolean echoCancel = DeviceConfiguration.DEFAULT_AUDIO_ECHOCANCEL;
+        boolean denoise = false;
+        boolean echoCancel = false;
         long echoCancelFilterLengthInMillis
             = DeviceConfiguration
                 .DEFAULT_AUDIO_ECHOCANCEL_FILTER_LENGTH_IN_MILLIS;
 
-        if (mediaServiceImpl != null)
+        if (audioQualityImprovement)
         {
-            DeviceConfiguration devCfg
-                = mediaServiceImpl.getDeviceConfiguration();
+            AudioSystem audioSystem
+                = AudioSystem.getAudioSystem(
+                        AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO);
 
-            if (devCfg != null)
+            if (audioSystem != null)
             {
-                denoise = devCfg.isDenoise();
-                echoCancel = devCfg.isEchoCancel();
-                echoCancelFilterLengthInMillis
-                    = devCfg.getEchoCancelFilterLengthInMillis();
+                denoise = audioSystem.isDenoise();
+                echoCancel = audioSystem.isEchoCancel();
+
+                if (echoCancel)
+                {
+                    MediaServiceImpl mediaServiceImpl
+                        = NeomediaServiceUtils.getMediaServiceImpl();
+
+                    if (mediaServiceImpl != null)
+                    {
+                        DeviceConfiguration devCfg
+                            = mediaServiceImpl.getDeviceConfiguration();
+
+                        if (devCfg != null)
+                        {
+                            echoCancelFilterLengthInMillis
+                                = devCfg.getEchoCancelFilterLengthInMillis();
+                        }
+                    }
+                }
             }
         }
 
-        Pa.setDenoise(stream, audioQualityImprovement && denoise);
+        Pa.setDenoise(stream, denoise);
         Pa.setEchoFilterLengthInMillis(
                 stream,
-                (audioQualityImprovement && echoCancel)
-                    ? echoCancelFilterLengthInMillis
-                    : 0);
+                echoCancel ? echoCancelFilterLengthInMillis : 0);
 
         // Pa_ReadStream has not been invoked yet.
         if (readIsMalfunctioningSince != NEVER)
