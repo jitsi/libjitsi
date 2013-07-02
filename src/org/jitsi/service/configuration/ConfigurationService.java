@@ -22,7 +22,7 @@ public interface ConfigurationService
 {
     /**
      * The name of the property that indicates the name of the directory where
-     * SIP Communicator is to store user specific data such as configuration
+     * Jitsi is to store user specific data such as configuration
      * files, message and call history as well as is bundle repository.
      */
     public static final String PNAME_SC_HOME_DIR_NAME
@@ -30,7 +30,7 @@ public interface ConfigurationService
 
     /**
      * The name of the property that indicates the location of the directory
-     * where SIP Communicator is to store user specific data such as
+     * where Jitsi is to store user specific data such as
      * configuration files, message and call history as well as is bundle
      * repository.
      */
@@ -428,24 +428,34 @@ public interface ConfigurationService
     public void purgeStoredConfiguration();
 
     /**
-     * Returns the name of the directory where SIP Communicator is to store user
+     * Returns the name of the directory where Jitsi is to store user
      * specific data such as configuration files, message and call history
      * as well as is bundle repository.
      *
-     * @return the name of the directory where SIP Communicator is to store
+     * @return the name of the directory where Jitsi is to store
      * user specific data such as configuration files, message and call history
      * as well as is bundle repository.
      */
     public String getScHomeDirName();
 
     /**
-     * Returns the location of the directory where SIP Communicator is to store
+     * Returns the location of the directory where Jitsi is to store
      * user specific data such as configuration files, message and call history
      * as well as is bundle repository.
      *
-     * @return the location of the directory where SIP Communicator is to store
+     * @return the location of the directory where Jitsi is to store
      * user specific data such as configuration files, message and call history
      * as well as is bundle repository.
      */
     public String getScHomeDirLocation();
+
+    /**
+     * Use with caution!
+     * Returns the name of the configuration file currently
+     * used. Placed in HomeDirLocation/HomeDirName
+     * {@link #getScHomeDirLocation()}
+     * {@link #getScHomeDirName()}
+     * @return  the name of the configuration file currently used.
+     */
+    public String getConfigurationFilename();
 }

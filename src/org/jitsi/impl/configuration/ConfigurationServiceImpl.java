@@ -780,6 +780,29 @@ public class ConfigurationServiceImpl
     }
 
     /**
+     * Use with caution! Returns the name of the configuration file currently
+     * used. Placed in HomeDirLocation/HomeDirName
+     * {@link #getScHomeDirLocation()}
+     * {@link #getScHomeDirName()}
+     * @return  the name of the configuration file currently used.
+     */
+    public String getConfigurationFilename()
+    {
+        try
+        {
+            File file =  getConfigurationFile();
+            if(file != null)
+                return file.getName();
+        }
+        catch(IOException ex)
+        {
+            logger.error("Error loading configuration file", ex);
+        }
+
+        return null;
+    }
+
+    /**
      * Returns the configuration file currently used by the implementation.
      * If there is no such file or this is the first time we reference it
      * a new one is created.
