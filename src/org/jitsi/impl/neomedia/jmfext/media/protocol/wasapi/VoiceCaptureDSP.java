@@ -42,14 +42,115 @@ public class VoiceCaptureDSP
     public static final String IID_IPropertyStore
         = "{886d8eeb-8cf2-4446-8d02-cdba1dbdcf99}";
 
+    /**
+     * The <tt>Logger</tt> used by the <tt>VoiceCaptureDSP</tt> class to print
+     * out debugging information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(VoiceCaptureDSP.class);
+
     public static final String MEDIASUBTYPE_PCM
         = "{00000001-0000-0010-8000-00AA00389B71}";
 
     public static final String MEDIATYPE_Audio
         = "{73647561-0000-0010-8000-00aa00389b71}";
 
+    /**
+     * Specifies whether the Voice Capture DSP uses source mode (<tt>true</tt>)
+     * or filter mode (<tt>false</tt>). In source mode, the application does not
+     * need to send input data to the DSP, because the DSP automatically pulls
+     * data from the audio devices. In filter mode, the application must send
+     * the input data to the DSP.
+     */
     public static final long MFPKEY_WMAAECMA_DMO_SOURCE_MODE;
 
+    /**
+     * Specifies how many times the Voice Capture DSP performs acoustic echo
+     * suppression (AES) on the residual signal. The Voice Capture DSP can
+     * perform AES on the residual signal after echo cancellation. This
+     * <tt>int</tt> property can have the value <tt>0</tt>, <tt>1</tt>, or
+     * <tt>2</tt>. The default value is <tt>0</tt>. Before setting this
+     * property, you must set the {@link #MFPKEY_WMAAECMA_FEATURE_MODE} property
+     * to <tt>true</tt>. The DSP uses this property only when AEC processing is
+     * enabled.
+     */
+    public static final long MFPKEY_WMAAECMA_FEATR_AES;
+
+    /**
+     * Specifies whether the Voice Capture DSP performs automatic gain control.
+     * Automatic gain control is a digital signal processing (DSP) component
+     * that adjusts the gain so that the output level of the signal remains
+     * within the same approximate range. The default value of this property is
+     * <tt>false</tt> (i.e. disabled). Before setting this property, you must
+     * set the {@link #MFPKEY_WMAAECMA_FEATURE_MODE} property to <tt>true</tt>.
+     */
+    public static final long MFPKEY_WMAAECMA_FEATR_AGC;
+
+    /**
+     * Specifies whether the Voice Capture DSP performs center clipping. Center
+     * clipping is a process that removes small echo residuals that remain after
+     * AEC processing, in single-talk situations (when speech occurs only on one
+     * end of the line). The default value of this property is <tt>true</tt>
+     * (i.e. enabled). Before setting this property, you must set the
+     * {@link #MFPKEY_WMAAECMA_FEATURE_MODE} property to <tt>true</tt>. The DSP
+     * uses this property only when AEC processing is enabled.
+     */
+    public static final long MFPKEY_WMAAECMA_FEATR_CENTER_CLIP;
+
+    /**
+     * Specifies the duration of echo that the acoustic echo cancellation (AEC)
+     * algorithm can handle, in milliseconds. The AEC algorithm uses an adaptive
+     * filter whose length is determined by the duration of the echo. It is
+     * recommended that applications use one of the following <tt>int</tt>
+     * values: <tt>128</tt>, <tt>256</tt>, <tt>512</tt>, <tt>1024</tt>. The
+     * default value is <tt>256</tt> milliseconds, which is sufficient for most
+     * office and home environments. Before setting this property, you must set
+     * the {@link #MFPKEY_WMAAECMA_FEATURE_MODE} property to <tt>true</tt>. The
+     * DSP uses this property only when AEC processing is enabled.
+     */
+    public static final long MFPKEY_WMAAECMA_FEATR_ECHO_LENGTH;
+
+    /**
+     * Specifies whether the Voice Capture DSP performs noise filling. Noise
+     * filling adds a small amount of noise to portions of the signal where
+     * center clipping has removed the residual echoes. This results in a better
+     * experience for the user than leaving silent gaps in the signal. The
+     * default value of this property is <tt>true</tt> (i.e. enabled). Before
+     * setting this property, you must set the
+     * {@link #MFPKEY_WMAAECMA_FEATURE_MODE} property to <tt>true</tt>. The DSP
+     * uses this property only when AEC processing is enabled.
+     */
+    public static final long MFPKEY_WMAAECMA_FEATR_NOISE_FILL;
+
+    /**
+     * Specifies whether the Voice Capture DSP performs noise suppression. Noise
+     * suppression is a digital signal processing (DSP) component that
+     * suppresses or reduces stationary background noise in the audio signal.
+     * Noise suppression is applied after the acoustic echo cancellation (AEC)
+     * and microphone array processing. The property can have the following
+     * <tt>int</tt> values: <tt>0</tt> to disable noise suppression or
+     * <tt>1</tt> to enable noise suppression. The default value of this
+     * property is <tt>1</tt> (i.e. enabled). Before setting this property, you
+     * must set the {@link #MFPKEY_WMAAECMA_FEATURE_MODE} property to
+     * <tt>true</tt>.
+     */
+    public static final long MFPKEY_WMAAECMA_FEATR_NS;
+
+    /**
+     * Enables the application to override the default settings on various
+     * properties of the Voice Capture DSP. If this property is <tt>true</tt>,
+     * the application can set the <tt>MFPKEY_WMAAECMA_FEATR_XXX</tt> properties
+     * on the DSP. If this property is <tt>false</tt>, the DSP ignores these
+     * properties and uses its default settings. The default value of this
+     * property is <tt>false</tt>.
+     */
+    public static final long MFPKEY_WMAAECMA_FEATURE_MODE;
+
+    /**
+     * Specifies the processing mode for the Voice Capture DSP.
+     *
+     * @see #SINGLE_CHANNEL_AEC
+     */
     public static final long MFPKEY_WMAAECMA_SYSTEM_MODE;
 
     /**
@@ -62,6 +163,7 @@ public class VoiceCaptureDSP
 
     static
     {
+        String fmtid = "{6f52c567-0360-4bd2-9617-ccbf1421c939} ";
         String pszString = null;
         long _MFPKEY_WMAAECMA_DMO_SOURCE_MODE = 0;
         long _MFPKEY_WMAAECMA_SYSTEM_MODE = 0;
@@ -73,7 +175,7 @@ public class VoiceCaptureDSP
 
         try
         {
-            pszString = "{6f52c567-0360-4bd2-9617-ccbf1421c939} 3";
+            pszString = fmtid + "3";
             _MFPKEY_WMAAECMA_DMO_SOURCE_MODE
                 = PSPropertyKeyFromString(pszString);
             if (_MFPKEY_WMAAECMA_DMO_SOURCE_MODE == 0)
@@ -82,7 +184,7 @@ public class VoiceCaptureDSP
                         "MFPKEY_WMAAECMA_DMO_SOURCE_MODE");
             }
 
-            pszString = "{6f52c567-0360-4bd2-9617-ccbf1421c939} 2";
+            pszString = fmtid + "2";
             _MFPKEY_WMAAECMA_SYSTEM_MODE = PSPropertyKeyFromString(pszString);
             if (_MFPKEY_WMAAECMA_SYSTEM_MODE == 0)
                 throw new IllegalStateException("MFPKEY_WMAAECMA_SYSTEM_MODE");
@@ -119,6 +221,22 @@ public class VoiceCaptureDSP
 
         MFPKEY_WMAAECMA_DMO_SOURCE_MODE = _MFPKEY_WMAAECMA_DMO_SOURCE_MODE;
         MFPKEY_WMAAECMA_SYSTEM_MODE = _MFPKEY_WMAAECMA_SYSTEM_MODE;
+
+        /*
+         * The support for the remaining properties of the Voice Capture DSP is
+         * optional at the time of this writing.
+         */
+        MFPKEY_WMAAECMA_FEATR_AES = maybePSPropertyKeyFromString(fmtid + "10");
+        MFPKEY_WMAAECMA_FEATR_AGC = maybePSPropertyKeyFromString(fmtid + "9");
+        MFPKEY_WMAAECMA_FEATR_CENTER_CLIP
+            = maybePSPropertyKeyFromString(fmtid + "12");
+        MFPKEY_WMAAECMA_FEATR_ECHO_LENGTH
+            = maybePSPropertyKeyFromString(fmtid + "7");
+        MFPKEY_WMAAECMA_FEATR_NOISE_FILL
+            = maybePSPropertyKeyFromString(fmtid + "13");
+        MFPKEY_WMAAECMA_FEATR_NS = maybePSPropertyKeyFromString(fmtid + "8");
+        MFPKEY_WMAAECMA_FEATURE_MODE
+            = maybePSPropertyKeyFromString(fmtid + "5");
     }
 
     public static native int DMO_MEDIA_TYPE_fill(
@@ -231,6 +349,32 @@ public class VoiceCaptureDSP
             long thiz,
             long key, int value)
         throws HResultException;
+
+    /**
+     * Invokes {@link WASAPI#PSPropertyKeyFromString(String)} and logs and
+     * swallows any <tt>HResultException</tt>.
+     *
+     * @param pszString the <tt>String</tt> formatted as
+     * &quot;<tt>{fmtid} pid</tt>&quot; to be converted to a pointer to a
+     * <tt>PROPERTYKEY</tt> structure
+     * @return a pointer to a <tt>PROPERTYKEY</tt> structure. To be freed via
+     * {@link WASAPI#CoTaskMemFree(long)}.
+     */
+    private static long maybePSPropertyKeyFromString(String pszString)
+    {
+        long pkey;
+
+        try
+        {
+            pkey = PSPropertyKeyFromString(pszString);
+        }
+        catch (HResultException hre)
+        {
+            pkey = 0;
+            logger.error("PSPropertyKeyFromString " + pszString, hre);
+        }
+        return pkey;
+    }
 
     public static native long MediaBuffer_alloc(int maxLength);
 

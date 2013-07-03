@@ -304,6 +304,25 @@ public class WASAPIStream
     }
 
     /**
+     * Performs optional configuration of the Voice Capture DSP that implements
+     * acoustic echo cancellation (AEC).
+     *
+     * @param iPropertyStore a reference to the <tt>IPropertyStore</tt>
+     * interface of the Voice Capture DSP that implements acoustic echo
+     * cancellation (AEC)
+     */
+    private void configureAEC(long iPropertyStore)
+        throws HResultException
+    {
+        /*
+         * For example, use the IPropertyStore_SetValue methods of the
+         * VoiceCaptureDSP class to set the MFPKEY_WMAAECMA_FEATURE_MODE
+         * property to true and override the default settings on the
+         * MFPKEY_WMAAECMA_FEATR_XXX properties of the Voice Capture DSP. 
+         */
+    }
+
+    /**
      * Connects this <tt>SourceStream</tt> to the audio endpoint device
      * identified by {@link #locator} if disconnected.
      *
@@ -578,6 +597,7 @@ public class WASAPIStream
                             "IPropertyStore_SetValue"
                                 + " MFPKEY_WMAAECMA_DMO_SOURCE_MODE");
                 }
+                configureAEC(iPropertyStore);
 
                 long captureIMediaBuffer
                     = MediaBuffer_alloc(capture.bufferSize);
