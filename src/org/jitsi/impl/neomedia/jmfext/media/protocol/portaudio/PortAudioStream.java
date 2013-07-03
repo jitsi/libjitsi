@@ -28,7 +28,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  */
 public class PortAudioStream
-    extends AbstractPullBufferStream
+    extends AbstractPullBufferStream<DataSource>
 {
     /**
      * The <tt>Logger</tt> used by the <tt>PortAudioStream</tt> class and its

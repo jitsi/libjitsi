@@ -26,7 +26,7 @@ import org.jitsi.impl.neomedia.quicktime.*;
  * @author Lyubomir Marinov
  */
 public class QuickTimeStream
-    extends AbstractPushBufferStream
+    extends AbstractPushBufferStream<DataSource>
 {
 
     /**

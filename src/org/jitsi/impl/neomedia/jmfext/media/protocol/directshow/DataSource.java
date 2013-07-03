@@ -178,7 +178,7 @@ public class DataSource
      * @see AbstractPushBufferCaptureDevice#createStream(int, FormatControl)
      */
     @Override
-    protected AbstractPushBufferStream createStream(
+    protected DirectShowStream createStream(
             int streamIndex,
             FormatControl formatControl)
     {

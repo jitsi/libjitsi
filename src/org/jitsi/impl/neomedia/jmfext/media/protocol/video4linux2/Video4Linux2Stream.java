@@ -25,7 +25,7 @@ import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
  * @author Lyubomir Marinov
  */
 public class Video4Linux2Stream
-    extends AbstractVideoPullBufferStream
+    extends AbstractVideoPullBufferStream<DataSource>
 {
     /**
      * The <tt>AVCodecContext</tt> of the MJPEG decoder.

@@ -88,7 +88,7 @@ public class DataSource
      * @see AbstractPullBufferCaptureDevice#createStream(int, FormatControl)
      */
     @Override
-    protected AbstractPullBufferStream createStream(
+    protected ImageStream createStream(
             int streamIndex,
             FormatControl formatControl)
     {

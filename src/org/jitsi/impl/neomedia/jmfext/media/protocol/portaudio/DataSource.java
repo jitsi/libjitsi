@@ -108,7 +108,7 @@ public class DataSource
      * @see AbstractPullBufferCaptureDevice#createStream(int, FormatControl)
      */
     @Override
-    protected AbstractPullBufferStream createStream(
+    protected PortAudioStream createStream(
             int streamIndex,
             FormatControl formatControl)
     {

@@ -30,7 +30,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  */
 public class WASAPIStream
-    extends AbstractPushBufferStream
+    extends AbstractPushBufferStream<DataSource>
 {
     /**
      * The default duration of the audio data in milliseconds to be read from

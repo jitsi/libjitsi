@@ -82,7 +82,7 @@ public class DataSource
      * API/library.
      */
     private class PulseAudioStream
-        extends AbstractPullBufferStream
+        extends AbstractPullBufferStream<DataSource>
     {
         private byte[] buffer;
 
@@ -608,7 +608,7 @@ public class DataSource
      * {@inheritDoc}
      */
     @Override
-    protected AbstractPullBufferStream createStream(
+    protected PulseAudioStream createStream(
             int streamIndex,
             FormatControl formatControl)
     {

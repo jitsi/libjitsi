@@ -16,8 +16,8 @@ import javax.media.protocol.*;
  *
  * @author Lyubomir Marinov
  */
-public abstract class AbstractPushBufferStream
-    extends AbstractBufferStream
+public abstract class AbstractPushBufferStream<T extends PushBufferDataSource>
+    extends AbstractBufferStream<T>
     implements PushBufferStream
 {
 
@@ -38,7 +38,7 @@ public abstract class AbstractPushBufferStream
      * <tt>Format</tt>-related information of the new instance
      */
     protected AbstractPushBufferStream(
-            PushBufferDataSource dataSource,
+            T dataSource,
             FormatControl formatControl)
     {
         super(dataSource, formatControl);

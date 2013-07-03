@@ -17,8 +17,8 @@ import javax.media.protocol.*;
  *
  * @author Lyubomir Marinov
  */
-public abstract class AbstractPullBufferStream
-    extends AbstractBufferStream
+public abstract class AbstractPullBufferStream<T extends PullBufferDataSource>
+    extends AbstractBufferStream<T>
     implements PullBufferStream
 {
 
@@ -33,7 +33,7 @@ public abstract class AbstractPullBufferStream
      * <tt>Format</tt>-related information of the new instance
      */
     protected AbstractPullBufferStream(
-            PullBufferDataSource dataSource,
+            T dataSource,
             FormatControl formatControl)
     {
         super(dataSource, formatControl);

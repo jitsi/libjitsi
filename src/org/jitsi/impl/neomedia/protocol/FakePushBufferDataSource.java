@@ -81,7 +81,7 @@ public class FakePushBufferDataSource
      * information abstracted by the specified <tt>formatControl</tt>
      */
     @Override
-    protected AbstractPushBufferStream createStream(
+    protected FakePushBufferStream createStream(
             int streamIndex,
             FormatControl formatControl)
     {
@@ -176,7 +176,7 @@ public class FakePushBufferDataSource
      * <tt>FakePushBufferDataSource</tt>.
      */
     private static class FakePushBufferStream
-        extends AbstractPushBufferStream
+        extends AbstractPushBufferStream<FakePushBufferDataSource>
     {
         /**
          * Initializes a new <tt>FakePushBufferStream</tt> instance which is to

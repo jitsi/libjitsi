@@ -24,7 +24,7 @@ import org.jitsi.util.*;
  * @author Sebastien Vincent
  */
 public class DirectShowStream
-    extends AbstractPushBufferStream
+    extends AbstractPushBufferStream<DataSource>
 {
     /**
      * The <tt>Logger</tt> used by the <tt>DirectShowStream</tt> class and its

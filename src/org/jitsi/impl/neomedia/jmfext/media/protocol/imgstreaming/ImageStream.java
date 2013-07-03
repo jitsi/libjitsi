@@ -28,7 +28,7 @@ import org.jitsi.util.*;
  * @author Damian Minkov
  */
 public class ImageStream
-    extends AbstractVideoPullBufferStream
+    extends AbstractVideoPullBufferStream<DataSource>
 {
     /**
      * The <tt>Logger</tt> used by the <tt>ImageStream</tt> class and its
