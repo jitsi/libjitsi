@@ -11,6 +11,10 @@
 #include <jni.h> /* JNIEnv, jstring */
 #include <windows.h> /* HRESULT */
 
+#ifndef __uuidof
+#define __uuidof(i) &i
+#endif /* #ifndef __uuidof */
+
 HRESULT WASAPI_iidFromString(JNIEnv *env, jstring str, LPIID iid);
 
 #endif /* #ifndef _ORG_JITSI_IMPL_NEOMEDIA_JMFEXT_MEDIA_PROTOCOL_WASAPI_TYPECASTING_H_ */

@@ -11,6 +11,8 @@
 #include <string.h> /* memcpy */
 #include <windows.h> /* InterlockedDecrement, InterlockedIncrement */
 
+#include "Typecasting.h"
+
 struct MediaBuffer
 {
     CONST_VTBL IMediaBufferVtbl *lpVtbl;
@@ -63,8 +65,8 @@ MediaBuffer_QueryInterface(IMediaBuffer *thiz, REFIID riid, void **ppvObject)
 {
     if (ppvObject)
     {
-        if (IsEqualIID(&IID_IUnknown, riid)
-                || IsEqualIID(&IID_IMediaBuffer, riid))
+        if (IsEqualIID(__uuidof(IID_IUnknown), riid)
+                || IsEqualIID(__uuidof(IID_IMediaBuffer), riid))
         {
             *ppvObject = thiz;
             IMediaObject_AddRef(thiz);
@@ -133,10 +135,12 @@ MediaBuffer_alloc(DWORD maxLength)
 DWORD
 MediaBuffer_pop(MediaBuffer *thiz, BYTE *buffer, DWORD length)
 {
+    DWORD i;
+
     if (buffer)
         memcpy(buffer, thiz->_buffer, length);
     thiz->_length -= length;
-    for (DWORD i = 0; i < thiz->_length; i++)
+    for (i = 0; i < thiz->_length; i++)
         thiz->_buffer[i] = thiz->_buffer[length + i];
     return length;
 }

@@ -11,6 +11,10 @@
 #include <jni.h> /* jclass, jmethodID, JNIEnv */
 #include <windows.h> /* HRESULT */
 
+#ifdef _MSC_VER
+#define __func__ __FUNCTION__
+#endif /* #ifdef _MSC_VER */
+
 extern jclass WASAPI_hResultExceptionClass;
 extern jmethodID WASAPI_hResultExceptionMethodID;
 

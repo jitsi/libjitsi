@@ -25,13 +25,10 @@
 #include "HResultException.h"
 #include "Typecasting.h"
 
-#ifndef __uuidof
-#define __uuidof(i) &i
-#endif /* #ifndef __uuidof */
 #define PSPropertyKeyFromString(pszString,pkey) \
     WASAPI_pPSPropertyKeyFromString(pszString,pkey)
 
-typedef HRESULT WINAPI (*LPPSPropertyKeyFromString)(LPCWSTR,PROPERTYKEY*);
+typedef HRESULT (WINAPI *LPPSPropertyKeyFromString)(LPCWSTR,PROPERTYKEY*);
 
 ULONG STDMETHODCALLTYPE MMNotificationClient_AddRef
     (IMMNotificationClient* thiz);
@@ -55,6 +52,11 @@ ULONG STDMETHODCALLTYPE MMNotificationClient_Release
 static UINT32 WASAPI_audiocopy
     (void *src, jint srcSampleSize, jint srcChannels, void *dst,
         jint dstSampleSize, jint dstChannels, UINT32 numFramesRequested);
+
+#ifdef _MSC_VER
+    DEFINE_GUID(IID_IMMDeviceEnumerator,0xa95664d2,0x9614,0x4f35,0xa7,0x46,0xde,0x8d,0xb6,0x36,0x17,0xe6);
+    DEFINE_GUID(IID_IMMNotificationClient,0x7991eec9,0x7e89,0x4d85,0x83,0x90,0x6c,0x70,0x3c,0xec,0x60,0xc0);
+#endif /* #ifdef _MSC_VER */
 
 static jclass MMNotificationClient_class = 0;
 static jmethodID MMNotificationClient_onDefaultDeviceChangedMethodID = 0;
