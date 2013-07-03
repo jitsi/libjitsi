@@ -196,6 +196,17 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_IMedia
 }
 
 JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_IMediaObject_1Flush
+    (JNIEnv *env, jclass clazz, jlong thiz)
+{
+    HRESULT hr = IMediaObject_Flush((IMediaObject *) (intptr_t) thiz);
+
+    if (FAILED(hr))
+        WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
+    return (jint) hr;
+}
+
+JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_IMediaObject_1GetInputStatus
     (JNIEnv *env, jclass clazz, jlong thiz, jint dwInputStreamIndex)
 {

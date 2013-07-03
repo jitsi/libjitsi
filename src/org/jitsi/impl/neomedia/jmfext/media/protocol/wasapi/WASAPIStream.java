@@ -10,6 +10,7 @@ import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.VoiceCaptureD
 import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.*;
 
 import java.io.*;
+import java.util.*;
 
 import javax.media.*;
 import javax.media.control.*;
@@ -845,6 +846,43 @@ public class WASAPIStream
                             processed += written;
                     }
                 }
+
+                if (dwInputStreamIndex == 1)
+                {
+                    int length;
+
+                    try
+                    {
+                        length = IMediaBuffer_GetLength(pBuffer);
+                    }
+                    catch (HResultException hre)
+                    {
+                        hresult = hre.getHResult();
+                        length = 0;
+                        logger.error("IMediaBuffer_GetLength", hre);
+                    }
+
+                    int silence = maxLength - length;
+
+                    if (silence > 0)
+                    {
+                        if ((processInputBuffer == null)
+                                || (processInputBuffer.length < silence))
+                            processInputBuffer = new byte[silence];
+                        Arrays.fill(processInputBuffer, 0, silence, (byte) 0);
+                        try
+                        {
+                            MediaBuffer_push(
+                                    pBuffer,
+                                    processInputBuffer, 0, silence);
+                        }
+                        catch (HResultException hre)
+                        {
+                            logger.error("MediaBuffer_push", hre);
+                        }
+                    }
+                }
+
                 try
                 {
                     hresult
@@ -992,10 +1030,8 @@ public class WASAPIStream
     private BufferTransferHandler runInProcessThread()
     {
         // ProcessInput
-        int numProcessedCapture = processInput(/* capture */ 0);
-        int numProcessedRender = processInput(/* render */ 1);
-if ((numProcessedCapture > 0) || (numProcessedRender > 0))
-    System.err.println("WASAPIStream.runInProcessThread: capture " + numProcessedCapture + ", render " + numProcessedRender);
+        processInput(/* capture */ 0);
+        processInput(/* render */ 1);
 
         // ProcessOutput
         int dwStatus = 0;
@@ -1009,8 +1045,6 @@ if ((numProcessedCapture > 0) || (numProcessedRender > 0))
                         /* dwFlags */ 0,
                         1,
                         dmoOutputDataBuffer);
-                dwStatus
-                    = DMO_OUTPUT_DATA_BUFFER_getDwStatus(dmoOutputDataBuffer);
             }
             catch (HResultException hre)
             {
@@ -1052,6 +1086,30 @@ if ((numProcessedCapture > 0) || (numProcessedRender > 0))
         }
         while ((dwStatus & DMO_OUTPUT_DATA_BUFFERF_INCOMPLETE)
                 == DMO_OUTPUT_DATA_BUFFERF_INCOMPLETE);
+
+        /*
+         * IMediaObject::ProcessOutput has completed which means that, as far as
+         * it is concerned, it does not have any input data to process. Make
+         * sure that the states of the IMediaBuffer instances are in accord.
+         */
+        try
+        {
+            /*
+             * XXX Make sure that the IMediaObject releases any IMediaBuffer
+             * references it holds.
+             */
+            int hresult = IMediaObject_Flush(iMediaObject);
+
+            if (SUCCEEDED(hresult))
+            {
+                IMediaBuffer_SetLength(captureIMediaBuffer, 0);
+                IMediaBuffer_SetLength(renderIMediaBuffer, 0);
+            }
+        }
+        catch (HResultException hre)
+        {
+            logger.error("IMediaBuffer_SetLength", hre);
+        }
 
         return (processedLength >= bufferMaxLength) ? transferHandler : null;
     }

@@ -179,6 +179,9 @@ public class VoiceCaptureDSP
     public static native void IMediaBuffer_SetLength(long thiz, int cbLength)
         throws HResultException;
 
+    public static native int IMediaObject_Flush(long thiz)
+        throws HResultException;
+
     public static native int IMediaObject_GetInputStatus(
             long thiz,
             int dwInputStreamIndex)

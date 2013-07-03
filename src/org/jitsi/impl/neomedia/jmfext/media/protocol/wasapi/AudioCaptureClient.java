@@ -117,6 +117,12 @@ public class AudioCaptureClient
      */
     private long iAudioClient;
 
+    /**
+     * The <tt>AudioFormat</tt> of the data output by this
+     * <tt>AudioCaptureClient</tt>.
+     */
+    final AudioFormat outFormat;
+
     private byte[] remainder;
 
     private int remainderLength;
@@ -266,6 +272,7 @@ public class AudioCaptureClient
                     this.iAudioCaptureClient = iAudioCaptureClient;
                     iAudioCaptureClient = 0;
 
+                    this.outFormat = outFormat;
                     this.transferHandler = transferHandler;
                 }
                 finally

@@ -7,16 +7,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#undef org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_DMO_E_NOTACCEPTING
-#define org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_DMO_E_NOTACCEPTING -2147220988L
-#undef org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_DMO_INPUT_STATUSF_ACCEPT_DATA
-#define org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_DMO_INPUT_STATUSF_ACCEPT_DATA 1L
-#undef org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_DMO_OUTPUT_DATA_BUFFERF_INCOMPLETE
-#define org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_DMO_OUTPUT_DATA_BUFFERF_INCOMPLETE 16777216L
-#undef org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_DMO_SET_TYPEF_TEST_ONLY
-#define org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_DMO_SET_TYPEF_TEST_ONLY 1L
-#undef org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_SINGLE_CHANNEL_AEC
-#define org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_SINGLE_CHANNEL_AEC 0L
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP
  * Method:    DMO_MEDIA_TYPE_fill
@@ -128,6 +118,14 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi
  */
 JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_IMediaBuffer_1SetLength
   (JNIEnv *, jclass, jlong, jint);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP
+ * Method:    IMediaObject_Flush
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP_IMediaObject_1Flush
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_VoiceCaptureDSP
