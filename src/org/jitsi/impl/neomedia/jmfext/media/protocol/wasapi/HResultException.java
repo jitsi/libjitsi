@@ -29,7 +29,7 @@ public class HResultException
      */
     public HResultException(int hresult)
     {
-        this(hresult, "0x" + Long.toHexString(hresult & 0xffffffffL));
+        this(hresult, toString(hresult));
     }
 
     /**
@@ -55,5 +55,19 @@ public class HResultException
     public int getHResult()
     {
         return hresult;
+    }
+
+    /**
+     * Returns a <tt>String</tt> representation of a specific
+     * <tt>HRESULT</tt> value.
+     *
+     * @param hresult the <tt>HRESULT</tt> value of which a <tt>String</tt>
+     * representation is to be returned
+     * @return a <tt>String</tt> representation of the specified
+     * <tt>hresult</tt>
+     */
+    public static String toString(int hresult)
+    {
+        return "0x" + Long.toHexString(hresult & 0xffffffffL);
     }
 }

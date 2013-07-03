@@ -384,6 +384,7 @@
       <compilerarg value="-std=c99" />
       <compilerarg value="-Wall" />
 
+      <linkerarg value="-ldmoguids" location="end" />
       <linkerarg value="-lmsdmo" location="end" />
       <linkerarg value="-lole32" location="end" />
       <linkerarg value="-m32" if="cross_32" />

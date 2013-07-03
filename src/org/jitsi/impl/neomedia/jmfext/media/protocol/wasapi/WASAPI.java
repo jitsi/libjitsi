@@ -24,6 +24,8 @@ public class WASAPI
 
     public static final int AUDCLNT_STREAMFLAGS_EVENTCALLBACK = 0x00040000;
 
+    public static final int AUDCLNT_STREAMFLAGS_LOOPBACK = 0x00020000;
+
     public static final int AUDCLNT_STREAMFLAGS_NOPERSIST = 0x00080000;
 
     public static final int CLSCTX_ALL
@@ -119,11 +121,12 @@ public class WASAPI
          * XXX The pointer to native memory returned by PSPropertyKeyFromString
          * is to be freed via CoTaskMemFree.
          */
+        String pszString = null;
+
         try
         {
-            PKEY_Device_FriendlyName
-                = PSPropertyKeyFromString(
-                        "{a45c254e-df1c-4efd-8020-67d146a850e0} 14");
+            pszString = "{a45c254e-df1c-4efd-8020-67d146a850e0} 14";
+            PKEY_Device_FriendlyName = PSPropertyKeyFromString(pszString);
             if (PKEY_Device_FriendlyName == 0)
                 throw new IllegalStateException("PKEY_Device_FriendlyName");
         }
@@ -131,8 +134,7 @@ public class WASAPI
         {
             Logger logger = Logger.getLogger(WASAPI.class);
 
-            logger.error("PSPropertyKeyFromString", hre);
-
+            logger.error("PSPropertyKeyFromString(" + pszString + ")", hre);
             throw new RuntimeException(hre);
         }
     }
@@ -163,6 +165,19 @@ public class WASAPI
             boolean bInitialState,
             String lpName)
         throws HResultException;
+
+    /**
+     * Determines whether a specific <tt>HRESULT</tt> value indicates failure.
+     *
+     * @param hresult the <tt>HRESULT</tt> value to be checked whether it
+     * indicates failure
+     * @return <tt>true</tt> if the specified <tt>hresult</tt> indicates
+     * failure; otherwise, <tt>false</tt>
+     */
+    public static boolean FAILED(int hresult)
+    {
+        return (hresult < 0);
+    }
 
     public static native int IAudioCaptureClient_GetNextPacketSize(long thiz)
         throws HResultException;
@@ -325,6 +340,19 @@ public class WASAPI
         throws HResultException;
 
     /**
+     * Determines whether a specific <tt>HRESULT</tt> value indicates success.
+     *
+     * @param hresult the <tt>HRESULT</tt> value to be checked whether it
+     * indicates success
+     * @return <tt>true</tt> if the specified <tt>hresult</tt> indicates
+     * success; otherwise, <tt>false</tt>
+     */
+    public static boolean SUCCEEDED(int hresult)
+    {
+        return (hresult >= 0);
+    }
+
+    /**
      * Waits until the specified object is in the signaled state or the
      * specified time-out interval elapses.
      *
@@ -397,6 +425,8 @@ public class WASAPI
     public static native void WAVEFORMATEX_setWFormatTag(
             long thiz,
             char wFormatTag);
+
+    public static native int WAVEFORMATEX_sizeof();
 
     /** Prevents the initialization of <tt>WASAPI</tt> instances. */
     private WASAPI() {}

@@ -6,10 +6,10 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi;
 
+import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.VoiceCaptureDSP.*;
 import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.*;
 
 import java.io.*;
-import java.util.concurrent.*;
 
 import javax.media.*;
 import javax.media.control.*;
@@ -33,16 +33,177 @@ public class WASAPIStream
     extends AbstractPushBufferStream<DataSource>
 {
     /**
-     * The default duration of the audio data in milliseconds to be read from
-     * <tt>WASAPIStream</tt> in an invocation of {@link #read(Buffer)}.
-     */
-    private static final long DEFAULT_BUFFER_DURATION = 20;
-
-    /**
      * The <tt>Logger</tt> used by the <tt>WASAPIStream</tt> class and its
      * instances to log debug information.
      */
     private static Logger logger = Logger.getLogger(WASAPIStream.class);
+
+    private static AudioFormat findClosestMatch(
+            Format[] formats,
+            AudioFormat format)
+    {
+
+        // Try to find the very specified format.
+        AudioFormat match = findFirstMatch(formats, format);
+
+        if (match == null)
+        {
+            /*
+             * Relax the channels of the specified format because we are able to
+             * translate between mono and stereo.
+             */
+            match
+                = findFirstMatch(
+                        formats,
+                        new AudioFormat(
+                                format.getEncoding(),
+                                format.getSampleRate(),
+                                format.getSampleSizeInBits(),
+                                /* channels */ Format.NOT_SPECIFIED,
+                                format.getEndian(),
+                                format.getSigned(),
+                                /* frameSizeInBits */ Format.NOT_SPECIFIED,
+                                /* frameRate */ Format.NOT_SPECIFIED,
+                                format.getDataType()));
+            if (match == null)
+            {
+                /*
+                 * Relax the sampleRate of the specified format as well because
+                 * the voice capture DMO which implements the acoustic echo
+                 * cancellation (AEC) feature is able to automatically resample.
+                 */
+                match
+                    = findFirstMatch(
+                            formats,
+                            new AudioFormat(
+                                    format.getEncoding(),
+                                    /* sampleRate */ Format.NOT_SPECIFIED,
+                                    format.getSampleSizeInBits(),
+                                    /* channels */ Format.NOT_SPECIFIED,
+                                    format.getEndian(),
+                                    format.getSigned(),
+                                    /* frameSizeInBits */ Format.NOT_SPECIFIED,
+                                    /* frameRate */ Format.NOT_SPECIFIED,
+                                    format.getDataType()));
+            }
+        }
+        return match;
+    }
+
+    private static AudioFormat findFirstMatch(
+            Format[] formats,
+            AudioFormat format)
+    {
+        for (Format aFormat : formats)
+            if (aFormat.matches(format))
+                return (AudioFormat) aFormat.intersects(format);
+        return null;
+    }
+
+    private static int IMediaObject_SetXXXputType(
+            long iMediaObject,
+            boolean inOrOut,
+            int dwXXXputStreamIndex,
+            AudioFormat audioFormat,
+            int dwFlags)
+        throws HResultException
+    {
+        int channels = audioFormat.getChannels();
+        double sampleRate = audioFormat.getSampleRate();
+        int sampleSizeInBits = audioFormat.getSampleSizeInBits();
+
+        if (Format.NOT_SPECIFIED == channels)
+            throw new IllegalArgumentException("audioFormat.channels");
+        if (Format.NOT_SPECIFIED == sampleRate)
+            throw new IllegalArgumentException("audioFormat.sampleRate");
+        if (Format.NOT_SPECIFIED == sampleSizeInBits)
+            throw new IllegalArgumentException("audioFormat.sampleSizeInBits");
+
+        char nChannels = (char) channels;
+        int nSamplesPerSec = (int) sampleRate;
+        char wBitsPerSample = (char) sampleSizeInBits;
+        char nBlockAlign = (char) ((nChannels * wBitsPerSample) / 8);
+        char cbSize = 0;
+        int hresult;
+
+        long waveformatex = WAVEFORMATEX_alloc();
+
+        if (waveformatex == 0)
+            throw new OutOfMemoryError("WAVEFORMATEX_alloc");
+        try
+        {
+            WAVEFORMATEX_fill(
+                    waveformatex,
+                    WAVE_FORMAT_PCM,
+                    nChannels,
+                    nSamplesPerSec,
+                    nSamplesPerSec * nBlockAlign,
+                    nBlockAlign,
+                    wBitsPerSample,
+                    cbSize);
+
+            long pmt = MoCreateMediaType(/* cbFormat */ 0);
+
+            if (pmt == 0)
+                throw new OutOfMemoryError("MoCreateMediaType");
+            try
+            {
+                int cbFormat = WAVEFORMATEX_sizeof() + cbSize;
+
+                hresult
+                    = DMO_MEDIA_TYPE_fill(
+                            pmt,
+                            /* majortype */ MEDIATYPE_Audio,
+                            /* subtype */ MEDIASUBTYPE_PCM,
+                            /* bFixedSizeSamples */ true,
+                            /* bTemporalCompression */ false,
+                            wBitsPerSample / 8,
+                            /* formattype */ FORMAT_WaveFormatEx,
+                            /* pUnk */ 0,
+                            cbFormat,
+                            waveformatex);
+                if (FAILED(hresult))
+                    throw new HResultException(hresult, "DMO_MEDIA_TYPE_fill");
+                hresult
+                    = inOrOut
+                        ? VoiceCaptureDSP.IMediaObject_SetInputType(
+                                iMediaObject,
+                                dwXXXputStreamIndex,
+                                pmt,
+                                dwFlags)
+                        : VoiceCaptureDSP.IMediaObject_SetOutputType(
+                                iMediaObject,
+                                dwXXXputStreamIndex,
+                                pmt,
+                                dwFlags);
+                if (FAILED(hresult))
+                {
+                    throw new HResultException(
+                            hresult,
+                            inOrOut
+                                ? "IMediaObject_SetInputType"
+                                : "IMediaObject_SetOutputType");
+                }
+            }
+            finally
+            {
+                /*
+                 * XXX MoDeleteMediaType is documented to internally call
+                 * MoFreeMediaType to free the format block but the format block
+                 * has not been internally allocated by MoInitMediaType.
+                 */
+                DMO_MEDIA_TYPE_setCbFormat(pmt, 0);
+                DMO_MEDIA_TYPE_setFormattype(pmt, FORMAT_None);
+                DMO_MEDIA_TYPE_setPbFormat(pmt, 0);
+                MoDeleteMediaType(pmt);
+            }
+        }
+        finally
+        {
+            CoTaskMemFree(waveformatex);
+        }
+        return hresult;
+    }
 
     /**
      * Throws a new <tt>IOException</tt> instance initialized with a specific
@@ -53,9 +214,7 @@ public class WASAPIStream
      * @param hre an <tt>HResultException</tt> which is to be set as the
      * <tt>cause</tt> of the new <tt>IOException</tt> instance
      */
-    private static void throwNewIOException(
-            String message,
-            HResultException hre)
+    static void throwNewIOException(String message, HResultException hre)
         throws IOException
     {
         logger.error(message, hre);
@@ -66,21 +225,7 @@ public class WASAPIStream
         throw ioe;
     }
 
-    /**
-     * The <tt>WASAPISystem</tt> instance which has contributed the capture
-     * endpoint device identified by {@link #locator}.
-     */
-    private final WASAPISystem audioSystem;
-
-    /**
-     * The number of frames to be filled in a <tt>Buffer</tt> in an invocation
-     * of {@link #read(Buffer)}. If this instance implements the
-     * <tt>PushBufferStream</tt> interface,
-     * {@link #runInEventHandleCmd(Runnable)} will push via
-     * {@link BufferTransferHandler#transferData(PushBufferStream)} when
-     * {@link #iAudioClient} has made at least that many frames available.
-     */
-    private int bufferFrames;
+    private int bufferMaxLength;
 
     /**
      * The size/length in bytes of the <tt>Buffer</tt> to be filled in an
@@ -88,77 +233,30 @@ public class WASAPIStream
      */
     private int bufferSize;
 
-    /**
-     * The indicator which determines whether the audio stream represented by
-     * this instance, {@link #iAudioClient} and {@link #iAudioCaptureClient} is
-     * busy and, consequently, its state should not be modified. For example,
-     * the audio stream is busy during the execution of {@link #read(Buffer)}.
-     */
-    private boolean busy;
+    private AudioCaptureClient capture;
+
+    private int captureBufferMaxLength;
+
+    private long captureIMediaBuffer;
+
+    private boolean captureIsBusy;
 
     /**
      * The length in milliseconds of the interval between successive, periodic
      * processing passes by the audio engine on the data in the endpoint buffer.
      */
-    private long devicePeriod = WASAPISystem.DEFAULT_DEVICE_PERIOD;
+    private long devicePeriod;
 
-    /**
-     * The number of channels which which this <tt>SourceStream</tt> has been
-     * connected.
-     */
-    private int dstChannels;
-
-    /**
-     * The frame size in bytes with which this <tt>SourceStream</tt> has been
-     * connected. It is the product of {@link #dstSampleSize} and
-     * {@link #dstChannels}.
-     */
-    private int dstFrameSize;
-
-    /**
-     * The sample size in bytes with which this <tt>SourceStream</tt> has been
-     * connected.
-     */
-    private int dstSampleSize;
-
-    /**
-     * The event handle that the system signals when an audio buffer is ready to
-     * be processed by the client.
-     */
-    private long eventHandle;
-
-    /**
-     * The <tt>Runnable</tt> which is scheduled by this <tt>WASAPIStream</tt>
-     * and executed by {@link #eventHandleExecutor} and waits for
-     * {@link #eventHandle} to be signaled.
-     */
-    private Runnable eventHandleCmd;
-
-    /**
-     * The <tt>Executor</tt> implementation which is to execute
-     * {@link #eventHandleCmd}.
-     */
-    private Executor eventHandleExecutor;
+    private long dmoOutputDataBuffer;
 
     /**
      * The <tt>AudioFormat</tt> of this <tt>SourceStream</tt>.
      */
     private AudioFormat format;
 
-    /**
-     * The WASAPI <tt>IAudioCaptureClient</tt> obtained from
-     * {@link #iAudioClient} which enables this <tt>SourceStream</tt> to read
-     * input data from the capture endpoint buffer.
-     */
-    private long iAudioCaptureClient;
+    private long iMediaBuffer;
 
-    /**
-     * The WASAPI <tt>IAudioClient</tt> instance which enables this
-     * <tt>SourceStream</tt> to create and initialize an audio stream between
-     * this <tt>SourceStream</tt> and the audio engine of the associated audio
-     * endpoint device.
-     */
-    private long iAudioClient;
+    private long iMediaObject;
 
     /**
      * The <tt>MediaLocator</tt> which identifies the audio endpoint device this
@@ -166,28 +264,21 @@ public class WASAPIStream
      */
     private MediaLocator locator;
 
-    /**
-     * The indicator which determines whether this instance should act as a
-     * <tt>PushBufferStream</tt> rather than as a <tt>PullBufferStream</tt>
-     * implementation.
-     */
-    private final boolean push;
+    private byte[] processed;
 
-    private byte[] remainder;
+    private int processedLength;
 
-    private int remainderLength;
+    private byte[] processInputBuffer;
 
-    /**
-     * The number of channels with which {@link #iAudioClient} has been
-     * initialized.
-     */
-    private int srcChannels;
+    private Thread processThread;
 
-    /**
-     * The sample size in bytes with which {@link #iAudioClient} has been
-     * initialized.
-     */
-    private int srcSampleSize;
+    private AudioCaptureClient render;
+
+    private int renderBufferMaxLength;
+
+    private long renderIMediaBuffer;
+
+    private boolean renderIsBusy;
 
     /**
      * The indicator which determines whether this <tt>SourceStream</tt> is
@@ -209,194 +300,45 @@ public class WASAPIStream
     public WASAPIStream(DataSource dataSource, FormatControl formatControl)
     {
         super(dataSource, formatControl);
-
-        audioSystem
-            = (WASAPISystem)
-                AudioSystem.getAudioSystem(AudioSystem.LOCATOR_PROTOCOL_WASAPI);
-        if (audioSystem == null)
-            throw new IllegalStateException("audioSystem");
-
-        push = PushBufferStream.class.isInstance(this);
     }
 
     /**
      * Connects this <tt>SourceStream</tt> to the audio endpoint device
-     * identified by {@link #locator}.
+     * identified by {@link #locator} if disconnected.
      *
-     * @throws IOException if anything goes wrong while this
-     * <tt>SourceStream</tt> connects to the audio endpoint device identified by
+     * @throws IOException if this <tt>SourceStream</tt> is disconnected and
+     * fails to connect to the audio endpoint device identified by
      * <tt>locator</tt>
      */
     private void connect()
         throws IOException
     {
-        if (this.iAudioClient != 0)
+        if (capture != null)
             return;
 
         try
         {
-            MediaLocator locator = getLocator();
-
-            if (locator == null)
-                throw new NullPointerException("No locator/MediaLocator set.");
-
-            AudioFormat thisFormat = (AudioFormat) getFormat();
-            AudioFormat[] formats
-                = WASAPISystem.getFormatsToInitializeIAudioClient(thisFormat);
-            long eventHandle = CreateEvent(0, false, false, null);
-
-            /*
-             * If WASAPIStream is deployed as a PushBufferStream implementation,
-             * it relies on eventHandle to tick.
-             */
-            if (push && (eventHandle == 0))
-                throw new IOException("CreateEvent");
-
-            try
-            {
-                AudioSystem.DataFlow dataFlow = AudioSystem.DataFlow.CAPTURE;
-                /*
-                 * Presently, we attempt to have the same buffer length in
-                 * WASAPIRenderer and WASAPIStream. There is no particular
-                 * reason/requirement to do so.
-                 */
-                long hnsBufferDuration = 3 * DEFAULT_BUFFER_DURATION * 10000;
-                long iAudioClient
-                    = audioSystem.initializeIAudioClient(
-                            locator,
-                            dataFlow,
-                            eventHandle,
-                            hnsBufferDuration,
-                            formats);
-
-                if (iAudioClient == 0)
-                {
-                    throw new ResourceUnavailableException(
-                            "Failed to initialize IAudioClient"
-                                + " for MediaLocator " + locator
-                                + " and AudioSystem.DataFlow " + dataFlow);
-                }
-                try
-                {
-                    /*
-                     * Determine the AudioFormat with which the iAudioClient has
-                     * been initialized.
-                     */
-                    AudioFormat format = null;
-
-                    for (AudioFormat aFormat : formats)
-                    {
-                        if (aFormat != null)
-                        {
-                            format = aFormat;
-                            break;
-                        }
-                    }
-
-                    long iAudioCaptureClient
-                        = IAudioClient_GetService(
-                                iAudioClient,
-                                IID_IAudioCaptureClient);
-
-                    if (iAudioCaptureClient == 0)
-                    {
-                        throw new ResourceUnavailableException(
-                                "IAudioClient_GetService"
-                                    + "(IID_IAudioCaptureClient)");
-                    }
-                    try
-                    {
-                        /*
-                         * The value hnsDefaultDevicePeriod is documented to
-                         * specify the default scheduling period for a
-                         * shared-mode stream.
-                         */
-                        devicePeriod
-                            = IAudioClient_GetDefaultDevicePeriod(iAudioClient)
-                                / 10000L;
-
-                        int numBufferFrames
-                            = IAudioClient_GetBufferSize(iAudioClient);
-                        int sampleRate = (int) format.getSampleRate();
-                        long bufferDuration
-                            = numBufferFrames * 1000 / sampleRate;
-
-                        /*
-                         * We will very likely be inefficient if we fail to
-                         * synchronize with the scheduling period of the audio
-                         * engine but we have to make do with what we have.
-                         */
-                        if (devicePeriod <= 1)
-                        {
-                            devicePeriod = bufferDuration / 2;
-                            if ((devicePeriod
-                                        > WASAPISystem.DEFAULT_DEVICE_PERIOD)
-                                    || (devicePeriod <= 1))
-                                devicePeriod
-                                    = WASAPISystem.DEFAULT_DEVICE_PERIOD;
-                        }
-
-                        srcChannels = format.getChannels();
-                        srcSampleSize
-                            = WASAPISystem.getSampleSizeInBytes(format);
-
-                        dstChannels = thisFormat.getChannels();
-                        dstSampleSize
-                            = WASAPISystem.getSampleSizeInBytes(thisFormat);
-
-                        dstFrameSize = dstSampleSize * dstChannels;
-                        bufferFrames
-                            = (int)
-                                (DEFAULT_BUFFER_DURATION * sampleRate / 1000);
-                        bufferSize = dstFrameSize * bufferFrames;
-
-                        remainder = new byte[numBufferFrames * dstFrameSize];
-                        remainderLength = 0;
-
-                        this.format = thisFormat;
-
-                        this.eventHandle = eventHandle;
-                        eventHandle = 0;
-                        this.iAudioClient = iAudioClient;
-                        iAudioClient = 0;
-                        this.iAudioCaptureClient = iAudioCaptureClient;
-                        iAudioCaptureClient = 0;
-                    }
-                    finally
-                    {
-                        if (iAudioCaptureClient != 0)
-                            IAudioCaptureClient_Release(iAudioCaptureClient);
-                    }
-                }
-                finally
-                {
-                    if (iAudioClient != 0)
-                        IAudioClient_Release(iAudioClient);
-                }
-            }
-            finally
-            {
-                if (eventHandle != 0)
-                    CloseHandle(eventHandle);
-            }
+            doConnect();
         }
         catch (Throwable t)
         {
             if (t instanceof ThreadDeath)
                 throw (ThreadDeath) t;
-            else if (t instanceof IOException)
-                throw (IOException) t;
             else
             {
                 logger.error(
                         "Failed to connect a WASAPIStream"
                             + " to an audio endpoint device.",
                         t);
+                if (t instanceof IOException)
+                    throw (IOException) t;
+                else
+                {
+                    IOException ioe = new IOException();
 
-                IOException ioe = new IOException();
-
-                ioe.initCause(t);
-                throw ioe;
+                    ioe.initCause(t);
+                    throw ioe;
+                }
             }
         }
     }
@@ -418,29 +360,9 @@ public class WASAPIStream
         }
         finally
         {
-            if (iAudioCaptureClient != 0)
-            {
-                IAudioCaptureClient_Release(iAudioCaptureClient);
-                iAudioCaptureClient = 0;
-            }
-            if (iAudioClient != 0)
-            {
-                IAudioClient_Release(iAudioClient);
-                iAudioClient = 0;
-            }
-            if (eventHandle != 0)
-            {
-                try
-                {
-                    CloseHandle(eventHandle);
-                }
-                catch (HResultException hre)
-                {
-                    // The event HANDLE will be leaked.
-                    logger.warn("Failed to close event HANDLE.", hre);
-                }
-                eventHandle = 0;
-            }
+            uninitializeAEC();
+            uninitializeRender();
+            uninitializeCapture();
 
             /*
              * Make sure this AbstractPullBufferStream asks its DataSource for
@@ -449,10 +371,98 @@ public class WASAPIStream
              * connect.
              */
             format = null;
-            remainder = null;
-            remainderLength = 0;
-            started = false;
         }
+    }
+
+    /**
+     * Invoked by {@link #connect()} after a check that this
+     * <tt>SourceStream</tt> really needs to connect to the associated audio
+     * endpoint device has been passed i.e. it is certain that this instance is
+     * disconnected.
+     *
+     * @throws Exception if the <tt>SourceStream</tt> fails to connect to the
+     * associated audio endpoint device. The <tt>Exception</tt> is logged by the
+     * <tt>connect()</tt> method.
+     */
+    private void doConnect()
+        throws Exception
+    {
+        MediaLocator locator = getLocator();
+
+        if (locator == null)
+            throw new NullPointerException("No locator set.");
+
+        AudioFormat thisFormat = (AudioFormat) getFormat();
+
+        if (thisFormat == null)
+            throw new NullPointerException("No format set.");
+        if (dataSource.aec)
+        {
+            CaptureDeviceInfo2 renderDeviceInfo
+                = dataSource.audioSystem.getSelectedDevice(
+                        AudioSystem.DataFlow.PLAYBACK);
+
+            if (renderDeviceInfo == null)
+                throw new NullPointerException("No playback device set.");
+
+            MediaLocator renderLocator = renderDeviceInfo.getLocator();
+
+            /*
+             * This SourceStream will output in an AudioFormat supported by the
+             * voice capture DMO which implements the acoustic echo cancellation
+             * (AEC) feature. The IAudioClients will be initialized with
+             * AudioFormats based on thisFormat
+             */
+            AudioFormat captureFormat
+                = findClosestMatchCaptureSupportedFormat(thisFormat);
+
+            if (captureFormat == null)
+            {
+                throw new IllegalStateException(
+                        "Failed to determine an AudioFormat with which to"
+                            + " initialize IAudioClient for MediaLocator "
+                            + locator + " based on AudioFormat " + thisFormat);
+            }
+
+            AudioFormat renderFormat
+                = findClosestMatch(renderDeviceInfo.getFormats(), thisFormat);
+
+            if (renderFormat == null)
+            {
+                throw new IllegalStateException(
+                        "Failed to determine an AudioFormat with which to"
+                            + " initialize IAudioClient for MediaLocator "
+                            + renderLocator + " based on AudioFormat "
+                            + thisFormat);
+            }
+
+            boolean uninitialize = true;
+
+            initializeCapture(locator, captureFormat);
+            try
+            {
+                initializeRender(renderLocator, renderFormat);
+                try
+                {
+                    initializeAEC(captureFormat, renderFormat, thisFormat);
+                    uninitialize = false;
+                }
+                finally
+                {
+                    if (uninitialize)
+                        uninitializeRender();
+                }
+            }
+            finally
+            {
+                if (uninitialize)
+                    uninitializeCapture();
+            }
+        }
+        else
+            initializeCapture(locator, thisFormat);
+
+        this.format = thisFormat;
     }
 
     /**
@@ -464,46 +474,13 @@ public class WASAPIStream
         return (format == null) ? super.doGetFormat() : format;
     }
 
-    /**
-     * Reads the next data packet from the capture endpoint buffer into a
-     * specific <tt>Buffer</tt>.
-     *
-     * @param buffer the <tt>Buffer</tt> to read the next data packet from the
-     * capture endpoint buffer into
-     * @return the number of bytes read from the capture endpoint buffer into
-     * the value of the <tt>data</tt> property of <tt>buffer</tt>
-     * @throws IOException if an I/O error occurs
-     */
-    private int doRead(Buffer buffer)
-        throws IOException
+    private AudioFormat findClosestMatchCaptureSupportedFormat(
+            AudioFormat format)
     {
-        int toRead = Math.min(bufferSize, remainderLength);
-        int read;
-
-        if (toRead == 0)
-            read = 0;
-        else
-        {
-            int offset = buffer.getOffset() + buffer.getLength();
-            byte[] data
-                = AbstractCodec2.validateByteArraySize(
-                        buffer,
-                        offset + toRead,
-                        true);
-
-            System.arraycopy(remainder, 0, data, offset, toRead);
-            popFromRemainder(toRead);
-            read = toRead;
-
-            if (offset == 0)
-            {
-                long timeStamp = System.nanoTime();
-
-                buffer.setFlags(Buffer.FLAG_SYSTEM_TIME);
-                buffer.setTimeStamp(timeStamp);
-            }
-        }
-        return read;
+        return
+            findClosestMatch(
+                    dataSource.getIAudioClientSupportedFormats(),
+                    format);
     }
 
     /**
@@ -518,17 +495,380 @@ public class WASAPIStream
         return locator;
     }
 
+    private void initializeAEC(
+            AudioFormat inFormat0, AudioFormat inFormat1,
+            AudioFormat outFormat)
+        throws Exception
+    {
+        long iMediaObject = dataSource.audioSystem.initializeAEC();
+
+        if (iMediaObject == 0)
+        {
+            throw new ResourceUnavailableException(
+                    "Failed to initialize a Voice Capture DSP for the purposes"
+                        + " of acoustic echo cancellation (AEC).");
+        }
+        try
+        {
+            int hresult
+                = IMediaObject_SetXXXputType(
+                        iMediaObject,
+                        /* IMediaObject_SetInputType */ true,
+                        /* dwInputStreamIndex */ 0,
+                        inFormat0,
+                        /* dwFlags */ 0);
+
+            if (FAILED(hresult))
+            {
+                throw new HResultException(
+                        hresult,
+                        "IMediaObject_SetInputType, dwOutputStreamIndex 0, "
+                                + inFormat0);
+            }
+            hresult
+                = IMediaObject_SetXXXputType(
+                        iMediaObject,
+                        /* IMediaObject_SetInputType */ true,
+                        /* dwInputStreamIndex */ 1,
+                        inFormat1,
+                        /* dwFlags */ 0);
+            if (FAILED(hresult))
+            {
+                throw new HResultException(
+                        hresult,
+                        "IMediaObject_SetInputType, dwOutputStreamIndex 1, "
+                                + inFormat1);
+            }
+            hresult
+                = IMediaObject_SetXXXputType(
+                        iMediaObject,
+                        /* IMediaObject_SetOutputType */ false,
+                        /* dwOutputStreamIndex */ 0,
+                        outFormat,
+                        /* dwFlags */ 0);
+            if (FAILED(hresult))
+            {
+                throw new HResultException(
+                        hresult,
+                        "IMediaObject_SetOutputType, " + outFormat);
+            }
+
+            long iPropertyStore
+                = IMediaObject_QueryInterface(
+                        iMediaObject,
+                        IID_IPropertyStore);
+
+            if (iPropertyStore == 0)
+            {
+                throw new RuntimeException(
+                        "IMediaObject_QueryInterface IID_IPropertyStore");
+            }
+            try
+            {
+                hresult
+                    = IPropertyStore_SetValue(
+                            iPropertyStore,
+                            MFPKEY_WMAAECMA_DMO_SOURCE_MODE,
+                            false);
+                if (FAILED(hresult))
+                {
+                    throw new HResultException(
+                            hresult,
+                            "IPropertyStore_SetValue"
+                                + " MFPKEY_WMAAECMA_DMO_SOURCE_MODE");
+                }
+
+                long captureIMediaBuffer
+                    = MediaBuffer_alloc(capture.bufferSize);
+
+                if (captureIMediaBuffer == 0)
+                    throw new OutOfMemoryError("MediaBuffer_alloc");
+                try
+                {
+                    long renderIMediaBuffer
+                        = MediaBuffer_alloc(render.bufferSize);
+
+                    if (renderIMediaBuffer == 0)
+                        throw new OutOfMemoryError("MediaBuffer_alloc");
+                    try
+                    {
+                        int outFrameSize
+                            = WASAPISystem.getSampleSizeInBytes(outFormat)
+                                * outFormat.getChannels();
+                        int outFrames
+                            = (int)
+                                (AudioCaptureClient.DEFAULT_BUFFER_DURATION
+                                    * ((int) outFormat.getSampleRate())
+                                    / 1000);
+                        long iMediaBuffer
+                            = MediaBuffer_alloc(outFrameSize * outFrames);
+
+                        if (iMediaBuffer == 0)
+                            throw new OutOfMemoryError("MediaBuffer_alloc");
+                        try
+                        {
+                            long dmoOutputDataBuffer
+                                = DMO_OUTPUT_DATA_BUFFER_alloc(
+                                        iMediaBuffer,
+                                        /* dwStatus */ 0,
+                                        /* rtTimestamp */ 0,
+                                        /* rtTimelength */ 0);
+
+                            if (dmoOutputDataBuffer == 0)
+                            {
+                                throw new OutOfMemoryError(
+                                        "DMO_OUTPUT_DATA_BUFFER_alloc");
+                            }
+                            try
+                            {
+                                bufferMaxLength
+                                    = IMediaBuffer_GetMaxLength(iMediaBuffer);
+                                captureBufferMaxLength
+                                    = IMediaBuffer_GetMaxLength(
+                                            captureIMediaBuffer);
+                                renderBufferMaxLength
+                                    = IMediaBuffer_GetMaxLength(
+                                            renderIMediaBuffer);
+
+                                processed = new byte[bufferMaxLength * 3];
+                                processedLength = 0;
+
+                                this.captureIMediaBuffer = captureIMediaBuffer;
+                                captureIMediaBuffer = 0;
+                                this.dmoOutputDataBuffer = dmoOutputDataBuffer;
+                                dmoOutputDataBuffer = 0;
+                                this.iMediaBuffer = iMediaBuffer;
+                                iMediaBuffer = 0;
+                                this.iMediaObject = iMediaObject;
+                                iMediaObject = 0;
+                                this.renderIMediaBuffer = renderIMediaBuffer;
+                                renderIMediaBuffer = 0;
+                            }
+                            finally
+                            {
+                                if (dmoOutputDataBuffer != 0)
+                                    CoTaskMemFree(dmoOutputDataBuffer);
+                            }
+                        }
+                        finally
+                        {
+                            if (iMediaBuffer != 0)
+                                IMediaBuffer_Release(iMediaBuffer);
+                        }
+                    }
+                    finally
+                    {
+                        if (renderIMediaBuffer != 0)
+                            IMediaBuffer_Release(renderIMediaBuffer);
+                    }
+                }
+                finally
+                {
+                    if (captureIMediaBuffer != 0)
+                        IMediaBuffer_Release(captureIMediaBuffer);
+                }
+            }
+            finally
+            {
+                if (iPropertyStore != 0)
+                    IPropertyStore_Release(iPropertyStore);
+            }
+        }
+        finally
+        {
+            if (iMediaObject != 0)
+                IMediaObject_Release(iMediaObject);
+        }
+    }
+
+    private void initializeCapture(MediaLocator locator, AudioFormat format)
+        throws Exception
+    {
+        capture
+            = new AudioCaptureClient(
+                    dataSource.audioSystem,
+                    locator,
+                    AudioSystem.DataFlow.CAPTURE,
+                    /* streamFlags */ 0,
+                    format,
+                    new BufferTransferHandler()
+                            {
+                                public void transferData(
+                                        PushBufferStream stream)
+                                {
+                                    transferCaptureData();
+                                }
+                            });
+        bufferSize = capture.bufferSize;
+        devicePeriod = capture.devicePeriod;
+    }
+
+    private void initializeRender(final MediaLocator locator, AudioFormat format)
+        throws Exception
+    {
+        render
+            = new AudioCaptureClient(
+                    dataSource.audioSystem,
+                    locator,
+                    AudioSystem.DataFlow.PLAYBACK,
+                    WASAPI.AUDCLNT_STREAMFLAGS_LOOPBACK,
+                    format,
+                    new BufferTransferHandler()
+                            {
+                                public void transferData(
+                                        PushBufferStream stream)
+                                {
+                                    transferRenderData();
+                                }
+                            });
+    }
+
     /**
-     * Pops a specific number of bytes from {@link #remainder}. For example,
-     * because such a number of bytes have been read from <tt>remainder</tt> and
+     * Pops a specific number of bytes from {@link #processed}. For example,
+     * because such a number of bytes have been read from <tt>processed</tt> and
      * written into a <tt>Buffer</tt>.
      *
-     * @param length the number of bytes to pop from <tt>remainder</tt>
+     * @param length the number of bytes to pop from <tt>processed</tt>
      */
-    private void popFromRemainder(int length)
+    private void popFromProcessed(int length)
     {
-        remainderLength
-            = WASAPIRenderer.pop(remainder, remainderLength, length);
+        processedLength
+            = WASAPIRenderer.pop(processed, processedLength, length);
+    }
+
+    private int processInput(int dwInputStreamIndex)
+    {
+        long pBuffer;
+        int maxLength;
+        AudioCaptureClient audioCaptureClient;
+
+        switch (dwInputStreamIndex)
+        {
+        case 0:
+            pBuffer = captureIMediaBuffer;
+            maxLength = captureBufferMaxLength;
+            audioCaptureClient = capture;
+            break;
+        case 1:
+            pBuffer = renderIMediaBuffer;
+            maxLength = renderBufferMaxLength;
+            audioCaptureClient = render;
+            break;
+        default:
+            throw new IllegalArgumentException("dwInputStreamIndex");
+        }
+
+        int hresult = S_OK;
+        int processed = 0;
+
+        do
+        {
+            int dwFlags;
+
+            try
+            {
+                dwFlags
+                    = IMediaObject_GetInputStatus(
+                            iMediaObject,
+                            dwInputStreamIndex);
+            }
+            catch (HResultException hre)
+            {
+                dwFlags = 0;
+                hresult = hre.getHResult();
+                logger.error("IMediaObject_GetInputStatus", hre);
+            }
+            if ((dwFlags & DMO_INPUT_STATUSF_ACCEPT_DATA)
+                    == DMO_INPUT_STATUSF_ACCEPT_DATA)
+            {
+                int toRead;
+
+                try
+                {
+                    toRead = maxLength - IMediaBuffer_GetLength(pBuffer);
+                }
+                catch (HResultException hre)
+                {
+                    hresult = hre.getHResult();
+                    toRead = 0;
+                    logger.error("IMediaBuffer_GetLength", hre);
+                }
+                if (toRead > 0)
+                {
+                    if ((processInputBuffer == null)
+                            || (processInputBuffer.length < toRead))
+                        processInputBuffer = new byte[toRead];
+
+                    int read;
+
+                    try
+                    {
+                        read
+                            = audioCaptureClient.read(
+                                    processInputBuffer,
+                                    0,
+                                    toRead);
+                    }
+                    catch (IOException ioe)
+                    {
+                        read = 0;
+                        logger.error(
+                                "Failed to read from IAudioCaptureClient.",
+                                ioe);
+                    }
+                    if (read > 0)
+                    {
+                        int written;
+
+                        try
+                        {
+                            written
+                                = MediaBuffer_push(
+                                        pBuffer,
+                                        processInputBuffer, 0, read);
+                        }
+                        catch (HResultException hre)
+                        {
+                            written = 0;
+                            logger.error("MediaBuffer_push", hre);
+                        }
+                        if (written < read)
+                        {
+                            logger.error(
+                                    "Failed to push/write "
+                                        + ((written <= 0)
+                                                ? read
+                                                : (read - written))
+                                        + " bytes into an IMediaBuffer.");
+                        }
+                        if (written > 0)
+                            processed += written;
+                    }
+                }
+                try
+                {
+                    hresult
+                        = IMediaObject_ProcessInput(
+                                iMediaObject,
+                                dwInputStreamIndex,
+                                pBuffer,
+                                /* dwFlags */ 0,
+                                /* rtTimestamp */ 0,
+                                /* rtTimelength */ 0);
+                }
+                catch (HResultException hre)
+                {
+                    hresult = hre.getHResult();
+                    if (hresult != DMO_E_NOTACCEPTING)
+                        logger.error("IMediaObject_ProcessInput", hre);
+                }
+            }
+            else
+                break; // The input stream cannot accept more input data.
+        }
+        while (SUCCEEDED(hresult));
+
+        return processed;
     }
 
     /**
@@ -537,8 +877,12 @@ public class WASAPIStream
     public void read(Buffer buffer)
         throws IOException
     {
-        if (bufferSize != 0) // Reduce relocation as much as possible.
-            AbstractCodec2.validateByteArraySize(buffer, bufferSize, false);
+        // Reduce relocations as much as possible.
+        int capacity = dataSource.aec ? bufferMaxLength : bufferSize;
+        byte[] data
+            = AbstractCodec2.validateByteArraySize(buffer, capacity, false);
+        int length = 0;
+
         buffer.setLength(0);
         buffer.setOffset(0);
 
@@ -548,17 +892,15 @@ public class WASAPIStream
 
             synchronized (this)
             {
-                if ((iAudioClient == 0) || (iAudioCaptureClient == 0))
+                if ((capture == null) || (dataSource.aec && (render == null)))
                     message = getClass().getName() + " is disconnected.";
-                else if (!started)
-                    message = getClass().getName() + " is stopped.";
                 else
                 {
                     message = null;
-                    busy = true;
+                    captureIsBusy = true;
+                    renderIsBusy = true;
                 }
             }
-
             /*
              * The caller shouldn't call #read(Buffer) if this instance is
              * disconnected or stopped. Additionally, if she does, she may be
@@ -575,7 +917,22 @@ public class WASAPIStream
 
             try
             {
-                read = doRead(buffer);
+                int toRead = capacity - length;
+
+                if (render == null)
+                    read = capture.read(data, length, toRead);
+                else
+                {
+                    toRead = Math.min(toRead, processedLength);
+                    if (toRead == 0)
+                        read = 0;
+                    else
+                    {
+                        System.arraycopy(processed, 0, data, length, toRead);
+                        popFromProcessed(toRead);
+                        read = toRead;
+                    }
+                }
                 cause = null;
             }
             catch (Throwable t)
@@ -591,56 +948,27 @@ public class WASAPIStream
             {
                 synchronized (this)
                 {
-                    busy = false;
+                    captureIsBusy = false;
+                    renderIsBusy = false;
                     notifyAll();
                 }
             }
-
             if (cause == null)
             {
-                if (!push && (read == 0))
+                if (length == 0)
                 {
-                    /*
-                     * The next data packet in the capture endpoint buffer is
-                     * (very likely) not available yet, we will want to wait a
-                     * bit for it to be made available.
-                     */
-                    boolean interrupted = false;
+                    long timeStamp = System.nanoTime();
 
-                    synchronized (this)
-                    {
-                        /*
-                         * Spurious wake-ups should not be a big issue here.
-                         * While this SourceStream may query the availability of
-                         * the next data packet in the capture endpoint buffer
-                         * more often than practically necessary (which may very
-                         * well classify as a case of performance loss), the
-                         * ability to unblock this SourceStream is considered
-                         * more important.
-                         */
-                        try
-                        {
-                            wait(devicePeriod);
-                        }
-                        catch (InterruptedException ie)
-                        {
-                            interrupted = true;
-                        }
-                    }
-                    if (interrupted)
-                        Thread.currentThread().interrupt();
+                    buffer.setFlags(Buffer.FLAG_SYSTEM_TIME);
+                    buffer.setTimeStamp(timeStamp);
                 }
-                else
+                length += read;
+                if ((length >= capacity) || (read == 0))
                 {
-                    int length = buffer.getLength() + read;
-
+                    if (format != null)
+                        buffer.setFormat(format);
                     buffer.setLength(length);
-                    if ((length >= bufferSize) || (read == 0))
-                    {
-                        if (format != null)
-                            buffer.setFormat(format);
-                        break;
-                    }
+                    break;
                 }
             }
             else
@@ -661,76 +989,74 @@ public class WASAPIStream
         while (true);
     }
 
-    /**
-     * Reads from {@link #iAudioCaptureClient} into {@link #remainder} and
-     * returns a non-<tt>null</tt> <tt>BufferTransferHandler</tt> if this
-     * instance is to push audio data.
-     *
-     * @return a <tt>BufferTransferHandler</tt> if this instance is to push
-     * audio data; otherwise, <tt>null</tt>
-     */
-    private BufferTransferHandler readInEventHandleCmd()
+    private BufferTransferHandler runInProcessThread()
     {
-        /*
-         * Determine the size in bytes of the next data packet in the capture
-         * endpoint buffer.
-         */
-        int numFramesInNextPacket;
+        // ProcessInput
+        int numProcessedCapture = processInput(/* capture */ 0);
+        int numProcessedRender = processInput(/* render */ 1);
+if ((numProcessedCapture > 0) || (numProcessedRender > 0))
+    System.err.println("WASAPIStream.runInProcessThread: capture " + numProcessedCapture + ", render " + numProcessedRender);
 
-        try
+        // ProcessOutput
+        int dwStatus = 0;
+
+        do
         {
-            numFramesInNextPacket
-                = IAudioCaptureClient_GetNextPacketSize(iAudioCaptureClient);
-        }
-        catch (HResultException hre)
-        {
-            numFramesInNextPacket = 0; // Silence the compiler.
-            logger.error("IAudioCaptureClient_GetNextPacketSize", hre);
-        }
-
-        if (numFramesInNextPacket != 0)
-        {
-            int toRead = numFramesInNextPacket * dstFrameSize;
-
-            /*
-             * Make sure there is enough room in remainder to accommodate
-             * toRead.
-             */
-            int toPop = toRead - (remainder.length - remainderLength);
-
-            if (toPop > 0)
-                popFromRemainder(toPop);
-
             try
             {
-                int read
-                    = IAudioCaptureClient_Read(
-                            iAudioCaptureClient,
-                            remainder, remainderLength, toRead,
-                            srcSampleSize, srcChannels,
-                            dstSampleSize, dstChannels);
-
-                remainderLength += read;
+                IMediaObject_ProcessOutput(
+                        iMediaObject,
+                        /* dwFlags */ 0,
+                        1,
+                        dmoOutputDataBuffer);
+                dwStatus
+                    = DMO_OUTPUT_DATA_BUFFER_getDwStatus(dmoOutputDataBuffer);
             }
             catch (HResultException hre)
             {
-                logger.error("IAudioCaptureClient_Read", hre);
+                dwStatus = 0;
+                logger.error("IMediaObject_ProcessOutput", hre);
+            }
+            try
+            {
+                int toRead = IMediaBuffer_GetLength(iMediaBuffer);
+
+                if (toRead > 0)
+                {
+                    /*
+                     * Make sure there is enough room in processed to
+                     * accommodate toRead.
+                     */
+                    int toPop = toRead - (processed.length - processedLength);
+
+                    if (toPop > 0)
+                        popFromProcessed(toPop);
+
+                    int read
+                        = MediaBuffer_pop(
+                                iMediaBuffer,
+                                processed, processedLength, toRead);
+
+                    if (read > 0)
+                        processedLength += read;
+                }
+            }
+            catch (HResultException hre)
+            {
+                logger.error(
+                        "Failed to read from acoustic echo cancellation (AEC)"
+                            + " output IMediaBuffer.",
+                        hre);
+                break;
             }
         }
+        while ((dwStatus & DMO_OUTPUT_DATA_BUFFERF_INCOMPLETE)
+                == DMO_OUTPUT_DATA_BUFFERF_INCOMPLETE);
 
-        return
-            (push && (remainderLength >= bufferSize)) ? transferHandler : null;
+        return (processedLength >= bufferMaxLength) ? transferHandler : null;
     }
 
-    /**
-     * Runs/executes in the thread associated with a specific <tt>Runnable</tt>
-     * initialized to wait for {@link #eventHandle} to be signaled.
-     *
-     * @param eventHandleCmd the <tt>Runnable</tt> which has been initialized to
-     * wait for <tt>eventHandle</tt> to be signaled and in whose associated
-     * thread the method is invoked
-     */
-    private void runInEventHandleCmd(Runnable eventHandleCmd)
+    private void runInProcessThread(Thread processThread)
     {
         try
         {
@@ -738,43 +1064,30 @@ public class WASAPIStream
 
             do
             {
-                long eventHandle;
                 BufferTransferHandler transferHandler;
 
                 synchronized (this)
                 {
-                    /*
-                     * Does this WASAPIStream still want eventHandleCmd to
-                     * execute?
-                     */
-                    if (!eventHandleCmd.equals(this.eventHandleCmd))
+                    if (!processThread.equals(this.processThread))
                         break;
-                    // Is this WASAPIStream still connected and started?
-                    if ((iAudioClient == 0)
-                            || (iAudioCaptureClient == 0)
-                            || !started)
+                    if ((capture == null) || (render == null) || !started)
                         break;
 
-                    /*
-                     * The value of eventHandle will remain valid while this
-                     * WASAPIStream wants eventHandleCmd to execute.
-                     */
-                    eventHandle = this.eventHandle;
-                    if (eventHandle == 0)
-                        throw new IllegalStateException("eventHandle");
-
-                    waitWhileBusy();
-                    busy = true;
+                    waitWhileCaptureIsBusy();
+                    waitWhileRenderIsBusy();
+                    captureIsBusy = true;
+                    renderIsBusy = true;
                 }
                 try
                 {
-                    transferHandler = readInEventHandleCmd();
+                    transferHandler = runInProcessThread();
                 }
                 finally
                 {
                     synchronized (this)
                     {
-                        busy = false;
+                        captureIsBusy = false;
+                        renderIsBusy = false;
                         notifyAll();
                     }
                 }
@@ -783,15 +1096,11 @@ public class WASAPIStream
                 {
                     try
                     {
-                        Object o = this;
-                        PushBufferStream pushBufferStream
-                            = (PushBufferStream) o;
-
-                        transferHandler.transferData(pushBufferStream);
+                        transferHandler.transferData(this);
                         /*
                          * If the transferData implementation throws an
-                         * exception, we will WaitForSingleObject in order to
-                         * give the application time to recover.
+                         * exception, we will wait on a synchronization root in
+                         * order to give the application time to recover.
                          */
                         continue;
                     }
@@ -808,28 +1117,7 @@ public class WASAPIStream
                     }
                 }
 
-                int wfso;
-
-                try
-                {
-                    wfso = WaitForSingleObject(eventHandle, devicePeriod);
-                }
-                catch (HResultException hre)
-                {
-                    /*
-                     * WaitForSingleObject will throw HResultException only in
-                     * the case of WAIT_FAILED. Event if it didn't, it would
-                     * still be a failure from our point of view.
-                     */
-                    wfso = WAIT_FAILED;
-                    logger.error("WaitForSingleObject", hre);
-                }
-                /*
-                 * If the function WaitForSingleObject fails once, it will very
-                 * likely fail forever. Bail out of a possible busy wait.
-                 */
-                if ((wfso == WAIT_FAILED) || (wfso == WAIT_ABANDONED))
-                    break;
+                yield();
             }
             while (true);
         }
@@ -837,9 +1125,9 @@ public class WASAPIStream
         {
             synchronized (this)
             {
-                if (eventHandleCmd.equals(this.eventHandleCmd))
+                if (processThread.equals(this.processThread))
                 {
-                    this.eventHandleCmd = null;
+                    this.processThread = null;
                     notifyAll();
                 }
             }
@@ -877,59 +1165,30 @@ public class WASAPIStream
     public synchronized void start()
         throws IOException
     {
-        if (iAudioClient != 0)
+        if (capture != null)
         {
-            waitWhileBusy();
-            waitWhileEventHandleCmd();
-
-            try
-            {
-                IAudioClient_Start(iAudioClient);
-                started = true;
-
-                remainderLength = 0;
-                if ((eventHandle != 0) && (this.eventHandleCmd == null))
-                {
-                    Runnable eventHandleCmd
-                        = new Runnable()
-                        {
-                            public void run()
-                            {
-                                runInEventHandleCmd(this);
-                            }
-                        };
-                    boolean submitted = false;
-
-                    try
+            waitWhileCaptureIsBusy();
+            capture.start();
+        }
+        if (render != null)
+        {
+            waitWhileRenderIsBusy();
+            render.start();
+        }
+        started = true;
+        if ((capture != null) && (render != null) && (processThread == null))
+        {
+            processThread
+                = new Thread(WASAPIStream.class + ".processThread")
                     {
-                        if (eventHandleExecutor == null)
+                        @Override
+                        public void run()
                         {
-                            eventHandleExecutor
-                                = Executors.newSingleThreadExecutor();
+                            runInProcessThread(this);
                         }
-
-                        this.eventHandleCmd = eventHandleCmd;
-                        eventHandleExecutor.execute(eventHandleCmd);
-                        submitted = true;
-                    }
-                    finally
-                    {
-                        if (!submitted
-                                && eventHandleCmd.equals(this.eventHandleCmd))
-                            this.eventHandleCmd = null;
-                    }
-                }
-            }
-            catch (HResultException hre)
-            {
-                /*
-                 * If IAudioClient_Start is invoked multiple times without
-                 * intervening IAudioClient_Stop, it will likely return/throw
-                 * AUDCLNT_E_NOT_STOPPED.
-                 */
-                if (hre.getHResult() != AUDCLNT_E_NOT_STOPPED)
-                    throwNewIOException("IAudioClient_Start", hre);
-            }
+                    };
+            processThread.setDaemon(true);
+            processThread.start();
         }
     }
 
@@ -940,39 +1199,104 @@ public class WASAPIStream
     public synchronized void stop()
         throws IOException
     {
-        if (iAudioClient != 0)
+        if (capture != null)
         {
-            waitWhileBusy();
+            waitWhileCaptureIsBusy();
+            capture.stop();
+        }
+        if (render != null)
+        {
+            waitWhileRenderIsBusy();
+            render.stop();
+        }
+        started = false;
 
-            try
-            {
-                /*
-                 * If IAudioClient_Stop is invoked multiple times without
-                 * intervening IAudioClient_Start, it is documented to return
-                 * S_FALSE.
-                 */
-                IAudioClient_Stop(iAudioClient);
-                started = false;
+        waitWhileProcessThread();
+        processedLength = 0;
+    }
 
-                waitWhileEventHandleCmd();
-                remainderLength = 0;
-            }
-            catch (HResultException hre)
+    private void transferCaptureData()
+    {
+        if (dataSource.aec)
+        {
+            synchronized (this)
             {
-                throwNewIOException("IAudioClient_Stop", hre);
+                notifyAll();
             }
+        }
+        else
+        {
+            BufferTransferHandler transferHandler = this.transferHandler;
+
+            if (transferHandler != null)
+                transferHandler.transferData(this);
+        }
+    }
+
+    private void transferRenderData()
+    {
+        synchronized (this)
+        {
+            notifyAll();
+        }
+    }
+
+    private void uninitializeAEC()
+    {
+        if (iMediaObject != 0)
+        {
+            IMediaObject_Release(iMediaObject);
+            iMediaObject = 0;
+        }
+        if (dmoOutputDataBuffer != 0)
+        {
+            CoTaskMemFree(dmoOutputDataBuffer);
+            dmoOutputDataBuffer = 0;
+        }
+        if (iMediaBuffer != 0)
+        {
+            IMediaBuffer_Release(iMediaBuffer);
+            iMediaBuffer = 0;
+        }
+        if (renderIMediaBuffer != 0)
+        {
+            IMediaBuffer_Release(renderIMediaBuffer);
+            renderIMediaBuffer =0;
+        }
+        if (captureIMediaBuffer != 0)
+        {
+            IMediaBuffer_Release(captureIMediaBuffer);
+            captureIMediaBuffer = 0;
+        }
+    }
+
+    private void uninitializeCapture()
+    {
+        if (capture != null)
+        {
+            capture.close();
+            capture = null;
+        }
+    }
+
+    private void uninitializeRender()
+    {
+        if (render != null)
+        {
+            render.close();
+            render = null;
         }
     }
 
     /**
-     * Waits on this instance while the value of {@link #busy} is equal to
-     * <tt>true</tt>.
+     * Waits on this instance while the value of {@link #captureIsBusy} is equal
+     * to <tt>true</tt>.
      */
-    private synchronized void waitWhileBusy()
+    private synchronized void waitWhileCaptureIsBusy()
     {
         boolean interrupted = false;
 
-        while (busy)
+        while (captureIsBusy)
         {
             try
             {
@@ -987,18 +1311,21 @@ public class WASAPIStream
             Thread.currentThread().interrupt();
     }
 
-    /**
-     * Waits on this instance while the value of {@link #eventHandleCmd} is
-     * non-<tt>null</tt>.
-     */
-    private synchronized void waitWhileEventHandleCmd()
+    private synchronized void waitWhileProcessThread()
     {
-        if (eventHandle == 0)
-            throw new IllegalStateException("eventHandle");
+        while (processThread != null)
+            yield();
+    }
 
+    /**
+     * Waits on this instance while the value of {@link #renderIsBusy} is equal
+     * to <tt>true</tt>.
+     */
+    private synchronized void waitWhileRenderIsBusy()
+    {
         boolean interrupted = false;
 
-        while (eventHandleCmd != null)
+        while (renderIsBusy)
         {
             try
             {
@@ -1017,13 +1344,13 @@ public class WASAPIStream
      * Causes the currently executing thread to temporarily pause and allow
      * other threads to execute.
      */
-    private void yield()
+    private synchronized void yield()
     {
         boolean interrupted = false;
 
         try
         {
-            Thread.sleep(devicePeriod);
+            wait(devicePeriod);
         }
         catch (InterruptedException ie)
         {

@@ -19,10 +19,11 @@
 #include <mmreg.h> /* WAVEFORMATEX */
 #include <objbase.h>
 #include <stdint.h> /* intptr_t */
-#include <stdio.h> /* fflush */
 #include <string.h>
-#include <tchar.h> /* _ftprintf */
 #include <windows.h> /* LoadLibrary, GetProcAddress */
+
+#include "HResultException.h"
+#include "Typecasting.h"
 
 #ifndef __uuidof
 #define __uuidof(i) &i
@@ -54,8 +55,6 @@ ULONG STDMETHODCALLTYPE MMNotificationClient_Release
 static UINT32 WASAPI_audiocopy
     (void *src, jint srcSampleSize, jint srcChannels, void *dst,
         jint dstSampleSize, jint dstChannels, UINT32 numFramesRequested);
-static void WASAPI_throwNewHResultException
-    (JNIEnv *, HRESULT, const char *func, unsigned int line);
 
 static jclass MMNotificationClient_class = 0;
 static jmethodID MMNotificationClient_onDefaultDeviceChangedMethodID = 0;
@@ -63,8 +62,6 @@ static jmethodID MMNotificationClient_onDeviceAddedMethodID = 0;
 static jmethodID MMNotificationClient_onDeviceRemovedMethodID = 0;
 static jmethodID MMNotificationClient_onDeviceStateChangedMethodID = 0;
 static jmethodID MMNotificationClient_onPropertyValueChangedMethodID = 0;
-static jclass WASAPI_hResultExceptionClass = 0;
-static jmethodID WASAPI_hResultExceptionMethodID = 0;
 /**
  * The single IMMNotificationClient instance/implementation which is to be
  * registered with every IMMDeviceEnumerator instance.
@@ -184,25 +181,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_CoCreateInstanc
     {
         IID iid_;
 
-        if (iid)
-        {
-            const jchar *szIid = (*env)->GetStringChars(env, iid, NULL);
-
-            if (szIid)
-            {
-                hr = IIDFromString((LPOLESTR) szIid, &iid_);
-                (*env)->ReleaseStringChars(env, iid, szIid);
-                if (FAILED(hr))
-                {
-                    WASAPI_throwNewHResultException(
-                            env,
-                            hr,
-                            __func__, __LINE__);
-                }
-            }
-            else
-                hr = E_OUTOFMEMORY;
-        }
+        hr = WASAPI_iidFromString(env, iid, &iid_);
         if (SUCCEEDED(hr))
         {
             hr
@@ -499,22 +478,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1G
     IID iid_;
     void *pv;
 
-    if (iid)
-    {
-        const jchar *szIid = (*env)->GetStringChars(env, iid, NULL);
-
-        if (szIid)
-        {
-            hr = IIDFromString((LPOLESTR) szIid, &iid_);
-            (*env)->ReleaseStringChars(env, iid, szIid);
-            if (FAILED(hr))
-                WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
-        }
-        else
-            hr = E_OUTOFMEMORY;
-    }
-    else
-        hr = S_OK;
+    hr = WASAPI_iidFromString(env, iid, &iid_);
     if (SUCCEEDED(hr))
     {
         hr
@@ -542,29 +506,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IAudioClient_1I
     HRESULT hr;
     IID audioSessionGuid_;
 
-    if (audioSessionGuid)
-    {
-        const jchar *szAudioSessionGuid
-            = (*env)->GetStringChars(env, audioSessionGuid, NULL);
-
-        if (szAudioSessionGuid)
-        {
-            hr
-                = IIDFromString(
-                        (LPOLESTR) szAudioSessionGuid,
-                        &audioSessionGuid_);
-            (*env)->ReleaseStringChars(
-                    env,
-                    audioSessionGuid,
-                    szAudioSessionGuid);
-            if (FAILED(hr))
-                WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
-        }
-        else
-            hr = E_OUTOFMEMORY;
-    }
-    else
-        hr = S_OK;
+    hr = WASAPI_iidFromString(env, audioSessionGuid, &audioSessionGuid_);
     if (SUCCEEDED(hr))
     {
         hr
@@ -729,22 +671,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDevice_1Acti
     IID iid_;
     void *pInterface;
 
-    if (iid)
-    {
-        const jchar *szIid = (*env)->GetStringChars(env, iid, NULL);
-
-        if (szIid)
-        {
-            hr = IIDFromString((LPOLESTR) szIid, &iid_);
-            (*env)->ReleaseStringChars(env, iid, szIid);
-            if (FAILED(hr))
-                WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
-        }
-        else
-            hr = E_OUTOFMEMORY;
-    }
-    else
-        hr = S_OK;
+    hr = WASAPI_iidFromString(env, iid, &iid_);
     if (SUCCEEDED(hr))
     {
         hr
@@ -834,22 +761,7 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_IMMDevice_1Quer
     IID iid_;
     void *pvObject;
 
-    if (iid)
-    {
-        const jchar *szIid = (*env)->GetStringChars(env, iid, NULL);
-
-        if (szIid)
-        {
-            hr = IIDFromString((LPOLESTR) szIid, &iid_);
-            (*env)->ReleaseStringChars(env, iid, szIid);
-            if (FAILED(hr))
-                WASAPI_throwNewHResultException(env, hr, __func__, __LINE__);
-        }
-        else
-            hr = E_OUTOFMEMORY;
-    }
-    else
-        hr = S_OK;
+    hr = WASAPI_iidFromString(env, iid, &iid_);
     if (SUCCEEDED(hr))
     {
         hr
@@ -1252,6 +1164,13 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_WAVEFORMATEX_1s
   (JNIEnv *env, jclass clazz, jlong thiz, jchar wFormatTag)
 {
     ((WAVEFORMATEX *) (intptr_t) thiz)->wFormatTag = (WORD) wFormatTag;
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_WAVEFORMATEX_1sizeof
+    (JNIEnv *env, jclass clazz)
+{
+    return sizeof(WAVEFORMATEX);
 }
 
 JNIEXPORT jint JNICALL
@@ -1667,67 +1586,4 @@ WASAPI_audiocopy
         numFramesWritten = 0;
     }
     return numFramesWritten;
-}
-
-static void
-WASAPI_throwNewHResultException
-    (JNIEnv *env, HRESULT hresult, const char *func, unsigned int line)
-{
-    /*
-     * Print the system message (if any) which represents a human-readable
-     * format of the specified HRESULT value on the standard error to facilitate
-     * debugging.
-     */
-    {
-        LPTSTR message = NULL;
-        DWORD length
-            = FormatMessage(
-                    FORMAT_MESSAGE_ALLOCATE_BUFFER
-                        | FORMAT_MESSAGE_FROM_SYSTEM
-                        | FORMAT_MESSAGE_IGNORE_INSERTS,
-                    /* lpSource */ NULL,
-                    hresult,
-                    /* dwLanguageId */ 0,
-                    (LPTSTR) &message,
-                    /* nSize */ 0,
-                    /* Arguments */ NULL);
-        BOOL printed = FALSE;
-
-        if (message)
-        {
-            if (length)
-            {
-                _ftprintf(stderr, TEXT("%s:%u: %s\r\n"), func, line, message);
-                printed = TRUE;
-            }
-            LocalFree(message);
-        }
-        if (!printed)
-        {
-            _ftprintf(
-                    stderr,
-                    TEXT("%s:%u: HRESULT 0x%x\r\n"),
-                    func, line,
-                    (unsigned int) hresult);
-        }
-        fflush(stderr);
-    }
-
-    {
-        jclass clazz = WASAPI_hResultExceptionClass;
-
-        if (clazz)
-        {
-            jmethodID methodID = WASAPI_hResultExceptionMethodID;
-
-            if (methodID)
-            {
-                jobject t
-                    = (*env)->NewObject(env, clazz, methodID, (jint) hresult);
-
-                if (t)
-                    (*env)->Throw(env, (jthrowable) t);
-            }
-        }
-    }
 }

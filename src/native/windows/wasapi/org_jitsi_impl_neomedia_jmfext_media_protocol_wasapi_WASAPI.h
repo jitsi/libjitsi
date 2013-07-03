@@ -471,6 +471,14 @@ JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi
 JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_WAVEFORMATEX_1setWFormatTag
   (JNIEnv *, jclass, jlong, jchar);
 
+/*
+ * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI
+ * Method:    WAVEFORMATEX_sizeof
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_wasapi_WASAPI_WAVEFORMATEX_1sizeof
+  (JNIEnv *, jclass);
+
 #ifdef __cplusplus
 }
 #endif

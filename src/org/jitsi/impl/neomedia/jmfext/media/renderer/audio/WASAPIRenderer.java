@@ -321,6 +321,7 @@ public class WASAPIRenderer
                     = audioSystem.initializeIAudioClient(
                             locator,
                             dataFlow,
+                            /* streamFlags */ 0,
                             eventHandle,
                             hnsBufferDuration,
                             formats);
