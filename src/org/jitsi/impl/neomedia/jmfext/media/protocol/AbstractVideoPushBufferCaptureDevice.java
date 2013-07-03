@@ -25,6 +25,7 @@ public abstract class AbstractVideoPushBufferCaptureDevice
      */
     protected AbstractVideoPushBufferCaptureDevice()
     {
+        this(null);
     }
 
     /**

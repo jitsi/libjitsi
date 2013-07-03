@@ -131,6 +131,7 @@ public abstract class AbstractPushBufferCaptureDevice
      */
     protected AbstractPushBufferCaptureDevice()
     {
+        this(null);
     }
 
     /**
@@ -141,7 +142,8 @@ public abstract class AbstractPushBufferCaptureDevice
      */
     protected AbstractPushBufferCaptureDevice(MediaLocator locator)
     {
-        setLocator(locator);
+        if (locator != null)
+            setLocator(locator);
     }
 
     /**

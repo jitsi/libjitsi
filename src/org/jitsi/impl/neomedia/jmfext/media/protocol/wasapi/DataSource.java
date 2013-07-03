@@ -35,6 +35,7 @@ public class DataSource
      */
     public DataSource()
     {
+        this(null);
     }
 
     /**
