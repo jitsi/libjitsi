@@ -131,6 +131,13 @@ public class DataSource
         }
     }
 
+    /**
+     * Gets the <tt>Format</tt>s of media data supported by the audio endpoint
+     * device associated with this instance.
+     *
+     * @return the <tt>Format</tt>s of media data supported by the audio
+     * endpoint device associated with this instance
+     */
     Format[] getIAudioClientSupportedFormats()
     {
         return
@@ -139,6 +146,18 @@ public class DataSource
                     audioSystem.getAECSupportedFormats());
     }
 
+    /**
+     * Gets the <tt>Format</tt>s of media data supported by the audio endpoint
+     * device associated with this instance.
+     *
+     * @param streamIndex the index of the <tt>SourceStream</tt> within the list
+     * of <tt>SourceStream</tt>s of this <tt>DataSource</tt> on behalf of which
+     * the query is being made
+     * @param aecSupportedFormats the list of <tt>AudioFormat</tt>s supported by
+     * the voice capture DMO implementing acoustic echo cancellation
+     * @return the <tt>Format</tt>s of media data supported by the audio
+     * endpoint device associated with this instance
+     */
     private Format[] getIAudioClientSupportedFormats(
             int streamIndex,
             List<AudioFormat> aecSupportedFormats)

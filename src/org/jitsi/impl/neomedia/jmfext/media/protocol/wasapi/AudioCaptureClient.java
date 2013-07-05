@@ -19,6 +19,18 @@ import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.util.*;
 
+/**
+ * Abstracts the initialization of an <tt>IAudioCaptureClient</tt> instance from
+ * a <tt>MediaLocator</tt>, the input of data from that
+ * <tt>IAudioCaptureClient</tt>, the buffering of that data, the starting,
+ * stopping and closing of the <tt>IAudioCaptureClient</tt>. Allows
+ * {@link WASAPIStream} to simultaneously utilize multiple
+ * <tt>IAudioCaptureClient</tt> instances (e.g. in the case of acoustic echo
+ * cancellation in which audio is input from both the capture and the render
+ * endpoint devices).
+ *
+ * @author Lyubomir Marinov
+ */
 public class AudioCaptureClient
 {
     /**
@@ -35,18 +47,17 @@ public class AudioCaptureClient
         = Logger.getLogger(AudioCaptureClient.class);
 
     /**
-     * The number of frames to be filled in a <tt>Buffer</tt> in an invocation
-     * of {@link #read(Buffer)}. If this instance implements the
-     * <tt>PushBufferStream</tt> interface,
+     * The number of audio frames to be filled in a <tt>byte[]</tt> in an
+     * invocation of {@link #read(byte[], int, int)}. The method
      * {@link #runInEventHandleCmd(Runnable)} will push via
      * {@link BufferTransferHandler#transferData(PushBufferStream)} when
-     * {@link #iAudioClient} has made at least that many frames available.
+     * {@link #iAudioClient} has made at least that many audio frames available.
      */
     private int bufferFrames;
 
     /**
-     * The size/length in bytes of the <tt>Buffer</tt> to be filled in an
-     * invocation of {@link #read(Buffer)}.
+     * The size/length in bytes of the <tt>byte[]</tt> to be filled in an
+     * invocation of {@link #read(byte[], int, int)}.
      */
     final int bufferSize;
 
@@ -54,7 +65,8 @@ public class AudioCaptureClient
      * The indicator which determines whether the audio stream represented by
      * this instance, {@link #iAudioClient} and {@link #iAudioCaptureClient} is
      * busy and, consequently, its state should not be modified. For example,
-     * the audio stream is busy during the execution of {@link #read(Buffer)}.
+     * the audio stream is busy during the execution of
+     * {@link #read(byte[], int, int)}.
      */
     private boolean busy;
 
@@ -65,21 +77,20 @@ public class AudioCaptureClient
     final long devicePeriod;
 
     /**
-     * The number of channels which which this <tt>SourceStream</tt> has been
-     * connected.
+     * The number of channels of the audio data made available by this instance.
      */
     private int dstChannels;
 
     /**
-     * The frame size in bytes with which this <tt>SourceStream</tt> has been
-     * connected. It is the product of {@link #dstSampleSize} and
+     * The frame size in bytes of the audio data made available by this
+     * instance. It is the product of {@link #dstSampleSize} and
      * {@link #dstChannels}.
      */
     private int dstFrameSize;
 
     /**
-     * The sample size in bytes with which this <tt>SourceStream</tt> has been
-     * connected.
+     * The sample size in bytes of the audio data made available by this
+     * instance.
      */
     private int dstSampleSize;
 
@@ -90,9 +101,9 @@ public class AudioCaptureClient
     private long eventHandle;
 
     /**
-     * The <tt>Runnable</tt> which is scheduled by this <tt>WASAPIStream</tt>
-     * and executed by {@link #eventHandleExecutor} and waits for
-     * {@link #eventHandle} to be signaled.
+     * The <tt>Runnable</tt> which is scheduled by this instance and executed by
+     * {@link #eventHandleExecutor} and waits for {@link #eventHandle} to be
+     * signaled.
      */
     private Runnable eventHandleCmd;
 
@@ -104,27 +115,37 @@ public class AudioCaptureClient
 
     /**
      * The WASAPI <tt>IAudioCaptureClient</tt> obtained from
-     * {@link #iAudioClient} which enables this <tt>SourceStream</tt> to read
-     * input data from the capture endpoint buffer.
+     * {@link #iAudioClient} which enables this instance to read input data from
+     * the capture endpoint buffer.
      */
     private long iAudioCaptureClient;
 
     /**
      * The WASAPI <tt>IAudioClient</tt> instance which enables this
-     * <tt>SourceStream</tt> to create and initialize an audio stream between
-     * this <tt>SourceStream</tt> and the audio engine of the associated audio
+     * <tt>AudioCaptureClient</tt> to create and initialize an audio stream
+     * between this instance and the audio engine of the associated audio
      * endpoint device.
      */
     private long iAudioClient;
 
     /**
-     * The <tt>AudioFormat</tt> of the data output by this
+     * The <tt>AudioFormat</tt> of the data output/made available by this
      * <tt>AudioCaptureClient</tt>.
      */
     final AudioFormat outFormat;
 
+    /**
+     * The internal buffer of this instance in which audio data is read from the
+     * associated <tt>IAudioCaptureClient</tt> by the instance and awaits to be
+     * read out of this instance via {@link #read(byte[], int, int)}.
+     */
     private byte[] remainder;
 
+    /**
+     * The number of bytes in {@link #remainder} which represent valid audio
+     * data read from the associated <tt>IAudioCaptureClient</tt> by this
+     * instance.
+     */
     private int remainderLength;
 
     /**
@@ -140,14 +161,50 @@ public class AudioCaptureClient
     private int srcSampleSize;
 
     /**
-     * The indicator which determines whether this <tt>SourceStream</tt> is
-     * started i.e. there has been a successful invocation of {@link #start()}
-     * without an intervening invocation of {@link #stop()}.
+     * The indicator which determines whether this <tt>AudioCaptureClient</tt>
+     * is started i.e. there has been a successful invocation of
+     * {@link #start()} without an intervening invocation of {@link #stop()}.
      */
     private boolean started;
 
+    /**
+     * The <tt>BufferTransferHandler</tt> which is to be invoked when this
+     * instance has made audio data available to be read via
+     * {@link #read(byte[], int, int)}.
+     * {@link BufferTransferHandler#transferData(PushBufferStream)} will be
+     * called with a <tt>null</tt> argument because <tt>AudioCaptureClient</tt>
+     * does not implement <tt>PushBufferStream</tt> and has rather been
+     * refactored out of a <tt>PushBufferStream</tt> implementation (i.e.
+     * <tt>WASAPIStream</tt>).
+     */
     private final BufferTransferHandler transferHandler;
 
+    /**
+     * Initializes a new <tt>AudioCaptureClient</tt> instance.
+     *
+     * @param audioSystem the <tt>WASAPISystem</tt> instance which has
+     * contributed <tt>locator</tt> 
+     * @param locator a <tt>MediaLocator</tt> which identifies the audio
+     * endpoint device to be opened and read by the new instance 
+     * @param dataFlow the <tt>AudioSystem.DataFlow</tt> of the audio endpoint
+     * device identified by <tt>locator</tt>. If
+     * <tt>AudioSystem.DataFlow.PLAYBACK</tt> and <tt>streamFlags</tt> includes
+     * {@link WASAPI#AUDCLNT_STREAMFLAGS_LOOPBACK}, allows opening a render
+     * endpoint device in loopback mode and inputing the data that is being
+     * written on that render endpoint device
+     * @param streamFlags zero or more of the <tt>AUDCLNT_STREAMFLAGS_XXX</tt>
+     * flags defined by the <tt>WASAPI</tt> class
+     * @param outFormat the <tt>AudioFormat</tt> of the data to be made
+     * available by the new instance. Eventually, the
+     * <tt>IAudioCaptureClient</tt> to be represented by the new instance may be
+     * initialized with a different <tt>AudioFormat</tt> in which case the new
+     * instance will automatically transcode the data input from the
+     * <tt>IAudioCaptureClient</tt> into the specified <tt>outFormat</tt>.
+     * @param transferHandler the <tt>BufferTransferHandler</tt> to be invoked
+     * when the new instance has made data available to be read via
+     * {@link #read(byte[], int, int)}
+     * @throws Exception if the initialization of the new instance fails
+     */
     public AudioCaptureClient(
             WASAPISystem audioSystem,
             MediaLocator locator,
@@ -294,6 +351,10 @@ public class AudioCaptureClient
         }
     }
 
+    /**
+     * Releases the resources acquired by this instance throughout its lifetime
+     * and prepares it to be garbage collected.
+     */
     public void close()
     {
         if (iAudioCaptureClient != 0)
@@ -325,7 +386,26 @@ public class AudioCaptureClient
         started = false;
     }
 
-    private int doRead(byte[] buffer, int offset, int length)
+    /**
+     * Reads audio data from the internal buffer of this instance which has
+     * previously/already been read by this instance from the associated
+     * <tt>IAudioCaptureClient</tt>. Invoked by {@link #read(byte[], int, int)}.
+     *
+     * @param buffer the <tt>byte</tt> array into which the audio data read from
+     * the internal buffer of this instance is to be written
+     * @param offset the offset into <tt>buffer</tt> at which the writing of the
+     * audio data is to begin
+     * @param length the maximum number of bytes in <tt>buffer</tt> starting at
+     * <tt>offset</tt> to be written
+     * @return the number of bytes read from the internal buffer of this
+     * instance and written into the specified <tt>buffer</tt>
+     * @throws IOException if the reading from the internal buffer of this
+     * instance or writing into the specified <tt>buffer</tt> fails
+     */
+    private int doRead(
+            IMediaBuffer iMediaBuffer,
+            byte[] buffer, int offset,
+            int length)
         throws IOException
     {
         int toRead = Math.min(length, remainderLength);
@@ -335,9 +415,14 @@ public class AudioCaptureClient
             read = 0;
         else
         {
-            System.arraycopy(remainder, 0, buffer, offset, toRead);
-            popFromRemainder(toRead);
-            read = toRead;
+            if (iMediaBuffer == null)
+            {
+                read = toRead;
+                System.arraycopy(remainder, 0, buffer, offset, toRead);
+            }
+            else
+                read = iMediaBuffer.push(remainder, 0, toRead);
+            popFromRemainder(read);
         }
         return read;
     }
@@ -355,7 +440,30 @@ public class AudioCaptureClient
             = WASAPIRenderer.pop(remainder, remainderLength, length);
     }
 
+    /**
+     * Reads audio data from this instance into a spcific <tt>byte</tt> array.
+     *
+     * @param buffer the <tt>byte</tt> array into which the audio data read from
+     * this instance is to be written
+     * @param offset the offset in <tt>buffer</tt> at which the writing of the
+     * audio data is to start
+     * @param length the maximum number of bytes in <tt>buffer</tt> starting at
+     * <tt>offset</tt> to be written
+     * @return the number of bytes read from this instance and written into the
+     * specified <tt>buffer</tt>
+     * @throws IOException if the reading from this instance or the writing into
+     * the specified <tt>buffer</tt> fails
+     */
     public int read(byte[] buffer, int offset, int length)
+        throws IOException
+    {
+        return read(/* iMediaBuffer */ null, buffer, offset, length);
+    }
+
+    private int read(
+            IMediaBuffer iMediaBuffer,
+            byte[] buffer, int offset,
+            int length)
         throws IOException
     {
         String message;
@@ -380,7 +488,7 @@ public class AudioCaptureClient
 
         try
         {
-            read = doRead(buffer, offset, length);
+            read = doRead(iMediaBuffer, buffer, offset, length);
             cause = null;
         }
         catch (Throwable t)
@@ -411,6 +519,12 @@ public class AudioCaptureClient
             }
         }
         return read;
+    }
+
+    public int read(IMediaBuffer iMediaBuffer, int length)
+        throws IOException
+    {
+        return read(iMediaBuffer, /* buffer */ null, /* offset */ 0, length);
     }
 
     /**
@@ -593,6 +707,13 @@ public class AudioCaptureClient
         }
     }
 
+    /**
+     * Starts the transfer of media from the <tt>IAudioCaptureClient</tt>
+     * identified by the <tt>MediaLocator</tt> with which this instance has
+     * been initialized.
+     *
+     * @throws IOException if the starting of the transfer of media fails
+     */
     public synchronized void start()
         throws IOException
     {
@@ -652,6 +773,13 @@ public class AudioCaptureClient
         }
     }
 
+    /**
+     * Stops the transfer of media from the <tt>IAudioCaptureClient</tt>
+     * identified by the <tt>MediaLocator</tt> with which this instance has
+     * been initialized.
+     *
+     * @throws IOException if the stopping of the transfer of media fails
+     */
     public synchronized void stop()
         throws IOException
     {

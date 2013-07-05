@@ -893,6 +893,14 @@ public class WASAPISystem
         return WASAPIRenderer.class.getName();
     }
 
+    /**
+     * Initializes a new <tt>IMediaObject</tt> instance which represents a Voice
+     * Capture DSP implementing acoustic echo cancellation (AEC).
+     *
+     * @return a new <tt>IMediaObject</tt> instance which represents a Voice
+     * Capture DSP implementing acoustic echo cancellation (AEC)
+     * @throws Exception if initializing the new instance fails
+     */
     public long initializeAEC()
         throws Exception
     {
