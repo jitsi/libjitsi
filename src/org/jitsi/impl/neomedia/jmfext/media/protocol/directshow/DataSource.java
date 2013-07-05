@@ -46,6 +46,8 @@ public class DataSource
                     FFmpeg.PIX_FMT_ARGB,
                     DSFormat.YUY2,
                     FFmpeg.PIX_FMT_YUYV422,
+                    DSFormat.MJPG,
+                    FFmpeg.PIX_FMT_YUVJ422P,
                     DSFormat.UYVY,
                     FFmpeg.PIX_FMT_UYVY422,
                     DSFormat.Y411,

@@ -13,6 +13,7 @@ import javax.media.*;
 import javax.media.control.*;
 import javax.media.protocol.*;
 
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.util.*;
@@ -77,7 +78,7 @@ public class DirectShowStream
     }
 
     /**
-     * The indicator which determines whether {@link #grabber}
+     * The indicator which determines whether {@link #delegate}
      * automatically drops late frames. If <tt>false</tt>, we have to drop them
      * ourselves because DirectShow will buffer them all and the video will
      * be late.
@@ -86,7 +87,7 @@ public class DirectShowStream
 
     /**
      * The pool of <tt>ByteBuffer</tt>s this instances is using to transfer the
-     * media data captured by {@link #grabber} out of this instance
+     * media data captured by {@link #delegate} out of this instance
      * through the <tt>Buffer</tt>s specified in its {@link #read(Buffer)}.
      */
     private final ByteBufferPool byteBufferPool = new ByteBufferPool();
@@ -153,6 +154,22 @@ public class DirectShowStream
      * {@link #automaticallyDropsLateVideoFrames} is <tt>false</tt>.
      */
     private Thread transferDataThread;
+
+    /**
+     * Native Video pixel format.
+     */
+    private int nativePixelFormat = 0;
+
+    /**
+     * The <tt>AVCodecContext</tt> of the MJPEG decoder.
+     */
+    private long avctx = 0;
+
+    /**
+     * The <tt>AVFrame</tt> which represents the media data decoded by the MJPEG
+     * decoder/{@link #avctx}.
+     */
+    private long avframe = 0;
 
     /**
      * Initializes a new <tt>DirectShowStream</tt> instance which is to have its
@@ -294,14 +311,53 @@ public class DirectShowStream
             }
             if(bufferFormat instanceof AVFrameFormat)
             {
-                if (AVFrame.read(buffer, bufferFormat, data) < 0)
+                if(nativePixelFormat == DSFormat.MJPG)
+                {
+                    /* Initialize the FFmpeg MJPEG decoder if necessary. */
+                    if(avctx == 0)
+                    {
+                        long avcodec
+                            = FFmpeg.avcodec_find_decoder(FFmpeg.CODEC_ID_MJPEG);
+
+                        avctx = FFmpeg.avcodec_alloc_context3(avcodec);
+                        FFmpeg.avcodeccontext_set_workaround_bugs(avctx,
+                                FFmpeg.FF_BUG_AUTODETECT);
+
+                        if (FFmpeg.avcodec_open2(avctx, avcodec) < 0)
+                        {
+                            throw new RuntimeException("" +
+                                    "Could not open codec CODEC_ID_MJPEG");
+                        }
+
+                        avframe = FFmpeg.avcodec_alloc_frame();
+                    }
+
+                    if(FFmpeg.avcodec_decode_video(
+                        avctx, avframe, data.getPtr(), data.getLength()) != -1)
+                    {
+                        Object out = buffer.getData();
+
+                        if (!(out instanceof AVFrame)
+                                || (((AVFrame) out).getPtr() != avframe))
+                        {
+                            buffer.setData(new AVFrame(avframe));
+                        }
+                    }
+
                     data.free();
-                /*
-                 * XXX For the sake of safety, make sure that this instance does
-                 * not reference the data instance as soon as it is set on the
-                 * AVFrame.
-                 */
-                data = null;
+                    data = null;
+                }
+                else
+                {
+                    if (AVFrame.read(buffer, bufferFormat, data) < 0)
+                        data.free();
+                    /*
+                     * XXX For the sake of safety, make sure that this instance does
+                     * not reference the data instance as soon as it is set on the
+                     * AVFrame.
+                     */
+                    data = null;
+                }
             }
             else
             {
@@ -457,7 +513,7 @@ public class DirectShowStream
     /**
      * Process received frames from DirectShow capture device
      *
-     * @param a pointer to the native <tt>DSCaptureDevice</tt> which is the
+     * @param source pointer to the native <tt>DSCaptureDevice</tt> which is the
      * source of the notification
      * @param ptr native pointer to data
      * @param length length of data
@@ -569,6 +625,7 @@ public class DirectShowStream
         else if (format instanceof AVFrameFormat)
         {
             AVFrameFormat avFrameFormat = (AVFrameFormat) format;
+            nativePixelFormat = avFrameFormat.getDeviceSystemPixFmt();
             Dimension size = avFrameFormat.getSize();
 
             if (size == null)
@@ -683,6 +740,19 @@ public class DirectShowStream
         finally
         {
             super.stop();
+
+            if(avctx != 0)
+            {
+                FFmpeg.avcodec_close(avctx);
+                FFmpeg.av_free(avctx);
+                avctx = 0;
+            }
+
+            if(avframe != 0)
+            {
+                FFmpeg.avcodec_free_frame(avframe);
+                avframe = 0;
+            }
 
             byteBufferPool.drain();
         }
