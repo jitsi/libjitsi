@@ -1253,6 +1253,8 @@ public class WASAPIStream
                         /* dwFlags */ 0,
                         1,
                         dmoOutputDataBuffer);
+                dwStatus
+                    = DMO_OUTPUT_DATA_BUFFER_getDwStatus(dmoOutputDataBuffer);
             }
             catch (HResultException hre)
             {
