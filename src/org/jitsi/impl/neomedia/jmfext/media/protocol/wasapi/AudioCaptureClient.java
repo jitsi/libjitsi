@@ -40,6 +40,24 @@ public class AudioCaptureClient
     private static final Logger logger
         = Logger.getLogger(AudioCaptureClient.class);
 
+    private static int maybeIAudioCaptureClientGetNextPacketSize(
+            long iAudioCaptureClient)
+    {
+        int numFramesInNextPacket;
+
+        try
+        {
+            numFramesInNextPacket
+                = IAudioCaptureClient_GetNextPacketSize(iAudioCaptureClient);
+        }
+        catch (HResultException hre)
+        {
+            numFramesInNextPacket = 0; // Silence the compiler.
+            logger.error("IAudioCaptureClient_GetNextPacketSize", hre);
+        }
+        return numFramesInNextPacket;
+    }
+
     /**
      * The internal buffer of this instance in which audio data is read from the
      * associated <tt>IAudioCaptureClient</tt> by the instance and awaits to be
@@ -141,6 +159,17 @@ public class AudioCaptureClient
      * <tt>AudioCaptureClient</tt>.
      */
     final AudioFormat outFormat;
+
+    /**
+     * The indicator which reports whether audio samples have been read out of
+     * this instance since the indicator has been set to <tt>false</tt>. For
+     * example, determines whether audio samples have been read out of this
+     * instance since this instance has given control to its associated
+     * <tt>BufferTransferHandler</tt> (if any) and thus resolves a condition
+     * similar to a busy wait which arises if the associated
+     * <tt>BufferTransferHandler</tt> does not read any data.
+     */
+    private boolean read;
 
     /**
      * The number of channels with which {@link #iAudioClient} has been
@@ -505,6 +534,8 @@ public class AudioCaptureClient
         {
             read = doRead(iMediaBuffer, buffer, offset, length);
             cause = null;
+            if (read > 0)
+                this.read = true;
         }
         catch (Throwable t)
         {
@@ -556,18 +587,9 @@ public class AudioCaptureClient
          * Determine the size in bytes of the next data packet in the capture
          * endpoint buffer.
          */
-        int numFramesInNextPacket;
+        int numFramesInNextPacket
+            = maybeIAudioCaptureClientGetNextPacketSize(iAudioCaptureClient);
 
-        try
-        {
-            numFramesInNextPacket
-                = IAudioCaptureClient_GetNextPacketSize(iAudioCaptureClient);
-        }
-        catch (HResultException hre)
-        {
-            numFramesInNextPacket = 0; // Silence the compiler.
-            logger.error("IAudioCaptureClient_GetNextPacketSize", hre);
-        }
         if (numFramesInNextPacket != 0)
         {
             int toRead = numFramesInNextPacket * dstFrameSize;
@@ -619,6 +641,7 @@ public class AudioCaptureClient
             {
                 long eventHandle;
                 BufferTransferHandler transferHandler;
+                int numFramesInNextPacket;
 
                 synchronized (this)
                 {
@@ -648,6 +671,17 @@ public class AudioCaptureClient
                 try
                 {
                     transferHandler = readInEventHandleCmd();
+                    if (transferHandler != null)
+                        read = false;
+                    /*
+                     * If the audio engine has more samples to deliver to the
+                     * application, deliver them as soon as the transferHandler,
+                     * if any, has been given a chance to read (from) the
+                     * available samples.
+                     */
+                    numFramesInNextPacket
+                        = maybeIAudioCaptureClientGetNextPacketSize(
+                                iAudioCaptureClient);
                 }
                 finally
                 {
@@ -668,7 +702,8 @@ public class AudioCaptureClient
                          * exception, we will WaitForSingleObject in order to
                          * give the application time to recover.
                          */
-                        continue;
+                        if (read)
+                            continue;
                     }
                     catch (Throwable t)
                     {
@@ -682,6 +717,12 @@ public class AudioCaptureClient
                         }
                     }
                 }
+                /*
+                 * The audio engine may already have more samples to deliver to
+                 * the application.
+                 */
+                if (numFramesInNextPacket != 0)
+                    continue;
 
                 int wfso;
 

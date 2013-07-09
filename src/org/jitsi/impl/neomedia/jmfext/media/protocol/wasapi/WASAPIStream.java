@@ -1014,7 +1014,14 @@ public class WASAPIStream
          * at this time. If the transferHandler (which will normally invoke
          * transferRenderData) was non-null, it would cause excessive CPU use.
          */
-        BufferTransferHandler transferHandler = null;
+        BufferTransferHandler transferHandler
+            = new BufferTransferHandler()
+                    {
+                        public void transferData(PushBufferStream stream)
+                        {
+                            transferRenderData();
+                        }
+                    };
 
         render
             = new AudioCaptureClient(
@@ -1022,7 +1029,7 @@ public class WASAPIStream
                     locator,
                     AudioSystem.DataFlow.PLAYBACK,
                     WASAPI.AUDCLNT_STREAMFLAGS_LOOPBACK,
-                    /* hnsBufferDuration */ Format.NOT_SPECIFIED,
+                    WASAPISystem.DEFAULT_BUFFER_DURATION,
                     format,
                     transferHandler);
         replenishRender = true;
@@ -1115,7 +1122,7 @@ public class WASAPIStream
                 if ((dwInputStreamIndex == RENDER_INPUT_STREAM_INDEX)
                         && replenishRender)
                 {
-                    int replenishThreshold = renderBufferMaxLength;
+                    int replenishThreshold = (3 * renderBufferMaxLength / 2);
 
                     if (audioCaptureClient.getAvailableLength()
                             < replenishThreshold)
@@ -1698,7 +1705,6 @@ public class WASAPIStream
      * Notifies this instance that audio data has been made available in
      * {@link #render}.
      */
-    @SuppressWarnings("unused")
     private void transferRenderData()
     {
         /*
