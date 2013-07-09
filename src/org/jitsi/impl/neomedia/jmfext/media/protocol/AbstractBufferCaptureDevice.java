@@ -19,7 +19,6 @@ import net.sf.fmj.media.util.*;
 
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.util.*;
-// disambiguation
 
 /**
  * Facilitates the implementations of the <tt>CaptureDevice</tt> and

@@ -33,12 +33,6 @@ public class WASAPIRenderer
     extends AbstractAudioRenderer<WASAPISystem>
 {
     /**
-     * The default base of the endpoint buffer capacity in milliseconds to
-     * initialize new <tt>IAudioClient</tt> instances with.
-     */
-    private static final long DEFAULT_BUFFER_DURATION = 60;
-
-    /**
      * The <tt>Logger</tt> used by the <tt>WASAPIRenderer</tt> class and its
      * instances to log debug information.
      */
@@ -316,14 +310,13 @@ public class WASAPIRenderer
 
             try
             {
-                long hnsBufferDuration = DEFAULT_BUFFER_DURATION * 10000;
                 long iAudioClient
                     = audioSystem.initializeIAudioClient(
                             locator,
                             dataFlow,
                             /* streamFlags */ 0,
                             eventHandle,
-                            hnsBufferDuration,
+                            WASAPISystem.DEFAULT_BUFFER_DURATION,
                             formats);
 
                 if (iAudioClient == 0)

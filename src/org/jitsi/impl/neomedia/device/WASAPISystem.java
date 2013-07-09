@@ -34,6 +34,15 @@ public class WASAPISystem
     private static String audioSessionGuid;
 
     /**
+     * The default duration of audio data in milliseconds to be read from
+     * <tt>WASAPIStream</tt> in an invocation of
+     * {@link WASAPIStream#read(Buffer)} or to be processed by
+     * <tt>WASAPIRenderer</tt> in an invocation of
+     * {@link WASAPIRenderer#process(Buffer)}.
+     */
+    public static final long DEFAULT_BUFFER_DURATION = 20;
+
+    /**
      * The default interval in milliseconds between periodic processing passes
      * by the audio engine.
      */
@@ -971,7 +980,10 @@ public class WASAPISystem
      * endpoint device identified by the specified <tt>locator</tt>
      * @param streamFlags
      * @param eventHandle
-     * @param hnsBufferDuration
+     * @param hnsBufferDuration the base of the duration in milliseconds of the
+     * buffer that the audio application will share with the audio engine. If
+     * {@link Format#NOT_SPECIFIED}, the method uses the default interval
+     * between periodic passes by the audio engine.
      * @param formats an array of alternative <tt>AudioFormat</tt>s with which
      * initialization of a new <tt>IAudioClient</tt> instance is to be
      * attempted. The first element of the <tt>formats</tt> array which is
@@ -1107,12 +1119,24 @@ public class WASAPISystem
                     if (eventHandle != 0)
                         streamFlags |= AUDCLNT_STREAMFLAGS_EVENTCALLBACK;
 
+                    if (hnsBufferDuration == Format.NOT_SPECIFIED)
+                    {
+                        hnsBufferDuration
+                            = IAudioClient_GetDefaultDevicePeriod(iAudioClient)
+                                / 10000;
+                        if (hnsBufferDuration <= 1)
+                        {
+                            hnsBufferDuration
+                                = WASAPISystem.DEFAULT_DEVICE_PERIOD;
+                        }
+                    }
+
                     int hresult
                         = IAudioClient_Initialize(
                                 iAudioClient,
                                 shareMode,
                                 streamFlags,
-                                hnsBufferDuration,
+                                3 * hnsBufferDuration * 10000,
                                 /* hnsPeriodicity */ 0,
                                 waveformatex,
                                 audioSessionGuid);

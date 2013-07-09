@@ -34,17 +34,25 @@ import org.jitsi.util.*;
 public class AudioCaptureClient
 {
     /**
-     * The default duration of the audio data in milliseconds to be read from
-     * <tt>WASAPIStream</tt> in an invocation of {@link #read(Buffer)}.
-     */
-    static final long DEFAULT_BUFFER_DURATION = 20;
-
-    /**
      * The <tt>Logger</tt> used by the <tt>AudioCaptureClient</tt> class and its
      * instances to log debug information.
      */
     private static final Logger logger
         = Logger.getLogger(AudioCaptureClient.class);
+
+    /**
+     * The internal buffer of this instance in which audio data is read from the
+     * associated <tt>IAudioCaptureClient</tt> by the instance and awaits to be
+     * read out of this instance via {@link #read(byte[], int, int)}.
+     */
+    private byte[] available;
+
+    /**
+     * The number of bytes in {@link #available} which represent valid audio
+     * data read from the associated <tt>IAudioCaptureClient</tt> by this
+     * instance.
+     */
+    private int availableLength;
 
     /**
      * The number of audio frames to be filled in a <tt>byte[]</tt> in an
@@ -135,20 +143,6 @@ public class AudioCaptureClient
     final AudioFormat outFormat;
 
     /**
-     * The internal buffer of this instance in which audio data is read from the
-     * associated <tt>IAudioCaptureClient</tt> by the instance and awaits to be
-     * read out of this instance via {@link #read(byte[], int, int)}.
-     */
-    private byte[] remainder;
-
-    /**
-     * The number of bytes in {@link #remainder} which represent valid audio
-     * data read from the associated <tt>IAudioCaptureClient</tt> by this
-     * instance.
-     */
-    private int remainderLength;
-
-    /**
      * The number of channels with which {@link #iAudioClient} has been
      * initialized.
      */
@@ -194,6 +188,10 @@ public class AudioCaptureClient
      * written on that render endpoint device
      * @param streamFlags zero or more of the <tt>AUDCLNT_STREAMFLAGS_XXX</tt>
      * flags defined by the <tt>WASAPI</tt> class
+     * @param hnsBufferDuration the base of the duration in milliseconds of the
+     * buffer that the audio application will share with the audio engine. If
+     * {@link Format#NOT_SPECIFIED}, the method uses the default interval
+     * between periodic passes by the audio engine.
      * @param outFormat the <tt>AudioFormat</tt> of the data to be made
      * available by the new instance. Eventually, the
      * <tt>IAudioCaptureClient</tt> to be represented by the new instance may be
@@ -210,6 +208,7 @@ public class AudioCaptureClient
             MediaLocator locator,
             AudioSystem.DataFlow dataFlow,
             int streamFlags,
+            long hnsBufferDuration,
             AudioFormat outFormat,
             BufferTransferHandler transferHandler)
         throws Exception
@@ -227,7 +226,6 @@ public class AudioCaptureClient
              * WASAPIRenderer and WASAPIStream. There is no particular
              * reason/requirement to do so.
              */
-            long hnsBufferDuration = 3 * DEFAULT_BUFFER_DURATION * 10000;
             long iAudioClient
                 = audioSystem.initializeIAudioClient(
                         locator,
@@ -304,6 +302,8 @@ public class AudioCaptureClient
                                 = WASAPISystem.DEFAULT_DEVICE_PERIOD;
                     }
                     this.devicePeriod = devicePeriod;
+                    if (hnsBufferDuration == Format.NOT_SPECIFIED)
+                        hnsBufferDuration = devicePeriod;
 
                     srcChannels = inFormat.getChannels();
                     srcSampleSize
@@ -315,12 +315,11 @@ public class AudioCaptureClient
 
                     dstFrameSize = dstSampleSize * dstChannels;
                     bufferFrames
-                        = (int)
-                            (DEFAULT_BUFFER_DURATION * sampleRate / 1000);
+                        = (int) (hnsBufferDuration * sampleRate / 1000);
                     bufferSize = dstFrameSize * bufferFrames;
 
-                    remainder = new byte[numBufferFrames * dstFrameSize];
-                    remainderLength = 0;
+                    available = new byte[numBufferFrames * dstFrameSize];
+                    availableLength = 0;
 
                     this.eventHandle = eventHandle;
                     eventHandle = 0;
@@ -381,8 +380,8 @@ public class AudioCaptureClient
             eventHandle = 0;
         }
 
-        remainder = null;
-        remainderLength = 0;
+        available = null;
+        availableLength = 0;
         started = false;
     }
 
@@ -408,7 +407,7 @@ public class AudioCaptureClient
             int length)
         throws IOException
     {
-        int toRead = Math.min(length, remainderLength);
+        int toRead = Math.min(length, availableLength);
         int read;
 
         if (toRead == 0)
@@ -418,30 +417,46 @@ public class AudioCaptureClient
             if (iMediaBuffer == null)
             {
                 read = toRead;
-                System.arraycopy(remainder, 0, buffer, offset, toRead);
+                System.arraycopy(available, 0, buffer, offset, toRead);
             }
             else
-                read = iMediaBuffer.push(remainder, 0, toRead);
-            popFromRemainder(read);
+                read = iMediaBuffer.push(available, 0, toRead);
+            popFromAvailable(read);
         }
         return read;
     }
 
     /**
-     * Pops a specific number of bytes from {@link #remainder}. For example,
-     * because such a number of bytes have been read from <tt>remainder</tt> and
-     * written into a <tt>Buffer</tt>.
+     * Gets the number of bytes of audio samples which have been read from the
+     * associated <tt>IAudioCaptureClient</tt> by this instance and are
+     * available to be read out of this instance via
+     * {@link #read(byte[], int, int)}.
      *
-     * @param length the number of bytes to pop from <tt>remainder</tt>
+     * @return the number of bytes of audio samples which have been read from
+     * the associated <tt>IAudioCaptureClient</tt> by this instance and are
+     * available to be read out of this instance via
+     * <tt>read(byte[], int, int)</tt>
      */
-    private void popFromRemainder(int length)
+    int getAvailableLength()
     {
-        remainderLength
-            = WASAPIRenderer.pop(remainder, remainderLength, length);
+        return availableLength;
     }
 
     /**
-     * Reads audio data from this instance into a spcific <tt>byte</tt> array.
+     * Pops a specific number of bytes from {@link #available}. For example,
+     * because such a number of bytes have been read from <tt>available</tt> and
+     * written into a <tt>Buffer</tt>.
+     *
+     * @param length the number of bytes to pop from <tt>available</tt>
+     */
+    private void popFromAvailable(int length)
+    {
+        availableLength
+            = WASAPIRenderer.pop(available, availableLength, length);
+    }
+
+    /**
+     * Reads audio data from this instance into a specific <tt>byte</tt> array.
      *
      * @param buffer the <tt>byte</tt> array into which the audio data read from
      * this instance is to be written
@@ -528,7 +543,7 @@ public class AudioCaptureClient
     }
 
     /**
-     * Reads from {@link #iAudioCaptureClient} into {@link #remainder} and
+     * Reads from {@link #iAudioCaptureClient} into {@link #available} and
      * returns a non-<tt>null</tt> <tt>BufferTransferHandler</tt> if this
      * instance is to push audio data.
      *
@@ -553,30 +568,29 @@ public class AudioCaptureClient
             numFramesInNextPacket = 0; // Silence the compiler.
             logger.error("IAudioCaptureClient_GetNextPacketSize", hre);
         }
-
         if (numFramesInNextPacket != 0)
         {
             int toRead = numFramesInNextPacket * dstFrameSize;
 
             /*
-             * Make sure there is enough room in remainder to accommodate
+             * Make sure there is enough room in available to accommodate
              * toRead.
              */
-            int toPop = toRead - (remainder.length - remainderLength);
+            int toPop = toRead - (available.length - availableLength);
 
             if (toPop > 0)
-                popFromRemainder(toPop);
+                popFromAvailable(toPop);
 
             try
             {
                 int read
                     = IAudioCaptureClient_Read(
                             iAudioCaptureClient,
-                            remainder, remainderLength, toRead,
+                            available, availableLength, toRead,
                             srcSampleSize, srcChannels,
                             dstSampleSize, dstChannels);
 
-                remainderLength += read;
+                availableLength += read;
             }
             catch (HResultException hre)
             {
@@ -584,7 +598,7 @@ public class AudioCaptureClient
             }
         }
 
-        return (remainderLength >= bufferSize) ? transferHandler : null;
+        return (availableLength >= bufferSize) ? transferHandler : null;
     }
 
     /**
@@ -727,7 +741,7 @@ public class AudioCaptureClient
                 IAudioClient_Start(iAudioClient);
                 started = true;
 
-                remainderLength = 0;
+                availableLength = 0;
                 if ((eventHandle != 0) && (this.eventHandleCmd == null))
                 {
                     Runnable eventHandleCmd
@@ -798,7 +812,7 @@ public class AudioCaptureClient
                 started = false;
 
                 waitWhileEventHandleCmd();
-                remainderLength = 0;
+                availableLength = 0;
             }
             catch (HResultException hre)
             {

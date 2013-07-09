@@ -34,10 +34,26 @@ public class WASAPIStream
     extends AbstractPushBufferStream<DataSource>
 {
     /**
+     * The zero-based index of the input stream of the <tt>IMediaObject</tt>
+     * that represents the Voice Capture DSP implementing the acoustic echo
+     * cancellation (AEC) feature that delivers the audio samples from the
+     * microphone.
+     */
+    private static final int CAPTURE_INPUT_STREAM_INDEX = 0;
+
+    /**
      * The <tt>Logger</tt> used by the <tt>WASAPIStream</tt> class and its
      * instances to log debug information.
      */
     private static Logger logger = Logger.getLogger(WASAPIStream.class);
+
+    /**
+     * The zero-based index of the input stream of the <tt>IMediaObject</tt>
+     * that represents the Voice Capture DSP implementing the acoustic echo
+     * cancellation (AEC) feature that delivers the audio samples from the
+     * speaker (line).
+     */
+    private static final int RENDER_INPUT_STREAM_INDEX = 1;
 
     /**
      * Finds an <tt>AudioFormat</tt> in a specific list of <tt>Format</tt>s
@@ -257,9 +273,9 @@ public class WASAPIStream
      * <tt>IOException</tt>.
      *
      * @param iMediaBuffer the <tt>IMediaBuffer</tt> on which the method
-     * <tt>GetLength<tt> is to be invoked
+     * <tt>GetLength</tt> is to be invoked
      * @return the length of the specified <tt>iMediaBuffer</tt>. If the method
-     * <tt>GetLength<tt> fails, returns <tt>0</tt>.
+     * <tt>GetLength</tt> fails, returns <tt>0</tt>.
      */
     private static int maybeIMediaBufferGetLength(IMediaBuffer iMediaBuffer)
     {
@@ -272,7 +288,7 @@ public class WASAPIStream
         catch (IOException ioe)
         {
             length = 0;
-            logger.error("IMediaBuffer::GetLength", ioe);
+            logger.error("IMediaBuffer.GetLength", ioe);
         }
         return length;
     }
@@ -282,9 +298,9 @@ public class WASAPIStream
      * swallows any <tt>HResultException</tt>.
      *
      * @param iMediaBuffer the <tt>IMediaBuffer</tt> on which the function
-     * <tt>IMediaBuffer_GetLength<tt> is to be invoked
+     * <tt>IMediaBuffer_GetLength</tt> is to be invoked
      * @return the length of the specified <tt>iMediaBuffer</tt>. If the
-     * function <tt>IMediaBuffer_GetLength<tt> fails, returns <tt>0</tt>.
+     * function <tt>IMediaBuffer_GetLength</tt> fails, returns <tt>0</tt>.
      */
     @SuppressWarnings("unused")
     private static int maybeIMediaBufferGetLength(long iMediaBuffer)
@@ -389,6 +405,8 @@ public class WASAPIStream
      */
     private boolean captureIsBusy;
 
+    private double captureNanosPerByte;
+
     /**
      * The length in milliseconds of the interval between successive, periodic
      * processing passes by the audio engine on the data in the endpoint buffer.
@@ -428,6 +446,8 @@ public class WASAPIStream
 
     private int renderBufferMaxLength;
 
+    private double renderBytesPerNano;
+
     private PtrMediaBuffer renderIMediaBuffer;
 
     /**
@@ -437,6 +457,12 @@ public class WASAPIStream
      * {@link #read(Buffer)}.
      */
     private boolean renderIsBusy;
+
+    /**
+     * The indicator which determines whether no reading from {@link #render} is
+     * to be performed until it reaches a certain threshold of availability. 
+     */
+    private boolean replenishRender;
 
     /**
      * The indicator which determines whether this <tt>SourceStream</tt> is
@@ -458,6 +484,27 @@ public class WASAPIStream
     public WASAPIStream(DataSource dataSource, FormatControl formatControl)
     {
         super(dataSource, formatControl);
+    }
+
+    /**
+     * Computes/determines the duration in nanoseconds of audio samples which
+     * are represented by a specific number of bytes and which are in encoded in
+     * the <tt>outFormat</tt> of {@link #capture}.
+     *
+     * @param length the number of bytes comprising the audio samples of which
+     * the duration in nanoseconds is to be computed/determined
+     * @return the duration in nanoseconds of audio samples which are
+     * represented by the specified number of bytes and which are encoded in the
+     * <tt>outFormat</tt> of <tt>capture</tt>
+     */
+    private long computeCaptureDuration(int length)
+    {
+        return (long) (length * captureNanosPerByte);
+    }
+
+    private int computeRenderLength(long duration)
+    {
+        return (int) (duration * renderBytesPerNano);
     }
 
     /**
@@ -716,11 +763,12 @@ public class WASAPIStream
         }
         try
         {
+            int dwInputStreamIndex = CAPTURE_INPUT_STREAM_INDEX;
             int hresult
                 = IMediaObject_SetXXXputType(
                         iMediaObject,
                         /* IMediaObject_SetInputType */ true,
-                        /* dwInputStreamIndex */ 0,
+                        dwInputStreamIndex,
                         inFormat0,
                         /* dwFlags */ 0);
 
@@ -728,22 +776,23 @@ public class WASAPIStream
             {
                 throw new HResultException(
                         hresult,
-                        "IMediaObject_SetInputType, dwOutputStreamIndex 0, "
-                                + inFormat0);
+                        "IMediaObject_SetInputType, dwInputStreamIndex "
+                            + dwInputStreamIndex + ", " + inFormat0);
             }
+            dwInputStreamIndex = RENDER_INPUT_STREAM_INDEX;
             hresult
                 = IMediaObject_SetXXXputType(
                         iMediaObject,
                         /* IMediaObject_SetInputType */ true,
-                        /* dwInputStreamIndex */ 1,
+                        dwInputStreamIndex,
                         inFormat1,
                         /* dwFlags */ 0);
             if (FAILED(hresult))
             {
                 throw new HResultException(
                         hresult,
-                        "IMediaObject_SetInputType, dwOutputStreamIndex 1, "
-                                + inFormat1);
+                        "IMediaObject_SetInputType, dwInputStreamIndex "
+                            + dwInputStreamIndex + ", " + inFormat1);
             }
             hresult
                 = IMediaObject_SetXXXputType(
@@ -804,9 +853,8 @@ public class WASAPIStream
                                 * outFormat.getChannels();
                         int outFrames
                             = (int)
-                                (AudioCaptureClient.DEFAULT_BUFFER_DURATION
-                                    * ((int) outFormat.getSampleRate())
-                                    / 1000);
+                                (WASAPISystem.DEFAULT_BUFFER_DURATION
+                                    * ((int) outFormat.getSampleRate()) / 1000);
                         long iMediaBuffer
                             = MediaBuffer_alloc(outFrameSize * outFrames);
 
@@ -852,6 +900,45 @@ public class WASAPIStream
                                 this.renderIMediaBuffer
                                     = new PtrMediaBuffer(renderIMediaBuffer);
                                 renderIMediaBuffer = 0;
+
+                                /*
+                                 * Prepare to be ready to compute/determine the
+                                 * duration in nanoseconds of a specific number
+                                 * of bytes representing audio samples encoded
+                                 * in the outFormat of capture.
+                                 */
+                                {
+                                    AudioFormat af = capture.outFormat;
+                                    double sampleRate = af.getSampleRate();
+                                    int sampleSizeInBits
+                                        = af.getSampleSizeInBits();
+                                    int channels = af.getChannels();
+
+                                    captureNanosPerByte
+                                        = (8d * 1000d * 1000d * 1000d)
+                                            / (sampleRate
+                                                    * sampleSizeInBits
+                                                    * channels);
+                                }
+                                /*
+                                 * Prepare to be ready to compute/determine the
+                                 * number of bytes representing a specific
+                                 * duration in nanoseconds of audio samples
+                                 * encoded in the outFormat of render.
+                                 */
+                                {
+                                    AudioFormat af = render.outFormat;
+                                    double sampleRate = af.getSampleRate();
+                                    int sampleSizeInBits
+                                        = af.getSampleSizeInBits();
+                                    int channels = af.getChannels();
+
+                                    renderBytesPerNano
+                                        = (sampleRate
+                                                * sampleSizeInBits
+                                                * channels)
+                                            / (8d * 1000d * 1000d * 1000d);
+                                }
                             }
                             finally
                             {
@@ -893,21 +980,28 @@ public class WASAPIStream
     private void initializeCapture(MediaLocator locator, AudioFormat format)
         throws Exception
     {
+        long hnsBufferDuration
+            = dataSource.aec
+                ? Format.NOT_SPECIFIED
+                : WASAPISystem.DEFAULT_BUFFER_DURATION;
+        BufferTransferHandler transferHandler
+            = new BufferTransferHandler()
+                    {
+                        public void transferData(PushBufferStream stream)
+                        {
+                            transferCaptureData();
+                        }
+                    };
+
         capture
             = new AudioCaptureClient(
                     dataSource.audioSystem,
                     locator,
                     AudioSystem.DataFlow.CAPTURE,
                     /* streamFlags */ 0,
+                    hnsBufferDuration,
                     format,
-                    new BufferTransferHandler()
-                            {
-                                public void transferData(
-                                        PushBufferStream stream)
-                                {
-                                    transferCaptureData();
-                                }
-                            });
+                    transferHandler);
         bufferSize = capture.bufferSize;
         devicePeriod = capture.devicePeriod;
     }
@@ -915,21 +1009,23 @@ public class WASAPIStream
     private void initializeRender(final MediaLocator locator, AudioFormat format)
         throws Exception
     {
+        /*
+         * XXX The method transferRenderData does not read any data from render
+         * at this time. If the transferHandler (which will normally invoke
+         * transferRenderData) was non-null, it would cause excessive CPU use.
+         */
+        BufferTransferHandler transferHandler = null;
+
         render
             = new AudioCaptureClient(
                     dataSource.audioSystem,
                     locator,
                     AudioSystem.DataFlow.PLAYBACK,
                     WASAPI.AUDCLNT_STREAMFLAGS_LOOPBACK,
+                    /* hnsBufferDuration */ Format.NOT_SPECIFIED,
                     format,
-                    new BufferTransferHandler()
-                            {
-                                public void transferData(
-                                        PushBufferStream stream)
-                                {
-                                    transferRenderData();
-                                }
-                            });
+                    transferHandler);
+        replenishRender = true;
     }
 
     /**
@@ -952,28 +1048,34 @@ public class WASAPIStream
      *
      * @param dwInputStreamIndex the zero-based index of the input stream on
      * <tt>iMediaObject</tt> to which audio samples are to be delivered
+     * @param maxLength the maximum number of bytes to the delivered through the
+     * specified input stream. Ignored if negative or greater than the actual
+     * capacity/maximum length of the <tt>IMediaBuffer</tt> associated with the specified
+     * <tt>dwInputStreamIndex</tt>.
      */
-    private void processInput(int dwInputStreamIndex)
+    private void processInput(int dwInputStreamIndex, int maxLength)
     {
         PtrMediaBuffer oBuffer;
-        int maxLength;
+        int bufferMaxLength;
         AudioCaptureClient audioCaptureClient;
 
         switch (dwInputStreamIndex)
         {
-        case 0:
+        case CAPTURE_INPUT_STREAM_INDEX:
             oBuffer = captureIMediaBuffer;
-            maxLength = captureBufferMaxLength;
+            bufferMaxLength = captureBufferMaxLength;
             audioCaptureClient = capture;
             break;
-        case 1:
+        case RENDER_INPUT_STREAM_INDEX:
             oBuffer = renderIMediaBuffer;
-            maxLength = renderBufferMaxLength;
+            bufferMaxLength = renderBufferMaxLength;
             audioCaptureClient = render;
             break;
         default:
             throw new IllegalArgumentException("dwInputStreamIndex");
         }
+        if ((maxLength < 0) || (maxLength > bufferMaxLength))
+            maxLength = bufferMaxLength;
 
         long pBuffer = oBuffer.ptr;
         int hresult = S_OK;
@@ -1008,17 +1110,31 @@ public class WASAPIStream
                  * AudioCaptureClient and then deliver them to the specified
                  * input stream.
                  */
-                int toRead;
+                int toRead = Format.NOT_SPECIFIED;
 
-                try
+                if ((dwInputStreamIndex == RENDER_INPUT_STREAM_INDEX)
+                        && replenishRender)
                 {
-                    toRead = maxLength - IMediaBuffer_GetLength(pBuffer);
+                    int replenishThreshold = renderBufferMaxLength;
+
+                    if (audioCaptureClient.getAvailableLength()
+                            < replenishThreshold)
+                        toRead = 0;
+                    else
+                        replenishRender = false;
                 }
-                catch (HResultException hre)
+                if (toRead == Format.NOT_SPECIFIED)
                 {
-                    hresult = hre.getHResult();
-                    toRead = 0;
-                    logger.error("IMediaBuffer_GetLength", hre);
+                    try
+                    {
+                        toRead = maxLength - IMediaBuffer_GetLength(pBuffer);
+                    }
+                    catch (HResultException hre)
+                    {
+                        hresult = hre.getHResult();
+                        toRead = 0;
+                        logger.error("IMediaBuffer_GetLength", hre);
+                    }
                 }
                 if (toRead > 0)
                 {
@@ -1028,7 +1144,11 @@ public class WASAPIStream
                      */
                     try
                     {
-                        audioCaptureClient.read(oBuffer, toRead);
+                        int read = audioCaptureClient.read(oBuffer, toRead);
+
+                        if ((dwInputStreamIndex == RENDER_INPUT_STREAM_INDEX)
+                                && (read == 0))
+                            replenishRender = true;
                     }
                     catch (IOException ioe)
                     {
@@ -1050,7 +1170,7 @@ public class WASAPIStream
                  * above, read from the render endpoint device as many audio
                  * samples as possible and pad with silence if necessary.
                  */
-                if (dwInputStreamIndex == 1)
+                if (dwInputStreamIndex == RENDER_INPUT_STREAM_INDEX)
                 {
                     int length;
 
@@ -1100,11 +1220,73 @@ public class WASAPIStream
                     if (hresult != DMO_E_NOTACCEPTING)
                         logger.error("IMediaObject_ProcessInput", hre);
                 }
+                break; // XXX We risk a busy wait unless we break here.
             }
             else
                 break; // The input stream cannot accept more input data.
         }
         while (SUCCEEDED(hresult));
+    }
+
+    /**
+     * Invokes <tt>IMediaObject::ProcessOutput</tt> on {@link #iMediaObject}
+     * that represents the Voice Capture DSP implementing the acoustic echo
+     * cancellation (AEC) feature.
+     */
+    private void processOutput()
+    {
+        int dwStatus = 0;
+
+        do
+        {
+            try
+            {
+                IMediaObject_ProcessOutput(
+                        iMediaObject,
+                        /* dwFlags */ 0,
+                        1,
+                        dmoOutputDataBuffer);
+            }
+            catch (HResultException hre)
+            {
+                dwStatus = 0;
+                logger.error("IMediaObject_ProcessOutput", hre);
+            }
+            try
+            {
+                int toRead = IMediaBuffer_GetLength(iMediaBuffer);
+
+                if (toRead > 0)
+                {
+                    /*
+                     * Make sure there is enough room in processed to
+                     * accommodate toRead.
+                     */
+                    int toPop = toRead - (processed.length - processedLength);
+
+                    if (toPop > 0)
+                        popFromProcessed(toPop);
+
+                    int read
+                        = MediaBuffer_pop(
+                                iMediaBuffer,
+                                processed, processedLength, toRead);
+
+                    if (read > 0)
+                        processedLength += read;
+                }
+            }
+            catch (HResultException hre)
+            {
+                logger.error(
+                        "Failed to read from acoustic echo cancellation (AEC)"
+                            + " output IMediaBuffer.",
+                        hre);
+                break;
+            }
+        }
+        while ((dwStatus & DMO_OUTPUT_DATA_BUFFERF_INCOMPLETE)
+                == DMO_OUTPUT_DATA_BUFFERF_INCOMPLETE);
     }
 
     /**
@@ -1206,6 +1388,15 @@ public class WASAPIStream
                     buffer.setLength(length);
                     break;
                 }
+                else
+                {
+                    /*
+                     * TODO The implementation of PushBufferStream.read(Buffer)
+                     * should not block, it should return with whatever is
+                     * available.
+                     */
+                    yield();
+                }
             }
             else
             {
@@ -1239,102 +1430,77 @@ public class WASAPIStream
      */
     private BufferTransferHandler runInProcessThread()
     {
-        // ProcessInput
-        processInput(/* capture */ 0);
-        /*
-         * If the capture endpoint device has not made any audio samples
-         * available, there is no input to be processed. Moreover, it is
-         * incorrect to input from the render endpoint device in such a case.
-         */
-        if (maybeIMediaBufferGetLength(captureIMediaBuffer) != 0)
+        int captureMaxLength = this.captureBufferMaxLength;
+
+        do
         {
-            processInput(/* render */ 1);
+            processInput(CAPTURE_INPUT_STREAM_INDEX, captureMaxLength);
 
-            // ProcessOutput
-            int dwStatus = 0;
-
-            do
-            {
-                try
-                {
-                    IMediaObject_ProcessOutput(
-                            iMediaObject,
-                            /* dwFlags */ 0,
-                            1,
-                            dmoOutputDataBuffer);
-                }
-                catch (HResultException hre)
-                {
-                    dwStatus = 0;
-                    logger.error("IMediaObject_ProcessOutput", hre);
-                }
-                try
-                {
-                    int toRead = IMediaBuffer_GetLength(iMediaBuffer);
-
-                    if (toRead > 0)
-                    {
-                        /*
-                         * Make sure there is enough room in processed to
-                         * accommodate toRead.
-                         */
-                        int toPop
-                            = toRead - (processed.length - processedLength);
-
-                        if (toPop > 0)
-                            popFromProcessed(toPop);
-
-                        int read
-                            = MediaBuffer_pop(
-                                    iMediaBuffer,
-                                    processed, processedLength, toRead);
-
-                        if (read > 0)
-                            processedLength += read;
-                    }
-                }
-                catch (HResultException hre)
-                {
-                    logger.error(
-                            "Failed to read from acoustic echo cancellation"
-                                + " (AEC) output IMediaBuffer.",
-                            hre);
-                    break;
-                }
-            }
-            while ((dwStatus & DMO_OUTPUT_DATA_BUFFERF_INCOMPLETE)
-                    == DMO_OUTPUT_DATA_BUFFERF_INCOMPLETE);
-        }
-
-        /*
-         * IMediaObject::ProcessOutput has completed which means that, as far as
-         * it is concerned, it does not have any input data to process. Make
-         * sure that the states of the IMediaBuffer instances are in accord.
-         */
-        try
-        {
             /*
-             * XXX Make sure that the IMediaObject releases any IMediaBuffer
-             * references it holds.
+             * If the capture endpoint device has not made any audio samples
+             * available, there is no input to be processed. Moreover, inputting
+             * from the render endpoint device in such a case will be
+             * inappropriate because it will (repeatedly) introduce random skew
+             * in the audio delivered by the render endpoint device.
              */
-            int hresult = IMediaObject_Flush(iMediaObject);
+            int captureLength = maybeIMediaBufferGetLength(captureIMediaBuffer);
+            boolean flush;
 
-            if (SUCCEEDED(hresult))
+            if (captureLength < captureMaxLength)
+                flush = false;
+            else
             {
-                captureIMediaBuffer.SetLength(0);
-                renderIMediaBuffer.SetLength(0);
+                int renderMaxLength
+                    = computeRenderLength(
+                            computeCaptureDuration(captureLength));
+
+                processInput(RENDER_INPUT_STREAM_INDEX, renderMaxLength);
+
+                processOutput();
+                flush = true;
+            }
+
+            /*
+             * IMediaObject::ProcessOutput has completed which means that, as
+             * far as it is concerned, it does not have any input data to
+             * process. Make sure that the states of the IMediaBuffer instances
+             * are in accord.
+             */
+            try
+            {
+                /*
+                 * XXX Make sure that the IMediaObject releases any IMediaBuffer
+                 * references it holds.
+                 */
+                if (SUCCEEDED(IMediaObject_Flush(iMediaObject)) && flush)
+                {
+                    captureIMediaBuffer.SetLength(0);
+                    renderIMediaBuffer.SetLength(0);
+                }
+            }
+            catch (HResultException hre)
+            {
+                logger.error("IMediaBuffer_Flush", hre);
+            }
+            catch (IOException ioe)
+            {
+                logger.error("IMediaBuffer.SetLength", ioe);
+            }
+
+            if (!flush)
+            {
+                BufferTransferHandler transferHandler = this.transferHandler;
+
+                if ((transferHandler != null)
+                        && (processedLength >= bufferMaxLength))
+                    return transferHandler;
+                else
+                    break;
             }
         }
-        catch (HResultException hre)
-        {
-            logger.error("IMediaBuffer_Flush", hre);
-        }
-        catch (IOException ioe)
-        {
-            logger.error("IMediaBuffer::SetLength", ioe);
-        }
+        while (true);
 
-        return (processedLength >= bufferMaxLength) ? transferHandler : null;
+        return null;
     }
 
     /**
@@ -1498,6 +1664,7 @@ public class WASAPIStream
         {
             waitWhileRenderIsBusy();
             render.stop();
+            replenishRender = true;
         }
         started = false;
 
@@ -1531,12 +1698,17 @@ public class WASAPIStream
      * Notifies this instance that audio data has been made available in
      * {@link #render}.
      */
+    @SuppressWarnings("unused")
     private void transferRenderData()
     {
-        synchronized (this)
-        {
-            notifyAll();
-        }
+        /*
+         * This is a CaptureDevice and its goal is to push the audio samples
+         * delivered by the capture endpoint device out in their entirety. When
+         * the render endpoint device pushes and whether it pushes frequently
+         * and sufficiently enough to stay in sync with the capture endpoint
+         * device for the purposes of the acoustic echo cancellation (AEC) is a
+         * separate question.
+         */
     }
 
     private void uninitializeAEC()
