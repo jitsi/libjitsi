@@ -40,6 +40,19 @@ public class AudioCaptureClient
     private static final Logger logger
         = Logger.getLogger(AudioCaptureClient.class);
 
+    /**
+     * Invokes {@link WASAPI#IAudioCaptureClient_GetNextPacketSize(long)} on a
+     * specific <tt>IAudioCaptureClient</tt> and logs and swallows any
+     * <tt>HResultException</tt>.
+     *
+     * @param iAudioCaptureClient the <tt>IAudioCaptureClient</tt> of which to
+     * retrieve the number of frames in the next data packet
+     * @return the number of frames in the next data packet in the capture
+     * endpoint buffer associated with the specified
+     * <tt>iAudioCaptureClient</tt>. If the function/method
+     * <tt>IAudioCaptureClient_GetNextPacketSize</tt> throws an
+     * <tt>HResultException</tt>, return <tt>0</tt>.
+     */
     private static int maybeIAudioCaptureClientGetNextPacketSize(
             long iAudioCaptureClient)
     {
@@ -504,6 +517,28 @@ public class AudioCaptureClient
         return read(/* iMediaBuffer */ null, buffer, offset, length);
     }
 
+    /**
+     * Reads audio data from this instance into a specific <tt>IMediaBuffer</tt>
+     * or a specific <tt>byte</tt> array.
+     *
+     * @param iMediaBuffer the <tt>IMediaBuffer</tt> into which the audio data
+     * read from this instance is to be written. If <tt>null</tt>, the writing
+     * occurs on <tt>buffer</tt> starting at <tt>offset</tt>. If
+     * non-<tt>null</tt>, <tt>buffer</tt> and <tt>offset</tt> are ignored.
+     * @param buffer the <tt>byte</tt> array into which the audio data read from
+     * this instance is to be written if <tt>iMediaBuffer</tt> is <tt>null</tt>;
+     * otherwise, <tt>buffer</tt> and <tt>offset</tt> are ignored
+     * @param offset the offset in <tt>buffer</tt> at which the writing of the
+     * audio data is to start if <tt>iMediaBuffer</tt> is <tt>null</tt>;
+     * otherwise, <tt>buffer</tt> and <tt>offset</tt> are ignored
+     * @param length the maximum number of bytes to be read from this instance
+     * into the specified <tt>iMediaBuffer</tt> or the specified <tt>buffer</tt>
+     * starting at <tt>offset</tt>
+     * @return the number of bytes read from this instance into the specified
+     * <tt>iMediaBuffer</tt> or the specified <tt>buffer</tt> starting at
+     * <tt>offset</tt>
+     * @throws IOException if the reading of audio data from this instance fails
+     */
     private int read(
             IMediaBuffer iMediaBuffer,
             byte[] buffer, int offset,
@@ -567,6 +602,19 @@ public class AudioCaptureClient
         return read;
     }
 
+    /**
+     * Reads audio data from this instance into a specific
+     * <tt>IMediaBuffer</tt>.
+     *
+     * @param iMediaBuffer the <tt>IMediaBuffer</tt> into which the audio data
+     * read from this instance is to be written
+     * @param length the maximum number of bytes to read from this instance and
+     * write into the specified <tt>iMediaBuffer</tt>
+     * @return the number of bytes read from this instance and written into the
+     * specified <tt>iMediaBuffer</tt>
+     * @throws IOException if the reading of audio data from this instance or
+     * the writing into the specified <tt>iMediaBuffer</tt> fails
+     */
     public int read(IMediaBuffer iMediaBuffer, int length)
         throws IOException
     {
