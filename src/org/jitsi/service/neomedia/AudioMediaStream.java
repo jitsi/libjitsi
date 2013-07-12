@@ -94,12 +94,15 @@ public interface AudioMediaStream
      * @param dtmfMethod The kind of DTMF used (RTP, SIP-INOF or INBAND).
      * @param minimalToneDuration The minimal DTMF tone duration.
      * @param maximalToneDuration The maximal DTMF tone duration.
+     * @param volume The DTMF tone volume. Describes the power level of the
+     *               tone, expressed in dBm0 after dropping the sign.
      */
     public void startSendingDTMF(
             DTMFTone tone,
             DTMFMethod dtmfMethod,
             int minimalToneDuration,
-            int maximalToneDuration);
+            int maximalToneDuration,
+            int volume);
 
     /**
      * Interrupts transmission of a <tt>DTMFTone</tt> started with the

@@ -148,6 +148,11 @@ public class DtmfTransformEngine
     private int maximalToneDuration;
 
     /**
+     * The DTMF tone volume.
+     */
+    private int volume;
+
+    /**
      * Creates an engine instance that will be replacing audio packets
      * with DTMF ones upon request.
      *
@@ -376,7 +381,8 @@ public class DtmfTransformEngine
             pktEnd,
             pktMarker,
             pktDuration,
-            currentTimestamp);
+            currentTimestamp,
+            volume);
         pkt = dtmfPkt;
 
         return pkt;
@@ -390,11 +396,13 @@ public class DtmfTransformEngine
      * @param tone the tone that we'd like to start sending.
      * @param minimalToneDuration The minimal DTMF tone duration.
      * @param maximalToneDuration The maximal DTMF tone duration.
+     * @param volume The DTMF tone volume.
      */
     public void startSending(
             DTMFRtpTone tone,
             int minimalToneDuration,
-            int maximalToneDuration)
+            int maximalToneDuration,
+            int volume)
     {
         synchronized(startStopToneMutex)
         {
@@ -417,6 +425,12 @@ public class DtmfTransformEngine
         {
             this.maximalToneDuration = this.minimalToneDuration;
         }
+
+        if(volume > 0)
+            this.volume = volume;
+        else
+            this.volume = 0; // we used to sent 0 for
+                             // this field, keep it that way if not set.
     }
 
     /**
