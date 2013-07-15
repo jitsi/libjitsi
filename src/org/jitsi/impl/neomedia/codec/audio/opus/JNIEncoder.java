@@ -293,10 +293,10 @@ public class JNIEncoder
                     : b == Opus.BANDWIDTH_SUPERWIDEBAND ? "swb"
                     : b == Opus.BANDWIDTH_WIDEBAND ? "wb"
                     : b == Opus.BANDWIDTH_MEDIUMBAND ? "mb"
-                    : "nb") +
-                ", bitrate " + Opus.encoder_get_bitrate(encoder) + ", DTX " +
-                Opus.encoder_get_dtx(encoder) + ", FEC " + useFecConfig);
-                // TODO Add Opus.encoder_get_inband_fec().
+                    : "nb")
+                + ", bitrate " + Opus.encoder_get_bitrate(encoder)
+                + ", DTX " + Opus.encoder_get_dtx(encoder)
+                + ", FEC " + Opus.encoder_get_inband_fec(encoder));
         }
     }
 
