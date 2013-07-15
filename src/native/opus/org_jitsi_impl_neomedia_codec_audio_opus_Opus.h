@@ -10,10 +10,10 @@ extern "C" {
 /*
  * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
  * Method:    decode
- * Signature: (J[BII[BII)I
+ * Signature: (J[BII[BIII)I
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
-  (JNIEnv *, jclass, jlong, jbyteArray, jint, jint, jbyteArray, jint, jint);
+  (JNIEnv *, jclass, jlong, jbyteArray, jint, jint, jbyteArray, jint, jint, jint);
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
@@ -50,10 +50,10 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
 /*
  * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
  * Method:    encode
- * Signature: (J[BII[BI)I
- */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
-  (JNIEnv *, jclass, jlong, jbyteArray, jint, jint, jbyteArray, jint);
+ * Signature: (J[BII[BII)I
+     */
+ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
+   (JNIEnv *, jclass, jlong, jbyteArray, jint, jint, jbyteArray, jint, jint);
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus

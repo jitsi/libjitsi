@@ -14,7 +14,7 @@ JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
     (JNIEnv *env, jclass clazz, jlong decoder, jbyteArray input,
         jint inputOffset, jint inputLength, jbyteArray output,
-        /* jint outputOffset, */ jint outputFrameSize, jint decodeFEC)
+        jint outputOffset, jint outputFrameSize, jint decodeFEC)
 {
     int ret;
 
@@ -44,7 +44,7 @@ Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
                             (unsigned char *)
                                 (input_ ? (input_ + inputOffset) : NULL),
                             inputLength,
-                            (opus_int16 *) (output_ /* + outputOffset */),
+                            (opus_int16 *) (output_ + outputOffset),
                             outputFrameSize,
                             decodeFEC);
                 (*env)->ReleasePrimitiveArrayCritical(env, output, output_, 0);
@@ -124,7 +124,7 @@ JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
     (JNIEnv *env, jclass clazz, jlong encoder, jbyteArray input,
         jint inputOffset, jint inputFrameSize, jbyteArray output,
-        /* jint outputOffset, */ jint outputLength)
+        jint outputOffset, jint outputLength)
 {
     int ret;
 
@@ -143,7 +143,7 @@ Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
                             (OpusEncoder *) (intptr_t) encoder,
                             (opus_int16 *) (input_ + inputOffset),
                             inputFrameSize,
-                            (unsigned char *) (output_ /* + outputOffset */),
+                            (unsigned char *) (output_ + outputOffset),
                             outputLength);
                 (*env)->ReleasePrimitiveArrayCritical(env, output, output_, 0);
             }
@@ -249,6 +249,19 @@ Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1vbr_1constraint
         = opus_encoder_ctl(
                 (OpusEncoder *) (intptr_t) encoder,
                 OPUS_GET_VBR_CONSTRAINT(&x));
+
+    return (OPUS_OK == ret) ? x : ret;
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1inband_1fec
+    (JNIEnv *env, jclass clazz, jlong encoder)
+{
+    opus_int32 x;
+    int ret
+        = opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_GET_INBAD_FEC(&x));
 
     return (OPUS_OK == ret) ? x : ret;
 }

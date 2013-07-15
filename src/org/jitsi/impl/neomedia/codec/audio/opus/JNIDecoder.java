@@ -123,7 +123,7 @@ public class JNIDecoder
     }
 
     /**
-     * @see AbstractCodecExt#doClose()
+     * @see AbstractCodec2#doClose()
      */
     @Override
     protected void doClose()
@@ -144,7 +144,7 @@ public class JNIDecoder
      *
      * @throws ResourceUnavailableException if any of the resources that this
      * <tt>Codec</tt> needs to operate cannot be acquired
-     * @see AbstractCodecExt#doOpen()
+     * @see AbstractCodec2#doOpen()
      */
     @Override
     protected void doOpen()
@@ -168,7 +168,7 @@ public class JNIDecoder
      * @param outBuffer output <tt>Buffer</tt>
      * @return <tt>BUFFER_PROCESSED_OK</tt> if <tt>inBuffer</tt> has been
      * successfully processed
-     * @see AbstractCodecExt#doProcess(Buffer, Buffer)
+     * @see AbstractCodec2#doProcess(Buffer, Buffer)
      */
     @Override
     protected int doProcess(Buffer inBuffer, Buffer outBuffer)
@@ -229,7 +229,7 @@ public class JNIDecoder
                 = Opus.decode(
                         decoder,
                         in, inOffset, inLength,
-                        out, /* outOffset, */ lastFrameSizeInSamplesPerChannel,
+                        out, outOffset, lastFrameSizeInSamplesPerChannel,
                         /* decodeFEC */ 1);
 
             if (frameSizeInSamplesPerChannel > 0)
@@ -267,7 +267,7 @@ public class JNIDecoder
                 = Opus.decode(
                         decoder,
                         in, inOffset, inLength,
-                        out, /* outOffset, */ frameSizeInSamplesPerChannel,
+                        out, outOffset, frameSizeInSamplesPerChannel,
                         /* decodeFEC */ 0);
             if (frameSizeInSamplesPerChannel > 0)
             {
