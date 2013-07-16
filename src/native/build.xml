@@ -688,8 +688,8 @@
             <compilerarg value="-Wall" />
             <compilerarg value="-fPIC"/>
             <compilerarg value="-O2" />
-            <compilerarg value="-I${opus}/include" unless="is.running.linux"/>
-            <compilerarg value="-I/usr/include/opus" if="is.running.linux"/>
+            <compilerarg value="-I${opus}/include" unless="is.running.debian"/>
+            <compilerarg value="-I/usr/include/opus" if="is.running.debian"/>
             <compilerarg value="-D_JNI_IMPLEMENTATION_" />
 
             <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
