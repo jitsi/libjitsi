@@ -753,7 +753,7 @@ public class WASAPISystem
                         if (nChannels == 2)
                         {
                             supportedFormat
-                                = new AudioFormat(
+                                = new NativelySupportedAudioFormat(
                                         AudioFormat.LINEAR,
                                         nSamplesPerSec,
                                         wBitsPerSample,
@@ -767,9 +767,8 @@ public class WASAPISystem
                             if (!supportedFormats.contains(supportedFormat))
                                 supportedFormats.add(supportedFormat);
                         }
-
                         supportedFormat
-                            = new AudioFormat(
+                            = new NativelySupportedAudioFormat(
                                     AudioFormat.LINEAR,
                                     nSamplesPerSec,
                                     wBitsPerSample,

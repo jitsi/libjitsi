@@ -140,10 +140,7 @@ public class DataSource
      */
     Format[] getIAudioClientSupportedFormats()
     {
-        return
-            getIAudioClientSupportedFormats(
-                    /* streamIndex */ 0,
-                    audioSystem.getAECSupportedFormats());
+        return getIAudioClientSupportedFormats(/* streamIndex */ 0);
     }
 
     /**
@@ -153,14 +150,10 @@ public class DataSource
      * @param streamIndex the index of the <tt>SourceStream</tt> within the list
      * of <tt>SourceStream</tt>s of this <tt>DataSource</tt> on behalf of which
      * the query is being made
-     * @param aecSupportedFormats the list of <tt>AudioFormat</tt>s supported by
-     * the voice capture DMO implementing acoustic echo cancellation
      * @return the <tt>Format</tt>s of media data supported by the audio
      * endpoint device associated with this instance
      */
-    private Format[] getIAudioClientSupportedFormats(
-            int streamIndex,
-            List<AudioFormat> aecSupportedFormats)
+    private Format[] getIAudioClientSupportedFormats(int streamIndex)
     {
         Format[] superSupportedFormats = super.getSupportedFormats(streamIndex);
 
@@ -172,42 +165,25 @@ public class DataSource
                 || (superSupportedFormats.length == 0))
             return superSupportedFormats;
 
-        Format[] array;
+        // Return the NativelySupportedAudioFormat instances only.
+        List<Format> supportedFormats
+            = new ArrayList<Format>(superSupportedFormats.length);
 
-        if (aecSupportedFormats.isEmpty())
-            array = superSupportedFormats;
-        else
+        for (Format format : superSupportedFormats)
         {
-            /*
-             * Filter out the Formats added to the list of supported because of
-             * the voice capture DMO alone.
-             */
-            List<Format> list
-                = new ArrayList<Format>(superSupportedFormats.length);
-
-            for (Format superSupportedFormat : superSupportedFormats)
+            if ((format instanceof NativelySupportedAudioFormat)
+                    && !supportedFormats.contains(format))
             {
-                /*
-                 * Reference equality to an aecSupportedFormat signals that the
-                 * superSupportedFormat is not supported by the capture endpoint
-                 * device and is supported by the voice capture DMO.
-                 */
-                boolean equals = false;
-
-                for (Format aecSupportedFormat : aecSupportedFormats)
-                {
-                    if (superSupportedFormat == aecSupportedFormat)
-                    {
-                        equals = true;
-                        break;
-                    }
-                }
-                if (!equals)
-                    list.add(superSupportedFormat);
+                supportedFormats.add(format);
             }
-            array = list.toArray(new Format[list.size()]);
         }
-        return array;
+
+        int supportedFormatCount = supportedFormats.size();
+
+        return
+            (supportedFormatCount == superSupportedFormats.length)
+                ? superSupportedFormats
+                : supportedFormats.toArray(new Format[supportedFormatCount]);
     }
 
     /**
@@ -222,21 +198,18 @@ public class DataSource
     @Override
     protected Format[] getSupportedFormats(int streamIndex)
     {
-        List<AudioFormat> aecSupportedFormats
-            = audioSystem.getAECSupportedFormats();
-
         if (aec)
         {
+            List<AudioFormat> aecSupportedFormats
+                = audioSystem.getAECSupportedFormats();
+
             return
                 aecSupportedFormats.toArray(
                         new Format[aecSupportedFormats.size()]);
         }
         else
         {
-            return
-                getIAudioClientSupportedFormats(
-                        streamIndex,
-                        aecSupportedFormats);
+            return getIAudioClientSupportedFormats(streamIndex);
         }
     }
 }

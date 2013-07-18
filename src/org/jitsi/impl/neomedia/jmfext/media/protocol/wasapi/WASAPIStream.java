@@ -64,16 +64,19 @@ public class WASAPIStream
      * possible is to be found 
      * @param format the <tt>AudioFormat</tt> for which a similar
      * <tt>AudioFormat</tt> is to be found in <tt>formats</tt>
+     * @param clazz the runtime type of the matches to be considered or
+     * <tt>null</tt> if the runtime type is to not be limited
      * @return an <tt>AudioFormat</tt> which is an element of <tt>formats</tt>
      * and is as similar to the specified <tt>format</tt> as possible or
      * <tt>null</tt> if no similarity could be established
      */
     private static AudioFormat findClosestMatch(
             Format[] formats,
-            AudioFormat format)
+            AudioFormat format,
+            Class<? extends AudioFormat> clazz)
     {
         // Try to find the very specified format.
-        AudioFormat match = findFirstMatch(formats, format);
+        AudioFormat match = findFirstMatch(formats, format, clazz);
 
         if (match == null)
         {
@@ -93,7 +96,8 @@ public class WASAPIStream
                                 format.getSigned(),
                                 /* frameSizeInBits */ Format.NOT_SPECIFIED,
                                 /* frameRate */ Format.NOT_SPECIFIED,
-                                format.getDataType()));
+                                format.getDataType()),
+                        clazz);
             if (match == null)
             {
                 /*
@@ -113,7 +117,8 @@ public class WASAPIStream
                                     format.getSigned(),
                                     /* frameSizeInBits */ Format.NOT_SPECIFIED,
                                     /* frameRate */ Format.NOT_SPECIFIED,
-                                    format.getDataType()));
+                                    format.getDataType()),
+                            clazz);
             }
         }
         return match;
@@ -127,16 +132,24 @@ public class WASAPIStream
      * @param formats the array of <tt>Format</tt>s which si to be searched
      * @param format the <tt>AudioFormat</tt> for which a match is to be found
      * in the specified <tt>formats</tt>
+     * @param clazz the runtime type of the matches to be considered or
+     * <tt>null</tt> if the runtime type is to not be limited
      * @return the first element of <tt>formats</tt> which matches the specified
      * <tt>format</tt> or <tt>null</tt> if no match could be found
      */
     private static AudioFormat findFirstMatch(
             Format[] formats,
-            AudioFormat format)
+            AudioFormat format,
+            Class<? extends AudioFormat> clazz)
     {
         for (Format aFormat : formats)
-            if (aFormat.matches(format))
+        {
+            if (aFormat.matches(format)
+                    && ((clazz == null) || clazz.isInstance(aFormat)))
+            {
                 return (AudioFormat) aFormat.intersects(format);
+            }
+        }
         return null;
     }
 
@@ -757,7 +770,10 @@ public class WASAPIStream
             }
 
             AudioFormat renderFormat
-                = findClosestMatch(renderDeviceInfo.getFormats(), thisFormat);
+                = findClosestMatch(
+                        renderDeviceInfo.getFormats(),
+                        thisFormat,
+                        NativelySupportedAudioFormat.class);
 
             if (renderFormat == null)
             {
@@ -812,7 +828,8 @@ public class WASAPIStream
         return
             findClosestMatch(
                     dataSource.getIAudioClientSupportedFormats(),
-                    format);
+                    format,
+                    NativelySupportedAudioFormat.class);
     }
 
     /**
