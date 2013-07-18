@@ -2888,4 +2888,37 @@ public class MediaStreamImpl
             ptTransformEngine.addPTMappingOverride(originalPt, overloadPt);
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void removeReceiveStreamForSsrc(long ssrc)
+    {
+        Vector receiveStreamsVector = rtpManager.getReceiveStreams();
+        ReceiveStream toRemove = null;
+        for(int i=0; i<receiveStreamsVector.size(); i++)
+        {
+            ReceiveStream receiveStream
+                    = (ReceiveStream) receiveStreamsVector.get(i);
+            if (receiveStream.getSSRC() == ssrc)
+            {
+                toRemove = receiveStream;
+                break;
+            }
+        }
+
+        if (toRemove != null)
+        {
+             synchronized (receiveStreams)
+             {
+                  if (receiveStreams.contains(toRemove))
+                  {
+                      receiveStreams.remove(toRemove);
+                      MediaDeviceSession deviceSession = getDeviceSession();
+                      if (deviceSession != null)
+                          deviceSession.removeReceiveStream(toRemove);
+                  }
+             }
+        }
+    }
 }

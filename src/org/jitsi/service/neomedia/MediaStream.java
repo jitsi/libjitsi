@@ -376,4 +376,12 @@ public interface MediaStream
      * this MediaStream.
      */
     public MediaStreamStats getMediaStreamStats();
+
+    /**
+     * Removes the <tt>ReceiveStream</tt> with SSRC <tt>ssrc</tt>, if there is
+     * such a <tt>ReceiveStream</tt>, from the receive streams of this
+     * <tt>MediaStream</tt>
+     * @param ssrc the SSRC for which to remove a <tt>ReceiveStream</tt>
+     */
+    public void removeReceiveStreamForSsrc(long ssrc);
 }
