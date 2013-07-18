@@ -78,6 +78,12 @@ public class WASAPIRenderer
     private int dstChannels;
 
     /**
+     * The <tt>AudioFormat</tt> with which {@link #iAudioClient} has been
+     * initialized.
+     */
+    private AudioFormat dstFormat;
+
+    /**
      * The sample size in bytes with which {@link #iAudioClient} has been
      * initialized.
      */
@@ -137,6 +143,43 @@ public class WASAPIRenderer
     private int remainderLength;
 
     /**
+     * The <tt>Codec</tt> which resamples the media provided to this
+     * <tt>Renderer</tt> via {@link #process(Buffer)} into {@link #dstFormat}
+     * if necessary.
+     */
+    private Codec resampler;
+
+    /**
+     * The number of channels of the audio signal output by {@link #resampler}.
+     * It may differ from {@link #dstChannels}.
+     */
+    private int resamplerChannels;
+
+    /**
+     * The size in bytes of an audio frame produced by {@link #resampler}. Based
+     * on {@link #resamplerChannels} and {@link #resamplerSampleSize} and cached
+     * in order to reduce calculations.
+     */
+    private int resamplerFrameSize;
+
+    /**
+     * The <tt>Buffer</tt> which provides the input to {@link #resampler}.
+     * Represents a unit of {@link #remainder} to be processed in a single call
+     * to <tt>resampler</tt>.
+     */
+    private Buffer resamplerInBuffer;
+
+    /**
+     * The <tt>Buffer</tt> which receives the output of {@link #resampler}.
+     */
+    private Buffer resamplerOutBuffer;
+
+    /**
+     * The size in bytes of an audio sample produced by {@link #resampler}.
+     */
+    private int resamplerSampleSize;
+
+    /**
      * The number of channels which which this <tt>Renderer</tt> has been
      * opened.
      */
@@ -148,6 +191,12 @@ public class WASAPIRenderer
      * {@link #srcChannels}.
      */
     private int srcFrameSize;
+
+    /**
+     * The <tt>AudioFormat</tt> with which this <tt>Renderer</tt> has been
+     * opened.
+     */
+    private AudioFormat srcFormat;
 
     /**
      * The sample size in bytes with which this <tt>Renderer</tt> has been
@@ -251,13 +300,40 @@ public class WASAPIRenderer
                 }
                 eventHandle = 0;
             }
+            maybeCloseResampler();
 
+            dstFormat = null;
             remainder = null;
             remainderLength = 0;
+            srcFormat = null;
             started = false;
 
             super.close();
         }
+    }
+
+    /**
+     * Finds the first non-<tt>null</tt> element in a specific array of
+     * <tt>AudioFormat</tt>s.
+     *
+     * @param formats the array of <tt>AudioFormat</tt>s in which the first
+     * non-<tt>null</tt> element is to be found
+     * @return the first non-<tt>null</tt> element in <tt>format</tt>s if any;
+     * otherwise, <tt>null</tt>
+     */
+    private static AudioFormat findFirst(AudioFormat[] formats)
+    {
+        AudioFormat format = null;
+
+        for (AudioFormat aFormat : formats)
+        {
+            if (aFormat != null)
+            {
+                format = aFormat;
+                break;
+            }
+        }
+        return format;
     }
 
     /**
@@ -276,7 +352,34 @@ public class WASAPIRenderer
         if (inputFormat == null)
             throw new NullPointerException("No inputFormat set.");
         else
-            return WASAPISystem.getFormatsToInitializeIAudioClient(inputFormat);
+        {
+            /*
+             * Prefer to initialize the IAudioClient with an AudioFormat which
+             * matches the inputFormat as closely as possible.
+             */
+            AudioFormat[] preferredFormats
+                = WASAPISystem.getFormatsToInitializeIAudioClient(inputFormat);
+            // Otherwise, any supported Format will do.
+            Format[] supportedFormats = getSupportedInputFormats();
+            List<AudioFormat> formats
+                = new ArrayList<AudioFormat>(
+                        preferredFormats.length + supportedFormats.length);
+
+            for (AudioFormat format : preferredFormats)
+            {
+                if (!formats.contains(format))
+                    formats.add(format);
+            }
+            for (Format format : supportedFormats)
+            {
+                if (!formats.contains(format)
+                        && (format instanceof AudioFormat))
+                {
+                    formats.add((AudioFormat) format);
+                }
+            }
+            return formats.toArray(new AudioFormat[formats.size()]);
+        }
     }
 
     /**
@@ -285,6 +388,168 @@ public class WASAPIRenderer
     public String getName()
     {
         return PLUGIN_NAME;
+    }
+
+    /**
+     * Closes {@link #resampler} if it is non-<tt>null</tt>.
+     */
+    private void maybeCloseResampler()
+    {
+        Codec resampler = this.resampler;
+
+        if (resampler != null)
+        {
+            this.resampler = null;
+            resamplerInBuffer = null;
+            resamplerOutBuffer = null;
+
+            try
+            {
+                resampler.close();
+            }
+            catch (Throwable t)
+            {
+                if (t instanceof ThreadDeath)
+                    throw (ThreadDeath) t;
+                else
+                    logger.error("Failed to close resampler.", t);
+            }
+        }
+    }
+
+    /**
+     * Invokes <tt>WASAPI.IAudioRenderClient_Write</tt> on
+     * {@link #iAudioRenderClient} and logs and swallows any
+     * <tt>HResultException</tt>.
+     *
+     * @param data the bytes of the audio samples to be written into the render
+     * endpoint buffer
+     * @param offset the offset in <tt>data</tt> at which the bytes of the audio
+     * samples to be written into the render endpoint buffer begin
+     * @param length the number of the bytes in <tt>data</tt> beginning at
+     * <tt>offset</tt> of the audio samples to be written into the render
+     * endpoint buffer
+     * @param srcSampleSize the size in bytes of an audio sample in
+     * <tt>data</tt>
+     * @param srcChannels the number of channels of the audio signal provided in
+     * <tt>data</tt>
+     * @return the number of bytes from <tt>data</tt> (starting at
+     * <tt>offset</tt>) which have been written into the render endpoint buffer
+     * or <tt>0</tt> upon <tt>HResultException</tt>
+     */
+    private int maybeIAudioRenderClientWrite(
+            byte[] data, int offset, int length,
+            int srcSampleSize, int srcChannels)
+    {
+        int written;
+
+        try
+        {
+            written
+                = IAudioRenderClient_Write(
+                        iAudioRenderClient,
+                        data, offset, length,
+                        srcSampleSize, srcChannels,
+                        dstSampleSize, dstChannels);
+        }
+        catch (HResultException hre)
+        {
+            written = 0;
+            logger.error("IAudioRenderClient_Write", hre);
+        }
+        return written;
+    }
+
+    /**
+     * Initializes and opens a new instance of {@link #resampler} if the
+     * <tt>Format</tt>-related state of this instance deems its existence
+     * necessary.
+     */
+    private void maybeOpenResampler()
+    {
+        AudioFormat inFormat = this.inputFormat;
+        AudioFormat outFormat = dstFormat;
+
+        // We are able to translate between mono and stereo.
+        if ((inFormat.getSampleRate() == outFormat.getSampleRate())
+                && (inFormat.getSampleSizeInBits()
+                        == outFormat.getSampleSizeInBits()))
+            return;
+
+        // The resamplers are not expected to convert between mono and stereo.
+        int channels = inFormat.getChannels();
+
+        if (outFormat.getChannels() != channels)
+        {
+            outFormat
+                = new AudioFormat(
+                        outFormat.getEncoding(),
+                        outFormat.getSampleRate(),
+                        outFormat.getSampleSizeInBits(),
+                        channels,
+                        outFormat.getEndian(),
+                        outFormat.getSigned(),
+                        /* frameSizeInBits */ Format.NOT_SPECIFIED,
+                        /* frameRate */ Format.NOT_SPECIFIED,
+                        outFormat.getDataType());
+        }
+
+        @SuppressWarnings("unchecked")
+        List<String> classNames
+            = PlugInManager.getPlugInList(
+                    inFormat,
+                    outFormat,
+                    PlugInManager.CODEC);
+        Codec resampler = null;
+
+        if (classNames != null)
+        {
+            for (String className : classNames)
+            {
+                try
+                {
+                    Codec codec
+                        = (Codec) Class.forName(className).newInstance();
+                    Format setInput = codec.setInputFormat(inFormat);
+
+                    if ((setInput != null) && inFormat.matches(setInput))
+                    {
+                        Format setOutput = codec.setOutputFormat(outFormat);
+
+                        if ((setOutput != null) && outFormat.matches(setOutput))
+                        {
+                            codec.open();
+                            resampler = codec;
+                            break;
+                        }
+                    }
+                }
+                catch (Throwable t)
+                {
+                    if (t instanceof ThreadDeath)
+                        throw (ThreadDeath) t;
+                    else
+                    {
+                        logger.warn(
+                                "Failed to open resampler " + className,
+                                t);
+                    }
+                }
+            }
+        }
+        if (resampler == null)
+        {
+            throw new IllegalStateException(
+                    "Failed to open a codec to resample [" + inFormat
+                        + "] into [" + outFormat + "].");
+        }
+        else
+        {
+            this.resampler = resampler;
+            resamplerChannels = outFormat.getChannels();
+            resamplerSampleSize = WASAPISystem.getSampleSizeInBytes(outFormat);
+            resamplerFrameSize = resamplerChannels * resamplerSampleSize;
+        }
     }
 
     /**
@@ -297,14 +562,18 @@ public class WASAPIRenderer
         if (this.iAudioClient != 0)
             return;
 
+        MediaLocator locator = null;
+
         try
         {
-            MediaLocator locator = getLocator();
-
+            locator = getLocator();
             if (locator == null)
                 throw new NullPointerException("No locator/MediaLocator set.");
 
-            // Assert that inputFormat is set.
+            /*
+             * The method getFormatsToInitializeIAudioClient will assert that
+             * inputFormat is set.
+             */
             AudioFormat[] formats = getFormatsToInitializeIAudioClient();
             long eventHandle = CreateEvent(0, false, false, null);
 
@@ -328,21 +597,6 @@ public class WASAPIRenderer
                 }
                 try
                 {
-                    /*
-                     * Determine the AudioFormat with which the iAudioClient has
-                     * been initialized.
-                     */
-                    AudioFormat format = null;
-
-                    for (AudioFormat aFormat : formats)
-                    {
-                        if (aFormat != null)
-                        {
-                            format = aFormat;
-                            break;
-                        }
-                    }
-
                     long iAudioRenderClient
                         = IAudioClient_GetService(
                                 iAudioClient,
@@ -356,6 +610,9 @@ public class WASAPIRenderer
                     }
                     try
                     {
+                        srcFormat = this.inputFormat;
+                        dstFormat = findFirst(formats);
+
                         /*
                          * The value hnsDefaultDevicePeriod is documented to
                          * specify the default scheduling period for a
@@ -367,9 +624,10 @@ public class WASAPIRenderer
                         numBufferFrames
                             = IAudioClient_GetBufferSize(iAudioClient);
 
-                        int sampleRate = (int) format.getSampleRate();
+                        int dstSampleRate = (int) dstFormat.getSampleRate();
 
-                        bufferDuration = numBufferFrames * 1000L / sampleRate;
+                        bufferDuration
+                            = numBufferFrames * 1000L / dstSampleRate;
                         /*
                          * We will very likely be inefficient if we fail to
                          * synchronize with the scheduling period of the audio
@@ -385,11 +643,18 @@ public class WASAPIRenderer
                                     = WASAPISystem.DEFAULT_DEVICE_PERIOD;
                         }
                         devicePeriodInFrames
-                            = (int) (devicePeriod * sampleRate / 1000L);
+                            = (int) (devicePeriod * dstSampleRate / 1000L);
 
-                        dstChannels = format.getChannels();
+                        dstChannels = dstFormat.getChannels();
                         dstSampleSize
-                            = WASAPISystem.getSampleSizeInBytes(format);
+                            = WASAPISystem.getSampleSizeInBytes(dstFormat);
+
+                        maybeOpenResampler();
+
+                        srcChannels = srcFormat.getChannels();
+                        srcSampleSize
+                            = WASAPISystem.getSampleSizeInBytes(srcFormat);
+                        srcFrameSize = srcSampleSize * srcChannels;
 
                         /*
                          * The remainder/residue in frames of
@@ -402,6 +667,14 @@ public class WASAPIRenderer
                          * of underflow.
                          */
                         remainderLength = remainder.length;
+
+                        if (resampler != null)
+                        {
+                            resamplerInBuffer = new Buffer();
+                            resamplerInBuffer.setData(remainder);
+                            resamplerInBuffer.setFormat(srcFormat);
+                            resamplerOutBuffer = new Buffer();
+                        }
 
                         writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
                         writeIsMalfunctioningTimeout
@@ -423,7 +696,10 @@ public class WASAPIRenderer
                 finally
                 {
                     if (iAudioClient != 0)
+                    {
                         IAudioClient_Release(iAudioClient);
+                        maybeCloseResampler();
+                    }
                 }
             }
             finally
@@ -436,20 +712,22 @@ public class WASAPIRenderer
         {
             if (t instanceof ThreadDeath)
                 throw (ThreadDeath) t;
-            else if (t instanceof ResourceUnavailableException)
-                throw (ResourceUnavailableException) t;
             else
             {
                 logger.error(
-                        "Failed to open a WASAPIRenderer"
-                            + " on an audio endpoint device.",
+                        "Failed to open a WASAPIRenderer on audio endpoint"
+                            + " device " + toString(locator),
                         t);
+                if (t instanceof ResourceUnavailableException)
+                    throw (ResourceUnavailableException) t;
+                else
+                {
+                    ResourceUnavailableException rue
+                        = new ResourceUnavailableException();
 
-                ResourceUnavailableException rue
-                    = new ResourceUnavailableException();
-
-                rue.initCause(t);
-                throw rue;
+                    rue.initCause(t);
+                    throw rue;
+                }
             }
         }
 
@@ -859,6 +1137,37 @@ public class WASAPIRenderer
     }
 
     /**
+     * Processes audio samples from {@link #remainder} through
+     * {@link #resampler} i.e. resamples them in order to produce media data
+     * in {@link #resamplerOutBuffer} to be written into the render endpoint
+     * buffer.
+     *
+     * @param inOffset the offset in <tt>remainder</tt> at which the audio
+     * samples to be resampled begin
+     * @param inLength the number of bytes in <tt>remainder</tt> beginning at
+     * <tt>inOffset</tt> which are to be resampled
+     * @return the number of bytes from <tt>remainder</tt> which have been
+     * resampled and written into {@link #resamplerOutBuffer}
+     */
+    private int resample(int inOffset, int inLength)
+    {
+        resamplerInBuffer.setLength(inLength);
+        resamplerInBuffer.setOffset(inOffset);
+        resamplerOutBuffer.setDiscard(false);
+        resamplerOutBuffer.setLength(0);
+        resamplerOutBuffer.setOffset(0);
+
+        int process = resampler.process(resamplerInBuffer, resamplerOutBuffer);
+        int written
+            = ((process == Codec.BUFFER_PROCESSED_FAILED)
+                    || resamplerOutBuffer.isDiscard())
+                ? 0
+                : inLength;
+
+        return written;
+    }
+
+    /**
      * Runs/executes in the thread associated with a specific <tt>Runnable</tt>
      * initialized to wait for {@link #eventHandle} to be signaled.
      *
@@ -918,6 +1227,30 @@ public class WASAPIRenderer
 
                     int numFramesRequested = numBufferFrames - numPaddingFrames;
 
+                    if (resampler != null)
+                    {
+                        /*
+                         * Since remainder is measured in units based on
+                         * srcFormat and numFramesRequested is currently
+                         * expressed in units based on dstFormat, convert
+                         * numFramesRequested in units based on srcFormat. 
+                         */
+                        int srcSampleRate = (int) srcFormat.getSampleRate();
+                        /*
+                         * The sampleRate of resampler is the same as the
+                         * sampleRate of iAudioClient.
+                         */
+                        int dstSampleRate = (int) dstFormat.getSampleRate();
+
+                        if (srcSampleRate != dstSampleRate)
+                        {
+                            numFramesRequested
+                                = numFramesRequested
+                                    * srcSampleRate
+                                    / dstSampleRate;
+                        }
+                    }
+
                     /*
                      * If there is no available space in the rendering endpoint
                      * buffer, wait for the system to signal when an audio
@@ -964,19 +1297,33 @@ public class WASAPIRenderer
 
                         int written;
 
-                        try
+                        if (resampler == null)
                         {
                             written
-                                = IAudioRenderClient_Write(
-                                        iAudioRenderClient,
+                                = maybeIAudioRenderClientWrite(
                                         remainder, 0, toWrite,
-                                        srcSampleSize, srcChannels,
-                                        dstSampleSize, dstChannels);
+                                        srcSampleSize, srcChannels);
                         }
-                        catch (HResultException hre)
+                        else
                         {
-                            written = 0;
-                            logger.error("IAudioRenderClient_Write", hre);
+                            int resampled = resample(0, toWrite);
+
+                            if (resampled == toWrite)
+                            {
+                                int resamplerOutLength
+                                    = resamplerOutBuffer.getLength()
+                                        / resamplerFrameSize
+                                        * resamplerFrameSize;
+
+                                maybeIAudioRenderClientWrite(
+                                        (byte[]) resamplerOutBuffer.getData(),
+                                        resamplerOutBuffer.getOffset(),
+                                        resamplerOutLength,
+                                        resamplerSampleSize, resamplerChannels);
+                                written = toWrite;
+                            }
+                            else
+                                written = 0;
                         }
                         if (written != 0)
                         {
@@ -1037,21 +1384,21 @@ public class WASAPIRenderer
 
     /**
      * {@inheritDoc}
+     *
+     * Disallows mid-stream changes of the <tt>inputFormat</tt> of this
+     * <tt>AbstractRenderer</tt>.
      */
     @Override
-    public Format setInputFormat(Format format)
+    public synchronized Format setInputFormat(Format format)
     {
-        AudioFormat oldValue = this.inputFormat;
-        Format setInputFormat = super.setInputFormat(format);
-        AudioFormat newValue = this.inputFormat;
-
-        if ((newValue != null) && !newValue.equals(oldValue))
-        {
-            srcChannels = newValue.getChannels();
-            srcSampleSize = WASAPISystem.getSampleSizeInBytes(newValue);
-            srcFrameSize = srcSampleSize * srcChannels;
-        }
-        return setInputFormat;
+        /*
+         * WASAPIRenderer does not support mid-stream changes of the
+         * inputFormat.
+         */
+        if ((iAudioClient != 0) || (iAudioRenderClient != 0))
+            return null;
+        else
+            return super.setInputFormat(format);
     }
 
     /**
@@ -1195,6 +1542,60 @@ public class WASAPIRenderer
                 logger.error("IAudioClient_Stop", hre);
             }
         }
+    }
+
+    /**
+     * Gets a human-readable representation of a specific <tt>MediaLocator</tt>
+     * for the purposes of testing/debugging.
+     *
+     * @param locator the <tt>MediaLocator</tt> that is to be represented in a
+     * human-readable form for the purposes of testing/debugging
+     * @return a human-readable representation of the specified <tt>locator</tt>
+     * for the purposes of testing/debugging
+     */
+    private String toString(MediaLocator locator)
+    {
+        String s;
+
+        if (locator == null)
+            s = "null";
+        else
+        {
+            s = null;
+            /*
+             * Try to not throw any exceptions because the purpose is to produce
+             * at least some identification of the specified MediaLocator even
+             * if not the most complete.
+             */
+            try
+            {
+                String id = locator.getRemainder();
+
+                if (id != null)
+                {
+                    CaptureDeviceInfo2 cdi2
+                        = audioSystem.getDevice(dataFlow, locator);
+
+                    if (cdi2 != null)
+                    {
+                        String name = cdi2.getName();
+
+                        if ((name != null) && !id.equals(name))
+                            s = id + " with friendly name " + name;
+                    }
+                    if (s == null)
+                        s = id;
+                }
+            }
+            catch (Throwable t)
+            {
+                if (t instanceof ThreadDeath)
+                    throw (ThreadDeath) t;
+            }
+            if (s == null)
+                s = locator.toString();
+        }
+        return s;
     }
 
     /**

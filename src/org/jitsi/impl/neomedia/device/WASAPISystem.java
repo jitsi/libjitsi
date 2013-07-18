@@ -276,6 +276,137 @@ public class WASAPISystem
     }
 
     /**
+     * Invoked after determining the <tt>AudioFormat</tt>s supported by an
+     * <tt>IAudioClient</tt> with a specific <tt>dataFlow</tt> and before
+     * registering a respective <tt>CaptureDeviceInfo2</tt> to represent that
+     * <tt>IAudioClient</tt>. Allows this instance to add and/or remove
+     * <tt>AudioFormat</tt>s that it will and/or will not support in addition to
+     * the support of the very <tt>IAudioClient</tt>.
+     * 
+     * @param dataFlow the flow of the media supported by the associated
+     * <tt>IAudioClient</tt>
+     * @param formats the <tt>List</tt> of <tt>AudioFormat</tt>s supported by
+     * the associated <tt>IAudioClient</tt>
+     */
+    private void configureSupportedFormats(
+            int dataFlow,
+            List<AudioFormat> formats)
+    {
+        switch (dataFlow)
+        {
+        case eCapture:
+            /*
+             * If acoustic echo cancellation (AEC) is used later on, the
+             * CaptureDevice/DataSource implementation will support its
+             * formats.
+             */
+            List<AudioFormat> aecSupportedFormats
+                = getAECSupportedFormats();
+
+            if (!aecSupportedFormats.isEmpty())
+            {
+                for (AudioFormat format : aecSupportedFormats)
+                    if (!formats.contains(format))
+                        formats.add(format);
+            }
+            break;
+
+        case eRender:
+            /*
+             * WASAPIRenderer has to be able to change its render endpoint
+             * device on the fly. Since the new render endpoint device may not
+             * support the inputFormat of the WASAPIRenderer which has been
+             * negotiated based on the old render endpoint device,
+             * WASAPIRenderer has to be able to resample. Expand the list of
+             * supported formats with the supported input formats of
+             * appropriate resamplers.
+             */
+            for (int i = 0, count = formats.size(); i < count; i++)
+            {
+                AudioFormat outFormat = formats.get(i);
+                /*
+                 * The resamplers are not expected to convert between mono and
+                 * stereo. 
+                 */
+                AudioFormat inFormat
+                    = new AudioFormat(
+                            AudioFormat.LINEAR,
+                            /* sampleRate */ Format.NOT_SPECIFIED,
+                            /* sampleSizeInBits */ Format.NOT_SPECIFIED,
+                            outFormat.getChannels(),
+                            AudioFormat.LITTLE_ENDIAN,
+                            AudioFormat.SIGNED,
+                            /* frameSizeInBits */ Format.NOT_SPECIFIED,
+                            /* frameRate */ Format.NOT_SPECIFIED,
+                            Format.byteArray);
+                @SuppressWarnings("unchecked")
+                List<String> classNames
+                    = PlugInManager.getPlugInList(
+                            inFormat,
+                            outFormat,
+                            PlugInManager.CODEC);
+
+                if ((classNames != null) && !classNames.isEmpty())
+                {
+                    for (String className : classNames)
+                    {
+                        try
+                        {
+                            Codec codec
+                                = (Codec)
+                                    Class.forName(className).newInstance();
+                            Format[] inFormats
+                                = codec.getSupportedInputFormats();
+
+                            if (inFormats != null)
+                            {
+                                for (Format aInFormat : inFormats)
+                                {
+                                    if (!(aInFormat instanceof AudioFormat)
+                                            || !inFormat.matches(aInFormat))
+                                        continue;
+
+                                    Format[] outFormats
+                                        = codec.getSupportedOutputFormats(
+                                                aInFormat);
+                                    boolean add = false;
+
+                                    if (outFormats != null)
+                                    {
+                                        for (Format aOutFormat : outFormats)
+                                        {
+                                            if (outFormat.matches(aOutFormat))
+                                            {
+                                                add = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (add && !formats.contains(aInFormat))
+                                        formats.add((AudioFormat) aInFormat);
+                                }
+                            }
+                        }
+                        catch (Throwable t)
+                        {
+                            if (t instanceof ThreadDeath)
+                                throw (ThreadDeath) t;
+                            /*
+                             * The failings of a resampler are of no concern
+                             * here.
+                             */
+                        }
+                    }
+                }
+            }
+            break;
+
+        default:
+            throw new IllegalArgumentException("dataFlow");
+        }
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -457,21 +588,6 @@ public class WASAPISystem
             switch (dataFlow)
             {
             case eCapture:
-                /*
-                 * If acoustic echo cancellation (AEC) is used later on, the
-                 * CaptureDevice/DataSource implementation will support its
-                 * formats.
-                 */
-                List<AudioFormat> aecSupportedFormats
-                    = getAECSupportedFormats();
-
-                if (!aecSupportedFormats.isEmpty())
-                {
-                    for (AudioFormat format : aecSupportedFormats)
-                        if (!formats.contains(format))
-                            formats.add(format);
-                }
-
                 devices = captureDevices;
                 break;
             case eRender:
@@ -485,16 +601,20 @@ public class WASAPISystem
             }
             if (devices != null)
             {
-                CaptureDeviceInfo2 cdi2
-                    = new CaptureDeviceInfo2(
-                            name,
-                            new MediaLocator(LOCATOR_PROTOCOL + ":" + id),
-                            formats.toArray(new Format[formats.size()]),
-                            id,
-                            /* transportType */ null,
-                            /* modelIdentifier */ null);
+                configureSupportedFormats(dataFlow, formats);
+                if (!formats.isEmpty())
+                {
+                    CaptureDeviceInfo2 cdi2
+                        = new CaptureDeviceInfo2(
+                                name,
+                                new MediaLocator(LOCATOR_PROTOCOL + ":" + id),
+                                formats.toArray(new Format[formats.size()]),
+                                id,
+                                /* transportType */ null,
+                                /* modelIdentifier */ null);
 
-                devices.add(cdi2);
+                    devices.add(cdi2);
+                }
             }
         }
     }
@@ -1073,7 +1193,7 @@ public class WASAPISystem
                 try
                 {
                     int shareMode = AUDCLNT_SHAREMODE_SHARED;
-                    boolean waveformatexIsInitialized = false;
+                    int waveformatexIsInitialized = Format.NOT_SPECIFIED;
 
                     for (int i = 0; i < formats.length; i++)
                     {
@@ -1085,15 +1205,17 @@ public class WASAPISystem
                                     shareMode,
                                     waveformatex);
 
-                        if (pClosestMatch == 0) // not supported
-                            formats[i] = null;
+                        if (pClosestMatch == 0)
+                        {
+                            // not supported
+                        }
                         else
                         {
                             try
                             {
                                 if (pClosestMatch == waveformatex)
                                 {
-                                    waveformatexIsInitialized = true;
+                                    waveformatexIsInitialized = i;
                                     break;
                                 }
                                 else
@@ -1102,7 +1224,6 @@ public class WASAPISystem
                                      * Succeeded with a closest match to the
                                      * specified format.
                                      */
-                                    formats[i] = null;
                                 }
                             }
                             finally
@@ -1112,8 +1233,13 @@ public class WASAPISystem
                             }
                         }
                     }
-                    if (!waveformatexIsInitialized)
+                    if ((waveformatexIsInitialized < 0)
+                            || (waveformatexIsInitialized >= formats.length))
+                    {
+                        logUnsupportedFormats(dataFlow, locator, formats);
                         throw new IllegalArgumentException("formats");
+                    }
+                    Arrays.fill(formats, 0, waveformatexIsInitialized, null);
 
                     streamFlags |= AUDCLNT_STREAMFLAGS_NOPERSIST;
                     if (eventHandle != 0)
@@ -1177,6 +1303,53 @@ public class WASAPISystem
                 IMMDevice_Release(iMMDevice);
         }
         return ret;
+    }
+
+    /**
+     * Logs an error message describing that a device identified by a specific
+     * <tt>DataFlow</tt> and a specific <tt>MediaLocator</tt> does not support
+     * a specific list of <tt>Format</tt>s.
+     *
+     * @param dataFlow the flow of the media supported by the device which does
+     * not support the specified <tt>Format</tt>s
+     * @param locator the <tt>MediaLocator</tt> identifying the device which
+     * does not support the specified <tt>Format</tt>s
+     * @param unsupportedFormats the list of <tt>Format</tt> which are not
+     * supported by the device identified by the specified <tt>dataFlow</tt> and
+     * <tt>locator</tt>
+     */
+    private void logUnsupportedFormats(
+            DataFlow dataFlow, MediaLocator locator,
+            Format[] unsupportedFormats)
+    {
+        StringBuilder msg = new StringBuilder();
+
+        msg.append("Unsupported formats: ");
+        msg.append(Arrays.toString(unsupportedFormats));
+        msg.append('.');
+
+        Format[] supportedFormats;
+
+        try
+        {
+            supportedFormats = getDevice(dataFlow, locator).getFormats();
+        }
+        catch (Throwable t)
+        {
+            /*
+             * The supported formats are less important than the unsupported
+             * formats.
+             */
+            if (t instanceof ThreadDeath)
+                throw (ThreadDeath) t;
+            else
+                supportedFormats = null;
+        }
+        msg.append("Supported formats: ");
+        msg.append(Arrays.toString(supportedFormats));
+        msg.append('.');
+
+        logger.error(msg);
     }
 
     /**
