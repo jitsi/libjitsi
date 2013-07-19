@@ -261,7 +261,7 @@ Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1inband_1fec
     int ret
         = opus_encoder_ctl(
                 (OpusEncoder *) (intptr_t) encoder,
-                OPUS_GET_INBAD_FEC(&x));
+                OPUS_GET_INBAND_FEC(&x));
 
     return (OPUS_OK == ret) ? x : ret;
 }
