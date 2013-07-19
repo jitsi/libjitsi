@@ -693,7 +693,7 @@
             <compilerarg value="-D_JNI_IMPLEMENTATION_" />
 
             <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
-            <linkerarg value="-L${opus}/.libs" />
+            <linkerarg value="-L${opus}/.libs" unless="is.running.debian"/>
 
             <!-- Linux specific flags -->
             <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
