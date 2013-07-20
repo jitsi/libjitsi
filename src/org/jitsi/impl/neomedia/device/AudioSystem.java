@@ -606,10 +606,7 @@ public abstract class AudioSystem
      * @param newValue the value of the property with the specified name after
      * the change
      */
-    public void propertyChange(
-            String property,
-            Object oldValue,
-            Object newValue)
+    void propertyChange(String property, Object oldValue, Object newValue)
     {
         firePropertyChange(property, oldValue, newValue);
     }

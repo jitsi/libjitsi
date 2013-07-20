@@ -65,8 +65,9 @@ public class AudioNotifierServiceImpl
     }
 
     /**
-     * Checks whether the playback and notification configuration
-     * share the same device.
+     * Checks whether the playback and notification configuration share the same
+     * device.
+     *
      * @return are audio out and notifications using the same device.
      */
     public boolean audioOutAndNotificationsShareSameDevice()
@@ -77,10 +78,15 @@ public class AudioNotifierServiceImpl
         CaptureDeviceInfo playback
             = audioSystem.getSelectedDevice(AudioSystem.DataFlow.PLAYBACK);
 
-        return
-            (notify == null)
-                ? (playback == null)
-                : notify.getLocator().equals(playback.getLocator());
+        if (notify == null)
+            return (playback == null);
+        else
+        {
+            if (playback == null)
+                return false;
+            else
+                return notify.getLocator().equals(playback.getLocator());
+        }
     }
 
     /**
@@ -212,6 +218,13 @@ public class AudioNotifierServiceImpl
                                     : loopCondition.call();
                         }
 
+                        /**
+                         * {@inheritDoc}
+                         *
+                         * Returns the wrapped <tt>SCAudioClip</tt> into the
+                         * cache from it has earlier been retrieved in order to
+                         * allow its reuse. 
+                         */
                         @Override
                         protected void finalize()
                             throws Throwable
@@ -307,8 +320,11 @@ public class AudioNotifierServiceImpl
     }
 
     /**
-     * Returns TRUE if the sound is currently disabled, FALSE otherwise.
-     * @return TRUE if the sound is currently disabled, FALSE otherwise
+     * Returns <tt>true</tt> if the sound is currently disabled; <tt>false</tt>,
+     * otherwise.
+     *
+     * @return <tt>true</tt> if the sound is currently disabled; <tt>false</tt>,
+     * otherwise
      */
     public boolean isMute()
     {
@@ -316,7 +332,8 @@ public class AudioNotifierServiceImpl
     }
 
     /**
-     * Listens for changes in notify device
+     * Listens for changes in notify device.
+     *
      * @param ev the event that notify device has changed.
      */
     public void propertyChange(PropertyChangeEvent ev)
@@ -339,21 +356,21 @@ public class AudioNotifierServiceImpl
     }
 
     /**
-     * Enables or disables the sound in the application. If FALSE, we try to
-     * restore all looping sounds if any.
+     * Enables or disables the sound in the application. If <tt>false</tt>, we
+     * try to restore all looping sounds if any.
      *
-     * @param mute when TRUE disables the sound, otherwise enables the sound.
+     * @param mute when <tt>true</tt> disables the sound; otherwise, enables the
+     * sound.
      */
     public void setMute(boolean mute)
     {
-        this.mute = mute;
-
         // TODO Auto-generated method stub
+        this.mute = mute;
     }
 
     /**
-     * Implements the key of {@link AudioNotifierServiceImpl#audios}. Combines the
-     * <tt>uri</tt> of the <tt>SCAudioClip</tt> with the indicator which
+     * Implements the key of {@link AudioNotifierServiceImpl#audios}. Combines
+     * the <tt>uri</tt> of the <tt>SCAudioClip</tt> with the indicator which
      * determines whether the <tt>SCAudioClip</tt> in question uses the playback
      * or the notify audio device.
      */
@@ -381,6 +398,9 @@ public class AudioNotifierServiceImpl
             this.playback = playback;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public boolean equals(Object o)
         {
@@ -398,6 +418,9 @@ public class AudioNotifierServiceImpl
                             : uri.equals(that.uri));
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public int hashCode()
         {

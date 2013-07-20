@@ -272,10 +272,14 @@ public abstract class AbstractAudioRenderer<T extends AudioSystem>
          */
         if ((this.locator == null) && (audioSystem != null))
         {
-            MediaLocator locator = getLocator();
-
-            if (locator != null)
-                audioSystem.addPropertyChangeListener(propertyChangeListener);
+            /*
+             * We actually want to allow the user to switch the playback and/or
+             * notify device to none mid-stream in order to disable the
+             * playback. If an extender does not want to support that behavior,
+             * they will throw an exception and/or not call this implementation
+             * anyway.
+             */
+            audioSystem.addPropertyChangeListener(propertyChangeListener);
         }
     }
 
