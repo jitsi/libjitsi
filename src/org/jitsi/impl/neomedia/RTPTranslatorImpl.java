@@ -96,6 +96,20 @@ public class RTPTranslatorImpl
         manager.addReceiveStreamListener(this);
     }
 
+    /**
+     * Specifies the RTP payload type (number) to be used for a specific
+     * <tt>Format</tt>. The association between the specified <tt>format</tt>
+     * and the specified <tt>payloadType</tt> is being added by a specific
+     * <tt>StreamRTPManager</tt> but effects the <tt>RTPTranslatorImpl</tt>
+     * globally.
+     * 
+     * @param streamRTPManager the <tt>StreamRTPManager</tt> that is requesting
+     * the association of <tt>format</tt> to <tt>payloadType</tt>
+     * @param format the <tt>Format</tt> which is to be associated with the
+     * specified RTP payload type (number)
+     * @param payloadType the RTP payload type (number) to be associated with
+     * the specified <tt>format</tt>
+     */
     public synchronized void addFormat(
             StreamRTPManager streamRTPManager,
             Format format, int payloadType)
@@ -106,6 +120,25 @@ public class RTPTranslatorImpl
             .addFormat(format, payloadType);
     }
 
+    /**
+     * Adds a <tt>ReceiveStreamListener</tt> to be notified about
+     * <tt>ReceiveStreamEvent</tt>s related to a specific neomedia
+     * <tt>MediaStream</tt> (expressed as a <tt>StreamRTPManager</tt> for the
+     * purposes of and in the terms of <tt>RTPTranslator</tt>). If the specified
+     * <tt>listener</tt> has already been added, the method does nothing.
+     *
+     * @param streamRTPManager the <tt>StreamRTPManager</tt> which specifies
+     * the neomedia <tt>MediaStream</tt> with which the
+     * <tt>ReceiveStreamEvent</tt>s delivered to the specified <tt>listener</tt>
+     * are to be related. In other words, a <tt>ReceiveStremEvent</tt> received
+     * by <tt>RTPTranslatorImpl</tt> is first examined to determine with which
+     * <tt>StreamRTPManager</tt> it is related to and then it is delivered to
+     * the <tt>ReceiveStreamListener</tt>s which have been added to this
+     * <tt>RTPTranslatorImpl</tt> by that <tt>StreamRTPManager</tt>.
+     * @param listener the <tt>ReceiveStreamListener</tt> to be notified about
+     * <tt>ReceiveStreamEvent</tt>s related to the specified
+     * <tt>streamRTPManager</tt>
+     */
     public synchronized void addReceiveStreamListener(
             StreamRTPManager streamRTPManager,
             ReceiveStreamListener listener)
@@ -114,6 +147,19 @@ public class RTPTranslatorImpl
             .addReceiveStreamListener(listener);
     }
 
+    /**
+     * Adds a <tt>RemoteListener</tt> to be notified about <tt>RemoteEvent</tt>s
+     * received by this <tt>RTPTranslatorImpl</tt>. Though the request is being
+     * made by a specific <tt>StreamRTPManager</tt>, the addition of the
+     * specified <tt>listener</tt> and the deliveries of the
+     * <tt>RemoteEvent</tt>s are performed irrespective of any
+     * <tt>StreamRTPManager</tt>.
+     *
+     * @param streamRTPManager the <tt>StreamRTPManager</tt> which is requesting
+     * the addition of the specified <tt>RemoteListener</tt>
+     * @param listener the <tt>RemoteListener</tt> to be notified about
+     * <tt>RemoteEvent</tt>s received by this <tt>RTPTranslatorImpl</tt>
+     */
     public void addRemoteListener(
             StreamRTPManager streamRTPManager,
             RemoteListener listener)
@@ -121,6 +167,10 @@ public class RTPTranslatorImpl
         manager.addRemoteListener(listener);
     }
 
+    /**
+     * Not implemented because there are currently no uses of the underlying
+     * functionality.
+     */
     public void addSendStreamListener(
             StreamRTPManager streamRTPManager,
             SendStreamListener listener)
@@ -128,6 +178,10 @@ public class RTPTranslatorImpl
         // TODO Auto-generated method stub
     }
 
+    /**
+     * Not implemented because there are currently no uses of the underlying
+     * functionality.
+     */
     public void addSessionListener(
             StreamRTPManager streamRTPManager,
             SessionListener listener)
@@ -185,6 +239,12 @@ public class RTPTranslatorImpl
         }
     }
 
+    /**
+     * Closes a specific <tt>SendStream</tt>.
+     *
+     * @param sendStreamDesc a <tt>SendStreamDesc</tt> instance that specifies
+     * the <tt>SendStream</tt> to be closed
+     */
     private synchronized void closeSendStream(SendStreamDesc sendStreamDesc)
     {
         if (sendStreams.contains(sendStreamDesc)
@@ -277,6 +337,34 @@ public class RTPTranslatorImpl
         }
     }
 
+    /**
+     * Creates a <tt>SendStream</tt> from the stream of a specific
+     * <tt>DataSource</tt> that is at a specific zero-based position within the
+     * array/list of streams of that <tt>DataSource</tt>.
+     *
+     * @param streamRTPManager the <tt>StreamRTPManager</tt> which is requesting
+     * the creation of a <tt>SendStream</tt>. Since multiple
+     * <tt>StreamRTPManager</tt> may request the creation of a
+     * <tt>SendStream</tt> from one and the same combination of
+     * <tt>dataSource</tt> and <tt>streamIndex</tt>, the method may not create
+     * a completely new <tt>SendStream</tt> but may return a
+     * <tt>StreamRTPManager</tt>-specific view of an existing
+     * <tt>SendStream</tt>.
+     * @param dataSource the <tt>DataSource</tt> which provides the stream from
+     * which a <tt>SendStream</tt> is to be created
+     * @param streamIndex the zero-based position within the array/list of
+     * streams of the specified <tt>dataSource</tt> of the stream from which a
+     * <tt>SendStream</tt> is to be created
+     * @return a <tt>SendStream</tt> created from the specified
+     * <tt>dataSource</tt> and <tt>streamIndex</tt>. The returned
+     * <tt>SendStream</tt> implementation is a
+     * <tt>streamRTPManager</tt>-dedicated view to an actual <tt>SendStream</tt>
+     * which may have been created during a previous execution of the method
+     * @throws IOException if an error occurs during the execution of
+     * {@link RTPManager#createSendStream(DataSource, int)}
+     * @throws UnsupportedFormatException if an error occurs during the
+     * execution of <tt>RTPManager.createSendStream(DataSource, int)</tt>
+     */
     public synchronized SendStream createSendStream(
             StreamRTPManager streamRTPManager,
             DataSource dataSource, int streamIndex)
@@ -286,11 +374,13 @@ public class RTPTranslatorImpl
         SendStreamDesc sendStreamDesc = null;
 
         for (SendStreamDesc s : sendStreams)
+        {
             if ((s.dataSource == dataSource) && (s.streamIndex == streamIndex))
             {
                 sendStreamDesc = s;
                 break;
             }
+        }
         if (sendStreamDesc == null)
         {
             SendStream sendStream
@@ -337,6 +427,12 @@ public class RTPTranslatorImpl
         }
     }
 
+    /**
+     * Releases the resources allocated by this instance for the purposes of the
+     * functioning of a specific <tt>StreamRTPManager</tt> in the course of its
+     * execution and prepares that <tt>StreamRTPManager</tt> to be garbage
+     * collected (as far as this <tt>RTPTranlatorImpl</tt> is concerned).
+     */
     public synchronized void dispose(StreamRTPManager streamRTPManager)
     {
         Iterator<StreamRTPManagerDesc> streamRTPManagerIter
@@ -369,6 +465,17 @@ public class RTPTranslatorImpl
         }
     }
 
+    /**
+     * Finds the first <tt>StreamRTPManager</tt> which is related to a specific
+     * receive/remote SSRC.
+     * 
+     * @param receiveSSRC the receive/remote SSRC to which the returned
+     * <tt>StreamRTPManager</tt> is to be related
+     * @param exclusion the <tt>StreamRTPManager</tt>, if any, to be excluded
+     * from the search
+     * @return the first <tt>StreamRTPManager</tt> which is related to the
+     * specified <tt>receiveSSRC</tt>
+     */
     private synchronized StreamRTPManagerDesc
         findStreamRTPManagerDescByReceiveSSRC(
             long receiveSSRC,
@@ -384,6 +491,16 @@ public class RTPTranslatorImpl
         return null;
     }
 
+    /**
+     * Exposes {@link RTPManager#getControl(String)} on the internal/underlying
+     * <tt>RTPManager</tt>.
+     *
+     * @param streamRTPManager ignored
+     * @param controlType
+     * @return the return value of the invocation of
+     * <tt>RTPManager.getControl(String)</tt> on the internal/underlying
+     * <tt>RTPManager</tt>
+     */
     public Object getControl(
             StreamRTPManager streamRTPManager,
             String controlType)
@@ -391,23 +508,61 @@ public class RTPTranslatorImpl
         return manager.getControl(controlType);
     }
 
+    /**
+     * Exposes {@link RTPManager#getGlobalReceptionStats()} on the
+     * internal/underlying <tt>RTPManager</tt>.
+     *
+     * @param streamRTPManager ignored
+     * @return the return value of the invocation of
+     * <tt>RTPManager.getGlobalReceptionStats()</tt> on the internal/underlying
+     * <tt>RTPManager</tt>
+     */
     public GlobalReceptionStats getGlobalReceptionStats(
             StreamRTPManager streamRTPManager)
     {
         return manager.getGlobalReceptionStats();
     }
 
+    /**
+     * Exposes {@link RTPManager#getGlobalTransmissionStats()} on the
+     * internal/underlying <tt>RTPManager</tt>.
+     *
+     * @param streamRTPManager ignored
+     * @return the return value of the invocation of
+     * <tt>RTPManager.getGlobalTransmissionStats()</tt> on the
+     * internal/underlying <tt>RTPManager</tt>
+     */
     public GlobalTransmissionStats getGlobalTransmissionStats(
             StreamRTPManager streamRTPManager)
     {
         return manager.getGlobalTransmissionStats();
     }
 
+    /**
+     * Exposes {@link RTPSessionMgr#getLocalSSRC()} on the internal/underlying
+     * <tt>RTPSessionMgr</tt>.
+     *
+     * @param streamRTPManager ignored
+     * @return the return value of the invocation of
+     * <tt>RTPSessionMgr.getLocalSSRC()</tt> on the internal/underlying
+     * <tt>RTPSessionMgr</tt>
+     */
     public long getLocalSSRC(StreamRTPManager streamRTPManager)
     {
         return ((RTPSessionMgr) manager).getLocalSSRC();
     }
 
+    /**
+     * Gets the <tt>ReceiveStream</tt>s associated with/related to a neomedia
+     * <tt>MediaStream</tt> (specified in the form of a
+     * <tt>StreamRTPManager</tt> instance for the purposes of and in the terms
+     * of <tt>RTPManagerImpl</tt>).
+     *
+     * @param streamRTPManager the <tt>StreamRTPManager</tt> to which the
+     * returned <tt>ReceiveStream</tt>s are to be related
+     * @return the <tt>ReceiveStream</tt>s related to/associated with the
+     * specified <tt>streamRTPManager</tt>
+     */
     public synchronized Vector<ReceiveStream> getReceiveStreams(
             StreamRTPManager streamRTPManager)
     {
@@ -436,6 +591,17 @@ public class RTPTranslatorImpl
         return receiveStreams;
     }
 
+    /**
+     * Gets the <tt>SendStream</tt>s associated with/related to a neomedia
+     * <tt>MediaStream</tt> (specified in the form of a
+     * <tt>StreamRTPManager</tt> instance for the purposes of and in the terms
+     * of <tt>RTPManagerImpl</tt>).
+     *
+     * @param streamRTPManager the <tt>StreamRTPManager</tt> to which the
+     * returned <tt>SendStream</tt>s are to be related
+     * @return the <tt>SendStream</tt>s related to/associated with the specified
+     * <tt>streamRTPManager</tt>
+     */
     public synchronized Vector<SendStream> getSendStreams(
             StreamRTPManager streamRTPManager)
     {
@@ -571,7 +737,7 @@ public class RTPTranslatorImpl
      * @throws IOException if an I/O error occurs while the method processes the
      * specified RTP or RTCP packet
      */
-    private int read(
+    private synchronized int read(
             PushSourceStreamDesc streamDesc,
             byte[] buffer, int offset, int length,
             int read)
@@ -613,7 +779,7 @@ public class RTPTranslatorImpl
             logRTCP(this, "read", buffer, offset, read);
 
         /*
-         * TODO A deadlock between PushSourceStreamImpl.removeStreams and
+         * XXX A deadlock between PushSourceStreamImpl.removeStreams and
          * createFakeSendStreamIfNecessary has been reported. Since the latter
          * method is disabled at the time of this writing, do not even try to
          * execute it and thus avoid the deadlock in question. 
@@ -657,6 +823,24 @@ public class RTPTranslatorImpl
                 | (buffer[offset] & 0xff);
     }
 
+    /**
+     * Removes a <tt>ReceiveStreamListener</tt> to no longer be notified about
+     * <tt>ReceiveStreamEvent</tt>s related to a specific neomedia
+     * <tt>MediaStream</tt> (expressed as a <tt>StreamRTPManager</tt> for the
+     * purposes of and in the terms of <tt>RTPTranslator</tt>). Since
+     * {@link #addReceiveStreamListener(StreamRTPManager,
+     * ReceiveStreamListener)} does not add equal
+     * <tt>ReceiveStreamListener</tt>s, a single removal is enough to reverse
+     * multiple additions of equal <tt>ReceiveStreamListener</tt>s.
+     *
+     * @param streamRTPManager the <tt>StreamRTPManager</tt> which specifies
+     * the neomedia <tt>MediaStream</tt> with which the
+     * <tt>ReceiveStreamEvent</tt>s delivered to the specified <tt>listener</tt>
+     * are to be related
+     * @param listener the <tt>ReceiveStreamListener</tt> to no longer be
+     * notified about <tt>ReceiveStreamEvent</tt>s related to the specified
+     * <tt>streamRTPManager</tt>
+     */
     public synchronized void removeReceiveStreamListener(
             StreamRTPManager streamRTPManager,
             ReceiveStreamListener listener)
@@ -668,6 +852,19 @@ public class RTPTranslatorImpl
             streamRTPManagerDesc.removeReceiveStreamListener(listener);
     }
 
+    /**
+     * Removes a <tt>RemoteListener</tt> to no longer be notified about
+     * <tt>RemoteEvent</tt>s received by this <tt>RTPTranslatorImpl</tt>.
+     * Though the request is being made by a specific <tt>StreamRTPManager</tt>,
+     * the addition of the specified <tt>listener</tt> and the deliveries of the
+     * <tt>RemoteEvent</tt>s are performed irrespective of any
+     * <tt>StreamRTPManager</tt> so the removal follows the same logic.
+     *
+     * @param streamRTPManager the <tt>StreamRTPManager</tt> which is requesting
+     * the removal of the specified <tt>RemoteListener</tt>
+     * @param listener the <tt>RemoteListener</tt> to no longer be notified
+     * about <tt>RemoteEvent</tt>s received by this <tt>RTPTranslatorImpl</tt>
+     */
     public void removeRemoteListener(
             StreamRTPManager streamRTPManager,
             RemoteListener listener)
@@ -675,6 +872,12 @@ public class RTPTranslatorImpl
         manager.removeRemoteListener(listener);
     }
 
+    /**
+     * Not implemented because there are currently no uses of the underlying
+     * functionality. (Additionally,
+     * {@link #addSendStreamListener(StreamRTPManager, SendStreamListener)} is
+     * not implemented for the same reason.)
+     */
     public void removeSendStreamListener(
             StreamRTPManager streamRTPManager,
             SendStreamListener listener)
@@ -682,6 +885,12 @@ public class RTPTranslatorImpl
         // TODO Auto-generated method stub
     }
 
+    /**
+     * Not implemented because there are currently no uses of the underlying
+     * functionality. (Additionally,
+     * {@link #addSessionListener(StreamRTPManager, SessionListener)} is not
+     * implemented for the same reason.)
+     */
     public void removeSessionListener(
             StreamRTPManager streamRTPManager,
             SessionListener listener)
@@ -1057,12 +1266,20 @@ public class RTPTranslatorImpl
             // TODO Auto-generated method stub
         }
 
+        /**
+         * Not implemented because there are currently no uses of the underlying
+         * functionality.
+         */
         public boolean endOfStream()
         {
             // TODO Auto-generated method stub
             return false;
         }
 
+        /**
+         * Not implemented because there are currently no uses of the underlying
+         * functionality.
+         */
         public ContentDescriptor getContentDescriptor()
         {
             // TODO Auto-generated method stub
@@ -1074,12 +1291,20 @@ public class RTPTranslatorImpl
             return LENGTH_UNKNOWN;
         }
 
+        /**
+         * Not implemented because there are currently no uses of the underlying
+         * functionality.
+         */
         public Object getControl(String controlType)
         {
             // TODO Auto-generated method stub
             return null;
         }
 
+        /**
+         * Not implemented because there are currently no uses of the underlying
+         * functionality.
+         */
         public Object[] getControls()
         {
             // TODO Auto-generated method stub
@@ -1155,17 +1380,37 @@ public class RTPTranslatorImpl
             }
         }
 
-        public synchronized void transferData(PushSourceStream stream)
+        /**
+         * {@inheritDoc}
+         *
+         * Implements
+         * {@link SourceTransferHandler#transferData(PushSourceStream)}. This
+         * instance sets itself as the <tt>transferHandler</tt> of all
+         * <tt>PushSourceStream</tt>s that get added to it (i.e.
+         * {@link #streams}). When either one of these pushes media data, this
+         * instance pushes that media data.
+         */
+        public void transferData(PushSourceStream stream)
         {
             SourceTransferHandler transferHandler = null;
 
-            for (PushSourceStreamDesc streamDesc : streams)
-                if (streamDesc.stream == stream)
+            /*
+             * XXX SourceTransferHandler.transferData(PushSourceStream) will
+             * have to be invoked outside the synchronized block in order to
+             * avoid a deadlock involving removeStreams(RTPConnectorDesc).
+             */
+            synchronized (this)
+            {
+                for (PushSourceStreamDesc streamDesc : streams)
                 {
-                    streamToReadFrom = streamDesc;
-                    transferHandler = this.transferHandler;
-                    break;
+                    if (streamDesc.stream == stream)
+                    {
+                        streamToReadFrom = streamDesc;
+                        transferHandler = this.transferHandler;
+                        break;
+                    }
                 }
+            }
 
             if (transferHandler != null)
                 transferHandler.transferData(this);
@@ -1412,21 +1657,37 @@ public class RTPTranslatorImpl
             return this.dataOutputStream;
         }
 
+        /**
+         * Not implemented because there are currently no uses of the underlying
+         * functionality.
+         */
         public int getReceiveBufferSize()
         {
             return -1;
         }
 
+        /**
+         * Not implemented because there are currently no uses of the underlying
+         * functionality.
+         */
         public double getRTCPBandwidthFraction()
         {
             return -1;
         }
 
+        /**
+         * Not implemented because there are currently no uses of the underlying
+         * functionality.
+         */
         public double getRTCPSenderBandwidthFraction()
         {
             return -1;
         }
 
+        /**
+         * Not implemented because there are currently no uses of the underlying
+         * functionality.
+         */
         public int getSendBufferSize()
         {
             return -1;
@@ -1448,12 +1709,20 @@ public class RTPTranslatorImpl
             }
         }
 
+        /**
+         * Not implemented because there are currently no uses of the underlying
+         * functionality.
+         */
         public void setReceiveBufferSize(int receiveBufferSize)
             throws IOException
         {
             // TODO Auto-generated method stub
         }
 
+        /**
+         * Not implemented because there are currently no uses of the underlying
+         * functionality.
+         */
         public void setSendBufferSize(int sendBufferSize)
             throws IOException
         {
@@ -1657,12 +1926,20 @@ public class RTPTranslatorImpl
             return sendStreamDesc.sendStream.getSSRC();
         }
 
+        /**
+         * Not implemented because there are currently no uses of the underlying
+         * functionality.
+         */
         public int setBitRate(int bitRate)
         {
             // TODO Auto-generated method stub
             return 0;
         }
 
+        /**
+         * Not implemented because there are currently no uses of the underlying
+         * functionality.
+         */
         public void setSourceDescription(SourceDescription[] sourceDescription)
         {
             // TODO Auto-generated method stub
