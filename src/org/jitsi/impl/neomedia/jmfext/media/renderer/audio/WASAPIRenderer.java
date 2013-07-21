@@ -16,10 +16,12 @@ import java.util.concurrent.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.util.*;
 
 /**
@@ -398,6 +400,55 @@ public class WASAPIRenderer
     public String getName()
     {
         return PLUGIN_NAME;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Overrides the super implementation to handle the case in which the user
+     * has selected "none" for the playback/notify device.
+     */
+    @Override
+    public Format[] getSupportedInputFormats()
+    {
+        if (getLocator() == null)
+        {
+            /*
+             * XXX We toyed with the idea of calculating a list of common
+             * Formats supported by all devices (of the dataFlow of this
+             * AbstractAudioRenderer, of course) but that turned out to be
+             * monstrous in code, inefficient at least in terms of garbage
+             * collection and with questionable suitability. The following
+             * approach will likely have a comparable suitability with better
+             * efficiency achieved code that is easier to understand.
+             */
+
+            /*
+             * The maximums supported by the WASAPI integration at the time of
+             * this writing.
+             */
+            double sampleRate = MediaUtils.MAX_AUDIO_SAMPLE_RATE;
+            int sampleSizeInBits = 16;
+            int channels = 2;
+
+            if ((sampleRate == Format.NOT_SPECIFIED)
+                    && (Constants.AUDIO_SAMPLE_RATES.length != 0))
+                sampleRate = Constants.AUDIO_SAMPLE_RATES[0];
+            return
+                WASAPISystem.getFormatsToInitializeIAudioClient(
+                        new AudioFormat(
+                                AudioFormat.LINEAR,
+                                sampleRate,
+                                sampleSizeInBits,
+                                channels,
+                                AudioFormat.LITTLE_ENDIAN,
+                                AudioFormat.SIGNED,
+                                /* frameSizeInBits */ Format.NOT_SPECIFIED,
+                                /* frameRate */ Format.NOT_SPECIFIED,
+                                Format.byteArray));
+        }
+        else
+            return super.getSupportedInputFormats();
     }
 
     /**
