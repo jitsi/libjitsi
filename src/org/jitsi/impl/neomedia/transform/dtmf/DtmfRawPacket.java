@@ -154,6 +154,9 @@ public class DtmfRawPacket
         writeByte(at++, end ? (byte)(volume | 0x80) : (byte)(volume & 0x7f));
         writeByte(at++, (byte)(duration >> 8));
         writeByte(at++, (byte)duration);
+
+        //packet finished setting its payload, set correct length
+        setLength(at);
     }
 
     /**
