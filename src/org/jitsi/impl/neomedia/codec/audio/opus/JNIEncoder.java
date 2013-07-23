@@ -210,7 +210,7 @@ public class JNIEncoder
     /**
      * {@inheritDoc}
      *
-     * @see AbstractCodecExt#doClose()
+     * @see AbstractCodec2#doClose()
      */
     @Override
     protected void doClose()
@@ -231,7 +231,7 @@ public class JNIEncoder
      *
      * @throws ResourceUnavailableException if any of the resources that this
      * <tt>Codec</tt> needs to operate cannot be acquired
-     * @see AbstractCodecExt#doOpen()
+     * @see AbstractCodec2#doOpen()
      */
     @Override
     protected void doOpen()
@@ -293,10 +293,10 @@ public class JNIEncoder
                     : b == Opus.BANDWIDTH_SUPERWIDEBAND ? "swb"
                     : b == Opus.BANDWIDTH_WIDEBAND ? "wb"
                     : b == Opus.BANDWIDTH_MEDIUMBAND ? "mb"
-                    : "nb") +
-                ", bitrate " + Opus.encoder_get_bitrate(encoder) + ", DTX " +
-                Opus.encoder_get_dtx(encoder) + ", FEC " + useFecConfig);
-                // TODO Add Opus.encoder_get_inband_fec().
+                    : "nb")
+                + ", bitrate " + Opus.encoder_get_bitrate(encoder)
+                + ", DTX " + Opus.encoder_get_dtx(encoder)
+                + ", FEC " + Opus.encoder_get_inband_fec(encoder));
         }
     }
 
@@ -309,7 +309,7 @@ public class JNIEncoder
      * be written
      * @return <tt>BUFFER_PROCESSED_OK</tt> if the specified <tt>inBuffer</tt>
      * has been processed successfully
-     * @see AbstractCodecExt#doProcess(Buffer, Buffer)
+     * @see AbstractCodec2#doProcess(Buffer, Buffer)
      */
     @Override
     protected int doProcess(Buffer inBuffer, Buffer outBuffer)
@@ -401,7 +401,7 @@ public class JNIEncoder
             = Opus.encode(
                     encoder,
                     in, inOffset, frameSizeInSamplesPerChannel,
-                    out, /* 0, */ out.length);
+                    out, 0, out.length);
 
         if (outLength < 0)  // error from opus_encode
             return BUFFER_PROCESSED_FAILED;

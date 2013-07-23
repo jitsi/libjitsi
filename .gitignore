@@ -3,3 +3,4 @@ libjitsi.jar
 .idea
 *.swp
 dist
+*.class

@@ -109,7 +109,7 @@ public class Opus
     public static native int decode(
             long decoder,
             byte[] input, int inputOffset, int inputLength,
-            byte[] output, /* int outputOffset, */ int outputFrameSize,
+            byte[] output, int outputOffset, int outputFrameSize,
             int decodeFEC);
 
     /**
@@ -170,7 +170,7 @@ public class Opus
     public static native int encode(
             long encoder,
             byte[] input, int inputOffset, int inputFrameSize,
-            byte[] output, /* int outputOffset, */ int outputLength);
+            byte[] output, int outputOffset, int outputLength);
 
     /**
      * Creates an OpusEncoder structure, returns a pointer to it casted to long.
@@ -249,6 +249,16 @@ public class Opus
      * @return the current VBR constraint encoder setting.
      */
     public static native int encoder_get_vbr_constraint(long encoder);
+
+    /**
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns
+     * the current inband FEC encoder setting.
+     *
+     * @param encoder The encoder to use
+     *
+     * @return the current inband FEC encoder setting.
+     */
+    public static native int encoder_get_inband_fec(long encoder);
 
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
