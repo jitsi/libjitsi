@@ -234,7 +234,7 @@ public class WASAPIRenderer
      * The maximum interval of time in milliseconds that the writing to the
      * render endpoint buffer is allowed to be under suspicion that it is
      * malfunctioning. If it remains under suspicion after the maximum interval
-     * of time has elapsed, the writing to the render endpoing buffer is to be
+     * of time has elapsed, the writing to the render endpoint buffer is to be
      * considered malfunctioning for real. 
      */
     private long writeIsMalfunctioningTimeout;
@@ -856,6 +856,18 @@ public class WASAPIRenderer
         remainderLength = pop(remainder, remainderLength, length);
     }
 
+    /**
+     * Pops a specific number of bytes from (the head of) a specific array of
+     * <tt>byte</tt>s.
+     *
+     * @param array the array of <tt>byte</tt> from which the specified number
+     * of bytes are to be popped
+     * @param arrayLength the number of elements in <tt>array</tt> which contain
+     * valid data
+     * @param length the number of bytes to be popped from <tt>array</tt>
+     * @return the number of elements in <tt>array</tt> which contain valid data
+     * after the specified number of bytes have been popped from it
+     */
     public static int pop(byte[] array, int arrayLength, int length)
     {
         if (length < 0)

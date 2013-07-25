@@ -56,6 +56,19 @@ public class VoiceCaptureDSP
         = "{73647561-0000-0010-8000-00aa00389b71}";
 
     /**
+     * Specifies which audio devices the Voice Capture DSP uses for capturing
+     * and rendering audio. Set this property if you are using the DSP in source
+     * mode. The DSP ignores this property in filter mode. The value of the
+     * property is two 16-bit <tt>WORD</tt>s packed into a <tt>DWORD</tt> (i.e.
+     * a Java <tt>int</tt>). The upper 16 bits specify the audio rendering
+     * device (typically a speaker), and the lower 16 bits specify the capture
+     * device (typically a microphone). Each device is specified as an index
+     * into the audio device collection. If the index is <tt>-1</tt>, the
+     * default device is used.
+     */
+    public static final long MFPKEY_WMAAECMA_DEVICE_INDEXES;
+
+    /**
      * Specifies whether the Voice Capture DSP uses source mode (<tt>true</tt>)
      * or filter mode (<tt>false</tt>). In source mode, the application does not
      * need to send input data to the DSP, because the DSP automatically pulls
@@ -165,6 +178,7 @@ public class VoiceCaptureDSP
     {
         String fmtid = "{6f52c567-0360-4bd2-9617-ccbf1421c939} ";
         String pszString = null;
+        long _MFPKEY_WMAAECMA_DEVICE_INDEXES = 0;
         long _MFPKEY_WMAAECMA_DMO_SOURCE_MODE = 0;
         long _MFPKEY_WMAAECMA_SYSTEM_MODE = 0;
         /*
@@ -175,6 +189,15 @@ public class VoiceCaptureDSP
 
         try
         {
+            pszString = fmtid + "4";
+            _MFPKEY_WMAAECMA_DEVICE_INDEXES
+                = PSPropertyKeyFromString(pszString);
+            if (_MFPKEY_WMAAECMA_DEVICE_INDEXES == 0)
+            {
+                throw new IllegalStateException(
+                        "MFPKEY_WMAAECMA_DEVICE_INDEXES");
+            }
+
             pszString = fmtid + "3";
             _MFPKEY_WMAAECMA_DMO_SOURCE_MODE
                 = PSPropertyKeyFromString(pszString);
@@ -219,6 +242,7 @@ public class VoiceCaptureDSP
             }
         }
 
+        MFPKEY_WMAAECMA_DEVICE_INDEXES = _MFPKEY_WMAAECMA_DEVICE_INDEXES;
         MFPKEY_WMAAECMA_DMO_SOURCE_MODE = _MFPKEY_WMAAECMA_DMO_SOURCE_MODE;
         MFPKEY_WMAAECMA_SYSTEM_MODE = _MFPKEY_WMAAECMA_SYSTEM_MODE;
 

@@ -272,7 +272,10 @@ public class WASAPISystem
     {
         super(
                 LOCATOR_PROTOCOL,
-                FEATURE_NOTIFY_AND_PLAYBACK_DEVICES | FEATURE_REINITIALIZE);
+                FEATURE_DENOISE
+                    | FEATURE_ECHO_CANCELLATION
+                    | FEATURE_NOTIFY_AND_PLAYBACK_DEVICES
+                    | FEATURE_REINITIALIZE);
     }
 
     /**
@@ -413,6 +416,20 @@ public class WASAPISystem
     protected void doInitialize()
         throws Exception
     {
+        List<CaptureDeviceInfo2> captureDevices;
+        List<CaptureDeviceInfo2> playbackDevices;
+
+        /*
+         * We want to protect iMMDeviceEnumerator because it may be accessed by
+         * multiple threads. Which the method doInitialize will not be invoked
+         * more than once at a time, it may be concurrently invoked along with
+         * other methods. We do not want the methods setCaptureDevices and
+         * setPlaybackDevices in the synchronized block because they may fire
+         * events which may in turn lead to deadlocks. 
+         */
+        synchronized (this)
+        {
+
         /*
          * XXX Multiple threads may invoke the initialization of a DeviceSystem
          * so we cannot be sure that the COM library has been initialized for
@@ -445,8 +462,6 @@ public class WASAPISystem
                     iMMDeviceEnumerator,
                     eAll,
                     DEVICE_STATE_ACTIVE);
-        List<CaptureDeviceInfo2> captureDevices;
-        List<CaptureDeviceInfo2> playbackDevices;
 
         if (iMMDeviceCollection == 0)
         {
@@ -512,6 +527,8 @@ public class WASAPISystem
         {
             IMMDeviceCollection_Release(iMMDeviceCollection);
         }
+
+        } // synchronized (this)
 
         setCaptureDevices(captureDevices);
         setPlaybackDevices(playbackDevices);
@@ -628,10 +645,13 @@ public class WASAPISystem
     {
         try
         {
-            if (iMMDeviceEnumerator != 0)
+            synchronized (this)
             {
-                IMMDeviceEnumerator_Release(iMMDeviceEnumerator);
-                iMMDeviceEnumerator = 0;
+                if (iMMDeviceEnumerator != 0)
+                {
+                    IMMDeviceEnumerator_Release(iMMDeviceEnumerator);
+                    iMMDeviceEnumerator = 0;
+                }
             }
         }
         finally
@@ -918,15 +938,15 @@ public class WASAPISystem
      * Gets an audio endpoint device that is identified by a specific endpoint
      * ID string.
      *
-     * @param id the endpoing ID string which identifies the audio endpoint
+     * @param id the endpoint ID string which identifies the audio endpoint
      * device to be retrieved
      * @return an <tt>IMMDevice</tt> instance which represents the audio
-     * endpoint device that is identified by the specified enpoint ID string
+     * endpoint device that is identified by the specified endpoint ID string
      * @throws HResultException if an error occurs while retrieving the audio
      * endpoint device that is identified by the specified endpoint ID string in
      * a native WASAPI function which returns an <tt>HRESULT</tt> value
      */
-    public long getIMMDevice(String id)
+    public synchronized long getIMMDevice(String id)
         throws HResultException
     {
         long iMMDeviceEnumerator = this.iMMDeviceEnumerator;
@@ -1010,6 +1030,94 @@ public class WASAPISystem
             IPropertyStore_Release(iPropertyStore);
         }
         return deviceFriendlyName;
+    }
+
+    /**
+     * Gets the zero-based index within the <tt>IMMDeviceCollection</tt>
+     * interface of an audio endpoint device specified by an endpoint ID string.
+     *
+     * @param id the endpoint ID string which specifies the audio endpoint
+     * device whose zero-based index within the <tt>IMMDeviceCollection</tt>
+     * interface is to be retrieved
+     * @return the zero-based index within the <tt>IMMDeviceCollection</tt>
+     * interface of an audio endpoint device identified by the specified
+     * endpoint ID string if the specified endpoint ID string identifies an
+     * actual audio endpoint device within the <tt>IMMDeviceCollection</tt>
+     * interface; otherwise, <tt>-1</tt>
+     * @throws HResultException if an error occurs while determining the
+     * zero-based index within the <tt>IMMDeviceCollection</tt> interface of the
+     * audio endpoint device identified by the specified endpoint ID string in a
+     * native WASAPI function which returns an <tt>HRESULT</tt> value
+     */
+    public synchronized int getIMMDeviceIndex(String id, int dataFlow)
+        throws HResultException
+    {
+        long iMMDeviceEnumerator = this.iMMDeviceEnumerator;
+
+        if (iMMDeviceEnumerator == 0)
+            throw new IllegalStateException("iMMDeviceEnumerator");
+
+        long iMMDeviceCollection
+            = IMMDeviceEnumerator_EnumAudioEndpoints(
+                    iMMDeviceEnumerator,
+                    dataFlow,
+                    DEVICE_STATE_ACTIVE);
+
+        if (iMMDeviceCollection == 0)
+        {
+            throw new RuntimeException(
+                    "IMMDeviceEnumerator_EnumAudioEndpoints");
+        }
+
+        int iMMDeviceIndex = -1;
+
+        try
+        {
+            int count = IMMDeviceCollection_GetCount(iMMDeviceCollection);
+
+            if (count > 0)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    long iMMDevice
+                        = IMMDeviceCollection_Item(iMMDeviceCollection, i);
+
+                    if (iMMDevice == 0)
+                    {
+                        throw new RuntimeException(
+                                "IMMDeviceCollection_Item");
+                    }
+
+                    String iMMDeviceID;
+
+                    try
+                    {
+                        iMMDeviceID = IMMDevice_GetId(iMMDevice);
+                    }
+                    finally
+                    {
+                        IMMDevice_Release(iMMDevice);
+                    }
+                    /*
+                     * The endpoint ID strings include GUIDs so case insensitive
+                     * comparison should be appropriate. If we wanted to be more
+                     * strict, we would've invoked IMMDeviceCollection_GetDevice
+                     * in order to have Windows Audio Session API (WASAPI) make
+                     * the comparison of the enpoint ID strings.
+                     */
+                    if (id.equalsIgnoreCase(iMMDeviceID))
+                    {
+                        iMMDeviceIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            IMMDeviceCollection_Release(iMMDeviceCollection);
+        }
+        return iMMDeviceIndex;
     }
 
     /**
