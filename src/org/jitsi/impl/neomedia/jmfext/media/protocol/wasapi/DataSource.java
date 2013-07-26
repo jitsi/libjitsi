@@ -158,7 +158,7 @@ public class DataSource
         Format[] superSupportedFormats = super.getSupportedFormats(streamIndex);
 
         /*
-         * If the capture endpoint device is report to support no Format, then
+         * If the capture endpoint device reports to support no Format, then
          * acoustic echo cancellation (AEC) will surely not work.
          */
         if ((superSupportedFormats == null)

@@ -529,7 +529,7 @@ public class WASAPIRenderer
     private void maybeOpenResampler()
     {
         AudioFormat inFormat = this.inputFormat;
-        AudioFormat outFormat = dstFormat;
+        AudioFormat outFormat = this.dstFormat;
 
         // We are able to translate between mono and stereo.
         if ((inFormat.getSampleRate() == outFormat.getSampleRate())
@@ -555,6 +555,44 @@ public class WASAPIRenderer
                         outFormat.getDataType());
         }
 
+        Codec resampler = maybeOpenResampler(inFormat, outFormat);
+
+        if (resampler == null)
+        {
+            throw new IllegalStateException(
+                    "Failed to open a codec to resample [" + inFormat
+                        + "] into [" + outFormat + "].");
+        }
+        else
+        {
+            this.resampler = resampler;
+            resamplerChannels = outFormat.getChannels();
+            resamplerSampleSize = WASAPISystem.getSampleSizeInBytes(outFormat);
+            resamplerFrameSize = resamplerChannels * resamplerSampleSize;
+        }
+    }
+
+    /**
+     * Attempts to initialize and open a new <tt>Codec</tt> to resample media
+     * data from a specific input <tt>AudioFormat</tt> into a specific output
+     * <tt>AudioFormat</tt>. If no suitable resampler is found, returns
+     * <tt>null</tt>. If a suitable resampler is found but its initialization or
+     * opening fails, logs and swallows any <tt>Throwable</tt> and returns
+     * <tt>null</tt>.
+     *
+     * @param inFormat the <tt>AudioFormat</tt> in which the new instance is to
+     * input media data
+     * @param outFormat the <tt>AudioFormat</tt> in which the new instance is to
+     * output media data
+     * @return a new <tt>Codec</tt> which is able to resample media data from
+     * the specified <tt>inFormat</tt> into the specified <tt>outFormat</tt> if
+     * such a resampler could be found, initialized and opened; otherwise,
+     * <tt>null</tt>
+     */
+    public static Codec maybeOpenResampler(
+            AudioFormat inFormat,
+            AudioFormat outFormat)
+    {
         @SuppressWarnings("unchecked")
         List<String> classNames
             = PlugInManager.getPlugInList(
@@ -598,19 +636,7 @@ public class WASAPIRenderer
                 }
             }
         }
-        if (resampler == null)
-        {
-            throw new IllegalStateException(
-                    "Failed to open a codec to resample [" + inFormat
-                        + "] into [" + outFormat + "].");
-        }
-        else
-        {
-            this.resampler = resampler;
-            resamplerChannels = outFormat.getChannels();
-            resamplerSampleSize = WASAPISystem.getSampleSizeInBytes(outFormat);
-            resamplerFrameSize = resamplerChannels * resamplerSampleSize;
-        }
+        return resampler;
     }
 
     /**
