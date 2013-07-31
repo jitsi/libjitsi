@@ -14,7 +14,7 @@ import javax.media.format.*;
  * purely as a flag/indicator/marker. In the context of the Windows Audio
  * Session API (WASAPI) integration, it signals that the endpoint device
  * represented by an associated <tt>CaptureDeviceInfo2</tt> supports the format
- * either directly or with built-in converstion between mono and stereo.
+ * either directly or with built-in conversion between mono and stereo.
  *
  * @author Lyubomir Marinov
  */
