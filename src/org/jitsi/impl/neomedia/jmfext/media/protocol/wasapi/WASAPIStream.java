@@ -2197,8 +2197,21 @@ public class WASAPIStream
          * The propertyChangeListener this invokes the method will be added only
          * when acoustic echo cancellation (AEC) is enabled. 
          */
+        String propertyName = ev.getPropertyName();
+        boolean renderDeviceDidChange;
 
-        if (DeviceSystem.PROP_DEVICES.equals(ev.getPropertyName()))
+        if (DeviceSystem.PROP_DEVICES.equals(propertyName))
+        {
+            /*
+             * Testing shows that the acoustic echo cancellation (AEC) feature
+             * may fail to actually cancel echo if a device is unplugged even if
+             * it was not in use by this instance prior to the unplugging.
+             * Unfortunately, even re-initializing the voice capture DSP may not
+             * save the AEC from failing to actual cancel the echo.
+             */
+            renderDeviceDidChange = true;
+        }
+        else if (PlaybackDevices.PROP_DEVICE.equals(propertyName))
         {
             MediaLocator oldRenderDevice = this.renderDevice;
             WASAPISystem audioSystem = dataSource.audioSystem;
@@ -2226,10 +2239,17 @@ public class WASAPIStream
                                 newRenderDevice.getRemainder(),
                                 eRender);
 
-                if (oldRenderDeviceIndex == newRenderDeviceIndex)
-                    return;
+                renderDeviceDidChange
+                    = (oldRenderDeviceIndex != newRenderDeviceIndex);
             }
+            else
+                renderDeviceDidChange = true;
+        }
+        else
+            renderDeviceDidChange = false;
 
+        if (renderDeviceDidChange)
+        {
             /*
              * If there are changes either to the MediaLocators or to the
              * indexes within the IMMDeviceCollection interface, re-connect this
