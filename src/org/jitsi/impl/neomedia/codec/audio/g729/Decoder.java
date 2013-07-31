@@ -152,6 +152,7 @@ class Decoder
  * @param args bitstream_file  outputspeech_file
  * @throws java.io.IOException
  */
+@SuppressWarnings("resource")
 public static void main(String[] args)
    throws IOException
 {
