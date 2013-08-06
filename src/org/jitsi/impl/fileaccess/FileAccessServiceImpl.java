@@ -22,7 +22,6 @@ import org.jitsi.util.*;
  */
 public class FileAccessServiceImpl implements FileAccessService
 {
-
     /**
      * The <tt>Logger</tt> used by the <tt>FileAccessServiceImpl</tt> class and
      * its instances for logging output.
@@ -40,18 +39,31 @@ public class FileAccessServiceImpl implements FileAccessService
      */
     public static final String TEMP_FILE_SUFFIX = "TEMP";
 
-    private final String scHomeDirLocation;
-
+    private final String profileDirLocation;
+    private final String cacheDirLocation;
+    private final String logDirLocation;
     private final String scHomeDirName;
 
     public FileAccessServiceImpl()
     {
-        scHomeDirLocation
+        profileDirLocation
             = getSystemProperty(
                     ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
-        if (scHomeDirLocation == null)
+        if (profileDirLocation == null)
             throw new IllegalStateException(
                     ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
+
+        String cacheDir
+            = getSystemProperty(
+                ConfigurationService.PNAME_SC_CACHE_DIR_LOCATION);
+        cacheDirLocation =
+            (cacheDir == null) ? profileDirLocation : cacheDir;
+
+        String logDir
+            = getSystemProperty(
+                ConfigurationService.PNAME_SC_LOG_DIR_LOCATION);
+        logDirLocation =
+            (logDir == null) ? profileDirLocation : logDir;
 
         scHomeDirName
             = getSystemProperty(ConfigurationService.PNAME_SC_HOME_DIR_NAME);
@@ -115,39 +127,47 @@ public class FileAccessServiceImpl implements FileAccessService
     }
 
     /**
+     * Please use {@link #getPrivatePersistentFile(String, FileCategory)}.
+     */
+    @Deprecated
+    public File getPrivatePersistentFile(String fileName)
+        throws Exception
+    {
+        return this.getPrivatePersistentFile(fileName, FileCategory.PROFILE);
+    }
+
+    /**
      * This method returns a file specific to the current user. It may not
      * exist, but it is guaranteed that you will have the sufficient rights to
      * create it.
      *
      * This file should not be considered secure because the implementor may
-     * return a file accesible to everyone. Generaly it will reside in current
+     * return a file accessible to everyone. Generally it will reside in current
      * user's homedir, but it may as well reside in a shared directory.
      *
      * Note: DO NOT store unencrypted sensitive information in this file
      *
      * @param fileName
      *            The name of the private file you wish to access
+     * @param category
+     *            The classification of the file.
      * @return The file
      * @throws Exception if we faile to create the file.
      */
-    public File getPrivatePersistentFile(String fileName)
+    public File getPrivatePersistentFile(String fileName, FileCategory category)
         throws Exception
     {
+        logger.logEntry();
 
         File file = null;
-
         try
         {
-            logger.logEntry();
-
-            String fullPath = getFullPath(fileName);
-            file = accessibleFile(fullPath, fileName);
-
+            file = accessibleFile(getFullPath(category), fileName);
             if (file == null)
             {
                 throw new SecurityException("Insufficient rights to access "
                     + "this file in current user's home directory: "
-                    + new File(fullPath, fileName).getPath());
+                    + new File(getFullPath(category), fileName).getPath());
             }
         }
         finally
@@ -159,11 +179,22 @@ public class FileAccessServiceImpl implements FileAccessService
     }
 
     /**
+     * Please use {@link #getPrivatePersistentDirectory(String, FileCategory)}
+     */
+    @Deprecated
+    public File getPrivatePersistentDirectory(String dirName)
+        throws Exception
+    {
+        return getPrivatePersistentDirectory(dirName, FileCategory.PROFILE);
+    }
+
+    /**
      * This method creates a directory specific to the current user.
      *
      * This directory should not be considered secure because the implementor
-     * may return a directory accesible to everyone. Generaly it will reside in
-     * current user's homedir, but it may as well reside in a shared directory.
+     * may return a directory accessible to everyone. Generally it will reside
+     * in current user's homedir, but it may as well reside in a shared
+     * directory.
      *
      * It is guaranteed that you will be able to create files in it.
      *
@@ -171,17 +202,17 @@ public class FileAccessServiceImpl implements FileAccessService
      *
      * @param dirName
      *            The name of the private directory you wish to access.
+     * @param category
+     *            The classification of the directory.
      * @return The created directory.
      * @throws Exception
      *             Thrown if there is no suitable location for the persistent
      *             directory.
      */
-    public File getPrivatePersistentDirectory(String dirName)
-        throws Exception
+    public File getPrivatePersistentDirectory(String dirName,
+        FileCategory category) throws Exception
     {
-        String fullPath = getFullPath(dirName);
-        File dir = new File(fullPath, dirName);
-
+        File dir = new File(getFullPath(category), dirName);
         if (dir.exists())
         {
             if (!dir.isDirectory())
@@ -203,93 +234,29 @@ public class FileAccessServiceImpl implements FileAccessService
     }
 
     /**
-     * This method creates a directory specific to the current user.
-     *
-     * {@link #getPrivatePersistentDirectory(String)}
-     *
-     * @param dirNames
-     *            The name of the private directory you wish to access.
-     * @return The created directory.
-     * @throws Exception
-     *             Thrown if there is no suitable location for the persistent
-     *             directory.
-     */
-    public File getPrivatePersistentDirectory(String[] dirNames)
-        throws Exception
-    {
-        StringBuilder dirName = new StringBuilder();
-        for (int i = 0; i < dirNames.length; i++)
-        {
-            if (i > 0)
-            {
-                dirName.append(File.separatorChar);
-            }
-            dirName.append(dirNames[i]);
-        }
-
-        return getPrivatePersistentDirectory(dirName.toString());
-    }
-
-    /**
-     * Returns the full parth corresponding to a file located in the
+     * Returns the full path corresponding to a file located in the
      * sip-communicator config home and carrying the specified name.
-     * @param fileName the name of the file whose location we're looking for.
-     * @return the config home location of a a file withe the specified name.
+     * @param category The classification of the file or directory.
+     * @return the config home location of a a file with the specified name.
      */
-    private String getFullPath(String fileName)
+    private File getFullPath(FileCategory category)
     {
         // bypass the configurationService here to remove the dependency
-        String userhome =  getScHomeDirLocation();
-        String sipSubdir = getScHomeDirName();
-
-        if (!userhome.endsWith(File.separator))
+        String directory;
+        switch (category)
         {
-            userhome += File.separator;
+            case CACHE:
+                directory = this.cacheDirLocation;
+                break;
+            case LOG:
+                directory = this.logDirLocation;
+                break;
+            default:
+                directory = this.profileDirLocation;
+                break;
         }
-        if (!sipSubdir.endsWith(File.separator))
-        {
-            sipSubdir += File.separator;
-        }
 
-        return userhome + sipSubdir;
-    }
-
-    /**
-     * Returns the name of the directory where SIP Communicator is to store user
-     * specific data such as configuration files, message and call history
-     * as well as is bundle repository.
-     *
-     * @return the name of the directory where SIP Communicator is to store
-     * user specific data such as configuration files, message and call history
-     * as well as is bundle repository.
-     */
-    private String getScHomeDirName()
-    {
-        String scHomeDirName = this.scHomeDirName;
-
-        if (scHomeDirName == null)
-            scHomeDirName = ".sip-communicator";
-
-        return scHomeDirName;
-    }
-
-    /**
-     * Returns the location of the directory where SIP Communicator is to store
-     * user specific data such as configuration files, message and call history
-     * as well as is bundle repository.
-     *
-     * @return the location of the directory where SIP Communicator is to store
-     * user specific data such as configuration files, message and call history
-     * as well as is bundle repository.
-     */
-    private String getScHomeDirLocation()
-    {
-        String scHomeDirLocation = this.scHomeDirLocation;
-
-        if (scHomeDirLocation == null)
-            scHomeDirLocation = getSystemProperty("user.home");
-
-        return scHomeDirLocation;
+        return new File(directory, this.scHomeDirName);
     }
 
     /**
@@ -314,6 +281,7 @@ public class FileAccessServiceImpl implements FileAccessService
         }
         return retval;
     }
+
     /**
      * Checks if a file exists and if it is writable or readable. If not -
      * checks if the user has a write privileges to the containing directory.
@@ -328,7 +296,7 @@ public class FileAccessServiceImpl implements FileAccessService
      * @throws IOException
      *             Thrown if the home directory cannot be created
      */
-    private static File accessibleFile(String homedir, String fileName)
+    private static File accessibleFile(File homedir, String fileName)
             throws IOException
     {
         File file = null;
@@ -337,29 +305,21 @@ public class FileAccessServiceImpl implements FileAccessService
         {
             logger.logEntry();
 
-            homedir = homedir.trim();
-            if (!homedir.endsWith(File.separator))
-            {
-                homedir += File.separator;
-            }
-
-            file = new File(homedir + fileName);
+            file = new File(homedir, fileName);
             if (file.canRead() || file.canWrite())
             {
                 return file;
             }
 
-            File homedirFile = new File(homedir);
-
-            if (!homedirFile.exists())
+            if (!homedir.exists())
             {
                 if (logger.isDebugEnabled())
                     logger.debug("Creating home directory : "
-                        + homedirFile.getAbsolutePath());
-                if (!homedirFile.mkdirs())
+                        + homedir.getAbsolutePath());
+                if (!homedir.mkdirs())
                 {
                     String message = "Could not create the home directory : "
-                            + homedirFile.getAbsolutePath();
+                            + homedir.getAbsolutePath();
 
                     if (logger.isDebugEnabled())
                         logger.debug(message);
@@ -367,9 +327,9 @@ public class FileAccessServiceImpl implements FileAccessService
                 }
                 if (logger.isDebugEnabled())
                     logger.debug("Home directory created : "
-                        + homedirFile.getAbsolutePath());
+                        + homedir.getAbsolutePath());
             }
-            else if (!homedirFile.canWrite())
+            else if (!homedir.canWrite())
             {
                 file = null;
             }
@@ -379,15 +339,15 @@ public class FileAccessServiceImpl implements FileAccessService
                 if (!file.getParentFile().mkdirs())
                 {
                     String message = "Could not create the parent directory : "
-                        + homedirFile.getAbsolutePath();
+                        + homedir.getAbsolutePath();
 
-                    if (logger.isDebugEnabled())
-                        logger.debug(message);
+                    logger.debug(message);
                     throw new IOException(message);
                 }
             }
 
-        } finally
+        }
+        finally
         {
             logger.logExit();
         }

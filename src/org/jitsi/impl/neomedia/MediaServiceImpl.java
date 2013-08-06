@@ -1529,7 +1529,7 @@ public class MediaServiceImpl
 
         String scHomeDirLocation
             = System.getProperty(
-                ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
+                ConfigurationService.PNAME_SC_CACHE_DIR_LOCATION);
 
         if (scHomeDirLocation != null)
         {

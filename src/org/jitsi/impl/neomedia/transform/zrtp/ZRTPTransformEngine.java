@@ -500,7 +500,9 @@ public class ZRTPTransformEngine
             try
             {
                 // Create the zid file
-                file = faService.getPrivatePersistentFile(zidFilename);
+                file =
+                    faService.getPrivatePersistentFile(zidFilename,
+                        FileCategory.PROFILE);
             }
             catch (Exception e)
             {

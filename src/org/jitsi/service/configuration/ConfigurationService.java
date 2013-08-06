@@ -23,7 +23,7 @@ public interface ConfigurationService
     /**
      * The name of the property that indicates the name of the directory where
      * Jitsi is to store user specific data such as configuration
-     * files, message and call history as well as is bundle repository.
+     * files, message and call history.
      */
     public static final String PNAME_SC_HOME_DIR_NAME
         = "net.java.sip.communicator.SC_HOME_DIR_NAME";
@@ -31,11 +31,24 @@ public interface ConfigurationService
     /**
      * The name of the property that indicates the location of the directory
      * where Jitsi is to store user specific data such as
-     * configuration files, message and call history as well as is bundle
-     * repository.
+     * configuration files, message and call history.
      */
     public static final String PNAME_SC_HOME_DIR_LOCATION
         = "net.java.sip.communicator.SC_HOME_DIR_LOCATION";
+
+    /**
+     * The name of the property that indicates the location of the directory
+     * where Jitsi is to store cached data.
+     */
+    public static final String PNAME_SC_CACHE_DIR_LOCATION
+        = "net.java.sip.communicator.SC_CACHE_DIR_LOCATION";
+
+    /**
+     * The name of the property that indicates the location of the directory
+     * where Jitsi is to store cached data.
+     */
+    public static final String PNAME_SC_LOG_DIR_LOCATION
+        = "net.java.sip.communicator.SC_LOG_DIR_LOCATION";
 
     /**
      * The name of the boolean system property  which indicates whether the
