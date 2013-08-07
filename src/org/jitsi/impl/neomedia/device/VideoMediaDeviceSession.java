@@ -1692,9 +1692,14 @@ public class VideoMediaDeviceSession
             /*
              * We have been explicitly told to use a specific output size so
              * insert a SwScale into the codec chain which is to take care of
-             * the specified output size.
+             * the specified output size. However, since the video frames which
+             * it will output will be streamed to a remote peer, preserve the
+             * aspect ratio of the input.
              */
-            scaler = new SwScale();
+            scaler
+                = new SwScale(
+                        /* fixOddYuv420Size */ false,
+                        /* preserveAspectRatio */ true);
             scaler.setOutputSize(outputSize);
             codecCount++;
         }

@@ -54,8 +54,10 @@ class QualityControlImpl
     private void setRemoteReceivePreset(QualityPreset preset)
         throws OperationFailedException
     {
-        if (preset.compareTo(getPreferredSendPreset()) > 0)
-            this.preset = getPreferredSendPreset();
+        QualityPreset preferredSendPreset = getPreferredSendPreset();
+
+        if (preset.compareTo(preferredSendPreset) > 0)
+            this.preset = preferredSendPreset;
         else
         {
             this.preset = preset;
@@ -67,9 +69,7 @@ class QualityControlImpl
                     && ((resolution = preset.getResolution()) != null))
             {
                 logger.info(
-                        "video send resolution: "
-                            + resolution.width
-                            + "x"
+                        "video send resolution: " + resolution.width + "x"
                             + resolution.height);
             }
         }

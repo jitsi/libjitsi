@@ -185,6 +185,22 @@ public class SwScale
         = new FrameProcessingControlImpl();
 
     /**
+     * The indicator which determines whether this instance is to preserve the
+     * aspect ratio of the video frames provided to this instance as input to be
+     * processed. If <tt>true</tt>, the <tt>size</tt> of the
+     * <tt>outputFormat</tt> of this instance is used to device a rectangle into
+     * which a scaled video frame should fit with the input aspect ratio
+     * preserved.
+     */
+    private final boolean preserveAspectRatio;
+
+    private Dimension preserveAspectRatioCachedIn;
+
+    private Dimension preserveAspectRatioCachedOut;
+
+    private Dimension preserveAspectRatioCachedRet;
+
+    /**
      * Supported output formats.
      */
     private VideoFormat[] supportedOutputFormats
@@ -213,12 +229,30 @@ public class SwScale
      * Initializes a new <tt>SwScale</tt> instance which can optionally attempt
      * to keep the width and height of YUV 420 output even.
      *
-     * @param fixOddYuv420Size <tt>true</tt> to keep the width and height of YUV
-     * 420 output even; otherwise, <tt>false</tt>
+     * @param fixOddYuv420Size <tt>true</tt> to have the new instance keep the
+     * width and height of YUV 420 output even; otherwise, <tt>false</tt>
      */
-    protected SwScale(boolean fixOddYuv420Size)
+    public SwScale(boolean fixOddYuv420Size)
+    {
+        this(fixOddYuv420Size, false);
+    }
+
+    /**
+     * Initializes a new <tt>SwScale</tt> instance which can optionally attempt
+     * to keep the width and height of YUV 420 output even and to preserve the
+     * aspect ratio of the video frames provided to the instance as input to be
+     * processed.
+     *
+     * @param fixOddYuv420Size <tt>true</tt> to have the new instance keep the
+     * width and height of YUV 420 output even; otherwise, <tt>false</tt>
+     * @param preserveAspectRatio <tt>true</tt> to have the new instance
+     * preserve the aspect ratio of the video frames provided to it as input to
+     * be processed; otherwise, <tt>false</tt>
+     */
+    public SwScale(boolean fixOddYuv420Size, boolean preserveAspectRatio)
     {
         this.fixOddYuv420Size = fixOddYuv420Size;
+        this.preserveAspectRatio = preserveAspectRatio;
 
         inputFormats
             = new Format[]
@@ -339,43 +373,132 @@ public class SwScale
     }
 
     /**
-     * Processes (converts color space and/or scales) a buffer.
+     * Calculates an output size which has the aspect ratio of a specific input
+     * size and fits into a specific output size.
      *
-     * @param input input buffer
-     * @param output output buffer
-     * @return <tt>BUFFER_PROCESSED_OK</tt> if buffer has been successfully
-     * processed
+     * @param in the input size which defines the aspect ratio
+     * @param out the output size which defines the rectangle into which the
+     * returned output size is to fit
+     * @return an output size which has the aspect ratio of the specified input
+     * size and fits into the specified output size
      */
-    @Override
-    public int process(Buffer input, Buffer output)
+    private Dimension preserveAspectRatio(Dimension in, Dimension out)
     {
-        if (!checkInputBuffer(input))
+        int inHeight = in.height, inWidth = in.width;
+        int outHeight = out.height, outWidth = out.width;
+
+        /*
+         * Reduce the effects of allocation and garbage collection by caching
+         * the arguments and the return value.
+         */
+        if ((preserveAspectRatioCachedIn != null)
+                && (preserveAspectRatioCachedOut != null)
+                && (preserveAspectRatioCachedIn.height == inHeight)
+                && (preserveAspectRatioCachedIn.width == inWidth)
+                && (preserveAspectRatioCachedOut.height == outHeight)
+                && (preserveAspectRatioCachedOut.width == outWidth)
+                && (preserveAspectRatioCachedRet != null))
+            return preserveAspectRatioCachedRet;
+
+        boolean scale = false;
+        double heightRatio, widthRatio;
+
+        if ((outHeight != inHeight) && (outHeight > 0))
+        {
+            scale = true;
+            heightRatio = inHeight / (double) outHeight;
+        }
+        else
+            heightRatio = 1;
+        if ((outWidth != inWidth) && (outWidth > 0))
+        {
+            scale = true;
+            widthRatio = inWidth / (double) outWidth;
+        }
+        else
+            widthRatio = 1;
+
+        Dimension ret = out;
+
+        if (scale)
+        {
+            double ratio = Math.min(heightRatio, widthRatio);
+            int retHeight, retWidth;
+
+            retHeight = (int) (outHeight * ratio);
+            retWidth = (int) (outWidth * ratio);
+            /*
+             * Preserve the aspect ratio only if it is going to make noticeable
+             * differences in height and/or width; otherwise, play it safe.
+             */
+            if ((Math.abs(retHeight - outHeight) > 1)
+                    || (Math.abs(retWidth - outWidth) > 1))
+            {
+                // Make sure to not cause sws_scale to crash.
+                if ((retHeight < MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
+                        || (retWidth < MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
+                {
+                    ret = new Dimension(retWidth, retHeight);
+                    preserveAspectRatioCachedRet = ret;
+                }
+            }
+        }
+
+        preserveAspectRatioCachedIn = new Dimension(inWidth, inHeight);
+        preserveAspectRatioCachedOut = new Dimension(outWidth, outHeight);
+        if (ret == out)
+            preserveAspectRatioCachedRet = preserveAspectRatioCachedOut;
+        return ret;
+    }
+
+    /**
+     * Processes (converts color space and/or scales) an input <tt>Buffer</tt>
+     * into an output <tt>Buffer</tt>.
+     *
+     * @param in the input <tt>Buffer</tt> to process (from)
+     * @param out the output <tt>Buffer</tt> to process into
+     * @return <tt>BUFFER_PROCESSED_OK</tt> if <tt>in</tt> has been successfully
+     * processed into <tt>out</tt>
+     */
+    public int process(Buffer in, Buffer out)
+    {
+        if (!checkInputBuffer(in))
             return BUFFER_PROCESSED_FAILED;
-        if (isEOM(input))
+        if (isEOM(in))
         {
-            propagateEOM(output);
+            propagateEOM(out);
             return BUFFER_PROCESSED_OK;
         }
-        if (input.isDiscard() || frameProcessingControl.isMinimalProcessing())
+        if (in.isDiscard() || frameProcessingControl.isMinimalProcessing())
         {
-            output.setDiscard(true);
+            out.setDiscard(true);
             return BUFFER_PROCESSED_OK;
         }
 
-        // Determine the input Format.
-        VideoFormat inputFormat = (VideoFormat) input.getFormat();
-        Format thisInputFormat = getInputFormat();
+        // Determine the input Format and size.
+        VideoFormat inFormat = (VideoFormat) in.getFormat();
+        Format thisInFormat = getInputFormat();
 
-        if ((inputFormat != thisInputFormat)
-                && !inputFormat.equals(thisInputFormat))
+        if ((inFormat != thisInFormat) && !inFormat.equals(thisInFormat))
+            setInputFormat(inFormat);
+
+        Dimension inSize = inFormat.getSize();
+
+        if (inSize == null)
+            return BUFFER_PROCESSED_FAILED;
+
+        int inWidth = inSize.width, inHeight = inSize.height;
+
+        if ((inWidth < MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
+                || (inHeight < MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
         {
-            setInputFormat(inputFormat);
+            return OUTPUT_BUFFER_NOT_FILLED; // Otherwise, sws_scale will crash.
         }
 
         // Determine the output Format and size.
-        VideoFormat outputFormat = (VideoFormat) getOutputFormat();
+        VideoFormat outFormat = (VideoFormat) getOutputFormat();
 
-        if (outputFormat == null)
+        if (outFormat == null)
         {
             /*
              * The format of the output Buffer is not documented to be used as
@@ -383,69 +506,66 @@ public class SwScale
              * case this Codec doesn't have an outputFormat set which is
              * unlikely to ever happen.
              */
-            outputFormat = (VideoFormat) output.getFormat();
-            if (outputFormat == null)
+            outFormat = (VideoFormat) out.getFormat();
+            if (outFormat == null)
                 return BUFFER_PROCESSED_FAILED;
         }
 
-        Dimension outputSize = outputFormat.getSize();
+        Dimension outSize = outFormat.getSize();
 
-        if (outputSize == null)
-        {
-            outputSize = inputFormat.getSize();
-            if (outputSize == null)
-                return BUFFER_PROCESSED_FAILED;
-        }
+        if (outSize == null)
+            outSize = inSize;
+        else if (preserveAspectRatio)
+            outSize = preserveAspectRatio(inSize, outSize);
 
-        int outputWidth = outputSize.width;
-        int outputHeight = outputSize.height;
+        int outWidth = outSize.width, outHeight = outSize.height;
 
-        if ((outputWidth < MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
-                || (outputHeight < MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
+        if ((outWidth < MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
+                || (outHeight < MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
         {
             return OUTPUT_BUFFER_NOT_FILLED; // Otherwise, sws_scale will crash.
         }
 
-        // Apply the outputSize to the outputFormat of the output Buffer.
-        outputFormat = setSize(outputFormat, outputSize);
-        if (outputFormat == null)
+        // Apply outSize to outFormat of the output Buffer.
+        outFormat = setSize(outFormat, outSize);
+        if (outFormat == null)
             return BUFFER_PROCESSED_FAILED;
 
         int dstFmt;
         int dstLength;
 
-        if (outputFormat instanceof RGBFormat)
+        if (outFormat instanceof RGBFormat)
         {
-            dstFmt = getFFmpegPixelFormat((RGBFormat) outputFormat);
-            dstLength = (outputWidth * outputHeight * 4);
+            dstFmt = getFFmpegPixelFormat((RGBFormat) outFormat);
+            dstLength = (outWidth * outHeight * 4);
         }
-        else if (outputFormat instanceof YUVFormat)
+        else if (outFormat instanceof YUVFormat)
         {
             dstFmt = FFmpeg.PIX_FMT_YUV420P;
             /* YUV420P is 12 bits per pixel. */
             dstLength
-                = outputWidth * outputHeight
-                    + 2 * ((outputWidth + 1) / 2) * ((outputHeight + 1) / 2);
+                = outWidth * outHeight
+                    + 2 * ((outWidth + 1) / 2) * ((outHeight + 1) / 2);
         }
         else
             return BUFFER_PROCESSED_FAILED;
 
-        Class<?> outputDataType = outputFormat.getDataType();
-        Object dst = output.getData();
+        Class<?> outDataType = outFormat.getDataType();
+        Object dst = out.getData();
 
-        if (Format.byteArray.equals(outputDataType))
+        if (Format.byteArray.equals(outDataType))
         {
             if ((dst == null) || (((byte[]) dst).length < dstLength))
                 dst = new byte[dstLength];
         }
-        else if (Format.intArray.equals(outputDataType))
+        else if (Format.intArray.equals(outDataType))
         {
             /* Java int is always 4 bytes. */
             dstLength = dstLength / 4 + ((dstLength % 4 == 0) ? 0 : 1);
             if ((dst == null) || (((int[]) dst).length < dstLength))
                 dst = new int[dstLength];
         }
-        else if (Format.shortArray.equals(outputDataType))
+        else if (Format.shortArray.equals(outDataType))
         {
             /* Java short is always 2 bytes. */
             dstLength = dstLength / 2 + ((dstLength % 2 == 0) ? 0 : 1);
@@ -454,74 +574,62 @@ public class SwScale
         }
         else
         {
-            logger.error("Unsupported output data type " + outputDataType);
+            logger.error("Unsupported output data type " + outDataType);
             return BUFFER_PROCESSED_FAILED;
         }
 
-        Dimension inputSize = inputFormat.getSize();
-
-        if (inputSize == null)
-            return BUFFER_PROCESSED_FAILED;
-
-        int inputWidth = inputSize.width;
-        int inputHeight = inputSize.height;
-
-        if ((inputWidth < MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
-                || (inputHeight < MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
-            return OUTPUT_BUFFER_NOT_FILLED; // sws_scale will crash
-
-        Object src = input.getData();
+        Object src = in.getData();
         int srcFmt;
         long srcPicture;
 
         if (src instanceof AVFrame)
         {
-            srcFmt = ((AVFrameFormat) inputFormat).getPixFmt();
+            srcFmt = ((AVFrameFormat) inFormat).getPixFmt();
             srcPicture = ((AVFrame) src).getPtr();
         }
         else
         {
             srcFmt
-                = (inputFormat instanceof YUVFormat)
+                = (inFormat instanceof YUVFormat)
                     ? FFmpeg.PIX_FMT_YUV420P
-                    : getFFmpegPixelFormat((RGBFormat) inputFormat);
+                    : getFFmpegPixelFormat((RGBFormat) inFormat);
             srcPicture = 0;
         }
 
         swsContext
             = FFmpeg.sws_getCachedContext(
                     swsContext,
-                    inputWidth, inputHeight, srcFmt,
-                    outputWidth, outputHeight, dstFmt,
+                    inWidth, inHeight, srcFmt,
+                    outWidth, outHeight, dstFmt,
                     FFmpeg.SWS_BICUBIC);
 
         if (srcPicture == 0)
         {
             FFmpeg.sws_scale(
                     swsContext,
-                    src, srcFmt, inputWidth, inputHeight, 0, inputHeight,
-                    dst, dstFmt, outputWidth, outputHeight);
+                    src, srcFmt, inWidth, inHeight, 0, inHeight,
+                    dst, dstFmt, outWidth, outHeight);
         }
         else
         {
             FFmpeg.sws_scale(
                     swsContext,
-                    srcPicture, 0, inputHeight,
-                    dst, dstFmt, outputWidth, outputHeight);
+                    srcPicture, 0, inHeight,
+                    dst, dstFmt, outWidth, outHeight);
         }
 
-        output.setData(dst);
-        output.setDuration(input.getDuration());
-        output.setFlags(input.getFlags());
-        output.setFormat(outputFormat);
-        output.setLength(dstLength);
-        output.setOffset(0);
-        output.setSequenceNumber(input.getSequenceNumber());
-        output.setTimeStamp(input.getTimeStamp());
+        out.setData(dst);
+        out.setDuration(in.getDuration());
+        out.setFlags(in.getFlags());
+        out.setFormat(outFormat);
+        out.setLength(dstLength);
+        out.setOffset(0);
+        out.setSequenceNumber(in.getSequenceNumber());
+        out.setTimeStamp(in.getTimeStamp());
 
         // flags
-        int inFlags = input.getFlags();
-        int outFlags = output.getFlags();
+        int inFlags = in.getFlags();
+        int outFlags = out.getFlags();
 
         if ((inFlags & Buffer.FLAG_LIVE_DATA) != 0)
             outFlags |= Buffer.FLAG_LIVE_DATA;
@@ -533,7 +641,7 @@ public class SwScale
             outFlags |= Buffer.FLAG_RTP_TIME;
         if ((inFlags & Buffer.FLAG_SYSTEM_TIME) != 0)
             outFlags |= Buffer.FLAG_SYSTEM_TIME;
-        output.setFlags(outFlags);
+        out.setFlags(outFlags);
 
         return BUFFER_PROCESSED_OK;
     }

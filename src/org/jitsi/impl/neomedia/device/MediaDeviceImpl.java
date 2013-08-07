@@ -460,10 +460,19 @@ public class MediaDeviceImpl
                         if (sendPreset != null)
                             sendSize = sendPreset.getResolution();
                         else
-                            sendSize
-                                = mediaServiceImpl
-                                    .getDeviceConfiguration()
-                                        .getVideoSize();
+                        {
+                            /*
+                             * XXX We cannot default to any video size here
+                             * because we do not know how this MediaDevice
+                             * instance will be used. If the caller wanted to
+                             * limit the video size, she would've specified an
+                             * actual sendPreset.
+                             */
+//                            sendSize
+//                                = mediaServiceImpl
+//                                    .getDeviceConfiguration()
+//                                        .getVideoSize();
+                        }
                     }
 
                     Dimension receiveSize;
@@ -473,8 +482,8 @@ public class MediaDeviceImpl
                         receiveSize = receivePreset.getResolution();
                     else
                     {
-                        // or just send the max video resolution of the PC
-                        // as we do by default
+                        // or just send the max video resolution of the PC as we
+                        // do by default
                         ScreenDevice screen
                             = mediaServiceImpl.getDefaultScreenDevice();
 
@@ -485,7 +494,6 @@ public class MediaDeviceImpl
                     h264AdvancedAttributes.put(
                             "imageattr",
                             MediaUtils.createImageAttr(sendSize, receiveSize));
-
                     f
                         = mediaServiceImpl.getFormatFactory().createMediaFormat(
                                 f.getEncoding(),

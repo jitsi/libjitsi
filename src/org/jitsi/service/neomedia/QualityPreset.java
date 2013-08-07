@@ -98,7 +98,7 @@ public class QualityPreset
     {
         if(resolution == null)
             return -1;
-        else if(o == null)
+        else if((o == null) || (o.resolution == null))
             return 1;
         else if(resolution.equals(o.resolution))
             return 0;
