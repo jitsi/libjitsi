@@ -1389,7 +1389,12 @@ public class MediaDeviceSession
                             FormatParametersAwareCodec.class,
                             processor))
             {
-                fpac.setFormatParameters(format.getFormatParameters());
+                Map<String, String> formatParameters
+                        = format == null
+                        ? null
+                        : format.getFormatParameters();
+                if (formatParameters != null)
+                    fpac.setFormatParameters(formatParameters);
             }
         }
     }

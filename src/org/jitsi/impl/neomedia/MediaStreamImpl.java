@@ -641,7 +641,10 @@ public class MediaStreamImpl
     {
         StreamRTPManager rtpManager = getRTPManager();
         MediaDeviceSession deviceSession = getDeviceSession();
-        DataSource dataSource = deviceSession.getOutputDataSource();
+        DataSource dataSource
+                = deviceSession == null
+                ? null
+                : deviceSession.getOutputDataSource();
         int streamCount;
 
         if (dataSource instanceof PushBufferDataSource)
@@ -974,15 +977,17 @@ public class MediaStreamImpl
      */
     public AbstractMediaDevice getDevice()
     {
-        return getDeviceSession().getDevice();
+        MediaDeviceSession deviceSession = getDeviceSession();
+
+        return (deviceSession == null) ? null : deviceSession.getDevice();
     }
 
     /**
-     * Gets the <tt>MediaDirection</tt> of the <tt>device</tt> of this instance
-     * if any or {@link MediaDirection#INACTIVE}.
+     * Gets the <tt>MediaDirection</tt> of the <tt>device</tt> of this instance.
+     * In case there is no device, {@link MediaDirection#SENDRECV} is assumed.
      *
      * @return the <tt>MediaDirection</tt> of the <tt>device</tt> of this
-     * instance if any or <tt>MediaDirection.INACTIVE</tt>
+     * instance if any or <tt>MediaDirection.SENDRECV</tt>
      */
     private MediaDirection getDeviceDirection()
     {
@@ -990,7 +995,7 @@ public class MediaStreamImpl
 
         return
             (deviceSession == null)
-                ? MediaDirection.INACTIVE
+                ? MediaDirection.SENDRECV
                 : deviceSession.getDevice().getDirection();
     }
 
@@ -1897,6 +1902,8 @@ public class MediaStreamImpl
          */
         boolean getRTPManagerForRTPTranslator = true;
 
+        MediaDeviceSession deviceSession = getDeviceSession();
+
         if (direction.allowsSending()
                 && ((startedDirection == null)
                         || !startedDirection.allowsSending()))
@@ -1909,7 +1916,8 @@ public class MediaStreamImpl
 
             startSendStreams();
 
-            getDeviceSession().start(MediaDirection.SENDONLY);
+            if (deviceSession != null)
+                deviceSession.start(MediaDirection.SENDONLY);
 
             if (MediaDirection.RECVONLY.equals(startedDirection))
                 startedDirection = MediaDirection.SENDRECV;
@@ -1950,7 +1958,8 @@ public class MediaStreamImpl
 
             startReceiveStreams();
 
-            getDeviceSession().start(MediaDirection.RECVONLY);
+            if (deviceSession != null)
+                deviceSession.start(MediaDirection.RECVONLY);
 
             if (MediaDirection.SENDONLY.equals(startedDirection))
                 startedDirection = MediaDirection.SENDRECV;
@@ -2542,11 +2551,13 @@ public class MediaStreamImpl
             if ((feedback != null)
                     && (getDirection() != MediaDirection.INACTIVE))
             {
-                Set<PacketLossAwareEncoder> plaes
-                    = deviceSession.getEncoderControls(
+                Set<PacketLossAwareEncoder> plaes = null;
+                MediaDeviceSession deviceSession= getDeviceSession();
+                if (deviceSession != null)
+                    plaes = deviceSession.getEncoderControls(
                             PacketLossAwareEncoder.class);
 
-                if (!plaes.isEmpty())
+                if (plaes != null && !plaes.isEmpty())
                 {
                     int expectedPacketLoss
                         = (feedback.getFractionLost() * 100) / 256;
