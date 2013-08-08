@@ -27,6 +27,11 @@ import com.sun.media.rtp.*;
 public class StreamRTPManager
 {
     /**
+     * The <tt>MediaStream</tt> that uses this <tt>StreamRTPManager</tt>
+     */
+    private final MediaStream stream;
+
+    /**
      * The <tt>RTPManager</tt> this instance is to delegate to when it is not
      * attached to an <tt>RTPTranslator</tt>.
      */
@@ -45,12 +50,15 @@ public class StreamRTPManager
      * forward the RTP and RTCP flows of the associated <tt>MediaStream</tt> to
      * other <tt>MediaStream</tt>s.
      *
+     * @param stream the <tt>MediaStream</tt> that created this
+     * <tt>StreamRTPManager</tt>.
      * @param translator the <tt>RTPTranslator</tt> to attach the new instance
      * to or <tt>null</tt> if the new instance is to not be attached to any
      * <tt>RTPTranslator</tt>
      */
-    public StreamRTPManager(RTPTranslator translator)
+    public StreamRTPManager(MediaStream stream, RTPTranslator translator)
     {
+        this.stream = stream;
         this.translator = (RTPTranslatorImpl) translator;
 
         manager = (this.translator == null) ? RTPManager.newInstance() : null;
@@ -169,6 +177,15 @@ public class StreamRTPManager
             return ((RTPSessionMgr) manager).getLocalSSRC();
         else
             return translator.getLocalSSRC(this);
+    }
+
+    /**
+     * Returns the <tt>MediaStream</tt> that uses this <tt>StreamRTPManager</tt>
+     * @return the <tt>MediaStream</tt> that uses this <tt>StreamRTPManager</tt>
+     */
+    public MediaStream getMediaStream()
+    {
+        return stream;
     }
 
     @SuppressWarnings("rawtypes")

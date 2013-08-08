@@ -130,8 +130,8 @@ public class RTPTranslatorImpl
      * @param streamRTPManager the <tt>StreamRTPManager</tt> which specifies
      * the neomedia <tt>MediaStream</tt> with which the
      * <tt>ReceiveStreamEvent</tt>s delivered to the specified <tt>listener</tt>
-     * are to be related. In other words, a <tt>ReceiveStremEvent</tt> received
-     * by <tt>RTPTranslatorImpl</tt> is first examined to determine with which
+     * are to be related. In other words, a <tt>ReceiveStreamEvent</tt> received
+     * by <tt>RTPTranslatorImpl</tt> is first examined to determine which
      * <tt>StreamRTPManager</tt> it is related to and then it is delivered to
      * the <tt>ReceiveStreamListener</tt>s which have been added to this
      * <tt>RTPTranslatorImpl</tt> by that <tt>StreamRTPManager</tt>.
@@ -748,6 +748,14 @@ public class RTPTranslatorImpl
             = streamDesc.connectorDesc.streamRTPManagerDesc;
         Format format = null;
 
+        /**
+         * Ignore packets coming from peers whose MediaStream's direction
+         * does not allow receiving.
+         */
+        if (!streamRTPManagerDesc.streamRTPManager.getMediaStream()
+                    .getDirection().allowsReceiving())
+            return read;
+
         if (data)
         {
             /*
@@ -1015,7 +1023,13 @@ public class RTPTranslatorImpl
                 StreamRTPManagerDesc streamRTPManagerDesc
                     = streamDesc.connectorDesc.streamRTPManagerDesc;
 
-                if (streamRTPManagerDesc != exclusion)
+                /*
+                 * Only write to OutputDataStream-s for which the associated
+                 * MediaStream allows sending.
+                 */
+                if (streamRTPManagerDesc != exclusion
+                        && streamRTPManagerDesc.streamRTPManager
+                               .getMediaStream().getDirection().allowsSending())
                 {
                     if (data)
                     {
@@ -1215,6 +1229,9 @@ public class RTPTranslatorImpl
     {
         public final RTPConnectorDesc connectorDesc;
 
+        /**
+         * <tt>true</tt> if this instance represents a data (RTP) stream.
+         */
         public final boolean data;
 
         public final PushSourceStream stream;

@@ -1292,7 +1292,7 @@ public class MediaStreamImpl
             if (rtpConnector == null)
                 throw new IllegalStateException("rtpConnector");
 
-            rtpManager = new StreamRTPManager(rtpTranslator);
+            rtpManager = new StreamRTPManager(this, rtpTranslator);
 
             registerCustomCodecFormats(rtpManager);
 
