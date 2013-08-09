@@ -748,16 +748,16 @@ public class RTPTranslatorImpl
             = streamDesc.connectorDesc.streamRTPManagerDesc;
         Format format = null;
 
-        /**
-         * Ignore packets coming from peers whose MediaStream's direction
-         * does not allow receiving.
-         */
-        if (!streamRTPManagerDesc.streamRTPManager.getMediaStream()
-                    .getDirection().allowsReceiving())
-            return read;
-
         if (data)
         {
+            /**
+             * Ignore RTP packets coming from peers whose MediaStream's direction
+             * does not allow receiving.
+             */
+            if (!streamRTPManagerDesc.streamRTPManager.getMediaStream()
+                    .getDirection().allowsReceiving())
+                return read;
+
             /*
              * Do the bytes in the specified buffer resemble (a header of) an
              * RTP packet?
@@ -1023,16 +1023,18 @@ public class RTPTranslatorImpl
                 StreamRTPManagerDesc streamRTPManagerDesc
                     = streamDesc.connectorDesc.streamRTPManagerDesc;
 
-                /*
-                 * Only write to OutputDataStream-s for which the associated
-                 * MediaStream allows sending.
-                 */
-                if (streamRTPManagerDesc != exclusion
-                        && streamRTPManagerDesc.streamRTPManager
-                               .getMediaStream().getDirection().allowsSending())
+                if (streamRTPManagerDesc != exclusion)
                 {
                     if (data)
                     {
+                       /*
+                        * Only write data packets to OutputDataStream-s for
+                        * which the associated MediaStream allows sending.
+                        */
+                        if (!streamRTPManagerDesc.streamRTPManager.
+                                getMediaStream().getDirection().allowsSending())
+                            return write;
+
                         if ((format != null) && (length > 0))
                         {
                             Integer payloadType
