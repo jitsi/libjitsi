@@ -421,21 +421,20 @@ public abstract class AudioSystem
      * @return the FMJ format of the specified <tt>audioInputStream</tt> or
      * <tt>null</tt> if such an FMJ format could not be determined
      */
-    public Format getFormat(InputStream audioInputStream)
+    public javax.media.format.AudioFormat getFormat(
+            InputStream audioInputStream)
     {
         if ((audioInputStream instanceof AudioInputStream))
         {
-            AudioFormat audioInputStreamFormat
-                = ((AudioInputStream) audioInputStream).getFormat();
+            AudioFormat af = ((AudioInputStream) audioInputStream).getFormat();
 
             return
                 new javax.media.format.AudioFormat(
                         javax.media.format.AudioFormat.LINEAR,
-                        audioInputStreamFormat.getSampleRate(),
-                        audioInputStreamFormat.getSampleSizeInBits(),
-                        audioInputStreamFormat.getChannels());
+                        af.getSampleRate(),
+                        af.getSampleSizeInBits(),
+                        af.getChannels());
         }
-
         return null;
     }
 

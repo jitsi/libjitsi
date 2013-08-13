@@ -37,6 +37,13 @@ public class AudioSystemClipImpl
     private static final Logger logger
         = Logger.getLogger(AudioSystemClipImpl.class);
 
+    /**
+     * The minimum duration in milliseconds to be assumed for the audio streams
+     * played by <tt>AudioSystemClipImpl</tt> in order to ensure that they are
+     * played back long enough to be heard.
+     */
+    private static final long MIN_AUDIO_STREAM_DURATION = 200;
+
     private final AudioSystem audioSystem;
 
     private Buffer buffer;
@@ -109,7 +116,9 @@ public class AudioSystemClipImpl
         }
     }
 
-    @Override
+    /**
+     * {@inheritDoc}
+     */
     protected boolean runOnceInPlayThread()
     {
         InputStream audioStream = null;
@@ -126,10 +135,16 @@ public class AudioSystemClipImpl
             return false;
 
         Codec resampler = null;
+        boolean success = true;
+        AudioFormat audioStreamFormat = null;
+        int audioStreamLength = 0;
+        long rendererProcessStartTime = 0;
 
         try
         {
-            Format rendererFormat = audioSystem.getFormat(audioStream);
+            Format rendererFormat
+                = audioStreamFormat
+                    = audioSystem.getFormat(audioStream);
 
             if (rendererFormat == null)
                 return false;
@@ -205,6 +220,8 @@ public class AudioSystemClipImpl
                         && ((bufferLength = audioStream.read(bufferData))
                                 != -1))
                 {
+                    audioStreamLength += bufferLength;
+
                     if (resampler == null)
                     {
                         rendererBuffer.setLength(bufferLength);
@@ -218,7 +235,23 @@ public class AudioSystemClipImpl
                         rendererBuffer.setOffset(0);
                         resampler.process(resamplerBuffer, rendererBuffer);
                     }
-                    while ((renderer.process(rendererBuffer)
+
+                    int rendererProcess;
+
+                    if (rendererProcessStartTime == 0)
+                        rendererProcessStartTime = System.currentTimeMillis();
+                    do
+                    {
+                        rendererProcess = renderer.process(rendererBuffer);
+                        if (rendererProcess == Renderer.BUFFER_PROCESSED_FAILED)
+                        {
+                            logger.error(
+                                    "Failed to render audio stream " + uri);
+                            success = false;
+                            break;
+                        }
+                    }
+                    while ((rendererProcess
                                 & Renderer.INPUT_BUFFER_NOT_CONSUMED)
                             == Renderer.INPUT_BUFFER_NOT_CONSUMED);
                 }
@@ -226,14 +259,14 @@ public class AudioSystemClipImpl
             catch (IOException ioex)
             {
                 logger.error("Failed to read from audio stream " + uri, ioex);
-                return false;
+                success = false;
             }
             catch (ResourceUnavailableException ruex)
             {
                 logger.error(
                         "Failed to open " + renderer.getClass().getName(),
                         ruex);
-                return false;
+                success = false;
             }
         }
         catch (ResourceUnavailableException ruex)
@@ -243,7 +276,7 @@ public class AudioSystemClipImpl
                 logger.error(
                         "Failed to open " + resampler.getClass().getName(),
                         ruex);
-                return false;
+                success = false;
             }
         }
         finally
@@ -262,7 +295,64 @@ public class AudioSystemClipImpl
 
             if (resampler != null)
                 resampler.close();
+
+            /*
+             * XXX We do not know whether the Renderer implementation of the
+             * stop method will wait for the playback to complete.
+             */
+            if (success
+                    && (audioStreamFormat != null)
+                    && (audioStreamLength > 0)
+                    && (rendererProcessStartTime > 0)
+                    && isStarted())
+            {
+                long audioStreamDuration
+                    = (audioStreamFormat.computeDuration(audioStreamLength)
+                            + 999999)
+                        / 1000000;
+
+                if (audioStreamDuration > 0)
+                {
+                    /*
+                     * XXX The estimation is not accurate because we do not
+                     * know, for example, how much the Renderer may be buffering
+                     * before it starts the playback.
+                     */
+                    audioStreamDuration += MIN_AUDIO_STREAM_DURATION;
+
+                    boolean interrupted = false;
+
+                    synchronized (sync)
+                    {
+                        while (isStarted())
+                        {
+                            long timeout
+                                = System.currentTimeMillis()
+                                    - rendererProcessStartTime;
+
+                            if ((timeout >= audioStreamDuration)
+                                    || (timeout <= 0))
+                            {
+                                break;
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    sync.wait(timeout);
+                                }
+                                catch (InterruptedException ie)
+                                {
+                                    interrupted = true;
+                                }
+                            }
+                        }
+                    }
+                    if (interrupted)
+                        Thread.currentThread().interrupt();
+                }
+            }
         }
-        return true;
+        return success;
     }
 }

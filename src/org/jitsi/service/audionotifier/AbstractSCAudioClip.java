@@ -65,8 +65,12 @@ public abstract class AbstractSCAudioClip
      * The <tt>Object</tt> used for internal synchronization purposes which
      * arise because this instance does the actual playback of audio in a
      * separate thread.
+     * <p>
+     * The synchronization root is exposed to extenders in case they would like
+     * to, for example, get notified as soon as possible when this instance gets
+     * stopped.
      */
-    private final Object sync = new Object();
+    protected final Object sync = new Object();
 
     /**
      * The <tt>String</tt> uri of the audio to be played by this instance.
