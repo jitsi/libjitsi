@@ -64,7 +64,7 @@ public class JNIEncoder
                             Constants.OPUS_RTP,
                             48000,
                             /* sampleSizeInBits */ Format.NOT_SPECIFIED,
-                            1,
+                            /* channels */ 2,
                             /* endian */ Format.NOT_SPECIFIED,
                             /* signed */ Format.NOT_SPECIFIED,
                             /* frameSizeInBits */ Format.NOT_SPECIFIED,

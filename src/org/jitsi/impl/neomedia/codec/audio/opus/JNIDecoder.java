@@ -72,7 +72,7 @@ public class JNIDecoder
     }
 
     /**
-     * Number of channels
+     * Number of channels to decode into.
      */
     private int channels = 1;
 
@@ -191,8 +191,8 @@ public class JNIDecoder
          * operate as if PLC has been specified.
          */
         boolean decodeFEC
-        	= ((lostSeqNoCount != 0)
-        			&& (lastFrameSizeInSamplesPerChannel != 0));
+            = ((lostSeqNoCount != 0)
+                    && (lastFrameSizeInSamplesPerChannel != 0));
 
         if ((inBuffer.getFlags() & Buffer.FLAG_SKIP_FEC) != 0)
         {
@@ -215,8 +215,8 @@ public class JNIDecoder
 
         if (decodeFEC)
         {
-        	inLength
-        		= (lostSeqNoCount == 1) ? inLength /* FEC */ : 0 /* PLC */;
+            inLength
+                = (lostSeqNoCount == 1) ? inLength /* FEC */ : 0 /* PLC */;
 
             byte[] out
                 = validateByteArraySize(
@@ -280,8 +280,8 @@ public class JNIDecoder
                     += frameSizeInSamplesPerChannel;
 
                 outBuffer.setFlags(
-                		outBuffer.getFlags()
-                			& ~(BUFFER_FLAG_FEC | BUFFER_FLAG_PLC));
+                    outBuffer.getFlags()
+                        & ~(BUFFER_FLAG_FEC | BUFFER_FLAG_PLC));
 
                 /*
                  * When we encounter a lost frame, we will presume that it was
@@ -373,39 +373,9 @@ public class JNIDecoder
 
         if (inFormat != null)
         {
-            double outSampleRate;
-            int outChannels;
-
             if (outputFormat == null)
             {
-                outSampleRate = Format.NOT_SPECIFIED;
-                outChannels = Format.NOT_SPECIFIED;
-            }
-            else
-            {
-                AudioFormat outAudioFormat = (AudioFormat) outputFormat;
-
-                outSampleRate = outAudioFormat.getSampleRate();
-                outChannels = outAudioFormat.getChannels();
-            }
-
-            AudioFormat inAudioFormat = (AudioFormat) inFormat;
-            double inSampleRate = inAudioFormat.getSampleRate();
-            int inChannels = inAudioFormat.getChannels();
-
-            if ((outSampleRate != inSampleRate) || (outChannels != inChannels))
-            {
-                setOutputFormat(
-                        new AudioFormat(
-                                AudioFormat.LINEAR,
-                                inSampleRate,
-                                16,
-                                inChannels,
-                                AudioFormat.LITTLE_ENDIAN,
-                                AudioFormat.SIGNED,
-                                /* frameSizeInBits */ Format.NOT_SPECIFIED,
-                                /* frameRate */ Format.NOT_SPECIFIED,
-                                Format.byteArray));
+                setOutputFormat(SUPPORTED_OUTPUT_FORMATS[0]);
             }
         }
         return inFormat;

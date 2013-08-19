@@ -183,6 +183,7 @@ public class MediaUtils
             "opus",
             MediaType.AUDIO,
             Constants.OPUS_RTP,
+            2,
             opusFormatParams,
             null,
             48000);
@@ -418,12 +419,55 @@ public class MediaUtils
      * @param clockRates the optional list of clock rates of the
      * <tt>MediaFormat</tt>s to be associated with <tt>rtpPayloadType</tt>
      */
+    private static void addMediaFormats(
+            byte rtpPayloadType,
+            String encoding,
+            MediaType mediaType,
+            String jmfEncoding,
+            Map<String, String> formatParameters,
+            Map<String, String> advancedAttributes,
+            double... clockRates)
+    {
+        addMediaFormats(
+                rtpPayloadType,
+                encoding,
+                mediaType,
+                jmfEncoding,
+                1 /* channel */,
+                formatParameters,
+                advancedAttributes,
+                clockRates);
+    }
+
+    /**
+     * Adds a new mapping of a specific RTP payload type to a list of
+     * <tt>MediaFormat</tt>s of a specific <tt>MediaType</tt>, with a specific
+     * JMF encoding and, optionally, with specific clock rates.
+     *
+     * @param rtpPayloadType the RTP payload type to be associated with a list
+     * of <tt>MediaFormat</tt>s
+     * @param encoding the well-known encoding (name) corresponding to
+     * <tt>rtpPayloadType</tt> (in contrast to the JMF-specific encoding
+     * specified by <tt>jmfEncoding</tt>)
+     * @param mediaType the <tt>MediaType</tt> of the <tt>MediaFormat</tt>s to
+     * be associated with <tt>rtpPayloadType</tt>
+     * @param jmfEncoding the JMF encoding of the <tt>MediaFormat</tt>s to be
+     * associated with <tt>rtpPayloadType</tt>
+     * @param channels number of channels
+     * @param formatParameters the set of format-specific parameters of the
+     * <tt>MediaFormat</tt>s to be associated with <tt>rtpPayloadType</tt>
+     * @param advancedAttributes the set of advanced attributes of the
+     * <tt>MediaFormat</tt>s to be associated with <tt>rtpPayload</tt>
+     * @param clockRates the optional list of clock rates of the
+     * <tt>MediaFormat</tt>s to be associated with <tt>rtpPayloadType</tt>
+     */
     @SuppressWarnings("unchecked")
     private static void addMediaFormats(
             byte rtpPayloadType,
             String encoding,
             MediaType mediaType,
             String jmfEncoding,
+            int channels,
             Map<String, String> formatParameters,
             Map<String, String> advancedAttributes,
             double... clockRates)
@@ -441,7 +485,14 @@ public class MediaUtils
                 switch (mediaType)
                 {
                 case AUDIO:
-                    format = new AudioFormat(jmfEncoding);
+                    if(channels == 1)
+                        format = new AudioFormat(jmfEncoding);
+                    else
+                        format = new AudioFormat(
+                                jmfEncoding,
+                                Format.NOT_SPECIFIED,
+                                Format.NOT_SPECIFIED,
+                                channels);
                     break;
                 case VIDEO:
                     format
