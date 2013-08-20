@@ -177,7 +177,7 @@
                       prefix="lib/native/linux-64"/>
       </zip>
       <zip destfile="${dist}/src/libjitsi-src${build.label}.zip">
-        <zipfileset dir="." prefix="${packname.src}">
+        <zipfileset dir="." prefix="libjitsi">
             <exclude name="classes/"/>
             <exclude name="dist/"/>
             <exclude name=".git/"/>
