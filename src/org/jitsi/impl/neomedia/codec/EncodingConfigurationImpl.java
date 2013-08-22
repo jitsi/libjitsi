@@ -78,9 +78,9 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
 
         // audio
         setEncodingPreference("opus", 48000, 750);
+        setEncodingPreference("SILK", 24000, 714);
+        setEncodingPreference("SILK", 16000, 713);
         setEncodingPreference("G722", 8000 /* actually, 16 kHz */, 705);
-        setEncodingPreference("SILK", 24000, 704);
-        setEncodingPreference("SILK", 16000, 703);
         setEncodingPreference("speex", 32000, 701);
         setEncodingPreference("speex", 16000, 700);
         setEncodingPreference("PCMU", 8000, 650);
