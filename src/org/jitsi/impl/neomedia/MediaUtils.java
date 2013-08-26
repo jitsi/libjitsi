@@ -347,6 +347,12 @@ public class MediaUtils
             AudioMediaFormatImpl audioMediaFormat
                 = (AudioMediaFormatImpl) mediaFormat;
             int channels = audioMediaFormat.getChannels();
+            /*
+             * The opus/rtp format has 2 channels, but we don't want it to
+             * trigger use of 2 channels elsewhere.
+             */
+            if ("opus".equals(audioMediaFormat.getEncoding()))
+                channels = 1;
             double sampleRate = audioMediaFormat.getClockRate();
             int sampleSizeInBits
                 = audioMediaFormat.getFormat().getSampleSizeInBits();
