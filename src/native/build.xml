@@ -36,6 +36,13 @@
   <condition property="is.running.freebsd" value="${os.name}">
       <equals arg1="${os.name}" arg2="freebsd" casesensitive="false" trim="true"/>
   </condition>
+  <!-- Unix specific properties -->
+  <condition property="is.running.unix" value="unix">
+    <or>
+      <isset property="is.running.linux"/>
+      <isset property="is.running.freebsd"/>
+    </or>
+  </condition>
 
   <condition property="arch" value="32">
     <or>
@@ -114,6 +121,20 @@
 
   <condition property="native_install_dir" value="${native.libs}/mac">
     <isset property="is.running.macos"/>
+  </condition>
+
+  <condition property="native_install_dir" value="${native.libs}/freebsd">
+    <and>
+      <isset property="is.running.freebsd"/>
+      <equals arg1="${arch}" arg2="32" />
+    </and>
+  </condition>
+
+  <condition property="native_install_dir" value="${native.libs}/freebsd-64">
+    <and>
+      <isset property="is.running.freebsd"/>
+      <equals arg1="${arch}" arg2="64" />
+    </and>
   </condition>
 
   <!-- The path to the dpkg-buildpackage tool -->
@@ -695,11 +716,12 @@
             <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
             <linkerarg value="-L${opus}/.libs" unless="is.running.debian"/>
 
-            <!-- Linux specific flags -->
+            <!-- Unix specific flags -->
             <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
             <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
-            <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
+            <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.unix" />
             <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+            <compilerarg value="-I${system.JAVA_HOME}/include/freebsd" if="is.running.freebsd" />
 
             <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
             <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
@@ -708,7 +730,7 @@
                 they will not be added to shared library
             -->
             <!--<linkerarg value="-Wl,-Bstatic" location="end" if="is.running.linux" />-->
-            <linkerarg value="-lopus" location="end" if="is.running.linux" />
+            <linkerarg value="-lopus" location="end" if="is.running.unix" />
             <!--<linkerarg value="-Wl,-Bdynamic" location="end" if="is.running.linux" />-->
 
             <!-- Mac OS X specific flags -->
@@ -959,7 +981,7 @@
             -ldl && strip -x libjnpulseaudio.so
     -->
     <target name="pulseaudio"
-            description="Build pulseaudio shared library" if="is.running.linux"
+            description="Build pulseaudio shared library" if="is.running.unix"
             depends="init-native">
         <cc outtype="shared" name="gcc"
             outfile="${native_install_dir}/jnpulseaudio"
@@ -968,16 +990,19 @@
                 <compilerarg value="-fPIC" />
                 <compilerarg value="-O2" />
                 <compilerarg value="-Wall" />
+                <compilerarg value="-I/usr/local/include" if="is.running.freebsd"/>
                 <compilerarg value="-I${system.JAVA_HOME}/include" />
-                <compilerarg value="-I${system.JAVA_HOME}/include/linux" />
+                <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux"/>
+                <compilerarg value="-I${system.JAVA_HOME}/include/freebsd" if="is.running.freebsd"/>
                 <compilerarg value="-shared" />
                 <compilerarg value="-ldl" />
                 <compilerarg value="-D_REENTRANT" />
 
                 <linkerarg value="-Wl,--no-undefined" />
                 <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
+                <linkerarg value="-L/usr/local/lib/" if="is.running.freebsd"/>
                 <linkerarg value="-lpulse" />
-                <linkerarg value="-ldl" />
+                <linkerarg value="-ldl" if="is.running.linux"/>
 
                 <compilerarg value="-m32" if="cross_32" />
                 <compilerarg value="-m64" if="cross_64" />
