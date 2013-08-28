@@ -2889,15 +2889,13 @@ public class MediaStreamImpl
      * <p>
      *
      * @param originalPt the payload type that we are overriding
-     * @param overloadPt the payload type that we are overriging it with
+     * @param overloadPt the payload type that we are overriding it with
      */
     public void addDynamicRTPPayloadTypeOverride(byte originalPt,
                                                  byte overloadPt)
     {
-        if(ptTransformEngine != null)
-        {
+        if (ptTransformEngine != null)
             ptTransformEngine.addPTMappingOverride(originalPt, overloadPt);
-        }
     }
 
     /**
@@ -2905,27 +2903,26 @@ public class MediaStreamImpl
      */
     public void removeReceiveStreamForSsrc(long ssrc)
     {
-        Vector receiveStreamsVector = rtpManager.getReceiveStreams();
         ReceiveStream toRemove = null;
-        for(int i=0; i<receiveStreamsVector.size(); i++)
+
+        for (Object o : rtpManager.getReceiveStreams())
         {
-            ReceiveStream receiveStream
-                    = (ReceiveStream) receiveStreamsVector.get(i);
+            ReceiveStream receiveStream = (ReceiveStream) o;
+
             if (receiveStream.getSSRC() == ssrc)
             {
                 toRemove = receiveStream;
                 break;
             }
         }
-
         if (toRemove != null)
         {
              synchronized (receiveStreams)
              {
-                  if (receiveStreams.contains(toRemove))
+                  if (receiveStreams.remove(toRemove))
                   {
-                      receiveStreams.remove(toRemove);
                       MediaDeviceSession deviceSession = getDeviceSession();
+
                       if (deviceSession != null)
                           deviceSession.removeReceiveStream(toRemove);
                   }

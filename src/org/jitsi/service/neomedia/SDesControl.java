@@ -24,18 +24,11 @@ public interface SDesControl
         "net.java.sip.communicator.service.neomedia.SDES_CIPHER_SUITES";
 
     /**
-     * Set the enabled SDES ciphers.
+     * Gets the crypto attribute of the incoming MediaStream.
      *
-     * @param ciphers The list of enabled ciphers.
+     * @return the crypto attribute of the incoming MediaStream.
      */
-    public void setEnabledCiphers(Iterable<String> ciphers);
-
-    /**
-     * Gets all supported cipher suites.
-     *
-     * @return all supported cipher suites.
-     */
-    public Iterable<String> getSupportedCryptoSuites();
+    public SrtpCryptoAttribute getInAttribute();
 
     /**
      * Returns the crypto attributes enabled on this computer.
@@ -45,40 +38,47 @@ public interface SDesControl
     public SrtpCryptoAttribute[] getInitiatorCryptoAttributes();
 
     /**
-     * Chooses a supported crypto attribute from the peer's list of supplied
-     * attributes and creates the local crypto attribute. Used when the control
-     * is running in the role as responder.
+     * Gets the crypto attribute of the outgoing MediaStream.
      *
-     * @param peerAttributes The peer's crypto attribute offering.
-     *
-     * @return The local crypto attribute for the answer of the offer or null if
-     *         no matching cipher suite could be found.
+     * @return the crypto attribute of the outgoing MediaStream.
      */
-    public SrtpCryptoAttribute responderSelectAttribute(
-            Iterable<SrtpCryptoAttribute> peerAttributes);
+    public SrtpCryptoAttribute getOutAttribute();
 
     /**
-     * Select the local crypto attribute from the initial offering (@see
-     * {@link #getInitiatorCryptoAttributes()}) based on the peer's first
+     * Gets all supported cipher suites.
+     *
+     * @return all supported cipher suites.
+     */
+    public Iterable<String> getSupportedCryptoSuites();
+
+    /**
+     * Selects the local crypto attribute from the initial offering
+     * ({@link #getInitiatorCryptoAttributes()}) based on the peer's first
      * matching cipher suite.
      *
      * @param peerAttributes The peer's crypto offers.
-     *
-     * @return A SrtpCryptoAttribute when a matching cipher suite was found.
-     * Null otherwise.
+     * @return A SrtpCryptoAttribute when a matching cipher suite was found;
+     * <tt>null</tt>, otherwise.
      */
     public SrtpCryptoAttribute initiatorSelectAttribute(
             Iterable<SrtpCryptoAttribute> peerAttributes);
 
     /**
-     * Gets the crypto attribute of the incoming MediaStream.
-     * @return the crypto attribute of the incoming MediaStream.
+     * Chooses a supported crypto attribute from the peer's list of supplied
+     * attributes and creates the local crypto attribute. Used when the control
+     * is running in the role as responder.
+     *
+     * @param peerAttributes The peer's crypto attribute offering.
+     * @return The local crypto attribute for the answer of the offer or
+     * <tt>null</tt> if no matching cipher suite could be found.
      */
-    public SrtpCryptoAttribute getInAttribute();
+    public SrtpCryptoAttribute responderSelectAttribute(
+            Iterable<SrtpCryptoAttribute> peerAttributes);
 
     /**
-     * Gets the crypto attribute of the outgoing MediaStream.
-     * @return the crypto attribute of the outgoing MediaStream.
+     * Sets the enabled SDES ciphers.
+     *
+     * @param ciphers The list of enabled ciphers.
      */
-    public SrtpCryptoAttribute getOutAttribute();
+    public void setEnabledCiphers(Iterable<String> ciphers);
 }

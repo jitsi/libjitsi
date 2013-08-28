@@ -15,39 +15,73 @@ public interface ZrtpControl
     extends SrtpControl
 {
     /**
-     * Return the zrtp hello hash String.
+     * Gets the cipher information for the current media stream.
      *
-     * @param  index
-     *         Hello hash of the Hello packet identfied by index. Index must
-     *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
+     * @return the cipher information string.
+     */
+    public String getCipherString();
+
+    /**
+     * Gets the negotiated ZRTP protocol version.
+     *
+     * @return the <tt>int</tt> representation of the negotiated ZRTP protocol
+     * version.
+     */
+    public int getCurrentProtocolVersion();
+
+    /**
+     * Returns the zrtp hello hash String.
+     *
+     * @param index Hello hash of the Hello packet identified by index. Must be
+     * <code>0 &lt;= index &lt; SUPPORTED_ZRTP_VERSIONS</code>.
      * @return String the zrtp hello hash.
      */
     public String getHelloHash(int index);
 
     /**
-     * Get the ZRTP Hello Hash data - separate strings.
+     * Gets the ZRTP Hello Hash data - separate strings.
      *
-     * @param  index
-     *         Hello hash of the Hello packet identfied by index. Index must
-     *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
+     * @param index Hello hash of the Hello packet identified by index. Must be
+     * <code>0 &lt;= index &lt; SUPPORTED_ZRTP_VERSIONS</code>.
      * @return String array containing the version string at offset 0, the Hello
-     *         hash value as hex-digits at offset 1. Hello hash is available
-     *         immediately after class instantiation. Returns <code>null</code>
-     *         if ZRTP is not available.
+     * hash value as hex-digits at offset 1. Hello hash is available immediately
+     * after class instantiation. Returns <tt>null</tt> if ZRTP is not available.
      */
     public String[] getHelloHashSep(int index);
 
     /**
-     * Get the peer's Hello Hash data.
+     * Gets the number of supported ZRTP protocol versions.
      *
-     * Use this method to get the peer's Hello Hash data. The method returns the
-     * data as a string.
+     * @return the number of supported ZRTP protocol versions.
+     */
+    public int getNumberSupportedVersions();
+
+    /**
+     * Gets the peer's Hello Hash data as a <tt>String</tt>.
      *
-     * @return a String containing the Hello hash value as hex-digits.
-     *         Peer Hello hash is available after we received a Hello packet
-     *         from our peer. If peer's hello hash is not available return null.
+     * @return a String containing the Hello hash value as hex-digits. Peer
+     * Hello hash is available after we received a Hello packet from our peer.
+     * If peer's hello hash is not available, returns <tt>null</tt>.
      */
     public String getPeerHelloHash();
+
+    /**
+     * Gets other party's ZID (ZRTP Identifier) data that was received during
+     * ZRTP processing. The ZID data can be retrieved after ZRTP receives the
+     * first Hello packet from the other party.
+     *
+     * @return the ZID data as a <tt>byte</tt> array.
+     */
+    public byte[] getPeerZid();
+
+    /**
+     * Gets other party's ZID (ZRTP Identifier) data that was received during
+     * ZRTP processing as a <tt>String</tt>. The ZID data can be retrieved after
+     * ZRTP receives the first Hello packet from the other party.
+     *
+     * @return the ZID data as a <tt>String</tt>.
+     */
+    public String getPeerZidString();
 
     /**
      * Gets the SAS for the current media stream.
@@ -57,16 +91,18 @@ public interface ZrtpControl
     public String getSecurityString();
 
     /**
-     * Gets the cipher information for the current media stream.
+     * Returns the timeout value in milliseconds that we will wait and fire
+     * timeout secure event if call is not secured.
      *
-     * @return the cipher information string.
+     * @return the timeout value in milliseconds that we will wait and fire
+     * timeout secure event if call is not secured.
      */
-    public String getCipherString();
+    public long getTimeoutValue();
 
     /**
      * Gets the status of the SAS verification.
      *
-     * @return true when the SAS has been verified.
+     * @return <tt>true</tt> when the SAS has been verified.
      */
     public boolean isSecurityVerified();
 
@@ -76,53 +112,4 @@ public interface ZrtpControl
      * @param verified the new SAS verification status
      */
     public void setSASVerification(boolean verified);
-
-    /**
-     * Returns the timeout value that will we will wait
-     * and fire timeout secure event if call is not secured.
-     * The value is in milliseconds.
-     * @return the timeout value that will we will wait
-     *  and fire timeout secure event if call is not secured.
-     */
-    public long getTimeoutValue();
-
-    /**
-     * Get other party's ZID (ZRTP Identifier) data
-     *
-     * This functions returns the other party's ZID that was receivied during
-     * ZRTP processing.
-     *
-     * The ZID data can be retrieved after ZRTP receive the first Hello packet
-     * from the other party.
-     *
-     * @return the ZID data as byte array.
-     */
-    public byte[] getPeerZid();
-
-    /**
-     * Get other party's ZID (ZRTP Identifier) data as String
-     *
-     * This functions returns the other party's ZID that was receivied during
-     * ZRTP processing.
-     *
-     * The ZID data can be retrieved after ZRTP receive the first Hello packet
-     * from the other party.
-     *
-     * @return the ZID data as String.
-     */
-    public String getPeerZidString();
-
-    /**
-     * Get number of supported ZRTP protocol versions.
-     *
-     * @return the number of supported ZRTP protocol versions.
-     */
-    public int getNumberSupportedVersions();
-
-    /**
-     * Get negotiated ZRTP protocol version.
-     *
-     * @return the integer representation of the negotiated ZRTP protocol version.
-     */
-    public int getCurrentProtocolVersion();
 }

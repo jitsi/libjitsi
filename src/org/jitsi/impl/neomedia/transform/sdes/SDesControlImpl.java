@@ -30,35 +30,16 @@ public class SDesControlImpl
     /**
      * List of enabled crypto suites.
      */
-    private List<String> enabledCryptoSuites = new ArrayList<String>(3)
-    {
-        private static final long serialVersionUID = 0L;
-
-        {
-            add(SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80);
-            add(SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_32);
-            add(SrtpCryptoSuite.F8_128_HMAC_SHA1_80);
-        }
-    };
-
+    private final List<String> enabledCryptoSuites = new ArrayList<String>(3);
 
     /**
      * List of supported crypto suites.
      */
-    private final List<String> supportedCryptoSuites = new ArrayList<String>(3)
-     {
-        private static final long serialVersionUID = 0L;
+    private final List<String> supportedCryptoSuites = new ArrayList<String>(3);
 
-        {
-            add(SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80);
-            add(SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_32);
-            add(SrtpCryptoSuite.F8_128_HMAC_SHA1_80);
-        }
-     };
-
-    private SrtpSDesFactory sdesFactory;
     private SrtpCryptoAttribute[] attributes;
     private SDesTransformEngine engine;
+    private SrtpSDesFactory sdesFactory;
     private SrtpCryptoAttribute selectedInAttribute;
     private SrtpCryptoAttribute selectedOutAttribute;
     private SrtpListener srtpListener;
@@ -68,30 +49,29 @@ public class SDesControlImpl
      */
     public SDesControlImpl()
     {
-        sdesFactory = new SrtpSDesFactory();
-        Random r = new Random()
         {
-            private static final long serialVersionUID = 0L;
+            enabledCryptoSuites.add(SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80);
+            enabledCryptoSuites.add(SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_32);
+            enabledCryptoSuites.add(SrtpCryptoSuite.F8_128_HMAC_SHA1_80);
+        }
+        {
+            supportedCryptoSuites.add(SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80);
+            supportedCryptoSuites.add(SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_32);
+            supportedCryptoSuites.add(SrtpCryptoSuite.F8_128_HMAC_SHA1_80);
+        }
 
-            @Override
-            public void nextBytes(byte[] bytes)
-            {
-                ZrtpFortuna.getInstance().getFortuna().nextBytes(bytes);
-            }
-        };
-        sdesFactory.setRandomGenerator(r);
-    }
+        sdesFactory = new SrtpSDesFactory();
+        sdesFactory.setRandomGenerator(
+                new Random()
+                {
+                    private static final long serialVersionUID = 0L;
 
-    public void setEnabledCiphers(Iterable<String> ciphers)
-    {
-        enabledCryptoSuites.clear();
-        for(String c : ciphers)
-            enabledCryptoSuites.add(c);
-    }
-
-    public Iterable<String> getSupportedCryptoSuites()
-    {
-        return Collections.unmodifiableList(supportedCryptoSuites);
+                    @Override
+                    public void nextBytes(byte[] bytes)
+                    {
+                        ZrtpFortuna.getInstance().getFortuna().nextBytes(bytes);
+                    }
+                });
     }
 
     public void cleanup()
@@ -103,14 +83,26 @@ public class SDesControlImpl
         }
     }
 
-    public void setSrtpListener(SrtpListener srtpListener)
+    public SrtpCryptoAttribute getInAttribute()
     {
-        this.srtpListener = srtpListener;
+        return selectedInAttribute;
     }
 
-    public SrtpListener getSrtpListener()
+    /**
+     * Returns the crypto attributes enabled on this computer.
+     *
+     * @return The crypto attributes enabled on this computer.
+     */
+    public SrtpCryptoAttribute[] getInitiatorCryptoAttributes()
     {
-        return srtpListener;
+        initAttributes();
+
+        return attributes;
+    }
+
+    public SrtpCryptoAttribute getOutAttribute()
+    {
+        return selectedOutAttribute;
     }
 
     public boolean getSecureCommunicationStatus()
@@ -118,41 +110,24 @@ public class SDesControlImpl
         return engine != null;
     }
 
-    /**
-     * Not used.
-     * @param masterSession not used.
-     */
-    public void setMasterSession(boolean masterSession)
-    {}
-
-    public void start(MediaType type)
+    public SrtpListener getSrtpListener()
     {
-        // in srtp the started and security event is one after another
-        // in some other security mechanisms (e.g. zrtp) there can be started
-        // and no security one or security timeout event
-        srtpListener.securityNegotiationStarted(
-            type.equals(MediaType.AUDIO) ?
-                SecurityEventManager.AUDIO_SESSION
-                : SecurityEventManager.VIDEO_SESSION,
-                this);
-
-        srtpListener.securityTurnedOn(
-            type.equals(MediaType.AUDIO) ?
-                SecurityEventManager.AUDIO_SESSION
-                : SecurityEventManager.VIDEO_SESSION,
-            selectedInAttribute.getCryptoSuite().encode(), this);
+        return srtpListener;
     }
 
-    public void setMultistream(SrtpControl master)
+    public Iterable<String> getSupportedCryptoSuites()
     {
+        return Collections.unmodifiableList(supportedCryptoSuites);
     }
 
     public TransformEngine getTransformEngine()
     {
         if(engine == null)
         {
-            engine = new SDesTransformEngine(selectedInAttribute,
-                    selectedOutAttribute);
+            engine
+                = new SDesTransformEngine(
+                        selectedInAttribute,
+                        selectedOutAttribute);
         }
         return engine;
     }
@@ -168,23 +143,50 @@ public class SDesControlImpl
             attributes = new SrtpCryptoAttribute[enabledCryptoSuites.size()];
             for (int i = 0; i < attributes.length; i++)
             {
-                attributes[i] = sdesFactory.createCryptoAttribute(
-                        i + 1,
-                        enabledCryptoSuites.get(i));
+                attributes[i]
+                    = sdesFactory.createCryptoAttribute(
+                            i + 1,
+                            enabledCryptoSuites.get(i));
             }
         }
     }
 
     /**
-     * Returns the crypto attributes enabled on this computer.
+     * Select the local crypto attribute from the initial offering (@see
+     * {@link #getInitiatorCryptoAttributes()}) based on the peer's first
+     * matching cipher suite.
      *
-     * @return The crypto attributes enabled on this computer.
+     * @param peerAttributes The peer's crypto offers.
+     * @return A SrtpCryptoAttribute when a matching cipher suite was found;
+     * <tt>null</tt>, otherwise.
      */
-    public SrtpCryptoAttribute[] getInitiatorCryptoAttributes()
+    public SrtpCryptoAttribute initiatorSelectAttribute(
+            Iterable<SrtpCryptoAttribute> peerAttributes)
     {
-        initAttributes();
+        for (SrtpCryptoAttribute peerCA : peerAttributes)
+        {
+            for (SrtpCryptoAttribute localCA : attributes)
+            {
+                if (localCA.getCryptoSuite().equals(peerCA.getCryptoSuite()))
+                {
+                    selectedInAttribute = peerCA;
+                    selectedOutAttribute = localCA;
+                    return peerCA;
+                }
+            }
+        }
+        return null;
+    }
 
-        return attributes;
+    /**
+     * Returns <tt>true</tt>, SDES always requires the secure transport of its
+     * keys.
+     *
+     * @return <tt>true</tt>
+     */
+    public boolean requiresSecureSignalingTransport()
+    {
+        return true;
     }
 
     /**
@@ -193,9 +195,8 @@ public class SDesControlImpl
      * is running in the role as responder.
      *
      * @param peerAttributes The peer's crypto attribute offering.
-     *
-     * @return The local crypto attribute for the answer of the offer or null if
-     *         no matching cipher suite could be found.
+     * @return The local crypto attribute for the answer of the offer or
+     * <tt>null</tt> if no matching cipher suite could be found.
      */
     public SrtpCryptoAttribute responderSelectAttribute(
             Iterable<SrtpCryptoAttribute> peerAttributes)
@@ -216,55 +217,49 @@ public class SDesControlImpl
         return null;
     }
 
-    /**
-     * Select the local crypto attribute from the initial offering (@see
-     * {@link #getInitiatorCryptoAttributes()}) based on the peer's first
-     * matching cipher suite.
-     *
-     * @param peerAttributes The peer's crypto offers.
-     *
-     * @return A SrtpCryptoAttribute when a matching cipher suite was found.
-     * Null otherwise.
-     */
-    public SrtpCryptoAttribute initiatorSelectAttribute(
-            Iterable<SrtpCryptoAttribute> peerAttributes)
-    {
-        for (SrtpCryptoAttribute peerCA : peerAttributes)
-        {
-            for (SrtpCryptoAttribute localCA : attributes)
-            {
-                if (localCA.getCryptoSuite().equals(peerCA.getCryptoSuite()))
-                {
-                    selectedInAttribute = peerCA;
-                    selectedOutAttribute = localCA;
-                    return peerCA;
-                }
-            }
-        }
-        return null;
-    }
-
-    public SrtpCryptoAttribute getInAttribute()
-    {
-        return selectedInAttribute;
-    }
-
-    public SrtpCryptoAttribute getOutAttribute()
-    {
-        return selectedOutAttribute;
-    }
-
     public void setConnector(AbstractRTPConnector newValue)
     {
     }
 
-    /**
-     * Returns true, SDES always requires the secure transport of its keys.
-     *
-     * @return true
-     */
-    public boolean requiresSecureSignalingTransport()
+    public void setEnabledCiphers(Iterable<String> ciphers)
     {
-        return true;
+        enabledCryptoSuites.clear();
+        for(String c : ciphers)
+            enabledCryptoSuites.add(c);
+    }
+
+    /**
+     * Not used.
+     *
+     * @param masterSession not used.
+     */
+    public void setMasterSession(boolean masterSession)
+    {
+    }
+
+    public void setMultistream(SrtpControl master)
+    {
+    }
+
+    public void setSrtpListener(SrtpListener srtpListener)
+    {
+        this.srtpListener = srtpListener;
+    }
+
+    public void start(MediaType type)
+    {
+        // in srtp the started and security event is one after another in some
+        // other security mechanisms (e.g. zrtp) there can be started and no
+        // security one or security timeout event
+        int sessionType
+            = MediaType.AUDIO.equals(type)
+                    ? SecurityEventManager.AUDIO_SESSION
+                    : SecurityEventManager.VIDEO_SESSION;
+
+        srtpListener.securityNegotiationStarted(sessionType, this);
+        srtpListener.securityTurnedOn(
+                sessionType,
+                selectedInAttribute.getCryptoSuite().encode(),
+                this);
     }
 }
