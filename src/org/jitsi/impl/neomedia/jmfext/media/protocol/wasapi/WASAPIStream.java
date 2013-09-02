@@ -1169,7 +1169,12 @@ public class WASAPIStream
     @Override
     protected Format doGetFormat()
     {
-        return (format == null) ? super.doGetFormat() : format;
+        synchronized (this)
+        {
+            if (format != null)
+                return format;
+        }
+        return super.doGetFormat();
     }
 
     /**
@@ -1340,6 +1345,30 @@ public class WASAPIStream
                     dataSource.getIAudioClientSupportedFormats(),
                     format,
                     NativelySupportedAudioFormat.class);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Overrides the super implementation to avoid a deadlock with
+     * {@link #stop()}. The <tt>stop()</tt> method is generally invoked with a
+     * certain synchronization root locked, the implementation of
+     * <tt>WASAPIStream</tt> waits for {@link #processThread} to quit but
+     * <tt>processThread</tt> indirectly invokes
+     * {@link AbstractPushBufferStream#getFormat()} which in turn results in an
+     * attempt to lock the mentioned synchronization root i.e. the thread
+     * invoking the <tt>stop()</tt> method and <tt>processThread</tt> fall into
+     * a deadlock.
+     */
+    @Override
+    public Format getFormat()
+    {
+        synchronized (this)
+        {
+            if (format != null)
+                return format;
+        }
+        return super.getFormat();
     }
 
     /**
