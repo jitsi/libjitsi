@@ -341,11 +341,12 @@
       <linkerarg value="-lmp3lame" location="end" />
       <linkerarg value="-lx264" location="end" />
 
-      <!-- Linux specific flags -->
-      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
+      <!-- Unix specific flags -->
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.unix" />
       <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/freebsd" if="is.running.freebsd" />
 
-      <linkerarg value="-Wl,-Bsymbolic" if="is.running.linux" />
+      <linkerarg value="-Wl,-Bsymbolic" if="is.running.unix" />
 
       <!-- Mac OS X specific flags -->
       <compilerarg value="-mmacosx-version-min=10.4" if="is.running.macos"/>
@@ -797,11 +798,12 @@
 
             <linkerarg value="-L${libvpx}" />
 
-            <!-- Linux specific flags -->
+            <!-- Unix specific flags -->
             <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
             <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
-            <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.linux" />
+            <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.unix" />
             <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+            <compilerarg value="-I${system.JAVA_HOME}/include/freebsd" if="is.running.freebsd" />
 
             <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
             <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
@@ -810,7 +812,7 @@
                 they will not be added to shared library
             -->
             <!--<linkerarg value="-Wl,-Bstatic" location="end" if="is.running.linux" />-->
-            <linkerarg value="-lvpx" location="end" if="is.running.linux" />
+            <linkerarg value="-lvpx" location="end" if="is.running.unix" />
             <!--<linkerarg value="-Wl,-Bdynamic" location="end" if="is.running.linux" />-->
 
             <!-- Mac OS X specific flags -->
@@ -849,14 +851,16 @@
     </target>
 
   <!-- compile jnvideo4linux2 library -->
-  <target name="video4linux2" description="Build jnvideo4linux2 shared library" if="is.running.linux"
+  <target name="video4linux2" description="Build jnvideo4linux2 shared library" if="is.running.unix"
     depends="init-native">
     <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnvideo4linux2" objdir="${obj}">
       <compilerarg value="-std=c99" />
       <compilerarg value="-Wall" />
       <compilerarg value="-O2" />
       <compilerarg value="-I${system.JAVA_HOME}/include" />
-      <compilerarg value="-I${system.JAVA_HOME}/include/linux" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/freebsd" if="is.running.freebsd" />
+      <compilerarg value="-I/usr/local/include" if="is.running.freebsd" />
       <compilerarg value="-m32" if="cross_32" />
       <compilerarg value="-m64" if="cross_64" />
 
