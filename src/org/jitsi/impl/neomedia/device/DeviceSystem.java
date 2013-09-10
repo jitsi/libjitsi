@@ -200,7 +200,9 @@ public abstract class DeviceSystem
                 {
                     OSUtils.IS_ANDROID ? ".AudioRecordSystem" : null,
                     OSUtils.IS_ANDROID ? ".OpenSLESSystem" : null,
-                    OSUtils.IS_LINUX ? ".PulseAudioSystem" : null,
+                    (OSUtils.IS_LINUX || OSUtils.IS_FREEBSD)
+                        ? ".PulseAudioSystem"
+                        : null,
                     OSUtils.IS_WINDOWS ? ".WASAPISystem" : null,
                     OSUtils.IS_ANDROID ? null : ".PortAudioSystem",
                     ".NoneAudioSystem"
@@ -211,7 +213,9 @@ public abstract class DeviceSystem
                 = new String[]
                 {
                     OSUtils.IS_ANDROID ? ".MediaRecorderSystem" : null,
-                    OSUtils.IS_LINUX ? ".Video4Linux2System" : null,
+                    (OSUtils.IS_LINUX || OSUtils.IS_FREEBSD)
+                        ? ".Video4Linux2System"
+                        : null,
                     OSUtils.IS_MAC ? ".QuickTimeSystem" : null,
                     OSUtils.IS_WINDOWS ? ".DirectShowSystem" : null,
                     ".ImgStreamingSystem"
