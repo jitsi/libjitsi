@@ -121,7 +121,7 @@ public class JNIEncoder
      * The name of the integer <tt>ConfigurationService</tt> property which
      * specifies the maximum GOP (group of pictures) size i.e. the maximum
      * interval between keyframes. FFmpeg calls it <tt>gop_size</tt>, x264
-     * refers to it <tt>keyint</tt> or <tt>i_keyint_max</tt>.
+     * refers to it as <tt>keyint</tt> or <tt>i_keyint_max</tt>.
      */
     public static final String KEYINT_PNAME
         = "org.jitsi.impl.neomedia.codec.video.h264.keyint";
@@ -222,6 +222,19 @@ public class JNIEncoder
     private KeyFrameControl keyFrameControl;
 
     private KeyFrameControl.KeyFrameRequestee keyFrameRequestee;
+
+    /**
+     * The maximum GOP (group of pictures) size i.e. the maximum interval
+     * between keyframes (with which {@link #open()} has been invoked without an
+     * intervening {@link #close()}). FFmpeg calls it <tt>gop_size</tt>, x264
+     * refers to it as <tt>keyint</tt> or <tt>i_keyint_max</tt>.
+     */
+    private int keyint;
+
+    /**
+     * The number of frames processed since the last keyframe.
+     */
+    private int lastKeyFrame;
 
     /**
      * The time in milliseconds of the last request for a key frame from the
@@ -424,7 +437,16 @@ public class JNIEncoder
                 forceKeyFrame = false;
         }
         else
-            keyFrame = false;
+        {
+            /*
+             * In order to be sure that keyint will be respected, we will
+             * implement it ourselves (regardless of the fact that we have told
+             * FFmpeg and x264 about it). Otherwise, we may end up not
+             * generating keyframes at all (apart from the two generated after
+             * open).
+             */
+            keyFrame = (lastKeyFrame == keyint);
+        }
 
         return keyFrame;
     }
@@ -651,6 +673,16 @@ public class JNIEncoder
         FFmpeg.avframe_set_linesize(avFrame, width, width / 2, width / 2);
 
         /*
+         * In order to be sure that keyint will be respected, we will implement
+         * it ourselves (regardless of the fact that we have told FFmpeg and
+         * x264 about it). Otherwise, we may end up not generating keyframes at
+         * all (apart from the two generated after open).
+         */
+        forceKeyFrame = true;
+        this.keyint = keyint;
+        lastKeyFrame = 0;
+
+        /*
          * Implement the ability to have the remote peer request key frames from
          * this local peer.
          */
@@ -714,7 +746,19 @@ public class JNIEncoder
                 (byte[]) inBuffer.getData(), inBuffer.getOffset(),
                 rawFrameLen);
 
-        FFmpeg.avframe_set_key_frame(avFrame, isKeyFrame());
+        boolean keyFrame = isKeyFrame();
+
+        FFmpeg.avframe_set_key_frame(avFrame, keyFrame);
+        /*
+         * In order to be sure that keyint will be respected, we will implement
+         * it ourselves (regardless of the fact that we have told FFmpeg and
+         * x264 about it). Otherwise, we may end up not generating keyframes at
+         * all (apart from the two generated after open).
+         */
+        if (keyFrame)
+            lastKeyFrame = 0;
+        else
+            lastKeyFrame++;
 
         // Encode avFrame into the data of outBuffer.
         byte[] out
