@@ -7,6 +7,7 @@
 #ifndef device_h
 #define device_h
 
+#include <AudioToolbox/AudioConverter.h>
 #include <CoreAudio/CoreAudio.h>
 #include <CoreFoundation/CFString.h>
 #include <stdio.h>
@@ -17,30 +18,105 @@
  *
  * @author Vincent Lucas
  */
-int initDevices(void);
+typedef struct
+{
+    AudioDeviceIOProcID ioProcId;
+    void* callbackFunction;
+    void* callbackObject;
+    void* callbackMethod;
+    AudioConverterRef converter;
+    double conversionRatio;
+} maccoreaudio_stream;
 
-void freeDevices(void);
+int maccoreaudio_initDevices(
+        void);
 
-AudioDeviceID getDevice(
+void maccoreaudio_freeDevices(
+        void);
+
+int maccoreaudio_isInputDevice(
         const char * deviceUID);
 
-char* getDeviceName(
+int maccoreaudio_isOutputDevice(
         const char * deviceUID);
 
-char* getDeviceModelIdentifier(
+char* maccoreaudio_getDeviceName(
         const char * deviceUID);
 
-OSStatus setInputDeviceVolume(
+char* maccoreaudio_getDeviceModelIdentifier(
+        const char * deviceUID);
+
+OSStatus maccoreaudio_setInputDeviceVolume(
         const char * deviceUID,
         Float32 volume);
 
-OSStatus setOutputDeviceVolume(
+OSStatus maccoreaudio_setOutputDeviceVolume(
         const char * deviceUID,
         Float32 volume);
 
-Float32 getInputDeviceVolume(
+Float32 maccoreaudio_getInputDeviceVolume(
         const char * deviceUID);
 
-Float32 getOutputDeviceVolume(
+Float32 maccoreaudio_getOutputDeviceVolume(
         const char * deviceUID);
+
+int maccoreaudio_getDeviceUIDList(
+        char *** deviceUIDList);
+
+const char* maccoreaudio_getTransportType(
+        const char * deviceUID);
+
+Float64 maccoreaudio_getNominalSampleRate(
+        const char * deviceUID);
+
+OSStatus maccoreaudio_getAvailableNominalSampleRates(
+        const char * deviceUID,
+        Float64 * minRate,
+        Float64 * maxRate);
+
+char* maccoreaudio_getDefaultInputDeviceUID(
+        void);
+
+char* maccoreaudio_getDefaultOutputDeviceUID(
+        void);
+
+int maccoreaudio_countInputChannels(
+        const char * deviceUID);
+
+int maccoreaudio_countOutputChannels(
+        const char * deviceUID);
+
+maccoreaudio_stream * maccoreaudio_startInputStream(
+        const char * deviceUID,
+        void* callbackFunction,
+        void* callbackObject,
+        void* callbackMethod,
+        float sampleRate,
+        UInt32 nbChannels,
+        UInt32 bitsPerChannel,
+        unsigned char isFloat,
+        unsigned char isBigEndian,
+        unsigned char isNonInterleaved);
+
+maccoreaudio_stream * maccoreaudio_startOutputStream(
+        const char * deviceUID,
+        void* callbackFunction,
+        void* callbackObject,
+        void* callbackMethod,
+        float sampleRate,
+        UInt32 nbChannels,
+        UInt32 bitsPerChannel,
+        unsigned char isFloat,
+        unsigned char isBigEndian,
+        unsigned char isNonInterleaved);
+
+void maccoreaudio_stopStream(
+        const char * deviceUID,
+        maccoreaudio_stream * stream);
+
+void maccoreaudio_initializeHotplug(
+        void* callbackFunction);
+
+void maccoreaudio_uninitializeHotplug();
+
 #endif

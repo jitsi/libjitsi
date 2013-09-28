@@ -932,6 +932,8 @@
       <linkerarg value="Foundation" />
       <linkerarg value="-framework" />
       <linkerarg value="Coreaudio" />
+      <linkerarg value="-framework" />
+      <linkerarg value="AudioToolbox" />
 
       <fileset dir="${src}/native/macosx/coreaudio/lib" includes="*.c"/>
       <fileset dir="${src}/native/macosx/coreaudio/jni" includes="*.c"/>

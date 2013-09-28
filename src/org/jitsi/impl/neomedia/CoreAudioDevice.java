@@ -108,4 +108,28 @@ public class CoreAudioDevice
     public static native int setOutputDeviceVolume(
             String deviceUID,
             float volume);
+
+    private static Runnable devicesChangedCallback;
+
+    /**
+     * Implements a callback which gets called by the native coreaudio
+     * counterpart to notify the Java counterpart that the list of devices has
+     * changed.
+     */
+    public static void devicesChangedCallback()
+    {
+        Runnable devicesChangedCallback
+            = CoreAudioDevice.devicesChangedCallback;
+
+        if(devicesChangedCallback != null)
+        {
+            devicesChangedCallback.run();
+        }
+    }
+
+    public static void setDevicesChangedCallback(
+            Runnable devicesChangedCallback)
+    {
+        CoreAudioDevice.devicesChangedCallback = devicesChangedCallback;
+    }
 }

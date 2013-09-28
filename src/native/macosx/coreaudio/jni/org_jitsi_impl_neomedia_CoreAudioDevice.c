@@ -8,16 +8,13 @@
 #include "org_jitsi_impl_neomedia_CoreAudioDevice.h"
 
 #include "../lib/device.h"
+#include "maccoreaudio_util.h"
 
 /**
  * JNI code for CoreAudioDevice.
  *
- * @author Vicnent Lucas
+ * @author Vincent Lucas
  */
-
-// Private functions
-
-static jbyteArray getStrBytes(JNIEnv *env, const char *str);
 
 // Implementation
 
@@ -25,14 +22,14 @@ JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_CoreAudioDevice_initDevices
   (JNIEnv *env, jclass clazz)
 {
-    return initDevices();
+    return maccoreaudio_initDevices();
 }
 
 JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_CoreAudioDevice_freeDevices
   (JNIEnv *env, jclass clazz)
 {
-    freeDevices();
+    maccoreaudio_freeDevices();
 }
 
 JNIEXPORT jbyteArray JNICALL
@@ -40,8 +37,8 @@ Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDeviceNameBytes
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
-    char * deviceName = getDeviceName(deviceUIDPtr);
-    jbyteArray deviceNameBytes = getStrBytes(env, deviceName);
+    char * deviceName = maccoreaudio_getDeviceName(deviceUIDPtr);
+    jbyteArray deviceNameBytes = maccoreaudio_getStrBytes(env, deviceName);
     // Free
     free(deviceName);
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
@@ -54,9 +51,10 @@ Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDeviceModelIdentifierBytes
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
-    char * deviceModelIdentifier = getDeviceModelIdentifier(deviceUIDPtr);
+    char * deviceModelIdentifier
+        = maccoreaudio_getDeviceModelIdentifier(deviceUIDPtr);
     jbyteArray deviceModelIdentifierBytes
-        = getStrBytes(env, deviceModelIdentifier);
+        = maccoreaudio_getStrBytes(env, deviceModelIdentifier);
     // Free
     free(deviceModelIdentifier);
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
@@ -69,7 +67,7 @@ Java_org_jitsi_impl_neomedia_CoreAudioDevice_setInputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID, jfloat volume)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
-    jint err = setInputDeviceVolume(deviceUIDPtr, volume);
+    jint err = maccoreaudio_setInputDeviceVolume(deviceUIDPtr, volume);
     // Free
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
@@ -81,7 +79,7 @@ Java_org_jitsi_impl_neomedia_CoreAudioDevice_setOutputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID, jfloat volume)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
-    jint err = setOutputDeviceVolume(deviceUIDPtr, volume);
+    jint err = maccoreaudio_setOutputDeviceVolume(deviceUIDPtr, volume);
     // Free
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
@@ -93,7 +91,7 @@ Java_org_jitsi_impl_neomedia_CoreAudioDevice_getInputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
-    jfloat volume = getInputDeviceVolume(deviceUIDPtr);
+    jfloat volume = maccoreaudio_getInputDeviceVolume(deviceUIDPtr);
     // Free
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
@@ -105,36 +103,9 @@ Java_org_jitsi_impl_neomedia_CoreAudioDevice_getOutputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
-    jfloat volume = getOutputDeviceVolume(deviceUIDPtr);
+    jfloat volume = maccoreaudio_getOutputDeviceVolume(deviceUIDPtr);
     // Free
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
     return volume;
-}
-
-/**
- * Gets a new <tt>jbyteArray</tt> instance which is initialized with the bytes
- * of a specific C string i.e. <tt>const char *</tt>.
- *
- * @param env
- * @param str the bytes/C string to initialize the new <tt>jbyteArray</tt>
- * instance with
- * @return a new <tt>jbyteArray</tt> instance which is initialized with the
- * bytes of the specified <tt>str</tt>
- */
-static jbyteArray getStrBytes(JNIEnv *env, const char *str)
-{
-    jbyteArray bytes;
-
-    if (str)
-    {
-        size_t length = strlen(str);
-
-        bytes = (*env)->NewByteArray(env, length);
-        if (bytes && length)
-            (*env)->SetByteArrayRegion(env, bytes, 0, length, (jbyte *) str);
-    }
-    else
-        bytes = NULL;
-    return bytes;
 }

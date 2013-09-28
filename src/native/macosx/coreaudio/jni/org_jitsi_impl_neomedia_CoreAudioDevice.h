@@ -9,27 +9,11 @@ extern "C" {
 #endif
 /*
  * Class:     org_jitsi_impl_neomedia_CoreAudioDevice
- * Method:    initDevices
- * Signature: ()I
- */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_CoreAudioDevice_initDevices
-  (JNIEnv *, jclass);
-
-/*
- * Class:     org_jitsi_impl_neomedia_CoreAudioDevice
  * Method:    freeDevices
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_CoreAudioDevice_freeDevices
   (JNIEnv *, jclass);
-
-/*
- * Class:     org_jitsi_impl_neomedia_CoreAudioDevice
- * Method:    getDeviceNameBytes
- * Signature: (Ljava/lang/String;)[B
- */
-JNIEXPORT jbyteArray JNICALL Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDeviceNameBytes
-  (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     org_jitsi_impl_neomedia_CoreAudioDevice
@@ -41,19 +25,11 @@ JNIEXPORT jbyteArray JNICALL Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDev
 
 /*
  * Class:     org_jitsi_impl_neomedia_CoreAudioDevice
- * Method:    setInputDeviceVolume
- * Signature: (Ljava/lang/String;F)I
+ * Method:    getDeviceNameBytes
+ * Signature: (Ljava/lang/String;)[B
  */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_CoreAudioDevice_setInputDeviceVolume
-  (JNIEnv *, jclass, jstring, jfloat);
-
-/*
- * Class:     org_jitsi_impl_neomedia_CoreAudioDevice
- * Method:    setOutputDeviceVolume
- * Signature: (Ljava/lang/String;F)I
- */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_CoreAudioDevice_setOutputDeviceVolume
-  (JNIEnv *, jclass, jstring, jfloat);
+JNIEXPORT jbyteArray JNICALL Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDeviceNameBytes
+  (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     org_jitsi_impl_neomedia_CoreAudioDevice
@@ -70,6 +46,30 @@ JNIEXPORT jfloat JNICALL Java_org_jitsi_impl_neomedia_CoreAudioDevice_getInputDe
  */
 JNIEXPORT jfloat JNICALL Java_org_jitsi_impl_neomedia_CoreAudioDevice_getOutputDeviceVolume
   (JNIEnv *, jclass, jstring);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_CoreAudioDevice
+ * Method:    initDevices
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_CoreAudioDevice_initDevices
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_CoreAudioDevice
+ * Method:    setInputDeviceVolume
+ * Signature: (Ljava/lang/String;F)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_CoreAudioDevice_setInputDeviceVolume
+  (JNIEnv *, jclass, jstring, jfloat);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_CoreAudioDevice
+ * Method:    setOutputDeviceVolume
+ * Signature: (Ljava/lang/String;F)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_CoreAudioDevice_setOutputDeviceVolume
+  (JNIEnv *, jclass, jstring, jfloat);
 
 #ifdef __cplusplus
 }
