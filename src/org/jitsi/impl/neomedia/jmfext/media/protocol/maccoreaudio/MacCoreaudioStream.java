@@ -8,6 +8,7 @@ package org.jitsi.impl.neomedia.jmfext.media.protocol.maccoreaudio;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.locks.*;
 
 import javax.media.*;
 import javax.media.control.*;
@@ -95,6 +96,12 @@ public class MacCoreaudioStream
      * is controlled.
      */
     private final GainControl gainControl;
+
+    /**
+     * Locked when currently stopping the stream. Prevents deadlock between the
+     * CaoreAudio callback and the AudioDeviceStop function.
+     */
+    private Lock stopLock = new ReentrantLock();
 
     private final MacCoreaudioSystem.UpdateAvailableDeviceListListener
         updateAvailableDeviceListListener
@@ -379,7 +386,16 @@ public class MacCoreaudioStream
         {
             if(stream != 0 && deviceUID != null)
             {
-                MacCoreAudioDevice.stopStream(deviceUID, stream);
+                stopLock.lock();
+                try
+                {
+                    MacCoreAudioDevice.stopStream(deviceUID, stream);
+                }
+                finally
+                {
+                    stopLock.unlock();
+                }
+
                 stream = 0;
                 this.fullBufferList.clear();
                 this.freeBufferList.clear();
@@ -421,12 +437,22 @@ public class MacCoreaudioStream
                 this.fullBufferList.add(this.buffer);
                 this.buffer = null;
                 nbBufferData = 0;
-                synchronized(startStopMutex)
+                if(stopLock.tryLock())
                 {
-                    startStopMutex.notify();
-                    if(this.freeBufferList.size() > 0)
+                    try
                     {
-                        this.buffer = this.freeBufferList.remove(0);
+                        synchronized(startStopMutex)
+                        {
+                            startStopMutex.notify();
+                            if(this.freeBufferList.size() > 0)
+                            {
+                                this.buffer = this.freeBufferList.remove(0);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        stopLock.unlock();
                     }
                 }
 

@@ -9,6 +9,7 @@ package org.jitsi.impl.neomedia.jmfext.media.renderer.audio;
 import java.beans.*;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.concurrent.locks.*;
 
 import javax.media.*;
 import javax.media.format.*;
@@ -63,7 +64,16 @@ public class MacCoreaudioRenderer
      */
     private int nbBufferData = 0;
 
+    /**
+     * Indicates when we start to close the stream.
+     */
     private boolean isStopping = false;
+
+    /**
+     * Locked when currently stopping the stream. Prevents deadlock between the
+     * CaoreAudio callback and the AudioDeviceStop function.
+     */
+    private Lock stopLock = new ReentrantLock();
 
     /**
      * The constant which represents an empty array with
@@ -471,6 +481,7 @@ public class MacCoreaudioRenderer
                 long startTime = System.currentTimeMillis();
                 long currentTime = startTime;
                 long startNbData = nbBufferData;
+                // Wait at most 500 ms to render the already received data.
                 while(nbBufferData > 0
                         && (currentTime - startTime) < timeout)
                 {
@@ -490,7 +501,16 @@ public class MacCoreaudioRenderer
                     }
                 }
 
-                MacCoreAudioDevice.stopStream(deviceUID, stream);
+                stopLock.lock();
+                try
+                {
+                    MacCoreAudioDevice.stopStream(deviceUID, stream);
+                }
+                finally
+                {
+                    stopLock.unlock();
+                }
+
                 stream = 0;
                 buffer = null;
                 nbBufferData = 0;
@@ -508,38 +528,54 @@ public class MacCoreaudioRenderer
      */
     public void writeOutput(byte[] buffer, int bufferLength)
     {
-        synchronized(startStopMutex)
+        // If the stop function has been called, then skip the synchronize which
+        // can lead to a deadlock because the AudioDeviceStop native function
+        // waits for this callback to end.
+        if(stopLock.tryLock())
         {
-            updateBufferLength(bufferLength);
-
-            int i = 0;
-            int length = nbBufferData;
-            if(bufferLength < length)
+            try
             {
-                length = bufferLength;
+                synchronized(startStopMutex)
+                {
+                    updateBufferLength(bufferLength);
+
+                    int i = 0;
+                    int length = nbBufferData;
+                    if(bufferLength < length)
+                    {
+                        length = bufferLength;
+                    }
+
+                    System.arraycopy(this.buffer, 0, buffer, 0, length);
+
+                    // Fills the end of the buffer with silence.
+                    if(length < bufferLength)
+                    {
+                        Arrays.fill(buffer, length, bufferLength, (byte) 0);
+                    }
+
+
+                    nbBufferData -= length;
+                    if(nbBufferData > 0)
+                    {
+                        System.arraycopy(
+                                this.buffer,
+                                length,
+                                this.buffer,
+                                0,
+                                nbBufferData);
+                    }
+                    // If the stop process is waiting, notifies that every
+                    // sample has been consummed (nbBufferData == 0).
+                    else
+                    {
+                        startStopMutex.notify();
+                    }
+                }
             }
-
-            System.arraycopy(this.buffer, 0, buffer, 0, length);
-
-            // Fiils the end of the buffer with silence.
-            if(length < bufferLength)
+            finally
             {
-                Arrays.fill(buffer, length, bufferLength, (byte) 0);
-            }
-
-
-            nbBufferData -= length;
-            if(nbBufferData > 0)
-            {
-                System.arraycopy(
-                        this.buffer, length, this.buffer, 0, nbBufferData);
-            }
-            // If the stop process is waiting, notifies it  that every sample
-            // has been consummed.
-            // (nbBufferData == 0)
-            else
-            {
-                startStopMutex.notify();
+                stopLock.unlock();
             }
         }
     }
@@ -567,6 +603,12 @@ public class MacCoreaudioRenderer
         return false;
     }
 
+    /**
+     * Increases the buffer length if necessary: if the new legnth is greater
+     * than the current buffer length.
+     *
+     * @param newLength The new length requested.
+     */
     private void updateBufferLength(int newLength)
     {
         synchronized(startStopMutex)
