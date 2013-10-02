@@ -7,7 +7,6 @@
 package org.jitsi.impl.neomedia.jmfext.media.renderer.audio;
 
 import java.beans.*;
-import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.locks.*;
 
@@ -15,12 +14,8 @@ import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
-
-import java.nio.ByteBuffer;
 
 /**
  * Implements an audio <tt>Renderer</tt> which uses MacOSX Coreaudio.
@@ -30,13 +25,6 @@ import java.nio.ByteBuffer;
 public class MacCoreaudioRenderer
     extends AbstractAudioRenderer<MacCoreaudioSystem>
 {
-    /**
-     * The <tt>Logger</tt> used by the <tt>MacCoreaudioRenderer</tt> class and
-     * its instances for logging output.
-     */
-    private static final Logger logger
-        = Logger.getLogger(MacCoreaudioRenderer.class);
-
     /**
      * The device used for this renderer.
      */
@@ -48,13 +36,13 @@ public class MacCoreaudioRenderer
     private long stream = 0;
 
     /**
-     * A mutual eclusion used to avoid conflict when starting / stoping the
+     * A mutual exclusion used to avoid conflict when starting / stopping the
      * stream for this renderer;
      */
     private Object startStopMutex = new Object();
 
     /**
-     * The buffer which stores th incoming data before sending them to
+     * The buffer which stores the incoming data before sending them to
      * CoreAudio.
      */
     private byte[] buffer = null;
@@ -232,8 +220,7 @@ public class MacCoreaudioRenderer
     {
         if (supportedInputFormats == null)
         {
-            MediaLocator locator = getLocator();
-            this.updateDeviceUID();
+            updateDeviceUID();
 
             if(deviceUID == null)
             {
@@ -539,7 +526,6 @@ public class MacCoreaudioRenderer
                 {
                     updateBufferLength(bufferLength);
 
-                    int i = 0;
                     int length = nbBufferData;
                     if(bufferLength < length)
                     {
@@ -566,7 +552,7 @@ public class MacCoreaudioRenderer
                                 nbBufferData);
                     }
                     // If the stop process is waiting, notifies that every
-                    // sample has been consummed (nbBufferData == 0).
+                    // sample has been consumed (nbBufferData == 0).
                     else
                     {
                         startStopMutex.notify();
@@ -604,7 +590,7 @@ public class MacCoreaudioRenderer
     }
 
     /**
-     * Increases the buffer length if necessary: if the new legnth is greater
+     * Increases the buffer length if necessary: if the new length is greater
      * than the current buffer length.
      *
      * @param newLength The new length requested.

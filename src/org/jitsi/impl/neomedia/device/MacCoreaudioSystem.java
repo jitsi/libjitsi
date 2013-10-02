@@ -14,7 +14,6 @@ import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.util.*;
 

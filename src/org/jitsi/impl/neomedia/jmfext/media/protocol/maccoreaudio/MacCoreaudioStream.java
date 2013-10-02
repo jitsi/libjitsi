@@ -16,7 +16,6 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
-import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.service.neomedia.*;
