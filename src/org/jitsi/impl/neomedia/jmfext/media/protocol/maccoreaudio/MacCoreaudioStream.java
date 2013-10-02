@@ -41,6 +41,7 @@ public class MacCoreaudioStream
      * enabled for this <tt>MacCoreaudioStream</tt> in accord with the
      * preferences of the user.
      */
+    @SuppressWarnings("unused") // under development
     private final boolean audioQualityImprovement;
 
     /**

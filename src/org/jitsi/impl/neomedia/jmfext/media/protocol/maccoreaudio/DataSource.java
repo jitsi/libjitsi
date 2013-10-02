@@ -13,7 +13,6 @@ import javax.media.control.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
-import org.jitsi.util.*;
 
 /**
  * Implements <tt>DataSource</tt> and <tt>CaptureDevice</tt> for MacCoreaudio.
@@ -23,12 +22,6 @@ import org.jitsi.util.*;
 public class DataSource
     extends AbstractPullBufferCaptureDevice
 {
-    /**
-     * The <tt>Logger</tt> used by the <tt>DataSource</tt> class and its
-     * instances for logging output.
-     */
-    private static final Logger logger = Logger.getLogger(DataSource.class);
-
     /**
      * The indicator which determines whether this <tt>DataSource</tt> will
      * use audio quality improvement in accord with the preferences of the user.
