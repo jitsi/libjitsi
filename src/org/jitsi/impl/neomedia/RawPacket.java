@@ -585,10 +585,10 @@ public class RawPacket
 
     /**
      * Returns <tt>true</tt> if the extension bit of this packet has been set
-     * and false otherwise.
+     * and <tt>false</tt> otherwise.
      *
      * @return  <tt>true</tt> if the extension bit of this packet has been set
-     * and false otherwise.
+     * and <tt>false</tt> otherwise.
      */
     public boolean getExtensionBit()
     {

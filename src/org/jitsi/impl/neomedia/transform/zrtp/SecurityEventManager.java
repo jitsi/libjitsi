@@ -10,7 +10,6 @@ import gnu.java.zrtp.*;
 
 import java.util.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.protocol.event.*;

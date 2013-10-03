@@ -18,12 +18,10 @@ import org.jitsi.impl.neomedia.*;
 public interface PacketTransformer
 {
     /**
-     * Transforms a specific packet.
-     *
-     * @param pkt the packet to be transformed
-     * @return the transformed packet
+     * Closes this <tt>PacketTransformer</tt> i.e. releases the resources
+     * allocated by it and prepares it for garbage collection.
      */
-    public RawPacket transform(RawPacket pkt);
+    public void close();
 
     /**
      * Reverse-transforms a specific packet (i.e. transforms a transformed
@@ -35,8 +33,10 @@ public interface PacketTransformer
     public RawPacket reverseTransform(RawPacket pkt);
 
     /**
-     * Closes this <tt>PacketTransformer</tt> i.e. releases the resources
-     * allocated by it and prepares it for garbage collection.
+     * Transforms a specific packet.
+     *
+     * @param pkt the packet to be transformed
+     * @return the transformed packet
      */
-    public void close();
+    public RawPacket transform(RawPacket pkt);
 }

@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.transform.zrtp;
 
 import gnu.java.zrtp.*;
+import gnu.java.zrtp.utils.*;
 import gnu.java.zrtp.zidfile.*;
 
 import java.io.*;
@@ -17,9 +18,8 @@ import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
 import org.jitsi.service.fileaccess.*;
 import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
-
-import gnu.java.zrtp.utils.*;
 
 /**
  * JMF extension/connector to support GNU ZRTP4J.
@@ -121,7 +121,7 @@ import gnu.java.zrtp.utils.*;
  *   zrtpEngine = transConnector.getEngine();
  *   zrtpEngine.setUserCallback(new MyCallback());
  *   if (!zrtpEngine.initialize(&quot;test_t.zid&quot;))
- *       System.out.println(&quot;iniatlize failed&quot;);
+ *       System.out.println(&quot;initialize failed&quot;);
  *
  *   // initialize the RTPManager using the ZRTP connector
  *
@@ -144,12 +144,11 @@ import gnu.java.zrtp.utils.*;
  * describes overloaded methods and a possible different behaviour.
  *
  * @author Werner Dittmann &lt;Werner.Dittmann@t-online.de>
- *
  */
 public class ZRTPTransformEngine
-    implements  TransformEngine,
-                PacketTransformer,
-                ZrtpCallback
+    implements SrtpControl.TransformEngine,
+               PacketTransformer,
+               ZrtpCallback
 {
     /**
      * Very simple Timeout provider class.
@@ -647,7 +646,7 @@ public class ZRTPTransformEngine
             zrtpEngine = null;
             started = false;
         }
-        // The SRTP transformer are usually already closed durin security-off
+        // The SRTP transformer are usually already closed during security-off
         // processing. Check here again just in case ...
         if (srtpOutTransformer != null)
         {
@@ -671,6 +670,8 @@ public class ZRTPTransformEngine
      */
     public void cleanup()
     {
+        stopZrtp();
+
         if (timeoutProvider != null)
         {
             timeoutProvider.stopRun();
@@ -803,7 +804,7 @@ public class ZRTPTransformEngine
     /**
      * The callback method required by the ZRTP implementation.
      * First allocate space to hold the complete ZRTP packet, copy
-     * the message part in its place, the initalize the header, counter,
+     * the message part in its place, the initialize the header, counter,
      * SSRC and crc.
      *
      * @param data The ZRTP packet data

@@ -35,7 +35,7 @@ public abstract class RTPConnectorInputStream
      * The length in bytes of the buffers of <tt>RTPConnectorInputStream</tt>
      * receiving packets from the network.
      */
-    private static final int PACKET_RECEIVE_BUFFER_LENGTH = 4 * 1024;
+    public static final int PACKET_RECEIVE_BUFFER_LENGTH = 4 * 1024;
 
     /**
      * Packet receive buffer

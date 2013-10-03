@@ -148,8 +148,12 @@ public class TransformEngineChain
 
                 //the packet transformer may be null if for example the engine
                 //only does RTP transformations and this is an RTCP transformer.
-                if( pTransformer != null)
+                if (pTransformer != null)
+                {
                     pkt = pTransformer.transform(pkt);
+                    if (pkt == null)
+                        break;
+                }
             }
 
             return pkt;
@@ -174,11 +178,11 @@ public class TransformEngineChain
 
                 //the packet transformer may be null if for example the engine
                 //only does RTP transformations and this is an RTCP transformer.
-                if( pTransformer != null)
+                if (pTransformer != null)
                 {
                     pkt = pTransformer.reverseTransform(pkt);
                     if (pkt == null)
-                        return null;
+                        break;
                 }
             }
 

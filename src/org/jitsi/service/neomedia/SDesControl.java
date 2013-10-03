@@ -17,6 +17,12 @@ public interface SDesControl
     extends SrtpControl
 {
     /**
+     * The human-readable non-localized name of the (S)RTP transport protocol
+     * represented by <tt>DtlsControl</tt>.
+     */
+    public static final String PROTO_NAME = SrtpControlType.SDES.toString();
+
+    /**
      * Name of the config setting that supplies the default enabled cipher
      * suites. Cipher suites are comma-separated.
      */

@@ -166,22 +166,14 @@ public interface MediaService
     public RTPTranslator createRTPTranslator();
 
     /**
-     * Initializes a new <tt>SDesControl</tt> instance which is to control all
-     * SDes options.
+     * Initializes a new <tt>SrtpControl</tt> instance with a specific
+     * <tt>SrtpControlType</tt>.
      *
-     * @return a new <tt>SDesControl</tt> instance which is to control all SDes
-     * options
+     * @param srtpControlType the <tt>SrtpControlType</tt> of the new instance
+     * @return a new <tt>SrtpControl</tt> instance with the specified
+     * <tt>srtpControlType</tt>
      */
-    public SDesControl createSDesControl();
-
-    /**
-     * Initializes a new <tt>ZrtpControl</tt> instance which is to control all
-     * ZRTP options.
-     *
-     * @return a new <tt>ZrtpControl</tt> instance which is to control all ZRTP
-     * options
-     */
-    public ZrtpControl createZrtpControl();
+    public SrtpControl createSrtpControl(SrtpControlType srtpControlType);
 
     /**
      * Get available <tt>ScreenDevice</tt>s.

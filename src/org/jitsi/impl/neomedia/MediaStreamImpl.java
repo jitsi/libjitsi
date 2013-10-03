@@ -291,7 +291,7 @@ public class MediaStreamImpl
         this.srtpControl
                 = (srtpControl == null)
                     ? NeomediaServiceUtils.getMediaServiceImpl()
-                            .createZrtpControl()
+                            .createSrtpControl(SrtpControlType.ZRTP)
                     : srtpControl;
 
         if (connector != null)

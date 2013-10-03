@@ -17,6 +17,8 @@ import javax.media.rtp.*;
 import javax.media.rtp.event.*;
 import javax.media.rtp.rtcp.*;
 
+import net.sf.fmj.media.rtp.RTPHeader;
+
 import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -763,7 +765,8 @@ public class RTPTranslatorImpl
              * RTP packet?
              */
             if ((length >= 12)
-                    && (/* v */ ((buffer[offset] & 0xc0) >>> 6) == 2))
+                    && (/* v */ ((buffer[offset] & 0xc0) >>> 6)
+                            == RTPHeader.VERSION))
             {
                 long ssrc = readInt(buffer, offset + 8);
 

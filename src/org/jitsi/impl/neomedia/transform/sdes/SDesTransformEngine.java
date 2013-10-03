@@ -8,6 +8,7 @@ package org.jitsi.impl.neomedia.transform.sdes;
 
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
+import org.jitsi.service.neomedia.*;
 
 import ch.imvs.sdes4j.srtp.*;
 
@@ -17,7 +18,7 @@ import ch.imvs.sdes4j.srtp.*;
  * @author Ingo Bauersachs
  */
 public class SDesTransformEngine
-    implements TransformEngine
+    implements SrtpControl.TransformEngine
 {
     private SRTPTransformer srtpTransformer;
     private SRTCPTransformer srtcpTransformer;
@@ -36,7 +37,10 @@ public class SDesTransformEngine
         srtcpTransformer = new SRTCPTransformer(forwardCtx, reverseCtx);
     }
 
-    public void close()
+    /**
+     * {@inheritDoc}
+     */
+    public void cleanup()
     {
         if (srtpTransformer != null)
             srtpTransformer.close();

@@ -7,7 +7,6 @@
 package org.jitsi.service.neomedia;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.event.*;
 
 /**
@@ -17,8 +16,29 @@ import org.jitsi.service.neomedia.event.*;
  */
 public interface SrtpControl
 {
+    public static final String RTP_SAVP = "RTP/SAVP";
+
+    public static final String RTP_SAVPF = "RTP/SAVPF";
+
     /**
-     * Cleans up the current SRTP control and its engine.
+     * Adds a <tt>cleanup()</tt> method to
+     * <tt>org.jitsi.impl.neomedia.transform.TransformEngine</tt> which is to go
+     * in hand with the <tt>cleanup()</tt> method of <tt>SrtpControl</tt>.
+     *
+     * @author Lyubomir Marinov
+     */
+    public interface TransformEngine
+        extends org.jitsi.impl.neomedia.transform.TransformEngine
+    {
+        /**
+         * Cleans up this <tt>TransformEngine</tt> and prepares it for garbage
+         * collection.
+         */
+        public void cleanup();
+    }
+
+    /**
+     * Cleans up this <tt>SrtpControl</tt> and its <tt>TransformEngine</tt>.
      */
     public void cleanup();
 
@@ -30,6 +50,13 @@ public interface SrtpControl
      * sessions.
      */
     public boolean getSecureCommunicationStatus();
+
+    /**
+     * Gets the <tt>SrtpControlType</tt> of this instance.
+     *
+     * @return the <tt>SrtpControlType</tt> of this instance
+     */
+    public SrtpControlType getSrtpControlType();
 
     /**
      * Returns the <tt>SrtpListener</tt> which listens for security events.

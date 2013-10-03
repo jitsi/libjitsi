@@ -4,16 +4,15 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.impl.neomedia;
+package org.jitsi.impl.neomedia.transform.zrtp;
 
 import gnu.java.zrtp.*;
 import gnu.java.zrtp.utils.*;
 
 import java.util.*;
 
-import org.jitsi.impl.neomedia.transform.zrtp.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.service.neomedia.event.*;
 
 /**
  * Controls zrtp in the MediaStream.
@@ -21,6 +20,7 @@ import org.jitsi.service.neomedia.event.*;
  * @author Damian Minkov
  */
 public class ZrtpControlImpl
+    extends AbstractSrtpControl<ZRTPTransformEngine>
     implements ZrtpControl
 {
     /**
@@ -48,20 +48,11 @@ public class ZrtpControlImpl
     private AbstractRTPConnector zrtpConnector = null;
 
     /**
-     * The zrtp engine control by this ZrtpControl.
-     */
-    private ZRTPTransformEngine zrtpEngine = null;
-
-    /**
-     * The listener interested in security events about zrtp.
-     */
-    private SrtpListener zrtpListener = null;
-
-    /**
      * Creates the control.
      */
-    ZrtpControlImpl()
+    public ZrtpControlImpl()
     {
+        super(SrtpControlType.ZRTP);
     }
 
     /**
@@ -69,13 +60,8 @@ public class ZrtpControlImpl
      */
     public void cleanup()
     {
-        if(zrtpEngine != null)
-        {
-            zrtpEngine.stopZrtp();
-            zrtpEngine.cleanup();
-        }
+        super.cleanup();
 
-        zrtpEngine = null;
         zrtpConnector = null;
     }
 
@@ -97,7 +83,10 @@ public class ZrtpControlImpl
      */
     public int getCurrentProtocolVersion()
     {
-        return ((zrtpEngine != null) ? zrtpEngine.getCurrentProtocolVersion() : 0);
+        ZRTPTransformEngine zrtpEngine = this.transformEngine;
+
+        return
+            (zrtpEngine != null) ? zrtpEngine.getCurrentProtocolVersion() : 0;
     }
 
     /**
@@ -136,7 +125,10 @@ public class ZrtpControlImpl
      */
     public int getNumberSupportedVersions()
     {
-        return ((zrtpEngine != null) ? zrtpEngine.getNumberSupportedVersions(): 0);
+        ZRTPTransformEngine zrtpEngine = this.transformEngine;
+
+        return
+            (zrtpEngine != null) ? zrtpEngine.getNumberSupportedVersions() : 0;
     }
 
     /**
@@ -150,6 +142,8 @@ public class ZrtpControlImpl
      *         from our peer. If peer's hello hash is not available return null.
      */
     public String getPeerHelloHash() {
+        ZRTPTransformEngine zrtpEngine = this.transformEngine;
+
         if (zrtpEngine != null)
             return zrtpEngine.getPeerHelloHash();
         else
@@ -189,6 +183,8 @@ public class ZrtpControlImpl
      */
     public boolean getSecureCommunicationStatus()
     {
+        ZRTPTransformEngine zrtpEngine = this.transformEngine;
+
         return
             (zrtpEngine != null) && zrtpEngine.getSecureCommunicationStatus();
     }
@@ -206,16 +202,6 @@ public class ZrtpControlImpl
     }
 
     /**
-     * Returns the <tt>ZrtpListener</tt> which listens for security events.
-     *
-     * @return the <tt>ZrtpListener</tt> which listens for  security events
-     */
-    public SrtpListener getSrtpListener()
-    {
-        return this.zrtpListener;
-    }
-
-    /**
      * Returns the timeout value that will we will wait
      * and fire timeout secure event if call is not secured.
      * The value is in milliseconds.
@@ -230,24 +216,25 @@ public class ZrtpControlImpl
     }
 
     /**
-     * Returns the zrtp engine currently used by this stream.
-     * @return the zrtp engine
+     * Initializes a new <tt>ZRTPTransformEngine</tt> instance to be associated
+     * with and used by this <tt>ZrtpControlImpl</tt> instance.
+     *
+     * @return a new <tt>ZRTPTransformEngine</tt> instance to be associated with
+     * and used by this <tt>ZrtpControlImpl</tt> instance
      */
-    public ZRTPTransformEngine getTransformEngine()
+    protected ZRTPTransformEngine createTransformEngine()
     {
-        if(zrtpEngine == null)
-        {
-            zrtpEngine = new ZRTPTransformEngine();
+        ZRTPTransformEngine transformEngine = new ZRTPTransformEngine();
 
-            // NOTE: set paranoid mode before initializing
-            // zrtpEngine.setParanoidMode(paranoidMode);
-            zrtpEngine.initialize(
-                    "GNUZRTP4J.zid",
-                    false,
-                    ZrtpConfigureUtils.getZrtpConfiguration());
-            zrtpEngine.setUserCallback(new SecurityEventManager(this));
-        }
-        return zrtpEngine;
+        // NOTE: set paranoid mode before initializing
+        // zrtpEngine.setParanoidMode(paranoidMode);
+        transformEngine.initialize(
+                "GNUZRTP4J.zid",
+                false,
+                ZrtpConfigureUtils.getZrtpConfiguration());
+        transformEngine.setUserCallback(new SecurityEventManager(this));
+
+        return transformEngine;
     }
 
     /*
@@ -285,8 +272,10 @@ public class ZrtpControlImpl
 
     /**
      * When in multistream mode, enables the master session.
-     * @param masterSession whether current control, controls the master session.
+     *
+     * @param masterSession whether current control, controls the master session
      */
+    @Override
     public void setMasterSession(boolean masterSession)
     {
         // by default its not master, change only if set to be master
@@ -297,14 +286,14 @@ public class ZrtpControlImpl
     }
 
     /**
-     * Start multi-stream ZRTP sessions.
+     * Start multi-stream ZRTP sessions. After the ZRTP Master (DH) session
+     * reached secure state the SCCallback calls this method to start the
+     * multi-stream ZRTP sessions. Enable auto-start mode (auto-sensing) to the
+     * engine.
      *
-     * After the ZRTP Master (DH) session reached secure state the SCCallback
-     * calls this method to start the multi-stream ZRTP sessions.
-     *
-     * enable auto-start mode (auto-sensing) to the engine.
      * @param master master SRTP data
      */
+    @Override
     public void setMultistream(SrtpControl master)
     {
         if(master == null || master == this)
@@ -333,16 +322,6 @@ public class ZrtpControlImpl
             engine.SASVerified();
         else
             engine.resetSASVerified();
-    }
-
-    /**
-     * Sets a <tt>ZrtpListener</tt> that will listen for zrtp security events.
-     *
-     * @param zrtpListener the <tt>ZrtpListener</tt> to set
-     */
-    public void setSrtpListener(SrtpListener zrtpListener)
-    {
-        this.zrtpListener = zrtpListener;
     }
 
     /**
@@ -387,12 +366,12 @@ public class ZrtpControlImpl
             // it may happen when using multistreams, audio has inited
             // and started video
             // initially engine has value enableZrtp = false
-            zrtpAutoStart = zrtpEngine.isEnableZrtp();
+            zrtpAutoStart = transformEngine.isEnableZrtp();
             securityEventManager.setSessionType(sessionType);
         }
         engine.setConnector(zrtpConnector);
 
-        securityEventManager.setSrtpListener(zrtpListener);
+        securityEventManager.setSrtpListener(getSrtpListener());
 
         // tells the engine whether to autostart(enable)
         // zrtp communication, if false it just passes packets without

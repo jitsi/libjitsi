@@ -11,7 +11,6 @@ import gnu.java.zrtp.utils.*;
 import java.util.*;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.zrtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
@@ -25,6 +24,7 @@ import ch.imvs.sdes4j.srtp.*;
  * @author Ingo Bauersachs
  */
 public class SDesControlImpl
+    extends AbstractSrtpControl<SDesTransformEngine>
     implements SDesControl
 {
     /**
@@ -38,17 +38,18 @@ public class SDesControlImpl
     private final List<String> supportedCryptoSuites = new ArrayList<String>(3);
 
     private SrtpCryptoAttribute[] attributes;
-    private SDesTransformEngine engine;
+
     private SrtpSDesFactory sdesFactory;
     private SrtpCryptoAttribute selectedInAttribute;
     private SrtpCryptoAttribute selectedOutAttribute;
-    private SrtpListener srtpListener;
 
     /**
      * SDESControl
      */
     public SDesControlImpl()
     {
+        super(SrtpControlType.SDES);
+
         {
             enabledCryptoSuites.add(SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80);
             enabledCryptoSuites.add(SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_32);
@@ -72,15 +73,6 @@ public class SDesControlImpl
                         ZrtpFortuna.getInstance().getFortuna().nextBytes(bytes);
                     }
                 });
-    }
-
-    public void cleanup()
-    {
-        if (engine != null)
-        {
-            engine.close();
-            engine = null;
-        }
     }
 
     public SrtpCryptoAttribute getInAttribute()
@@ -107,12 +99,7 @@ public class SDesControlImpl
 
     public boolean getSecureCommunicationStatus()
     {
-        return engine != null;
-    }
-
-    public SrtpListener getSrtpListener()
-    {
-        return srtpListener;
+        return transformEngine != null;
     }
 
     public Iterable<String> getSupportedCryptoSuites()
@@ -120,16 +107,18 @@ public class SDesControlImpl
         return Collections.unmodifiableList(supportedCryptoSuites);
     }
 
-    public TransformEngine getTransformEngine()
+    /**
+     * Initializes a new <tt>SDesTransformEngine</tt> instance to be associated
+     * with and used by this <tt>SDesControlImpl</tt> instance.
+     *
+     * @return a new <tt>SDesTransformEngine</tt> instance to be associated with
+     * and used by this <tt>SDesControlImpl</tt> instance
+     * @see AbstractSrtpControl#createTransformEngine()
+     */
+    protected SDesTransformEngine createTransformEngine()
     {
-        if(engine == null)
-        {
-            engine
-                = new SDesTransformEngine(
-                        selectedInAttribute,
-                        selectedOutAttribute);
-        }
-        return engine;
+        return
+            new SDesTransformEngine(selectedInAttribute, selectedOutAttribute);
     }
 
     /**
@@ -217,7 +206,13 @@ public class SDesControlImpl
         return null;
     }
 
-    public void setConnector(AbstractRTPConnector newValue)
+    /**
+     * {@inheritDoc}
+     *
+     * The implementation of <tt>SDesControlImpl</tt> does nothing because
+     * <tt>SDesControlImpl</tt> does not utilize the <tt>RTPConnector</tt>.
+     */
+    public void setConnector(AbstractRTPConnector connector)
     {
     }
 
@@ -228,26 +223,9 @@ public class SDesControlImpl
             enabledCryptoSuites.add(c);
     }
 
-    /**
-     * Not used.
-     *
-     * @param masterSession not used.
-     */
-    public void setMasterSession(boolean masterSession)
-    {
-    }
-
-    public void setMultistream(SrtpControl master)
-    {
-    }
-
-    public void setSrtpListener(SrtpListener srtpListener)
-    {
-        this.srtpListener = srtpListener;
-    }
-
     public void start(MediaType type)
     {
+        SrtpListener srtpListener = getSrtpListener();
         // in srtp the started and security event is one after another in some
         // other security mechanisms (e.g. zrtp) there can be started and no
         // security one or security timeout event

@@ -67,12 +67,10 @@ public class TransformUDPOutputStream
             pkt = transformer.transform(pkt);
 
             /*
-             * This is for the case when the ZRTP engine stops the media stream
-             * allowing only ZRTP packets.
+             * XXX Allow transformer to abort the writing of buffer by not
+             * throwing a NullPointerException if pkt becomes null after
+             * transform.
              */
-            // TODO Comment in order to use the GoClear feature.
-            if ((pkt == null) && (targets.size() > 0))
-                throw new NullPointerException("pkt");
         }
         return pkt;
     }

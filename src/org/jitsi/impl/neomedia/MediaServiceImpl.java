@@ -23,7 +23,9 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
+import org.jitsi.impl.neomedia.transform.dtls.*;
 import org.jitsi.impl.neomedia.transform.sdes.*;
+import org.jitsi.impl.neomedia.transform.zrtp.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -704,27 +706,21 @@ public class MediaServiceImpl
     }
 
     /**
-     * Initializes a new <tt>ZrtpControl</tt> instance which is to control all
-     * ZRTP options.
-     *
-     * @return a new <tt>ZrtpControl</tt> instance which is to control all ZRTP
-     * options
+     * {@inheritDoc}
      */
-    public ZrtpControl createZrtpControl()
+    public SrtpControl createSrtpControl(SrtpControlType srtpControlType)
     {
-        return new ZrtpControlImpl();
-    }
-
-    /**
-     * Initializes a new <tt>SDesControl</tt> instance which is to control all
-     * SDes options.
-     *
-     * @return a new <tt>SDesControl</tt> instance which is to control all SDes
-     * options
-     */
-    public SDesControl createSDesControl()
-    {
-        return new SDesControlImpl();
+        switch (srtpControlType)
+        {
+        case DTLS_SRTP:
+            return new DtlsControlImpl();
+        case SDES:
+            return new SDesControlImpl();
+        case ZRTP:
+            return new ZrtpControlImpl();
+        default:
+            return null;
+        }
     }
 
     /**

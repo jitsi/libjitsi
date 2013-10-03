@@ -41,6 +41,36 @@ public class StatisticsEngine
     public static final String RTP_STAT_PREFIX = "rtpstat:";
 
     /**
+     * Determines whether a specific <tt>RawPacket</tt> appears to represent an
+     * RTCP packet.
+     *
+     * @param pkt the <tt>RawPacket</tt> to be examined
+     * @return <tt>true</tt> if the specified <tt>pkt</tt> appears to represent
+     * an RTCP packet
+     */
+    private static boolean isRTCP(RawPacket pkt)
+    {
+        int len = pkt.getLength();
+        boolean b = false;
+
+        if (len >= 4)
+        {
+            byte[] buf = pkt.getBuffer();
+            int off = pkt.getOffset();
+            int v = (buf[off] & 0xc0) >>> 6;
+
+            if (v == RTCPHeader.VERSION)
+            {
+                int length = (buf[off + 2] << 8) + (buf[off + 3] << 0);
+
+                if (length <= len)
+                    b = true;
+            }
+        }
+        return b;
+    }
+
+    /**
      * Number of lost packets reported.
      */
     private long lost = 0;
@@ -202,6 +232,10 @@ public class StatisticsEngine
     {
         try
         {
+            // SRTP may send non-RTCP packets.
+            if (!isRTCP(pkt))
+                return pkt;
+
             numberOfSenderReports++;
 
             byte[] data = pkt.getBuffer();
