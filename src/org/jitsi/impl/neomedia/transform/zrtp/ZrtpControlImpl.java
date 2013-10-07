@@ -347,18 +347,13 @@ public class ZrtpControlImpl
         //   to immediately catch ZRTP communication from other client
         // - after the master session has completed its key negotiation
         //   it will start other media sessions (see SCCallback)
-        int sessionType
-            = MediaType.AUDIO.equals(mediaType)
-                ? SecurityEventManager.AUDIO_SESSION
-                : SecurityEventManager.VIDEO_SESSION;
-
         if (masterSession)
         {
             zrtpAutoStart = true;
             securityEventManager.setDHSession(true);
 
             // we know that audio is considered as master for zrtp
-            securityEventManager.setSessionType(sessionType);
+            securityEventManager.setSessionType(mediaType);
         }
         else
         {
@@ -367,7 +362,7 @@ public class ZrtpControlImpl
             // and started video
             // initially engine has value enableZrtp = false
             zrtpAutoStart = transformEngine.isEnableZrtp();
-            securityEventManager.setSessionType(sessionType);
+            securityEventManager.setSessionType(mediaType);
         }
         engine.setConnector(zrtpConnector);
 

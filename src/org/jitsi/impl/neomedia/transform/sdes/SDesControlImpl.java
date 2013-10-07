@@ -11,7 +11,6 @@ import gnu.java.zrtp.utils.*;
 import java.util.*;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.transform.zrtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
 
@@ -223,20 +222,16 @@ public class SDesControlImpl
             enabledCryptoSuites.add(c);
     }
 
-    public void start(MediaType type)
+    public void start(MediaType mediaType)
     {
         SrtpListener srtpListener = getSrtpListener();
         // in srtp the started and security event is one after another in some
         // other security mechanisms (e.g. zrtp) there can be started and no
         // security one or security timeout event
-        int sessionType
-            = MediaType.AUDIO.equals(type)
-                    ? SecurityEventManager.AUDIO_SESSION
-                    : SecurityEventManager.VIDEO_SESSION;
 
-        srtpListener.securityNegotiationStarted(sessionType, this);
+        srtpListener.securityNegotiationStarted(mediaType, this);
         srtpListener.securityTurnedOn(
-                sessionType,
+                mediaType,
                 selectedInAttribute.getCryptoSuite().encode(),
                 this);
     }

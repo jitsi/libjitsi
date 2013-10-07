@@ -11,6 +11,7 @@ import gnu.java.zrtp.*;
 import java.util.*;
 
 import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.protocol.event.*;
 import org.jitsi.service.resources.*;
@@ -52,18 +53,6 @@ public class SecurityEventManager extends ZrtpUserCallback
         getI18NString("impl.media.security.WARNING_NO_EXPECTED_RS_MATCH", null);
 
     /**
-     * Indicates an audio session type.
-     */
-    public static final int AUDIO_SESSION =
-        CallPeerSecurityStatusEvent.AUDIO_SESSION;
-
-    /**
-     * Indicates a video session type.
-     */
-    public static final int VIDEO_SESSION =
-        CallPeerSecurityStatusEvent.VIDEO_SESSION;
-
-    /**
      * The zrtp control that this manager is associated with.
      */
     private final ZrtpControlImpl zrtpControl;
@@ -79,9 +68,9 @@ public class SecurityEventManager extends ZrtpUserCallback
     private boolean isDHSession = false;
 
     /**
-     * Type of session
+     * The type of this session.
      */
-    private int sessionType;
+    private MediaType sessionType;
 
     /**
      * SAS string.
@@ -112,12 +101,11 @@ public class SecurityEventManager extends ZrtpUserCallback
     /**
      * Set the type of this session.
      *
-     * @param type the session type. The session type could be either
-     * AUDIO_SESSION or VIDEO_SESSION.
+     * @param type the <tt>MediaType</tt> of this session
      */
-    public void setSessionType(int type)
+    public void setSessionType(MediaType sessionType)
     {
-        sessionType = type;
+        this.sessionType = sessionType;
     }
 
     /**
@@ -143,8 +131,11 @@ public class SecurityEventManager extends ZrtpUserCallback
     public void secureOn(String cipher)
     {
         if (logger.isDebugEnabled())
-            logger.debug(sessionTypeToString(sessionType)
-            + ": cipher enabled: " + cipher);
+        {
+            logger.debug(
+                    sessionTypeToString(sessionType) + ": cipher enabled: "
+                        + cipher);
+        }
 
         this.cipher = cipher;
     }
@@ -316,9 +307,13 @@ public class SecurityEventManager extends ZrtpUserCallback
                 .securityMessageReceived(message, i18nMessage, severity);
 
         if (logger.isDebugEnabled())
-            logger.debug(sessionTypeToString(sessionType) + ": "
-            + "ZRTP message: severity: " + sev + ", sub code: " + msgCode
-            + ", DH session: " + isDHSession + ", multi: " + multiStreams);
+        {
+            logger.debug(
+                    sessionTypeToString(sessionType)
+                        + ": ZRTP message: severity: " + sev + ", sub code: "
+                        + msgCode + ", DH session: " + isDHSession + ", multi: "
+                        + multiStreams);
+        }
     }
 
     /**
@@ -335,8 +330,12 @@ public class SecurityEventManager extends ZrtpUserCallback
         Object msgCode = ii.next();
 
         if (logger.isDebugEnabled())
-            logger.debug(sessionTypeToString(sessionType)
-                + ": ZRTP key negotiation failed, sub code: " + msgCode);
+        {
+            logger.debug(
+                    sessionTypeToString(sessionType)
+                        + ": ZRTP key negotiation failed, sub code: "
+                        + msgCode);
+        }
     }
 
     /**
@@ -358,9 +357,12 @@ public class SecurityEventManager extends ZrtpUserCallback
     public void zrtpNotSuppOther()
     {
         if (logger.isDebugEnabled())
-            logger.debug(sessionTypeToString(sessionType)
-            + ": Other party does not support ZRTP key negotiation protocol,"
-            + " no secure calls possible.");
+        {
+            logger.debug(
+                    sessionTypeToString(sessionType)
+                        + ": Other party does not support ZRTP key negotiation"
+                        + " protocol, no secure calls possible.");
+        }
 
         securityListener.securityTimeout(sessionType);
     }
@@ -372,28 +374,30 @@ public class SecurityEventManager extends ZrtpUserCallback
     public void confirmGoClear()
     {
         if (logger.isDebugEnabled())
-            logger.debug(sessionTypeToString(sessionType)
-            + ": GoClear confirmation requested.");
+        {
+            logger.debug(
+                    sessionTypeToString(sessionType)
+                        + ": GoClear confirmation requested.");
+        }
     }
 
     /**
-     * Converts the <tt>sessionType</tt> into into a <tt>String</tt>.
+     * Converts the <tt>sessionType</tt> into a <tt>String</tt>.
      *
-     * @param sessionType one of the
-     * <tt>CallPeerSecurityStatusEvent.XXX_SESSION</tt> fields
-     *
+     * @param sessionType the <tt>MediaType</tt> to be converted into a
+     * <tt>String</tt> for the purposes of this <tt>SecurityEventManager</tt>
      * @return a <tt>String</tt> representation of <tt>sessionType</tt>.
      */
-    private String sessionTypeToString(int sessionType)
+    private String sessionTypeToString(MediaType sessionType)
     {
         switch (sessionType)
         {
-            case AUDIO_SESSION:
-                return "AUDIO_SESSION";
-            case VIDEO_SESSION:
-                return "VIDEO_SESSION";
-            default:
-                throw new IllegalArgumentException("sessionType");
+        case AUDIO:
+            return "AUDIO_SESSION";
+        case VIDEO:
+            return "VIDEO_SESSION";
+        default:
+            throw new IllegalArgumentException("sessionType");
         }
     }
 

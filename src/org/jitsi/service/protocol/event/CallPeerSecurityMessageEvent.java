@@ -106,7 +106,8 @@ public class CallPeerSecurityMessageEvent
      *
      * @return the eventSeverity
      */
-    public int getEventSeverity() {
+    public int getEventSeverity()
+    {
         return eventSeverity;
     }
 }

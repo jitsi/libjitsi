@@ -9,9 +9,10 @@ package org.jitsi.service.neomedia.event;
 import org.jitsi.service.neomedia.*;
 
 /**
- * The <tt>ZrtpListener</tt> is meant to be used by the media stream creator, as
+ * The <tt>SrtpListener</tt> is meant to be used by the media stream creator, as
  * the name indicates in order to be notified when a security event has occurred
- * that concerns ZRTP.
+ * that concerns a secure (media) transport i.e. <tt>SrtpControl</tt> such as
+ * ZRTP, SDES and DTLS-SRTP.
  *
  * @author Yana Stamcheva
  */
@@ -24,46 +25,51 @@ public interface SrtpListener
      * slave streams to establish their sessions. If this is a securityTurnedOn
      * event on non master stream the multiStreamData is null.
      *
-     * @param sessionType the type of the call session - audio or video.
+     * @param mediaType the <tt>MediaType</tt> of the call session
      * @param cipher the security cipher that encrypts the call
      * @param sender the control that initiated the event.
      */
-    public void securityTurnedOn( int sessionType,
-                            String cipher,
-                            SrtpControl sender);
+    public void securityTurnedOn(
+            MediaType mediaType,
+            String cipher,
+            SrtpControl sender);
 
     /**
      * Indicates that the security has been turned off.
      *
-     * @param sessionType the type of the call session - audio or video.
+     * @param mediaType the <tt>MediaType</tt> of the call session
      */
-    public void securityTurnedOff(int sessionType);
+    public void securityTurnedOff(MediaType mediaType);
 
     /**
      * Indicates that a security message has occurred associated with a
-     * failure/warning or information coming from the encryption protocol.
+     * failure/warning or information coming from the encryption protocol/secure
+     * transport.
      *
      * @param message the message.
      * @param i18nMessage the internationalized message
      * @param severity severity level
      */
-    public void securityMessageReceived(String message,
-                                String i18nMessage,
-                                int severity);
+    public void securityMessageReceived(
+            String message,
+            String i18nMessage,
+            int severity);
 
     /**
-     * Indicates that the other party has timed out replying to our
-     * offer to secure the connection.
+     * Indicates that the other party has timed out replying to our offer to
+     * secure the connection.
      *
-     * @param sessionType the type of the call session - audio or video.
+     * @param mediaType the <tt>MediaType</tt> of the call session
      */
-    public void securityTimeout(int sessionType);
+    public void securityTimeout(MediaType mediaType);
 
     /**
-     * Indicates that we started the process of securing the the connection.
+     * Indicates that we started the process of securing the connection.
      *
-     * @param sessionType the type of the call session - audio or video.
+     * @param mediaType the <tt>MediaType</tt> of the call session
      * @param sender the control that initiated the event.
      */
-    public void securityNegotiationStarted(int sessionType, SrtpControl sender);
+    public void securityNegotiationStarted(
+            MediaType mediaType,
+            SrtpControl sender);
 }
