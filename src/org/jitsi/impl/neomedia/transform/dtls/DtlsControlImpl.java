@@ -19,6 +19,7 @@ import org.bouncycastle.cert.*;
 import org.bouncycastle.crypto.*;
 import org.bouncycastle.crypto.generators.*;
 import org.bouncycastle.crypto.params.*;
+import org.bouncycastle.crypto.tls.*;
 import org.bouncycastle.crypto.util.*;
 import org.bouncycastle.operator.*;
 import org.bouncycastle.operator.bc.*;
@@ -56,6 +57,16 @@ public class DtlsControlImpl
      * The number of milliseconds within a day i.e. 24 hours.
      */
     private static final long ONE_DAY = 1000L * 60L * 60L * 24L;
+
+    /**
+     * The <tt>SRTPProtectionProfile</tt>s supported by
+     * <tt>DtlsControlImpl</tt>.
+     */
+    static final int[] SRTP_PROTECTION_PROFILES
+        = {
+            SRTPProtectionProfile.SRTP_AES128_CM_HMAC_SHA1_80,
+            SRTPProtectionProfile.SRTP_AES128_CM_HMAC_SHA1_32
+        };
 
     /**
      * The certificate with which the local endpoint represented by this
@@ -126,6 +137,36 @@ public class DtlsControlImpl
             = computeFingerprint(
                     x509Certificate,
                     localFingerprintHashFunction);
+    }
+
+    /**
+     * Chooses the first from a list of <tt>SRTPProtectionProfile</tt>s that is
+     * supported by <tt>DtlsControlImpl</tt>.
+     *
+     * @param theirs the list of <tt>SRTPProtectionProfile</tt>s to choose from
+     * @return the first from the specified <tt>theirs</tt> that is supported
+     * by <tt>DtlsControlImpl</tt>
+     */
+    static int chooseSRTPProtectionProfile(int... theirs)
+    {
+        int[] ours = SRTP_PROTECTION_PROFILES;
+
+        if (theirs != null)
+        {
+            for (int t = 0; t < theirs.length; t++)
+            {
+                int their = theirs[t];
+
+                for (int o = 0; o < ours.length; o++)
+                {
+                    int our = ours[o];
+
+                    if (their == our)
+                        return their;
+                }
+            }
+        }
+        return 0;
     }
 
     /**

@@ -10,8 +10,10 @@ import java.io.*;
 import java.security.*;
 
 import org.bouncycastle.crypto.tls.*;
+import org.ice4j.ice.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.impl.neomedia.transform.srtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -32,7 +34,7 @@ public class DtlsPacketTransformer
      * The number of milliseconds a <tt>DtlsPacketTransform</tt> is to wait on
      * its {@link #dtlsProtocol} in order to receive a packet.
      */
-    private static final int DTLS_TRANSPORT_RECEIVE_WAITMILLIS = 1;
+    private static final int DTLS_TRANSPORT_RECEIVE_WAITMILLIS = -1;
 
     /**
      * The <tt>Logger</tt> used by the <tt>DtlsPacketTransformer</tt> class and
@@ -143,6 +145,11 @@ public class DtlsPacketTransformer
     private MediaType mediaType;
 
     /**
+     * The <tt>SRTPTransformer</tt> to be used by this instance.
+     */
+    private PacketTransformer srtpTransformer;
+
+    /**
      * The <tt>TransformEngine</tt> which has initialized this instance.
      */
     private final DtlsTransformEngine transformEngine;
@@ -223,6 +230,178 @@ public class DtlsPacketTransformer
     }
 
     /**
+     * Initializes a new <tt>SRTPTransformer</tt> instance with a specific
+     * (negotiated) <tt>SRTPProtectionProfile</tt> and the keying material
+     * specified by a specific <tt>TlsContext</tt>.
+     *
+     * @param srtpProtectionProfile the (negotiated)
+     * <tt>SRTPProtectionProfile</tt> to initialize the new instance with
+     * @param tlsContext the <tt>TlsContext</tt> which represents the keying
+     * material
+     * @return a new <tt>SRTPTransformer</tt> instance initialized with
+     * <tt>srtpProtectionProfile</tt> and <tt>tlsContext</tt>
+     */
+    private PacketTransformer initializeSRTPTransformer(
+            int srtpProtectionProfile,
+            TlsContext tlsContext)
+    {
+        boolean rtcp;
+
+        switch (componentID)
+        {
+        case Component.RTCP:
+            rtcp = true;
+            break;
+        case Component.RTP:
+            rtcp = false;
+            break;
+        default:
+            throw new IllegalStateException("componentID");
+        }
+
+        int cipher_key_length;
+        int cipher_salt_length;
+        int cipher;
+        int auth_function;
+        int auth_key_length;
+        int RTCP_auth_tag_length, RTP_auth_tag_length;
+
+        switch (srtpProtectionProfile)
+        {
+        case SRTPProtectionProfile.SRTP_AES128_CM_HMAC_SHA1_32:
+            cipher_key_length = 128 / 8;
+            cipher_salt_length = 112 / 8;
+            cipher = SRTPPolicy.AESCM_ENCRYPTION;
+            auth_function = SRTPPolicy.HMACSHA1_AUTHENTICATION;
+            auth_key_length = 160 / 8;
+            RTCP_auth_tag_length = 80 / 8;
+            RTP_auth_tag_length = 32 / 8;
+            break;
+        case SRTPProtectionProfile.SRTP_AES128_CM_HMAC_SHA1_80:
+            cipher_key_length = 128 / 8;
+            cipher_salt_length = 112 / 8;
+            cipher = SRTPPolicy.AESCM_ENCRYPTION;
+            auth_function = SRTPPolicy.HMACSHA1_AUTHENTICATION;
+            auth_key_length = 160 / 8;
+            RTCP_auth_tag_length = RTP_auth_tag_length = 80 / 8;
+            break;
+        case SRTPProtectionProfile.SRTP_NULL_HMAC_SHA1_32:
+            cipher_key_length = 0;
+            cipher_salt_length = 0;
+            cipher = SRTPPolicy.NULL_ENCRYPTION;
+            auth_function = SRTPPolicy.HMACSHA1_AUTHENTICATION;
+            auth_key_length = 160 / 8;
+            RTCP_auth_tag_length = 80 / 8;
+            RTP_auth_tag_length = 32 / 8;
+            break;
+        case SRTPProtectionProfile.SRTP_NULL_HMAC_SHA1_80:
+            cipher_key_length = 0;
+            cipher_salt_length = 0;
+            cipher = SRTPPolicy.NULL_ENCRYPTION;
+            auth_function = SRTPPolicy.HMACSHA1_AUTHENTICATION;
+            auth_key_length = 160 / 8;
+            RTCP_auth_tag_length = RTP_auth_tag_length = 80 / 8;
+            break;
+        default:
+            throw new IllegalArgumentException("srtpProtectionProfile");
+        }
+
+        byte[] keyingMaterial
+            = tlsContext.exportKeyingMaterial(
+                    ExporterLabel.dtls_srtp,
+                    null,
+                    2 * (cipher_key_length + cipher_salt_length));
+        byte[] client_write_SRTP_master_key = new byte[cipher_key_length];
+        byte[] server_write_SRTP_master_key = new byte[cipher_key_length];
+        byte[] client_write_SRTP_master_salt = new byte[cipher_salt_length];
+        byte[] server_write_SRTP_master_salt = new byte[cipher_salt_length];
+        byte[][] keyingMaterialValues
+            = {
+                client_write_SRTP_master_key,
+                server_write_SRTP_master_key,
+                client_write_SRTP_master_salt,
+                server_write_SRTP_master_salt
+            };
+
+        for (int i = 0, keyingMaterialOffset = 0;
+                i < keyingMaterialValues.length;
+                i++)
+        {
+            byte[] keyingMaterialValue = keyingMaterialValues[i];
+
+            System.arraycopy(
+                    keyingMaterial, keyingMaterialOffset,
+                    keyingMaterialValue, 0,
+                    keyingMaterialValue.length);
+            keyingMaterialOffset += keyingMaterialValue.length;
+        }
+
+        SRTPPolicy srtcpPolicy
+            = new SRTPPolicy(
+                    cipher,
+                    cipher_key_length,
+                    auth_function,
+                    auth_key_length,
+                    RTCP_auth_tag_length,
+                    cipher_salt_length);
+        SRTPPolicy srtpPolicy
+            = new SRTPPolicy(
+                    cipher,
+                    cipher_key_length,
+                    auth_function,
+                    auth_key_length,
+                    RTP_auth_tag_length,
+                    cipher_salt_length);
+        SRTPContextFactory clientSRTPContextFactory
+            = new SRTPContextFactory(
+                    client_write_SRTP_master_key,
+                    client_write_SRTP_master_salt,
+                    srtpPolicy,
+                    srtcpPolicy);
+        SRTPContextFactory serverSRTPContextFactory
+            = new SRTPContextFactory(
+                    server_write_SRTP_master_key,
+                    server_write_SRTP_master_salt,
+                    srtpPolicy,
+                    srtcpPolicy);
+        SRTPContextFactory forwardSRTPContextFactory;
+        SRTPContextFactory reverseSRTPContextFactory;
+
+        if (tlsContext instanceof TlsClientContext)
+        {
+            forwardSRTPContextFactory = clientSRTPContextFactory;
+            reverseSRTPContextFactory = serverSRTPContextFactory;
+        }
+        else if (tlsContext instanceof TlsServerContext)
+        {
+            forwardSRTPContextFactory = serverSRTPContextFactory;
+            reverseSRTPContextFactory = clientSRTPContextFactory;
+        }
+        else
+        {
+            throw new IllegalArgumentException("tlsContext");
+        }
+
+        PacketTransformer srtpTransformer;
+
+        if (rtcp)
+        {
+            srtpTransformer
+                = new SRTCPTransformer(
+                        forwardSRTPContextFactory,
+                        reverseSRTPContextFactory);
+        }
+        else
+        {
+            srtpTransformer
+                = new SRTPTransformer(
+                        forwardSRTPContextFactory,
+                        reverseSRTPContextFactory);
+        }
+        return srtpTransformer;
+    }
+
+    /**
      * {@inheritDoc}
      */
     public RawPacket reverseTransform(RawPacket pkt)
@@ -297,6 +476,8 @@ public class DtlsPacketTransformer
                             delta = len - received;
                             if (delta > 0)
                                 pkt.shrink(delta);
+
+                            pkt = null;
                         }
                     }
                     catch (IOException ioe)
@@ -318,12 +499,12 @@ public class DtlsPacketTransformer
         }
         else
         {
-            /*
-             * The specified pkt does not look like a DTLS record so it is not a
-             * valid packet on the secure channel represented by this
-             * PacketTransformer.
-             */
-            pkt = null;
+            PacketTransformer srtpTransformer = this.srtpTransformer;
+
+            if (srtpTransformer == null)
+                pkt = null;
+            else
+                pkt = srtpTransformer.reverseTransform(pkt);
         }
         return pkt;
     }
@@ -341,12 +522,14 @@ public class DtlsPacketTransformer
             DatagramTransport datagramTransport)
     {
         DTLSTransport dtlsTransport = null;
+        int srtpProtectionProfile;
+        TlsContext tlsContext;
 
         if (dtlsProtocol instanceof DTLSClientProtocol)
         {
             DTLSClientProtocol dtlsClientProtocol
                 = (DTLSClientProtocol) dtlsProtocol;
-            TlsClient tlsClient = (TlsClient) tlsPeer;
+            TlsClientImpl tlsClient = (TlsClientImpl) tlsPeer;
 
             try
             {
@@ -361,12 +544,14 @@ public class DtlsPacketTransformer
                         "Failed to connect this DTLS client to a DTLS server!",
                         ioe);
             }
+            srtpProtectionProfile = tlsClient.getChosenProtectionProfile();
+            tlsContext = tlsClient.getContext();
         }
         else if (dtlsProtocol instanceof DTLSServerProtocol)
         {
             DTLSServerProtocol dtlsServerProtocol
                 = (DTLSServerProtocol) dtlsProtocol;
-            TlsServer tlsServer = (TlsServer) tlsPeer;
+            TlsServerImpl tlsServer = (TlsServerImpl) tlsPeer;
 
             try
             {
@@ -381,9 +566,15 @@ public class DtlsPacketTransformer
                         "Failed to accept a connection from a DTLS client!",
                         ioe);
             }
+            srtpProtectionProfile = tlsServer.getChosenProtectionProfile();
+            tlsContext = tlsServer.getContext();
         }
         else
             throw new IllegalStateException("dtlsProtocol");
+
+        PacketTransformer srtpTransformer
+            = initializeSRTPTransformer(srtpProtectionProfile, tlsContext);
+        boolean closeSRTPTransformer;
 
         synchronized (this)
         {
@@ -391,9 +582,14 @@ public class DtlsPacketTransformer
                     && datagramTransport.equals(this.datagramTransport))
             {
                 this.dtlsTransport = dtlsTransport;
+                this.srtpTransformer = srtpTransformer;
                 notifyAll();
             }
+            closeSRTPTransformer
+                = (this.srtpTransformer != srtpTransformer);
         }
+        if (closeSRTPTransformer)
+            srtpTransformer.close();
     }
 
     /**
@@ -577,6 +773,11 @@ public class DtlsPacketTransformer
             }
             dtlsTransport = null;
         }
+        if (srtpTransformer != null)
+        {
+            srtpTransformer.close();
+            srtpTransformer = null;
+        }
         closeDatagramTransport();
 
         notifyAll();
@@ -598,28 +799,12 @@ public class DtlsPacketTransformer
          */
         if (!isDtlsRecord(buf, off, len))
         {
-            /*
-             * The specified pkt will pass through this PacketTransformer only
-             * if it gets transformed into a DTLS record.
-             */
-            pkt = null;
+            PacketTransformer srtpTransformer = this.srtpTransformer;
 
-            DTLSTransport dtlsTransport = this.dtlsTransport;
-
-            if (dtlsTransport != null)
-            {
-                try
-                {
-                    dtlsTransport.send(buf, off, len);
-                }
-                catch (IOException ioe)
-                {
-                    logger.error(
-                            "Failed to send application data over DTLS"
-                                + " transport!",
-                            ioe);
-                }
-            }
+            if (srtpTransformer == null)
+                pkt = null;
+            else
+                pkt = srtpTransformer.transform(pkt);
         }
         return pkt;
     }

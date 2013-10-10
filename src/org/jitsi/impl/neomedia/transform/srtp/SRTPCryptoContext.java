@@ -337,14 +337,7 @@ public class SRTPCryptoContext
      */
     public int getMKILength()
     {
-        if (mki != null)
-        {
-            return mki.length;
-        }
-        else
-        {
-            return 0;
-        }
+        return (mki == null) ? 0 : mki.length;
     }
 
     /**

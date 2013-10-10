@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.transform.dtls;
 
 import java.io.*;
+import java.util.*;
 
 import org.bouncycastle.crypto.tls.*;
 import org.jitsi.util.*;
@@ -29,6 +30,12 @@ public class TlsServerImpl
         = new CertificateRequest(
                 new short[] { ClientCertificateType.rsa_sign },
                 /* certificateAuthorities */ null);
+
+    /**
+     * The <tt>SRTPProtectionProfile</tt> negotiated between this DTLS-SRTP
+     * server and its client.
+     */
+    private int chosenProtectionProfile;
 
     /**
      * The <tt>PacketTransformer</tt> which has initialized this instance.
@@ -55,6 +62,30 @@ public class TlsServerImpl
     public CertificateRequest getCertificateRequest()
     {
         return certificateRequest;
+    }
+
+    /**
+     * Gets the <tt>SRTPProtectionProfile</tt> negotiated between this DTLS-SRTP
+     * server and its client.
+     *
+     * @return the <tt>SRTPProtectionProfile</tt> negotiated between this
+     * DTLS-SRTP server and its client
+     */
+    int getChosenProtectionProfile()
+    {
+        return chosenProtectionProfile;
+    }
+
+    /**
+     * Gets the <tt>TlsContext</tt> with which this <tt>TlsServer</tt> has been
+     * initialized.
+     *
+     * @return the <tt>TlsContext</tt> with which this <tt>TlsServer</tt> has
+     * been initialized
+     */
+    TlsContext getContext()
+    {
+        return context;
     }
 
     /**
@@ -114,6 +145,72 @@ public class TlsServerImpl
 
     /**
      * {@inheritDoc}
+     *
+     * Includes the <tt>use_srtp</tt> extension in the DTLS extended server
+     * hello.
+     */
+    @Override
+    @SuppressWarnings("rawtypes")
+    public Hashtable getServerExtensions()
+        throws IOException
+    {
+        Hashtable serverExtensions = super.getServerExtensions();
+
+        if (TlsSRTPUtils.getUseSRTPExtension(serverExtensions) == null)
+        {
+            if (serverExtensions == null)
+                serverExtensions = new Hashtable();
+
+            UseSRTPData useSRTPData
+                = TlsSRTPUtils.getUseSRTPExtension(clientExtensions);
+            int chosenProtectionProfile
+                = DtlsControlImpl.chooseSRTPProtectionProfile(
+                        useSRTPData.getProtectionProfiles());
+
+            /*
+             * If there is no shared profile and that is not acceptable, the
+             * server SHOULD return an appropriate DTLS alert.
+             */
+            if (chosenProtectionProfile == 0)
+            {
+                throw new TlsFatalAlert(AlertDescription.internal_error);
+            }
+            else
+            {
+                /*
+                 * Upon receipt of a "use_srtp" extension containing a
+                 * "srtp_mki" field, the server MUST include a matching
+                 * "srtp_mki" value in its "use_srtp" extension to indicate that
+                 * it will make use of the MKI.
+                 */
+                TlsSRTPUtils.addUseSRTPExtension(
+                        serverExtensions,
+                        new UseSRTPData(
+                                new int[] { chosenProtectionProfile },
+                                useSRTPData.getMki()));
+                this.chosenProtectionProfile = chosenProtectionProfile;
+            }
+        }
+        return serverExtensions;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Overrides the super implementation as a simple means of detecting that
+     * the security-related negotiations between the local and the remote
+     * enpoints are starting. The detection carried out for the purposes of
+     * <tt>SrtpListener</tt>.
+     */
+    @Override
+    public void init(TlsServerContext context)
+    {
+        // TODO Auto-generated method stub
+        super.init(context);
+    }
+
+    /**
+     * {@inheritDoc}
      */
     @Override
     public void notifyClientCertificate(Certificate clientCertificate)
@@ -132,6 +229,43 @@ public class TlsServerImpl
                 throw (IOException) e;
             else
                 throw new IOException(e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Makes sure that the DTLS extended client hello contains the
+     * <tt>use_srtp</tt> extension.
+     */
+    @Override
+    @SuppressWarnings("rawtypes")
+    public void processClientExtensions(Hashtable clientExtensions)
+        throws IOException
+    {
+        UseSRTPData useSRTPData
+            = TlsSRTPUtils.getUseSRTPExtension(clientExtensions);
+
+        if (useSRTPData == null)
+        {
+            throw new IOException(
+                    "DTLS extended client hello does not include the use_srtp"
+                        + " extension!");
+        }
+        else
+        {
+            int chosenProtectionProfile
+                = DtlsControlImpl.chooseSRTPProtectionProfile(
+                        useSRTPData.getProtectionProfiles());
+
+            /*
+             * If there is no shared profile and that is not acceptable, the
+             * server SHOULD return an appropriate DTLS alert.
+             */
+            if (chosenProtectionProfile == 0)
+                throw new TlsFatalAlert(AlertDescription.illegal_parameter);
+            else
+                super.processClientExtensions(clientExtensions);
         }
     }
 }

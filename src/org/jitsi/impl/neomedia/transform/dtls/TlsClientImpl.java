@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.transform.dtls;
 
 import java.io.*;
+import java.util.*;
 
 import org.bouncycastle.crypto.tls.*;
 import org.jitsi.util.*;
@@ -27,6 +28,20 @@ public class TlsClientImpl
 
     private final TlsAuthentication authentication
         = new TlsAuthenticationImpl();
+
+    /**
+     * The <tt>SRTPProtectionProfile</tt> negotiated between this DTLS-SRTP
+     * client and its server.
+     */
+    private int chosenProtectionProfile;
+
+    /**
+     * The SRTP Master Key Identifier (MKI) used by the
+     * <tt>SRTPCryptoContext</tt> associated with this instance. Since the
+     * <tt>SRTPCryptoContext</tt> class does not utilize it, the value is
+     * {@link TlsUtils#EMPTY_BYTES}.
+     */
+    private final byte[] mki = TlsUtils.EMPTY_BYTES;
 
     /**
      * The <tt>PacketTransformer</tt> which has initialized this instance.
@@ -54,6 +69,44 @@ public class TlsClientImpl
     }
 
     /**
+     * Gets the <tt>SRTPProtectionProfile</tt> negotiated between this DTLS-SRTP
+     * client and its server.
+     *
+     * @return the <tt>SRTPProtectionProfile</tt> negotiated between this
+     * DTLS-SRTP client and its server
+     */
+    int getChosenProtectionProfile()
+    {
+        return chosenProtectionProfile;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Includes the <tt>use_srtp</tt> extension in the DTLS extended client
+     * hello.
+     */
+    @Override
+    @SuppressWarnings("rawtypes")
+    public Hashtable getClientExtensions()
+        throws IOException
+    {
+        Hashtable clientExtensions = super.getClientExtensions();
+
+        if (TlsSRTPUtils.getUseSRTPExtension(clientExtensions) == null)
+        {
+            if (clientExtensions == null)
+                clientExtensions = new Hashtable();
+            TlsSRTPUtils.addUseSRTPExtension(
+                    clientExtensions,
+                    new UseSRTPData(
+                            DtlsControlImpl.SRTP_PROTECTION_PROFILES,
+                            mki));
+        }
+        return clientExtensions;
+    }
+
+    /**
      * {@inheritDoc}
      *
      * The implementation of <tt>TlsClientImpl</tt> always returns
@@ -65,6 +118,18 @@ public class TlsClientImpl
     public ProtocolVersion getClientVersion()
     {
         return ProtocolVersion.DTLSv10;
+    }
+
+    /**
+     * Gets the <tt>TlsContext</tt> with which this <tt>TlsClient</tt> has been
+     * initialized.
+     *
+     * @return the <tt>TlsContext</tt> with which this <tt>TlsClient</tt> has
+     * been initialized
+     */
+    TlsContext getContext()
+    {
+        return context;
     }
 
     /**
@@ -86,6 +151,78 @@ public class TlsClientImpl
     public ProtocolVersion getMinimumVersion()
     {
         return ProtocolVersion.DTLSv10;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Overrides the super implementation as a simple means of detecting that
+     * the security-related negotiations between the local and the remote
+     * enpoints are starting. The detection carried out for the purposes of
+     * <tt>SrtpListener</tt>.
+     */
+    @Override
+    public void init(TlsClientContext context)
+    {
+        // TODO Auto-generated method stub
+        super.init(context);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Makes sure that the DTLS extended server hello contains the
+     * <tt>use_srtp</tt> extension.
+     */
+    @Override
+    @SuppressWarnings("rawtypes")
+    public void processServerExtensions(Hashtable serverExtensions)
+        throws IOException
+    {
+        UseSRTPData useSRTPData
+            = TlsSRTPUtils.getUseSRTPExtension(serverExtensions);
+
+        if (useSRTPData == null)
+        {
+            throw new IOException(
+                    "DTLS extended server hello does not include the use_srtp"
+                        + " extension!");
+        }
+        else
+        {
+            int[] protectionProfiles = useSRTPData.getProtectionProfiles();
+            int chosenProtectionProfile
+                = (protectionProfiles.length == 1)
+                    ? DtlsControlImpl.chooseSRTPProtectionProfile(
+                            protectionProfiles[0])
+                    : 0;
+
+            if (chosenProtectionProfile == 0)
+            {
+                throw new TlsFatalAlert(AlertDescription.illegal_parameter);
+            }
+            else
+            {
+                /*
+                 * If the client detects a nonzero-length MKI in the server's
+                 * response that is different than the one the client offered,
+                 * then the client MUST abort the handshake and SHOULD send an
+                 * invalid_parameter alert.
+                 */
+                byte[] mki = useSRTPData.getMki();
+
+                if (Arrays.equals(mki, this.mki))
+                {
+                    super.processServerExtensions(serverExtensions);
+
+                    this.chosenProtectionProfile = chosenProtectionProfile;
+                }
+                else
+                {
+                    throw new TlsFatalAlert(AlertDescription.illegal_parameter);
+                }
+            }
+        }
     }
 
     /**
