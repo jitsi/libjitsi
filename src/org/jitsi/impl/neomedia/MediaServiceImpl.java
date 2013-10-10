@@ -1563,11 +1563,46 @@ public class MediaServiceImpl
     }
 
     /**
+     * Determines whether the support for a specific <tt>MediaType</tt> is
+     * enabled. The <tt>ConfigurationService</tt> and <tt>System</tt> properties
+     * {@link #DISABLE_AUDIO_SUPPORT_PNAME} and
+     * {@link #DISABLE_VIDEO_SUPPORT_PNAME} allow disabling the support for,
+     * respectively, {@link MediaType#AUDIO} and {@link MediaType#VIDEO}.
+     *
+     * @param mediaType the <tt>MediaType</tt> to be determined whether the
+     * support for it is enabled
+     * @return <tt>true</tt> if the support for the specified <tt>mediaType</tt>
+     * is enabled; otherwise, <tt>false</tt>
+     */
+    public static boolean isMediaTypeSupportEnabled(MediaType mediaType)
+    {
+        String propertyName;
+
+        switch (mediaType)
+        {
+        case AUDIO:
+            propertyName = DISABLE_AUDIO_SUPPORT_PNAME;
+            break;
+        case VIDEO:
+            propertyName = DISABLE_VIDEO_SUPPORT_PNAME;
+            break;
+        default:
+            return true;
+        }
+
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        return
+            ((cfg == null) || !cfg.getBoolean(propertyName, false))
+                && !Boolean.getBoolean(propertyName);
+    }
+
+    /**
      * The listener which will be notified for changes in the video container.
      * Whether the container is displayable or not we will stop the player
      * or start it.
      */
-    private class VideoContainerHierarchyListener
+    private static class VideoContainerHierarchyListener
         implements HierarchyListener
     {
         /**

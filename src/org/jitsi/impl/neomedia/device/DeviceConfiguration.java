@@ -991,6 +991,10 @@ public class DeviceConfiguration
         @SuppressWarnings("unchecked")
         Vector<String> renderers
             = PlugInManager.getPlugInList(null, null, PlugInManager.RENDERER);
+        boolean audioSupportIsDisabled
+            = !MediaServiceImpl.isMediaTypeSupportEnabled(MediaType.AUDIO);
+        boolean videoSupportIsDisabled
+            = !MediaServiceImpl.isMediaTypeSupportEnabled(MediaType.VIDEO);
         boolean commit = false;
 
         for (String customRenderer : CUSTOM_RENDERERS)
@@ -1004,6 +1008,16 @@ public class DeviceConfiguration
                         + ".jmfext.media.renderer"
                         + customRenderer;
             }
+
+            /*
+             * Respect the MediaServiceImpl properties
+             * DISABLE_AUDIO_SUPPORT_PNAME and DISABLE_VIDEO_SUPPORT_PNAME.
+             */
+            if (audioSupportIsDisabled && customRenderer.contains(".audio."))
+                continue;
+            if (videoSupportIsDisabled && customRenderer.contains(".video."))
+                continue;
+
             if ((renderers == null) || !renderers.contains(customRenderer))
             {
                 try
