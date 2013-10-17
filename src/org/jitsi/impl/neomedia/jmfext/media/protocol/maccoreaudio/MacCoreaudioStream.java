@@ -121,9 +121,11 @@ public class MacCoreaudioStream
                 {
                     synchronized(startStopMutex)
                     {
-                        setDeviceUID(deviceUID);
-                        if(start)
+                        if(stream == 0 && start)
+                        {
+                            setDeviceUID(deviceUID);
                             start();
+                        }
                         deviceUID = null;
                         start = false;
                     }
@@ -134,7 +136,7 @@ public class MacCoreaudioStream
                 {
                     synchronized(startStopMutex)
                     {
-                        if (stream == 0)
+                        if(stream == 0)
                         {
                             deviceUID = null;
                             start = false;
@@ -369,7 +371,8 @@ public class MacCoreaudioStream
                         format.getSampleSizeInBits(),
                         false,
                         format.getEndian() == AudioFormat.BIG_ENDIAN,
-                        false);
+                        false,
+                        true);
                 MacCoreaudioSystem.didOpenStream();
             }
         }

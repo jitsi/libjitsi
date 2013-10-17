@@ -86,7 +86,8 @@ public class MacCoreAudioDevice
             int bitsPerChannel,
             boolean isFloat,
             boolean isBigEndian,
-            boolean isNonInterleaved);
+            boolean isNonInterleaved,
+            boolean isInput);
 
     public static native void stopStream(String deviceUID, long stream);
 

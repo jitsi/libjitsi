@@ -93,7 +93,8 @@ JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_startStr
         jint bitsPerChannel,
         jboolean isFloat,
         jboolean isBigEndian,
-        jboolean isNonInterleaved);
+        jboolean isNonInterleaved,
+        jboolean isInput);
 
 /*
  * Class:     org_jitsi_impl_neomedia_MacCoreAudioDevice

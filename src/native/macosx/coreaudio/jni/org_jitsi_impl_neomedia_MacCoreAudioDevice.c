@@ -189,13 +189,14 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_startStream
         jint bitsPerChannel,
         jboolean isFloat,
         jboolean isBigEndian,
-        jboolean isNonInterleaved)
+        jboolean isNonInterleaved,
+        jboolean isInput)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
     jobject callbackObject = (*env)->NewGlobalRef(env, callback);
     maccoreaudio_stream* stream = NULL;
 
-    if(maccoreaudio_isInputDevice(deviceUIDPtr)) // input
+    if(isInput && maccoreaudio_isInputDevice(deviceUIDPtr)) // input
     {
         jmethodID callbackMethod = maccoreaudio_getCallbackMethodID(
                 env,
@@ -213,7 +214,7 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_startStream
                 isBigEndian,
                 isNonInterleaved);
     }
-    else if(maccoreaudio_isOutputDevice(deviceUIDPtr)) // output
+    else if(!isInput && maccoreaudio_isOutputDevice(deviceUIDPtr)) // output
     {
         jmethodID callbackMethod = maccoreaudio_getCallbackMethodID(
                 env,

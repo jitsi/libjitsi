@@ -26,6 +26,7 @@ typedef struct
     void* callbackMethod;
     AudioConverterRef converter;
     double conversionRatio;
+    pthread_mutex_t mutex;
 } maccoreaudio_stream;
 
 int maccoreaudio_initDevices(

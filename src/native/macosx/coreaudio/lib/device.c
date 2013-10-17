@@ -8,6 +8,7 @@
 
 #include <CoreAudio/CoreAudio.h>
 #include <CoreFoundation/CFString.h>
+#include <pthread.h>
 #include <stdio.h>
 
 /**
@@ -135,6 +136,22 @@ OSStatus maccoreaudio_getStreamVirtualFormat(
         AudioStreamID stream,
         AudioStreamBasicDescription * format);
 
+OSStatus
+maccoreaudio_getDeviceFormat(
+        const char * deviceUID,
+        unsigned char isOutput,
+        AudioStreamBasicDescription * deviceFormat);
+
+OSStatus
+maccoreaudio_getDeviceFormatDeprecated(
+        const char * deviceUID,
+        unsigned char isOutput,
+        AudioStreamBasicDescription * deviceFormat);
+
+void
+maccoreaudio_getDefaultFormat(
+        AudioStreamBasicDescription * deviceFormat);
+
 /**
  * Do nothing: there is no need to initializes anything to get device
  * information on MacOsX.
@@ -233,8 +250,10 @@ AudioDeviceID maccoreaudio_getDeviceForSpecificScope(
             kCFStringEncodingASCII)) == NULL)
     {
         fprintf(stderr,
-                "getDevice (coreaudio/device.c): \
-                    \n\tCFStringCreateWithCString\n");
+                "maccoreaudio_getDevice (coreaudio/device.c): \
+                    \n\tCFStringCreateWithCString for device %s\n",
+                    deviceUID);
+        fflush(stderr);
         return kAudioObjectUnknown;
     }
 
@@ -258,9 +277,15 @@ AudioDeviceID maccoreaudio_getDeviceForSpecificScope(
             &translation)) != noErr)
     {
         fprintf(stderr,
-                "getDevice (coreaudio/device.c): \
-                    \n\tAudioObjectGetPropertyData, err: %d\n",
-                ((int) err));
+                "maccoreaudio_getDevice (coreaudio/device.c): \
+                    \n\tAudioObjectGetPropertyData, err: %d for device %s\n",
+                    ((int) err),
+                    deviceUID);
+        fflush(stderr);
+
+        // Frees the allocated device UID ref.
+        CFRelease(deviceUIDRef);
+
         return kAudioObjectUnknown;
     }
 
@@ -331,6 +356,7 @@ char* maccoreaudio_getDefaultDeviceUID(
                 "maccoreaudio_getDefaultDeviceUID (coreaudio/device.c): \
                     \n\tAudioObjectGetPropertyData, err: %d\n",
                     ((int) err));
+        fflush(stderr);
         return NULL;
     }
 
@@ -342,6 +368,7 @@ char* maccoreaudio_getDefaultDeviceUID(
         fprintf(stderr,
                 "maccoreaudio_getDefaultDeviceUID (coreaudio/device.c): \
                     \n\tgetAudioDeviceProperty\n");
+        fflush(stderr);
         return NULL;
     }
 
@@ -399,8 +426,10 @@ char* maccoreaudio_getDeviceProperty(
     if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
     {
         fprintf(stderr,
-                "getDeviceProperty (coreaudio/device.c): \
-                    \n\tgetDevice\n");
+                "maccoreaudio_getDeviceProperty (coreaudio/device.c): \
+                    \n\tgetDevice: %s\n",
+                    deviceUID);
+        fflush(stderr);
         return NULL;
     }
 
@@ -441,9 +470,10 @@ char* maccoreaudio_getAudioDeviceProperty(
             &deviceProperty)) != noErr)
     {
         fprintf(stderr,
-                "getDeviceProperty (coreaudio/device.c): \
+                "maccoreaudio_getDeviceProperty (coreaudio/device.c): \
                     \n\tAudioObjectGetPropertyData, err: %d\n",
                 ((int) err));
+        fflush(stderr);
         return NULL;
     }
 
@@ -455,7 +485,7 @@ char* maccoreaudio_getAudioDeviceProperty(
                 = (char *) malloc(devicePropertyLength * sizeof(char)))
             == NULL)
     {
-        perror("getDeviceProperty (coreaudio/device.c): \
+        perror("maccoreaudio_getDeviceProperty (coreaudio/device.c): \
                     \n\tmalloc\n");
         return NULL;
     }
@@ -539,8 +569,10 @@ OSStatus maccoreaudio_setDeviceVolume(
     if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
     {
         fprintf(stderr,
-                "setDeviceVolume (coreaudio/device.c): \
-                    \n\tgetDevice (unknown device for UID: %s)\n", deviceUID);
+                "maccoreaudio_setDeviceVolume (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getDevice (unknown device for UID: %s)\n",
+                    deviceUID);
+        fflush(stderr);
         return -1;
     }
 
@@ -548,9 +580,12 @@ OSStatus maccoreaudio_setDeviceVolume(
     if((maccoreaudio_getChannelsForStereo(deviceUID, channels)) != noErr)
     {
         fprintf(stderr,
-                "setDeviceVolume (coreaudio/device.c): \
-                    \n\tgetChannelsForStereo, err: %d\n",
-                ((int) err));
+                "maccoreaudio_setDeviceVolume (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getChannelsForStereo, err: %d \
+                    for device %s\n",
+                    ((int) err),
+                    deviceUID);
+        fflush(stderr);
         return err;
     }
 
@@ -586,9 +621,12 @@ OSStatus maccoreaudio_setDeviceVolume(
                     &volume)) != noErr)
             {
                 fprintf(stderr,
-                        "setDeviceVolume (coreaudio/device.c): \
-                            \n\tAudioObjectSetPropertyData, err: %d\n",
-                        ((int) err));
+                        "maccoreaudio_setDeviceVolume (coreaudio/device.c): \
+                            \n\tAudioObjectSetPropertyData, err: %d \
+                            for device %s\n",
+                            ((int) err),
+                            deviceUID);
+                fflush(stderr);
                 return err;
             }
         }
@@ -656,8 +694,10 @@ Float32 maccoreaudio_getDeviceVolume(
     if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
     {
         fprintf(stderr,
-                "getDeviceVolume (coreaudio/device.c): \
-                    \n\tgetDevice\n");
+                "maccoreaudio_getDeviceVolume (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getDevice: %s\n",
+                    deviceUID);
+        fflush(stderr);
         return -1.0;
     }
 
@@ -665,9 +705,12 @@ Float32 maccoreaudio_getDeviceVolume(
     if((maccoreaudio_getChannelsForStereo(deviceUID, channels)) != noErr)
     {
         fprintf(stderr,
-                "getDeviceVolume (coreaudio/device.c): \
-                    \n\tgetChannelsForStereo, err: %d\n",
-                ((int) err));
+                "maccoreaudio_getDeviceVolume (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getChannelsForStereo, err: %d \
+                    for device %s\n",
+                    ((int) err),
+                    deviceUID);
+        fflush(stderr);
         return -1.0;
     }
 
@@ -703,9 +746,12 @@ Float32 maccoreaudio_getDeviceVolume(
                     &volume)) != noErr)
             {
                 fprintf(stderr,
-                        "getDeviceVolume (coreaudio/device.c): \
-                            \n\tAudioObjectSetPropertyData, err: %d\n",
-                        ((int) err));
+                        "maccoreaudio_getDeviceVolume (coreaudio/device.c): \
+                            \n\tAudioObjectSetPropertyData, err: %d \
+                            for device %s\n",
+                            ((int) err),
+                            deviceUID);
+                fflush(stderr);
                 return -1.0;
             }
         }
@@ -737,8 +783,10 @@ OSStatus maccoreaudio_getChannelsForStereo(
     if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
     {
         fprintf(stderr,
-                "getChannelsForStereo (coreaudio/device.c): \
-                    \n\tgetDevice\n");
+                "maccoreaudio_getChannelsForStereo (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getDevice: %s\n",
+                    deviceUID);
+        fflush(stderr);
         return -1;
     }
 
@@ -756,9 +804,11 @@ OSStatus maccoreaudio_getChannelsForStereo(
             channels)) != noErr)
     {
         fprintf(stderr,
-                "getChannelsForStereo (coreaudio/device.c): \
-                    \n\tAudioObjectGetPropertyData, err: %d\n",
-                ((int) err));
+                "maccoreaudio_getChannelsForStereo (coreaudio/device.c): \
+                    \n\tAudioObjectGetPropertyData, err: %d for device %s\n",
+                    ((int) err),
+                    deviceUID);
+        fflush(stderr);
         return err;
     }
 
@@ -823,8 +873,10 @@ int maccoreaudio_countChannels(
     if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
     {
         fprintf(stderr,
-                "getChannelsForStereo (coreaudio/device.c): \
-                    \n\tgetDevice\n");
+                "maccoreaudio_countChannels (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getDevice: %s\n",
+                    deviceUID);
+        fflush(stderr);
         return -1;
     }
 
@@ -837,8 +889,11 @@ int maccoreaudio_countChannels(
     {
         fprintf(stderr,
                 "maccoreaudio_countChannels (coreaudio/device.c): \
-                    \n\tAudioObjectGetPropertyDataSize, err: %d\n",
-                    ((int) err));
+                    \n\tAudioObjectGetPropertyDataSize, err: %d \
+                    for device %s\n",
+                    ((int) err),
+                    deviceUID);
+        fflush(stderr);
         return -1;
     }
 
@@ -860,8 +915,10 @@ int maccoreaudio_countChannels(
     {
         fprintf(stderr,
                 "maccoreaudio_countChannels (coreaudio/device.c): \
-                    \n\tAudioObjectGetPropertyData, err: %d\n",
-                    ((int) err));
+                    \n\tAudioObjectGetPropertyData, err: %d for device %s\n",
+                    ((int) err),
+                    deviceUID);
+        fflush(stderr);
         return -1;
     }
     for(i = 0; i < audioBufferList->mNumberBuffers; ++i)
@@ -894,8 +951,10 @@ Float64 maccoreaudio_getNominalSampleRate(
     if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
     {
         fprintf(stderr,
-                "getNominalSampleRate (coreaudio/device.c): \
-                    \n\tgetDevice\n");
+                "maccoreaudio_getNominalSampleRate (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getDevice: %s\n",
+                    deviceUID);
+        fflush(stderr);
         return -1.0;
     }
 
@@ -915,9 +974,11 @@ Float64 maccoreaudio_getNominalSampleRate(
             != noErr)
     {
         fprintf(stderr,
-                "getNominalSampleRate (coreaudio/device.c): \
-                    \n\tAudioObjactGetPropertyData, err: %d\n",
-                    (int) err);
+                "maccoreaudio_getNominalSampleRate (coreaudio/device.c): \
+                    \n\tAudioObjactGetPropertyData, err: %d for device %s\n",
+                    (int) err,
+                    deviceUID);
+        fflush(stderr);
         return -1.0;
     }
 
@@ -950,8 +1011,11 @@ OSStatus maccoreaudio_getAvailableNominalSampleRates(
     if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
     {
         fprintf(stderr,
-                "getAvailableNominalSampleRates (coreaudio/device.c): \
-                    \n\tgetDevice\n");
+                "maccoreaudio_getAvailableNominalSampleRates \
+                    (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getDevice: %s\n",
+                    deviceUID);
+        fflush(stderr);
         return -1.0;
     }
 
@@ -971,9 +1035,12 @@ OSStatus maccoreaudio_getAvailableNominalSampleRates(
             != noErr)
     {
         fprintf(stderr,
-                "getAvailableNominalSampleRates (coreaudio/device.c): \
-                    \n\tAudioObjactGetPropertyData, err: %d\n",
-                    (int) err);
+                "maccoreaudio_getAvailableNominalSampleRates \
+                    (coreaudio/device.c): \
+                    \n\tAudioObjactGetPropertyData, err: %d for device %s\n",
+                    (int) err,
+                    deviceUID);
+        fflush(stderr);
         return -1.0;
     }
 
@@ -1015,9 +1082,10 @@ int maccoreaudio_getDeviceUIDList(
             != noErr)
     {
         fprintf(stderr,
-                "getDeviceUIDList (coreaudio/device.c): \
+                "maccoreaudio_getDeviceUIDList (coreaudio/device.c): \
                     \n\tAudioObjectGetPropertyDataSize, err: %d\n",
                     ((int) err));
+        fflush(stderr);
         return -1;
     }
 
@@ -1026,7 +1094,7 @@ int maccoreaudio_getDeviceUIDList(
     if((devices = (AudioDeviceID*) malloc(nbDevices * sizeof(AudioDeviceID)))
             == NULL)
     {
-        perror("getDeviceUIDList (coreaudio/device.c): \
+        perror("maccoreaudio_getDeviceUIDList (coreaudio/device.c): \
                     \n\tmalloc\n");
         return -1;
     }
@@ -1042,9 +1110,10 @@ int maccoreaudio_getDeviceUIDList(
     {
         free(devices);
         fprintf(stderr,
-                "getDeviceUIDList (coreaudio/device.c): \
+                "maccoreaudio_getDeviceUIDList (coreaudio/device.c): \
                     \n\tAudioObjectGetPropertyData, err: %d\n",
                     ((int) err));
+        fflush(stderr);
         return -1;
     }
 
@@ -1052,7 +1121,7 @@ int maccoreaudio_getDeviceUIDList(
             == NULL)
     {
         free(devices);
-        perror("getDeviceUIDList (coreaudio/device.c): \
+        perror("maccoreaudio_getDeviceUIDList (coreaudio/device.c): \
                     \n\tmalloc\n");
         return -1;
     }
@@ -1073,8 +1142,9 @@ int maccoreaudio_getDeviceUIDList(
             free(*deviceUIDList);
             free(devices);
             fprintf(stderr,
-                    "getDeviceUIDList (coreaudio/device.c): \
-                    \n\tgetAudioDeviceProperty\n");
+                    "maccoreaudio_getDeviceUIDList (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getAudioDeviceProperty\n");
+            fflush(stderr);
             return -1;
         }
     }
@@ -1097,11 +1167,18 @@ void maccoreaudio_initializeHotplug(
         kAudioObjectPropertyElementMaster
     };
 
-    AudioObjectAddPropertyListener(
-            kAudioObjectSystemObject,
-            &address,
-            maccoreaudio_devicesChangedCallback,
-            callbackFunction);
+    if(AudioObjectAddPropertyListener(
+                kAudioObjectSystemObject,
+                &address,
+                maccoreaudio_devicesChangedCallback,
+                callbackFunction)
+            != noErr)
+    {
+        fprintf(stderr,
+                "maccoreaudio_initializeHotplug (coreaudio/device.c): \
+                    \n\tAudioObjectAddPropertyListener\n");
+        fflush(stderr);
+    }
 }
 
 /**
@@ -1116,11 +1193,18 @@ void maccoreaudio_uninitializeHotplug()
         kAudioObjectPropertyElementMaster
     };
 
-    AudioObjectRemovePropertyListener(
-            kAudioObjectSystemObject,
-            &address,
-            maccoreaudio_devicesChangedCallback,
-            NULL);
+    if(AudioObjectRemovePropertyListener(
+                kAudioObjectSystemObject,
+                &address,
+                maccoreaudio_devicesChangedCallback,
+                NULL)
+            != noErr)
+    {
+        fprintf(stderr,
+                "maccoreaudio_uninitializeHotplug (coreaudio/device.c): \
+                    \n\tAudioObjectRemovePropertyListener\n");
+        fflush(stderr);
+    }
 }
 
 /**
@@ -1165,7 +1249,9 @@ const char* maccoreaudio_getTransportType(
     {
         fprintf(stderr,
                 "maccoreaudio_getTransportType (coreaudio/device.c): \
-                    \n\tgetDevice\n");
+                    \n\tgetDevice: %s\n",
+                    deviceUID);
+        fflush(stderr);
         return NULL;
     }
     // target device transport type property
@@ -1188,8 +1274,10 @@ const char* maccoreaudio_getTransportType(
     {
         fprintf(stderr,
                 "maccoreaudio_getTransportType (coreaudio/device.c): \
-                    \n\tAudioObjectGetPropertyData: err: %d\n",
-                    (int) err);
+                    \n\tAudioObjectGetPropertyData: err: 0x%x for device %s\n",
+                    (int) err,
+                    deviceUID);
+        fflush(stderr);
         return NULL;
     }
 
@@ -1238,6 +1326,11 @@ const char* maccoreaudio_getTransportType(
             return transportTypeVirtual;
             break;
         default:
+            fprintf(stderr,
+                    "maccoreaudio_getTransportType (coreaudio/device.c): \
+                        \n\tNo transport type found for device %s\n",
+                        deviceUID);
+            fflush(stderr);
             return NULL;
             break;
     }
@@ -1320,13 +1413,16 @@ maccoreaudio_stream * maccoreaudio_startStream(
         unsigned char isNonInterleaved)
 {
     AudioDeviceID device;
+    OSStatus err = noErr;
 
     // Gets the correspoding device
     if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
     {
         fprintf(stderr,
                 "maccoreaudio_startStream (coreaudio/device.c): \
-                    \n\tgetDevice\n");
+                    \n\tmaccoreaudio_getDevice: %s\n",
+                    deviceUID);
+        fflush(stderr);
         return NULL;
     }
 
@@ -1344,6 +1440,14 @@ maccoreaudio_stream * maccoreaudio_startStream(
     stream->callbackObject = callbackObject;
     stream->callbackMethod = callbackMethod;
 
+    if(pthread_mutex_init(&stream->mutex, NULL) != 0)
+    {
+        perror("maccoreaudio_startStream (coreaudio/device.c): \
+                    \n\tpthread_mutex_init\n");
+        free(stream);
+        return NULL;
+    }
+
     AudioStreamBasicDescription javaFormat;
     FillOutASBDForLPCM(
             &javaFormat,
@@ -1354,65 +1458,137 @@ maccoreaudio_stream * maccoreaudio_startStream(
             isFloat,
             isBigEndian,
             isNonInterleaved); 
-    if(maccoreaudio_initConverter(
+    if((err = maccoreaudio_initConverter(
                 deviceUID,
                 &javaFormat,
                 isJavaFormatSource,
                 &stream->converter,
-                &stream->conversionRatio)
+                &stream->conversionRatio))
             != noErr)
     {
-        free(stream);
         fprintf(stderr,
                 "maccoreaudio_startStream (coreaudio/device.c): \
-                    \n\tmaccoreaudio_initConverter\n");
+                    \n\tmaccoreaudio_initConverter: 0x%x for device %s\n",
+                    (int) err,
+                    deviceUID);
+        fflush(stderr);
+        pthread_mutex_destroy(&stream->mutex);
+        free(stream);
         return NULL;
     }
 
     //  register the IOProc
-    if(AudioDeviceCreateIOProcID(
+    if((err = AudioDeviceCreateIOProcID(
             device,
             readWriteFunction,
             stream,
-            &stream->ioProcId) != noErr)
+            &stream->ioProcId)) != noErr)
     {
-        free(stream);
         fprintf(stderr,
                 "maccoreaudio_startStream (coreaudio/device.c): \
-                    \n\tAudioDeviceIOProcID\n");
+                    \n\tAudioDeviceIOProcID: 0x%x for device %s\n",
+                    (int) err,
+                    deviceUID);
+        fflush(stderr);
+        AudioConverterDispose(stream->converter);
+        pthread_mutex_destroy(&stream->mutex);
+        free(stream);
         return NULL;
     }
 
     //  start IO
-    AudioDeviceStart(device, stream->ioProcId);
+    if((err = AudioDeviceStart(device, stream->ioProcId)) != noErr)
+    {
+        fprintf(stderr,
+                "maccoreaudio_startStream (coreaudio/device.c): \
+                    \n\tAudioDeviceStart: 0x%x for device %s\n",
+                    (int) err,
+                    deviceUID);
+        fflush(stderr);
+        AudioDeviceDestroyIOProcID(device, stream->ioProcId);
+        AudioConverterDispose(stream->converter);
+        pthread_mutex_destroy(&stream->mutex);
+        free(stream);
+        return NULL;
+    }
 
     return stream;
 }
 
+/**
+ * Stops the stream for the given device.
+ *
+ * @param deviceUID The device identifier.
+ * @param stream The stream to stop.
+ */
 void maccoreaudio_stopStream(
         const char * deviceUID,
         maccoreaudio_stream * stream)
 {
     AudioDeviceID device;
+    OSStatus err = noErr;
+
+    if(pthread_mutex_lock(&stream->mutex) != 0)
+    {
+        perror("maccoreaudio_stopStream (coreaudio/device.c): \
+                \n\tpthread_mutex_lock\n");
+    }
 
     // Gets the correspoding device
     if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
     {
         fprintf(stderr,
                 "maccoreaudio_stopStream (coreaudio/device.c): \
-                    \n\tgetDevice: %s\n",
+                    \n\tmaccoreaudio_getDevice: %s\n",
                     deviceUID);
         fflush(stderr);
-        return;
+    }
+    else
+    {
+        //  stop IO
+        if((err = AudioDeviceStop(device, stream->ioProcId)) != noErr)
+        {
+            fprintf(stderr,
+                    "maccoreaudio_stopStream (coreaudio/device.c): \
+                        \n\tAudioDeviceStop: 0x%x for device %s\n",
+                        (int) err,
+                        deviceUID);
+            fflush(stderr);
+        }
+        //  unregister the IOProc
+        if((err = AudioDeviceDestroyIOProcID(device, stream->ioProcId))
+                != noErr)
+        {
+            fprintf(stderr,
+                    "maccoreaudio_stopStream (coreaudio/device.c): \
+                        \n\tAudioDeviceDestroyIOProcID: 0x%x for device %s\n",
+                        (int) err,
+                        deviceUID);
+            fflush(stderr);
+        }
     }
 
-    //  stop IO
-    AudioDeviceStop(device, stream->ioProcId);
+    if((err = AudioConverterDispose(stream->converter)) != noErr)
+    {
+        fprintf(stderr,
+                "maccoreaudio_stopStream (coreaudio/device.c): \
+                \n\tAudioConverterDispose: 0x%x for device %s\n",
+                (int) err,
+                deviceUID);
+        fflush(stderr);
+    }
 
-    //  unregister the IOProc
-    AudioDeviceDestroyIOProcID(device, stream->ioProcId);
-
-    AudioConverterDispose(stream->converter);
+    stream->ioProcId = 0;
+    if(pthread_mutex_unlock(&stream->mutex) != 0)
+    {
+        perror("maccoreaudio_stopStream (coreaudio/device.c): \
+                \n\tpthread_mutex_unlock\n");
+    }
+    if(pthread_mutex_destroy(&stream->mutex) != 0)
+    {
+        perror("maccoreaudio_stopStream (coreaudio/device.c): \
+                \n\tpthread_mutex_destroy\n");
+    }
 
     free(stream);
 }
@@ -1434,33 +1610,51 @@ OSStatus maccoreaudio_readInputStream(
         = inInputData->mBuffers[0].mDataByteSize * stream->conversionRatio;
     char tmpBuffer[tmpLength];
     int i;
-    for(i = 0; i < inInputData->mNumberBuffers; ++i)
-    {
-        if(inInputData->mBuffers[i].mData != NULL
-                && inInputData->mBuffers[i].mDataByteSize > 0)
-        {
-            if((err = AudioConverterConvertBuffer(
-                            stream->converter,
-                            inInputData->mBuffers[i].mDataByteSize,
-                            inInputData->mBuffers[i].mData,
-                            &tmpLength,
-                            tmpBuffer))
-                    != noErr)
-            {
-                fprintf(stderr,
-                        "maccoreaudio_readInputStream (coreaudio/device.c): \
-                            \n\tAudioConverterConvertBuffer: %x\n",
-                            (int) err);
-                fflush(stderr);
-                return err;
-            }
 
-            callbackFunction(
-                    tmpBuffer,
-                    tmpLength,
-                    stream->callbackObject,
-                    stream->callbackMethod);
+    if(pthread_mutex_lock(&stream->mutex) == 0)
+    {
+        if(stream->ioProcId != 0)
+        {
+            for(i = 0; i < inInputData->mNumberBuffers; ++i)
+            {
+                if(inInputData->mBuffers[i].mData != NULL
+                        && inInputData->mBuffers[i].mDataByteSize > 0)
+                {
+                    if((err = AudioConverterConvertBuffer(
+                                    stream->converter,
+                                    inInputData->mBuffers[i].mDataByteSize,
+                                    inInputData->mBuffers[i].mData,
+                                    &tmpLength,
+                                    tmpBuffer))
+                            != noErr)
+                    {
+                        fprintf(stderr,
+                        "maccoreaudio_readInputStream (coreaudio/device.c): \
+                                \n\tAudioConverterConvertBuffer: 0x%x\n",
+                                (int) err);
+                        fflush(stderr);
+                        pthread_mutex_unlock(&stream->mutex);
+                        return err;
+                    }
+
+                    callbackFunction(
+                            tmpBuffer,
+                            tmpLength,
+                            stream->callbackObject,
+                            stream->callbackMethod);
+                }
+            }
         }
+        if(pthread_mutex_unlock(&stream->mutex) != 0)
+        {
+            perror("maccoreaudio_readInputStream (coreaudio/device.c): \
+                    \n\tpthread_mutex_unlock\n");
+        }
+    }
+    else
+    {
+        perror("maccoreaudio_readInputStream (coreaudio/device.c): \
+                \n\tpthread_mutex_lock\n");
     }
 
     return noErr;
@@ -1490,25 +1684,46 @@ OSStatus maccoreaudio_writeOutputStream(
         = outOutputData->mBuffers[0].mDataByteSize * stream->conversionRatio;
     char tmpBuffer[tmpLength];
 
-    callbackFunction(
-            tmpBuffer,
-            tmpLength,
-            stream->callbackObject,
-            stream->callbackMethod);
-
-    if((err = AudioConverterConvertBuffer(
-                    stream->converter,
-                    tmpLength,
-                    tmpBuffer,
-                    &outOutputData->mBuffers[0].mDataByteSize,
-                    outOutputData->mBuffers[0].mData))
-            != noErr)
+    if(pthread_mutex_lock(&stream->mutex) == 0)
     {
-        fprintf(stderr,
-                "maccoreaudio_writeOutputStream (coreaudio/device.c): \
-                    \n\tAudioConverterConvertBuffer\n");
-        fflush(stderr);
-        return err;
+        if(stream->ioProcId != 0)
+        {
+            callbackFunction(
+                    tmpBuffer,
+                    tmpLength,
+                    stream->callbackObject,
+                    stream->callbackMethod);
+
+            if((err = AudioConverterConvertBuffer(
+                            stream->converter,
+                            tmpLength,
+                            tmpBuffer,
+                            &outOutputData->mBuffers[0].mDataByteSize,
+                            outOutputData->mBuffers[0].mData))
+                    != noErr)
+            {
+                fprintf(stderr,
+                        "maccoreaudio_writeOutputStream (coreaudio/device.c): \
+                        \n\tAudioConverterConvertBuffer: 0x%x\n", (int) err);
+                fflush(stderr);
+                memset(
+                        outOutputData->mBuffers[0].mData,
+                        0,
+                        outOutputData->mBuffers[0].mDataByteSize);
+                pthread_mutex_unlock(&stream->mutex);
+                return err;
+            }
+        }
+        if(pthread_mutex_unlock(&stream->mutex) != 0)
+        {
+            perror("maccoreaudio_writeOutputStream (coreaudio/device.c): \
+                    \n\tpthread_mutex_unlock\n");
+        }
+    }
+    else
+    {
+        perror("maccoreaudio_writeOutputStream (coreaudio/device.c): \
+                \n\tpthread_mutex_lock\n");
     }
 
     // Copies the same data into the other buffers.
@@ -1602,56 +1817,38 @@ OSStatus maccoreaudio_initConverter(
         AudioConverterRef * converter,
         double * conversionRatio)
 {
-    AudioDeviceID device;
-    OSStatus err = noErr;
-    AudioObjectPropertyAddress address;
-
-    // Gets the correspoding device
-    if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
-    {
-        fprintf(stderr,
-                "maccoreaudio_initConverter (coreaudio/device.c): \
-                    \n\tgetDevice\n");
-        fflush(stderr);
-        return kAudioObjectUnknown;
-    }
-
     AudioStreamBasicDescription deviceFormat;
-    AudioStreamID audioStreamIds[1];
-    UInt32 size = sizeof(AudioStreamID *);
-    address.mSelector = kAudioDevicePropertyStreams;
-    address.mScope = kAudioObjectPropertyScopeGlobal;
-    address.mElement = kAudioObjectPropertyElementMaster;
-    if((err = AudioObjectGetPropertyData(
-                    device,
-                    &address,
-                    0,
-                    NULL,
-                    &size,
-                    &audioStreamIds))
+    OSStatus err = noErr;
+    if((err = maccoreaudio_getDeviceFormat(
+                    deviceUID,
+                    isJavaFormatSource,
+                    &deviceFormat))
             != noErr)
     {
         fprintf(stderr,
-                "maccoreaudio_countChannels (coreaudio/device.c): \
-                    \n\tAudioObjectGetPropertyData, err: 0x%x\n",
-                    ((int) err));
+                "maccoreaudio_initConverter (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getDeviceFormat for device: %s\n",
+                    deviceUID);
         fflush(stderr);
-        return err;
+
+        if((err = maccoreaudio_getDeviceFormatDeprecated(
+                        deviceUID,
+                        isJavaFormatSource,
+                        &deviceFormat)) != noErr)
+        {
+            fprintf(stderr,
+                    "maccoreaudio_initConverter (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getDeviceFormatDeprecated \
+                    for device: %s\n",
+                    deviceUID);
+            fflush(stderr);
+
+            // Everything has failed to retrieve the device format, then try
+            // with the default one.
+            maccoreaudio_getDefaultFormat(&deviceFormat);
+        }
     }
 
-    if((err = maccoreaudio_getStreamVirtualFormat(
-                    audioStreamIds[0],
-                    &deviceFormat))
-                != noErr)
-    {
-        fprintf(stderr,
-                "maccoreaudio_countChannels (coreaudio/device.c): \
-                    \n\tmaccoreaudiogetStreamVirtualFormat, err: 0x%x\n",
-                    ((int) err));
-        fflush(stderr);
-        return err;
-    }
-    
     const AudioStreamBasicDescription *inFormat = javaFormat;
     const AudioStreamBasicDescription *outFormat = &deviceFormat;
     if(!isJavaFormatSource)
@@ -1664,7 +1861,7 @@ OSStatus maccoreaudio_initConverter(
             != noErr)
     {
         fprintf(stderr,
-                "maccoreaudio_countChannels (coreaudio/device.c): \
+                "maccoreaudio_initConverter (coreaudio/device.c): \
                     \n\tAudioConverterNew, err: 0x%x\n",
                     ((int) err));
         fflush(stderr);
@@ -1672,9 +1869,8 @@ OSStatus maccoreaudio_initConverter(
     }
 
     *conversionRatio =
-        ((double) javaFormat->mBytesPerFrame)
-            / ((double) deviceFormat.mBytesPerFrame)
-        * javaFormat->mSampleRate / deviceFormat.mSampleRate;
+        ((double) javaFormat->mBytesPerFrame * javaFormat->mSampleRate)
+            / ((double) deviceFormat.mBytesPerFrame * deviceFormat.mSampleRate);
 
     return err;
 }
@@ -1749,4 +1945,165 @@ inline void FillOutASBDForLPCM(
         (inTotalBitsPerChannel/8);
     outASBD->mChannelsPerFrame = inChannelsPerFrame;
     outASBD->mBitsPerChannel = inValidBitsPerChannel;
+}
+
+/**
+ * Returns the device format.
+ *
+ * @param deviceUID The device identifier.
+ * @param isOutput True if the device is an output device.
+ * @param deviceFormat The structure to fill in with the device format.
+ *
+ * @return noErr if everything works fine. Any other value for an error.
+ */
+OSStatus
+maccoreaudio_getDeviceFormat(
+        const char * deviceUID,
+        unsigned char isOutput,
+        AudioStreamBasicDescription * deviceFormat)
+{
+    AudioDeviceID device;
+    OSStatus err = noErr;
+    AudioObjectPropertyAddress address;
+
+    // Gets the correspoding device
+    if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
+    {
+        fprintf(stderr,
+                "maccoreaudio_getDeviceFormat (coreaudio/device.c): \
+                    \n\tgetDevice: %s\n",
+                    deviceUID);
+        fflush(stderr);
+        return kAudioObjectUnknown;
+    }
+
+    AudioStreamID audioStreamIds[1];
+    UInt32 size = sizeof(AudioStreamID *);
+    address.mSelector = kAudioDevicePropertyStreams;
+    if(isOutput)
+    {
+        address.mScope = kAudioDevicePropertyScopeOutput;
+    }
+    else
+    {
+        address.mScope = kAudioDevicePropertyScopeInput;
+    }
+    address.mElement = kAudioObjectPropertyElementMaster;
+    if((err = AudioObjectGetPropertyData(
+                    device,
+                    &address,
+                    0,
+                    NULL,
+                    &size,
+                    &audioStreamIds))
+            != noErr)
+    {
+        fprintf(stderr,
+                "maccoreaudio_getDeviceFormat (coreaudio/device.c): \
+                    \n\tAudioObjectGetPropertyData, err: 0x%x for device %s\n",
+                    ((int) err),
+                    deviceUID);
+        fflush(stderr);
+        return err;
+    }
+
+    if((err = maccoreaudio_getStreamVirtualFormat(
+                    audioStreamIds[0],
+                    deviceFormat))
+                != noErr)
+    {
+        fprintf(stderr,
+                "maccoreaudio_getDeviceFormat (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getStreamVirtualFormat, err: 0x%x\
+                    for device %s\n",
+                    ((int) err),
+                    deviceUID);
+        fflush(stderr);
+        return err;
+    }
+
+    return err;
+}
+
+/**
+ * Returns the device format using deprecated property.
+ *
+ * @param deviceUID The device identifier.
+ * @param isOutput True if the device is an output device.
+ * @param deviceFormat The structure to fill in with the device format.
+ *
+ * @return noErr if everything works fine. Any other value for an error.
+ */
+OSStatus
+maccoreaudio_getDeviceFormatDeprecated(
+        const char * deviceUID,
+        unsigned char isOutput,
+        AudioStreamBasicDescription * deviceFormat)
+{
+    AudioDeviceID device;
+    OSStatus err = noErr;
+    AudioObjectPropertyAddress address;
+
+    // Gets the correspoding device
+    if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
+    {
+        fprintf(stderr,
+                "maccoreaudio_getDeviceFormatDeprecated (coreaudio/device.c): \
+                    \n\tgetDevice: %s\n",
+                    deviceUID);
+        fflush(stderr);
+        return kAudioObjectUnknown;
+    }
+
+    UInt32 size = sizeof(AudioStreamBasicDescription);
+    // This property ought to some day be deprecated.
+    address.mSelector = kAudioDevicePropertyStreamFormat;
+    if(isOutput)
+    {
+        address.mScope = kAudioDevicePropertyScopeOutput;
+    }
+    else
+    {
+        address.mScope = kAudioDevicePropertyScopeInput;
+    }
+    address.mElement = kAudioObjectPropertyElementMaster;
+
+    if((err = AudioObjectGetPropertyData(
+                    device,
+                    &address,
+                    0,
+                    NULL,
+                    &size,
+                    deviceFormat))
+            != noErr)
+    {
+        fprintf(stderr,
+                "maccoreaudio_getDeviceFormatDeprecated (coreaudio/device.c): \
+                    \n\tAudioObjectGetPropertyData err: 0x%x for device %s\n",
+                    ((int) err),
+                    deviceUID);
+        fflush(stderr);
+    }
+
+    return err;
+}
+
+/**
+ * Returns the default format.
+ *
+ * @param deviceFormat The structure to fill in with the default format.
+ */
+void
+maccoreaudio_getDefaultFormat(
+        AudioStreamBasicDescription * deviceFormat)
+{
+    FillOutASBDForLPCM(
+            deviceFormat,
+            44100.0,
+            2,
+            8 * sizeof(AudioUnitSampleType),    // 32
+            8 * sizeof(AudioUnitSampleType),    // 32
+            true,
+            false,
+            false);
 }

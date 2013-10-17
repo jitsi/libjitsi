@@ -448,6 +448,7 @@ public class MacCoreaudioRenderer
                         inputFormat.getSampleSizeInBits(),
                         false,
                         inputFormat.getEndian() == AudioFormat.BIG_ENDIAN,
+                        false,
                         false);
                 MacCoreaudioSystem.didOpenStream();
             }
