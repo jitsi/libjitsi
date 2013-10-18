@@ -118,12 +118,20 @@ public class RewritablePullBufferDataSource
     @Override
     public Object getControl(String controlType)
     {
-        /*
-         * The super implements a delegate so we can be sure that it delegates
-         * the invocation of Controls#getControl(String) to the wrapped
-         * dataSource.
-         */
-        return AbstractControls.queryInterface(dataSource, controlType);
+        if (InbandDTMFDataSource.class.getName().equals(controlType)
+                || MuteDataSource.class.getName().equals(controlType))
+        {
+            return this;
+        }
+        else
+        {
+            /*
+             * The super implements a delegate so we can be sure that it
+             * delegates the invocation of Controls#getControl(String) to the
+             * wrapped dataSource.
+             */
+            return AbstractControls.queryInterface(dataSource, controlType);
+        }
     }
 
     /**
