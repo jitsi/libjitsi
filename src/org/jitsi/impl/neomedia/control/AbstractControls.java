@@ -15,7 +15,7 @@ import org.jitsi.util.*;
  * implementers by requiring them to only implement
  * {@link Controls#getControls()}.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public abstract class AbstractControls
     implements Controls
@@ -73,16 +73,111 @@ public abstract class AbstractControls
             catch (ClassNotFoundException cnfe)
             {
                 controlClass = null;
-                logger
-                    .warn(
+                logger.warn(
                         "Failed to find control class " + controlType,
                         cnfe);
             }
             if (controlClass != null)
+            {
                 for (Object control : controls)
+                {
                     if (controlClass.isInstance(control))
                         return control;
+                }
+            }
         }
         return null;
+    }
+
+    /**
+     * Returns an instance of a specific <tt>Class</tt> which is either a
+     * control of a specific <tt>Controls</tt> implementation or the
+     * <tt>Controls</tt> implementation itself if it is an instance of the
+     * specified <tt>Class</tt>. The method is similar to
+     * {@link #getControl(Controls, String)} in querying the specified
+     * <tt>Controls</tt> implementation about a control of the specified
+     * <tt>Class</tt> but is different in looking at the type hierarchy of the
+     * <tt>Controls</tt> implementation for the specified <tt>Class</tt>.
+     *
+     * @param controlsImpl the <tt>Controls</tt> implementation to query
+     * @param controlType the runtime type of the instance to be returned
+     * @return an instance of the specified <tt>controlType</tt> if such an
+     * instance can be found among the controls of the specified
+     * <tt>controlsImpl</tt> or <tt>controlsImpl</tt> is an instance of the
+     * specified <tt>controlType</tt>; otherwise, <tt>null</tt>
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T queryInterface(
+            Controls controlsImpl,
+            Class<T> controlType)
+    {
+        T control;
+
+        if (controlsImpl == null)
+        {
+            control = null;
+        }
+        else
+        {
+            control = (T) controlsImpl.getControl(controlType.getName());
+            if ((control == null) && controlType.isInstance(controlsImpl))
+                control = (T) controlsImpl;
+        }
+        return control;
+    }
+
+    /**
+     * Returns an instance of a specific <tt>Class</tt> which is either a
+     * control of a specific <tt>Controls</tt> implementation or the
+     * <tt>Controls</tt> implementation itself if it is an instance of the
+     * specified <tt>Class</tt>. The method is similar to
+     * {@link #getControl(Controls, String)} in querying the specified
+     * <tt>Controls</tt> implementation about a control of the specified
+     * <tt>Class</tt> but is different in looking at the type hierarchy of the
+     * <tt>Controls</tt> implementation for the specified <tt>Class</tt>.
+     *
+     * @param controlsImpl the <tt>Controls</tt> implementation to query
+     * @param controlType the runtime type of the instance to be returned
+     * @return an instance of the specified <tt>controlType</tt> if such an
+     * instance can be found among the controls of the specified
+     * <tt>controlsImpl</tt> or <tt>controlsImpl</tt> is an instance of the
+     * specified <tt>controlType</tt>; otherwise, <tt>null</tt>
+     */
+    public static Object queryInterface(
+            Controls controlsImpl,
+            String controlType)
+    {
+        Object control;
+
+        if (controlsImpl == null)
+        {
+            control = null;
+        }
+        else
+        {
+            control = controlsImpl.getControl(controlType);
+            if (control == null)
+            {
+                Class<?> controlClass;
+
+                try
+                {
+                    controlClass = Class.forName(controlType);
+                }
+                catch (ClassNotFoundException cnfe)
+                {
+                    controlClass = null;
+                    logger.warn(
+                            "Failed to find control class " + controlType,
+                            cnfe);
+                }
+                if ((controlClass != null)
+                        && controlClass.isInstance(controlsImpl))
+                {
+                    control = controlsImpl;
+                }
+            }
+        }
+        return control;
     }
 }

@@ -18,6 +18,7 @@ import javax.media.protocol.*;
 import javax.media.rtp.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.service.neomedia.*;
@@ -395,24 +396,36 @@ public class MediaDeviceSession
     {
         DataSource captureDevice = getDevice().createOutputDataSource();
 
-        if (!(captureDevice instanceof MuteDataSource))
+        if (captureDevice != null)
         {
-            // Try to enable muting.
-            if (captureDevice instanceof PushBufferDataSource)
+            MuteDataSource muteDataSource
+                = AbstractControls.queryInterface(
+                        captureDevice,
+                        MuteDataSource.class);
+
+            if (muteDataSource == null)
             {
-                captureDevice
-                    = new RewritablePushBufferDataSource(
-                            (PushBufferDataSource) captureDevice);
+                // Try to enable muting.
+                if (captureDevice instanceof PushBufferDataSource)
+                {
+                    captureDevice
+                        = new RewritablePushBufferDataSource(
+                                (PushBufferDataSource) captureDevice);
+                }
+                else if (captureDevice instanceof PullBufferDataSource)
+                {
+                    captureDevice
+                        = new RewritablePullBufferDataSource(
+                                (PullBufferDataSource) captureDevice);
+                }
+                muteDataSource
+                    = AbstractControls.queryInterface(
+                            captureDevice,
+                            MuteDataSource.class);
             }
-            else if (captureDevice instanceof PullBufferDataSource)
-            {
-                captureDevice
-                    = new RewritablePullBufferDataSource(
-                            (PullBufferDataSource) captureDevice);
-            }
+            if (muteDataSource != null)
+                muteDataSource.setMute(mute);
         }
-        if (captureDevice instanceof MuteDataSource)
-            ((MuteDataSource) captureDevice).setMute(mute);
 
         return captureDevice;
     }
@@ -1179,9 +1192,13 @@ public class MediaDeviceSession
 
         if (captureDevice == null)
             return mute;
-        if (captureDevice instanceof MuteDataSource)
-            return ((MuteDataSource) captureDevice).isMute();
-        return false;
+
+        MuteDataSource muteDataSource
+            = AbstractControls.queryInterface(
+                    captureDevice,
+                    MuteDataSource.class);
+
+        return (muteDataSource == null) ? false : muteDataSource.isMute();
     }
 
     /**
@@ -1796,10 +1813,13 @@ public class MediaDeviceSession
         {
             this.mute = mute;
 
-            DataSource captureDevice = this.captureDevice;
+            MuteDataSource muteDataSource
+                = AbstractControls.queryInterface(
+                        captureDevice,
+                        MuteDataSource.class);
 
-            if (captureDevice instanceof MuteDataSource)
-                ((MuteDataSource) captureDevice).setMute(this.mute);
+            if (muteDataSource != null)
+                muteDataSource.setMute(this.mute);
         }
     }
 
@@ -1810,10 +1830,13 @@ public class MediaDeviceSession
      */
     public void addDTMF(DTMFInbandTone tone)
     {
-        DataSource captureDevice = this.captureDevice;
+        InbandDTMFDataSource inbandDTMFDataSource
+            = AbstractControls.queryInterface(
+                    captureDevice,
+                    InbandDTMFDataSource.class);
 
-        if (captureDevice instanceof InbandDTMFDataSource)
-            ((InbandDTMFDataSource) captureDevice).addDTMF(tone);
+        if (inbandDTMFDataSource != null)
+            inbandDTMFDataSource.addDTMF(tone);
     }
 
     /**

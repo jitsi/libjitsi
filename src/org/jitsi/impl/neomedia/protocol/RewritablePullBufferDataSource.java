@@ -12,6 +12,7 @@ import java.util.*;
 import javax.media.*;
 import javax.media.protocol.*;
 
+import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.service.neomedia.*;
 
 /**
@@ -24,7 +25,7 @@ import org.jitsi.service.neomedia.*;
  * </p>
  *
  * @author Damian Minkov
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class RewritablePullBufferDataSource
     extends PullBufferDataSourceDelegate<PullBufferDataSource>
@@ -39,7 +40,8 @@ public class RewritablePullBufferDataSource
     /**
      * The tones to send via inband DTMF, if not empty.
      */
-    private LinkedList<DTMFInbandTone> tones = new LinkedList<DTMFInbandTone>();
+    private final LinkedList<DTMFInbandTone> tones
+        = new LinkedList<DTMFInbandTone>();
 
     /**
      * Initializes a new <tt>RewritablePullBufferDataSource</tt> instance which
@@ -104,6 +106,24 @@ public class RewritablePullBufferDataSource
     public PullBufferDataSource getWrappedDataSource()
     {
         return dataSource;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Overrides the super implementation to include the type hierarchy of the
+     * very wrapped <tt>dataSource</tt> instance into the search for the
+     * specified <tt>controlType</tt>. 
+     */
+    @Override
+    public Object getControl(String controlType)
+    {
+        /*
+         * The super implements a delegate so we can be sure that it delegates
+         * the invocation of Controls#getControl(String) to the wrapped
+         * dataSource.
+         */
+        return AbstractControls.queryInterface(dataSource, controlType);
     }
 
     /**
