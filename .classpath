@@ -3,8 +3,8 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/bccontrib-1.0-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="lib/bcpkix-jdk15on-149.jar" sourcepath="C:/Users/lyubomir/Documents/bcpkix-jdk15on-149/src.zip"/>
-	<classpathentry kind="lib" path="lib/bcprov-jdk15on-149.jar" sourcepath="C:/Users/lyubomir/Documents/bcprov-jdk15on-149/src.zip"/>
+	<classpathentry kind="lib" path="lib/bcpkix-jdk15on-149.jar" sourcepath="../bcpkix-jdk15on-149/src.zip"/>
+	<classpathentry kind="lib" path="lib/bcprov-jdk15on-149.jar" sourcepath="../bcprov-jdk15on-149/src.zip"/>
 	<classpathentry kind="lib" path="lib/fmj.jar"/>
 	<classpathentry kind="lib" path="lib/ice4j.jar"/>
 	<classpathentry kind="lib" path="lib/jain-sdp.jar"/>
