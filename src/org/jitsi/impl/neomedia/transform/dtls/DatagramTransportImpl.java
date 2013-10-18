@@ -239,15 +239,23 @@ public class DatagramTransportImpl
                     }
                 }
 
-                if (receiveQ.isEmpty() && (timeout >= 0))
+                if (receiveQ.isEmpty())
                 {
-                    try
+                    if (timeout >= 0)
                     {
-                        receiveQ.wait(timeout);
+                        try
+                        {
+                            receiveQ.wait(timeout);
+                        }
+                        catch (InterruptedException ie)
+                        {
+                            interrupted = true;
+                        }
                     }
-                    catch (InterruptedException ie)
+                    else
                     {
-                        interrupted = true;
+                        // The specified waitMillis has been exceeded.
+                        break;
                     }
                 }
             }

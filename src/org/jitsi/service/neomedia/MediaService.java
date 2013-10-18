@@ -102,8 +102,27 @@ public interface MediaService
      *
      * @return the newly created <tt>MediaStream</tt>.
      */
-    public MediaStream createMediaStream(StreamConnector connector,
-                                         MediaDevice     device);
+    public MediaStream createMediaStream(
+            StreamConnector connector,
+            MediaDevice device);
+
+    /**
+     * Initializes a new <tt>MediaStream</tt> instance which is to exchange
+     * media of a specific <tt>MediaType</tt> via a specific
+     * <tt>StreamConnector</tt>.
+     *
+     * @param connector the <tt>StreamConnector</tt> the stream should use for
+     * sending and receiving media or <tt>null</tt> if the stream is to not have
+     * a <tt>StreamConnector</tt> configured at initialization time and a
+     * <tt>StreamConnector</tt> is to be specified later on
+     * @param mediaType the <tt>MediaType</tt> of the media to be exchanged by
+     * the new instance via the specified <tt>connector</tt>
+     * @return a new <tt>MediaStream</tt> instance which is to exchange media of
+     * the specified <tt>mediaType</tt> via the specified <tt>connector</tt>
+     */
+    public MediaStream createMediaStream(
+            StreamConnector connector,
+            MediaType mediaType);
 
     /**
      * Creates a <tt>MediaStream</tt> that will be using the specified
@@ -116,14 +135,37 @@ public interface MediaService
      * <tt>StreamConnector</tt> is to be specified later on
      * @param device the device to be used for both capture and playback of
      * media exchanged via the specified <tt>StreamConnector</tt>
-     * @param zrtpControl a control which is already created, used to control
+     * @param srtpControl a control which is already created, used to control
      * the ZRTP operations.
      *
      * @return the newly created <tt>MediaStream</tt>.
      */
-    public MediaStream createMediaStream(StreamConnector connector,
-                                         MediaDevice     device,
-                                         SrtpControl zrtpControl);
+    public MediaStream createMediaStream(
+            StreamConnector connector,
+            MediaDevice device,
+            SrtpControl srtpControl);
+
+    /**
+     * Initializes a new <tt>MediaStream</tt> instance which is to exchange
+     * media of a specific <tt>MediaType</tt> via a specific
+     * <tt>StreamConnector</tt>. The security of the media exchange is to be
+     * controlled by a specific <tt>SrtpControl</tt>.
+     *
+     * @param connector the <tt>StreamConnector</tt> the stream should use for
+     * sending and receiving media or <tt>null</tt> if the stream is to not have
+     * a <tt>StreamConnector</tt> configured at initialization time and a
+     * <tt>StreamConnector</tt> is to be specified later on
+     * @param mediaType the <tt>MediaType</tt> of the media to be exchanged by
+     * the new instance via the specified <tt>connector</tt>
+     * @param srtpControl the <tt>SrtpControl</tt> to control the security of
+     * the media exchange
+     * @return a new <tt>MediaStream</tt> instance which is to exchange media of
+     * the specified <tt>mediaType</tt> via the specified <tt>connector</tt>
+     */
+    public MediaStream createMediaStream(
+            StreamConnector connector,
+            MediaType mediaType,
+            SrtpControl srtpControl);
 
     /**
      * Creates a new <tt>MediaDevice</tt> which uses a specific

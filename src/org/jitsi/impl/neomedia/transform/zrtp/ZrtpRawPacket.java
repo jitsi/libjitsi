@@ -22,17 +22,10 @@ import org.jitsi.impl.neomedia.*;
 public class ZrtpRawPacket extends RawPacket
 {
     /**
-     * Each ZRTP packet contains this magic number.
+     * Each ZRTP packet contains this magic number/cookie.
      */
-    public static byte[] zrtpMagic;
-
-    static {
-        zrtpMagic = new byte[4];
-        zrtpMagic[0]= 0x5a;
-        zrtpMagic[1]= 0x52;
-        zrtpMagic[2]= 0x54;
-        zrtpMagic[3]= 0x50;
-    }
+    public static final byte[] ZRTP_MAGIC
+        = new byte[] { 0x5a, 0x52, 0x54, 0x50 };
 
     /**
      * Construct an input ZrtpRawPacket using a received RTP raw packet.
@@ -41,7 +34,7 @@ public class ZrtpRawPacket extends RawPacket
      */
     public ZrtpRawPacket(RawPacket pkt)
     {
-        super (pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+        super(pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
     }
 
     /**
@@ -61,10 +54,10 @@ public class ZrtpRawPacket extends RawPacket
         writeByte(1, (byte)0);
 
         int at = 4;
-        writeByte(at++, zrtpMagic[0]);
-        writeByte(at++, zrtpMagic[1]);
-        writeByte(at++, zrtpMagic[2]);
-        writeByte(at, zrtpMagic[3]);
+        writeByte(at++, ZRTP_MAGIC[0]);
+        writeByte(at++, ZRTP_MAGIC[1]);
+        writeByte(at++, ZRTP_MAGIC[2]);
+        writeByte(at, ZRTP_MAGIC[3]);
     }
 
     /**
@@ -88,13 +81,8 @@ public class ZrtpRawPacket extends RawPacket
      */
     static boolean isZrtpData(RawPacket pkt)
     {
-        if(!pkt.getExtensionBit())
-            return false;
-
-        if(pkt.getHeaderExtensionType() == 0x505a)
-            return true;
-
-        return false;
+        return
+            pkt.getExtensionBit() && (pkt.getHeaderExtensionType() == 0x505a);
     }
 
     /**
@@ -108,10 +96,10 @@ public class ZrtpRawPacket extends RawPacket
     protected boolean hasMagic()
     {
         return
-            (readByte(4) == zrtpMagic[0])
-                && (readByte(5) == zrtpMagic[1])
-                && (readByte(6) == zrtpMagic[2])
-                && (readByte(7) == zrtpMagic[3]);
+            (readByte(4) == ZRTP_MAGIC[0])
+                && (readByte(5) == ZRTP_MAGIC[1])
+                && (readByte(6) == ZRTP_MAGIC[2])
+                && (readByte(7) == ZRTP_MAGIC[3]);
     }
 
     /**

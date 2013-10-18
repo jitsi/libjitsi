@@ -566,7 +566,7 @@ public class DtlsControlImpl
      * and validate against the fingerprints presented by the remote endpoint
      * via the signaling path
      */
-    void verifyAndValidateCertificate(
+    private void verifyAndValidateCertificate(
             org.bouncycastle.asn1.x509.Certificate certificate)
         throws Exception
     {
@@ -592,11 +592,32 @@ public class DtlsControlImpl
         synchronized (this)
         {
             if (disposed)
+            {
                 throw new IllegalStateException("disposed");
+            }
             else
-                remoteFingerprint = remoteFingerprints.get(hashFunction);
+            {
+                Map<String,String> remoteFingerprints = this.remoteFingerprints;
+
+                if (remoteFingerprints == null)
+                {
+                    throw new IOException(
+                            "No fingerprints declared over the signaling"
+                                + " path!");
+                }
+                else
+                {
+                    remoteFingerprint = remoteFingerprints.get(hashFunction);
+                }
+            }
         }
-        if (!remoteFingerprint.equals(fingerprint))
+        if (remoteFingerprint == null)
+        {
+            throw new IOException(
+                    "No fingerprint declared over the signaling path with"
+                        + " hash function: " + hashFunction + "!");
+        }
+        else if (!remoteFingerprint.equals(fingerprint))
         {
             throw new IOException(
                     "Fingerprint " + remoteFingerprint
@@ -611,24 +632,61 @@ public class DtlsControlImpl
      *
      * @param certificate the certificate to be verified and validated against
      * the fingerprints presented by the remote endpoint via the signaling path
+     * @return <tt>true</tt> if the specified <tt>certificate</tt> was
+     * successfully verified and validated against the fingerprints presented by
+     * the remote endpoint over the signaling path
      * @throws Exception if the specified <tt>certificate</tt> failed to verify
      * and validate against the fingerprints presented by the remote endpoint
-     * via the signaling path
+     * over the signaling path
      */
-    void verifyAndValidateCertificate(
+    boolean verifyAndValidateCertificate(
             org.bouncycastle.crypto.tls.Certificate certificate)
         throws Exception
     {
-        org.bouncycastle.asn1.x509.Certificate[] certificateList
-            = certificate.getCertificateList();
+        boolean b = false;
 
-        if (certificateList.length == 0)
-            throw new IllegalArgumentException("certificate.certificateList");
-
-        for (org.bouncycastle.asn1.x509.Certificate x509Certificate
-                : certificateList)
+        try
         {
-            verifyAndValidateCertificate(x509Certificate);
+            org.bouncycastle.asn1.x509.Certificate[] certificateList
+                = certificate.getCertificateList();
+
+            if (certificateList.length == 0)
+            {
+                throw new IllegalArgumentException(
+                        "certificate.certificateList");
+            }
+            else
+            {
+                for (org.bouncycastle.asn1.x509.Certificate x509Certificate
+                        : certificateList)
+                {
+                    verifyAndValidateCertificate(x509Certificate);
+                }
+                b = true;
+            }
         }
+        catch (Exception e)
+        {
+            /*
+             * XXX Contrary to RFC 5763 "Framework for Establishing a Secure
+             * Real-time Transport Protocol (SRTP) Security Context Using
+             * Datagram Transport Layer Security (DTLS)", we do NOT want to tear
+             * down the media session if the fingerprint does not match the
+             * hashed certificate. We want to notify the user via the
+             * SrtpListener.
+             */
+            // TODO Auto-generated method stub
+            String message
+                = "Failed to verify and/or validate a certificate offered over"
+                    + " the media path against fingerprints declared over the"
+                    + " signaling path!";
+            String throwableMessage = e.getMessage();
+
+            if ((throwableMessage == null) || (throwableMessage.length() == 0))
+                logger.warn(message, e);
+            else
+                logger.warn(message + " " + throwableMessage);
+        }
+        return b;
     }
 }

@@ -307,6 +307,16 @@ public class MediaServiceImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public MediaStream createMediaStream(
+            StreamConnector connector,
+            MediaType mediaType)
+    {
+        return createMediaStream(connector, mediaType, null);
+    }
+
+    /**
      * Creates a new <tt>MediaStream</tt> instance which will use the specified
      * <tt>MediaDevice</tt> for both capture and playback of media exchanged
      * via the specified <tt>StreamConnector</tt>.
@@ -328,6 +338,17 @@ public class MediaServiceImpl
             SrtpControl srtpControl)
     {
         return createMediaStream(null, connector, device, srtpControl);
+    }
+
+    /**
+     * {@inheritDocs}
+     */
+    public MediaStream createMediaStream(
+            StreamConnector connector,
+            MediaType mediaType,
+            SrtpControl srtpControl)
+    {
+        return createMediaStream(mediaType, connector, null, srtpControl);
     }
 
     /**

@@ -477,6 +477,10 @@ public class DtlsPacketTransformer
                             if (delta > 0)
                                 pkt.shrink(delta);
 
+                            /*
+                             * In DTLS-SRTP no application data is transmitted
+                             * over the DTLS channel.
+                             */
                             pkt = null;
                         }
                     }
@@ -491,7 +495,7 @@ public class DtlsPacketTransformer
             {
                 /*
                  * The specified pkt looks like a DTLS record but it is
-                 * unexpected in the current state of the secure channels
+                 * unexpected in the current state of the secure channel
                  * represented by this PacketTransformer.
                  */
                 pkt = null;
@@ -499,11 +503,15 @@ public class DtlsPacketTransformer
         }
         else
         {
+            /*
+             * XXX If DTLS-SRTP has not been initialized yet or has failed to
+             * initialize, it is our explicit policy to let the received packet
+             * pass through and rely on the SrtpListener to notify the user that
+             * the session is not secured.
+             */
             PacketTransformer srtpTransformer = this.srtpTransformer;
 
-            if (srtpTransformer == null)
-                pkt = null;
-            else
+            if (srtpTransformer != null)
                 pkt = srtpTransformer.reverseTransform(pkt);
         }
         return pkt;
@@ -522,8 +530,8 @@ public class DtlsPacketTransformer
             DatagramTransport datagramTransport)
     {
         DTLSTransport dtlsTransport = null;
-        int srtpProtectionProfile;
-        TlsContext tlsContext;
+        int srtpProtectionProfile = 0;
+        TlsContext tlsContext = null;
 
         if (dtlsProtocol instanceof DTLSClientProtocol)
         {
@@ -544,8 +552,11 @@ public class DtlsPacketTransformer
                         "Failed to connect this DTLS client to a DTLS server!",
                         ioe);
             }
-            srtpProtectionProfile = tlsClient.getChosenProtectionProfile();
-            tlsContext = tlsClient.getContext();
+            if (dtlsTransport != null)
+            {
+                srtpProtectionProfile = tlsClient.getChosenProtectionProfile();
+                tlsContext = tlsClient.getContext();
+            }
         }
         else if (dtlsProtocol instanceof DTLSServerProtocol)
         {
@@ -566,14 +577,19 @@ public class DtlsPacketTransformer
                         "Failed to accept a connection from a DTLS client!",
                         ioe);
             }
-            srtpProtectionProfile = tlsServer.getChosenProtectionProfile();
-            tlsContext = tlsServer.getContext();
+            if (dtlsTransport != null)
+            {
+                srtpProtectionProfile = tlsServer.getChosenProtectionProfile();
+                tlsContext = tlsServer.getContext();
+            }
         }
         else
             throw new IllegalStateException("dtlsProtocol");
 
         PacketTransformer srtpTransformer
-            = initializeSRTPTransformer(srtpProtectionProfile, tlsContext);
+            = (dtlsTransport == null)
+                ? null
+                : initializeSRTPTransformer(srtpProtectionProfile, tlsContext);
         boolean closeSRTPTransformer;
 
         synchronized (this)
@@ -588,7 +604,7 @@ public class DtlsPacketTransformer
             closeSRTPTransformer
                 = (this.srtpTransformer != srtpTransformer);
         }
-        if (closeSRTPTransformer)
+        if (closeSRTPTransformer && (srtpTransformer != null))
             srtpTransformer.close();
     }
 
@@ -799,11 +815,15 @@ public class DtlsPacketTransformer
          */
         if (!isDtlsRecord(buf, off, len))
         {
+            /*
+             * XXX If DTLS-SRTP has not been initialized yet or has failed to
+             * initialize, it is our explicit policy to let the received packet
+             * pass through and rely on the SrtpListener to notify the user that
+             * the session is not secured.
+             */
             PacketTransformer srtpTransformer = this.srtpTransformer;
 
-            if (srtpTransformer == null)
-                pkt = null;
-            else
+            if (srtpTransformer != null)
                 pkt = srtpTransformer.transform(pkt);
         }
         return pkt;
