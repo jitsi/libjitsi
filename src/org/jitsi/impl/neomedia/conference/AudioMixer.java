@@ -1083,9 +1083,9 @@ public class AudioMixer
     /**
      * Starts the input <tt>DataSource</tt>s of this <tt>AudioMixer</tt>.
      *
-     * @param outStream the <tt>AudioMixerPushBufferStream</tt> which
-     * requests this <tt>AudioMixer</tt> to start. If <tt>outStream</tt> is
-     * the current one and only <tt>AudioMixerPushBufferStream</tt> of this
+     * @param outStream the <tt>AudioMixerPushBufferStream</tt> which requests
+     * this <tt>AudioMixer</tt> to start. If <tt>outStream</tt> is the current
+     * one and only <tt>AudioMixerPushBufferStream</tt> of this
      * <tt>AudioMixer</tt>, this <tt>AudioMixer</tt> starts if it hasn't started
      * yet. Otherwise, the request is ignored.
      * @throws IOException if any of the input <tt>DataSource</tt>s of this
@@ -1097,8 +1097,8 @@ public class AudioMixer
         synchronized (inDataSources)
         {
             /*
-             * AudioMixer has only one outStream at a time and only its
-             * current outStream knows when it has to start (and stop).
+             * AudioMixer has only one outStream at a time and only its current
+             * outStream knows when it has to start (and stop).
              */
             if (this.outStream != outStream)
                 return;
@@ -1116,9 +1116,9 @@ public class AudioMixer
     /**
      * Stops the input <tt>DataSource</tt>s of this <tt>AudioMixer</tt>.
      *
-     * @param outStream the <tt>AudioMixerPushBufferStream</tt> which
-     * requests this <tt>AudioMixer</tt> to stop. If <tt>outStream</tt> is
-     * the current one and only <tt>AudioMixerPushBufferStream</tt> of this
+     * @param outStream the <tt>AudioMixerPushBufferStream</tt> which requests
+     * this <tt>AudioMixer</tt> to stop. If <tt>outStream</tt> is the current
+     * one and only <tt>AudioMixerPushBufferStream</tt> of this
      * <tt>AudioMixer</tt>, this <tt>AudioMixer</tt> stops. Otherwise, the
      * request is ignored.
      * @throws IOException if any of the input <tt>DataSource</tt>s of this
@@ -1130,8 +1130,8 @@ public class AudioMixer
         synchronized (inDataSources)
         {
             /*
-             * AudioMixer has only one outStream at a time and only its
-             * current outStream known when it has to stop (and start).
+             * AudioMixer has only one outStream at a time and only its current
+             * outStream knows when it has to stop (and start).
              */
             if (this.outStream != outStream)
                 return;

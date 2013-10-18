@@ -911,7 +911,7 @@ public class RawPacket
         int hdrLen = getExtensionHeaderLength();
 
         if( hdrLen == 1 )
-            return ( buffer[contentStart - 1] & 0x0F ) + 1;
+            return (buffer[contentStart - 1] & 0x0F) + 1;
         else
             return buffer[contentStart - 1];
     }
@@ -956,8 +956,9 @@ public class RawPacket
         if (!getExtensionBit())
             return 0;
 
-        return readUnsignedShortAsInt(
-                    offset + FIXED_HEADER_SIZE + getCsrcCount()*4);
+        return
+            readUnsignedShortAsInt(
+                    offset + FIXED_HEADER_SIZE + getCsrcCount() * 4);
     }
 
     /**
@@ -970,13 +971,9 @@ public class RawPacket
      */
     public boolean isInvalid()
     {
-        if (buffer == null)
-            return true;
-        if (buffer.length < offset + length)
-            return true;
-        if (length < FIXED_HEADER_SIZE)
-            return true;
-
-        return false;
+        return
+            (buffer == null)
+                || (buffer.length < offset + length)
+                || (length < FIXED_HEADER_SIZE);
     }
 }

@@ -57,11 +57,7 @@ public class ZRTCPTransformer
      */
     public RawPacket transform(RawPacket pkt)
     {
-        if (srtcpOut == null)
-        {
-            return pkt;
-        }
-        return srtcpOut.transform(pkt);
+        return (srtcpOut == null) ? pkt : srtcpOut.transform(pkt);
     }
 
     /**
@@ -75,11 +71,7 @@ public class ZRTCPTransformer
      */
     public RawPacket reverseTransform(RawPacket pkt)
     {
-        if (srtcpIn == null)
-        {
-            return pkt;
-        }
-        return srtcpIn.reverseTransform(pkt);
+        return (srtcpIn == null) ? pkt : srtcpIn.reverseTransform(pkt);
     }
 
     /**

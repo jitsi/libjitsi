@@ -278,9 +278,9 @@ class AudioMixerPushBufferStream
      * such streams to which this instance is to push the data for audio mixing
      * it reads from its input <tt>SourceStream</tt>s.
      *
-     * @param outStream the <tt>AudioMixingPushBufferStream</tt> to add to
-     * the collection of such streams to which this instance is to push the data
-     * for audio mixing it reads from its input <tt>SourceStream</tt>s
+     * @param outStream the <tt>AudioMixingPushBufferStream</tt> to add to the
+     * collection of such streams to which this instance is to push the data for
+     * audio mixing it reads from its input <tt>SourceStream</tt>s
      * @throws IOException if <tt>outStream</tt> was the first
      * <tt>AudioMixingPushBufferStream</tt> and the <tt>AudioMixer</tt> failed
      * to start
@@ -994,9 +994,9 @@ class AudioMixerPushBufferStream
      * collection of such streams to which this instance pushes the data for
      * audio mixing it reads from its input <tt>SourceStream</tt>s.
      *
-     * @param outStream the <tt>AudioMixingPushBufferStream</tt> to remove
-     * from the collection of such streams to which this instance pushes the
-     * data for audio mixing it reads from its input <tt>SourceStream</tt>s
+     * @param outStream the <tt>AudioMixingPushBufferStream</tt> to remove from
+     * the collection of such streams to which this instance pushes the data for
+     * audio mixing it reads from its input <tt>SourceStream</tt>s
      * @throws IOException if <tt>outStream</tt> was the last
      * <tt>AudioMixingPushBufferStream</tt> and the <tt>AudioMixer</tt> failed
      * to stop

@@ -19,7 +19,8 @@ import javax.media.protocol.*;
  *
  * @param <T> the very type of <tt>DataSource</tt> to be wrapped in a
  * <tt>PushBufferDataSourceDelegate</tt>
- * @author Lubomir Marinov
+ *
+ * @author Lyubomir Marinov
  */
 public abstract class PushBufferDataSourceDelegate<T extends DataSource>
     extends CaptureDeviceDelegatePushBufferDataSource

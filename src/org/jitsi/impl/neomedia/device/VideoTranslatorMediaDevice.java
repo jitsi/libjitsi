@@ -145,7 +145,6 @@ public class VideoTranslatorMediaDevice
                 deviceSession.setFormat(format);
 
             deviceSession.start(startedDirection);
-
         }
         return
             (deviceSession == null)

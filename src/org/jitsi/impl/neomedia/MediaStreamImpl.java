@@ -302,9 +302,7 @@ public class MediaStreamImpl
         if (logger.isTraceEnabled())
         {
             logger.trace(
-                    "Created "
-                        + getClass().getSimpleName()
-                        + " with hashCode "
+                    "Created " + getClass().getSimpleName() + " with hashCode "
                         + hashCode());
         }
     }

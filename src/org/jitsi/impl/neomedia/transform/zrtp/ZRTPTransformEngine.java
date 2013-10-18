@@ -699,27 +699,17 @@ public class ZRTPTransformEngine
      */
     public RawPacket transform(RawPacket pkt)
     {
-        /*
-         * Never transform outgoing ZRTP (invalid RTP) packets.
-         */
-        if (ZrtpRawPacket.isZrtpData(pkt))
+        // Never transform outgoing ZRTP (invalid RTP) packets.
+        if (!ZrtpRawPacket.isZrtpData(pkt))
         {
-            return pkt;
+            // ZRTP needs the SSRC of the sending stream.
+            if (enableZrtp && (ownSSRC == 0))
+                ownSSRC = pkt.getSSRC();
+            // If SRTP is active then srtpTransformer is set, use it.
+            if (srtpOutTransformer != null)
+                pkt = srtpOutTransformer.transform(pkt);
         }
-
-        // ZRTP needs the SSRC of the sending stream.
-        if (enableZrtp && ownSSRC == 0)
-        {
-            ownSSRC = pkt.getSSRC();
-        }
-
-        // If SRTP is active then srtpTransformer is set, use it.
-        if (srtpOutTransformer == null)
-        {
-            return pkt;
-        }
-
-        return srtpOutTransformer.transform(pkt);
+        return pkt;
     }
 
     /**
@@ -735,29 +725,22 @@ public class ZRTPTransformEngine
             startZrtp();
 
         /*
-         * Check if incoming packet is a ZRTP packet, if not treat
-         * it as normal RTP packet and handle it accordingly.
+         * If the incoming packet is not a ZRTP packet, treat it as a normal RTP
+         * packet and handle it accordingly.
          */
         if (!ZrtpRawPacket.isZrtpData(pkt))
         {
             if (srtpInTransformer == null)
-            {
-                if(muted)
-                {
-                    return null;
-                }
-                else
-                    return pkt;
-            }
+                return muted ? null : pkt;
 
             RawPacket pkt2 = srtpInTransformer.reverseTransform(pkt);
             // if packet was valid (i.e. not null) and ZRTP engine started and
-            // in Wait for Confirm2 Ack then emulate a Conf2Ack packet.
-            // See ZRTP specification chap. 5.6
+            // in Wait for Confirm2 Ack then emulate a Conf2Ack packet. See ZRTP
+            // specification chap. 5.6
             if ((pkt2 != null)
                     && started
-                    && zrtpEngine
-                        .inState(ZrtpStateClass.ZrtpStates.WaitConfAck))
+                    && zrtpEngine.inState(
+                            ZrtpStateClass.ZrtpStates.WaitConfAck))
             {
                 zrtpEngine.conf2AckSecure();
             }
@@ -768,10 +751,8 @@ public class ZRTPTransformEngine
         }
 
         /*
-         * If ZRTP is enabled process it.
-         *
-         * In any case return null because ZRTP packets must never reach
-         * the application.
+         * If ZRTP is enabled, process it. In any case return null because ZRTP
+         * packets must never reach the application.
          */
         if (enableZrtp && started)
         {
@@ -788,8 +769,8 @@ public class ZRTPTransformEngine
             {
                 int extHeaderOffset = zPkt.getHeaderLength()
                         - zPkt.getExtensionLength() - RawPacket.EXT_HEADER_SIZE;
-                // zrtp engine need a "pointer" to the extension header, so
-                // we give him the extension header and the payload data
+                // zrtp engine need a "pointer" to the extension header, so we
+                // give him the extension header and the payload data
                 byte[] extHeader = zPkt.readRegion(
                     extHeaderOffset,
                     RawPacket.EXT_HEADER_SIZE +
