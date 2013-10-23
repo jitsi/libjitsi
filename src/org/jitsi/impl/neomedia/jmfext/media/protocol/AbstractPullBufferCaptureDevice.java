@@ -33,8 +33,8 @@ public abstract class AbstractPullBufferCaptureDevice
      * The <tt>AbstractBufferCaptureDevice</tt> which provides the
      * implementation of this <tt>AbstractPullBufferCaptureDevice</tt>.
      */
-    private final AbstractBufferCaptureDevice<AbstractPullBufferStream> impl
-        = new AbstractBufferCaptureDevice<AbstractPullBufferStream>()
+    private final AbstractBufferCaptureDevice<AbstractPullBufferStream<?>> impl
+        = new AbstractBufferCaptureDevice<AbstractPullBufferStream<?>>()
         {
             @Override
             protected FrameRateControl createFrameRateControl()
@@ -45,7 +45,7 @@ public abstract class AbstractPullBufferCaptureDevice
             }
 
             @Override
-            protected AbstractPullBufferStream createStream(
+            protected AbstractPullBufferStream<?> createStream(
                     int streamIndex,
                     FormatControl formatControl)
             {
@@ -182,7 +182,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * <tt>PullBufferDataSource</tt> and which has its <tt>Format</tt>-related
      * information abstracted by the specified <tt>formatControl</tt>
      */
-    protected abstract AbstractPullBufferStream createStream(
+    protected abstract AbstractPullBufferStream<?> createStream(
             int streamIndex,
             FormatControl formatControl);
 
@@ -487,7 +487,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * which this <tt>AbstractPushBufferCaptureDevice</tt> gives access to its
      * media data
      */
-    protected AbstractBufferStream[] streams()
+    protected AbstractBufferStream<?>[] streams()
     {
         return impl.streams();
     }

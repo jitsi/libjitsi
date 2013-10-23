@@ -33,7 +33,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  */
 public abstract class AbstractBufferCaptureDevice
-        <AbstractBufferStreamT extends AbstractBufferStream>
+        <AbstractBufferStreamT extends AbstractBufferStream<?>>
     implements CaptureDevice,
                Controls
 {
@@ -92,7 +92,7 @@ public abstract class AbstractBufferCaptureDevice
      * it is to be synchronized with sync root <tt>this</tt>.
      * </p>
      */
-    private AbstractBufferStream[] streams;
+    private AbstractBufferStream<?>[] streams;
 
     /**
      * Opens a connection to the media source of this
@@ -286,8 +286,10 @@ public abstract class AbstractBufferCaptureDevice
         throws IOException
     {
         if (streams != null)
-            for (AbstractBufferStream stream : streams)
+        {
+            for (AbstractBufferStream<?> stream : streams)
                 stream.start();
+        }
     }
 
     /**
@@ -302,8 +304,10 @@ public abstract class AbstractBufferCaptureDevice
         throws IOException
     {
         if (streams != null)
-            for (AbstractBufferStream stream : streams)
+        {
+            for (AbstractBufferStream<?> stream : streams)
                 stream.stop();
+        }
     }
 
     /**
@@ -621,7 +625,9 @@ public abstract class AbstractBufferCaptureDevice
                  * started.
                  */
                 if (started)
-                    for (AbstractBufferStream stream : streams)
+                {
+                    for (AbstractBufferStream<?> stream : streams)
+                    {
                         try
                         {
                             stream.start();
@@ -630,6 +636,8 @@ public abstract class AbstractBufferCaptureDevice
                         {
                             throw new UndeclaredThrowableException(ioex);
                         }
+                    }
+                }
             }
         }
 
@@ -681,7 +689,7 @@ public abstract class AbstractBufferCaptureDevice
         {
             if (streams != null)
             {
-                AbstractBufferStream stream = streams[streamIndex];
+                AbstractBufferStream<?> stream = streams[streamIndex];
 
                 if (stream != null)
                 {
@@ -782,7 +790,7 @@ public abstract class AbstractBufferCaptureDevice
         {
             if (streams != null)
             {
-                AbstractBufferStream stream = streams[streamIndex];
+                AbstractBufferStream<?> stream = streams[streamIndex];
 
                 if (stream != null)
                     return stream.internalSetFormat(newValue);
@@ -865,7 +873,7 @@ public abstract class AbstractBufferCaptureDevice
      * which this <tt>AbstractBufferCaptureDevice</tt> gives access to its media
      * data
      */
-    AbstractBufferStream[] streams()
+    AbstractBufferStream<?>[] streams()
     {
         return streams;
     }
