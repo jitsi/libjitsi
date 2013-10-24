@@ -18,9 +18,9 @@ import javax.media.format.*;
  *
  * It is not yet fully compliant with the draft above, it can't successfully
  * process all valid streams.
- * It works by concatenating packets' payload (stripping the payload descriptor),
- * until it encounters a packet with it's Start of Partition bit set, at which
- * point it outputs the concatenated data and starts again.
+ * It works by concatenating packets' payload (stripping the payload
+ * descriptor), until it encounters a packet with it's Start of Partition bit
+ * set, at which point it outputs the concatenated data and starts again.
  *
  * @author Boris Grozev
  */
@@ -41,7 +41,7 @@ public class DePacketizer
     /**
      * Certain output will only be logged if this is set to true in addition to
      * 'trace' being enable in the logger. This is because the output is long
-     * and would be rarely used and to let compiler optimise the conditionals.
+     * and would be rarely used and to let compiler optimize the conditionals.
      */
     private static final boolean TRACE = false;
 
@@ -102,12 +102,12 @@ public class DePacketizer
      * {@inheritDoc}
      */
     @Override
-    protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
+    protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
         int ret;
-        byte[] input = (byte[]) inputBuffer.getData();
-        boolean start = VP8PayloadDescriptor.
-                            isStartOfPartition(input, inputBuffer.getOffset());
+        byte[] in = (byte[]) inBuffer.getData();
+        boolean start
+            = VP8PayloadDescriptor.isStartOfPartition(in, inBuffer.getOffset());
         if(waitForNewStart)
         {
             if(start)
@@ -116,7 +116,7 @@ public class DePacketizer
             }
             else
             {
-                outputBuffer.setDiscard(true);
+                outBuffer.setDiscard(true);
                 return BUFFER_PROCESSED_OK;
             }
         }
@@ -124,34 +124,34 @@ public class DePacketizer
         int pdSize;
         try
         {
-            pdSize = VP8PayloadDescriptor.getSize(input, inputBuffer.getOffset());
+            pdSize = VP8PayloadDescriptor.getSize(in, inBuffer.getOffset());
         }
         catch (Exception e)
         {
-            outputBuffer.setDiscard(true);
+            outBuffer.setDiscard(true);
             return BUFFER_PROCESSED_FAILED;
         }
 
-        if(logger.isTraceEnabled() && TRACE)
+        if(TRACE && logger.isTraceEnabled())
         {
-            logger.trace("Packet: "+inputBuffer.getSequenceNumber()
-                    + ", length=" + inputBuffer.getLength()
-                    + ", pdSize=" + pdSize
-                    + ", start="+start
-                    + "\nPayload descriptor:" );
-            for(int i = inputBuffer.getOffset();
-                i < inputBuffer.getOffset() + pdSize + 1;
-                i++)
+            logger.trace(
+                    "Packet: "+inBuffer.getSequenceNumber() + ", length="
+                        + inBuffer.getLength() + ", pdSize=" + pdSize
+                        + ", start=" + start + "\nPayload descriptor:" );
+            for(int i = inBuffer.getOffset();
+                    i < inBuffer.getOffset() + pdSize + 1;
+                    i++)
             {
-                logger.trace("\t\t"
-                        + ((input[i]&0x80)==0?"0":"1")
-                        + ((input[i]&0x40)==0?"0":"1")
-                        + ((input[i]&0x20)==0?"0":"1")
-                        + ((input[i]&0x10)==0?"0":"1")
-                        + ((input[i]&0x08)==0?"0":"1")
-                        + ((input[i]&0x04)==0?"0":"1")
-                        + ((input[i]&0x02)==0?"0":"1")
-                        + ((input[i]&0x01)==0?"0":"1"));
+                logger.trace(
+                        "\t\t"
+                            + ((in[i]&0x80)==0?"0":"1")
+                            + ((in[i]&0x40)==0?"0":"1")
+                            + ((in[i]&0x20)==0?"0":"1")
+                            + ((in[i]&0x10)==0?"0":"1")
+                            + ((in[i]&0x08)==0?"0":"1")
+                            + ((in[i]&0x04)==0?"0":"1")
+                            + ((in[i]&0x02)==0?"0":"1")
+                            + ((in[i]&0x01)==0?"0":"1"));
             }
         }
 
@@ -161,13 +161,12 @@ public class DePacketizer
             if(logger.isTraceEnabled())
                 logger.trace("Sending a frame, size=" + bufferPointer);
 
-            byte[] output
-                = validateByteArraySize(outputBuffer, bufferPointer, false);
+            byte[] out = validateByteArraySize(outBuffer, bufferPointer, false);
 
-            System.arraycopy(buffer, 0, output, 0, bufferPointer);
-            outputBuffer.setFormat(new VideoFormat(Constants.VP8));
-            outputBuffer.setLength(bufferPointer);
-            outputBuffer.setOffset(0);
+            System.arraycopy(buffer, 0, out, 0, bufferPointer);
+            outBuffer.setFormat(new VideoFormat(Constants.VP8));
+            outBuffer.setLength(bufferPointer);
+            outBuffer.setOffset(0);
 
             bufferPointer = 0;
             ret = BUFFER_PROCESSED_OK;
@@ -177,27 +176,30 @@ public class DePacketizer
             ret = OUTPUT_BUFFER_NOT_FILLED;
         }
 
-        int len = inputBuffer.getLength();
+        int len = inBuffer.getLength();
         if(bufferPointer + len - pdSize >= BUFFER_SIZE)
         {
             //our buffer is not big enough
             bufferPointer = 0;
-            outputBuffer.setDiscard(true);
+            outBuffer.setDiscard(true);
             waitForNewStart = true;
             return BUFFER_PROCESSED_FAILED;
         }
-        System.arraycopy(input,
-                         inputBuffer.getOffset() + pdSize,
+        System.arraycopy(in,
+                         inBuffer.getOffset() + pdSize,
                          buffer,
                          bufferPointer,
                          len - pdSize);
         bufferPointer += len - pdSize;
 
 
-        if(logger.isTraceEnabled() && TRACE)
-            logger.trace("Saving payload to buffer, seq num:"
-                    + inputBuffer.getSequenceNumber()
-                    + ", bufferPointer=" + bufferPointer);
+        if(TRACE && logger.isTraceEnabled())
+        {
+            logger.trace(
+                    "Saving payload to buffer, seq num:"
+                        + inBuffer.getSequenceNumber()
+                        + ", bufferPointer=" + bufferPointer);
+        }
 
         haveSent = true;
         return ret;
