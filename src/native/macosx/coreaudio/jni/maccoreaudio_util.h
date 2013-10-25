@@ -39,4 +39,8 @@ void maccoreaudio_callbackMethod(
 void maccoreaudio_devicesChangedCallbackMethod(
         void);
 
+void maccoreaudio_log(
+        const char * error_format,
+        ...);
+
 #endif

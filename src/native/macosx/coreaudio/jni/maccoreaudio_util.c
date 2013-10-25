@@ -248,3 +248,52 @@ void maccoreaudio_freeHotplug(
     maccoreaudio_devicesChangedCallbackClass = NULL;
     maccoreaudio_devicesChangedCallbackMethodID = NULL;
 }
+
+/**
+ * Logs the corresponding error message.
+ *
+ * @param error_format The format of the error message.
+ * @param ... The list of variable specified in the format argument.
+ */
+void maccoreaudio_log(
+        const char * error_format,
+        ...)
+{
+    JNIEnv *env = NULL;
+
+    if((*maccoreaudio_VM)->AttachCurrentThreadAsDaemon(
+                maccoreaudio_VM,
+                (void**) &env,
+                NULL)
+            == 0)
+    {
+        jclass clazz = (*env)->FindClass(
+                env,
+                "org/jitsi/impl/neomedia/CoreAudioDevice");
+        if (clazz)
+        {
+            jmethodID methodID
+                = (*env)->GetStaticMethodID(env, clazz, "log", "([B)V");
+
+            int error_length = 2048;
+            char error[error_length];
+            va_list arg;
+            va_start (arg, error_format);
+            vsnprintf(error, error_length, error_format, arg);
+            va_end (arg);
+
+            int str_len = strlen(error);
+            jbyteArray bufferBytes = (*env)->NewByteArray(env, str_len);
+            (*env)->SetByteArrayRegion(
+                    env,
+                    bufferBytes,
+                    0,
+                    str_len,
+                    (jbyte *) error);
+
+            (*env)->CallStaticVoidMethod(env, clazz, methodID, bufferBytes);
+        }
+
+        (*maccoreaudio_VM)->DetachCurrentThread(maccoreaudio_VM);
+    }
+}

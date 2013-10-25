@@ -16,6 +16,13 @@ import org.jitsi.util.*;
 public class CoreAudioDevice
 {
     /**
+     * The <tt>Logger</tt> used by the <tt>CoreAudioDevice</tt> class and
+     * its instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(CoreAudioDevice.class);
+
+    /**
      * Tells if the CoreAudio library used by this CoreAudioDevice is correctly
      * loaded: if we are under a supported operating system.
      */
@@ -131,5 +138,11 @@ public class CoreAudioDevice
             Runnable devicesChangedCallback)
     {
         CoreAudioDevice.devicesChangedCallback = devicesChangedCallback;
+    }
+
+    public static void log(byte[] error)
+    {
+        String errorString = StringUtils.newString(error);
+        logger.info(errorString);
     }
 }
