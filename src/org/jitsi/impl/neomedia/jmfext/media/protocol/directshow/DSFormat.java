@@ -71,16 +71,16 @@ public class DSFormat
     {
         System.loadLibrary("jndirectshow");
 
-        RGB24 = RGB24();
-        RGB32 = RGB32();
         ARGB32 = ARGB32();
-        YUY2 = YUY2();
-        UYVY = UYVY();
-        NV12 = NV12();
-        Y411 = Y411();
-        Y41P = Y41P();
         I420 = I420();
         MJPG = MJPG();
+        NV12 = NV12();
+        RGB24 = RGB24();
+        RGB32 = RGB32();
+        UYVY = UYVY();
+        Y411 = Y411();
+        Y41P = Y41P();
+        YUY2 = YUY2();
     }
 
     private static native int ARGB32();
@@ -100,6 +100,8 @@ public class DSFormat
     public static native int IMC4();
 
     public static native int IYUV();
+
+    private static native int MJPG();
 
     private static native int NV12();
 
@@ -122,8 +124,6 @@ public class DSFormat
     public static native int YVU9();
 
     public static native int YVYU();
-
-    public static native int MJPG();
 
     /**
      * Video height.

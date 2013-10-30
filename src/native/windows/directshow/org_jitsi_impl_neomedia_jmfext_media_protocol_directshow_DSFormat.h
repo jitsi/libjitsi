@@ -77,6 +77,14 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_direct
  * Signature: ()I
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_IYUV
+(JNIEnv *, jclass);
+
+/*
+* Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
+* Method:    MJPG
+* Signature: ()I
+*/
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_MJPG
   (JNIEnv *, jclass);
 
 /*
@@ -165,14 +173,6 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_direct
  * Signature: ()I
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_YVYU
-  (JNIEnv *, jclass);
-
-/*
- * Class:     org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat
- * Method:    MJPG
- * Signature: ()I
- */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSFormat_MJPG
   (JNIEnv *, jclass);
 
 #ifdef __cplusplus
