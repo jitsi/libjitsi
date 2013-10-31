@@ -760,14 +760,29 @@ public class WASAPIStream
                             MFPKEY_WMAAECMA_FEATR_AES,
                             audioSystem.isEchoCancel() ? 2 : 0);
                 }
-                // Perform automatic gain control (AGC).
+
+                // Possibly perform automatic gain control (AGC).
+                boolean isAGC = audioSystem.isAutomaticGainControl();
+
                 if (MFPKEY_WMAAECMA_FEATR_AGC != 0)
                 {
                     IPropertyStore_SetValue(
                             iPropertyStore,
                             MFPKEY_WMAAECMA_FEATR_AGC,
-                            true);
+                            isAGC);
                 }
+                /*
+                 * In order to disable automatic gain control (AGC), microphone
+                 * gain bounding must also be disabled.
+                 */
+                if (MFPKEY_WMAAECMA_MIC_GAIN_BOUNDER != 0)
+                {
+                    IPropertyStore_SetValue(
+                            iPropertyStore,
+                            MFPKEY_WMAAECMA_MIC_GAIN_BOUNDER,
+                            isAGC);
+                }
+
                 // Perform noise suppression (NS).
                 if (MFPKEY_WMAAECMA_FEATR_NS != 0)
                 {

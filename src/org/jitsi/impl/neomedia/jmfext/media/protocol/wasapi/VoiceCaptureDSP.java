@@ -16,6 +16,7 @@ import org.jitsi.util.*;
  * <tt>DataSource</tt> and <tt>Renderer</tt> implementations.
  *
  * @author Lyubomir Marinov
+ * @author Timothy Price
  */
 public class VoiceCaptureDSP
 {
@@ -160,6 +161,22 @@ public class VoiceCaptureDSP
     public static final long MFPKEY_WMAAECMA_FEATURE_MODE;
 
     /**
+     * Specifies whether the Voice Capture DSP applies microphone gain bounding.
+     * Microphone gain bounding ensures that the microphone has the correct
+     * level of gain. If gain is too high, the captured signal might be
+     * saturated and will be clipped. Clipping is a non-linear effect, which
+     * will cause the acoustic echo cancellation (AEC) algorithm to fail. If the
+     * gain is too low, the signal-to-noise ratio is low, which can also cause
+     * the AEC algorithm to fail or not perform well. The default value of this
+     * <tt>boolean</tt> property is <tt>true</tt>. Microphone gain bounding is
+     * applied only when the DSP operates in source mode. In filter mode, the
+     * application must ensure that the microphone has the correct gain level.
+     * In order to disable automatic gain control (AGC), microphone gain
+     * bounding must also be disabled.
+     */
+    public static final long MFPKEY_WMAAECMA_MIC_GAIN_BOUNDER;
+
+    /**
      * Specifies the processing mode for the Voice Capture DSP.
      *
      * @see #SINGLE_CHANNEL_AEC
@@ -261,6 +278,8 @@ public class VoiceCaptureDSP
         MFPKEY_WMAAECMA_FEATR_NS = maybePSPropertyKeyFromString(fmtid + "8");
         MFPKEY_WMAAECMA_FEATURE_MODE
             = maybePSPropertyKeyFromString(fmtid + "5");
+        MFPKEY_WMAAECMA_MIC_GAIN_BOUNDER
+            = maybePSPropertyKeyFromString(fmtid + "21");
     }
 
     public static native int DMO_MEDIA_TYPE_fill(

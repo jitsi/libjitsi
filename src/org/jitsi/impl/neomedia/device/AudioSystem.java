@@ -28,6 +28,7 @@ import org.jitsi.util.*;
  *
  * @author Lyubomir Marinov
  * @author Vincent Lucas
+ * @author Timothy Price
  */
 public abstract class AudioSystem
     extends DeviceSystem
@@ -48,11 +49,21 @@ public abstract class AudioSystem
     /**
      * The constant/flag (to be) returned by {@link #getFeatures()} in order to
      * indicate that the respective <tt>AudioSystem</tt> supports toggling its
+     * automatic gain control (AGC) functionality between on and off. The UI
+     * will look for the presence of the flag in order to determine whether a
+     * check box is to be shown to the user to enable toggling the automatic
+     * gain control (AGC) functionality.
+     */
+    public static final int FEATURE_AGC = 1 << 4;
+
+    /**
+     * The constant/flag (to be) returned by {@link #getFeatures()} in order to
+     * indicate that the respective <tt>AudioSystem</tt> supports toggling its
      * denoise functionality between on and off. The UI will look for the
      * presence of the flag in order to determine whether a check box is to be
      * shown to the user to enable toggling the denoise functionality.
      */
-    public static final int FEATURE_DENOISE = 2;
+    public static final int FEATURE_DENOISE = 1 << 1;
 
     /**
      * The constant/flag (to be) returned by {@link #getFeatures()} in order to
@@ -62,7 +73,7 @@ public abstract class AudioSystem
      * be shown to the user to enable toggling the echo cancellation
      * functionality.
      */
-    public static final int FEATURE_ECHO_CANCELLATION = 4;
+    public static final int FEATURE_ECHO_CANCELLATION = 1 << 2;
 
     /**
      * The constant/flag (to be) returned by {@link #getFeatures()} in order to
@@ -72,7 +83,7 @@ public abstract class AudioSystem
      * boxes are to be shown to the user to allow the configuration of the
      * preferred playback and notification audio devices.
      */
-    public static final int FEATURE_NOTIFY_AND_PLAYBACK_DEVICES = 8;
+    public static final int FEATURE_NOTIFY_AND_PLAYBACK_DEVICES = 1 << 3;
 
     public static final String LOCATOR_PROTOCOL_AUDIORECORD = "audiorecord";
 
@@ -100,6 +111,13 @@ public abstract class AudioSystem
      * The <tt>Logger</tt> used by this instance for logging output.
      */
     private static Logger logger = Logger.getLogger(AudioSystem.class);
+
+    /**
+     * The (base) name of the <tt>ConfigurationService</tt> property which
+     * indicates whether automatic gain control (AGC) is to be performed for the
+     * captured audio. 
+     */
+    private static final String PNAME_AGC = "automaticgaincontrol";
 
     /**
      * The (base) name of the <tt>ConfigurationService</tt> property which
@@ -477,6 +495,23 @@ public abstract class AudioSystem
     }
 
     /**
+     * Gets the indicator which determines whether automatic gain control (AGC) 
+     * is to be performed for captured audio.
+     * 
+     * @return <tt>true</tt> if automatic gain control (AGC) is to be performed
+     * for captured audio; otherwise, <tt>false</tt>
+     */
+    public boolean isAutomaticGainControl()
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        boolean value = ((getFeatures() & FEATURE_AGC) == FEATURE_AGC);
+        
+        if (cfg != null)
+            value = cfg.getBoolean(getPropertyName(PNAME_AGC), value);
+        return value;
+    }
+
+    /**
      * Gets the indicator which determines whether noise suppression is to be
      * performed for captured audio.
      *
@@ -614,6 +649,21 @@ public abstract class AudioSystem
     void propertyChange(String property, Object oldValue, Object newValue)
     {
         firePropertyChange(property, oldValue, newValue);
+    }
+
+    /**
+     * Sets the indicator which determines whether automatic gain control (AGC) 
+     * is to be performed for captured audio.
+     *
+     * @param automaticGainControl <tt>true</tt> if automatic gain control (AGC)
+     * is to be performed for captured audio; otherwise, <tt>false</tt>
+     */
+    public void setAutomaticGainControl(boolean automaticGainControl)
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        if (cfg != null)
+            cfg.setProperty(getPropertyName(PNAME_AGC), automaticGainControl);
     }
 
     /**

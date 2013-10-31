@@ -272,7 +272,8 @@ public class WASAPISystem
     {
         super(
                 LOCATOR_PROTOCOL,
-                FEATURE_DENOISE
+                FEATURE_AGC
+                    | FEATURE_DENOISE
                     | FEATURE_ECHO_CANCELLATION
                     | FEATURE_NOTIFY_AND_PLAYBACK_DEVICES
                     | FEATURE_REINITIALIZE);
