@@ -121,7 +121,7 @@ public class SDesControlImpl
     }
 
     /**
-     * Initializes the available SRTP crypto attributes containing: he
+     * Initializes the available SRTP crypto attributes containing: the
      * crypto-suite, the key-param and the session-param.
      */
     private void initAttributes()
