@@ -128,6 +128,13 @@ public class SDesControlImpl
     {
         if(attributes == null)
         {
+            if (selectedOutAttribute != null)
+            {
+                attributes = new SrtpCryptoAttribute[1];
+                attributes[0] = selectedOutAttribute;
+                return;
+            }
+
             attributes = new SrtpCryptoAttribute[enabledCryptoSuites.size()];
             for (int i = 0; i < attributes.length; i++)
             {
