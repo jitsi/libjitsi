@@ -14,6 +14,7 @@ import javax.media.control.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.impl.neomedia.transform.dtmf.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
@@ -185,9 +186,14 @@ public class AudioMediaStreamImpl
         if (RTPExtension.CSRC_AUDIO_LEVEL_URN.equals(
                 rtpExtension.getURI().toString()))
         {
-            getCsrcEngine().setCsrcAudioLevelAudioLevelExtensionID(
-                    extensionID,
-                    rtpExtension.getDirection());
+            CsrcTransformEngine csrcEngine = getCsrcEngine();
+
+            if (csrcEngine != null)
+            {
+                csrcEngine.setCsrcAudioLevelAudioLevelExtensionID(
+                        extensionID,
+                        rtpExtension.getDirection());
+            }
         }
     }
 

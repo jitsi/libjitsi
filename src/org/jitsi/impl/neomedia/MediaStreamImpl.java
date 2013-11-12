@@ -457,7 +457,7 @@ public class MediaStreamImpl
     {
         synchronized (activeRTPExtensions)
         {
-            if(rtpExtension.getDirection() == MediaDirection.INACTIVE)
+            if (MediaDirection.INACTIVE.equals(rtpExtension.getDirection()))
                 activeRTPExtensions.remove(extensionID);
             else
                 activeRTPExtensions.put(extensionID, rtpExtension);
@@ -521,16 +521,13 @@ public class MediaStreamImpl
     {
         synchronized (activeRTPExtensions)
         {
-            Set<Map.Entry<Byte, RTPExtension>> extSet
-                = this.activeRTPExtensions.entrySet();
-
-            for (Map.Entry<Byte, RTPExtension> entry : extSet)
+            for (Map.Entry<Byte, RTPExtension> entry
+                    : activeRTPExtensions.entrySet())
             {
                 if (entry.getValue().equals(rtpExtension))
                     return entry.getKey();
             }
         }
-
         return -1;
     }
 
@@ -1276,7 +1273,8 @@ public class MediaStreamImpl
 
     /**
      * Gets the <tt>RTPManager</tt> instance which sends and receives RTP and
-     * RTCP traffic on behalf of this <tt>MediaStream</tt>.
+     * RTCP traffic on behalf of this <tt>MediaStream</tt>. If the
+     * <tt>RTPManager</tt> does not exist yet, it is created.
      *
      * @return the <tt>RTPManager</tt> instance which sends and receives RTP and
      * RTCP traffic on behalf of this <tt>MediaStream</tt>
@@ -1359,6 +1357,19 @@ public class MediaStreamImpl
     public boolean isStarted()
     {
         return started;
+    }
+
+    /**
+     * Gets the <tt>RTPManager</tt> instance which sends and receives RTP and
+     * RTCP traffic on behalf of this <tt>MediaStream</tt>. If the
+     * <tt>RTPManager</tt> does not exist yet, it is not created.
+     *
+     * @return the <tt>RTPManager</tt> instance which sends and receives RTP and
+     * RTCP traffic on behalf of this <tt>MediaStream</tt>
+     */
+    public StreamRTPManager queryRTPManager()
+    {
+        return rtpManager;
     }
 
     /**

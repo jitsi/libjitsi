@@ -524,7 +524,7 @@ public class MediaStreamStatsImpl
         updateJitterRTPTimestampUnits(feedback, streamDirection);
 
         // Updates the loss rate with the RTCP sender report feedback, since
-        // this is the only information source available for the upalod stream.
+        // this is the only information source available for the uploàd stream.
         long uploadNewNbRecv = feedback.getXtndSeqNum();
         long newNbLost =
             feedback.getNumLost() - this.nbLost[streamDirection.ordinal()];
@@ -646,7 +646,7 @@ public class MediaStreamStatsImpl
      */
     private long getNbPDU(StreamDirection streamDirection)
     {
-        StreamRTPManager rtpManager = mediaStreamImpl.getRTPManager();
+        StreamRTPManager rtpManager = mediaStreamImpl.queryRTPManager();
         long nbPDU = 0;
 
         if(rtpManager != null)
@@ -777,8 +777,8 @@ public class MediaStreamStatsImpl
      */
     private long getNbBytes(StreamDirection streamDirection)
     {
+        StreamRTPManager rtpManager = mediaStreamImpl.queryRTPManager();
         long nbBytes = 0;
-        StreamRTPManager rtpManager = mediaStreamImpl.getRTPManager();
 
         if(rtpManager != null)
         {

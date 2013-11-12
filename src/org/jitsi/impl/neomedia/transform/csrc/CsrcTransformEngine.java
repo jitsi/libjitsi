@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.transform.csrc;
 
+import java.util.*;
+
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
@@ -64,6 +66,33 @@ public class CsrcTransformEngine
     public CsrcTransformEngine(MediaStreamImpl stream)
     {
         this.mediaStream = stream;
+
+        /*
+         * Take into account that RTPExtension.CSRC_AUDIO_LEVEL_URN may have
+         * already been activated.
+         */
+        Map<Byte,RTPExtension> activeRTPExtensions
+            = this.mediaStream.getActiveRTPExtensions();
+
+        if ((activeRTPExtensions != null) && !activeRTPExtensions.isEmpty())
+        {
+            for (Map.Entry<Byte,RTPExtension> e
+                    : activeRTPExtensions.entrySet())
+            {
+                Byte extensionID = e.getKey();
+                RTPExtension rtpExtension = e.getValue();
+
+                if (RTPExtension.CSRC_AUDIO_LEVEL_URN.equals(
+                        rtpExtension.getURI().toString()))
+                {
+                    setCsrcAudioLevelAudioLevelExtensionID(
+                            (extensionID == null)
+                                ? -1
+                                : extensionID.byteValue(),
+                            rtpExtension.getDirection());
+                }
+            }
+        }
     }
 
     /**
