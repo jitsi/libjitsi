@@ -74,6 +74,28 @@ public class DatagramTransportImpl
     }
 
     /**
+     * Works around a bug in the Bouncy Castle Crypto APIs which may cause
+     * <tt>org.bouncycastle.crypto.tls.DTLSReliableHandshake.receiveMessage()</tt>
+     * to enter an endless loop.
+     *
+     * @param cause the <tt>Throwable</tt> which would have been thrown if the
+     * bug did not exist 
+     */
+    private void breakOutOfDTLSReliableHandshakeReceiveMessage(Throwable cause)
+    {
+        for (StackTraceElement stackTraceElement : cause.getStackTrace())
+        {
+            if ("org.bouncycastle.crypto.tls.DTLSReliableHandshake".equals(
+                        stackTraceElement.getClassName())
+                    && "receiveMessage".equals(
+                            stackTraceElement.getMethodName()))
+            {
+                throw new IllegalStateException(cause);
+            }
+        }
+    }
+
+    /**
      * {@inheritDoc}
      */
     public void close()
@@ -187,7 +209,13 @@ public class DatagramTransportImpl
             synchronized (receiveQ)
             {
                 if (connector == null)
-                    throw new IOException(getClass().getName() + " is closed!");
+                {
+                    IOException ioe
+                        = new IOException(getClass().getName() + " is closed!");
+
+                    breakOutOfDTLSReliableHandshakeReceiveMessage(ioe);
+                    throw ioe;
+                }
 
                 MutableRawPacket pkt = receiveQ.peek();
 
