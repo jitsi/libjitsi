@@ -102,6 +102,13 @@ public class MediaServiceImpl
 
     /**
      * The name of the <tt>System</tt> boolean property which specifies whether
+     * the committing of the JMF/FMJ <tt>Registry</tt> is to be disabled.
+     */
+    private static final String JMF_REGISTRY_DISABLE_COMMIT
+        = "net.sf.fmj.utility.JmfRegistry.disableCommit";
+
+    /**
+     * The name of the <tt>System</tt> boolean property which specifies whether
      * the loading of the JMF/FMJ <tt>Registry</tt> is to be disabled.
      */
     private static final String JMF_REGISTRY_DISABLE_LOAD
@@ -1526,6 +1533,8 @@ public class MediaServiceImpl
         jmfRegistryDisableLoad
             = "true".equalsIgnoreCase(System.getProperty(
                     JMF_REGISTRY_DISABLE_LOAD));
+        if (System.getProperty(JMF_REGISTRY_DISABLE_COMMIT) == null)
+            System.setProperty(JMF_REGISTRY_DISABLE_COMMIT, "true");
 
         String scHomeDirLocation
             = System.getProperty(
