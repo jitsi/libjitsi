@@ -184,9 +184,13 @@ public class TlsClientImpl
 
         if (useSRTPData == null)
         {
-            throw new IOException(
-                    "DTLS extended server hello does not include the use_srtp"
-                        + " extension!");
+            String msg
+                = "DTLS extended server hello does not include the use_srtp"
+                    + " extension!";
+            IOException ioe = new IOException(msg);
+
+            logger.error(msg, ioe);
+            throw ioe;
         }
         else
         {
@@ -199,7 +203,12 @@ public class TlsClientImpl
 
             if (chosenProtectionProfile == 0)
             {
-                throw new TlsFatalAlert(AlertDescription.illegal_parameter);
+                String msg = "No chosen SRTP protection profile!";
+                TlsFatalAlert tfa
+                    = new TlsFatalAlert(AlertDescription.illegal_parameter);
+
+                logger.error(msg, tfa);
+                throw tfa;
             }
             else
             {
@@ -219,7 +228,14 @@ public class TlsClientImpl
                 }
                 else
                 {
-                    throw new TlsFatalAlert(AlertDescription.illegal_parameter);
+                    String msg
+                        = "Server's MKI does not match the one offered by this"
+                            + " client!";
+                    TlsFatalAlert tfa
+                        = new TlsFatalAlert(AlertDescription.illegal_parameter);
+
+                    logger.error(msg, tfa);
+                    throw tfa;
                 }
             }
         }

@@ -15,6 +15,7 @@ import org.bouncycastle.crypto.tls.*;
 import org.ice4j.ice.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.video.h264.*;
+import org.jitsi.util.*;
 
 /**
  * Implements {@link DatagramTransport} in order to integrate the Bouncy Castle
@@ -25,6 +26,13 @@ import org.jitsi.impl.neomedia.codec.video.h264.*;
 public class DatagramTransportImpl
     implements DatagramTransport
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>DatagramTransportImpl</tt> class and
+     * its instances to print debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(DatagramTransportImpl.class);
+
     /**
      * The ID of the component which this instance works for/is associated with.
      */
@@ -161,8 +169,11 @@ public class DatagramTransportImpl
             {
                 if (connector == null)
                 {
-                    throw new IllegalStateException(
-                            getClass().getName() + " is closed!");
+                    String msg = getClass().getName() + " is closed!";
+                    IllegalStateException ise = new IllegalStateException(msg);
+
+                    logger.error(msg, ise);
+                    throw ise;
                 }
 
                 byte[] pktBuf = new byte[len];
@@ -210,9 +221,10 @@ public class DatagramTransportImpl
             {
                 if (connector == null)
                 {
-                    IOException ioe
-                        = new IOException(getClass().getName() + " is closed!");
+                    String msg = getClass().getName() + " is closed!";
+                    IOException ioe = new IOException(msg);
 
+                    logger.error(msg, ioe);
                     breakOutOfDTLSReliableHandshakeReceiveMessage(ioe);
                     throw ioe;
                 }
@@ -299,6 +311,17 @@ public class DatagramTransportImpl
     public void send(byte[] buf, int off, int len)
         throws IOException
     {
+        AbstractRTPConnector connector = this.connector;
+
+        if (connector == null)
+        {
+            String msg = getClass().getName() + " is closed!";
+            IOException ioe = new IOException(msg);
+
+            logger.error(msg, ioe);
+            throw ioe;
+        }
+
         OutputDataStream outputStream;
 
         switch (componentID)
@@ -310,7 +333,11 @@ public class DatagramTransportImpl
             outputStream = connector.getDataOutputStream();
             break;
         default:
-            throw new IllegalStateException("componentID");
+            String msg = "componentID";
+            IllegalStateException ise = new IllegalStateException(msg);
+
+            logger.error(msg, ise);
+            throw ise;
         }
 
         outputStream.write(buf, off, len);
@@ -358,6 +385,9 @@ public class DatagramTransportImpl
 
         /**
          * {@inheritDoc}
+         *
+         * Makes the super implementation public to the
+         * <tt>DatagramTransportImpl</tt> class.
          */
         @Override
         public void setLength(int length)
@@ -367,6 +397,9 @@ public class DatagramTransportImpl
 
         /**
          * {@inheritDoc}
+         *
+         * Makes the super implementation public to the
+         * <tt>DatagramTransportImpl</tt> class.
          */
         @Override
         public void setOffset(int offset)

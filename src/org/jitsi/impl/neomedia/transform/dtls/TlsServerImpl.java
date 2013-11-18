@@ -173,7 +173,12 @@ public class TlsServerImpl
              */
             if (chosenProtectionProfile == 0)
             {
-                throw new TlsFatalAlert(AlertDescription.internal_error);
+                String msg = "No chosen SRTP protection profile!";
+                TlsFatalAlert tfa
+                    = new TlsFatalAlert(AlertDescription.internal_error);
+
+                logger.error(msg, tfa);
+                throw tfa;
             }
             else
             {
@@ -248,9 +253,13 @@ public class TlsServerImpl
 
         if (useSRTPData == null)
         {
-            throw new IOException(
-                    "DTLS extended client hello does not include the use_srtp"
-                        + " extension!");
+            String msg
+                = "DTLS extended client hello does not include the use_srtp"
+                    + " extension!";
+            IOException ioe = new IOException(msg);
+
+            logger.error(msg, ioe);
+            throw ioe;
         }
         else
         {
@@ -263,7 +272,14 @@ public class TlsServerImpl
              * server SHOULD return an appropriate DTLS alert.
              */
             if (chosenProtectionProfile == 0)
-                throw new TlsFatalAlert(AlertDescription.illegal_parameter);
+            {
+                String msg = "No chosen SRTP protection profile!";
+                TlsFatalAlert tfa
+                    = new TlsFatalAlert(AlertDescription.illegal_parameter);
+
+                logger.error(msg, tfa);
+                throw tfa;
+            }
             else
                 super.processClientExtensions(clientExtensions);
         }
