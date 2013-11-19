@@ -34,6 +34,8 @@ public class FMJPlugInConfiguration
     private static final String[] CUSTOM_CODECS
         = {
 //            "org.jitsi.impl.neomedia.codec.AndroidMediaCodec",
+            "org.jitsi.impl.neomedia.codec.video.AndroidEncoder",
+            "org.jitsi.impl.neomedia.codec.video.AndroidDecoder",
             "org.jitsi.impl.neomedia.codec.audio.alaw.DePacketizer",
             "org.jitsi.impl.neomedia.codec.audio.alaw.JavaEncoder",
             "org.jitsi.impl.neomedia.codec.audio.alaw.Packetizer",
@@ -45,7 +47,10 @@ public class FMJPlugInConfiguration
             "org.jitsi.impl.neomedia.codec.audio.speex.JNIDecoder",
             "org.jitsi.impl.neomedia.codec.audio.speex.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.audio.speex.SpeexResampler",
-            "org.jitsi.impl.neomedia.codec.audio.mp3.JNIEncoder",
+            // MP3 encoder is not built for Android yet
+            !OSUtils.IS_ANDROID
+                    ? "org.jitsi.impl.neomedia.codec.audio.mp3.JNIEncoder"
+                    : null,
             "org.jitsi.impl.neomedia.codec.audio.ilbc.JavaDecoder",
             "org.jitsi.impl.neomedia.codec.audio.ilbc.JavaEncoder",
             EncodingConfigurationImpl.G729
@@ -73,8 +78,13 @@ public class FMJPlugInConfiguration
             "org.jitsi.impl.neomedia.codec.video.SwScale",
             "org.jitsi.impl.neomedia.codec.video.vp8.Packetizer",
             "org.jitsi.impl.neomedia.codec.video.vp8.DePacketizer",
-            "org.jitsi.impl.neomedia.codec.video.vp8.VPXEncoder",
-            "org.jitsi.impl.neomedia.codec.video.vp8.VPXDecoder"
+            // TODO: change once VP8 software codec is built for Android
+            !OSUtils.IS_ANDROID
+                    ? "org.jitsi.impl.neomedia.codec.video.vp8.VPXEncoder"
+                    : null,
+            !OSUtils.IS_ANDROID
+                    ? "org.jitsi.impl.neomedia.codec.video.vp8.VPXDecoder"
+                    : null
         };
 
     /**

@@ -544,6 +544,13 @@ public class VideoMediaDeviceSession
      */
     protected Component createLocalVisualComponent()
     {
+        // On Android local preview is displayed directly using Surface
+        // provided to the recorder. We don't want to build unused codec chain.
+        if(OSUtils.IS_ANDROID)
+        {
+            return null;
+        }
+
         /*
          * Displaying the currently streamed desktop is perceived as unnecessary
          * because the user sees the whole desktop anyway. Instead, a static
@@ -1059,7 +1066,10 @@ public class VideoMediaDeviceSession
         TrackControl[] trackControls = player.getTrackControls();
         SwScale playerScaler = null;
 
-        if ((trackControls != null) && (trackControls.length != 0))
+        if ((trackControls != null) && (trackControls.length != 0)
+                /* We do not add scaler nor key frames control on Android
+                   for now */
+                && !OSUtils.IS_ANDROID)
         {
             String fmjEncoding = getFormat().getJMFEncoding();
 

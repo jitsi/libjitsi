@@ -556,6 +556,7 @@ public class DeviceConfiguration
                 = new Format[]
                         {
                             new AVFrameFormat(),
+                            new VideoFormat(Constants.ANDROID_SURFACE),
                             new VideoFormat(VideoFormat.RGB),
                             new VideoFormat(VideoFormat.YUV),
                             new VideoFormat(Constants.H264)
@@ -711,6 +712,7 @@ public class DeviceConfiguration
             = new Format[]
                     {
                         new AVFrameFormat(),
+                        new VideoFormat(Constants.ANDROID_SURFACE),
                         new VideoFormat(VideoFormat.RGB),
                         new VideoFormat(VideoFormat.YUV),
                         new VideoFormat(Constants.H264)

@@ -58,6 +58,13 @@ public class Constants
     public static final String H264_RTP = "h264/rtp";
 
     /**
+     * The Android Surface constant. It is used as VideoFormat pseudo encoding
+     * in which case the object is passed through the buffers instead of byte
+     * array for example.
+     */
+    public static final String ANDROID_SURFACE = "android_surface";
+
+    /**
      * The iLBC constant.
      */
     public static final String ILBC = "ilbc";

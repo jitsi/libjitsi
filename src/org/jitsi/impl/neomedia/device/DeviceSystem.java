@@ -47,6 +47,8 @@ public abstract class DeviceSystem
      */
     public static final int FEATURE_REINITIALIZE = 1;
 
+    public static final String LOCATOR_PROTOCOL_ANDROIDCAMERA = "androidcamera";
+
     public static final String LOCATOR_PROTOCOL_CIVIL = "civil";
 
     public static final String LOCATOR_PROTOCOL_DIRECTSHOW = "directshow";
@@ -202,6 +204,7 @@ public abstract class DeviceSystem
                 = new String[]
                 {
                     OSUtils.IS_ANDROID ? ".MediaRecorderSystem" : null,
+                    OSUtils.IS_ANDROID ? ".AndroidCameraSystem" : null,
                     (OSUtils.IS_LINUX || OSUtils.IS_FREEBSD)
                         ? ".Video4Linux2System"
                         : null,
