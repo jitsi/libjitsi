@@ -466,10 +466,12 @@ public class MacCoreaudioRenderer
      */
     public void stop()
     {
+        boolean doStop = false;
         synchronized(startStopMutex)
         {
             if(stream != 0 && deviceUID != null && !isStopping)
             {
+                doStop = true;
                 this.isStopping = true;
                 long timeout = 500;
                 long startTime = System.currentTimeMillis();
@@ -487,21 +489,30 @@ public class MacCoreaudioRenderer
                     }
                     currentTime = System.currentTimeMillis();
                 }
+            }
+        }
 
-                stopLock.lock();
-                try
+        if(doStop)
+        {
+            stopLock.lock();
+            try
+            {
+                synchronized(startStopMutex)
                 {
-                    MacCoreAudioDevice.stopStream(deviceUID, stream);
-                }
-                finally
-                {
-                    stopLock.unlock();
-                }
+                    if(stream != 0 && deviceUID != null)
+                    {
+                        MacCoreAudioDevice.stopStream(deviceUID, stream);
 
-                stream = 0;
-                buffer = null;
-                nbBufferData = 0;
-                this.isStopping = false;
+                        stream = 0;
+                        buffer = null;
+                        nbBufferData = 0;
+                        this.isStopping = false;
+                    }
+                }
+            }
+            finally
+            {
+                stopLock.unlock();
             }
         }
     }

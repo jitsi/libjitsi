@@ -385,25 +385,25 @@ public class MacCoreaudioStream
     public void stop()
         throws IOException
     {
-        synchronized(startStopMutex)
+        stopLock.lock();
+        try
         {
-            if(stream != 0 && deviceUID != null)
+            synchronized(startStopMutex)
             {
-                stopLock.lock();
-                try
+                if(stream != 0 && deviceUID != null)
                 {
                     MacCoreAudioDevice.stopStream(deviceUID, stream);
-                }
-                finally
-                {
-                    stopLock.unlock();
-                }
 
-                stream = 0;
-                this.fullBufferList.clear();
-                this.freeBufferList.clear();
-                startStopMutex.notify();
+                    stream = 0;
+                    this.fullBufferList.clear();
+                    this.freeBufferList.clear();
+                    startStopMutex.notify();
+                }
             }
+        }
+        finally
+        {
+            stopLock.unlock();
         }
     }
 
