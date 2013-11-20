@@ -170,7 +170,7 @@ public class DeviceConfiguration
      * The property we use to store the settings for maximum allowed video
      * bandwidth (used to normalize RTP traffic, and not in codec configuration)
      */
-    private static final String PROP_VIDEO_RTP_PACING_THRESHOLD
+    public static final String PROP_VIDEO_RTP_PACING_THRESHOLD
         = "net.java.sip.communicator.impl.neomedia.video.maxbandwidth";
 
     /**
@@ -1236,8 +1236,11 @@ public class DeviceConfiguration
         if (cfg != null)
         {
             if (videoMaxBandwidth != DEFAULT_VIDEO_RTP_PACING_THRESHOLD)
-                cfg.setProperty(PROP_VIDEO_RTP_PACING_THRESHOLD,
-                                videoMaxBandwidth);
+            {
+                cfg.setProperty(
+                        PROP_VIDEO_RTP_PACING_THRESHOLD,
+                        videoMaxBandwidth);
+            }
             else
                 cfg.removeProperty(PROP_VIDEO_RTP_PACING_THRESHOLD);
         }
