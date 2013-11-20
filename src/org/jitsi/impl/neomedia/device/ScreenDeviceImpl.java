@@ -38,9 +38,16 @@ public class ScreenDeviceImpl implements ScreenDevice
         {
             ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
         }
-        catch(NoClassDefFoundError ncdfe)
+        catch (Throwable t)
         {
-            ge = null;
+            /*
+             * We've seen NoClassDefFoundError at one time and InternalError at
+             * another.
+             */
+            if (t instanceof ThreadDeath)
+                throw (ThreadDeath) t;
+            else
+                ge = null;
         }
 
         ScreenDevice[] screens = null;
