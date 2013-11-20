@@ -302,6 +302,7 @@ public class DatagramTransportImpl
         }
         if (interrupted)
             Thread.currentThread().interrupt();
+
         return received;
     }
 

@@ -21,15 +21,18 @@ import org.jitsi.service.packetlogging.*;
 public class RTPConnectorUDPInputStream
     extends RTPConnectorInputStream
 {
+
+    /**
+     * The indicator which determine whether
+     * {@link DatagramSocket#setReceiveBufferSize(int)} has been invoked on
+     * {@link #socket}.
+     */
+    private boolean setReceiveBufferSize = false;
+
     /**
      * UDP socket used to receive data.
      */
     private final DatagramSocket socket;
-
-    /**
-     * Receive size configured flag.
-     */
-    private boolean receivedSizeFlag = false;
 
     /**
      * Initializes a new <tt>RTPConnectorInputStream</tt> which is to receive
@@ -104,16 +107,17 @@ public class RTPConnectorUDPInputStream
     protected void receivePacket(DatagramPacket p)
         throws IOException
     {
-        if(!receivedSizeFlag)
+        if (!setReceiveBufferSize)
         {
-            receivedSizeFlag = true;
-
+            setReceiveBufferSize = true;
             try
             {
                 socket.setReceiveBufferSize(65535);
             }
-            catch(Throwable t)
+            catch (Throwable t)
             {
+                if (t instanceof ThreadDeath)
+                    throw (ThreadDeath) t;
             }
         }
         socket.receive(p);
