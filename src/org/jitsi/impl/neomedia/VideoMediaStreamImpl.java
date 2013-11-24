@@ -1064,19 +1064,20 @@ public class VideoMediaStreamImpl
     }
 
     /**
-     * Set local SSRC.
-     *
-     * @param ssrc source ID
+     * {@inheritDoc}
      */
     @Override
-    protected void setLocalSourceID(long ssrc)
+    protected void setLocalSourceID(long localSourceID)
     {
-        super.setLocalSourceID(ssrc);
+        super.setLocalSourceID(localSourceID);
 
         MediaDeviceSession deviceSession = getDeviceSession();
 
         if (deviceSession instanceof VideoMediaDeviceSession)
-            ((VideoMediaDeviceSession) deviceSession).setLocalSSRC(ssrc);
+        {
+            ((VideoMediaDeviceSession) deviceSession).setLocalSSRC(
+                    localSourceID);
+        }
     }
 
     /**

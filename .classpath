@@ -5,7 +5,7 @@
 	<classpathentry kind="lib" path="lib/bccontrib-1.0-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="lib/bcpkix-jdk15on-149.jar" sourcepath="../bcpkix-jdk15on-149/src.zip"/>
 	<classpathentry kind="lib" path="lib/bcprov-jdk15on-149.jar" sourcepath="../bcprov-jdk15on-149/src.zip"/>
-	<classpathentry kind="lib" path="lib/fmj.jar"/>
+	<classpathentry kind="lib" path="lib/fmj.jar" sourcepath="/fmj"/>
 	<classpathentry kind="lib" path="lib/ice4j.jar" sourcepath="../ice4j/src"/>
 	<classpathentry kind="lib" path="lib/jain-sdp.jar"/>
 	<classpathentry kind="lib" path="lib/json-simple-1.1.1.jar"/>

@@ -301,15 +301,18 @@ public class FMJPlugInConfiguration
         Vector<String> packages = PackageManager.getProtocolPrefixList();
         boolean loggerIsDebugEnabled = logger.isDebugEnabled();
 
-        for (String customPackage : CUSTOM_PACKAGES)
+        // We prefer our custom packages/protocol prefixes over FMJ's.
+        for (int i = CUSTOM_PACKAGES.length - 1; i >= 0; i--)
         {
+            String customPackage = CUSTOM_PACKAGES[i];
+
             /*
              * Linear search in a loop but it doesn't have to scale since the
              * list is always short.
              */
             if (!packages.contains(customPackage))
             {
-                packages.add(customPackage);
+                packages.add(0, customPackage);
                 if (loggerIsDebugEnabled)
                     logger.debug("Adding package  : " + customPackage);
             }

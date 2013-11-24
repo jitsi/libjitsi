@@ -16,8 +16,6 @@ import javax.media.rtp.*;
 
 import org.jitsi.service.neomedia.*;
 
-import com.sun.media.rtp.*;
-
 /**
  * Implements the <tt>RTPManager</tt> interface as used by a
  * <tt>MediaStream</tt>.
@@ -174,7 +172,10 @@ public class StreamRTPManager
     public long getLocalSSRC()
     {
         if (translator == null)
-            return ((RTPSessionMgr) manager).getLocalSSRC();
+        {
+            return
+                ((net.sf.fmj.media.rtp.RTPSessionMgr) manager).getLocalSSRC();
+        }
         else
             return translator.getLocalSSRC(this);
     }
@@ -244,5 +245,27 @@ public class StreamRTPManager
             manager.removeSessionListener(listener);
         else
             translator.removeSessionListener(this, listener);
+    }
+
+    /**
+     * Sets the <tt>SSRCFactory</tt> to be utilized by this instance to generate
+     * new synchronization source (SSRC) identifiers.
+     *
+     * @param ssrcFactory the <tt>SSRCFactory</tt> to be utilized by this
+     * instance to generate new synchronization source (SSRC) identifiers or
+     * <tt>null</tt> if this instance is to employ internal logic to generate
+     * new synchronization source (SSRC) identifiers
+     */
+    public void setSSRCFactory(SSRCFactory ssrcFactory)
+    {
+        RTPManager m = this.manager;
+
+        if (m instanceof org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)
+        {
+            org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr sm
+                = (org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr) m;
+
+            sm.setSSRCFactory(ssrcFactory);
+        }
     }
 }

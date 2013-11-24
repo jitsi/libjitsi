@@ -133,7 +133,7 @@ public interface MediaStream
      * participant or <tt>-1</tt> if that identifier is not yet known at this
      * point.
      *
-     * @return  the synchronization source (SSRC) identifier of the local
+     * @return the synchronization source (SSRC) identifier of the local
      * participant or <tt>-1</tt> if that identifier is not yet known at this
      * point.
      */
@@ -384,4 +384,15 @@ public interface MediaStream
      * @param ssrc the SSRC for which to remove a <tt>ReceiveStream</tt>
      */
     public void removeReceiveStreamForSsrc(long ssrc);
+
+    /**
+     * Sets the <tt>SSRCFactory</tt> which is to generate new synchronization
+     * source (SSRC) identifiers.
+     * 
+     * @param ssrcFactory the <tt>SSRCFactory</tt> which is to generate new
+     * synchronization source (SSRC) identifiers or <tt>null</tt> if this
+     * <tt>MediaStream</tt> is to employ internal logic to generate new
+     * synchronization source (SSRC) identifiers
+     */
+    public void setSSRCFactory(SSRCFactory ssrcFactory);
 }

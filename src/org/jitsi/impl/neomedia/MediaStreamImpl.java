@@ -235,6 +235,13 @@ public class MediaStreamImpl
      */
     private PayloadTypeTransformEngine ptTransformEngine;
 
+    /**
+     * The <tt>SSRCFactory</tt> to be utilized by this instance to generate new
+     * synchronization source (SSRC) identifiers. If <tt>null</tt>, this
+     * instance will employ internal logic to generate new synchronization
+     * source (SSRC) identifiers.
+     */
+    private SSRCFactory ssrcFactory;
 
     /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
@@ -437,9 +444,11 @@ public class MediaStreamImpl
             dynamicRTPPayloadTypes.put(Byte.valueOf(rtpPayloadType), format);
 
             if (rtpManager != null)
+            {
                 rtpManager.addFormat(
                         mediaFormatImpl.getFormat(),
                         rtpPayloadType);
+            }
         }
     }
 
@@ -692,41 +701,36 @@ public class MediaStreamImpl
                     = rtpManager.createSendStream(dataSource, streamIndex);
 
                 if (logger.isTraceEnabled())
-                    logger
-                        .trace(
-                            "Created SendStream"
-                                + " with hashCode "
-                                + sendStream.hashCode()
-                                + " for "
-                                + toString(dataSource)
-                                + " and streamIndex "
-                                + streamIndex
-                                + " in RTPManager with hashCode "
+                {
+                    logger.trace(
+                            "Created SendStream with hashCode "
+                                + sendStream.hashCode() + " for "
+                                + toString(dataSource) + " and streamIndex "
+                                + streamIndex + " in RTPManager with hashCode "
                                 + rtpManager.hashCode());
+                }
 
-                long localSSRC = sendStream.getSSRC();
+                /*
+                 * JMF stores the synchronization source (SSRC) identifier as a
+                 * 32-bit signed integer, we store it as unsigned.
+                 */
+                long localSSRC = sendStream.getSSRC() & 0xFFFFFFFFL;
 
                 if (getLocalSourceID() != localSSRC)
                     setLocalSourceID(localSSRC);
             }
             catch (IOException ioe)
             {
-                logger
-                    .error(
+                logger.error(
                         "Failed to create send stream for data source "
-                            + dataSource
-                            + " and stream index "
-                            + streamIndex,
+                            + dataSource + " and stream index " + streamIndex,
                         ioe);
             }
             catch (UnsupportedFormatException ufe)
             {
-                logger
-                    .error(
+                logger.error(
                         "Failed to create send stream for data source "
-                            + dataSource
-                            + " and stream index "
-                            + streamIndex
+                            + dataSource + " and stream index " + streamIndex
                             + " because of failed format "
                             + ufe.getFailedFormat(),
                         ufe);
@@ -741,12 +745,9 @@ public class MediaStreamImpl
             int sendStreamCount
                 = (sendStreams == null) ? 0 : sendStreams.size();
 
-            logger
-                .trace(
+            logger.trace(
                     "Total number of SendStreams in RTPManager with hashCode "
-                        + rtpManager.hashCode()
-                        + " is "
-                        + sendStreamCount);
+                        + rtpManager.hashCode() + " is " + sendStreamCount);
         }
     }
 
@@ -1095,7 +1096,7 @@ public class MediaStreamImpl
      */
     public long getLocalSourceID()
     {
-        return this.localSourceID;
+        return localSourceID;
     }
 
     /**
@@ -1107,23 +1108,30 @@ public class MediaStreamImpl
      */
     public InetSocketAddress getRemoteControlAddress()
     {
-        StreamConnector connector =
-            (rtpConnector != null) ? rtpConnector.getConnector() : null;
-
-        if(connector != null)
+        if (rtpConnector != null)
         {
-            if(connector.getDataSocket() != null)
+            StreamConnector connector = rtpConnector.getConnector();
+
+            if (connector != null)
             {
-                return (InetSocketAddress)connector.getControlSocket().
-                    getRemoteSocketAddress();
-            }
-            else if(connector.getDataTCPSocket() != null)
-            {
-                return (InetSocketAddress)connector.getControlTCPSocket().
-                    getRemoteSocketAddress();
+                if (connector.getDataSocket() != null)
+                {
+                    return
+                        (InetSocketAddress)
+                            connector
+                                .getControlSocket()
+                                    .getRemoteSocketAddress();
+                }
+                else if (connector.getDataTCPSocket() != null)
+                {
+                    return
+                        (InetSocketAddress)
+                            connector
+                                .getControlTCPSocket()
+                                    .getRemoteSocketAddress();
+                }
             }
         }
-
         return null;
     }
 
@@ -1298,20 +1306,25 @@ public class MediaStreamImpl
             rtpManager.addRemoteListener(this);
 
             BufferControl bc = rtpManager.getControl(BufferControl.class);
+
             if (bc != null)
                 configureRTPManagerBufferControl(rtpManager, bc);
+
+            rtpManager.setSSRCFactory(ssrcFactory);
 
             rtpManager.initialize(rtpConnector);
 
             /*
              * JMF initializes the local SSRC upon #initialize(RTPConnector) so
-             * now's the time to ask.
+             * now's the time to ask. As JMF stores the SSRC as a 32-bit signed
+             * integer value, convert it to unsigned.
              */
-            /*
-             * As JMF keeps the SSRC as a signed int value, convert it to
-             * unsigned.
-             */
-            setLocalSourceID(rtpManager.getLocalSSRC() & 0xFFFFFFFFL);
+            long localSSRC = rtpManager.getLocalSSRC();
+
+            setLocalSourceID(
+                    (localSSRC == Long.MAX_VALUE)
+                        ? -1
+                        : (localSSRC & 0xFFFFFFFFL));
         }
         return rtpManager;
     }
@@ -2489,7 +2502,11 @@ public class MediaStreamImpl
     {
         if (event instanceof NewSendStreamEvent)
         {
-            long localSourceID = event.getSendStream().getSSRC();
+            /*
+             * JMF stores the synchronization source (SSRC) identifier as a
+             * 32-bit signed integer, we store it as unsigned.
+             */
+            long localSourceID = event.getSendStream().getSSRC() & 0xFFFFFFFFL;
 
             if (getLocalSourceID() != localSourceID)
                 setLocalSourceID(localSourceID);
@@ -2639,14 +2656,15 @@ public class MediaStreamImpl
             this.localSourceID = localSourceID;
 
             /*
-             * If a ZRTP engine is available, then let it know about the
-             * SSRC of the new SendStream. Currently, ZRTP supports only one
-             * SSRC per engine.
+             * If ZRTP is used, then let it know about the SSRC of the new
+             * SendStream. Currently, ZRTP supports only one SSRC per engine.
              */
-            TransformEngine engine = srtpControl.getTransformEngine();
-            if ((engine != null) && (engine instanceof ZRTPTransformEngine))
+            TransformEngine transformEngine = srtpControl.getTransformEngine();
+
+            if (transformEngine instanceof ZRTPTransformEngine)
             {
-                ((ZRTPTransformEngine)engine).setOwnSSRC(getLocalSourceID());
+                ((ZRTPTransformEngine) transformEngine).setOwnSSRC(
+                        getLocalSourceID());
             }
 
             firePropertyChange(PNAME_LOCAL_SSRC, oldValue, this.localSourceID);
@@ -2936,6 +2954,23 @@ public class MediaStreamImpl
                           deviceSession.removeReceiveStream(toRemove);
                   }
              }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setSSRCFactory(SSRCFactory ssrcFactory)
+    {
+        if (this.ssrcFactory != ssrcFactory)
+        {
+            this.ssrcFactory = ssrcFactory;
+
+            StreamRTPManager rtpManager = this.rtpManager;
+
+            if (rtpManager != null)
+                rtpManager.setSSRCFactory(ssrcFactory);
         }
     }
 }
