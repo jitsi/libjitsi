@@ -801,9 +801,7 @@ public class ZRTPTransformEngine
         ZrtpRawPacket packet = new ZrtpRawPacket(tmp, 0, tmp.length);
 
         packet.setSSRC(ownSSRC);
-
         packet.setSeqNum(senderZrtpSeqNo++);
-
         packet.setCrc();
 
         try
@@ -815,7 +813,6 @@ public class ZRTPTransformEngine
         catch (IOException e)
         {
             logger.warn("Failed to send ZRTP data.");
-
             if (logger.isDebugEnabled())
                 logger.debug("Failed to send ZRTP data.", e);
 
@@ -832,7 +829,8 @@ public class ZRTPTransformEngine
      * @return always return true.
      */
     public boolean srtpSecretsReady(
-        ZrtpSrtpSecrets secrets, EnableSecurity part)
+            ZrtpSrtpSecrets secrets,
+            EnableSecurity part)
     {
         SRTPPolicy srtpPolicy = null;
         int cipher = 0, authn = 0, authKeyLen = 0;
@@ -842,16 +840,22 @@ public class ZRTPTransformEngine
             authn = SRTPPolicy.HMACSHA1_AUTHENTICATION;
             authKeyLen = 20;
         }
-        if (secrets.getAuthAlgorithm() == ZrtpConstants.SupportedAuthAlgos.SK)
+        else if (secrets.getAuthAlgorithm()
+                == ZrtpConstants.SupportedAuthAlgos.SK)
         {
             authn = SRTPPolicy.SKEIN_AUTHENTICATION;
             authKeyLen = 32;
         }
-        if (secrets.getSymEncAlgorithm() == ZrtpConstants.SupportedSymAlgos.AES)
-            cipher = SRTPPolicy.AESCM_ENCRYPTION;
 
-        if (secrets.getSymEncAlgorithm() == ZrtpConstants.SupportedSymAlgos.TwoFish)
+        if (secrets.getSymEncAlgorithm() == ZrtpConstants.SupportedSymAlgos.AES)
+        {
+            cipher = SRTPPolicy.AESCM_ENCRYPTION;
+        }
+        else if (secrets.getSymEncAlgorithm()
+                == ZrtpConstants.SupportedSymAlgos.TwoFish)
+        {
             cipher = SRTPPolicy.TWOFISH_ENCRYPTION;
+        }
 
         if (part == EnableSecurity.ForSender)
         {
@@ -861,70 +865,91 @@ public class ZRTPTransformEngine
             // the main crypto context for the sending part of the connection.
             if (secrets.getRole() == Role.Initiator)
             {
-                srtpPolicy = new SRTPPolicy(cipher,
-                        secrets.getInitKeyLen() / 8,    // key length
-                        authn, authKeyLen,              // auth key length
-                        secrets.getSrtpAuthTagLen() / 8,// auth tag length
-                        secrets.getInitSaltLen() / 8    // salt length
-                );
+                srtpPolicy
+                    = new SRTPPolicy(cipher,
+                            secrets.getInitKeyLen() / 8,    // key length
+                            authn, authKeyLen,              // auth key length
+                            secrets.getSrtpAuthTagLen() / 8,// auth tag length
+                            secrets.getInitSaltLen() / 8    /* salt length */);
 
-                SRTPContextFactory engine = new SRTPContextFactory(secrets
-                        .getKeyInitiator(), secrets.getSaltInitiator(),
-                        srtpPolicy, srtpPolicy);
+                SRTPContextFactory engine
+                    = new SRTPContextFactory(
+                            true /* sender */,
+                            secrets.getKeyInitiator(),
+                            secrets.getSaltInitiator(),
+                            srtpPolicy,
+                            srtpPolicy);
 
                 srtpOutTransformer = new SRTPTransformer(engine);
                 getRTCPTransformer().setSrtcpOut(new SRTCPTransformer(engine));
             }
             else
             {
-                srtpPolicy = new SRTPPolicy(cipher,
-                        secrets.getRespKeyLen() / 8,    // key length
-                        authn, authKeyLen,              // auth key length
-                        secrets.getSrtpAuthTagLen() / 8,// auth taglength
-                        secrets.getRespSaltLen() / 8    // salt length
-                );
+                srtpPolicy
+                    = new SRTPPolicy(
+                            cipher,
+                            secrets.getRespKeyLen() / 8,    // key length
+                            authn, authKeyLen,              // auth key length
+                            secrets.getSrtpAuthTagLen() / 8,// auth taglength
+                            secrets.getRespSaltLen() / 8    /* salt length */);
 
-                SRTPContextFactory engine = new SRTPContextFactory(secrets
-                        .getKeyResponder(), secrets.getSaltResponder(),
-                        srtpPolicy, srtpPolicy);
+                SRTPContextFactory engine
+                    = new SRTPContextFactory(
+                            true /* sender */,
+                            secrets.getKeyResponder(),
+                            secrets.getSaltResponder(),
+                            srtpPolicy,
+                            srtpPolicy);
+
                 srtpOutTransformer = new SRTPTransformer(engine);
                 getRTCPTransformer().setSrtcpOut(new SRTCPTransformer(engine));
             }
         }
-
-        if (part == EnableSecurity.ForReceiver)
+        else if (part == EnableSecurity.ForReceiver)
         {
             // To decrypt packets: initiator uses responder keys,
             // responder initiator keys
             // See comment above.
             if (secrets.getRole() == Role.Initiator)
             {
-                srtpPolicy = new SRTPPolicy(cipher,
-                        secrets.getRespKeyLen() / 8,    // key length
-                        authn, authKeyLen,              // auth key length
-                        secrets.getSrtpAuthTagLen() / 8,// auth tag length
-                        secrets.getRespSaltLen() / 8    // salt length
-                );
+                srtpPolicy
+                    = new SRTPPolicy(
+                            cipher,
+                            secrets.getRespKeyLen() / 8,    // key length
+                            authn, authKeyLen,              // auth key length
+                            secrets.getSrtpAuthTagLen() / 8,// auth tag length
+                            secrets.getRespSaltLen() / 8    /* salt length */);
 
-                SRTPContextFactory engine = new SRTPContextFactory(secrets
-                        .getKeyResponder(), secrets.getSaltResponder(),
-                        srtpPolicy, srtpPolicy);
+                SRTPContextFactory engine
+                    = new SRTPContextFactory(
+                            false /* receiver */,
+                            secrets.getKeyResponder(),
+                            secrets.getSaltResponder(),
+                            srtpPolicy,
+                            srtpPolicy);
+
                 srtpInTransformer = new SRTPTransformer(engine);
                 getRTCPTransformer().setSrtcpIn(new SRTCPTransformer(engine));
                 this.muted = false;
             }
             else
             {
-                srtpPolicy = new SRTPPolicy(cipher,
-                        secrets.getInitKeyLen() / 8,    // key length
-                        authn, authKeyLen,              // auth key length
-                        secrets.getSrtpAuthTagLen() / 8,// auth tag length
-                        secrets.getInitSaltLen() / 8    // salt length
-                );
+                srtpPolicy
+                    = new SRTPPolicy(
+                            cipher,
+                            secrets.getInitKeyLen() / 8,    // key length
+                            authn, authKeyLen,              // auth key length
+                            secrets.getSrtpAuthTagLen() / 8,// auth tag length
+                            secrets.getInitSaltLen() / 8    /* salt length */);
 
-                SRTPContextFactory engine = new SRTPContextFactory(secrets
-                        .getKeyInitiator(), secrets.getSaltInitiator(),
-                        srtpPolicy, srtpPolicy);
+                SRTPContextFactory engine
+                    = new SRTPContextFactory(
+                            false /* receiver */,
+                            secrets.getKeyInitiator(),
+                            secrets.getSaltInitiator(),
+                            srtpPolicy,
+                            srtpPolicy);
+
                 srtpInTransformer = new SRTPTransformer(engine);
                 getRTCPTransformer().setSrtcpIn(new SRTCPTransformer(engine));
                 this.muted = false;
@@ -952,39 +977,38 @@ public class ZRTPTransformEngine
         if (securityEventManager != null)
         {
             securityEventManager.secureOn(c);
-            if(s != null || !verified)
-            {
+            if ((s != null) || !verified)
                 securityEventManager.showSAS(s, verified);
-            }
         }
     }
 
     /**
      * This method shall clear the ZRTP secrets.
      *
-     * @param part Defines for which part (sender or receiver)
-     *        to switch on security
+     * @param part Defines for which part (sender or receiver) to switch on
+     * security
      */
     public void srtpSecretsOff(EnableSecurity part)
     {
         if (part == EnableSecurity.ForSender)
         {
             if (srtpOutTransformer != null)
+            {
                 srtpOutTransformer.close();
-            srtpOutTransformer = null;
+                srtpOutTransformer = null;
+            }
         }
-
-        if (part == EnableSecurity.ForReceiver)
+        else if (part == EnableSecurity.ForReceiver)
         {
             if (srtpInTransformer != null)
+            {
                 srtpInTransformer.close();
-            srtpInTransformer = null;
+                srtpInTransformer = null;
+            }
         }
 
         if (securityEventManager != null)
-        {
             securityEventManager.secureOff();
-        }
     }
 
     /**
@@ -995,10 +1019,7 @@ public class ZRTPTransformEngine
     public int activateTimer(int time)
     {
         if (timeoutProvider != null)
-        {
             timeoutProvider.requestTimeout(time);
-        }
-
         return 1;
     }
 
@@ -1009,9 +1030,7 @@ public class ZRTPTransformEngine
     public int cancelTimer()
     {
         if (timeoutProvider != null)
-        {
             timeoutProvider.cancelRequest();
-        }
         return 1;
     }
 
@@ -1022,9 +1041,7 @@ public class ZRTPTransformEngine
     public void handleTimeout()
     {
         if (zrtpEngine != null)
-        {
             zrtpEngine.processTimeout();
-        }
     }
 
     /**
@@ -1035,9 +1052,7 @@ public class ZRTPTransformEngine
     public void sendInfo(ZrtpCodes.MessageSeverity severity, EnumSet<?> subCode)
     {
         if (securityEventManager != null)
-        {
             securityEventManager.showMessage(severity, subCode);
-        }
     }
 
     /**
@@ -1049,9 +1064,7 @@ public class ZRTPTransformEngine
                                       EnumSet<?> subCode)
     {
         if (securityEventManager != null)
-        {
             securityEventManager.zrtpNegotiationFailed(severity, subCode);
-        }
     }
 
     /**
@@ -1060,9 +1073,7 @@ public class ZRTPTransformEngine
     public void zrtpNotSuppOther()
     {
         if (securityEventManager != null)
-        {
             securityEventManager.zrtpNotSuppOther();
-        }
     }
 
     /**
@@ -1072,9 +1083,7 @@ public class ZRTPTransformEngine
     public void zrtpAskEnrollment(ZrtpCodes.InfoEnrollment info)
     {
         if (securityEventManager != null)
-        {
             securityEventManager.zrtpAskEnrollment(info);
-        }
     }
 
     /**
@@ -1086,9 +1095,7 @@ public class ZRTPTransformEngine
     public void zrtpInformEnrollment(ZrtpCodes.InfoEnrollment info)
     {
         if (securityEventManager != null)
-        {
             securityEventManager.zrtpInformEnrollment(info);
-        }
     }
 
     /**
@@ -1099,9 +1106,7 @@ public class ZRTPTransformEngine
     public void signSAS(byte[] sasHash)
     {
         if (securityEventManager != null)
-        {
             securityEventManager.signSAS(sasHash);
-        }
     }
 
     /**
@@ -1112,9 +1117,10 @@ public class ZRTPTransformEngine
      */
     public boolean checkSASSignature(byte[] sasHash)
     {
-        return ((securityEventManager != null)
-                        ? securityEventManager.checkSASSignature(sasHash)
-                        : false);
+        return
+            (securityEventManager != null)
+                ? securityEventManager.checkSASSignature(sasHash)
+                : false;
     }
 
     /**
@@ -1144,8 +1150,7 @@ public class ZRTPTransformEngine
     {
         if (zrtpEngine != null)
             zrtpEngine.SASVerified();
-
-        if(securityEventManager != null)
+        if (securityEventManager != null)
             securityEventManager.setSASVerified(true);
     }
 
@@ -1156,8 +1161,7 @@ public class ZRTPTransformEngine
     {
         if (zrtpEngine != null)
             zrtpEngine.resetSASVerified();
-
-        if(securityEventManager != null)
+        if (securityEventManager != null)
             securityEventManager.setSASVerified(false);
     }
 
@@ -1215,10 +1219,10 @@ public class ZRTPTransformEngine
      */
     public String getHelloHash(int index)
     {
-        if (zrtpEngine != null)
-            return zrtpEngine.getHelloHash(index);
-        else
-            return new String();
+        return
+            (zrtpEngine != null)
+                ? zrtpEngine.getHelloHash(index)
+                : new String();
     }
 
     /**
@@ -1227,17 +1231,14 @@ public class ZRTPTransformEngine
      * @param  index
      *         Hello hash of the Hello packet identfied by index. Index must
      *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
-     *
      * @return String array containing the version string at offset 0, the Hello
      *         hash value as hex-digits at offset 1. Hello hash is available
      *         immediately after class instantiation. Returns <code>null</code>
      *         if ZRTP is not available.
      */
-    public String[] getHelloHashSep(int index) {
-        if (zrtpEngine != null)
-            return zrtpEngine.getHelloHashSep(index);
-        else
-            return null;
+    public String[] getHelloHashSep(int index)
+    {
+        return (zrtpEngine != null) ? zrtpEngine.getHelloHashSep(index) : null;
     }
 
     /**
@@ -1250,11 +1251,10 @@ public class ZRTPTransformEngine
      *         Peer Hello hash is available after we received a Hello packet
      *         from our peer. If peer's hello hash is not available return null.
      */
-    public String getPeerHelloHash() {
-        if (zrtpEngine != null)
-            return zrtpEngine.getPeerHelloHash();
-        else
-            return new String();
+    public String getPeerHelloHash()
+    {
+        return
+            (zrtpEngine != null) ? zrtpEngine.getPeerHelloHash() : new String();
     }
 
     /**
@@ -1264,10 +1264,8 @@ public class ZRTPTransformEngine
      */
     public byte[] getMultiStrParams()
     {
-        if (zrtpEngine != null)
-            return zrtpEngine.getMultiStrParams();
-        else
-            return new byte[0];
+        return
+            (zrtpEngine != null) ? zrtpEngine.getMultiStrParams() : new byte[0];
     }
 
     /**
@@ -1277,9 +1275,8 @@ public class ZRTPTransformEngine
      */
     public void setMultiStrParams(byte[] parameters)
     {
-        if (zrtpEngine != null) {
+        if (zrtpEngine != null)
             zrtpEngine.setMultiStrParams(parameters);
-        }
     }
 
     /**
@@ -1289,7 +1286,7 @@ public class ZRTPTransformEngine
      */
     public boolean isMultiStream()
     {
-        return ((zrtpEngine != null) ? zrtpEngine.isMultiStream() : false);
+        return (zrtpEngine != null) ? zrtpEngine.isMultiStream() : false;
     }
 
     /**
@@ -1308,11 +1305,9 @@ public class ZRTPTransformEngine
      *
      * @return the commited SAS rendering algorithm
      */
-    public ZrtpConstants.SupportedSASTypes getSasType() {
-        if (zrtpEngine != null)
-            return zrtpEngine.getSasType();
-        else
-            return null;
+    public ZrtpConstants.SupportedSASTypes getSasType()
+    {
+        return (zrtpEngine != null) ? zrtpEngine.getSasType() : null;
     }
 
     /**
@@ -1321,11 +1316,9 @@ public class ZRTPTransformEngine
      * @return a refernce to the byte array that contains the full
      *         SAS hash.
      */
-    public byte[] getSasHash() {
-        if (zrtpEngine != null)
-            return zrtpEngine.getSasHash();
-        else
-            return null;
+    public byte[] getSasHash()
+    {
+        return (zrtpEngine != null) ? zrtpEngine.getSasHash() : null;
     }
 
     /**
@@ -1340,14 +1333,16 @@ public class ZRTPTransformEngine
      * @return true if the SASReplay packet has been correctly sent, false
      * otherwise
      */
-    public boolean sendSASRelayPacket(byte[] sh,
-        ZrtpConstants.SupportedSASTypes render)
+    public boolean sendSASRelayPacket(
+            byte[] sh,
+            ZrtpConstants.SupportedSASTypes render)
     {
-        if (zrtpEngine != null)
-            return zrtpEngine.sendSASRelayPacket(sh, render);
-        else
-            return false;
+        return
+            (zrtpEngine != null)
+                ? zrtpEngine.sendSASRelayPacket(sh, render)
+                : false;
     }
+
     /**
      * Check the state of the MitM mode flag.
      *
@@ -1356,7 +1351,8 @@ public class ZRTPTransformEngine
      *
      * @return state of mitmMode
      */
-    public boolean isMitmMode() {
+    public boolean isMitmMode()
+    {
         return mitmMode;
     }
 
@@ -1368,7 +1364,8 @@ public class ZRTPTransformEngine
      *
      * @param mitmMode defines the new state of the mitmMode flag
      */
-    public void setMitmMode(boolean mitmMode) {
+    public void setMitmMode(boolean mitmMode)
+    {
         this.mitmMode = mitmMode;
     }
 
@@ -1381,7 +1378,8 @@ public class ZRTPTransformEngine
      * @param yesNo
      *    If set to true then paranoid mode is enabled.
      */
-    public void setParanoidMode(boolean yesNo) {
+    public void setParanoidMode(boolean yesNo)
+    {
         enableParanoidMode = yesNo;
     }
 
@@ -1391,7 +1389,8 @@ public class ZRTPTransformEngine
      * @return
      *    Returns true if paranoid mode is enabled.
      */
-    public boolean isParanoidMode() {
+    public boolean isParanoidMode()
+    {
         return enableParanoidMode;
     }
 
@@ -1404,11 +1403,9 @@ public class ZRTPTransformEngine
      *
      * @return status of the enrollmentMode flag.
      */
-    public boolean isEnrollmentMode() {
-        if (zrtpEngine != null)
-            return zrtpEngine.isEnrollmentMode();
-        else
-            return false;
+    public boolean isEnrollmentMode()
+    {
+        return (zrtpEngine != null) ? zrtpEngine.isEnrollmentMode() : false;
     }
 
     /**
@@ -1422,10 +1419,12 @@ public class ZRTPTransformEngine
      *
      * @param enrollmentMode defines the new state of the enrollmentMode flag
      */
-    public void setEnrollmentMode(boolean enrollmentMode) {
+    public void setEnrollmentMode(boolean enrollmentMode)
+    {
         if (zrtpEngine != null)
             zrtpEngine.setEnrollmentMode(enrollmentMode);
     }
+
     /**
      * Sets signature data for the Confirm packets
      *
@@ -1434,8 +1433,7 @@ public class ZRTPTransformEngine
      */
     public boolean setSignatureData(byte[] data)
     {
-        return ((zrtpEngine != null) ? zrtpEngine.setSignatureData(data)
-                : false);
+        return (zrtpEngine != null) ? zrtpEngine.setSignatureData(data) : false;
     }
 
     /**
@@ -1445,10 +1443,8 @@ public class ZRTPTransformEngine
      */
     public byte[] getSignatureData()
     {
-        if (zrtpEngine != null)
-            return zrtpEngine.getSignatureData();
-        else
-            return new byte[0];
+        return
+            (zrtpEngine != null) ? zrtpEngine.getSignatureData() : new byte[0];
     }
 
     /**
@@ -1458,9 +1454,8 @@ public class ZRTPTransformEngine
      */
     public int getSignatureLength()
     {
-        return ((zrtpEngine != null) ? zrtpEngine.getSignatureLength() : 0);
+        return (zrtpEngine != null) ? zrtpEngine.getSignatureLength() : 0;
     }
-
 
     /**
      * Method called by the Zrtp class as result of a GoClear request from the
@@ -1527,8 +1522,9 @@ public class ZRTPTransformEngine
      */
     public byte[] getPeerZid()
     {
-         return ((zrtpEngine != null) ? zrtpEngine.getPeerZid() : null);
+         return (zrtpEngine != null) ? zrtpEngine.getPeerZid() : null;
     }
+
     /**
      * Get number of supported ZRTP protocol versions.
      *
@@ -1536,7 +1532,8 @@ public class ZRTPTransformEngine
      */
     public int getNumberSupportedVersions()
     {
-        return ((zrtpEngine != null) ? zrtpEngine.getNumberSupportedVersions(): 0);
+        return
+            (zrtpEngine != null) ? zrtpEngine.getNumberSupportedVersions() : 0;
     }
 
     /**
@@ -1546,7 +1543,7 @@ public class ZRTPTransformEngine
      */
     public int getCurrentProtocolVersion()
     {
-        return ((zrtpEngine != null) ? zrtpEngine.getCurrentProtocolVersion() : 0);
+        return
+            (zrtpEngine != null) ? zrtpEngine.getCurrentProtocolVersion() : 0;
     }
-
 }

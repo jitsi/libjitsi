@@ -36,6 +36,7 @@ import org.bouncycastle.crypto.params.*;
 import org.jitsi.bccontrib.macs.*;
 import org.jitsi.bccontrib.params.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * SRTPCryptoContext class is the core class of SRTP implementation.
@@ -64,7 +65,14 @@ import org.jitsi.impl.neomedia.*;
 public class SRTPCryptoContext
 {
     /**
-     * The replay check windows size
+     * The <tt>Logger</tt> used by the <tt>SRTPCryptoContext</tt> class and its
+     * instances to print out debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(SRTPCryptoContext.class);
+
+    /**
+     * The replay check windows size.
      */
     private static final long REPLAY_WINDOW_SIZE = 64;
 
@@ -79,24 +87,36 @@ public class SRTPCryptoContext
     private byte[] mki;
 
     /**
-     * Roll-Over-Counter, see RFC3711 section 3.2.1 for detailed description
+     * RFC 3711: a 32-bit unsigned rollover counter (ROC), which records how
+     * many times the 16-bit RTP sequence number has been reset to zero after
+     * passing through 65,535.  Unlike the sequence number (SEQ), which SRTP
+     * extracts from the RTP packet header, the ROC is maintained by SRTP as
+     * described in Section 3.3.1.
      */
     private int roc;
 
     /**
-     * Roll-Over-Counter guessed from packet
+     * For the receiver only, the rollover counter guessed from the sequence
+     * number of the received packet that is currently being processed (i.e. the
+     * value is valid during the execution of
+     * {@link #reverseTransformPacket(RawPacket)} only.) RFC 3711 refers to it
+     * by the name <tt>v</tt>.
      */
     private int guessedROC;
 
     /**
-     * RTP sequence number of the packet current processing
+     * RFC 3711: for the receiver only, a 16-bit sequence number <tt>s_l</tt>,
+     * which can be thought of as the highest received RTP sequence number (see
+     * Section 3.3.1 for its handling), which SHOULD be authenticated since
+     * message authentication is RECOMMENDED.
      */
-    private int seqNum;
+    private int s_l = 0;
 
     /**
-     * Whether we have the sequence number of current packet
+     * The indicator which determines whether {@link #s_l} has seen set i.e.
+     * appropriately initialized.
      */
-    private boolean seqNumSet;
+    private boolean seqNumSet = false;
 
     /**
      * Key Derivation Rate, used to derive session keys from master keys
@@ -141,7 +161,7 @@ public class SRTPCryptoContext
     /**
      * The HMAC object we used to do packet authentication
      */
-    private Mac mac;             // used for various HMAC computations
+    private Mac mac; // used for various HMAC computations
 
     /**
      * The symmetric cipher engines we need here
@@ -180,75 +200,79 @@ public class SRTPCryptoContext
     private final byte[] tempStore = new byte[100];
 
     /**
+     * The indicator which determines whether this instance is used by an SRTP
+     * sender (<tt>true</tt>) or receiver (<tt>false</tt>).
+     */
+    private final boolean sender;
+
+    /**
      * Construct an empty SRTPCryptoContext using ssrc.
      * The other parameters are set to default null value.
      *
+     * @param sender <tt>true</tt> if the new instance is to be used by an SRTP
+     * sender; <tt>false</tt> if the new instance is to be used by an SRTP
+     * receiver
      * @param ssrcIn SSRC of this SRTPCryptoContext
      */
-    public SRTPCryptoContext(long ssrcIn)
+    public SRTPCryptoContext(boolean sender, long ssrcIn)
     {
-        ssrcCtx = ssrcIn;
-        mki = null;
-        roc = 0;
-        guessedROC = 0;
-        seqNum = 0;
+        authKey = null;
+        encKey = null;
         keyDerivationRate = 0;
         masterKey = null;
         masterSalt = null;
-        encKey = null;
-        authKey = null;
-        saltKey = null;
-        seqNumSet = false;
+        mki = null;
         policy = null;
+        roc = 0;
+        this.sender = sender;
+        ssrcCtx = ssrcIn;
         tagStore = null;
     }
 
     /**
      * Construct a normal SRTPCryptoContext based on the given parameters.
      *
-     * @param ssrcIn
-     *            the RTP SSRC that this SRTP cryptographic context protects.
-     * @param rocIn
-     *            the initial Roll-Over-Counter according to RFC 3711. These are
-     *            the upper 32 bit of the overall 48 bit SRTP packet index.
-     *            Refer to chapter 3.2.1 of the RFC.
-     * @param kdr
-     *            the key derivation rate defines when to recompute the SRTP
-     *            session keys. Refer to chapter 4.3.1 in the RFC.
-     * @param masterK
-     *            byte array holding the master key for this SRTP cryptographic
-     *            context. Refer to chapter 3.2.1 of the RFC about the role of
-     *            the master key.
-     * @param masterS
-     *            byte array holding the master salt for this SRTP cryptographic
-     *            context. It is used to computer the initialization vector that
-     *            in turn is input to compute the session key, session
-     *            authentication key and the session salt.
-     * @param policyIn
-     *            SRTP policy for this SRTP cryptographic context, defined the
-     *            encryption algorithm, the authentication algorithm, etc
+     * @param sender <tt>true</tt> if the new instance is to be used by an SRTP
+     * sender; <tt>false</tt> if the new instance is to be used by an SRTP
+     * receiver
+     * @param ssrcIn the RTP SSRC that this SRTP cryptographic context protects.
+     * @param rocIn the initial Roll-Over-Counter according to RFC 3711. These
+     * are the upper 32 bit of the overall 48 bit SRTP packet index. Refer to
+     * chapter 3.2.1 of the RFC.
+     * @param kdr the key derivation rate defines when to recompute the SRTP
+     * session keys. Refer to chapter 4.3.1 in the RFC.
+     * @param masterK byte array holding the master key for this SRTP
+     * cryptographic context. Refer to chapter 3.2.1 of the RFC about the role
+     * of the master key.
+     * @param masterS byte array holding the master salt for this SRTP
+     * cryptographic context. It is used to computer the initialization vector
+     * that in turn is input to compute the session key, session authentication
+     * key and the session salt.
+     * @param policyIn SRTP policy for this SRTP cryptographic context, defined
+     * the encryption algorithm, the authentication algorithm, etc
      */
     @SuppressWarnings("fallthrough")
-    public SRTPCryptoContext(long ssrcIn, int rocIn, long kdr,
-            byte[] masterK, byte[] masterS, SRTPPolicy policyIn)
+    public SRTPCryptoContext(
+            boolean sender,
+            long ssrcIn,
+            int rocIn,
+            long kdr,
+            byte[] masterK,
+            byte[] masterS,
+            SRTPPolicy policyIn)
     {
-        ssrcCtx = ssrcIn;
+        keyDerivationRate = kdr;
         mki = null;
         roc = rocIn;
-        guessedROC = 0;
-        seqNum = 0;
-        keyDerivationRate = kdr;
-        seqNumSet = false;
-
         policy = policyIn;
+        this.sender = sender;
+        ssrcCtx = ssrcIn;
 
         masterKey = new byte[policy.getEncKeyLength()];
-        System.arraycopy(masterK, 0, masterKey, 0, policy
-                .getEncKeyLength());
+        System.arraycopy(masterK, 0, masterKey, 0, policy.getEncKeyLength());
 
         masterSalt = new byte[policy.getSaltKeyLength()];
-        System.arraycopy(masterS, 0, masterSalt, 0, policy
-                .getSaltKeyLength());
+        System.arraycopy(masterS, 0, masterSalt, 0, policy.getSaltKeyLength());
 
         mac = new HMac(new SHA1Digest());
 
@@ -311,8 +335,7 @@ public class SRTPCryptoContext
      *
      * Clean up key data, maybe this is the second time however, sometimes
      * we cannot know if the CryptoCOntext was used and the application called
-     * deriveSrtpKeys(...) .
-     *
+     * deriveSrtpKeys(...).
      */
     public void close()
     {
@@ -351,26 +374,6 @@ public class SRTPCryptoContext
     }
 
     /**
-     * Get the Roll-Over-Counter of this SRTP cryptographic context
-     *
-     * @return the Roll-Over-Counter of this SRTP cryptographic context
-     */
-    public int getROC()
-    {
-        return roc;
-    }
-
-    /**
-     * Set the Roll-Over-Counter of this SRTP cryptographic context
-     *
-     * @param rocIn the Roll-Over-Counter of this SRTP cryptographic context
-     */
-    public void setROC(int rocIn)
-    {
-        roc = rocIn;
-    }
-
-    /**
      * Transform a RTP packet into a SRTP packet.
      * This method is called when a normal RTP packet ready to be sent.
      *
@@ -389,32 +392,49 @@ public class SRTPCryptoContext
      */
     public void transformPacket(RawPacket pkt)
     {
-        /* Encrypt the packet using Counter Mode encryption */
-        if (policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION ||
-                policy.getEncType() == SRTPPolicy.TWOFISH_ENCRYPTION)
+        int seqNo = pkt.getSequenceNumber();
+
+        if (!seqNumSet)
         {
-            processPacketAESCM(pkt);
-        }
-        else if (policy.getEncType() == SRTPPolicy.AESF8_ENCRYPTION ||
-                policy.getEncType() == SRTPPolicy.TWOFISHF8_ENCRYPTION)
-        {
-            /* Encrypt the packet using F8 Mode encryption */
-            processPacketAESF8(pkt);
+            seqNumSet = true;
+            s_l = seqNo;
         }
 
-        /* Authenticate the packet */
+        // Guess the SRTP index (48 bit), see RFC 3711, 3.3.1
+        // Stores the guessed ROC in this.guessedROC
+        long guessedIndex = guessIndex(seqNo);
+
+        /*
+         * XXX The invocation of the checkReplay method here is not meant as
+         * replay protection but as a consistency check of our implementation.
+         */
+        if (!checkReplay(seqNo, guessedIndex))
+            return;
+
+        switch (policy.getEncType())
+        {
+        // Encrypt the packet using Counter Mode encryption.
+        case SRTPPolicy.AESCM_ENCRYPTION:
+        case SRTPPolicy.TWOFISH_ENCRYPTION:
+            processPacketAESCM(pkt);
+            break;
+
+        // Encrypt the packet using F8 Mode encryption.
+        case SRTPPolicy.AESF8_ENCRYPTION:
+        case SRTPPolicy.TWOFISHF8_ENCRYPTION:   
+            processPacketAESF8(pkt);
+            break;
+        }
+
+        /* Authenticate the packet. */
         if (policy.getAuthType() != SRTPPolicy.NULL_AUTHENTICATION)
         {
-            authenticatePacketHMCSHA1(pkt, roc);
+            authenticatePacketHMCSHA1(pkt, guessedROC);
             pkt.append(tagStore, policy.getAuthTagLength());
         }
 
-        /* Update the ROC if necessary */
-        int seqNo = pkt.getSequenceNumber();
-        if (seqNo == 0xFFFF)
-        {
-            roc++;
-        }
+        // Update the ROC if necessary.
+        update(seqNo, guessedIndex);
     }
 
     /**
@@ -432,8 +452,8 @@ public class SRTPCryptoContext
      * method (RTPManager managed transportation) instead.
      *
      * @param pkt the RTP packet that is just received
-     * @return true if the packet can be accepted
-     *         false if the packet failed authentication or failed replay check
+     * @return <tt>true</tt> if the packet can be accepted; <tt>false</tt> if
+     * the packet failed authentication or failed replay check
      */
     public boolean reverseTransformPacket(RawPacket pkt)
     {
@@ -442,25 +462,27 @@ public class SRTPCryptoContext
         if (!seqNumSet)
         {
             seqNumSet = true;
-            seqNum = seqNo;
+            s_l = seqNo;
         }
-        // Guess the SRTP index (48 bit), see rFC 3711, 3.3.1
-        // Stores the guessed roc in this.guessedROC
+
+        // Guess the SRTP index (48 bit), see RFC 3711, 3.3.1
+        // Stores the guessed ROC in this.guessedROC
         long guessedIndex = guessIndex(seqNo);
 
         /* Replay control */
         if (!checkReplay(seqNo, guessedIndex))
-        {
             return false;
-        }
+
         /* Authenticate the packet */
         if (policy.getAuthType() != SRTPPolicy.NULL_AUTHENTICATION)
         {
             int tagLength = policy.getAuthTagLength();
 
             // get original authentication and store in tempStore
-            pkt.readRegionToBuff(pkt.getLength() - tagLength,
-                    tagLength, tempStore);
+            pkt.readRegionToBuff(
+                    pkt.getLength() - tagLength,
+                    tagLength,
+                    tempStore);
 
             pkt.shrink(tagLength);
 
@@ -472,26 +494,26 @@ public class SRTPCryptoContext
                 if ((tempStore[i]&0xff) == (tagStore[i]&0xff))
                     continue;
                 else
-                {
                     return false;
-                }
             }
         }
 
-        /* Decrypt the packet using Counter Mode encryption*/
-        if (policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION ||
-                policy.getEncType() == SRTPPolicy.TWOFISH_ENCRYPTION)
+        switch (policy.getEncType())
         {
+        // Decrypt the packet using Counter Mode encryption.
+        case SRTPPolicy.AESCM_ENCRYPTION:
+        case SRTPPolicy.TWOFISH_ENCRYPTION:
             processPacketAESCM(pkt);
-        }
+            break;
 
-        /* Decrypt the packet using F8 Mode encryption*/
-        else if (policy.getEncType() == SRTPPolicy.AESF8_ENCRYPTION ||
-                policy.getEncType() == SRTPPolicy.TWOFISHF8_ENCRYPTION)
-        {
+        // Decrypt the packet using F8 Mode encryption.
+        case SRTPPolicy.AESF8_ENCRYPTION:
+        case SRTPPolicy.TWOFISHF8_ENCRYPTION:
             processPacketAESF8(pkt);
+            break;
         }
 
+        // Update the rollover counter and highest sequence number if necessary.
         update(seqNo, guessedIndex);
 
         return true;
@@ -499,13 +521,14 @@ public class SRTPCryptoContext
 
     /**
      * Perform Counter Mode AES encryption / decryption
+     *
      * @param pkt the RTP packet to be encrypted / decrypted
      */
     public void processPacketAESCM(RawPacket pkt)
     {
         long ssrc = pkt.getSSRC();
         int seqNo = pkt.getSequenceNumber();
-        long index = ((long) this.roc << 16) | seqNo;
+        long index = (((long) guessedROC) << 16) | seqNo;
 
         // byte[] iv = new byte[16];
         ivStore[0] = saltKey[0];
@@ -520,7 +543,7 @@ public class SRTPCryptoContext
                 (
                     (0xFF & (ssrc >> ((7 - i) * 8)))
                     ^
-                    this.saltKey[i]
+                    saltKey[i]
                 );
         }
 
@@ -530,17 +553,19 @@ public class SRTPCryptoContext
                 (
                     (0xFF & (byte) (index >> ((13 - i) * 8)))
                     ^
-                    this.saltKey[i]
+                    saltKey[i]
                 );
         }
 
         ivStore[14] = ivStore[15] = 0;
 
-        final int payloadOffset = pkt.getHeaderLength();
-        final int payloadLength = pkt.getPayloadLength();
+        int payloadOffset = pkt.getHeaderLength();
+        int payloadLength = pkt.getPayloadLength();
 
-        cipherCtr.process(cipher, pkt.getBuffer(), pkt.getOffset() +
-                payloadOffset, payloadLength, ivStore);
+        cipherCtr.process(
+                cipher,
+                pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
+                ivStore);
     }
 
     /**
@@ -558,16 +583,21 @@ public class SRTPCryptoContext
         ivStore[0] = 0;
 
         // set the ROC in network order into IV
-        ivStore[12] = (byte) (this.roc >> 24);
-        ivStore[13] = (byte) (this.roc >> 16);
-        ivStore[14] = (byte) (this.roc >> 8);
-        ivStore[15] = (byte) this.roc;
+        int roc = guessedROC;
 
-        final int payloadOffset = pkt.getHeaderLength();
-        final int payloadLength = pkt.getPayloadLength();
+        ivStore[12] = (byte) (roc >> 24);
+        ivStore[13] = (byte) (roc >> 16);
+        ivStore[14] = (byte) (roc >> 8);
+        ivStore[15] = (byte) roc;
 
-        SRTPCipherF8.process(cipher, pkt.getBuffer(), pkt.getOffset() + payloadOffset,
-            payloadLength, ivStore, cipherF8);
+        int payloadOffset = pkt.getHeaderLength();
+        int payloadLength = pkt.getPayloadLength();
+
+        SRTPCipherF8.process(
+                cipher,
+                pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
+                ivStore,
+                cipherF8);
     }
 
     /**
@@ -590,56 +620,50 @@ public class SRTPCryptoContext
     }
 
     /**
-     * Checks if a packet is a replayed on based on its sequence number.
-     *
-     * This method supports a 64 packet history relative the the given
-     * sequence number.
-     *
-     * Sequence Number is guaranteed to be real (not faked) through
+     * Checks if a packet is a replayed based on its sequence number. The method
+     * supports a 64 packet history relative the the specified sequence number.
+     * The sequence number is guaranteed to be real (i.e. not faked) through
      * authentication.
      *
      * @param seqNo sequence number of the packet
-     * @param guessedIndex guessed roc
-     * @return true if this sequence number indicates the packet is not a
-     * replayed one, false if not
+     * @param guessedIndex guessed ROC
+     * @return <tt>true</tt> if the specified sequence number indicates that the
+     * packet is not a replayed one; <tt>false</tt>, otherwise
      */
     boolean checkReplay(int seqNo, long guessedIndex)
     {
-        // compute the index of previously received packet and its
-        // delta to the new received packet
-        long localIndex = (((long) this.roc) << 16) | this.seqNum;
+        // Compute the index of the previously received packet and its delta to
+        // the newly received packet.
+        long localIndex = (((long) roc) << 16) | s_l;
         long delta = guessedIndex - localIndex;
 
         if (delta > 0)
         {
-            /* Packet not yet received */
-            return true;
+            return true; // Packet not received yet.
+        }
+        else if (-delta > REPLAY_WINDOW_SIZE)
+        {
+            if (sender)
+            {
+                logger.error(
+                        "Discarding RTP packet with sequence number " + seqNo
+                            + " because it is outside the replay window.");
+            }
+            return false; // Packet too old.
+        }
+        else if (((replayWindow >> (-delta)) & 0x1) != 0)
+        {
+            return false; // Packet received already!
         }
         else
         {
-            if (-delta > REPLAY_WINDOW_SIZE) {
-                /* Packet too old */
-                return false;
-            }
-            else
-            {
-                if (((this.replayWindow >> (-delta)) & 0x1) != 0)
-                {
-                    /* Packet already received ! */
-                    return false;
-                }
-                else
-                {
-                    /* Packet not yet received */
-                    return true;
-                }
-            }
+            return true; // Packet not received yet.
         }
     }
 
     /**
      * Compute the initialization vector, used later by encryption algorithms,
-     * based on the lable, the packet index, key derivation rate and master
+     * based on the label, the packet index, key derivation rate and master
      * salt key.
      *
      * @param label label specified for each type of iv
@@ -676,8 +700,7 @@ public class SRTPCryptoContext
     /**
      * Derives the srtp session keys from the master key
      *
-     * @param index
-     *            the 48 bit SRTP packet index
+     * @param index the 48 bit SRTP packet index
      */
     public void deriveSrtpKeys(long index)
     {
@@ -689,7 +712,11 @@ public class SRTPCryptoContext
         cipher.init(true, encryptionKey);
         Arrays.fill(masterKey, (byte)0);
 
-        cipherCtr.getCipherStream(cipher, encKey, policy.getEncKeyLength(), ivStore);
+        cipherCtr.getCipherStream(
+                cipher,
+                encKey,
+                policy.getEncKeyLength(),
+                ivStore);
 
         // compute the session authentication key
         if (authKey != null)
@@ -720,7 +747,11 @@ public class SRTPCryptoContext
         // compute the session salt
         label = 0x02;
         computeIv(label, index);
-        cipherCtr.getCipherStream(cipher, saltKey, policy.getSaltKeyLength(), ivStore);
+        cipherCtr.getCipherStream(
+                cipher,
+                saltKey,
+                policy.getSaltKeyLength(),
+                ivStore);
         Arrays.fill(masterSalt, (byte)0);
 
         // As last step: initialize cipher with derived encryption key.
@@ -732,72 +763,69 @@ public class SRTPCryptoContext
     }
 
     /**
-     * Compute (guess) the new SRTP index based on the sequence number of a
-     * received RTP packet.
+     * For the receiver only, determines/guesses the SRTP index of a received
+     * SRTP packet with a specific sequence number.
      *
-     * @param seqNo sequence number of the received RTP packet
-     * @return the new SRTP packet index
+     * @param seqNo the sequence number of the received SRTP packet
+     * @return the SRTP index of the received SRTP packet with the specified
+     * <tt>seqNo</tt>
      */
     private long guessIndex(int seqNo)
     {
-        if (this.seqNum < 32768)
+        if (s_l < 32768)
         {
-            if (seqNo - this.seqNum > 32768)
-            {
+            if (seqNo - s_l > 32768)
                 guessedROC = roc - 1;
-            }
             else
-            {
                 guessedROC = roc;
-            }
         }
         else
         {
-            if (seqNum - 32768 > seqNo)
-            {
+            if (s_l - 32768 > seqNo)
                 guessedROC = roc + 1;
-            }
             else
-            {
                 guessedROC = roc;
-            }
         }
 
-        return ((long) guessedROC) << 16 | seqNo;
+        return (((long) guessedROC) << 16) | seqNo;
     }
 
     /**
-     * Update the SRTP packet index.
+     * For the receiver only, updates the rollover counter (i.e. {@link #roc})
+     * and highest sequence number (i.e. {@link #s_l}) in this cryptographic
+     * context using the SRTP/packet index calculated by
+     * {@link #guessIndex(int)} and updates the replay list (i.e.
+     * {@link #replayWindow}). This method is called after all checks were
+     * successful.
      *
-     * This method is called after all checks were successful.
-     * See section 3.3.1 in RFC3711 for detailed description.
-     *
-     * @param seqNo sequence number of the accepted packet
-     * @param guessedIndex guessed roc
+     * @param seqNo the sequence number of the accepted SRTP packet
+     * @param guessedIndex the SRTP index of the accepted SRTP packet calculated
+     * by <tt>guessIndex(int)</tt>
      */
     private void update(int seqNo, long guessedIndex)
     {
-        long delta = guessedIndex - (((long) this.roc) << 16 | this.seqNum);
+        long delta = guessedIndex - ((((long) roc) << 16) | s_l);
 
-        /* update the replay bit mask */
-        if( delta > 0 )
+        /* Update the replay bit mask. */
+        if (delta > 0)
         {
-          replayWindow = replayWindow << delta;
-          replayWindow |= 1;
+            replayWindow <<= delta;
+            replayWindow |= 1;
         }
         else
         {
-          replayWindow |= ( 1 << delta );
+            replayWindow |= (1 << -delta);
         }
 
-        if (seqNo > seqNum)
+        if (guessedROC == roc)
         {
-            seqNum = seqNo & 0xffff;
+            if (seqNo > s_l)
+                s_l = seqNo & 0xffff;
         }
-        if (this.guessedROC > this.roc)
+        else if (guessedROC == (roc + 1))
         {
+            s_l = seqNo & 0xffff;
             roc = guessedROC;
-            seqNum = seqNo & 0xffff;
         }
     }
 
@@ -813,19 +841,21 @@ public class SRTPCryptoContext
      * Before the application can use this SRTPCryptoContext it must call the
      * deriveSrtpKeys method.
      *
-     * @param ssrc
-     *            The SSRC for this context
-     * @param roc
-     *            The Roll-Over-Counter for this context
-     * @param deriveRate
-     *            The key derivation rate for this context
+     * @param ssrc The SSRC for this context
+     * @param roc The Roll-Over-Counter for this context
+     * @param deriveRate The key derivation rate for this context
      * @return a new SRTPCryptoContext with all relevant data set.
      */
     public SRTPCryptoContext deriveContext(long ssrc, int roc, long deriveRate)
     {
-        SRTPCryptoContext pcc = null;
-        pcc = new SRTPCryptoContext(ssrc, roc, deriveRate, masterKey,
-                masterSalt, policy);
-        return pcc;
+        return
+            new SRTPCryptoContext(
+                    sender,
+                    ssrc,
+                    roc,
+                    deriveRate,
+                    masterKey,
+                    masterSalt,
+                    policy);
     }
 }

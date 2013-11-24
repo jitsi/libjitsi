@@ -354,12 +354,14 @@ public class DtlsPacketTransformer
                     cipher_salt_length);
         SRTPContextFactory clientSRTPContextFactory
             = new SRTPContextFactory(
+                    /* sender */ tlsContext instanceof TlsClientContext,
                     client_write_SRTP_master_key,
                     client_write_SRTP_master_salt,
                     srtpPolicy,
                     srtcpPolicy);
         SRTPContextFactory serverSRTPContextFactory
             = new SRTPContextFactory(
+                    /* sender */ tlsContext instanceof TlsServerContext,
                     server_write_SRTP_master_key,
                     server_write_SRTP_master_salt,
                     srtpPolicy,

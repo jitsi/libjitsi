@@ -11,7 +11,6 @@ package org.jitsi.impl.neomedia.transform.srtp;
  * and RTCP encryption using the supplied key material.
  *
  * @author Bing SU (nova.su@gmail.com)
- *
  */
 public class SRTPContextFactory
 {
@@ -31,23 +30,32 @@ public class SRTPContextFactory
      * Construct a SRTPTransformEngine based on given master encryption key,
      * master salt key and SRTP/SRTCP policy.
      *
+     * @param sender <tt>true</tt> if the new instance is to be used by an SRTP
+     * sender; <tt>false</tt> if the new instance is to be used by an SRTP
+     * receiver
      * @param masterKey the master encryption key
      * @param masterSalt the master salt key
      * @param srtpPolicy SRTP policy
      * @param srtcpPolicy SRTCP policy
      */
-    public SRTPContextFactory(byte[] masterKey, byte[] masterSalt,
-                               SRTPPolicy srtpPolicy, SRTPPolicy srtcpPolicy)
+    public SRTPContextFactory(
+            boolean sender,
+            byte[] masterKey,
+            byte[] masterSalt,
+            SRTPPolicy srtpPolicy,
+            SRTPPolicy srtcpPolicy)
     {
-
-        defaultContext = new SRTPCryptoContext(0, 0, 0,
-                                               masterKey,
-                                               masterSalt,
-                                               srtpPolicy);
-        defaultContextControl = new SRTCPCryptoContext(0,
-                                                       masterKey,
-                                                       masterSalt,
-                                                       srtcpPolicy);
+        defaultContext
+            = new SRTPCryptoContext(
+                    sender,
+                    0,
+                    0,
+                    0,
+                    masterKey,
+                    masterSalt,
+                    srtpPolicy);
+        defaultContextControl
+            = new SRTCPCryptoContext(0, masterKey, masterSalt, srtcpPolicy);
     }
 
     /**
@@ -59,12 +67,15 @@ public class SRTPContextFactory
     public void close()
     {
         if (defaultContext != null)
+        {
             defaultContext.close();
+            defaultContext = null;
+        }
         if (defaultContextControl != null)
+        {
             defaultContextControl.close();
-
-        defaultContext = null;
-        defaultContextControl = null;
+            defaultContextControl = null;
+        }
     }
 
     /**
@@ -74,7 +85,7 @@ public class SRTPContextFactory
      */
     public SRTPCryptoContext getDefaultContext()
     {
-        return this.defaultContext;
+        return defaultContext;
     }
 
     /**
@@ -84,6 +95,6 @@ public class SRTPContextFactory
      */
     public SRTCPCryptoContext getDefaultContextControl()
     {
-        return this.defaultContextControl;
+        return defaultContextControl;
     }
 }

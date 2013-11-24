@@ -31,8 +31,10 @@ public class SDesTransformEngine
     public SDesTransformEngine(SrtpCryptoAttribute inAttribute,
             SrtpCryptoAttribute outAttribute)
     {
-        SRTPContextFactory forwardCtx = getTransformEngine(outAttribute);
-        SRTPContextFactory reverseCtx = getTransformEngine(inAttribute);
+        SRTPContextFactory forwardCtx
+            = getTransformEngine(outAttribute, true /* sender */);
+        SRTPContextFactory reverseCtx
+            = getTransformEngine(inAttribute, false /* receiver */);
         srtpTransformer = new SRTPTransformer(forwardCtx, reverseCtx);
         srtcpTransformer = new SRTCPTransformer(forwardCtx, reverseCtx);
     }
@@ -52,32 +54,38 @@ public class SDesTransformEngine
     }
 
     private static SRTPContextFactory getTransformEngine(
-        SrtpCryptoAttribute attribute)
+            SrtpCryptoAttribute attribute,
+            boolean sender)
     {
-        if (attribute.getSessionParams() != null
-            && attribute.getSessionParams().length > 0)
+        SrtpSessionParam[] sessionParams = attribute.getSessionParams();
+
+        if ((sessionParams != null) && (sessionParams.length > 0))
         {
             throw new IllegalArgumentException(
-                "session parameters are not supported");
+                    "session parameters are not supported");
         }
 
-        SrtpCryptoSuite cs = attribute.getCryptoSuite();
-        return new SRTPContextFactory(
-            getKey(attribute),
-            getSalt(attribute),
-            new SRTPPolicy(
-                getEncryptionCipher(cs), cs.getEncKeyLength() / 8,
-                getHashAlgorithm(cs), cs.getSrtpAuthKeyLength() / 8,
-                cs.getSrtpAuthTagLength() / 8,
-                cs.getSaltKeyLength() / 8
-            ),
-            new SRTPPolicy(
-                getEncryptionCipher(cs), cs.getEncKeyLength() / 8,
-                getHashAlgorithm(cs), cs.getSrtcpAuthKeyLength() / 8,
-                cs.getSrtcpAuthTagLength() / 8,
-                cs.getSaltKeyLength() / 8
-            )
-        );
+        SrtpCryptoSuite cryptoSuite = attribute.getCryptoSuite();
+
+        return
+            new SRTPContextFactory(
+                    sender,
+                    getKey(attribute),
+                    getSalt(attribute),
+                    new SRTPPolicy(
+                            getEncryptionCipher(cryptoSuite),
+                            cryptoSuite.getEncKeyLength() / 8,
+                            getHashAlgorithm(cryptoSuite),
+                            cryptoSuite.getSrtpAuthKeyLength() / 8,
+                            cryptoSuite.getSrtpAuthTagLength() / 8,
+                            cryptoSuite.getSaltKeyLength() / 8),
+                    new SRTPPolicy(
+                            getEncryptionCipher(cryptoSuite),
+                            cryptoSuite.getEncKeyLength() / 8,
+                            getHashAlgorithm(cryptoSuite),
+                            cryptoSuite.getSrtcpAuthKeyLength() / 8,
+                            cryptoSuite.getSrtcpAuthTagLength() / 8,
+                            cryptoSuite.getSaltKeyLength() / 8));
     }
 
     private static byte[] getKey(SrtpCryptoAttribute attribute)
