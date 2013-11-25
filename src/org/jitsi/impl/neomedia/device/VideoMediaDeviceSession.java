@@ -158,7 +158,7 @@ public class VideoMediaDeviceSession
      * A list with RTCPFeedbackCreateListener which will be notified when
      * a RTCPFeedbackListener is created.
      */
-    private List<RTCPFeedbackCreateListener> rtcpFeedbackCreateListners
+    private List<RTCPFeedbackCreateListener> rtcpFeedbackCreateListeners
         = new LinkedList<RTCPFeedbackCreateListener>();
 
     /**
@@ -201,9 +201,9 @@ public class VideoMediaDeviceSession
     public void addRTCPFeedbackCreateListner(
             RTCPFeedbackCreateListener listener)
     {
-        synchronized (rtcpFeedbackCreateListners)
+        synchronized (rtcpFeedbackCreateListeners)
         {
-            rtcpFeedbackCreateListners.add(listener);
+            rtcpFeedbackCreateListeners.add(listener);
         }
 
         if (encoder != null)
@@ -1411,9 +1411,9 @@ public class VideoMediaDeviceSession
     public void removeRTCPFeedbackCreateListner(
             RTCPFeedbackCreateListener listener)
     {
-        synchronized (rtcpFeedbackCreateListners)
+        synchronized (rtcpFeedbackCreateListeners)
         {
-            rtcpFeedbackCreateListners.remove(listener);
+            rtcpFeedbackCreateListeners.remove(listener);
         }
     }
 
@@ -1685,9 +1685,9 @@ public class VideoMediaDeviceSession
 
             this.encoder = encoder;
             onRTCPFeedbackCreate(encoder);
-            synchronized (rtcpFeedbackCreateListners)
+            synchronized (rtcpFeedbackCreateListeners)
             {
-                for (RTCPFeedbackCreateListener l : rtcpFeedbackCreateListners)
+                for (RTCPFeedbackCreateListener l : rtcpFeedbackCreateListeners)
                     l.onRTCPFeedbackCreate(encoder);
             }
 

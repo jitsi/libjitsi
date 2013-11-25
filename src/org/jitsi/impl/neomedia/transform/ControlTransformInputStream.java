@@ -50,8 +50,11 @@ public class ControlTransformInputStream
     {
         if (listener == null)
             throw new NullPointerException("listener");
-        if(!listeners.contains(listener))
-            listeners.add(listener);
+        synchronized (listeners)
+        {
+            if (!listeners.contains(listener))
+                listeners.add(listener);
+        }
     }
 
     /**
@@ -61,7 +64,13 @@ public class ControlTransformInputStream
      */
     public void removeRTCPFeedbackListener(RTCPFeedbackListener listener)
     {
-        listeners.remove(listener);
+        if (listener != null)
+        {
+            synchronized (listeners)
+            {
+                listeners.remove(listener);
+            }
+        }
     }
 
     /**

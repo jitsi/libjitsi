@@ -28,12 +28,12 @@ public class RTCPFeedbackPacket
     /**
      * SSRC of packet sender.
      */
-    private long senderSSRC = 0;
+    private final long senderSSRC;
 
     /**
      * SSRC of media source.
      */
-    private long sourceSSRC = 0;
+    private final long sourceSSRC;
 
     /**
      * Constructor.

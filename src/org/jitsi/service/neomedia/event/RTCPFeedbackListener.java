@@ -24,4 +24,3 @@ public interface RTCPFeedbackListener
      */
     public void rtcpFeedbackReceived(RTCPFeedbackEvent event);
 }
-

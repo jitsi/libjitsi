@@ -49,10 +49,10 @@ public class RTPTranslatorImpl
     private static final boolean CREATE_FAKE_SEND_STREAM_IF_NECESSARY = false;
 
     /**
-     * An array with <tt>long</tt> element type and no elements explicitly
-     * defined to reduce unnecessary allocations.
+     * An array with <tt>int</tt> element type and no elements explicitly
+     * defined to reduce unnecessary allocations. 
      */
-    private static final long[] EMPTY_LONG_ARRAY = new long[0];
+    private static final int[] EMPTY_INT_ARRAY = new int[0];
 
     /**
      * The <tt>RTPConnector</tt> which is used by {@link #manager} and which
@@ -479,7 +479,7 @@ public class RTPTranslatorImpl
      */
     private synchronized StreamRTPManagerDesc
         findStreamRTPManagerDescByReceiveSSRC(
-            long receiveSSRC,
+            int receiveSSRC,
             StreamRTPManagerDesc exclusion)
     {
         for (int i = 0, count = streamRTPManagers.size(); i < count; i++)
@@ -582,9 +582,13 @@ public class RTPTranslatorImpl
                 for (Object s : managerReceiveStreams)
                 {
                     ReceiveStream receiveStream = (ReceiveStream) s;
+                    /*
+                     * FMJ stores the synchronization source (SSRC) identifiers
+                     * as 32-bit signed values.
+                     */
+                    int receiveSSRC = (int) receiveStream.getSSRC();
 
-                    if (streamRTPManagerDesc.containsReceiveSSRC(
-                            receiveStream.getSSRC()))
+                    if (streamRTPManagerDesc.containsReceiveSSRC(receiveSSRC))
                         receiveStreams.add(receiveStream);
                 }
             }
@@ -695,25 +699,39 @@ public class RTPTranslatorImpl
          * Do the bytes in the specified buffer resemble (a header of) an RTCP
          * packet?
          */
-        if (length > 8)
+        if (length >= 8 /* BYE */)
         {
             byte b0 = buffer[offset];
             int v = (b0 & 0xc0) >>> 6;
 
-            if (v == 2)
+            if (v == RTCPHeader.VERSION)
             {
                 byte b1 = buffer[offset + 1];
                 int pt = b1 & 0xff;
 
                 if (pt == 203 /* BYE */)
                 {
-                    int sc = b0 & 0x1f;
-                    long ssrc = (sc > 0) ? readInt(buffer, offset + 4) : -1;
+                    // Verify the length field.
+                    int rtcpLength
+                        = (readUnsignedShort(buffer, offset + 2) + 1) * 4;
 
-                    logger.trace(
-                            obj.getClass().getName() + '.' + methodName
-                                + ": RTCP BYE v=" + v + "; pt=" + pt + "; ssrc="
-                                + ssrc + ';');
+                    if (rtcpLength <= length)
+                    {
+                        int sc = b0 & 0x1f;
+                        int off = offset + 4;
+
+                        for (int i = 0, end = offset + length;
+                                (i < sc) && (off + 4 <= end);
+                                i++, off += 4)
+                        {
+                            int ssrc = readInt(buffer, off);
+
+                            logger.trace(
+                                    obj.getClass().getName() + '.' + methodName
+                                        + ": RTCP BYE SSRC/CSRC "
+                                        + Long.toString(ssrc & 0xffffffffl));
+                        }
+                    }
                 }
             }
         }
@@ -751,13 +769,18 @@ public class RTPTranslatorImpl
 
         if (data)
         {
-            /**
-             * Ignore RTP packets coming from peers whose MediaStream's direction
-             * does not allow receiving.
+            /*
+             * Ignore RTP packets coming from peers whose MediaStream's
+             * direction does not allow receiving.
              */
-            if (!streamRTPManagerDesc.streamRTPManager.getMediaStream()
-                    .getDirection().allowsReceiving())
+            if (!streamRTPManagerDesc
+                    .streamRTPManager
+                        .getMediaStream()
+                            .getDirection()
+                                .allowsReceiving())
+            {
                 return read;
+            }
 
             /*
              * Do the bytes in the specified buffer resemble (a header of) an
@@ -767,7 +790,7 @@ public class RTPTranslatorImpl
                     && (/* v */ ((buffer[offset] & 0xc0) >>> 6)
                             == RTPHeader.VERSION))
             {
-                long ssrc = readInt(buffer, offset + 8);
+                int ssrc = readInt(buffer, offset + 8);
 
                 if (!streamRTPManagerDesc.containsReceiveSSRC(ssrc))
                 {
@@ -775,9 +798,13 @@ public class RTPTranslatorImpl
                                 ssrc,
                                 streamRTPManagerDesc)
                             == null)
+                    {
                         streamRTPManagerDesc.addReceiveSSRC(ssrc);
+                    }
                     else
+                    {
                         return 0;
+                    }
                 }
 
                 int pt = buffer[offset + 1] & 0x7f;
@@ -815,22 +842,37 @@ public class RTPTranslatorImpl
 
     /**
      * Reads an <tt>int</tt> from a specific <tt>byte</tt> buffer starting at a
-     * specific <tt>offset</tt>. The implementation is the same as
+     * specific offset. The implementation is the same as
      * {@link DataInputStream#readInt()}.
      *
-     * @param buffer the <tt>byte</tt> buffer to read an <tt>int</tt> from
-     * @param offset the zero-based offset in <tt>buffer</tt> to start reading
-     * an <tt>int</tt> from
-     * @return an <tt>int</tt> read from the specified <tt>buffer</tt> starting
-     * at the specified <tt>offset</tt>
+     * @param buf the <tt>byte</tt> buffer to read an <tt>int</tt> from
+     * @param off the zero-based offset in <tt>buf</tt> to start reading an
+     * <tt>int</tt> from
+     * @return an <tt>int</tt> read from the specified <tt>buf</tt> starting at
+     * the specified <tt>off</tt>
      */
-    public static int readInt(byte[] buffer, int offset)
+    public static int readInt(byte[] buf, int off)
     {
         return
-            ((buffer[offset++] & 0xff) << 24)
-                | ((buffer[offset++] & 0xff) << 16)
-                | ((buffer[offset++] & 0xff) << 8)
-                | (buffer[offset] & 0xff);
+            ((buf[off++] & 0xff) << 24)
+                | ((buf[off++] & 0xff) << 16)
+                | ((buf[off++] & 0xff) << 8)
+                | (buf[off] & 0xff);
+    }
+
+    /**
+     * Reads a 16-bit unsigned value from a specific <tt>byte</tt> buffer
+     * starting at a specific offset and returns it as an <tt>int</tt>.
+     *
+     * @param buf the <tt>byte</tt> buffer to read a 16-bit unsigned value from
+     * @param off the zero-based offset in <tt>buf</tt> to start reading a
+     * 16-bit unsigned value from
+     * @return an <tt>int</tt> read from the specified <tt>buf</tt> as a 16-bit
+     * unsigned value starting at the specified <tt>off</tt>
+     */
+    public static int readUnsignedShort(byte[] buf, int off)
+    {
+        return ((buf[off++] & 0xff) << 8) | (buf[off] & 0xff);
     }
 
     /**
@@ -928,15 +970,22 @@ public class RTPTranslatorImpl
 
             if (receiveStream != null)
             {
+                /*
+                 * FMJ stores the synchronization source (SSRC) identifiers as
+                 * 32-bit signed values.
+                 */
+                int receiveSSRC = (int) receiveStream.getSSRC();
                 StreamRTPManagerDesc streamRTPManagerDesc
-                    = findStreamRTPManagerDescByReceiveSSRC(
-                            receiveStream.getSSRC(),
-                            null);
+                    = findStreamRTPManagerDescByReceiveSSRC(receiveSSRC, null);
 
                 if (streamRTPManagerDesc != null)
+                {
                     for (ReceiveStreamListener listener
                             : streamRTPManagerDesc.getReceiveStreamListeners())
+                    {
                         listener.update(event);
+                    }
+                }
             }
         }
     }
@@ -1015,7 +1064,7 @@ public class RTPTranslatorImpl
                 Format format,
                 StreamRTPManagerDesc exclusion)
         {
-            int write = 0;
+            int written = 0;
 
             for (int streamIndex = 0, streamCount = streams.size();
                     streamIndex < streamCount;
@@ -1025,51 +1074,39 @@ public class RTPTranslatorImpl
                 StreamRTPManagerDesc streamRTPManagerDesc
                     = streamDesc.connectorDesc.streamRTPManagerDesc;
 
-                if (streamRTPManagerDesc != exclusion)
+                if (streamRTPManagerDesc == exclusion)
+                    continue;
+
+                boolean write;
+
+                if (data)
                 {
-                    if (data)
-                    {
-                       /*
-                        * Only write data packets to OutputDataStream-s for
-                        * which the associated MediaStream allows sending.
-                        */
-                        if (!streamRTPManagerDesc.streamRTPManager.
-                                getMediaStream().getDirection().allowsSending())
-                            return write;
-
-                        if ((format != null) && (length > 0))
-                        {
-                            Integer payloadType
-                                = streamRTPManagerDesc.getPayloadType(format);
-
-                            if ((payloadType == null) && (exclusion != null))
-                                payloadType = exclusion.getPayloadType(format);
-                            if (payloadType != null)
-                            {
-                                int payloadTypeByteIndex = offset + 1;
-
-                                buffer[payloadTypeByteIndex]
-                                    = (byte)
-                                        ((buffer[payloadTypeByteIndex] & 0x80)
-                                            | (payloadType & 0x7f));
-                            }
-                        }
-                    }
-                    else if (logger.isTraceEnabled())
-                    {
-                        logRTCP(
-                                this, "doWrite",
-                                buffer, offset, length);
-                    }
-
-                    int streamWrite
-                        = streamDesc.stream.write(buffer, offset, length);
-
-                    if (write < streamWrite)
-                        write = streamWrite;
+                    write
+                        = willWriteData(
+                                streamRTPManagerDesc,
+                                buffer, offset, length,
+                                format,
+                                exclusion);
                 }
+                else
+                {
+                    write
+                        = willWriteControl(
+                                streamRTPManagerDesc,
+                                buffer, offset, length,
+                                format,
+                                exclusion);
+                }
+                if (!write)
+                    continue;
+
+                int streamWritten
+                    = streamDesc.stream.write(buffer, offset, length);
+
+                if (written < streamWritten)
+                    written = streamWritten;
             }
-            return write;
+            return written;
         }
 
         public synchronized void removeStreams(RTPConnectorDesc connectorDesc)
@@ -1172,6 +1209,156 @@ public class RTPTranslatorImpl
                         createWriteThread();
                 }
             }
+        }
+
+        /**
+         * Notifies this instance that a specific <tt>byte</tt> buffer will be
+         * written into the control <tt>OutputDataStream</tt> of a specific
+         * <tt>StreamRTPManagerDesc</tt>.
+         *
+         * @param destination the <tt>StreamRTPManagerDesc</tt> which is the
+         * destination of the write
+         * @param buffer the data to be written into <tt>destination</tt>
+         * @param offset the offset in <tt>buffer</tt> at which the data to be
+         * written into <tt>destination</tt> starts 
+         * @param length the number of <tt>byte</tt>s in <tt>buffer</tt>
+         * beginning at <tt>offset</tt> which constitute the data to the written
+         * into <tt>destination</tt>
+         * @param format the FMJ <tt>Format</tt> of the data to be written into
+         * <tt>destination</tt>
+         * @param exclusion the <tt>StreamRTPManagerDesc</tt> which is exclude
+         * from the write batch, possibly because it is the cause of the write
+         * batch in the first place
+         * @return <tt>true</tt> to write the specified data into the specified
+         * <tt>destination</tt> or <tt>false</tt> to not write the specified
+         * data into the specified <tt>destination</tt>
+         */
+        private boolean willWriteControl(
+                StreamRTPManagerDesc destination,
+                byte[] buffer, int offset, int length,
+                Format format,
+                StreamRTPManagerDesc exclusion)
+        {
+            boolean write = true;
+
+            /*
+             * Do the bytes in the specified buffer resemble (a header of) an
+             * RTCP packet?
+             */
+            if (length >= 12 /* FB */)
+            {
+                byte b0 = buffer[offset];
+                int v = (b0 & 0xc0) >>> 6; /* version */
+
+                if (v == RTCPHeader.VERSION)
+                {
+                    byte b1 = buffer[offset + 1];
+                    int pt = b1 & 0xff; /* payload type */
+
+                    if ((pt == 205 /* RTPFB */) || (pt == 206 /* PSFB */))
+                    {
+                        // Verify the length field.
+                        int rtcpLength
+                            = (readUnsignedShort(buffer, offset + 2) + 1) * 4;
+
+                        if (rtcpLength <= length)
+                        {
+                            int ssrcOfMediaSource = readInt(buffer, offset + 8);
+
+                            if (destination.containsReceiveSSRC(
+                                    ssrcOfMediaSource))
+                            {
+                                if (logger.isTraceEnabled())
+                                {
+                                    int fmt = b0 & 0x1f; /* feedback message type */
+                                    int ssrcOfPacketSender
+                                        = readInt(buffer, offset + 4);
+                                    String message
+                                        = getClass().getName()
+                                            + ".willWriteControl: FMT " + fmt
+                                            + ", PT " + pt
+                                            + ", SSRC of packet sender "
+                                            + Long.toString(
+                                                    ssrcOfPacketSender
+                                                        & 0xffffffffl)
+                                            + ", SSRC of media source "
+                                            + Long.toString(
+                                                    ssrcOfMediaSource
+                                                        & 0xffffffffl);
+
+                                    logger.trace(message);
+                                }
+                            }
+                            else
+                            {
+                                write = false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (write && logger.isTraceEnabled())
+                logRTCP(this, "doWrite", buffer, offset, length);
+            return write;
+        }
+
+        /**
+         * Notifies this instance that a specific <tt>byte</tt> buffer will be
+         * written into the data <tt>OutputDataStream</tt> of a specific
+         * <tt>StreamRTPManagerDesc</tt>.
+         *
+         * @param destination the <tt>StreamRTPManagerDesc</tt> which is the
+         * destination of the write
+         * @param buffer the data to be written into <tt>destination</tt>
+         * @param offset the offset in <tt>buffer</tt> at which the data to be
+         * written into <tt>destination</tt> starts 
+         * @param length the number of <tt>byte</tt>s in <tt>buffer</tt>
+         * beginning at <tt>offset</tt> which constitute the data to the written
+         * into <tt>destination</tt>
+         * @param format the FMJ <tt>Format</tt> of the data to be written into
+         * <tt>destination</tt>
+         * @param exclusion the <tt>StreamRTPManagerDesc</tt> which is exclude
+         * from the write batch, possibly because it is the cause of the write
+         * batch in the first place
+         * @return <tt>true</tt> to write the specified data into the specified
+         * <tt>destination</tt> or <tt>false</tt> to not write the specified
+         * data into the specified <tt>destination</tt>
+         */
+        private boolean willWriteData(
+                StreamRTPManagerDesc destination,
+                byte[] buffer, int offset, int length,
+                Format format,
+                StreamRTPManagerDesc exclusion)
+        {
+            /*
+             * Only write data packets to OutputDataStreams for which the
+             * associated MediaStream allows sending.
+             */
+            if (!destination.streamRTPManager.getMediaStream().getDirection()
+                    .allowsSending())
+            {
+                return false;
+            }
+
+            if ((format != null) && (length > 0))
+            {
+                Integer payloadType = destination.getPayloadType(format);
+
+                if ((payloadType == null) && (exclusion != null))
+                    payloadType = exclusion.getPayloadType(format);
+                if (payloadType != null)
+                {
+                    int payloadTypeByteIndex = offset + 1;
+
+                    buffer[payloadTypeByteIndex]
+                        = (byte)
+                            ((buffer[payloadTypeByteIndex] & 0x80)
+                                | (payloadType & 0x7f));
+                }
+            }
+
+            return true;
         }
 
         public int write(byte[] buffer, int offset, int length)
@@ -1994,6 +2181,12 @@ public class RTPTranslatorImpl
         }
     }
 
+    /**
+     * Describes additional information about a <tt>StreamRTPManager</tt> for
+     * the purposes of <tt>RTPTranslatorImpl</tt>.
+     *
+     * @author Lyubomir Marinov
+     */
     private static class StreamRTPManagerDesc
     {
         public RTPConnectorDesc connectorDesc;
@@ -2001,13 +2194,24 @@ public class RTPTranslatorImpl
         private final Map<Integer, Format> formats
             = new HashMap<Integer, Format>();
 
-        private long[] receiveSSRCs = EMPTY_LONG_ARRAY;
+        /**
+         * The list of synchronization source (SSRC) identifiers received by
+         * {@link #streamRTPManager} (as <tt>ReceiveStream</tt>s).
+         */
+        private int[] receiveSSRCs = EMPTY_INT_ARRAY;
 
         private final List<ReceiveStreamListener> receiveStreamListeners
             = new LinkedList<ReceiveStreamListener>();
 
         public final StreamRTPManager streamRTPManager;
 
+        /**
+         * Initializes a new <tt>StreamRTPManagerDesc</tt> instance which is to
+         * describe a specific <tt>StreamRTPManager</tt>.
+         *
+         * @param streamRTPManager the <tt>StreamRTPManager</tt> to be described
+         * by the new instance
+         */
         public StreamRTPManagerDesc(StreamRTPManager streamRTPManager)
         {
             this.streamRTPManager = streamRTPManager;
@@ -2021,17 +2225,24 @@ public class RTPTranslatorImpl
             }
         }
 
-        public synchronized void addReceiveSSRC(long receiveSSRC)
+        /**
+         * Adds a new synchronization source (SSRC) identifier to the list of
+         * SSRC received by the associated <tt>StreamRTPManager</tt>.
+         *
+         * @param receiveSSRC the new SSRC to add to the list of SSRC received
+         * by the associated <tt>StreamRTPManager</tt>
+         */
+        public synchronized void addReceiveSSRC(int receiveSSRC)
         {
             if (!containsReceiveSSRC(receiveSSRC))
             {
                 int receiveSSRCCount = receiveSSRCs.length;
-                long[] newReceiveSSRCs = new long[receiveSSRCCount + 1];
+                int[] newReceiveSSRCs = new int[receiveSSRCCount + 1];
 
                 System.arraycopy(
-                    receiveSSRCs, 0,
-                    newReceiveSSRCs, 0,
-                    receiveSSRCCount);
+                        receiveSSRCs, 0,
+                        newReceiveSSRCs, 0,
+                        receiveSSRCCount);
                 newReceiveSSRCs[receiveSSRCCount] = receiveSSRC;
                 receiveSSRCs = newReceiveSSRCs;
             }
@@ -2044,6 +2255,27 @@ public class RTPTranslatorImpl
                 if (!receiveStreamListeners.contains(listener))
                     receiveStreamListeners.add(listener);
             }
+        }
+
+        /**
+         * Determines whether the list of synchronization source (SSRC)
+         * identifiers received by the associated <tt>StreamRTPManager</tt>
+         * contains a specific SSRC.
+         *
+         * @param receiveSSRC the SSRC to check whether it is contained in the
+         * list of SSRC received by the associated <tt>StreamRTPManager</tt>
+         * @return <tt>true</tt> if the specified <tt>receiveSSRC</tt> is
+         * contained in the list of SSRC received by the associated
+         * <tt>StreamRTPManager</tt>; otherwise, <tt>false</tt>
+         */
+        public synchronized boolean containsReceiveSSRC(int receiveSSRC)
+        {
+            for (int i = 0; i < receiveSSRCs.length; i++)
+            {
+                if (receiveSSRCs[i] == receiveSSRC)
+                    return true;
+            }
+            return false;
         }
 
         public Format getFormat(int payloadType)
@@ -2089,14 +2321,6 @@ public class RTPTranslatorImpl
                             new ReceiveStreamListener[
                                     receiveStreamListeners.size()]);
             }
-        }
-
-        public synchronized boolean containsReceiveSSRC(long receiveSSRC)
-        {
-            for (int i = 0; i < receiveSSRCs.length; i++)
-                if (receiveSSRCs[i] == receiveSSRC)
-                    return true;
-            return false;
         }
 
         public void removeReceiveStreamListener(ReceiveStreamListener listener)
