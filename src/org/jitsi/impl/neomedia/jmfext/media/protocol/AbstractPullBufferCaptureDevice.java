@@ -459,7 +459,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * media data from this <tt>DataSource</tt>
      */
     @Override
-    public synchronized void start()
+    public void start()
         throws IOException
     {
         impl.start();
@@ -472,7 +472,7 @@ public abstract class AbstractPullBufferCaptureDevice
      * media data from this <tt>DataSource</tt>
      */
     @Override
-    public synchronized void stop()
+    public void stop()
         throws IOException
     {
         impl.stop();

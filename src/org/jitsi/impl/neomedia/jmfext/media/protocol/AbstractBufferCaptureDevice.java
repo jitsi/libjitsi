@@ -9,6 +9,7 @@ package org.jitsi.impl.neomedia.jmfext.media.protocol;
 import java.io.*;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.concurrent.locks.*;
 
 import javax.media.*;
 import javax.media.Controls;
@@ -61,6 +62,13 @@ public abstract class AbstractBufferCaptureDevice
     private boolean connected = false;
 
     /**
+     * The <tt>Object</tt> to synchronize the access to the state related to the
+     * <tt>Controls</tt> interface implementation in order to avoid locking
+     * <tt>this</tt> if not necessary.
+     */
+    private final Object controlsSyncRoot = new Object();
+
+    /**
      * The array of <tt>FormatControl</tt> instances each one of which can be
      * used before {@link #connect()} to get and set the capture <tt>Format</tt>
      * of each one of the capture streams.
@@ -72,6 +80,8 @@ public abstract class AbstractBufferCaptureDevice
      * <tt>AbstractBufferCaptureDevice</tt>.
      */
     private FrameRateControl[] frameRateControls;
+
+    private final ReentrantLock lock = new ReentrantLock();
 
     /**
      * The <tt>RTPInfo</tt>s of this <tt>AbstractBufferCaptureDevice</tt>.
@@ -94,6 +104,8 @@ public abstract class AbstractBufferCaptureDevice
      */
     private AbstractBufferStream<?>[] streams;
 
+    private final Object streamSyncRoot = new Object();
+
     /**
      * Opens a connection to the media source of this
      * <tt>AbstractBufferCaptureDevice</tt>.
@@ -101,13 +113,21 @@ public abstract class AbstractBufferCaptureDevice
      * @throws IOException if anything goes wrong while opening the connection
      * to the media source of this <tt>AbstractBufferCaptureDevice</tt>
      */
-    public synchronized void connect()
+    public void connect()
         throws IOException
     {
-        if (!connected)
+        lock();
+        try
         {
-            doConnect();
-            connected = true;
+            if (!connected)
+            {
+                doConnect();
+                connected = true;
+            }
+        }
+        finally
+        {
+            unlock();
         }
     }
 
@@ -285,10 +305,13 @@ public abstract class AbstractBufferCaptureDevice
     final void defaultDoStart()
         throws IOException
     {
-        if (streams != null)
+        synchronized (getStreamSyncRoot())
         {
-            for (AbstractBufferStream<?> stream : streams)
-                stream.start();
+            if (streams != null)
+            {
+                for (AbstractBufferStream<?> stream : streams)
+                    stream.start();
+            }
         }
     }
 
@@ -303,10 +326,13 @@ public abstract class AbstractBufferCaptureDevice
     final void defaultDoStop()
         throws IOException
     {
-        if (streams != null)
+        synchronized (getStreamSyncRoot())
         {
-            for (AbstractBufferStream<?> stream : streams)
-                stream.stop();
+            if (streams != null)
+            {
+                for (AbstractBufferStream<?> stream : streams)
+                    stream.stop();
+            }
         }
     }
 
@@ -421,21 +447,31 @@ public abstract class AbstractBufferCaptureDevice
      * <tt>AbstractBufferCaptureDevice</tt>. If such a connection has not been
      * opened, the call is ignored.
      */
-    public synchronized void disconnect()
+    public void disconnect()
     {
+        lock();
         try
         {
-            stop();
-        }
-        catch (IOException ioex)
-        {
-            logger.error("Failed to stop " + getClass().getSimpleName(), ioex);
-        }
+            try
+            {
+                stop();
+            }
+            catch (IOException ioex)
+            {
+                logger.error(
+                        "Failed to stop " + getClass().getSimpleName(),
+                        ioex);
+            }
 
-        if (connected)
+            if (connected)
+            {
+                doDisconnect();
+                connected = false;
+            }
+        }
+        finally
         {
-            doDisconnect();
-            connected = false;
+            unlock();
         }
     }
 
@@ -590,7 +626,7 @@ public abstract class AbstractBufferCaptureDevice
      */
     Object getStreamSyncRoot()
     {
-        return this;
+        return streamSyncRoot;
     }
 
     /**
@@ -604,10 +640,183 @@ public abstract class AbstractBufferCaptureDevice
      * @return an array of the <tt>SourceStream</tt>s through which this
      * <tt>AbstractBufferCaptureDevice</tt> gives access to its media data
      */
-    public synchronized
+    public
         <SourceStreamT extends SourceStream>
             SourceStreamT[] getStreams(Class<SourceStreamT> clz)
     {
+        synchronized (getStreamSyncRoot())
+        {
+            return internalGetStreams(clz);
+        }
+    }
+
+    /**
+     * Gets the <tt>Format</tt>s which are to be reported by a
+     * <tt>FormatControl</tt> as supported formats for a
+     * <tt>AbstractBufferStream</tt> at a specific zero-based index in the list
+     * of streams of this <tt>AbstractBufferCaptureDevice</tt>.
+     *
+     * @param streamIndex the zero-based index of the
+     * <tt>AbstractBufferStream</tt> for which the specified
+     * <tt>FormatControl</tt> is to report the list of supported
+     * <tt>Format</tt>s
+     * @return an array of <tt>Format</tt>s to be reported by a
+     * <tt>FormatControl</tt> as the supported formats for the
+     * <tt>AbstractBufferStream</tt> at the specified <tt>streamIndex</tt> in
+     * the list of streams of this <tt>AbstractBufferCaptureDevice</tt>
+     */
+    protected abstract Format[] getSupportedFormats(int streamIndex);
+
+    /**
+     * Gets the <tt>Format</tt> to be reported by the <tt>FormatControl</tt> of
+     * a <tt>PushBufferStream</tt> at a specific zero-based index in the list of
+     * streams of this <tt>PushBufferDataSource</tt>. The
+     * <tt>PushBufferStream</tt> may not exist at the time of requesting its
+     * <tt>Format</tt>.
+     *
+     * @param streamIndex the zero-based index of the <tt>PushBufferStream</tt>
+     * the <tt>Format</tt> of which is to be retrieved
+     * @param oldValue the last-known <tt>Format</tt> for the
+     * <tt>PushBufferStream</tt> at the specified <tt>streamIndex</tt>
+     * @return the <tt>Format</tt> to be reported by the <tt>FormatControl</tt>
+     * of the <tt>PushBufferStream</tt> at the specified <tt>streamIndex</tt> in
+     * the list of streams of this <tt>PushBufferDataSource</tt>.
+     */
+    private Format internalGetFormat(int streamIndex, Format oldValue)
+    {
+        boolean locked;
+
+        synchronized (this)
+        {
+            locked = lock.tryLock();
+        }
+        try
+        {
+            if (locked)
+            {
+                synchronized (getStreamSyncRoot())
+                {
+                    if (streams != null)
+                    {
+                        AbstractBufferStream<?> stream = streams[streamIndex];
+
+                        if (stream != null)
+                        {
+                            Format streamFormat = stream.internalGetFormat();
+
+                            if (streamFormat != null)
+                                return streamFormat;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                /*
+                 * XXX In order to prevent a deadlock, do not ask the streams
+                 * about the format.
+                 */
+            }
+        }
+        finally
+        {
+            if (locked)
+            {
+                synchronized (this)
+                {
+                    lock.unlock();
+                }
+            }
+        }
+        return getFormat(streamIndex, oldValue);
+    }
+
+    /**
+     * Gets an array of <tt>FormatControl</tt> instances each one of which can
+     * be used before {@link #connect()} to get and set the capture
+     * <tt>Format</tt> of each one of the capture streams.
+     *
+     * @return an array of <tt>FormatControl</tt> instances each one of which
+     * can be used before {@link #connect()} to get and set the capture
+     * <tt>Format</tt> of each one of the capture streams
+     */
+    private FormatControl[] internalGetFormatControls()
+    {
+        synchronized (controlsSyncRoot)
+        {
+            if (formatControls == null)
+                formatControls = createFormatControls();
+            return formatControls;
+        }
+    }
+
+    /**
+     * Gets an array of <tt>FrameRateControl</tt> instances which can be used to
+     * get and/or set the output frame rate of this
+     * <tt>AbstractBufferCaptureDevice</tt>.
+     *
+     * @return an array of <tt>FrameRateControl</tt> instances which can be used
+     * to get and/or set the output frame rate of this
+     * <tt>AbstractBufferCaptureDevice</tt>.
+     */
+    private FrameRateControl[] internalGetFrameRateControls()
+    {
+        synchronized (controlsSyncRoot)
+        {
+            if (frameRateControls == null)
+            {
+                FrameRateControl frameRateControl = createFrameRateControl();
+
+                // Don't try to create the FrameRateControl more than once.
+                frameRateControls
+                    = (frameRateControl == null)
+                        ? new FrameRateControl[0]
+                        : new FrameRateControl[] { frameRateControl };
+            }
+            return frameRateControls;
+        }
+    }
+
+    /**
+     * Gets an array of <tt>RTPInfo</tt> instances of this
+     * <tt>AbstractBufferCaptureDevice</tt>.
+     *
+     * @return an array of <tt>RTPInfo</tt> instances of this
+     * <tt>AbstractBufferCaptureDevice</tt>.
+     */
+    private RTPInfo[] internalGetRTPInfos()
+    {
+        synchronized (controlsSyncRoot)
+        {
+            if (rtpInfos == null)
+            {
+                RTPInfo rtpInfo = createRTPInfo();
+
+                // Don't try to create the RTPInfo more than once.
+                rtpInfos
+                    = (rtpInfo == null)
+                        ? new RTPInfo[0]
+                        : new RTPInfo[] { rtpInfo };
+            }
+            return rtpInfos;
+        }
+    }
+
+    /**
+     * Gets the <tt>AbstractBufferStream</tt>s through which this
+     * <tt>AbstractBufferCaptureDevice</tt> gives access to its media data.
+     *
+     * @param <SourceStreamT> the type of <tt>SourceStream</tt> which is to be
+     * the element type of the returned array
+     * @param clz the <tt>Class</tt> of <tt>SourceStream</tt> which is to be the
+     * element type of the returned array
+     * @return an array of the <tt>SourceStream</tt>s through which this
+     * <tt>AbstractBufferCaptureDevice</tt> gives access to its media data
+     */
+    private
+        <SourceStreamT extends SourceStream>
+            SourceStreamT[] internalGetStreams(Class<SourceStreamT> clz)
+    {    
         if (streams == null)
         {
             FormatControl[] formatControls = internalGetFormatControls();
@@ -652,120 +861,6 @@ public abstract class AbstractBufferCaptureDevice
     }
 
     /**
-     * Gets the <tt>Format</tt>s which are to be reported by a
-     * <tt>FormatControl</tt> as supported formats for a
-     * <tt>AbstractBufferStream</tt> at a specific zero-based index in the list
-     * of streams of this <tt>AbstractBufferCaptureDevice</tt>.
-     *
-     * @param streamIndex the zero-based index of the
-     * <tt>AbstractBufferStream</tt> for which the specified
-     * <tt>FormatControl</tt> is to report the list of supported
-     * <tt>Format</tt>s
-     * @return an array of <tt>Format</tt>s to be reported by a
-     * <tt>FormatControl</tt> as the supported formats for the
-     * <tt>AbstractBufferStream</tt> at the specified <tt>streamIndex</tt> in
-     * the list of streams of this <tt>AbstractBufferCaptureDevice</tt>
-     */
-    protected abstract Format[] getSupportedFormats(int streamIndex);
-
-    /**
-     * Gets the <tt>Format</tt> to be reported by the <tt>FormatControl</tt> of
-     * a <tt>PushBufferStream</tt> at a specific zero-based index in the list of
-     * streams of this <tt>PushBufferDataSource</tt>. The
-     * <tt>PushBufferStream</tt> may not exist at the time of requesting its
-     * <tt>Format</tt>.
-     *
-     * @param streamIndex the zero-based index of the <tt>PushBufferStream</tt>
-     * the <tt>Format</tt> of which is to be retrieved
-     * @param oldValue the last-known <tt>Format</tt> for the
-     * <tt>PushBufferStream</tt> at the specified <tt>streamIndex</tt>
-     * @return the <tt>Format</tt> to be reported by the <tt>FormatControl</tt>
-     * of the <tt>PushBufferStream</tt> at the specified <tt>streamIndex</tt> in
-     * the list of streams of this <tt>PushBufferDataSource</tt>.
-     */
-    private Format internalGetFormat(int streamIndex, Format oldValue)
-    {
-        synchronized (this)
-        {
-            if (streams != null)
-            {
-                AbstractBufferStream<?> stream = streams[streamIndex];
-
-                if (stream != null)
-                {
-                    Format streamFormat = stream.internalGetFormat();
-
-                    if (streamFormat != null)
-                        return streamFormat;
-                }
-            }
-        }
-        return getFormat(streamIndex, oldValue);
-    }
-
-    /**
-     * Gets an array of <tt>FormatControl</tt> instances each one of which can
-     * be used before {@link #connect()} to get and set the capture
-     * <tt>Format</tt> of each one of the capture streams.
-     *
-     * @return an array of <tt>FormatControl</tt> instances each one of which
-     * can be used before {@link #connect()} to get and set the capture
-     * <tt>Format</tt> of each one of the capture streams
-     */
-    private synchronized FormatControl[] internalGetFormatControls()
-    {
-        if (formatControls == null)
-            formatControls = createFormatControls();
-        return formatControls;
-    }
-
-    /**
-     * Gets an array of <tt>FrameRateControl</tt> instances which can be used to
-     * get and/or set the output frame rate of this
-     * <tt>AbstractBufferCaptureDevice</tt>.
-     *
-     * @return an array of <tt>FrameRateControl</tt> instances which can be used
-     * to get and/or set the output frame rate of this
-     * <tt>AbstractBufferCaptureDevice</tt>.
-     */
-    private synchronized FrameRateControl[] internalGetFrameRateControls()
-    {
-        if (frameRateControls == null)
-        {
-            FrameRateControl frameRateControl = createFrameRateControl();
-
-            // Don't try to create the FrameRateControl more than once.
-            frameRateControls
-                = (frameRateControl == null)
-                    ? new FrameRateControl[0]
-                    : new FrameRateControl[] { frameRateControl };
-        }
-        return frameRateControls;
-    }
-
-    /**
-     * Gets an array of <tt>RTPInfo</tt> instances of this
-     * <tt>AbstractBufferCaptureDevice</tt>.
-     *
-     * @return an array of <tt>RTPInfo</tt> instances of this
-     * <tt>AbstractBufferCaptureDevice</tt>.
-     */
-    private synchronized RTPInfo[] internalGetRTPInfos()
-    {
-        if (rtpInfos == null)
-        {
-            RTPInfo rtpInfo = createRTPInfo();
-
-            // Don't try to create the RTPInfo more than once.
-            rtpInfos
-                = (rtpInfo == null)
-                    ? new RTPInfo[0]
-                    : new RTPInfo[] { rtpInfo };
-        }
-        return rtpInfos;
-    }
-
-    /**
      * Attempts to set the <tt>Format</tt> to be reported by the
      * <tt>FormatControl</tt> of a <tt>PushBufferStream</tt> at a specific
      * zero-based index in the list of streams of this
@@ -786,17 +881,30 @@ public abstract class AbstractBufferCaptureDevice
             int streamIndex,
             Format oldValue, Format newValue)
     {
-        synchronized (this)
+        lock();
+        try
         {
-            if (streams != null)
+            synchronized (getStreamSyncRoot())
             {
-                AbstractBufferStream<?> stream = streams[streamIndex];
+                if (streams != null)
+                {
+                    AbstractBufferStream<?> stream = streams[streamIndex];
 
-                if (stream != null)
-                    return stream.internalSetFormat(newValue);
+                    if (stream != null)
+                        return stream.internalSetFormat(newValue);
+                }
             }
         }
+        finally
+        {
+            unlock();
+        }
         return setFormat(streamIndex, oldValue, newValue);
+    }
+
+    private synchronized void lock()
+    {
+        lock.lock();
     }
 
     /**
@@ -835,16 +943,27 @@ public abstract class AbstractBufferCaptureDevice
      * @throws IOException if anything goes wrong while starting the transfer of
      * media data from this <tt>AbstractBufferCaptureDevice</tt>
      */
-    public synchronized void start()
+    public void start()
         throws IOException
     {
-        if (!started)
+        lock();
+        try
         {
-            if (!connected)
-                throw new IOException(getClass().getName() + " not connected");
+            if (!started)
+            {
+                if (!connected)
+                {
+                    throw new IOException(
+                            getClass().getName() + " not connected");
+                }
 
-            doStart();
-            started = true;
+                doStart();
+                started = true;
+            }
+        }
+        finally
+        {
+            unlock();
         }
     }
 
@@ -855,13 +974,21 @@ public abstract class AbstractBufferCaptureDevice
      * @throws IOException if anything goes wrong while stopping the transfer of
      * media data from this <tt>AbstractBufferCaptureDevice</tt>
      */
-    public synchronized void stop()
+    public void stop()
         throws IOException
     {
-        if (started)
+        lock();
+        try
         {
-            doStop();
-            started = false;
+            if (started)
+            {
+                doStop();
+                started = false;
+            }
+        }
+        finally
+        {
+            unlock();
         }
     }
 
@@ -876,5 +1003,10 @@ public abstract class AbstractBufferCaptureDevice
     AbstractBufferStream<?>[] streams()
     {
         return streams;
+    }
+
+    private synchronized void unlock()
+    {
+        lock.unlock();
     }
 }
