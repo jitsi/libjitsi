@@ -252,8 +252,9 @@ public class CsrcTransformEngine
 
         int csrcOffset = 1; // initial offset is equal to ext hdr size
 
-        for(long csrc : csrcList)
+        for (int i = 0; i < csrcList.length; i++)
         {
+            long csrc = csrcList[i];
             byte level
                 = (byte)
                     ((AudioMediaStreamImpl) mediaStream)

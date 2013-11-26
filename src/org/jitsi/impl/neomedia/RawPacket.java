@@ -393,8 +393,10 @@ public class RawPacket
         byte[] csrcBuff = new byte[newCsrcCount * 4];
         int csrcOffset = 0;
 
-        for(long csrc : newCsrcList)
+        for(int i = 0; i < newCsrcList.length; i++)
         {
+            long csrc = newCsrcList[i];
+
             csrcBuff[csrcOffset] = (byte)(csrc >> 24);
             csrcBuff[csrcOffset+1] = (byte)(csrc >> 16);
             csrcBuff[csrcOffset+2] = (byte)(csrc >> 8);

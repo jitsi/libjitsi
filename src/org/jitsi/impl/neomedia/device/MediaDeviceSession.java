@@ -213,14 +213,14 @@ public class MediaDeviceSession
         //init if necessary
         if ( ssrcList == null)
         {
-            setSsrcList(new long[]{ssrc});
+            setSsrcList(new long[] { ssrc });
             return;
         }
 
         //check whether we already have this ssrc
-        for ( long i : ssrcList)
+        for (int i = 0; i < ssrcList.length; i++)
         {
-            if ( i == ssrc)
+            if (ssrc == ssrcList[i])
                 return;
         }
 
@@ -2044,6 +2044,7 @@ public class MediaDeviceSession
         // use getRemoteSSRCList() instead of direct access to ssrcList
         // as the extender may override it
         long[] oldSsrcList = getRemoteSSRCList();
+
         ssrcList = newSsrcList;
 
         firePropertyChange(SSRC_LIST, oldSsrcList, getRemoteSSRCList());

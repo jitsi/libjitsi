@@ -76,14 +76,14 @@ public class MediaStreamImpl
     private final PropertyChangeListener deviceSessionPropertyChangeListener
         = new PropertyChangeListener()
         {
-            public void propertyChange(PropertyChangeEvent event)
+            public void propertyChange(PropertyChangeEvent ev)
             {
-                String propertyName = event.getPropertyName();
+                String propertyName = ev.getPropertyName();
 
                 if (MediaDeviceSession.OUTPUT_DATA_SOURCE.equals(propertyName))
                     deviceSessionOutputDataSourceChanged();
                 else if (MediaDeviceSession.SSRC_LIST.equals(propertyName))
-                    deviceSessionSsrcListChanged(event);
+                    deviceSessionSsrcListChanged(ev);
             }
         };
 
@@ -170,7 +170,7 @@ public class MediaStreamImpl
      * The list of CSRC IDs contributing to the media that this
      * <tt>MediaStream</tt> is sending to its remote party.
      */
-    private long[] localContributingSourceIDList = null;
+    private long[] localContributingSourceIDs;
 
     /**
      * The indicator which determines whether this <tt>MediaStream</tt> is set
@@ -793,17 +793,17 @@ public class MediaStreamImpl
      * not the case, we also add our own SSRC to the list of IDs and cache the
      * entire list.
      *
-     * @param evt the <tt>PropetyChangeEvent</tt> containing the list of SSRC
+     * @param ev the <tt>PropetyChangeEvent</tt> containing the list of SSRC
      * identifiers handled by our device session before and after it changed.
      */
-    private void deviceSessionSsrcListChanged(PropertyChangeEvent evt)
+    private void deviceSessionSsrcListChanged(PropertyChangeEvent ev)
     {
-        long[] ssrcArray = (long[])evt.getNewValue();
+        long[] ssrcArray = (long[]) ev.getNewValue();
 
         // the list is empty
         if(ssrcArray == null)
         {
-            this.localContributingSourceIDList = null;
+            this.localContributingSourceIDs = null;
             return;
         }
 
@@ -814,15 +814,19 @@ public class MediaStreamImpl
         //currently contributing including this stream's counterpart. We need
         //to remove that last one since that's where we will be sending our
         //csrc list
-        for(long csrc : ssrcArray)
+        for(int i = 0; i < ssrcArray.length; i++)
+        {
+            long csrc = ssrcArray[i];
+
             if (remoteSourceIDs.contains(csrc))
                 elementsToRemove ++;
+        }
 
         //we don't seem to be in a conf call since the list only contains the
         //SSRC id of the party that we are directly interacting with.
         if (elementsToRemove >= ssrcArray.length)
         {
-            this.localContributingSourceIDList = null;
+            this.localContributingSourceIDs = null;
             return;
         }
 
@@ -830,7 +834,6 @@ public class MediaStreamImpl
         //SSRC id but do not make it bigger than 15 since that's the maximum
         //for RTP.
         int cc = Math.min(ssrcArray.length - elementsToRemove + 1, 15);
-
         long[] csrcArray = new long[cc];
 
         for (int i = 0,j = 0;
@@ -847,7 +850,8 @@ public class MediaStreamImpl
         }
 
         csrcArray[csrcArray.length - 1] = getLocalSourceID();
-        this.localContributingSourceIDList = csrcArray;
+
+        this.localContributingSourceIDs = csrcArray;
     }
 
     /**
@@ -2392,7 +2396,7 @@ public class MediaStreamImpl
 
             if (receiveStream != null)
             {
-                long receiveStreamSSRC = receiveStream.getSSRC();
+                long receiveStreamSSRC = 0xFFFFFFFFL & receiveStream.getSSRC();
 
                 if (logger.isTraceEnabled())
                 {
@@ -2703,7 +2707,7 @@ public class MediaStreamImpl
      */
     public long[] getLocalContributingSourceIDs()
     {
-        return localContributingSourceIDList;
+        return localContributingSourceIDs;
     }
 
     /**
@@ -2719,7 +2723,7 @@ public class MediaStreamImpl
     {
         long[] remoteSsrcList = getDeviceSession().getRemoteSSRCList();
 
-        // TODO implement
+        // TODO Auto-generated method stub
 
         return remoteSsrcList;
     }
