@@ -1110,10 +1110,12 @@ public class AudioMixerMediaDevice
         public void propertyChange(PropertyChangeEvent evt)
         {
             if (MediaDeviceSession.SSRC_LIST.equals(evt.getPropertyName()))
+            {
                 firePropertyChange(
-                    MediaDeviceSession.SSRC_LIST,
-                    evt.getOldValue(),
-                    evt.getNewValue());
+                        MediaDeviceSession.SSRC_LIST,
+                        evt.getOldValue(),
+                        evt.getNewValue());
+            }
         }
 
         /**
