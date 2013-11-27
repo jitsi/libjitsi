@@ -776,29 +776,44 @@ public class DtlsPacketTransformer
     {
         if (connectThread != null)
             connectThread = null;
-        if (dtlsTransport != null)
+        try
+        {
+            /*
+             * The dtlsTransport and srtpTransformer SHOULD be closed, of
+             * course. The datagramTransport MUST be closed.
+             */
+            if (dtlsTransport != null)
+            {
+                try
+                {
+                    dtlsTransport.close();
+                }
+                catch (IOException ioe)
+                {
+                    logger.error(
+                            "Failed to (properly) close "
+                                + dtlsTransport.getClass(),
+                            ioe);
+                }
+                dtlsTransport = null;
+            }
+            if (srtpTransformer != null)
+            {
+                srtpTransformer.close();
+                srtpTransformer = null;
+            }
+        }
+        finally
         {
             try
             {
-                dtlsTransport.close();
+                closeDatagramTransport();
             }
-            catch (IOException ioe)
+            finally
             {
-                logger.error(
-                        "Failed to (properly) close "
-                            + dtlsTransport.getClass(),
-                        ioe);
+                notifyAll();
             }
-            dtlsTransport = null;
         }
-        if (srtpTransformer != null)
-        {
-            srtpTransformer.close();
-            srtpTransformer = null;
-        }
-        closeDatagramTransport();
-
-        notifyAll();
     }
 
     /**

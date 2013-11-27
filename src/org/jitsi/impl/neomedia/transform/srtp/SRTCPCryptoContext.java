@@ -37,7 +37,6 @@ import org.jitsi.bccontrib.macs.*;
 import org.jitsi.bccontrib.params.*;
 import org.jitsi.impl.neomedia.*;
 
-
 /**
  * SRTPCryptoContext class is the core class of SRTP implementation.
  * There can be multiple SRTP sources in one SRTP session. And each SRTP stream
@@ -72,7 +71,7 @@ public class SRTCPCryptoContext
     /**
      * RTCP SSRC of this cryptographic context
      */
-    private long ssrcCtx;
+    private final int ssrc;
 
     /**
      * Master key identifier
@@ -153,9 +152,9 @@ public class SRTCPCryptoContext
      *
      * @param ssrc SSRC of this SRTPCryptoContext
      */
-    public SRTCPCryptoContext(long ssrcIn)
+    public SRTCPCryptoContext(int ssrc)
     {
-        ssrcCtx = ssrcIn;
+        this.ssrc = ssrc;
         mki = null;
         masterKey = null;
         masterSalt = null;
@@ -185,10 +184,10 @@ public class SRTCPCryptoContext
      *            encryption algorithm, the authentication algorithm, etc
      */
     @SuppressWarnings("fallthrough")
-    public SRTCPCryptoContext(long ssrcIn,
+    public SRTCPCryptoContext(int ssrc,
             byte[] masterK, byte[] masterS, SRTPPolicy policyIn)
     {
-        ssrcCtx = ssrcIn;
+        this.ssrc = ssrc;
         mki = null;
 
         policy = policyIn;
@@ -293,9 +292,9 @@ public class SRTCPCryptoContext
      *
      * @return the SSRC of this SRTP cryptographic context
      */
-    public long getSSRC()
+    public int getSSRC()
     {
-        return ssrcCtx;
+        return ssrc;
     }
 
     /**
@@ -438,7 +437,7 @@ public class SRTCPCryptoContext
      */
     public void processPacketAESCM(RawPacket pkt, int index)
     {
-        long ssrc = pkt.getRTCPSSRC();
+        int ssrc = pkt.getRTCPSSRC();
 
         /* Compute the CM IV (refer to chapter 4.1.1 in RFC 3711):
         *
@@ -697,11 +696,8 @@ public class SRTCPCryptoContext
      *            The SSRC for this context
      * @return a new SRTPCryptoContext with all relevant data set.
      */
-    public SRTCPCryptoContext deriveContext(long ssrc)
+    public SRTCPCryptoContext deriveContext(int ssrc)
     {
-        SRTCPCryptoContext pcc = null;
-        pcc = new SRTCPCryptoContext(ssrc, masterKey,
-                masterSalt, policy);
-        return pcc;
+        return new SRTCPCryptoContext(ssrc, masterKey, masterSalt, policy);
     }
 }

@@ -186,10 +186,12 @@ public class RawPacket
      */
     public int readInt(int off)
     {
-        return (this.buffer[this.offset + off + 0] << 24) |
-               ((this.buffer[this.offset + off + 1] & 0xff) << 16) |
-               ((this.buffer[this.offset + off + 2] & 0xff) << 8)  |
-                (this.buffer[this.offset + off + 3] & 0xff);
+        off += offset;
+        return
+            ((buffer[off++] & 0xFF) << 24)
+                | ((buffer[off++] & 0xFF) << 16)
+                | ((buffer[off++] & 0xFF) << 8)
+                | (buffer[off] & 0xFF);
     }
 
     /**
@@ -510,7 +512,7 @@ public class RawPacket
      */
     public int getSSRC()
     {
-        return (int)(readUnsignedIntAsLong(8) & 0xffffffff);
+        return readInt(8);
     }
 
     /**
@@ -518,9 +520,9 @@ public class RawPacket
      *
      * @return RTP SSRC from source RTP packet
      */
-    public long getRTCPSSRC()
+    public int getRTCPSSRC()
     {
-        return (int)(readUnsignedIntAsLong(4) & 0xffffffff);
+        return readInt(4);
     }
 
     /**

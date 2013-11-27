@@ -15,7 +15,7 @@ package org.jitsi.impl.neomedia.transform.srtp;
 public class SRTPContextFactory
 {
     /**
-     * The default SRTPCryptoContext, which will be used to derivate other
+     * The default SRTPCryptoContext, which will be used to derive other
      * contexts.
      */
     private SRTPCryptoContext defaultContext;

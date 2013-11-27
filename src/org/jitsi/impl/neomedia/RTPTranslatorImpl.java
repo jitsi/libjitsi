@@ -1126,7 +1126,7 @@ public class RTPTranslatorImpl
         {
             try
             {
-                while (true)
+                do
                 {
                     int writeIndex;
                     byte[] buffer;
@@ -1190,6 +1190,7 @@ public class RTPTranslatorImpl
                         }
                     }
                 }
+                while (true);
             }
             catch (Throwable t)
             {

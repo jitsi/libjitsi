@@ -79,7 +79,7 @@ public class SRTPCryptoContext
     /**
      * RTP SSRC of this cryptographic context
      */
-    private long ssrcCtx;
+    private final int ssrc;
 
     /**
      * Master key identifier
@@ -212,9 +212,9 @@ public class SRTPCryptoContext
      * @param sender <tt>true</tt> if the new instance is to be used by an SRTP
      * sender; <tt>false</tt> if the new instance is to be used by an SRTP
      * receiver
-     * @param ssrcIn SSRC of this SRTPCryptoContext
+     * @param ssrc SSRC of this SRTPCryptoContext
      */
-    public SRTPCryptoContext(boolean sender, long ssrcIn)
+    public SRTPCryptoContext(boolean sender, int ssrc)
     {
         authKey = null;
         encKey = null;
@@ -225,7 +225,7 @@ public class SRTPCryptoContext
         policy = null;
         roc = 0;
         this.sender = sender;
-        ssrcCtx = ssrcIn;
+        this.ssrc = ssrc;
         tagStore = null;
     }
 
@@ -235,7 +235,7 @@ public class SRTPCryptoContext
      * @param sender <tt>true</tt> if the new instance is to be used by an SRTP
      * sender; <tt>false</tt> if the new instance is to be used by an SRTP
      * receiver
-     * @param ssrcIn the RTP SSRC that this SRTP cryptographic context protects.
+     * @param ssrc the RTP SSRC that this SRTP cryptographic context protects.
      * @param rocIn the initial Roll-Over-Counter according to RFC 3711. These
      * are the upper 32 bit of the overall 48 bit SRTP packet index. Refer to
      * chapter 3.2.1 of the RFC.
@@ -254,7 +254,7 @@ public class SRTPCryptoContext
     @SuppressWarnings("fallthrough")
     public SRTPCryptoContext(
             boolean sender,
-            long ssrcIn,
+            int ssrc,
             int rocIn,
             long kdr,
             byte[] masterK,
@@ -266,7 +266,7 @@ public class SRTPCryptoContext
         roc = rocIn;
         policy = policyIn;
         this.sender = sender;
-        ssrcCtx = ssrcIn;
+        this.ssrc = ssrc;
 
         masterKey = new byte[policy.getEncKeyLength()];
         System.arraycopy(masterK, 0, masterKey, 0, policy.getEncKeyLength());
@@ -368,9 +368,9 @@ public class SRTPCryptoContext
      *
      * @return the SSRC of this SRTP cryptographic context
      */
-    public long getSSRC()
+    public int getSSRC()
     {
-        return ssrcCtx;
+        return ssrc;
     }
 
     /**
@@ -526,7 +526,7 @@ public class SRTPCryptoContext
      */
     public void processPacketAESCM(RawPacket pkt)
     {
-        long ssrc = pkt.getSSRC();
+        int ssrc = pkt.getSSRC();
         int seqNo = pkt.getSequenceNumber();
         long index = (((long) guessedROC) << 16) | seqNo;
 
@@ -537,6 +537,7 @@ public class SRTPCryptoContext
         ivStore[3] = saltKey[3];
 
         int i;
+
         for (i = 4; i < 8; i++)
         {
             ivStore[i] = (byte)
@@ -647,12 +648,24 @@ public class SRTPCryptoContext
             {
                 logger.error(
                         "Discarding RTP packet with sequence number " + seqNo
-                            + " because it is outside the replay window.");
+                            + ", SSRC " + Long.toString(0xFFFFFFFFL & ssrc)
+                            + " because it is outside the replay window! (roc "
+                            + roc + ", s_l " + s_l + ", guessedROC "
+                            + guessedROC);
             }
             return false; // Packet too old.
         }
         else if (((replayWindow >> (-delta)) & 0x1) != 0)
         {
+            if (sender)
+            {
+                logger.error(
+                        "Discarding RTP packet with sequence number " + seqNo
+                            + ", SSRC " + Long.toString(0xFFFFFFFFL & ssrc)
+                            + " because it has been received already! (roc "
+                            + roc + ", s_l " + s_l + ", guessedROC "
+                            + guessedROC);
+            }
             return false; // Packet received already!
         }
         else
@@ -846,7 +859,7 @@ public class SRTPCryptoContext
      * @param deriveRate The key derivation rate for this context
      * @return a new SRTPCryptoContext with all relevant data set.
      */
-    public SRTPCryptoContext deriveContext(long ssrc, int roc, long deriveRate)
+    public SRTPCryptoContext deriveContext(int ssrc, int roc, long deriveRate)
     {
         return
             new SRTPCryptoContext(

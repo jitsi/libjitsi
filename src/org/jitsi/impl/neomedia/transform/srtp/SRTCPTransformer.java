@@ -27,7 +27,7 @@ public class SRTCPTransformer
     /**
      * All the known SSRC's corresponding SRTCPCryptoContexts
      */
-    private final Hashtable<Long,SRTCPCryptoContext> contexts;
+    private final Map<Integer,SRTCPCryptoContext> contexts;
 
     /**
      * Constructs a SRTCPTransformer object.
@@ -54,7 +54,7 @@ public class SRTCPTransformer
     {
         this.forwardFactory = forwardFactory;
         this.reverseFactory = reverseFactory;
-        this.contexts = new Hashtable<Long, SRTCPCryptoContext>();
+        this.contexts = new HashMap<Integer,SRTCPCryptoContext>();
     }
 
     /**
@@ -70,15 +70,12 @@ public class SRTCPTransformer
             if (reverseFactory != forwardFactory)
                 reverseFactory.close();
 
-            Iterator<Map.Entry<Long, SRTCPCryptoContext>> iter
-                = contexts.entrySet().iterator();
-
-            while (iter.hasNext())
+            for (Iterator<SRTCPCryptoContext> i = contexts.values().iterator();
+                    i.hasNext();)
             {
-                Map.Entry<Long, SRTCPCryptoContext> entry = iter.next();
-                SRTCPCryptoContext context = entry.getValue();
+                SRTCPCryptoContext context = i.next();
 
-                iter.remove();
+                i.remove();
                 if (context != null)
                     context.close();
             }
@@ -89,7 +86,7 @@ public class SRTCPTransformer
             RawPacket pkt,
             SRTPContextFactory engine)
     {
-        long ssrc = pkt.getRTCPSSRC();
+        int ssrc = pkt.getRTCPSSRC();
         SRTCPCryptoContext context = null;
 
         synchronized (contexts)
@@ -143,7 +140,7 @@ public class SRTCPTransformer
         }
         else
         {
-            // The packet can not be encrypted. Thus, do not send it.
+            // The packet cannot be encrypted. Thus, do not send it.
             return null;
         }
     }

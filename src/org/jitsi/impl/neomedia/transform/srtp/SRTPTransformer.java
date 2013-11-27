@@ -50,7 +50,7 @@ public class SRTPTransformer
     /**
      * All the known SSRC's corresponding SRTPCryptoContexts
      */
-    private final Hashtable<Long, SRTPCryptoContext> contexts;
+    private final Map<Integer,SRTPCryptoContext> contexts;
 
     /**
      * Initializes a new <tt>SRTPTransformer</tt> instance.
@@ -77,7 +77,7 @@ public class SRTPTransformer
     {
         this.forwardFactory = forwardFactory;
         this.reverseFactory = reverseFactory;
-        this.contexts = new Hashtable<Long, SRTPCryptoContext>();
+        this.contexts = new HashMap<Integer,SRTPCryptoContext>();
     }
 
     /**
@@ -93,15 +93,12 @@ public class SRTPTransformer
             if (reverseFactory != forwardFactory)
                 reverseFactory.close();
 
-            Iterator<Map.Entry<Long, SRTPCryptoContext>> iter
-                = contexts.entrySet().iterator();
-
-            while (iter.hasNext())
+            for (Iterator<SRTPCryptoContext> i = contexts.values().iterator();
+                    i.hasNext();)
             {
-                Map.Entry<Long, SRTPCryptoContext> entry = iter.next();
-                SRTPCryptoContext context = entry.getValue();
+                SRTPCryptoContext context = i.next();
 
-                iter.remove();
+                i.remove();
                 if (context != null)
                     context.close();
             }
@@ -109,7 +106,7 @@ public class SRTPTransformer
     }
 
     private SRTPCryptoContext getContext(
-            long ssrc,
+            int ssrc,
             SRTPContextFactory engine,
             int deriveSrtpKeysIndex)
     {
@@ -164,7 +161,8 @@ public class SRTPTransformer
      */
     public RawPacket transform(RawPacket pkt)
     {
-        SRTPCryptoContext context = getContext(pkt.getSSRC(), forwardFactory, 0);
+        SRTPCryptoContext context
+            = getContext(pkt.getSSRC(), forwardFactory, 0);
 
         context.transformPacket(pkt);
         return pkt;
