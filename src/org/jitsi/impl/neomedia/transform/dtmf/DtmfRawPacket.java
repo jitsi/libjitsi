@@ -60,7 +60,7 @@ public class DtmfRawPacket
      */
     public DtmfRawPacket(byte[] buffer, int offset, int length, byte payload)
     {
-        super (buffer, offset, length);
+        super(buffer, offset, length);
 
         setPayload(payload);
     }

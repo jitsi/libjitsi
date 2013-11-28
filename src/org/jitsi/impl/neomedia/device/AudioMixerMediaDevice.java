@@ -654,7 +654,7 @@ public class AudioMixerMediaDevice
         @Override
         public void addReceiveStream(ReceiveStream receiveStream)
         {
-            addSSRC(receiveStream.getSSRC());
+            addSSRC(0xFFFFFFFFL & receiveStream.getSSRC());
         }
 
         /**
@@ -747,7 +747,7 @@ public class AudioMixerMediaDevice
                                         + " (Mixer Edition)");
                         dispatcher.setAudioLevelCache(
                                 audioLevelCache,
-                                stream.getSSRC());
+                                0xFFFFFFFFL & stream.getSSRC());
                         streamAudioLevelListeners.put(stream, dispatcher);
                     }
                     dispatcher.setAudioLevelListener(listener);
@@ -889,10 +889,12 @@ public class AudioMixerMediaDevice
         @Override
         public void removeReceiveStream(ReceiveStream receiveStream)
         {
-            removeSSRC(receiveStream.getSSRC());
+            long ssrc = 0xFFFFFFFFL & receiveStream.getSSRC();
+
+            removeSSRC(ssrc);
 
             //make sure we no longer cache levels for that stream.
-            audioLevelCache.removeLevel(receiveStream.getSSRC());
+            audioLevelCache.removeLevel(ssrc);
         }
     }
 

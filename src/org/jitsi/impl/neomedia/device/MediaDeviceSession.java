@@ -211,7 +211,7 @@ public class MediaDeviceSession
     protected void addSSRC(long ssrc)
     {
         //init if necessary
-        if ( ssrcList == null)
+        if (ssrcList == null)
         {
             setSsrcList(new long[] { ssrc });
             return;
@@ -1028,8 +1028,13 @@ public class MediaDeviceSession
         synchronized (playbacks)
         {
             for (Playback playback : playbacks)
-                if (playback.receiveStream.getSSRC() == ssrc)
+            {
+                long playbackSSRC
+                    = 0xFFFFFFFFL & playback.receiveStream.getSSRC();
+
+                if (playbackSSRC == ssrc)
                     return playback.player;
+            }
         }
         return null;
     }
@@ -1959,7 +1964,7 @@ public class MediaDeviceSession
             {
                 playbacks.add(new Playback(receiveStream));
 
-                addSSRC(receiveStream.getSSRC());
+                addSSRC(0xFFFFFFFFL & receiveStream.getSSRC());
 
                 // playbackDataSource
                 DataSource receiveStreamDataSource
@@ -2014,7 +2019,7 @@ public class MediaDeviceSession
 
             if (playback != null)
             {
-                removeSSRC(receiveStream.getSSRC());
+                removeSSRC(0xFFFFFFFFL & receiveStream.getSSRC());
                 if (playback.dataSource != null)
                     removePlaybackDataSource(playback.dataSource);
 

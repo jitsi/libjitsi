@@ -2939,8 +2939,9 @@ public class MediaStreamImpl
         for (Object o : rtpManager.getReceiveStreams())
         {
             ReceiveStream receiveStream = (ReceiveStream) o;
+            long receiveStreamSSRC = receiveStream.getSSRC() & 0xFFFFFFFFL;
 
-            if (receiveStream.getSSRC() == ssrc)
+            if (receiveStreamSSRC == ssrc)
             {
                 toRemove = receiveStream;
                 break;

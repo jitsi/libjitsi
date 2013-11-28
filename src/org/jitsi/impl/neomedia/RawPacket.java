@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia;
 
+
 /**
  * When using TransformConnector, a RTP/RTCP packet is represented using
  * RawPacket. RawPacket stores the buffer holding the RTP/RTCP packet, as well
@@ -22,23 +23,29 @@ package org.jitsi.impl.neomedia;
  * @author Emil Ivov
  * @author Damian Minkov
  * @author Boris Grozev
+ * @author Lyubomir Marinov
  */
 public class RawPacket
 {
-    /**
-     * The size of the fixed part of the RTP header as defined by RFC 3550.
-     */
-    public static final int FIXED_HEADER_SIZE = 12;
-
     /**
      * The size of the extension header as defined by RFC 3550.
      */
     public static final int EXT_HEADER_SIZE = 4;
 
     /**
+     * The size of the fixed part of the RTP header as defined by RFC 3550.
+     */
+    public static final int FIXED_HEADER_SIZE = 12;
+
+    /**
      * Byte array storing the content of this Packet
      */
     private byte[] buffer;
+
+    /**
+     * Length of this packet's data
+     */
+    private int length;
 
     /**
      * Start offset of the packet data inside buffer.
@@ -48,24 +55,22 @@ public class RawPacket
     private int offset;
 
     /**
-     * Length of this packet's data
-     */
-    private int length;
-
-    /**
-     * Construct an empty RawPacket
-     *
+     * Initializes a new empty <tt>RawPacket</tt> instance.
      */
     public RawPacket()
     {
     }
 
     /**
-     * Construct a RawPacket using specified value.
+     * Initializes a new <tt>RawPacket</tt> instance with a specific
+     * <tt>byte</tt> array buffer.
      *
-     * @param buffer Byte array holding the content of this Packet
-     * @param offset Start offset of packet content inside buffer
-     * @param length Length of the packet's data
+     * @param buffer the <tt>byte</tt> array to be the buffer of the new
+     * instance 
+     * @param offset the offset in <tt>buffer</tt> at which the actual data to
+     * be represented by the new instance starts
+     * @param length the number of <tt>byte</tt>s in <tt>buffer</tt> which
+     * constitute the actual data to be represented by the new instance
      */
     public RawPacket(byte[] buffer, int offset, int length)
     {
@@ -107,20 +112,24 @@ public class RawPacket
     /**
      * @param buffer the buffer to set
      */
-    protected void setBuffer(byte[] buffer) {
+    public void setBuffer(byte[] buffer)
+    {
         this.buffer = buffer;
     }
+
     /**
      * @param offset the offset to set
      */
-    protected void setOffset(int offset) {
+    public void setOffset(int offset)
+    {
         this.offset = offset;
     }
 
     /**
      * @param length the length to set
      */
-    protected void setLength(int length) {
+    public void setLength(int length)
+    {
         this.length = length;
     }
 
@@ -777,7 +786,7 @@ public class RawPacket
         {
             int csrcLevelsIndex = 2 * i;
 
-            csrcLevels[csrcLevelsIndex] = readInt(csrcStartIndex);
+            csrcLevels[csrcLevelsIndex] = 0xFFFFFFFFL & readInt(csrcStartIndex);
             csrcLevels[csrcLevelsIndex + 1] = getCsrcLevel(i, csrcExtID);
 
             csrcStartIndex += 4;
