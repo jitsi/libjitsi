@@ -9,6 +9,7 @@ package org.jitsi.impl.neomedia;
 import java.io.*;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 import javax.media.*;
 import javax.media.format.*;
@@ -1039,9 +1040,13 @@ public class RTPTranslatorImpl
                 OutputDataStream stream)
         {
             for (OutputDataStreamDesc streamDesc : streams)
+            {
                 if ((streamDesc.connectorDesc == connectorDesc)
                         && (streamDesc.stream == stream))
+                {
                     return;
+                }
+            }
             streams.add(new OutputDataStreamDesc(connectorDesc, stream));
         }
 
@@ -1441,20 +1446,66 @@ public class RTPTranslatorImpl
 
     private class PushSourceStreamImpl
         implements PushSourceStream,
+                   Runnable,
                    SourceTransferHandler
     {
+        /**
+         * The indicator which determines whether {@link #close()} has been
+         * invoked on this instance.
+         */
+        private boolean closed = false;
+
         private final boolean data;
+
+        /**
+         * The indicator which determines whether
+         * {@link #read(byte[], int, int)} read a <tt>SourcePacket</tt> from
+         * {@link #readQ} after a <tt>SourcePacket</tt> was written there.
+         */
+        private boolean read = false;
+
+        /**
+         * The <tt>Queue</tt> of <tt>SourcePacket</tt>s to be read out of this
+         * instance via {@link #read(byte[], int, int)}.
+         */
+        private final Queue<SourcePacket> readQ;
+
+        /**
+         * The capacity of {@link #readQ}.
+         */
+        private final int readQCapacity;
+
+        /**
+         * The pool of <tt>SourcePacket</tt> instances to reduce their
+         * allocations and garbage collection.
+         */
+        private final Queue<SourcePacket> sourcePacketPool
+            = new LinkedBlockingQueue<SourcePacket>();
 
         private final List<PushSourceStreamDesc> streams
             = new LinkedList<PushSourceStreamDesc>();
 
-        private PushSourceStreamDesc streamToReadFrom;
+        /**
+         * The <tt>Thread</tt> which invokes
+         * {@link SourceTransferHandler#transferData(PushSourceStream)} on
+         * {@link #transferHandler}. 
+         */
+        private Thread transferDataThread;
 
         private SourceTransferHandler transferHandler;
 
         public PushSourceStreamImpl(boolean data)
         {
             this.data = data;
+
+            readQCapacity
+                = RTPConnectorOutputStream
+                    .MAX_PACKETS_PER_MILLIS_POLICY_PACKET_QUEUE_CAPACITY;
+            readQ = new ArrayBlockingQueue<SourcePacket>(readQCapacity);
+
+            transferDataThread = new Thread(this, getClass().getName());
+            transferDataThread.setDaemon(true);
+            transferDataThread.start();
         }
 
         public synchronized void addStream(
@@ -1462,9 +1513,13 @@ public class RTPTranslatorImpl
                 PushSourceStream stream)
         {
             for (PushSourceStreamDesc streamDesc : streams)
+            {
                 if ((streamDesc.connectorDesc == connectorDesc)
                         && (streamDesc.stream == stream))
+                {
                     return;
+                }
+            }
             streams.add(
                     new PushSourceStreamDesc(connectorDesc, stream, this.data));
             stream.setTransferHandler(this);
@@ -1472,7 +1527,8 @@ public class RTPTranslatorImpl
 
         public void close()
         {
-            // TODO Auto-generated method stub
+            closed = true;
+            sourcePacketPool.clear();
         }
 
         /**
@@ -1538,17 +1594,43 @@ public class RTPTranslatorImpl
         public int read(byte[] buffer, int offset, int length)
             throws IOException
         {
-            PushSourceStreamDesc streamDesc;
-            int read;
+            if (closed)
+                return -1;
 
-            synchronized (this)
+            SourcePacket pkt;
+            int pktLength;
+
+            synchronized (readQ)
             {
-                streamDesc = streamToReadFrom;
-                read
-                    = (streamDesc == null)
-                        ? 0
-                        : streamDesc.stream.read(buffer, offset, length);
+                pkt = readQ.peek();
+                if (pkt == null)
+                    return 0;
+
+                pktLength = pkt.getLength();
+                if (length < pktLength)
+                {
+                    throw new IOException(
+                            "Length " + length
+                                + " is insuffient. Must be at least "
+                                + pktLength + ".");
+                }
+
+                readQ.remove();
+                read = true;
+                readQ.notifyAll();
             }
+
+            System.arraycopy(
+                    pkt.getBuffer(), pkt.getOffset(),
+                    buffer, offset,
+                    pktLength);
+
+            PushSourceStreamDesc streamDesc = pkt.streamDesc;
+            int read = pktLength;
+
+            pkt.streamDesc = null;
+            sourcePacketPool.offer(pkt);
+
             if (read > 0)
             {
                 read
@@ -1572,9 +1654,64 @@ public class RTPTranslatorImpl
                 {
                     streamDesc.stream.setTransferHandler(null);
                     streamIter.remove();
-                    if (streamToReadFrom == streamDesc)
-                        streamToReadFrom = null;
                 }
+            }
+        }
+
+        /**
+         * Runs in {@link #transferDataThread} and invokes
+         * {@link SourceTransferHandler#transferData(PushSourceStream)} on
+         * {@link #transferHandler}.
+         */
+        @Override
+        public void run()
+        {
+            try
+            {
+                while (!closed)
+                {
+                    SourceTransferHandler transferHandler
+                        = this.transferHandler;
+
+                    synchronized (readQ)
+                    {
+                        if (readQ.isEmpty() || (transferHandler == null))
+                        {
+                            try
+                            {
+                                readQ.wait(100);
+                            }
+                            catch (InterruptedException ie)
+                            {
+                            }
+                            continue;
+                        }
+                    }
+
+                    try
+                    {
+                        transferHandler.transferData(this);
+                    }
+                    catch (Throwable t)
+                    {
+                        if (t instanceof ThreadDeath)
+                        {
+                            throw (ThreadDeath) t;
+                        }
+                        else
+                        {
+                            logger.warn(
+                                    "An RTP packet may have not been fully"
+                                        + " handled.",
+                                    t);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                if (Thread.currentThread().equals(transferDataThread))
+                    transferDataThread = null;
             }
         }
 
@@ -1601,28 +1738,108 @@ public class RTPTranslatorImpl
          */
         public void transferData(PushSourceStream stream)
         {
-            SourceTransferHandler transferHandler = null;
+            if (closed)
+                return;
 
-            /*
-             * XXX SourceTransferHandler.transferData(PushSourceStream) will
-             * have to be invoked outside the synchronized block in order to
-             * avoid a deadlock involving removeStreams(RTPConnectorDesc).
-             */
+            PushSourceStreamDesc streamDesc = null;
+
             synchronized (this)
             {
-                for (PushSourceStreamDesc streamDesc : streams)
+                for (PushSourceStreamDesc aStreamDesc : streams)
                 {
-                    if (streamDesc.stream == stream)
+                    if (aStreamDesc.stream == stream)
                     {
-                        streamToReadFrom = streamDesc;
-                        transferHandler = this.transferHandler;
+                        streamDesc = aStreamDesc;
                         break;
                     }
                 }
             }
+            if (streamDesc == null)
+                return;
 
-            if (transferHandler != null)
-                transferHandler.transferData(this);
+            int len = stream.getMinimumTransferSize();
+
+            if (len < 1)
+                len = 2 * 1024;
+
+            SourcePacket pkt = sourcePacketPool.poll();
+            byte[] buf;
+
+            if ((pkt == null) || ((buf = pkt.getBuffer()).length < len))
+            {
+                buf = new byte[len];
+                pkt = new SourcePacket(buf, 0, len);
+            }
+            else
+            {
+                buf = pkt.getBuffer();
+                len = buf.length;
+            }
+
+            int read = 0;
+
+            try
+            {
+                read = stream.read(buf, 0, len);
+            }
+            catch (IOException ioe)
+            {
+                logger.error("Failed to read from an RTP stream!", ioe);
+            }
+            finally
+            {
+                if (read > 0)
+                {
+                    pkt.setLength(read);
+                    pkt.setOffset(0);
+                    pkt.streamDesc = streamDesc;
+
+                    boolean yield;
+
+                    synchronized (readQ)
+                    {
+                        int readQSize = readQ.size();
+
+                        if (readQSize < 1)
+                            yield = false;
+                        else if (readQSize < readQCapacity)
+                            yield = (this.read == false);
+                        else
+                            yield = true;
+                        if (yield)
+                            readQ.notifyAll();
+                    }
+                    if (yield)
+                        Thread.yield();
+
+                    synchronized (readQ)
+                    {
+                        if (readQ.size() >= readQCapacity)
+                        {
+                            readQ.remove();
+                            logger.warn(
+                                    "Discarded an RTP packet because the read"
+                                        + " queue is full.");
+                        }
+
+                        if (readQ.offer(pkt))
+                        {
+                            /*
+                             * TODO It appears that it is better to not yield
+                             * based on whether the read method has read after
+                             * the last write.
+                             */
+                            // this.read = false;
+                        }
+                        readQ.notifyAll();
+                    }
+                }
+                else
+                {
+                    pkt.streamDesc = null;
+                    sourcePacketPool.offer(pkt);
+                }
+            }
         }
     }
 
@@ -2179,6 +2396,17 @@ public class RTPTranslatorImpl
                 sendStreamDesc.stop(this);
                 started = false;
             }
+        }
+    }
+
+    private static class SourcePacket
+        extends RawPacket
+    {
+        public PushSourceStreamDesc streamDesc;
+
+        public SourcePacket(byte[] buf, int off, int len)
+        {
+            super(buf, off, len);
         }
     }
 
