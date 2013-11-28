@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.transform.dtls;
 
 import java.io.*;
+import java.util.*;
 import java.util.concurrent.*;
 
 import javax.media.rtp.*;
@@ -45,11 +46,18 @@ public class DatagramTransportImpl
     private AbstractRTPConnector connector;
 
     /**
+     * The pool of <tt>RawPacket</tt>s instances to reduce their allocations
+     * and garbage collection.
+     */
+    private final Queue<RawPacket> rawPacketPool
+        = new LinkedBlockingQueue<RawPacket>();
+
+    /**
      * The queue of <tt>RawPacket</tt>s which have been received from the
      * network are awaiting to be received by the application through this
      * <tt>DatagramTransport</tt>.
      */
-    private final ArrayBlockingQueue<MutableRawPacket> receiveQ;
+    private final ArrayBlockingQueue<RawPacket> receiveQ;
 
     /**
      * The capacity of {@link #receiveQ}.
@@ -78,7 +86,7 @@ public class DatagramTransportImpl
         receiveQCapacity
             = RTPConnectorOutputStream
                 .MAX_PACKETS_PER_MILLIS_POLICY_PACKET_QUEUE_CAPACITY;
-        receiveQ = new ArrayBlockingQueue<MutableRawPacket>(receiveQCapacity);
+        receiveQ = new ArrayBlockingQueue<RawPacket>(receiveQCapacity);
     }
 
     /**
@@ -176,16 +184,28 @@ public class DatagramTransportImpl
                     throw ise;
                 }
 
-                byte[] pktBuf = new byte[len];
-                int pktOff = 0;
+                RawPacket pkt = rawPacketPool.poll();
+                byte[] pktBuf;
 
-                System.arraycopy(buf, off, pktBuf, pktOff, len);
-
-                MutableRawPacket pkt
-                    = new MutableRawPacket(pktBuf, pktOff, len);
+                if ((pkt == null) || ((pktBuf = pkt.getBuffer()).length < len))
+                {
+                    pktBuf = new byte[len];
+                    pkt = new RawPacket(pktBuf, 0, len);
+                }
+                else
+                {
+                    pktBuf = pkt.getBuffer();
+                    pkt.setLength(len);
+                    pkt.setOffset(0);
+                }
+                System.arraycopy(buf, off, pktBuf, 0, len);
 
                 if (receiveQ.size() == receiveQCapacity)
-                    receiveQ.remove();
+                {
+                    RawPacket oldPkt = receiveQ.remove();
+
+                    rawPacketPool.offer(oldPkt);
+                }
                 receiveQ.add(pkt);
                 receiveQ.notifyAll();
             }
@@ -229,7 +249,7 @@ public class DatagramTransportImpl
                     throw ioe;
                 }
 
-                MutableRawPacket pkt = receiveQ.peek();
+                RawPacket pkt = receiveQ.peek();
 
                 if (pkt != null)
                 {
@@ -257,6 +277,7 @@ public class DatagramTransportImpl
                         if (toReceive == pktLength)
                         {
                             receiveQ.remove();
+                            rawPacketPool.offer(pkt);
                         }
                         else
                         {
@@ -358,54 +379,6 @@ public class DatagramTransportImpl
         {
             this.connector = connector;
             receiveQ.notifyAll();
-        }
-    }
-
-    /**
-     * Exposes the <tt>setLength</tt> and <tt>setOffset</tt> methods of
-     * <tt>RawPacket</tt> to <tt>DatagramTransportImpl</tt>.
-     */
-    private static class MutableRawPacket
-        extends RawPacket
-    {
-        /**
-         * Initializes a new <tt>MutableRawPacket</tt> instance.
-         *
-         * @param buf the array of <tt>byte</tt>s to be represented by the new
-         * instance
-         * @param off the offset within <tt>buf</tt> at which the actual packet
-         * content to be represented by the new instance starts
-         * @param len the number of bytes within <tt>buf</tt> starting at
-         * <tt>offset</tt> which comprise the actual packet content to be
-         * represented by the new instance
-         */
-        public MutableRawPacket(byte[] buf, int off, int len)
-        {
-            super(buf, off, len);
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * Makes the super implementation public to the
-         * <tt>DatagramTransportImpl</tt> class.
-         */
-        @Override
-        public void setLength(int length)
-        {
-            super.setLength(length);
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * Makes the super implementation public to the
-         * <tt>DatagramTransportImpl</tt> class.
-         */
-        @Override
-        public void setOffset(int offset)
-        {
-            super.setOffset(offset);
         }
     }
 }

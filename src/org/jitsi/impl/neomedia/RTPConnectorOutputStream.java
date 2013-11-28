@@ -124,13 +124,26 @@ public abstract class RTPConnectorOutputStream
     protected RawPacket createRawPacket(byte[] buffer, int offset, int length)
     {
         RawPacket pkt = rawPacketPool.poll();
+        byte[] pktBuffer;
 
-        if ((pkt == null) || (pkt.getBuffer().length < length))
-            pkt = new RawPacket(new byte[length], 0, 0);
+        if ((pkt == null) || ((pktBuffer = pkt.getBuffer()).length < length))
+        {
+            /*
+             * XXX It may be argued that if pkt.buffer.length is insufficient
+             * once, it will be insufficient more than once. That is why pkt is
+             * not being returned to the pool.
+             */
 
-        System.arraycopy(buffer, offset, pkt.getBuffer(), 0, length);
-        pkt.setLength(length);
-        pkt.setOffset(0);
+            pktBuffer = new byte[length];
+            pkt = new RawPacket(pktBuffer, 0, length);
+        }
+        else
+        {
+            pktBuffer = pkt.getBuffer();
+            pkt.setLength(length);
+            pkt.setOffset(0);
+        }
+        System.arraycopy(buffer, offset, pktBuffer, 0, length);
         return pkt;
     }
 
@@ -404,9 +417,10 @@ public abstract class RTPConnectorOutputStream
         private Thread sendThread;
 
         /**
-         * To signal run or stop condition to send thread.
+         * The indicator which determines whether {@link #close()} has been
+         * invoked on this instance.
          */
-        private boolean sendRun = true;
+        private boolean closed = false;
 
         /**
          * Initializes a new <tt>MaxPacketsPerMillisPolicy</tt> instance which
@@ -447,12 +461,13 @@ public abstract class RTPConnectorOutputStream
          */
         synchronized void close()
         {
-            if (!sendRun)
-                return;
-            sendRun = false;
-            // just offer a new packet to wakeup thread in case it waits for
-            // a packet.
-            packetQueue.offer(new RawPacket(null, 0, 0));
+            if (!closed)
+            {
+                closed = true;
+                // just offer a new packet to wakeup thread in case it waits for
+                // a packet.
+                packetQueue.offer(new RawPacket());
+            }
         }
 
         /**
@@ -463,23 +478,19 @@ public abstract class RTPConnectorOutputStream
         {
             try
             {
-                while (sendRun)
+                while (!closed)
                 {
-                    RawPacket packet = null;
+                    RawPacket packet;
 
-                    while (true)
+                    try
                     {
-                        try
-                        {
-                            packet = packetQueue.take();
-                            break;
-                        }
-                        catch (InterruptedException iex)
-                        {
-                            continue;
-                        }
+                        packet = packetQueue.take();
                     }
-                    if (!sendRun)
+                    catch (InterruptedException iex)
+                    {
+                        continue;
+                    }
+                    if (closed)
                         break;
 
                     long time = System.nanoTime();
@@ -560,7 +571,7 @@ public abstract class RTPConnectorOutputStream
          */
         public void write(RawPacket packet)
         {
-            while (true)
+            do
             {
                 try
                 {
@@ -571,6 +582,7 @@ public abstract class RTPConnectorOutputStream
                 {
                 }
             }
+            while (true);
         }
     }
 }

@@ -390,7 +390,7 @@ public class SRTPCryptoContext
      *
      * @param pkt the RTP packet that is going to be sent out
      */
-    public void transformPacket(RawPacket pkt)
+    public boolean transformPacket(RawPacket pkt)
     {
         int seqNo = pkt.getSequenceNumber();
 
@@ -409,7 +409,7 @@ public class SRTPCryptoContext
          * replay protection but as a consistency check of our implementation.
          */
         if (!checkReplay(seqNo, guessedIndex))
-            return;
+            return false;
 
         switch (policy.getEncType())
         {
@@ -435,6 +435,8 @@ public class SRTPCryptoContext
 
         // Update the ROC if necessary.
         update(seqNo, guessedIndex);
+
+        return true;
     }
 
     /**
