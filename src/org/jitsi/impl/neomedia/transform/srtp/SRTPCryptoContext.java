@@ -36,6 +36,8 @@ import org.bouncycastle.crypto.params.*;
 import org.jitsi.bccontrib.macs.*;
 import org.jitsi.bccontrib.params.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
 
 /**
@@ -64,6 +66,20 @@ import org.jitsi.util.*;
  */
 public class SRTPCryptoContext
 {
+    /**
+     * The name of the <tt>boolean</tt> <tt>ConfigurationService</tt> property
+     * which indicates whether protection against replay attacks is to be
+     * activated. The default value is <tt>true</tt>.
+     */
+    private static final String CHECK_REPLAY_PROPERTY_NAME
+        = SRTPCryptoContext.class.getName() + ".checkReplay";
+
+    /**
+     * The indicator which determines whether protection against replay attacks
+     * is to be activated. The default value is <tt>true</tt>.
+     */
+    private static Boolean checkReplay;
+
     /**
      * The <tt>Logger</tt> used by the <tt>SRTPCryptoContext</tt> class and its
      * instances to print out debug information.
@@ -324,6 +340,25 @@ public class SRTPCryptoContext
 
         default:
             tagStore = null;
+        }
+
+        // checkReplay
+        synchronized (SRTPCryptoContext.class)
+        {
+            if (SRTPCryptoContext.checkReplay == null)
+            {
+                ConfigurationService cfg = LibJitsi.getConfigurationService();
+                boolean checkReplay = true;
+
+                if (cfg != null)
+                {
+                    checkReplay
+                        = cfg.getBoolean(
+                                CHECK_REPLAY_PROPERTY_NAME,
+                                checkReplay);
+                }
+                SRTPCryptoContext.checkReplay = Boolean.valueOf(checkReplay);
+            }
         }
     }
 
@@ -635,6 +670,9 @@ public class SRTPCryptoContext
      */
     boolean checkReplay(int seqNo, long guessedIndex)
     {
+        if (!checkReplay)
+            return true;
+
         // Compute the index of the previously received packet and its delta to
         // the newly received packet.
         long localIndex = (((long) roc) << 16) | s_l;
