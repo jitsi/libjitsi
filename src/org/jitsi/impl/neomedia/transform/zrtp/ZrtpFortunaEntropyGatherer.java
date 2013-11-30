@@ -9,6 +9,8 @@ package org.jitsi.impl.neomedia.transform.zrtp;
 import gnu.java.zrtp.utils.*;
 
 import java.io.*;
+import java.security.*;
+import java.util.*;
 
 import javax.media.*;
 import javax.media.control.*;
@@ -238,6 +240,7 @@ public class ZrtpFortunaEntropyGatherer
                 dataSource.start();
 
                 int i = 0;
+                Random sr = new SecureRandom();
                 while (gatheredEntropy < bytesToGather)
                 {
                     if (audioStream instanceof PushBufferStream)
@@ -262,6 +265,15 @@ public class ZrtpFortunaEntropyGatherer
                         ((PullBufferStream)audioStream).read(firstBuf);
                     byte[] entropy = (byte[])firstBuf.getData();
                     gatheredEntropy += entropy.length;
+
+                    // mix random data from the system in to avoid having just
+                    // zeroes when audio is muted or otherwise unavailable
+                    byte[] srEntropy = new byte[entropy.length];
+                    sr.nextBytes(srEntropy);
+                    for (int j = 0; j < entropy.length; j++)
+                    {
+                        entropy[j] ^= srEntropy[j];
+                    }
 
                     // distribute first buffers evenly over the pools, put
                     // others on the first pools. This method is adapted to
