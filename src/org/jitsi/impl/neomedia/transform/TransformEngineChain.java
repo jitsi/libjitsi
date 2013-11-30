@@ -30,13 +30,13 @@ public class TransformEngineChain
      * The sequence of <tt>PacketTransformer</tt>s that this engine chain will
      * be applying to RTP packets.
      */
-    private final PacketTransformerChain rtpTransformChain;
+    private PacketTransformerChain rtpTransformChain;
 
     /**
      * The sequence of <tt>PacketTransformer</tt>s that this engine chain will
      * be applying to RTCP packets.
      */
-    private final PacketTransformerChain rtcpTransformChain;
+    private PacketTransformerChain rtcpTransformChain;
 
     /**
      * Creates a new <tt>TransformEngineChain</tt> using the
@@ -50,9 +50,6 @@ public class TransformEngineChain
     public TransformEngineChain(TransformEngine[] engineChain)
     {
         this.engineChain = engineChain.clone();
-
-        rtpTransformChain = new PacketTransformerChain(true);
-        rtcpTransformChain = new PacketTransformerChain(false);
     }
 
     /**
@@ -65,7 +62,37 @@ public class TransformEngineChain
      */
     public PacketTransformer getRTPTransformer()
     {
-        return rtpTransformChain;
+        /*
+         * XXX Certain TransformEngine implementations in engineChain may
+         * postpone the initialization of their PacketTransformer until it is
+         * requested for the first time AND may have to send packets at that
+         * very moment, not earlier (e.g. DTLS-SRTP may have to send Client
+         * Hello). Make sure that, when the PacketTransformer of this
+         * TransformEngine is requested for the first time, the same method will
+         * be invoked on each of the TransformEngines in engineChain.
+         */
+        boolean invokeOnEngineChain;
+        PacketTransformer rtpTransformer;
+
+        synchronized (this)
+        {
+            if (rtpTransformChain == null)
+            {
+                rtpTransformChain = new PacketTransformerChain(true);
+                invokeOnEngineChain = true;
+            }
+            else
+            {
+                invokeOnEngineChain = false;
+            }
+            rtpTransformer = rtpTransformChain;
+        }
+        if (invokeOnEngineChain)
+        {
+            for (TransformEngine engine : engineChain)
+                engine.getRTPTransformer();
+        }
+        return rtpTransformer;
     }
 
     /**
@@ -78,7 +105,37 @@ public class TransformEngineChain
      */
     public PacketTransformer getRTCPTransformer()
     {
-        return rtcpTransformChain;
+        /*
+         * XXX Certain TransformEngine implementations in engineChain may
+         * postpone the initialization of their PacketTransformer until it is
+         * requested for the first time AND may have to send packets at that
+         * very moment, not earlier (e.g. DTLS-SRTP may have to send Client
+         * Hello). Make sure that, when the PacketTransformer of this
+         * TransformEngine is requested for the first time, the same method will
+         * be invoked on each of the TransformEngines in engineChain.
+         */
+        boolean invokeOnEngineChain;
+        PacketTransformer rtpTransformer;
+
+        synchronized (this)
+        {
+            if (rtcpTransformChain == null)
+            {
+                rtcpTransformChain = new PacketTransformerChain(false);
+                invokeOnEngineChain = true;
+            }
+            else
+            {
+                invokeOnEngineChain = false;
+            }
+            rtpTransformer = rtcpTransformChain;
+        }
+        if (invokeOnEngineChain)
+        {
+            for (TransformEngine engine : engineChain)
+                engine.getRTCPTransformer();
+        }
+        return rtpTransformer;
     }
 
     /**
