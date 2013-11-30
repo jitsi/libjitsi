@@ -31,12 +31,6 @@ public class DtlsTransformEngine
     private final DtlsControlImpl dtlsControl;
 
     /**
-     * The DTLS protocol according to which this <tt>DtlsTransformEngine</tt> is
-     * to act either as a DTLS server or a DTLS client.
-     */
-    private int dtlsProtocol;
-
-    /**
      * The <tt>MediaType</tt> of the stream which this instance works for/is
      * associated with.
      */
@@ -48,6 +42,14 @@ public class DtlsTransformEngine
      */
     private final DtlsPacketTransformer[] packetTransformers
         = new DtlsPacketTransformer[2];
+
+    /**
+     * The value of the <tt>setup</tt> SDP attribute defined by RFC 4145
+     * &quot;TCP-Based Media Transport in the Session Description Protocol
+     * (SDP)&quot; which determines whether this instance acts as a DTLS client
+     * or a DTLS server.
+     */
+    private DtlsControl.Setup setup;
 
     /**
      * Initializes a new <tt>DtlsTransformEngine</tt> instance.
@@ -92,7 +94,7 @@ public class DtlsTransformEngine
             = new DtlsPacketTransformer(this, componentID);
 
         packetTransformer.setConnector(connector);
-        packetTransformer.setDtlsProtocol(dtlsProtocol);
+        packetTransformer.setSetup(setup);
         packetTransformer.setMediaType(mediaType);
         return packetTransformer;
     }
@@ -168,30 +170,6 @@ public class DtlsTransformEngine
     }
 
     /**
-     * Sets the DTLS protocol according to which this
-     * <tt>DtlsTransformEngine</tt> is to act either as a DTLS server or a DTLS
-     * client.
-     *
-     * @param dtlsProtocol {@link DtlsControl#DTLS_CLIENT_PROTOCOL} to have this
-     * <tt>DtlsTransformEngine</tt> act as a DTLS client or
-     * {@link DtlsControl#DTLS_SERVER_PROTOCOL} to have this
-     * <tt>DtlsTransformEngine</tt> act as a DTLS server
-     */
-    void setDtlsProtocol(int dtlsProtocol)
-    {
-        if (this.dtlsProtocol != dtlsProtocol)
-        {
-            this.dtlsProtocol = dtlsProtocol;
-
-            for (DtlsPacketTransformer packetTransformer : packetTransformers)
-            {
-                if (packetTransformer != null)
-                    packetTransformer.setDtlsProtocol(this.dtlsProtocol);
-            }
-        }
-    }
-
-    /**
      * Sets the <tt>MediaType</tt> of the stream which this instance is to work
      * for/be associated with.
      *
@@ -208,6 +186,29 @@ public class DtlsTransformEngine
             {
                 if (packetTransformer != null)
                     packetTransformer.setMediaType(this.mediaType);
+            }
+        }
+    }
+
+    /**
+     * Sets the DTLS protocol according to which this
+     * <tt>DtlsTransformEngine</tt> is to act either as a DTLS server or a DTLS
+     * client.
+     *
+     * @param setup the value of the <tt>setup</tt> SDP attribute to set on this
+     * instance in order to determine whether this instance is to act as a DTLS
+     * client or a DTLS server
+     */
+    void setSetup(DtlsControl.Setup setup)
+    {
+        if (this.setup != setup)
+        {
+            this.setup = setup;
+
+            for (DtlsPacketTransformer packetTransformer : packetTransformers)
+            {
+                if (packetTransformer != null)
+                    packetTransformer.setSetup(this.setup);
             }
         }
     }

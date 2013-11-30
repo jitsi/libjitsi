@@ -8,7 +8,6 @@ package org.jitsi.service.neomedia;
 
 import java.util.*;
 
-
 /**
  * Implements {@link SrtpControl} for DTSL-SRTP.
  *
@@ -17,20 +16,6 @@ import java.util.*;
 public interface DtlsControl
     extends SrtpControl
 {
-    /**
-     * The DTLS protocol to be set on a <tt>DtlsControl</tt> instance via
-     * {@link #setDtlsProtocol(int)} to indicate that the <tt>DtlsControl</tt>
-     * is to act as a DTLS client.
-     */
-    public static final int DTLS_CLIENT_PROTOCOL = 1;
-
-    /**
-     * The DTLS protocol to be set on a <tt>DtlsControl</tt> instance via
-     * {@link #setDtlsProtocol(int)} to indicate that the <tt>DtlsControl</tt>
-     * is to act as a DTLS server.
-     */
-    public static final int DTLS_SERVER_PROTOCOL = 2;
-
     /**
      * The human-readable non-localized name of the (S)RTP transport protocol
      * represented by <tt>DtlsControl</tt>.
@@ -72,16 +57,6 @@ public interface DtlsControl
     public String getLocalFingerprintHashFunction();
 
     /**
-     * Sets the DTLS protocol according to which this <tt>DtlsControl</tt> is to
-     * act.
-     *
-     * @param dtlsProtocol {@link #DTLS_CLIENT_PROTOCOL} to have this instance
-     * act as a DTLS client or {@link #DTLS_SERVER_PROTOCOL} to have this
-     * instance act as a DTLS server
-     */
-    public void setDtlsProtocol(int dtlsProtocol);
-
-    /**
      * Sets the certificate fingerprints presented by the remote endpoint via
      * the signaling path.
      * 
@@ -90,4 +65,66 @@ public interface DtlsControl
      * signaling path
      */
     public void setRemoteFingerprints(Map<String,String> remoteFingerprints);
+
+    /**
+     * Sets the value of the <tt>setup</tt> SDP attribute defined by RFC 4145
+     * &quot;TCP-Based Media Transport in the Session Description Protocol
+     * (SDP)&quot; which determines whether this instance is to act as a DTLS
+     * client or a DTLS server.
+     *
+     * @param setup the value of the <tt>setup</tt> SDP attribute to set on this
+     * instance in order to determine whether this instance is to act as a DTLS
+     * client or a DTLS server
+     */
+    public void setSetup(Setup setup);
+
+    /**
+     * Enumerates the possible values of the <tt>setup</tt> SDP attribute
+     * defined by RFC 4145 &quot;TCP-Based Media Transport in the Session
+     * Description Protocol (SDP)&quot;.
+     *
+     * @author Lyubomir Marinov
+     */
+    public enum Setup
+    {
+        ACTIVE,
+        ACTPASS,
+        HOLDCONN,
+        PASSIVE;
+
+        /**
+         * Parses a <tt>String</tt> into a <tt>Setup</tt> enum value. The
+         * specified <tt>String</tt> to parse must be in a format as produced by
+         * {@link #toString()}; otherwise, the method will throw an exception.
+         *
+         * @param s the <tt>String</tt> to parse into a <tt>Setup</tt> enum
+         * value
+         * @return a <tt>Setup</tt> enum value on which <tt>toString()</tt>
+         * produces the specified <tt>s</tt>
+         * @throws IllegalArgumentException if none of the <tt>Setup</tt> enum
+         * values produce the specified <tt>s</tt> when <tt>toString()</tt> is
+         * invoked on them
+         * @throws NullPointerException if <tt>s</tt> is <tt>null</tt>
+         */
+        public static Setup parseSetup(String s)
+        {
+            if (s == null)
+                throw new NullPointerException("s");
+            for (Setup v : values())
+            {
+                if (v.toString().equalsIgnoreCase(s))
+                    return v;
+            }
+            throw new IllegalArgumentException(s);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String toString()
+        {
+            return name().toLowerCase();
+        }
+    }
 }

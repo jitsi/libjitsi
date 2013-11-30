@@ -87,12 +87,6 @@ public class DtlsControlImpl
     private boolean disposed = false;
 
     /**
-     * The DTLS protocol according to which this <tt>DtlsControl</tt> is to act
-     * either as a DTLS server or a DTLS client.
-     */
-    private int dtlsProtocol;
-
-    /**
      * The private and public keys of {@link #certificate}.
      */
     private final AsymmetricCipherKeyPair keyPair;
@@ -113,6 +107,14 @@ public class DtlsControlImpl
      * The fingerprints presented by the remote endpoint via the signaling path. 
      */
     private Map<String,String> remoteFingerprints;
+
+    /**
+     * The value of the <tt>setup</tt> SDP attribute defined by RFC 4145
+     * &quot;TCP-Based Media Transport in the Session Description Protocol
+     * (SDP)&quot; which determines whether this instance acts as a DTLS client
+     * or a DTLS server.
+     */
+    private Setup setup;
 
     /**
      * Initializes a new <tt>DtlsControlImpl</tt> instance.
@@ -239,12 +241,13 @@ public class DtlsControlImpl
      * @return a new <tt>DtlsTransformEngine</tt> instance to be associated with
      * and used by this <tt>DtlsControlImpl</tt> instance
      */
+    @Override
     protected DtlsTransformEngine createTransformEngine()
     {
         DtlsTransformEngine transformEngine = new DtlsTransformEngine(this);
 
         transformEngine.setConnector(connector);
-        transformEngine.setDtlsProtocol(dtlsProtocol);
+        transformEngine.setSetup(setup);
         return transformEngine;
     }
 
@@ -371,6 +374,7 @@ public class DtlsControlImpl
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean getSecureCommunicationStatus()
     {
         // TODO Auto-generated method stub
@@ -435,6 +439,7 @@ public class DtlsControlImpl
     /**
      * {@inheritDoc}
      */
+    @Override
     public String getLocalFingerprint()
     {
         return localFingerprint;
@@ -443,6 +448,7 @@ public class DtlsControlImpl
     /**
      * {@inheritDoc}
      */
+    @Override
     public String getLocalFingerprintHashFunction()
     {
         return localFingerprintHashFunction;
@@ -454,6 +460,7 @@ public class DtlsControlImpl
      * The implementation of <tt>DtlsControlImpl</tt> always returns
      * <tt>true</tt>.
      */
+    @Override
     public boolean requiresSecureSignalingTransport()
     {
         return true;
@@ -462,6 +469,7 @@ public class DtlsControlImpl
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setConnector(AbstractRTPConnector connector)
     {
         if (this.connector != connector)
@@ -478,30 +486,7 @@ public class DtlsControlImpl
     /**
      * {@inheritDoc}
      */
-    public void setDtlsProtocol(int dtlsProtocol)
-    {
-        if (this.dtlsProtocol != dtlsProtocol)
-        {
-            /*
-             * TODO At the time of this writing, changing the DTLS protocol is
-             * not supported.
-             */
-            if ((this.dtlsProtocol == DTLS_CLIENT_PROTOCOL)
-                    || (this.dtlsProtocol == DTLS_SERVER_PROTOCOL))
-                return;
-
-            this.dtlsProtocol = dtlsProtocol;
-
-            DtlsTransformEngine transformEngine = this.transformEngine;
-
-            if (transformEngine != null)
-                transformEngine.setDtlsProtocol(this.dtlsProtocol);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void setRemoteFingerprints(Map<String,String> remoteFingerprints)
     {
         if (remoteFingerprints == null)
@@ -517,6 +502,24 @@ public class DtlsControlImpl
     /**
      * {@inheritDoc}
      */
+    @Override
+    public void setSetup(Setup setup)
+    {
+        if (this.setup != setup)
+        {
+            this.setup = setup;
+
+            DtlsTransformEngine transformEngine = this.transformEngine;
+
+            if (transformEngine != null)
+                transformEngine.setSetup(this.setup);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void start(MediaType mediaType)
     {
         DtlsTransformEngine transformEngine = getTransformEngine();
