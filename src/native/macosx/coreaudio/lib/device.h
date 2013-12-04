@@ -24,8 +24,17 @@ typedef struct
     void* callbackFunction;
     void* callbackObject;
     void* callbackMethod;
-    AudioConverterRef converter;
-    double conversionRatio;
+    unsigned char isOutputStream;
+    unsigned char isAECActivated;
+    unsigned short step;
+    AudioConverterRef aecConverter;
+    AudioConverterRef outConverter;
+    double aecConversionRatio;
+    double outConversionRatio;
+    AudioStreamBasicDescription deviceFormat;
+    AudioStreamBasicDescription aecFormat;
+    AudioStreamBasicDescription javaFormat;
+    AudioBuffer audioBuffer;
     pthread_mutex_t mutex;
 } maccoreaudio_stream;
 

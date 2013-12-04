@@ -41,6 +41,7 @@ public class CoreAudioDevice
             {
                 System.loadLibrary("jnmaccoreaudio");
                 isLoaded = true;
+                WebrtcAec.init();
             }
             else if (OSUtils.IS_WINDOWS_VISTA
                     || OSUtils.IS_WINDOWS_7
