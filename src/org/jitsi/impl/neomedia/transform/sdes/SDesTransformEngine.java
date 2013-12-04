@@ -31,6 +31,17 @@ public class SDesTransformEngine
     public SDesTransformEngine(SrtpCryptoAttribute inAttribute,
             SrtpCryptoAttribute outAttribute)
     {
+        update(inAttribute, outAttribute);
+    }
+
+    /**
+     * Updates this instance with new key materials.
+     * @param inAttribute Key material for the incoming stream.
+     * @param outAttribute Key material for the outgoing stream.
+     */
+    public void update(SrtpCryptoAttribute inAttribute,
+            SrtpCryptoAttribute outAttribute)
+    {
         SRTPContextFactory forwardCtx
             = getTransformEngine(outAttribute, true /* sender */);
         SRTPContextFactory reverseCtx

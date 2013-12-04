@@ -166,6 +166,12 @@ public class SDesControlImpl
                 {
                     selectedInAttribute = peerCA;
                     selectedOutAttribute = localCA;
+                    if(transformEngine != null)
+                    {
+                        transformEngine.update(
+                                selectedInAttribute,
+                                selectedOutAttribute);
+                    }
                     return peerCA;
                 }
             }
@@ -205,6 +211,12 @@ public class SDesControlImpl
                     selectedInAttribute = ea;
                     selectedOutAttribute
                         = sdesFactory.createCryptoAttribute(1, suite);
+                    if(transformEngine != null)
+                    {
+                        transformEngine.update(
+                                selectedInAttribute,
+                                selectedOutAttribute);
+                    }
                     return selectedOutAttribute;
                 }
             }
