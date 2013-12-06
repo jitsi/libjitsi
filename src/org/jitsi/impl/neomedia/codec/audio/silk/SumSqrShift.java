@@ -24,6 +24,7 @@ public class SumSqrShift
      * @param x_offset offset of valid data.
      * @param len Length of input vector.
      */
+    @SuppressWarnings("unused")
     static void SKP_Silk_sum_sqr_shift(
             int       []energy,            /* O    Energy of x, after shifting to the right            */
             int       []shift,             /* O    Number of bits right shift applied to energy        */

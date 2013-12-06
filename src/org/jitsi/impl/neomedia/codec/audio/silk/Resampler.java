@@ -79,7 +79,7 @@ public class Resampler
         S.memZero();
 
         /* Input checking */
-        if(ResamplerStructs.RESAMPLER_SUPPORT_ABOVE_48KHZ != 0)
+        if(ResamplerStructs.RESAMPLER_SUPPORT_ABOVE_48KHZ)
         {
             if( Fs_Hz_in < 8000 || Fs_Hz_in > 192000 || Fs_Hz_out < 8000 || Fs_Hz_out > 192000 )
             {
@@ -96,7 +96,7 @@ public class Resampler
             }
         }
 
-        if(ResamplerStructs.RESAMPLER_SUPPORT_ABOVE_48KHZ != 0)
+        if(ResamplerStructs.RESAMPLER_SUPPORT_ABOVE_48KHZ)
         {
             /* Determine pre downsampling and post upsampling */
             if( Fs_Hz_in > 96000 )
@@ -344,7 +344,7 @@ public class Resampler
         Arrays.fill(S.sDown2, 0);
         Arrays.fill(S.sIIR, 0);
         Arrays.fill(S.sFIR, 0);
-        if (ResamplerStructs.RESAMPLER_SUPPORT_ABOVE_48KHZ != 0)
+        if (ResamplerStructs.RESAMPLER_SUPPORT_ABOVE_48KHZ)
         {
             Arrays.fill(S.sDownPre, 0);
             Arrays.fill(S.sUpPost, 0);
@@ -378,7 +378,7 @@ public class Resampler
             return -1;
         }
 
-        if (ResamplerStructs.RESAMPLER_SUPPORT_ABOVE_48KHZ != 0)
+        if (ResamplerStructs.RESAMPLER_SUPPORT_ABOVE_48KHZ)
         {
             if( S.nPreDownsamplers + S.nPostUpsamplers > 0 ) {
                 /* The input and/or output sampling rate is above 48000 Hz */

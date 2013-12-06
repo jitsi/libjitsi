@@ -39,6 +39,7 @@ public class ControlCodecFLP {
      *            Complexity (0->low; 1->medium; 2->high).
      * @return
      */
+    @SuppressWarnings("unused")
     static int SKP_Silk_control_encoder_FLP(
         SKP_Silk_encoder_state_FLP  psEnc,              /* I/O  Pointer to Silk encoder state FLP       */
         final int                   API_fs_Hz,          /* I    External (API) sampling rate (Hz)       */
@@ -378,13 +379,13 @@ public class ControlCodecFLP {
         }
 
         /* Check that settings are valid */
-        if( Define.LOW_COMPLEXITY_ONLY !=0 && Complexity != 0 )
+        if( Define.LOW_COMPLEXITY_ONLY && Complexity != 0 )
         {
             ret = Errors.SKP_SILK_ENC_INVALID_COMPLEXITY_SETTING;
         }
 
         /* Set encoding complexity */
-        if( Complexity == 0 || Define.LOW_COMPLEXITY_ONLY !=0 )
+        if( Complexity == 0 || Define.LOW_COMPLEXITY_ONLY )
         {
             /* Low complexity */
             psEnc.sCmn.Complexity                  = 0;

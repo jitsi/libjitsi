@@ -75,7 +75,7 @@ public class Define
     static final int WB_DETECT_ACTIVE_SPEECH_MS_THRES =       15000;       /* ms of active speech needed for WB detection  */
 
     /* Low complexity setting */
-    static final int LOW_COMPLEXITY_ONLY =                    0;
+    static final boolean LOW_COMPLEXITY_ONLY = false;
 
     /* Activate bandwidth transition filtering for mode switching */
     static final int SWITCH_TRANSITION_FILTERING =            1;
@@ -209,7 +209,7 @@ public class Define
     /***********************/
     /* High pass filtering */
     /***********************/
-    static final int HIGH_PASS_INPUT =                        1;
+    static final boolean HIGH_PASS_INPUT = true;
 
     /***************************/
     /* Voice activity detector */
@@ -236,7 +236,7 @@ public class Define
     static final int NLSF_MSVQ_MAX_VECTORS_IN_STAGE =              128;/* Update manually when changing codebooks      */
     static final int NLSF_MSVQ_MAX_VECTORS_IN_STAGE_TWO_TO_END =   16;  /* Update manually when changing codebooks      */
 
-    static final int NLSF_MSVQ_FLUCTUATION_REDUCTION =        1;
+    static final boolean NLSF_MSVQ_FLUCTUATION_REDUCTION = true;
     static final int MAX_NLSF_MSVQ_SURVIVORS =                16;
     static final int MAX_NLSF_MSVQ_SURVIVORS_LC_MODE =        2;
     static final int MAX_NLSF_MSVQ_SURVIVORS_MC_MODE =        4;

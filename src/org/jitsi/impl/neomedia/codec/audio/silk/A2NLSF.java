@@ -14,7 +14,7 @@ class A2NLSF_constants
     static final int MAX_ITERATIONS_A2NLSF_FIX =   50;
 
     /* Flag for using 2x as many cosine sampling points, reduces the risk of missing a root */
-    static final int OVERSAMPLE_COSINE_TABLE =      0;
+    static final boolean OVERSAMPLE_COSINE_TABLE = false;
 }
 
 /**
@@ -79,6 +79,7 @@ public class A2NLSF
         return y32;
     }
 
+    @SuppressWarnings("unused")
     static void SKP_Silk_A2NLSF_init(
          int[]    a_Q16,
          int[]            P,
@@ -177,7 +178,7 @@ public class A2NLSF
         while( true )
         {
             /* Evaluate polynomial */
-            if(OVERSAMPLE_COSINE_TABLE!=0)
+            if(OVERSAMPLE_COSINE_TABLE)
             {
                 xhi = LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[   k       >> 1 ] +
                   ( ( LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ ( k + 1 ) >> 1 ] -
@@ -194,7 +195,7 @@ public class A2NLSF
             if( ( ylo <= 0 && yhi >= 0 ) || ( ylo >= 0 && yhi <= 0 ) )
             {
                 /* Binary division */
-                if(OVERSAMPLE_COSINE_TABLE!=0)
+                if(OVERSAMPLE_COSINE_TABLE)
                    ffrac = -128;
                 else
                    ffrac = -256;
@@ -217,7 +218,7 @@ public class A2NLSF
                         /* Increase frequency */
                         xlo = xmid;
                         ylo = ymid;
-                        if(OVERSAMPLE_COSINE_TABLE!=0)
+                        if(OVERSAMPLE_COSINE_TABLE)
                             ffrac = ffrac + (64>>m);
                         else
                             ffrac = ffrac + (128>>m);
@@ -240,7 +241,7 @@ public class A2NLSF
                     /* No risk of dividing by zero because abs(ylo - yhi) >= abs(ylo) >= 65536 */
                     ffrac += ylo / ( ( ylo - yhi ) >> ( 8 - BIN_DIV_STEPS_A2NLSF_FIX ) );
                 }
-                if(OVERSAMPLE_COSINE_TABLE!=0)
+                if(OVERSAMPLE_COSINE_TABLE)
                     NLSF[ root_ix ] = Math.min( ( k << 7 ) + ffrac, Typedef.SKP_int16_MAX );
                 else
                     NLSF[ root_ix ] = Math.min( ( k << 8 ) + ffrac, Typedef.SKP_int16_MAX );
@@ -258,7 +259,7 @@ public class A2NLSF
                 p = PQ[ root_ix & 1 ];
 
                 /* Evaluate polynomial */
-                if(OVERSAMPLE_COSINE_TABLE!=0)
+                if(OVERSAMPLE_COSINE_TABLE)
                     xlo = LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ ( k - 1 ) >> 1 ] +
                       ( ( LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[   k       >> 1 ] -
                           LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ ( k - 1 ) >> 1 ] ) >> 1 ); // Q12
@@ -274,7 +275,7 @@ public class A2NLSF
                 xlo    = xhi;
                 ylo    = yhi;
 
-                if (OVERSAMPLE_COSINE_TABLE != 0)
+                if (OVERSAMPLE_COSINE_TABLE)
                 {
                     if( k > 2 * SigProcFIX.LSF_COS_TAB_SZ_FIX )
                     {

@@ -75,7 +75,7 @@ public class EncodeFrameFLP
         /*******************************************/
         /* High-pass filtering of the input signal */
         /*******************************************/
-        if (Define.HIGH_PASS_INPUT !=0) {
+        if (Define.HIGH_PASS_INPUT) {
             /* Variable high-pass filter */
             HPVariableCutoffFLP.SKP_Silk_HP_variable_cutoff_FLP( psEnc, sEncCtrl, pIn_HP, 0, pIn, pIn_offset );
         } else {

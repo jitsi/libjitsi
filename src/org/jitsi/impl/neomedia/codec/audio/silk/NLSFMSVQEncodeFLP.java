@@ -28,6 +28,7 @@ public class NLSFMSVQEncodeFLP
      * @param LPC_order LPC order
      * @param deactivate_fluc_red Deactivate fluctuation reduction
      */
+    @SuppressWarnings("unused")
     static void SKP_Silk_NLSF_MSVQ_encode_FLP(
               int                   []NLSFIndices,       /* O    Codebook path vector [ CB_STAGES ]      */
               float                 []pNLSF,             /* I/O  Quantized NLSF vector [ LPC_ORDER ]     */
@@ -53,7 +54,7 @@ public class NLSFMSVQEncodeFLP
         int     pPath_new[];
         float   pRes[];
         float   pRes_new[];
-        if(Define.LOW_COMPLEXITY_ONLY == 1)
+        if(Define.LOW_COMPLEXITY_ONLY)
         {
             pRateDist =    new float[Define.NLSF_MSVQ_TREE_SEARCH_MAX_VECTORS_EVALUATED_LC_MODE()];
             pRate =        new float[Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE ];
@@ -83,7 +84,7 @@ public class NLSFMSVQEncodeFLP
         SKP_Silk_NLSF_CBS_FLP pCurrentCBStage;
 
         assert( NLSF_MSVQ_Survivors <= Define.MAX_NLSF_MSVQ_SURVIVORS );
-        assert( ( Define.LOW_COMPLEXITY_ONLY == 0 ) || ( NLSF_MSVQ_Survivors <= Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE ) );
+        assert( ( !Define.LOW_COMPLEXITY_ONLY ) || ( NLSF_MSVQ_Survivors <= Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE ) );
 
         cur_survivors = NLSF_MSVQ_Survivors;
 
@@ -114,7 +115,7 @@ public class NLSFMSVQEncodeFLP
             /* Calculate the number of survivors in the current stage */
             cur_survivors = Math.min( NLSF_MSVQ_Survivors, prev_survivors * pCurrentCBStage.nVectors );
 
-            if(Define.NLSF_MSVQ_FLUCTUATION_REDUCTION == 0 ) {
+            if(!Define.NLSF_MSVQ_FLUCTUATION_REDUCTION) {
                  /* Find a single best survivor in the last stage, if we */
                  /* do not need candidates for fluctuation reduction     */
                  if( s == psNLSF_CB_FLP.nStages - 1 ) {
@@ -194,7 +195,7 @@ public class NLSFMSVQEncodeFLP
         /* (Preliminary) index of the best survivor, later to be decoded */
         bestIndex = 0;
 
-        if (Define.NLSF_MSVQ_FLUCTUATION_REDUCTION == 1)
+        if (Define.NLSF_MSVQ_FLUCTUATION_REDUCTION)
         {
             /******************************/
             /* NLSF fluctuation reduction */

@@ -127,6 +127,7 @@ public class LPVariableCutoff
      * @param in_offset offset of valid data.
      * @param frame_length Frame length
      */
+    @SuppressWarnings("unused")
     static void SKP_Silk_LP_variable_cutoff(
         SKP_Silk_LP_state               psLP,          /* I/O  LP filter state                     */
         short[]                         out,           /* O    Low-pass filtered output signal     */

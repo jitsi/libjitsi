@@ -192,7 +192,6 @@ public class DePacketizer
                          len - pdSize);
         bufferPointer += len - pdSize;
 
-
         if(TRACE && logger.isTraceEnabled())
         {
             logger.trace(
