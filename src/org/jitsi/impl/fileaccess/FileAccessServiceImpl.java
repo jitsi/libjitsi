@@ -7,12 +7,15 @@
 package org.jitsi.impl.fileaccess;
 
 import java.io.*;
-
-import javax.swing.filechooser.*;
+import java.util.*;
 
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.fileaccess.*;
 import org.jitsi.util.*;
+
+import com.sun.jna.*;
+import com.sun.jna.ptr.*;
+import com.sun.jna.win32.*;
 
 /**
  * Default FileAccessService implementation.
@@ -364,24 +367,108 @@ public class FileAccessServiceImpl implements FileAccessService
     public File getDefaultDownloadDirectory()
         throws IOException
     {
-        File downloadDir;
-
-        // For Windows versions previous to Vista, the default download location
-        // would be the home directory (i.e. the Desktop folder).
-        if (OSUtils.IS_WINDOWS && getMajorOSVersion() <= 5)
+        // For Windows use the intended API to get the correct location.
+        // Everything else is prone to failure due to folder redirection and
+        // roaming profiles.
+        if (OSUtils.IS_WINDOWS)
         {
-            downloadDir = FileSystemView.getFileSystemView().getHomeDirectory();
+            if (getMajorOSVersion() < 6)
+            {
+                char[] pszPath = new char[Shell32.MAX_PATH];
+                int hResult = Shell32.INSTANCE.SHGetFolderPath(
+                        null,
+                        Shell32.CSIDL_MYDOCUMENTS,
+                        null,
+                        Shell32.SHGFP_TYPE_CURRENT, pszPath);
+
+                if (hResult == Shell32.S_OK)
+                {
+                    String path = new String(pszPath);
+                    return new File(path.substring(0, path.indexOf('\0')));
+                }
+            }
+            else
+            {
+                // FOLDERID_Downloads
+                GUID g = new GUID();
+                g.data1 = 0x374DE290;
+                g.data2 = 0x123F;
+                g.data3 = 0x4565;
+                g.data4 = new byte[] { (byte) 0x91, 0x64,
+                        0x39, (byte) 0xC4, (byte) 0x92, 0x5E, 0x46, 0x7B };
+
+                PointerByReference pszPath = new PointerByReference();
+                int hResult = Shell32.INSTANCE.SHGetKnownFolderPath(
+                        g,
+                        Shell32.KF_FLAG_INIT | Shell32.KF_FLAG_CREATE,
+                        null,
+                        pszPath);
+
+                if (hResult == Shell32.S_OK)
+                {
+                    File f = new File(pszPath.getValue().getString(0, true));
+                    Ole32.INSTANCE.CoTaskMemFree(pszPath.getValue());
+                    return f;
+                }
+            }
         }
+
         // For all other operating systems we return the Downloads folder.
-        else
-        {
-            String defaultLocation = getSystemProperty("user.home")
-                + File.separatorChar + "Downloads";
+        return new File(getSystemProperty("user.home"), "Downloads");
+    }
 
-            downloadDir = new File(defaultLocation);
-        }
+    private static class HANDLE extends PointerType implements NativeMapped
+    {}
 
-        return downloadDir;
+    private static class HWND extends HANDLE
+    {}
+
+    public static class GUID extends Structure
+    {
+        //public static class ByValue extends GUID implements Structure.ByValue {}
+        public int data1;
+        public short data2;
+        public short data3;
+        public byte[] data4;
+    }
+
+    private static Map<String, Object> OPT = new HashMap<String, Object>()
+    {{
+        put(Library.OPTION_TYPE_MAPPER, W32APITypeMapper.UNICODE);
+        put(Library.OPTION_FUNCTION_MAPPER, W32APIFunctionMapper.UNICODE);
+    }};
+
+    private static interface Shell32 extends Library
+    {
+        public static final int MAX_PATH = 260;
+        public static final int CSIDL_MYDOCUMENTS = 5;
+        public static final int SHGFP_TYPE_CURRENT = 0;
+        public static final int S_OK = 0;
+        public static final int KF_FLAG_INIT = 0x00000800;
+        public static final int KF_FLAG_CREATE = 0x00008000;
+
+        static Shell32 INSTANCE = (Shell32)Native.loadLibrary("shell32",
+                Shell32.class, OPT);
+
+        /**
+         * http://msdn.microsoft.com/en-us/library/bb762181(VS.85).aspx
+         */
+        public int SHGetFolderPath(HWND hwndOwner, int nFolder, HANDLE hToken,
+                int dwFlags, char[] pszPath);
+
+        /**
+         * http://msdn.microsoft.com/en-us/library/bb762188(v=vs.85).aspx 
+         */
+        public int SHGetKnownFolderPath(GUID rfid, int dwFlags, HANDLE hToken,
+                PointerByReference pszPath);
+    }
+
+    private interface Ole32 extends Library
+    {
+        static Ole32 INSTANCE = (Ole32)Native.loadLibrary("Ole32",
+                Ole32.class, OPT);
+
+        public void CoTaskMemFree(Pointer p);
     }
 
     /**
