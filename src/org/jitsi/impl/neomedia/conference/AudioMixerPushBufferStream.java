@@ -191,7 +191,7 @@ class AudioMixerPushBufferStream
      * an input stream exceeds this limit, it gets reported and the counting is
      * restarted.
      */
-    private static final long TRACE_NON_CONTRIBUTING_READ_COUNT = 0;
+    static final long TRACE_NON_CONTRIBUTING_READ_COUNT = 0;
 
     /**
      * The <tt>AudioMixer</tt> which created this
@@ -233,6 +233,16 @@ class AudioMixerPushBufferStream
         = new ArrayList<AudioMixingPushBufferStream>();
 
     /**
+     * The number of times that {@link #outStreams} has been modified via
+     * {@link #addOutStream(AudioMixingPushBufferStream)} and
+     * {@link #removeOutStream(AudioMixingPushBufferStream)} in order to allow
+     * {@link AudioMixer#start(AudioMixerPushBufferStream)} and
+     * {@link AudioMixer#stop(AudioMixerPushBufferStream)} to be invoked outside
+     * blocks synchronized on <tt>outStreams</tt>.
+     */
+    private long outStreamsGeneration;
+
+    /**
      * The <tt>BufferTransferHandler</tt> through which this instance gets
      * notifications from its input <tt>SourceStream</tt>s that new data is
      * available for audio mixing.
@@ -254,6 +264,13 @@ class AudioMixerPushBufferStream
                         buffer.setLength(0);
                     }
                 };
+
+    /**
+     * A copy of {@link #outStreams} which will cause no
+     * <tt>ConcurrentModificationException</tt> and which has been introduced to
+     * reduce allocations and garbage collection.
+     */
+    private AudioMixingPushBufferStream[] unmodifiableOutStreams;
 
     /**
      * Initializes a new <tt>AudioMixerPushBufferStream</tt> instance to output
@@ -291,25 +308,29 @@ class AudioMixerPushBufferStream
         if (outStream == null)
             throw new IllegalArgumentException("outStream");
 
+        boolean start = false;
+        long generation = 0;
+
         synchronized (outStreams)
         {
-            if (!outStreams.contains(outStream)
-                    && outStreams.add(outStream)
-                    && (outStreams.size() == 1))
+            if (!outStreams.contains(outStream) && outStreams.add(outStream))
             {
-                boolean started = false;
-
-                try
+                unmodifiableOutStreams = null;
+                if (outStreams.size() == 1)
                 {
-                    audioMixer.start(this);
-                    started = true;
-                }
-                finally
-                {
-                    if (!started)
-                        outStreams.remove(outStream);
+                    start = true;
+                    generation = ++outStreamsGeneration;
                 }
             }
+        }
+        if (start)
+        {
+            /*
+             * The start method of AudioMixer is potentially blocking so it has
+             * been moved out of synchronized blocks in order to reduce the
+             * risks of deadlocks.
+             */
+            audioMixer.start(this, generation);
         }
     }
 
@@ -934,21 +955,8 @@ class AudioMixerPushBufferStream
 
                 if (sampleCount == 0)
                 {
-                    if ((TRACE_NON_CONTRIBUTING_READ_COUNT > 0)
-                            && logger.isTraceEnabled())
-                    {
-                        inStreamDesc.nonContributingReadCount++;
-                        if (inStreamDesc.nonContributingReadCount
-                                >= TRACE_NON_CONTRIBUTING_READ_COUNT)
-                        {
-                            logger.trace(
-                                    "Failed to read actual inputSamples more than "
-                                        + inStreamDesc.nonContributingReadCount
-                                        + " times from inputStream with hash code "
-                                        + inStreamDesc.getInStream().hashCode());
-                            inStreamDesc.nonContributingReadCount = 0;
-                        }
-                    }
+                    if (TRACE_NON_CONTRIBUTING_READ_COUNT > 0)
+                        inStreamDesc.incrementNonContributingReadCount(logger);
                 }
                 else
                 {
@@ -1004,12 +1012,29 @@ class AudioMixerPushBufferStream
     void removeOutStream(AudioMixingPushBufferStream outStream)
         throws IOException
     {
+        boolean stop = false;
+        long generation = 0;
+
         synchronized (outStreams)
         {
-            if ((outStream != null)
-                    && outStreams.remove(outStream)
-                    && outStreams.isEmpty())
-                audioMixer.stop(this);
+            if ((outStream != null) && outStreams.remove(outStream))
+            {
+                unmodifiableOutStreams = null;
+                if (outStreams.isEmpty())
+                {
+                    stop = true;
+                    generation = ++outStreamsGeneration;
+                }
+            }
+        }
+        if (stop)
+        {
+            /*
+             * The stop method of AudioMixer is potentially blocking so it has
+             * been moved out of synchronized blocks in order to reduce the
+             * risks of deadlocks.
+             */
+            audioMixer.stop(this, generation);
         }
     }
 
@@ -1303,10 +1328,15 @@ class AudioMixerPushBufferStream
 
         synchronized (this.outStreams)
         {
-            outStreams
-                = this.outStreams.toArray(
-                        new AudioMixingPushBufferStream[
-                                this.outStreams.size()]);
+            outStreams = this.unmodifiableOutStreams;
+            if (outStreams == null)
+            {
+                this.unmodifiableOutStreams
+                    = outStreams
+                        = this.outStreams.toArray(
+                                new AudioMixingPushBufferStream[
+                                        this.outStreams.size()]);
+            }
         }
         for (AudioMixingPushBufferStream outStream : outStreams)
             setInSamples(outStream, inSampleDesc, maxInSampleCount);
