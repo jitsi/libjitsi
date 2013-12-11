@@ -432,11 +432,21 @@ public class FileAccessServiceImpl implements FileAccessService
         public byte[] data4;
     }
 
-    private static Map<String, Object> OPT = new HashMap<String, Object>()
-    {{
-        put(Library.OPTION_TYPE_MAPPER, W32APITypeMapper.UNICODE);
-        put(Library.OPTION_FUNCTION_MAPPER, W32APIFunctionMapper.UNICODE);
-    }};
+    private static Map<String, Object> OPT;
+
+    static
+    {
+        if(OSUtils.IS_WINDOWS)
+        {
+            OPT = new HashMap<String, Object>()
+            {{
+                put( Library.OPTION_TYPE_MAPPER,
+                     W32APITypeMapper.UNICODE );
+                put( Library.OPTION_FUNCTION_MAPPER,
+                     W32APIFunctionMapper.UNICODE );
+            }};
+        }
+    }
 
     private static interface Shell32 extends Library
     {
