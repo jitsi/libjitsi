@@ -82,13 +82,20 @@ public class AudioMixingPushBufferStream
      * The collection of input audio samples still not mixed and read through
      * this <tt>AudioMixingPushBufferStream</tt>.
      */
-    private int[][] inSamples;
+    private short[][] inSamples;
 
     /**
      * The maximum number of per-stream audio samples available through
      * <tt>inSamples</tt>.
      */
     private int maxInSampleCount;
+
+    /**
+     * The audio samples output by the last invocation of
+     * {@link #mix(int[][], AudioFormat, int)}. Cached in order to reduce
+     * allocations and garbage collection.
+     */
+    private short[] outSamples;
 
     /**
      * The <tt>Object</tt> which synchronizes the access to the data to be read
@@ -129,6 +136,15 @@ public class AudioMixingPushBufferStream
     {
         this.audioMixerStream = audioMixerStream;
         this.dataSource = dataSource;
+    }
+
+    private short[] allocateOutSamples(int minSize)
+    {
+        short[] outSamples = this.outSamples;
+
+        if ((outSamples == null) || (outSamples.length < minSize))
+            this.outSamples = outSamples = new short[minSize];
+        return outSamples;
     }
 
     /**
@@ -218,14 +234,12 @@ public class AudioMixingPushBufferStream
      * @return the resulting audio sample set of the audio mixing of the
      * specified input audio sample sets
      */
-    private int[] mix(
-            int[][] inSamples,
+    private short[] mix(
+            short[][] inSamples,
             AudioFormat outFormat,
             int outSampleCount)
     {
-        int[] outSamples
-            = dataSource.audioMixer.intArrayCache.allocateIntArray(
-                    outSampleCount);
+        short[] outSamples;
 
         /*
          * The trivial case of performing audio mixing the audio of a single
@@ -234,26 +248,39 @@ public class AudioMixingPushBufferStream
          */
         if ((inSamples.length == 1) || (inSamples[1] == null))
         {
-            int[] inStreamSamples = inSamples[0];
+            short[] inStreamSamples = inSamples[0];
             int inStreamSampleCount;
 
             if (inStreamSamples == null)
             {
                 inStreamSampleCount = 0;
+                outSamples = allocateOutSamples(outSampleCount);
             }
-            else
+            else if (inStreamSamples.length < outSampleCount)
             {
-                inStreamSampleCount
-                    = Math.min(inStreamSamples.length, outSampleCount);
+                inStreamSampleCount = inStreamSamples.length;
+                outSamples = allocateOutSamples(outSampleCount);
                 System.arraycopy(
                         inStreamSamples, 0,
                         outSamples, 0,
                         inStreamSampleCount);
             }
+            else
+            {
+                inStreamSampleCount = outSampleCount;
+                outSamples = inStreamSamples;
+            }
             if (inStreamSampleCount != outSampleCount)
-                Arrays.fill(outSamples, inStreamSampleCount, outSampleCount, 0);
+            {
+                Arrays.fill(
+                        outSamples, inStreamSampleCount, outSampleCount,
+                        (short) 0);
+            }
             return outSamples;
         }
+
+        outSamples = allocateOutSamples(outSampleCount);
+        Arrays.fill(outSamples, 0, outSampleCount, (short) 0);
 
         int maxOutSample;
 
@@ -266,8 +293,7 @@ public class AudioMixingPushBufferStream
             throw new UnsupportedOperationException(ufex);
         }
 
-        Arrays.fill(outSamples, 0, outSampleCount, 0);
-        for (int[] inStreamSamples : inSamples)
+        for (short[] inStreamSamples : inSamples)
         {
             if (inStreamSamples == null)
                 continue;
@@ -284,11 +310,12 @@ public class AudioMixingPushBufferStream
                 int outSample = outSamples[i];
 
                 outSamples[i]
-                    = inStreamSample
-                        + outSample
-                        - Math.round(
-                                inStreamSample
-                                    * (outSample / (float) maxOutSample));
+                    = (short)
+                        (inStreamSample
+                            + outSample
+                            - Math.round(
+                                    inStreamSample
+                                        * (outSample / (float) maxOutSample)));
             }
         }
         return outSamples;
@@ -307,7 +334,7 @@ public class AudioMixingPushBufferStream
     public void read(Buffer buffer)
         throws IOException
     {
-        int[][] inSamples;
+        short[][] inSamples;
         int maxInSampleCount;
         long timeStamp;
 
@@ -331,7 +358,7 @@ public class AudioMixingPushBufferStream
         }
 
         AudioFormat outFormat = getFormat();
-        int[] outSamples = mix(inSamples, outFormat, maxInSampleCount);
+        short[] outSamples = mix(inSamples, outFormat, maxInSampleCount);
         int outSampleCount = Math.min(maxInSampleCount, outSamples.length);
 
         if (Format.byteArray.equals(outFormat.getDataType()))
@@ -350,17 +377,11 @@ public class AudioMixingPushBufferStream
                 if ((outData == null) || (outData.length < outLength))
                     outData = new byte[outLength];
                 for (int i = 0; i < outSampleCount; i++)
-                    ArrayIOUtils.writeInt16(outSamples[i], outData, i * 2);
-                break;
-            case 32:
-                outLength = outSampleCount * 4;
-                if ((outData == null) || (outData.length < outLength))
-                    outData = new byte[outLength];
-                for (int i = 0; i < outSampleCount; i++)
-                    ArrayIOUtils.writeInt(outSamples[i], outData, i * 4);
+                    ArrayIOUtils.writeShort(outSamples[i], outData, i * 2);
                 break;
             case 8:
             case 24:
+            case 32:
             default:
                 throw new UnsupportedOperationException(
                         "AudioMixingPushBufferStream.read(Buffer)");
@@ -391,7 +412,7 @@ public class AudioMixingPushBufferStream
      * @param timeStamp the time stamp of <tt>inSamples</tt> to be reported
      * in the specified <tt>Buffer</tt> when data is read from this instance
      */
-    void setInSamples(int[][] inSamples, int maxInSampleCount, long timeStamp)
+    void setInSamples(short[][] inSamples, int maxInSampleCount, long timeStamp)
     {
         synchronized (readSyncRoot)
         {
@@ -430,9 +451,11 @@ public class AudioMixingPushBufferStream
     {
         audioMixerStream.addOutStream(this);
         if (logger.isTraceEnabled())
+        {
             logger.trace(
                     "Started " + getClass().getSimpleName() + " with hashCode "
                         + hashCode());
+        }
     }
 
     /**
@@ -446,8 +469,10 @@ public class AudioMixingPushBufferStream
     {
         audioMixerStream.removeOutStream(this);
         if (logger.isTraceEnabled())
+        {
             logger.trace(
                     "Stopped " + getClass().getSimpleName() + " with hashCode "
                         + hashCode());
+        }
     }
 }

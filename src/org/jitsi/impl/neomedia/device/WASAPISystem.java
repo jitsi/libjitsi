@@ -330,7 +330,7 @@ public class WASAPISystem
                 AudioFormat outFormat = formats.get(i);
                 /*
                  * The resamplers are not expected to convert between mono and
-                 * stereo. 
+                 * stereo.
                  */
                 AudioFormat inFormat
                     = new AudioFormat(
@@ -338,7 +338,7 @@ public class WASAPISystem
                             /* sampleRate */ Format.NOT_SPECIFIED,
                             /* sampleSizeInBits */ Format.NOT_SPECIFIED,
                             outFormat.getChannels(),
-                            AudioFormat.LITTLE_ENDIAN,
+                            AbstractAudioRenderer.NATIVE_AUDIO_FORMAT_ENDIAN,
                             AudioFormat.SIGNED,
                             /* frameSizeInBits */ Format.NOT_SPECIFIED,
                             /* frameRate */ Format.NOT_SPECIFIED,
@@ -779,7 +779,8 @@ public class WASAPISystem
                                         nSamplesPerSec,
                                         wBitsPerSample,
                                         /* channels */ 1,
-                                        AudioFormat.LITTLE_ENDIAN,
+                                        AbstractAudioRenderer
+                                            .NATIVE_AUDIO_FORMAT_ENDIAN,
                                         AudioFormat.SIGNED,
                                         /* frameSizeInBits */
                                             Format.NOT_SPECIFIED,
@@ -794,7 +795,8 @@ public class WASAPISystem
                                     nSamplesPerSec,
                                     wBitsPerSample,
                                     nChannels,
-                                    AudioFormat.LITTLE_ENDIAN,
+                                    AbstractAudioRenderer
+                                        .NATIVE_AUDIO_FORMAT_ENDIAN,
                                     AudioFormat.SIGNED,
                                     /* frameSizeInBits */ Format.NOT_SPECIFIED,
                                     /* frameRate */ Format.NOT_SPECIFIED,
@@ -905,7 +907,8 @@ public class WASAPISystem
                                         nSamplesPerSec,
                                         wBitsPerSample,
                                         nChannels,
-                                        AudioFormat.LITTLE_ENDIAN,
+                                        AbstractAudioRenderer
+                                            .NATIVE_AUDIO_FORMAT_ENDIAN,
                                         AudioFormat.SIGNED,
                                         /* frameSizeInBits */
                                             Format.NOT_SPECIFIED,

@@ -11,17 +11,17 @@ import java.lang.ref.*;
 import javax.media.*;
 
 /**
- * Caches <tt>int</tt> arrays for the purposes of reducing garbage collection.
+ * Caches <tt>short</tt> arrays for the purposes of reducing garbage collection.
  *
  * @author Lyubomir Marinov
  */
-class IntArrayCache
+class ShortArrayCache
 {
     /**
-     * The cache of <tt>int</tt> arrays managed by this instance for the
+     * The cache of <tt>short</tt> arrays managed by this instance for the
      * purposes of reducing garbage collection.
      */
-    private SoftReference<int[][]> elements;
+    private SoftReference<short[][]> elements;
 
     /**
      * The number of elements at the head of {@link #elements} which are
@@ -30,23 +30,24 @@ class IntArrayCache
     private int length;
 
     /**
-     * Allocates an <tt>int</tt> array with length/size greater than or equal to
-     * a specific number. The returned array may be a newly-initialized instance
-     * or one of the elements cached/pooled by this instance.
+     * Allocates a <tt>short</tt> array with length/size greater than or equal
+     * to a specific number. The returned array may be a newly-initialized
+     * instance or one of the elements cached/pooled by this instance.
      *
      * @param minSize the minimum length/size of the array to be returned
-     * @return an <tt>int</tt> array with length/size greater than or equal to
+     * @return a <tt>short</tt> array with length/size greater than or equal to
      * <tt>minSize</tt>
      */
-    public synchronized int[] allocateIntArray(int minSize)
+    public synchronized short[] allocateShortArray(int minSize)
     {
-        int[][] elements = (this.elements == null) ? null : this.elements.get();
+        short[][] elements
+            = (this.elements == null) ? null : this.elements.get();
 
         if (elements != null)
         {
             for (int i = 0; i < length; i++)
             {
-                int[] element = elements[i];
+                short[] element = elements[i];
 
                 if ((element != null) && element.length >= minSize)
                 {
@@ -56,34 +57,35 @@ class IntArrayCache
             }
         }
 
-        return new int[minSize];
+        return new short[minSize];
     }
 
     /**
-     * Returns a specific non-<tt>null</tt> <tt>int</tt> array into the
+     * Returns a specific non-<tt>null</tt> <tt>short</tt> array into the
      * cache/pool implemented by this instance.
      *
-     * @param intArray the <tt>int</tt> array to be returned into the cache/pool
-     * implemented by this instance. If <tt>null</tt>, the method does nothing.
+     * @param shortArray the <tt>short</tt> array to be returned into the
+     * cache/pool  implemented by this instance. If <tt>null</tt>, the method
+     * does nothing.
      */
-    public synchronized void deallocateIntArray(int[] intArray)
+    public synchronized void deallocateShortArray(short[] shortArray)
     {
-        if (intArray == null)
+        if (shortArray == null)
             return;
 
-        int[][] elements;
+        short[][] elements;
 
         if ((this.elements == null)
                 || ((elements = this.elements.get()) == null))
         {
-            elements = new int[8][];
-            this.elements = new SoftReference<int[][]>(elements);
+            elements = new short[8][];
+            this.elements = new SoftReference<short[][]>(elements);
             length = 0;
         }
 
         if (length != 0)
             for (int i = 0; i < length; i++)
-                if (elements[i] == intArray)
+                if (elements[i] == shortArray)
                     return;
 
         if (length == elements.length)
@@ -96,7 +98,7 @@ class IntArrayCache
 
             for (int i = 0; i < length; i++)
             {
-                int[] element = elements[i];
+                short[] element = elements[i];
 
                 if (element != null)
                 {
@@ -112,11 +114,11 @@ class IntArrayCache
             if (newLength == length)
             {
                 // Expand the storage.
-                int[][] newElements = new int[elements.length + 4][];
+                short[][] newElements = new short[elements.length + 4][];
 
                 System.arraycopy(elements, 0, newElements, 0, elements.length);
                 elements = newElements;
-                this.elements = new SoftReference<int[][]>(elements);
+                this.elements = new SoftReference<short[][]>(elements);
             }
             else
             {
@@ -124,44 +126,44 @@ class IntArrayCache
             }
         }
 
-        elements[length++] = intArray;
+        elements[length++] = shortArray;
     }
 
     /**
      * Ensures that the <tt>data</tt> property of a specific <tt>Buffer</tt> is
-     * set to an <tt>int</tt> array with length/size greater than or equal to a
-     * specific number.
+     * set to an <tt>short</tt> array with length/size greater than or equal to
+     * a specific number.
      * 
      * @param buffer the <tt>Buffer</tt> the <tt>data</tt> property of which is
      * to be validated
-     * @param newSize the minimum length/size of the <tt>int</tt> array to be
+     * @param newSize the minimum length/size of the <tt>short</tt> array to be
      * set as the value of the <tt>data</tt> property of the specified
      * <tt>buffer</tt> and to be returned
      * @return the value of the <tt>data</tt> property of the specified
      * <tt>buffer</tt> which is guaranteed to have a length/size of at least
      * <tt>newSize</tt> elements
      */
-    public int[] validateIntArraySize(Buffer buffer, int newSize)
+    public short[] validateShortArraySize(Buffer buffer, int newSize)
     {
         Object data = buffer.getData();
-        int[] intArray;
+        short[] shortArray;
 
-        if (data instanceof int[])
+        if (data instanceof short[])
         {
-            intArray = (int[]) data;
-            if (intArray.length < newSize)
+            shortArray = (short[]) data;
+            if (shortArray.length < newSize)
             {
-                deallocateIntArray(intArray);
-                intArray = null;
+                deallocateShortArray(shortArray);
+                shortArray = null;
             }
         }
         else
-            intArray = null;
-        if (intArray == null)
+            shortArray = null;
+        if (shortArray == null)
         {
-            intArray = allocateIntArray(newSize);
-            buffer.setData(intArray);
+            shortArray = allocateShortArray(newSize);
+            buffer.setData(shortArray);
         }
-        return intArray;
+        return shortArray;
     }
 }

@@ -200,13 +200,9 @@ public class RewritablePullBufferDataSource
             stream.read(buffer);
 
             if (isSendingDTMF())
-            {
                 RewritablePushBufferDataSource.sendDTMF(buffer, tones.poll());
-            }
             else if (isMute())
-            {
                 RewritablePushBufferDataSource.mute(buffer);
-            }
         }
 
         /**

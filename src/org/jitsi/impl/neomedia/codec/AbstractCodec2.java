@@ -28,6 +28,7 @@ public abstract class AbstractCodec2
      * the operation of FEC.
      */
     public static final int BUFFER_FLAG_FEC = (1 << 24);
+
     /**
      * The <tt>Buffer</tt> flag which indicates that the respective
      * <tt>Buffer</tt> contains audio data which has been decoded as a result of

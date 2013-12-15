@@ -136,12 +136,6 @@ public class AudioMixer
         = new ArrayList<InDataSourceDesc>();
 
     /**
-     * The cache of <tt>int</tt> arrays utilized by this instance for the
-     * purposes of reducing garbage collection.
-     */
-    final IntArrayCache intArrayCache = new IntArrayCache();
-
-    /**
      * The <tt>AudioMixingPushBufferDataSource</tt> which contains the mix of
      * <tt>inDataSources</tt> excluding <tt>captureDevice</tt> and is thus
      * meant for playback on the local peer in a call.

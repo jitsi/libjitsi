@@ -255,12 +255,11 @@ public class DTMFInbandTone
     {
         double u1 = 2.0 * Math.PI * this.frequency1 / samplingFrequency;
         double u2 = 2.0 * Math.PI * this.frequency2 / samplingFrequency;
-        double audioSample;
-
         // The signal generated is composed of 2 sinusoidal signals, which
         // ampltudes is between -1 and 1 (included).
-        audioSample = Math.sin(u1 * sampleNumber) * 0.5 +
-            Math.sin(u2 * sampleNumber) * 0.5;
+        double audioSample
+            = Math.sin(u1 * sampleNumber) * 0.5
+                + Math.sin(u2 * sampleNumber) * 0.5;
 
         return audioSample;
     }
@@ -293,15 +292,11 @@ public class DTMFInbandTone
         // generates a signal between -32767 and 32767.
         // As well as if sampleSizeInBits is equal to 32, this function
         // generates a signal between -2147483647 and 2147483647.
-        double amplitudeCoefficient = Math.pow(2.0, sampleSizeInBits - 1) - 1.0;
-        double audioSampleContinuous;
-        int audioSampleDiscrete;
-
-        audioSampleContinuous = this.getAudioSampleContinuous(
-                samplingFrequency,
-                sampleNumber);
-        audioSampleDiscrete = (int)
-            (audioSampleContinuous * amplitudeCoefficient);
+        double audioSampleContinuous
+            = getAudioSampleContinuous(samplingFrequency, sampleNumber);
+        double amplitudeCoefficient = (1L << (sampleSizeInBits - 1)) - 1L;
+        int audioSampleDiscrete
+            = (int) (audioSampleContinuous * amplitudeCoefficient);
 
         return audioSampleDiscrete;
     }
@@ -316,7 +311,7 @@ public class DTMFInbandTone
      * short and 32 for an int)
      * @return The data array containing the DTMF signal.
      */
-    public int[] getAudioSamples(double sampleRate, int sampleSizeInBits)
+    public short[] getAudioSamples(double sampleRate, int sampleSizeInBits)
     {
         /*
          * TODO Rounding the sampleRate to an integer so early will lead to a
@@ -326,8 +321,9 @@ public class DTMFInbandTone
         int nbToneSamples = kHz * DTMFInbandTone.TONE_DURATION;
         int nbInterDigitSamples = kHz * DTMFInbandTone.INTER_DIGIT_INTERVAL;
 
-        int[] samples
-            = new int[nbInterDigitSamples + nbToneSamples + nbInterDigitSamples];
+        short[] samples
+            = new short[
+                    nbInterDigitSamples + nbToneSamples + nbInterDigitSamples];
 
         /*
          * The leading nbInterDigitSamples should be zeroes. They are because we
@@ -339,10 +335,11 @@ public class DTMFInbandTone
                 sampleNumber++)
         {
             samples[sampleNumber]
-                = getAudioSampleDiscrete(
-                        sampleRate,
-                        sampleNumber,
-                        sampleSizeInBits);
+                = (short)
+                    getAudioSampleDiscrete(
+                            sampleRate,
+                            sampleNumber,
+                            sampleSizeInBits);
         }
         /*
          * The trailing nbInterDigitSamples should be zeroes. They are because

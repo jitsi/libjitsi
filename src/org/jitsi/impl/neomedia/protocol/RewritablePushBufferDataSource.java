@@ -197,99 +197,83 @@ public class RewritablePushBufferDataSource
             DTMFInbandTone tone)
     {
         Object data = buffer.getData();
+        Format format;
 
         // Send the inband DTMF tone only if the buffer contains audio data.
-        if (data != null && (buffer.getFormat() instanceof AudioFormat))
+        if ((data != null)
+                && ((format = buffer.getFormat()) instanceof AudioFormat))
         {
-            Class<?> dataClass = data.getClass();
-            int fromIndex = buffer.getOffset();
-
-            AudioFormat audioFormat = (AudioFormat) buffer.getFormat();
-            double samplingFrequency = audioFormat.getSampleRate();
+            AudioFormat audioFormat = (AudioFormat) format;
             int sampleSizeInBits = audioFormat.getSampleSizeInBits();
-
             // Generates the inband DTMF signal.
-            int[] sampleData = tone.getAudioSamples(
-                    samplingFrequency,
-                    sampleSizeInBits);
-            IntBuffer.wrap(sampleData);
+            short[] samples
+                = tone.getAudioSamples(
+                        audioFormat.getSampleRate(),
+                        sampleSizeInBits);
 
-            int toIndex = fromIndex +
-                sampleData.length * (sampleSizeInBits / 8);
+            int fromIndex = buffer.getOffset();
+            int toIndex = fromIndex + samples.length * (sampleSizeInBits / 8);
             ByteBuffer newData = ByteBuffer.allocate(toIndex);
 
             // Prepares newData to be endian compliant with original buffer
             // data.
-            if(audioFormat.getEndian() == AudioFormat.BIG_ENDIAN)
-            {
-                newData.order(ByteOrder.BIG_ENDIAN);
-            }
-            else
-            {
-                newData.order(ByteOrder.LITTLE_ENDIAN);
-            }
+            newData.order(
+                    (audioFormat.getEndian() == AudioFormat.BIG_ENDIAN)
+                        ? ByteOrder.BIG_ENDIAN
+                        : ByteOrder.LITTLE_ENDIAN);
 
-            // Keeps data unchanged if storeed before the original buffer offset
-            // index.
-            // Takes care of original data array type (byte, short or int).
-            if (Format.byteArray.equals(dataClass))
-            {
-                newData.put(((byte[]) data), 0, fromIndex);
-            }
-            else if (Format.shortArray.equals(dataClass))
-            {
-                for(int i = 0; i < fromIndex; ++i)
-                {
-                    newData.putShort(((short[]) data)[i]);
-                }
-            }
-            else if (Format.intArray.equals(dataClass))
-            {
-                for(int i = 0; i < fromIndex; ++i)
-                {
-                    newData.putInt(((int[]) data)[i]);
-                }
-            }
-
-            // Copies inband DTMF singal into newData.
-            // Takes care of audio format encryption data type (byte, short or
+            // Keeps data unchanged if stored before the original buffer offset
+            // index. Takes care of original data array type (byte, short or
             // int).
+            Class<?> dataType = data.getClass();
+
+            if (Format.byteArray.equals(dataType))
+            {
+                newData.put((byte[]) data, 0, fromIndex);
+            }
+            else if (Format.shortArray.equals(dataType))
+            {
+                short[] shortData = (short[]) data;
+
+                for(int i = 0; i < fromIndex; ++i)
+                    newData.putShort(shortData[i]);
+            }
+            else if (Format.intArray.equals(dataType))
+            {
+                int[] intData = (int[]) data;
+
+                for(int i = 0; i < fromIndex; ++i)
+                    newData.putInt(intData[i]);
+            }
+
+            // Copies inband DTMF singal into newData. Takes care of audio
+            // format data type (byte, short or int).
             switch (sampleSizeInBits)
             {
-                case 8:
-                    for(int i = 0; i < sampleData.length; ++i)
-                    {
-                        newData.put(((byte) sampleData[i]));
-                    }
-                    break;
-                case 16:
-                    for(int i = 0; i < sampleData.length; ++i)
-                    {
-                        newData.putShort(((short) sampleData[i]));
-                    }
-                    break;
-                case 32:
-                    for(int i = 0; i < sampleData.length; ++i)
-                    {
-                        newData.putInt(sampleData[i]);
-                    }
-                    break;
+            case 8:
+                for(int i = 0; i < samples.length; ++i)
+                    newData.put((byte) samples[i]);
+                break;
+            case 16:
+                for(int i = 0; i < samples.length; ++i)
+                    newData.putShort(samples[i]);
+                break;
+            case 24:
+            case 32:
+            default:
+                throw new IllegalArgumentException(
+                        "buffer.format.sampleSizeInBits must be either 8 or 16"
+                            + ", not " + sampleSizeInBits);
             }
 
             // Copies newData up to date into the original buffer.
             // Takes care of original data array type (byte, short or int).
-            if (Format.byteArray.equals(dataClass))
-            {
+            if (Format.byteArray.equals(dataType))
                 buffer.setData(newData.array());
-            }
-            else if (Format.shortArray.equals(dataClass))
-            {
+            else if (Format.shortArray.equals(dataType))
                 buffer.setData(newData.asShortBuffer().array());
-            }
-            else if (Format.intArray.equals(dataClass))
-            {
+            else if (Format.intArray.equals(dataType))
                 buffer.setData(newData.asIntBuffer().array());
-            }
 
             // Updates the buffer length.
             buffer.setLength(toIndex - fromIndex);
@@ -345,13 +329,9 @@ public class RewritablePushBufferDataSource
             stream.read(buffer);
 
             if (isSendingDTMF())
-            {
                 sendDTMF(buffer, tones.poll());
-            }
             else if (isMute())
-            {
                 mute(buffer);
-            }
         }
 
         /**

@@ -285,7 +285,7 @@ public class AudioMixingPushBufferDataSource
      * short and 32 for an int)
      * @return The data array containing the DTMF signal.
      */
-    public int[] getNextToneSignal(double sampleRate, int sampleSizeInBits)
+    public short[] getNextToneSignal(double sampleRate, int sampleSizeInBits)
     {
         return tones.poll().getAudioSamples(sampleRate, sampleSizeInBits);
     }

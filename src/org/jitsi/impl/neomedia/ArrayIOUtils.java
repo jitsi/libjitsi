@@ -49,7 +49,7 @@ public class ArrayIOUtils
      */
     public static int readInt16(byte[] in, int inOffset)
     {
-        return ((in[inOffset + 1] << 8) | (in[inOffset] & 0x00FF));
+        return ((in[inOffset + 1] << 8) | (in[inOffset] & 0xFF));
     }
 
     /**
@@ -64,7 +64,7 @@ public class ArrayIOUtils
      */
     public static short readShort(byte[] in, int inOffset)
     {
-        return (short) ((in[inOffset + 1] << 8) | (in[inOffset] & 0x00FF));
+        return (short) readInt16(in, inOffset);
     }
 
     /**

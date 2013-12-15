@@ -57,7 +57,7 @@ class AudioMixerPushBufferStream
         /**
          * The set of audio samples read from {@link #inStreams}.
          */
-        public final int[][] inSamples;
+        public final short[][] inSamples;
 
         /**
          * The set of input streams from which {@link #inSamples} were read.
@@ -83,7 +83,7 @@ class AudioMixerPushBufferStream
          * @param format the <tt>AudioFormat</tt> of <tt>inSamples</tt>
          */
         public InSampleDesc(
-                int[][] inSamples,
+                short[][] inSamples,
                 InStreamDesc[] inStreams,
                 AudioFormat format)
         {
@@ -167,23 +167,11 @@ class AudioMixerPushBufferStream
     }
 
     /**
-     * The factor which scales a <tt>short</tt> value to an <tt>int</tt> value.
-     */
-    private static final float INT_TO_SHORT_RATIO
-        = Integer.MAX_VALUE / (float) Short.MAX_VALUE;
-
-    /**
      * The <tt>Logger</tt> used by the <tt>AudioMixerPushBufferStream</tt> class
      * and its instances for logging output.
      */
     private static final Logger logger
         = Logger.getLogger(AudioMixerPushBufferStream.class);
-
-    /**
-     * The factor which scales an <tt>int</tt> value to a <tt>short</tt> value.
-     */
-    private static final float SHORT_TO_INT_RATIO
-        = Short.MAX_VALUE / (float) Integer.MAX_VALUE;
 
     /**
      * The number of reads from an input stream with no returned samples which
@@ -213,6 +201,12 @@ class AudioMixerPushBufferStream
      * {@link #inStreams}-related members.
      */
     private final Object inStreamsSyncRoot = new Object();
+
+    /**
+     * The cache of <tt>short</tt> arrays utilized by this instance for the
+     * purposes of reducing garbage collection.
+     */
+    private final ShortArrayCache shortArrayCache = new ShortArrayCache();
 
     /**
      * The <tt>AudioFormat</tt> of the <tt>Buffer</tt> read during the last read
@@ -568,7 +562,7 @@ class AudioMixerPushBufferStream
                 {
                     inSampleDesc
                         = new InSampleDesc(
-                                new int[inStreamCount][],
+                                new short[inStreamCount][],
                                 inStreams.clone(),
                                 format);
                 }
@@ -808,68 +802,37 @@ class AudioMixerPushBufferStream
 
             byte[] inSamples = (byte[]) inData;
             int outLength;
-            int[] outSamples;
+            short[] outSamples;
 
             switch (inSampleSizeInBits)
             {
             case 16:
                 outLength = inLength / 2;
                 outSamples
-                    = audioMixer.intArrayCache.validateIntArraySize(
+                    = shortArrayCache.validateShortArraySize(
                             outBuffer,
                             outLength);
-                for (int i = 0; i < outLength; i++)
+                switch (outSampleSizeInBits)
                 {
-                    int sample = ArrayIOUtils.readInt16(inSamples, i * 2);
-
-                    switch (outSampleSizeInBits)
+                case 16:
+                    for (int i = 0; i < outLength; i++)
                     {
-                    case 16:
-                        break;
-                    case 32:
-                        sample = Math.round(sample * INT_TO_SHORT_RATIO);
-                        break;
-                    case 8:
-                    case 24:
-                    default:
-                        throw new UnsupportedFormatException(
-                                "AudioFormat.getSampleSizeInBits()",
-                                outFormat);
+                        outSamples[i]
+                            = ArrayIOUtils.readShort(inSamples, i * 2);
                     }
-
-                    outSamples[i] = sample;
-                }
-                break;
-            case 32:
-                outLength = inSamples.length / 4;
-                outSamples
-                    = audioMixer.intArrayCache.validateIntArraySize(
-                            outBuffer,
-                            outLength);
-                for (int i = 0; i < outLength; i++)
-                {
-                    int sample = ArrayIOUtils.readInt(inSamples, i * 4);
-
-                    switch (outSampleSizeInBits)
-                    {
-                    case 16:
-                        sample = Math.round(sample * SHORT_TO_INT_RATIO);
-                        break;
-                    case 32:
-                        break;
-                    case 8:
-                    case 24:
-                    default:
-                        throw new UnsupportedFormatException(
-                                "AudioFormat.getSampleSizeInBits()",
-                                outFormat);
-                    }
-
-                    outSamples[i] = sample;
+                    break;
+                case 8:
+                case 24:
+                case 32:
+                default:
+                    throw new UnsupportedFormatException(
+                            "AudioFormat.getSampleSizeInBits()",
+                            outFormat);
                 }
                 break;
             case 8:
             case 24:
+            case 32:
             default:
                 throw new UnsupportedFormatException(
                         "AudioFormat.getSampleSizeInBits()",
@@ -916,7 +879,7 @@ class AudioMixerPushBufferStream
         InStreamDesc[] inStreams = inSampleDesc.inStreams;
         Buffer buffer = inSampleDesc.getBuffer(true);
         int maxInSampleCount = 0;
-        int[][] inSamples = inSampleDesc.inSamples;
+        short[][] inSamples = inSampleDesc.inSamples;
 
         for (int i = 0; i < inStreams.length; i++)
         {
@@ -932,7 +895,7 @@ class AudioMixerPushBufferStream
                         buffer);
 
                 int sampleCount;
-                int[] samples;
+                short[] samples;
 
                 if (buffer.isDiscard())
                 {
@@ -949,7 +912,7 @@ class AudioMixerPushBufferStream
                     }
                     else
                     {
-                        samples = (int[]) buffer.getData();
+                        samples = (short[]) buffer.getData();
                     }
                 }
 
@@ -971,7 +934,11 @@ class AudioMixerPushBufferStream
                      * the elements in question may contain stale samples.
                      */
                     if (samples.length > sampleCount)
-                        Arrays.fill(samples, sampleCount, samples.length, 0);
+                    {
+                        Arrays.fill(
+                                samples, sampleCount, samples.length,
+                                (short) 0);
+                    }
 
                     inSamples[i] = samples;
 
@@ -1059,7 +1026,7 @@ class AudioMixerPushBufferStream
             InSampleDesc inSampleDesc,
             int maxInSampleCount)
     {
-        int[][] inSamples = inSampleDesc.inSamples;
+        short[][] inSamples = inSampleDesc.inSamples;
         InStreamDesc[] inStreams = inSampleDesc.inStreams;
 
         inSamples = inSamples.clone();
@@ -1085,7 +1052,7 @@ class AudioMixerPushBufferStream
                     = (PushBufferStream) inStreamDesc.getInStream();
                 AudioFormat inStreamFormat = (AudioFormat) inStream.getFormat();
                 // Generate the inband DTMF signal.
-                int[] nextToneSignal
+                short[] nextToneSignal
                     = outDataSource.getNextToneSignal(
                             inStreamFormat.getSampleRate(),
                             inStreamFormat.getSampleSizeInBits());
@@ -1106,7 +1073,7 @@ class AudioMixerPushBufferStream
              * optimize determining the number of contributing streams later on
              * and, consequently, the mixing.
              */
-            int[] inStreamSamples = inSamples[i];
+            short[] inStreamSamples = inSamples[i];
 
             if (inStreamSamples != null)
             {
@@ -1316,7 +1283,7 @@ class AudioMixerPushBufferStream
         }
 
         InSampleDesc inSampleDesc = (InSampleDesc) buffer.getData();
-        int[][] inSamples = inSampleDesc.inSamples;
+        short[][] inSamples = inSampleDesc.inSamples;
         int maxInSampleCount = buffer.getLength();
 
         if ((inSamples == null)
@@ -1347,7 +1314,7 @@ class AudioMixerPushBufferStream
          */
         for (int i = 0; i < inSamples.length; i++)
         {
-            audioMixer.intArrayCache.deallocateIntArray(inSamples[i]);
+            shortArrayCache.deallocateShortArray(inSamples[i]);
             inSamples[i] = null;
         }
     }

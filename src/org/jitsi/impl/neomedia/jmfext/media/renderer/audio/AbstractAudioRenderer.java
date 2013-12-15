@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.jmfext.media.renderer.audio;
 
 import java.beans.*;
+import java.nio.*;
 
 import javax.media.*;
 import javax.media.format.*;
@@ -30,6 +31,16 @@ import org.jitsi.service.neomedia.*;
 public abstract class AbstractAudioRenderer<T extends AudioSystem>
     extends AbstractRenderer<AudioFormat>
 {
+    /**
+     * The native byte order of the hardware upon which this Java virtual
+     * machine is running expressed in the <tt>endian</tt> term of
+     * {@link AudioFormat}.
+     */
+    public static final int NATIVE_AUDIO_FORMAT_ENDIAN
+        = (ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN)
+            ? AudioFormat.BIG_ENDIAN
+            : AudioFormat.LITTLE_ENDIAN;
+
     /**
      * The <tt>AudioSystem</tt> which provides the playback device used by this
      * <tt>Renderer</tt>.
