@@ -6,18 +6,21 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.opus;
 
+import java.awt.*;
+import java.util.*;
+
 import javax.media.*;
 import javax.media.format.*;
+
 import net.sf.fmj.media.*;
+
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.util.*;
-
-import java.awt.*;
-import java.util.*;
 
 /**
  * Implements an Opus encoder.
@@ -64,7 +67,7 @@ public class JNIEncoder
                             Constants.OPUS_RTP,
                             48000,
                             /* sampleSizeInBits */ Format.NOT_SPECIFIED,
-                            /* channels */ 2,
+                            2,
                             /* endian */ Format.NOT_SPECIFIED,
                             /* signed */ Format.NOT_SPECIFIED,
                             /* frameSizeInBits */ Format.NOT_SPECIFIED,
@@ -88,7 +91,7 @@ public class JNIEncoder
         int supportedInputCount = SUPPORTED_INPUT_SAMPLE_RATES.length;
 
         SUPPORTED_INPUT_FORMATS = new Format[supportedInputCount];
-        //SUPPORTED_INPUT_FORMATS = new Format[supportedInputCount*2];
+//        SUPPORTED_INPUT_FORMATS = new Format[supportedInputCount*2];
         for (int i = 0; i < supportedInputCount; i++)
         {
             SUPPORTED_INPUT_FORMATS[i]
@@ -97,7 +100,7 @@ public class JNIEncoder
                         SUPPORTED_INPUT_SAMPLE_RATES[i],
                         16,
                         1,
-                        AudioFormat.LITTLE_ENDIAN,
+                        AbstractAudioRenderer.NATIVE_AUDIO_FORMAT_ENDIAN,
                         AudioFormat.SIGNED,
                         /* frameSizeInBits */ Format.NOT_SPECIFIED,
                         /* frameRate */ Format.NOT_SPECIFIED,
@@ -109,26 +112,26 @@ public class JNIEncoder
          * or somewhere else in the code. So stereo input formats are disabled
          * until we make sure that they work properly.
          */
-        //for (int i = 0; i < supportedInputCount; i++)
-        //{
-        //    SUPPORTED_INPUT_FORMATS[i+supportedInputCount]
-        //        = new AudioFormat(
-        //                AudioFormat.LINEAR,
-        //                SUPPORTED_INPUT_SAMPLE_RATES[i],
-        //                16,
-        //                2,
-        //                AudioFormat.LITTLE_ENDIAN,
-        //                AudioFormat.SIGNED,
-        //                /* frameSizeInBits */ Format.NOT_SPECIFIED,
-        //                /* frameRate */ Format.NOT_SPECIFIED,
-        //                Format.byteArray);
-        //}
+//        for (int i = 0; i < supportedInputCount; i++)
+//        {
+//            SUPPORTED_INPUT_FORMATS[i+supportedInputCount]
+//                = new AudioFormat(
+//                        AudioFormat.LINEAR,
+//                        SUPPORTED_INPUT_SAMPLE_RATES[i],
+//                        16,
+//                        2,
+//                        AbstractAudioRenderer.NATIVE_AUDIO_FORMAT_ENDIAN,
+//                        AudioFormat.SIGNED,
+//                        /* frameSizeInBits */ Format.NOT_SPECIFIED,
+//                        /* frameRate */ Format.NOT_SPECIFIED,
+//                        Format.byteArray);
+//        }
     }
 
     /**
      * Codec audio bandwidth, obtained from configuration.
      */
-    private int bandwidthConfig;
+    private int bandwidth;
 
     /**
      * The bitrate in bits per second obtained from the configuration and set on
@@ -144,7 +147,7 @@ public class JNIEncoder
     /**
      * Complexity setting, obtained from configuration.
      */
-    private int complexityConfig;
+    private int complexity;
 
     /**
      * The pointer to the native OpusEncoder structure
@@ -194,13 +197,12 @@ public class JNIEncoder
     /**
      * Whether to use DTX, obtained from configuration.
      */
-    private boolean useDtxConfig;
+    private boolean useDtx;
 
     /**
      * Whether to use FEC, obtained from configuration.
      */
-    private boolean useFecConfig;
-
+    private boolean useFec;
 
     /**
      * Initializes a new <tt>JNIEncoder</tt> instance.
@@ -254,56 +256,62 @@ public class JNIEncoder
 
         //Set encoder options according to user configuration
         ConfigurationService cfg = LibJitsi.getConfigurationService();
-        String str;
+        String bandwidthStr
+            = cfg.getString(Constants.PROP_OPUS_BANDWIDTH, "auto");
 
-        str = cfg.getString(Constants.PROP_OPUS_BANDWIDTH, "auto");
-        bandwidthConfig = Opus.OPUS_AUTO;
-        if("fb".equals(str))
-            bandwidthConfig = Opus.BANDWIDTH_FULLBAND;
-        else if("swb".equals(str))
-            bandwidthConfig = Opus.BANDWIDTH_SUPERWIDEBAND;
-        else if("wb".equals(str))
-            bandwidthConfig = Opus.BANDWIDTH_WIDEBAND;
-        else if("mb".equals(str))
-            bandwidthConfig = Opus.BANDWIDTH_MEDIUMBAND;
-        else if("nb".equals(str))
-            bandwidthConfig = Opus.BANDWIDTH_NARROWBAND;
+        bandwidth = Opus.OPUS_AUTO;
+        if("fb".equals(bandwidthStr))
+            bandwidth = Opus.BANDWIDTH_FULLBAND;
+        else if("swb".equals(bandwidthStr))
+            bandwidth = Opus.BANDWIDTH_SUPERWIDEBAND;
+        else if("wb".equals(bandwidthStr))
+            bandwidth = Opus.BANDWIDTH_WIDEBAND;
+        else if("mb".equals(bandwidthStr))
+            bandwidth = Opus.BANDWIDTH_MEDIUMBAND;
+        else if("nb".equals(bandwidthStr))
+            bandwidth = Opus.BANDWIDTH_NARROWBAND;
+        Opus.encoder_set_bandwidth(encoder, bandwidth);
 
-        Opus.encoder_set_bandwidth(encoder, bandwidthConfig);
-
-        bitrate = 1000 * //configuration is in kilobits per second
-                cfg.getInt(Constants.PROP_OPUS_BITRATE, 32);
+        bitrate
+            = 1000 /* configuration is in kilobits per second */
+                * cfg.getInt(Constants.PROP_OPUS_BITRATE, 32);
         if(bitrate < 500)
             bitrate = 500;
-        if(bitrate > 512000)
+        else if(bitrate > 512000)
             bitrate = 512000;
         Opus.encoder_set_bitrate(encoder, bitrate);
 
-        complexityConfig = cfg.getInt(Constants.PROP_OPUS_COMPLEXITY, 10);
-        Opus.encoder_set_complexity(encoder, complexityConfig);
+        complexity = cfg.getInt(Constants.PROP_OPUS_COMPLEXITY, 0);
+        if (complexity != 0)
+            Opus.encoder_set_complexity(encoder, complexity);
 
-        useFecConfig = cfg.getBoolean(Constants.PROP_OPUS_FEC, true);
-        Opus.encoder_set_inband_fec(encoder, useFecConfig ? 1 : 0);
+        useFec = cfg.getBoolean(Constants.PROP_OPUS_FEC, true);
+        Opus.encoder_set_inband_fec(encoder, useFec ? 1 : 0);
 
-        minPacketLoss = cfg.getInt(
-                Constants.PROP_OPUS_MIN_EXPECTED_PACKET_LOSS, 1);
+        minPacketLoss
+            = cfg.getInt(Constants.PROP_OPUS_MIN_EXPECTED_PACKET_LOSS, 1);
         Opus.encoder_set_packet_loss_perc(encoder, minPacketLoss);
 
-        useDtxConfig = cfg.getBoolean(Constants.PROP_OPUS_DTX, true);
-        Opus.encoder_set_dtx(encoder, useDtxConfig ? 1 : 0);
+        useDtx = cfg.getBoolean(Constants.PROP_OPUS_DTX, true);
+        Opus.encoder_set_dtx(encoder, useDtx ? 1 : 0);
 
         if(logger.isDebugEnabled())
         {
-            int b = Opus.encoder_get_bandwidth(encoder);
-            logger.debug("Encoder settings: audio bandwidth " +
-                   (b == Opus.BANDWIDTH_FULLBAND ? "fb"
-                    : b == Opus.BANDWIDTH_SUPERWIDEBAND ? "swb"
-                    : b == Opus.BANDWIDTH_WIDEBAND ? "wb"
-                    : b == Opus.BANDWIDTH_MEDIUMBAND ? "mb"
-                    : "nb")
-                + ", bitrate " + Opus.encoder_get_bitrate(encoder)
-                + ", DTX " + Opus.encoder_get_dtx(encoder)
-                + ", FEC " + Opus.encoder_get_inband_fec(encoder));
+            String bw;
+
+            switch (Opus.encoder_get_bandwidth(encoder))
+            {
+            case Opus.BANDWIDTH_FULLBAND:      bw = "fb";  break;
+            case Opus.BANDWIDTH_SUPERWIDEBAND: bw = "swb"; break;
+            case Opus.BANDWIDTH_WIDEBAND:      bw = "wb";  break;
+            case Opus.BANDWIDTH_MEDIUMBAND:    bw = "mb";  break;
+            default:                           bw = "nb";  break;
+            }
+            logger.debug(
+                    "Encoder settings: audio bandwidth " + bw + ", bitrate "
+                        + Opus.encoder_get_bitrate(encoder) + ", DTX "
+                        + Opus.encoder_get_dtx(encoder) + ", FEC "
+                        + Opus.encoder_get_inband_fec(encoder));
         }
     }
 
@@ -341,25 +349,25 @@ public class JNIEncoder
             {
                 if (prevIn.length < frameSizeInBytes)
                 {
-                    byte[] newPrevInput = new byte[frameSizeInBytes];
+                    byte[] newPrevIn = new byte[frameSizeInBytes];
 
-                    System.arraycopy(prevIn, 0, newPrevInput, 0, prevIn.length);
-                    prevIn = newPrevInput;
+                    System.arraycopy(prevIn, 0, newPrevIn, 0, prevIn.length);
+                    prevIn = newPrevIn;
                 }
 
-                int bytesToCopyFromInToPrevInput
+                int bytesToCopyFromInToPrevIn
                     = Math.min(frameSizeInBytes - prevInLength, inLength);
 
-                if (bytesToCopyFromInToPrevInput > 0)
+                if (bytesToCopyFromInToPrevIn > 0)
                 {
                     System.arraycopy(
                             in, inOffset,
                             prevIn, prevInLength,
-                            bytesToCopyFromInToPrevInput);
-                    prevInLength += bytesToCopyFromInToPrevInput;
-                    inLength -= bytesToCopyFromInToPrevInput;
+                            bytesToCopyFromInToPrevIn);
+                    prevInLength += bytesToCopyFromInToPrevIn;
+                    inLength -= bytesToCopyFromInToPrevIn;
                     inBuffer.setLength(inLength);
-                    inBuffer.setOffset(inOffset + bytesToCopyFromInToPrevInput);
+                    inBuffer.setOffset(inOffset + bytesToCopyFromInToPrevIn);
                 }
             }
 
@@ -434,6 +442,7 @@ public class JNIEncoder
      * @return <tt>null</tt> to signify that <tt>JNIEncoder</tt> does not
      * provide user interface of its own
      */
+    @Override
     public Component getControlComponent()
     {
         return null;
@@ -467,9 +476,6 @@ public class JNIEncoder
                                     af.getFrameRate(),
                                     af.getDataType())
                                 {
-                                    private static final long serialVersionUID
-                                        = 0L;
-
                                     @Override
                                     public long computeDuration(long length)
                                     {
@@ -488,6 +494,7 @@ public class JNIEncoder
      *
      * @param percentage the expected packet loss percentage to set
      */
+    @Override
     public void setExpectedPacketLoss(int percentage)
     {
         if (opened)
@@ -509,6 +516,7 @@ public class JNIEncoder
      *
      * @param fmtps the format parameters to set
      */
+    @Override
     public void setFormatParameters(Map<String, String> fmtps)
     {
         if (logger.isDebugEnabled())
@@ -536,13 +544,15 @@ public class JNIEncoder
                 (maxaveragebitrate < bitrate) ? maxaveragebitrate : bitrate);
 
         // DTX is off unless specified.
-        boolean useDtx = "1".equals(fmtps.get("usedtx"));
-        Opus.encoder_set_dtx(encoder, (useDtx && useDtxConfig) ? 1 : 0);
+        boolean useDtx = this.useDtx && "1".equals(fmtps.get("usedtx"));
+        Opus.encoder_set_dtx(encoder, useDtx ? 1 : 0);
 
         // FEC is on unless specified.
-        String s = fmtps.get("useinbandfec");
-        boolean useFec = (s == null) || s.equals("1");
-        Opus.encoder_set_inband_fec(encoder, (useFec && useFecConfig) ? 1 : 0);
+        String s;
+        boolean useFec
+            = this.useFec
+                && (((s = fmtps.get("useinbandfec")) == null) || s.equals("1"));
+        Opus.encoder_set_inband_fec(encoder, useFec ? 1 : 0);
     }
 
     /**

@@ -14,6 +14,7 @@ import javax.media.format.*;
 import net.sf.fmj.media.*;
 
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.util.*;
@@ -53,7 +54,7 @@ public class JNIDecoder
                             48000,
                             16,
                             1,
-                            AudioFormat.LITTLE_ENDIAN,
+                            AbstractAudioRenderer.NATIVE_AUDIO_FORMAT_ENDIAN,
                             AudioFormat.SIGNED,
                             /* frameSizeInBits */ Format.NOT_SPECIFIED,
                             /* frameRate */ Format.NOT_SPECIFIED,
@@ -243,10 +244,10 @@ public class JNIDecoder
                     += frameSizeInSamplesPerChannel;
 
                 outBuffer.setFlags(
-                		outBuffer.getFlags()
-                			| (((in == null) || (inLength == 0))
-                					? BUFFER_FLAG_PLC
-        							: BUFFER_FLAG_FEC));
+                        outBuffer.getFlags()
+                            | (((in == null) || (inLength == 0))
+                                    ? BUFFER_FLAG_PLC
+                                    : BUFFER_FLAG_FEC));
                 nbDecodedFec++;
             }
 
@@ -280,8 +281,8 @@ public class JNIDecoder
                     += frameSizeInSamplesPerChannel;
 
                 outBuffer.setFlags(
-                    outBuffer.getFlags()
-                        & ~(BUFFER_FLAG_FEC | BUFFER_FLAG_PLC));
+                        outBuffer.getFlags()
+                            & ~(BUFFER_FLAG_FEC | BUFFER_FLAG_PLC));
 
                 /*
                  * When we encounter a lost frame, we will presume that it was
@@ -308,10 +309,10 @@ public class JNIDecoder
             discardOutputBuffer(outBuffer);
         }
 
-        if (lastSeqNo == seqNo)
-            return BUFFER_PROCESSED_OK;
-        else
-            return INPUT_BUFFER_NOT_CONSUMED;
+        return
+            (lastSeqNo == seqNo)
+                ? BUFFER_PROCESSED_OK
+                : INPUT_BUFFER_NOT_CONSUMED;
     }
 
     /**
@@ -319,6 +320,7 @@ public class JNIDecoder
      *
      * @return the number of packets decoded with FEC
      */
+    @Override
     public int fecPacketsDecoded()
     {
         return nbDecodedFec;
@@ -331,6 +333,7 @@ public class JNIDecoder
      * @return <tt>null</tt> to signify that <tt>JNIDecoder</tt> does not
      * provide user interface of its own
      */
+    @Override
     public Component getControlComponent()
     {
         return null;
@@ -342,17 +345,18 @@ public class JNIDecoder
     @Override
     protected Format[] getMatchingOutputFormats(Format inputFormat)
     {
-        AudioFormat inputAudioFormat = (AudioFormat) inputFormat;
+        AudioFormat af = (AudioFormat) inputFormat;
 
         return
             new Format[]
                     {
                         new AudioFormat(
                                 AudioFormat.LINEAR,
-                                inputAudioFormat.getSampleRate(),
+                                af.getSampleRate(),
                                 16,
                                 1,
-                                AudioFormat.LITTLE_ENDIAN,
+                                AbstractAudioRenderer
+                                    .NATIVE_AUDIO_FORMAT_ENDIAN,
                                 AudioFormat.SIGNED,
                                 /* frameSizeInBits */ Format.NOT_SPECIFIED,
                                 /* frameRate */ Format.NOT_SPECIFIED,
@@ -371,13 +375,9 @@ public class JNIDecoder
     {
         Format inFormat = super.setInputFormat(format);
 
-        if (inFormat != null)
-        {
-            if (outputFormat == null)
-            {
-                setOutputFormat(SUPPORTED_OUTPUT_FORMATS[0]);
-            }
-        }
+        if ((inFormat != null) && (outputFormat == null))
+            setOutputFormat(SUPPORTED_OUTPUT_FORMATS[0]);
+
         return inFormat;
     }
 
