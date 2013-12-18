@@ -36,11 +36,12 @@ public class RecorderImpl
     public static final String[] SUPPORTED_FORMATS
         = new String[]
                 {
+                    /* Disables formats currently not working
                     SoundFileUtils.aif,
                     SoundFileUtils.au,
                     SoundFileUtils.gsm,
-                    SoundFileUtils.mp3,
-                    SoundFileUtils.wav
+                    SoundFileUtils.wav,*/
+                    SoundFileUtils.mp3
                 };
 
     /**
