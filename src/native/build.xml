@@ -939,7 +939,7 @@
         value="${basedir}/${native_install_dir}/libjnwebrtcaec.dylib" />
       <linkerarg value="-lstdc++" location="end" />
 
-      <fileset dir="${src}/native/macosx/coreaudio/lib" includes="*.c"/>
+      <fileset dir="${src}/native/macosx/coreaudio/lib" includes="device.c"/>
       <fileset dir="${src}/native/macosx/coreaudio/jni" includes="*.c"/>
     </cc>
 
@@ -952,7 +952,7 @@
     <fail message="webrtcSrc not set!"
         unless="webrtcSrc" />
     <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnwebrtc" objdir="${obj}">
-      <compilerarg value="-DWEBRTC_AEC_DEBUG_DUMP" />
+      <!--compilerarg value="-DWEBRTC_AEC_DEBUG_DUMP" /-->
       <compilerarg value="-DWEBRTC_MAC" />
 
       <!--compilerarg value="-xc++" /-->
@@ -970,11 +970,6 @@
       <linkerarg value="-arch" />
       <linkerarg value="i386" />
 
-      <!--fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
-                includes="*.cc"/-->
-
-      <!--fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
-                includes="*.cc"/-->
       <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
                 includes="cpu_features.cc"/>
 
@@ -987,15 +982,13 @@
       <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/vad/"
                 includes="*.c"/>
 
-      <!--fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/aecm/"
-                includes="*.c"/-->
       <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/aecm/"
 			includes="aecm_core.c"/>
       <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/aecm/"
+			includes="aecm_core_c.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/aecm/"
 			includes="echo_control_mobile.c"/>
 
-      <!--fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/ns/"
-                includes="*.c"/-->
       <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/ns/"
 			includes="noise_suppression.c"/>
       <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/ns/"
@@ -1005,8 +998,6 @@
       <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/ns/"
 			includes="nsx_core.c"/>
 
-      <!--fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
-                includes="*.c"/-->
       <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
       			includes="splitting_filter.c"/>
       <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
@@ -1101,12 +1092,7 @@
       <linkerarg value="i386" />
       <linkerarg value="-lstdc++" location="end" />
       <linkerarg value="${basedir}/${native_install_dir}/libjnwebrtc.dylib" />
-      <!--linkerarg
-      value="${basedir}/${src}/native/macosx/coreaudio/lib/webrtc/obj/*.o"
-      location="end"/-->
 
-      <!--fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
-                includes="*.cc"/-->
       <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
 			includes="audio_buffer.cc"/>
       <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
@@ -1183,10 +1169,8 @@
       <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
 			includes="trace_posix.cc"/>
 
-
-
-      <fileset dir="${src}/native/macosx/coreaudio/lib/webrtc/"
-                includes="*.c"/>
+      <fileset dir="${src}/native/macosx/coreaudio/lib/"
+            includes="libjitsi_webrtc_aec.c"/>
     </cc>
 
     <delete dir="${obj}" failonerror="false" />

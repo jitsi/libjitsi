@@ -47,7 +47,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_get
  * Signature: (Ljava/lang/String;)F
  */
 JNIEXPORT jfloat JNICALL Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getNominalSampleRate
-  (JNIEnv *, jclass, jstring);
+  (JNIEnv *, jclass, jstring, jboolean, jboolean);
 
 /*
  * Class:     org_jitsi_impl_neomedia_MacCoreAudioDevice
@@ -55,7 +55,7 @@ JNIEXPORT jfloat JNICALL Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getNomi
  * Signature: (Ljava/lang/String;)F
  */
 JNIEXPORT jfloat JNICALL Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getMinimalNominalSampleRate
-  (JNIEnv *, jclass, jstring);
+  (JNIEnv *, jclass, jstring, jboolean, jboolean);
 
 /*
  * Class:     org_jitsi_impl_neomedia_MacCoreAudioDevice
@@ -63,7 +63,7 @@ JNIEXPORT jfloat JNICALL Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getMini
  * Signature: (Ljava/lang/String;)F
  */
 JNIEXPORT jfloat JNICALL Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getMaximalNominalSampleRate
-  (JNIEnv *, jclass, jstring);
+  (JNIEnv *, jclass, jstring, jboolean, jboolean);
 
 /*
  * Class:     org_jitsi_impl_neomedia_MacCoreAudioDevice
@@ -94,7 +94,8 @@ JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_startStr
         jboolean isFloat,
         jboolean isBigEndian,
         jboolean isNonInterleaved,
-        jboolean isInput);
+        jboolean isInput,
+        jboolean isEchoCancel);
 
 /*
  * Class:     org_jitsi_impl_neomedia_MacCoreAudioDevice

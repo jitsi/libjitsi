@@ -6,16 +6,13 @@
  */
 #include "device.h"
 
-#include "webrtc/libjitsi_webrtc_aec.h"
+#include "libjitsi_webrtc_aec.h"
 
 #include <CoreAudio/CoreAudio.h>
 #include <CoreFoundation/CFString.h>
 #include <math.h>
 #include <pthread.h>
 #include <stdio.h>
-
-unsigned char newMethod = 1;
-unsigned char activateAEC = 0;
 
 extern void maccoreaudio_log(
         const char * error_format,
@@ -84,7 +81,9 @@ static OSStatus maccoreaudio_devicesChangedCallback(
         void *inClientData);
 
 OSStatus maccoreaudio_initConverter(
-        const char * deviceUID,
+        maccoreaudio_stream * stream);
+
+OSStatus maccoreaudio_freeConverter(
         maccoreaudio_stream * stream);
 
 inline UInt32 CalculateLPCMFlags (
@@ -119,7 +118,8 @@ maccoreaudio_stream * maccoreaudio_startStream(
         UInt32 bitsPerChannel,
         unsigned char isFloat,
         unsigned char isBigEndian,
-        unsigned char isNonInterleaved);
+        unsigned char isNonInterleaved,
+        unsigned char isEchoCancel);
 
 OSStatus maccoreaudio_readInputStream(
         AudioDeviceID inDevice,
@@ -143,35 +143,52 @@ OSStatus maccoreaudio_getStreamVirtualFormat(
         AudioStreamID stream,
         AudioStreamBasicDescription * format);
 
-OSStatus
-maccoreaudio_getDeviceFormat(
+OSStatus maccoreaudio_getDeviceFormat(
         const char * deviceUID,
         unsigned char isOutput,
         AudioStreamBasicDescription * deviceFormat);
 
-OSStatus
-maccoreaudio_getDeviceFormatDeprecated(
+OSStatus maccoreaudio_getDeviceFormatDeprecated(
         const char * deviceUID,
         unsigned char isOutput,
         AudioStreamBasicDescription * deviceFormat);
 
-void
-maccoreaudio_getDefaultFormat(
+void maccoreaudio_getDefaultFormat(
         AudioStreamBasicDescription * deviceFormat);
 
-OSStatus
-maccoreaudio_converterComplexInputDataProc(
+OSStatus maccoreaudio_converterComplexInputDataProc(
         AudioConverterRef inAudioConverter,
         UInt32* ioNumberDataPackets,
         AudioBufferList* ioData,
         AudioStreamPacketDescription** ioDataPacketDescription,
         void* inUserData);
 
-int
-maccoreaudio_initAudioBuffer(
-        AudioBuffer * audioBuffer,
-        int nbChannels,
-        int length);
+int maccoreaudio_getAECCorrespondingRate(
+        int rate);
+
+OSStatus maccoreaudio_initDeviceFormat(
+        const char * deviceUID,
+        maccoreaudio_stream * stream);
+
+void maccoreaudio_updateBuffer(
+        char** buffer,
+        int* bufferLength,
+        int newLength);
+
+int maccoreaudio_isSameFormat(
+        AudioStreamBasicDescription format1,
+        AudioStreamBasicDescription format2);
+
+OSStatus maccoreaudio_convert(
+        maccoreaudio_stream * stream,
+        unsigned short step,
+        AudioConverterRef converter,
+        char * inBuffer,
+        int inBufferLength,
+        AudioStreamBasicDescription inFormat,
+        char * outBuffer,
+        int outBufferLength,
+        AudioStreamBasicDescription outFormat);
 
 /**
  * Do nothing: there is no need to initializes anything to get device
@@ -944,12 +961,15 @@ int maccoreaudio_countChannels(
  * Returns the nominal sample rate for the given device.
  *
  * @param deviceUID The device UID to get the channels from.
+ * @param isEchoCancel True if the echo canceller will beused with this device.
  *
  * @return The nominal sample rate for the given device. -1.0 if an error
  * occurs.
  */
 Float64 maccoreaudio_getNominalSampleRate(
-        const char * deviceUID)
+        const char * deviceUID,
+        unsigned char isOutputStream,
+        unsigned char isEchoCancel)
 {
     AudioDeviceID device;
     OSStatus err = noErr;
@@ -990,6 +1010,12 @@ Float64 maccoreaudio_getNominalSampleRate(
         return -1.0;
     }
 
+    // The echo canceller must be set to met capture device requirement.
+    if(!isOutputStream && isEchoCancel)
+    {
+        rate = maccoreaudio_getAECCorrespondingRate(rate);
+    }
+
     return rate;
 }
 
@@ -999,13 +1025,16 @@ Float64 maccoreaudio_getNominalSampleRate(
  * @param deviceUID The device UID to get the channels from.
  * @param minRate The minimal rate available for this device.
  * @param maxRate The maximal rate available for this device.
+ * @param isEchoCancel True if the echo canceller will beused with this device.
  *
  * @return noErr if everything is alright. -1.0 if an error occurs.
  */
 OSStatus maccoreaudio_getAvailableNominalSampleRates(
         const char * deviceUID,
         Float64 * minRate,
-        Float64 * maxRate)
+        Float64 * maxRate,
+        unsigned char isOutputStream,
+        unsigned char isEchoCancel)
 {
     AudioDeviceID device;
     OSStatus err = noErr;
@@ -1052,6 +1081,13 @@ OSStatus maccoreaudio_getAvailableNominalSampleRates(
 
     (*minRate) = minMaxRate.mMinimum;
     (*maxRate) = minMaxRate.mMaximum;
+
+    // The echo canceller must be set to met capture device requirement.
+    if(!isOutputStream && isEchoCancel)
+    {
+        (*minRate) = maccoreaudio_getAECCorrespondingRate(*minRate);
+        (*maxRate) = maccoreaudio_getAECCorrespondingRate(*maxRate);
+    }
 
     return noErr;
 }
@@ -1350,7 +1386,8 @@ maccoreaudio_stream * maccoreaudio_startInputStream(
         UInt32 bitsPerChannel,
         unsigned char isFloat,
         unsigned char isBigEndian,
-        unsigned char isNonInterleaved)
+        unsigned char isNonInterleaved,
+        unsigned char isEchoCancel)
 {
     return maccoreaudio_startStream(
             deviceUID,
@@ -1364,7 +1401,8 @@ maccoreaudio_stream * maccoreaudio_startInputStream(
             bitsPerChannel,
             isFloat,
             isBigEndian,
-            isNonInterleaved);
+            isNonInterleaved,
+            isEchoCancel);
 }
 
 maccoreaudio_stream * maccoreaudio_startOutputStream(
@@ -1377,7 +1415,8 @@ maccoreaudio_stream * maccoreaudio_startOutputStream(
         UInt32 bitsPerChannel,
         unsigned char isFloat,
         unsigned char isBigEndian,
-        unsigned char isNonInterleaved)
+        unsigned char isNonInterleaved,
+        unsigned char isEchoCancel)
 {
     return maccoreaudio_startStream(
             deviceUID,
@@ -1391,7 +1430,8 @@ maccoreaudio_stream * maccoreaudio_startOutputStream(
             bitsPerChannel,
             isFloat,
             isBigEndian,
-            isNonInterleaved);
+            isNonInterleaved,
+            isEchoCancel);
 }
 
 /**
@@ -1414,18 +1454,9 @@ maccoreaudio_stream * maccoreaudio_startStream(
         UInt32 bitsPerChannel,
         unsigned char isFloat,
         unsigned char isBigEndian,
-        unsigned char isNonInterleaved)
+        unsigned char isNonInterleaved,
+        unsigned char isEchoCancel)
 {
-    fprintf(stderr, "CHENZO: maccoreaudio_startStream: \
-            \n\tisOutputStream: %d\
-            \n\tsampleRate: %f\
-            \n\tnbChannels: %d\n",
-            isOutputStream,
-            sampleRate,
-            (int) nbChannels
-            );
-    fflush(stderr);
-
     AudioDeviceID device;
     OSStatus err = noErr;
 
@@ -1458,6 +1489,8 @@ maccoreaudio_stream * maccoreaudio_startStream(
     stream->isOutputStream = isOutputStream;
     stream->step = 0;
     memset(&stream->audioBuffer, 0, sizeof(AudioBuffer));
+    stream->outBuffer = NULL;
+    stream->outBufferLength = 0;
 
     if(pthread_mutex_init(&stream->mutex, NULL) != 0)
     {
@@ -1470,13 +1503,24 @@ maccoreaudio_stream * maccoreaudio_startStream(
         return NULL;
     }
 
+    if((err = maccoreaudio_initDeviceFormat(deviceUID, stream)) != noErr)
+    {
+        maccoreaudio_log(
+                "maccoreaudio_startStream (coreaudio/device.c): \
+                    \n\tmaccoreaudio_initDeviceFormat: 0x%x for device %s",
+                    (int) err,
+                    deviceUID);
+        pthread_mutex_destroy(&stream->mutex);
+        free(stream);
+        return NULL;
+    }
+
     // Init AEC
-    stream->isAECActivated = activateAEC;
-    stream->aecConversionRatio = 1;
+    stream->isAECActivated = isEchoCancel;
     if(stream->isAECActivated)
     {
-        float aecSampleRate = 32000;
-        UInt32 aecNbChannels = 2;
+        float aecSampleRate = maccoreaudio_getAECCorrespondingRate(sampleRate);
+        UInt32 aecNbChannels = nbChannels;
         UInt32 aecBitsPerChannel = 16;
         unsigned char aecIsFloat = false;
         unsigned char aecIsBigEndian = isBigEndian;
@@ -1490,25 +1534,31 @@ maccoreaudio_stream * maccoreaudio_startStream(
                 aecIsFloat,
                 aecIsBigEndian,
                 aecIsNonInterleaved); 
-        if((err = libjitsi_webrtc_aec_initAudioProcessing(
-                        aecSampleRate, //int sample_rate,
-                        aecNbChannels, //int nb_capture_channels,
-                        aecNbChannels //int nb_render_channels
-                        ))
-                != 0)
+        if(isOutputStream)
         {
-            maccoreaudio_log(
-                    "maccoreaudio_startStream (coreaudio/device.c): \
-            \n\tlibjitsi_webrtc_aec_initAudioProcessing: 0x%x for device %s",
-                        (int) err,
-                        deviceUID);
-            AudioDeviceDestroyIOProcID(device, stream->ioProcId);
-            pthread_mutex_destroy(&stream->mutex);
-            free(stream);
-            return NULL;
+            libjitsi_webrtc_aec_getCaptureFormat(&stream->aecFormat);
         }
+        else
+        {
+            if((err = libjitsi_webrtc_aec_initAudioProcessing(
+                            aecSampleRate,
+                            aecNbChannels,
+                            stream->aecFormat))
+                    != 0)
+            {
+                maccoreaudio_log(
+                        "maccoreaudio_startStream (coreaudio/device.c): \
+                \n\tlibjitsi_webrtc_aec_initAudioProcessing: 0x%x for device %s",
+                            (int) err,
+                            deviceUID);
+                AudioDeviceDestroyIOProcID(device, stream->ioProcId);
+                pthread_mutex_destroy(&stream->mutex);
+                free(stream);
+                return NULL;
+            }
+        }
+        libjitsi_webrtc_aec_start(isOutputStream);
     }
-
 
     // Init the converter.
     FillOutASBDForLPCM(
@@ -1521,8 +1571,7 @@ maccoreaudio_stream * maccoreaudio_startStream(
             isBigEndian,
             isNonInterleaved); 
 
-    if((err = maccoreaudio_initConverter(deviceUID, stream))
-            != noErr)
+    if((err = maccoreaudio_initConverter(stream)) != noErr)
     {
         maccoreaudio_log(
                 "maccoreaudio_startStream (coreaudio/device.c): \
@@ -1533,41 +1582,6 @@ maccoreaudio_stream * maccoreaudio_startStream(
         free(stream);
         return NULL;
     }
-
-    fprintf(stderr,
-            "CHENZO: startStream\
-            \n\tstream->deviceFormat.mSampleRate: %f\
-            \n\tstream->deviceFormat.mChannelsPerFrame: %d\
-            \n\tstream->deviceFormat.mBitsPerChannel: %d\
-            \n\tstream->deviceFormat.mBytesPerPacket: %d\
-            \n\tstream->deviceFormat.mBytesPerFrame: %d\
-            \n\tstream->aecFormat.mSampleRate: %f\
-            \n\tstream->aecFormat.mChannelsPerFrame: %d\
-            \n\tstream->aecFormat.mBitsPerChannel: %d\
-            \n\tstream->aecFormat.mBytesPerPacket: %d\
-            \n\tstream->aecFormat.mBytesPerFrame: %d\
-            \n\tstream->javaFormat.mSampleRate: %f\
-            \n\tstream->javaFormat.mChannelsPerFrame: %d\
-            \n\tstream->javaFormat.mBitsPerChannel: %d\
-            \n\tstream->javaFormat.mBytesPerPacket: %d\
-            \n\tstream->javaFormat.mBytesPerFrame: %d\
-            \n",
-            stream->deviceFormat.mSampleRate,
-            (int) stream->deviceFormat.mChannelsPerFrame,
-            (int) stream->deviceFormat.mBitsPerChannel,
-            (int) stream->deviceFormat.mBytesPerPacket,
-            (int) stream->deviceFormat.mBytesPerFrame,
-            stream->aecFormat.mSampleRate,
-            (int) stream->aecFormat.mChannelsPerFrame,
-            (int) stream->aecFormat.mBitsPerChannel,
-            (int) stream->aecFormat.mBytesPerPacket,
-            (int) stream->aecFormat.mBytesPerFrame,
-            stream->javaFormat.mSampleRate,
-            (int) stream->javaFormat.mChannelsPerFrame,
-            (int) stream->javaFormat.mBitsPerChannel,
-            (int) stream->javaFormat.mBytesPerPacket,
-            (int) stream->javaFormat.mBytesPerFrame);
-    fflush(stderr);
 
     //  register the IOProc
     if((err = AudioDeviceCreateIOProcID(
@@ -1635,6 +1649,11 @@ void maccoreaudio_stopStream(
                 strerror(errno));
     }
 
+    if(stream->isAECActivated)
+    {
+        libjitsi_webrtc_aec_stop(stream->isOutputStream);
+    }
+
     // Gets the correspoding device
     if((device = maccoreaudio_getDevice(deviceUID)) == kAudioObjectUnknown)
     {
@@ -1666,24 +1685,20 @@ void maccoreaudio_stopStream(
         }
     }
 
-    if(stream->isAECActivated)
-    {
-        if((err = AudioConverterDispose(stream->aecConverter)) != noErr)
-        {
-            maccoreaudio_log(
-                    "maccoreaudio_stopStream (coreaudio/device.c): \
-                    \n\tAudioConverterDispose: 0x%x for device %s",
-                    (int) err,
-                    deviceUID);
-        }
-    }
-    if((err = AudioConverterDispose(stream->outConverter)) != noErr)
+    if((err = maccoreaudio_freeConverter(stream)) != noErr)
     {
         maccoreaudio_log(
                 "maccoreaudio_stopStream (coreaudio/device.c): \
-                \n\tAudioConverterDispose: 0x%x for device %s",
+                \n\tmaccoreaudio_freeConverter: 0x%x for device %s",
                 (int) err,
                 deviceUID);
+    }
+
+    if(stream->outBuffer != NULL)
+    {
+        stream->outBufferLength = 0;
+        free(stream->outBuffer);
+        stream->outBuffer = NULL;
     }
 
     stream->ioProcId = 0;
@@ -1707,6 +1722,9 @@ void maccoreaudio_stopStream(
     free(stream);
 }
 
+/**
+ * Callback called when the input device has provided some data.
+ */
 OSStatus maccoreaudio_readInputStream(
         AudioDeviceID inDevice,
         const AudioTimeStamp* inNow,
@@ -1716,316 +1734,214 @@ OSStatus maccoreaudio_readInputStream(
         const AudioTimeStamp* inOutputTime,
         void* inClientData)
 {
-    //fprintf(stderr, "CHENZO: readIntputStream START\n"); fflush(stderr);
-
     OSStatus err = noErr;
     int error = 0;
+
     maccoreaudio_stream * stream = (maccoreaudio_stream*) inClientData;
-    void (*callbackFunction) (char*, int, void*, void*)
-        = stream->callbackFunction;
-
-
-    UInt32 tmpSize = sizeof(UInt32);
-    UInt32 aecTmpLength
-        = inInputData->mBuffers[0].mDataByteSize;
-        //= inInputData->mBuffers[0].mDataByteSize
-        //    / stream->deviceFormat.mBytesPerPacket
-        //    * stream->aecFormat.mBytesPerPacket;
-        //= inInputData->mBuffers[0].mDataByteSize * 1;
-        //= inInputData->mBuffers[0].mDataByteSize * 2;
-        //= inInputData->mBuffers[0].mDataByteSize * stream->aecConversionRatio;
-        //= outOutputData->mBuffers[0].mDataByteSize * 2;
-        //= outOutputData->mBuffers[0].mDataByteSize * stream->aecConversionRatio;
-    AudioConverterGetProperty(
-            stream->aecConverter,
-            kAudioConverterPropertyCalculateOutputBufferSize,
-            &tmpSize,
-            &aecTmpLength);
-
-
-    UInt32 outTmpLength
-        = aecTmpLength;
-        //= aecTmpLength
-        //    / stream->aecFormat.mBytesPerPacket
-        //    * stream->javaFormat.mBytesPerPacket;
-        //= aecTmpLength * stream->outConversionRatio;
-    AudioConverterGetProperty(
-            stream->outConverter,
-            kAudioConverterPropertyCalculateOutputBufferSize,
-            &tmpSize,
-            &outTmpLength);
-
-
-    char aecTmpBuffer[aecTmpLength];
-    char outTmpBuffer[outTmpLength];
-    int i;
-
-    /*fprintf(stderr,
-            "CHENZO: readIntputStream 0: dev:%d, aec:%d, java:%d\n",
-            (int) inInputData->mBuffers[0].mDataByteSize,
-            (int) aecTmpLength,
-            (int) outTmpLength);
-    fflush(stderr);
-    fprintf(stderr,
-            "CHENZO: readIntputStream 0.0: dev:%d, aec:%d, java:%d\n",
-            (int) inInputData->mBuffers[0].mDataByteSize
-                / stream->deviceFormat.mBytesPerPacket,
-            (int) aecTmpLength
-                / stream->aecFormat.mBytesPerPacket,
-            (int) outTmpLength
-                / stream->javaFormat.mBytesPerPacket);
-    fflush(stderr);*/
-
     if((error = pthread_mutex_trylock(&stream->mutex)) == 0)
     {
+        void (*callbackFunction) (char*, int, void*, void*)
+            = stream->callbackFunction;
+        int i;
+
         if(stream->ioProcId != 0)
         {
             for(i = 0; i < inInputData->mNumberBuffers; ++i)
             {
+                UInt32 tmpSize = sizeof(UInt32);
+
                 if(inInputData->mBuffers[i].mData != NULL
                         && inInputData->mBuffers[i].mDataByteSize > 0)
                 {
                     if(stream->isAECActivated)
                     {
-                        /*fprintf(stderr,
-                            "CHENZO: readIntputStream 1: %d, ratio: %f, %f\n",
-                                i,
-                                stream->aecConversionRatio,
-                                stream->outConversionRatio);
-                        fflush(stderr);*/
+                        libjitsi_webrtc_aec_lock(0);
 
-                        stream->step = 0;
+                        UInt32 aecTmpLength
+                            = inInputData->mBuffers[i].mDataByteSize;
+                        AudioConverterGetProperty(
+                                stream->aecConverter,
+                            kAudioConverterPropertyCalculateOutputBufferSize,
+                                &tmpSize,
+                                &aecTmpLength);
+                        char * aecTmpBuffer;
 
-                        stream->audioBuffer = inInputData->mBuffers[i];
-                        
-                        UInt32 outputDataPacketSize
-                            = aecTmpLength / stream->aecFormat.mBytesPerPacket;
-                        AudioBufferList aecBufferList;
-                        aecBufferList.mNumberBuffers = 1;
-                        aecBufferList.mBuffers[0].mNumberChannels
-                            = stream->aecFormat.mChannelsPerFrame;
-                        aecBufferList.mBuffers[0].mDataByteSize = aecTmpLength;
-                        aecBufferList.mBuffers[0].mData = aecTmpBuffer;
-
-                        if((err = AudioConverterFillComplexBuffer(
-                                        stream->aecConverter,
-                                    maccoreaudio_converterComplexInputDataProc,
-                                        stream, // corresponding to inUserData
-                                        &outputDataPacketSize,
-                                        &aecBufferList,
-                                        NULL))
-                                != noErr)
+                        if((aecTmpBuffer = (char*) libjitsi_webrtc_aec_getData(
+                                        0,
+                                        aecTmpLength / sizeof(int16_t)))
+                                == NULL)
                         {
                             maccoreaudio_log(
-                        "maccoreaudio_readInputStream (coreaudio/device.c): \
-                                    \n\tAudioConverterFillComplexBuffer: 0x%x",
-                                    (int) err);
+                            "maccoreaudio_readInputStream (coreaudio/device.c):\
+                                    \n\tlibjitsi_webrtc_aec_getData");
                             pthread_mutex_unlock(&stream->mutex);
-                            return err;
+                            libjitsi_webrtc_aec_unlock(0);
+                            return -1;
                         }
 
-                        /*fprintf(stderr,
-                        "CHENZO: readIntputStream 2: nbPacketAec:%d/%d/%d\n",
-                                (int) outputDataPacketSize,
-                                (int) aecBufferList.mBuffers[0].mDataByteSize,
-                                (int) aecTmpLength /
-                                stream->aecFormat.mBytesPerPacket);
-                        fflush(stderr);*/
-
-                        if((err = libjitsi_webrtc_aec_process(
-                                        1, // isCaptureStream,
-                                        (short*) aecTmpBuffer, //int16_t * data,
-                                        aecTmpLength, //int data_length,
-                                        // int sample_rate
-                                        stream->aecFormat.mSampleRate,
-                                        //int nb_channels
-                                        stream->aecFormat.mChannelsPerFrame))
-                                != 0)
-                        {
-                            maccoreaudio_log(
-                        "maccoreaudio_readInputStream (coreaudio/device.c): \
-                                    \n\tlibjitsi_webrtc_aec_process: 0x%x",
-                                    (int) err);
-                        }
-
-                        /*fprintf(stderr,
-                        "CHENZO: readIntputStream 3: nbPacketAec:%d/%d/%d\n",
-                                (int) outputDataPacketSize,
-                                (int) aecBufferList.mBuffers[0].mDataByteSize,
-                                (int) aecTmpLength /
-                                stream->aecFormat.mBytesPerPacket);
-                        fflush(stderr);*/
-
-                        stream->step = 1;
-
-                        stream->audioBuffer = aecBufferList.mBuffers[0];
-                        
-                        outputDataPacketSize
-                            = outTmpLength / stream->javaFormat.mBytesPerPacket;
-                        AudioBufferList outputBufferList;
-                        outputBufferList.mNumberBuffers = 1;
-                        outputBufferList.mBuffers[0].mNumberChannels
-                            = stream->javaFormat.mChannelsPerFrame;
-                        outputBufferList.mBuffers[0].mDataByteSize
-                            = outTmpLength;
-                        outputBufferList.mBuffers[0].mData = outTmpBuffer;
-
-                        if((err = AudioConverterFillComplexBuffer(
-                                        stream->outConverter,
-                                    maccoreaudio_converterComplexInputDataProc,
-                                        stream, // corresponding to inUserData
-                                        &outputDataPacketSize,
-                                        &outputBufferList,
-                                        NULL))
-                                != noErr)
-                        {
-                            fprintf(stderr, "CHENZO: readIntputStream log\n");
-                            fflush(stderr);
-                            maccoreaudio_log(
-                        "maccoreaudio_readInputStream (coreaudio/device.c): \
-                                    \n\tAudioConverterFillComplexBuffer: 0x%x",
-                                    (int) err);
-                            pthread_mutex_unlock(&stream->mutex);
-                            return err;
-                        }
-
-                        /*fprintf(stderr, "CHENZO: readIntputStream 4\n");
-                        fflush(stderr);*/
-
-
-                        /*if((err = AudioConverterConvertBuffer(
+                        // Converts from device to AEC
+                        if((err = maccoreaudio_convert(
+                                        stream,
+                                        0,
                                         stream->aecConverter,
-                                        inInputData->mBuffers[i].mDataByteSize,
+                                        // Input device
                                         inInputData->mBuffers[i].mData,
-                                        &aecTmpLength,
-                                        aecTmpBuffer))
-                                != noErr)
-                        {
-                            fprintf(
-                                    stderr,
-                            "maccoreaudio_readInputStream (coreaudio/device.c): \
-                                    \n\tAudioConverterConvertBuffer: 0x%x\n",
-                                    (int) err);
-                            fflush(stderr);
-                            maccoreaudio_log(
-                            "maccoreaudio_readInputStream (coreaudio/device.c): \
-                                    \n\tAudioConverterConvertBuffer: 0x%x",
-                                    (int) err);
-                            pthread_mutex_unlock(&stream->mutex);
-                            return err;
-                        }
-
-                        fprintf(stderr, "CHENZO: readIntputStream 2\n");
-                        fflush(stderr);
-                        if((err = libjitsi_webrtc_aec_process(
-                                        1, // isCaptureStream,
-                                        (short*) aecTmpBuffer, //int16_t * data,
-                                        aecTmpLength, //int data_length,
-                                        32000, // int sample_rate,
-                                        1 //int nb_channels
-                                        ))
-                                != 0)
-                        {
-                            maccoreaudio_log(
-                            "maccoreaudio_readInputStream (coreaudio/device.c): \
-                                    \n\tlibjitsi_webrtc_aec_process: 0x%x",
-                                    (int) err);
-                        }
-
-                        fprintf(stderr, "CHENZO: readIntputStream 3\n");
-                        fflush(stderr);
-                        if((err = AudioConverterConvertBuffer(
-                                        stream->outConverter,
-                                        aecTmpLength,
+                                        inInputData->mBuffers[i].mDataByteSize,
+                                        stream->deviceFormat,
+                                        // Output AEC
                                         aecTmpBuffer,
-                                        &outTmpLength,
-                                        outTmpBuffer))
+                                        aecTmpLength,
+                                        stream->aecFormat))
                                 != noErr)
                         {
                             maccoreaudio_log(
                             "maccoreaudio_readInputStream (coreaudio/device.c): \
-                                    \n\tAudioConverterConvertBuffer: 0x%x",
+                                    \n\tmaccoreaudio_convert: 0x%x",
                                     (int) err);
                             pthread_mutex_unlock(&stream->mutex);
-                            return err;
-                        }*/
-
-                        /*fprintf(stderr, "CHENZO: readIntputStream 5\n");
-                        fflush(stderr);*/
-                    }
-                    else if(newMethod)
-                    {
-                        stream->step = 0;
-
-                        stream->audioBuffer = inInputData->mBuffers[i];
-                        
-                        UInt32 outputDataPacketSize
-                            = outTmpLength / stream->javaFormat.mBytesPerPacket;
-                        AudioBufferList outputBufferList;
-                        outputBufferList.mNumberBuffers = 1;
-                        outputBufferList.mBuffers[0].mNumberChannels
-                            = stream->javaFormat.mChannelsPerFrame;
-                        outputBufferList.mBuffers[0].mDataByteSize
-                            = outTmpLength;
-                        outputBufferList.mBuffers[0].mData = outTmpBuffer;
-
-                        /*fprintf(stderr,
-                        "CHENZO: readIntputStream NEW METHOD %d - A: %d/%d\n",
-                            i,
-                            (int) outputBufferList.mBuffers[0].mDataByteSize,
-                            (int) outputDataPacketSize);
-                        fflush(stderr);*/
-
-                        if((err = AudioConverterFillComplexBuffer(
-                                        stream->outConverter,
-                                    maccoreaudio_converterComplexInputDataProc,
-                                        stream, // corresponding to inUserData
-                                        &outputDataPacketSize,
-                                        &outputBufferList,
-                                        NULL))
-                                != noErr)
-                         {
-                            maccoreaudio_log(
-                            "maccoreaudio_readInputStream (coreaudio/device.c): \
-                                    \n\tAudioConverterFillComplexBuffer: 0x%x",
-                                    (int) err);
-                            pthread_mutex_unlock(&stream->mutex);
-                            return err;
-                         }
-
-                        /*fprintf(stderr,
-                        "CHENZO: readIntputStream NEW METHOD - B: %d/%d\n\n",
-                            (int) outputBufferList.mBuffers[0].mDataByteSize,
-                            (int) outputDataPacketSize);
-                        fflush(stderr);*/
-                    }
-                    else
-                    {
-                        if((err = AudioConverterConvertBuffer(
-                                        stream->outConverter,
-                                        inInputData->mBuffers[i].mDataByteSize,
-                                        inInputData->mBuffers[i].mData,
-                                        &outTmpLength,
-                                        outTmpBuffer))
-                                != noErr)
-                        {
-                            maccoreaudio_log(
-                            "maccoreaudio_readInputStream (coreaudio/device.c): \
-                                    \n\tAudioConverterConvertBuffer: 0x%x",
-                                    (int) err);
-                            pthread_mutex_unlock(&stream->mutex);
+                            libjitsi_webrtc_aec_unlock(0);
                             return err;
                         }
-                    }
 
-                    callbackFunction(
-                            outTmpBuffer,
-                            outTmpLength,
-                            stream->callbackObject,
-                            stream->callbackMethod);
+                        // Process AEC data.
+                        int nb_process;
+                        if((nb_process = libjitsi_webrtc_aec_process(
+                                        0, // isRenderStream,
+                                        stream->aecFormat.mSampleRate,
+                                        stream->aecFormat.mChannelsPerFrame))
+                                < 0)
+                        {
+                            maccoreaudio_log(
+                            "maccoreaudio_readInputStream (coreaudio/device.c): \
+                                    \n\tlibjitsi_webrtc_aec_process: 0x%x",
+                                    (int) nb_process);
+                        }
+                        while(nb_process != 0)
+                        {
+                            UInt32 inputOutTmpLength
+                                = nb_process * sizeof(int16_t);
+                            char * inputOutTmpBuffer
+                                = (char*) libjitsi_webrtc_aec_getProcessedData(0);
+
+                            if(!maccoreaudio_isSameFormat(
+                                        stream->aecFormat,
+                                        stream->javaFormat))
+                            {
+                                UInt32 outTmpLength = inputOutTmpLength;
+                                AudioConverterGetProperty(
+                                        stream->outConverter,
+                                kAudioConverterPropertyCalculateOutputBufferSize,
+                                        &tmpSize,
+                                        &outTmpLength);
+                                maccoreaudio_updateBuffer(
+                                        &stream->outBuffer,
+                                        &stream->outBufferLength,
+                                        outTmpLength);
+
+                                // Converts from AEC to Java
+                                if((err = maccoreaudio_convert(
+                                                stream,
+                                                1,
+                                                stream->outConverter,
+                                                // Input device
+                                                inputOutTmpBuffer,
+                                                inputOutTmpLength,
+                                                stream->aecFormat,
+                                                // Output Java
+                                                stream->outBuffer,
+                                                outTmpLength,
+                                                stream->javaFormat))
+                                        != noErr)
+                                {
+                                    maccoreaudio_log(
+                            "maccoreaudio_readInputStream (coreaudio/device.c): \
+                                            \n\tmaccoreaudio_convert: 0x%x",
+                                            (int) err);
+                                    pthread_mutex_unlock(&stream->mutex);
+                                    libjitsi_webrtc_aec_unlock(0);
+                                    return err;
+                                }
+
+                                // Puts data to Java.
+                                callbackFunction(
+                                        stream->outBuffer,
+                                        outTmpLength,
+                                        stream->callbackObject,
+                                        stream->callbackMethod);
+                            }
+                            else
+                            {
+                                // Puts data to Java.
+                                callbackFunction(
+                                        inputOutTmpBuffer,
+                                        inputOutTmpLength,
+                                        stream->callbackObject,
+                                        stream->callbackMethod);
+                            }
+                            libjitsi_webrtc_aec_completeProcess(0);
+                            if((nb_process = libjitsi_webrtc_aec_process(
+                                            0, // isRenderStream,
+                                            stream->aecFormat.mSampleRate,
+                                            stream->aecFormat.mChannelsPerFrame))
+                                    < 0)
+                            {
+                                maccoreaudio_log(
+                            "maccoreaudio_readInputStream (coreaudio/device.c): \
+                                        \n\tlibjitsi_webrtc_aec_process: 0x%x",
+                                        (int) nb_process);
+                            }
+                        }
+                        libjitsi_webrtc_aec_unlock(0);
+                    }
+                    else // Stream without AEC
+                    {
+                        UInt32 outTmpLength
+                            = inInputData->mBuffers[0].mDataByteSize;
+                        AudioConverterGetProperty(
+                                stream->outConverter,
+                            kAudioConverterPropertyCalculateOutputBufferSize,
+                                &tmpSize,
+                                &outTmpLength);
+                        maccoreaudio_updateBuffer(
+                                &stream->outBuffer,
+                                &stream->outBufferLength,
+                                outTmpLength);
+                        
+                        // Converts from device to Java
+                        if((err = maccoreaudio_convert(
+                                        stream,
+                                        0,
+                                        stream->outConverter,
+                                        // Input device
+                                        inInputData->mBuffers[i].mData,
+                                        inInputData->mBuffers[i].mDataByteSize,
+                                        stream->deviceFormat,
+                                        // Output Java
+                                        stream->outBuffer,
+                                        outTmpLength,
+                                        stream->javaFormat))
+                                != noErr)
+                        {
+                            maccoreaudio_log(
+                            "maccoreaudio_readInputStream (coreaudio/device.c): \
+                                    \n\tmaccoreaudio_convert: 0x%x",
+                                    (int) err);
+                            pthread_mutex_unlock(&stream->mutex);
+                            libjitsi_webrtc_aec_unlock(0);
+                            return err;
+                        }
+
+                        // Puts data to Java.
+                        callbackFunction(
+                                stream->outBuffer,
+                                outTmpLength,
+                                stream->callbackObject,
+                                stream->callbackMethod);
+                    }
                 }
             }
         }
+
         if(pthread_mutex_unlock(&stream->mutex) != 0)
         {
             maccoreaudio_log(
@@ -2046,11 +1962,12 @@ OSStatus maccoreaudio_readInputStream(
                 strerror(errno));
     }
 
-    //fprintf(stderr, "CHENZO: readIntputStream END\n"); fflush(stderr);
-
     return noErr;
 }
 
+/**
+ * Callback called when the output device is ready to render some data.
+ */
 OSStatus maccoreaudio_writeOutputStream(
         AudioDeviceID inDevice,
         const AudioTimeStamp* inNow,
@@ -2060,346 +1977,210 @@ OSStatus maccoreaudio_writeOutputStream(
         const AudioTimeStamp* inOutputTime,
         void* inClientData)
 {
-    //fprintf(stderr, "CHENZO: writeOutputStream START\n"); fflush(stderr);
-
     OSStatus err = noErr;
     int error = 0;
-
-    maccoreaudio_stream * stream = (maccoreaudio_stream*) inClientData;
-    void (*callbackFunction) (char*, int, void*, void*)
-        = stream->callbackFunction;
 
     if(outOutputData->mNumberBuffers == 0)
     {
         return err;
     }
 
-    UInt32 tmpSize = sizeof(UInt32);
-    UInt32 aecTmpLength
-        = outOutputData->mBuffers[0].mDataByteSize;
-        //= outOutputData->mBuffers[0].mDataByteSize * 2;
-        //= outOutputData->mBuffers[0].mDataByteSize * stream->aecConversionRatio;
-    AudioConverterGetProperty(
-            stream->outConverter,
-            kAudioConverterPropertyCalculateInputBufferSize,
-            &tmpSize,
-            &aecTmpLength);
-
-
-
-    UInt32 outTmpLength
-        = aecTmpLength;
-        //= (outOutputData->mBuffers[0].mDataByteSize
-        //        / stream->deviceFormat.mBytesPerPacket)
-        //    * stream->javaFormat.mBytesPerPacket;
-        //= aecTmpLength * stream->outConversionRatio;
-    AudioConverterGetProperty(
-            stream->aecConverter,
-            kAudioConverterPropertyCalculateInputBufferSize,
-            &tmpSize,
-            &outTmpLength);
-
-
-    char aecTmpBuffer[aecTmpLength];
-    char outTmpBuffer[outTmpLength];
-
-    /*fprintf(stderr,
-            "CHENZO: writeOutputStream 0: dev:%d, aec:%d, java:%d\n",
-            (int) outOutputData->mBuffers[0].mDataByteSize,
-            (int) aecTmpLength,
-            (int) outTmpLength);
-    fflush(stderr);
-    fprintf(stderr,
-            "CHENZO: wrtieOutputStream 0.0: dev:%d, aec:%d, java:%d\n",
-            (int) outOutputData->mBuffers[0].mDataByteSize
-                / stream->deviceFormat.mBytesPerPacket,
-            (int) aecTmpLength
-                / stream->aecFormat.mBytesPerPacket,
-            (int) outTmpLength
-                / stream->javaFormat.mBytesPerPacket);
-    fflush(stderr);*/
-
-
+    maccoreaudio_stream * stream = (maccoreaudio_stream*) inClientData;
     if((error = pthread_mutex_trylock(&stream->mutex)) == 0)
     {
+        libjitsi_webrtc_aec_lock(1);
+        
+        void (*callbackFunction) (char*, int, void*, void*)
+            = stream->callbackFunction;
+
+        UInt32 tmpSize = sizeof(UInt32);
+
+        UInt32 aecTmpLength = outOutputData->mBuffers[0].mDataByteSize;
+        AudioConverterGetProperty(
+                stream->outConverter,
+                kAudioConverterPropertyCalculateInputBufferSize,
+                &tmpSize,
+                &aecTmpLength);
+
+        UInt32 outTmpLength
+            = aecTmpLength;
+
+        char * aecTmpBuffer;
+        if(stream->isAECActivated)
+        {
+            // Reinit the AEC format to adapt to the capture stream
+            AudioStreamBasicDescription tmpFormat;
+            if(libjitsi_webrtc_aec_getCaptureFormat(&tmpFormat))
+            {
+                if(!maccoreaudio_isSameFormat(tmpFormat, stream->aecFormat))
+                {
+                    if((err = maccoreaudio_freeConverter(stream)) != noErr)
+                    {
+                        maccoreaudio_log(
+                            "maccoreaudio_writeOutputStream (coreaudio/device.c):\
+                                \n\tmaccoreaudio_freeConverter: 0x%x",
+                                (int) err);
+                    }
+                    if((err = maccoreaudio_initConverter(stream)) != noErr)
+                    {
+                        maccoreaudio_log(
+                            "maccoreaudio_writeOutputStream (coreaudio/device.c):\
+                                \n\tmaccoreaudio_initConverter: 0x%x",
+                                (int) err);
+                        pthread_mutex_destroy(&stream->mutex);
+                        return -1;
+                    }
+                }
+            }
+
+            libjitsi_webrtc_aec_completeProcess(1);
+            if((aecTmpBuffer = (char*) libjitsi_webrtc_aec_getData(
+                            1,
+                            aecTmpLength / sizeof(int16_t)))
+                    == NULL)
+            {
+                maccoreaudio_log(
+                        "maccoreaudio_writeOutputStream (coreaudio/device.c):\
+                        \n\tlibjitsi_webrtc_aec_getData");
+                pthread_mutex_unlock(&stream->mutex);
+                return -1;
+            }
+        }
+
+        AudioConverterGetProperty(
+                stream->aecConverter,
+                kAudioConverterPropertyCalculateInputBufferSize,
+                &tmpSize,
+                &outTmpLength);
+
+        maccoreaudio_updateBuffer(
+                &stream->outBuffer,
+                &stream->outBufferLength,
+                outTmpLength);
+
         if(stream->ioProcId != 0)
         {
             if(stream->isAECActivated)
             {
-                /*fprintf(stderr, "CHENZO: writeOutputStream 1\n");
-                fflush(stderr);*/
-
-                callbackFunction(
-                        outTmpBuffer,
-                        outTmpLength,
-                        stream->callbackObject,
-                        stream->callbackMethod);
-
-                /*fprintf(stderr, "CHENZO: writeOutputStream 2\n");
-                fflush(stderr);*/
-
-                stream->step = 0;
-
-                stream->audioBuffer.mNumberChannels
-                    = stream->javaFormat.mChannelsPerFrame;
-                stream->audioBuffer.mDataByteSize = outTmpLength;
-                stream->audioBuffer.mData = outTmpBuffer;
-                
-                UInt32 outputDataPacketSize
-                    = aecTmpLength
-                    / stream->aecFormat.mBytesPerPacket;
-                AudioBufferList outputBufferList;
-                outputBufferList.mNumberBuffers = 1;
-                outputBufferList.mBuffers[0].mNumberChannels
-                    = stream->aecFormat.mChannelsPerFrame;
-                outputBufferList.mBuffers[0].mDataByteSize
-                    = aecTmpLength;
-                outputBufferList.mBuffers[0].mData = aecTmpBuffer;
-
-                UInt32 tmp = outOutputData->mBuffers[0].mDataByteSize;
-                UInt32 tmpSize = sizeof(tmp);
-                AudioConverterGetProperty(
-                        stream->aecConverter,
-                        kAudioConverterPropertyCalculateOutputBufferSize,
-                        //kAudioConverterPropertyMaximumOutputPacketSize,
-                        &tmpSize,
-                        &tmp);
-
-                /*fprintf(stderr,
-                "CHENZO: writeOutputStream 2.1: nbPacketAec:%d/%d/%d, new:%d\n",
-                        (int) outputDataPacketSize,
-                        (int) outputBufferList.mBuffers[0].mDataByteSize,
-                        (int) aecTmpLength /
-                        stream->aecFormat.mBytesPerPacket,
-                        tmp);
-                fflush(stderr);*/
-
-                if((err = AudioConverterFillComplexBuffer(
-                                stream->aecConverter,
-                                maccoreaudio_converterComplexInputDataProc,
-                                stream, // corresponding to inUserData
-                                &outputDataPacketSize,
-                                &outputBufferList,
-                                NULL))
-                        != noErr)
+                if(maccoreaudio_isSameFormat(
+                            stream->aecFormat,
+                            stream->javaFormat))
                 {
-                    maccoreaudio_log(
+                    // Get data from java.
+                    callbackFunction(
+                            aecTmpBuffer,
+                            aecTmpLength,
+                            stream->callbackObject,
+                            stream->callbackMethod);
+                }
+                else
+                {
+                    // Get data from java.
+                    callbackFunction(
+                            stream->outBuffer,
+                            outTmpLength,
+                            stream->callbackObject,
+                            stream->callbackMethod);
+
+                    // Converrt from java to AEC.
+                    if((err = maccoreaudio_convert(
+                                    stream,
+                                    0,
+                                    stream->aecConverter,
+                                    // Input Java
+                                    stream->outBuffer,
+                                    outTmpLength,
+                                    stream->javaFormat,
+                                    // Output AEC
+                                    aecTmpBuffer,
+                                    aecTmpLength,
+                                    stream->aecFormat))
+                            != noErr)
+                    {
+                        maccoreaudio_log(
                         "maccoreaudio_writeOutputStream (coreaudio/device.c): \
-                            \n\tAudioConverterFillComplexBuffer: 0x%x",
-                            (int) err);
-                    pthread_mutex_unlock(&stream->mutex);
-                    return err;
+                                \n\tmaccoreaudio_convert: 0x%x",
+                                (int) err);
+                        pthread_mutex_unlock(&stream->mutex);
+                        return err;
+                    }
                 }
 
-                /*fprintf(stderr,
-                        "CHENZO: writeOutputStream 3: nbPacketAec:%d/%d/%d\n",
-                        (int) outputDataPacketSize,
-                        (int) outputBufferList.mBuffers[0].mDataByteSize,
-                        (int) aecTmpLength /
-                        stream->aecFormat.mBytesPerPacket);
-                fflush(stderr);
-
-
-                fprintf(stderr, "CHENZO: writeOutputStream 3\n");
-                fflush(stderr);*/
-
-                if((err = libjitsi_webrtc_aec_process(
-                                0, // isCaptureStream,
-                                (short*) aecTmpBuffer, //int16_t * data,
-                                aecTmpLength, //int data_length,
-                                // int sample_rate
-                                stream->aecFormat.mSampleRate,
-                                //int nb_channels
-                                stream->aecFormat.mChannelsPerFrame))
-                        != 0)
+                // AEC process
+                int nb_process = 1;
+                while(nb_process != 0)
                 {
-                    maccoreaudio_log(
-                "maccoreaudio_readInputStream (coreaudio/device.c): \
-                            \n\tlibjitsi_webrtc_aec_process: 0x%x",
-                            (int) err);
+                    if((nb_process = libjitsi_webrtc_aec_process(
+                                    1, // isRenderStream,
+                                    stream->aecFormat.mSampleRate,
+                                    stream->aecFormat.mChannelsPerFrame))
+                            < 0)
+                    {
+                        maccoreaudio_log(
+                    "maccoreaudio_readInputStream (coreaudio/device.c): \
+                                \n\tlibjitsi_webrtc_aec_process: 0x%x",
+                                (int) nb_process);
+                    }
                 }
 
-                /*fprintf(stderr, "CHENZO: writeOutputStream 3\n");
-                fflush(stderr);*/
-
-
-                stream->step = 1;
-
-                stream->audioBuffer.mNumberChannels
-                    = stream->aecFormat.mChannelsPerFrame;
-                stream->audioBuffer.mDataByteSize = aecTmpLength;
-                stream->audioBuffer.mData = aecTmpBuffer;
-                
-                outputDataPacketSize
-                    = outOutputData->mBuffers[0].mDataByteSize
-                    / stream->deviceFormat.mBytesPerPacket;
-
-                if((err = AudioConverterFillComplexBuffer(
+                // Convert from AEC to device.
+                if((err = maccoreaudio_convert(
+                                stream,
+                                1,
                                 stream->outConverter,
-                            maccoreaudio_converterComplexInputDataProc,
-                                stream, // corresponding to inUserData
-                                &outputDataPacketSize,
-                                //&outputBufferList,
-                                outOutputData,
-                                NULL))
-                        != noErr)
-                 {
-                    maccoreaudio_log(
-                    "maccoreaudio_writeOutputStream (coreaudio/device.c): \
-                            \n\tAudioConverterFillComplexBuffer: 0x%x",
-                            (int) err);
-                    pthread_mutex_unlock(&stream->mutex);
-                    return err;
-                 }
-
-
-                /*fprintf(stderr, "CHENZO: writeOutputStream 4\n");
-                fflush(stderr);*/
-
-
-
-
-                /*if((err = AudioConverterConvertBuffer(
-                                stream->aecConverter,
-                                aecTmpLength,
+                                // Input AEC
                                 aecTmpBuffer,
-                                &outTmpLength,
-                                outTmpBuffer))
+                                aecTmpLength,
+                                stream->aecFormat,
+                                // Output device
+                                outOutputData->mBuffers[0].mData,
+                                outOutputData->mBuffers[0].mDataByteSize,
+                                stream->deviceFormat))
                         != noErr)
                 {
                     maccoreaudio_log(
                         "maccoreaudio_writeOutputStream (coreaudio/device.c): \
-                            \n\tAudioConverterConvertBuffer: 0x%x", (int) err);
-                    memset(
-                            outOutputData->mBuffers[0].mData,
-                            0,
-                            outOutputData->mBuffers[0].mDataByteSize);
-                    pthread_mutex_unlock(&stream->mutex);
-                    return err;
-                }
-                fprintf(stderr, "CHENZO: writeOutputStream 3\n");
-                fflush(stderr);
-
-                if((err = libjitsi_webrtc_aec_process(
-                                0, // isCaptureStream,
-                                (short*) outTmpBuffer, //int16_t * data,
-                                outTmpLength, //int data_length,
-                                32000, // int sample_rate,
-                                1 //int nb_channels
-                                ))
-                        != 0)
-                {
-                    maccoreaudio_log(
-                        "maccoreaudio_writeOutputStream (coreaudio/device.c): \
-                            \n\tlibjitsi_webrtc_aec_process: 0x%x", (int) err);
-                }
-                fprintf(stderr, "CHENZO: writeOutputStream 4\n");
-                fflush(stderr);
-
-                if((err = AudioConverterConvertBuffer(
-                                stream->outConverter,
-                                outTmpLength,
-                                outTmpBuffer,
-                                &outOutputData->mBuffers[0].mDataByteSize,
-                                outOutputData->mBuffers[0].mData))
-                        != noErr)
-                {
-                    maccoreaudio_log(
-                        "maccoreaudio_writeOutputStream (coreaudio/device.c): \
-                            \n\tAudioConverterConvertBuffer: 0x%x", (int) err);
-                    memset(
-                            outOutputData->mBuffers[0].mData,
-                            0,
-                            outOutputData->mBuffers[0].mDataByteSize);
-                    pthread_mutex_unlock(&stream->mutex);
-                    return err;
-                }
-                fprintf(stderr, "CHENZO: writeOutputStream 5\n");
-                fflush(stderr);*/
-            }
-            else if(newMethod)
-            {
-                callbackFunction(
-                        outTmpBuffer,
-                        outTmpLength,
-                        stream->callbackObject,
-                        stream->callbackMethod);
-                /* int
-                maccoreaudio_initAudioBuffer(
-                        &stream->audioBuffer,
-                        1, //int nbChannels,
-                        int length);*/
-
-                stream->step = 0;
-
-                stream->audioBuffer.mNumberChannels
-                    = stream->javaFormat.mChannelsPerFrame;
-                stream->audioBuffer.mDataByteSize = outTmpLength;
-                stream->audioBuffer.mData = outTmpBuffer;
-
-                
-                UInt32 outputDataPacketSize
-                    = outOutputData->mBuffers[0].mDataByteSize
-                    / stream->deviceFormat.mBytesPerPacket;
-
-                /*fprintf(stderr,
-                "CHENZO: writeOutputStream NEW METHOD - A: %d/%d\n",
-                    (int) outOutputData->mBuffers[0].mDataByteSize,
-                    (int) outputDataPacketSize);
-                fflush(stderr);*/
-
-                if((err = AudioConverterFillComplexBuffer(
-                                stream->outConverter,
-                            maccoreaudio_converterComplexInputDataProc,
-                                stream, // corresponding to inUserData
-                                &outputDataPacketSize,
-                                //&outputBufferList,
-                                outOutputData,
-                                NULL))
-                        != noErr)
-                 {
-                    maccoreaudio_log(
-                    "maccoreaudio_writeOutputStream (coreaudio/device.c): \
-                            \n\tAudioConverterFillComplexBuffer: 0x%x",
+                            \n\tmaccoreaudio_convert: 0x%x",
                             (int) err);
                     pthread_mutex_unlock(&stream->mutex);
                     return err;
-                 }
-
-                /*fprintf(stderr,
-                "CHENZO: writeOutputStream NEW METHOD - B: %d/%d\n\n",
-                    (int) outOutputData->mBuffers[0].mDataByteSize,
-                    (int) outputDataPacketSize);
-                fflush(stderr);*/
+                }
             }
-            else
+            else // Not AEC
             {
+                // Get data from java.
                 callbackFunction(
-                        outTmpBuffer,
+                        stream->outBuffer,
                         outTmpLength,
                         stream->callbackObject,
                         stream->callbackMethod);
 
-                if((err = AudioConverterConvertBuffer(
+                // Converrt from java to device.
+                if((err = maccoreaudio_convert(
+                                stream,
+                                0,
                                 stream->outConverter,
+                                // Input Java
+                                stream->outBuffer,
                                 outTmpLength,
-                                outTmpBuffer,
-                                &outOutputData->mBuffers[0].mDataByteSize,
-                                outOutputData->mBuffers[0].mData))
+                                stream->javaFormat,
+                                // Output device
+                                outOutputData->mBuffers[0].mData,
+                                outOutputData->mBuffers[0].mDataByteSize,
+                                stream->deviceFormat))
                         != noErr)
                 {
                     maccoreaudio_log(
                         "maccoreaudio_writeOutputStream (coreaudio/device.c): \
-                            \n\tAudioConverterConvertBuffer: 0x%x", (int) err);
-                    memset(
-                            outOutputData->mBuffers[0].mData,
-                            0,
-                            outOutputData->mBuffers[0].mDataByteSize);
+                            \n\tmaccoreaudio_convert: 0x%x",
+                            (int) err);
                     pthread_mutex_unlock(&stream->mutex);
                     return err;
                 }
             }
         }
+
+        libjitsi_webrtc_aec_unlock(1);
         if(pthread_mutex_unlock(&stream->mutex) != 0)
         {
             maccoreaudio_log(
@@ -2454,8 +2235,6 @@ OSStatus maccoreaudio_writeOutputStream(
         }
     }
 
-    //fprintf(stderr, "CHENZO: writeOutputStream END\n"); fflush(stderr);
-
     return noErr;
 }
 
@@ -2501,43 +2280,14 @@ OSStatus maccoreaudio_getStreamVirtualFormat(
  * Initializes a new audio converter to work between the given device and the
  * format description.
  *
- * @param deviceUID The device identifier.
- * converter and the device the ouput. False otherwise.
+ * @param stream The stream using the provided device.
  *
  * @return noErr if everything works correctly. Any other vlue otherwise.
  */
 OSStatus maccoreaudio_initConverter(
-        const char * deviceUID,
         maccoreaudio_stream * stream)
 {
     OSStatus err = noErr;
-    if((err = maccoreaudio_getDeviceFormat(
-                    deviceUID,
-                    stream->isOutputStream,
-                    &stream->deviceFormat))
-            != noErr)
-    {
-        maccoreaudio_log(
-                "maccoreaudio_initConverter (coreaudio/device.c): \
-                    \n\tmaccoreaudio_getDeviceFormat for device: %s",
-                    deviceUID);
-
-        if((err = maccoreaudio_getDeviceFormatDeprecated(
-                        deviceUID,
-                        stream->isOutputStream,
-                        &stream->deviceFormat)) != noErr)
-        {
-            maccoreaudio_log(
-                    "maccoreaudio_initConverter (coreaudio/device.c): \
-                    \n\tmaccoreaudio_getDeviceFormatDeprecated \
-                    for device: %s",
-                    deviceUID);
-
-            // Everything has failed to retrieve the device format, then try
-            // with the default one.
-            maccoreaudio_getDefaultFormat(&stream->deviceFormat);
-        }
-    }
 
     const AudioStreamBasicDescription *inFormat = &stream->javaFormat;
     const AudioStreamBasicDescription *outFormat = &stream->deviceFormat;
@@ -2554,16 +2304,10 @@ OSStatus maccoreaudio_initConverter(
         {
             maccoreaudio_log(
                     "maccoreaudio_initConverter (coreaudio/device.c): \
-                        \n\tAudioConverterNew, err: 0x%x",
-                        ((int) err));
+                    \n\tAudioConverterNew, err: 0x%x",
+                    ((int) err));
             return err;
         }
-
-        stream->outConversionRatio = (
-            ((double) stream->javaFormat.mBytesPerFrame
-                    * stream->javaFormat.mSampleRate)
-            / ((double) stream->deviceFormat.mBytesPerFrame
-                    * stream->deviceFormat.mSampleRate));
     }
     else
     {
@@ -2575,15 +2319,10 @@ OSStatus maccoreaudio_initConverter(
         {
             maccoreaudio_log(
                     "maccoreaudio_initConverter (coreaudio/device.c): \
-                        \n\tAudioConverterNew, err: 0x%x",
-                        ((int) err));
+                    \n\tAudioConverterNew, err: 0x%x",
+                    ((int) err));
             return err;
         }
-        stream->aecConversionRatio = (
-            ((double) stream->javaFormat.mBytesPerFrame
-                    * stream->javaFormat.mSampleRate)
-            / ((double) stream->aecFormat.mBytesPerFrame
-                    * stream->aecFormat.mSampleRate));
 
         if((err = AudioConverterNew(
                         &stream->aecFormat,
@@ -2593,15 +2332,44 @@ OSStatus maccoreaudio_initConverter(
         {
             maccoreaudio_log(
                     "maccoreaudio_initConverter (coreaudio/device.c): \
-                        \n\tAudioConverterNew, err: 0x%x",
-                        ((int) err));
+                    \n\tAudioConverterNew, err: 0x%x",
+                    ((int) err));
             return err;
         }
-        stream->outConversionRatio = (
-            ((double) stream->aecFormat.mBytesPerFrame
-                    * stream->aecFormat.mSampleRate)
-            / ((double) stream->deviceFormat.mBytesPerFrame
-                    * stream->deviceFormat.mSampleRate));
+    }
+
+    return err;
+}
+
+/**
+ * Frees audio converters to work between the given device and the format
+ * description.
+ *
+ * @param stream The stream using the provided device.
+ *
+ * @return noErr if everything works correctly. Any other vlue otherwise.
+ */
+OSStatus maccoreaudio_freeConverter(
+        maccoreaudio_stream * stream)
+{
+    OSStatus err = noErr;
+
+    if(stream->isAECActivated)
+    {
+        if((err = AudioConverterDispose(stream->aecConverter)) != noErr)
+        {
+            maccoreaudio_log(
+                    "maccoreaudio_freeConverter (coreaudio/device.c): \
+                    \n\tAudioConverterDispose: 0x%x",
+                    (int) err);
+        }
+    }
+    if((err = AudioConverterDispose(stream->outConverter)) != noErr)
+    {
+        maccoreaudio_log(
+                "maccoreaudio_freeConverter (coreaudio/device.c): \
+                \n\tAudioConverterDispose: 0x%x",
+                (int) err);
     }
 
     return err;
@@ -2688,8 +2456,7 @@ inline void FillOutASBDForLPCM(
  *
  * @return noErr if everything works fine. Any other value for an error.
  */
-OSStatus
-maccoreaudio_getDeviceFormat(
+OSStatus maccoreaudio_getDeviceFormat(
         const char * deviceUID,
         unsigned char isOutput,
         AudioStreamBasicDescription * deviceFormat)
@@ -2763,8 +2530,7 @@ maccoreaudio_getDeviceFormat(
  *
  * @return noErr if everything works fine. Any other value for an error.
  */
-OSStatus
-maccoreaudio_getDeviceFormatDeprecated(
+OSStatus maccoreaudio_getDeviceFormatDeprecated(
         const char * deviceUID,
         unsigned char isOutput,
         AudioStreamBasicDescription * deviceFormat)
@@ -2820,8 +2586,7 @@ maccoreaudio_getDeviceFormatDeprecated(
  *
  * @param deviceFormat The structure to fill in with the default format.
  */
-void
-maccoreaudio_getDefaultFormat(
+void maccoreaudio_getDefaultFormat(
         AudioStreamBasicDescription * deviceFormat)
 {
     FillOutASBDForLPCM(
@@ -2835,26 +2600,18 @@ maccoreaudio_getDefaultFormat(
             false);
 }
 
-
-OSStatus
-maccoreaudio_converterComplexInputDataProc(
+/**
+ * Callback called by CoreAudio to feed in the input buffer before conversion.
+ */
+OSStatus maccoreaudio_converterComplexInputDataProc(
         AudioConverterRef inAudioConverter,
         UInt32* ioNumberDataPackets,
         AudioBufferList* ioData,
         AudioStreamPacketDescription** ioDataPacketDescription,
         void* inUserData)
 {
-    /*fprintf(stderr,
-            "CHENZO: readIntputStream NEW METHOD - CALLBAKC - A: %d\n",
-            (int) *ioNumberDataPackets);
-    fflush(stderr);*/
-
     if(ioDataPacketDescription)
     {
-        fprintf(stderr, "_converterComplexInputDataProc cannot \
-                provide input data; it doesn't know how to \
-                provide packet descriptions\n");
-        fflush(stderr);
         maccoreaudio_log("_converterComplexInputDataProc cannot \
                 provide input data; it doesn't know how to \
                 provide packet descriptions");
@@ -2866,88 +2623,225 @@ maccoreaudio_converterComplexInputDataProc(
 
     maccoreaudio_stream * stream = (maccoreaudio_stream*) inUserData;
 
-    ioData->mNumberBuffers = 1;
-    ioData->mBuffers[0] = stream->audioBuffer;
-
-    if(stream->isOutputStream)
+    UInt32 mBytesPerPacket = 0;
+    if(stream->step == 0)
     {
-        if(stream->isAECActivated)
+        if(stream->isOutputStream)
         {
-            if(stream->step == 0)
-            {
-                *ioNumberDataPackets = ioData->mBuffers[0].mDataByteSize
-                    / stream->javaFormat.mBytesPerPacket;
-            }
-            else // if (stream->step == 1)
-            {
-                *ioNumberDataPackets = ioData->mBuffers[0].mDataByteSize
-                    / stream->aecFormat.mBytesPerPacket;
-            }
+            mBytesPerPacket = stream->javaFormat.mBytesPerPacket;
         }
         else
         {
-            *ioNumberDataPackets = ioData->mBuffers[0].mDataByteSize
-                / stream->javaFormat.mBytesPerPacket;
+            mBytesPerPacket = stream->deviceFormat.mBytesPerPacket;
         }
+    }
+    else // if (stream->step == 1) only for AEC.
+    {
+        mBytesPerPacket = stream->aecFormat.mBytesPerPacket;
+    }
+    UInt32 nbPackets = stream->audioBuffer.mDataByteSize / mBytesPerPacket;
+    UInt32 length = (nbPackets - *ioNumberDataPackets) * mBytesPerPacket;
+
+    if(*ioNumberDataPackets <= nbPackets)
+    {
+        ioData->mNumberBuffers = 1;
+        ioData->mBuffers[0] = stream->audioBuffer;
+        ioData->mBuffers[0].mDataByteSize -= length;
     }
     else
     {
-        if(stream->isAECActivated)
-        {
-            if(stream->step == 0)
-            {
-                *ioNumberDataPackets = ioData->mBuffers[0].mDataByteSize
-                    / stream->deviceFormat.mBytesPerPacket;
-            }
-            else // if (stream->step == 1)
-            {
-                *ioNumberDataPackets = ioData->mBuffers[0].mDataByteSize
-                    / stream->aecFormat.mBytesPerPacket;
-            }
-        }
-        else
-        {
-            *ioNumberDataPackets = ioData->mBuffers[0].mDataByteSize
-                / stream->deviceFormat.mBytesPerPacket;
-        }
+        *ioNumberDataPackets = 0;
+        ioData->mBuffers[0].mData = NULL;
+        ioData->mBuffers[0].mDataByteSize = 0;
     }
-
-    /*fprintf(stderr,
-            "CHENZO: readIntputStream NEW METHOD - CALLBAKC - B: %d/%d\n",
-            (int) ioData->mBuffers[0].mDataByteSize,
-            (int) *ioNumberDataPackets);
-    fflush(stderr);*/
 
     return 0;
 }
 
-
-
-int
-maccoreaudio_initAudioBuffer(
-        AudioBuffer * audioBuffer,
-        int nbChannels,
-        int length)
+/**
+ * Returns the rate used by the echo canceller for a given provided rate.
+ *
+ * @param rate The provided rate.
+ *
+ * @return the echo canceller selected rate.
+ */
+int maccoreaudio_getAECCorrespondingRate(
+        int rate)
 {
-    audioBuffer->mNumberChannels = nbChannels;
-    if(audioBuffer->mDataByteSize < length)
+    int aecRate = rate;
+    switch(rate)
     {
-        if(audioBuffer->mData != NULL)
-        {
-            free(audioBuffer->mData);
-            audioBuffer->mData = NULL;
-        }
+        case 8000:
+            aecRate = 8000;
+            break;
+        case 11025:
+        case 16000:
+            aecRate = 16000;
+            break;
+        default:
+        //case 22050:
+        //case 32000:
+        //case 44100:
+        //case 48000:
+            aecRate = 32000;
+            break;
+    }
 
-        if((audioBuffer->mData = (char*) malloc(length * sizeof(char))) == NULL)
+    return aecRate;
+}
+
+/**
+ * Initializes the device format for a given device UID.
+ *
+ * @param deviceUID The device identifier.
+ * @param stream The stream using the provided device.
+ *
+ * @return noErr if everything works correctly. Any other vlue otherwise.
+ */
+OSStatus maccoreaudio_initDeviceFormat(
+        const char * deviceUID,
+        maccoreaudio_stream * stream)
+{
+    OSStatus err = noErr;
+    if((err = maccoreaudio_getDeviceFormat(
+                    deviceUID,
+                    stream->isOutputStream,
+                    &stream->deviceFormat))
+            != noErr)
+    {
+        maccoreaudio_log(
+                "maccoreaudio_initDeviceFormat (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getDeviceFormat for device: %s",
+                    deviceUID);
+
+        if((err = maccoreaudio_getDeviceFormatDeprecated(
+                        deviceUID,
+                        stream->isOutputStream,
+                        &stream->deviceFormat)) != noErr)
         {
             maccoreaudio_log(
-                    "%s: %s\n",
-                    "maccoreaudio_initAudioBuffer (coreaudio/device.c): \
-                    \n\tmalloc",
-                strerror(errno));
-            return -1;
+                    "maccoreaudio_initDeviceFormat (coreaudio/device.c): \
+                    \n\tmaccoreaudio_getDeviceFormatDeprecated \
+                    for device: %s",
+                    deviceUID);
+
+            // Everything has failed to retrieve the device format, then try
+            // with the default one.
+            maccoreaudio_getDefaultFormat(&stream->deviceFormat);
         }
-        audioBuffer->mDataByteSize = length;
     }
-    return 0;
+
+    return err;
+}
+
+/**
+ * Updates the buffer size if necessary: when the new length is greater than
+ * the actual one.
+ *
+ * @param buffer The pointer to the buffer to update.
+ * @param bufferLength The actual size of the provided buffer.
+ * @param newLength The new length of the buffer.
+ */
+void maccoreaudio_updateBuffer(
+        char** buffer,
+        int* bufferLength,
+        int newLength)
+{
+    if(*bufferLength < newLength)
+    {
+        if(*buffer != NULL)
+        {
+            free(*buffer);
+        }
+        if((*buffer = malloc(newLength * sizeof(char))) == NULL)
+        {
+            *bufferLength = 0;
+            maccoreaudio_log(
+                    "%s: %s\n",
+                    "maccoreaudio_updateBuffer (coreaudio/device.c): \
+                    \n\tmalloc",
+                    strerror(errno));
+            return;
+        }
+        *bufferLength = newLength;
+    }
+}
+
+/**
+ * Tells if the provided formats are identical.
+ *
+ * @param format1 The first format.
+ * @param format2 The second format.
+ *
+ * @return 1 if the two formats are identical. 0 otherwise.
+ */
+int maccoreaudio_isSameFormat(
+        AudioStreamBasicDescription format1,
+        AudioStreamBasicDescription format2)
+{
+    return (format1.mSampleRate == format2.mSampleRate
+            && format1.mChannelsPerFrame == format2.mChannelsPerFrame
+            && format1.mBitsPerChannel == format2.mBitsPerChannel
+            && format1.mBytesPerPacket == format2.mBytesPerPacket
+            && format1.mBytesPerFrame == format2.mBytesPerFrame);
+}
+
+/**
+ * Converts data from input to output format.
+ *
+ * @param step The conversion number of the capture/render processus.
+ * @param converter The converter for this step of process.
+ * @param inBuffer The input buffer.
+ * @param inBufferLength The length of the input buffer.
+ * @param inFormat The input format.
+ * @param outBuffer The output buffer.
+ * @param outBufferLength The length of the output buffer.
+ * @param outFormat The output format.
+ *
+ * @return noErr if everything works correctly. Any other vlue otherwise.
+ */
+OSStatus maccoreaudio_convert(
+        maccoreaudio_stream * stream,
+        unsigned short step,
+        AudioConverterRef converter,
+        char * inBuffer,
+        int inBufferLength,
+        AudioStreamBasicDescription inFormat,
+        char * outBuffer,
+        int outBufferLength,
+        AudioStreamBasicDescription outFormat)
+{
+    OSStatus err = noErr;
+
+    stream->step = step;
+
+    stream->audioBuffer.mNumberChannels = inFormat.mChannelsPerFrame;
+    stream->audioBuffer.mDataByteSize = inBufferLength;
+    stream->audioBuffer.mData = inBuffer;
+
+    UInt32 outputDataPacketSize = outBufferLength / outFormat.mBytesPerPacket;
+
+    AudioBufferList outBufferList;
+    outBufferList.mNumberBuffers = 1;
+    outBufferList.mBuffers[0].mNumberChannels = outFormat.mChannelsPerFrame;
+    outBufferList.mBuffers[0].mDataByteSize = outBufferLength;
+    outBufferList.mBuffers[0].mData = outBuffer;
+
+    if((err = AudioConverterFillComplexBuffer(
+                    converter,
+                    maccoreaudio_converterComplexInputDataProc,
+                    stream, // corresponding to inUserData
+                    &outputDataPacketSize,
+                    &outBufferList,
+                    NULL))
+            != noErr)
+    {
+        maccoreaudio_log(
+                "maccoreaudio_convert (coreaudio/device.c): \
+                \n\tAudioConverterFillComplexBuffer: 0x%x",
+                (int) err);
+        return err;
+    }
+
+    return err;
 }

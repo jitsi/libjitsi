@@ -29,13 +29,13 @@ typedef struct
     unsigned short step;
     AudioConverterRef aecConverter;
     AudioConverterRef outConverter;
-    double aecConversionRatio;
-    double outConversionRatio;
     AudioStreamBasicDescription deviceFormat;
     AudioStreamBasicDescription aecFormat;
     AudioStreamBasicDescription javaFormat;
     AudioBuffer audioBuffer;
     pthread_mutex_t mutex;
+    char * outBuffer;
+    int outBufferLength;
 } maccoreaudio_stream;
 
 int maccoreaudio_initDevices(
@@ -77,12 +77,16 @@ const char* maccoreaudio_getTransportType(
         const char * deviceUID);
 
 Float64 maccoreaudio_getNominalSampleRate(
-        const char * deviceUID);
+        const char * deviceUID,
+        unsigned char isOutputStream,
+        unsigned char isEchoCancel);
 
 OSStatus maccoreaudio_getAvailableNominalSampleRates(
         const char * deviceUID,
         Float64 * minRate,
-        Float64 * maxRate);
+        Float64 * maxRate,
+        unsigned char isOutputStream,
+        unsigned char isEchoCancel);
 
 char* maccoreaudio_getDefaultInputDeviceUID(
         void);
@@ -106,7 +110,8 @@ maccoreaudio_stream * maccoreaudio_startInputStream(
         UInt32 bitsPerChannel,
         unsigned char isFloat,
         unsigned char isBigEndian,
-        unsigned char isNonInterleaved);
+        unsigned char isNonInterleaved,
+        unsigned char isEchoCancel);
 
 maccoreaudio_stream * maccoreaudio_startOutputStream(
         const char * deviceUID,
@@ -118,7 +123,8 @@ maccoreaudio_stream * maccoreaudio_startOutputStream(
         UInt32 bitsPerChannel,
         unsigned char isFloat,
         unsigned char isBigEndian,
-        unsigned char isNonInterleaved);
+        unsigned char isNonInterleaved,
+        unsigned char isEchoCancel);
 
 void maccoreaudio_stopStream(
         const char * deviceUID,

@@ -15,6 +15,8 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
 
 /**
@@ -258,16 +260,20 @@ public class MacCoreaudioSystem
      * @param deviceUID The device identifier.
      * @param channelCount number of channel
      * @param sampleFormat sample format
+     * @param isEchoCancel True if the echo canceller is activated.
      *
      * @return a sample rate supported by the MacCoreaudio device with the
      * specified device index with which it is to be registered with JMF
      */
     private static double getSupportedSampleRate(
             boolean input,
-            String deviceUID)
+            String deviceUID,
+            boolean isEchoCancel)
     {
-        double supportedSampleRate
-            = MacCoreAudioDevice.getNominalSampleRate(deviceUID);
+        double supportedSampleRate = MacCoreAudioDevice.getNominalSampleRate(
+                deviceUID,
+                false,
+                isEchoCancel);
 
         if(supportedSampleRate >= MediaUtils.MAX_AUDIO_SAMPLE_RATE)
         {
@@ -370,7 +376,9 @@ public class MacCoreaudioSystem
     {
         super(
                 LOCATOR_PROTOCOL,
-                0 | FEATURE_NOTIFY_AND_PLAYBACK_DEVICES | FEATURE_REINITIALIZE);
+                FEATURE_NOTIFY_AND_PLAYBACK_DEVICES
+                    | FEATURE_REINITIALIZE
+                    | FEATURE_ECHO_CANCELLATION);
     }
 
     /**
@@ -489,8 +497,16 @@ public class MacCoreaudioSystem
 
                     if (id.equals(deviceUID) || id.equals(name))
                     {
-                        cdi = existingCdi;
-                        break;
+                        double rate = ((AudioFormat) existingCdi.getFormats()[0])
+                            .getSampleRate();
+                        if(rate == getSupportedSampleRate(
+                                    true,
+                                    deviceUID,
+                                    isEchoCancelActivated()))
+                        {
+                            cdi = existingCdi;
+                            break;
+                        }
                     }
                 }
             }
@@ -509,7 +525,8 @@ public class MacCoreaudioSystem
                                     isInputDevice
                                     ? getSupportedSampleRate(
                                         true,
-                                        deviceUID)
+                                        deviceUID,
+                                        isEchoCancelActivated())
                                     : MacCoreAudioDevice.DEFAULT_SAMPLE_RATE,
                                     sampleSizeInBits,
                                     channels,
@@ -779,5 +796,59 @@ public class MacCoreaudioSystem
     public String toString()
     {
         return "Core Audio";
+    }
+
+    /**
+     * Returns if the echo canceller has to be activated.
+     *
+     * @return True if the echo canceller has to be activated. False otherwise.
+     */
+    public static boolean isEchoCancelActivated()
+    {
+        boolean isEchoCancel = false;
+
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        if (cfg != null)
+            isEchoCancel = cfg.getBoolean(
+                    DeviceConfiguration.PROP_AUDIO_SYSTEM
+                    + "." + LOCATOR_PROTOCOL
+                    + "." + PNAME_ECHOCANCEL,
+                    isEchoCancel);
+
+        return isEchoCancel;
+    }
+
+    /**
+     * Gets the indicator which determines whether echo cancellation is to be
+     * performed for captured audio.
+     *
+     * @return <tt>true</tt> if echo cancellation is to be performed for
+     * captured audio; otherwise, <tt>false</tt>
+     */
+    public boolean isEchoCancel()
+    {
+        // This function is only implemented to disable by default the AEC for
+        // CoreAudio.
+        return isEchoCancelActivated();
+    }
+
+    /**
+     * Sets the indicator which determines whether echo cancellation is to be
+     * performed for captured audio.
+     *
+     * @param echoCancel <tt>true</tt> if echo cancellation is to be performed
+     * for captured audio; otherwise, <tt>false</tt>
+     */
+    public void setEchoCancel(boolean echoCancel)
+    {
+        super.setEchoCancel(echoCancel);
+        try
+        {
+            reinitialize();
+        }
+        catch(Exception ex)
+        {
+            logger.warn("Failed to reinitialize MacCoreaudio devices", ex);
+        }
     }
 }

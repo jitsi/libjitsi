@@ -50,11 +50,20 @@ public class MacCoreAudioDevice
 
     public static native byte[] getTransportTypeBytes(String deviceUID);
 
-    public static native float getNominalSampleRate(String deviceUID);
+    public static native float getNominalSampleRate(
+            String deviceUID,
+            boolean isOutputStream,
+            boolean isEchoCancel);
 
-    public static native float getMinimalNominalSampleRate(String deviceUID);
+    public static native float getMinimalNominalSampleRate(
+            String deviceUID,
+            boolean isOutputStream,
+            boolean isEchoCancel);
 
-    public static native float getMaximalNominalSampleRate(String deviceUID);
+    public static native float getMaximalNominalSampleRate(
+            String deviceUID,
+            boolean isOutputStream,
+            boolean isEchoCancel);
 
     public static String getDefaultInputDeviceUID()
     {
@@ -87,7 +96,8 @@ public class MacCoreAudioDevice
             boolean isFloat,
             boolean isBigEndian,
             boolean isNonInterleaved,
-            boolean isInput);
+            boolean isInput,
+            boolean isEchoCancel);
 
     public static native void stopStream(String deviceUID, long stream);
 
