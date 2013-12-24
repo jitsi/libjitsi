@@ -59,12 +59,15 @@ public class CoreAudioDevice
              * to not prevent the loading of its users and isLoaded will remain
              * false eventually.
              */
+            logger.info("Failed to load CoreAudioDevice library: " + npe);
         }
         catch (SecurityException se)
         {
+            logger.info("Failed to load CoreAudioDevice library: " + se);
         }
         catch (UnsatisfiedLinkError ule)
         {
+            logger.info("Failed to load CoreAudioDevice library: " + ule);
         }
 
         CoreAudioDevice.isLoaded = isLoaded;
