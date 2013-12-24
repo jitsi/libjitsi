@@ -372,7 +372,8 @@ public class MacCoreaudioStream
                         false,
                         format.getEndian() == AudioFormat.BIG_ENDIAN,
                         false,
-                        true);
+                        true,
+                        MacCoreaudioSystem.isEchoCancelActivated());
                 MacCoreaudioSystem.didOpenStream();
             }
         }

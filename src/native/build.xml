@@ -919,8 +919,8 @@
       <compilerarg value="x86_64" />
       <compilerarg value="-arch" />
       <compilerarg value="i386" />
-      <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers"
-      />
+      <compilerarg
+          value="-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers" />
 
       <linkerarg value="-o" location="end" />
       <linkerarg value="libjnmaccoreaudio.jnilib" location="end" />
@@ -934,9 +934,243 @@
       <linkerarg value="Coreaudio" />
       <linkerarg value="-framework" />
       <linkerarg value="AudioToolbox" />
+      <linkerarg value="${basedir}/${native_install_dir}/libjnwebrtc.dylib" />
+      <linkerarg
+        value="${basedir}/${native_install_dir}/libjnwebrtcaec.dylib" />
+      <linkerarg value="-lstdc++" location="end" />
 
-      <fileset dir="${src}/native/macosx/coreaudio/lib" includes="*.c"/>
+      <fileset dir="${src}/native/macosx/coreaudio/lib" includes="device.c"/>
       <fileset dir="${src}/native/macosx/coreaudio/jni" includes="*.c"/>
+    </cc>
+
+    <delete dir="${obj}" failonerror="false" />
+    <delete file="${native_install_dir}/history.xml" failonerror="false" />
+  </target>
+
+  <target name="webrtc_aec" description="Build Webrtc AEC shared library for Mac OS X" if="is.running.macos"
+    depends="init-native">
+    <fail message="webrtcSrc not set!"
+        unless="webrtcSrc" />
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnwebrtc" objdir="${obj}">
+      <!--compilerarg value="-DWEBRTC_AEC_DEBUG_DUMP" /-->
+      <compilerarg value="-DWEBRTC_MAC" />
+
+      <!--compilerarg value="-xc++" /-->
+      <compilerarg value="-Wall" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-arch" />
+      <compilerarg value="x86_64" />
+      <compilerarg value="-arch" />
+      <compilerarg value="i386" />
+      <compilerarg value="-I${basedir}/${webrtcSrc}/trunk" />
+      <compilerarg value="-I${basedir}/${webrtcSrc}/trunk/webrtc" />
+
+      <linkerarg value="-arch" />
+      <linkerarg value="x86_64" />
+      <linkerarg value="-arch" />
+      <linkerarg value="i386" />
+
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+                includes="cpu_features.cc"/>
+
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/agc/"
+                includes="*.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/aec/"
+                includes="*.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/utility/"
+                includes="*.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/vad/"
+                includes="*.c"/>
+
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/aecm/"
+			includes="aecm_core.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/aecm/"
+			includes="aecm_core_c.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/aecm/"
+			includes="echo_control_mobile.c"/>
+
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/ns/"
+			includes="noise_suppression.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/ns/"
+			includes="noise_suppression_x.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/ns/"
+			includes="ns_core.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/ns/"
+			includes="nsx_core.c"/>
+
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+      			includes="splitting_filter.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+      			includes="real_fft.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="complex_bit_reverse.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="complex_fft.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="spl_init.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="cross_correlation.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="division_operations.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="dot_product_with_scale.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="resample_by_2.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="energy.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="downsample_fast.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="auto_corr_to_refl_coef.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="auto_correlation.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="copy_set_operations.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="filter_ar.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="filter_ar_fast_q12.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="filter_ma_fast_q12.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="get_hanning_window.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="get_scaling_square.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="ilbc_specific_functions.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="levinson_durbin.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="lpc_to_refl_coef.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="min_max_operations.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="randomization_functions.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="refl_coef_to_lpc.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="resample.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="resample_48khz.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="resample_by_2_internal.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="resample_fractional.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="spl_sqrt.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="spl_sqrt_floor.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="spl_version.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="sqrt_of_one_minus_x_squared.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
+			includes="vector_scaling_operations.c"/>
+    </cc>
+
+
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnwebrtcaec" objdir="${obj}">
+      <compilerarg value="-DWEBRTC_NS_FIXED" />
+      <compilerarg value="-DWEBRTC_MAC" />
+      <compilerarg value="-DWEBRTC_CLOCK_TYPE_REALTIME" />
+
+      <compilerarg value="-xc++" />
+      <compilerarg value="-Wall" />
+      <compilerarg value="-O2" />
+      <compilerarg value="-arch" />
+      <compilerarg value="x86_64" />
+      <compilerarg value="-arch" />
+      <compilerarg value="i386" />
+      <compilerarg value="-I${basedir}/${webrtcSrc}/trunk" />
+      <compilerarg value="-I${basedir}/${webrtcSrc}/trunk/webrtc" />
+      <compilerarg
+          value="-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers" />
+
+      <linkerarg value="-arch" />
+      <linkerarg value="x86_64" />
+      <linkerarg value="-arch" />
+      <linkerarg value="i386" />
+      <linkerarg value="-lstdc++" location="end" />
+      <linkerarg value="${basedir}/${native_install_dir}/libjnwebrtc.dylib" />
+
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
+			includes="audio_buffer.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
+			includes="audio_processing_impl.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
+			includes="echo_cancellation_impl.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
+			includes="echo_control_mobile_impl.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
+			includes="gain_control_impl.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
+			includes="high_pass_filter_impl.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
+			includes="level_estimator_impl.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
+			includes="noise_suppression_impl.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
+			includes="processing_component.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
+			includes="splitting_filter.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/"
+			includes="voice_detection_impl.cc"/>
+
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+            includes="cpu_features.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="aligned_malloc.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="clock.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="condition_variable.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="condition_variable_posix.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="cpu_info.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="critical_section.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="critical_section_posix.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="data_log.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="data_log_c.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="event.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="event_posix.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="event_tracer.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="file_impl.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="list_no_stl.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="logging.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="rw_lock.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="rw_lock_generic.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="rw_lock_posix.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="sleep.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="sort.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="thread.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="thread_posix.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="tick_util.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="trace_impl.cc"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
+			includes="trace_posix.cc"/>
+
+      <fileset dir="${src}/native/macosx/coreaudio/lib/"
+            includes="libjitsi_webrtc_aec.c"/>
     </cc>
 
     <delete dir="${obj}" failonerror="false" />

@@ -94,10 +94,14 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getTransportTypeBytes
 
 JNIEXPORT jfloat JNICALL
 Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getNominalSampleRate
-  (JNIEnv *env, jclass clazz, jstring deviceUID)
+  (JNIEnv *env, jclass clazz, jstring deviceUID, jboolean isOutputStream,
+   jboolean isEchoCancel)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
-    jfloat rate = maccoreaudio_getNominalSampleRate(deviceUIDPtr);
+    jfloat rate = maccoreaudio_getNominalSampleRate(
+            deviceUIDPtr,
+            isOutputStream,
+            isEchoCancel);
     // Free
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
@@ -106,7 +110,8 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getNominalSampleRate
 
 JNIEXPORT jfloat JNICALL
 Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getMinimalNominalSampleRate
-  (JNIEnv *env, jclass clazz, jstring deviceUID)
+  (JNIEnv *env, jclass clazz, jstring deviceUID, jboolean isOutputStream,
+   jboolean isEchoCancel)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
     Float64 minRate;
@@ -114,7 +119,9 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getMinimalNominalSampleRate
     if(maccoreaudio_getAvailableNominalSampleRates(
                 deviceUIDPtr,
                 &minRate,
-                &maxRate)
+                &maxRate,
+                isOutputStream,
+                isEchoCancel)
             != noErr)
     {
         fprintf(stderr,
@@ -131,7 +138,8 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getMinimalNominalSampleRate
 
 JNIEXPORT jfloat JNICALL
 Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getMaximalNominalSampleRate
-  (JNIEnv *env, jclass clazz, jstring deviceUID)
+  (JNIEnv *env, jclass clazz, jstring deviceUID, jboolean isOutputStream,
+   jboolean isEchoCancel)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
     Float64 minRate;
@@ -139,7 +147,9 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getMaximalNominalSampleRate
     if(maccoreaudio_getAvailableNominalSampleRates(
                 deviceUIDPtr,
                 &minRate,
-                &maxRate)
+                &maxRate,
+                isOutputStream,
+                isEchoCancel)
             != noErr)
     {
         fprintf(stderr,
@@ -190,7 +200,8 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_startStream
         jboolean isFloat,
         jboolean isBigEndian,
         jboolean isNonInterleaved,
-        jboolean isInput)
+        jboolean isInput,
+        jboolean isEchoCancel)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
     jobject callbackObject = (*env)->NewGlobalRef(env, callback);
@@ -212,7 +223,8 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_startStream
                 bitsPerChannel,
                 isFloat,
                 isBigEndian,
-                isNonInterleaved);
+                isNonInterleaved,
+                isEchoCancel);
     }
     else if(!isInput && maccoreaudio_isOutputDevice(deviceUIDPtr)) // output
     {
@@ -230,7 +242,8 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_startStream
                 bitsPerChannel,
                 isFloat,
                 isBigEndian,
-                isNonInterleaved);
+                isNonInterleaved,
+                isEchoCancel);
     }
 
     // Free
