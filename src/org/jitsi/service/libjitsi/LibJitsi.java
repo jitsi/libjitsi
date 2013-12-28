@@ -279,7 +279,15 @@ public abstract class LibJitsi
         if (impl == null)
             throw new IllegalStateException("impl");
         else
+        {
             LibJitsi.impl = impl;
+
+            if (logger.isInfoEnabled())
+            {
+                logger.info("Successfully started LibJitsi using as " +
+                        "implementation: " + impl.getClass().getCanonicalName());
+            }
+        }
     }
 
     /**
