@@ -575,20 +575,21 @@
     </cc>
   </target>
 
-  <!-- compile jspeex library -->
-  <target name="speex" description="Build jspeex shared library" depends="init-native">
+  <!-- compile jnspeex library -->
+  <target name="speex" description="Build jnspeex shared library" depends="init-native">
 
     <fail message="speex repository not set!" unless="speex" />
 
-    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jspeex" objdir="${obj}">
+    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnspeex" objdir="${obj}">
       <!-- common compiler flags -->
+      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+      <compilerarg value="-I${speex}/include" />
+      <compilerarg value="-O2" />
       <compilerarg value="-std=c99" />
       <compilerarg value="-Wall" />
-      <compilerarg value="-O2" />
-      <compilerarg value="-I${speex}/include" />
-      <compilerarg value="-D_JNI_IMPLEMENTATION_" />
 
       <linkerarg value="-L${speex}/libspeex/.libs" />
+      <linkerarg value="-Wl,--no-undefined" />
 
       <!-- Linux specific flags -->
       <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
@@ -617,7 +618,7 @@
       <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
 
       <linkerarg value="-o" location="end" if="is.running.macos" />
-      <linkerarg value="libjspeex.jnilib" location="end" if="is.running.macos" />
+      <linkerarg value="libjnspeex.jnilib" location="end" if="is.running.macos" />
       <linkerarg value="-dynamiclib" if="is.running.macos" />
       <linkerarg value="-arch" if="is.running.macos" />
       <linkerarg value="x86_64" if="is.running.macos" />
@@ -630,7 +631,7 @@
       <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows" />
       <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
 
-      <linkerarg value="-ojspeex.dll" if="is.running.windows" />
+      <linkerarg value="-ojnspeex.dll" if="is.running.windows" />
       <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
       <linkerarg value="-Wl,-Bstatic" location="end" if="is.running.windows" />
       <linkerarg value="-lspeex" location="end" if="is.running.windows" />
@@ -1270,7 +1271,7 @@
     <echo message="'ant jawtrenderer' to compile jawtrenderer shared library" />
     <echo message="'ant ffmpeg' to compile ffmpeg shared library" />
     <echo message="'ant portaudio' to compile jnportaudio shared library" />
-    <echo message="'ant speex' to compile jspeex shared library" />
+    <echo message="'ant speex' to compile jnspeex shared library" />
     <echo message="'ant g722' to compile jng722 shared library" />
     <echo message="'ant hid' to compile hid shared library" />
     <echo message="'ant hwaddressretriever' to compile hwaddressretriever shared library" />
@@ -1290,7 +1291,7 @@
     <echo message="-Dlame: path to lame directory (ffmpeg JNI compilation)." />
     <echo message="-Dffmpeg: path to ffmpeg directory (ffmpeg JNI compilation)." />
     <echo message="-Dportaudio path to portaudio directory (jnportaudio JNI compilation)." />
-    <echo message="-Dspeex: path to speex directory (jnportaudio/jspeex JNI compilation)." />
+    <echo message="-Dspeex: path to speex directory (jnportaudio/jnspeex JNI compilation)." />
     <echo message="" />
     <echo message="Please note that external libraries such as ffmpeg, x264, lame, portaudio and speex have to be compiled" />
     <echo message="(follow READMEs in relevant directory) before trying to compile libffmpeg and libjnportaudio"  />
@@ -1300,4 +1301,3 @@
     <echo message="-Dportaudio=/path/to/portaudio and -Dspeex=/path/to/speex"  />
   </target>
 </project>
-
