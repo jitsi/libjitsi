@@ -15,7 +15,8 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 
 /**
- * @author Lubomir Marinov
+ *
+ * @author Lyubomir Marinov
  */
 public class JavaDecoder
     extends AbstractCodec2
@@ -123,50 +124,46 @@ public class JavaDecoder
      * Implements AbstractCodecExt#doProcess(Buffer, Buffer).
      */
     @Override
-    protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
+    protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
-        byte[] input = (byte[]) inputBuffer.getData();
+        int inLength = inBuffer.getLength();
 
-        int inputLength = inputBuffer.getLength();
-
-        if (inputLength < INPUT_FRAME_SIZE_IN_BYTES)
+        if (inLength < INPUT_FRAME_SIZE_IN_BYTES)
         {
-            discardOutputBuffer(outputBuffer);
+            discardOutputBuffer(outBuffer);
             return BUFFER_PROCESSED_OK | OUTPUT_BUFFER_NOT_FILLED;
         }
 
-        int inputOffset = inputBuffer.getOffset();
+        byte[] in = (byte[]) inBuffer.getData();
+        int inOffset = inBuffer.getOffset();
 
-        depacketize(input, inputOffset, serial);
-        inputLength -= INPUT_FRAME_SIZE_IN_BYTES;
-        inputBuffer.setLength(inputLength);
-        inputOffset += INPUT_FRAME_SIZE_IN_BYTES;
-        inputBuffer.setOffset(inputOffset);
+        depacketize(in, inOffset, serial);
+        inLength -= INPUT_FRAME_SIZE_IN_BYTES;
+        inBuffer.setLength(inLength);
+        inOffset += INPUT_FRAME_SIZE_IN_BYTES;
+        inBuffer.setOffset(inOffset);
 
         decoder.process(serial, sp16);
 
-        byte[] output
+        byte[] out
             = validateByteArraySize(
-                    outputBuffer,
-                    outputBuffer.getOffset() + OUTPUT_FRAME_SIZE_IN_BYTES,
+                    outBuffer,
+                    outBuffer.getOffset() + OUTPUT_FRAME_SIZE_IN_BYTES,
                     true);
 
-        writeShorts(sp16, output, outputBuffer.getOffset());
-        outputBuffer.setLength(OUTPUT_FRAME_SIZE_IN_BYTES);
+        writeShorts(sp16, out, outBuffer.getOffset());
+        outBuffer.setLength(OUTPUT_FRAME_SIZE_IN_BYTES);
 
-        int processResult = BUFFER_PROCESSED_OK;
+        int ret = BUFFER_PROCESSED_OK;
 
-        if (inputLength > 0)
-            processResult |= INPUT_BUFFER_NOT_CONSUMED;
-        return processResult;
+        if (inLength > 0)
+            ret |= INPUT_BUFFER_NOT_CONSUMED;
+        return ret;
     }
 
-    private static void writeShorts(
-        short[] input,
-        byte[] output,
-        int outputOffset)
+    private static void writeShorts(short[] in, byte[] out, int outOffset)
     {
-        for (int i=0, o=outputOffset; i<input.length; i++, o+=2)
-            ArrayIOUtils.writeShort(input[i], output, o);
+        for (int i = 0, o = outOffset; i < in.length; i++, o += 2)
+            ArrayIOUtils.writeShort(in[i], out, o);
     }
 }

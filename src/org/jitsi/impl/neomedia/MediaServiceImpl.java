@@ -248,7 +248,6 @@ public class MediaServiceImpl
         currentEncodingConfiguration
              = new EncodingConfigurationConfigImpl(ENCODING_CONFIG_PROP_PREFIX);
 
-
         /*
          * Perform one-time initialization after initializing the first instance
          * of MediaServiceImpl.
@@ -1515,11 +1514,10 @@ public class MediaServiceImpl
     private static void setupFMJ()
     {
         /*
-         * FMJ now uses java.util.logging.Logger, but only logs if
-         * "allowLogging" is set in it's registry. Since the levels can be
-         * configured through properties for the net.sf.fmj.media.Log class,
-         * we always enable this (as opposed to only enabling it when
-         * <tt>this.logger</tt> has debug enabled).
+         * FMJ now uses java.util.logging.Logger, but only logs if allowLogging
+         * is set in its registry. Since the levels can be configured through
+         * properties for the net.sf.fmj.media.Log class, we always enable this
+         * (as opposed to only enabling it when this.logger has debug enabled).
          */
         Registry.set("allowLogging", true);
 
@@ -1544,7 +1542,7 @@ public class MediaServiceImpl
         {
             String scHomeDirName
                 = System.getProperty(
-                    ConfigurationService.PNAME_SC_HOME_DIR_NAME);
+                        ConfigurationService.PNAME_SC_HOME_DIR_NAME);
 
             if (scHomeDirName != null)
             {
@@ -1552,8 +1550,8 @@ public class MediaServiceImpl
 
                 /* Write FMJ's log in Jitsi's log directory. */
                 Registry.set(
-                    "secure.logDir",
-                    new File(scHomeDir, "log").getPath());
+                        "secure.logDir",
+                        new File(scHomeDir, "log").getPath());
 
                 /* Write FMJ's registry in Jitsi's user data directory. */
                 String jmfRegistryFilename
@@ -1562,8 +1560,9 @@ public class MediaServiceImpl
                 if (System.getProperty(jmfRegistryFilename) == null)
                 {
                     System.setProperty(
-                        jmfRegistryFilename,
-                        new File(scHomeDir, ".fmj.registry").getAbsolutePath());
+                            jmfRegistryFilename,
+                            new File(scHomeDir, ".fmj.registry")
+                                .getAbsolutePath());
                 }
             }
         }

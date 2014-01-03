@@ -1446,7 +1446,9 @@ public class WASAPIRenderer
                                 written = toWrite;
                             }
                             else
+                            {
                                 written = 0;
+                            }
                         }
                         if (written != 0)
                         {

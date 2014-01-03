@@ -831,7 +831,9 @@ public class WASAPIStream
         catch (Throwable t)
         {
             if (t instanceof ThreadDeath)
+            {
                 throw (ThreadDeath) t;
+            }
             else
             {
                 logger.error(
@@ -839,7 +841,9 @@ public class WASAPIStream
                             + " to an audio endpoint device.",
                         t);
                 if (t instanceof IOException)
+                {
                     throw (IOException) t;
+                }
                 else
                 {
                     IOException ioe = new IOException();
@@ -2329,7 +2333,9 @@ public class WASAPIStream
         Codec resampler = this.resampler;
 
         if (resampler == null)
+        {
             doRead(buffer);
+        }
         else
         {
             Buffer resamplerBuffer = this.resamplerBuffer;

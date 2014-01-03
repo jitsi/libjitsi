@@ -32,6 +32,12 @@ public abstract class AbstractAudioRenderer<T extends AudioSystem>
     extends AbstractRenderer<AudioFormat>
 {
     /**
+     * The byte order of the running Java virtual machine expressed in the
+     * <tt>endian</tt> term of {@link AudioFormat}.
+     */
+    public static final int JAVA_AUDIO_FORMAT_ENDIAN = AudioFormat.BIG_ENDIAN;
+
+    /**
      * The native byte order of the hardware upon which this Java virtual
      * machine is running expressed in the <tt>endian</tt> term of
      * {@link AudioFormat}.

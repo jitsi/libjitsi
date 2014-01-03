@@ -276,8 +276,10 @@ public class AudioMixerMediaDevice
             = localUserAudioLevelListeners.size();
 
         for(int i = 0; i < localUserAudioLevelListenerCount; i++)
+        {
             localUserAudioLevelListeners.get(i).listener.audioLevelChanged(
                     level);
+        }
     }
 
     /**
@@ -310,9 +312,10 @@ public class AudioMixerMediaDevice
                 }
 
                 @Override
-                protected void read( PushBufferStream stream,
-                                     Buffer buffer,
-                                     DataSource dataSource)
+                protected void read(
+                        PushBufferStream stream,
+                        Buffer buffer,
+                        DataSource dataSource)
                     throws IOException
                 {
                     super.read(stream, buffer, dataSource);
