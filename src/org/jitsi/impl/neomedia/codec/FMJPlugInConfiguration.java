@@ -34,8 +34,12 @@ public class FMJPlugInConfiguration
     private static final String[] CUSTOM_CODECS
         = {
 //            "org.jitsi.impl.neomedia.codec.AndroidMediaCodec",
-            "org.jitsi.impl.neomedia.codec.video.AndroidEncoder",
-            "org.jitsi.impl.neomedia.codec.video.AndroidDecoder",
+            OSUtils.IS_ANDROID
+                ? "org.jitsi.impl.neomedia.codec.video.AndroidEncoder"
+                : null,
+            OSUtils.IS_ANDROID
+                ? "org.jitsi.impl.neomedia.codec.video.AndroidDecoder"
+                : null,
             "org.jitsi.impl.neomedia.codec.audio.alaw.DePacketizer",
             "org.jitsi.impl.neomedia.codec.audio.alaw.JavaEncoder",
             "org.jitsi.impl.neomedia.codec.audio.alaw.Packetizer",
@@ -47,20 +51,20 @@ public class FMJPlugInConfiguration
             "org.jitsi.impl.neomedia.codec.audio.speex.JNIDecoder",
             "org.jitsi.impl.neomedia.codec.audio.speex.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.audio.speex.SpeexResampler",
-            // MP3 encoder is not built for Android yet
-            !OSUtils.IS_ANDROID
-                    ? "org.jitsi.impl.neomedia.codec.audio.mp3.JNIEncoder"
-                    : null,
+            // The MP3 encoder is not built for Android yet.
+            OSUtils.IS_ANDROID
+                ? null
+                : "org.jitsi.impl.neomedia.codec.audio.mp3.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.audio.ilbc.JavaDecoder",
             "org.jitsi.impl.neomedia.codec.audio.ilbc.JavaEncoder",
             EncodingConfigurationImpl.G729
-                    ? "org.jitsi.impl.neomedia.codec.audio.g729.JavaDecoder"
-                    : null,
+                ? "org.jitsi.impl.neomedia.codec.audio.g729.JavaDecoder"
+                : null,
             EncodingConfigurationImpl.G729
-                    ? "org.jitsi.impl.neomedia.codec.audio.g729.JavaEncoder"
-                    : null,
-            "net.java.sip.communicator.impl.neomedia.codec.audio.g722.JNIDecoder",
-            "net.java.sip.communicator.impl.neomedia.codec.audio.g722.JNIEncoder",
+                ? "org.jitsi.impl.neomedia.codec.audio.g729.JavaEncoder"
+                : null,
+            "org.jitsi.impl.neomedia.codec.audio.g722.JNIDecoder",
+            "org.jitsi.impl.neomedia.codec.audio.g722.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.audio.gsm.Decoder",
             "org.jitsi.impl.neomedia.codec.audio.gsm.Encoder",
             "org.jitsi.impl.neomedia.codec.audio.gsm.DePacketizer",
@@ -78,13 +82,13 @@ public class FMJPlugInConfiguration
             "org.jitsi.impl.neomedia.codec.video.SwScale",
             "org.jitsi.impl.neomedia.codec.video.vp8.Packetizer",
             "org.jitsi.impl.neomedia.codec.video.vp8.DePacketizer",
-            // TODO: change once VP8 software codec is built for Android
-            !OSUtils.IS_ANDROID
-                    ? "org.jitsi.impl.neomedia.codec.video.vp8.VPXEncoder"
-                    : null,
-            !OSUtils.IS_ANDROID
-                    ? "org.jitsi.impl.neomedia.codec.video.vp8.VPXDecoder"
-                    : null
+            // TODO The VP8 codec is not built for Android yet.
+            OSUtils.IS_ANDROID
+                ? null
+                : "org.jitsi.impl.neomedia.codec.video.vp8.VPXEncoder",
+            OSUtils.IS_ANDROID
+                ? null
+                : "org.jitsi.impl.neomedia.codec.video.vp8.VPXDecoder"
         };
 
     /**
@@ -121,11 +125,11 @@ public class FMJPlugInConfiguration
         // Register the custom codecs which haven't already been registered.
         @SuppressWarnings("unchecked")
         Collection<String> registeredPlugins
-                = new HashSet<String>(
-                PlugInManager.getPlugInList(
-                        null,
-                        null,
-                        PlugInManager.CODEC));
+            = new HashSet<String>(
+                    PlugInManager.getPlugInList(
+                            null,
+                            null,
+                            PlugInManager.CODEC));
         boolean commit = false;
 
         // Remove JavaRGBToYUV.
@@ -150,8 +154,8 @@ public class FMJPlugInConfiguration
         // Remove JMF's GSM codec. As working only on some OS.
         String gsmCodecPackage = "com.ibm.media.codec.audio.gsm.";
         String[] gsmCodecClasses
-                = new String[]
-                {
+            = new String[]
+                    {
                         "JavaDecoder",
                         "JavaDecoder_ms",
                         "JavaEncoder",
@@ -161,7 +165,7 @@ public class FMJPlugInConfiguration
                         "NativeEncoder",
                         "NativeEncoder_ms",
                         "Packetizer"
-                };
+                    };
         for(String gsmCodecClass : gsmCodecClasses)
         {
             PlugInManager.removePlugIn(
@@ -190,8 +194,10 @@ public class FMJPlugInConfiguration
             if (registeredPlugins.contains(className))
             {
                 if (logger.isDebugEnabled())
+                {
                     logger.debug(
                             "Codec " + className + " is already registered");
+                }
             }
             else
             {
@@ -202,8 +208,8 @@ public class FMJPlugInConfiguration
 
                 try
                 {
-                    Codec codec = (Codec)
-                            Class.forName(className).newInstance();
+                    Codec codec
+                        = (Codec) Class.forName(className).newInstance();
 
                     registered =
                             PlugInManager.addPlugIn(
@@ -219,24 +225,19 @@ public class FMJPlugInConfiguration
                 }
                 if (registered)
                 {
-                    if (logger.isDebugEnabled())
+                    if (logger.isTraceEnabled())
                     {
-                        logger.debug(
-                                "Codec "
-                                    + className
+                        logger.trace(
+                                "Codec " + className
                                     + " is successfully registered");
                     }
                 }
                 else
                 {
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug(
-                                "Codec "
-                                    + className
-                                    + " is NOT successfully registered",
-                                exception);
-                    }
+                    logger.warn(
+                            "Codec " + className
+                                + " is NOT successfully registered",
+                            exception);
                 }
             }
         }
@@ -247,7 +248,7 @@ public class FMJPlugInConfiguration
          */
         @SuppressWarnings("unchecked")
         Vector<String> codecs
-                = PlugInManager.getPlugInList(null, null, PlugInManager.CODEC);
+            = PlugInManager.getPlugInList(null, null, PlugInManager.CODEC);
 
         if (codecs != null)
         {
