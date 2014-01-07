@@ -1323,7 +1323,7 @@ public class ConfigurationServiceImpl
         return value != null ? value : defaultValue;
     }
 
-    /*
+    /**
      * Implements ConfigurationService#getBoolean(String, boolean).
      */
     public boolean getBoolean(String propertyName, boolean defaultValue)
