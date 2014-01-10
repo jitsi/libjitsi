@@ -5,7 +5,7 @@
  * See terms of license at gnu.org.
  */
 
-#include "org_jitsi_impl_neomedia_CoreAudioDevice.h"
+#include "org_jitsi_impl_neomedia_device_CoreAudioDevice.h"
 
 #include "../lib/device.h"
 
@@ -22,21 +22,21 @@ static jbyteArray getStrBytes(JNIEnv *env, const char *str);
 // Implementation
 
 JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_CoreAudioDevice_initDevices
+Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_initDevices
   (JNIEnv *env, jclass clazz)
 {
     return initDevices();
 }
 
 JNIEXPORT void JNICALL
-Java_org_jitsi_impl_neomedia_CoreAudioDevice_freeDevices
+Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_freeDevices
   (JNIEnv *env, jclass clazz)
 {
     freeDevices();
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDeviceNameBytes
+Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_getDeviceNameBytes
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = env->GetStringUTFChars(deviceUID, 0);
@@ -50,7 +50,7 @@ Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDeviceNameBytes
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDeviceModelIdentifierBytes
+Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_getDeviceModelIdentifierBytes
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = env->GetStringUTFChars(deviceUID, 0);
@@ -65,7 +65,7 @@ Java_org_jitsi_impl_neomedia_CoreAudioDevice_getDeviceModelIdentifierBytes
 }
 
 JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_CoreAudioDevice_setInputDeviceVolume
+Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_setInputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID, jfloat volume)
 {
     const char * deviceUIDPtr = env->GetStringUTFChars(deviceUID, 0);
@@ -77,7 +77,7 @@ Java_org_jitsi_impl_neomedia_CoreAudioDevice_setInputDeviceVolume
 }
 
 JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_CoreAudioDevice_setOutputDeviceVolume
+Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_setOutputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID, jfloat volume)
 {
     const char * deviceUIDPtr = env->GetStringUTFChars(deviceUID, 0);
@@ -89,7 +89,7 @@ Java_org_jitsi_impl_neomedia_CoreAudioDevice_setOutputDeviceVolume
 }
 
 JNIEXPORT jfloat JNICALL
-Java_org_jitsi_impl_neomedia_CoreAudioDevice_getInputDeviceVolume
+Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_getInputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = env->GetStringUTFChars(deviceUID, 0);
@@ -101,7 +101,7 @@ Java_org_jitsi_impl_neomedia_CoreAudioDevice_getInputDeviceVolume
 }
 
 JNIEXPORT jfloat JNICALL
-Java_org_jitsi_impl_neomedia_CoreAudioDevice_getOutputDeviceVolume
+Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_getOutputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = env->GetStringUTFChars(deviceUID, 0);

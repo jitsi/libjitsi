@@ -5,7 +5,7 @@
  * See terms of license at gnu.org.
  */
 
-#include "org_jitsi_impl_neomedia_MacCoreAudioDevice.h"
+#include "org_jitsi_impl_neomedia_device_MacCoreAudioDevice.h"
 
 #include "../lib/device.h"
 #include "maccoreaudio_util.h"
@@ -19,7 +19,7 @@
 // Implementation
 
 JNIEXPORT jobjectArray JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getDeviceUIDList
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_getDeviceUIDList
   (JNIEnv *env, jclass clazz)
 {
     jobjectArray javaDeviceUIDList = NULL;
@@ -55,7 +55,7 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getDeviceUIDList
 }
 
 JNIEXPORT jboolean JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_isInputDevice
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_isInputDevice
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
@@ -67,7 +67,7 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_isInputDevice
 }
 
 JNIEXPORT jboolean JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_isOutputDevice
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_isOutputDevice
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
@@ -79,7 +79,7 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_isOutputDevice
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getTransportTypeBytes
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_getTransportTypeBytes
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
@@ -93,7 +93,7 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getTransportTypeBytes
 }
 
 JNIEXPORT jfloat JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getNominalSampleRate
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_getNominalSampleRate
   (JNIEnv *env, jclass clazz, jstring deviceUID, jboolean isOutputStream,
    jboolean isEchoCancel)
 {
@@ -109,7 +109,7 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getNominalSampleRate
 }
 
 JNIEXPORT jfloat JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getMinimalNominalSampleRate
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_getMinimalNominalSampleRate
   (JNIEnv *env, jclass clazz, jstring deviceUID, jboolean isOutputStream,
    jboolean isEchoCancel)
 {
@@ -137,7 +137,7 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getMinimalNominalSampleRate
 }
 
 JNIEXPORT jfloat JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getMaximalNominalSampleRate
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_getMaximalNominalSampleRate
   (JNIEnv *env, jclass clazz, jstring deviceUID, jboolean isOutputStream,
    jboolean isEchoCancel)
 {
@@ -165,7 +165,7 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getMaximalNominalSampleRate
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getDefaultInputDeviceUIDBytes
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_getDefaultInputDeviceUIDBytes
   (JNIEnv *env, jclass clazz)
 {
     char* defaultInputDeviceUID = maccoreaudio_getDefaultInputDeviceUID();
@@ -178,7 +178,7 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getDefaultInputDeviceUIDBytes
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getDefaultOutputDeviceUIDBytes
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_getDefaultOutputDeviceUIDBytes
   (JNIEnv *env, jclass clazz)
 {
     char* defaultOutputDeviceUID
@@ -192,7 +192,7 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_getDefaultOutputDeviceUIDBytes
 }
 
 JNIEXPORT jlong JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_startStream
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_startStream
   (JNIEnv *env, jclass clazz, jstring deviceUID, jobject callback,
         jfloat sampleRate,
         jint nbChannels,
@@ -253,21 +253,22 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_startStream
 }
 
 JNIEXPORT void JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_stopStream
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_stopStream
   (JNIEnv *env, jclass clazz, jstring deviceUID, jlong streamPtr)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
     maccoreaudio_stream * stream = (maccoreaudio_stream*) (long) streamPtr;
+    jobject callbackObject = stream->callbackObject;
 
     maccoreaudio_stopStream(deviceUIDPtr, stream);
 
     // Free
+    (*env)->DeleteGlobalRef(env, callbackObject);
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
-    (*env)->DeleteGlobalRef(env, stream->callbackObject);
 }
 
 JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_countInputChannels
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_countInputChannels
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
@@ -279,7 +280,7 @@ Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_countInputChannels
 }
 
 JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_MacCoreAudioDevice_countOutputChannels
+Java_org_jitsi_impl_neomedia_device_MacCoreAudioDevice_countOutputChannels
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);

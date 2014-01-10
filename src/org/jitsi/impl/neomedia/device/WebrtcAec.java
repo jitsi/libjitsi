@@ -28,7 +28,7 @@ public class WebrtcAec
 
 
     /**
-     * Loads CoreAudioDevice if we are using MacOsX or Windows Vista/7/8.
+     * Loads WebrtcAec if we are using MacOsX.
      */
     static
     {

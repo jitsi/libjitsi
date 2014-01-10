@@ -103,6 +103,7 @@ jmethodID maccoreaudio_getCallbackMethodID(
                     callbackClass,
                     callbackFunctionName,
                     "([BI)V");
+            (*env)->DeleteLocalRef(env, callbackClass);
         }
     }
 
@@ -145,6 +146,7 @@ void maccoreaudio_callbackMethod(
         jbyte* bytes = (*env)->GetByteArrayElements(env, bufferBytes, NULL);
         memcpy(buffer, bytes, bufferLength);
         (*env)->ReleaseByteArrayElements(env, bufferBytes, bytes, 0);
+        (*env)->DeleteLocalRef(env, bufferBytes);
 
         (*maccoreaudio_VM)->DetachCurrentThread(maccoreaudio_VM);
     }
@@ -193,7 +195,7 @@ void maccoreaudio_initHotplug(
         {
             jclass devicesChangedCallbackClass = (*env)->FindClass(
                     env,
-                    "org/jitsi/impl/neomedia/CoreAudioDevice");
+                    "org/jitsi/impl/neomedia/device/CoreAudioDevice");
 
             if (devicesChangedCallbackClass)
             {
@@ -269,7 +271,7 @@ void maccoreaudio_log(
     {
         jclass clazz = (*env)->FindClass(
                 env,
-                "org/jitsi/impl/neomedia/CoreAudioDevice");
+                "org/jitsi/impl/neomedia/device/CoreAudioDevice");
         if (clazz)
         {
             jmethodID methodID
