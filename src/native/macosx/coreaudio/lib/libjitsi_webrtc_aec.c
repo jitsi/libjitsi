@@ -498,6 +498,8 @@ libjitsi_webrtc_aec_process(
     }
     aec->dataProcessed[isRenderStream] = start;
 
+    delete(frame);
+
     if(init)
     {
         return start;

@@ -4,7 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.impl.neomedia;
+package org.jitsi.impl.neomedia.device;
 
 import org.jitsi.util.*;
 
@@ -59,15 +59,15 @@ public class CoreAudioDevice
              * to not prevent the loading of its users and isLoaded will remain
              * false eventually.
              */
-            logger.info("Failed to load CoreAudioDevice library: " + npe);
+            logger.info("Failed to load CoreAudioDevice library: ", npe);
         }
         catch (SecurityException se)
         {
-            logger.info("Failed to load CoreAudioDevice library: " + se);
+            logger.info("Failed to load CoreAudioDevice library: ", se);
         }
         catch (UnsatisfiedLinkError ule)
         {
-            logger.info("Failed to load CoreAudioDevice library: " + ule);
+            logger.info("Failed to load CoreAudioDevice library: ", ule);
         }
 
         CoreAudioDevice.isLoaded = isLoaded;

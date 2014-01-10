@@ -4,7 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.impl.neomedia;
+package org.jitsi.impl.neomedia.device;
 
 import org.jitsi.util.*;
 
@@ -28,7 +28,7 @@ public class WebrtcAec
 
 
     /**
-     * Loads CoreAudioDevice if we are using MacOsX or Windows Vista/7/8.
+     * Loads WebrtcAec if we are using MacOsX.
      */
     static
     {
@@ -43,15 +43,15 @@ public class WebrtcAec
             // System.loadLibrary() because the class has to be loaded in order
             // to not prevent the loading of its users and isLoaded will remain
             // false eventually.
-            logger.info("Failed to load WebrtcAec library: " + npe);
+            logger.info("Failed to load WebrtcAec library: ", npe);
         }
         catch (SecurityException se)
         {
-            logger.info("Failed to load WebrtcAec library: " + se);
+            logger.info("Failed to load WebrtcAec library: ", se);
         }
         catch (UnsatisfiedLinkError ule)
         {
-            logger.info("Failed to load WebrtcAec library: " + ule);
+            logger.info("Failed to load WebrtcAec library: ", ule);
         }
     }
 

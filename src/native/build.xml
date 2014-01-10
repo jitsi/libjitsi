@@ -944,6 +944,20 @@
       <fileset dir="${src}/native/macosx/coreaudio/jni" includes="*.c"/>
     </cc>
 
+    <!-- Use "otool -L" to check the changes -->
+    <exec executable="install_name_tool">
+        <arg value="-change" />
+        <arg value="libjnwebrtc.dylib" />
+        <arg value="${native_install_dir}/libjnwebrtc.dylib" />
+        <arg value="${native_install_dir}/libjnmaccoreaudio.jnilib" />
+    </exec>
+    <exec executable="install_name_tool">
+        <arg value="-change" />
+        <arg value="libjnwebrtcaec.dylib" />
+        <arg value="${native_install_dir}/libjnwebrtcaec.dylib" />
+        <arg value="${native_install_dir}/libjnmaccoreaudio.jnilib" />
+    </exec>
+
     <delete dir="${obj}" failonerror="false" />
     <delete file="${native_install_dir}/history.xml" failonerror="false" />
   </target>
@@ -1173,6 +1187,13 @@
       <fileset dir="${src}/native/macosx/coreaudio/lib/"
             includes="libjitsi_webrtc_aec.c"/>
     </cc>
+
+    <exec executable="install_name_tool">
+        <arg value="-change" />
+        <arg value="libjnwebrtc.dylib" />
+        <arg value="${native_install_dir}/libjnwebrtc.dylib" />
+        <arg value="${native_install_dir}/libjnwebrtcaec.dylib" />
+    </exec>
 
     <delete dir="${obj}" failonerror="false" />
     <delete file="${native_install_dir}/history.xml" failonerror="false" />
