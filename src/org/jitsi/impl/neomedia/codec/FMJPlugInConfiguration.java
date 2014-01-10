@@ -63,8 +63,8 @@ public class FMJPlugInConfiguration
             EncodingConfigurationImpl.G729
                 ? "org.jitsi.impl.neomedia.codec.audio.g729.JavaEncoder"
                 : null,
-            "org.jitsi.impl.neomedia.codec.audio.g722.JNIDecoder",
-            "org.jitsi.impl.neomedia.codec.audio.g722.JNIEncoder",
+            "net.java.sip.communicator.impl.neomedia.codec.audio.g722.JNIDecoder",
+            "net.java.sip.communicator.impl.neomedia.codec.audio.g722.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.audio.gsm.Decoder",
             "org.jitsi.impl.neomedia.codec.audio.gsm.Encoder",
             "org.jitsi.impl.neomedia.codec.audio.gsm.DePacketizer",
