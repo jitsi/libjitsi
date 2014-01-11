@@ -153,7 +153,7 @@ public class RawPacket
     }
 
     /**
-     * Sets the payload of this packet.
+     * Sets the payload type of this packet.
      *
      * @param payload the RTP payload type describing the content of this
      * packet.
@@ -174,7 +174,7 @@ public class RawPacket
      */
     public long getTimestamp()
     {
-        return readInt(offset + 4);
+        return readInt(4);
     }
 
     /**
@@ -184,7 +184,7 @@ public class RawPacket
      */
     public void setTimestamp(long timestamp)
     {
-        writeInt(offset + 4, (int)timestamp);
+        writeInt(4, (int)timestamp);
     }
 
     /**
@@ -556,9 +556,9 @@ public class RawPacket
         return readInt(offset);
     }
     /**
-     * Test whether if a RTP packet is padded
+     * Test whether the RTP Marker bit is set
      *
-     * @return whether if source RTP packet is padded
+     * @return whether the RTP Marker bit is set
      */
     public boolean isPacketMarked()
     {
