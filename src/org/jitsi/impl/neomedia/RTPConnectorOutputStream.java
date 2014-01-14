@@ -21,6 +21,7 @@ import org.jitsi.util.*;
 /**
  * @author Bing SU (nova.su@gmail.com)
  * @author Lyubomir Marinov
+ * @author Boris Grozev
  */
 public abstract class RTPConnectorOutputStream
     implements OutputDataStream
@@ -65,6 +66,14 @@ public abstract class RTPConnectorOutputStream
         = new LinkedBlockingQueue<RawPacket>();
 
     /**
+     * The pool of <tt>RawPacket[]</tt> instances which reduces the number of
+     * allocations performed by {@link #createRawPacket(byte[], int, int)}.
+     * Always contains arrays full with <tt>null</tt>
+     */
+    private final LinkedBlockingQueue<RawPacket[]> rawPacketArrayPool
+        = new LinkedBlockingQueue<RawPacket[]>();
+
+    /**
      * Used for debugging. As we don't log every packet
      * we must count them and decide which to log.
      */
@@ -107,44 +116,57 @@ public abstract class RTPConnectorOutputStream
     }
 
     /**
-     * Creates a new <tt>RawPacket</tt> from a specific <tt>byte[]</tt> buffer
-     * in order to have this instance send its packet data through its
-     * {@link #write(byte[], int, int)} method. Allows extenders to intercept
-     * the packet data and possibly filter and/or modify it.
+     * Creates a <tt>RawPacket</tt> element from a specific <tt>byte[]</tt>
+     * buffer in order to have this instance send its packet data through its
+     * {@link #write(byte[], int, int)} method. Returns an array of one or more
+     * elements, with the created <tt>RawPacket</tt> as its first element (and
+     * <tt>null</tt> for all other elements)
+     *
+     * Allows extenders to intercept the array and possibly filter and/or
+     * modify it.
      *
      * @param buffer the packet data to be sent to the targets of this instance
      * @param offset the offset of the packet data in <tt>buffer</tt>
      * @param length the length of the packet data in <tt>buffer</tt>
-     * @return a new <tt>RawPacket</tt> containing the packet data of the
-     * specified <tt>byte[]</tt> buffer or possibly its modification;
-     * <tt>null</tt> to ignore the packet data of the specified <tt>byte[]</tt>
-     * buffer and not send it to the targets of this instance through its
-     * {@link #write(byte[], int, int)} method
+     * @return an array with a single <tt>RawPacket</tt> containing the packet
+     * data of the specified <tt>byte[]</tt> buffer.
      */
-    protected RawPacket createRawPacket(byte[] buffer, int offset, int length)
+    protected RawPacket[] createRawPacket(byte[] buffer, int offset, int length)
     {
+        // get an array (full with null-s) from the pool or create a new one
+        RawPacket[] pkts = rawPacketArrayPool.poll();
+        if (pkts == null)
+            pkts = new RawPacket[1];
+
         RawPacket pkt = rawPacketPool.poll();
         byte[] pktBuffer;
 
-        if ((pkt == null) || ((pktBuffer = pkt.getBuffer()).length < length))
+        if (pkt == null)
         {
-            /*
-             * XXX It may be argued that if pkt.buffer.length is insufficient
-             * once, it will be insufficient more than once. That is why pkt is
-             * not being returned to the pool.
-             */
-
             pktBuffer = new byte[length];
-            pkt = new RawPacket(pktBuffer, 0, length);
+            pkt = new RawPacket();
         }
         else
-        {
             pktBuffer = pkt.getBuffer();
-            pkt.setLength(length);
-            pkt.setOffset(0);
+
+        if (pktBuffer.length < length)
+        {
+            /*
+             * XXX It may be argued that if the buffer length is insufficient
+             * once, it will be insufficient more than once. That is why we
+             * recreate it without returning a packet to the pool.
+             */
+            pktBuffer = new byte[length];
         }
+
+        pkt.setBuffer(pktBuffer);
+        pkt.setLength(length);
+        pkt.setOffset(0);
+
         System.arraycopy(buffer, offset, pktBuffer, 0, length);
-        return pkt;
+
+        pkts[0] = pkt;
+        return pkts;
     }
 
     /**
@@ -336,23 +358,40 @@ public abstract class RTPConnectorOutputStream
         if (logger.isDebugEnabled() && targets.isEmpty())
             logger.debug("Write called without targets!", new Throwable());
 
-        RawPacket packet = createRawPacket(buffer, offset, length);
-
-        /*
-         * If we got extended, the delivery of the packet may have been
-         * canceled.
-         */
-        if (packet != null)
+        // get the array of RawPackets we need to send
+        RawPacket[] pkts = createRawPacket(buffer, offset, length);
+        boolean fail = false;
+        for(int i = 0; i < pkts.length; i++)
         {
-            if (maxPacketsPerMillisPolicy == null)
+            RawPacket pkt = pkts[i];
+            pkts[i] = null; //clear the array before returning to the pool
+            /*
+             * If we got extended, the delivery of the packet may have been
+             * canceled.
+             */
+            if (pkt != null && !fail)
             {
-                if (!send(packet))
-                    return -1;
+                if (maxPacketsPerMillisPolicy == null)
+                {
+                    if (!send(pkt))
+                    {
+                        //skip sending the rest, but return them to the pool
+                        fail = true;
+                    }
+                }
+                else
+                {
+                    maxPacketsPerMillisPolicy.write(pkt);
+                }
             }
-            else
-                maxPacketsPerMillisPolicy.write(packet);
+
+            if (pkt != null)
+                rawPacketPool.offer(pkt);
         }
-        return length;
+
+        rawPacketArrayPool.offer(pkts);
+
+        return fail ? -1 : length;
     }
 
     /**

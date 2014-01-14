@@ -19,7 +19,7 @@ import org.jitsi.impl.neomedia.transform.*;
  * @author Werner Dittmann &lt;Werner.Dittmann@t-online.de>
  */
 public class SRTCPTransformer
-    implements PacketTransformer
+    extends SinglePacketTransformer
 {
     private final SRTPContextFactory forwardFactory;
     private final SRTPContextFactory reverseFactory;

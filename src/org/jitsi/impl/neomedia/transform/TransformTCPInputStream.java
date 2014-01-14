@@ -57,12 +57,12 @@ public class TransformTCPInputStream
      * @see RTPConnectorInputStream#createRawPacket(DatagramPacket)
      */
     @Override
-    protected RawPacket createRawPacket(DatagramPacket datagramPacket)
+    protected RawPacket[] createRawPacket(DatagramPacket datagramPacket)
     {
         PacketTransformer transformer = getTransformer();
-        RawPacket pkt = super.createRawPacket(datagramPacket);
+        RawPacket[] pkts = super.createRawPacket(datagramPacket);
 
-        return (transformer == null) ? pkt : transformer.reverseTransform(pkt);
+        return (transformer == null) ? pkts : transformer.reverseTransform(pkts);
     }
 
     /**

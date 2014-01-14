@@ -24,8 +24,8 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  */
 public class StatisticsEngine
-    implements TransformEngine,
-               PacketTransformer
+    extends SinglePacketTransformer
+    implements TransformEngine
 {
     /**
      * The <tt>Logger</tt> used by the <tt>StatisticsEngine</tt> class and its

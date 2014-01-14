@@ -41,10 +41,10 @@ public class TransformUDPOutputStream
     }
 
     /**
-     * Creates a new <tt>RawPacket</tt> from a specific <tt>byte[]</tt> buffer
-     * in order to have this instance send its packet data through its
-     * {@link #write(byte[], int, int)} method. Transforms the packet to be
-     * sent.
+     * Creates a new array of <tt>RawPacket</tt> from a specific <tt>byte[]</tt>
+     * buffer in order to have this instance send its packet data through its
+     * {@link #write(byte[], int, int)} method. Transforms the array of packets
+     * using a <tt>PacketTransformer</tt>.
      *
      * @param buffer the packet data to be sent to the targets of this instance
      * @param offset the offset of the packet data in <tt>buffer</tt>
@@ -57,14 +57,14 @@ public class TransformUDPOutputStream
      * @see RTPConnectorOutputStream#createRawPacket(byte[], int, int)
      */
     @Override
-    protected RawPacket createRawPacket(byte[] buffer, int offset, int length)
+    protected RawPacket[] createRawPacket(byte[] buffer, int offset, int length)
     {
-        RawPacket pkt = super.createRawPacket(buffer, offset, length);
+        RawPacket[] pkts = super.createRawPacket(buffer, offset, length);
         PacketTransformer transformer = getTransformer();
 
         if (transformer != null)
         {
-            pkt = transformer.transform(pkt);
+            pkts = transformer.transform(pkts);
 
             /*
              * XXX Allow transformer to abort the writing of buffer by not
@@ -72,7 +72,7 @@ public class TransformUDPOutputStream
              * transform.
              */
         }
-        return pkt;
+        return pkts;
     }
 
     /**

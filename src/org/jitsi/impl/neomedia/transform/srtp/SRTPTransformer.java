@@ -42,7 +42,7 @@ import org.jitsi.impl.neomedia.transform.*;
  * @author Bing SU (nova.su@gmail.com)
  */
 public class SRTPTransformer
-    implements PacketTransformer
+    extends SinglePacketTransformer
 {
     private final SRTPContextFactory forwardFactory;
     private final SRTPContextFactory reverseFactory;

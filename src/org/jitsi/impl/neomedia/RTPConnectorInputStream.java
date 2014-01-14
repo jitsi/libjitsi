@@ -21,6 +21,7 @@ import org.jitsi.util.*;
 /**
  * @author Bing SU (nova.su@gmail.com)
  * @author Lyubomir Marinov
+ * @author Boris Grozev
  */
 public abstract class RTPConnectorInputStream
     implements PushSourceStream,
@@ -88,6 +89,13 @@ public abstract class RTPConnectorInputStream
         = new LinkedBlockingQueue<RawPacket>();
 
     /**
+     * The pool of <tt>RawPacket[]</tt> instances to reduce their allocations
+     * and garbage collection. Contains arrays full of <tt>null</tt>.
+     */
+    private final Queue<RawPacket[]> rawPacketArrayPool
+            = new LinkedBlockingQueue<RawPacket[]>();
+
+    /**
      * The Thread receiving packets.
      */
     protected Thread receiverThread = null;
@@ -143,36 +151,35 @@ public abstract class RTPConnectorInputStream
     /**
      * Creates a new <tt>RawPacket</tt> from a specific <tt>DatagramPacket</tt>
      * in order to have this instance receive its packet data through its
-     * {@link #read(byte[], int, int)} method. Allows extenders to intercept the
-     * packet data and possibly filter and/or modify it.
+     * {@link #read(byte[], int, int)} method. Returns an array of
+     * <tt>RawPacket</tt> with the created packet as its first element (and
+     * <tt>null</tt> for the other elements).
+     *
+     * Allows extenders to intercept the packet data and possibly filter and/or
+     * modify it.
      *
      * @param datagramPacket the <tt>DatagramPacket</tt> containing the packet
      * data
-     * @return a new <tt>RawPacket</tt> containing the packet data of the
-     * specified <tt>DatagramPacket</tt> or possibly its modification;
-     * <tt>null</tt> to ignore the packet data of the specified
-     * <tt>DatagramPacket</tt> and not make it available to this instance
-     * through its {@link #read(byte[], int, int)} method
+     * @return an array of <tt>RawPacket</tt> containing the <tt>RawPacket</tt>
+     * which contains the packet data of the
+     * specified <tt>DatagramPacket</tt> as its first element.
      */
-    protected RawPacket createRawPacket(DatagramPacket datagramPacket)
+    protected RawPacket[] createRawPacket(DatagramPacket datagramPacket)
     {
-        RawPacket pkt = rawPacketPool.poll();
+        RawPacket[] pkts = rawPacketArrayPool.poll();
+        if (pkts == null)
+            pkts = new RawPacket[1];
 
+        RawPacket pkt = rawPacketPool.poll();
         if (pkt == null)
-        {
-            pkt
-                = new RawPacket(
-                        datagramPacket.getData(),
-                        datagramPacket.getOffset(),
-                        datagramPacket.getLength());
-        }
-        else
-        {
-            pkt.setBuffer(datagramPacket.getData());
-            pkt.setLength(datagramPacket.getLength());
-            pkt.setOffset(datagramPacket.getOffset());
-        }
-        return pkt;
+            pkt = new RawPacket();
+
+        pkt.setBuffer(datagramPacket.getData());
+        pkt.setLength(datagramPacket.getLength());
+        pkt.setOffset(datagramPacket.getOffset());
+
+        pkts[0] = pkt;
+        return pkts;
     }
 
     /**
@@ -426,73 +433,76 @@ public abstract class RTPConnectorInputStream
 
             if (accept)
             {
-                RawPacket pkt = createRawPacket(p);
-
-                /*
-                 * If we got extended, the delivery of the packet may have been
-                 * canceled.
-                 */
-                if (pkt != null)
+                RawPacket pkts[] = createRawPacket(p);
+                for (int i = 0; i < pkts.length; i++)
                 {
-                    if (pkt.isInvalid())
-                    {
-                        /*
-                         * Return pkt to the pool because it is invalid and,
-                         * consequently, will not be made available to reading.
-                         */
-                        pkt.setBuffer(null);
-                        pkt.setLength(0);
-                        pkt.setOffset(0);
-                        rawPacketPool.offer(pkt);
-                    }
-                    else
-                    {
-                        RawPacket oldPkt;
+                    RawPacket pkt = pkts[i];
+                    pkts[i] = null;
 
-                        synchronized (pktSyncRoot)
-                        {
-                            oldPkt = this.pkt;
-                            this.pkt = pkt;
-                        }
-                        if (oldPkt != null)
+                    if (pkt != null)
+                    {
+                        if (pkt.isInvalid())
                         {
                             /*
-                             * Return oldPkt to the pool because it was made
-                             * available to reading and it was not read.
+                             * Return pkt to the pool because it is invalid and,
+                             * consequently, will not be made available to
+                             * reading.
                              */
-                            oldPkt.setBuffer(null);
-                            oldPkt.setLength(0);
-                            oldPkt.setOffset(0);
+                            pkt.setBuffer(null);
+                            pkt.setLength(0);
+                            pkt.setOffset(0);
                             rawPacketPool.offer(pkt);
                         }
-
-                        if ((transferHandler != null) && !closed)
+                        else
                         {
-                            try
+                            RawPacket oldPkt;
+
+                            synchronized (pktSyncRoot)
                             {
-                                transferHandler.transferData(this);
+                                oldPkt = this.pkt;
+                                this.pkt = pkt;
                             }
-                            catch (Throwable t)
+                            if (oldPkt != null)
                             {
                                 /*
-                                 * XXX We cannot allow transferHandler to kill
-                                 * us.
+                                 * Return oldPkt to the pool because it was made
+                                 * available to reading and it was not read.
                                  */
-                                if (t instanceof ThreadDeath)
+                                oldPkt.setBuffer(null);
+                                oldPkt.setLength(0);
+                                oldPkt.setOffset(0);
+                                rawPacketPool.offer(pkt);
+                            }
+
+                            if ((transferHandler != null) && !closed)
+                            {
+                                try
                                 {
-                                    throw (ThreadDeath) t;
+                                    transferHandler.transferData(this);
                                 }
-                                else
+                                catch (Throwable t)
                                 {
-                                    logger.warn(
+                                    /*
+                                     * XXX We cannot allow transferHandler to
+                                     * kill us.
+                                     */
+                                    if (t instanceof ThreadDeath)
+                                    {
+                                        throw (ThreadDeath) t;
+                                    }
+                                    else
+                                    {
+                                        logger.warn(
                                             "An RTP packet may have not been"
                                                 + " fully handled.",
                                             t);
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                rawPacketArrayPool.offer(pkts);
             }
         }
     }

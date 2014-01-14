@@ -23,7 +23,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  */
 public class DtlsPacketTransformer
-    implements PacketTransformer
+    extends SinglePacketTransformer
 {
     /**
      * The length of the header of a DTLS record.
@@ -141,7 +141,7 @@ public class DtlsPacketTransformer
     /**
      * The <tt>SRTPTransformer</tt> to be used by this instance.
      */
-    private PacketTransformer srtpTransformer;
+    private SinglePacketTransformer srtpTransformer;
 
     /**
      * The value of the <tt>setup</tt> SDP attribute defined by RFC 4145
@@ -243,7 +243,7 @@ public class DtlsPacketTransformer
      * @return a new <tt>SRTPTransformer</tt> instance initialized with
      * <tt>srtpProtectionProfile</tt> and <tt>tlsContext</tt>
      */
-    private PacketTransformer initializeSRTPTransformer(
+    private SinglePacketTransformer initializeSRTPTransformer(
             int srtpProtectionProfile,
             TlsContext tlsContext)
     {
@@ -386,7 +386,7 @@ public class DtlsPacketTransformer
             throw new IllegalArgumentException("tlsContext");
         }
 
-        PacketTransformer srtpTransformer;
+        SinglePacketTransformer srtpTransformer;
 
         if (rtcp)
         {
@@ -513,7 +513,7 @@ public class DtlsPacketTransformer
              * pass through and rely on the SrtpListener to notify the user that
              * the session is not secured.
              */
-            PacketTransformer srtpTransformer = this.srtpTransformer;
+            SinglePacketTransformer srtpTransformer = this.srtpTransformer;
 
             if (srtpTransformer != null)
                 pkt = srtpTransformer.reverseTransform(pkt);
@@ -590,7 +590,7 @@ public class DtlsPacketTransformer
         else
             throw new IllegalStateException("dtlsProtocol");
 
-        PacketTransformer srtpTransformer
+        SinglePacketTransformer srtpTransformer
             = (dtlsTransport == null)
                 ? null
                 : initializeSRTPTransformer(srtpProtectionProfile, tlsContext);
@@ -832,7 +832,7 @@ public class DtlsPacketTransformer
              * pass through and rely on the SrtpListener to notify the user that
              * the session is not secured.
              */
-            PacketTransformer srtpTransformer = this.srtpTransformer;
+            SinglePacketTransformer srtpTransformer = this.srtpTransformer;
 
             if (srtpTransformer != null)
                 pkt = srtpTransformer.transform(pkt);

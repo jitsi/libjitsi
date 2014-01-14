@@ -25,8 +25,8 @@ import org.jitsi.service.neomedia.format.*;
  * @author Damian Minkov
  */
 public class DtmfTransformEngine
-    implements TransformEngine,
-               PacketTransformer
+    extends SinglePacketTransformer
+    implements TransformEngine
 {
     /**
      * The <tt>AudioMediaStreamImpl</tt> that this transform engine was created

@@ -189,12 +189,12 @@ public class TransformEngineChain
         }
 
         /**
-         * Transforms a specific packet.
+         * {@inheritDoc}
          *
-         * @param pkt the packet to be transformed
-         * @return the transformed packet
+         * Transforms the given packets using each of the
+         * <tt>TransformEngine</tt>-s in the engine chain in order.
          */
-        public RawPacket transform(RawPacket pkt)
+        public RawPacket[] transform(RawPacket[] pkts)
         {
             for (TransformEngine engine : engineChain)
             {
@@ -206,24 +206,19 @@ public class TransformEngineChain
                 //the packet transformer may be null if for example the engine
                 //only does RTP transformations and this is an RTCP transformer.
                 if (pTransformer != null)
-                {
-                    pkt = pTransformer.transform(pkt);
-                    if (pkt == null)
-                        break;
-                }
+                    pkts = pTransformer.transform(pkts);
             }
 
-            return pkt;
+            return pkts;
         }
 
         /**
-         * Reverse-transforms a specific packet (i.e. transforms a transformed
-         * packet back).
+         * {@inheritDoc}
          *
-         * @param pkt the transformed packet to be restored
-         * @return the restored packet
+         * Reverse-transforms the given packets using each of the
+         * <tt>TransformEngine</tt>-s in the engine chain in reverse order.
          */
-        public RawPacket reverseTransform(RawPacket pkt)
+        public RawPacket[] reverseTransform(RawPacket pkts[])
         {
             for (int i = engineChain.length - 1 ; i >= 0; i--)
             {
@@ -236,14 +231,10 @@ public class TransformEngineChain
                 //the packet transformer may be null if for example the engine
                 //only does RTP transformations and this is an RTCP transformer.
                 if (pTransformer != null)
-                {
-                    pkt = pTransformer.reverseTransform(pkt);
-                    if (pkt == null)
-                        break;
-                }
+                    pkts = pTransformer.reverseTransform(pkts);
             }
 
-            return pkt;
+            return pkts;
         }
     }
 }

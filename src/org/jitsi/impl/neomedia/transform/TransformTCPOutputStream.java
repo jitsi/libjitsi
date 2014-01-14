@@ -41,40 +41,38 @@ public class TransformTCPOutputStream
     }
 
     /**
-     * Creates a new <tt>RawPacket</tt> from a specific <tt>byte[]</tt> buffer
-     * in order to have this instance send its packet data through its
-     * {@link #write(byte[], int, int)} method. Transforms the packet to be
-     * sent.
+     * Creates a new array of <tt>RawPacket</tt> from a specific <tt>byte[]</tt>
+     * buffer in order to have this instance send its packet data through its
+     * {@link #write(byte[], int, int)} method. Transforms the array of packets
+     * using a <tt>PacketTransformer</tt>.
      *
      * @param buffer the packet data to be sent to the targets of this instance
      * @param offset the offset of the packet data in <tt>buffer</tt>
      * @param length the length of the packet data in <tt>buffer</tt>
-     * @return a new <tt>RawPacket</tt> containing the packet data of the
+     * @return an array of <tt>RawPacket</tt> containing the packet data of the
      * specified <tt>byte[]</tt> buffer or possibly its modification;
-     * <tt>null</tt> to ignore the packet data of the specified <tt>byte[]</tt>
-     * buffer and not send it to the targets of this instance through its
-     * {@link #write(byte[], int, int)} method
-     * @see RTPConnectorOutputStream#createRawPacket(byte[], int, int)
      */
     @Override
-    protected RawPacket createRawPacket(byte[] buffer, int offset, int length)
+    protected RawPacket[] createRawPacket(byte[] buffer, int offset, int length)
     {
-        RawPacket pkt = super.createRawPacket(buffer, offset, length);
+        RawPacket[] pkts = super.createRawPacket(buffer, offset, length);
         PacketTransformer transformer = getTransformer();
 
         if (transformer != null)
         {
-            pkt = transformer.transform(pkt);
+            pkts = transformer.transform(pkts);
 
             /*
              * This is for the case when the ZRTP engine stops the media stream
              * allowing only ZRTP packets.
              */
+            // XXX: Do we need to throw here if all elements of pkts are null?
+            // They should be ignored in write().
             // TODO Comment in order to use the GoClear feature.
-            if ((pkt == null) && (targets.size() > 0))
-                throw new NullPointerException("pkt");
+            if ((pkts == null) && (targets.size() > 0))
+                throw new NullPointerException("pkts");
         }
-        return pkt;
+        return pkts;
     }
 
     /**

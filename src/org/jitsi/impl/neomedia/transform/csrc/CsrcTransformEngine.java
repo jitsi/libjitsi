@@ -19,8 +19,8 @@ import org.jitsi.service.neomedia.*;
  * @author Emil Ivov
  */
 public class CsrcTransformEngine
-    implements TransformEngine,
-               PacketTransformer
+    extends SinglePacketTransformer
+    implements TransformEngine
 {
     /**
      * The <tt>MediaStreamImpl</tt> that this transform engine was created to

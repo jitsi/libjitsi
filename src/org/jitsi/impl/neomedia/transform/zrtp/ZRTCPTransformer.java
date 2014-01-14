@@ -16,7 +16,7 @@ import org.jitsi.impl.neomedia.transform.*;
  * @author Werner Dittmann <Werner.Dittmann@t-online.de>
  */
 public class ZRTCPTransformer
-    implements PacketTransformer
+    extends SinglePacketTransformer
 {
     /**
      * We support different SRTCP contexts for input and output traffic:
@@ -24,8 +24,8 @@ public class ZRTCPTransformer
      * Transform() uses the srtcpOut to perform encryption
      * reverseTransform() uses srtcpIn to perform decryption
      */
-    private PacketTransformer srtcpIn = null;
-    private PacketTransformer srtcpOut = null;
+    private SinglePacketTransformer srtcpIn = null;
+    private SinglePacketTransformer srtcpOut = null;
 
     /**
      * Close the transformer engine.
@@ -77,7 +77,7 @@ public class ZRTCPTransformer
     /**
      * @param srtcpIn the srtcpIn to set
      */
-    public void setSrtcpIn(PacketTransformer srtcpIn)
+    public void setSrtcpIn(SinglePacketTransformer srtcpIn)
     {
         this.srtcpIn = srtcpIn;
     }
@@ -85,7 +85,7 @@ public class ZRTCPTransformer
     /**
      * @param srtcpOut the srtcpOut to set
      */
-    public void setSrtcpOut(PacketTransformer srtcpOut)
+    public void setSrtcpOut(SinglePacketTransformer srtcpOut)
     {
         this.srtcpOut = srtcpOut;
     }

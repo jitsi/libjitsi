@@ -146,8 +146,8 @@ import org.jitsi.util.*;
  * @author Werner Dittmann &lt;Werner.Dittmann@t-online.de>
  */
 public class ZRTPTransformEngine
+    extends SinglePacketTransformer
     implements SrtpControl.TransformEngine,
-               PacketTransformer,
                ZrtpCallback
 {
     /**
@@ -295,12 +295,12 @@ public class ZRTPTransformEngine
     /**
      * We need Out SRTPTransformer to transform RTP to SRTP.
      */
-    private PacketTransformer srtpOutTransformer = null;
+    private SRTPTransformer srtpOutTransformer = null;
 
     /**
      * We need In SRTPTransformer to transform SRTP to RTP.
      */
-    private PacketTransformer srtpInTransformer = null;
+    private SRTPTransformer srtpInTransformer = null;
 
     /**
      * User callback class.

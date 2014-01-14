@@ -23,8 +23,8 @@ import java.util.*;
  * @author Damian Minkov
  */
 public class PayloadTypeTransformEngine
-    implements TransformEngine,
-               PacketTransformer
+    extends SinglePacketTransformer
+    implements TransformEngine
 {
     /**
      * The mapping we use to override payloads. By default it is empty

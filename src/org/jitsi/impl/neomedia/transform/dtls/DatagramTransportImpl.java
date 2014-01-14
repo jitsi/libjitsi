@@ -67,7 +67,7 @@ public class DatagramTransportImpl
     /**
      * Initializes a new <tt>DatagramTransportImpl</tt>.
      *
-     * @param data {@link Component#RTP} if the new instance is to work on
+     * @param componentID {@link Component#RTP} if the new instance is to work on
      * data/RTP packets or {@link Component#RTCP} if the new instance is to work
      * on control/RTCP packets
      */

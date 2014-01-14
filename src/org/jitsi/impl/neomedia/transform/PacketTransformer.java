@@ -9,11 +9,12 @@ package org.jitsi.impl.neomedia.transform;
 import org.jitsi.impl.neomedia.*;
 
 /**
- * Encapsulate the concept of packet transformation. Given a packet,
- * <tt>PacketTransformer</tt> can either transform it or reverse the
- * transformation.
+ * Encapsulate the concept of packet transformation. Given an array of packets,
+ * <tt>PacketTransformer</tt> can either "transform" each one of them, or
+ * "reverse transform" (e.g. restore) each one of them.
  *
  * @author Bing SU (nova.su@gmail.com)
+ * @author Boris Grozev
  */
 public interface PacketTransformer
 {
@@ -24,19 +25,20 @@ public interface PacketTransformer
     public void close();
 
     /**
-     * Reverse-transforms a specific packet (i.e. transforms a transformed
-     * packet back).
+     * Reverse-transforms each packet in an array of packets. Null values
+     * must be ignored.
      *
-     * @param pkt the transformed packet to be restored
-     * @return the restored packet
+     * @param pkts the transformed packets to be restored.
+     * @return the restored packets.
      */
-    public RawPacket reverseTransform(RawPacket pkt);
+    public RawPacket[] reverseTransform(RawPacket[] pkts);
 
     /**
-     * Transforms a specific packet.
+     * Transforms each packet in an array of packets. Null values must be
+     * ignored.
      *
-     * @param pkt the packet to be transformed
-     * @return the transformed packet
+     * @param pkts the packets to be transformed
+     * @return the transformed packets
      */
-    public RawPacket transform(RawPacket pkt);
+    public RawPacket[] transform(RawPacket[] pkts);
 }

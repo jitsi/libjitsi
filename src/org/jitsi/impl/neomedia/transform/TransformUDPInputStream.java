@@ -20,6 +20,7 @@ import org.jitsi.impl.neomedia.*;
  *
  * @author Bing SU (nova.su@gmail.com)
  * @author Lubomir Marinov
+ * @author Boris Grozev
  */
 public class TransformUDPInputStream
     extends RTPConnectorUDPInputStream
@@ -57,16 +58,17 @@ public class TransformUDPInputStream
      * @see RTPConnectorInputStream#createRawPacket(DatagramPacket)
      */
     @Override
-    protected RawPacket createRawPacket(DatagramPacket datagramPacket)
+    protected RawPacket[] createRawPacket(DatagramPacket datagramPacket)
     {
         PacketTransformer transformer = getTransformer();
-        RawPacket pkt = super.createRawPacket(datagramPacket);
+        RawPacket pkts[] = super.createRawPacket(datagramPacket);
 
-        /* Don't try to transform invalid packets */
-        if (pkt.isInvalid())
-            return pkt;
+        /* Don't try to transform invalid packets (for ex. empty) */
+        for(int i=0; i<pkts.length; i++)
+            if(pkts[i].isInvalid())
+                pkts[i] = null; //null elements are just ignored
 
-        return (transformer == null) ? pkt : transformer.reverseTransform(pkt);
+        return (transformer == null) ? pkts : transformer.reverseTransform(pkts);
     }
 
     /**
