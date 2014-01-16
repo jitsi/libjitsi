@@ -37,9 +37,7 @@ libjitsi_webrtc_aec_initAudioProcessing(
 
 int
 libjitsi_webrtc_aec_process(
-        int isRenderStream,
-        int sample_rate,
-        int nb_channels);
+        void);
 
 void
 libjitsi_webrtc_aec_completeProcess(

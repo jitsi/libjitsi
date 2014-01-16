@@ -13,6 +13,7 @@
 #include <math.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <sys/time.h>
 
 extern void maccoreaudio_log(
         const char * error_format,
@@ -1805,11 +1806,8 @@ OSStatus maccoreaudio_readInputStream(
 
                         // Process AEC data.
                         int nb_process;
-                        if((nb_process = libjitsi_webrtc_aec_process(
-                                        0, // isRenderStream,
-                                        stream->aecFormat.mSampleRate,
-                                        stream->aecFormat.mChannelsPerFrame))
-                                < 0)
+                        libjitsi_webrtc_aec_lock(1);
+                        if((nb_process = libjitsi_webrtc_aec_process()) < 0)
                         {
                             maccoreaudio_log(
                             "maccoreaudio_readInputStream (coreaudio/device.c): \
@@ -1879,11 +1877,8 @@ OSStatus maccoreaudio_readInputStream(
                                         stream->callbackMethod);
                             }
                             libjitsi_webrtc_aec_completeProcess(0);
-                            if((nb_process = libjitsi_webrtc_aec_process(
-                                            0, // isRenderStream,
-                                            stream->aecFormat.mSampleRate,
-                                            stream->aecFormat.mChannelsPerFrame))
-                                    < 0)
+                            libjitsi_webrtc_aec_completeProcess(1);
+                            if((nb_process = libjitsi_webrtc_aec_process()) < 0)
                             {
                                 maccoreaudio_log(
                             "maccoreaudio_readInputStream (coreaudio/device.c): \
@@ -1891,6 +1886,7 @@ OSStatus maccoreaudio_readInputStream(
                                         (int) nb_process);
                             }
                         }
+                        libjitsi_webrtc_aec_unlock(1);
                         libjitsi_webrtc_aec_unlock(0);
                     }
                     else // Stream without AEC
@@ -2037,7 +2033,6 @@ OSStatus maccoreaudio_writeOutputStream(
                     }
                 }
 
-                libjitsi_webrtc_aec_completeProcess(1);
                 if((aecTmpBuffer = (char*) libjitsi_webrtc_aec_getData(
                                 1,
                                 aecTmpLength / sizeof(int16_t)))
@@ -2105,23 +2100,6 @@ OSStatus maccoreaudio_writeOutputStream(
                                 (int) err);
                         pthread_mutex_unlock(&stream->mutex);
                         return err;
-                    }
-                }
-
-                // AEC process
-                int nb_process = 1;
-                while(nb_process != 0)
-                {
-                    if((nb_process = libjitsi_webrtc_aec_process(
-                                    1, // isRenderStream,
-                                    stream->aecFormat.mSampleRate,
-                                    stream->aecFormat.mChannelsPerFrame))
-                            < 0)
-                    {
-                        maccoreaudio_log(
-                    "maccoreaudio_readInputStream (coreaudio/device.c): \
-                                \n\tlibjitsi_webrtc_aec_process: 0x%x",
-                                (int) nb_process);
                     }
                 }
 

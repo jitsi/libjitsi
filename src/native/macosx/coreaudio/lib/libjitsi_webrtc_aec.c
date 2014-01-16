@@ -34,7 +34,6 @@ typedef struct
     int audioProcessingLength[2];
     AudioProcessing * audioProcessing;
     pthread_mutex_t mutex[2];
-    int currentSide;
     struct timeval lastProcess[2];
     int activeStreams[2];
     AudioStreamBasicDescription format;
@@ -62,10 +61,27 @@ libjitsi_webrtc_aec_log(
         const char * error_format,
         ...);
 
-uint32_t
-libjitsi_webrtc_aec_getNbMsSinceLastProcess(
-        int isRenderStream,
-        struct timeval currentTime);
+int
+libjitsi_webrtc_aec_getNbSampleForMs(
+        int nbMS);
+
+int
+libjitsi_webrtc_aec_getNbMsForSample(
+        int nbSample);
+
+void
+libjitsi_webrtc_aec_nbMsToTimeval(
+        int nbMs,
+        struct timeval * nbMsTimeval);
+
+int
+libjitsi_webrtc_aec_timevalToNbMs(
+        struct timeval nbMsTimeval);
+
+int
+libjitsi_webrtc_aec_getNbSampleSinceLastProcess(
+        int length,
+        int isRenderStream);
 
 JNIEXPORT jint JNICALL
 JNI_OnLoad(JavaVM *vm, void *pvt)
@@ -131,9 +147,7 @@ libjitsi_webrtc_aec_init(
             libjitsi_webrtc_aec_free();
             return -1;
         }
-        aec->currentSide = 1;
-        aec->lastProcess[i].tv_sec  = 0;
-        aec->lastProcess[i].tv_usec = 0;
+        timerclear(&aec->lastProcess[i]);
         aec->activeStreams[i] = 0;
     }
     
@@ -182,6 +196,7 @@ libjitsi_webrtc_aec_free(
                 aec->dataLength[i] = 0;
                 aec->dataUsed[i] = 0;
                 aec->dataProcessed[i] = 0;
+                timerclear(&aec->lastProcess[i]);
                 free(aec->data[i]);
                 aec->data[i] = NULL;
                 if(pthread_mutex_destroy(&aec->mutex[i]) != 0)
@@ -218,6 +233,10 @@ libjitsi_webrtc_aec_start(
 {
     libjitsi_webrtc_aec_lock(isOutputStream);
 
+    timerclear(&aec->lastProcess[isOutputStream]);
+    aec->dataUsed[isOutputStream] = 0;
+    aec->dataProcessed[isOutputStream] = 0;
+
     ++aec->activeStreams[isOutputStream];
 
     libjitsi_webrtc_aec_unlock(isOutputStream);
@@ -234,6 +253,10 @@ libjitsi_webrtc_aec_stop(
         unsigned char isOutputStream)
 {
     libjitsi_webrtc_aec_lock(isOutputStream);
+
+    timerclear(&aec->lastProcess[isOutputStream]);
+    aec->dataUsed[isOutputStream] = 0;
+    aec->dataProcessed[isOutputStream] = 0;
 
     --aec->activeStreams[isOutputStream];
 
@@ -259,8 +282,6 @@ libjitsi_webrtc_aec_initAudioProcessing(
     libjitsi_webrtc_aec_lock(0);
     libjitsi_webrtc_aec_lock(1);
 
-    aec->currentSide = 1;
-
     int err;
 
     if((err = aec->audioProcessing->set_sample_rate_hz(sample_rate))
@@ -276,12 +297,15 @@ libjitsi_webrtc_aec_initAudioProcessing(
         return -1;
     }
 
+    memcpy(&aec->format, &format, sizeof(AudioStreamBasicDescription));
+
     // Inits the capture and render buffer to default values
     for(int i = 0; i < 2; ++i)
     {
+        timerclear(&aec->lastProcess[i]);
         aec->dataUsed[i] = 0;
         aec->dataProcessed[i] = 0;
-        aec->audioProcessingLength[i] = sample_rate / 100 * nb_channels;
+        aec->audioProcessingLength[i] = libjitsi_webrtc_aec_getNbSampleForMs(10);
 
         if(libjitsi_webrtc_aec_internalGetData(i, aec->audioProcessingLength[i])
                 == NULL)
@@ -295,8 +319,6 @@ libjitsi_webrtc_aec_initAudioProcessing(
             return -1;
         }
     }
-
-    memcpy(&aec->format, &format, sizeof(AudioStreamBasicDescription));
 
     // CAPTURE: Mono and stereo render only.
     if((err = aec->audioProcessing->set_num_channels(nb_channels, nb_channels))
@@ -375,61 +397,86 @@ libjitsi_webrtc_aec_initAudioProcessing(
 /**
  * Analyzes or processes a given stream to removes echo.
  *
- * @param isRenderStream True if the given buffer comes from the render
- * device. False if it comes from the capture device.
- * @param sample_rate The sample rate used to get the given buffer.
- * @param nb_channels The number of channels contained in the buffer: 1 = mono,
- * 2 = stereo, etc.
- *
  * @return 0 if everything works fine. -1 otherwise.
  */
 int
 libjitsi_webrtc_aec_process(
-        int isRenderStream,
-        int sample_rate,
-        int nb_channels)
+        void)
 {
     int err;
+    int nb_channels = aec->format.mChannelsPerFrame;
+    int sample_rate = aec->format.mSampleRate;
     AudioFrame * frame = new AudioFrame();
 
-    int init = 0;
-    int start = aec->dataProcessed[isRenderStream];
-    int end = start + aec->audioProcessingLength[isRenderStream];
+    int start_capture = aec->dataProcessed[0];
+    int end_capture = start_capture + aec->audioProcessingLength[0];
+    int start_render = aec->dataProcessed[1];
+    int end_render = start_capture + aec->audioProcessingLength[1];
+    int init = (end_capture <= aec->dataUsed[0]);
 
-    if(end <= aec->dataUsed[isRenderStream])
+    if(init)
     {
-        init = 1;
-
-        frame->UpdateFrame(
-                -1,
-                0,
-                aec->data[isRenderStream] + start,
-                aec->audioProcessingLength[isRenderStream] / nb_channels,
-                sample_rate,
-                AudioFrame::kNormalSpeech,
-                AudioFrame::kVadActive,
-                nb_channels);
-
-        struct timeval currentTime;
-        gettimeofday(&currentTime, NULL);
-        // For a capture stream: wait that a new render buffer has been
-        // processed, limited to 10ms since the last capture buffer processed.
-        // And vice versa for a render stream.
-        while(aec->activeStreams[!isRenderStream] > 0
-                && aec->currentSide == !isRenderStream
-                && libjitsi_webrtc_aec_getNbMsSinceLastProcess(
-                    isRenderStream,
-                    currentTime) < 10)
+        if(end_render <= aec->dataUsed[1])
         {
-            usleep(1000);
+            struct timeval currentTime;
             gettimeofday(&currentTime, NULL);
-        }
 
-        // Process capture stream.
-        if(!isRenderStream)
-        {
-            int32_t nbMs
-                = libjitsi_webrtc_aec_getNbMsSinceLastProcess(1, currentTime);
+            // Process render stream.
+            frame->UpdateFrame(
+                    -1,
+                    0,
+                    aec->data[1] + start_render,
+                    aec->audioProcessingLength[1] / nb_channels,
+                    sample_rate,
+                    AudioFrame::kNormalSpeech,
+                    AudioFrame::kVadActive,
+                    nb_channels);
+
+            // Process render buffer.
+            if(aec->activeStreams[0] > 0)
+            {
+                if((err = aec->audioProcessing->AnalyzeReverseStream(frame))
+                        != 0)
+                {
+                    libjitsi_webrtc_aec_log(
+                            "%s: 0x%x\n",
+                        "libjitsi_webrtc_aec_process (libjitsi_webrtc_aec.c): \
+                            \n\tAudioProcessing::AnalyzeReverseStream",
+                            err);
+                }
+            }
+
+            // Process capture stream.
+            frame->UpdateFrame(
+                    -1,
+                    0,
+                    aec->data[0] + start_capture,
+                    aec->audioProcessingLength[0] / nb_channels,
+                    sample_rate,
+                    AudioFrame::kNormalSpeech,
+                    AudioFrame::kVadActive,
+                    nb_channels);
+
+            // Definition from Webrtc library for
+            // aec->audioProcessing->set_stream_delay_ms :
+            //
+            // This must be called if and only if echo processing is enabled.
+            //
+            // Sets the |delay| in ms between AnalyzeReverseStream() receiving a
+            // far-end frame and ProcessStream() receiving a near-end frame
+            // containing the corresponding echo. On the client-side this can be
+            // expressed as
+            //   delay = (t_render - t_analyze) + (t_process - t_capture)
+            // where,
+            //   - t_analyze is the time a frame is passed to
+            //   AnalyzeReverseStream() and t_render is the time the first
+            //   sample of the same frame is rendered by the audio hardware.
+            //   - t_capture is the time the first sample of a frame is captured
+            //   by the audio hardware and t_pull is the time the same frame is
+            //   passed to ProcessStream().
+            struct timeval delay;
+            timersub(&currentTime, &aec->lastProcess[0], &delay);
+            int32_t nbMs = libjitsi_webrtc_aec_timevalToNbMs(delay);
             if(nbMs < 0)
             {
                 nbMs = 0;
@@ -459,50 +506,30 @@ libjitsi_webrtc_aec_process(
                             \n\tAudioProcessing::ProccessStream",
                             err);
                 }
-                aec->currentSide = 1;
 
                 // If there is an echo detected, then copy the corrected data.
                 if(aec->audioProcessing->echo_cancellation()->stream_has_echo())
                 {
                     memcpy(
-                            aec->data[isRenderStream] + start,
+                            aec->data[0] + start_capture,
                             frame->data_,
-                            aec->audioProcessingLength[isRenderStream]
-                                * sizeof(int16_t));
+                            aec->audioProcessingLength[0] * sizeof(int16_t));
                 }
             }
+            start_render = end_render;
+            end_render += aec->audioProcessingLength[1];
         }
-        // Process render stream.
-        else
-        {
-            // Process render buffer.
-            if(aec->activeStreams[0] > 0)
-            {
-                if((err = aec->audioProcessing->AnalyzeReverseStream(frame))
-                        != 0)
-                {
-                    libjitsi_webrtc_aec_log(
-                            "%s: 0x%x\n",
-                        "libjitsi_webrtc_aec_process (libjitsi_webrtc_aec.c): \
-                            \n\tAudioProcessing::AnalyzeReverseStream",
-                            err);
-                }
-                aec->currentSide = 0;
-            }
-        }
-        aec->lastProcess[isRenderStream].tv_sec = currentTime.tv_sec;
-        aec->lastProcess[isRenderStream].tv_usec = currentTime.tv_usec;
-
-        start = end;
-        end += aec->audioProcessingLength[isRenderStream];
+        start_capture = end_capture;
+        end_capture += aec->audioProcessingLength[0];
     }
-    aec->dataProcessed[isRenderStream] = start;
+    aec->dataProcessed[0] = start_capture;
+    aec->dataProcessed[1] = start_render;
 
     delete(frame);
 
     if(init)
     {
-        return start;
+        return start_capture;
     }
     return 0;
 }
@@ -528,6 +555,19 @@ libjitsi_webrtc_aec_completeProcess(
                     aec->data[isRenderStream]
                         + aec->dataProcessed[isRenderStream],
                     nbLeft * sizeof(int16_t));
+
+            int nbMs = libjitsi_webrtc_aec_getNbMsForSample(
+                    aec->dataProcessed[isRenderStream]);
+            struct timeval nbMsTimeval;
+            libjitsi_webrtc_aec_nbMsToTimeval(nbMs, &nbMsTimeval);
+            timeradd(
+                    &aec->lastProcess[isRenderStream],
+                    &nbMsTimeval,
+                    &aec->lastProcess[isRenderStream]);
+        }
+        else
+        {
+            timerclear(&aec->lastProcess[isRenderStream]);
         }
         aec->dataUsed[isRenderStream] = nbLeft;
     }
@@ -562,6 +602,21 @@ libjitsi_webrtc_aec_getData(
     }
     aec->dataUsed[isRenderStream] += length;
 
+    if(!timerisset(&aec->lastProcess[isRenderStream]))
+    {
+        gettimeofday(&aec->lastProcess[isRenderStream], NULL);
+        if(!isRenderStream)
+        {
+            int nbMs = libjitsi_webrtc_aec_getNbMsForSample(length);
+            struct timeval nbMsTimeval;
+            libjitsi_webrtc_aec_nbMsToTimeval(nbMs, &nbMsTimeval);
+            timersub(
+                    &aec->lastProcess[isRenderStream],
+                    &nbMsTimeval,
+                    &aec->lastProcess[isRenderStream]);
+        }
+    }
+
     return data;
 }
 
@@ -580,6 +635,29 @@ libjitsi_webrtc_aec_internalGetData(
         int isRenderStream,
         int length)
 {
+    int tmpLength = length;
+
+    // When AEC is activated and no input stream is active, then only allocate a
+    // buffer for the current block to process and squeeze previous data.
+    if(isRenderStream && aec->activeStreams[!isRenderStream] == 0)
+    {
+        tmpLength = 0;
+        if(aec->activeStreams[!isRenderStream] == 0)
+        {
+            aec->dataUsed[isRenderStream] = 0;
+            timerclear(&aec->lastProcess[isRenderStream]);
+        }
+    }
+
+    int nbSample = libjitsi_webrtc_aec_getNbSampleSinceLastProcess(
+            tmpLength,
+            isRenderStream);
+    if(nbSample < aec->dataUsed[isRenderStream]
+            && (aec->dataUsed[isRenderStream] - nbSample) > (length / 2))
+    {
+        aec->dataUsed[isRenderStream] = nbSample;
+    }
+
     int newLength = length + aec->dataUsed[isRenderStream];
     if(newLength > aec->dataLength[isRenderStream])
     {
@@ -646,7 +724,7 @@ libjitsi_webrtc_aec_log(
                 NULL)
             == 0)
     {
-        jclass clazz = env->FindClass("org/jitsi/impl/neomedia/WebrtcAec");
+        jclass clazz = env->FindClass("org/jitsi/impl/neomedia/device/WebrtcAec");
         if (clazz)
         {
             jmethodID methodID = env->GetStaticMethodID(clazz, "log", "([B)V");
@@ -687,24 +765,6 @@ libjitsi_webrtc_aec_getCaptureFormat(
         return 1;
     }
     return 0;
-}
-
-/**
- * Returns the number of ms since last process.
- *
- * @param isRenderStream True to get the number of ms since last process for the
- * render stream. False otherwise.
- * @param currentTime A timeval structure containing the current time. 
- *
- * @return the number of ms since last process.
- */
-uint32_t
-libjitsi_webrtc_aec_getNbMsSinceLastProcess(
-        int isRenderStream,
-        struct timeval currentTime)
-{
-    return (currentTime.tv_sec - aec->lastProcess[isRenderStream].tv_sec) * 1000
-        + (currentTime.tv_usec - aec->lastProcess[isRenderStream].tv_usec) / 1000;
 }
 
 /**
@@ -751,4 +811,106 @@ libjitsi_webrtc_aec_unlock(
                 strerror(errno));
     }
     return err;
+}
+
+/**
+ * Returns the number of sample necessary for a given time interval.
+ *
+ * @param nbMs The number of ms required.
+ *
+ * @return The number of sample necessary for a given time interval.
+ */
+int
+libjitsi_webrtc_aec_getNbSampleForMs(
+        int nbMs)
+{
+    int nb_channels = aec->format.mChannelsPerFrame;
+    int sample_rate = aec->format.mSampleRate;
+
+    return (nbMs * sample_rate * nb_channels) / 1000;
+}
+
+/**
+ * Returns the time interval corresponding to a number of sample.
+ *
+ * @param nbSample The number of sample.
+ *
+ * @return The time interval corresponding to a number of sample.
+ */
+int
+libjitsi_webrtc_aec_getNbMsForSample(
+        int nbSample)
+{
+    int nb_channels = aec->format.mChannelsPerFrame;
+    int sample_rate = aec->format.mSampleRate;
+
+    return (nbSample * 1000) / (nb_channels * sample_rate);
+}
+
+/**
+ * Converts a time interval in Ms to a structure timeval.
+ *
+ * @param nbMs The number of milliseconds.
+ * @param nbMsTimeval The structure timeval to fill in.
+ */
+void
+libjitsi_webrtc_aec_nbMsToTimeval(
+        int nbMs,
+        struct timeval * nbMsTimeval)
+{
+    nbMsTimeval->tv_sec = nbMs / 1000;
+    nbMsTimeval->tv_usec = (nbMs % 1000000) * 1000;
+}
+
+/**
+ * Converts a struct timeval into a time interval in Ms.
+ *
+ * @param nbMsTimeval The structure timeval.
+ *
+ * @return The number of milliseconds.
+ */
+int
+libjitsi_webrtc_aec_timevalToNbMs(
+        struct timeval nbMsTimeval)
+{
+    return nbMsTimeval.tv_sec * 1000 + nbMsTimeval.tv_usec / 1000;
+}
+
+/**
+ * Returns the number of sample necessary since the last process.
+ *
+ * @param length The number of sample already processed.
+ * @param isRenderStream True to compute the number of sample for  the render
+ * stream. False otherwise.
+ *
+ * @return The number of sample necessary since the last process.
+ */
+int
+libjitsi_webrtc_aec_getNbSampleSinceLastProcess(
+        int length,
+        int isRenderStream)
+{
+    int nbSample = 0;
+    if(timerisset(&aec->lastProcess[isRenderStream]))
+    {
+        struct timeval currentTime;
+        gettimeofday(&currentTime, NULL);
+        if(timercmp(&currentTime, &aec->lastProcess[isRenderStream], >))
+        {
+            struct timeval nbMsTimeval;
+
+            timersub(
+                    &currentTime,
+                    &aec->lastProcess[isRenderStream],
+                    &nbMsTimeval);
+
+            int nbMs = libjitsi_webrtc_aec_timevalToNbMs(nbMsTimeval);
+            nbSample = libjitsi_webrtc_aec_getNbSampleForMs(nbMs) - length;
+            if(nbSample < 0)
+            {
+                nbSample = 0;
+            }
+        }
+    }
+    return nbSample;
 }
