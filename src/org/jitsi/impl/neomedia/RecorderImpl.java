@@ -16,7 +16,6 @@ import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.MediaException;
 import org.jitsi.util.*;
-// disambiguation
 
 /**
  * The call recording implementation.
@@ -223,7 +222,8 @@ public class RecorderImpl
 
             try
             {
-                deviceSession.setContentDescriptor(getContentDescriptor(format));
+                deviceSession.setContentDescriptor(
+                        getContentDescriptor(format));
 
                 // set initial mute state, if mute was set before starting
                 // the recorder
@@ -327,21 +327,21 @@ public class RecorderImpl
      * Put the recorder in mute state. It won't record the local input.
      * This is used when the local call is muted and we don't won't to record
      * the local input.
+     *
      * @param mute the new value of the mute property
      */
     public void setMute(boolean mute)
     {
         this.mute = mute;
 
-        if(deviceSession != null)
-        {
+        if (deviceSession != null)
             deviceSession.setMute(mute);
-        }
     }
 
     /**
      * Returns the filename we are last started or stopped recording to,
      * null if not started.
+     *
      * @return the filename we are last started or stopped recording to,
      * null if not started.
      */
