@@ -235,30 +235,42 @@ public class ImageStream
      */
     private ByteBuffer readScreenNative(Dimension dim)
     {
-        int size = dim.width * dim.height * 4;
-
-        /* pad the buffer */
-        size += FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE;
-
-        /* allocate native array */
+        int size
+            = dim.width * dim.height * 4 + FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE;
         ByteBuffer data = byteBufferPool.getBuffer(size);
 
         data.setLength(size);
 
         /* get desktop screen via native grabber */
-        if (desktopInteract.captureScreen(
-                    displayIndex,
-                    x, y, dim.width, dim.height,
-                    data.getPtr(),
-                    data.getLength()))
+        boolean b;
+
+        try
         {
-            return data;
+            b
+                = desktopInteract.captureScreen(
+                        displayIndex,
+                        x, y, dim.width, dim.height,
+                        data.getPtr(),
+                        data.getLength());
         }
-        else
+        catch (Throwable t)
+        {
+            if (t instanceof ThreadDeath)
+            {
+                throw (ThreadDeath) t;
+            }
+            else
+            {
+                b = false;
+//                logger.error("Failed to grab screen!", t);
+            }
+        }
+        if (!b)
         {
             data.free();
-            return null;
+            data = null;
         }
+        return data;
     }
 
     /**

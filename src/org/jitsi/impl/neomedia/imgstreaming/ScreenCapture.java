@@ -4,7 +4,9 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package net.java.sip.communicator.impl.neomedia.imgstreaming;
+package org.jitsi.impl.neomedia.imgstreaming;
+
+import org.jitsi.util.*;
 
 /**
  * This class uses native code to capture desktop screen.
@@ -14,11 +16,25 @@ package net.java.sip.communicator.impl.neomedia.imgstreaming;
  *
  * @author Sebastien Vincent
  */
-public class NativeScreenCapture
+public class ScreenCapture
 {
+    private static final Logger logger = Logger.getLogger(ScreenCapture.class);
+
     static
     {
-        System.loadLibrary("jnscreencapture");
+        String lib = "jnscreencapture";
+
+        try
+        {
+            System.loadLibrary(lib);
+        }
+        catch (Throwable t)
+        {
+            logger.error(
+                    "Failed to load native library " + lib + ": "
+                        + t.getMessage());
+            throw new RuntimeException(t);
+        }
     }
 
     /**
@@ -32,8 +48,10 @@ public class NativeScreenCapture
      * @param output output buffer to store screen bytes
      * @return true if grab success, false otherwise
      */
-    public static native boolean grabScreen(int display, int x, int y,
-            int width, int height, byte output[]);
+    public static native boolean grabScreen(
+            int display,
+            int x, int y, int width, int height,
+            byte output[]);
 
     /**
      * Grab desktop screen and get raw bytes.
@@ -47,6 +65,8 @@ public class NativeScreenCapture
      * @param outputLength native output length
      * @return true if grab success, false otherwise
      */
-    public static native boolean grabScreen(int display, int x, int y,
-            int width, int height, long output, int outputLength);
+    public static native boolean grabScreen(
+            int display,
+            int x, int y, int width, int height,
+            long output, int outputLength);
 }

@@ -18,10 +18,10 @@ JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_imgstreaming_ScreenCaptu
 /*
  * Class:     org_jitsi_impl_neomedia_imgstreaming_ScreenCapture
  * Method:    grabScreen
- * Signature: (IIIIJI)Z
+ * Signature: (IIIIIJI)Z
  */
-JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_imgstreaming_ScreenCapture_grabScreen__IIIIJI
-  (JNIEnv *, jclass, jint, jint, jint, jint, jlong, jint);
+JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_imgstreaming_ScreenCapture_grabScreen__IIIIIJI
+  (JNIEnv *, jclass, jint, jint, jint, jint, jint, jlong, jint);
 
 #ifdef __cplusplus
 }

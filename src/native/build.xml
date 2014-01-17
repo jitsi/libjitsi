@@ -174,8 +174,6 @@
       <compilerarg value="-Wall" />
       <compilerarg value="-Wextra" />
 
-      <linkerarg value="-Wl,--no-undefined" />
-
       <!-- Linux specific flags -->
       <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
       <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
@@ -184,7 +182,9 @@
 
       <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
       <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <linkerarg value="-Wl,--no-undefined" unless="is.running.macos" />
       <linkerarg value="-lX11" location="end" if="is.running.linux" />
+      <linkerarg value="-lXext" location="end" if="is.running.linux" />
 
       <!-- Mac OS X specific flags -->
       <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
@@ -192,8 +192,6 @@
       <compilerarg value="x86_64" if="is.running.macos" />
       <compilerarg value="-arch" if="is.running.macos" />
       <compilerarg value="i386" if="is.running.macos" />
-      <compilerarg value="-arch" if="is.running.macos" />
-      <compilerarg value="ppc" if="is.running.macos" />
       <compilerarg value="-I/System/Library/Frameworks/ApplicationServices.framework/Headers" if="is.running.macos" />
       <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
 
@@ -203,8 +201,6 @@
       <linkerarg value="x86_64" if="is.running.macos" />
       <linkerarg value="-arch" if="is.running.macos" />
       <linkerarg value="i386" if="is.running.macos" />
-      <linkerarg value="-arch" if="is.running.macos" />
-      <linkerarg value="ppc" if="is.running.macos" />
       <linkerarg value="-framework" if="is.running.macos" />
       <linkerarg value="ApplicationServices" if="is.running.macos" />
 
@@ -214,6 +210,8 @@
 
       <linkerarg value="-lgdi32" location="end" if="is.running.windows" />
       <linkerarg value="-ojnscreencapture.dll" if="is.running.windows" />
+      <linkerarg value="-static-libgcc" if="is.running.windows" />
+      <linkerarg value="-Wl,--as-needed" if="is.running.windows" />
       <linkerarg value="-Wl,--kill-at" if="is.running.windows" />
 
       <fileset dir="${src}/native/screencapture" includes="*.c"/>

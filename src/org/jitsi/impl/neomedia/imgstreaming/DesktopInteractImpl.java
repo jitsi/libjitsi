@@ -9,8 +9,6 @@ package org.jitsi.impl.neomedia.imgstreaming;
 import java.awt.*;
 import java.awt.image.*;
 
-import net.java.sip.communicator.impl.neomedia.imgstreaming.*;
-
 import org.jitsi.util.*;
 
 /**
@@ -111,13 +109,15 @@ public class DesktopInteractImpl
      * Be sure that output length is sufficient
      * @return true if success, false if JNI error or output length too short
      */
-    public boolean captureScreen(int display, int x, int y, int width,
-            int height, byte output[])
+    public boolean captureScreen(
+            int display,
+            int x, int y, int width, int height,
+            byte output[])
     {
         if (OSUtils.IS_LINUX || OSUtils.IS_MAC || OSUtils.IS_WINDOWS)
         {
             return
-                NativeScreenCapture.grabScreen(
+                ScreenCapture.grabScreen(
                         display,
                         x, y, width, height,
                         output);
@@ -145,13 +145,15 @@ public class DesktopInteractImpl
      * @param bufferLength length of native buffer
      * @return true if success, false if JNI error or output length too short
      */
-    public boolean captureScreen(int display, int x, int y, int width,
-            int height, long buffer, int bufferLength)
+    public boolean captureScreen(
+            int display,
+            int x, int y, int width, int height,
+            long buffer, int bufferLength)
     {
         if (OSUtils.IS_LINUX || OSUtils.IS_MAC || OSUtils.IS_WINDOWS)
         {
             return
-                NativeScreenCapture.grabScreen(
+                ScreenCapture.grabScreen(
                         display,
                         x, y, width, height,
                         buffer, bufferLength);

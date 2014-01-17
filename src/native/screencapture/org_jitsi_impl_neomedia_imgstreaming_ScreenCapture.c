@@ -12,34 +12,23 @@
  * \date 2009
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #if defined(_WIN32) || defined(_WIN64)
-
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <wingdi.h>
 
-typedef __int32 int32_t; 
-typedef unsigned __int32 uint32_t; 
-typedef unsigned __int8 uint8_t; 
-
 #elif defined(__APPLE__)
-
-#include <stdint.h>
-
 #include <ApplicationServices.h>
 
 #else /* Unix */
-
-#include <stdint.h>
-
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/XShm.h>
@@ -545,7 +534,7 @@ static int x11_grab_screen(jbyte* data, unsigned int displayIndex, int x, int y,
 /**
  * \brief JNI native method to grab desktop screen and retrieve ARGB pixels.
  * \param env JVM environment
- * \param clazz NativeScreenCapture Java class
+ * \param clazz ScreenCapture Java class
  * \param display display index
  * \param x x position to start capture
  * \param y y position to start capture
@@ -594,7 +583,7 @@ Java_org_jitsi_impl_neomedia_imgstreaming_ScreenCapture_grabScreen__IIIII_3B
 /**
  * \brief JNI native method to grab desktop screen and retrieve ARGB pixels.
  * \param env JVM environment
- * \param clazz NativeScreenCapture Java class
+ * \param clazz ScreenCapture Java class
  * \param display display index
  * \param x x position to start capture
  * \param y y position to start capture
