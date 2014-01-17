@@ -272,7 +272,10 @@ public abstract class RTPConnectorOutputStream
     private boolean send(RawPacket packet)
     {
         if(!isSocketValid())
+        {
+            rawPacketPool.offer(packet);
             return false;
+        }
 
         numberOfPackets++;
         for (InetSocketAddress target : targets)
@@ -377,6 +380,7 @@ public abstract class RTPConnectorOutputStream
                     {
                         //skip sending the rest, but return them to the pool
                         fail = true;
+                        continue;
                     }
                 }
                 else
@@ -385,7 +389,7 @@ public abstract class RTPConnectorOutputStream
                 }
             }
 
-            if (pkt != null)
+            if (pkt != null && fail) //if !fail, send() will have returned it
                 rawPacketPool.offer(pkt);
         }
 
