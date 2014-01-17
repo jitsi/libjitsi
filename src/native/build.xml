@@ -168,11 +168,13 @@
     depends="init-native">
     <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnscreencapture" objdir="${obj}">
       <!-- common compiler flags -->
-      <compilerarg value="-std=c99" />
       <compilerarg value="-D_XOPEN_SOURCE=600" />
+      <compilerarg value="-O3" />
+      <compilerarg value="-std=c99" />
       <compilerarg value="-Wall" />
       <compilerarg value="-Wextra" />
-      <compilerarg value="-O3" />
+
+      <linkerarg value="-Wl,--no-undefined" />
 
       <!-- Linux specific flags -->
       <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
@@ -589,7 +591,6 @@
       <compilerarg value="-Wall" />
 
       <linkerarg value="-L${speex}/libspeex/.libs" />
-      <linkerarg value="-Wl,--no-undefined" />
 
       <!-- Linux specific flags -->
       <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
