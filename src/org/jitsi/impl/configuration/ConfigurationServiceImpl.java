@@ -1459,11 +1459,10 @@ public class ConfigurationServiceImpl
      */
     private void debugPrintSystemProperties()
     {
-        if(logger.isInfoEnabled())
+        if (logger.isInfoEnabled())
         {
-            for (Map.Entry<Object, Object> entry
-                    : System.getProperties().entrySet())
-                    logger.info(entry.getKey() + "=" + entry.getValue());
+            for (Map.Entry<Object,Object> e : System.getProperties().entrySet())
+                logger.info(e.getKey() + "=" + e.getValue());
         }
     }
 

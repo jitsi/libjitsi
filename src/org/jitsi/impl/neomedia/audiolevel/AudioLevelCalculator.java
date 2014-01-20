@@ -9,12 +9,14 @@ package org.jitsi.impl.neomedia.audiolevel;
 import org.jitsi.impl.neomedia.*;
 
 /**
+ * Implements functions which calculate audio levels such as signal power and
+ * sound pressure.
+ *
  * @author Damian Minkov
  * @author Lyubomir Marinov
  */
 public class AudioLevelCalculator
 {
-
     /**
      * The decrease percentage. The decrease cannot be done with more than this
      * value in percents.
@@ -192,7 +194,7 @@ public class AudioLevelCalculator
     {
         if (level < minLevel)
             return minLevel;
-        else if(level > maxLevel)
+        else if (level > maxLevel)
             return maxLevel;
         else
             return level;
