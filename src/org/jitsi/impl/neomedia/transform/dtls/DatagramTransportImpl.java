@@ -196,7 +196,7 @@ public class DatagramTransportImpl
         byte[] buf;
         int len;
 
-        synchronized (sendBuf)
+        synchronized (sendBufSyncRoot)
         {
             if ((sendBuf != null) && (sendBufLength != 0))
             {
@@ -216,7 +216,7 @@ public class DatagramTransportImpl
             doSend(buf, 0, len);
 
             // Attempt to reduce allocations and garbage collection.
-            synchronized (sendBuf)
+            synchronized (sendBufSyncRoot)
             {
                 if (sendBuf == null)
                     sendBuf = buf;
