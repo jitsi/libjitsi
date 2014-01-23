@@ -26,13 +26,25 @@ public class DtlsPacketTransformer
     extends SinglePacketTransformer
 {
     /**
+     * The maximum number of times that
+     * {@link #runInConnectThread(DTLSProtocol, TlsPeer, DatagramTransport)} is
+     * to retry the invocations of
+     * {@link DTLSClientProtocol#connect(TlsClient, DatagramTransport)} and
+     * {@link DTLSServerProtocol#accept(TlsServer, DatagramTransport)} in
+     * anticipation of a successful connection.
+     */
+    private static final int CONNECT_TRIES = 3;
+
+    private static final long CONNECT_RETRY_INTERVAL = 500;
+
+    /**
      * The length of the header of a DTLS record.
      */
     static final int DTLS_RECORD_HEADER_LENGTH = 13;
 
     /**
      * The number of milliseconds a <tt>DtlsPacketTransform</tt> is to wait on
-     * its {@link #dtlsProtocol} in order to receive a packet.
+     * its {@link #dtlsTransport} in order to receive a packet.
      */
     private static final int DTLS_TRANSPORT_RECEIVE_WAITMILLIS = -1;
 
@@ -210,6 +222,50 @@ public class DtlsPacketTransformer
     }
 
     /**
+     * Determines whether
+     * {@link #runInConnectThread(DTLSProtocol, TlsPeer, DatagramTransport)} is
+     * to try to establish a DTLS connection.
+     *
+     * @param i the number of tries remaining after the current one
+     * @return <tt>true</tt> to try to establish a DTLS connection; otherwise,
+     * <tt>false</tt>
+     */
+    private boolean enterRunInConnectThreadLoop(int i)
+    {
+        if ((i < 0) || (i > CONNECT_TRIES))
+        {
+            return false;
+        }
+        else
+        {
+            Thread currentThread = Thread.currentThread();
+
+            synchronized (this)
+            {
+                if ((i > 0) && (i < CONNECT_TRIES - 1))
+                {
+                    boolean interrupted = false;
+
+                    try
+                    {
+                        wait(CONNECT_RETRY_INTERVAL);
+                    }
+                    catch (InterruptedException ie)
+                    {
+                        interrupted = true;
+                    }
+                    if (interrupted)
+                        currentThread.interrupt();
+                }
+
+                return
+                    currentThread.equals(this.connectThread)
+                        && datagramTransport.equals(this.datagramTransport);
+            }
+        }
+    }
+
+    /**
      * Gets the <tt>DtlsControl</tt> implementation associated with this
      * instance.
      *
@@ -229,6 +285,59 @@ public class DtlsPacketTransformer
     DtlsTransformEngine getTransformEngine()
     {
         return transformEngine;
+    }
+
+    /**
+     * Handles a specific <tt>IOException</tt> which was thrown during the
+     * execution of
+     * {@link #runInConnectThread(DTLSProtocol, TlsPeer, DatagramTransport)}
+     * while trying to establish a DTLS connection
+     *
+     * @param ioe the <tt>IOException</tt> to handle
+     * @param msg the human-readable message to log about the specified
+     * <tt>ioe</tt>
+     * @param i the number of tries remaining after the current one
+     * @return <tt>true</tt> if the specified <tt>ioe</tt> was successfully
+     * handled; <tt>false</tt>, otherwise
+     */
+    private boolean handleRunInConnectThreadException(
+            IOException ioe,
+            String msg,
+            int i)
+    {
+        if (ioe instanceof TlsFatalAlert)
+        {
+            TlsFatalAlert tfa = (TlsFatalAlert) ioe;
+            short alertDescription = tfa.getAlertDescription();
+
+            if (alertDescription == AlertDescription.unexpected_message)
+            {
+                msg += " Received fatal unexpected message.";
+                if ((i == 0)
+                        || !Thread.currentThread().equals(connectThread)
+                        || (connector == null)
+                        || (mediaType == null))
+                {
+                    msg
+                        += " Giving up after " + (CONNECT_TRIES - i)
+                            + " retries.";
+                }
+                else
+                {
+                    msg += " Will retry.";
+                    logger.error(msg, ioe);
+
+                    return true;
+                }
+            }
+            else
+            {
+                msg += " Received fatal alert " + alertDescription + ".";
+            }
+        }
+
+        logger.error(msg, ioe);
+        return false;
     }
 
     /**
@@ -426,7 +535,7 @@ public class DtlsPacketTransformer
                 }
                 else
                 {
-                    datagramTransport.queue(buf, off, len);
+                    datagramTransport.queueReceive(buf, off, len);
                     receive = true;
                 }
             }
@@ -543,18 +652,33 @@ public class DtlsPacketTransformer
                 = (DTLSClientProtocol) dtlsProtocol;
             TlsClientImpl tlsClient = (TlsClientImpl) tlsPeer;
 
-            try
+            for (int i = CONNECT_TRIES - 1; i >= 0; i--)
             {
-                dtlsTransport
-                    = dtlsClientProtocol.connect(
-                            tlsClient, 
-                            datagramTransport);
-            }
-            catch (IOException ioe)
-            {
-                logger.error(
-                        "Failed to connect this DTLS client to a DTLS server!",
-                        ioe);
+                if (!enterRunInConnectThreadLoop(i))
+                    break;
+                try
+                {
+                    dtlsTransport
+                        = dtlsClientProtocol.connect(
+                                tlsClient, 
+                                datagramTransport);
+                    break;
+                }
+                catch (IOException ioe)
+                {
+                    if (handleRunInConnectThreadException(
+                            ioe,
+                            "Failed to connect this DTLS client to a DTLS"
+                                + " server!",
+                            i))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
             }
             if (dtlsTransport != null)
             {
@@ -568,18 +692,32 @@ public class DtlsPacketTransformer
                 = (DTLSServerProtocol) dtlsProtocol;
             TlsServerImpl tlsServer = (TlsServerImpl) tlsPeer;
 
-            try
+            for (int i = CONNECT_TRIES - 1; i >= 0; i--)
             {
-                dtlsTransport
-                    = dtlsServerProtocol.accept(
-                            tlsServer,
-                            datagramTransport);
-            }
-            catch (IOException ioe)
-            {
-                logger.error(
-                        "Failed to accept a connection from a DTLS client!",
-                        ioe);
+                if (!enterRunInConnectThreadLoop(i))
+                    break;
+                try
+                {
+                    dtlsTransport
+                        = dtlsServerProtocol.accept(
+                                tlsServer,
+                                datagramTransport);
+                    break;
+                }
+                catch (IOException ioe)
+                {
+                    if (handleRunInConnectThreadException(
+                            ioe,
+                            "Failed to accept a connection from a DTLS client!",
+                            i))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
             }
             if (dtlsTransport != null)
             {

@@ -65,11 +65,29 @@ public class DatagramTransportImpl
     private final int receiveQCapacity;
 
     /**
+     * The <tt>byte</tt> buffer which represents a datagram to be sent. It may
+     * consist of multiple DTLS records which are simple encoded consecutively.
+     */
+    private byte[] sendBuf;
+
+    /**
+     * The length in <tt>byte</tt>s of {@link #sendBuf} i.e. the number of
+     * <tt>sendBuf</tt> elements which constitute actual DTLS records.
+     */
+    private int sendBufLength;
+
+    /**
+     * The <tt>Object</tt> that synchronizes the access to {@link #sendBuf},
+     * {@link #sendBufLength}.
+     */
+    private final Object sendBufSyncRoot = new Object();
+
+    /**
      * Initializes a new <tt>DatagramTransportImpl</tt>.
      *
-     * @param componentID {@link Component#RTP} if the new instance is to work on
-     * data/RTP packets or {@link Component#RTCP} if the new instance is to work
-     * on control/RTCP packets
+     * @param componentID {@link Component#RTP} if the new instance is to work
+     * on data/RTP packets or {@link Component#RTCP} if the new instance is to
+     * work on control/RTCP packets
      */
     public DatagramTransportImpl(int componentID)
     {
@@ -87,6 +105,28 @@ public class DatagramTransportImpl
             = RTPConnectorOutputStream
                 .MAX_PACKETS_PER_MILLIS_POLICY_PACKET_QUEUE_CAPACITY;
         receiveQ = new ArrayBlockingQueue<RawPacket>(receiveQCapacity);
+    }
+
+    private AbstractRTPConnector assertNotClosed(
+            boolean breakOutOfDTLSReliableHandshakeReceiveMessage)
+        throws IOException
+    {
+        AbstractRTPConnector connector = this.connector;
+
+        if (connector == null)
+        {
+            String msg = getClass().getName() + " is closed!";
+            IOException ioe = new IOException(msg);
+
+            logger.error(msg, ioe);
+            if (breakOutOfDTLSReliableHandshakeReceiveMessage)
+                breakOutOfDTLSReliableHandshakeReceiveMessage(ioe);
+            throw ioe;
+        }
+        else
+        {
+            return connector;
+        }
     }
 
     /**
@@ -120,6 +160,70 @@ public class DatagramTransportImpl
         setConnector(null);
     }
 
+    private void doSend(byte[] buf, int off, int len)
+        throws IOException
+    {
+        // Do preserve the sequence of sends.
+        flush();
+
+        AbstractRTPConnector connector = assertNotClosed(false);
+        OutputDataStream outputStream;
+
+        switch (componentID)
+        {
+        case Component.RTCP:
+            outputStream = connector.getControlOutputStream();
+            break;
+        case Component.RTP:
+            outputStream = connector.getDataOutputStream();
+            break;
+        default:
+            String msg = "componentID";
+            IllegalStateException ise = new IllegalStateException(msg);
+
+            logger.error(msg, ise);
+            throw ise;
+        }
+
+        outputStream.write(buf, off, len);
+    }
+
+    private void flush()
+        throws IOException
+    {
+        assertNotClosed(false);
+
+        byte[] buf;
+        int len;
+
+        synchronized (sendBuf)
+        {
+            if ((sendBuf != null) && (sendBufLength != 0))
+            {
+                buf = sendBuf;
+                sendBuf = null;
+                len = sendBufLength;
+                sendBufLength = 0;
+            }
+            else
+            {
+                buf = null;
+                len = 0;
+            }
+        }
+        if (buf != null)
+        {
+            doSend(buf, 0, len);
+
+            // Attempt to reduce allocations and garbage collection.
+            synchronized (sendBuf)
+            {
+                if (sendBuf == null)
+                    sendBuf = buf;
+            }
+        }
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -148,8 +252,8 @@ public class DatagramTransportImpl
         if (sendLimit <= 0)
         {
             /*
-             * XXX The estimation bellow is wildly inaccurate and hardly
-             * related... but we have to start somewhere.
+             * XXX The estimation bellow is wildly inaccurate and hardly related
+             * but we have to start somewhere.
              */
             sendLimit
                 = DtlsPacketTransformer.DTLS_RECORD_HEADER_LENGTH
@@ -169,19 +273,19 @@ public class DatagramTransportImpl
      * @param len the length within <tt>buf</tt> starting at <tt>off</tt> of the
      * packet to be queued
      */
-    void queue(byte[] buf, int off, int len)
+    void queueReceive(byte[] buf, int off, int len)
     {
         if (len > 0)
         {
             synchronized (receiveQ)
             {
-                if (connector == null)
+                try
                 {
-                    String msg = getClass().getName() + " is closed!";
-                    IllegalStateException ise = new IllegalStateException(msg);
-
-                    logger.error(msg, ise);
-                    throw ise;
+                    assertNotClosed(false);
+                }
+                catch (IOException ioe)
+                {
+                    throw new IllegalStateException(ioe);
                 }
 
                 RawPacket pkt = rawPacketPool.poll();
@@ -219,6 +323,14 @@ public class DatagramTransportImpl
         throws IOException
     {
         long enterTime = System.currentTimeMillis();
+
+        /*
+         * XXX If this DatagramTransportImpl is to be received from, then what
+         * is to be received may be a response to a request that was earlier
+         * scheduled for send.
+         */
+        flush();
+
         int received = 0;
         boolean interrupted = false;
 
@@ -239,15 +351,7 @@ public class DatagramTransportImpl
 
             synchronized (receiveQ)
             {
-                if (connector == null)
-                {
-                    String msg = getClass().getName() + " is closed!";
-                    IOException ioe = new IOException(msg);
-
-                    logger.error(msg, ioe);
-                    breakOutOfDTLSReliableHandshakeReceiveMessage(ioe);
-                    throw ioe;
-                }
+                assertNotClosed(true);
 
                 RawPacket pkt = receiveQ.peek();
 
@@ -333,36 +437,97 @@ public class DatagramTransportImpl
     public void send(byte[] buf, int off, int len)
         throws IOException
     {
-        AbstractRTPConnector connector = this.connector;
+        assertNotClosed(false);
 
-        if (connector == null)
+        // If possible, construct a single datagram from multiple DTLS records.
+        if (len >= DtlsPacketTransformer.DTLS_RECORD_HEADER_LENGTH)
         {
-            String msg = getClass().getName() + " is closed!";
-            IOException ioe = new IOException(msg);
+            short type = TlsUtils.readUint8(buf, off);
+            boolean endOfFlight = false;
 
-            logger.error(msg, ioe);
-            throw ioe;
+            switch (type)
+            {
+            case ContentType.handshake:
+                short msg_type = TlsUtils.readUint8(buf, off + 11);
+
+                switch (msg_type)
+                {
+                case HandshakeType.certificate:
+                case HandshakeType.certificate_request:
+                case HandshakeType.certificate_verify:
+                case HandshakeType.client_key_exchange:
+                case HandshakeType.server_hello:
+                case HandshakeType.server_key_exchange:
+                case HandshakeType.session_ticket:
+                case HandshakeType.supplemental_data:
+                    endOfFlight = false;
+                    break;
+                case HandshakeType.client_hello:
+                case HandshakeType.finished:
+                case HandshakeType.hello_request:
+                case HandshakeType.hello_verify_request:
+                case HandshakeType.server_hello_done:
+                default:
+                    endOfFlight = true;
+                    break;
+                }
+                // Do fall through!
+            case ContentType.change_cipher_spec:
+                synchronized (sendBufSyncRoot)
+                {
+                    int newSendBufLength = sendBufLength + len;
+                    int sendLimit = getSendLimit();
+
+                    if (newSendBufLength <= sendLimit)
+                    {
+                        if (sendBuf == null)
+                        {
+                            sendBuf = new byte[sendLimit];
+                            sendBufLength = 0;
+                        }
+                        else if (sendBuf.length < sendLimit)
+                        {
+                            byte[] oldSendBuf = sendBuf;
+
+                            sendBuf = new byte[sendLimit];
+                            System.arraycopy(
+                                    oldSendBuf, 0,
+                                    sendBuf, 0,
+                                    Math.min(sendBufLength, sendBuf.length));
+                        }
+
+                        System.arraycopy(buf, off, sendBuf, sendBufLength, len);
+                        sendBufLength = newSendBufLength;
+
+                        if (endOfFlight)
+                            flush();
+                    }
+                    else
+                    {
+                        if (endOfFlight)
+                        {
+                            doSend(buf, off, len);
+                        }
+                        else
+                        {
+                            flush();
+                            send(buf, off, len);
+                        }
+                    }
+                }
+                break;
+
+            case ContentType.alert:
+            case ContentType.application_data:
+            default:
+                doSend(buf, off, len);
+                break;
+            }
         }
-
-        OutputDataStream outputStream;
-
-        switch (componentID)
+        else
         {
-        case Component.RTCP:
-            outputStream = connector.getControlOutputStream();
-            break;
-        case Component.RTP:
-            outputStream = connector.getDataOutputStream();
-            break;
-        default:
-            String msg = "componentID";
-            IllegalStateException ise = new IllegalStateException(msg);
-
-            logger.error(msg, ise);
-            throw ise;
+            doSend(buf, off, len);
         }
-
-        outputStream.write(buf, off, len);
     }
 
     /**
