@@ -329,7 +329,7 @@ public class DatagramTransportImpl
          * is to be received may be a response to a request that was earlier
          * scheduled for send.
          */
-        flush();
+//        flush();
 
         int received = 0;
         boolean interrupted = false;
