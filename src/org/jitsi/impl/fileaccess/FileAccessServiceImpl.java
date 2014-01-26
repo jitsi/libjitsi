@@ -53,26 +53,28 @@ public class FileAccessServiceImpl implements FileAccessService
             = getSystemProperty(
                     ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
         if (profileDirLocation == null)
+        {
             throw new IllegalStateException(
                     ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
+        }
 
         String cacheDir
             = getSystemProperty(
-                ConfigurationService.PNAME_SC_CACHE_DIR_LOCATION);
-        cacheDirLocation =
-            (cacheDir == null) ? profileDirLocation : cacheDir;
+                    ConfigurationService.PNAME_SC_CACHE_DIR_LOCATION);
+        cacheDirLocation = (cacheDir == null) ? profileDirLocation : cacheDir;
 
         String logDir
             = getSystemProperty(
-                ConfigurationService.PNAME_SC_LOG_DIR_LOCATION);
-        logDirLocation =
-            (logDir == null) ? profileDirLocation : logDir;
+                    ConfigurationService.PNAME_SC_LOG_DIR_LOCATION);
+        logDirLocation = (logDir == null) ? profileDirLocation : logDir;
 
         scHomeDirName
             = getSystemProperty(ConfigurationService.PNAME_SC_HOME_DIR_NAME);
         if (scHomeDirName == null)
+        {
             throw new IllegalStateException(
                     ConfigurationService.PNAME_SC_HOME_DIR_NAME);
+        }
     }
 
     /**
@@ -438,13 +440,11 @@ public class FileAccessServiceImpl implements FileAccessService
     {
         if(OSUtils.IS_WINDOWS)
         {
-            OPT = new HashMap<String, Object>()
-            {{
-                put( Library.OPTION_TYPE_MAPPER,
-                     W32APITypeMapper.UNICODE );
-                put( Library.OPTION_FUNCTION_MAPPER,
-                     W32APIFunctionMapper.UNICODE );
-            }};
+            OPT = new HashMap<String, Object>();
+            OPT.put(Library.OPTION_TYPE_MAPPER, W32APITypeMapper.UNICODE);
+            OPT.put(
+                    Library.OPTION_FUNCTION_MAPPER,
+                    W32APIFunctionMapper.UNICODE);
         }
     }
 

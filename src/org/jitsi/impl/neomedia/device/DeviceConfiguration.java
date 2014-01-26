@@ -403,6 +403,9 @@ public class DeviceConfiguration
      */
     private void extractConfiguredAudioCaptureDevices()
     {
+        if (!MediaServiceImpl.isMediaTypeSupportEnabled(MediaType.AUDIO))
+            return;
+
         if (logger.isInfoEnabled())
             logger.info("Looking for configured audio devices.");
 
@@ -539,6 +542,9 @@ public class DeviceConfiguration
      */
     private void extractConfiguredVideoCaptureDevices()
     {
+        if (!MediaServiceImpl.isMediaTypeSupportEnabled(MediaType.VIDEO))
+            return;
+
         ConfigurationService cfg = LibJitsi.getConfigurationService();
         String videoCaptureDeviceString
             = (cfg == null) ? null : cfg.getString(PROP_VIDEO_DEVICE);

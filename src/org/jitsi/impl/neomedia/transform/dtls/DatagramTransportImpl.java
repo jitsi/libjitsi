@@ -325,13 +325,23 @@ public class DatagramTransportImpl
         long enterTime = System.currentTimeMillis();
 
         /*
-         * XXX If this DatagramTransportImpl is to be received from, then what
+         * If this DatagramTransportImpl is to be received from, then what
          * is to be received may be a response to a request that was earlier
          * scheduled for send.
          */
+        /*
+         * XXX However, it may unnecessarily break up a flight into multiple
+         * datagrams. Since we have implemented the recognition of the end of
+         * flights, it should be fairly safe to rely on it alone.
+         */
 //        flush();
 
-        int received = 0;
+        /*
+         * If no datagram is received at all and the specified waitMillis
+         * expires, a negative value is to be returned in order to have the
+         * outbound flight retransmitted.
+         */
+        int received = -1;
         boolean interrupted = false;
 
         while (received < len)
@@ -357,6 +367,18 @@ public class DatagramTransportImpl
 
                 if (pkt != null)
                 {
+                    /*
+                     * If a datagram has been received and even if it carries
+                     * no/zero bytes, a non-negative value is to be returned in
+                     * order to distinguish the case with that of no received
+                     * datagram. If the received bytes do not represent a DTLS
+                     * record, the record layer may still not retransmit the
+                     * outbound flight. But that should not be much of a concern
+                     * because we queue DTLS records into DatagramTransportImpl.  
+                     */
+                    if (received < 0)
+                        received = 0;
+
                     int toReceive = len - received;
                     boolean toReceiveIsPositive = (toReceive > 0);
 
