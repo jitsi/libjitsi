@@ -325,6 +325,7 @@ public class AudioMixerMediaDevice
                      * made available to the mixing yet. Slow code here is
                      * likely to degrade the performance of the whole mixer.
                      */
+
                     if (dataSource == captureDevice)
                     {
                         /*

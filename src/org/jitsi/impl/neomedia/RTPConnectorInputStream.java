@@ -434,9 +434,11 @@ public abstract class RTPConnectorInputStream
             if (accept)
             {
                 RawPacket pkts[] = createRawPacket(p);
+
                 for (int i = 0; i < pkts.length; i++)
                 {
                     RawPacket pkt = pkts[i];
+
                     pkts[i] = null;
 
                     if (pkt != null)

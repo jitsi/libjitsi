@@ -372,10 +372,9 @@ public class MediaStreamImpl
      */
     private TransformEngineChain createTransformEngineChain()
     {
-        ArrayList<TransformEngine> engineChain
-            = new ArrayList<TransformEngine>(4);
+        List<TransformEngine> engineChain = new ArrayList<TransformEngine>(5);
 
-        // CSRCs and audio levels
+        // CSRCs and CSRC audio levels
         if (csrcEngine == null)
             csrcEngine = new CsrcTransformEngine(this);
         engineChain.add(csrcEngine);
@@ -393,12 +392,22 @@ public class MediaStreamImpl
 
         // here comes the override payload type transformer
         // as it changes headers of packets, need to go before encryption
-        if(ptTransformEngine == null)
+        if (ptTransformEngine == null)
             ptTransformEngine = new PayloadTypeTransformEngine();
         engineChain.add(ptTransformEngine);
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
+
+        // SSRC audio levels
+        /*
+         * It needs to go first in the reverse transform in order to be able to
+         * prevent RTP packets from a muted audio source from being decrypted.
+         */
+        SsrcTransformEngine ssrcEngine = createSsrcTransformEngine();
+
+        if (ssrcEngine != null)
+            engineChain.add(ssrcEngine);
 
         return
             new TransformEngineChain(
@@ -414,6 +423,11 @@ public class MediaStreamImpl
      * stream and <tt>null</tt> otherwise.
      */
     protected DtmfTransformEngine createDtmfTransformEngine()
+    {
+        return null;
+    }
+
+    protected SsrcTransformEngine createSsrcTransformEngine()
     {
         return null;
     }

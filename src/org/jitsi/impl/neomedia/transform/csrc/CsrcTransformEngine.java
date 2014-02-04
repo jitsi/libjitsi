@@ -17,16 +17,16 @@ import org.jitsi.service.neomedia.*;
  * we send to conference participants during calls where we are the mixer.
  *
  * @author Emil Ivov
+ * @author Lyubomir Marinov
  */
 public class CsrcTransformEngine
     extends SinglePacketTransformer
     implements TransformEngine
 {
     /**
-     * The <tt>MediaStreamImpl</tt> that this transform engine was created to
-     * transform packets for.
+     * The direction that we are supposed to handle audio levels in.
      */
-    private final MediaStreamImpl mediaStream;
+    private MediaDirection csrcAudioLevelDirection = MediaDirection.INACTIVE;
 
     /**
      * The number currently assigned to CSRC audio level extensions or
@@ -34,6 +34,11 @@ public class CsrcTransformEngine
      * not be transmitted.
      */
     private byte csrcAudioLevelExtID = -1;
+
+    /**
+     * The dispatcher that is delivering audio levels to the media steam.
+     */
+    private CsrcAudioLevelDispatcher csrcAudioLevelDispatcher = null;
 
     /**
      * The buffer that we use to encode the csrc audio level extensions.
@@ -47,14 +52,10 @@ public class CsrcTransformEngine
     private int extensionBuffLen = 0;
 
     /**
-     * The dispatcher that is delivering audio levels to the media steam.
+     * The <tt>MediaStreamImpl</tt> that this transform engine was created to
+     * transform packets for.
      */
-    private CsrcAudioLevelDispatcher csrcLevelDispatcher = null;
-
-    /**
-     * The direction that we are supposed to handle audio levels in.
-     */
-    private MediaDirection audioLevelDirection = MediaDirection.INACTIVE;
+    private final MediaStreamImpl mediaStream;
 
     /**
      * Creates an engine instance that will be adding CSRC lists to the
@@ -63,9 +64,9 @@ public class CsrcTransformEngine
      * @param stream that <tt>MediaStream</tt> whose RTP packets we are going
      * to be adding CSRC lists. to
      */
-    public CsrcTransformEngine(MediaStreamImpl stream)
+    public CsrcTransformEngine(MediaStreamImpl mediaStream)
     {
-        this.mediaStream = stream;
+        this.mediaStream = mediaStream;
 
         /*
          * Take into account that RTPExtension.CSRC_AUDIO_LEVEL_URN may have
@@ -79,16 +80,15 @@ public class CsrcTransformEngine
             for (Map.Entry<Byte,RTPExtension> e
                     : activeRTPExtensions.entrySet())
             {
-                Byte extensionID = e.getKey();
                 RTPExtension rtpExtension = e.getValue();
+                String uri = rtpExtension.getURI().toString();
 
-                if (RTPExtension.CSRC_AUDIO_LEVEL_URN.equals(
-                        rtpExtension.getURI().toString()))
+                if (RTPExtension.CSRC_AUDIO_LEVEL_URN.equals(uri))
                 {
-                    setCsrcAudioLevelAudioLevelExtensionID(
-                            (extensionID == null)
-                                ? -1
-                                : extensionID.byteValue(),
+                    Byte extID = e.getKey();
+
+                    setCsrcAudioLevelExtensionID(
+                            (extID == null) ? -1 : extID.byteValue(),
                             rtpExtension.getDirection());
                 }
             }
@@ -101,125 +101,8 @@ public class CsrcTransformEngine
      */
     public void close()
     {
-        if (csrcLevelDispatcher != null)
-            csrcLevelDispatcher.stop();
-    }
-
-    /**
-     * Always returns <tt>null</tt> since this engine does not require any
-     * RTCP transformations.
-     *
-     * @return <tt>null</tt> since this engine does not require any
-     * RTCP transformations.
-     */
-    public PacketTransformer getRTCPTransformer()
-    {
-        return null;
-    }
-
-    /**
-     * Returns a reference to this class since it is performing RTP
-     * transformations in here.
-     *
-     * @return a reference to <tt>this</tt> instance of the
-     * <tt>CsrcTransformEngine</tt>.
-     */
-    public PacketTransformer getRTPTransformer()
-    {
-        return this;
-    }
-
-    /**
-     * Extracts the list of CSRC identifiers and passes it to the
-     * <tt>MediaStream</tt> associated with this engine. Other than that the
-     * method does not do any transformations since CSRC lists are part of
-     * RFC 3550 and they shouldn't be disrupting the rest of the application.
-     *
-     * @param pkt the RTP <tt>RawPacket</tt> that we are to extract a CSRC list
-     * from.
-     *
-     * @return the same <tt>RawPacket</tt> that was received as a parameter
-     * since we don't need to worry about hiding the CSRC list from the rest
-     * of the RTP stack.
-     */
-    public RawPacket reverseTransform(RawPacket pkt)
-    {
-        if ((csrcAudioLevelExtID > 0) && audioLevelDirection.allowsReceiving())
-        {
-            //extract the audio levels and send them to the dispatcher.
-            long[] levels = pkt.extractCsrcLevels(csrcAudioLevelExtID);
-
-            if(levels != null)
-            {
-                if (csrcLevelDispatcher == null)
-                {
-                    csrcLevelDispatcher = new CsrcAudioLevelDispatcher();
-                    new Thread(csrcLevelDispatcher).start();
-                }
-
-                csrcLevelDispatcher.addLevels(levels);
-            }
-        }
-        return pkt;
-    }
-
-    /**
-     * Extracts the list of CSRC identifiers representing participants currently
-     * contributing to the media being sent by the <tt>MediaStream</tt>
-     * associated with this engine and (unless the list is empty) encodes them
-     * into the <tt>RawPacket</tt>.
-     *
-     * @param pkt the RTP <tt>RawPacket</tt> that we need to add a CSRC list to.
-     *
-     * @return the updated <tt>RawPacket</tt> instance containing the list of
-     * CSRC identifiers.
-     */
-    public synchronized RawPacket transform(RawPacket pkt)
-    {
-        // if somebody has modified the packet and added an extension
-        // don't process it. As ZRTP creates special RTP packets carrying no
-        // RTP data and those packets are used only by ZRTP we don't use them.
-        if(pkt.getExtensionBit())
-            return pkt;
-
-        long[] csrcList = mediaStream.getLocalContributingSourceIDs();
-
-        if(csrcList == null || csrcList.length == 0)
-        {
-            //nothing to do.
-            return pkt;
-        }
-
-        pkt.setCsrcList( csrcList);
-
-        //attach audio levels if we are expected to do so.
-        if ((this.csrcAudioLevelExtID > 0)
-                && audioLevelDirection.allowsSending()
-                && (mediaStream instanceof AudioMediaStreamImpl))
-        {
-            byte[] levelsExt = createLevelExtensionBuffer(csrcList);
-
-            pkt.addExtension(levelsExt, extensionBuffLen);
-        }
-
-        return pkt;
-    }
-
-    /**
-     * Sets the ID that this transformer should be using for audio level
-     * extensions or disables audio level extensions if <tt>extID</tt> is
-     * <tt>-1</tt>.
-     *
-     * @param extID ID that this transformer should be using for audio level
-     * extensions or <tt>-1</tt> if audio level extensions should be disabled
-     * @param dir the direction that we are expected to hand this extension in.
-     *
-     */
-    public void setCsrcAudioLevelAudioLevelExtensionID(byte           extID,
-                                                       MediaDirection dir)
-    {
-        this.csrcAudioLevelExtID = extID;
-        this.audioLevelDirection = dir;
+        if (csrcAudioLevelDispatcher != null)
+            csrcAudioLevelDispatcher.stop();
     }
 
     /**
@@ -287,6 +170,123 @@ public class CsrcTransformEngine
     }
 
     /**
+     * Always returns <tt>null</tt> since this engine does not require any
+     * RTCP transformations.
+     *
+     * @return <tt>null</tt> since this engine does not require any
+     * RTCP transformations.
+     */
+    public PacketTransformer getRTCPTransformer()
+    {
+        return null;
+    }
+
+    /**
+     * Returns a reference to this class since it is performing RTP
+     * transformations in here.
+     *
+     * @return a reference to <tt>this</tt> instance of the
+     * <tt>CsrcTransformEngine</tt>.
+     */
+    public PacketTransformer getRTPTransformer()
+    {
+        return this;
+    }
+
+    /**
+     * Extracts the list of CSRC identifiers and passes it to the
+     * <tt>MediaStream</tt> associated with this engine. Other than that the
+     * method does not do any transformations since CSRC lists are part of
+     * RFC 3550 and they shouldn't be disrupting the rest of the application.
+     *
+     * @param pkt the RTP <tt>RawPacket</tt> that we are to extract a CSRC list
+     * from.
+     *
+     * @return the same <tt>RawPacket</tt> that was received as a parameter
+     * since we don't need to worry about hiding the CSRC list from the rest
+     * of the RTP stack.
+     */
+    public RawPacket reverseTransform(RawPacket pkt)
+    {
+        if ((csrcAudioLevelExtID > 0)
+                && csrcAudioLevelDirection.allowsReceiving())
+        {
+            //extract the audio levels and send them to the dispatcher.
+            long[] levels = pkt.extractCsrcAudioLevels(csrcAudioLevelExtID);
+
+            if (levels != null)
+            {
+                if (csrcAudioLevelDispatcher == null)
+                {
+                    csrcAudioLevelDispatcher = new CsrcAudioLevelDispatcher();
+                    new Thread(csrcAudioLevelDispatcher).start();
+                }
+                csrcAudioLevelDispatcher.addLevels(levels);
+            }
+        }
+
+        return pkt;
+    }
+
+    /**
+     * Sets the ID that this transformer should be using for audio level
+     * extensions or disables audio level extensions if <tt>extID</tt> is
+     * <tt>-1</tt>.
+     *
+     * @param extID ID that this transformer should be using for audio level
+     * extensions or <tt>-1</tt> if audio level extensions should be disabled
+     * @param dir the direction that we are expected to hand this extension in.
+     *
+     */
+    public void setCsrcAudioLevelExtensionID(byte extID, MediaDirection dir)
+    {
+        this.csrcAudioLevelExtID = extID;
+        this.csrcAudioLevelDirection = dir;
+    }
+
+    /**
+     * Extracts the list of CSRC identifiers representing participants currently
+     * contributing to the media being sent by the <tt>MediaStream</tt>
+     * associated with this engine and (unless the list is empty) encodes them
+     * into the <tt>RawPacket</tt>.
+     *
+     * @param pkt the RTP <tt>RawPacket</tt> that we need to add a CSRC list to.
+     *
+     * @return the updated <tt>RawPacket</tt> instance containing the list of
+     * CSRC identifiers.
+     */
+    public synchronized RawPacket transform(RawPacket pkt)
+    {
+        // if somebody has modified the packet and added an extension
+        // don't process it. As ZRTP creates special RTP packets carrying no
+        // RTP data and those packets are used only by ZRTP we don't use them.
+        if(pkt.getExtensionBit())
+            return pkt;
+
+        long[] csrcList = mediaStream.getLocalContributingSourceIDs();
+
+        if(csrcList == null || csrcList.length == 0)
+        {
+            //nothing to do.
+            return pkt;
+        }
+
+        pkt.setCsrcList(csrcList);
+
+        //attach audio levels if we are expected to do so.
+        if ((csrcAudioLevelExtID > 0)
+                && csrcAudioLevelDirection.allowsSending()
+                && (mediaStream instanceof AudioMediaStreamImpl))
+        {
+            byte[] levelsExt = createLevelExtensionBuffer(csrcList);
+
+            pkt.addExtension(levelsExt, extensionBuffLen);
+        }
+
+        return pkt;
+    }
+
+    /**
      * A simple thread that waits for new levels to be reported from incoming
      * RTP packets and then delivers them to the <tt>AudioMediaStream</tt>
      * associated with this engine. The reason we need to do this in a separate
@@ -300,6 +300,21 @@ public class CsrcTransformEngine
 
         /** The levels that we last received from the reverseTransform thread*/
         private long[] lastReportedLevels = null;
+
+        /**
+         * A level matrix that we should deliver to our media stream and
+         * its listeners in a separate thread.
+         *
+         * @param levels the levels that we'd like to queue for processing.
+         */
+        public void addLevels(long[] levels)
+        {
+            synchronized(this)
+            {
+                this.lastReportedLevels = levels;
+                notifyAll();
+            }
+        }
 
         /**
          * Waits for new levels to be reported via the <tt>addLevels()</tt>
@@ -337,21 +352,6 @@ public class CsrcTransformEngine
 
                 if(audioLevels != null)
                     audioStream.audioLevelsReceived(audioLevels);
-            }
-        }
-
-        /**
-         * A level matrix that we should deliver to our media stream and
-         * its listeners in a separate thread.
-         *
-         * @param levels the levels that we'd like to queue for processing.
-         */
-        public void addLevels(long[] levels)
-        {
-            synchronized(this)
-            {
-                this.lastReportedLevels = levels;
-                notifyAll();
             }
         }
 

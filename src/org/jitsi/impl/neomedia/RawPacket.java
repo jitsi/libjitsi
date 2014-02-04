@@ -80,569 +80,6 @@ public class RawPacket
     }
 
     /**
-     * Get buffer containing the content of this packet
-     *
-     * @return buffer containing the content of this packet
-     */
-    public byte[] getBuffer()
-    {
-        return this.buffer;
-    }
-
-    /**
-     * Get the length of this packet's data
-     *
-     * @return length of this packet's data
-     */
-    public int getLength()
-    {
-        return this.length;
-    }
-
-    /**
-     * Get the start offset of this packet's data inside storing buffer
-     *
-     * @return start offset of this packet's data inside storing buffer
-     */
-    public int getOffset()
-    {
-        return this.offset;
-    }
-
-    /**
-     * @param buffer the buffer to set
-     */
-    public void setBuffer(byte[] buffer)
-    {
-        this.buffer = buffer;
-    }
-
-    /**
-     * @param offset the offset to set
-     */
-    public void setOffset(int offset)
-    {
-        this.offset = offset;
-    }
-
-    /**
-     * @param length the length to set
-     */
-    public void setLength(int length)
-    {
-        this.length = length;
-    }
-
-
-    /**
-     * Sets or resets the marker bit of this packet according to the
-     * <tt>marker</tt> parameter.
-     * @param marker <tt>true</tt> if we are to raise the marker bit and
-     * <tt>false</tt> otherwise.
-     */
-    public void setMarker(boolean marker)
-    {
-        if(marker)
-        {
-             buffer[offset + 1] |= (byte) 0x80;
-        }
-        else
-        {
-            buffer[offset + 1] &= (byte) 0x7F;
-        }
-    }
-
-    /**
-     * Sets the payload type of this packet.
-     *
-     * @param payload the RTP payload type describing the content of this
-     * packet.
-     */
-    public void setPayload(byte payload)
-    {
-        //this is supposed to be a 7bit payload so make sure that the leftmost
-        //bit is 0 so that we don't accidentally overwrite the marker.
-        payload &= (byte)0x7F;
-
-        buffer[offset + 1] = (byte)((buffer[offset + 1] & 0x80) | payload);
-    }
-
-    /**
-     * Returns the timestamp for this RTP <tt>RawPacket</tt>.
-     *
-     * @return the timestamp for this RTP <tt>RawPacket</tt>.
-     */
-    public long getTimestamp()
-    {
-        return readInt(4);
-    }
-
-    /**
-     * Set the timestamp value of the RTP Packet
-     *
-     * @param timestamp : the RTP Timestamp
-     */
-    public void setTimestamp(long timestamp)
-    {
-        writeInt(4, (int)timestamp);
-    }
-
-    /**
-     * Read a integer from this packet at specified offset
-     *
-     * @param off start offset of the integer to be read
-     * @return the integer to be read
-     */
-    public int readInt(int off)
-    {
-        off += offset;
-        return
-            ((buffer[off++] & 0xFF) << 24)
-                | ((buffer[off++] & 0xFF) << 16)
-                | ((buffer[off++] & 0xFF) << 8)
-                | (buffer[off] & 0xFF);
-    }
-
-    /**
-     * Set an integer at specified offset in network order.
-     *
-     * @param off Offset into the buffer
-     * @param data The integer to store in the packet
-     */
-    public void writeInt(int off, int data)
-    {
-        buffer[offset + off++] = (byte)(data>>24);
-        buffer[offset + off++] = (byte)(data>>16);
-        buffer[offset + off++] = (byte)(data>>8);
-        buffer[offset + off] = (byte)data;
-    }
-
-    /**
-     * Read a short from this packet at specified offset
-     *
-     * @param off start offset of this short
-     * @return short value at offset
-     */
-    public short readShort(int off)
-    {
-        return (short) ((this.buffer[this.offset + off + 0] << 8) |
-                        (this.buffer[this.offset + off + 1] & 0xff));
-    }
-
-    /**
-     * Read an unsigned short at specified offset as a int
-     *
-     * @param off start offset of the unsigned short
-     * @return the int value of the unsigned short at offset
-     */
-    public int readUnsignedShortAsInt(int off)
-    {
-        int b1 = (0x000000FF & (this.buffer[this.offset + off + 0]));
-        int b2 = (0x000000FF & (this.buffer[this.offset + off + 1]));
-        int val = b1 << 8 | b2;
-        return val;
-    }
-
-    /**
-     * Read a byte from this packet at specified offset
-     *
-     * @param off start offset of the byte
-     * @return byte at offset
-     */
-    public byte readByte(int off)
-    {
-        return buffer[offset + off];
-    }
-
-    /**
-     * Write a byte to this packet at specified offset
-     *
-     * @param off start offset of the byte
-     * @param b byte to write
-     */
-    public void writeByte(int off, byte b)
-    {
-        buffer[offset + off] = b;
-    }
-
-    /**
-     * Read an unsigned integer as long at specified offset
-     *
-     * @param off start offset of this unsigned integer
-     * @return unsigned integer as long at offset
-     */
-    public long readUnsignedIntAsLong(int off)
-    {
-        int b0 = (0x000000FF & (this.buffer[this.offset + off + 0]));
-        int b1 = (0x000000FF & (this.buffer[this.offset + off + 1]));
-        int b2 = (0x000000FF & (this.buffer[this.offset + off + 2]));
-        int b3 = (0x000000FF & (this.buffer[this.offset + off + 3]));
-
-        return  ((b0 << 24 | b1 << 16 | b2 << 8 | b3)) & 0xFFFFFFFFL;
-    }
-
-    /**
-     * Read a byte region from specified offset with specified length
-     *
-     * @param off start offset of the region to be read
-     * @param len length of the region to be read
-     * @return byte array of [offset, offset + length)
-     */
-    public byte[] readRegion(int off, int len)
-    {
-        int startOffset = this.offset + off;
-        if (off < 0 || len <= 0 || startOffset + len > this.buffer.length)
-            return null;
-
-        byte[] region = new byte[len];
-
-        System.arraycopy(this.buffer, startOffset, region, 0, len);
-
-        return region;
-    }
-
-    /**
-     * Read a byte region from specified offset with specified length in given
-     * buffer
-     *
-     * @param off start offset of the region to be read
-     * @param len length of the region to be read
-     * @param outBuff output buffer
-     */
-    public void readRegionToBuff(int off, int len, byte[] outBuff)
-    {
-        int startOffset = this.offset + off;
-        if (off < 0 || len <= 0 || startOffset + len > this.buffer.length)
-            return;
-
-        if (outBuff.length < len)
-            return;
-
-        System.arraycopy(this.buffer, startOffset, outBuff, 0, len);
-    }
-
-    /**
-     * Grow the internal packet buffer.
-     *
-     * This will change the data buffer of this packet but not the
-     * length of the valid data. Use this to grow the internal buffer
-     * to avoid buffer re-allocations when appending data.
-     *
-     * @param howMuch number of bytes to grow
-     */
-    public void grow(int howMuch) {
-        if (howMuch == 0) {
-            return;
-        }
-        byte[] newBuffer = new byte[this.length + howMuch];
-        System.arraycopy(this.buffer, this.offset, newBuffer, 0, this.length);
-        offset = 0;
-        buffer = newBuffer;
-    }
-
-    /**
-     * Append a byte array to the end of the packet. This may change the data
-     * buffer of this packet.
-     *
-     * @param data byte array to append
-     * @param len the number of bytes to append
-     */
-    public void append(byte[] data, int len) {
-        if (data == null || len == 0)  {
-            return;
-        }
-
-        // re-allocate internal buffer if it is too small
-        if ((this.length + len) > (buffer.length - this.offset)) {
-            byte[] newBuffer = new byte[this.length + len];
-            System.arraycopy(this.buffer, this.offset, newBuffer, 0, this.length);
-            this.offset = 0;
-            this.buffer = newBuffer;
-        }
-        // append data
-        System.arraycopy(data, 0, this.buffer, this.length, len);
-        this.length = this.length + len;
-
-    }
-
-    /**
-     * Shrink the buffer of this packet by specified length
-     *
-     * @param len length to shrink
-     */
-    public void shrink(int len)
-    {
-        if (len <= 0)
-            return;
-
-        this.length -= len;
-        if (this.length < 0)
-            this.length = 0;
-    }
-
-    /**
-     * Returns the number of CSRC identifiers currently included in this packet.
-     *
-     * @return the CSRC count for this <tt>RawPacket</tt>.
-     */
-    public int getCsrcCount()
-    {
-        return (buffer[offset] & 0x0f);
-    }
-
-    /**
-     * Replaces the existing CSRC list (even if empty) with <tt>newCsrcList</tt>
-     * and updates the CC (CSRC count) field of this <tt>RawPacket</tt>
-     * accordingly.
-     *
-     * @param newCsrcList the list of CSRC identifiers that we'd like to set for
-     * this <tt>RawPacket</tt>.
-     */
-    public void setCsrcList(long[] newCsrcList)
-    {
-        int newCsrcCount = newCsrcList.length;
-        byte[] csrcBuff = new byte[newCsrcCount * 4];
-        int csrcOffset = 0;
-
-        for(int i = 0; i < newCsrcList.length; i++)
-        {
-            long csrc = newCsrcList[i];
-
-            csrcBuff[csrcOffset] = (byte)(csrc >> 24);
-            csrcBuff[csrcOffset+1] = (byte)(csrc >> 16);
-            csrcBuff[csrcOffset+2] = (byte)(csrc >> 8);
-            csrcBuff[csrcOffset+3] = (byte)csrc;
-
-            csrcOffset += 4;
-        }
-
-        int oldCsrcCount = getCsrcCount();
-
-        byte[] oldBuffer = this.getBuffer();
-
-        //the new buffer needs to be bigger than the new one in order to
-        //accommodate the list of CSRC IDs (unless there were more of them
-        //previously than after setting the new list).
-        byte[] newBuffer
-            = new byte[length + offset + csrcBuff.length - oldCsrcCount*4];
-
-        //copy the part up to the CSRC list
-        System.arraycopy(
-                    oldBuffer, 0, newBuffer, 0, offset + FIXED_HEADER_SIZE);
-
-        //copy the new CSRC list
-        System.arraycopy( csrcBuff, 0, newBuffer,
-                        offset + FIXED_HEADER_SIZE, csrcBuff.length);
-
-        //now copy the payload from the old buff and make sure we don't copy
-        //the CSRC list if there was one in the old packet
-        int payloadOffsetForOldBuff
-            = offset + FIXED_HEADER_SIZE + oldCsrcCount*4;
-
-        int payloadOffsetForNewBuff
-            = offset + FIXED_HEADER_SIZE + newCsrcCount*4;
-
-        System.arraycopy( oldBuffer, payloadOffsetForOldBuff,
-                          newBuffer, payloadOffsetForNewBuff,
-                          length - payloadOffsetForOldBuff);
-
-        //set the new CSRC count
-        newBuffer[offset] = (byte)((newBuffer[offset] & 0xF0)
-                                    | newCsrcCount);
-
-        this.buffer = newBuffer;
-        this.length = payloadOffsetForNewBuff + length
-                - payloadOffsetForOldBuff - offset;
-    }
-
-    /**
-     * Returns the list of CSRC IDs, currently encapsulated in this packet.
-     *
-     * @return an array containing the list of CSRC IDs, currently encapsulated
-     * in this packet.
-     */
-    public long[] extractCsrcList()
-    {
-        int csrcCount = getCsrcCount();
-        long[] csrcList = new long[csrcCount];
-        int csrcStartIndex = offset + FIXED_HEADER_SIZE;
-
-        for (int i = 0; i < csrcCount; i++)
-        {
-            csrcList[i] = readInt(csrcStartIndex);
-
-            csrcStartIndex += 4;
-        }
-
-        return csrcList;
-    }
-
-    /**
-     * Get RTP padding size from a RTP packet
-     *
-     * @return RTP padding size from source RTP packet
-     */
-    public int getPaddingSize()
-    {
-        if ((buffer[offset] & 0x20) == 0)
-            return 0;
-        else
-            return buffer[offset + length - 1];
-    }
-
-    /**
-     * Get RTP header length from a RTP packet
-     *
-     * @return RTP header length from source RTP packet
-     */
-    public int getHeaderLength()
-    {
-        if(getExtensionBit())
-            return FIXED_HEADER_SIZE + 4 * getCsrcCount()
-                + EXT_HEADER_SIZE + getExtensionLength();
-        else
-            return FIXED_HEADER_SIZE + 4 * getCsrcCount();
-    }
-
-    /**
-     * Get RTP payload length from a RTP packet
-     *
-     * @return RTP payload length from source RTP packet
-     */
-    public int getPayloadLength()
-    {
-        return length - getHeaderLength();
-    }
-
-    /**
-     * Get RTP SSRC from a RTP packet
-     *
-     * @return RTP SSRC from source RTP packet
-     */
-    public int getSSRC()
-    {
-        return readInt(8);
-    }
-
-    /**
-     * Get RTCP SSRC from a RTCP packet
-     *
-     * @return RTP SSRC from source RTP packet
-     */
-    public int getRTCPSSRC()
-    {
-        return readInt(4);
-    }
-
-    /**
-     * Get RTP sequence number from a RTP packet
-     *
-     * @return RTP sequence num from source packet
-     */
-    public int getSequenceNumber()
-    {
-        return readUnsignedShortAsInt(2);
-    }
-
-    /**
-     * Get SRTCP sequence number from a SRTCP packet
-     *
-     * @param authTagLen authentication tag length
-     * @return SRTCP sequence num from source packet
-     */
-    public int getSRTCPIndex(int authTagLen)
-    {
-        int offset = getLength() - (4 + authTagLen);
-        return readInt(offset);
-    }
-    /**
-     * Test whether the RTP Marker bit is set
-     *
-     * @return whether the RTP Marker bit is set
-     */
-    public boolean isPacketMarked()
-    {
-        return (buffer[offset + 1] & 0x80) != 0;
-    }
-
-    /**
-     * Get RTP payload type from a RTP packet
-     *
-     * @return RTP payload type of source RTP packet
-     */
-    public byte getPayloadType()
-    {
-        return (byte) (buffer[offset + 1] & (byte)0x7F);
-    }
-
-    /**
-     * Get the RTP payload (bytes) of this RTP packet.
-     *
-     * @return an array of <tt>byte</tt>s which represents the RTP payload of
-     * this RTP packet
-     */
-    public byte[] getPayload()
-    {
-        return readRegion(getHeaderLength(), getPayloadLength());
-    }
-
-    /**
-     * Get RTP timestamp from a RTP packet
-     *
-     * @return RTP timestamp of source RTP packet
-     */
-    public byte[] readTimeStampIntoByteArray()
-    {
-        return readRegion(4, 4);
-    }
-
-    /**
-     * Returns <tt>true</tt> if the extension bit of this packet has been set
-     * and <tt>false</tt> otherwise.
-     *
-     * @return  <tt>true</tt> if the extension bit of this packet has been set
-     * and <tt>false</tt> otherwise.
-     */
-    public boolean getExtensionBit()
-    {
-        return (buffer[offset] & 0x10) == 0x10;
-    }
-
-    /**
-     * Raises the extension bit of this packet is <tt>extBit</tt> is
-     * <tt>true</tt> or set it to <tt>0</tt> if <tt>extBit</tt> is
-     * <tt>false</tt>.
-     *
-     * @param extBit the flag that indicates whether we are to set or clear
-     * the extension bit of this packet.
-     */
-    private void setExtensionBit(boolean extBit)
-    {
-        if(extBit)
-            buffer[offset] |= 0x10;
-        else
-            buffer[offset] &= 0xEF;
-    }
-
-    /**
-     * Returns the length of the extensions currently added to this packet.
-     *
-     * @return the length of the extensions currently added to this packet.
-     */
-    public int getExtensionLength()
-    {
-        if (!getExtensionBit())
-            return 0;
-
-        // The extension length comes after the RTP header, the CSRC list, and
-        // two bytes in the extension header called "defined by profile".
-        int extLenIndex = offset + FIXED_HEADER_SIZE + getCsrcCount() * 4 + 2;
-
-        return
-            ((buffer[extLenIndex] << 8) | (buffer[extLenIndex + 1] & 0xFF)) * 4;
-    }
-
-    /**
      * Adds the <tt>extBuff</tt> buffer to as an extension of this packet
      * according the rules specified in RFC 5285. Note that this method does
      * not replace extensions so if you add the same buffer twice it would be
@@ -731,23 +168,28 @@ public class RawPacket
     }
 
     /**
-     * Removes the extension from the packet and its header.
+     * Append a byte array to the end of the packet. This may change the data
+     * buffer of this packet.
+     *
+     * @param data byte array to append
+     * @param len the number of bytes to append
      */
-    public void removeExtension()
-    {
-        if(!getExtensionBit())
+    public void append(byte[] data, int len) {
+        if (data == null || len == 0)  {
             return;
+        }
 
-        int payloadOffset = offset + getHeaderLength();
+        // re-allocate internal buffer if it is too small
+        if ((this.length + len) > (buffer.length - this.offset)) {
+            byte[] newBuffer = new byte[this.length + len];
+            System.arraycopy(this.buffer, this.offset, newBuffer, 0, this.length);
+            this.offset = 0;
+            this.buffer = newBuffer;
+        }
+        // append data
+        System.arraycopy(data, 0, this.buffer, this.length, len);
+        this.length = this.length + len;
 
-        int extHeaderLen = getExtensionLength() + EXT_HEADER_SIZE;
-
-        System.arraycopy(buffer, payloadOffset,
-            buffer, payloadOffset - extHeaderLen, getPayloadLength());
-
-        this.length -= extHeaderLen;
-
-        setExtensionBit(false);
     }
 
     /**
@@ -763,14 +205,16 @@ public class RawPacket
      * elements at even indices stand for CSRC IDs and elements at odd indices
      * stand for the associated audio levels
      */
-    public long[] extractCsrcLevels(byte csrcExtID)
+    public long[] extractCsrcAudioLevels(byte csrcExtID)
     {
-        if (!getExtensionBit()
-                || (getExtensionLength() == 0)
-                || (getCsrcCount() == 0))
+        if (!getExtensionBit() || (getExtensionLength() == 0))
             return null;
 
         int csrcCount = getCsrcCount();
+
+        if (csrcCount == 0)
+            return null;
+
         /*
          * XXX The guideline which is also supported by Google and recommended
          * for Android is that single-dimensional arrays should be preferred to
@@ -781,52 +225,47 @@ public class RawPacket
         long[] csrcLevels = new long[csrcCount * 2];
 
         //first extract the csrc IDs
-        int csrcStartIndex = offset + FIXED_HEADER_SIZE;
-        for (int i = 0; i < csrcCount; i++)
+        for (int i = 0, csrcStartIndex = offset + FIXED_HEADER_SIZE;
+                i < csrcCount;
+                i++, csrcStartIndex += 4)
         {
             int csrcLevelsIndex = 2 * i;
 
             csrcLevels[csrcLevelsIndex] = 0xFFFFFFFFL & readInt(csrcStartIndex);
-            csrcLevels[csrcLevelsIndex + 1] = getCsrcLevel(i, csrcExtID);
-
-            csrcStartIndex += 4;
+            csrcLevels[csrcLevelsIndex + 1] = getCsrcAudioLevel(csrcExtID, i);
         }
 
         return csrcLevels;
     }
 
     /**
-     * Returns the CSRC level at the specified index or <tt>0</tt> if there was
-     * no level at that index.
+     * Returns the list of CSRC IDs, currently encapsulated in this packet.
      *
-     * @param index the sequence number of the CSRC audio level extension to
-     * return.
-     * @param csrcExtID the ID of the extension that's transporting csrc audio
-     * levels in the session that this <tt>RawPacket</tt> belongs to.
-     *
-     * @return the CSRC audio level at the specified index of the csrc audio
-     * level option or <tt>0</tt> if there was no level at that index.
+     * @return an array containing the list of CSRC IDs, currently encapsulated
+     * in this packet.
      */
-    private int getCsrcLevel(int index, byte csrcExtID)
+    public long[] extractCsrcList()
     {
-        if( !getExtensionBit() || getExtensionLength() == 0)
-            return 0;
+        int csrcCount = getCsrcCount();
+        long[] csrcList = new long[csrcCount];
 
-        int levelsStart = findExtension(csrcExtID);
-
-        if(levelsStart == -1)
-            return 0;
-
-        int levelsCount = getLengthForExtension(levelsStart);
-
-        if(levelsCount < index)
+        for (int i = 0, csrcStartIndex = offset + FIXED_HEADER_SIZE;
+                i < csrcCount;
+                i++, csrcStartIndex += 4)
         {
-            //apparently the remote side sent more CSRCs than levels.
-            // ... yeah remote sides do that now and then ...
-            return 0;
+            csrcList[i] = readInt(csrcStartIndex);
         }
 
-        return buffer[levelsStart + index];
+        return csrcList;
+    }
+
+    public byte extractSsrcAudioLevel(byte ssrcExtID)
+    {
+        /*
+         * The method getCsrcAudioLevel(byte, int) is implemented with the
+         * awareness that there may be a flag bit V with a value other than 0.
+         */
+        return getCsrcAudioLevel(ssrcExtID, 0);
     }
 
     /**
@@ -906,27 +345,70 @@ public class RawPacket
     }
 
     /**
-     * Returns the length of the header extension that is carrying the content
-     * starting at <tt>contentStart</tt>. In other words this method checks the
-     * size of extension headers in this packet and then either returns the
-     * value of the byte right before <tt>contentStart</tt> or its lower 4 bits.
-     * This is a very basic method so if you are using it - make sure u know
-     * what you are doing.
+     * Get buffer containing the content of this packet
      *
-     * @param contentStart the index of the first element of the content of
-     * the extension whose size we are trying to obtain.
-     *
-     * @return the length of the extension carrying the content starting at
-     * <tt>contentStart</tt>.
+     * @return buffer containing the content of this packet
      */
-    private int getLengthForExtension(int contentStart)
+    public byte[] getBuffer()
     {
-        int hdrLen = getExtensionHeaderLength();
+        return this.buffer;
+    }
 
-        if( hdrLen == 1 )
-            return (buffer[contentStart - 1] & 0x0F) + 1;
-        else
-            return buffer[contentStart - 1];
+
+    /**
+     * Returns the CSRC level at the specified index or <tt>0</tt> if there was
+     * no level at that index.
+     *
+     * @param csrcExtID the ID of the extension that's transporting csrc audio
+     * levels in the session that this <tt>RawPacket</tt> belongs to.
+     * @param index the sequence number of the CSRC audio level extension to
+     * return.
+     *
+     * @return the CSRC audio level at the specified index of the csrc audio
+     * level option or <tt>0</tt> if there was no level at that index.
+     */
+    private byte getCsrcAudioLevel(byte csrcExtID, int index)
+    {
+        if( !getExtensionBit() || getExtensionLength() == 0)
+            return 0;
+
+        int levelsStart = findExtension(csrcExtID);
+
+        if(levelsStart == -1)
+            return 0;
+
+        int levelsCount = getLengthForExtension(levelsStart);
+
+        if(levelsCount < index)
+        {
+            //apparently the remote side sent more CSRCs than levels.
+            // ... yeah remote sides do that now and then ...
+            return 0;
+        }
+
+        return (byte) (0x7F & buffer[levelsStart + index]);
+    }
+
+    /**
+     * Returns the number of CSRC identifiers currently included in this packet.
+     *
+     * @return the CSRC count for this <tt>RawPacket</tt>.
+     */
+    public int getCsrcCount()
+    {
+        return (buffer[offset] & 0x0f);
+    }
+
+    /**
+     * Returns <tt>true</tt> if the extension bit of this packet has been set
+     * and <tt>false</tt> otherwise.
+     *
+     * @return  <tt>true</tt> if the extension bit of this packet has been set
+     * and <tt>false</tt> otherwise.
+     */
+    public boolean getExtensionBit()
+    {
+        return (buffer[offset] & 0x10) == 0x10;
     }
 
     /**
@@ -961,6 +443,24 @@ public class RawPacket
     }
 
     /**
+     * Returns the length of the extensions currently added to this packet.
+     *
+     * @return the length of the extensions currently added to this packet.
+     */
+    public int getExtensionLength()
+    {
+        if (!getExtensionBit())
+            return 0;
+
+        // The extension length comes after the RTP header, the CSRC list, and
+        // two bytes in the extension header called "defined by profile".
+        int extLenIndex = offset + FIXED_HEADER_SIZE + getCsrcCount() * 4 + 2;
+
+        return
+            ((buffer[extLenIndex] << 8) | (buffer[extLenIndex + 1] & 0xFF)) * 4;
+    }
+
+    /**
      * Return the define by profile part of the extension header.
      * @return the starting two bytes of extension header.
      */
@@ -972,6 +472,180 @@ public class RawPacket
         return
             readUnsignedShortAsInt(
                     offset + FIXED_HEADER_SIZE + getCsrcCount() * 4);
+    }
+
+    /**
+     * Get RTP header length from a RTP packet
+     *
+     * @return RTP header length from source RTP packet
+     */
+    public int getHeaderLength()
+    {
+        int headerLength = FIXED_HEADER_SIZE + 4 * getCsrcCount();
+
+        if (getExtensionBit())
+            headerLength += EXT_HEADER_SIZE + getExtensionLength();
+
+        return headerLength;
+    }
+
+    /**
+     * Get the length of this packet's data
+     *
+     * @return length of this packet's data
+     */
+    public int getLength()
+    {
+        return length;
+    }
+
+    /**
+     * Returns the length of the header extension that is carrying the content
+     * starting at <tt>contentStart</tt>. In other words this method checks the
+     * size of extension headers in this packet and then either returns the
+     * value of the byte right before <tt>contentStart</tt> or its lower 4 bits.
+     * This is a very basic method so if you are using it - make sure u know
+     * what you are doing.
+     *
+     * @param contentStart the index of the first element of the content of
+     * the extension whose size we are trying to obtain.
+     *
+     * @return the length of the extension carrying the content starting at
+     * <tt>contentStart</tt>.
+     */
+    private int getLengthForExtension(int contentStart)
+    {
+        int hdrLen = getExtensionHeaderLength();
+
+        if( hdrLen == 1 )
+            return (buffer[contentStart - 1] & 0x0F) + 1;
+        else
+            return buffer[contentStart - 1];
+    }
+
+    /**
+     * Get the start offset of this packet's data inside storing buffer
+     *
+     * @return start offset of this packet's data inside storing buffer
+     */
+    public int getOffset()
+    {
+        return this.offset;
+    }
+
+    /**
+     * Get RTP padding size from a RTP packet
+     *
+     * @return RTP padding size from source RTP packet
+     */
+    public int getPaddingSize()
+    {
+        if ((buffer[offset] & 0x20) == 0)
+            return 0;
+        else
+            return buffer[offset + length - 1];
+    }
+
+    /**
+     * Get the RTP payload (bytes) of this RTP packet.
+     *
+     * @return an array of <tt>byte</tt>s which represents the RTP payload of
+     * this RTP packet
+     */
+    public byte[] getPayload()
+    {
+        return readRegion(getHeaderLength(), getPayloadLength());
+    }
+
+    /**
+     * Get RTP payload length from a RTP packet
+     *
+     * @return RTP payload length from source RTP packet
+     */
+    public int getPayloadLength()
+    {
+        return length - getHeaderLength();
+    }
+
+    /**
+     * Get RTP payload type from a RTP packet
+     *
+     * @return RTP payload type of source RTP packet
+     */
+    public byte getPayloadType()
+    {
+        return (byte) (buffer[offset + 1] & (byte)0x7F);
+    }
+
+    /**
+     * Get RTCP SSRC from a RTCP packet
+     *
+     * @return RTP SSRC from source RTP packet
+     */
+    public int getRTCPSSRC()
+    {
+        return readInt(4);
+    }
+
+    /**
+     * Get RTP sequence number from a RTP packet
+     *
+     * @return RTP sequence num from source packet
+     */
+    public int getSequenceNumber()
+    {
+        return readUnsignedShortAsInt(2);
+    }
+
+    /**
+     * Get SRTCP sequence number from a SRTCP packet
+     *
+     * @param authTagLen authentication tag length
+     * @return SRTCP sequence num from source packet
+     */
+    public int getSRTCPIndex(int authTagLen)
+    {
+        int offset = getLength() - (4 + authTagLen);
+        return readInt(offset);
+    }
+
+    /**
+     * Get RTP SSRC from a RTP packet
+     *
+     * @return RTP SSRC from source RTP packet
+     */
+    public int getSSRC()
+    {
+        return readInt(8);
+    }
+
+    /**
+     * Returns the timestamp for this RTP <tt>RawPacket</tt>.
+     *
+     * @return the timestamp for this RTP <tt>RawPacket</tt>.
+     */
+    public long getTimestamp()
+    {
+        return readInt(4);
+    }
+
+    /**
+     * Grow the internal packet buffer.
+     *
+     * This will change the data buffer of this packet but not the
+     * length of the valid data. Use this to grow the internal buffer
+     * to avoid buffer re-allocations when appending data.
+     *
+     * @param howMuch number of bytes to grow
+     */
+    public void grow(int howMuch) {
+        if (howMuch == 0) {
+            return;
+        }
+        byte[] newBuffer = new byte[this.length + howMuch];
+        System.arraycopy(this.buffer, this.offset, newBuffer, 0, this.length);
+        offset = 0;
+        buffer = newBuffer;
     }
 
     /**
@@ -988,5 +662,341 @@ public class RawPacket
             (buffer == null)
                 || (buffer.length < offset + length)
                 || (length < FIXED_HEADER_SIZE);
+    }
+
+    /**
+     * Test whether the RTP Marker bit is set
+     *
+     * @return whether the RTP Marker bit is set
+     */
+    public boolean isPacketMarked()
+    {
+        return (buffer[offset + 1] & 0x80) != 0;
+    }
+
+    /**
+     * Read a byte from this packet at specified offset
+     *
+     * @param off start offset of the byte
+     * @return byte at offset
+     */
+    public byte readByte(int off)
+    {
+        return buffer[offset + off];
+    }
+
+    /**
+     * Read a integer from this packet at specified offset
+     *
+     * @param off start offset of the integer to be read
+     * @return the integer to be read
+     */
+    public int readInt(int off)
+    {
+        off += offset;
+        return
+            ((buffer[off++] & 0xFF) << 24)
+                | ((buffer[off++] & 0xFF) << 16)
+                | ((buffer[off++] & 0xFF) << 8)
+                | (buffer[off] & 0xFF);
+    }
+
+    /**
+     * Read a byte region from specified offset with specified length
+     *
+     * @param off start offset of the region to be read
+     * @param len length of the region to be read
+     * @return byte array of [offset, offset + length)
+     */
+    public byte[] readRegion(int off, int len)
+    {
+        int startOffset = this.offset + off;
+        if (off < 0 || len <= 0 || startOffset + len > this.buffer.length)
+            return null;
+
+        byte[] region = new byte[len];
+
+        System.arraycopy(this.buffer, startOffset, region, 0, len);
+
+        return region;
+    }
+
+    /**
+     * Read a byte region from specified offset with specified length in given
+     * buffer
+     *
+     * @param off start offset of the region to be read
+     * @param len length of the region to be read
+     * @param outBuff output buffer
+     */
+    public void readRegionToBuff(int off, int len, byte[] outBuff)
+    {
+        int startOffset = this.offset + off;
+        if (off < 0 || len <= 0 || startOffset + len > this.buffer.length)
+            return;
+
+        if (outBuff.length < len)
+            return;
+
+        System.arraycopy(this.buffer, startOffset, outBuff, 0, len);
+    }
+    /**
+     * Read a short from this packet at specified offset
+     *
+     * @param off start offset of this short
+     * @return short value at offset
+     */
+    public short readShort(int off)
+    {
+        return (short) ((this.buffer[this.offset + off + 0] << 8) |
+                        (this.buffer[this.offset + off + 1] & 0xff));
+    }
+
+    /**
+     * Get RTP timestamp from a RTP packet
+     *
+     * @return RTP timestamp of source RTP packet
+     */
+    public byte[] readTimeStampIntoByteArray()
+    {
+        return readRegion(4, 4);
+    }
+
+    /**
+     * Read an unsigned integer as long at specified offset
+     *
+     * @param off start offset of this unsigned integer
+     * @return unsigned integer as long at offset
+     */
+    public long readUnsignedIntAsLong(int off)
+    {
+        int b0 = (0x000000FF & (this.buffer[this.offset + off + 0]));
+        int b1 = (0x000000FF & (this.buffer[this.offset + off + 1]));
+        int b2 = (0x000000FF & (this.buffer[this.offset + off + 2]));
+        int b3 = (0x000000FF & (this.buffer[this.offset + off + 3]));
+
+        return  ((b0 << 24 | b1 << 16 | b2 << 8 | b3)) & 0xFFFFFFFFL;
+    }
+
+    /**
+     * Read an unsigned short at specified offset as a int
+     *
+     * @param off start offset of the unsigned short
+     * @return the int value of the unsigned short at offset
+     */
+    public int readUnsignedShortAsInt(int off)
+    {
+        int b1 = (0x000000FF & (this.buffer[this.offset + off + 0]));
+        int b2 = (0x000000FF & (this.buffer[this.offset + off + 1]));
+        int val = b1 << 8 | b2;
+        return val;
+    }
+
+    /**
+     * Removes the extension from the packet and its header.
+     */
+    public void removeExtension()
+    {
+        if(!getExtensionBit())
+            return;
+
+        int payloadOffset = offset + getHeaderLength();
+
+        int extHeaderLen = getExtensionLength() + EXT_HEADER_SIZE;
+
+        System.arraycopy(buffer, payloadOffset,
+            buffer, payloadOffset - extHeaderLen, getPayloadLength());
+
+        this.length -= extHeaderLen;
+
+        setExtensionBit(false);
+    }
+
+    /**
+     * @param buffer the buffer to set
+     */
+    public void setBuffer(byte[] buffer)
+    {
+        this.buffer = buffer;
+    }
+
+    /**
+     * Replaces the existing CSRC list (even if empty) with <tt>newCsrcList</tt>
+     * and updates the CC (CSRC count) field of this <tt>RawPacket</tt>
+     * accordingly.
+     *
+     * @param newCsrcList the list of CSRC identifiers that we'd like to set for
+     * this <tt>RawPacket</tt>.
+     */
+    public void setCsrcList(long[] newCsrcList)
+    {
+        int newCsrcCount = newCsrcList.length;
+        byte[] csrcBuff = new byte[newCsrcCount * 4];
+        int csrcOffset = 0;
+
+        for(int i = 0; i < newCsrcList.length; i++)
+        {
+            long csrc = newCsrcList[i];
+
+            csrcBuff[csrcOffset] = (byte)(csrc >> 24);
+            csrcBuff[csrcOffset+1] = (byte)(csrc >> 16);
+            csrcBuff[csrcOffset+2] = (byte)(csrc >> 8);
+            csrcBuff[csrcOffset+3] = (byte)csrc;
+
+            csrcOffset += 4;
+        }
+
+        int oldCsrcCount = getCsrcCount();
+
+        byte[] oldBuffer = this.getBuffer();
+
+        //the new buffer needs to be bigger than the new one in order to
+        //accommodate the list of CSRC IDs (unless there were more of them
+        //previously than after setting the new list).
+        byte[] newBuffer
+            = new byte[length + offset + csrcBuff.length - oldCsrcCount*4];
+
+        //copy the part up to the CSRC list
+        System.arraycopy(
+                    oldBuffer, 0, newBuffer, 0, offset + FIXED_HEADER_SIZE);
+
+        //copy the new CSRC list
+        System.arraycopy( csrcBuff, 0, newBuffer,
+                        offset + FIXED_HEADER_SIZE, csrcBuff.length);
+
+        //now copy the payload from the old buff and make sure we don't copy
+        //the CSRC list if there was one in the old packet
+        int payloadOffsetForOldBuff
+            = offset + FIXED_HEADER_SIZE + oldCsrcCount*4;
+
+        int payloadOffsetForNewBuff
+            = offset + FIXED_HEADER_SIZE + newCsrcCount*4;
+
+        System.arraycopy( oldBuffer, payloadOffsetForOldBuff,
+                          newBuffer, payloadOffsetForNewBuff,
+                          length - payloadOffsetForOldBuff);
+
+        //set the new CSRC count
+        newBuffer[offset] = (byte)((newBuffer[offset] & 0xF0)
+                                    | newCsrcCount);
+
+        this.buffer = newBuffer;
+        this.length = payloadOffsetForNewBuff + length
+                - payloadOffsetForOldBuff - offset;
+    }
+
+    /**
+     * Raises the extension bit of this packet is <tt>extBit</tt> is
+     * <tt>true</tt> or set it to <tt>0</tt> if <tt>extBit</tt> is
+     * <tt>false</tt>.
+     *
+     * @param extBit the flag that indicates whether we are to set or clear
+     * the extension bit of this packet.
+     */
+    private void setExtensionBit(boolean extBit)
+    {
+        if(extBit)
+            buffer[offset] |= 0x10;
+        else
+            buffer[offset] &= 0xEF;
+    }
+
+    /**
+     * @param length the length to set
+     */
+    public void setLength(int length)
+    {
+        this.length = length;
+    }
+
+    /**
+     * Sets or resets the marker bit of this packet according to the
+     * <tt>marker</tt> parameter.
+     * @param marker <tt>true</tt> if we are to raise the marker bit and
+     * <tt>false</tt> otherwise.
+     */
+    public void setMarker(boolean marker)
+    {
+        if(marker)
+        {
+             buffer[offset + 1] |= (byte) 0x80;
+        }
+        else
+        {
+            buffer[offset + 1] &= (byte) 0x7F;
+        }
+    }
+
+    /**
+     * @param offset the offset to set
+     */
+    public void setOffset(int offset)
+    {
+        this.offset = offset;
+    }
+
+    /**
+     * Sets the payload type of this packet.
+     *
+     * @param payload the RTP payload type describing the content of this
+     * packet.
+     */
+    public void setPayload(byte payload)
+    {
+        //this is supposed to be a 7bit payload so make sure that the leftmost
+        //bit is 0 so that we don't accidentally overwrite the marker.
+        payload &= (byte)0x7F;
+
+        buffer[offset + 1] = (byte)((buffer[offset + 1] & 0x80) | payload);
+    }
+
+    /**
+     * Set the timestamp value of the RTP Packet
+     *
+     * @param timestamp : the RTP Timestamp
+     */
+    public void setTimestamp(long timestamp)
+    {
+        writeInt(4, (int)timestamp);
+    }
+
+    /**
+     * Shrink the buffer of this packet by specified length
+     *
+     * @param len length to shrink
+     */
+    public void shrink(int len)
+    {
+        if (len <= 0)
+            return;
+
+        this.length -= len;
+        if (this.length < 0)
+            this.length = 0;
+    }
+
+    /**
+     * Write a byte to this packet at specified offset
+     *
+     * @param off start offset of the byte
+     * @param b byte to write
+     */
+    public void writeByte(int off, byte b)
+    {
+        buffer[offset + off] = b;
+    }
+
+    /**
+     * Set an integer at specified offset in network order.
+     *
+     * @param off Offset into the buffer
+     * @param data The integer to store in the packet
+     */
+    public void writeInt(int off, int data)
+    {
+        buffer[offset + off++] = (byte)(data>>24);
+        buffer[offset + off++] = (byte)(data>>16);
+        buffer[offset + off++] = (byte)(data>>8);
+        buffer[offset + off] = (byte)data;
     }
 }

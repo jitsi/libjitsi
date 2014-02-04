@@ -145,7 +145,10 @@ public class SRTPTransformer
             return null;
 
         SRTPCryptoContext context
-            = getContext(pkt.getSSRC(), reverseFactory, pkt.getSequenceNumber());
+            = getContext(
+                    pkt.getSSRC(),
+                    reverseFactory,
+                    pkt.getSequenceNumber());
 
         return
             ((context != null) && context.reverseTransformPacket(pkt))

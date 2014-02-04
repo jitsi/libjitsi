@@ -96,7 +96,7 @@ public class AudioMediaStreamImpl
     /**
      * The transformer that we use for sending and receiving DTMF packets.
      */
-    private DtmfTransformEngine dtmfTransfrmEngine;
+    private DtmfTransformEngine dtmfTransformEngine;
 
     /**
      * The listener which has been set on this instance to get notified of
@@ -118,6 +118,8 @@ public class AudioMediaStreamImpl
      * from the remote peer(s).
      */
     private SimpleAudioLevelListener streamAudioLevelListener;
+
+    private SsrcTransformEngine ssrcTransformEngine;
 
     /**
      * Initializes a new <tt>AudioMediaStreamImpl</tt> instance which will use
@@ -183,16 +185,56 @@ public class AudioMediaStreamImpl
     {
         super.addRTPExtension(extensionID, rtpExtension);
 
-        if (RTPExtension.CSRC_AUDIO_LEVEL_URN.equals(
-                rtpExtension.getURI().toString()))
+        /*
+         * The method invocation may add, remove, or replace the value
+         * associated with extensionID. Consequently, we have to update
+         * csrcEngine with whatever is in activeRTPExtensions eventually.
+         */
+        CsrcTransformEngine csrcEngine = getCsrcEngine();
+        SsrcTransformEngine ssrcEngine = this.ssrcTransformEngine;
+
+        if ((csrcEngine != null) || (ssrcEngine != null))
         {
-            CsrcTransformEngine csrcEngine = getCsrcEngine();
+            Map<Byte,RTPExtension> activeRTPExtensions
+                = getActiveRTPExtensions();
+            Byte csrcExtID = null;
+            MediaDirection csrcDir = MediaDirection.INACTIVE;
+            Byte ssrcExtID = null;
+            MediaDirection ssrcDir = MediaDirection.INACTIVE;
+
+            if ((activeRTPExtensions != null)
+                    && !activeRTPExtensions.isEmpty())
+            {
+                for (Map.Entry<Byte,RTPExtension> e
+                        : activeRTPExtensions.entrySet())
+                {
+                    RTPExtension ext = e.getValue();
+                    String uri = ext.getURI().toString();
+
+                    if (RTPExtension.CSRC_AUDIO_LEVEL_URN.equals(uri))
+                    {
+                        csrcExtID = e.getKey();
+                        csrcDir = ext.getDirection();
+                    }
+                    else if (RTPExtension.SSRC_AUDIO_LEVEL_URN.equals(uri))
+                    {
+                        ssrcExtID = e.getKey();
+                        ssrcDir = ext.getDirection();
+                    }
+                }
+            }
 
             if (csrcEngine != null)
             {
-                csrcEngine.setCsrcAudioLevelAudioLevelExtensionID(
-                        extensionID,
-                        rtpExtension.getDirection());
+                csrcEngine.setCsrcAudioLevelExtensionID(
+                        (csrcExtID == null) ? -1 : csrcExtID.byteValue(),
+                        csrcDir);
+            }
+            if (ssrcEngine != null)
+            {
+                ssrcEngine.setSsrcAudioLevelExtensionID(
+                        (ssrcExtID == null) ? -1 : ssrcExtID.byteValue(),
+                        ssrcDir);
             }
         }
     }
@@ -225,10 +267,15 @@ public class AudioMediaStreamImpl
     {
         super.close();
 
-        if(dtmfTransfrmEngine != null)
+        if (dtmfTransformEngine != null)
         {
-            dtmfTransfrmEngine.close();
-            dtmfTransfrmEngine = null;
+            dtmfTransformEngine.close();
+            dtmfTransformEngine = null;
+        }
+        if (ssrcTransformEngine != null)
+        {
+            ssrcTransformEngine.close();
+            ssrcTransformEngine = null;
         }
 
         if (audioSystemChangeNotifier != null)
@@ -307,9 +354,17 @@ public class AudioMediaStreamImpl
     @Override
     protected DtmfTransformEngine createDtmfTransformEngine()
     {
-        if(this.dtmfTransfrmEngine == null)
-            this.dtmfTransfrmEngine = new DtmfTransformEngine(this);
-        return this.dtmfTransfrmEngine;
+        if (dtmfTransformEngine == null)
+            dtmfTransformEngine = new DtmfTransformEngine(this);
+        return dtmfTransformEngine;
+    }
+
+    @Override
+    protected SsrcTransformEngine createSsrcTransformEngine()
+    {
+        if (ssrcTransformEngine == null)
+            ssrcTransformEngine = new SsrcTransformEngine(this);
+        return ssrcTransformEngine;
     }
 
     /**
@@ -629,12 +684,12 @@ public class AudioMediaStreamImpl
             break;
 
         case RTP_DTMF:
-            if (dtmfTransfrmEngine != null)
+            if (dtmfTransformEngine != null)
             {
                 DTMFRtpTone t = DTMFRtpTone.mapTone(tone);
 
                 if (t != null)
-                    dtmfTransfrmEngine.startSending(
+                    dtmfTransformEngine.startSending(
                             t,
                             minimalToneDuration,
                             maximalToneDuration,
@@ -673,8 +728,8 @@ public class AudioMediaStreamImpl
             break;
 
         case RTP_DTMF:
-            if(dtmfTransfrmEngine != null)
-                dtmfTransfrmEngine.stopSendingDTMF();
+            if (dtmfTransformEngine != null)
+                dtmfTransformEngine.stopSendingDTMF();
             break;
 
         case SIP_INFO_DTMF:

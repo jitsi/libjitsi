@@ -689,8 +689,6 @@ class AudioMixerPushBufferStream
                 if (!(data instanceof byte[])
                         || (((byte[]) data).length != length))
                     inBuffer.setData(new byte[length]);
-                inBuffer.setLength(0);
-                inBuffer.setOffset(0);
             }
             else
             {
@@ -699,6 +697,9 @@ class AudioMixerPushBufferStream
                         inStreamFormat);
             }
         }
+        inBuffer.setFlags(0);
+        inBuffer.setLength(0);
+        inBuffer.setOffset(0);
 
         audioMixer.read(
                 inStream,
@@ -889,7 +890,9 @@ class AudioMixerPushBufferStream
             if (inStream instanceof PushBufferStream)
             {
                 buffer.setDiscard(false);
+                buffer.setFlags(0);
                 buffer.setLength(0);
+                buffer.setOffset(0);
                 readInPushBufferStream(
                         inStreamDesc, outFormat, maxInSampleCount,
                         buffer);
@@ -940,7 +943,10 @@ class AudioMixerPushBufferStream
                                 (short) 0);
                     }
 
-                    inSamples[i] = samples;
+                    inSamples[i]
+                        = ((buffer.getFlags() & Buffer.FLAG_SILENCE) == 0)
+                            ? samples
+                            : null;
 
                     if (maxInSampleCount < samples.length)
                         maxInSampleCount = samples.length;

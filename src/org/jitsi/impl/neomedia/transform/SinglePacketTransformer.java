@@ -48,10 +48,12 @@ public abstract class SinglePacketTransformer
     {
         if (pkts != null)
         {
-            for(int i = 0; i < pkts.length; i++)
+            for (int i = 0; i < pkts.length; i++)
             {
-                if (pkts[i] != null)
-                    pkts[i] = transform(pkts[i]);
+                RawPacket pkt = pkts[i];
+
+                if (pkt != null)
+                    pkts[i] = transform(pkt);
             }
         }
 
@@ -68,10 +70,12 @@ public abstract class SinglePacketTransformer
     {
         if (pkts != null)
         {
-            for(int i = 0; i < pkts.length; i++)
+            for (int i = 0; i < pkts.length; i++)
             {
-                if (pkts[i] != null)
-                    pkts[i] = reverseTransform(pkts[i]);
+                RawPacket pkt = pkts[i];
+
+                if (pkt != null)
+                    pkts[i] = reverseTransform(pkt);
             }
         }
 

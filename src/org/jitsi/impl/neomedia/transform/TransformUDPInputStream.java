@@ -68,7 +68,8 @@ public class TransformUDPInputStream
             if(pkts[i].isInvalid())
                 pkts[i] = null; //null elements are just ignored
 
-        return (transformer == null) ? pkts : transformer.reverseTransform(pkts);
+        return
+            (transformer == null) ? pkts : transformer.reverseTransform(pkts);
     }
 
     /**
