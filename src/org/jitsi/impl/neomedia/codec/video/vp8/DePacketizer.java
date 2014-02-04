@@ -283,7 +283,7 @@ public class DePacketizer
             if((input[offset] & X_BIT) == 0)
                 return 1;
 
-            int size = 1;
+            int size = 2;
             if((input[offset+1] & I_BIT) != 0)
             {
                 size++;
