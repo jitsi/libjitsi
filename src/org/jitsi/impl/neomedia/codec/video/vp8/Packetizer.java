@@ -120,6 +120,7 @@ public class Packetizer
         if(inLen <= MAX_SIZE)
         {
             firstPacket = true;
+            outputBuffer.setFlags(outputBuffer.getFlags() | Buffer.FLAG_RTP_MARKER);
             return BUFFER_PROCESSED_OK;
         }
         else
