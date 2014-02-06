@@ -332,9 +332,34 @@ public class ConfigurationServiceImpl
         //remove all properties
         for (String pName : childPropertyNames)
         {
-            removeProperty(pName);
+            removePropertyInternal(pName);
         }
 
+        try
+        {
+            storeConfiguration();
+        }
+        catch (IOException ex)
+        {
+            logger.error("Failed to store configuration after "
+                + "a property change");
+        }
+    }
+
+    /**
+     * Removes the property with the specified name. Calling
+     * this method would first trigger a PropertyChangeEvent that will
+     * be dispatched to all VetoableChangeListeners. In case no complaints
+     * (PropertyVetoException) have been received, the property will be actually
+     * changed and a PropertyChangeEvent will be dispatched.
+     * All properties with prefix propertyName will also be removed.
+     * <p>
+     * Does not store anything.
+     *
+     * @param propertyName the name of the property to change.
+     */
+    private void removePropertyInternal(String propertyName)
+    {
         Object oldValue = getProperty(propertyName);
         //first check whether the change is ok with everyone
         if (changeEventDispatcher.hasVetoableChangeListeners(propertyName))
@@ -352,16 +377,6 @@ public class ConfigurationServiceImpl
         if (changeEventDispatcher.hasPropertyChangeListeners(propertyName))
             changeEventDispatcher.firePropertyChange(
                 propertyName, oldValue, null);
-
-        try
-        {
-            storeConfiguration();
-        }
-        catch (IOException ex)
-        {
-            logger.error("Failed to store configuration after "
-                         + "a property change");
-        }
     }
 
     /**
@@ -508,21 +523,21 @@ public class ConfigurationServiceImpl
     {
         for (String key : names)
         {
-            int ix = key.lastIndexOf('.');
-
-            if(ix == -1)
-                continue;
-
-            String keyPrefix = key.substring(0, ix);
-
             if(exactPrefixMatch)
             {
+                int ix = key.lastIndexOf('.');
+
+                if(ix == -1)
+                    continue;
+
+                String keyPrefix = key.substring(0, ix);
+
                 if(prefix.equals(keyPrefix))
                     resultSet.add(key);
             }
             else
             {
-                if(keyPrefix.startsWith(prefix))
+                if(key.startsWith(prefix))
                     resultSet.add(key);
             }
         }
