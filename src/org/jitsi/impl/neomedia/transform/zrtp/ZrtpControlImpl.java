@@ -302,11 +302,13 @@ public class ZrtpControlImpl
         if(!(master instanceof ZrtpControlImpl))
             throw new IllegalArgumentException("master is no ZRTP control");
 
+        ZrtpControlImpl zm = (ZrtpControlImpl)master;
         ZRTPTransformEngine engine = getTransformEngine();
 
-        engine.setMultiStrParams(((ZrtpControlImpl) master)
-            .getTransformEngine().getMultiStrParams());
+        engine.setMultiStrParams(zm.getTransformEngine().getMultiStrParams());
         engine.setEnableZrtp(true);
+        engine.getUserCallback().setMasterEventManager(
+                zm.getTransformEngine().getUserCallback());
     }
 
     /**
@@ -350,7 +352,6 @@ public class ZrtpControlImpl
         if (masterSession)
         {
             zrtpAutoStart = true;
-            securityEventManager.setDHSession(true);
 
             // we know that audio is considered as master for zrtp
             securityEventManager.setSessionType(mediaType);

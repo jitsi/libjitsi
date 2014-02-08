@@ -58,14 +58,14 @@ public class SecurityEventManager extends ZrtpUserCallback
     private final ZrtpControlImpl zrtpControl;
 
     /**
+     * The event manager that belongs to the ZRTP master session.
+     */
+    private SecurityEventManager masterEventManager;
+
+    /**
      * A callback to the instance that created us.
      */
     private SrtpListener securityListener;
-
-    /**
-     * Is this a ZRTP DH (Master) session?
-     */
-    private boolean isDHSession = false;
 
     /**
      * The type of this session.
@@ -89,7 +89,7 @@ public class SecurityEventManager extends ZrtpUserCallback
 
     /**
      * The class constructor.
-     *
+     * 
      * @param zrtpControl that this manager is to be associated with.
      */
     public SecurityEventManager(ZrtpControlImpl zrtpControl)
@@ -109,13 +109,12 @@ public class SecurityEventManager extends ZrtpUserCallback
     }
 
     /**
-     * Set the DH session flag.
-     *
-     * @param isDHSession the DH session flag.
+     * Sets the event manager that belongs to the ZRTP master session.
+     * @param master the event manager that belongs to the ZRTP master session.
      */
-    public void setDHSession(boolean isDHSession)
+    void setMasterEventManager(SecurityEventManager master)
     {
-        this.isDHSession = isDHSession;
+        this.masterEventManager = master;
     }
 
     /*
@@ -164,7 +163,7 @@ public class SecurityEventManager extends ZrtpUserCallback
      */
     public void setSASVerified(boolean isVerified)
     {
-        this.isSasVerified = sas != null && isVerified;
+        this.isSasVerified = getSecurityString() != null && isVerified;
     }
 
     /**
@@ -209,17 +208,8 @@ public class SecurityEventManager extends ZrtpUserCallback
             // Multi-stream session don't have own SAS data
             if (inf == ZrtpCodes.InfoCodes.InfoSecureStateOn)
             {
-                if (isDHSession)
-                {
-                    securityListener.securityTurnedOn(
-                        sessionType, cipher,
+                securityListener.securityTurnedOn(sessionType, cipher,
                         zrtpControl);
-                }
-                else
-                {
-                    securityListener.securityTurnedOn(sessionType, cipher,
-                                                zrtpControl);
-                }
             }
         }
         else if (msgCode instanceof ZrtpCodes.WarningCodes)
@@ -311,8 +301,7 @@ public class SecurityEventManager extends ZrtpUserCallback
             logger.debug(
                     sessionTypeToString(sessionType)
                         + ": ZRTP message: severity: " + sev + ", sub code: "
-                        + msgCode + ", DH session: " + isDHSession + ", multi: "
-                        + multiStreams);
+                        + msgCode + ", multi: " + multiStreams);
         }
     }
 
@@ -440,6 +429,11 @@ public class SecurityEventManager extends ZrtpUserCallback
      */
     public String getSecurityString()
     {
+        if (masterEventManager != null && masterEventManager != this)
+        {
+            return masterEventManager.sas;
+        }
+
         return sas;
     }
 
@@ -460,6 +454,11 @@ public class SecurityEventManager extends ZrtpUserCallback
      */
     public boolean isSecurityVerified()
     {
+        if (masterEventManager != null && masterEventManager != this)
+        {
+            return masterEventManager.isSasVerified;
+        }
+
         return isSasVerified;
     }
 
