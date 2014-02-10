@@ -15,6 +15,11 @@ import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 
 /**
+ * Implements read-only support for &quot;A Real-Time Transport Protocol (RTP)
+ * Header Extension for Client-to-Mixer Audio Level Indication&quot;.
+ * Optionally, drops RTP packets indicated to be generated from a muted audio
+ * source in order to avoid wasting processing power such as decrypting,
+ * decoding and audio mixing.
  *
  * @author Emil Ivov
  * @author Lyubomir Marinov
@@ -23,14 +28,37 @@ public class SsrcTransformEngine
     extends SinglePacketTransformer
     implements TransformEngine
 {
+    /**
+     * The name of the <tt>ConfigurationService</tt> property which specifies
+     * whether <tt>SsrcTransformEngine</tt> is to drop RTP packets indicated as
+     * generated from a muted audio source in
+     * {@link #reverseTransform(RawPacket)}.
+     */
+    public static final String DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM
+        = SsrcTransformEngine.class.getName()
+            + ".DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM";
+
+    /**
+     * The <tt>MediaDirection</tt> in which this RTP header extension is active.
+     */
     private MediaDirection ssrcAudioLevelDirection = MediaDirection.INACTIVE;
 
+    /**
+     * The negotiated ID of this RTP header extension.
+     */
     private byte ssrcAudioLevelExtID = -1;
 
+    /**
+     * Initializes a new <tt>SsrcTransformEngine</tt> to be utilized by a
+     * specific <tt>MediaStreamImpl</tt>.
+     *
+     * @param mediaStream the <tt>MediaStreamImpl</tt> to utilize the new
+     * instance
+     */
     public SsrcTransformEngine(MediaStreamImpl mediaStream)
     {
         /*
-         * Take into account that RTPExtension.CSRC_AUDIO_LEVEL_URN may have
+         * Take into account that RTPExtension.SSRC_AUDIO_LEVEL_URN may have
          * already been activated.
          */
         Map<Byte,RTPExtension> activeRTPExtensions
@@ -81,7 +109,7 @@ public class SsrcTransformEngine
      * transformations in here.
      *
      * @return a reference to <tt>this</tt> instance of the
-     * <tt>CsrcTransformEngine</tt>.
+     * <tt>SsrcTransformEngine</tt>.
      */
     public PacketTransformer getRTPTransformer()
     {
@@ -94,11 +122,11 @@ public class SsrcTransformEngine
      * method does not do any transformations since CSRC lists are part of
      * RFC 3550 and they shouldn't be disrupting the rest of the application.
      *
-     * @param pkt the RTP <tt>RawPacket</tt> that we are to extract a CSRC list
+     * @param pkt the RTP <tt>RawPacket</tt> that we are to extract a SSRC list
      * from.
      *
      * @return the same <tt>RawPacket</tt> that was received as a parameter
-     * since we don't need to worry about hiding the CSRC list from the rest
+     * since we don't need to worry about hiding the SSRC list from the rest
      * of the RTP stack.
      */
     public RawPacket reverseTransform(RawPacket pkt)
