@@ -19,6 +19,7 @@ import org.jitsi.service.packetlogging.*;
 import org.jitsi.util.*;
 
 /**
+ *
  * @author Bing SU (nova.su@gmail.com)
  * @author Lyubomir Marinov
  * @author Boris Grozev
@@ -160,6 +161,7 @@ public abstract class RTPConnectorOutputStream
         }
 
         pkt.setBuffer(pktBuffer);
+        pkt.setFlags(0);
         pkt.setLength(length);
         pkt.setOffset(0);
 

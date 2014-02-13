@@ -54,11 +54,6 @@ public class AudioLevelEventDispatcher
     private int dataLength = 0;
 
     /**
-     * This is the last level we fired.
-     */
-    private int lastLevel = 0;
-
-    /**
      * The listener which is interested in audio level changes.
      */
     private SimpleAudioLevelListener listener;
@@ -167,8 +162,7 @@ public class AudioLevelEventDispatcher
                 = AudioLevelCalculator.calculateSoundPressureLevel(
                         data, 0, dataLength,
                         SimpleAudioLevelListener.MIN_LEVEL,
-                        SimpleAudioLevelListener.MAX_LEVEL,
-                        lastLevel);
+                        SimpleAudioLevelListener.MAX_LEVEL);
 
             /*
              * In order to try to mitigate the issue with allocating data, try
@@ -183,19 +177,12 @@ public class AudioLevelEventDispatcher
                     this.data = data;
             }
 
-            try
-            {
-                // Cache the newLevel if requested.
-                if ((cache != null) && (ssrc != -1))
-                    cache.putLevel(ssrc, newLevel);
-                // Notify the listener about the newLevel if requested.
-                if (listener != null)
-                    listener.audioLevelChanged(newLevel);
-            }
-            finally
-            {
-                lastLevel = newLevel;
-            }
+            // Cache the newLevel if requested.
+            if ((cache != null) && (ssrc != -1))
+                cache.putLevel(ssrc, newLevel);
+            // Notify the listener about the newLevel if requested.
+            if (listener != null)
+                listener.audioLevelChanged(newLevel);
         }
     }
 

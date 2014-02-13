@@ -16,7 +16,7 @@ import javax.media.protocol.*;
  * Represents a <tt>PullBufferStream</tt> which reads its data from a
  * specific <tt>PullSourceStream</tt>.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class PullBufferStreamAdapter
     extends BufferStreamAdapter<PullSourceStream>
@@ -76,7 +76,9 @@ public class PullBufferStreamAdapter
         if (data != null)
         {
             if (data instanceof byte[])
+            {
                 bytes = (byte[]) data;
+            }
             else if (data instanceof short[])
             {
                 short[] shorts = (short[]) data;
@@ -96,27 +98,29 @@ public class PullBufferStreamAdapter
 
             bytes
                 = new byte[
-                        1024 * ((frameSizeInBytes <= 0) ? 4 : frameSizeInBytes)];
+                        1024
+                            * ((frameSizeInBytes <= 0) ? 4 : frameSizeInBytes)];
         }
 
-        read(buffer, bytes);
+        read(buffer, bytes, 0, bytes.length);
     }
 
     /**
-     * Implements BufferStreamAdapter#read(byte[], int, int). Delegates to the
-     * wrapped PullSourceStream.
+     * Implements <tt>BufferStreamAdapter#doRead(Buffer, byte[], int, int)</tt>.
+     * Delegates to the wrapped <tt>PullSourceStream</tt>.
      *
-     * @param buffer byte array to read
+     * @param buffer
+     * @param data byte array to read
      * @param offset to start reading
      * @param length length to read
      * @return number of bytes read
      * @throws IOException if I/O related errors occurred during read operation
      */
     @Override
-    protected int read(byte[] buffer, int offset, int length)
+    protected int doRead(Buffer buffer, byte[] data, int offset, int length)
         throws IOException
     {
-        return stream.read(buffer, offset, length);
+        return stream.read(data, offset, length);
     }
 
     /**

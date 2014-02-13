@@ -118,6 +118,7 @@ public class JNIDecoder
     {
         super("Opus JNI Decoder", AudioFormat.class, SUPPORTED_OUTPUT_FORMATS);
 
+        features = BUFFER_FLAG_FEC | BUFFER_FLAG_PLC;
         inputFormats = SUPPORTED_INPUT_FORMATS;
 
         addControl(this);
@@ -163,18 +164,14 @@ public class JNIDecoder
     }
 
     /**
-     * Decodes an Opus packet
+     * {@inheritDoc}
      *
-     * @param inBuffer input <tt>Buffer</tt>
-     * @param outBuffer output <tt>Buffer</tt>
-     * @return <tt>BUFFER_PROCESSED_OK</tt> if <tt>inBuffer</tt> has been
-     * successfully processed
-     * @see AbstractCodec2#doProcess(Buffer, Buffer)
+     * Decodes an Opus packet.
      */
     @Override
-    protected int doProcess(Buffer inBuffer, Buffer outBuffer)
+    protected int doProcess(Buffer inBuf, Buffer outBuf)
     {
-        Format inFormat = inBuffer.getFormat();
+        Format inFormat = inBuf.getFormat();
 
         if ((inFormat != null)
                 && (inFormat != this.inputFormat)
@@ -184,7 +181,18 @@ public class JNIDecoder
             return BUFFER_PROCESSED_FAILED;
         }
 
-        long seqNo = inBuffer.getSequenceNumber();
+        long seqNo = inBuf.getSequenceNumber();
+
+        /*
+         * Buffer.FLAG_SILENCE is set only when the intention is to drop the
+         * specified input Buffer but to note that it has not been lost.
+         */
+        if ((Buffer.FLAG_SILENCE & inBuf.getFlags()) != 0)
+        {
+            lastSeqNo = seqNo;
+            return OUTPUT_BUFFER_NOT_FILLED;
+        }
+
         int lostSeqNoCount = calculateLostSeqNoCount(lastSeqNo, seqNo);
         /*
          * Detect the lost Buffers/packets and decode FEC/PLC. When no in-band
@@ -192,10 +200,11 @@ public class JNIDecoder
          * operate as if PLC has been specified.
          */
         boolean decodeFEC
-            = ((lostSeqNoCount != 0)
+            = ((lostSeqNoCount > 0)
+                    && (lostSeqNoCount <= MAX_AUDIO_SEQUENCE_NUMBERS_TO_PLC)
                     && (lastFrameSizeInSamplesPerChannel != 0));
 
-        if ((inBuffer.getFlags() & Buffer.FLAG_SKIP_FEC) != 0)
+        if (decodeFEC && ((inBuf.getFlags() & Buffer.FLAG_SKIP_FEC) != 0))
         {
             decodeFEC = false;
             if (logger.isTraceEnabled())
@@ -207,21 +216,20 @@ public class JNIDecoder
         }
 
         // After we have determined what is to be decoded, do decode it.
-        byte[] in = (byte[]) inBuffer.getData();
-        int inOffset = inBuffer.getOffset();
-        int inLength = inBuffer.getLength();
+        byte[] in = (byte[]) inBuf.getData();
+        int inOffset = inBuf.getOffset();
+        int inLength = inBuf.getLength();
         int outOffset = 0;
         int outLength = 0;
         int totalFrameSizeInSamplesPerChannel = 0;
 
         if (decodeFEC)
         {
-            inLength
-                = (lostSeqNoCount == 1) ? inLength /* FEC */ : 0 /* PLC */;
+            inLength = (lostSeqNoCount == 1) ? inLength /* FEC */ : 0 /* PLC */;
 
             byte[] out
                 = validateByteArraySize(
-                        outBuffer,
+                        outBuf,
                         outOffset
                             + lastFrameSizeInSamplesPerChannel
                                 * outputFrameSize,
@@ -243,8 +251,8 @@ public class JNIDecoder
                 totalFrameSizeInSamplesPerChannel
                     += frameSizeInSamplesPerChannel;
 
-                outBuffer.setFlags(
-                        outBuffer.getFlags()
+                outBuf.setFlags(
+                        outBuf.getFlags()
                             | (((in == null) || (inLength == 0))
                                     ? BUFFER_FLAG_PLC
                                     : BUFFER_FLAG_FEC));
@@ -259,7 +267,7 @@ public class JNIDecoder
                 = Opus.decoder_get_nb_samples(decoder, in, inOffset, inLength);
             byte[] out
                 = validateByteArraySize(
-                        outBuffer,
+                        outBuf,
                         outOffset
                             + frameSizeInSamplesPerChannel * outputFrameSize,
                         outOffset != 0);
@@ -280,8 +288,8 @@ public class JNIDecoder
                 totalFrameSizeInSamplesPerChannel
                     += frameSizeInSamplesPerChannel;
 
-                outBuffer.setFlags(
-                        outBuffer.getFlags()
+                outBuf.setFlags(
+                        outBuf.getFlags()
                             & ~(BUFFER_FLAG_FEC | BUFFER_FLAG_PLC));
 
                 /*
@@ -294,25 +302,34 @@ public class JNIDecoder
             lastSeqNo = seqNo;
         }
 
+        int ret
+            = (lastSeqNo == seqNo)
+                ? BUFFER_PROCESSED_OK
+                : INPUT_BUFFER_NOT_CONSUMED;
+
         if (outLength > 0)
         {
-            outBuffer.setDuration(
+            outBuf.setDuration(
                     totalFrameSizeInSamplesPerChannel * channels * 1000L * 1000L
                         / outputSampleRate);
-            outBuffer.setFormat(getOutputFormat());
-            outBuffer.setLength(outLength);
-            outBuffer.setOffset(0);
+            outBuf.setFormat(getOutputFormat());
+            outBuf.setLength(outLength);
+            outBuf.setOffset(0);
+            /*
+             * The sequence number is not likely to be important after the
+             * depacketization and the decoding but BasicFilterModule will copy
+             * them from the input Buffer into the output Buffer anyway so it
+             * makes sense to keep the sequence number straight for the sake of
+             * completeness.
+             */
+            outBuf.setSequenceNumber(lastSeqNo);
         }
         else
         {
-            outBuffer.setLength(0);
-            discardOutputBuffer(outBuffer);
+            ret |= OUTPUT_BUFFER_NOT_FILLED;
         }
 
-        return
-            (lastSeqNo == seqNo)
-                ? BUFFER_PROCESSED_OK
-                : INPUT_BUFFER_NOT_CONSUMED;
+        return ret;
     }
 
     /**

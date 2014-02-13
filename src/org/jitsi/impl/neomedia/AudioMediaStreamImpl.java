@@ -366,27 +366,7 @@ public class AudioMediaStreamImpl
     protected SsrcTransformEngine createSsrcTransformEngine()
     {
         if (ssrcTransformEngine == null)
-        {
-            /*
-             * TODO SsrcTransformEngine is only capable of dropping RTP packets
-             * indicated as generated from a muted audio source at the time of
-             * this writing. Because such behavior may be causing problems, it
-             * defaults to disabled. 
-             */
-            ConfigurationService cfg = LibJitsi.getConfigurationService();
-            boolean b = false;
-
-            if (cfg != null)
-            {
-                b
-                    = cfg.getBoolean(
-                            SsrcTransformEngine
-                                .DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM,
-                            b);
-            }
-            if (b)
-                ssrcTransformEngine = new SsrcTransformEngine(this);
-        }
+            ssrcTransformEngine = new SsrcTransformEngine(this);
         return ssrcTransformEngine;
     }
 

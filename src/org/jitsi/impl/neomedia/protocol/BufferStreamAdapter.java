@@ -19,7 +19,7 @@ import javax.media.protocol.*;
  *
  * @param <T> the very type of <tt>SourceStream</tt> to be adapted by a
  * <tt>BufferStreamAdapter</tt>
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public abstract class BufferStreamAdapter<T extends SourceStream>
     implements SourceStream
@@ -132,46 +132,56 @@ public abstract class BufferStreamAdapter<T extends SourceStream>
      * which is to use a specific array of bytes for its data.
      *
      * @param buffer the <tt>Buffer</tt> to read byte data into from this
-     *            instance
-     * @param bytes the array of <tt>byte</tt>s to read data into from this
-     *            instance and to be set as the data of the specified
-     *            <tt>buffer</tt>
+     * instance
+     * @param data the array of <tt>byte</tt>s to read data into from this
+     * instance and to be set as the data of the specified <tt>buffer</tt>
      * @throws IOException if I/O related errors occurred during read operation
      */
-    protected void read(Buffer buffer, byte[] bytes)
+    protected void read(Buffer buffer, byte[] data, int offset, int length)
         throws IOException
     {
-        int offset = 0;
-        int numberOfBytesRead = read(bytes, offset, bytes.length);
+        int numberOfBytesRead = doRead(buffer, data, offset, length);
 
-        if (numberOfBytesRead > -1)
+        buffer.setData(data);
+        if (numberOfBytesRead >= 0)
         {
-            buffer.setData(bytes);
-            buffer.setOffset(offset);
             buffer.setLength(numberOfBytesRead);
-
-            Format format = getFormat();
-
-            if (format != null)
-                buffer.setFormat(format);
         }
+        else
+        {
+            buffer.setLength(0);
+            if (numberOfBytesRead == -1)
+                buffer.setEOM(true);
+        }
+        buffer.setOffset(offset);
+
+        Format format = getFormat();
+
+        if (format != null)
+            buffer.setFormat(format);
     }
 
     /**
-     * Reads byte data from this stream into a specific array of
-     * <tt>byte</tt>s starting the storing at a specific offset and reading
-     * at most a specific number of bytes.
+     * Reads byte data from this stream into a specific array of <tt>byte</tt>s
+     * starting the storing at a specific offset and reading at most a specific
+     * number of bytes.
      *
-     * @param buffer the array of <tt>byte</tt>s into which the data read
-     *            from this stream is to be written
-     * @param offset the offset in the specified <tt>buffer</tt> at which
-     *            writing data read from this stream should start
+     * @param buffer an optional <tt>Buffer</tt> instance associated with the
+     * specified <tt>data</tt>, <tt>offset</tt> and <tt>length</tt> and
+     * provided to the method in case the implementation would like to provide
+     * additional <tt>Buffer</tt> properties such as <tt>flags</tt>
+     * @param data the array of <tt>byte</tt>s into which the data read from
+     * this stream is to be written
+     * @param offset the offset in the specified <tt>data</tt> at which
+     * writing data read from this stream should start
      * @param length the maximum number of bytes to be written into the
-     *            specified <tt>buffer</tt>
+     * specified <tt>data</tt>
      * @return the number of bytes read from this stream and written into the
-     *         specified <tt>buffer</tt>
+     * specified <tt>data</tt>
      * @throws IOException if I/O related errors occurred during read operation
      */
-    protected abstract int read(byte[] buffer, int offset, int length)
+    protected abstract int doRead(
+            Buffer buffer,
+            byte[] data, int offset, int length)
         throws IOException;
 }

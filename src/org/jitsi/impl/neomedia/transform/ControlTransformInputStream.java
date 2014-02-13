@@ -10,6 +10,8 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+import javax.media.*;
+
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
 
@@ -74,30 +76,17 @@ public class ControlTransformInputStream
     }
 
     /**
-     * Copies the content of the most recently received packet into
-     * <tt>inBuffer</tt>.
-     *
-     * @param buffer the <tt>byte[]</tt> that we'd like to copy the content of
-     * the packet to.
-     * @param offset the position where we are supposed to start writing in
-     * <tt>buffer</tt>.
-     * @param length the number of <tt>byte</tt>s available for writing in
-     * <tt>buffer</tt>.
-     *
-     * @return the number of bytes read
-     *
-     * @throws IOException if <tt>length</tt> is less than the size of the
-     * packet.
+     * {@inheritDoc}
      */
     @Override
-    public int read(byte[] buffer, int offset, int length)
+    protected int read(Buffer buffer, byte[] data, int offset, int length)
         throws IOException
     {
-        int pktLength = super.read(buffer, offset, length);
+        int pktLength = super.read(buffer, data, offset, length);
 
         RTCPConnectorInputStream.fireRTCPFeedbackReceived(
                 this,
-                buffer, offset, pktLength,
+                data, offset, pktLength,
                 listeners);
 
         return pktLength;

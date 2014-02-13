@@ -43,6 +43,13 @@ public abstract class AbstractCodec2
     public static final Format[] EMPTY_FORMATS = new Format[0];
 
     /**
+     * The maximum number of lost sequence numbers to conceal with packet loss
+     * mitigation techniques such as Forward Error Correction (FEC) and Packet
+     * Loss Concealment (PLC) when dealing with audio.
+     */
+    public static final int MAX_AUDIO_SEQUENCE_NUMBERS_TO_PLC = 3;
+
+    /**
      * The maximum (RTP) sequence number value.
      */
     public static final int SEQUENCE_MAX = 65535;
@@ -69,33 +76,27 @@ public abstract class AbstractCodec2
      */
     public static int calculateLostSeqNoCount(long lastSeqNo, long seqNo)
     {
-    	if (lastSeqNo == Buffer.SEQUENCE_UNKNOWN)
-    		return 0;
+        if (lastSeqNo == Buffer.SEQUENCE_UNKNOWN)
+            return 0;
 
-    	int delta = (int) (seqNo - lastSeqNo);
+        int delta = (int) (seqNo - lastSeqNo);
 
-    	/*
-    	 * We explicitly allow the same sequence number to be received multiple
-    	 * times for the purposes of Codec implementations which repeatedly
-    	 * process one and the same input Buffer multiple times.
-    	 */
-    	if (delta == 0)
-    		return 0;
-    	else if (delta > 0)
-    	{
-    		// The sequence number has not wrapped yet.
-    		return delta - 1;
-    	}
-    	else
-    	{
-    		// The sequence number has wrapped.
-    		return delta + SEQUENCE_MAX;
-    	}
+        /*
+         * We explicitly allow the same sequence number to be received multiple
+         * times for the purposes of Codec implementations which repeatedly
+         * process one and the same input Buffer multiple times.
+         */
+        if (delta == 0)
+            return 0;
+        else if (delta > 0)
+            return delta - 1; // The sequence number has not wrapped yet.
+        else
+            return delta + SEQUENCE_MAX; // The sequence number has wrapped.
     }
 
     /**
-     * Incements a specific sequence number and makes sure that the result stays
-     * within the range of valid RTP sequence number values.
+     * Increments a specific sequence number and makes sure that the result
+     * stays within the range of valid RTP sequence number values.
      *
      * @param seqNo the sequence number to increment
      * @return a sequence number which represents an increment over the
@@ -104,10 +105,10 @@ public abstract class AbstractCodec2
      */
     public static long incrementSeqNo(long seqNo)
     {
-    	seqNo++;
-    	if (seqNo > SEQUENCE_MAX)
-    		seqNo = SEQUENCE_MIN;
-    	return seqNo;
+        seqNo++;
+        if (seqNo > SEQUENCE_MAX)
+            seqNo = SEQUENCE_MIN;
+        return seqNo;
     }
 
     /**
@@ -179,6 +180,13 @@ public abstract class AbstractCodec2
                     offsetY, offsetU, offsetV);
     }
 
+    /**
+     * The bitmap/flag mask of optional features supported by this
+     * <tt>AbstractCodec2</tt> such as {@link #BUFFER_FLAG_FEC} and
+     * {@link #BUFFER_FLAG_PLC}.
+     */
+    protected int features;
+
     private final Class<? extends Format> formatClass;
 
     /**
@@ -249,7 +257,7 @@ public abstract class AbstractCodec2
     protected abstract void doOpen()
         throws ResourceUnavailableException;
 
-    protected abstract int doProcess(Buffer inputBuffer, Buffer outputBuffer);
+    protected abstract int doProcess(Buffer inBuf, Buffer outBuf);
 
     /**
      * Gets the <tt>Format</tt>s which are supported by this <tt>Codec</tt> as
@@ -326,31 +334,43 @@ public abstract class AbstractCodec2
     }
 
     /**
-     * Implements AbstractCodec#process(Buffer, Buffer).
+     * Implements <tt>AbstractCodec#process(Buffer, Buffer)</tt>.
      *
-     * @param inputBuffer
-     * @param outputBuffer
-     * @return BUFFER_PROCESSED_OK if all go OK or BUFFER_PROCESSED_FAILED if
-     * problems occurred
+     * @param inBuf
+     * @param outBuf
+     * @return <tt>BUFFER_PROCESSED_OK</tt> if the specified <tt>inBuff</tt> was
+     * successfully processed or <tt>BUFFER_PROCESSED_FAILED</tt> if the
+     * specified was not successfully processed
      * @see AbstractCodec#process(Buffer, Buffer)
      */
     @Override
-    public int process(Buffer inputBuffer, Buffer outputBuffer)
+    public int process(Buffer inBuf, Buffer outBuf)
     {
-        if (!checkInputBuffer(inputBuffer))
+        if (!checkInputBuffer(inBuf))
             return BUFFER_PROCESSED_FAILED;
-        if (isEOM(inputBuffer))
+        if (isEOM(inBuf))
         {
-            propagateEOM(outputBuffer);
+            propagateEOM(outBuf);
             return BUFFER_PROCESSED_OK;
         }
-        if (inputBuffer.isDiscard())
+        if (inBuf.isDiscard())
         {
-            discardOutputBuffer(outputBuffer);
+            discardOutputBuffer(outBuf);
             return BUFFER_PROCESSED_OK;
         }
 
-        return doProcess(inputBuffer, outputBuffer);
+        /*
+         * Buffer.FLAG_SILENCE is set only when the intention is to drop the
+         * specified input Buffer but to note that it has not been lost. The
+         * latter is usually necessary if this AbstractCodec2 does Forward Error
+         * Correction (FEC) and/or Packet Loss Concealment (PLC) and may cause
+         * noticeable artifacts otherwise.
+         */
+        if ((((BUFFER_FLAG_FEC | BUFFER_FLAG_PLC) & features) == 0)
+                && ((Buffer.FLAG_SILENCE & inBuf.getFlags()) != 0))
+            return OUTPUT_BUFFER_NOT_FILLED;
+
+        return doProcess(inBuf, outBuf);
     }
 
     @Override

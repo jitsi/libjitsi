@@ -65,7 +65,7 @@ public class AudioLevelCalculator
             int minLevel, int maxLevel, int lastLevel)
     {
         // we don't allow to quick level changes
-        // the speed ot fthe change is controlled by
+        // the speed of the change is controlled by
         int diff = lastLevel - level;
 
         if(diff >= 0)
@@ -145,13 +145,12 @@ public class AudioLevelCalculator
      * starting at <tt>offset</tt>
      * @param minLevel the minimum value of the level to be returned
      * @param maxLevel the maximum value of the level to be returned
-     * @param lastLevel the last level which has been previously calculated
      * @return the sound pressure level of the specified signal as a value in
      * the range between <tt>minLevel</tt> and <tt>maxLevel</tt>
      */
     public static int calculateSoundPressureLevel(
         byte[] samples, int offset, int length,
-        int minLevel, int maxLevel, int lastLevel)
+        int minLevel, int maxLevel)
     {
         double rms = 0;
         int sampleCount = 0;

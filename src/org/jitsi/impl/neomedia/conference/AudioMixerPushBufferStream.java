@@ -174,14 +174,6 @@ class AudioMixerPushBufferStream
         = Logger.getLogger(AudioMixerPushBufferStream.class);
 
     /**
-     * The number of reads from an input stream with no returned samples which
-     * do not get reported in tracing output. Once the number of such reads from
-     * an input stream exceeds this limit, it gets reported and the counting is
-     * restarted.
-     */
-    static final long TRACE_NON_CONTRIBUTING_READ_COUNT = 0;
-
-    /**
      * The <tt>AudioMixer</tt> which created this
      * <tt>AudioMixerPushBufferStream</tt>.
      */
@@ -919,15 +911,10 @@ class AudioMixerPushBufferStream
                     }
                 }
 
-                if (sampleCount == 0)
-                {
-                    if (TRACE_NON_CONTRIBUTING_READ_COUNT > 0)
-                        inStreamDesc.incrementNonContributingReadCount(logger);
-                }
-                else
+                if (sampleCount != 0)
                 {
                     /*
-                     * The int array with the samples will be used via
+                     * The short array with the samples will be used via
                      * inputSamples so the buffer cannot use it anymore.
                      */
                     buffer.setData(null);

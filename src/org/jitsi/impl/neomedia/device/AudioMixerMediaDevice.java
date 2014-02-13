@@ -293,82 +293,86 @@ public class AudioMixerMediaDevice
     private synchronized AudioMixer getAudioMixer()
     {
         if (audioMixer == null)
-            audioMixer = new AudioMixer(device.createCaptureDevice())
-            {
-                @Override
-                protected void connect(
-                        DataSource dataSource,
-                        DataSource inputDataSource)
-                    throws IOException
+        {
+            audioMixer
+                = new AudioMixer(device.createCaptureDevice())
                 {
-                    /*
-                     * CaptureDevice needs special connecting as defined by
-                     * AbstractMediaDevice and, especially, MediaDeviceImpl.
-                     */
-                    if (inputDataSource == captureDevice)
-                        AudioMixerMediaDevice.this.connect(dataSource);
-                    else
-                        super.connect(dataSource, inputDataSource);
-                }
-
-                @Override
-                protected void read(
-                        PushBufferStream stream,
-                        Buffer buffer,
-                        DataSource dataSource)
-                    throws IOException
-                {
-                    super.read(stream, buffer, dataSource);
-
-                    /*
-                     * XXX The audio read from the specified stream has not been
-                     * made available to the mixing yet. Slow code here is
-                     * likely to degrade the performance of the whole mixer.
-                     */
-
-                    if (dataSource == captureDevice)
+                    @Override
+                    protected void connect(
+                            DataSource dataSource,
+                            DataSource inputDataSource)
+                        throws IOException
                     {
                         /*
-                         * The audio of the very CaptureDevice to be contributed
-                         * to the mix.
+                         * CaptureDevice needs special connecting as defined by
+                         * AbstractMediaDevice and, especially, MediaDeviceImpl.
                          */
-                        synchronized(localUserAudioLevelListenersSyncRoot)
-                        {
-                            if (localUserAudioLevelListeners.isEmpty())
-                                return;
-                        }
-
-                        localUserAudioLevelDispatcher.addData(buffer);
-
+                        if (inputDataSource == captureDevice)
+                            AudioMixerMediaDevice.this.connect(dataSource);
+                        else
+                            super.connect(dataSource, inputDataSource);
                     }
-                    else if (dataSource
-                            instanceof ReceiveStreamPushBufferDataSource)
+
+                    @Override
+                    protected void read(
+                            PushBufferStream stream,
+                            Buffer buffer,
+                            DataSource dataSource)
+                        throws IOException
                     {
+                        super.read(stream, buffer, dataSource);
+
                         /*
-                         * The audio of a ReceiveStream to be contributed to the
-                         * mix.
+                         * XXX The audio read from the specified stream has not
+                         * been made available to the mixing yet. Slow code here
+                         * is likely to degrade the performance of the whole
+                         * mixer.
                          */
-                        ReceiveStream receiveStream
-                            = ((ReceiveStreamPushBufferDataSource) dataSource)
-                                .getReceiveStream();
-                        AudioLevelEventDispatcher streamEventDispatcher;
 
-                        synchronized (streamAudioLevelListeners)
+                        if (dataSource == captureDevice)
                         {
-                            streamEventDispatcher
-                                = streamAudioLevelListeners.get(receiveStream);
+                            /*
+                             * The audio of the very CaptureDevice to be
+                             * contributed to the mix.
+                             */
+                            synchronized(localUserAudioLevelListenersSyncRoot)
+                            {
+                                if (localUserAudioLevelListeners.isEmpty())
+                                    return;
+                            }
+                            localUserAudioLevelDispatcher.addData(buffer);
+
                         }
-
-                        if ((streamEventDispatcher != null)
-                                && !buffer.isDiscard()
-                                && (buffer.getLength() > 0)
-                                && (buffer.getData() != null))
+                        else if (dataSource
+                                instanceof ReceiveStreamPushBufferDataSource)
                         {
-                            streamEventDispatcher.addData(buffer);
+                            /*
+                             * The audio of a ReceiveStream to be contributed to
+                             * the mix.
+                             */
+                            ReceiveStream receiveStream
+                                = ((ReceiveStreamPushBufferDataSource)
+                                        dataSource)
+                                    .getReceiveStream();
+                            AudioLevelEventDispatcher streamEventDispatcher;
+
+                            synchronized (streamAudioLevelListeners)
+                            {
+                                streamEventDispatcher
+                                    = streamAudioLevelListeners.get(
+                                            receiveStream);
+                            }
+                            if ((streamEventDispatcher != null)
+                                    && !buffer.isDiscard()
+                                    && (buffer.getLength() > 0)
+                                    && (buffer.getData() != null))
+                            {
+                                streamEventDispatcher.addData(buffer);
+                            }
                         }
                     }
-                }
-            };
+                };
+        }
         return audioMixer;
     }
 

@@ -11,8 +11,6 @@ import java.lang.ref.*;
 import javax.media.*;
 import javax.media.protocol.*;
 
-import org.jitsi.util.*;
-
 /**
  * Describes additional information about a specific input audio
  * <tt>SourceStream</tt> of an <tt>AudioMixer</tt> so that the
@@ -45,12 +43,6 @@ class InStreamDesc
      * by this instance.
      */
     private SourceStream inStream;
-
-    /**
-     * The number of reads of this input stream which did not return any
-     * samples.
-     */
-    private long nonContributingReadCount;
 
     /**
      * Initializes a new <tt>InStreamDesc</tt> instance which is to describe
@@ -116,25 +108,6 @@ class InStreamDesc
     public AudioMixingPushBufferDataSource getOutDataSource()
     {
         return inDataSourceDesc.outDataSource;
-    }
-
-    void incrementNonContributingReadCount(Logger logger)
-    {
-        if (logger.isTraceEnabled())
-        {
-            nonContributingReadCount++;
-            if (nonContributingReadCount
-                    >= AudioMixerPushBufferStream
-                        .TRACE_NON_CONTRIBUTING_READ_COUNT)
-            {
-                logger.trace(
-                        "Failed to read actual inputSamples more than "
-                            + nonContributingReadCount
-                            + " times from inputStream with hash code "
-                            + getInStream().hashCode());
-                nonContributingReadCount = 0;
-            }
-        }
     }
 
     /**

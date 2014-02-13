@@ -43,6 +43,14 @@ public class RawPacket
     private byte[] buffer;
 
     /**
+     * The bitmap/flag mask that specifies the set of boolean attributes enabled
+     * for this <tt>RawPacket</tt>. The value is the logical sum of all of the
+     * set flags. The possible flags are defined by the <tt>FLAG_XXX</tt>
+     * constants of FMJ's {@link Buffer} class.
+     */
+    private int flags;
+
+    /**
      * Length of this packet's data
      */
     private int length;
@@ -461,6 +469,18 @@ public class RawPacket
     }
 
     /**
+     * Gets the bitmap/flag mask that specifies the set of boolean attributes
+     * enabled for this <tt>RawPacket</tt>.
+     *
+     * @return the bitmap/flag mask that specifies the set of boolean attributes
+     * enabled for this <tt>RawPacket</tt>
+     */
+    public int getFlags()
+    {
+        return flags;
+    }
+
+    /**
      * Return the define by profile part of the extension header.
      * @return the starting two bytes of extension header.
      */
@@ -740,6 +760,7 @@ public class RawPacket
 
         System.arraycopy(this.buffer, startOffset, outBuff, 0, len);
     }
+
     /**
      * Read a short from this packet at specified offset
      *
@@ -899,6 +920,18 @@ public class RawPacket
             buffer[offset] |= 0x10;
         else
             buffer[offset] &= 0xEF;
+    }
+
+    /**
+     * Sets the bitmap/flag mask that specifies the set of boolean attributes
+     * enabled for this <tt>RawPacket</tt>.
+     *
+     * @param flags the bitmap/flag mask that specifies the set of boolean
+     * attributes enabled for this <tt>RawPacket</tt>
+     */
+    public void setFlags(int flags)
+    {
+        this.flags = flags;
     }
 
     /**

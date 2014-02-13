@@ -11,14 +11,17 @@ import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
 
+import javax.media.*;
 import javax.media.protocol.*;
 
 import org.ice4j.socket.*;
+import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.util.*;
 
 /**
+ *
  * @author Bing SU (nova.su@gmail.com)
  * @author Lyubomir Marinov
  * @author Boris Grozev
@@ -82,18 +85,24 @@ public abstract class RTPConnectorInputStream
     private final Object pktSyncRoot = new Object();
 
     /**
-     * The pool of <tt>RawPacket</tt> instances to reduce their allocations and
-     * garbage collection.
+     * The adapter of this <tt>PushSourceStream</tt> to the
+     * <tt>PushBufferStream</tt> interface.
      */
-    private final Queue<RawPacket> rawPacketPool
-        = new LinkedBlockingQueue<RawPacket>();
+    private final PushBufferStream pushBufferStream;
 
     /**
      * The pool of <tt>RawPacket[]</tt> instances to reduce their allocations
      * and garbage collection. Contains arrays full of <tt>null</tt>.
      */
     private final Queue<RawPacket[]> rawPacketArrayPool
-            = new LinkedBlockingQueue<RawPacket[]>();
+        = new LinkedBlockingQueue<RawPacket[]>();
+
+    /**
+     * The pool of <tt>RawPacket</tt> instances to reduce their allocations and
+     * garbage collection.
+     */
+    private final Queue<RawPacket> rawPacketPool
+        = new LinkedBlockingQueue<RawPacket>();
 
     /**
      * The Thread receiving packets.
@@ -139,6 +148,26 @@ public abstract class RTPConnectorInputStream
                         return true;
                     }
                 });
+
+        /*
+         * Adapt this PushSourceStream to the PushBufferStream interface in
+         * order to make it possible to read the Buffer flags of RawPacket.
+         */
+        pushBufferStream
+            = new PushBufferStreamAdapter(this, null)
+            {
+                @Override
+                protected int doRead(
+                        Buffer buffer,
+                        byte[] data, int offset, int length)
+                    throws IOException
+                {
+                    return
+                        RTPConnectorInputStream.this.read(
+                                buffer,
+                                data, offset, length);
+                }
+            };
     }
 
     /**
@@ -175,6 +204,7 @@ public abstract class RTPConnectorInputStream
             pkt = new RawPacket();
 
         pkt.setBuffer(datagramPacket.getData());
+        pkt.setFlags(0);
         pkt.setLength(datagramPacket.getLength());
         pkt.setOffset(datagramPacket.getOffset());
 
@@ -219,22 +249,24 @@ public abstract class RTPConnectorInputStream
     }
 
     /**
-     * Provides a dummy implementation to {@link
-     * RTPConnectorInputStream#getControl(String)} that always returns
+     * Provides a dummy implementation of
+     * {@link RTPConnectorInputStream#getControl(String)} that always returns
      * <tt>null</tt>.
      *
      * @param controlType ignored.
-     *
      * @return <tt>null</tt>, no matter what.
      */
     public Object getControl(String controlType)
     {
-        return null;
+        if (PushBufferStream.class.getName().equals(controlType))
+            return pushBufferStream;
+        else
+            return null;
     }
 
     /**
-     * Provides a dummy implementation to {@link
-     * RTPConnectorInputStream#getControls()} that always returns
+     * Provides a dummy implementation of
+     * {@link RTPConnectorInputStream#getControls()} that always returns
      * <tt>EMPTY_CONTROLS</tt>.
      *
      * @return <tt>EMPTY_CONTROLS</tt>, no matter what.
@@ -257,6 +289,21 @@ public abstract class RTPConnectorInputStream
     }
 
     /**
+     * Pools the specified <tt>RawPacket</tt> in order to avoid future
+     * allocations and to reduce the effects of garbage collection.
+     *
+     * @param pkt the <tt>RawPacket</tt> to be offered to {@link #rawPacketPool}
+     */
+    private void poolRawPacket(RawPacket pkt)
+    {
+        pkt.setBuffer(null);
+        pkt.setFlags(0);
+        pkt.setLength(0);
+        pkt.setOffset(0);
+        rawPacketPool.offer(pkt);
+    }
+
+    /**
      * Copies the content of the most recently received packet into
      * <tt>buffer</tt>.
      *
@@ -266,17 +313,39 @@ public abstract class RTPConnectorInputStream
      * <tt>buffer</tt>.
      * @param length the number of <tt>byte</tt>s available for writing in
      * <tt>buffer</tt>.
-     *
      * @return the number of bytes read
-     *
      * @throws IOException if <tt>length</tt> is less than the size of the
      * packet.
      */
     public int read(byte[] buffer, int offset, int length)
+            throws IOException
+    {
+        return read(null, buffer, offset, length);
+    }
+
+    /**
+     * Copies the content of the most recently received packet into
+     * <tt>data</tt>.
+     *
+     * @param buffer an optional <tt>Buffer</tt> instance associated with the
+     * specified <tt>data</tt>, <tt>offset</tt> and <tt>length</tt> and
+     * provided to the method in case the implementation would like to provide
+     * additional <tt>Buffer</tt> properties such as <tt>flags</tt>
+     * @param data the <tt>byte[]</tt> that we'd like to copy the content of
+     * the packet to.
+     * @param offset the position where we are supposed to start writing in
+     * <tt>data</tt>.
+     * @param length the number of <tt>byte</tt>s available for writing in
+     * <tt>data</tt>.
+     * @return the number of bytes read
+     * @throws IOException if <tt>length</tt> is less than the size of the
+     * packet.
+     */
+    protected int read(Buffer buffer, byte[] data, int offset, int length)
         throws IOException
     {
-        if (buffer == null)
-            throw new NullPointerException("buffer");
+        if (data == null)
+            throw new NullPointerException("data");
 
         if (ioError)
             return -1;
@@ -328,8 +397,10 @@ public abstract class RTPConnectorInputStream
                     {
                         System.arraycopy(
                                 pkt.getBuffer(), pkt.getOffset(),
-                                buffer, offset,
+                                data, offset,
                                 pktLength);
+                        if (buffer != null)
+                            buffer.setFlags(pkt.getFlags());
                     }
                 }
             }
@@ -348,10 +419,7 @@ public abstract class RTPConnectorInputStream
                 if (poolPkt)
                 {
                     // Return pkt to the pool because it was successfully read.
-                    pkt.setBuffer(null);
-                    pkt.setLength(0);
-                    pkt.setOffset(0);
-                    rawPacketPool.offer(pkt);
+                    poolRawPacket(pkt);
                 }
             }
         }
@@ -450,10 +518,7 @@ public abstract class RTPConnectorInputStream
                              * consequently, will not be made available to
                              * reading.
                              */
-                            pkt.setBuffer(null);
-                            pkt.setLength(0);
-                            pkt.setOffset(0);
-                            rawPacketPool.offer(pkt);
+                            poolRawPacket(pkt);
                         }
                         else
                         {
@@ -470,10 +535,7 @@ public abstract class RTPConnectorInputStream
                                  * Return oldPkt to the pool because it was made
                                  * available to reading and it was not read.
                                  */
-                                oldPkt.setBuffer(null);
-                                oldPkt.setLength(0);
-                                oldPkt.setOffset(0);
-                                rawPacketPool.offer(pkt);
+                                poolRawPacket(oldPkt);
                             }
 
                             if ((transferHandler != null) && !closed)

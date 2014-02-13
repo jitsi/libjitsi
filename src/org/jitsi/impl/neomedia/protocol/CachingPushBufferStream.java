@@ -429,79 +429,76 @@ public class CachingPushBufferStream
      * output <tt>Buffer</tt> may control the maximum number of data units to be
      * read into it.
      *
-     * @param input the <tt>Buffer</tt> to read data from
-     * @param output the <tt>Buffer</tt> into which to write the data read
-     * from the specified <tt>input</tt>
-     * @param outputOffset the offset in <tt>output</tt> at which the data read
-     * from <tt>input</tt> is to be written
-     * @return the offset in <tt>output</tt> at which a next round of writing is
-     * to continue; <tt>-1</tt> if no more writing in <tt>output</tt> is to be
-     * performed and <tt>output</tt> is to be returned to the caller
-     * @throws IOException if reading from <tt>input</tt> into <tt>output</tt>
-     * fails including if either of the formats of <tt>input</tt> and
-     * <tt>output</tt> are not supported
+     * @param in the <tt>Buffer</tt> to read data from
+     * @param out the <tt>Buffer</tt> into which to write the data read from the
+     * specified <tt>in</tt>
+     * @param outOffset the offset in <tt>out</tt> at which the data read from
+     * <tt>in</tt> is to be written
+     * @return the offset in <tt>out</tt> at which a next round of writing is
+     * to continue; <tt>-1</tt> if no more writing in <tt>out</tt> is to be
+     * performed and <tt>out</tt> is to be returned to the caller
+     * @throws IOException if reading from <tt>in</tt> into <tt>out</tt> fails
+     * including if either of the formats of <tt>in</tt> and <tt>out</tt> are
+     * not supported
      */
-    private int read(Buffer input, Buffer output, int outputOffset)
+    private int read(Buffer in, Buffer out, int outOffset)
         throws IOException
     {
-        Object outputData = output.getData();
+        Object outData = out.getData();
 
-        if (outputData != null)
+        if (outData != null)
         {
-            Object inputData = input.getData();
+            Object inData = in.getData();
 
-            if (inputData == null)
+            if (inData == null)
             {
-                output.setFormat(input.getFormat());
+                out.setFormat(in.getFormat());
                 /*
                  * There was nothing to read so continue reading and
                  * concatenating.
                  */
-                return outputOffset;
+                return outOffset;
             }
 
-            Class<?> dataType = outputData.getClass();
+            Class<?> dataType = outData.getClass();
 
-            if (inputData.getClass().equals(dataType)
+            if (inData.getClass().equals(dataType)
                     && dataType.equals(byte[].class))
             {
-                int inputOffset = input.getOffset();
-                int inputLength = input.getLength();
-                byte[] outputBytes = (byte[]) outputData;
-                int outputLength
-                    = outputBytes.length - outputOffset;
+                int inOffset = in.getOffset();
+                int inLength = in.getLength();
+                byte[] outBytes = (byte[]) outData;
+                int outLength = outBytes.length - outOffset;
 
                 // Where is it supposed to be written?
-                if (outputLength < 1)
+                if (outLength < 1)
                     return -1;
 
-                if (inputLength < outputLength)
-                    outputLength = inputLength;
+                if (inLength < outLength)
+                    outLength = inLength;
                 System.arraycopy(
-                    inputData,
-                    inputOffset,
-                    outputBytes,
-                    outputOffset,
-                    outputLength);
+                        inData, inOffset,
+                        outBytes, outOffset,
+                        outLength);
 
-                output.setData(outputBytes);
-                output.setLength(output.getLength() + outputLength);
+                out.setData(outBytes);
+                out.setLength(out.getLength() + outLength);
 
                 /*
                  * If we're currently continuing a concatenation, the parameters
                  * of the first read from input are left as the parameters of
                  * output. Mostly done at least for timeStamp.
                  */
-                if (output.getOffset() == outputOffset)
+                if (out.getOffset() == outOffset)
                 {
-                    output.setFormat(input.getFormat());
+                    out.setFormat(in.getFormat());
 
-                    output.setDiscard(input.isDiscard());
-                    output.setEOM(input.isEOM());
-                    output.setFlags(input.getFlags());
-                    output.setHeader(input.getHeader());
-                    output.setSequenceNumber(input.getSequenceNumber());
-                    output.setTimeStamp(input.getTimeStamp());
+                    out.setDiscard(in.isDiscard());
+                    out.setEOM(in.isEOM());
+                    out.setFlags(in.getFlags());
+                    out.setHeader(in.getHeader());
+                    out.setSequenceNumber(in.getSequenceNumber());
+                    out.setTimeStamp(in.getTimeStamp());
 
                     /*
                      * It's possible that we've split the input into multiple
@@ -511,13 +508,13 @@ public class CachingPushBufferStream
                      * input duration multiplied by the ratio between the
                      * current output length and the initial input length.
                      */
-                    output.setDuration(Buffer.TIME_UNKNOWN);
+                    out.setDuration(Buffer.TIME_UNKNOWN);
                 }
 
-                input.setLength(inputLength - outputLength);
-                input.setOffset(inputOffset + outputLength);
+                in.setLength(inLength - outLength);
+                in.setOffset(inOffset + outLength);
                 // Continue reading and concatenating.
-                return (outputOffset + outputLength);
+                return (outOffset + outLength);
             }
         }
 
@@ -526,14 +523,14 @@ public class CachingPushBufferStream
          * that it could not be continued, flush whatever has already been
          * written to the caller.
          */
-        if (output.getOffset() == outputOffset)
+        if (out.getOffset() == outOffset)
         {
-            output.copy(input);
+            out.copy(in);
 
-            int outputLength = output.getLength();
+            int outputLength = out.getLength();
 
-            input.setLength(input.getLength() - outputLength);
-            input.setOffset(input.getOffset() + outputLength);
+            in.setLength(in.getLength() - outputLength);
+            in.setOffset(in.getOffset() + outputLength);
         }
         /*
          * We didn't know how to concatenate the media so return it to the

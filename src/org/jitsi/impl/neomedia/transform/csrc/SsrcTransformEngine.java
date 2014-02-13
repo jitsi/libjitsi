@@ -8,10 +8,14 @@ package org.jitsi.impl.neomedia.transform.csrc;
 
 import java.util.*;
 
+import javax.media.*;
+
 import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 
 /**
@@ -34,9 +38,16 @@ public class SsrcTransformEngine
      * generated from a muted audio source in
      * {@link #reverseTransform(RawPacket)}.
      */
-    public static final String DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM
+    private static final String DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM
         = SsrcTransformEngine.class.getName()
-            + ".DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM";
+            + ".dropMutedAudioSourceInReverseTransform";
+
+    /**
+     * The indicator which determines whether this <tt>SsrcTransformEngine</tt>
+     * is to drop RTP packets indicated as generated from a muted audio source
+     * in {@link #reverseTransform(RawPacket)}.
+     */
+    private final boolean dropMutedAudioSourceInReverseTransform;
 
     /**
      * The <tt>MediaDirection</tt> in which this RTP header extension is active.
@@ -82,6 +93,19 @@ public class SsrcTransformEngine
                 }
             }
         }
+
+        // Should we simply drop RTP packets from muted audio sources?
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        boolean b = false;
+
+        if (cfg != null)
+        {
+            b
+                = cfg.getBoolean(
+                        DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM,
+                        b);
+        }
+        dropMutedAudioSourceInReverseTransform = b;
     }
 
     /**
@@ -140,11 +164,10 @@ public class SsrcTransformEngine
 
             if (level == 127 /* a muted audio source */)
             {
-                /*
-                 * XXX We do not want to waste processing power such as
-                 * decrypting, decoding, and audio mixing.
-                 */
-                pkt = null;
+                if (dropMutedAudioSourceInReverseTransform)
+                    pkt = null;
+                else
+                    pkt.setFlags(Buffer.FLAG_SILENCE | pkt.getFlags());
             }
         }
 

@@ -15,7 +15,7 @@ import javax.media.protocol.*;
  * Represents a <tt>PushBufferStream</tt> which reads its data from a
  * specific <tt>PushSourceStream</tt>.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class PushBufferStreamAdapter
     extends BufferStreamAdapter<PushSourceStream>
@@ -48,24 +48,35 @@ public class PushBufferStreamAdapter
     public void read(Buffer buffer)
         throws IOException
     {
-        read(buffer, new byte[stream.getMinimumTransferSize()]);
+        byte[] data = (byte[]) buffer.getData();
+        int minimumTransferSize = stream.getMinimumTransferSize();
+
+        if ((data == null) || (data.length < minimumTransferSize))
+        {
+            data = new byte[minimumTransferSize];
+            buffer.setData(data);
+        }
+
+        buffer.setOffset(0);
+        read(buffer, data, 0, minimumTransferSize);
     }
 
     /**
-     * Implements BufferStreamAdapter#read(byte[], int, int). Delegates to the
-     * wrapped PushSourceStream.
+     * Implements <tt>BufferStreamAdapter#doRead(Buffer, byte[], int, int)</tt>.
+     * Delegates to the wrapped <tt>PushSourceStream</tt>.
      *
-     * @param buffer byte array to read
+     * @param buffer
+     * @param data byte array to read
      * @param offset offset to start reading
      * @param length length to read
      * @return number of bytes read
      * @throws IOException if I/O related errors occurred during read operation
      */
     @Override
-    protected int read(byte[] buffer, int offset, int length)
+    protected int doRead(Buffer buffer, byte[] data, int offset, int length)
         throws IOException
     {
-        return stream.read(buffer, offset, length);
+        return stream.read(data, offset, length);
     }
 
     /**
@@ -77,11 +88,14 @@ public class PushBufferStreamAdapter
      */
     public void setTransferHandler(final BufferTransferHandler transferHandler)
     {
-        stream.setTransferHandler(new SourceTransferHandler()
-        {
-            public void transferData(PushSourceStream stream) {
-                transferHandler.transferData(PushBufferStreamAdapter.this);
-            }
-        });
+        stream.setTransferHandler(
+                new SourceTransferHandler()
+                        {
+                            public void transferData(PushSourceStream stream)
+                            {
+                                transferHandler.transferData(
+                                        PushBufferStreamAdapter.this);
+                            }
+                        });
     }
 }

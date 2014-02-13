@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
 import java.awt.*;
+
 import javax.media.*;
 import javax.media.format.*;
 
@@ -150,9 +151,11 @@ public class JavaDecoder
 
     /**
      * The length of an output frame as reported by
-     * {@link Silk_dec_API#SKP_Silk_SDK_Decode(Object, SKP_SILK_SDK_DecControlStruct, int, byte[], int, int, short[], int, short[])}.
+     * {@link Silk_dec_API#SKP_Silk_SDK_Decode(Object,
+     * SKP_SILK_SDK_DecControlStruct, int, byte[], int, int, short[], int,
+     * short[])}.
      */
-    private final short[] outputLength = new short[1];
+    private final short[] outLength = new short[1];
 
     /**
      * Initializes a new <tt>JavaDecoder</tt> instance.
@@ -161,6 +164,7 @@ public class JavaDecoder
     {
         super("SILK Decoder", AudioFormat.class, SUPPORTED_OUTPUT_FORMATS);
 
+        features = BUFFER_FLAG_FEC | BUFFER_FLAG_PLC;
         inputFormats = SUPPORTED_INPUT_FORMATS;
 
         addControl(new Stats());
@@ -206,25 +210,31 @@ public class JavaDecoder
     }
 
     @Override
-    protected int doProcess(Buffer inBuffer, Buffer outBuffer)
+    protected int doProcess(Buffer inBuf, Buffer outBuf)
     {
-        byte[] in = (byte[]) inBuffer.getData();
-        int inOffset = inBuffer.getOffset();
-        int inLength = inBuffer.getLength();
+        long seqNo = inBuf.getSequenceNumber();
 
-        short[] out = validateShortArraySize(outBuffer, frameLength);
-        int outOffset = 0;
+        /*
+         * Buffer.FLAG_SILENCE is set only when the intention is to drop the
+         * specified input Buffer but to note that it has not been lost.
+         */
+        if ((Buffer.FLAG_SILENCE & inBuf.getFlags()) != 0)
+        {
+            lastSeqNo = seqNo;
+            return OUTPUT_BUFFER_NOT_FILLED;
+        }
 
-        long seqNo = inBuffer.getSequenceNumber();
         /*
          * Check whether a packet has been lost. If a packet has more than one
          * frame, we go through each frame in a new call to the process method
          * so having the same sequence number as on the previous pass is fine.
          */
         int lostSeqNoCount = calculateLostSeqNoCount(lastSeqNo, seqNo);
-        boolean decodeFEC = (lostSeqNoCount != 0);
+        boolean decodeFEC
+            = (lostSeqNoCount > 0)
+                && (lostSeqNoCount <= MAX_AUDIO_SEQUENCE_NUMBERS_TO_PLC);
 
-        if ((inBuffer.getFlags() & Buffer.FLAG_SKIP_FEC) != 0)
+        if (decodeFEC && ((inBuf.getFlags() & Buffer.FLAG_SKIP_FEC) != 0))
         {
             decodeFEC = false;
             if (logger.isTraceEnabled())
@@ -235,6 +245,11 @@ public class JavaDecoder
             }
         }
 
+        byte[] in = (byte[]) inBuf.getData();
+        int inOffset = inBuf.getOffset();
+        int inLength = inBuf.getLength();
+        short[] out = validateShortArraySize(outBuf, frameLength);
+        int outOffset = 0;
         int lostFlag = 0;
 
         if (decodeFEC) /* Decode with FEC. */
@@ -254,7 +269,7 @@ public class JavaDecoder
                             + " bytes");
             }
 
-            outputLength[0] = frameLength;
+            outLength[0] = frameLength;
             if (lbrrBytes[0] == 0)
             {
                 // No FEC data found, process the packet as lost.
@@ -263,18 +278,18 @@ public class JavaDecoder
             else if(DecAPI.SKP_Silk_SDK_Decode(
                         decState, decControl, 0,
                         lbrrData, 0, lbrrBytes[0],
-                        out, outOffset, outputLength)
+                        out, outOffset, outLength)
                     == 0)
             {
                 // Found FEC data, decode it.
                 nbFECDecoded++;
 
-                outBuffer.setDuration(FRAME_DURATION * 1000000);
-                outBuffer.setLength(outputLength[0]);
-                outBuffer.setOffset(outOffset);
+                outBuf.setDuration(FRAME_DURATION * 1000000);
+                outBuf.setLength(outLength[0]);
+                outBuf.setOffset(outOffset);
 
-                outBuffer.setFlags(outBuffer.getFlags() | BUFFER_FLAG_FEC);
-                outBuffer.setFlags(outBuffer.getFlags() & ~BUFFER_FLAG_PLC);
+                outBuf.setFlags(outBuf.getFlags() | BUFFER_FLAG_FEC);
+                outBuf.setFlags(outBuf.getFlags() & ~BUFFER_FLAG_PLC);
 
                 // We have decoded the expected sequence number from FEC data.
                 lastSeqNo = incrementSeqNo(lastSeqNo);
@@ -296,22 +311,22 @@ public class JavaDecoder
 
         /* Decode without FEC. */
         {
-            outputLength[0] = frameLength;
+            outLength[0] = frameLength;
             if (DecAPI.SKP_Silk_SDK_Decode(
                         decState, decControl,
                         lostFlag,
                         in, inOffset, inLength,
-                        out, outOffset, outputLength)
+                        out, outOffset, outLength)
                     == 0)
             {
-                outBuffer.setDuration(FRAME_DURATION * 1000000);
-                outBuffer.setLength(outputLength[0]);
-                outBuffer.setOffset(outOffset);
+                outBuf.setDuration(FRAME_DURATION * 1000000);
+                outBuf.setLength(outLength[0]);
+                outBuf.setOffset(outOffset);
 
                 if (lostFlag == 0)
                 {
-                    outBuffer.setFlags(
-                            outBuffer.getFlags()
+                    outBuf.setFlags(
+                            outBuf.getFlags()
                                 & ~(BUFFER_FLAG_FEC | BUFFER_FLAG_PLC));
 
                     if (decControl.moreInternalDecoderFrames == 0)
@@ -334,8 +349,8 @@ public class JavaDecoder
                 }
                 else
                 {
-                    outBuffer.setFlags(outBuffer.getFlags() & ~BUFFER_FLAG_FEC);
-                    outBuffer.setFlags(outBuffer.getFlags() | BUFFER_FLAG_PLC);
+                    outBuf.setFlags(outBuf.getFlags() & ~BUFFER_FLAG_FEC);
+                    outBuf.setFlags(outBuf.getFlags() | BUFFER_FLAG_PLC);
 
                     processed = INPUT_BUFFER_NOT_CONSUMED;
                     // We have decoded the expected sequence number with PLC.

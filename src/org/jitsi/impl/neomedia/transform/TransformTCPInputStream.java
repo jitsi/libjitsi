@@ -62,7 +62,8 @@ public class TransformTCPInputStream
         PacketTransformer transformer = getTransformer();
         RawPacket[] pkts = super.createRawPacket(datagramPacket);
 
-        return (transformer == null) ? pkts : transformer.reverseTransform(pkts);
+        return
+            (transformer == null) ? pkts : transformer.reverseTransform(pkts);
     }
 
     /**
