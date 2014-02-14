@@ -1148,6 +1148,13 @@ public class WASAPISystem
         long iPropertyStore = 0;
         long aecIMediaObject = 0;
 
+        /*
+         * XXX Multiple threads may invoke the initialization of a DeviceSystem
+         * so we cannot be sure that the COM library has been initialized for
+         * the current thread.
+         */
+        WASAPISystem.CoInitializeEx();
+
         try
         {
             iMediaObject
