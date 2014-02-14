@@ -438,8 +438,9 @@ public abstract class AbstractBufferCaptureDevice
     {
         CaptureDeviceInfo captureDeviceInfo = getCaptureDeviceInfo();
 
-        return
-            (captureDeviceInfo == null) ? null : captureDeviceInfo.getFormats();
+        return (captureDeviceInfo == null)
+                ? new Format[0]
+                : captureDeviceInfo.getFormats();
     }
 
     /**
