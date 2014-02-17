@@ -208,6 +208,19 @@ Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1bitrate
 }
 
 JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1complexity
+    (JNIEnv *env, jclass clazz, jlong encoder)
+{
+    opus_int32 x;
+    int ret
+        = opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_GET_COMPLEXITY(&x));
+
+    return (OPUS_OK == ret) ? x : ret;
+}
+
+JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1dtx
     (JNIEnv *env, jclass clazz, jlong encoder)
 {
@@ -216,6 +229,19 @@ Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1dtx
         = opus_encoder_ctl(
                 (OpusEncoder *) (intptr_t) encoder,
                 OPUS_GET_DTX(&x));
+
+    return (OPUS_OK == ret) ? x : ret;
+}
+
+JNIEXPORT jint JNICALL
+Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1inband_1fec
+    (JNIEnv *env, jclass clazz, jlong encoder)
+{
+    opus_int32 x;
+    int ret
+        = opus_encoder_ctl(
+                (OpusEncoder *) (intptr_t) encoder,
+                OPUS_GET_INBAND_FEC(&x));
 
     return (OPUS_OK == ret) ? x : ret;
 }
@@ -249,19 +275,6 @@ Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1vbr_1constraint
         = opus_encoder_ctl(
                 (OpusEncoder *) (intptr_t) encoder,
                 OPUS_GET_VBR_CONSTRAINT(&x));
-
-    return (OPUS_OK == ret) ? x : ret;
-}
-
-JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1inband_1fec
-    (JNIEnv *env, jclass clazz, jlong encoder)
-{
-    opus_int32 x;
-    int ret
-        = opus_encoder_ctl(
-                (OpusEncoder *) (intptr_t) encoder,
-                OPUS_GET_INBAND_FEC(&x));
 
     return (OPUS_OK == ret) ? x : ret;
 }

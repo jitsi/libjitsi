@@ -211,6 +211,8 @@ public class Opus
      */
     public static native int encoder_get_bitrate(long encoder);
 
+    public static native int encoder_get_complexity(long encoder);
+
     /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns
      * the current DTX setting of the encoder.
@@ -220,6 +222,16 @@ public class Opus
      * @return the current DTX setting of the encoder.
      */
     public static native int encoder_get_dtx(long encoder);
+
+    /**
+     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns
+     * the current inband FEC encoder setting.
+     *
+     * @param encoder The encoder to use
+     *
+     * @return the current inband FEC encoder setting.
+     */
+    public static native int encoder_get_inband_fec(long encoder);
 
     /**
      * Returns the size in bytes required for an OpusEncoder structure.
@@ -251,16 +263,6 @@ public class Opus
     public static native int encoder_get_vbr_constraint(long encoder);
 
     /**
-     * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Returns
-     * the current inband FEC encoder setting.
-     *
-     * @param encoder The encoder to use
-     *
-     * @return the current inband FEC encoder setting.
-     */
-    public static native int encoder_get_inband_fec(long encoder);
-
-    /**
      * Wrapper around the native <tt>opus_encoder_ctl</tt> function. Sets the
      * encoder audio bandwidth.
      *
@@ -281,7 +283,7 @@ public class Opus
      * @param encoder The encoder to use
      * @param bitrate The bitrate to set
      *
-     * @return OPUS_OK on success
+     * @return <tt>OPUS_OK</tt> on success
      */
     public static native int encoder_set_bitrate(long encoder, int bitrate);
 

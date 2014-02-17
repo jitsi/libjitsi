@@ -51,9 +51,9 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode
  * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
  * Method:    encode
  * Signature: (J[BII[BII)I
-     */
- JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
-   (JNIEnv *, jclass, jlong, jbyteArray, jint, jint, jbyteArray, jint, jint);
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
+  (JNIEnv *, jclass, jlong, jbyteArray, jint, jint, jbyteArray, jint, jint);
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
@@ -89,10 +89,26 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encode
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
+ * Method:    encoder_get_complexity
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1complexity
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
  * Method:    encoder_get_dtx
  * Signature: (J)I
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1dtx
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_codec_audio_opus_Opus
+ * Method:    encoder_get_inband_fec
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_encoder_1get_1inband_1fec
   (JNIEnv *, jclass, jlong);
 
 /*
