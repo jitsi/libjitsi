@@ -83,7 +83,7 @@ public class VideoTranslatorMediaDevice
         streamDeviceSessions.remove(streamDeviceSession);
         if(deviceSession != null)
         {
-            deviceSession.removeRTCPFeedbackCreateListner(
+            deviceSession.removeRTCPFeedbackMessageCreateListner(
                     streamDeviceSession);
         }
         if (streamDeviceSessions.isEmpty())
@@ -137,7 +137,7 @@ public class VideoTranslatorMediaDevice
                 for (MediaStreamMediaDeviceSession streamDeviceSession
                         : streamDeviceSessions)
                 {
-                    deviceSession.addRTCPFeedbackCreateListner(
+                    deviceSession.addRTCPFeedbackMessageCreateListner(
                             streamDeviceSession);
                 }
             }
@@ -452,10 +452,9 @@ public class VideoTranslatorMediaDevice
         public void setConnector(AbstractRTPConnector rtpConnector)
         {
             super.setConnector(rtpConnector);
+
             if(deviceSession != null)
-            {
-                deviceSession.addRTCPFeedbackCreateListner(this);
-            }
+                deviceSession.addRTCPFeedbackMessageCreateListner(this);
         }
 
         /**

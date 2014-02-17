@@ -15,6 +15,7 @@ import javax.media.*;
 import org.jitsi.service.neomedia.event.*;
 
 /**
+ *
  * @author Bing SU (nova.su@gmail.com)
  * @author Lyubomir Marinov
  * @author Sebastien Vincent
@@ -23,10 +24,10 @@ public class RTCPConnectorInputStream
     extends RTPConnectorUDPInputStream
 {
     /**
-     * List of feedback listeners;
+     * List of RTCP feedback message listeners;
      */
-    private final List<RTCPFeedbackListener> listeners
-        = new ArrayList<RTCPFeedbackListener>();
+    private final List<RTCPFeedbackMessageListener> listeners
+        = new ArrayList<RTCPFeedbackMessageListener>();
 
     /**
      * Initializes a new <tt>RTCPConnectorInputStream</tt> which is to receive
@@ -40,12 +41,13 @@ public class RTCPConnectorInputStream
     }
 
     /**
-     * Add an <tt>RTCPFeedbackListener</tt>.
+     * Add an <tt>RTCPFeedbackMessageListener</tt>.
      *
      * @param listener object that will listen to incoming RTCP feedback
      * messages.
      */
-    public void addRTCPFeedbackListener(RTCPFeedbackListener listener)
+    public void addRTCPFeedbackMessageListener(
+            RTCPFeedbackMessageListener listener)
     {
         if (listener == null)
             throw new NullPointerException("listener");
@@ -54,12 +56,12 @@ public class RTCPConnectorInputStream
     }
 
     /**
-     * Notifies a specific list of <tt>RTCPFeedbackListener</tt>s about a
+     * Notifies a specific list of <tt>RTCPFeedbackMessageListener</tt>s about a
      * specific RTCP feedback message if such a message can be parsed out of a
      * specific <tt>byte</tt> buffer.
      *
      * @param source the object to be reported as the source of the
-     * <tt>RTCPFeedbackEvent</tt> to be fired
+     * <tt>RTCPFeedbackMessageEvent</tt> to be fired
      * @param buffer the <tt>byte</tt> buffer which may specific an RTCP
      * feedback message
      * @param offset the offset in <tt>buffer</tt> at which the reading of bytes
@@ -67,45 +69,47 @@ public class RTCPConnectorInputStream
      * @param length the number of bytes in <tt>buffer</tt> to be read for the
      * purposes of parsing an RTCP feedback message and firing an
      * <tt>RTPCFeedbackEvent</tt>
-     * @param listeners the list of <tt>RTCPFeedbackListener</tt>s to be
+     * @param listeners the list of <tt>RTCPFeedbackMessageListener</tt>s to be
      * notified about the specified RTCP feedback message if such a message can
      * be parsed out of the specified <tt>buffer</tt>
      */
-    public static void fireRTCPFeedbackReceived(
+    public static void fireRTCPFeedbackMessageReceived(
             Object source,
             byte[] buffer, int offset, int length,
-            List<RTCPFeedbackListener> listeners)
+            List<RTCPFeedbackMessageListener> listeners)
     {
         /*
-         * RTCP feedback message size is minimum 12 bytes:
-         * Version/Padding/Feedback message type: 1 byte
-         * Payload type: 1 byte
-         * Length: 2 bytes
-         * SSRC of packet sender: 4 bytes
-         * SSRC of media source: 4 bytes
+         * RTCP feedback message length is minimum 12 bytes:
+         * 1. Version/Padding/Feedback message type: 1 byte
+         * 2. Payload type: 1 byte
+         * 3. Length: 2 bytes
+         * 4. SSRC of packet sender: 4 bytes
+         * 5. SSRC of media source: 4 bytes
          */
         if ((length >= 12) && !listeners.isEmpty())
         {
-            int pt = buffer[offset + 1] & 0xFF;
+            byte pt = buffer[offset + 1];
 
-            if ((pt == RTCPFeedbackEvent.PT_PS)
-                    || (pt == RTCPFeedbackEvent.PT_TL))
+            if ((pt == RTCPFeedbackMessageEvent.PT_PS)
+                    || (pt == RTCPFeedbackMessageEvent.PT_TL))
             {
                 int fmt = buffer[offset] & 0x1F;
-                RTCPFeedbackEvent ev = new RTCPFeedbackEvent(source, fmt, pt);
+                RTCPFeedbackMessageEvent ev
+                    = new RTCPFeedbackMessageEvent(source, fmt, pt);
 
-                for (RTCPFeedbackListener l : listeners)
-                    l.rtcpFeedbackReceived(ev);
+                for (RTCPFeedbackMessageListener l : listeners)
+                    l.rtcpFeedbackMessageReceived(ev);
             }
         }
     }
 
     /**
-     * Remove an <tt>RTCPFeedbackListener</tt>.
+     * Remove an <tt>RTCPFeedbackMessageListener</tt>.
      *
      * @param listener object to remove from listening RTCP feedback messages.
      */
-    public void removeRTCPFeedbackListener(RTCPFeedbackListener listener)
+    public void removeRTCPFeedbackMessageListener(
+            RTCPFeedbackMessageListener listener)
     {
         listeners.remove(listener);
     }
@@ -119,7 +123,10 @@ public class RTCPConnectorInputStream
     {
         int pktLength = super.read(buffer, data, offset, length);
 
-        fireRTCPFeedbackReceived(this, data, offset, pktLength, listeners);
+        fireRTCPFeedbackMessageReceived(
+                this,
+                data, offset, pktLength,
+                listeners);
 
         return pktLength;
     }

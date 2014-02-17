@@ -50,7 +50,7 @@ public class VideoMediaStreamImpl
      * The indicator which determines whether RTCP feedback Picture Loss
      * Indication messages are to be used.
      */
-    private static final boolean USE_PLI = true;
+    private static final boolean USE_RTCP_FEEDBACK_PLI = true;
 
     /**
      * Extracts and returns maximum resolution can receive from the image
@@ -639,7 +639,8 @@ public class VideoMediaStreamImpl
 
             if (rtpConnector != null)
                 newVideoMediaDeviceSession.setConnector(rtpConnector);
-            newVideoMediaDeviceSession.setRtcpFeedbackPLI(USE_PLI);
+            newVideoMediaDeviceSession.setRTCPFeedbackPLI(
+                    USE_RTCP_FEEDBACK_PLI);
 
             /*
              * The newVideoMediaDeviceSession is being connected to this

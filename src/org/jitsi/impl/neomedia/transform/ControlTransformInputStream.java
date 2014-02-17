@@ -27,10 +27,10 @@ public class ControlTransformInputStream
     extends TransformUDPInputStream
 {
     /**
-     * The list of <tt>RTCPFeedbackListener</tt>.
+     * The list of <tt>RTCPFeedbackMessageListener</tt>s.
      */
-    private final List<RTCPFeedbackListener> listeners
-        = new LinkedList<RTCPFeedbackListener>();
+    private final List<RTCPFeedbackMessageListener> listeners
+        = new LinkedList<RTCPFeedbackMessageListener>();
 
     /**
      * Initializes a new <tt>ControlTransformInputStream</tt> which is to
@@ -44,11 +44,12 @@ public class ControlTransformInputStream
     }
 
     /**
-     * Adds an <tt>RTCPFeedbackListener</tt>.
+     * Adds an <tt>RTCPFeedbackMessageListener</tt>.
      *
-     * @param listener the <tt>RTCPFeedbackListener</tt> to add
+     * @param listener the <tt>RTCPFeedbackMessageListener</tt> to add
      */
-    public void addRTCPFeedbackListener(RTCPFeedbackListener listener)
+    public void addRTCPFeedbackMessageListener(
+            RTCPFeedbackMessageListener listener)
     {
         if (listener == null)
             throw new NullPointerException("listener");
@@ -60,11 +61,12 @@ public class ControlTransformInputStream
     }
 
     /**
-     * Removes an <tt>RTCPFeedbackListener</tt>.
+     * Removes an <tt>RTCPFeedbackMessageListener</tt>.
      *
-     * @param listener the <tt>RTCPFeedbackListener</tt> to remove
+     * @param listener the <tt>RTCPFeedbackMessageListener</tt> to remove
      */
-    public void removeRTCPFeedbackListener(RTCPFeedbackListener listener)
+    public void removeRTCPFeedbackMessageListener(
+            RTCPFeedbackMessageListener listener)
     {
         if (listener != null)
         {
@@ -84,7 +86,7 @@ public class ControlTransformInputStream
     {
         int pktLength = super.read(buffer, data, offset, length);
 
-        RTCPConnectorInputStream.fireRTCPFeedbackReceived(
+        RTCPConnectorInputStream.fireRTCPFeedbackMessageReceived(
                 this,
                 data, offset, pktLength,
                 listeners);

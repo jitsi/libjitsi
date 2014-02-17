@@ -33,7 +33,7 @@ import org.jitsi.util.*;
  */
 public class JNIEncoder
     extends AbstractCodec
-    implements RTCPFeedbackListener
+    implements RTCPFeedbackMessageListener
 {
     /**
      * The available presets we can use with the encoder.
@@ -779,27 +779,29 @@ public class JNIEncoder
      * Notifies this <tt>RTCPFeedbackListener</tt> that an RTCP feedback message
      * has been received
      *
-     * @param event an <tt>RTCPFeedbackEvent</tt> which specifies the details of
-     * the notification event such as the feedback message type and the payload
-     * type
+     * @param ev an <tt>RTCPFeedbackMessageEvent</tt> which specifies the
+     * details of the notification event such as the feedback message type and
+     * the payload type
      */
-    public void rtcpFeedbackReceived(RTCPFeedbackEvent event)
+    @Override
+    public void rtcpFeedbackMessageReceived(RTCPFeedbackMessageEvent ev)
     {
         /*
          * If RTCP message is a Picture Loss Indication (PLI) or a Full
          * Intra-frame Request (FIR) the encoder will force the next frame to be
          * a keyframe.
          */
-        if (event.getPayloadType() == RTCPFeedbackEvent.PT_PS)
+        if (ev.getPayloadType() == RTCPFeedbackMessageEvent.PT_PS)
         {
-            switch (event.getFeedbackMessageType())
+            switch (ev.getFeedbackMessageType())
             {
-                case RTCPFeedbackEvent.FMT_PLI:
-                case RTCPFeedbackEvent.FMT_FIR:
+                case RTCPFeedbackMessageEvent.FMT_PLI:
+                case RTCPFeedbackMessageEvent.FMT_FIR:
                     if (logger.isTraceEnabled())
                     {
-                        logger.trace("Scheduling a key-frame, because we" +
-                                " received an RTCP PLI or FIR.");
+                        logger.trace(
+                                "Scheduling a key-frame, because we received an"
+                                    + " RTCP PLI or FIR.");
                     }
                     keyFrameRequest();
                     break;

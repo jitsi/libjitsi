@@ -45,7 +45,7 @@ import org.jitsi.util.swing.*;
  */
 public class VideoMediaDeviceSession
     extends MediaDeviceSession
-    implements RTCPFeedbackCreateListener
+    implements RTCPFeedbackMessageCreateListener
 {
     /**
      * The image ID of the icon which is to be displayed as the local visual
@@ -97,10 +97,10 @@ public class VideoMediaDeviceSession
     }
 
     /**
-     * RTCPFeedbackListener instance that will be passed to rtpConnectors
-     * to handle RTCP PLI requests.
+     * <tt>RTCPFeedbackMessageListener</tt> instance that will be passed to
+     * {@link #rtpConnector} to handle RTCP PLI requests.
      */
-    private RTCPFeedbackListener encoder = null;
+    private RTCPFeedbackMessageListener encoder = null;
 
     /**
      * The <tt>KeyFrameControl</tt> used by this<tt>VideoMediaDeviceSession</tt>
@@ -155,11 +155,12 @@ public class VideoMediaDeviceSession
     private long remoteSSRC = -1;
 
     /**
-     * A list with RTCPFeedbackCreateListener which will be notified when
-     * a RTCPFeedbackListener is created.
+     * The list of <tt>RTCPFeedbackMessageCreateListener</tt> which will be
+     * notified when a <tt>RTCPFeedbackMessageListener</tt> is created.
      */
-    private List<RTCPFeedbackCreateListener> rtcpFeedbackCreateListeners
-        = new LinkedList<RTCPFeedbackCreateListener>();
+    private List<RTCPFeedbackMessageCreateListener>
+        rtcpFeedbackMessageCreateListeners
+            = new LinkedList<RTCPFeedbackMessageCreateListener>();
 
     /**
      * The <tt>RTPConnector</tt> with which the <tt>RTPManager</tt> of this
@@ -171,7 +172,7 @@ public class VideoMediaDeviceSession
      * Use or not RTCP feedback Picture Loss Indication to request keyframes.
      * Does not affect handling of received RTCP feedback events.
      */
-    private boolean usePLI = false;
+    private boolean useRTCPFeedbackPLI = false;
 
     /**
      * The facility which aids this instance in managing a list of
@@ -194,20 +195,20 @@ public class VideoMediaDeviceSession
     }
 
     /**
-     * Adds RTCPFeedbackCreateListener.
+     * Adds <tt>RTCPFeedbackMessageCreateListener</tt>.
      *
-     * @param listener the listener to be added.
+     * @param listener the listener to add
      */
-    public void addRTCPFeedbackCreateListner(
-            RTCPFeedbackCreateListener listener)
+    public void addRTCPFeedbackMessageCreateListner(
+            RTCPFeedbackMessageCreateListener listener)
     {
-        synchronized (rtcpFeedbackCreateListeners)
+        synchronized (rtcpFeedbackMessageCreateListeners)
         {
-            rtcpFeedbackCreateListeners.add(listener);
+            rtcpFeedbackMessageCreateListeners.add(listener);
         }
 
         if (encoder != null)
-            listener.onRTCPFeedbackCreate(encoder);
+            listener.onRTCPFeedbackMessageCreate(encoder);
     }
 
     /**
@@ -1028,12 +1029,53 @@ public class VideoMediaDeviceSession
     }
 
     /**
+     * Implements {@link KeyFrameControl.KeyFrameRequester#requestKeyFrame()}
+     * of {@link #keyFrameRequester}.
+     *
+     * @param keyFrameRequester the <tt>KeyFrameControl.KeyFrameRequester</tt>
+     * on which the method is invoked
+     * @return <tt>true</tt> if this <tt>KeyFrameRequester</tt> has indeed
+     * requested a key frame from the remote peer of the associated
+     * <tt>VideoMediaStream</tt> in response to the call; otherwise,
+     * <tt>false</tt>
+     */
+    private boolean keyFrameRequesterRequestKeyFrame(
+            KeyFrameControl.KeyFrameRequester keyFrameRequester)
+    {
+        boolean requested = false;
+
+        if (VideoMediaDeviceSession.this.useRTCPFeedbackPLI)
+        {
+            try
+            {
+                new RTCPFeedbackMessagePacket(
+                            RTCPFeedbackMessageEvent.FMT_PLI,
+                            RTCPFeedbackMessageEvent.PT_PS,
+                            localSSRC,
+                            remoteSSRC)
+                        .writeTo(rtpConnector.getControlOutputStream());
+                requested = true;
+            }
+            catch (IOException ioe)
+            {
+                /*
+                 * Apart from logging the IOException, there are not a lot of
+                 * ways to handle it.
+                 */
+            }
+        }
+        return requested;
+    }
+
+    /**
      * Notifies this <tt>VideoMediaDeviceSession</tt> of a new
      * <tt>RTCPFeedbackListener</tt>
      *
-     * @param rtcpFeedbackListener the listener to be added.
+     * @param rtcpFeedbackMessageListener the listener to be added.
      */
-    public void onRTCPFeedbackCreate(RTCPFeedbackListener rtcpFeedbackListener)
+    @Override
+    public void onRTCPFeedbackMessageCreate(
+            RTCPFeedbackMessageListener rtcpFeedbackMessageListener)
     {
         if (rtpConnector != null)
         {
@@ -1041,7 +1083,8 @@ public class VideoMediaDeviceSession
             {
                 ((ControlTransformInputStream)
                         rtpConnector.getControlInputStream())
-                    .addRTCPFeedbackListener(rtcpFeedbackListener);
+                    .addRTCPFeedbackMessageListener(
+                            rtcpFeedbackMessageListener);
             }
             catch (IOException ioe)
             {
@@ -1404,16 +1447,16 @@ public class VideoMediaDeviceSession
     }
 
     /**
-     * Removes RTCPFeedbackCreateListener.
+     * Removes <tt>RTCPFeedbackMessageCreateListener</tt>.
      *
-     * @param listener the listener to be added.
+     * @param listener the listener to remove
      */
-    public void removeRTCPFeedbackCreateListner(
-            RTCPFeedbackCreateListener listener)
+    public void removeRTCPFeedbackMessageCreateListner(
+            RTCPFeedbackMessageCreateListener listener)
     {
-        synchronized (rtcpFeedbackCreateListeners)
+        synchronized (rtcpFeedbackMessageCreateListeners)
         {
-            rtcpFeedbackCreateListeners.remove(listener);
+            rtcpFeedbackMessageCreateListeners.remove(listener);
         }
     }
 
@@ -1684,11 +1727,12 @@ public class VideoMediaDeviceSession
             }
 
             this.encoder = encoder;
-            onRTCPFeedbackCreate(encoder);
-            synchronized (rtcpFeedbackCreateListeners)
+            onRTCPFeedbackMessageCreate(encoder);
+            synchronized (rtcpFeedbackMessageCreateListeners)
             {
-                for (RTCPFeedbackCreateListener l : rtcpFeedbackCreateListeners)
-                    l.onRTCPFeedbackCreate(encoder);
+                for (RTCPFeedbackMessageCreateListener l
+                        : rtcpFeedbackMessageCreateListeners)
+                    l.onRTCPFeedbackMessageCreate(encoder);
             }
 
             if (keyFrameControl != null)
@@ -1753,50 +1797,29 @@ public class VideoMediaDeviceSession
     }
 
     /**
-     * Use or not RTCP feedback Picture Loss Indication.
+     * Sets the indicator which determines whether RTCP feedback Picture Loss
+     * Indication (PLI) is to be used to request keyframes.
      *
-     * @param usePLI <tt>true</tt> to use PLI; otherwise, <tt>false</tt>
+     * @param useRTCPFeedbackPLI <tt>true</tt> to use PLI; otherwise,
+     * <tt>false</tt>
      */
-    public void setRtcpFeedbackPLI(boolean usePLI)
+    public void setRTCPFeedbackPLI(boolean useRTCPFeedbackPLI)
     {
-        if (this.usePLI != usePLI)
+        if (this.useRTCPFeedbackPLI != useRTCPFeedbackPLI)
         {
-            this.usePLI = usePLI;
+            this.useRTCPFeedbackPLI = useRTCPFeedbackPLI;
 
-            if (this.usePLI)
+            if (this.useRTCPFeedbackPLI)
             {
                 if (keyFrameRequester == null)
                 {
                     keyFrameRequester
                         = new KeyFrameControl.KeyFrameRequester()
                         {
+                            @Override
                             public boolean requestKeyFrame()
                             {
-                                boolean requested = false;
-
-                                if (VideoMediaDeviceSession.this.usePLI)
-                                {
-                                    try
-                                    {
-                                        new RTCPFeedbackPacket(
-                                                    RTCPFeedbackEvent.FMT_PLI,
-                                                    RTCPFeedbackEvent.PT_PS,
-                                                    localSSRC,
-                                                    remoteSSRC)
-                                                .writeTo(
-                                                        rtpConnector
-                                                            .getControlOutputStream());
-                                        requested = true;
-                                    }
-                                    catch (IOException ioe)
-                                    {
-                                        /*
-                                         * Apart from logging the ioe, there are
-                                         * not a lot of ways to handle it.
-                                         */
-                                    }
-                                }
-                                return requested;
+                                return keyFrameRequesterRequestKeyFrame(this);
                             }
                         };
                 }
