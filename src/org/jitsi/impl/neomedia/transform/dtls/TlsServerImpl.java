@@ -29,6 +29,7 @@ public class TlsServerImpl
     private final CertificateRequest certificateRequest
         = new CertificateRequest(
                 new short[] { ClientCertificateType.rsa_sign },
+                /* supportedSignatureAlgorithms */ null,
                 /* certificateAuthorities */ null);
 
     /**
