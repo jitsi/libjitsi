@@ -92,6 +92,7 @@ public class LibJitsiImpl
          * System properties akin to standard Java class factory names.
          */
         String serviceImplClassName = System.getProperty(serviceClassName);
+        boolean suppressClassNotFoundException = false;
 
         if ((serviceImplClassName == null)
                 || (serviceImplClassName.length() == 0))
@@ -100,6 +101,13 @@ public class LibJitsiImpl
                 = serviceClassName
                     .replace(".service.", ".impl.")
                         .concat("Impl");
+            /*
+             * Nobody has explicitly mentioned serviceImplClassName, we have
+             * just made it up. If it turns out that it cannot be found, do not
+             * log the resulting ClassNotFountException in order to not stress
+             * the developers and/or the users. 
+             */
+            suppressClassNotFoundException = true;
         }
 
         Class<?> serviceImplClass = null;
@@ -111,7 +119,8 @@ public class LibJitsiImpl
         }
         catch (ClassNotFoundException cnfe)
         {
-            exception = cnfe;
+            if (!suppressClassNotFoundException)
+                exception = cnfe;
         }
         catch (ExceptionInInitializerError eiie)
         {
@@ -137,18 +146,26 @@ public class LibJitsiImpl
             catch (Throwable t)
             {
                 if (t instanceof ThreadDeath)
+                {
                     throw (ThreadDeath) t;
+                }
                 else
+                {
                     exception = t;
+                    if (t instanceof InterruptedException)
+                        Thread.currentThread().interrupt();
+                }
             }
         }
 
         if (exception == null)
         {
-            synchronized (services)
+            if (service != null)
             {
-                if (service != null)
+                synchronized (services)
+                {
                     services.put(serviceClassName, service);
+                }
             }
         }
         else if (logger.isInfoEnabled())

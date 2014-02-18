@@ -93,13 +93,22 @@ public class ConfigurationServiceImpl
     /**
      * Our event dispatcher.
      */
-    private final ChangeEventDispatcher changeEventDispatcher =
-        new ChangeEventDispatcher(this);
+    private final ChangeEventDispatcher changeEventDispatcher
+        = new ChangeEventDispatcher(this);
 
     /**
-     * a reference to the FileAccessService
+     * A (cached) reference to a <tt>FileAccessService</tt> implementation used
+     * by this <tt>ConfigurationService</tt> implementation.
      */
-    private final FileAccessService faService;
+    private FileAccessService faService;
+
+    /**
+     * The indicator which determines whether this instance has assigned a value
+     * to {@link #faService}. Introduced in order to avoid multiple attempts to
+     * query for a <tt>FileAccessService</tt> implementation while still
+     * delaying the initial query.
+     */
+    private boolean faServiceIsAssigned = false;
 
     /**
      * The <code>ConfigurationStore</code> implementation which contains the
@@ -111,8 +120,13 @@ public class ConfigurationServiceImpl
 
     public ConfigurationServiceImpl()
     {
-        // retrieve a reference to the FileAccessService
-        this.faService = LibJitsi.getFileAccessService();
+        /*
+         * XXX We explicitly delay the query for the FileAcessService
+         * implementation because FileAccessServiceImpl looks for properties set
+         * by methods of ConfigurationServiceImpl and we want to make sure that
+         * we have given the chance to this ConfigurationServiceImpl to set
+         * these properties before FileAccessServiceImpl looks for them.
+         */
 
         try
         {
@@ -687,21 +701,26 @@ public class ConfigurationServiceImpl
 
         File file = getConfigurationFile();
 
-        if ((file != null) && (faService != null))
+        if (file != null)
         {
-            // Restore the file if necessary.
-            FailSafeTransaction trans
-                = faService.createFailSafeTransaction(file);
+            FileAccessService faService = getFileAccessService();
 
-            try
+            if (faService != null)
             {
-                trans.restoreFile();
-            }
-            catch (Exception e)
-            {
-                logger.error(
-                        "Failed to restore configuration file " + file,
-                        e);
+                // Restore the file if necessary.
+                FailSafeTransaction trans
+                    = faService.createFailSafeTransaction(file);
+    
+                try
+                {
+                    trans.restoreFile();
+                }
+                catch (Exception e)
+                {
+                    logger.error(
+                            "Failed to restore configuration file " + file,
+                            e);
+                }
             }
         }
 
@@ -747,12 +766,17 @@ public class ConfigurationServiceImpl
         if ((readOnly != null) && Boolean.parseBoolean(readOnly))
             return;
 
-        if (faService == null)
-            return;
-
         // write the file.
-        FailSafeTransaction trans
-            = (file == null) ? null : faService.createFailSafeTransaction(file);
+        FailSafeTransaction trans = null;
+
+        if (file != null)
+        {
+            FileAccessService faService = getFileAccessService();
+
+            if (faService != null)
+                trans = faService.createFailSafeTransaction(file);
+        }
+
         Throwable exception = null;
 
         try
@@ -1037,10 +1061,11 @@ public class ConfigurationServiceImpl
             //have to look for it in the sys props next time and so that it is
             //available for other bundles to consult.
             if (store != null)
-                store
-                    .setNonSystemProperty(
+            {
+                store.setNonSystemProperty(
                         PNAME_SC_HOME_DIR_LOCATION,
                         scHomeDirLocation);
+            }
         }
 
         return scHomeDirLocation;
@@ -1347,6 +1372,23 @@ public class ConfigurationServiceImpl
 
         return (stringValue == null) ? defaultValue : Boolean
             .parseBoolean(stringValue);
+    }
+
+    /**
+     * Gets a (cached) reference to a <tt>FileAccessService</tt> implementation
+     * to be used by this <tt>ConfigurationService</tt> implementation.
+     *
+     * @return a (cached) reference to a <tt>FileAccessService</tt>
+     * implementation
+     */
+    private synchronized FileAccessService getFileAccessService()
+    {
+        if ((faService == null) && !faServiceIsAssigned)
+        {
+            faService = LibJitsi.getFileAccessService();
+            faServiceIsAssigned = true;
+        }
+        return faService;
     }
 
     /**

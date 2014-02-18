@@ -42,39 +42,20 @@ public class FileAccessServiceImpl implements FileAccessService
      */
     public static final String TEMP_FILE_SUFFIX = "TEMP";
 
-    private final String profileDirLocation;
-    private final String cacheDirLocation;
-    private final String logDirLocation;
-    private final String scHomeDirName;
+    private String profileDirLocation;
+    private String cacheDirLocation;
+    private String logDirLocation;
+    private String scHomeDirName;
+
+    /**
+     * The indicator which determines whether {@link #initialize()} has been
+     * invoked on this instance. Introduced to delay the initialization of the
+     * state of this instance until it is actually necessary.
+     */
+    private boolean initialized = false;
 
     public FileAccessServiceImpl()
     {
-        profileDirLocation
-            = getSystemProperty(
-                    ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
-        if (profileDirLocation == null)
-        {
-            throw new IllegalStateException(
-                    ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
-        }
-
-        String cacheDir
-            = getSystemProperty(
-                    ConfigurationService.PNAME_SC_CACHE_DIR_LOCATION);
-        cacheDirLocation = (cacheDir == null) ? profileDirLocation : cacheDir;
-
-        String logDir
-            = getSystemProperty(
-                    ConfigurationService.PNAME_SC_LOG_DIR_LOCATION);
-        logDirLocation = (logDir == null) ? profileDirLocation : logDir;
-
-        scHomeDirName
-            = getSystemProperty(ConfigurationService.PNAME_SC_HOME_DIR_NAME);
-        if (scHomeDirName == null)
-        {
-            throw new IllegalStateException(
-                    ConfigurationService.PNAME_SC_HOME_DIR_NAME);
-        }
     }
 
     /**
@@ -246,8 +227,11 @@ public class FileAccessServiceImpl implements FileAccessService
      */
     private File getFullPath(FileCategory category)
     {
+        initialize();
+
         // bypass the configurationService here to remove the dependency
         String directory;
+
         switch (category)
         {
             case CACHE:
@@ -519,5 +503,46 @@ public class FileAccessServiceImpl implements FileAccessService
     public FailSafeTransaction createFailSafeTransaction(File file)
     {
         return (file == null) ? null : new FailSafeTransactionImpl(file);
+    }
+
+    /**
+     * Initializes this instance if it has not been initialized yet i.e. acts as
+     * a delayed constructor of this instance. Introduced because this
+     * <tt>FileAccessServiceImpl</tt> queries <tt>System</tt> properties that
+     * may not be set yet at construction time and, consequently, throws an
+     * <tt>IllegalStateException</tt> which could be avoided.
+     */
+    private synchronized void initialize()
+    {
+        if (initialized)
+            return;
+
+        profileDirLocation
+            = getSystemProperty(
+                    ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
+        if (profileDirLocation == null)
+        {
+            throw new IllegalStateException(
+                    ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
+        }
+        scHomeDirName
+            = getSystemProperty(ConfigurationService.PNAME_SC_HOME_DIR_NAME);
+        if (scHomeDirName == null)
+        {
+            throw new IllegalStateException(
+                    ConfigurationService.PNAME_SC_HOME_DIR_NAME);
+        }
+
+        String cacheDir
+            = getSystemProperty(
+                    ConfigurationService.PNAME_SC_CACHE_DIR_LOCATION);
+        cacheDirLocation = (cacheDir == null) ? profileDirLocation : cacheDir;
+
+        String logDir
+            = getSystemProperty(
+                    ConfigurationService.PNAME_SC_LOG_DIR_LOCATION);
+        logDirLocation = (logDir == null) ? profileDirLocation : logDir;
+
+        initialized = true;
     }
 }
