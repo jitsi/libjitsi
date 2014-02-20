@@ -444,7 +444,7 @@ public class RTPTranslatorImpl
      * Releases the resources allocated by this instance for the purposes of the
      * functioning of a specific <tt>StreamRTPManager</tt> in the course of its
      * execution and prepares that <tt>StreamRTPManager</tt> to be garbage
-     * collected (as far as this <tt>RTPTranlatorImpl</tt> is concerned).
+     * collected (as far as this <tt>RTPTranslatorImpl</tt> is concerned).
      */
     public synchronized void dispose(StreamRTPManager streamRTPManager)
     {
@@ -1367,6 +1367,7 @@ public class RTPTranslatorImpl
                 {
                     byte b1 = buffer[offset + 1];
                     int pt = b1 & 0xff; /* payload type */
+                    int fmt = b0 & 0x1f; /* feedback message type */
 
                     if ((pt == 205 /* RTPFB */) || (pt == 206 /* PSFB */))
                     {
@@ -1376,14 +1377,33 @@ public class RTPTranslatorImpl
 
                         if (rtcpLength <= length)
                         {
-                            int ssrcOfMediaSource = readInt(buffer, offset + 8);
+                            int ssrcOfMediaSource = 0;
+                            if (pt == 206 && fmt == 4) //FIR
+                            {
+                                if (rtcpLength < 20)
+                                {
+                                    // FIR messages are at least 20 bytes long
+                                    write = false;
+                                }
+                                else
+                                {
+                                    // FIR messages don't have a valid
+                                    // 'media source' field, use the SSRC from
+                                    // the first FCI entry instead
+                                    ssrcOfMediaSource
+                                            = readInt(buffer, offset + 12);
+                                }
+                            }
+                            else
+                            {
+                                ssrcOfMediaSource = readInt(buffer, offset + 8);
+                            }
 
                             if (destination.containsReceiveSSRC(
                                     ssrcOfMediaSource))
                             {
                                 if (logger.isTraceEnabled())
                                 {
-                                    int fmt = b0 & 0x1f; /* feedback message type */
                                     int ssrcOfPacketSender
                                         = readInt(buffer, offset + 4);
                                     String message
