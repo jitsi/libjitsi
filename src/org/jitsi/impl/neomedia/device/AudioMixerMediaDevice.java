@@ -645,8 +645,7 @@ public class AudioMixerMediaDevice
              * separately, we have a single playback of the mix of all
              * contributions but ours.
              */
-            super.addPlaybackDataSource(
-                    getCaptureDevice());
+            super.addPlaybackDataSource(getCaptureDevice());
         }
 
         /**
@@ -875,13 +874,15 @@ public class AudioMixerMediaDevice
                 final DataSource playbackDataSource)
         {
             removeInputDataSources(
-                new DataSourceFilter()
-                {
-                    public boolean accept(DataSource dataSource)
-                    {
-                        return dataSource.equals(playbackDataSource);
-                    }
-                });
+                    new DataSourceFilter()
+                            {
+                                @Override
+                                public boolean accept(DataSource dataSource)
+                                {
+                                    return
+                                        dataSource.equals(playbackDataSource);
+                                }
+                            });
         }
 
         /**

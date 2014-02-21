@@ -10,6 +10,7 @@ import java.awt.*;
 import java.io.*;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.locks.*;
 
 import javax.media.*;
 import javax.media.control.*;
@@ -105,15 +106,40 @@ public class MediaDeviceSession
     /**
      * The list of playbacks of <tt>ReceiveStream</tt>s and/or
      * <tt>DataSource</tt>s performed by respective <tt>Player</tt>s on the
-     * <tt>MediaDevice</tt> represented by this instance.
+     * <tt>MediaDevice</tt> represented by this instance. The (read and write)
+     * accesses to the field are to be synchronized using
+     * {@link #playbacksLock}.
      */
     private final List<Playback> playbacks = new LinkedList<Playback>();
+
+    /**
+     * The <tt>ReadWriteLock</tt> which is used to synchronize the (read and
+     * write) accesses to {@link #playbacks}.
+     */
+    private final ReadWriteLock playbacksLock = new ReentrantReadWriteLock();
 
     /**
      * The <tt>ControllerListener</tt> which listens to the <tt>Player</tt>s of
      * {@link #playbacks} for <tt>ControllerEvent</tt>s.
      */
-    private ControllerListener playerControllerListener;
+    private final ControllerListener playerControllerListener
+        = new ControllerListener()
+                {
+                    /**
+                     * Notifies this <tt>ControllerListener</tt> that the
+                     * <tt>Controller</tt> which it is registered with has
+                     * generated an event.
+                     *
+                     * @param ev the <tt>ControllerEvent</tt> specifying the
+                     * <tt>Controller</tt> which is the source of the event and
+                     * the very type of the event
+                     * @see ControllerListener#controllerUpdate(ControllerEvent)
+                     */
+                    public void controllerUpdate(ControllerEvent ev)
+                    {
+                        playerControllerUpdate(ev);
+                    }
+                };
 
     /**
      * The JMF <tt>Processor</tt> which transcodes {@link #captureDevice} into
@@ -467,27 +493,6 @@ public class MediaDeviceSession
              * it reads some media. In the case of a ReceiveStream not sending
              * media (e.g. abnormally stopped), it will leave us blocked.
              */
-            if (playerControllerListener == null)
-            {
-                playerControllerListener = new ControllerListener()
-                {
-
-                    /**
-                     * Notifies this <tt>ControllerListener</tt> that the
-                     * <tt>Controller</tt> which it is registered with has
-                     * generated an event.
-                     *
-                     * @param event the <tt>ControllerEvent</tt> specifying the
-                     * <tt>Controller</tt> which is the source of the event and
-                     * the very type of the event
-                     * @see ControllerListener#controllerUpdate(ControllerEvent)
-                     */
-                    public void controllerUpdate(ControllerEvent event)
-                    {
-                        playerControllerUpdate(event);
-                    }
-                };
-            }
             player.addControllerListener(playerControllerListener);
 
             player.configure();
@@ -669,14 +674,23 @@ public class MediaDeviceSession
      */
     private void disposePlayer()
     {
-        synchronized (playbacks)
+        Lock writeLock = playbacksLock.writeLock();
+
+        writeLock.lock();
+        try
         {
             for (Playback playback : playbacks)
+            {
                 if (playback.player != null)
                 {
                     disposePlayer(playback.player);
                     playback.player = null;
                 }
+            }
+        }
+        finally
+        {
+            writeLock.unlock();
         }
     }
 
@@ -688,14 +702,11 @@ public class MediaDeviceSession
      */
     protected void disposePlayer(Player player)
     {
-        synchronized (playbacks)
-        {
-            if (playerControllerListener != null)
-                player.removeControllerListener(playerControllerListener);
-            player.stop();
-            player.deallocate();
-            player.close();
-        }
+        if (playerControllerListener != null)
+            player.removeControllerListener(playerControllerListener);
+        player.stop();
+        player.deallocate();
+        player.close();
     }
 
     /**
@@ -983,11 +994,20 @@ public class MediaDeviceSession
      */
     private Playback getPlayback(DataSource dataSource)
     {
-        synchronized (playbacks)
+        Lock readLock = playbacksLock.readLock();
+
+        readLock.lock();
+        try
         {
             for (Playback playback : playbacks)
+            {
                 if (playback.dataSource == dataSource)
                     return playback;
+            }
+        }
+        finally
+        {
+            readLock.unlock();
         }
         return null;
     }
@@ -1005,11 +1025,20 @@ public class MediaDeviceSession
      */
     private Playback getPlayback(ReceiveStream receiveStream)
     {
-        synchronized (playbacks)
+        Lock readLock = playbacksLock.readLock();
+
+        readLock.lock();
+        try
         {
             for (Playback playback : playbacks)
+            {
                 if (playback.receiveStream == receiveStream)
                     return playback;
+            }
+        }
+        finally
+        {
+            readLock.unlock();
         }
         return null;
     }
@@ -1025,7 +1054,10 @@ public class MediaDeviceSession
      */
     protected Player getPlayer(long ssrc)
     {
-        synchronized (playbacks)
+        Lock readLock = playbacksLock.readLock();
+
+        readLock.lock();
+        try
         {
             for (Playback playback : playbacks)
             {
@@ -1035,6 +1067,10 @@ public class MediaDeviceSession
                 if (playbackSSRC == ssrc)
                     return playback.player;
             }
+        }
+        finally
+        {
+            readLock.unlock();
         }
         return null;
     }
@@ -1048,14 +1084,22 @@ public class MediaDeviceSession
      */
     protected List<Player> getPlayers()
     {
+        Lock readLock = playbacksLock.readLock();
         List<Player> players;
 
-        synchronized (playbacks)
+        readLock.lock();
+        try
         {
             players = new ArrayList<Player>(playbacks.size());
             for (Playback playback : playbacks)
+            {
                 if (playback.player != null)
                     players.add(playback.player);
+            }
+        }
+        finally
+        {
+            readLock.unlock();
         }
         return players;
     }
@@ -1094,14 +1138,22 @@ public class MediaDeviceSession
      */
     public List<ReceiveStream> getReceiveStreams()
     {
+        Lock readLock = playbacksLock.readLock();
         List<ReceiveStream> receiveStreams;
 
-        synchronized (playbacks)
+        readLock.lock();
+        try
         {
             receiveStreams = new ArrayList<ReceiveStream>(playbacks.size());
             for (Playback playback : playbacks)
+            {
                 if (playback.receiveStream != null)
                     receiveStreams.add(playback.receiveStream);
+            }
+        }
+        finally
+        {
+            readLock.unlock();
         }
         return receiveStreams;
     }
@@ -1857,7 +1909,12 @@ public class MediaDeviceSession
      */
     public void addPlaybackDataSource(DataSource playbackDataSource)
     {
-        synchronized (playbacks)
+        Lock writeLock = playbacksLock.writeLock();
+        Lock readLock = playbacksLock.readLock();
+        boolean added = false;
+
+        writeLock.lock();
+        try
         {
             Playback playback = getPlayback(playbackDataSource);
 
@@ -1883,7 +1940,23 @@ public class MediaDeviceSession
 
                 playback.player = createPlayer(playbackDataSource);
 
+                readLock.lock();
+                added = true;
+            }
+        }
+        finally
+        {
+            writeLock.unlock();
+        }
+        if (added)
+        {
+            try
+            {
                 playbackDataSourceAdded(playbackDataSource);
+            }
+            finally
+            {
+                readLock.unlock();
             }
         }
     }
@@ -1901,7 +1974,12 @@ public class MediaDeviceSession
      */
     public void removePlaybackDataSource(DataSource playbackDataSource)
     {
-        synchronized (playbacks)
+        Lock writeLock = playbacksLock.writeLock();
+        Lock readLock = playbacksLock.readLock();
+        boolean removed = false;
+
+        writeLock.lock();
+        try
         {
             Playback playback = getPlayback(playbackDataSource);
 
@@ -1917,7 +1995,23 @@ public class MediaDeviceSession
                 if (playback.receiveStream == null)
                     playbacks.remove(playback);
 
+                readLock.lock();
+                removed = true;
+            }
+        }
+        finally
+        {
+            writeLock.unlock();
+        }
+        if (removed)
+        {
+            try
+            {
                 playbackDataSourceRemoved(playbackDataSource);
+            }
+            finally
+            {
+                readLock.unlock();
             }
         }
     }
@@ -1958,7 +2052,12 @@ public class MediaDeviceSession
      */
     public void addReceiveStream(ReceiveStream receiveStream)
     {
-        synchronized (playbacks)
+        Lock writeLock = playbacksLock.writeLock();
+        Lock readLock = playbacksLock.readLock();
+        boolean added = false;
+
+        writeLock.lock();
+        try
         {
             if (getPlayback(receiveStream) == null)
             {
@@ -1984,8 +2083,8 @@ public class MediaDeviceSession
                     else
                     {
                         logger.warn(
-                                "Adding ReceiveStream with DataSource"
-                                    + " not of type PushBufferDataSource but "
+                                "Adding ReceiveStream with DataSource not of"
+                                    + " type PushBufferDataSource but "
                                     + receiveStreamDataSource.getClass()
                                             .getSimpleName()
                                     + " which may prevent the ReceiveStream"
@@ -1995,7 +2094,23 @@ public class MediaDeviceSession
                     addPlaybackDataSource(receiveStreamDataSource);
                 }
 
+                readLock.lock();
+                added = true;
+            }
+        }
+        finally
+        {
+            writeLock.unlock();
+        }
+        if (added)
+        {
+            try
+            {
                 receiveStreamAdded(receiveStream);
+            }
+            finally
+            {
+                readLock.unlock();
             }
         }
     }
@@ -2013,7 +2128,12 @@ public class MediaDeviceSession
      */
     public void removeReceiveStream(ReceiveStream receiveStream)
     {
-        synchronized (playbacks)
+        Lock writeLock = playbacksLock.writeLock();
+        Lock readLock = playbacksLock.readLock();
+        boolean removed = false;
+
+        writeLock.lock();
+        try
         {
             Playback playback = getPlayback(receiveStream);
 
@@ -2026,12 +2146,27 @@ public class MediaDeviceSession
                 if (playback.dataSource != null)
                 {
                     logger.warn(
-                            "Removing ReceiveStream"
-                                + " with associated DataSource");
+                            "Removing ReceiveStream with an associated"
+                                + " DataSource.");
                 }
                 playbacks.remove(playback);
 
-                receiveStreamRemoved(receiveStream);
+                readLock.lock();
+                removed = true;
+            }
+        }
+        finally
+        {
+            if (removed)
+            {
+                try
+                {
+                    receiveStreamRemoved(receiveStream);
+                }
+                finally
+                {
+                    readLock.unlock();
+                }
             }
         }
     }
@@ -2212,11 +2347,16 @@ public class MediaDeviceSession
         if (deviceSession.disposePlayerOnClose)
         {
             logger.error(
-                    "Cannot copy playback"
-                        + " if MediaDeviceSession has closed it");
+                    "Cannot copy playback if MediaDeviceSession has closed it");
         }
         else
         {
+            /*
+             * TODO Technically, we should be synchronizing the (read and write)
+             * accesses to the playbacks fields. In practice, we are not doing
+             * it because it likely was the easiest to not bother with it at the
+             * time of its writing.
+             */
             playbacks.addAll(deviceSession.playbacks);
             setSsrcList(deviceSession.ssrcList);
         }

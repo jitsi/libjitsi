@@ -10,6 +10,7 @@ import java.beans.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.locks.*;
 
 import javax.media.*;
 import javax.media.control.*;
@@ -103,10 +104,18 @@ public class MediaStreamImpl
 
     /**
      * The <tt>ReceiveStream</tt>s this instance plays back on its associated
-     * <tt>MediaDevice</tt>.
+     * <tt>MediaDevice</tt>. The (read and write) accesses to the field are to
+     * be synchronized using {@link #receiveStreamsLock}.
      */
     private final List<ReceiveStream> receiveStreams
         = new LinkedList<ReceiveStream>();
+
+    /**
+     * The <tt>ReadWriteLock</tt> which synchronizes the (read and write)
+     * accesses to {@link #receiveStreams}.
+     */
+    private final ReadWriteLock receiveStreamsLock
+        = new ReentrantReadWriteLock();
 
     /**
      * The <tt>RTPConnector</tt> through which this instance sends and receives
@@ -1654,6 +1663,7 @@ public class MediaStreamImpl
      * play back and capture media
      * @see MediaStream#setDevice(MediaDevice)
      */
+    @Override
     public void setDevice(MediaDevice device)
     {
         if (device == null)
@@ -1722,10 +1732,22 @@ public class MediaStreamImpl
             if (deviceSession != null)
             {
                 deviceSession.start(startedDirection);
-                synchronized (receiveStreams)
+
+                /*
+                 * Add the receiveStreams of this instance to the new
+                 * deviceSession.
+                 */
+                Lock receiveStreamsReadLock = receiveStreamsLock.readLock();
+
+                receiveStreamsReadLock.lock();
+                try
                 {
                     for (ReceiveStream receiveStream : receiveStreams)
                         deviceSession.addReceiveStream(receiveStream);
+                }
+                finally
+                {
+                    receiveStreamsReadLock.unlock();
                 }
             }
         }
@@ -2053,8 +2075,8 @@ public class MediaStreamImpl
              * It turns out that the receiveStreams list of rtpManager can be
              * empty. As a workaround, use the receiveStreams of this instance.
              */
-            if (receiveStreams.isEmpty() && (this.receiveStreams != null))
-                receiveStreams = this.receiveStreams;
+            if (receiveStreams.isEmpty())
+                receiveStreams = getReceiveStreams();
 
             for (ReceiveStream receiveStream : receiveStreams)
             {
@@ -2243,8 +2265,8 @@ public class MediaStreamImpl
              * It turns out that the receiveStreams list of rtpManager can be
              * empty. As a workaround, use the receiveStreams of this instance.
              */
-            if (receiveStreams.isEmpty() && (this.receiveStreams != null))
-                receiveStreams = this.receiveStreams;
+            if (receiveStreams.isEmpty())
+                receiveStreams = getReceiveStreams();
 
             for (ReceiveStream receiveStream : receiveStreams)
             {
@@ -2395,18 +2417,20 @@ public class MediaStreamImpl
 
     /**
      * Notifies this <tt>ReceiveStreamListener</tt> that the <tt>RTPManager</tt>
-     * it is registered with has generated an event related to a <tt>ReceiveStream</tt>.
+     * it is registered with has generated an event related to a
+     * <tt>ReceiveStream</tt>.
      *
-     * @param event the <tt>ReceiveStreamEvent</tt> which specifies the
+     * @param ev the <tt>ReceiveStreamEvent</tt> which specifies the
      * <tt>ReceiveStream</tt> that is the cause of the event and the very type
      * of the event
      * @see ReceiveStreamListener#update(ReceiveStreamEvent)
      */
-    public void update(ReceiveStreamEvent event)
+    @Override
+    public void update(ReceiveStreamEvent ev)
     {
-        if (event instanceof NewReceiveStreamEvent)
+        if (ev instanceof NewReceiveStreamEvent)
         {
-            ReceiveStream receiveStream = event.getReceiveStream();
+            ReceiveStream receiveStream = ev.getReceiveStream();
 
             if (receiveStream != null)
             {
@@ -2421,23 +2445,12 @@ public class MediaStreamImpl
 
                 addRemoteSourceID(receiveStreamSSRC);
 
-                synchronized (receiveStreams)
-                {
-                    if (!receiveStreams.contains(receiveStream))
-                    {
-                        receiveStreams.add(receiveStream);
-
-                        MediaDeviceSession deviceSession = getDeviceSession();
-
-                        if (deviceSession != null)
-                            deviceSession.addReceiveStream(receiveStream);
-                    }
-                }
+                addReceiveStream(receiveStream);
             }
         }
-        else if (event instanceof TimeoutEvent)
+        else if (ev instanceof TimeoutEvent)
         {
-            ReceiveStream receiveStream = event.getReceiveStream();
+            ReceiveStream receiveStream = ev.getReceiveStream();
 
             /*
              * If we recreate streams, we will already have restarted
@@ -2447,32 +2460,17 @@ public class MediaStreamImpl
              * example, when we are already in a call and the remote peer
              * converts his side of the call into a conference call.
              */
-            /*
-            if(!zrtpRestarted)
-                restartZrtpControl();
-            */
+//            if(!zrtpRestarted)
+//                restartZrtpControl();
 
             if (receiveStream != null)
-            {
-                synchronized (receiveStreams)
-                {
-                    if (receiveStreams.contains(receiveStream))
-                    {
-                        receiveStreams.remove(receiveStream);
-
-                        MediaDeviceSession deviceSession = getDeviceSession();
-
-                        if (deviceSession != null)
-                            deviceSession.removeReceiveStream(receiveStream);
-                    }
-                }
-            }
+                removeReceiveStream(receiveStream);
         }
-        else if (event instanceof RemotePayloadChangeEvent)
+        else if (ev instanceof RemotePayloadChangeEvent)
         {
-            ReceiveStream receiveStream = event.getReceiveStream();
+            ReceiveStream receiveStream = ev.getReceiveStream();
 
-            if(receiveStream != null)
+            if (receiveStream != null)
             {
                 MediaDeviceSession deviceSession = getDeviceSession();
 
@@ -2495,7 +2493,7 @@ public class MediaStreamImpl
                         // are recreated we need to update
                         // mixers and everything that are using them
                         deviceSession.playbackDataSourceChanged(
-                            receiveStream.getDataSource());
+                                receiveStream.getDataSource());
                     }
                     catch(IOException e)
                     {
@@ -2505,6 +2503,129 @@ public class MediaStreamImpl
                 }
             }
         }
+    }
+
+    /**
+     * Adds a specific <tt>ReceiveStream</tt> to {@link #receiveStreams}.
+     *
+     * @param receiveStream the <tt>ReceiveStream</tt> to add
+     * @return <tt>true</tt> if <tt>receiveStreams</tt> changed as a result of
+     * the method call; otherwise, <tt>false</tt>
+     */
+    private boolean addReceiveStream(ReceiveStream receiveStream)
+    {
+        Lock writeLock = receiveStreamsLock.writeLock();
+        Lock readLock = receiveStreamsLock.readLock();
+        boolean added = false;
+
+        writeLock.lock();
+        try
+        {
+            if (!receiveStreams.contains(receiveStream)
+                    && receiveStreams.add(receiveStream))
+            {
+                /*
+                 * Downgrade the write lock to a read lock in order to allow
+                 * readers during the invocation of
+                 * MediaDeviceSession#addReceiveStream(ReceiveStream) (and
+                 * disallow writers, of course).
+                 */
+                readLock.lock();
+                added = true;
+            }
+        }
+        finally
+        {
+            writeLock.unlock();
+        }
+        if (added)
+        {
+            try
+            {
+                MediaDeviceSession deviceSession = getDeviceSession();
+
+                if (deviceSession != null)
+                    deviceSession.addReceiveStream(receiveStream);
+            }
+            finally
+            {
+                readLock.unlock();
+            }
+        }
+        return added;
+    }
+
+    /**
+     * Removes a specific <tt>ReceiveStream</tt> from {@link #receiveStreams}.
+     *
+     * @param receiveStream the <tt>ReceiveStream</tt> to remove
+     * @return <tt>true</tt> if <tt>receiveStreams</tt> changed as a result of
+     * the method call; otherwise, <tt>false</tt>
+     */
+    private boolean removeReceiveStream(ReceiveStream receiveStream)
+    {
+        Lock writeLock = receiveStreamsLock.writeLock();
+        Lock readLock = receiveStreamsLock.readLock();
+        boolean removed = false;
+
+        writeLock.lock();
+        try
+        {
+            if (receiveStreams.remove(receiveStream))
+            {
+                /*
+                 * Downgrade the write lock to a read lock in order to allow
+                 * readers during the invocation of
+                 * MediaDeviceSession#removeReceiveStream(ReceiveStream) (and
+                 * disallow writers, of course).
+                 */
+                readLock.lock();
+                removed = true;
+            }
+        }
+        finally
+        {
+            writeLock.unlock();
+        }
+        if (removed)
+        {
+            try
+            {
+                MediaDeviceSession deviceSession = getDeviceSession();
+
+                if (deviceSession != null)
+                    deviceSession.removeReceiveStream(receiveStream);
+            }
+            finally
+            {
+                readLock.unlock();
+            }
+        }
+        return removed;
+    }
+
+    /**
+     * Gets a list of the <tt>ReceiveStream</tt>s this instance plays back on
+     * its associated <tt>MediaDevice</tt>.
+     *
+     * @return a list of the <tt>ReceiveStream</tt>s this instance plays back on
+     * its associated <tt>MediaDevice</tt>
+     */
+    private List<ReceiveStream> getReceiveStreams()
+    {
+        Lock readLock = receiveStreamsLock.readLock();
+        List<ReceiveStream> receiveStreams;
+
+        readLock.lock();
+        try
+        {
+            receiveStreams = new ArrayList<ReceiveStream>(this.receiveStreams);
+        }
+        finally
+        {
+            readLock.unlock();
+        }
+        return receiveStreams;
     }
 
     /**
@@ -2946,6 +3067,7 @@ public class MediaStreamImpl
     /**
      * {@inheritDoc}
      */
+    @Override
     public void removeReceiveStreamForSsrc(long ssrc)
     {
         ReceiveStream toRemove = null;
@@ -2962,18 +3084,7 @@ public class MediaStreamImpl
             }
         }
         if (toRemove != null)
-        {
-             synchronized (receiveStreams)
-             {
-                  if (receiveStreams.remove(toRemove))
-                  {
-                      MediaDeviceSession deviceSession = getDeviceSession();
-
-                      if (deviceSession != null)
-                          deviceSession.removeReceiveStream(toRemove);
-                  }
-             }
-        }
+            removeReceiveStream(toRemove);
     }
 
     /**
