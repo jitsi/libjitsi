@@ -96,16 +96,14 @@ class AudioMixerPushBufferStream
          * Gets the <tt>Buffer</tt> into which media data is to be read from the
          * input streams associated with this instance.
          *
-         * @param create the indicator which determines whether the
-         * <tt>Buffer</tt> is to be created in case it does not exist
          * @return the <tt>Buffer</tt> into which media data is to be read from
          * the input streams associated with this instance
          */
-        public Buffer getBuffer(boolean create)
+        public Buffer getBuffer()
         {
             Buffer buffer = (this.buffer == null) ? null : this.buffer.get();
 
-            if ((buffer == null) && create)
+            if (buffer == null)
             {
                 buffer = new Buffer();
                 setBuffer(buffer);
@@ -134,7 +132,7 @@ class AudioMixerPushBufferStream
          * @param buffer the <tt>Buffer</tt> into which media data is to be read
          * from the input streams associated with this instance
          */
-        public void setBuffer(Buffer buffer)
+        private void setBuffer(Buffer buffer)
         {
             this.buffer
                 = (buffer == null) ? null : new SoftReference<Buffer>(buffer);
@@ -152,7 +150,9 @@ class AudioMixerPushBufferStream
         public void setTimeStamp(long timeStamp)
         {
             if (this.timeStamp == Buffer.TIME_UNKNOWN)
+            {
                 this.timeStamp = timeStamp;
+            }
             else
             {
                 /*
@@ -243,11 +243,15 @@ class AudioMixerPushBufferStream
                      */
                     private final Buffer buffer = new Buffer();
 
+                    @Override
                     public void transferData(PushBufferStream stream)
                     {
+                        buffer.setDiscard(false);
+                        buffer.setFlags(0);
                         buffer.setLength(0);
+                        buffer.setOffset(0);
+
                         AudioMixerPushBufferStream.this.transferData(buffer);
-                        buffer.setLength(0);
                     }
                 };
 
@@ -332,9 +336,13 @@ class AudioMixerPushBufferStream
         synchronized (inStreamsSyncRoot)
         {
             if (inStreams != null)
+            {
                 for (InStreamDesc inStreamDesc : inStreams)
+                {
                     if (!inStreamDesc.getInStream().endOfStream())
                         return false;
+                }
+            }
         }
         return true;
     }
@@ -524,7 +532,9 @@ class AudioMixerPushBufferStream
             InStreamDesc[] inStreams = this.inStreams;
 
             if ((inStreams == null) || (inStreams.length == 0))
+            {
                 return;
+            }
             else
             {
                 inSampleDesc = (InSampleDesc) buffer.getData();
@@ -541,14 +551,18 @@ class AudioMixerPushBufferStream
                     if (inSampleDescInStreams.length == inStreamCount)
                     {
                         for (int i = 0; i < inStreamCount; i++)
+                        {
                             if (inSampleDescInStreams[i] != inStreams[i])
                             {
                                 inSampleDesc = null;
                                 break;
                             }
+                        }
                     }
                     else
+                    {
                         inSampleDesc = null;
+                    }
                 }
                 if (inSampleDesc == null)
                 {
@@ -689,6 +703,7 @@ class AudioMixerPushBufferStream
                         inStreamFormat);
             }
         }
+        inBuffer.setDiscard(false);
         inBuffer.setFlags(0);
         inBuffer.setLength(0);
         inBuffer.setOffset(0);
@@ -870,7 +885,7 @@ class AudioMixerPushBufferStream
                UnsupportedFormatException
     {
         InStreamDesc[] inStreams = inSampleDesc.inStreams;
-        Buffer buffer = inSampleDesc.getBuffer(true);
+        Buffer buffer = inSampleDesc.getBuffer();
         int maxInSampleCount = 0;
         short[][] inSamples = inSampleDesc.inSamples;
 
@@ -885,6 +900,7 @@ class AudioMixerPushBufferStream
                 buffer.setFlags(0);
                 buffer.setLength(0);
                 buffer.setOffset(0);
+
                 readInPushBufferStream(
                         inStreamDesc, outFormat, maxInSampleCount,
                         buffer);

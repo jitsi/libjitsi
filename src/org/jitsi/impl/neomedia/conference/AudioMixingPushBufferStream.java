@@ -242,9 +242,8 @@ public class AudioMixingPushBufferStream
         short[] outSamples;
 
         /*
-         * The trivial case of performing audio mixing the audio of a single
-         * stream. Then there is nothing to mix and the input becomes the
-         * output.
+         * The trivial case of performing mixing the samples of a single stream.
+         * Then there is nothing to mix and the input becomes the output.
          */
         if ((inSamples.length == 1) || (inSamples[1] == null))
         {
@@ -282,7 +281,7 @@ public class AudioMixingPushBufferStream
         outSamples = allocateOutSamples(outSampleCount);
         Arrays.fill(outSamples, 0, outSampleCount, (short) 0);
 
-        int maxOutSample;
+        float maxOutSample;
 
         try
         {
@@ -315,7 +314,7 @@ public class AudioMixingPushBufferStream
                             + outSample
                             - Math.round(
                                     inStreamSample
-                                        * (outSample / (float) maxOutSample)));
+                                        * (outSample / maxOutSample)));
             }
         }
         return outSamples;
