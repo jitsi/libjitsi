@@ -2157,16 +2157,17 @@ public class MediaDeviceSession
         }
         finally
         {
-            if (removed)
+            writeLock.unlock();
+        }
+        if (removed)
+        {
+            try
             {
-                try
-                {
-                    receiveStreamRemoved(receiveStream);
-                }
-                finally
-                {
-                    readLock.unlock();
-                }
+                receiveStreamRemoved(receiveStream);
+            }
+            finally
+            {
+                readLock.unlock();
             }
         }
     }
