@@ -2450,8 +2450,8 @@ public class MediaStreamImpl
         }
         else if (ev instanceof TimeoutEvent)
         {
-            ReceiveStream receiveStream = ev.getReceiveStream();
-
+            ReceiveStream evReceiveStream = ev.getReceiveStream();
+            Participant participant = ev.getParticipant();
             /*
              * If we recreate streams, we will already have restarted
              * zrtpControl. But when on the other end someone recreates his
@@ -2463,8 +2463,41 @@ public class MediaStreamImpl
 //            if(!zrtpRestarted)
 //                restartZrtpControl();
 
-            if (receiveStream != null)
+            List<ReceiveStream> receiveStreamsToRemove
+                = new ArrayList<ReceiveStream>();
+
+            if (evReceiveStream != null)
+                receiveStreamsToRemove.add(evReceiveStream);
+            else if (participant != null)
+            {
+                List<ReceiveStream> receiveStreams = getReceiveStreams();
+                Vector managerReceiveStreams = rtpManager.getReceiveStreams();
+
+                for(ReceiveStream receiveStream: receiveStreams)
+                {
+                    if(participant.equals(receiveStream.getParticipant())
+                        && !participant.getStreams().contains(receiveStream)
+                        && !managerReceiveStreams.contains(receiveStream))
+                    {
+                        receiveStreamsToRemove.add(receiveStream);
+                    }
+                }
+            }
+
+            for(ReceiveStream receiveStream : receiveStreamsToRemove)
+            {
                 removeReceiveStream(receiveStream);
+
+                /*
+                 * The DataSource needs to be disconnected, because otherwise
+                 * its RTPStream thread will stay alive. We do this here, because
+                 * we observed that in certain situations it fails to be done
+                 * earlier.
+                 */
+                DataSource dataSource = receiveStream.getDataSource();
+                if (dataSource != null)
+                    dataSource.disconnect();
+            }
         }
         else if (ev instanceof RemotePayloadChangeEvent)
         {

@@ -1023,11 +1023,21 @@ public class AudioMixer
 
             while (inDataSourceIter.hasNext())
             {
-                if (dataSourceFilter.accept(
-                        inDataSourceIter.next().inDataSource))
+                InDataSourceDesc inDsDesc = inDataSourceIter.next();
+                if (dataSourceFilter.accept(inDsDesc.getInDataSource()))
                 {
                     inDataSourceIter.remove();
                     removed = true;
+
+                    try
+                    {
+                        inDsDesc.stop();
+                        inDsDesc.disconnect();
+                    }
+                    catch(IOException ex)
+                    {
+                        logger.error("Failed to stop DataSource", ex);
+                    }
                 }
             }
             if (removed && (outStream != null))

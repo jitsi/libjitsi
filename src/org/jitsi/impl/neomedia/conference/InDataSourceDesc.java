@@ -83,7 +83,7 @@ class InDataSourceDesc
      * which the mix contributions of the specified input <tt>DataSource</tt>
      * are to not be included.
      *
-     * @param inDataSource a <tt>DataSourc</tt> for which additional
+     * @param inDataSource a <tt>DataSource</tt> for which additional
      * information is to be described by the new instance
      * @param outDataSource the <tt>AudioMixingPushBufferDataSource</tt> in
      * which the mix contributions of <tt>inDataSource</tt> are to not be

@@ -59,7 +59,7 @@ public class TranscodingDataSource
      * <tt>Format</tt>.
      *
      * @param inputDataSource the <tt>DataSource</tt> which is to have its
-     * tracks transcoded in a specific outptu <tt>Format</tt>
+     * tracks transcoded in a specific output <tt>Format</tt>
      * @param outputFormat the <tt>Format</tt> in which the new instance is to
      * transcode the tracks of <tt>inputDataSource</tt>
      */

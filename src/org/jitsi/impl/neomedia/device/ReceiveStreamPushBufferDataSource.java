@@ -42,7 +42,7 @@ public class ReceiveStreamPushBufferDataSource
     /**
      * Initializes a new <tt>ReceiveStreamPushBufferDataSource</tt> instance
      * which is to wrap a specific <tt>DataSource</tt> of a specific
-     * <tt>ReceiveStream</tt> for the purposes of enabling explicity control of
+     * <tt>ReceiveStream</tt> for the purposes of enabling explicitly control of
      * calls to its {@link DataSource#disconnect()}.
      *
      * @param receiveStream the <tt>ReceiveStream</tt> which is to have its
