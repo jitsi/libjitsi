@@ -7,7 +7,6 @@
 package org.jitsi.impl.neomedia.conference;
 
 import java.io.*;
-import java.lang.ref.*;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -37,135 +36,6 @@ class AudioMixerPushBufferStream
     extends ControlsAdapter
     implements PushBufferStream
 {
-    /**
-     * Describes a specific set of audio samples read from a specific set of
-     * input streams specified by their <tt>InStreamDesc</tt>s.
-     */
-    private static class InSampleDesc
-    {
-        /**
-         * The <tt>Buffer</tt> into which media data is to be read from
-         * {@link #inStreams}.
-         */
-        private SoftReference<Buffer> buffer;
-
-        /**
-         * The <tt>AudioFormat</tt> of {@link #inSamples}.
-         */
-        private final AudioFormat format;
-
-        /**
-         * The set of audio samples read from {@link #inStreams}.
-         */
-        public final short[][] inSamples;
-
-        /**
-         * The set of input streams from which {@link #inSamples} were read.
-         */
-        public final InStreamDesc[] inStreams;
-
-        /**
-         * The time stamp of <tt>inSamples</tt> to be reported in the
-         * <tt>Buffer</tt>s of the <tt>AudioMixingPushBufferStream</tt>s when
-         * mixes are read from them.
-         */
-        private long timeStamp = Buffer.TIME_UNKNOWN;
-
-        /**
-         * Initializes a new <tt>InSampleDesc</tt> instance which is to
-         * describe a specific set of audio samples read from a specific set of
-         * input streams specified by their <tt>InStreamDesc</tt>s.
-         *
-         * @param inSamples the set of audio samples read from
-         * <tt>inStreams</tt>
-         * @param inStreams the set of input streams from which
-         * <tt>inSamples</tt> were read
-         * @param format the <tt>AudioFormat</tt> of <tt>inSamples</tt>
-         */
-        public InSampleDesc(
-                short[][] inSamples,
-                InStreamDesc[] inStreams,
-                AudioFormat format)
-        {
-            this.inSamples = inSamples;
-            this.inStreams = inStreams;
-            this.format = format;
-        }
-
-        /**
-         * Gets the <tt>Buffer</tt> into which media data is to be read from the
-         * input streams associated with this instance.
-         *
-         * @return the <tt>Buffer</tt> into which media data is to be read from
-         * the input streams associated with this instance
-         */
-        public Buffer getBuffer()
-        {
-            Buffer buffer = (this.buffer == null) ? null : this.buffer.get();
-
-            if (buffer == null)
-            {
-                buffer = new Buffer();
-                setBuffer(buffer);
-            }
-            return buffer;
-        }
-
-        /**
-         * Gets the time stamp of <tt>inSamples</tt> to be reported in the
-         * <tt>Buffer</tt>s of the <tt>AudioMixingPushBufferStream</tt>s when
-         * mixes are read from them.
-         *
-         * @return the time stamp of <tt>inSamples</tt> to be reported in the
-         * <tt>Buffer</tt>s of the <tt>AudioMixingPushBufferStream</tt>s when
-         * mixes are read from them
-         */
-        public long getTimeStamp()
-        {
-            return timeStamp;
-        }
-
-        /**
-         * Sets the <tt>Buffer</tt> into which media data is to be read from the
-         * input streams associated with this instance.
-         *
-         * @param buffer the <tt>Buffer</tt> into which media data is to be read
-         * from the input streams associated with this instance
-         */
-        private void setBuffer(Buffer buffer)
-        {
-            this.buffer
-                = (buffer == null) ? null : new SoftReference<Buffer>(buffer);
-        }
-
-        /**
-         * Sets the time stamp of <tt>inSamples</tt> to be reported in the
-         * <tt>Buffer</tt>s of the <tt>AudioMixingPushBufferStream</tt>s when
-         * mixes are read from them.
-         *
-         * @param timeStamp the time stamp of <tt>inSamples</tt> to be
-         * reported in the <tt>Buffer</tt>s of the
-         * <tt>AudioMixingPushBufferStream</tt>s when mixes are read from them
-         */
-        public void setTimeStamp(long timeStamp)
-        {
-            if (this.timeStamp == Buffer.TIME_UNKNOWN)
-            {
-                this.timeStamp = timeStamp;
-            }
-            else
-            {
-                /*
-                 * Setting the timeStamp more than once does not make sense
-                 * because the inStreams will report different timeStamps so
-                 * only one should be picked up where the very reading from
-                 * inStreams takes place.
-                 */
-                throw new IllegalStateException("timeStamp");
-            }
-        }
-    }
-
     /**
      * The <tt>Logger</tt> used by the <tt>AudioMixerPushBufferStream</tt> class
      * and its instances for logging output.
@@ -235,25 +105,25 @@ class AudioMixerPushBufferStream
      */
     private final BufferTransferHandler transferHandler
         = new BufferTransferHandler()
-                {
-                    /**
-                     * The cached <tt>Buffer</tt> instance to be used during the
-                     * execution of {@link #transferData(PushBufferStream)} in
-                     * order to reduce garbage collection.
-                     */
-                    private final Buffer buffer = new Buffer();
+        {
+            /**
+             * The cached <tt>Buffer</tt> instance to be used during the
+             * execution of {@link #transferData(PushBufferStream)} in order to
+             * reduce garbage collection.
+             */
+            private final Buffer buffer = new Buffer();
 
-                    @Override
-                    public void transferData(PushBufferStream stream)
-                    {
-                        buffer.setDiscard(false);
-                        buffer.setFlags(0);
-                        buffer.setLength(0);
-                        buffer.setOffset(0);
+            @Override
+            public void transferData(PushBufferStream stream)
+            {
+                buffer.setDiscard(false);
+                buffer.setFlags(0);
+                buffer.setLength(0);
+                buffer.setOffset(0);
 
-                        AudioMixerPushBufferStream.this.transferData(buffer);
-                    }
-                };
+                AudioMixerPushBufferStream.this.transferData(buffer);
+            }
+        };
 
     /**
      * A copy of {@link #outStreams} which will cause no
@@ -331,6 +201,7 @@ class AudioMixerPushBufferStream
      * @return <tt>true</tt> if all input <tt>SourceStream</tt>s of this
      * instance have reached the end of their content; <tt>false</tt>, otherwise
      */
+    @Override
     public boolean endOfStream()
     {
         synchronized (inStreamsSyncRoot)
@@ -446,6 +317,7 @@ class AudioMixerPushBufferStream
      * @return a <tt>ContentDescriptor</tt> which describes the content type of
      * this instance
      */
+    @Override
     public ContentDescriptor getContentDescriptor()
     {
         return new ContentDescriptor(audioMixer.getContentType());
@@ -459,6 +331,7 @@ class AudioMixerPushBufferStream
      * is the maximum length of the contents made available by its input
      * <tt>StreamSource</tt>s
      */
+    @Override
     public long getContentLength()
     {
         long contentLength = 0;
@@ -488,6 +361,7 @@ class AudioMixerPushBufferStream
      * @return the <tt>AudioFormat</tt> in which this instance was configured to
      * output its data
      */
+    @Override
     public AudioFormat getFormat()
     {
         return outFormat;
@@ -520,6 +394,7 @@ class AudioMixerPushBufferStream
      * @throws IOException if any of the input <tt>SourceStream</tt>s throws
      * such an exception while reading from them or anything else goes wrong
      */
+    @Override
     public void read(Buffer buffer)
         throws IOException
     {
@@ -1200,6 +1075,7 @@ class AudioMixerPushBufferStream
      * @param transferHandler the <tt>BufferTransferHandler</tt> to be notified
      * by this <tt>PushBufferStream</tt> when media is available for reading
      */
+    @Override
     public void setTransferHandler(BufferTransferHandler transferHandler)
     {
         throw new UnsupportedOperationException(
@@ -1241,17 +1117,20 @@ class AudioMixerPushBufferStream
                     inStreamTransferHandler = null;
                 else if (transferHandlerIsSet)
                 {
-                    inStreamTransferHandler = new BufferTransferHandler()
-                    {
-                        public void transferData(PushBufferStream stream)
+                    inStreamTransferHandler
+                        = new BufferTransferHandler()
                         {
-                            /*
-                             * Do nothing because we don't want the associated
-                             * PushBufferStream to cause the transfer of data
-                             * from this AudioMixerPushBufferStream.
-                             */
-                        }
-                    };
+                            @Override
+                            public void transferData(PushBufferStream stream)
+                            {
+                                /*
+                                 * Do nothing because we don't want the
+                                 * associated PushBufferStream to cause the
+                                 * transfer of data from this
+                                 * AudioMixerPushBufferStream.
+                                 */
+                            }
+                        };
                 }
                 else
                 {
