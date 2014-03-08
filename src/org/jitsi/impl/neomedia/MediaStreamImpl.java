@@ -2518,9 +2518,12 @@ public class MediaStreamImpl
                     // and starting again the DataSource
                     try
                     {
-                        transcodingDataSource.disconnect();
-                        transcodingDataSource.connect();
-                        transcodingDataSource.start();
+                        if (transcodingDataSource != null)
+                        {
+                            transcodingDataSource.disconnect();
+                            transcodingDataSource.connect();
+                            transcodingDataSource.start();
+                        }
 
                         // as output streams of the DataSource
                         // are recreated we need to update

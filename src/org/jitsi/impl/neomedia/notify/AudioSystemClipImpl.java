@@ -121,6 +121,11 @@ public class AudioSystemClipImpl
      */
     protected boolean runOnceInPlayThread()
     {
+        if (renderer == null || buffer == null)
+        {
+            return false;
+        }
+
         InputStream audioStream = null;
 
         try

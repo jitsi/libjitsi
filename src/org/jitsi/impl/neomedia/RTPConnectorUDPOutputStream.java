@@ -69,6 +69,9 @@ public class RTPConnectorUDPOutputStream
     @Override
     protected void doLogPacket(RawPacket packet, InetSocketAddress target)
     {
+        if (socket == null || packet == null || target == null)
+            return;
+
         // Do not log the packet if this one has been processed (and already
         // logged) by the ice4j stack.
         if(socket instanceof MultiplexingDatagramSocket)
