@@ -2463,6 +2463,17 @@ public class WASAPIStream
     {
         try
         {
+            /*
+             * The Windows API function CoInitializeEx must be invoked on the
+             * current thread. Generally, the COM library must be initialized on
+             * a thread before calling any of the library functions (with a few
+             * exceptions) on that thread. Technically, that general requirement
+             * is not trivial to implement in the multi-threaded architecture of
+             * FMJ. Practically, we will perform the invocations where we have
+             * seen the return value CO_E_NOTINITIALIZED.
+             */
+            WASAPISystem.CoInitializeEx();
+
             AbstractAudioRenderer.useAudioThreadPriority();
 
             do
@@ -2531,6 +2542,10 @@ public class WASAPIStream
                 yield();
             }
             while (true);
+        }
+        catch (HResultException e)
+        {
+            logger.error("COM init in stream processing thread failed", e);
         }
         finally
         {
