@@ -520,6 +520,11 @@ public class WASAPIStream
     private long iMediaObject;
 
     /**
+     * Object to synchronize access to {@link #iMediaObject}
+     */
+    private Object iMediaObjectLock = new Object();
+
+    /**
      * The <tt>MediaLocator</tt> which identifies the audio endpoint device this
      * <tt>SourceStream</tt> is to capture data from.
      */
@@ -1556,7 +1561,11 @@ public class WASAPIStream
                         dmoOutputDataBuffer = 0;
                         this.iMediaBuffer = iMediaBuffer;
                         iMediaBuffer = 0;
-                        this.iMediaObject = iMediaObject;
+                        synchronized (iMediaObjectLock)
+                        {
+                            this.iMediaObject = iMediaObject;
+                        }
+
                         iMediaObject = 0;
                     }
                     finally
@@ -2020,10 +2029,21 @@ public class WASAPIStream
 
             try
             {
-                dwFlags
-                    = IMediaObject_GetInputStatus(
-                            iMediaObject,
-                            dwInputStreamIndex);
+                synchronized (iMediaObjectLock)
+                {
+                    if (iMediaObject != 0)
+                    {
+                        dwFlags
+                            = IMediaObject_GetInputStatus(
+                                    iMediaObject,
+                                    dwInputStreamIndex);
+                    }
+                    else
+                    {
+                        dwFlags = 0;
+                        logger.error("iMediaObject is 0");
+                    }
+                }
             }
             catch (HResultException hre)
             {
@@ -2145,14 +2165,24 @@ public class WASAPIStream
                  */
                 try
                 {
-                    hresult
-                        = IMediaObject_ProcessInput(
-                                iMediaObject,
-                                dwInputStreamIndex,
-                                pBuffer,
-                                /* dwFlags */ 0,
-                                /* rtTimestamp */ 0,
-                                /* rtTimelength */ 0);
+                    synchronized (iMediaObjectLock)
+                    {
+                        if (iMediaObject != 0)
+                        {
+                            hresult
+                                = IMediaObject_ProcessInput(
+                                        iMediaObject,
+                                        dwInputStreamIndex,
+                                        pBuffer,
+                                        /* dwFlags */ 0,
+                                        /* rtTimestamp */ 0,
+                                        /* rtTimelength */ 0);
+                        }
+                        else
+                        {
+                            logger.error("iMediaObject is 0");
+                        }
+                    }
                 }
                 catch (HResultException hre)
                 {
@@ -2181,13 +2211,25 @@ public class WASAPIStream
         {
             try
             {
-                IMediaObject_ProcessOutput(
-                        iMediaObject,
-                        /* dwFlags */ 0,
-                        1,
-                        dmoOutputDataBuffer);
-                dwStatus
-                    = DMO_OUTPUT_DATA_BUFFER_getDwStatus(dmoOutputDataBuffer);
+                synchronized (iMediaObjectLock)
+                {
+                    if (iMediaObject != 0)
+                    {
+                        IMediaObject_ProcessOutput(
+                                iMediaObject,
+                                /* dwFlags */ 0,
+                                1,
+                                dmoOutputDataBuffer);
+                        dwStatus
+                            = DMO_OUTPUT_DATA_BUFFER_getDwStatus(
+                                dmoOutputDataBuffer);
+                    }
+                    else
+                    {
+                        dwStatus = 0;
+                        logger.error("iMediaObject is 0");
+                    }
+                }
             }
             catch (HResultException hre)
             {
@@ -2419,10 +2461,21 @@ public class WASAPIStream
                  * XXX Make sure that the IMediaObject releases any IMediaBuffer
                  * references it holds.
                  */
-                if (SUCCEEDED(IMediaObject_Flush(iMediaObject)) && flush)
+                synchronized (iMediaObjectLock)
                 {
-                    captureIMediaBuffer.SetLength(0);
-                    renderIMediaBuffer.SetLength(0);
+                    if (iMediaObject != 0)
+                    {
+                        if (SUCCEEDED(IMediaObject_Flush(iMediaObject))
+                            && flush)
+                        {
+                            captureIMediaBuffer.SetLength(0);
+                            renderIMediaBuffer.SetLength(0);
+                        }
+                    }
+                    else
+                    {
+                        logger.error("iMediaObject is 0");
+                    }
                 }
             }
             catch (HResultException hre)
@@ -2702,11 +2755,15 @@ public class WASAPIStream
 
     private void uninitializeAEC()
     {
-        if (iMediaObject != 0)
+        synchronized (iMediaObjectLock)
         {
-            IMediaObject_Release(iMediaObject);
-            iMediaObject = 0;
+            if (iMediaObject != 0)
+            {
+                IMediaObject_Release(iMediaObject);
+                iMediaObject = 0;
+            }
         }
+
         if (dmoOutputDataBuffer != 0)
         {
             CoTaskMemFree(dmoOutputDataBuffer);
