@@ -1393,9 +1393,14 @@ public class WASAPIRenderer
                             numFramesRequested = remainderFrames;
 
                         // Pad with silence in order to avoid underflows.
+                        // TODO why can the toWrite calculation get too big?
                         int toWrite = numFramesRequested * srcFrameSize;
-                        int silence = toWrite - remainderLength;
+                        if (toWrite > remainder.length)
+                        {
+                            toWrite = remainder.length;
+                        }
 
+                        int silence = toWrite - remainderLength;
                         if (silence > 0)
                         {
                             Arrays.fill(
