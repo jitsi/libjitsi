@@ -2051,11 +2051,11 @@ public class MediaStreamImpl
     private void startReceiveStreams()
     {
         StreamRTPManager rtpManager = getRTPManager();
-        List<ReceiveStream> receiveStreams;
+        Set<ReceiveStream> streamsToStart = new HashSet<ReceiveStream>();
 
         try
         {
-            receiveStreams = rtpManager.getReceiveStreams();
+            streamsToStart.addAll(rtpManager.getReceiveStreams());
         }
         catch (Exception ex)
         {
@@ -2066,40 +2066,36 @@ public class MediaStreamImpl
              */
             if (logger.isTraceEnabled())
                 logger.trace("Failed to retrieve receive streams", ex);
-            receiveStreams = null;
         }
 
-        if (receiveStreams != null)
+        /*
+         * It has been observed that sometimes there are valid ReceiveStream-s
+         * in this.receiveStreams which are not returned by the RTP manager.
+         */
+        streamsToStart.addAll(getReceiveStreams());
+
+        for (ReceiveStream receiveStream : streamsToStart)
         {
-            /*
-             * It turns out that the receiveStreams list of rtpManager can be
-             * empty. As a workaround, use the receiveStreams of this instance.
-             */
-            if (receiveStreams.isEmpty())
-                receiveStreams = getReceiveStreams();
-
-            for (ReceiveStream receiveStream : receiveStreams)
+            try
             {
-                try
-                {
-                    DataSource receiveStreamDataSource
-                        = receiveStream.getDataSource();
+                DataSource receiveStreamDataSource
+                    = receiveStream.getDataSource();
 
-                    /*
-                     * For an unknown reason, the stream DataSource can be null
-                     * at the end of the Call after re-INVITEs have been
-                     * handled.
-                     */
-                    if (receiveStreamDataSource != null)
-                        receiveStreamDataSource.start();
-                }
-                catch (IOException ioex)
-                {
-                    logger.warn(
-                            "Failed to start receive stream " + receiveStream,
-                            ioex);
-                }
+                /*
+                 * For an unknown reason, the stream DataSource can be null
+                 * at the end of the Call after re-INVITEs have been
+                 * handled.
+                 */
+                if (receiveStreamDataSource != null)
+                    receiveStreamDataSource.start();
             }
+            catch (IOException ioex)
+            {
+                logger.warn(
+                        "Failed to start receive stream " + receiveStream,
+                        ioex);
+            }
+
         }
     }
 
@@ -2430,6 +2426,9 @@ public class MediaStreamImpl
     {
         if (ev instanceof NewReceiveStreamEvent)
         {
+            //XXX we might consider not adding (or not starting) new receive
+            //streams unless the MediaStream's direction allows receiving.
+
             ReceiveStream receiveStream = ev.getReceiveStream();
 
             if (receiveStream != null)
