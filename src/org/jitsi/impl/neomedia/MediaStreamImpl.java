@@ -2237,11 +2237,11 @@ public class MediaStreamImpl
     @SuppressWarnings("unchecked")
     private void stopReceiveStreams()
     {
-        List<ReceiveStream> receiveStreams;
+        Set<ReceiveStream> streamsToStop = new HashSet<ReceiveStream>();
 
         try
         {
-            receiveStreams = rtpManager.getReceiveStreams();
+            streamsToStop.addAll(rtpManager.getReceiveStreams());
         }
         catch (Exception ex)
         {
@@ -2252,46 +2252,41 @@ public class MediaStreamImpl
              */
             if (logger.isTraceEnabled())
                 logger.trace("Failed to retrieve receive streams", ex);
-            receiveStreams = null;
         }
 
-        if (receiveStreams != null)
+        /*
+         * It has been observed that sometimes there are valid ReceiveStream-s
+         * in this.receiveStreams which are not returned by the RTP manager.
+         */
+        streamsToStop.addAll(getReceiveStreams());
+
+        for (ReceiveStream receiveStream : streamsToStop)
         {
-            /*
-             * It turns out that the receiveStreams list of rtpManager can be
-             * empty. As a workaround, use the receiveStreams of this instance.
-             */
-            if (receiveStreams.isEmpty())
-                receiveStreams = getReceiveStreams();
-
-            for (ReceiveStream receiveStream : receiveStreams)
+            try
             {
-                try
+                if (logger.isTraceEnabled())
                 {
-                    if (logger.isTraceEnabled())
-                    {
-                        logger.trace(
-                                "Stopping receive stream with hashcode "
-                                    + receiveStream.hashCode());
-                    }
-
-                    DataSource receiveStreamDataSource
-                        = receiveStream.getDataSource();
-
-                    /*
-                     * For an unknown reason, the stream DataSource can be null
-                     * at the end of the Call after re-INVITEs have been
-                     * handled.
-                     */
-                    if (receiveStreamDataSource != null)
-                        receiveStreamDataSource.stop();
+                    logger.trace(
+                            "Stopping receive stream with hashcode "
+                                + receiveStream.hashCode());
                 }
-                catch (IOException ioex)
-                {
-                    logger.warn(
-                            "Failed to stop receive stream " + receiveStream,
-                            ioex);
-                }
+
+                DataSource receiveStreamDataSource
+                    = receiveStream.getDataSource();
+
+                /*
+                 * For an unknown reason, the stream DataSource can be null
+                 * at the end of the Call after re-INVITEs have been
+                 * handled.
+                 */
+                if (receiveStreamDataSource != null)
+                    receiveStreamDataSource.stop();
+            }
+            catch (IOException ioex)
+            {
+                logger.warn(
+                        "Failed to stop receive stream " + receiveStream,
+                        ioex);
             }
         }
     }
