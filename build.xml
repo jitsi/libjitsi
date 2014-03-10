@@ -83,7 +83,7 @@
       name="make-and-copy-to-jitsi"
       depends="make"
       description="Package the project and copy the resulting jar to Jitsi (which is assumed to live next to libjitsi).">
-    <copy file="${libjitsi.jar}" todir="../jitsi/lib/installer-exclude"/>
+    <copy file="${libjitsi.jar}" todir="../jitsi/lib/installer-exclude" overwrite="true"/>
   </target>
   
   <target
