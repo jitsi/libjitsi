@@ -210,7 +210,7 @@ public class SDesControlImpl
                 {
                     selectedInAttribute = ea;
                     selectedOutAttribute
-                        = sdesFactory.createCryptoAttribute(1, suite);
+                        = sdesFactory.createCryptoAttribute(ea.getTag(), suite);
                     if(transformEngine != null)
                     {
                         transformEngine.update(
