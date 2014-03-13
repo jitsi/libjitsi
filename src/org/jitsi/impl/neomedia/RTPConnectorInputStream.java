@@ -115,6 +115,12 @@ public abstract class RTPConnectorInputStream
     private SourceTransferHandler transferHandler;
 
     /**
+     * Whether this <tt>RTPConnectorInputStream</tt> is enabled or disabled.
+     * While disabled, the stream does not accept any packets.
+     */
+    private boolean enabled = true;
+
+    /**
      * Initializes a new <tt>RTPConnectorInputStream</tt> which is to receive
      * packet data from a specific UDP socket.
      */
@@ -476,7 +482,9 @@ public abstract class RTPConnectorInputStream
                 = getDatagramPacketFilters();
             boolean accept;
 
-            if (datagramPacketFilters == null)
+            if (!enabled)
+                accept = false;
+            else if (datagramPacketFilters == null)
                 accept = true;
             else
             {
@@ -647,5 +655,19 @@ public abstract class RTPConnectorInputStream
             newDatagramPacketFilters[length] = datagramPacketFilter;
             datagramPacketFilters = newDatagramPacketFilters;
         }
+    }
+
+    /**
+     * Enables or disables this <tt>RTPConnectorInputStream</tt>.
+     * While the stream is disabled, it does not accept any packets.
+     *
+     * @param enabled <tt>true</tt> to enable, <tt>false</tt> to disable.
+     */
+    public void setEnabled(boolean enabled)
+    {
+        if (logger.isDebugEnabled())
+            logger.debug("setEnabled: " + enabled);
+
+        this.enabled = enabled;
     }
 }

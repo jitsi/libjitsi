@@ -1806,6 +1806,13 @@ public class MediaStreamImpl
         }
         if (started)
             start(this.direction);
+
+        // make sure that RTP is filtered in accord with the direction of this
+        // MediaStream, so that we don't have to worry about, for example,
+        // new ReceiveStream-s being created while in sendonly/inactive.
+        AbstractRTPConnector connector = getRTPConnector();
+        if (connector != null)
+            connector.setDirection(direction);
     }
 
     /**

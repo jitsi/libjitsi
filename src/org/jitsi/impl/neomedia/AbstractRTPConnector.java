@@ -12,6 +12,7 @@ import java.net.*;
 import javax.media.rtp.*;
 
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Provides a base/default implementation of <tt>RTPConnector</tt> which has
@@ -20,10 +21,18 @@ import org.jitsi.service.neomedia.*;
  *
  * @author Bing SU (nova.su@gmail.com)
  * @author Lyubomir Marinov
+ * @author Boris Grozev
  */
 public abstract class AbstractRTPConnector
     implements RTPConnector
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>AbstractRTPConnector</tt> class
+     * and its instances to print debug information.
+     */
+    private static final Logger logger
+            = Logger.getLogger(AbstractRTPConnector.class);
+
     /**
      * The pair of datagram sockets for RTP and RTCP traffic that this instance
      * uses in the form of a <tt>StreamConnector</tt>.
@@ -411,5 +420,56 @@ public abstract class AbstractRTPConnector
         throws IOException
     {
         // Nothing should be done here :-)
+    }
+
+    /**
+     * Configures this <tt>AbstractRTPConnector</tt> to allow RTP in the
+     * specified direction. That is, enables/disables the input and output data
+     * streams according to <tt>direction</tt>.
+     *
+     * Note that the control (RTCP) streams are not affected (they are always
+     * kept enabled).
+     *
+     * @param direction Specifies how to configure the data streams of this
+     * <tt>AbstractRTPConnector</tt>. The input stream will be enabled or
+     * disabled depending on whether <tt>direction</tt> allows receiving. The
+     * output stream will be enabled or disabled depending on whether
+     * <tt>direction</tt> allows sending.
+     */
+    public void setDirection(MediaDirection direction)
+    {
+        boolean receive = direction.allowsReceiving();
+        boolean send = direction.allowsSending();
+
+        if (logger.isDebugEnabled())
+            logger.debug("setDirection " + direction);
+
+        try
+        {
+            // forcing the stream to be created causes problems
+            RTPConnectorInputStream dataInputStream = getDataInputStream(false);
+            if(dataInputStream != null)
+                dataInputStream.setEnabled(receive);
+        }
+        catch (IOException ioe)
+        {
+            logger.error("Failed to " + (receive ? "enable" : "disable")
+                    + " data input stream.");
+        }
+
+        try
+        {
+            // forcing the stream to be created causes problems
+            RTPConnectorOutputStream dataOutputStream
+                    = getDataOutputStream(false);
+            if (dataOutputStream != null)
+                dataOutputStream.setEnabled(send);
+        }
+        catch (IOException ioe)
+        {
+            logger.error("Failed to " + (send ? "enable" : "disable")
+                                 + " data output stream.");
+
+        }
     }
 }

@@ -81,6 +81,13 @@ public abstract class RTPConnectorOutputStream
     private long numberOfPackets = 0;
 
     /**
+     * Whether this <tt>RTPConnectorOutputStream</tt> is enabled or disabled.
+     * While the stream is disabled, it suppresses actually sending any packets
+     * via {@link #send(RawPacket)}.
+     */
+    private boolean enabled = true;
+
+    /**
      * Initializes a new <tt>RTPConnectorOutputStream</tt> which is to send
      * packet data out through a specific socket.
      */
@@ -363,6 +370,11 @@ public abstract class RTPConnectorOutputStream
         if (logger.isDebugEnabled() && targets.isEmpty())
             logger.debug("Write called without targets!", new Throwable());
 
+        // no need to handle the buffer at all, if we are disabled, but simulate
+        // a successful operation.
+        if (!enabled)
+            return length;
+
         // get the array of RawPackets we need to send
         RawPacket[] pkts = createRawPacket(buffer, offset, length);
         boolean fail = false;
@@ -629,5 +641,20 @@ public abstract class RTPConnectorOutputStream
             }
             while (true);
         }
+    }
+
+    /**
+     * Enables or disables this <tt>RTPConnectorOutputStream</tt>.
+     * While the stream is disabled, it suppresses actually sending any packets
+     * via {@link #send(RawPacket)}.
+     *
+     * @param enabled <tt>true</tt> to enable, <tt>false</tt> to disable.
+     */
+    public void setEnabled(boolean enabled)
+    {
+        if (logger.isDebugEnabled())
+            logger.debug("setEnabled: " + enabled);
+
+        this.enabled = enabled;
     }
 }
