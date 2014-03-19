@@ -47,10 +47,10 @@ public class Packetizer
         = {
             new ParameterizedVideoFormat(
                     Constants.H264_RTP,
-                    JNIEncoder.PACKETIZATION_MODE_FMTP, "0"),
+                    VideoMediaFormatImpl.H264_PACKETIZATION_MODE_FMTP, "0"),
             new ParameterizedVideoFormat(
                     Constants.H264_RTP,
-                    JNIEncoder.PACKETIZATION_MODE_FMTP, "1")
+                    VideoMediaFormatImpl.H264_PACKETIZATION_MODE_FMTP, "1")
         };
 
     /**
@@ -150,7 +150,8 @@ public class Packetizer
                         Format.byteArray,
                         frameRate,
                         ParameterizedVideoFormat.toMap(
-                                JNIEncoder.PACKETIZATION_MODE_FMTP,
+                                VideoMediaFormatImpl
+                                    .H264_PACKETIZATION_MODE_FMTP,
                                 packetizationMode))
             };
     }
@@ -182,7 +183,7 @@ public class Packetizer
         if (format instanceof ParameterizedVideoFormat)
             packetizationMode
                 = ((ParameterizedVideoFormat) format).getFormatParameter(
-                        JNIEncoder.PACKETIZATION_MODE_FMTP);
+                        VideoMediaFormatImpl.H264_PACKETIZATION_MODE_FMTP);
         if (packetizationMode == null)
             packetizationMode = "0";
 
@@ -535,10 +536,11 @@ public class Packetizer
             fmtps = ((ParameterizedVideoFormat) format).getFormatParameters();
         if (fmtps == null)
             fmtps = new HashMap<String, String>();
-        if (fmtps.get(JNIEncoder.PACKETIZATION_MODE_FMTP) == null)
+        if (fmtps.get(VideoMediaFormatImpl.H264_PACKETIZATION_MODE_FMTP)
+                == null)
         {
             fmtps.put(
-                    JNIEncoder.PACKETIZATION_MODE_FMTP,
+                    VideoMediaFormatImpl.H264_PACKETIZATION_MODE_FMTP,
                     getPacketizationMode(inputFormat));
         }
 

@@ -133,12 +133,6 @@ public class JNIEncoder
     private static final Logger logger = Logger.getLogger(JNIEncoder.class);
 
     /**
-     * The name of the format parameter which specifies the packetization mode
-     * of H.264 RTP payload.
-     */
-    public static final String PACKETIZATION_MODE_FMTP = "packetization-mode";
-
-    /**
      * Minimum interval between two PLI request processing (in milliseconds).
      */
     private static final long PLI_INTERVAL = 3000;
@@ -166,10 +160,10 @@ public class JNIEncoder
         = {
             new ParameterizedVideoFormat(
                     Constants.H264,
-                    PACKETIZATION_MODE_FMTP, "0"),
+                    VideoMediaFormatImpl.H264_PACKETIZATION_MODE_FMTP, "0"),
             new ParameterizedVideoFormat(
                     Constants.H264,
-                    PACKETIZATION_MODE_FMTP, "1")
+                    VideoMediaFormatImpl.H264_PACKETIZATION_MODE_FMTP, "1")
         };
 
     public static final int X264_KEYINT_MAX_INFINITE = 1 << 30;
@@ -364,7 +358,8 @@ public class JNIEncoder
                         Format.byteArray,
                         frameRate,
                         ParameterizedVideoFormat.toMap(
-                                PACKETIZATION_MODE_FMTP,
+                                VideoMediaFormatImpl
+                                    .H264_PACKETIZATION_MODE_FMTP,
                                 packetizationModes[index]));
         }
         return matchingOutputFormats;
@@ -916,7 +911,11 @@ public class JNIEncoder
         if (fmtps == null)
             fmtps = new HashMap<String, String>();
         if (packetizationMode != null)
-            fmtps.put(PACKETIZATION_MODE_FMTP, packetizationMode);
+        {
+            fmtps.put(
+                    VideoMediaFormatImpl.H264_PACKETIZATION_MODE_FMTP,
+                    packetizationMode);
+        }
 
         outputFormat
             = new ParameterizedVideoFormat(

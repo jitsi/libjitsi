@@ -211,7 +211,8 @@ public class MediaUtils
         /* H264 */
         Map<String, String> h264FormatParams
             = new HashMap<String, String>();
-        String packetizationMode = "packetization-mode";
+        String packetizationMode
+            = VideoMediaFormatImpl.H264_PACKETIZATION_MODE_FMTP;
         Map<String, String> h264AdvancedAttributes
             = new HashMap<String, String>();
 

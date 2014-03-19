@@ -14,6 +14,7 @@ import javax.media.format.*;
 import net.sf.fmj.media.*;
 
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.util.*;
@@ -156,9 +157,9 @@ public class DePacketizer
     public DePacketizer()
     {
         super(
-            "H264 DePacketizer",
-            VideoFormat.class,
-            new VideoFormat[] { new VideoFormat(Constants.H264) });
+                "H264 DePacketizer",
+                VideoFormat.class,
+                new VideoFormat[] { new VideoFormat(Constants.H264) });
 
         List<Format> inputFormats = new ArrayList<Format>();
 
@@ -506,6 +507,46 @@ public class DePacketizer
         setRequestKeyFrame(requestKeyFrame);
 
         return ret;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Makes sure that the format parameters of a
+     * <tt>ParameterizedVideoFormat</tt> input which are of no concern to this
+     * <tt>DePacketizer</tt> get passed on through the output to the next
+     * <tt>Codec</tt> in the codec chain (i.e. <tt>JNIDecoder</tt>).
+     */
+    @Override
+    protected Format[] getMatchingOutputFormats(Format inputFormat)
+    {
+        Format[] matchingOutputFormats
+            = super.getMatchingOutputFormats(inputFormat);
+
+        if ((matchingOutputFormats != null)
+                && (matchingOutputFormats.length != 0)
+                && (inputFormat instanceof ParameterizedVideoFormat))
+        {
+            Map<String,String> fmtps
+                = ((ParameterizedVideoFormat) inputFormat)
+                    .getFormatParameters();
+
+            if (fmtps != null)
+            {
+                fmtps.remove(VideoMediaFormatImpl.H264_PACKETIZATION_MODE_FMTP);
+                if (!fmtps.isEmpty())
+                {
+                    for (int i = 0; i < matchingOutputFormats.length; i++)
+                    {
+                        matchingOutputFormats[i]
+                            = new ParameterizedVideoFormat(
+                                    Constants.H264,
+                                    fmtps);
+                    }
+                }
+            }
+        }
+        return matchingOutputFormats;
     }
 
     /**

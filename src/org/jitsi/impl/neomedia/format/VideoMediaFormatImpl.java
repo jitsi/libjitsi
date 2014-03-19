@@ -31,6 +31,16 @@ public class VideoMediaFormatImpl
     public static final double DEFAULT_CLOCK_RATE = 90000;
 
     /**
+     * The name of the format parameter which specifies the packetization mode
+     * of H.264 RTP payload.
+     */
+    public static final String H264_PACKETIZATION_MODE_FMTP
+        = "packetization-mode";
+
+    public static final String H264_SPROP_PARAMETER_SETS_FMTP
+        = "sprop-parameter-sets";
+
+    /**
      * The clock rate of this <tt>VideoMediaFormat</tt>.
      */
     private final double clockRate;
@@ -218,7 +228,7 @@ public class VideoMediaFormatImpl
         if ("H264".equalsIgnoreCase(encoding)
                 || "h264/rtp".equalsIgnoreCase(encoding))
         {
-            String packetizationMode = "packetization-mode";
+            String packetizationMode = H264_PACKETIZATION_MODE_FMTP;
             String pm1 = null;
             String pm2 = null;
 
@@ -287,7 +297,7 @@ public class VideoMediaFormatImpl
         if ("H264".equalsIgnoreCase(encoding)
                 || "h264/rtp".equalsIgnoreCase(encoding))
         {
-            String packetizationMode = "packetization-mode";
+            String packetizationMode = H264_PACKETIZATION_MODE_FMTP;
             String pm1
                 = (fmtps1 == null) ? null : fmtps1.get(packetizationMode);
             String pm2

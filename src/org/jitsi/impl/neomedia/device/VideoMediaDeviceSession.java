@@ -1110,8 +1110,7 @@ public class VideoMediaDeviceSession
         SwScale playerScaler = null;
 
         if ((trackControls != null) && (trackControls.length != 0)
-                /* We do not add scaler nor key frames control on Android
-                   for now */
+                /* We don't add SwScale, KeyFrameControl on Android. */
                 && !OSUtils.IS_ANDROID)
         {
             String fmjEncoding = getFormat().getJMFEncoding();
@@ -1715,7 +1714,8 @@ public class VideoMediaDeviceSession
                     = (formatParameters == null)
                         ? null
                         : formatParameters.get(
-                                JNIEncoder.PACKETIZATION_MODE_FMTP);
+                                VideoMediaFormatImpl
+                                    .H264_PACKETIZATION_MODE_FMTP);
 
                 encoder.setPacketizationMode(packetizationMode);
             }

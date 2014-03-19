@@ -7,16 +7,20 @@
 package org.jitsi.impl.neomedia.codec.video.h264;
 
 import java.awt.*;
+import java.io.*;
 
 import javax.media.*;
 import javax.media.format.*;
 
+import net.iharder.*;
 import net.sf.fmj.media.*;
 
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
+import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
+import org.jitsi.util.*;
 
 /**
  * Decodes H.264 NAL units and returns the resulting frames as FFmpeg
@@ -34,6 +38,12 @@ public class JNIDecoder
      */
     private static final VideoFormat[] DEFAULT_OUTPUT_FORMATS
         = new VideoFormat[] { new AVFrameFormat(FFmpeg.PIX_FMT_YUV420P) };
+
+    /**
+     * The <tt>Logger</tt> used by the <tt>JNIDecoder</tt> class and its
+     * instances to print debug-related information.
+     */
+    private static final Logger logger = Logger.getLogger(JNIDecoder.class);
 
     /**
      * Plugin name.
@@ -87,7 +97,19 @@ public class JNIDecoder
      */
     public JNIDecoder()
     {
-        inputFormats = new VideoFormat[] { new VideoFormat(Constants.H264) };
+        inputFormats
+            = new VideoFormat[]
+                    {
+                        /*
+                         * Explicitly state both ParameterizedVideoFormat (to
+                         * receive any format parameters which may be of concern
+                         * to this JNIDecoder) and VideoFormat (to make sure
+                         * that nothing breaks because of equality and/or
+                         * matching tests involving ParameterizedVideoFormat).
+                         */
+                        new ParameterizedVideoFormat(Constants.H264),
+                        new VideoFormat(Constants.H264)
+                    };
         outputFormats = DEFAULT_OUTPUT_FORMATS;
     }
 
@@ -183,14 +205,18 @@ public class JNIDecoder
         Format[] supportedOutputFormats;
 
         if (inputFormat == null)
+        {
             supportedOutputFormats = outputFormats;
+        }
         else
         {
             // mismatch input format
             if (!(inputFormat instanceof VideoFormat)
                     || (AbstractCodec2.matches(inputFormat, inputFormats)
                             == null))
-                supportedOutputFormats = new Format[0];
+            {
+                supportedOutputFormats = AbstractCodec2.EMPTY_FORMATS;
+            }
             else
             {
                 // match input format
@@ -198,6 +224,86 @@ public class JNIDecoder
             }
         }
         return supportedOutputFormats;
+    }
+
+    /**
+     * Handles any format parameters of the input and/or output <tt>Format</tt>s
+     * with which this <tt>JNIDecoder</tt> has been configured. For example,
+     * takes into account the format parameter <tt>sprop-parameter-sets</tt> if
+     * it is specified by the input <tt>Format</tt>.
+     */
+    private void handleFmtps()
+    {
+        try
+        {
+
+        Format f = getInputFormat();
+
+        if (f instanceof ParameterizedVideoFormat)
+        {
+            ParameterizedVideoFormat pvf = (ParameterizedVideoFormat) f;
+            String spropParameterSets
+                = pvf.getFormatParameter(
+                        VideoMediaFormatImpl.H264_SPROP_PARAMETER_SETS_FMTP);
+
+            if (spropParameterSets != null)
+            {
+                ByteArrayOutputStream nals = new ByteArrayOutputStream();
+
+                for (String s : spropParameterSets.split(","))
+                {
+                    if ((s != null) && (s.length() != 0))
+                    {
+                        byte[] nal = Base64.decode(s);
+
+                        if ((nal != null) && (nal.length != 0))
+                        {
+                            nals.write(DePacketizer.NAL_PREFIX);
+                            nals.write(nal);
+                        }
+                    }
+                }
+                if (nals.size() != 0)
+                {
+                    // Add padding because it seems to be required by FFmpeg.
+                    for (int i = 0;
+                            i < FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE;
+                            i++)
+                    {
+                        nals.write(0);
+                    }
+
+                    /*
+                     * In accord with RFC 6184 "RTP Payload Format for H.264
+                     * Video", place the NAL units conveyed by
+                     * sprop-parameter-sets in the NAL unit stream to precede
+                     * any other NAL units in decoding order.
+                     */
+                    FFmpeg.avcodec_decode_video(
+                            avctx,
+                            avframe.getPtr(),
+                            got_picture,
+                            nals.toByteArray(), nals.size());
+                }
+            }
+        }
+
+        /*
+         * Because the handling of format parameter is new at the time of this
+         * writing and it currently handles only the format parameter
+         * sprop-parameter-sets the failed handling of which will be made
+         * visible later on anyway, do not let it kill this JNIDecoder.
+         */
+        }
+        catch (Throwable t)
+        {
+            if (t instanceof InterruptedException)
+                Thread.currentThread().interrupt();
+            else if (t instanceof ThreadDeath)
+                throw (ThreadDeath) t;
+            else
+                logger.error("Failed to handle format parameters", t);
+        }
     }
 
     /**
@@ -236,6 +342,13 @@ public class JNIDecoder
 
         opened = true;
         super.open();
+
+        /*
+         * After this JNIDecoder has been opened, handle format parameters such
+         * as sprop-parameter-sets which require this JNIDecoder to be in the
+         * opened state.
+         */
+        handleFmtps();
     }
 
     /**
@@ -265,7 +378,7 @@ public class JNIDecoder
 
         // Ask FFmpeg to decode.
         got_picture[0] = false;
-        // TODO Take into account the offset of inputBuffer.
+        // TODO Take into account the offset of the input Buffer.
         FFmpeg.avcodec_decode_video(
                 avctx,
                 avframe.getPtr(),
@@ -317,7 +430,9 @@ public class JNIDecoder
         long pts = FFmpeg.AV_NOPTS_VALUE; // TODO avframe_get_pts(avframe);
 
         if (pts == FFmpeg.AV_NOPTS_VALUE)
+        {
             out.setTimeStamp(Buffer.TIME_UNKNOWN);
+        }
         else
         {
             out.setTimeStamp(pts);
