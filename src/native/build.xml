@@ -920,7 +920,7 @@
       <compilerarg value="-arch" />
       <compilerarg value="i386" />
       <compilerarg
-          value="-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers" />
+          value="-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.6.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers" />
 
       <linkerarg value="-o" location="end" />
       <linkerarg value="libjnmaccoreaudio.jnilib" location="end" />
@@ -961,13 +961,31 @@
     <delete file="${native_install_dir}/history.xml" failonerror="false" />
   </target>
 
-  <target name="webrtc_aec" description="Build Webrtc AEC shared library for Mac OS X" if="is.running.macos"
-    depends="init-native">
+    <!--
+    For mac, and linux (for mac export MACOSX_DEPLOYMENT_TARGET=10.6)
+    From http://www.webrtc.org/reference/getting-started
+    (you need to install the requirements
+    https://sites.google.com/a/chromium.org/dev/developers/how-tos/install-depot-tools
+    git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+    export PATH="$PATH":`pwd`/depot_tools)
+    gclient config http://webrtc.googlecode.com/svn/trunk
+    gclient sync - -force
+    cd libjitsi
+    ant webrtc_aec -DwebrtcSrc=$HOME/dev/webrtc/
+    -->
+  <target name="webrtc_aec"
+          description="Build Webrtc AEC shared library for Mac OS X"
+          if="is.running.macos"
+          depends="init-native">
     <fail message="webrtcSrc not set!"
         unless="webrtcSrc" />
-    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnwebrtc" objdir="${obj}">
+    <cc outtype="shared"
+        name="gcc"
+        outfile="${native_install_dir}/jnwebrtc"
+        objdir="${obj}">
       <!--compilerarg value="-DWEBRTC_AEC_DEBUG_DUMP" /-->
       <compilerarg value="-DWEBRTC_MAC" />
+      <compilerarg value="-DWEBRTC_POSIX" />
 
       <!--compilerarg value="-xc++" /-->
       <compilerarg value="-Wall" />
@@ -976,21 +994,24 @@
       <compilerarg value="x86_64" />
       <compilerarg value="-arch" />
       <compilerarg value="i386" />
-      <compilerarg value="-I${basedir}/${webrtcSrc}/trunk" />
-      <compilerarg value="-I${basedir}/${webrtcSrc}/trunk/webrtc" />
+      <compilerarg value="-I${webrtcSrc}/trunk" />
+      <compilerarg value="-I${webrtcSrc}/trunk/webrtc" />
 
       <linkerarg value="-arch" />
       <linkerarg value="x86_64" />
       <linkerarg value="-arch" />
       <linkerarg value="i386" />
+      <linkerarg value="-lpthread" />
 
       <fileset dir="${webrtcSrc}/trunk/webrtc/system_wrappers/source/"
                 includes="cpu_features.cc"/>
 
       <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/agc/"
                 includes="*.c"/>
-      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/aec/"
-                includes="*.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/aec/">
+          <include name="*.c"/>
+          <exclude name="*mips*"/>
+      </fileset>
       <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/utility/"
                 includes="*.c"/>
       <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/vad/"
@@ -1011,7 +1032,11 @@
             includes="ns_core.c"/>
       <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/ns/"
             includes="nsx_core.c"/>
+      <fileset dir="${webrtcSrc}/trunk/webrtc/modules/audio_processing/ns/"
+            includes="nsx_core_c.c"/>
 
+      <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/"
+                includes="audio_util.cc"/>
       <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
                 includes="splitting_filter.c"/>
       <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
@@ -1079,11 +1104,14 @@
       <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
             includes="sqrt_of_one_minus_x_squared.c"/>
       <fileset dir="${webrtcSrc}/trunk/webrtc/common_audio/signal_processing/"
-        includes="vector_scaling_operations.c"/>
+            includes="vector_scaling_operations.c"/>
     </cc>
 
 
-    <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnwebrtcaec" objdir="${obj}">
+    <cc outtype="shared"
+        name="gcc"
+        outfile="${native_install_dir}/jnwebrtcaec"
+        objdir="${obj}">
       <compilerarg value="-DWEBRTC_NS_FIXED" />
       <compilerarg value="-DWEBRTC_MAC" />
       <compilerarg value="-DWEBRTC_CLOCK_TYPE_REALTIME" />
@@ -1095,10 +1123,10 @@
       <compilerarg value="x86_64" />
       <compilerarg value="-arch" />
       <compilerarg value="i386" />
-      <compilerarg value="-I${basedir}/${webrtcSrc}/trunk" />
-      <compilerarg value="-I${basedir}/${webrtcSrc}/trunk/webrtc" />
+      <compilerarg value="-I${webrtcSrc}/trunk" />
+      <compilerarg value="-I${webrtcSrc}/trunk/webrtc" />
       <compilerarg
-          value="-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers" />
+          value="-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.6.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers" />
 
       <linkerarg value="-arch" />
       <linkerarg value="x86_64" />
