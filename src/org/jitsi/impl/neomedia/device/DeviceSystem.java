@@ -194,8 +194,8 @@ public abstract class DeviceSystem
                         ? ".PulseAudioSystem"
                         : null,
                     OSUtils.IS_WINDOWS ? ".WASAPISystem" : null,
-                    OSUtils.IS_ANDROID ? null : ".PortAudioSystem",
                     OSUtils.IS_MAC ? ".MacCoreaudioSystem" : null,
+                    OSUtils.IS_ANDROID ? null : ".PortAudioSystem",
                     ".NoneAudioSystem"
                 };
             break;

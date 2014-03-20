@@ -805,7 +805,7 @@ public class MacCoreaudioSystem
      */
     public static boolean isEchoCancelActivated()
     {
-        boolean isEchoCancel = false;
+        boolean isEchoCancel = true;
 
         ConfigurationService cfg = LibJitsi.getConfigurationService();
         if (cfg != null)
