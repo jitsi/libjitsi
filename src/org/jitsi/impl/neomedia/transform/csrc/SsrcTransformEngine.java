@@ -38,7 +38,7 @@ public class SsrcTransformEngine
      * generated from a muted audio source in
      * {@link #reverseTransform(RawPacket)}.
      */
-    private static final String DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM
+    public static final String DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM
         = SsrcTransformEngine.class.getName()
             + ".dropMutedAudioSourceInReverseTransform";
 

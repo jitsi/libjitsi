@@ -73,7 +73,7 @@ public class SRTPCryptoContext
      * which indicates whether protection against replay attacks is to be
      * activated. The default value is <tt>true</tt>.
      */
-    private static final String CHECK_REPLAY_PROPERTY_NAME
+    public static final String CHECK_REPLAY_PNAME
         = SRTPCryptoContext.class.getName() + ".checkReplay";
 
     /**
@@ -354,19 +354,14 @@ public class SRTPCryptoContext
         // checkReplay
         synchronized (SRTPCryptoContext.class)
         {
-            if (SRTPCryptoContext.checkReplay == null)
+            if (checkReplay == null)
             {
                 ConfigurationService cfg = LibJitsi.getConfigurationService();
-                boolean checkReplay = true;
+                boolean b = true;
 
                 if (cfg != null)
-                {
-                    checkReplay
-                        = cfg.getBoolean(
-                                CHECK_REPLAY_PROPERTY_NAME,
-                                checkReplay);
-                }
-                SRTPCryptoContext.checkReplay = Boolean.valueOf(checkReplay);
+                    b = cfg.getBoolean(CHECK_REPLAY_PNAME, b);
+                checkReplay = Boolean.valueOf(b);
             }
         }
     }
