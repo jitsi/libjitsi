@@ -239,8 +239,8 @@ public class DtmfTransformEngine
      */
     public RawPacket reverseTransform(RawPacket pkt)
     {
-        byte currentDtmfPayload = mediaStream.getDynamicRTPPayloadType(
-                        Constants.TELEPHONE_EVENT);
+        byte currentDtmfPayload
+            = mediaStream.getDynamicRTPPayloadType(Constants.TELEPHONE_EVENT);
 
         if(currentDtmfPayload == pkt.getPayloadType())
         {
@@ -278,8 +278,8 @@ public class DtmfTransformEngine
         }
 
         byte toneCode = currentTone.firstElement().getCode();
-        byte currentDtmfPayload = mediaStream.getDynamicRTPPayloadType(
-                        Constants.TELEPHONE_EVENT);
+        byte currentDtmfPayload
+            = mediaStream.getDynamicRTPPayloadType(Constants.TELEPHONE_EVENT);
 
         if ( currentDtmfPayload == -1 )
             throw new IllegalStateException("Can't send DTMF when no payload "

@@ -1088,11 +1088,14 @@ public class MediaStreamImpl
     {
         synchronized (dynamicRTPPayloadTypes)
         {
-            for (Map.Entry<Byte, MediaFormat> entry
-                                        : dynamicRTPPayloadTypes.entrySet())
+            for (Map.Entry<Byte, MediaFormat> dynamicRTPPayloadType
+                    : dynamicRTPPayloadTypes.entrySet())
             {
-                if (entry.getValue().getEncoding().equals(encoding))
-                    return entry.getKey().byteValue();
+                if (dynamicRTPPayloadType.getValue().getEncoding().equals(
+                        encoding))
+                {
+                    return dynamicRTPPayloadType.getKey().byteValue();
+                }
             }
             return -1;
         }
@@ -1108,9 +1111,9 @@ public class MediaStreamImpl
      */
     public MediaFormat getFormat()
     {
-        MediaDeviceSession deviceSession = getDeviceSession();
+        MediaDeviceSession devSess = getDeviceSession();
 
-        return (deviceSession == null) ? null : deviceSession.getFormat();
+        return (devSess == null) ? null : devSess.getFormat();
     }
 
     /**
@@ -1457,12 +1460,13 @@ public class MediaStreamImpl
                 MediaFormatImpl<? extends Format> mediaFormatImpl
                     = (MediaFormatImpl<? extends Format>)
                         dynamicRTPPayloadType.getValue();
+                Format format = mediaFormatImpl.getFormat();
 
-                rtpManager.addFormat(
-                        mediaFormatImpl.getFormat(),
-                        dynamicRTPPayloadType.getKey());
+                rtpManager.addFormat(format, dynamicRTPPayloadType.getKey());
             }
         }
+
+        maybeUpdateDynamicRTPPayloadTypes(rtpManager);
     }
 
     /**
@@ -1825,16 +1829,16 @@ public class MediaStreamImpl
      */
     public void setFormat(MediaFormat format)
     {
-        MediaDeviceSession deviceSession = getDeviceSession();
-        MediaFormatImpl<? extends Format> deviceSessionFormat = null;
+        MediaDeviceSession devSess = getDeviceSession();
+        MediaFormatImpl<? extends Format> thisFormat = null;
 
-        if (deviceSession != null)
+        if (devSess != null)
         {
-            deviceSessionFormat = deviceSession.getFormat();
-            if ((deviceSessionFormat != null)
-                    && deviceSessionFormat.equals(format)
-                    && deviceSessionFormat.advancedAttributesAreEqual(
-                            deviceSessionFormat.getAdvancedAttributes(),
+            thisFormat = devSess.getFormat();
+            if ((thisFormat != null)
+                    && thisFormat.equals(format)
+                    && thisFormat.advancedAttributesAreEqual(
+                            thisFormat.getAdvancedAttributes(),
                             format.getAdvancedAttributes()))
             {
                 return;
@@ -1844,16 +1848,17 @@ public class MediaStreamImpl
         if (logger.isTraceEnabled())
         {
             logger.trace(
-                    "Changing format of stream " + hashCode()
-                        + " from: " + deviceSessionFormat
-                        + " to: " + format);
+                    "Changing format of stream " + hashCode() + " from: "
+                        + thisFormat + " to: " + format);
         }
 
         handleAttributes(format, format.getAdvancedAttributes());
         handleAttributes(format, format.getFormatParameters());
 
-        if (deviceSession != null)
-            deviceSession.setFormat(format);
+        if (devSess != null)
+            devSess.setFormat(format);
+
+        maybeUpdateDynamicRTPPayloadTypes(null);
     }
 
     /**
@@ -2468,17 +2473,21 @@ public class MediaStreamImpl
                 = new ArrayList<ReceiveStream>();
 
             if (evReceiveStream != null)
+            {
                 receiveStreamsToRemove.add(evReceiveStream);
+            }
             else if (participant != null)
             {
                 List<ReceiveStream> receiveStreams = getReceiveStreams();
-                Vector managerReceiveStreams = rtpManager.getReceiveStreams();
+                @SuppressWarnings("rawtypes")
+                Vector rtpManagerReceiveStreams
+                    = rtpManager.getReceiveStreams();
 
                 for(ReceiveStream receiveStream: receiveStreams)
                 {
                     if(participant.equals(receiveStream.getParticipant())
                         && !participant.getStreams().contains(receiveStream)
-                        && !managerReceiveStreams.contains(receiveStream))
+                        && !rtpManagerReceiveStreams.contains(receiveStream))
                     {
                         receiveStreamsToRemove.add(receiveStream);
                     }
@@ -2506,36 +2515,38 @@ public class MediaStreamImpl
 
             if (receiveStream != null)
             {
-                MediaDeviceSession deviceSession = getDeviceSession();
+                MediaDeviceSession devSess = getDeviceSession();
 
-                if (deviceSession != null)
+                if (devSess != null)
                 {
-                    TranscodingDataSource transcodingDataSource
-                        = deviceSession.getTranscodingDataSource(receiveStream);
+                    TranscodingDataSource transcodingDS
+                        = devSess.getTranscodingDataSource(receiveStream);
 
                     // we receive packets, streams are active
-                    // if processor in transcoding DataSource is running
-                    // we need to recreate it by disconnect, connect
-                    // and starting again the DataSource
+                    // if processor in transcoding DataSource is running, we
+                    // need to recreate it by disconnect, connect and starting
+                    // again the DataSource
                     try
                     {
-                        if (transcodingDataSource != null)
+                        if (transcodingDS != null)
                         {
-                            transcodingDataSource.disconnect();
-                            transcodingDataSource.connect();
-                            transcodingDataSource.start();
+                            transcodingDS.disconnect();
+                            transcodingDS.connect();
+                            transcodingDS.start();
                         }
 
-                        // as output streams of the DataSource
-                        // are recreated we need to update
-                        // mixers and everything that are using them
-                        deviceSession.playbackDataSourceChanged(
+                        // as output streams of the DataSource are recreated we
+                        // need to update mixers and everything that are using
+                        // them
+                        devSess.playbackDataSourceChanged(
                                 receiveStream.getDataSource());
                     }
                     catch(IOException e)
                     {
-                        logger.error("Error re-creating processor in " +
-                            "transcoding DataSource", e);
+                        logger.error(
+                                "Error re-creating TranscodingDataSource's"
+                                    + " processor!",
+                                e);
                     }
                 }
             }
@@ -2910,6 +2921,70 @@ public class MediaStreamImpl
     protected int getPriority()
     {
         return Thread.currentThread().getPriority();
+    }
+
+    /**
+     * If necessary and the state of this <tt>MediaStreamImpl</tt> instance is
+     * appropriate, updates the FMJ <tt>Format</tt>s registered with a specific
+     * <tt>StreamRTPManager</tt> in order to possibly prevent the loss of format
+     * parameters (i.e. SDP fmtp) specified by the remote peer and to be used
+     * for the playback of <tt>ReceiveStream</tt>s. The <tt>Format</tt>s in
+     * {@link #dynamicRTPPayloadTypes} will likely represent the view of the
+     * local peer while the <tt>Format</tt> set on this <tt>MediaStream</tt>
+     * instance will likely represent the view of the remote peer. The view of
+     * the remote peer matters for the playback of <tt>ReceiveStream</tt>s. 
+     *
+     * @param rtpManager the <tt>StreamRTPManager</tt> to update the registered
+     * FMJ <tt>Format</tt>s of. If <tt>null</tt>, the method uses
+     * {@link #rtpManager}.
+     */
+    private void maybeUpdateDynamicRTPPayloadTypes(StreamRTPManager rtpManager)
+    {
+        if (rtpManager == null)
+        {
+            rtpManager = queryRTPManager();
+            if (rtpManager == null)
+                return;
+        }
+
+        MediaFormat mediaFormat = getFormat();
+
+        if (!(mediaFormat instanceof MediaFormatImpl))
+            return;
+
+        @SuppressWarnings("unchecked")
+        MediaFormatImpl<? extends Format> mediaFormatImpl
+            = (MediaFormatImpl<? extends Format>) mediaFormat;
+        Format format = mediaFormatImpl.getFormat();
+
+        if (!(format instanceof ParameterizedVideoFormat))
+            return;
+
+        synchronized (dynamicRTPPayloadTypes)
+        {
+            for (Map.Entry<Byte,MediaFormat> dynamicRTPPayloadType
+                    : dynamicRTPPayloadTypes.entrySet())
+            {
+                MediaFormat dynamicMediaFormat
+                    = dynamicRTPPayloadType.getValue();
+
+                if (!(dynamicMediaFormat instanceof MediaFormatImpl))
+                    continue;
+
+                @SuppressWarnings("unchecked")
+                MediaFormatImpl<? extends Format> dynamicMediaFormatImpl
+                    = (MediaFormatImpl<? extends Format>) dynamicMediaFormat;
+                Format dynamicFormat = dynamicMediaFormatImpl.getFormat();
+
+                if (format.matches(dynamicFormat)
+                        && dynamicFormat.matches(format))
+                {
+                    rtpManager.addFormat(
+                            format,
+                            dynamicRTPPayloadType.getKey());
+                }
+            }
+        }
     }
 
     /**

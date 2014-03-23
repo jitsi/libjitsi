@@ -918,10 +918,7 @@ public class MediaDeviceSession
             {
                 logger.debug(
                         "processorFormat != format; processorFormat= `"
-                            + processorFormat
-                            + "`; format= `"
-                            + format
-                            + "`");
+                            + processorFormat + "`; format= `" + format + "`");
             }
         }
 

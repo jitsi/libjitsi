@@ -554,13 +554,13 @@ public abstract class MediaFormatImpl<T extends Format>
         MediaType mediaType = format.getMediaType();
         String encoding = format.getEncoding();
         double clockRate = format.getClockRate();
-        int channels = MediaType.AUDIO.equals(mediaType)
-                ? ((AudioMediaFormat) format).getChannels()
-                : MediaFormatFactory.CHANNELS_NOT_SPECIFIED;
-        Map<String, String> formatParameters = format.getFormatParameters();
+        int channels
+            = MediaType.AUDIO.equals(mediaType)
+                    ? ((AudioMediaFormat) format).getChannels()
+                    : MediaFormatFactory.CHANNELS_NOT_SPECIFIED;
+        Map<String,String> fmtps = format.getFormatParameters();
 
-        return matches(
-            mediaType, encoding, clockRate, channels, formatParameters);
+        return matches(mediaType, encoding, clockRate, channels, fmtps);
     }
 
     /**
@@ -573,8 +573,8 @@ public abstract class MediaFormatImpl<T extends Format>
      * @param encoding the encoding we are looking for.
      * @param clockRate the clock rate that we'd like the format to have.
      * @param channels the number of channels that expect to find in this format
-     * @param formatParameters the format parameters expected to match these of
-     * the specified <tt>format</tt>
+     * @param fmtps the format parameters expected to match these of the
+     * specified <tt>format</tt>
      * @return <tt>true</tt> if the specified <tt>format</tt> has specific
      * values for its properties <tt>mediaType</tt>, <tt>encoding</tt>,
      * <tt>clockRate</tt> and <tt>channels</tt>; otherwise, <tt>false</tt>
@@ -583,7 +583,7 @@ public abstract class MediaFormatImpl<T extends Format>
                            String encoding,
                            double clockRate,
                            int channels,
-                           Map<String, String> formatParameters)
+                           Map<String,String> fmtps)
     {
         // mediaType
         // encoding
@@ -616,7 +616,7 @@ public abstract class MediaFormatImpl<T extends Format>
         }
 
         // formatParameters
-        return formatParametersMatch(formatParameters);
+        return formatParametersMatch(fmtps);
     }
 
     /**

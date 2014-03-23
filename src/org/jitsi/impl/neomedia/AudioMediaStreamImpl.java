@@ -538,18 +538,21 @@ public class AudioMediaStreamImpl
         for (AudioFormat format : CUSTOM_CODEC_FORMATS)
         {
             if (logger.isDebugEnabled())
-                logger.debug("registering format " + format +
-                        " with RTP manager");
-
+            {
+                logger.debug(
+                        "registering format " + format + " with RTPManager");
+            }
             /*
              * NOTE (mkoch@rowa.de): com.sun.media.rtp.RtpSessionMgr.addFormat
              * leaks memory, since it stores the Format in a static Vector.
              * AFAIK there is no easy way around it, but the memory impact
              * should not be too bad.
              */
-            rtpManager.addFormat( format,
-                        MediaUtils.getRTPPayloadType(
-                            format.getEncoding(), format.getSampleRate()));
+            rtpManager.addFormat(
+                    format,
+                    MediaUtils.getRTPPayloadType(
+                            format.getEncoding(),
+                            format.getSampleRate()));
         }
     }
 
