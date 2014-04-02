@@ -45,6 +45,12 @@ public class MacCoreaudioStream
     private final boolean audioQualityImprovement;
 
     /**
+     * The buffer which stores the outgoing data before sending them to
+     * the RTP stack.
+     */
+    private byte[] buffer = null;
+
+    /**
      * The number of bytes to read from a native MacCoreaudio stream in a single
      * invocation. Based on {@link #framesPerBuffer}.
      */
@@ -58,16 +64,10 @@ public class MacCoreaudioStream
     private String deviceUID;
 
     /**
-     * A mutual eclusion used to avoid conflict when starting / stoping the
-     * stream for this stream;
+     * The last-known <tt>Format</tt> of the media data made available by this
+     * <tt>PullBufferStream</tt>.
      */
-    private Object startStopMutex = new Object();
-
-    /**
-     * The buffer which stores the outgoing data before sending them to
-     * the RTP stack.
-     */
-    private byte[] buffer = null;
+    private AudioFormat format = null;
 
     /**
      * A list of already allocated buffers, ready to accept new captured data.
@@ -81,21 +81,26 @@ public class MacCoreaudioStream
     private Vector<byte[]> fullBufferList = new Vector<byte[]>();
 
     /**
+     * The <tt>GainControl</tt> through which the volume/gain of captured media
+     * is controlled.
+     */
+    private final GainControl gainControl;
+
+    /**
      * The number of data available to feed the RTP stack.
      */
     private int nbBufferData = 0;
 
     /**
-     * The last-known <tt>Format</tt> of the media data made available by this
-     * <tt>PullBufferStream</tt>.
+     * Current sequence number.
      */
-    private AudioFormat format = null;
+    private int sequenceNumber = 0;
 
     /**
-     * The <tt>GainControl</tt> through which the volume/gain of captured media
-     * is controlled.
+     * A mutual eclusion used to avoid conflict when starting / stoping the
+     * stream for this stream;
      */
-    private final GainControl gainControl;
+    private Object startStopMutex = new Object();
 
     /**
      * Locked when currently stopping the stream. Prevents deadlock between the
@@ -103,9 +108,14 @@ public class MacCoreaudioStream
      */
     private Lock stopLock = new ReentrantLock();
 
-    private final MacCoreaudioSystem.UpdateAvailableDeviceListListener
+    /**
+     * The stream structure used by the native maccoreaudio library.
+     */
+    private long stream = 0;
+
+    private final UpdateAvailableDeviceListListener
         updateAvailableDeviceListListener
-            = new MacCoreaudioSystem.UpdateAvailableDeviceListListener()
+            = new UpdateAvailableDeviceListListener()
             {
                 /**
                  * The device ID (could be deviceUID or name but that is not
@@ -116,6 +126,7 @@ public class MacCoreaudioStream
 
                 private boolean start = false;
 
+                @Override
                 public void didUpdateAvailableDeviceList()
                     throws Exception
                 {
@@ -131,6 +142,7 @@ public class MacCoreaudioStream
                     }
                 }
 
+                @Override
                 public void willUpdateAvailableDeviceList()
                     throws Exception
                 {
@@ -151,16 +163,6 @@ public class MacCoreaudioStream
                     }
                 }
             };
-
-    /**
-     * Current sequence number.
-     */
-    private int sequenceNumber = 0;
-
-    /**
-     * The stream structure used by the native maccoreaudio library.
-     */
-    private long stream = 0;
 
     /**
      * Initializes a new <tt>MacCoreaudioStream</tt> instance which is to have
@@ -194,8 +196,16 @@ public class MacCoreaudioStream
         // XXX We will add a UpdateAvailableDeviceListListener and will not
         // remove it because we will rely on MacCoreaudioSystem's use of
         // WeakReference.
-        MacCoreaudioSystem.addUpdateAvailableDeviceListListener(
-                updateAvailableDeviceListListener);
+        AudioSystem2 audioSystem
+            = (AudioSystem2)
+                AudioSystem.getAudioSystem(
+                        AudioSystem.LOCATOR_PROTOCOL_MACCOREAUDIO);
+
+        if (audioSystem != null)
+        {
+            audioSystem.addUpdateAvailableDeviceListListener(
+                    updateAvailableDeviceListListener);
+        }
     }
 
     private void connect()
@@ -307,108 +317,6 @@ public class MacCoreaudioStream
     }
 
     /**
-     * Sets the device index of the MacCoreaudio device to be read through this
-     * <tt>PullBufferStream</tt>.
-     *
-     * @param deviceID The ID of the device used to be read trough this
-     * MacCoreaudioStream.  This String contains the deviceUID, or if not
-     * available, the device name.  If set to null, then there was no device
-     * used before the update.
-     */
-    void setDeviceUID(String deviceUID)
-    {
-        synchronized(startStopMutex)
-        {
-            if (this.deviceUID != null)
-            {
-                // If there is a running stream, then close it.
-                try
-                {
-                    stop();
-                }
-                catch(IOException ioex)
-                {
-                    logger.info(ioex);
-                }
-
-                // Make sure this AbstractPullBufferStream asks its DataSource
-                // for the Format in which it is supposed to output audio data
-                // the next time it is opened instead of using its Format from a
-                // previous open.
-                this.format = null;
-            }
-            this.deviceUID = deviceUID;
-
-            if (this.deviceUID != null)
-            {
-                connect();
-            }
-        }
-    }
-
-    /**
-     * Starts the transfer of media data from this <tt>PullBufferStream</tt>.
-     */
-    @Override
-    public void start()
-        throws IOException
-    {
-        synchronized(startStopMutex)
-        {
-            if(stream == 0 && deviceUID != null)
-            {
-                buffer = new byte[bytesPerBuffer];
-                nbBufferData = 0;
-                this.fullBufferList.clear();
-                this.freeBufferList.clear();
-
-                MacCoreaudioSystem.willOpenStream();
-                stream = MacCoreAudioDevice.startStream(
-                        deviceUID,
-                        this,
-                        (float) format.getSampleRate(),
-                        format.getChannels(),
-                        format.getSampleSizeInBits(),
-                        false,
-                        format.getEndian() == AudioFormat.BIG_ENDIAN,
-                        false,
-                        true,
-                        MacCoreaudioSystem.isEchoCancelActivated());
-                MacCoreaudioSystem.didOpenStream();
-            }
-        }
-    }
-
-    /**
-     * Stops the transfer of media data from this <tt>PullBufferStream</tt>.
-     */
-    @Override
-    public void stop()
-        throws IOException
-    {
-        stopLock.lock();
-        try
-        {
-            synchronized(startStopMutex)
-            {
-                if(stream != 0 && deviceUID != null)
-                {
-                    MacCoreAudioDevice.stopStream(deviceUID, stream);
-
-                    stream = 0;
-                    this.fullBufferList.clear();
-                    this.freeBufferList.clear();
-                    startStopMutex.notify();
-                }
-            }
-        }
-        finally
-        {
-            stopLock.unlock();
-        }
-    }
-
-    /**
      * Callback which receives the data from the coreaudio library.
      *
      * @param buffer The data captured from the input.
@@ -465,6 +373,124 @@ public class MacCoreaudioStream
                     this.buffer = new byte[bytesPerBuffer];
                 }
             }
+        }
+    }
+
+    /**
+     * Sets the device index of the MacCoreaudio device to be read through this
+     * <tt>PullBufferStream</tt>.
+     *
+     * @param deviceID The ID of the device used to be read trough this
+     * MacCoreaudioStream.  This String contains the deviceUID, or if not
+     * available, the device name.  If set to null, then there was no device
+     * used before the update.
+     */
+    void setDeviceUID(String deviceUID)
+    {
+        synchronized(startStopMutex)
+        {
+            if (this.deviceUID != null)
+            {
+                // If there is a running stream, then close it.
+                try
+                {
+                    stop();
+                }
+                catch(IOException ioex)
+                {
+                    logger.info(ioex);
+                }
+
+                // Make sure this AbstractPullBufferStream asks its DataSource
+                // for the Format in which it is supposed to output audio data
+                // the next time it is opened instead of using its Format from a
+                // previous open.
+                this.format = null;
+            }
+            this.deviceUID = deviceUID;
+
+            if (this.deviceUID != null)
+            {
+                connect();
+            }
+        }
+    }
+
+    /**
+     * Starts the transfer of media data from this <tt>PullBufferStream</tt>.
+     */
+    @Override
+    public void start()
+        throws IOException
+    {
+        synchronized(startStopMutex)
+        {
+            if(stream == 0 && deviceUID != null)
+            {
+                buffer = new byte[bytesPerBuffer];
+                nbBufferData = 0;
+                this.fullBufferList.clear();
+                this.freeBufferList.clear();
+
+                AudioSystem2 audioSystem
+                    = (AudioSystem2)
+                        AudioSystem.getAudioSystem(
+                                AudioSystem.LOCATOR_PROTOCOL_MACCOREAUDIO);
+
+                if (audioSystem != null)
+                    audioSystem.willOpenStream();
+                try
+                {
+                    stream
+                        = MacCoreAudioDevice.startStream(
+                                deviceUID,
+                                this,
+                                (float) format.getSampleRate(),
+                                format.getChannels(),
+                                format.getSampleSizeInBits(),
+                                false,
+                                format.getEndian() == AudioFormat.BIG_ENDIAN,
+                                false,
+                                true,
+                                (audioSystem == null)
+                                    ? true
+                                    : audioSystem.isEchoCancel());
+                }
+                finally
+                {
+                    if (audioSystem != null)
+                        audioSystem.didOpenStream();
+                }
+            }
+        }
+    }
+
+    /**
+     * Stops the transfer of media data from this <tt>PullBufferStream</tt>.
+     */
+    @Override
+    public void stop()
+        throws IOException
+    {
+        stopLock.lock();
+        try
+        {
+            synchronized(startStopMutex)
+            {
+                if(stream != 0 && deviceUID != null)
+                {
+                    MacCoreAudioDevice.stopStream(deviceUID, stream);
+
+                    stream = 0;
+                    this.fullBufferList.clear();
+                    this.freeBufferList.clear();
+                    startStopMutex.notify();
+                }
+            }
+        }
+        finally
+        {
+            stopLock.unlock();
         }
     }
 }

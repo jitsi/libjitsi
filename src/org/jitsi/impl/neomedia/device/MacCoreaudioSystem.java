@@ -6,17 +6,13 @@
  */
 package org.jitsi.impl.neomedia.device;
 
-import java.lang.ref.*;
 import java.util.*;
-import java.util.regex.*;
 
 import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
-import org.jitsi.service.configuration.*;
-import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
 
 /**
@@ -26,42 +22,11 @@ import org.jitsi.util.*;
  * @author Vincent Lucas
  */
 public class MacCoreaudioSystem
-    extends AudioSystem
+    extends AudioSystem2
 {
     /**
-     * Represents a listener which is to be notified before and after
-     * MacCoreaudio's native function <tt>UpdateAvailableDeviceList()</tt> is
-     * invoked.
-     */
-    public interface UpdateAvailableDeviceListListener
-        extends EventListener
-    {
-        /**
-         * Notifies this listener that MacCoreaudio's native function
-         * <tt>UpdateAvailableDeviceList()</tt> was invoked.
-         *
-         * @throws Exception if this implementation encounters an error. Any
-         * <tt>Throwable</tt> apart from <tt>ThreadDeath</tt> will be ignored
-         * after it is logged for debugging purposes.
-         */
-        void didUpdateAvailableDeviceList()
-            throws Exception;
-
-        /**
-         * Notifies this listener that MacCoreaudio's native function
-         * <tt>UpdateAvailableDeviceList()</tt> will be invoked.
-         *
-         * @throws Exception if this implementation encounters an error. Any
-         * <tt>Throwable</tt> apart from <tt>ThreadDeath</tt> will be ignored
-         * after it is logged for debugging purposes.
-         */
-        void willUpdateAvailableDeviceList()
-            throws Exception;
-    }
-
-    /**
      * The protocol of the <tt>MediaLocator</tt>s identifying MacCoreaudio
-     * <tt>CaptureDevice</tt>s
+     * <tt>CaptureDevice</tt>s.
      */
     private static final String LOCATOR_PROTOCOL
         = LOCATOR_PROTOCOL_MACCOREAUDIO;
@@ -72,183 +37,6 @@ public class MacCoreaudioSystem
      */
     private static final Logger logger
         = Logger.getLogger(MacCoreaudioSystem.class);
-
-    /**
-     * The number of times that {@link #willPaOpenStream()} has been
-     * invoked without an intervening {@link #didPaOpenStream()} i.e. the
-     * number of MacCoreaudio clients which are currently executing
-     * <tt>Pa_OpenStream</tt> and which are thus inhibiting
-     * <tt>Pa_UpdateAvailableDeviceList</tt>.
-     */
-    private static int openStream = 0;
-
-    /**
-     * The <tt>Object</tt> which synchronizes that access to
-     * {@link #paOpenStream} and {@link #updateAvailableDeviceList}.
-     */
-    private static final Object openStreamSyncRoot = new Object();
-
-    /**
-     * The number of times that {@link #willPaUpdateAvailableDeviceList()}
-     * has been invoked without an intervening
-     * {@link #didPaUpdateAvailableDeviceList()} i.e. the number of
-     * MacCoreaudio clients which are currently executing
-     * <tt>Pa_UpdateAvailableDeviceList</tt> and which are thus inhibiting
-     * <tt>Pa_OpenStream</tt>.
-     */
-    private static int updateAvailableDeviceList = 0;
-
-    /**
-     * The list of <tt>PaUpdateAvailableDeviceListListener</tt>s which are to be
-     * notified before and after MacCoreaudio's native function
-     * <tt>Pa_UpdateAvailableDeviceList()</tt> is invoked.
-     */
-    private static final List<WeakReference<UpdateAvailableDeviceListListener>>
-        updateAvailableDeviceListListeners
-        = new LinkedList<WeakReference<UpdateAvailableDeviceListListener>>();
-
-    /**
-     * The <tt>Object</tt> which ensures that MacCoreaudio's native function
-     * <tt>UpdateAvailableDeviceList()</tt> will not be invoked concurrently.
-     * The condition should hold true on the native side but, anyway, it shoul
-     * not hurt (much) to enforce it on the Java side as well.
-     */
-    private static final Object updateAvailableDeviceListSyncRoot
-        = new Object();
-
-    /**
-     * Adds a listener which is to be notified before and after MacCoreaudio's
-     * native function <tt>UpdateAvailableDeviceList()</tt> is invoked.
-     * <p>
-     * <b>Note</b>: The <tt>MacCoreaudioSystem</tt> class keeps a
-     * <tt>WeakReference</tt> to the specified <tt>listener</tt> in order to
-     * avoid memory leaks.
-     * </p>
-     *
-     * @param listener the <tt>UpdateAvailableDeviceListListener</tt> to be
-     * notified before and after MacCoreaudio's native function
-     * <tt>UpdateAvailableDeviceList()</tt> is invoked
-     */
-    public static void addUpdateAvailableDeviceListListener(
-            UpdateAvailableDeviceListListener listener)
-    {
-        if(listener == null)
-            throw new NullPointerException("listener");
-
-        synchronized(updateAvailableDeviceListListeners)
-        {
-            Iterator<WeakReference<UpdateAvailableDeviceListListener>> i
-                = updateAvailableDeviceListListeners.iterator();
-            boolean add = true;
-
-            while(i.hasNext())
-            {
-                UpdateAvailableDeviceListListener l = i.next().get();
-
-                if(l == null)
-                    i.remove();
-                else if(l.equals(listener))
-                    add = false;
-            }
-            if(add)
-            {
-                updateAvailableDeviceListListeners.add(
-                        new WeakReference<UpdateAvailableDeviceListListener>(
-                                listener));
-            }
-        }
-    }
-
-    /**
-     * Notifies <tt>MacCoreaudioSystem</tt> that a MacCoreaudio client finished
-     * executing <tt>OpenStream</tt>.
-     */
-    public static void didOpenStream()
-    {
-        synchronized (openStreamSyncRoot)
-        {
-            openStream--;
-            if (openStream < 0)
-                openStream = 0;
-
-            openStreamSyncRoot.notifyAll();
-        }
-    }
-
-    /**
-     * Notifies <tt>MacCoreaudioSystem</tt> that a MacCoreaudio client finished
-     * executing <tt>UpdateAvailableDeviceList</tt>.
-     */
-    private static void didUpdateAvailableDeviceList()
-    {
-        synchronized(openStreamSyncRoot)
-        {
-            updateAvailableDeviceList--;
-            if (updateAvailableDeviceList < 0)
-                updateAvailableDeviceList = 0;
-
-            openStreamSyncRoot.notifyAll();
-        }
-
-        fireUpdateAvailableDeviceListEvent(false);
-    }
-
-    /**
-     * Notifies the registered <tt>UpdateAvailableDeviceListListener</tt>s
-     * that MacCoreaudio's native function
-     * <tt>UpdateAvailableDeviceList()</tt> will be or was invoked.
-     *
-     * @param will <tt>true</tt> if MacCoreaudio's native function
-     * <tt>UpdateAvailableDeviceList()</tt> will be invoked or <tt>false</tt>
-     * if it was invoked
-     */
-    private static void fireUpdateAvailableDeviceListEvent(boolean will)
-    {
-        try
-        {
-            List<WeakReference<UpdateAvailableDeviceListListener>> ls;
-
-            synchronized(updateAvailableDeviceListListeners)
-            {
-                ls = new
-                    ArrayList<WeakReference<UpdateAvailableDeviceListListener>>(
-                            updateAvailableDeviceListListeners);
-            }
-
-            for(WeakReference<UpdateAvailableDeviceListListener> wr : ls)
-            {
-                UpdateAvailableDeviceListListener l = wr.get();
-                if(l != null)
-                {
-                    try
-                    {
-                        if(will)
-                            l.willUpdateAvailableDeviceList();
-                        else
-                            l.didUpdateAvailableDeviceList();
-                    }
-                    catch (Throwable t)
-                    {
-                        if(t instanceof ThreadDeath)
-                            throw(ThreadDeath) t;
-                        else
-                        {
-                            logger.error(
-                                    "UpdateAvailableDeviceListListener."
-                                    + (will ? "will" : "did")
-                                    + "UpdateAvailableDeviceList failed.",
-                                    t);
-                        }
-                    }
-                }
-            }
-        }
-        catch(Throwable t)
-        {
-            if(t instanceof ThreadDeath)
-                throw(ThreadDeath) t;
-        }
-    }
 
     /**
      * Gets a sample rate supported by a MacCoreaudio device with a specific
@@ -270,95 +58,15 @@ public class MacCoreaudioSystem
             String deviceUID,
             boolean isEchoCancel)
     {
-        double supportedSampleRate = MacCoreAudioDevice.getNominalSampleRate(
-                deviceUID,
-                false,
-                isEchoCancel);
+        double supportedSampleRate
+            = MacCoreAudioDevice.getNominalSampleRate(
+                    deviceUID,
+                    false,
+                    isEchoCancel);
 
         if(supportedSampleRate >= MediaUtils.MAX_AUDIO_SAMPLE_RATE)
-        {
             supportedSampleRate = MacCoreAudioDevice.DEFAULT_SAMPLE_RATE;
-        }
-
         return supportedSampleRate;
-    }
-
-    /**
-     * Waits for all MacCoreaudio clients to finish executing
-     * <tt>OpenStream</tt>.
-     */
-    private static void waitForOpenStream()
-    {
-        boolean interrupted = false;
-
-        while(openStream > 0)
-        {
-            try
-            {
-                openStreamSyncRoot.wait();
-            }
-            catch(InterruptedException ie)
-            {
-                interrupted = true;
-            }
-        }
-        if(interrupted)
-            Thread.currentThread().interrupt();
-    }
-
-    /**
-     * Waits for all MacCoreaudio clients to finish executing
-     * <tt>UpdateAvailableDeviceList</tt>.
-     */
-    private static void waitForUpdateAvailableDeviceList()
-    {
-        boolean interrupted = false;
-
-        while (updateAvailableDeviceList > 0)
-        {
-            try
-            {
-                openStreamSyncRoot.wait();
-            }
-            catch (InterruptedException ie)
-            {
-                interrupted = true;
-            }
-        }
-        if (interrupted)
-            Thread.currentThread().interrupt();
-    }
-
-    /**
-     * Notifies <tt>MacCoreaudioSystem</tt> that a MacCoreaudio client will
-     * start executing <tt>OpenStream</tt>.
-     */
-    public static void willOpenStream()
-    {
-        synchronized (openStreamSyncRoot)
-        {
-            waitForUpdateAvailableDeviceList();
-
-            openStream++;
-            openStreamSyncRoot.notifyAll();
-        }
-    }
-
-    /**
-     * Notifies <tt>MacCoreaudioSystem</tt> that a MacCoreaudio client will
-     * start executing <tt>UpdateAvailableDeviceList</tt>.
-     */
-    private static void willUpdateAvailableDeviceList()
-    {
-        synchronized(openStreamSyncRoot)
-        {
-            waitForOpenStream();
-
-            updateAvailableDeviceList++;
-            openStreamSyncRoot.notifyAll();
-        }
-
-        fireUpdateAvailableDeviceListEvent(true);
     }
 
     private Runnable devicesChangedCallback;
@@ -382,41 +90,6 @@ public class MacCoreaudioSystem
     }
 
     /**
-     * Sorts a specific list of <tt>CaptureDeviceInfo2</tt>s so that the
-     * ones representing USB devices appear at the beginning/top of the
-     * specified list.
-     *
-     * @param devices the list of <tt>CaptureDeviceInfo2</tt>s to be
-     * sorted so that the ones representing USB devices appear at the
-     * beginning/top of the list
-     */
-    private void bubbleUpUsbDevices(List<CaptureDeviceInfo2> devices)
-    {
-        if(!devices.isEmpty())
-        {
-            List<CaptureDeviceInfo2> nonUsbDevices
-                = new ArrayList<CaptureDeviceInfo2>(devices.size());
-
-            for(Iterator<CaptureDeviceInfo2> i = devices.iterator();
-                    i.hasNext();)
-            {
-                CaptureDeviceInfo2 d = i.next();
-
-                if(!d.isSameTransportType("USB"))
-                {
-                    nonUsbDevices.add(d);
-                    i.remove();
-                }
-            }
-            if(!nonUsbDevices.isEmpty())
-            {
-                for (CaptureDeviceInfo2 d : nonUsbDevices)
-                    devices.add(d);
-            }
-        }
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
@@ -426,18 +99,15 @@ public class MacCoreaudioSystem
         if(!CoreAudioDevice.isLoaded)
         {
             String message = "MacOSX CoreAudio library is not loaded";
+
             if (logger.isInfoEnabled())
-            {
                 logger.info(message);
-            }
             throw new Exception(message);
         }
 
         // Initializes the library only at the first run.
         if(devicesChangedCallback == null)
-        {
             CoreAudioDevice.initDevices();
-        }
 
         int channels = 1;
         int sampleSizeInBits = 16;
@@ -452,7 +122,6 @@ public class MacCoreaudioSystem
         List<CaptureDeviceInfo2> playbackDevices
             = new LinkedList<CaptureDeviceInfo2>();
         final boolean loggerIsDebugEnabled = logger.isDebugEnabled();
-
 
         String[] deviceUIDList = MacCoreAudioDevice.getDeviceUIDList();
         for(int i = 0; i < deviceUIDList.length; ++i)
@@ -497,12 +166,15 @@ public class MacCoreaudioSystem
 
                     if (id.equals(deviceUID) || id.equals(name))
                     {
-                        double rate = ((AudioFormat) existingCdi.getFormats()[0])
-                            .getSampleRate();
-                        if(rate == getSupportedSampleRate(
-                                    true,
-                                    deviceUID,
-                                    isEchoCancelActivated()))
+                        double rate
+                            = ((AudioFormat) existingCdi.getFormats()[0])
+                                .getSampleRate();
+
+                        if(rate
+                                == getSupportedSampleRate(
+                                        true,
+                                        deviceUID,
+                                        isEchoCancel()))
                         {
                             cdi = existingCdi;
                             break;
@@ -526,7 +198,7 @@ public class MacCoreaudioSystem
                                     ? getSupportedSampleRate(
                                         true,
                                         deviceUID,
-                                        isEchoCancelActivated())
+                                        isEchoCancel())
                                     : MacCoreAudioDevice.DEFAULT_SAMPLE_RATE,
                                     sampleSizeInBits,
                                     channels,
@@ -644,6 +316,7 @@ public class MacCoreaudioSystem
             devicesChangedCallback
                 = new Runnable()
                 {
+                    @Override
                     public void run()
                     {
                         try
@@ -676,114 +349,25 @@ public class MacCoreaudioSystem
     }
 
     /**
-     * Attempts to reorder specific lists of capture and playback/notify
-     * <tt>CaptureDeviceInfo2</tt>s so that devices from the same
-     * hardware appear at the same indices in the respective lists. The judgment
-     * with respect to the belonging to the same hardware is based on the names
-     * of the specified <tt>CaptureDeviceInfo2</tt>s. The implementation
-     * is provided as a fallback to stand in for scenarios in which more
-     * accurate relevant information is not available.
+     * Sets the indicator which determines whether echo cancellation is to be
+     * performed for captured audio.
      *
-     * @param captureDevices
-     * @param playbackDevices
+     * @param echoCancel <tt>true</tt> if echo cancellation is to be performed
+     * for captured audio; otherwise, <tt>false</tt>
      */
-    private void matchDevicesByName(
-            List<CaptureDeviceInfo2> captureDevices,
-            List<CaptureDeviceInfo2> playbackDevices)
+    @Override
+    public void setEchoCancel(boolean echoCancel)
     {
-        Iterator<CaptureDeviceInfo2> captureIter
-            = captureDevices.iterator();
-        Pattern pattern
-            = Pattern.compile(
-                    "array|headphones|microphone|speakers|\\p{Space}|\\(|\\)",
-                    Pattern.CASE_INSENSITIVE);
-        LinkedList<CaptureDeviceInfo2> captureDevicesWithPlayback
-            = new LinkedList<CaptureDeviceInfo2>();
-        LinkedList<CaptureDeviceInfo2> playbackDevicesWithCapture
-            = new LinkedList<CaptureDeviceInfo2>();
-        int count = 0;
+        super.setEchoCancel(echoCancel);
 
-        while (captureIter.hasNext())
+        try
         {
-            CaptureDeviceInfo2 captureDevice = captureIter.next();
-            String captureName = captureDevice.getName();
-
-            if (captureName != null)
-            {
-                captureName = pattern.matcher(captureName).replaceAll("");
-                if (captureName.length() != 0)
-                {
-                    Iterator<CaptureDeviceInfo2> playbackIter
-                        = playbackDevices.iterator();
-                    CaptureDeviceInfo2 matchingPlaybackDevice = null;
-
-                    while (playbackIter.hasNext())
-                    {
-                        CaptureDeviceInfo2 playbackDevice
-                            = playbackIter.next();
-                        String playbackName = playbackDevice.getName();
-
-                        if (playbackName != null)
-                        {
-                            playbackName
-                                = pattern
-                                    .matcher(playbackName)
-                                        .replaceAll("");
-                            if (captureName.equals(playbackName))
-                            {
-                                playbackIter.remove();
-                                matchingPlaybackDevice = playbackDevice;
-                                break;
-                            }
-                        }
-                    }
-                    if (matchingPlaybackDevice != null)
-                    {
-                        captureIter.remove();
-                        captureDevicesWithPlayback.add(captureDevice);
-                        playbackDevicesWithCapture.add(
-                                matchingPlaybackDevice);
-                        count++;
-                    }
-                }
-            }
+            reinitialize();
         }
-
-        for (int i = count - 1; i >= 0; i--)
+        catch (Exception e)
         {
-            captureDevices.add(0, captureDevicesWithPlayback.get(i));
-            playbackDevices.add(0, playbackDevicesWithCapture.get(i));
+            logger.warn("Failed to reinitialize MacCoreaudio devices", e);
         }
-    }
-
-    /**
-     * Reinitializes this <tt>MacCoreaudioSystem</tt> in order to bring it up to
-     * date with possible changes in the MacCoreaudio devices. Invokes
-     * <tt>Pa_UpdateAvailableDeviceList()</tt> to update the devices on the
-     * native side and then {@link #initialize()} to reflect any changes on the
-     * Java side. Invoked by MacCoreaudio when it detects that the list of
-     * devices has changed.
-     *
-     * @throws Exception if there was an error during the invocation of
-     * <tt>Pa_UpdateAvailableDeviceList()</tt> and
-     * <tt>DeviceSystem.initialize()</tt>
-     */
-    private void reinitialize()
-        throws Exception
-    {
-        synchronized (updateAvailableDeviceListSyncRoot)
-        {
-            willUpdateAvailableDeviceList();
-            didUpdateAvailableDeviceList();
-        }
-
-        /*
-         * XXX We will likely minimize the risk of crashes on the native side
-         * even further by invoking initialize() with
-         * Pa_UpdateAvailableDeviceList locked. Unfortunately, that will likely
-         * increase the risks of deadlocks on the Java side.
-         */
-        invokeDeviceSystemInitialize(this);
     }
 
     /**
@@ -798,57 +382,9 @@ public class MacCoreaudioSystem
         return "Core Audio";
     }
 
-    /**
-     * Returns if the echo canceller has to be activated.
-     *
-     * @return True if the echo canceller has to be activated. False otherwise.
-     */
-    public static boolean isEchoCancelActivated()
+    @Override
+    protected void updateAvailableDeviceList()
     {
-        boolean isEchoCancel = true;
-
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-        if (cfg != null)
-            isEchoCancel = cfg.getBoolean(
-                    DeviceConfiguration.PROP_AUDIO_SYSTEM
-                    + "." + LOCATOR_PROTOCOL
-                    + "." + PNAME_ECHOCANCEL,
-                    isEchoCancel);
-
-        return isEchoCancel;
-    }
-
-    /**
-     * Gets the indicator which determines whether echo cancellation is to be
-     * performed for captured audio.
-     *
-     * @return <tt>true</tt> if echo cancellation is to be performed for
-     * captured audio; otherwise, <tt>false</tt>
-     */
-    public boolean isEchoCancel()
-    {
-        // This function is only implemented to disable by default the AEC for
-        // CoreAudio.
-        return isEchoCancelActivated();
-    }
-
-    /**
-     * Sets the indicator which determines whether echo cancellation is to be
-     * performed for captured audio.
-     *
-     * @param echoCancel <tt>true</tt> if echo cancellation is to be performed
-     * for captured audio; otherwise, <tt>false</tt>
-     */
-    public void setEchoCancel(boolean echoCancel)
-    {
-        super.setEchoCancel(echoCancel);
-        try
-        {
-            reinitialize();
-        }
-        catch(Exception ex)
-        {
-            logger.warn("Failed to reinitialize MacCoreaudio devices", ex);
-        }
+        // TODO Auto-generated method stub
     }
 }

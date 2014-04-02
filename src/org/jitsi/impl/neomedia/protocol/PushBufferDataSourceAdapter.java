@@ -122,6 +122,7 @@ public class PushBufferDataSourceAdapter
          * @return <tt>true</tt> if the wrapped <tt>PullBufferStream</tt> has
          * reached the end of the media data; otherwise, <tt>false</tt>
          */
+        @Override
         public boolean endOfStream()
         {
             return stream.endOfStream();
@@ -135,6 +136,7 @@ public class PushBufferDataSourceAdapter
          * <tt>PullBufferStream</tt> which describes the type of the media data
          * it gives access to
          */
+        @Override
         public ContentDescriptor getContentDescriptor()
         {
             return stream.getContentDescriptor();
@@ -147,6 +149,7 @@ public class PushBufferDataSourceAdapter
          * @return the length of the content the wrapped
          * <tt>PullBufferStream</tt> gives access to
          */
+        @Override
         public long getContentLength()
         {
             return stream.getContentLength();
@@ -165,6 +168,7 @@ public class PushBufferDataSourceAdapter
          * if the wrapped <tt>PushBufferStream</tt> does not have a control of
          * the specified type
          */
+        @Override
         public Object getControl(String controlType)
         {
             return stream.getControl(controlType);
@@ -177,6 +181,7 @@ public class PushBufferDataSourceAdapter
          * @return an array of <tt>Object</tt>s which represent the controls
          * available for the wrapped <tt>PushBufferStream</tt>
          */
+        @Override
         public Object[] getControls()
         {
             return stream.getControls();
@@ -188,6 +193,7 @@ public class PushBufferDataSourceAdapter
          *
          * @return the <tt>Format</tt> of the wrapped <tt>PullBufferStream</tt>
          */
+        @Override
         public Format getFormat()
         {
             return stream.getFormat();
@@ -202,6 +208,7 @@ public class PushBufferDataSourceAdapter
          * data from this <tt>PushBufferDataSource</tt> into the specified
          * <tt>buffer</tt>
          */
+        @Override
         public void read(Buffer buffer)
             throws IOException
         {
@@ -284,6 +291,7 @@ public class PushBufferDataSourceAdapter
          * which <tt>PushBufferStream</tt> is to notify its user that media data
          * is available for reading
          */
+        @Override
         public void setTransferHandler(BufferTransferHandler transferHandler)
         {
             if (this.transferHandler != transferHandler)
@@ -562,7 +570,9 @@ public class PushBufferDataSourceAdapter
         }
         catch (Throwable t)
         {
-            if (t instanceof ThreadDeath)
+            if (t instanceof InterruptedException)
+                Thread.currentThread().interrupt();
+            else if (t instanceof ThreadDeath)
                 throw (ThreadDeath) t;
 
             logger.warn("Failed to set the priority of streamReadThread");

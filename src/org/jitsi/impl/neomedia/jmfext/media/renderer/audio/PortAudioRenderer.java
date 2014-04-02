@@ -210,11 +210,12 @@ public class PortAudioRenderer
      * corruption afterwards and it will attempt to restore the state of this
      * <tt>Renderer</tt> after the invocation.
      */
-    private final PortAudioSystem.PaUpdateAvailableDeviceListListener
+    private final UpdateAvailableDeviceListListener
         paUpdateAvailableDeviceListListener
-            = new PortAudioSystem.PaUpdateAvailableDeviceListListener()
+            = new UpdateAvailableDeviceListListener()
             {
-                public void didPaUpdateAvailableDeviceList()
+                @Override
+                public void didUpdateAvailableDeviceList()
                     throws Exception
                 {
                     synchronized (PortAudioRenderer.this)
@@ -248,7 +249,8 @@ public class PortAudioRenderer
                     }
                 }
 
-                public void willPaUpdateAvailableDeviceList()
+                @Override
+                public void willUpdateAvailableDeviceList()
                     throws Exception
                 {
                     synchronized (PortAudioRenderer.this)
@@ -335,8 +337,11 @@ public class PortAudioRenderer
          * remove it because we will rely on PortAudioSystem's use of
          * WeakReference.
          */
-        PortAudioSystem.addPaUpdateAvailableDeviceListListener(
-                paUpdateAvailableDeviceListListener);
+        if (audioSystem != null)
+        {
+            audioSystem.addUpdateAvailableDeviceListListener(
+                    paUpdateAvailableDeviceListListener);
+        }
     }
 
     /**
@@ -520,14 +525,14 @@ public class PortAudioRenderer
     {
         try
         {
-            PortAudioSystem.willPaOpenStream();
+            audioSystem.willOpenStream();
             try
             {
                 doOpen();
             }
             finally
             {
-                PortAudioSystem.didPaOpenStream();
+                audioSystem.didOpenStream();
             }
         }
         catch (Throwable t)

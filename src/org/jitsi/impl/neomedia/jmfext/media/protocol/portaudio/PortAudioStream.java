@@ -44,6 +44,26 @@ public class PortAudioStream
     private static final long NEVER = DiagnosticsControl.NEVER;
 
     /**
+     * Causes the currently executing thread to temporarily pause and allow
+     * other threads to execute.
+     */
+    public static void yield()
+    {
+        boolean interrupted = false;
+
+        try
+        {
+            Thread.sleep(Pa.DEFAULT_MILLIS_PER_BUFFER);
+        }
+        catch (InterruptedException ie)
+        {
+            interrupted = true;
+        }
+        if (interrupted)
+            Thread.currentThread().interrupt();
+    }
+
+    /**
      * The indicator which determines whether audio quality improvement is
      * enabled for this <tt>PortAudioStream</tt> in accord with the preferences
      * of the user.
@@ -145,9 +165,9 @@ public class PortAudioStream
      */
     private long inputParameters = 0;
 
-    private final PortAudioSystem.PaUpdateAvailableDeviceListListener
+    private final UpdateAvailableDeviceListListener
         paUpdateAvailableDeviceListListener
-            = new PortAudioSystem.PaUpdateAvailableDeviceListListener()
+            = new UpdateAvailableDeviceListListener()
             {
                 /**
                  * The device ID (could be deviceUID or name but that is not
@@ -158,7 +178,8 @@ public class PortAudioStream
 
                 private boolean start = false;
 
-                public void didPaUpdateAvailableDeviceList()
+                @Override
+                public void didUpdateAvailableDeviceList()
                     throws Exception
                 {
                     synchronized (PortAudioStream.this)
@@ -192,7 +213,8 @@ public class PortAudioStream
                     }
                 }
 
-                public void willPaUpdateAvailableDeviceList()
+                @Override
+                public void willUpdateAvailableDeviceList()
                     throws Exception
                 {
                     synchronized (PortAudioStream.this)
@@ -290,12 +312,20 @@ public class PortAudioStream
                 : (GainControl) mediaServiceImpl.getInputVolumeControl();
 
         /*
-         * XXX We will add a PaUpdateAvailableDeviceListListener and will not
+         * XXX We will add a UpdateAvailableDeviceListListener and will not
          * remove it because we will rely on PortAudioSystem's use of
          * WeakReference.
          */
-        PortAudioSystem.addPaUpdateAvailableDeviceListListener(
-                paUpdateAvailableDeviceListListener);
+        AudioSystem2 audioSystem
+            = (AudioSystem2)
+                AudioSystem.getAudioSystem(
+                        AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO);
+
+        if (audioSystem != null)
+        {
+            audioSystem.addUpdateAvailableDeviceListListener(
+                    paUpdateAvailableDeviceListListener);
+        }
     }
 
     private void connect()
@@ -309,8 +339,7 @@ public class PortAudioStream
         if (deviceIndex == Pa.paNoDevice)
         {
             throw new IOException(
-                    "The audio device "
-                        + deviceID
+                    "The audio device " + deviceID
                         + " appears to be disconnected.");
         }
 
@@ -715,14 +744,21 @@ public class PortAudioStream
         // DataSource#connect
         if (this.deviceID != null)
         {
-            PortAudioSystem.willPaOpenStream();
+            AudioSystem2 audioSystem
+                = (AudioSystem2)
+                    AudioSystem.getAudioSystem(
+                            AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO);
+
+            if (audioSystem != null)
+                audioSystem.willOpenStream();
             try
             {
                 connect();
             }
             finally
             {
-                PortAudioSystem.didPaOpenStream();
+                if (audioSystem != null)
+                    audioSystem.didOpenStream();
             }
         }
     }
@@ -835,26 +871,6 @@ public class PortAudioStream
             {
                 interrupted = true;
             }
-        }
-        if (interrupted)
-            Thread.currentThread().interrupt();
-    }
-
-    /**
-     * Causes the currently executing thread to temporarily pause and allow
-     * other threads to execute.
-     */
-    public static void yield()
-    {
-        boolean interrupted = false;
-
-        try
-        {
-            Thread.sleep(Pa.DEFAULT_MILLIS_PER_BUFFER);
-        }
-        catch (InterruptedException ie)
-        {
-            interrupted = true;
         }
         if (interrupted)
             Thread.currentThread().interrupt();

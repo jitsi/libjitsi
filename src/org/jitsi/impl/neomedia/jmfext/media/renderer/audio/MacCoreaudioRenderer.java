@@ -117,40 +117,42 @@ public class MacCoreaudioRenderer
      * corruption afterwards and it will attempt to restore the state of this
      * <tt>Renderer</tt> after the invocation.
      */
-    private final MacCoreaudioSystem.UpdateAvailableDeviceListListener
+    private final UpdateAvailableDeviceListListener
         updateAvailableDeviceListListener
-            = new MacCoreaudioSystem.UpdateAvailableDeviceListListener()
-    {
-        private boolean start = false;
-
-        public void didUpdateAvailableDeviceList()
-            throws Exception
-        {
-            synchronized(startStopMutex)
+            = new UpdateAvailableDeviceListListener()
             {
-                updateDeviceUID();
-                if(start)
-                {
-                    open();
-                    start();
-                }
-            }
-        }
+                private boolean start = false;
 
-        public void willUpdateAvailableDeviceList()
-            throws Exception
-        {
-            synchronized(startStopMutex)
-            {
-                start = false;
-                if(stream != 0)
+                @Override
+                public void didUpdateAvailableDeviceList()
+                    throws Exception
                 {
-                    start = true;
-                    stop();
+                    synchronized(startStopMutex)
+                    {
+                        updateDeviceUID();
+                        if(start)
+                        {
+                            open();
+                            start();
+                        }
+                    }
                 }
-            }
-        }
-    };
+
+                @Override
+                public void willUpdateAvailableDeviceList()
+                    throws Exception
+                {
+                    synchronized(startStopMutex)
+                    {
+                        start = false;
+                        if(stream != 0)
+                        {
+                            start = true;
+                            stop();
+                        }
+                    }
+                }
+            };
 
     /**
      * Array of supported input formats.
@@ -180,11 +182,14 @@ public class MacCoreaudioRenderer
                     ? AudioSystem.DataFlow.PLAYBACK
                     : AudioSystem.DataFlow.NOTIFY);
 
-        // XXX We will add a PaUpdateAvailableDeviceListListener and will not
+        // XXX We will add an UpdateAvailableDeviceListListener and will not
         // remove it because we will rely on MacCoreaudioSystem's use of
         // WeakReference.
-        MacCoreaudioSystem.addUpdateAvailableDeviceListListener(
-                updateAvailableDeviceListListener);
+        if (audioSystem != null)
+        {
+            audioSystem.addUpdateAvailableDeviceListListener(
+                    updateAvailableDeviceListListener);
+        }
     }
 
     /**
@@ -269,14 +274,17 @@ public class MacCoreaudioRenderer
         AudioFormat audioFormat = (AudioFormat) format;
         int sampleSizeInBits = audioFormat.getSampleSizeInBits();
         double sampleRate = audioFormat.getSampleRate();
-        float minRate = MacCoreAudioDevice.getMinimalNominalSampleRate(
-                deviceUID,
-                true,
-                MacCoreaudioSystem.isEchoCancelActivated());
-        float maxRate = MacCoreAudioDevice.getMaximalNominalSampleRate(
-                deviceUID,
-                true,
-                MacCoreaudioSystem.isEchoCancelActivated());
+        boolean isEchoCancel = audioSystem.isEchoCancel();
+        float minRate
+            = MacCoreAudioDevice.getMinimalNominalSampleRate(
+                    deviceUID,
+                    true,
+                    isEchoCancel);
+        float maxRate
+            = MacCoreAudioDevice.getMaximalNominalSampleRate(
+                    deviceUID,
+                    true,
+                    isEchoCancel);
 
         for(int channels = minOutputChannels;
                 channels <= maxOutputChannels;
@@ -314,7 +322,7 @@ public class MacCoreaudioRenderer
         {
             if(stream == 0)
             {
-                MacCoreaudioSystem.willOpenStream();
+                audioSystem.willOpenStream();
                 try
                 {
                     if(!this.updateDeviceUID())
@@ -331,7 +339,7 @@ public class MacCoreaudioRenderer
                 }
                 finally
                 {
-                    MacCoreaudioSystem.didOpenStream();
+                    audioSystem.didOpenStream();
                 }
 
             }
@@ -448,19 +456,27 @@ public class MacCoreaudioRenderer
                 if (nbChannels == Format.NOT_SPECIFIED)
                     nbChannels = 1;
 
-                MacCoreaudioSystem.willOpenStream();
-                stream = MacCoreAudioDevice.startStream(
-                        deviceUID,
-                        this,
-                        (float) inputFormat.getSampleRate(),
-                        nbChannels,
-                        inputFormat.getSampleSizeInBits(),
-                        false,
-                        inputFormat.getEndian() == AudioFormat.BIG_ENDIAN,
-                        false,
-                        false,
-                        MacCoreaudioSystem.isEchoCancelActivated());
-                MacCoreaudioSystem.didOpenStream();
+                audioSystem.willOpenStream();
+                try
+                {
+                    stream
+                        = MacCoreAudioDevice.startStream(
+                                deviceUID,
+                                this,
+                                (float) inputFormat.getSampleRate(),
+                                nbChannels,
+                                inputFormat.getSampleSizeInBits(),
+                                false,
+                                inputFormat.getEndian()
+                                    == AudioFormat.BIG_ENDIAN,
+                                false,
+                                false,
+                                audioSystem.isEchoCancel());
+                }
+                finally
+                {
+                    audioSystem.didOpenStream();
+                }
             }
         }
     }
