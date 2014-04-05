@@ -5,8 +5,8 @@
  * See terms of license at gnu.org.
  */
 
-#ifndef __maccoreaudio_util_h
-#define __maccoreaudio_util_h
+#ifndef __MacCoreaudio_util_h
+#define __MacCoreaudio_util_h
 
 #include <jni.h>
 
@@ -21,25 +21,25 @@ JNI_OnLoad(JavaVM *vm, void *pvt);
 JNIEXPORT void JNICALL
 JNI_OnUnload(JavaVM *vm, void *pvt);
 
-jbyteArray maccoreaudio_getStrBytes(
+jbyteArray MacCoreaudio_getStrBytes(
         JNIEnv *env,
         const char *str);
 
-jmethodID maccoreaudio_getCallbackMethodID(
+jmethodID MacCoreaudio_getCallbackMethodID(
         JNIEnv *env,
         jobject callback,
         char* callbackFunctionName);
 
-void maccoreaudio_callbackMethod(
+void MacCoreaudio_callbackMethod(
         char *buffer,
         int bufferLength,
         void* callback,
         void* callbackMethod);
 
-void maccoreaudio_devicesChangedCallbackMethod(
+void MacCoreaudio_devicesChangedCallbackMethod(
         void);
 
-void maccoreaudio_log(
+void MacCoreaudio_log(
         const char * error_format,
         ...);
 

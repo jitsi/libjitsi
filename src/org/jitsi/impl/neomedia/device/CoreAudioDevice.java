@@ -11,7 +11,7 @@ import org.jitsi.util.*;
 /**
  * JNI link to the MacOsX / Windows CoreAudio library.
  *
- * @author Vincent Lucqs
+ * @author Vincent Lucas
  */
 public class CoreAudioDevice
 {
@@ -41,7 +41,6 @@ public class CoreAudioDevice
             {
                 System.loadLibrary("jnmaccoreaudio");
                 isLoaded = true;
-                WebrtcAec.init();
             }
             else if (OSUtils.IS_WINDOWS_VISTA
                     || OSUtils.IS_WINDOWS_7
@@ -133,9 +132,7 @@ public class CoreAudioDevice
             = CoreAudioDevice.devicesChangedCallback;
 
         if(devicesChangedCallback != null)
-        {
             devicesChangedCallback.run();
-        }
     }
 
     public static void setDevicesChangedCallback(

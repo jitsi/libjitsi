@@ -5,9 +5,9 @@
  * See terms of license at gnu.org.
  */
 
-#include "maccoreaudio_util.h"
+#include "MacCoreaudio_util.h"
 
-#include "../lib/device.h"
+#include "device.h"
 
 #include <string.h>
 
@@ -19,14 +19,14 @@
 
 // Private static objects.
 
-static JavaVM * maccoreaudio_VM = NULL;
+static JavaVM * MacCoreaudio_VM = NULL;
 
-static jclass maccoreaudio_devicesChangedCallbackClass = 0;
-static jmethodID maccoreaudio_devicesChangedCallbackMethodID = 0;
+static jclass MacCoreaudio_devicesChangedCallbackClass = 0;
+static jmethodID MacCoreaudio_devicesChangedCallbackMethodID = 0;
 
-void maccoreaudio_initHotplug(
+void MacCoreaudio_initHotplug(
         void);
-void maccoreaudio_freeHotplug(
+void MacCoreaudio_freeHotplug(
         void);
 
 
@@ -35,16 +35,16 @@ void maccoreaudio_freeHotplug(
 JNIEXPORT jint JNICALL
 JNI_OnLoad(JavaVM *vm, void *pvt)
 {
-    maccoreaudio_VM = vm;
-    maccoreaudio_initHotplug();
+    MacCoreaudio_VM = vm;
+    MacCoreaudio_initHotplug();
     return JNI_VERSION_1_6;
 }
 
 JNIEXPORT void JNICALL
 JNI_OnUnload(JavaVM *vm, void *pvt)
 {
-    maccoreaudio_freeHotplug();
-    maccoreaudio_VM = NULL;
+    MacCoreaudio_freeHotplug();
+    MacCoreaudio_VM = NULL;
 }
 
 /**
@@ -57,7 +57,7 @@ JNI_OnUnload(JavaVM *vm, void *pvt)
  * @return a new <tt>jbyteArray</tt> instance which is initialized with the
  * bytes of the specified <tt>str</tt>
  */
-jbyteArray maccoreaudio_getStrBytes(
+jbyteArray MacCoreaudio_getStrBytes(
         JNIEnv *env,
         const char *str)
 {
@@ -86,7 +86,7 @@ jbyteArray maccoreaudio_getStrBytes(
  * @return A callback method identifier. 0 if the callback function is not
  * found.
  */
-jmethodID maccoreaudio_getCallbackMethodID(
+jmethodID MacCoreaudio_getCallbackMethodID(
         JNIEnv *env,
         jobject callback,
         char* callbackFunctionName)
@@ -114,7 +114,7 @@ jmethodID maccoreaudio_getCallbackMethodID(
  * Calls back the java side when respectively reading / wrtiting the input
  * /output stream.
  */
-void maccoreaudio_callbackMethod(
+void MacCoreaudio_callbackMethod(
         char *buffer,
         int bufferLength,
         void* callback,
@@ -122,8 +122,8 @@ void maccoreaudio_callbackMethod(
 {
     JNIEnv *env = NULL;
 
-    if((*maccoreaudio_VM)->AttachCurrentThreadAsDaemon(
-                maccoreaudio_VM,
+    if((*MacCoreaudio_VM)->AttachCurrentThreadAsDaemon(
+                MacCoreaudio_VM,
                 (void**) &env,
                 NULL)
             == 0)
@@ -148,50 +148,50 @@ void maccoreaudio_callbackMethod(
         (*env)->ReleaseByteArrayElements(env, bufferBytes, bytes, 0);
         (*env)->DeleteLocalRef(env, bufferBytes);
 
-        (*maccoreaudio_VM)->DetachCurrentThread(maccoreaudio_VM);
+        (*MacCoreaudio_VM)->DetachCurrentThread(MacCoreaudio_VM);
     }
 }
 
 /**
  * Calls back the java side when the device list has changed.
  */
-void maccoreaudio_devicesChangedCallbackMethod(void)
+void MacCoreaudio_devicesChangedCallbackMethod(void)
 {
     JNIEnv *env = NULL;
 
-    if((*maccoreaudio_VM)->AttachCurrentThreadAsDaemon(
-                maccoreaudio_VM,
+    if((*MacCoreaudio_VM)->AttachCurrentThreadAsDaemon(
+                MacCoreaudio_VM,
                 (void**) &env,
                 NULL)
             == 0)
     {
-        jclass class = maccoreaudio_devicesChangedCallbackClass;
-        jmethodID methodID = maccoreaudio_devicesChangedCallbackMethodID;
+        jclass class = MacCoreaudio_devicesChangedCallbackClass;
+        jmethodID methodID = MacCoreaudio_devicesChangedCallbackMethodID;
         if(class && methodID)
         {
             (*env)->CallStaticVoidMethod(env, class, methodID);
         }
 
-        (*maccoreaudio_VM)->DetachCurrentThread(maccoreaudio_VM);
+        (*MacCoreaudio_VM)->DetachCurrentThread(MacCoreaudio_VM);
     }
 }
 
 /**
  * Initializes the hotplug callback process.
  */
-void maccoreaudio_initHotplug(
+void MacCoreaudio_initHotplug(
         void)
 {
     JNIEnv *env = NULL;
 
-    if((*maccoreaudio_VM)->AttachCurrentThreadAsDaemon(
-                maccoreaudio_VM,
+    if((*MacCoreaudio_VM)->AttachCurrentThreadAsDaemon(
+                MacCoreaudio_VM,
                 (void**) &env,
                 NULL)
             == 0)
     {
-        if(maccoreaudio_devicesChangedCallbackClass == NULL
-                && maccoreaudio_devicesChangedCallbackMethodID == NULL)
+        if(MacCoreaudio_devicesChangedCallbackClass == NULL
+                && MacCoreaudio_devicesChangedCallbackMethodID == NULL)
         {
             jclass devicesChangedCallbackClass = (*env)->FindClass(
                     env,
@@ -212,43 +212,43 @@ void maccoreaudio_initHotplug(
 
                     if (devicesChangedCallbackMethodID)
                     {
-                        maccoreaudio_devicesChangedCallbackClass
+                        MacCoreaudio_devicesChangedCallbackClass
                             = devicesChangedCallbackClass;
-                        maccoreaudio_devicesChangedCallbackMethodID
+                        MacCoreaudio_devicesChangedCallbackMethodID
                             = devicesChangedCallbackMethodID;
 
-                        maccoreaudio_initializeHotplug(
-                                maccoreaudio_devicesChangedCallbackMethod);
+                        MacCoreaudio_initializeHotplug(
+                                MacCoreaudio_devicesChangedCallbackMethod);
                     }
                 }
             }
         }
-        (*maccoreaudio_VM)->DetachCurrentThread(maccoreaudio_VM);
+        (*MacCoreaudio_VM)->DetachCurrentThread(MacCoreaudio_VM);
     }
 }
 
 /**
  * Frees the hotplug callback process.
  */
-void maccoreaudio_freeHotplug(
+void MacCoreaudio_freeHotplug(
         void)
 {
-    maccoreaudio_uninitializeHotplug();
+    MacCoreaudio_uninitializeHotplug();
     JNIEnv *env = NULL;
 
-    if((*maccoreaudio_VM)->AttachCurrentThreadAsDaemon(
-                maccoreaudio_VM,
+    if((*MacCoreaudio_VM)->AttachCurrentThreadAsDaemon(
+                MacCoreaudio_VM,
                 (void**) &env,
                 NULL)
             == 0)
     {
         (*env)->DeleteGlobalRef(
                 env,
-                maccoreaudio_devicesChangedCallbackClass);
-        (*maccoreaudio_VM)->DetachCurrentThread(maccoreaudio_VM);
+                MacCoreaudio_devicesChangedCallbackClass);
+        (*MacCoreaudio_VM)->DetachCurrentThread(MacCoreaudio_VM);
     }
-    maccoreaudio_devicesChangedCallbackClass = NULL;
-    maccoreaudio_devicesChangedCallbackMethodID = NULL;
+    MacCoreaudio_devicesChangedCallbackClass = NULL;
+    MacCoreaudio_devicesChangedCallbackMethodID = NULL;
 }
 
 /**
@@ -257,14 +257,14 @@ void maccoreaudio_freeHotplug(
  * @param error_format The format of the error message.
  * @param ... The list of variable specified in the format argument.
  */
-void maccoreaudio_log(
+void MacCoreaudio_log(
         const char * error_format,
         ...)
 {
     JNIEnv *env = NULL;
 
-    if((*maccoreaudio_VM)->AttachCurrentThreadAsDaemon(
-                maccoreaudio_VM,
+    if((*MacCoreaudio_VM)->AttachCurrentThreadAsDaemon(
+                MacCoreaudio_VM,
                 (void**) &env,
                 NULL)
             == 0)
@@ -296,6 +296,6 @@ void maccoreaudio_log(
             (*env)->CallStaticVoidMethod(env, clazz, methodID, bufferBytes);
         }
 
-        (*maccoreaudio_VM)->DetachCurrentThread(maccoreaudio_VM);
+        (*MacCoreaudio_VM)->DetachCurrentThread(MacCoreaudio_VM);
     }
 }

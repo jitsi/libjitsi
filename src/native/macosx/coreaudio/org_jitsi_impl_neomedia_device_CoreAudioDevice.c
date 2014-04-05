@@ -7,8 +7,8 @@
 
 #include "org_jitsi_impl_neomedia_device_CoreAudioDevice.h"
 
-#include "../lib/device.h"
-#include "maccoreaudio_util.h"
+#include "device.h"
+#include "MacCoreaudio_util.h"
 
 /**
  * JNI code for CoreAudioDevice.
@@ -20,16 +20,17 @@
 
 JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_initDevices
-  (JNIEnv *env, jclass clazz)
+    (JNIEnv *env, jclass clazz)
 {
-    return maccoreaudio_initDevices();
+    // TODO Auto-generated method stub
+    return 0;
 }
 
 JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_freeDevices
-  (JNIEnv *env, jclass clazz)
+    (JNIEnv *env, jclass clazz)
 {
-    maccoreaudio_freeDevices();
+    // TODO Auto-generated method stub
 }
 
 JNIEXPORT jbyteArray JNICALL
@@ -37,8 +38,8 @@ Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_getDeviceNameBytes
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
-    char * deviceName = maccoreaudio_getDeviceName(deviceUIDPtr);
-    jbyteArray deviceNameBytes = maccoreaudio_getStrBytes(env, deviceName);
+    char * deviceName = MacCoreaudio_getDeviceName(deviceUIDPtr);
+    jbyteArray deviceNameBytes = MacCoreaudio_getStrBytes(env, deviceName);
     // Free
     free(deviceName);
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
@@ -52,9 +53,9 @@ Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_getDeviceModelIdentifierByte
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
     char * deviceModelIdentifier
-        = maccoreaudio_getDeviceModelIdentifier(deviceUIDPtr);
+        = MacCoreaudio_getDeviceModelIdentifier(deviceUIDPtr);
     jbyteArray deviceModelIdentifierBytes
-        = maccoreaudio_getStrBytes(env, deviceModelIdentifier);
+        = MacCoreaudio_getStrBytes(env, deviceModelIdentifier);
     // Free
     free(deviceModelIdentifier);
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
@@ -67,7 +68,7 @@ Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_setInputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID, jfloat volume)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
-    jint err = maccoreaudio_setInputDeviceVolume(deviceUIDPtr, volume);
+    jint err = MacCoreaudio_setInputDeviceVolume(deviceUIDPtr, volume);
     // Free
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
@@ -79,7 +80,7 @@ Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_setOutputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID, jfloat volume)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
-    jint err = maccoreaudio_setOutputDeviceVolume(deviceUIDPtr, volume);
+    jint err = MacCoreaudio_setOutputDeviceVolume(deviceUIDPtr, volume);
     // Free
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
@@ -91,7 +92,7 @@ Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_getInputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
-    jfloat volume = maccoreaudio_getInputDeviceVolume(deviceUIDPtr);
+    jfloat volume = MacCoreaudio_getInputDeviceVolume(deviceUIDPtr);
     // Free
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
@@ -103,7 +104,7 @@ Java_org_jitsi_impl_neomedia_device_CoreAudioDevice_getOutputDeviceVolume
   (JNIEnv *env, jclass clazz, jstring deviceUID)
 {
     const char * deviceUIDPtr = (*env)->GetStringUTFChars(env, deviceUID, 0);
-    jfloat volume = maccoreaudio_getOutputDeviceVolume(deviceUIDPtr);
+    jfloat volume = MacCoreaudio_getOutputDeviceVolume(deviceUIDPtr);
     // Free
     (*env)->ReleaseStringUTFChars(env, deviceUID, deviceUIDPtr);
 
