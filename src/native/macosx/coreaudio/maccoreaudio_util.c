@@ -24,10 +24,8 @@ static JavaVM * MacCoreaudio_VM = NULL;
 static jclass MacCoreaudio_devicesChangedCallbackClass = 0;
 static jmethodID MacCoreaudio_devicesChangedCallbackMethodID = 0;
 
-void MacCoreaudio_initHotplug(
-        void);
-void MacCoreaudio_freeHotplug(
-        void);
+void MacCoreaudio_initHotplug();
+void MacCoreaudio_freeHotplug();
 
 
 // Implementation
@@ -57,9 +55,7 @@ JNI_OnUnload(JavaVM *vm, void *pvt)
  * @return a new <tt>jbyteArray</tt> instance which is initialized with the
  * bytes of the specified <tt>str</tt>
  */
-jbyteArray MacCoreaudio_getStrBytes(
-        JNIEnv *env,
-        const char *str)
+jbyteArray MacCoreaudio_getStrBytes(JNIEnv *env, const char *str)
 {
     jbyteArray bytes;
 
@@ -155,7 +151,7 @@ void MacCoreaudio_callbackMethod(
 /**
  * Calls back the java side when the device list has changed.
  */
-void MacCoreaudio_devicesChangedCallbackMethod(void)
+void MacCoreaudio_devicesChangedCallbackMethod()
 {
     JNIEnv *env = NULL;
 
@@ -179,8 +175,7 @@ void MacCoreaudio_devicesChangedCallbackMethod(void)
 /**
  * Initializes the hotplug callback process.
  */
-void MacCoreaudio_initHotplug(
-        void)
+void MacCoreaudio_initHotplug()
 {
     JNIEnv *env = NULL;
 
@@ -230,8 +225,7 @@ void MacCoreaudio_initHotplug(
 /**
  * Frees the hotplug callback process.
  */
-void MacCoreaudio_freeHotplug(
-        void)
+void MacCoreaudio_freeHotplug()
 {
     MacCoreaudio_uninitializeHotplug();
     JNIEnv *env = NULL;
@@ -257,9 +251,7 @@ void MacCoreaudio_freeHotplug(
  * @param error_format The format of the error message.
  * @param ... The list of variable specified in the format argument.
  */
-void MacCoreaudio_log(
-        const char * error_format,
-        ...)
+void MacCoreaudio_log(const char *error_format, ...)
 {
     JNIEnv *env = NULL;
 

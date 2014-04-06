@@ -269,7 +269,7 @@ AudioDeviceID MacCoreaudio_getDeviceForSpecificScope(
     if((deviceUIDRef = CFStringCreateWithCString(
             kCFAllocatorDefault,
             deviceUID,
-            kCFStringEncodingASCII)) == NULL)
+            kCFStringEncodingUTF8)) == NULL)
     {
         MacCoreaudio_log(
                 "MacCoreaudio_getDevice (coreaudio/device.c): \
@@ -486,13 +486,12 @@ char* MacCoreaudio_getAudioDeviceProperty(
         return NULL;
     }
 
-    // Converts the device property to ASCII.
-    CFIndex devicePropertyLength = CFStringGetLength(deviceProperty) + 1;
-    char * deviceASCIIProperty;
+    // Converts the device property to UTF-8.
+    CFIndex devicePropertyLength
+        = (CFStringGetLength(deviceProperty) + 1) * 4 * sizeof(char);
+    char *chars = (char *) malloc(devicePropertyLength);
     // The caller of this function must free the string.
-    if((deviceASCIIProperty
-                = (char *) malloc(devicePropertyLength * sizeof(char)))
-            == NULL)
+    if(chars == NULL)
     {
         MacCoreaudio_log(
                 "%s: %s\n",
@@ -503,11 +502,15 @@ char* MacCoreaudio_getAudioDeviceProperty(
     }
     if(CFStringGetCString(
                 deviceProperty,
-                deviceASCIIProperty,
+                chars,
                 devicePropertyLength,
-                kCFStringEncodingASCII))
+                kCFStringEncodingUTF8))
     {
-        return deviceASCIIProperty;
+        return chars;
+    }
+    else
+    {
+        free(chars);
     }
     return NULL;
 }

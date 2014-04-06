@@ -15,32 +15,25 @@
  *
  * @author Vincent Lucas
  */
-JNIEXPORT jint JNICALL
-JNI_OnLoad(JavaVM *vm, void *pvt);
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *pvt);
 
-JNIEXPORT void JNICALL
-JNI_OnUnload(JavaVM *vm, void *pvt);
+JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *pvt);
 
-jbyteArray MacCoreaudio_getStrBytes(
-        JNIEnv *env,
-        const char *str);
+jbyteArray MacCoreaudio_getStrBytes(JNIEnv *env, const char *str);
 
 jmethodID MacCoreaudio_getCallbackMethodID(
         JNIEnv *env,
         jobject callback,
-        char* callbackFunctionName);
+        char *callbackFunctionName);
 
 void MacCoreaudio_callbackMethod(
         char *buffer,
         int bufferLength,
-        void* callback,
-        void* callbackMethod);
+        void *callback,
+        void *callbackMethod);
 
-void MacCoreaudio_devicesChangedCallbackMethod(
-        void);
+void MacCoreaudio_devicesChangedCallbackMethod();
 
-void MacCoreaudio_log(
-        const char * error_format,
-        ...);
+void MacCoreaudio_log(const char *error_format, ...);
 
 #endif
