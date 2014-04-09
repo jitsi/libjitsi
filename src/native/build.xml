@@ -919,6 +919,7 @@
       <compilerarg value="-arch" />
       <compilerarg value="i386" />
       <compilerarg value="-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers" />
+      <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers" />
 
       <linkerarg value="-o" location="end" />
       <linkerarg value="libjnmaccoreaudio.jnilib" location="end" />
@@ -1099,6 +1100,7 @@
       <compilerarg value="-I${webrtc.src}/trunk" />
       <compilerarg value="-I${webrtc.src}/trunk/webrtc" />
       <compilerarg value="-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers" />
+      <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers" />
 
       <fileset dir="${webrtc.src}/trunk/webrtc/modules/audio_processing/"
             includes="audio_buffer.cc"/>

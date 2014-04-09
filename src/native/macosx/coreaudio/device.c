@@ -1292,55 +1292,46 @@ const char* MacCoreaudio_getTransportType(const char * deviceUID)
 
     switch(transportType)
     {
-    case kAudioDeviceTransportTypeAggregate:
-        return transportTypeAggregate;
-        break;
-    case kAudioDeviceTransportTypeAirPlay:
-        return transportTypeAirPlay;
-        break;
-    case kAudioDeviceTransportTypeAutoAggregate:
-        return transportTypeAutoAggregate;
-        break;
-    case kAudioDeviceTransportTypeAVB:
-        return transportTypeAVB;
-        break;
-    case kAudioDeviceTransportTypeBluetooth:
-        return transportTypeBlueTooth;
-        break;
-    case kAudioDeviceTransportTypeBuiltIn:
-        return transportTypeBuiltIn;
-        break;
-    case kAudioDeviceTransportTypeDisplayPort:
-        return transportTypeDisplayPort;
-        break;
-    case kAudioDeviceTransportTypeFireWire:
-        return transportTypeFireWire;
-        break;
-    case kAudioDeviceTransportTypeHDMI:
-        return transportTypeHDMI;
-        break;
-    case kAudioDeviceTransportTypePCI:
-        return transportTypePCI;
-        break;
-    case kAudioDeviceTransportTypeThunderbolt:
-        return transportTypeThunderbolt;
-        break;
     case kAudioDeviceTransportTypeUnknown:
         return transportTypeUnknown;
-        break;
-    case kAudioDeviceTransportTypeUSB:
-        return transportTypeUSB;
-        break;
+    case kAudioDeviceTransportTypeBuiltIn:
+        return transportTypeBuiltIn;
+    case kAudioDeviceTransportTypeAggregate:
+        return transportTypeAggregate;
+    case kAudioDeviceTransportTypeAutoAggregate:
+        return transportTypeAutoAggregate;
     case kAudioDeviceTransportTypeVirtual:
         return transportTypeVirtual;
-        break;
+    case kAudioDeviceTransportTypePCI:
+        return transportTypePCI;
+    case kAudioDeviceTransportTypeUSB:
+        return transportTypeUSB;
+    case kAudioDeviceTransportTypeFireWire:
+        return transportTypeFireWire;
+    case kAudioDeviceTransportTypeBluetooth:
+        return transportTypeBlueTooth;
+    case kAudioDeviceTransportTypeHDMI:
+        return transportTypeHDMI;
+    case kAudioDeviceTransportTypeDisplayPort:
+        return transportTypeDisplayPort;
+
+    /*
+     * XXX The following constants were added in OS X 10.8 but we want to target
+     * earlier versions if possible.
+     */
+    case /* kAudioDeviceTransportTypeAirPlay */ 'airp':
+        return transportTypeAirPlay;
+    case /* kAudioDeviceTransportTypeAVB */ 'eavb':
+        return transportTypeAVB;
+    case /* kAudioDeviceTransportTypeThunderbolt */ 'thun':
+        return transportTypeThunderbolt;
+
     default:
         MacCoreaudio_log(
                 "MacCoreaudio_getTransportType (coreaudio/device.c): \
                     \n\tNo transport type found for device %s",
                 deviceUID);
         return NULL;
-        break;
     }
 }
 
