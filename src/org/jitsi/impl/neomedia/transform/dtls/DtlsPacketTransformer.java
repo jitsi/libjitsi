@@ -227,10 +227,13 @@ public class DtlsPacketTransformer
      * to try to establish a DTLS connection.
      *
      * @param i the number of tries remaining after the current one
+     * @param datagramTransport
      * @return <tt>true</tt> to try to establish a DTLS connection; otherwise,
      * <tt>false</tt>
      */
-    private boolean enterRunInConnectThreadLoop(int i)
+    private boolean enterRunInConnectThreadLoop(
+            int i,
+            DatagramTransport datagramTransport)
     {
         if ((i < 0) || (i > CONNECT_TRIES))
         {
@@ -654,7 +657,7 @@ public class DtlsPacketTransformer
 
             for (int i = CONNECT_TRIES - 1; i >= 0; i--)
             {
-                if (!enterRunInConnectThreadLoop(i))
+                if (!enterRunInConnectThreadLoop(i, datagramTransport))
                     break;
                 try
                 {
@@ -694,7 +697,7 @@ public class DtlsPacketTransformer
 
             for (int i = CONNECT_TRIES - 1; i >= 0; i--)
             {
-                if (!enterRunInConnectThreadLoop(i))
+                if (!enterRunInConnectThreadLoop(i, datagramTransport))
                     break;
                 try
                 {

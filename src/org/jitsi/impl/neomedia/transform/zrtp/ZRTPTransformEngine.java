@@ -397,6 +397,16 @@ public class ZRTPTransformEngine
     private long zrtpUnprotect;
 
     /**
+     * The indicator which determines whether
+     * {@link SrtpControl.TransformEngine#cleanup()} has been invoked on this
+     * instance to prepare it for garbage collection. Disallows
+     * {@link #getRTCPTransformer()} to initialize a new
+     * <tt>ZRTCPTransformer</tt> instance which cannot possibly be correctly
+     * used after the disposal of this instance anyway.
+     */
+    private boolean disposed = false;
+
+    /**
      * Construct a ZRTPTransformEngine.
      *
      */
@@ -418,7 +428,7 @@ public class ZRTPTransformEngine
      */
     public ZRTCPTransformer getRTCPTransformer()
     {
-        if(zrtcpTransformer == null)
+        if ((zrtcpTransformer == null) && !disposed)
             zrtcpTransformer = new ZRTCPTransformer();
         return zrtcpTransformer;
     }
@@ -670,8 +680,11 @@ public class ZRTPTransformEngine
     /**
      * Cleanup function for any remaining timers
      */
+    @Override
     public void cleanup()
     {
+        disposed = true;
+
         stopZrtp();
 
         if (timeoutProvider != null)

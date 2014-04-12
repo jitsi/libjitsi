@@ -26,6 +26,13 @@ public class DtlsTransformEngine
     private AbstractRTPConnector connector;
 
     /**
+     * The indicator which determines whether
+     * {@link SrtpControl.TransformEngine#cleanup()} has been invoked on this
+     * instance to prepare it for garbage collection.
+     */
+    private boolean disposed = false;
+
+    /**
      * The <tt>DtlsControl</tt> which has initialized this instance.
      */
     private final DtlsControlImpl dtlsControl;
@@ -62,8 +69,11 @@ public class DtlsTransformEngine
     /**
      * {@inheritDoc}
      */
+    @Override
     public void cleanup()
     {
+        disposed = true;
+
         for (int i = 0; i < packetTransformers.length; i++)
         {
             DtlsPacketTransformer packetTransformer = packetTransformers[i];
@@ -123,7 +133,7 @@ public class DtlsTransformEngine
         int index = componentID - 1;
         DtlsPacketTransformer packetTransformer = packetTransformers[index];
 
-        if (packetTransformer == null)
+        if ((packetTransformer == null) && !disposed)
         {
             packetTransformer = createPacketTransformer(componentID);
             if (packetTransformer != null)
