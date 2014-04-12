@@ -173,7 +173,7 @@ public class MediaStreamImpl
     /**
      * Our own SSRC identifier.
      */
-    private long localSourceID = -1;
+    private long localSourceID = new Random().nextInt();
 
     /**
      * The list of CSRC IDs contributing to the media that this
@@ -250,7 +250,7 @@ public class MediaStreamImpl
      * instance will employ internal logic to generate new synchronization
      * source (SSRC) identifiers.
      */
-    private SSRCFactory ssrcFactory;
+    private SSRCFactory ssrcFactory = new SSRCFactoryImpl(localSourceID);
 
     /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
