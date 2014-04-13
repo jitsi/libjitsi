@@ -15,12 +15,6 @@ public interface ZrtpControl
     extends SrtpControl
 {
     /**
-     * The human-readable non-localized name of the (S)RTP transport protocol
-     * represented by <tt>ZrtpControl</tt>.
-     */
-    public static final String PROTO_NAME = SrtpControlType.ZRTP.toString();
-
-    /**
      * Gets the cipher information for the current media stream.
      *
      * @return the cipher information string.

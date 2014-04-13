@@ -17,13 +17,6 @@ public interface DtlsControl
     extends SrtpControl
 {
     /**
-     * The human-readable non-localized name of the (S)RTP transport protocol
-     * represented by <tt>DtlsControl</tt>.
-     */
-    public static final String PROTO_NAME
-        = SrtpControlType.DTLS_SRTP.toString();
-
-    /**
      * The transport protocol (i.e. <tt>&lt;proto&gt;</tt>) to be specified in
      * a SDP media description (i.e. <tt>m=</tt> line) in order to denote a
      * RTP/SAVP stream transported over DTLS with UDP. 

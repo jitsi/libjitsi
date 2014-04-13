@@ -62,4 +62,19 @@ public enum SrtpControlType
     {
         return protoName;
     }
+
+    /**
+     * @see SrtpControlType#valueOf(String)
+     */
+    public static SrtpControlType fromString(String protoName)
+    {
+        if (protoName.equals(SrtpControlType.DTLS_SRTP.toString()))
+        {
+            return SrtpControlType.DTLS_SRTP;
+        }
+        else
+        {
+            return SrtpControlType.valueOf(protoName);
+        }
+    }
 }
