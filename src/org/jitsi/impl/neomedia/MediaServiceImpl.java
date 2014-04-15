@@ -135,6 +135,12 @@ public class MediaServiceImpl
         = "net.java.sip.communicator.impl.neomedia.codec.EncodingConfiguration";
 
     /**
+     * The value which will be used for the canonical end-point identifier
+     * (CNAME) in RTCP packets sent by this running instance of libjitsi.
+     */
+    private static final String rtpCname = UUID.randomUUID().toString();
+
+    /**
      * The <tt>CaptureDevice</tt> user choices such as the default audio and
      * video capture devices.
      */
@@ -1633,6 +1639,14 @@ public class MediaServiceImpl
         return
             ((cfg == null) || !cfg.getBoolean(propertyName, false))
                 && !Boolean.getBoolean(propertyName);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public String getRtpCname()
+    {
+        return rtpCname;
     }
 
     /**

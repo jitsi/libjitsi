@@ -380,4 +380,14 @@ public interface MediaService
      * list of listeners interested in notifications from <tt>Recorder</tt>s
      */
     public void removeRecorderListener(Recorder.Listener listener);
+
+    /**
+     * Returns the value which will be used for the canonical end-point
+     * identifier (CNAME) in RTCP packets sent by this running instance of
+     * libjitsi.
+     * @return the value which will be used for the canonical end-point
+     * identifier (CNAME) in RTCP packets sent by this running instance of
+     * libjitsi.
+     */
+    public String getRtpCname();
 }
