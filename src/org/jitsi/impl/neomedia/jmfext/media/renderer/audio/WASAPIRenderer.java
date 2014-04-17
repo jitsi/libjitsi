@@ -48,6 +48,128 @@ public class WASAPIRenderer
         = "Windows Audio Session API (WASAPI) Renderer";
 
     /**
+     * Finds the first non-<tt>null</tt> element in a specific array of
+     * <tt>AudioFormat</tt>s.
+     *
+     * @param formats the array of <tt>AudioFormat</tt>s in which the first
+     * non-<tt>null</tt> element is to be found
+     * @return the first non-<tt>null</tt> element in <tt>format</tt>s if any;
+     * otherwise, <tt>null</tt>
+     */
+    private static AudioFormat findFirst(AudioFormat[] formats)
+    {
+        AudioFormat format = null;
+
+        for (AudioFormat aFormat : formats)
+        {
+            if (aFormat != null)
+            {
+                format = aFormat;
+                break;
+            }
+        }
+        return format;
+    }
+
+    /**
+     * Attempts to initialize and open a new <tt>Codec</tt> to resample media
+     * data from a specific input <tt>AudioFormat</tt> into a specific output
+     * <tt>AudioFormat</tt>. If no suitable resampler is found, returns
+     * <tt>null</tt>. If a suitable resampler is found but its initialization or
+     * opening fails, logs and swallows any <tt>Throwable</tt> and returns
+     * <tt>null</tt>.
+     *
+     * @param inFormat the <tt>AudioFormat</tt> in which the new instance is to
+     * input media data
+     * @param outFormat the <tt>AudioFormat</tt> in which the new instance is to
+     * output media data
+     * @return a new <tt>Codec</tt> which is able to resample media data from
+     * the specified <tt>inFormat</tt> into the specified <tt>outFormat</tt> if
+     * such a resampler could be found, initialized and opened; otherwise,
+     * <tt>null</tt>
+     */
+    public static Codec maybeOpenResampler(
+            AudioFormat inFormat,
+            AudioFormat outFormat)
+    {
+        @SuppressWarnings("unchecked")
+        List<String> classNames
+            = PlugInManager.getPlugInList(
+                    inFormat,
+                    outFormat,
+                    PlugInManager.CODEC);
+        Codec resampler = null;
+
+        if (classNames != null)
+        {
+            for (String className : classNames)
+            {
+                try
+                {
+                    Codec codec
+                        = (Codec) Class.forName(className).newInstance();
+                    Format setInput = codec.setInputFormat(inFormat);
+
+                    if ((setInput != null) && inFormat.matches(setInput))
+                    {
+                        Format setOutput = codec.setOutputFormat(outFormat);
+
+                        if ((setOutput != null) && outFormat.matches(setOutput))
+                        {
+                            codec.open();
+                            resampler = codec;
+                            break;
+                        }
+                    }
+                }
+                catch (Throwable t)
+                {
+                    if (t instanceof ThreadDeath)
+                        throw (ThreadDeath) t;
+                    else
+                    {
+                        logger.warn(
+                                "Failed to open resampler " + className,
+                                t);
+                    }
+                }
+            }
+        }
+        return resampler;
+    }
+
+    /**
+     * Pops a specific number of bytes from (the head of) a specific array of
+     * <tt>byte</tt>s.
+     *
+     * @param array the array of <tt>byte</tt> from which the specified number
+     * of bytes are to be popped
+     * @param arrayLength the number of elements in <tt>array</tt> which contain
+     * valid data
+     * @param length the number of bytes to be popped from <tt>array</tt>
+     * @return the number of elements in <tt>array</tt> which contain valid data
+     * after the specified number of bytes have been popped from it
+     */
+    public static int pop(byte[] array, int arrayLength, int length)
+    {
+        if (length < 0)
+            throw new IllegalArgumentException("length");
+        if (length == 0)
+            return arrayLength;
+
+        int newArrayLength = arrayLength - length;
+
+        if (newArrayLength > 0)
+        {
+            for (int i = 0, j = length; i < newArrayLength; i++, j++)
+                array[i] = array[j];
+        }
+        else
+            newArrayLength = 0;
+        return newArrayLength;
+    }
+
+    /**
      * The duration in milliseconds of the endpoint buffer.
      */
     private long bufferDuration;
@@ -140,20 +262,6 @@ public class WASAPIRenderer
     private int numBufferFrames;
 
     /**
-     * The data which has remained unwritten during earlier invocations of
-     * {@link #process(Buffer)} because it represents frames which are few
-     * enough to be accepted on their own for writing by
-     * {@link #iAudioRenderClient}.
-     */
-    private byte[] remainder;
-
-    /**
-     * The number of bytes in {@link #remainder} which represent valid audio
-     * data to be written by {@link #iAudioRenderClient}.
-     */
-    private int remainderLength;
-
-    /**
      * The <tt>Codec</tt> which resamples the media provided to this
      * <tt>Renderer</tt> via {@link #process(Buffer)} into {@link #dstFormat}
      * if necessary.
@@ -175,7 +283,7 @@ public class WASAPIRenderer
 
     /**
      * The <tt>Buffer</tt> which provides the input to {@link #resampler}.
-     * Represents a unit of {@link #remainder} to be processed in a single call
+     * Represents a unit of {@link #srcBuffer} to be processed in a single call
      * to <tt>resampler</tt>.
      */
     private Buffer resamplerInBuffer;
@@ -191,10 +299,30 @@ public class WASAPIRenderer
     private int resamplerSampleSize;
 
     /**
+     * The data which has remained unwritten during earlier invocations of
+     * {@link #process(Buffer)} because it represents frames which are few
+     * enough to be accepted on their own for writing by
+     * {@link #iAudioRenderClient}.
+     */
+    private byte[] srcBuffer;
+
+    /**
+     * The number of bytes in {@link #srcBuffer} which represent valid audio
+     * data to be written by {@link #iAudioRenderClient}.
+     */
+    private int srcBufferLength;
+
+    /**
      * The number of channels which which this <tt>Renderer</tt> has been
      * opened.
      */
     private int srcChannels;
+
+    /**
+     * The <tt>AudioFormat</tt> with which this <tt>Renderer</tt> has been
+     * opened.
+     */
+    private AudioFormat srcFormat;
 
     /**
      * The frame size in bytes with which this <tt>Renderer</tt> has been
@@ -202,12 +330,6 @@ public class WASAPIRenderer
      * {@link #srcChannels}.
      */
     private int srcFrameSize;
-
-    /**
-     * The <tt>AudioFormat</tt> with which this <tt>Renderer</tt> has been
-     * opened.
-     */
-    private AudioFormat srcFormat;
 
     /**
      * The sample size in bytes with which this <tt>Renderer</tt> has been
@@ -224,7 +346,7 @@ public class WASAPIRenderer
 
     /**
      * The time in milliseconds at which the writing to the render endpoint
-     * buffer has started malfunctioning. For example, {@link #remainder} being
+     * buffer has started malfunctioning. For example, {@link #srcBuffer} being
      * full from the point of view of {@link #process(Buffer)} for an extended
      * period of time may indicate abnormal functioning.
      */
@@ -315,37 +437,13 @@ public class WASAPIRenderer
 
             dstFormat = null;
             locatorIsNull = false;
-            remainder = null;
-            remainderLength = 0;
+            srcBuffer = null;
+            srcBufferLength = 0;
             srcFormat = null;
             started = false;
 
             super.close();
         }
-    }
-
-    /**
-     * Finds the first non-<tt>null</tt> element in a specific array of
-     * <tt>AudioFormat</tt>s.
-     *
-     * @param formats the array of <tt>AudioFormat</tt>s in which the first
-     * non-<tt>null</tt> element is to be found
-     * @return the first non-<tt>null</tt> element in <tt>format</tt>s if any;
-     * otherwise, <tt>null</tt>
-     */
-    private static AudioFormat findFirst(AudioFormat[] formats)
-    {
-        AudioFormat format = null;
-
-        for (AudioFormat aFormat : formats)
-        {
-            if (aFormat != null)
-            {
-                format = aFormat;
-                break;
-            }
-        }
-        return format;
     }
 
     /**
@@ -390,6 +488,80 @@ public class WASAPIRenderer
                     formats.add((AudioFormat) format);
                 }
             }
+
+            /*
+             * Resampling isn't very cool. Moreover, resampling between sample
+             * rates with a non-integer quotient may result in audio glitches.
+             * Try to minimize the risks of having to use any of these two when
+             * unnecessary.
+             */
+            final int sampleRate = (int) inputFormat.getSampleRate();
+
+            if (sampleRate != Format.NOT_SPECIFIED)
+            {
+                Collections.sort(
+                        formats,
+                        new Comparator<AudioFormat>()
+                        {
+                            @Override
+                            public int compare(AudioFormat af1, AudioFormat af2)
+                            {
+                                int d1 = computeSampleRateDistance(af1);
+                                int d2 = computeSampleRateDistance(af2);
+
+                                return (d1 < d2) ? -1 : (d1 == d2) ? 0 : 1;
+                            }
+
+                            private int computeSampleRateDistance(
+                                    AudioFormat af)
+                            {
+                                int sr = (int) af.getSampleRate();
+
+                                if (sr == Format.NOT_SPECIFIED)
+                                    return Integer.MAX_VALUE;
+                                else if (sr == sampleRate)
+                                    return 0;
+
+                                int min, max;
+                                boolean downsample;
+
+                                if (sr < sampleRate)
+                                {
+                                    min = sr;
+                                    max = sampleRate;
+                                    downsample = true;
+                                }
+                                else
+                                {
+                                    min = sampleRate;
+                                    max = sr;
+                                    downsample = false;
+                                }
+                                if (min == 0)
+                                    return Integer.MAX_VALUE;
+                                else
+                                {
+                                    int h = max % min;
+                                    int l = max / min;
+
+                                    /*
+                                     * Prefer AudioFormats which will cause
+                                     * upsampling to AudioFormats which will
+                                     * cause downsampling.
+                                     */
+                                    if (downsample)
+                                    {
+                                        l = Short.MAX_VALUE - l;
+                                        if (h != 0)
+                                            h = Short.MAX_VALUE - h;
+                                    }
+
+                                    return (h << 16) | l;
+                                }
+                            }
+                        });
+            }
+
             return formats.toArray(new AudioFormat[formats.size()]);
         }
     }
@@ -573,73 +745,6 @@ public class WASAPIRenderer
     }
 
     /**
-     * Attempts to initialize and open a new <tt>Codec</tt> to resample media
-     * data from a specific input <tt>AudioFormat</tt> into a specific output
-     * <tt>AudioFormat</tt>. If no suitable resampler is found, returns
-     * <tt>null</tt>. If a suitable resampler is found but its initialization or
-     * opening fails, logs and swallows any <tt>Throwable</tt> and returns
-     * <tt>null</tt>.
-     *
-     * @param inFormat the <tt>AudioFormat</tt> in which the new instance is to
-     * input media data
-     * @param outFormat the <tt>AudioFormat</tt> in which the new instance is to
-     * output media data
-     * @return a new <tt>Codec</tt> which is able to resample media data from
-     * the specified <tt>inFormat</tt> into the specified <tt>outFormat</tt> if
-     * such a resampler could be found, initialized and opened; otherwise,
-     * <tt>null</tt>
-     */
-    public static Codec maybeOpenResampler(
-            AudioFormat inFormat,
-            AudioFormat outFormat)
-    {
-        @SuppressWarnings("unchecked")
-        List<String> classNames
-            = PlugInManager.getPlugInList(
-                    inFormat,
-                    outFormat,
-                    PlugInManager.CODEC);
-        Codec resampler = null;
-
-        if (classNames != null)
-        {
-            for (String className : classNames)
-            {
-                try
-                {
-                    Codec codec
-                        = (Codec) Class.forName(className).newInstance();
-                    Format setInput = codec.setInputFormat(inFormat);
-
-                    if ((setInput != null) && inFormat.matches(setInput))
-                    {
-                        Format setOutput = codec.setOutputFormat(outFormat);
-
-                        if ((setOutput != null) && outFormat.matches(setOutput))
-                        {
-                            codec.open();
-                            resampler = codec;
-                            break;
-                        }
-                    }
-                }
-                catch (Throwable t)
-                {
-                    if (t instanceof ThreadDeath)
-                        throw (ThreadDeath) t;
-                    else
-                    {
-                        logger.warn(
-                                "Failed to open resampler " + className,
-                                t);
-                    }
-                }
-            }
-        }
-        return resampler;
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
@@ -756,17 +861,22 @@ public class WASAPIRenderer
                          * IAudioRenderClient_Write cannot be more than the
                          * maximum capacity of the endpoint buffer.
                          */
-                        remainder = new byte[numBufferFrames * srcFrameSize];
+                        srcBuffer = new byte[numBufferFrames * srcFrameSize];
                         /*
                          * Introduce latency in order to decrease the likelihood
                          * of underflow.
                          */
-                        remainderLength = remainder.length;
+                        srcBufferLength = srcBuffer.length;
 
-                        if (resampler != null)
+                        if (resampler == null)
+                        {
+                            resamplerInBuffer = null;
+                            resamplerOutBuffer = null;
+                        }
+                        else
                         {
                             resamplerInBuffer = new Buffer();
-                            resamplerInBuffer.setData(remainder);
+                            resamplerInBuffer.setData(srcBuffer);
                             resamplerInBuffer.setFormat(srcFormat);
                             resamplerOutBuffer = new Buffer();
                         }
@@ -871,46 +981,15 @@ public class WASAPIRenderer
     }
 
     /**
-     * Pops a specific number of bytes from {@link #remainder}. For example,
-     * because such a number of bytes have been read from <tt>remainder</tt> and
+     * Pops a specific number of bytes from {@link #srcBuffer}. For example,
+     * because such a number of bytes have been read from <tt>srcBuffer</tt> and
      * written into the rendering endpoint buffer.
      *
-     * @param length the number of bytes to pop from <tt>remainder</tt>
+     * @param length the number of bytes to pop from <tt>srcBuffer</tt>
      */
-    private void popFromRemainder(int length)
+    private void popFromSrcBuffer(int length)
     {
-        remainderLength = pop(remainder, remainderLength, length);
-    }
-
-    /**
-     * Pops a specific number of bytes from (the head of) a specific array of
-     * <tt>byte</tt>s.
-     *
-     * @param array the array of <tt>byte</tt> from which the specified number
-     * of bytes are to be popped
-     * @param arrayLength the number of elements in <tt>array</tt> which contain
-     * valid data
-     * @param length the number of bytes to be popped from <tt>array</tt>
-     * @return the number of elements in <tt>array</tt> which contain valid data
-     * after the specified number of bytes have been popped from it
-     */
-    public static int pop(byte[] array, int arrayLength, int length)
-    {
-        if (length < 0)
-            throw new IllegalArgumentException("length");
-        if (length == 0)
-            return arrayLength;
-
-        int newArrayLength = arrayLength - length;
-
-        if (newArrayLength > 0)
-        {
-            for (int i = 0, j = length; i < newArrayLength; i++, j++)
-                array[i] = array[j];
-        }
-        else
-            newArrayLength = 0;
-        return newArrayLength;
+        srcBufferLength = pop(srcBuffer, srcBufferLength, length);
     }
 
     /**
@@ -1004,11 +1083,11 @@ public class WASAPIRenderer
                     else
                     {
                         /*
-                         * The process method will write into remainder, the
-                         * runInEventHandleCmd will read from remainder and
+                         * The process method will write into srcBuffer, the
+                         * runInEventHandleCmd will read from srcBuffer and
                          * write into the rendering endpoint buffer.
                          */
-                        int toCopy = remainder.length - remainderLength;
+                        int toCopy = srcBuffer.length - srcBufferLength;
 
                         if (toCopy > 0)
                         {
@@ -1016,9 +1095,9 @@ public class WASAPIRenderer
                                 toCopy = length;
                             System.arraycopy(
                                     data, offset,
-                                    remainder, remainderLength,
+                                    srcBuffer, srcBufferLength,
                                     toCopy);
-                            remainderLength += toCopy;
+                            srcBufferLength += toCopy;
 
                             if (length > toCopy)
                             {
@@ -1028,7 +1107,7 @@ public class WASAPIRenderer
                             }
 
                             /*
-                             * Writing from the input Buffer into remainder has
+                             * Writing from the input Buffer into srcBuffer has
                              * occurred so it does not look like the writing to
                              * the render endpoint buffer is malfunctioning.
                              */
@@ -1041,7 +1120,7 @@ public class WASAPIRenderer
                             ret |= INPUT_BUFFER_NOT_CONSUMED;
                             sleep = devicePeriod;
                             /*
-                             * No writing from the input Buffer into remainder
+                             * No writing from the input Buffer into srcBuffer
                              * has occurred so it is possible that the writing
                              * to the render endpoint buffer is malfunctioning.
                              */
@@ -1057,7 +1136,7 @@ public class WASAPIRenderer
                      * There is available space in the rendering endpoint
                      * buffer into which this Renderer can write data.
                      */
-                    int effectiveLength = remainderLength + length;
+                    int effectiveLength = srcBufferLength + length;
                     int toWrite
                         = Math.min(
                                 effectiveLength,
@@ -1065,17 +1144,17 @@ public class WASAPIRenderer
                     byte[] effectiveData;
                     int effectiveOffset;
 
-                    if (remainderLength > 0)
+                    if (srcBufferLength > 0)
                     {
                         /*
                          * There is remainder/residue from earlier invocations
                          * of the method. This Renderer will feed
-                         * iAudioRenderClient from remainder.
+                         * iAudioRenderClient from srcBuffer.
                          */
-                        effectiveData = remainder;
+                        effectiveData = srcBuffer;
                         effectiveOffset = 0;
 
-                        int toCopy = toWrite - remainderLength;
+                        int toCopy = toWrite - srcBufferLength;
 
                         if (toCopy <= 0)
                             ret |= INPUT_BUFFER_NOT_CONSUMED;
@@ -1085,12 +1164,12 @@ public class WASAPIRenderer
                                 toCopy = length;
                             System.arraycopy(
                                     data, offset,
-                                    remainder, remainderLength,
+                                    srcBuffer, srcBufferLength,
                                     toCopy);
-                            remainderLength += toCopy;
+                            srcBufferLength += toCopy;
 
-                            if (toWrite > remainderLength)
-                                toWrite = remainderLength;
+                            if (toWrite > srcBufferLength)
+                                toWrite = srcBufferLength;
 
                             if (length > toCopy)
                             {
@@ -1161,9 +1240,9 @@ public class WASAPIRenderer
                                  */
                                 System.arraycopy(
                                         data, offset,
-                                        remainder, remainderLength,
+                                        srcBuffer, srcBufferLength,
                                         toWrite);
-                                remainderLength += toWrite;
+                                srcBufferLength += toWrite;
                                 written = toWrite;
                             }
                             if (length > written)
@@ -1175,8 +1254,8 @@ public class WASAPIRenderer
                         }
                         else if (written > 0)
                         {
-                            // We have consumed frames from remainder.
-                            popFromRemainder(written);
+                            // We have consumed frames from srcBuffer.
+                            popFromSrcBuffer(written);
                         }
 
                         if (writeIsMalfunctioningSince
@@ -1204,10 +1283,10 @@ public class WASAPIRenderer
                     {
                         /*
                          * The writing to the render endpoint buffer has taken
-                         * too long so whatever is in remainder is surely
+                         * too long so whatever is in srcBuffer is surely
                          * out-of-date.
                          */
-                        remainderLength = 0;
+                        srcBufferLength = 0;
                         ret = BUFFER_PROCESSED_FAILED;
                         logger.warn(
                                 "Audio endpoint device appears to be"
@@ -1260,16 +1339,16 @@ public class WASAPIRenderer
     }
 
     /**
-     * Processes audio samples from {@link #remainder} through
+     * Processes audio samples from {@link #srcBuffer} through
      * {@link #resampler} i.e. resamples them in order to produce media data
      * in {@link #resamplerOutBuffer} to be written into the render endpoint
      * buffer.
      *
-     * @param inOffset the offset in <tt>remainder</tt> at which the audio
+     * @param inOffset the offset in <tt>srcBuffer</tt> at which the audio
      * samples to be resampled begin
-     * @param inLength the number of bytes in <tt>remainder</tt> beginning at
+     * @param inLength the number of bytes in <tt>srcBuffer</tt> beginning at
      * <tt>inOffset</tt> which are to be resampled
-     * @return the number of bytes from <tt>remainder</tt> which have been
+     * @return the number of bytes from <tt>srcBuffer</tt> which have been
      * resampled and written into {@link #resamplerOutBuffer}
      */
     private int resample(int inOffset, int inLength)
@@ -1350,10 +1429,10 @@ public class WASAPIRenderer
 
                     int numFramesRequested = numBufferFrames - numPaddingFrames;
 
-                    if (resampler != null)
+                    if ((resampler != null) && (numFramesRequested > 0))
                     {
                         /*
-                         * Since remainder is measured in units based on
+                         * Since srcBuffer is measured in units based on
                          * srcFormat and numFramesRequested is currently
                          * expressed in units based on dstFormat, convert
                          * numFramesRequested in units based on srcFormat. 
@@ -1382,32 +1461,32 @@ public class WASAPIRenderer
                     if (numFramesRequested > 0)
                     {
                         /*
-                         * Write as much from remainder as possible while
+                         * Write as much from srcBuffer as possible while
                          * minimizing the risk of audio glitches and the amount
                          * of artificial/induced silence.
                          */
-                        int remainderFrames = remainderLength / srcFrameSize;
+                        int srcBufferFrames = srcBufferLength / srcFrameSize;
 
-                        if ((numFramesRequested > remainderFrames)
-                                && (remainderFrames >= devicePeriodInFrames))
-                            numFramesRequested = remainderFrames;
+                        if ((numFramesRequested > srcBufferFrames)
+                                && (srcBufferFrames >= devicePeriodInFrames))
+                            numFramesRequested = srcBufferFrames;
 
                         // Pad with silence in order to avoid underflows.
                         // TODO why can the toWrite calculation get too big?
                         int toWrite = numFramesRequested * srcFrameSize;
-                        if (toWrite > remainder.length)
-                        {
-                            toWrite = remainder.length;
-                        }
 
-                        int silence = toWrite - remainderLength;
+                        if (toWrite > srcBuffer.length)
+                            toWrite = srcBuffer.length;
+
+                        int silence = toWrite - srcBufferLength;
+
                         if (silence > 0)
                         {
                             Arrays.fill(
-                                    remainder,
-                                    remainderLength, toWrite,
+                                    srcBuffer,
+                                    srcBufferLength, toWrite,
                                     (byte) 0);
-                            remainderLength = toWrite;
+                            srcBufferLength = toWrite;
                         }
 
                         /*
@@ -1420,7 +1499,7 @@ public class WASAPIRenderer
                         {
                             BasicVolumeControl.applyGain(
                                     gainControl,
-                                    remainder, 0, toWrite);
+                                    srcBuffer, 0, toWrite);
                         }
 
                         int written;
@@ -1429,7 +1508,7 @@ public class WASAPIRenderer
                         {
                             written
                                 = maybeIAudioRenderClientWrite(
-                                        remainder, 0, toWrite,
+                                        srcBuffer, 0, toWrite,
                                         srcSampleSize, srcChannels);
                         }
                         else
@@ -1457,7 +1536,7 @@ public class WASAPIRenderer
                         }
                         if (written != 0)
                         {
-                            popFromRemainder(written);
+                            popFromSrcBuffer(written);
 
                             if (writeIsMalfunctioningSince
                                     != DiagnosticsControl.NEVER)
@@ -1575,33 +1654,33 @@ public class WASAPIRenderer
              * Introduce latency in order to decrease the likelihood of
              * underflow.
              */
-            if (remainder != null)
+            if (srcBuffer != null)
             {
-                if (remainderLength > 0)
+                if (srcBufferLength > 0)
                 {
                     /*
-                     * Shift the valid audio data to the end of remainder so
+                     * Shift the valid audio data to the end of srcBuffer so
                      * that silence can be written at the beginning.
                      */
-                    for (int i = remainder.length - 1, j = remainderLength - 1;
+                    for (int i = srcBuffer.length - 1, j = srcBufferLength - 1;
                             j >= 0;
                             i--, j--)
                     {
-                        remainder[i] = remainder[j];
+                        srcBuffer[i] = srcBuffer[j];
                     }
                 }
-                else if (remainderLength < 0)
-                    remainderLength = 0;
+                else if (srcBufferLength < 0)
+                    srcBufferLength = 0;
 
                 /*
-                 * If there is valid audio data in remainder, it has been
+                 * If there is valid audio data in srcBuffer, it has been
                  * shifted to the end to make room for silence at the beginning.
                  */
-                int silence = remainder.length - remainderLength;
+                int silence = srcBuffer.length - srcBufferLength;
 
                 if (silence > 0)
-                    Arrays.fill(remainder, 0, silence, (byte) 0);
-                remainderLength = remainder.length;
+                    Arrays.fill(srcBuffer, 0, silence, (byte) 0);
+                srcBufferLength = srcBuffer.length;
             }
 
             try
