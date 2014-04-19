@@ -275,6 +275,14 @@ public class WASAPIRenderer
     private int resamplerChannels;
 
     /**
+     * The data which has remained unwritten during earlier invocations of
+     * {@link #runInEventHandleCmd(Runnable)} because it represents frames which
+     * are few enough to be accepted on their own for writing by
+     * {@link #iAudioRenderClient}.
+     */
+    private byte[] resamplerData;
+
+    /**
      * The size in bytes of an audio frame produced by {@link #resampler}. Based
      * on {@link #resamplerChannels} and {@link #resamplerSampleSize} and cached
      * in order to reduce calculations.
@@ -633,6 +641,7 @@ public class WASAPIRenderer
         if (resampler != null)
         {
             this.resampler = null;
+            resamplerData = null;
             resamplerInBuffer = null;
             resamplerOutBuffer = null;
 
@@ -642,7 +651,9 @@ public class WASAPIRenderer
             }
             catch (Throwable t)
             {
-                if (t instanceof ThreadDeath)
+                if (t instanceof InterruptedException)
+                    Thread.currentThread().interrupt();
+                else if (t instanceof ThreadDeath)
                     throw (ThreadDeath) t;
                 else
                     logger.error("Failed to close resampler.", t);
@@ -738,9 +749,101 @@ public class WASAPIRenderer
         else
         {
             this.resampler = resampler;
+
+            resamplerInBuffer = new Buffer();
+            resamplerInBuffer.setFormat(inFormat);
+
             resamplerChannels = outFormat.getChannels();
             resamplerSampleSize = WASAPISystem.getSampleSizeInBytes(outFormat);
             resamplerFrameSize = resamplerChannels * resamplerSampleSize;
+
+            resamplerData = new byte[numBufferFrames * resamplerFrameSize];
+
+            resamplerOutBuffer = new Buffer();
+            resamplerOutBuffer.setData(resamplerData);
+            resamplerOutBuffer.setLength(0);
+            resamplerOutBuffer.setOffset(0);
+        }
+    }
+
+    /**
+     * Processes audio samples from {@link #srcBuffer} through
+     * {@link #resampler} i.e. resamples them in order to produce media data
+     * in {@link #resamplerData} to be written into the render endpoint buffer.
+     *
+     * @param numFramesRequested the number of audio frames in the units of
+     * {@link #dstFormat} requested by the rendering endpoint
+     */
+    private void maybeResample(int numFramesRequested)
+    {
+        int outLength = resamplerOutBuffer.getLength();
+
+        /*
+         * Do not resample if there is enough resampled audio to satisfy the
+         * request of the rendering endpoint buffer.
+         */
+        if (outLength < numFramesRequested * resamplerFrameSize)
+        {
+            // Sample rate conversions work on audio frames, not on bytes.
+            int outFrames
+                = (resamplerData.length - outLength) / resamplerFrameSize;
+
+            if (outFrames > 0)
+            {
+                /*
+                 * Predict how many bytes will be consumed from the input during
+                 * the sample rate conversion.
+                 */
+                int srcSampleRate = (int) srcFormat.getSampleRate();
+                int dstSampleRate = (int) dstFormat.getSampleRate();
+                int inLength
+                    = (outFrames * srcSampleRate / dstSampleRate)
+                        * srcFrameSize;
+
+                if (inLength > srcBuffer.length)
+                    inLength = srcBuffer.length;
+                if (inLength > srcBufferLength)
+                    inLength = srcBufferLength;
+                if (inLength > 0)
+                {
+                    int resampled;
+
+                    resamplerOutBuffer.setLength(0);
+                    resamplerOutBuffer.setOffset(outLength);
+                    try
+                    {
+                        resamplerOutBuffer.setDiscard(false);
+                        resamplerInBuffer.setLength(inLength);
+                        resamplerInBuffer.setOffset(0);
+
+                        resampler.process(
+                                resamplerInBuffer,
+                                resamplerOutBuffer);
+                    }
+                    finally
+                    {
+                        resampled = resamplerOutBuffer.getLength();
+                        outLength = resamplerOutBuffer.getOffset() + resampled;
+                        resamplerOutBuffer.setLength(outLength);
+                        resamplerOutBuffer.setOffset(0);
+                    }
+
+                    if (resampled > 0)
+                    {
+                        /*
+                         * How many bytes have actually been consumed from the
+                         * input during the sample rate conversion?
+                         */
+                        resampled
+                            = ((resampled / resamplerFrameSize)
+                                    * srcSampleRate
+                                    / dstSampleRate)
+                                * srcFrameSize;
+                        if (resampled > 0)
+                            popFromSrcBuffer(resampled);
+                    }
+                }
+            }
         }
     }
 
@@ -861,25 +964,37 @@ public class WASAPIRenderer
                          * IAudioRenderClient_Write cannot be more than the
                          * maximum capacity of the endpoint buffer.
                          */
-                        srcBuffer = new byte[numBufferFrames * srcFrameSize];
+                        int srcBufferCapacityInFrames;
+
+                        if (resampler == null)
+                        {
+                            srcBufferCapacityInFrames = numBufferFrames;
+                        }
+                        else
+                        {
+                            /*
+                             * The units of srcBuffer are based on srcFormat,
+                             * the units of numBufferFrames are based on
+                             * dstFormat.
+                             */
+                            int srcSampleRate = (int) srcFormat.getSampleRate();
+
+                            srcBufferCapacityInFrames
+                                = numBufferFrames
+                                    * srcSampleRate
+                                    / dstSampleRate;
+                        }
+                        srcBuffer
+                            = new byte[
+                                    srcBufferCapacityInFrames * srcFrameSize];
+                        if (resamplerInBuffer != null)
+                            resamplerInBuffer.setData(srcBuffer);
+
                         /*
                          * Introduce latency in order to decrease the likelihood
                          * of underflow.
                          */
                         srcBufferLength = srcBuffer.length;
-
-                        if (resampler == null)
-                        {
-                            resamplerInBuffer = null;
-                            resamplerOutBuffer = null;
-                        }
-                        else
-                        {
-                            resamplerInBuffer = new Buffer();
-                            resamplerInBuffer.setData(srcBuffer);
-                            resamplerInBuffer.setFormat(srcFormat);
-                            resamplerOutBuffer = new Buffer();
-                        }
 
                         writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
                         writeIsMalfunctioningTimeout
@@ -917,7 +1032,9 @@ public class WASAPIRenderer
         }
         catch (Throwable t)
         {
-            if (t instanceof ThreadDeath)
+            if (t instanceof InterruptedException)
+                Thread.currentThread().interrupt();
+            else if (t instanceof ThreadDeath)
                 throw (ThreadDeath) t;
             else
             {
@@ -1339,37 +1456,6 @@ public class WASAPIRenderer
     }
 
     /**
-     * Processes audio samples from {@link #srcBuffer} through
-     * {@link #resampler} i.e. resamples them in order to produce media data
-     * in {@link #resamplerOutBuffer} to be written into the render endpoint
-     * buffer.
-     *
-     * @param inOffset the offset in <tt>srcBuffer</tt> at which the audio
-     * samples to be resampled begin
-     * @param inLength the number of bytes in <tt>srcBuffer</tt> beginning at
-     * <tt>inOffset</tt> which are to be resampled
-     * @return the number of bytes from <tt>srcBuffer</tt> which have been
-     * resampled and written into {@link #resamplerOutBuffer}
-     */
-    private int resample(int inOffset, int inLength)
-    {
-        resamplerInBuffer.setLength(inLength);
-        resamplerInBuffer.setOffset(inOffset);
-        resamplerOutBuffer.setDiscard(false);
-        resamplerOutBuffer.setLength(0);
-        resamplerOutBuffer.setOffset(0);
-
-        int process = resampler.process(resamplerInBuffer, resamplerOutBuffer);
-        int written
-            = ((process == Codec.BUFFER_PROCESSED_FAILED)
-                    || resamplerOutBuffer.isDiscard())
-                ? 0
-                : inLength;
-
-        return written;
-    }
-
-    /**
      * Runs/executes in the thread associated with a specific <tt>Runnable</tt>
      * initialized to wait for {@link #eventHandle} to be signaled.
      *
@@ -1429,30 +1515,6 @@ public class WASAPIRenderer
 
                     int numFramesRequested = numBufferFrames - numPaddingFrames;
 
-                    if ((resampler != null) && (numFramesRequested > 0))
-                    {
-                        /*
-                         * Since srcBuffer is measured in units based on
-                         * srcFormat and numFramesRequested is currently
-                         * expressed in units based on dstFormat, convert
-                         * numFramesRequested in units based on srcFormat. 
-                         */
-                        int srcSampleRate = (int) srcFormat.getSampleRate();
-                        /*
-                         * The sampleRate of resampler is the same as the
-                         * sampleRate of iAudioClient.
-                         */
-                        int dstSampleRate = (int) dstFormat.getSampleRate();
-
-                        if (srcSampleRate != dstSampleRate)
-                        {
-                            numFramesRequested
-                                = numFramesRequested
-                                    * srcSampleRate
-                                    / dstSampleRate;
-                        }
-                    }
-
                     /*
                      * If there is no available space in the rendering endpoint
                      * buffer, wait for the system to signal when an audio
@@ -1460,33 +1522,59 @@ public class WASAPIRenderer
                      */
                     if (numFramesRequested > 0)
                     {
-                        /*
-                         * Write as much from srcBuffer as possible while
-                         * minimizing the risk of audio glitches and the amount
-                         * of artificial/induced silence.
-                         */
-                        int srcBufferFrames = srcBufferLength / srcFrameSize;
+                        byte[] buf;
+                        int bufChannels;
+                        int bufFrameSize;
+                        int bufLength;
+                        int bufSampleSize;
 
-                        if ((numFramesRequested > srcBufferFrames)
-                                && (srcBufferFrames >= devicePeriodInFrames))
-                            numFramesRequested = srcBufferFrames;
+                        if (resampler == null)
+                        {
+                            buf = srcBuffer;
+                            bufChannels = srcChannels;
+                            bufFrameSize = srcFrameSize;
+                            bufLength = srcBufferLength;
+                            bufSampleSize = srcSampleSize;
+                        }
+                        else
+                        {
+                            /*
+                             * The units of srcBuffer are based on srcFormat,
+                             * the units of numFramesRequested are based on
+                             * dstFormat.
+                             */
+                            maybeResample(numFramesRequested);
+
+                            buf = resamplerData;
+                            bufChannels = resamplerChannels;
+                            bufFrameSize = resamplerFrameSize;
+                            bufLength = resamplerOutBuffer.getLength();
+                            bufSampleSize = resamplerSampleSize;
+                        }
+
+                        /*
+                         * Write as much from buf as possible while minimizing
+                         * the risk of audio glitches and the amount of
+                         * artificial/induced silence.
+                         */
+                        int bufFrames = bufLength / bufFrameSize;
+
+                        if ((numFramesRequested > bufFrames)
+                                && (bufFrames >= devicePeriodInFrames))
+                            numFramesRequested = bufFrames;
 
                         // Pad with silence in order to avoid underflows.
-                        // TODO why can the toWrite calculation get too big?
-                        int toWrite = numFramesRequested * srcFrameSize;
+                        int toWrite = numFramesRequested * bufFrameSize;
 
-                        if (toWrite > srcBuffer.length)
-                            toWrite = srcBuffer.length;
+                        if (toWrite > buf.length)
+                            toWrite = buf.length;
 
-                        int silence = toWrite - srcBufferLength;
+                        int silence = toWrite - bufLength;
 
                         if (silence > 0)
                         {
-                            Arrays.fill(
-                                    srcBuffer,
-                                    srcBufferLength, toWrite,
-                                    (byte) 0);
-                            srcBufferLength = toWrite;
+                            Arrays.fill(buf, bufLength, toWrite, (byte) 0);
+                            bufLength = toWrite;
                         }
 
                         /*
@@ -1499,44 +1587,21 @@ public class WASAPIRenderer
                         {
                             BasicVolumeControl.applyGain(
                                     gainControl,
-                                    srcBuffer, 0, toWrite);
+                                    buf, 0, toWrite);
                         }
 
-                        int written;
+                        int written
+                            = maybeIAudioRenderClientWrite(
+                                    buf, 0, toWrite,
+                                    bufSampleSize, bufChannels);
 
-                        if (resampler == null)
-                        {
-                            written
-                                = maybeIAudioRenderClientWrite(
-                                        srcBuffer, 0, toWrite,
-                                        srcSampleSize, srcChannels);
-                        }
-                        else
-                        {
-                            int resampled = resample(0, toWrite);
-
-                            if (resampled == toWrite)
-                            {
-                                int resamplerOutLength
-                                    = resamplerOutBuffer.getLength()
-                                        / resamplerFrameSize
-                                        * resamplerFrameSize;
-
-                                maybeIAudioRenderClientWrite(
-                                        (byte[]) resamplerOutBuffer.getData(),
-                                        resamplerOutBuffer.getOffset(),
-                                        resamplerOutLength,
-                                        resamplerSampleSize, resamplerChannels);
-                                written = toWrite;
-                            }
-                            else
-                            {
-                                written = 0;
-                            }
-                        }
                         if (written != 0)
                         {
-                            popFromSrcBuffer(written);
+                            bufLength = pop(buf, bufLength, written);
+                            if (buf == srcBuffer)
+                                srcBufferLength = bufLength;
+                            else
+                                resamplerOutBuffer.setLength(bufLength);
 
                             if (writeIsMalfunctioningSince
                                     != DiagnosticsControl.NEVER)
@@ -1818,7 +1883,9 @@ public class WASAPIRenderer
             }
             catch (Throwable t)
             {
-                if (t instanceof ThreadDeath)
+                if (t instanceof InterruptedException)
+                    Thread.currentThread().interrupt();
+                else if (t instanceof ThreadDeath)
                     throw (ThreadDeath) t;
             }
             if (s == null)

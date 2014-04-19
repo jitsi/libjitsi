@@ -337,29 +337,46 @@ public class SpeexResampler
              */
             int inSampleCount = inLength / frameSize;
             int outSampleCount = (inSampleCount * outSampleRate) / inSampleRate;
+            int outOffset = outBuffer.getOffset();
             byte[] out
                 = validateByteArraySize(
                         outBuffer,
-                        outSampleCount * frameSize,
-                        false);
+                        outSampleCount * frameSize + outOffset,
+                        outOffset != 0);
 
             /*
              * XXX The method Speex.speex_resampler_process_interleaved_int will
              * crash if in is null.
              */
             if (inSampleCount == 0)
+            {
                 outSampleCount = 0;
+            }
             else
             {
+                int inOffset = inBuffer.getOffset();
+
                 outSampleCount
                     = Speex.speex_resampler_process_interleaved_int(
                             resampler,
-                            in, inBuffer.getOffset(), inSampleCount,
-                            out, 0, outSampleCount);
+                            in, inOffset, inSampleCount,
+                            out, outOffset, outSampleCount);
+
+                /*
+                 * Report how many bytes of inBuffer have been consumed in the
+                 * sample rate conversion.
+                 */
+                int resampled = inSampleCount * frameSize;
+
+                inLength -= resampled;
+                if (inLength < 0)
+                    inLength = 0;
+                inBuffer.setLength(inLength);
+                inBuffer.setOffset(inOffset + resampled);
             }
             outBuffer.setFormat(outAudioFormat);
             outBuffer.setLength(outSampleCount * frameSize);
-            outBuffer.setOffset(0);
+            outBuffer.setOffset(outOffset);
         }
 
         outBuffer.setDuration(inBuffer.getDuration());
