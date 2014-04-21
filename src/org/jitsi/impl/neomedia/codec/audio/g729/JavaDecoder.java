@@ -59,7 +59,10 @@ public class JavaDecoder
                                 16,
                                 1,
                                 AudioFormat.LITTLE_ENDIAN,
-                                AudioFormat.SIGNED)
+                                AudioFormat.SIGNED,
+                                /* frameSizeInBits */ Format.NOT_SPECIFIED,
+                                /* frameRate */ Format.NOT_SPECIFIED,
+                                Format.byteArray)
                     });
 
         inputFormats
@@ -124,8 +127,14 @@ public class JavaDecoder
     protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
         int inLength = inBuffer.getLength();
+        /*
+         * Decode as many G.729 frames as possible in one go in order to
+         * mitigate an issue with sample rate conversion which leads to audio
+         * glitches.
+         */
+        int frameCount = inLength / INPUT_FRAME_SIZE_IN_BYTES;
 
-        if (inLength < INPUT_FRAME_SIZE_IN_BYTES)
+        if (frameCount < 1)
         {
             discardOutputBuffer(outBuffer);
             return BUFFER_PROCESSED_OK | OUTPUT_BUFFER_NOT_FILLED;
@@ -134,28 +143,27 @@ public class JavaDecoder
         byte[] in = (byte[]) inBuffer.getData();
         int inOffset = inBuffer.getOffset();
 
-        depacketize(in, inOffset, serial);
-        inLength -= INPUT_FRAME_SIZE_IN_BYTES;
-        inBuffer.setLength(inLength);
-        inOffset += INPUT_FRAME_SIZE_IN_BYTES;
-        inBuffer.setOffset(inOffset);
-
-        decoder.process(serial, sp16);
-
+        int outOffset = outBuffer.getOffset();
+        int outLength = OUTPUT_FRAME_SIZE_IN_BYTES * frameCount;
         byte[] out
-            = validateByteArraySize(
-                    outBuffer,
-                    outBuffer.getOffset() + OUTPUT_FRAME_SIZE_IN_BYTES,
-                    true);
+            = validateByteArraySize(outBuffer, outOffset + outLength, false);
 
-        writeShorts(sp16, out, outBuffer.getOffset());
-        outBuffer.setLength(OUTPUT_FRAME_SIZE_IN_BYTES);
+        for (int i = 0; i < frameCount; i++)
+        {
+            depacketize(in, inOffset, serial);
+            inLength -= INPUT_FRAME_SIZE_IN_BYTES;
+            inOffset += INPUT_FRAME_SIZE_IN_BYTES;
 
-        int ret = BUFFER_PROCESSED_OK;
+            decoder.process(serial, sp16);
 
-        if (inLength > 0)
-            ret |= INPUT_BUFFER_NOT_CONSUMED;
-        return ret;
+            writeShorts(sp16, out, outOffset);
+            outOffset += OUTPUT_FRAME_SIZE_IN_BYTES;
+        }
+        inBuffer.setLength(inLength);
+        inBuffer.setOffset(inOffset);
+        outBuffer.setLength(outLength);
+
+        return BUFFER_PROCESSED_OK;
     }
 
     private static void writeShorts(short[] in, byte[] out, int outOffset)
