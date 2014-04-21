@@ -17,6 +17,7 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 
 /**
+ *
  * @author Lubomir Marinov
  */
 public class JavaEncoder
@@ -34,21 +35,21 @@ public class JavaEncoder
 
     private Coder coder;
 
-    private int outputFrameCount;
+    private int outFrameCount;
 
     /**
      * The previous input if it was less than the input frame size and which is
      * to be prepended to the next input in order to form a complete input
      * frame.
      */
-    private byte[] prevInput;
+    private byte[] prevIn;
 
     /**
      * The length of the previous input if it was less than the input frame size
      * and which is to be prepended to the next input in order to form a
      * complete input frame.
      */
-    private int prevInputLength;
+    private int prevInLength;
 
     private short[] serial;
 
@@ -99,24 +100,24 @@ public class JavaEncoder
     @Override
     public Format getOutputFormat()
     {
-        Format outputFormat = super.getOutputFormat();
+        Format f = super.getOutputFormat();
 
-        if ((outputFormat != null)
-                && (outputFormat.getClass() == AudioFormat.class))
+        if ((f != null) && (f.getClass() == AudioFormat.class))
         {
-            AudioFormat outputAudioFormat = (AudioFormat) outputFormat;
+            AudioFormat af = (AudioFormat) f;
 
-            outputFormat = setOutputFormat(
-                new AudioFormat(
-                            outputAudioFormat.getEncoding(),
-                            outputAudioFormat.getSampleRate(),
-                            outputAudioFormat.getSampleSizeInBits(),
-                            outputAudioFormat.getChannels(),
-                            outputAudioFormat.getEndian(),
-                            outputAudioFormat.getSigned(),
-                            outputAudioFormat.getFrameSizeInBits(),
-                            outputAudioFormat.getFrameRate(),
-                            outputAudioFormat.getDataType())
+            f
+                = setOutputFormat(
+                        new AudioFormat(
+                                af.getEncoding(),
+                                af.getSampleRate(),
+                                af.getSampleSizeInBits(),
+                                af.getChannels(),
+                                af.getEndian(),
+                                af.getSigned(),
+                                af.getFrameSizeInBits(),
+                                af.getFrameRate(),
+                                af.getDataType())
                         {
                             private static final long serialVersionUID = 0L;
 
@@ -127,7 +128,7 @@ public class JavaEncoder
                             }
                         });
         }
-        return outputFormat;
+        return f;
     }
 
     @Override
@@ -135,7 +136,7 @@ public class JavaEncoder
     {
         super.discardOutputBuffer(outputBuffer);
 
-        outputFrameCount = 0;
+        outFrameCount = 0;
     }
 
     /*
@@ -144,8 +145,8 @@ public class JavaEncoder
     @Override
     protected void doClose()
     {
-        prevInput = null;
-        prevInputLength = 0;
+        prevIn = null;
+        prevInLength = 0;
 
         sp16 = null;
         serial = null;
@@ -167,134 +168,122 @@ public class JavaEncoder
     protected void doOpen()
         throws ResourceUnavailableException
     {
-        prevInput = new byte[INPUT_FRAME_SIZE_IN_BYTES];
-        prevInputLength = 0;
+        prevIn = new byte[INPUT_FRAME_SIZE_IN_BYTES];
+        prevInLength = 0;
 
         sp16 = new short[L_FRAME];
         serial = new short[SERIAL_SIZE];
         coder = new Coder();
 
-        outputFrameCount = 0;
+        outFrameCount = 0;
     }
 
     /*
      * Implements AbstractCodecExt#doProcess(Buffer, Buffer).
      */
     @Override
-    protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
+    protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
-        byte[] input = (byte[]) inputBuffer.getData();
+        byte[] in = (byte[]) inBuffer.getData();
 
-        int inputLength = inputBuffer.getLength();
-        int inputOffset = inputBuffer.getOffset();
+        int inLength = inBuffer.getLength();
+        int inOffset = inBuffer.getOffset();
 
-        if ((prevInputLength + inputLength) < INPUT_FRAME_SIZE_IN_BYTES)
+        if ((prevInLength + inLength) < INPUT_FRAME_SIZE_IN_BYTES)
         {
             System.arraycopy(
-                input,
-                inputOffset,
-                prevInput,
-                prevInputLength,
-                inputLength);
-            prevInputLength += inputLength;
+                    in, inOffset,
+                    prevIn, prevInLength,
+                    inLength);
+            prevInLength += inLength;
             return BUFFER_PROCESSED_OK | OUTPUT_BUFFER_NOT_FILLED;
         }
 
         int readShorts = 0;
 
-        if (prevInputLength > 0)
+        if (prevInLength > 0)
         {
-            readShorts
-                += readShorts(prevInput, 0, sp16, 0, prevInputLength / 2);
-            prevInputLength = 0;
+            readShorts += readShorts(prevIn, 0, sp16, 0, prevInLength / 2);
+            prevInLength = 0;
         }
         readShorts
             = readShorts(
-                    input,
-                    inputOffset,
-                    sp16,
-                    readShorts,
-                    sp16.length - readShorts);
+                    in, inOffset,
+                    sp16, readShorts, sp16.length - readShorts);
 
         int readBytes = 2 * readShorts;
 
-        inputLength -= readBytes;
-        inputBuffer.setLength(inputLength);
-        inputOffset += readBytes;
-        inputBuffer.setOffset(inputOffset);
+        inLength -= readBytes;
+        inBuffer.setLength(inLength);
+        inOffset += readBytes;
+        inBuffer.setOffset(inOffset);
 
         coder.process(sp16, serial);
 
         byte[] output
             = validateByteArraySize(
-                    outputBuffer,
-                    outputBuffer.getOffset() + 2 * OUTPUT_FRAME_SIZE_IN_BYTES,
+                    outBuffer,
+                    outBuffer.getOffset() + 2 * OUTPUT_FRAME_SIZE_IN_BYTES,
                     true);
 
         packetize(
-            serial,
-            output,
-            outputBuffer.getOffset()
-                + OUTPUT_FRAME_SIZE_IN_BYTES * outputFrameCount);
-        outputBuffer.setLength(
-            outputBuffer.getLength() + OUTPUT_FRAME_SIZE_IN_BYTES);
+                serial,
+                output,
+                outBuffer.getOffset()
+                    + OUTPUT_FRAME_SIZE_IN_BYTES * outFrameCount);
+        outBuffer.setLength(outBuffer.getLength() + OUTPUT_FRAME_SIZE_IN_BYTES);
 
-        outputBuffer.setFormat(outputFormat);
+        outBuffer.setFormat(outputFormat);
 
-        int processResult = BUFFER_PROCESSED_OK;
+        int ret = BUFFER_PROCESSED_OK;
 
-        if (outputFrameCount == 1)
-            outputFrameCount = 0;
+        if (outFrameCount == 1)
+            outFrameCount = 0;
         else
         {
-            outputFrameCount = 1;
-            processResult |= OUTPUT_BUFFER_NOT_FILLED;
+            outFrameCount = 1;
+            ret |= OUTPUT_BUFFER_NOT_FILLED;
         }
-        if (inputLength > 0)
-            processResult |= INPUT_BUFFER_NOT_CONSUMED;
+        if (inLength > 0)
+            ret |= INPUT_BUFFER_NOT_CONSUMED;
 
-        if(processResult == BUFFER_PROCESSED_OK)
+        if(ret == BUFFER_PROCESSED_OK)
         {
             updateOutput(
-                outputBuffer,
-                getOutputFormat(), outputBuffer.getLength(),
-                outputBuffer.getOffset());
-            outputBuffer.setDuration(duration);
+                    outBuffer,
+                    getOutputFormat(),
+                    outBuffer.getLength(),
+                    outBuffer.getOffset());
+            outBuffer.setDuration(duration);
         }
-        return processResult;
+        return ret;
     }
 
-    private void packetize(
-        short[] serial,
-        byte[] outputFrame,
-        int outputFrameOffset)
+    private void packetize(short[] serial, byte[] outFrame, int outFrameOffset)
     {
         Arrays.fill(
-            outputFrame,
-            outputFrameOffset,
-            outputFrameOffset + L_FRAME / 8,
-            (byte) 0);
+                outFrame, outFrameOffset, outFrameOffset + L_FRAME / 8,
+                (byte) 0);
 
         for (int s = 0; s < L_FRAME; s++)
+        {
             if (BIT_1 == serial[2 + s])
             {
-                int o = outputFrameOffset + s / 8;
-                int output = outputFrame[o];
+                int o = outFrameOffset + s / 8;
+                int out = outFrame[o];
 
-                output |= 1 << (7 - (s % 8));
-                outputFrame[o] = (byte) (output & 0xFF);
+                out |= 1 << (7 - (s % 8));
+                outFrame[o] = (byte) (out & 0xFF);
             }
+        }
     }
 
     private static int readShorts(
-        byte[] input,
-        int inputOffset,
-        short[] output,
-        int outputOffset,
-        int outputLength)
+            byte[] in, int inOffset,
+            short[] out, int outOffset, int outLength)
     {
-        for (int o=outputOffset, i=inputOffset; o<outputLength; o++, i+=2)
-            output[o] = ArrayIOUtils.readShort(input, i);
-        return outputLength;
+        for (int o=outOffset, i=inOffset; o<outLength; o++, i+=2)
+            out[o] = ArrayIOUtils.readShort(in, i);
+        return outLength;
     }
 }

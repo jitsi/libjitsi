@@ -73,19 +73,16 @@ public class JavaDecoder
                     };
     }
 
-    private void depacketize(
-        byte[] inputFrame,
-        int inputFrameOffset,
-        short[] serial)
+    private void depacketize(byte[] inFrame, int inFrameOffset, short[] serial)
     {
         serial[0] = SYNC_WORD;
         serial[1] = SIZE_WORD;
         for (int s = 0; s < L_FRAME; s++)
         {
-            int input = inputFrame[inputFrameOffset + s / 8];
+            int in = inFrame[inFrameOffset + s / 8];
 
-            input &= 1 << (7 - (s % 8));
-            serial[2 + s] = (0 != input) ? BIT_1 : BIT_0;
+            in &= 1 << (7 - (s % 8));
+            serial[2 + s] = (0 != in) ? BIT_1 : BIT_0;
         }
     }
 
