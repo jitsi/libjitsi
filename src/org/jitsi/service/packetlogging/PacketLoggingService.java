@@ -39,7 +39,12 @@ public interface PacketLoggingService
         /**
          * ICE protocol name.
          */
-        ICE4J
+        ICE4J,
+
+        /**
+         * DNS protocol name.
+         */
+        DNS
     }
 
     /**
