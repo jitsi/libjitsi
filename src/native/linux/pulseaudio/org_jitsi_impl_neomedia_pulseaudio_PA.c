@@ -46,7 +46,8 @@ Java_org_jitsi_impl_neomedia_pulseaudio_PA_buffer_1attr_1free
 
 JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_pulseaudio_PA_buffer_1attr_1new
-    (JNIEnv *env, jclass clazz, jint maxlength, jint tlength, jint prebuf, jint minreq, jint fragsize)
+    (JNIEnv *env, jclass clazz, jint maxlength, jint tlength, jint prebuf,
+        jint minreq, jint fragsize)
 {
     pa_buffer_attr *attr = pa_xmalloc(sizeof(pa_buffer_attr));
 
@@ -172,11 +173,14 @@ JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_pulseaudio_PA_context_1set_1sink_1input_1volume
     (JNIEnv *env, jclass clazz, jlong c, jint idx, jlong volume, jobject cb)
 {
+    pa_context *c_ = (pa_context *) (intptr_t) c;
+    uint32_t idx_ = (uint32_t) idx;
+
     return
         (intptr_t)
             pa_context_set_sink_input_volume(
-                    (pa_context *) (intptr_t) c,
-                    (uint32_t) idx,
+                    c_,
+                    idx_,
                     (const pa_cvolume *) (intptr_t) volume,
                     NULL,
                     NULL);
@@ -190,10 +194,13 @@ Java_org_jitsi_impl_neomedia_pulseaudio_PA_context_1set_1source_1output_1volume
 
     if (PulseAudio_contextSetSourceOutputVolume)
     {
+        pa_context *c_ = (pa_context *) (intptr_t) c;
+        uint32_t idx_ = (uint32_t) idx;
+
         o
             = PulseAudio_contextSetSourceOutputVolume(
-                    (pa_context *) (intptr_t) c,
-                    (uint32_t) idx,
+                    c_,
+                    idx_,
                     (const pa_cvolume *) (intptr_t) volume,
                     NULL,
                     NULL);
@@ -539,7 +546,8 @@ Java_org_jitsi_impl_neomedia_pulseaudio_PA_source_1info_1get_1sample_1spec_1rate
 
 JNIEXPORT jint
 JNICALL Java_org_jitsi_impl_neomedia_pulseaudio_PA_stream_1connect_1playback
-  (JNIEnv *env, jclass clazz, jlong s, jstring dev, jlong attr, jint flags, jlong volume, jlong syncStream)
+    (JNIEnv *env, jclass clazz, jlong s, jstring dev, jlong attr, jint flags,
+        jlong volume, jlong syncStream)
 {
     const char *devChars
         = dev ? (*env)->GetStringUTFChars(env, dev, NULL) : NULL;
@@ -631,7 +639,8 @@ Java_org_jitsi_impl_neomedia_pulseaudio_PA_stream_1get_1state
 
 JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_pulseaudio_PA_stream_1new_1with_1proplist
-    (JNIEnv *env, jclass clazz, jlong c, jstring name, jlong ss, jlong map, jlong p)
+    (JNIEnv *env, jclass clazz, jlong c, jstring name, jlong ss, jlong map,
+        jlong p)
 {
     const char *nameChars
         = name ? (*env)->GetStringUTFChars(env, name, NULL) : NULL;
@@ -735,7 +744,8 @@ Java_org_jitsi_impl_neomedia_pulseaudio_PA_stream_1writable_1size
 
 JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_pulseaudio_PA_stream_1write
-    (JNIEnv *env, jclass clazz, jlong s, jbyteArray data, jint dataOffset, jint dataLength, jobject freeCb, jlong offset, jint seek)
+    (JNIEnv *env, jclass clazz, jlong s, jbyteArray data, jint dataOffset,
+        jint dataLength, jobject freeCb, jlong offset, jint seek)
 {
     pa_stream *stream = (pa_stream *) (intptr_t) s;
     jbyte *bytes = NULL;
@@ -1157,3 +1167,4 @@ PulseAudio_streamStateCallback(pa_stream *s, void *userdata)
 {
     PulseAudio_stateCallback(userdata);
 }
+

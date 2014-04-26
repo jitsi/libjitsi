@@ -44,7 +44,8 @@ public class DataSource
 
     private static final boolean SOFTWARE_GAIN;
 
-    static {
+    static
+    {
         boolean softwareGain = true;
 
         try
@@ -59,13 +60,20 @@ public class DataSource
 
                 if ((major >= 1) && (minor >= 0))
                 {
-                    softwareGain = false;
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug(
-                                "Will control the volume"
-                                    + " through the native PulseAudio API.");
-                    }
+                    /*
+                     * FIXME The control of the volume through the native
+                     * PulseAudio API has been reported to maximize the
+                     * system-wide volume of the source with flat volumes i.e.
+                     * https://java.net/jira/browse/JITSI-1050 (Pulseaudio
+                     * changes volume to maximum values).
+                     */
+//                    softwareGain = false;
+//                    if (logger.isDebugEnabled())
+//                    {
+//                        logger.debug(
+//                                "Will control the volume"
+//                                    + " through the native PulseAudio API.");
+//                    }
                 }
             }
         }
@@ -84,6 +92,8 @@ public class DataSource
     private class PulseAudioStream
         extends AbstractPullBufferStream<DataSource>
     {
+        private final PulseAudioSystem audioSystem;
+
         private byte[] buffer;
 
         private int channels;
@@ -102,11 +112,10 @@ public class DataSource
 
         private int offset;
 
-        private final PulseAudioSystem pulseAudioSystem;
-
         private final PA.stream_request_cb_t readCallback
             = new PA.stream_request_cb_t()
             {
+                @Override
                 public void callback(long s, int nbytes)
                 {
                     readCallback(s, nbytes);
@@ -127,9 +136,9 @@ public class DataSource
         {
             super(DataSource.this, formatControl);
 
-            pulseAudioSystem = PulseAudioSystem.getPulseAudioSystem();
-            if (pulseAudioSystem == null)
-                throw new IllegalStateException("pulseAudioSystem");
+            audioSystem = PulseAudioSystem.getPulseAudioSystem();
+            if (audioSystem == null)
+                throw new IllegalStateException("audioSystem");
 
             MediaServiceImpl mediaServiceImpl
                 = NeomediaServiceUtils.getMediaServiceImpl();
@@ -143,10 +152,11 @@ public class DataSource
         /**
          * {@inheritDoc}
          */
+        @Override
         public void read(Buffer buffer)
             throws IOException
         {
-            pulseAudioSystem.lockMainloop();
+            audioSystem.lockMainloop();
             try
             {
                 if (stream == 0)
@@ -168,7 +178,7 @@ public class DataSource
 
                     if (this.length <= 0)
                     {
-                        pulseAudioSystem.waitMainloop();
+                        audioSystem.waitMainloop();
                         continue;
                     }
 
@@ -222,7 +232,7 @@ public class DataSource
             }
             finally
             {
-                pulseAudioSystem.unlockMainloop();
+                audioSystem.unlockMainloop();
             }
         }
 
@@ -302,7 +312,7 @@ public class DataSource
             }
             finally
             {
-                pulseAudioSystem.signalMainloop(false);
+                audioSystem.signalMainloop(false);
             }
         }
 
@@ -310,14 +320,14 @@ public class DataSource
         public void connect()
             throws IOException
         {
-            pulseAudioSystem.lockMainloop();
+            audioSystem.lockMainloop();
             try
             {
                 connectWithMainloopLock();
             }
             finally
             {
-                pulseAudioSystem.unlockMainloop();
+                audioSystem.unlockMainloop();
             }
         }
 
@@ -347,7 +357,7 @@ public class DataSource
             try
             {
                 stream
-                    = pulseAudioSystem.createStream(
+                    = audioSystem.createStream(
                             sampleRate,
                             channels,
                             getClass().getName(),
@@ -396,9 +406,10 @@ public class DataSource
                     Runnable stateCallback
                         = new Runnable()
                         {
+                            @Override
                             public void run()
                             {
-                                pulseAudioSystem.signalMainloop(false);
+                                audioSystem.signalMainloop(false);
                             }
                         };
 
@@ -421,7 +432,7 @@ public class DataSource
                         }
 
                         int state
-                            = pulseAudioSystem.waitForStreamState(
+                            = audioSystem.waitForStreamState(
                                     stream,
                                     PA.STREAM_READY);
 
@@ -487,14 +498,14 @@ public class DataSource
             }
             finally
             {
-                pulseAudioSystem.signalMainloop(false);
+                audioSystem.signalMainloop(false);
             }
         }
 
         public void disconnect()
             throws IOException
         {
-            pulseAudioSystem.lockMainloop();
+            audioSystem.lockMainloop();
             try
             {
                 long stream = this.stream;
@@ -518,7 +529,7 @@ public class DataSource
                         length = 0;
                         offset = 0;
 
-                        pulseAudioSystem.signalMainloop(false);
+                        audioSystem.signalMainloop(false);
 
                         if (cvolume != 0)
                             PA.cvolume_free(cvolume);
@@ -529,7 +540,7 @@ public class DataSource
             }
             finally
             {
-                pulseAudioSystem.unlockMainloop();
+                audioSystem.unlockMainloop();
             }
         }
 
@@ -543,7 +554,7 @@ public class DataSource
 
             long o
                 = PA.context_set_source_output_volume(
-                        pulseAudioSystem.getContext(),
+                        audioSystem.getContext(),
                         PA.stream_get_index(stream),
                         cvolume,
                         null);
@@ -556,7 +567,7 @@ public class DataSource
         public void start()
             throws IOException
         {
-            pulseAudioSystem.lockMainloop();
+            audioSystem.lockMainloop();
             try
             {
                 if (stream == 0)
@@ -566,7 +577,7 @@ public class DataSource
             }
             finally
             {
-                pulseAudioSystem.unlockMainloop();
+                audioSystem.unlockMainloop();
             }
 
             super.start();
@@ -576,14 +587,14 @@ public class DataSource
         public void stop()
             throws IOException
         {
-            pulseAudioSystem.lockMainloop();
+            audioSystem.lockMainloop();
             try
             {
                 stopWithMainloopLock();
             }
             finally
             {
-                pulseAudioSystem.unlockMainloop();
+                audioSystem.unlockMainloop();
             }
         }
 

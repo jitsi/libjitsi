@@ -33,7 +33,13 @@ public class PulseAudioRenderer
      */
     private static final String PLUGIN_NAME = "PulseAudio Renderer";
 
-    private static final boolean SOFTWARE_GAIN = false;
+    /*
+     * FIXME The control of the volume through the native PulseAudio API has
+     * been reported to maximize the system-wide volume of the source with flat
+     * volumes i.e. https://java.net/jira/browse/JITSI-1050 (Pulseaudio changes
+     * volume to maximum values).
+     */
+    private static final boolean SOFTWARE_GAIN = true;
 
     private static final Format[] SUPPORTED_INPUT_FORMATS
         = new Format[]
@@ -70,6 +76,7 @@ public class PulseAudioRenderer
     private final PA.stream_request_cb_t writeCallback
         = new PA.stream_request_cb_t()
         {
+            @Override
             public void callback(long s, int nbytes)
             {
                 audioSystem.signalMainloop(false);
@@ -108,6 +115,28 @@ public class PulseAudioRenderer
             = (mediaRole == null)
                 ? PulseAudioSystem.MEDIA_ROLE_PHONE
                 : mediaRole;
+    }
+
+    @SuppressWarnings("unused")
+    private void applyGain(
+            GainControl gainControl,
+            byte[] data, int offset, int length)
+    {
+        if (SOFTWARE_GAIN || (cvolume == 0))
+        {
+            if (length > 0)
+                BasicVolumeControl.applyGain(gainControl, data, offset, length);
+        }
+        else
+        {
+            float gainControlLevel = gainControl.getLevel();
+
+            if (this.gainControlLevel != gainControlLevel)
+            {
+                this.gainControlLevel = gainControlLevel;
+                setStreamVolume(stream, gainControlLevel);
+            }
+        }
     }
 
     @Override
@@ -187,6 +216,7 @@ public class PulseAudioRenderer
     /**
      * {@inheritDoc}
      */
+    @Override
     public String getName()
     {
         return PLUGIN_NAME;
@@ -291,6 +321,7 @@ public class PulseAudioRenderer
                 Runnable stateCallback
                     = new Runnable()
                     {
+                        @Override
                         public void run()
                         {
                             audioSystem.signalMainloop(false);
@@ -332,32 +363,7 @@ public class PulseAudioRenderer
                             stream,
                             writeCallback);
 
-                    GainControl gainControl;
-
-                    if (!SOFTWARE_GAIN
-                            && ((gainControl = getGainControl()) != null))
-                    {
-                        cvolume = PA.cvolume_new();
-
-                        boolean freeCvolume = true;
-
-                        try
-                        {
-                            float gainControlLevel = gainControl.getLevel();
-
-                            setStreamVolume(stream, gainControlLevel);
-                            this.gainControlLevel = gainControlLevel;
-                            freeCvolume = false;
-                        }
-                        finally
-                        {
-                            if (freeCvolume)
-                            {
-                                PA.cvolume_free(cvolume);
-                                cvolume = 0;
-                            }
-                        }
-                    }
+                    setStreamVolume(stream);
 
                     this.stream = stream;
                     this.dev = dev;
@@ -459,6 +465,7 @@ public class PulseAudioRenderer
     /**
      * {@inheritDoc}
      */
+    @Override
     public int process(Buffer buffer)
     {
         if (buffer.isDiscard())
@@ -502,33 +509,13 @@ public class PulseAudioRenderer
             int offset = buffer.getOffset();
             int length = buffer.getLength();
 
-            if (length < writableSize)
+            if (writableSize > length)
                 writableSize = length;
 
             GainControl gainControl = getGainControl();
 
             if (gainControl != null)
-            {
-                if (SOFTWARE_GAIN || (cvolume == 0))
-                {
-                    if (length > 0)
-                    {
-                        BasicVolumeControl.applyGain(
-                                gainControl,
-                                data, offset, writableSize);
-                    }
-                }
-                else
-                {
-                    float gainControlLevel = gainControl.getLevel();
-
-                    if (this.gainControlLevel != gainControlLevel)
-                    {
-                        this.gainControlLevel = gainControlLevel;
-                        setStreamVolume(stream, gainControlLevel);
-                    }
-                }
-            }
+                applyGain(gainControl, data, offset, writableSize);
 
             int writtenSize
                 = PA.stream_write(
@@ -549,6 +536,36 @@ public class PulseAudioRenderer
         }
 
         return ret;
+    }
+
+    @SuppressWarnings("unused")
+    private void setStreamVolume(long stream)
+    {
+        GainControl gainControl;
+
+        if (!SOFTWARE_GAIN && ((gainControl = getGainControl()) != null))
+        {
+            cvolume = PA.cvolume_new();
+
+            boolean freeCvolume = true;
+
+            try
+            {
+                float gainControlLevel = gainControl.getLevel();
+
+                setStreamVolume(stream, gainControlLevel);
+                this.gainControlLevel = gainControlLevel;
+                freeCvolume = false;
+            }
+            finally
+            {
+                if (freeCvolume)
+                {
+                    PA.cvolume_free(cvolume);
+                    cvolume = 0;
+                }
+            }
+        }
     }
 
     private void setStreamVolume(long stream, float level)
@@ -573,6 +590,7 @@ public class PulseAudioRenderer
     /**
      * {@inheritDoc}
      */
+    @Override
     public void start()
     {
         audioSystem.lockMainloop();
@@ -601,6 +619,7 @@ public class PulseAudioRenderer
     /**
      * {@inheritDoc}
      */
+    @Override
     public void stop()
     {
         audioSystem.lockMainloop();

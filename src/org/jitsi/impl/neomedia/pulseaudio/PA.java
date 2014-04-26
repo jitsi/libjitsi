@@ -186,6 +186,8 @@ public final class PA
 
     public static native String sink_info_get_description(long i);
 
+    public static native int sink_info_get_flags(long i);
+
     public static native long[] sink_info_get_formats(long i);
 
     public static native int sink_info_get_index(long i);
@@ -203,6 +205,8 @@ public final class PA
     public static native int sink_info_get_sample_spec_rate(long i);
 
     public static native String source_info_get_description(long i);
+
+    public static native int source_info_get_flags(long i);
 
     public static native long[] source_info_get_formats(long i);
 

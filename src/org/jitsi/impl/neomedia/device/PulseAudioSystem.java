@@ -113,6 +113,7 @@ public class PulseAudioSystem
                     Runnable stateCallback
                         = new Runnable()
                         {
+                            @Override
                             public void run()
                             {
                                 signalMainloop(false);
@@ -294,6 +295,7 @@ public class PulseAudioSystem
         PA.source_info_cb_t sourceInfoListCallback
             = new PA.source_info_cb_t()
             {
+                @Override
                 public void callback(long c, long i, int eol)
                 {
                     try
@@ -320,6 +322,7 @@ public class PulseAudioSystem
         PA.sink_info_cb_t sinkInfoListCallback
             = new PA.sink_info_cb_t()
             {
+                @Override
                 public void callback(long c, long i, int eol)
                 {
                     try
@@ -624,7 +627,7 @@ public class PulseAudioSystem
     {
         int state;
 
-        while (true)
+        do
         {
             state = PA.context_get_state(context);
             if ((PA.CONTEXT_FAILED == state)
@@ -634,6 +637,7 @@ public class PulseAudioSystem
 
             waitMainloop();
         }
+        while (true);
 
         return state;
     }
@@ -644,7 +648,7 @@ public class PulseAudioSystem
     {
         int state;
 
-        while (true)
+        do
         {
             state = PA.stream_get_state(stream);
             if ((stateToWaitFor == state)
@@ -654,6 +658,7 @@ public class PulseAudioSystem
 
             waitMainloop();
         }
+        while (true);
 
         return state;
     }
