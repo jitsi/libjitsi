@@ -14,8 +14,6 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.service.configuration.*;
-import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 
 /**
@@ -94,18 +92,15 @@ public class SsrcTransformEngine
             }
         }
 
-        // Should we simply drop RTP packets from muted audio sources?
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-        boolean b = false;
-
-        if (cfg != null)
-        {
-            b
-                = cfg.getBoolean(
-                        DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM,
-                        b);
-        }
-        dropMutedAudioSourceInReverseTransform = b;
+        /*
+         * Should we simply drop RTP packets from muted audio sources? It turns
+         * out that we cannot do that because SRTP at the receiver will
+         * eventually fail to guess the rollover counter (ROC) of the sender.
+         * That is why we will never drop RTP packets from muted audio sources
+         * here and we will rather raise Buffer.FLAG_SILENCE and have SRTP drop
+         * RTP packets from muted audio sources.
+         */
+        dropMutedAudioSourceInReverseTransform = false;
     }
 
     /**
