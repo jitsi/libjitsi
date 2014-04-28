@@ -22,7 +22,12 @@ public enum MediaType
     /**
      * Represents a VIDEO media type.
      */
-    VIDEO("video");
+    VIDEO("video"),
+
+    /**
+     * Represents a DATA media type.
+     */
+    DATA("data");
 
     /**
      * The name of this <tt>MediaType</tt>.
@@ -73,6 +78,9 @@ public enum MediaType
 
         if(VIDEO.toString().equals(mediaTypeName))
             return VIDEO;
+
+        if(DATA.toString().equals(mediaTypeName))
+            return DATA;
 
         throw new IllegalArgumentException(
             mediaTypeName + " is not a currently supported MediaType");
