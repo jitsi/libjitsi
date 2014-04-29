@@ -14,6 +14,8 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 
 /**
@@ -41,11 +43,36 @@ public class SsrcTransformEngine
             + ".dropMutedAudioSourceInReverseTransform";
 
     /**
-     * The indicator which determines whether this <tt>SsrcTransformEngine</tt>
-     * is to drop RTP packets indicated as generated from a muted audio source
-     * in {@link #reverseTransform(RawPacket)}.
+     * The indicator which determines whether <tt>SsrcTransformEngine</tt> is to
+     * drop RTP packets indicated as generated from a muted audio source in
+     * {@link #reverseTransform(RawPacket)}.
      */
-    private final boolean dropMutedAudioSourceInReverseTransform;
+    private static boolean dropMutedAudioSourceInReverseTransform = false;
+
+    /**
+     * The maximum number of consecutive RTP packets indicated as generated from
+     * a muted audio source to be dropped in
+     * {@link #reverseTransform(RawPacket)}. Makes sure that SRTP at the
+     *  receiving endpoint/peer sees enough sequence numbers to not get its SRTP
+     *  index out of sync with the sending endpoint/peer. 
+     */
+    private static final int MAX_DROPPED_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM
+        = 1023;
+
+    /**
+     * The indicator which determines whether the method
+     * {@link #readConfigurationServicePropertiesOnce()} is to read the values
+     * of certain <tt>ConfigurationService</tt> properties of concern to
+     * <tt>SsrcTransformEngine</tt> once during the initialization of the first
+     * instance.
+     */
+    private static boolean readConfigurationServicePropertiesOnce = true;
+
+    /**
+     * The number of consecutive RTP packets indicated as generated from a muted
+     * audio source and dropped in {@link #reverseTransform(RawPacket)}.
+     */
+    private int droppedMutedAudioSourceInReverseTransform;
 
     /**
      * The <tt>MediaDirection</tt> in which this RTP header extension is active.
@@ -92,15 +119,7 @@ public class SsrcTransformEngine
             }
         }
 
-        /*
-         * Should we simply drop RTP packets from muted audio sources? It turns
-         * out that we cannot do that because SRTP at the receiver will
-         * eventually fail to guess the rollover counter (ROC) of the sender.
-         * That is why we will never drop RTP packets from muted audio sources
-         * here and we will rather raise Buffer.FLAG_SILENCE and have SRTP drop
-         * RTP packets from muted audio sources.
-         */
-        dropMutedAudioSourceInReverseTransform = false;
+        readConfigurationServicePropertiesOnce();
     }
 
     /**
@@ -136,6 +155,30 @@ public class SsrcTransformEngine
     }
 
     /**
+     * Reads the values of certain <tt>ConfigurationService</tt> properties of
+     * concern to <tt>SsrcTransformEngine</tt> once during the initialization of
+     * the first instance.
+     */
+    private static synchronized void readConfigurationServicePropertiesOnce()
+    {
+        if (readConfigurationServicePropertiesOnce)
+            readConfigurationServicePropertiesOnce = false;
+        else
+            return;
+
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        if (cfg != null)
+        {
+            dropMutedAudioSourceInReverseTransform
+                = cfg.getBoolean(
+                        SsrcTransformEngine
+                            .DROP_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM,
+                        dropMutedAudioSourceInReverseTransform);
+        }
+    }
+
+    /**
      * Extracts the list of CSRC identifiers and passes it to the
      * <tt>MediaStream</tt> associated with this engine. Other than that the
      * method does not do any transformations since CSRC lists are part of
@@ -150,6 +193,8 @@ public class SsrcTransformEngine
      */
     public RawPacket reverseTransform(RawPacket pkt)
     {
+        boolean dropPkt = false;
+
         if ((ssrcAudioLevelExtID > 0)
                 && ssrcAudioLevelDirection.allowsReceiving()
                 && !pkt.isInvalid()
@@ -160,13 +205,27 @@ public class SsrcTransformEngine
             if (level == 127 /* a muted audio source */)
             {
                 if (dropMutedAudioSourceInReverseTransform)
-                    pkt = null;
+                {
+                    dropPkt
+                        = droppedMutedAudioSourceInReverseTransform
+                            < MAX_DROPPED_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM;
+                }
                 else
+                {
                     pkt.setFlags(Buffer.FLAG_SILENCE | pkt.getFlags());
+                }
             }
         }
-
-        return pkt;
+        if (dropPkt)
+        {
+            droppedMutedAudioSourceInReverseTransform++;
+            return null;
+        }
+        else
+        {
+            droppedMutedAudioSourceInReverseTransform = 0;
+            return pkt;
+        }
     }
 
     public void setSsrcAudioLevelExtensionID(byte extID, MediaDirection dir)
