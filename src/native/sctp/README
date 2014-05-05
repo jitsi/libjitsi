@@ -1,0 +1,73 @@
+# BUILD INSTRUCTIONS FOR WINDOWS
+#
+# 1. Checkout usrsctp source:
+#
+#   a) cd src/native/sctp
+#
+#   b) svn checkout http://sctp-refimpl.googlecode.com/svn/trunk/ sctp-refimpl-read-only
+#
+# 2. Build usrsctp:
+#
+#   a) open Visual Studio console(x86 for 32 bit, 64 for 64 bit)
+#
+#   b) cd src/native/sctp/sctp-refimpl-read-only/KERN/usrsctp/
+#
+#   c) nmake -f Makefile.nmake
+#
+# 3. Build native Sctp wrapper:
+#
+# a) cd src/native/sctp
+#
+# b) build and install
+#
+#    32bit:
+#      nmake -f Makfile.nmake install32
+#
+#    64bit:
+#      nmake -f Makfile.nmake install64
+#
+# Reminder:
+# The command below is used to re-generate jni header
+# (run from classes output folder)
+# javah -jni org.jitsi.sctp4j.Sctp
+#
+# BUILD INSTRUCTIONS FOR LINUX
+#
+#
+# BUILD USRSCTP LIB (required to build/run native SCTP wrapper)
+#
+# 1. Go to dir src/native/sctp
+#
+#    cd src/native/sctp
+#
+# 2. Checkout usrsctp
+#
+#    svn checkout http://sctp-refimpl.googlecode.com/svn/trunk/ sctp-refimpl-read-only
+#
+# 3. Go to usrsctp src root
+#
+#    cd sctp-refimpl-read-only/KERN/usrsctp
+#
+# 4. Build and install usrsctp lib
+#
+#    a) libtoolize
+#
+#    b) aclocal
+#
+#    c) autoconf
+#
+#    d) touch AUTHORS NEWS README ChangeLog
+#
+#    e) automake --add-missing
+#
+#    f) ./configure --prefix=/usr
+#
+#    g) sudo make install
+#
+# BUILD NATIVE WRAPPER FOR SCTP
+#
+# 1. Go to dir src/native/sctp
+# 2. 32 bit:
+#     make install32
+#    64 bit:
+#     make install64
