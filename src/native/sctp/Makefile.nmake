@@ -1,0 +1,25 @@
+CC = cl /O2
+JNI_HEADERS = /I"%JAVA_HOME%\include" /I"%JAVA_HOME%\include\win32"
+
+SCTP_HEADERS = /I"sctp-refimpl-read-only\KERN\usrsctp\usrsctplib"
+LIBS = /link /LIBPATH:"sctp-refimpl-read-only\KERN\usrsctp\usrsctplib" /LIBPATH:"%JAVA_HOME%\lib"
+
+#CFLAGS = $(JNI_HEADERS) $(SCTP_HEADERS) -DSCTP_DEBUG=1 -DINET6=1
+CFLAGS = $(JNI_HEADERS) $(SCTP_HEADERS) -DINET6=1
+
+OBJS = org_jitsi_sctp4j_Sctp.c
+
+jnsctp.dll: clean
+	$(CC) $(CFLAGS) /LD $(OBJS) $(LIBS) /out:jnsctp.dll usrsctp.lib
+
+install32: jnsctp.dll
+	copy jnsctp.dll "../../../lib/native/windows/jnsctp.dll"
+	copy jnsctp.dll "../../../../jitsi-videobridge/lib/native/windows/jnsctp.dll"
+
+install64: jnsctp.dll
+	copy jnsctp.dll "../../../lib/native/windows-64/jnsctp.dll"
+	copy jnsctp.dll "../../../../jitsi-videobridge/lib/native/windows-64/jnsctp.dll"
+
+clean:
+	del *.exp *.lib *.dll *.obj *.manifest 
+
