@@ -833,7 +833,8 @@ public class MediaStreamStatsImpl
             // log the info to see the source of this error.
             if(computedRTTms > 60000 && logger.isInfoEnabled())
             {
-                logger.info("RTT computation seems to be wrong ("
+                logger.info("Stream: " + mediaStreamImpl.getName()
+                        + ", RTT computation seems to be wrong ("
                         + computedRTTms + "> 60 seconds):"
 
                         + "\n\tcurrentTime: " + currentTime
