@@ -8,6 +8,8 @@ package org.jitsi.sctp4j;
 
 import org.jitsi.util.*;
 
+import java.io.*;
+
 /**
  * Sample that uses two <tt>SctpSocket</tt>s with {@link DirectLink}.
  *
@@ -40,19 +42,26 @@ public class SampleLoop
           {
             public void run()
             {
-                if(!client.connect(server.getPort()))
+                try
                 {
-                    // FIXME: Unknown error returned on Windows,
-                    //        but it works after that
-                    //return;
-                }
+                    if(!client.connect(server.getPort()))
+                    {
+                        // FIXME: Unknown error returned on Windows,
+                        //        but it works after that
+                        //return;
+                    }
+                    logger.info("Client: connect");
 
-                logger.info("Client: connect");
-                    
-                try { Thread.sleep(1000); } catch(Exception e) { }
-                    
-                int sent = client.send(new byte[200], false, 0, 0);
-                logger.info("Client sent: " + sent);
+                    try { Thread.sleep(1000); } catch(Exception e) { }
+
+                    int sent = client.send(new byte[200], false, 0, 0);
+                    logger.info("Client sent: " + sent);
+
+                }
+                catch (IOException e)
+                {
+                    logger.error(e, e);
+                }
             }
           }
         ).start();

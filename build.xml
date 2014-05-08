@@ -3,9 +3,13 @@
 
   <property file="local.properties" />
   <property name="dest" value="classes" />
+  <property name="dest.test" value="test-classes" />
   <property name="dist" value="dist" />
+  <property name="JUnit.home" value="lib/test"/>
+  <property name="junit.reports" value="junit-reports"/>
   <property name="libjitsi.jar" value="libjitsi.jar"/>
   <property name="src" value="src"/>
+  <property name="src.test" value="test"/>
   <property name="doc" value="doc"/>
   <property name="java.doc" value="${doc}/api"/>
   <property name="native.libs" value="lib/native"/>
@@ -13,6 +17,13 @@
      
   <path id="compile.class.path">
     <fileset dir="lib" includes="*.jar" />
+  </path>
+  <path id="test.class.path">
+    <path refid="compile.class.path" />
+    <pathelement location="${dest}" />
+    <pathelement location="${dest.test}" />
+    <pathelement location="${JUnit.home}/junit-4.11.jar"/>
+    <pathelement location="${JUnit.home}/hamcrest-core-1.3.jar"/>
   </path>
 
   <condition property="build.label"
@@ -30,8 +41,10 @@
     <delete failonerror="false" includeemptydirs="true">
       <fileset file="${libjitsi.jar}" />
       <fileset dir="${dest}" />
+      <fileset dir="${dest.test}" />
       <fileset dir="${dist}" />
       <fileset dir="${doc}" />
+      <fileset dir="${junit.reports}"/>
     </delete>
   </target>
 
@@ -48,6 +61,19 @@
       <src path="${src}"/>
       <exclude name="org/jitsi/impl/neomedia/codec/audio/speex/Java*"/>
     </javac>
+  </target>
+  <target name="compile-test" depends="compile">
+      <mkdir dir="${dest.test}" />
+      <javac
+            classpathref="test.class.path"
+            debug="true"
+            destdir="${dest.test}"
+            fork="true"
+            optimize="true"
+            source="1.6"
+            target="1.6">
+          <src path="${src.test}"/>
+      </javac>
   </target>
 
   <target name="compile-with-g729">
@@ -191,6 +217,19 @@
             <exclude name="libjitsi.jar"/>
         </zipfileset>
       </zip>
+  </target>
+  <!-- Run the tests-->
+  <target name="test" depends="compile-test">
+      <mkdir dir="${junit.reports}"/>
+      <junit printsummary="yes" haltonfailure="true" fork="true" forkmode="once">
+        <formatter type="xml" />
+        <classpath refid="test.class.path"/>
+        <sysproperty
+              key="java.library.path"
+              path="lib/native/linux-64:lib/native/linux:lib/native/mac:lib/native/windows-64:lib/native/windows" />
+        <test name="org.jitsi.sctp4j.SctpNativeTest"
+              todir="${junit.reports}"/>
+      </junit>
   </target>
 
 </project>

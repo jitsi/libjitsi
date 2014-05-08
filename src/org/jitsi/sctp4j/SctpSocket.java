@@ -8,6 +8,8 @@ package org.jitsi.sctp4j;
 
 import org.jitsi.util.*;
 
+import java.io.*;
+
 /**
  * SCTP socket implemented using "usrsctp" lib.
  *
@@ -47,6 +49,9 @@ public class SctpSocket
      */
     SctpSocket(long socketPtr, int localPort)
     {
+        if(socketPtr == 0)
+            throw new NullPointerException();
+
         this.socketPtr = socketPtr;
         this.localPort = localPort;
     }
@@ -73,16 +78,22 @@ public class SctpSocket
     /**
      * Makes SCTP socket passive.
      */
-    public void listen()
+    public synchronized void listen()
+        throws IOException
     {
+        checkPointerIsValid();
+
         Sctp.usrsctp_listen(socketPtr);
     }
 
     /**
      * Accepts incoming SCTP connection.
      */
-    public void accept()
+    public synchronized void accept()
+        throws IOException
     {
+        checkPointerIsValid();
+
         Sctp.usrsctp_accept(socketPtr);
     }
 
@@ -91,8 +102,11 @@ public class SctpSocket
      * @param remotePort remote SCTP port.
      * @return <tt>true</tt> on success.
      */
-    public boolean connect(int remotePort)
+    public synchronized boolean connect(int remotePort)
+        throws IOException
     {
+        checkPointerIsValid();
+
         return Sctp.usrsctp_connect(socketPtr, remotePort);
     }
 
@@ -106,8 +120,13 @@ public class SctpSocket
      * @param ppid payload protocol identifier
      * @return sent bytes count or <tt>-1</tt> in case of an error.
      */
-    public int send(byte[] data, boolean ordered, int sid, int ppid)
+    public synchronized int send(byte[] data, boolean ordered,
+                                 int sid,     int ppid)
+        throws IOException
     {
+        // Prevent JVM crash by throwing IOException
+        checkPointerIsValid();
+
         return Sctp.usrsctp_send(socketPtr, data, ordered, sid, ppid);
     }
 
@@ -158,8 +177,12 @@ public class SctpSocket
      * Call this method to pass network packets received on the link.
      * @param packet network packet received.
      */
-    public void onConnIn(byte[] packet)
+    public synchronized void onConnIn(byte[] packet)
+        throws IOException
     {
+        // Prevent JVM crash by throwing IOException
+        checkPointerIsValid();
+
         //debugSctpPacket(packet);
 
         Sctp.onConnIn(socketPtr, packet);
@@ -169,13 +192,28 @@ public class SctpSocket
      * Closes this socket. After call to this method this instance MUST NOT be
      * used.
      */
-    public void close()
+    public synchronized void close()
     {
         if(socketPtr != 0)
         {
             Sctp.closeSocket(socketPtr);
 
             socketPtr = 0;
+        }
+    }
+
+    /**
+     * Checks if {@link #socketPtr} is not null. Otherwise throws
+     * <tt>IOException</tt>.
+     *
+     * @throws IOException in case this socket pointer is invalid.
+     */
+    private void checkPointerIsValid()
+        throws IOException
+    {
+        if(socketPtr == 0)
+        {
+            throw new IOException("Socket is closed");
         }
     }
     
