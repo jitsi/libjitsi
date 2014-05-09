@@ -22,15 +22,25 @@ import static org.junit.Assert.fail;
 @RunWith(JUnit4.class)
 public class SctpNativeTest
 {
+    /**
+     * Tested socket instance.
+     */
+    private SctpSocket testSocket;
+
     @Before
     public void setUp()
     {
-        Sctp.init(0);
+        Sctp.init();
+
+        testSocket = Sctp.createSocket(5000);
     }
 
     @After
     public void tearDown()
+        throws IOException
     {
+        testSocket.close();
+
         Sctp.finish();
     }
 
@@ -40,9 +50,8 @@ public class SctpNativeTest
     @Test
     public void throwIOonClosedSocket()
     {
-        final SctpSocket sctpSocket = Sctp.createSocket(5001);
 
-        sctpSocket.close();
+        testSocket.close();
 
         // SctpSocket.send
         testIOException(new IOExceptionRun()
@@ -51,7 +60,7 @@ public class SctpNativeTest
             public void run()
                 throws IOException
             {
-                sctpSocket.send(new byte[]{1,2,3}, false, 1, 1);
+                testSocket.send(new byte[]{1,2,3}, false, 1, 1);
             }
         });
 
@@ -62,7 +71,7 @@ public class SctpNativeTest
             public void run()
                 throws IOException
             {
-                sctpSocket.accept();
+                testSocket.accept();
             }
         });
 
@@ -73,7 +82,7 @@ public class SctpNativeTest
             public void run()
                 throws IOException
             {
-                sctpSocket.listen();
+                testSocket.listen();
             }
         });
 
@@ -84,7 +93,7 @@ public class SctpNativeTest
             public void run()
                 throws IOException
             {
-                sctpSocket.connect(5001);
+                testSocket.connect(5001);
             }
         });
 
@@ -95,7 +104,7 @@ public class SctpNativeTest
             public void run()
                 throws IOException
             {
-                sctpSocket.onConnIn(new byte[]{1, 2, 3, 4, 5});
+                testSocket.onConnIn(new byte[]{1, 2, 3, 4, 5});
             }
         });
     }
@@ -128,6 +137,28 @@ public class SctpNativeTest
         {
             // OK
         }
+    }
+
+    /**
+     * Tests {@link SctpSocket#onConnIn(byte[])} method for invalid arguments.
+     */
+    @Test
+    public void testOnConnIn()
+        throws IOException
+    {
+        // Expect NPE
+        try
+        {
+            testSocket.onConnIn(null);
+            fail("No NPE onConnIn called with null");
+        }
+        catch (NullPointerException npe)
+        {
+            // OK
+        }
+
+        // Test empty buffer, should not crash
+        testSocket.onConnIn(new byte[]{});
     }
 
     /**

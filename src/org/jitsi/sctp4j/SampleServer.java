@@ -29,7 +29,7 @@ public class SampleServer
         String remoteAddr = "127.0.0.1";
         int remotePort = 48002;
 
-        Sctp.init(0);
+        Sctp.init();
 
         final SctpSocket sock1 = Sctp.createSocket(localSctpPort);
         

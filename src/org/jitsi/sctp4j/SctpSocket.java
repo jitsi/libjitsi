@@ -180,6 +180,9 @@ public class SctpSocket
     public synchronized void onConnIn(byte[] packet)
         throws IOException
     {
+        if(packet == null)
+            throw new NullPointerException("packet");
+
         // Prevent JVM crash by throwing IOException
         checkPointerIsValid();
 

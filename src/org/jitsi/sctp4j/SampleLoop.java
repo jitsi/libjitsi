@@ -24,7 +24,7 @@ public class SampleLoop
 
     public static void main(String[] args) throws Exception
     {
-        Sctp.init(0);
+        Sctp.init();
 
         final SctpSocket server = Sctp.createSocket(5001);
         final SctpSocket client = Sctp.createSocket(5002);

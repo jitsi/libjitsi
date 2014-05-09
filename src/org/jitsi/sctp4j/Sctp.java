@@ -8,6 +8,7 @@ package org.jitsi.sctp4j;
 
 import org.jitsi.util.*;
 
+import java.io.*;
 import java.util.*;
 
 /**
@@ -122,22 +123,24 @@ public class Sctp
     public static final int SCTP_STREAM_RESET_OUTGOING     = 0x00000002;
 
     /**
-     * Track initialization state of native counterpart.
+     * Track the number of currently running SCTP engines.
+     * Each engine calls {@link #init()} on startup and {@link #finish()}
+     * on shutdown. We want {@link #init()} to be effectively called only when
+     * there are 0 engines currently running and {@link #finish()} when the last
+     * one is performing a shutdown.
      */
-    private static boolean initialized;
+    private static int sctpEngineCount;
 
     /**
      * Initializes native SCTP counterpart.
-     * @param port UDP encapsulation port.
      */
-    public static synchronized void init(int port)
+    public static synchronized void init()
     {
-        if(initialized)
+        // Skip if we're not the first one
+        if(sctpEngineCount++ > 0)
             return;
 
-        usrsctp_init(port);
-
-        initialized = true;
+        usrsctp_init(0);
     }
 
     /**
@@ -232,22 +235,38 @@ public class Sctp
 
     /**
      * Disposes of the resources held by native counterpart.
+     *
+     * @throws IOException if usrsctp stack has failed to shutdown.
      */
     public static synchronized void finish()
+        throws IOException
     {
-        if(!initialized)
+        // Skip if we're not the last one
+        if(--sctpEngineCount > 0)
             return;
 
         try
         {
             // FIXME: fix this loop ?
             // it comes from SCTP samples written in C
-            while(!usrsctp_finish())
-            {            
+
+            // Retry limited amount of times
+            final int CLOSE_RETRY_COUNT = 20;
+
+            for(int i=0; i < CLOSE_RETRY_COUNT; i++)
+            {
+                if(usrsctp_finish())
+                    return;
+
                 Thread.sleep(50);
             }
 
-            initialized = false;
+            //FIXME: after throwing we might end up with other SCTP users broken
+            // (or stack not disposed) at this point because engine count will
+            // be out of sync for the purpose of calling init() and finish()
+            // methods.
+            throw new IOException("Failed to shutdown usrsctp stack" +
+                                      " after 20 retries");
         }
         catch(InterruptedException e)
         {
