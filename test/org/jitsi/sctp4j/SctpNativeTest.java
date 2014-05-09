@@ -124,19 +124,10 @@ public class SctpNativeTest
         }
     }
 
-    @Test
+    @Test(expected = NullPointerException.class)
     public void testNPEinConstructor()
     {
-        try
-        {
-            new PublicSctpSocket(0, 0);
-
-            fail("No NPE thrown");
-        }
-        catch (NullPointerException e)
-        {
-            // OK
-        }
+        new PublicSctpSocket(0, 0);
     }
 
     /**
