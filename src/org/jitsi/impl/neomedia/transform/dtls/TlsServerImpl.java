@@ -26,6 +26,10 @@ public class TlsServerImpl
      */
     private static final Logger logger = Logger.getLogger(TlsServerImpl.class);
 
+    /**
+     *
+     * @see TlsServer#getCertificateRequest()
+     */
     private final CertificateRequest certificateRequest
         = new CertificateRequest(
                 new short[] { ClientCertificateType.rsa_sign },
@@ -43,6 +47,16 @@ public class TlsServerImpl
      */
     private final DtlsPacketTransformer packetTransformer;
 
+    /**
+     *
+     * @see DefaultTlsServer#getRSAEncryptionCredentials()
+     */
+    private TlsEncryptionCredentials rsaEncryptionCredentials;
+
+    /**
+     *
+     * @see DefaultTlsServer#getRSASignerCredentials()
+     */
     private TlsSignerCredentials rsaSignerCredentials;
 
     /**
@@ -162,6 +176,36 @@ public class TlsServerImpl
 
     /**
      * {@inheritDoc}
+     *
+     * Depending on the <tt>selectedCipherSuite</tt>, <tt>DefaultTlsServer</tt>
+     * will require either <tt>rsaEncryptionCredentials</tt> or
+     * <tt>rsaSignerCredentials</tt> neither of which is implemented by
+     * <tt>DefaultTlsServer</tt>.
+     */
+    @Override
+    protected TlsEncryptionCredentials getRSAEncryptionCredentials()
+        throws IOException
+    {
+        if (rsaEncryptionCredentials == null)
+        {
+            DtlsControlImpl dtlsControl = getDtlsControl();
+
+            rsaEncryptionCredentials
+                = new DefaultTlsEncryptionCredentials(
+                        context,
+                        dtlsControl.getCertificate(),
+                        dtlsControl.getKeyPair().getPrivate());
+        }
+        return rsaEncryptionCredentials;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Depending on the <tt>selectedCipherSuite</tt>, <tt>DefaultTlsServer</tt>
+     * will require either <tt>rsaEncryptionCredentials</tt> or
+     * <tt>rsaSignerCredentials</tt> neither of which is implemented by
+     * <tt>DefaultTlsServer</tt>.
      */
     @Override
     protected TlsSignerCredentials getRSASignerCredentials()
