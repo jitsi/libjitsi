@@ -81,7 +81,7 @@ public class SctpSocket
     public synchronized void listen()
         throws IOException
     {
-        checkPointerIsValid();
+        checkIsPointerValid();
 
         Sctp.usrsctp_listen(socketPtr);
     }
@@ -92,7 +92,7 @@ public class SctpSocket
     public synchronized void accept()
         throws IOException
     {
-        checkPointerIsValid();
+        checkIsPointerValid();
 
         Sctp.usrsctp_accept(socketPtr);
     }
@@ -105,7 +105,7 @@ public class SctpSocket
     public synchronized boolean connect(int remotePort)
         throws IOException
     {
-        checkPointerIsValid();
+        checkIsPointerValid();
 
         return Sctp.usrsctp_connect(socketPtr, remotePort);
     }
@@ -125,7 +125,7 @@ public class SctpSocket
         throws IOException
     {
         // Prevent JVM crash by throwing IOException
-        checkPointerIsValid();
+        checkIsPointerValid();
 
         return Sctp.usrsctp_send(socketPtr, data, ordered, sid, ppid);
     }
@@ -184,7 +184,7 @@ public class SctpSocket
             throw new NullPointerException("packet");
 
         // Prevent JVM crash by throwing IOException
-        checkPointerIsValid();
+        checkIsPointerValid();
 
         //debugSctpPacket(packet);
 
@@ -211,7 +211,7 @@ public class SctpSocket
      *
      * @throws IOException in case this socket pointer is invalid.
      */
-    private void checkPointerIsValid()
+    private void checkIsPointerValid()
         throws IOException
     {
         if(socketPtr == 0)

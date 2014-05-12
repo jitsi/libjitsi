@@ -127,7 +127,7 @@ public class SctpNativeTest
     @Test(expected = NullPointerException.class)
     public void testNPEinConstructor()
     {
-        new PublicSctpSocket(0, 0);
+        new SctpSocket(0, 0);
     }
 
     /**
