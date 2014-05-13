@@ -6,6 +6,8 @@
  */
 package org.jitsi.sctp4j;
 
+import java.io.*;
+
 /**
  * Interface used by {@link SctpSocket} for sending network packets.
  *
@@ -21,6 +23,9 @@ public interface NetworkLink
      * network packet.
      * @param s source <tt>SctpSocket</tt> instance.
      * @param packet network packet buffer.
+     *
+     * @throws java.io.IOException in case of transport error.
      */
-    public void onConnOut(final SctpSocket s, final byte[] packet);
+    public void onConnOut(final SctpSocket s, final byte[] packet)
+        throws IOException;
 }

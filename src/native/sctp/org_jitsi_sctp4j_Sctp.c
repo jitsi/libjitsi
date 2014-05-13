@@ -5,7 +5,7 @@
 #include <string.h>
 
 // errno returned after connect call on success
-#define SCTP_EINPROGRESS 115
+#define SCTP_EINPROGRESS EINPROGRESS
 
 // Name of the class that contains callback methods.
 #define SCTP_CLASS "org/jitsi/sctp4j/Sctp"
@@ -22,7 +22,7 @@ struct sctp_socket
 // Java Virtual Machine instance
 JavaVM* jvm;
 
-void callOnSctpOutboundPacket( void*   socketPtr, void*   data,
+int callOnSctpOutboundPacket( void*   socketPtr, void*   data,
                                size_t  length,    uint8_t tos,
                                uint8_t set_df )
 {
@@ -39,6 +39,8 @@ void callOnSctpOutboundPacket( void*   socketPtr, void*   data,
     jbyteArray jBuff;    
     jint jtos;    
     jint jset_df;
+
+    jint result;
 	
 	getEnvStat = (*jvm)->GetEnv(jvm, (void **)&jniEnv, JNI_VERSION_1_6);
     if (getEnvStat == JNI_EDETACHED) 
@@ -48,13 +50,13 @@ void callOnSctpOutboundPacket( void*   socketPtr, void*   data,
         if ((*jvm)->AttachCurrentThread(jvm, (void **) &jniEnv, NULL) != 0)
         {
           printf("Failed to attach new thread\n");
-          return;
+          return -1;
         }
     }
     else if (getEnvStat == JNI_EVERSION) 
     {
         printf("GetEnv: version not supported\n");
-        return;
+        return -1;
     }
     else if (getEnvStat == JNI_OK) 
     {
@@ -65,17 +67,17 @@ void callOnSctpOutboundPacket( void*   socketPtr, void*   data,
     if(!sctpClass)
     {
         printf("Failed to get SCTP class\n");
-        return;
+        return -1;
     }
 
 
     outboundCallback = (*jniEnv)->GetStaticMethodID(
-        jniEnv, sctpClass, "onSctpOutboundPacket", "(J[BII)V");
+        jniEnv, sctpClass, "onSctpOutboundPacket", "(J[BII)I");
 
     if(!outboundCallback)
     {
         printf("Failed to get onSctpOutboundPacket method\n");
-        return;
+        return -1;
     }
     
     sctpPtr = (jlong)(long)socketPtr;
@@ -87,7 +89,7 @@ void callOnSctpOutboundPacket( void*   socketPtr, void*   data,
     
     jset_df = (jint)set_df;
     
-    (*jniEnv)->CallStaticObjectMethod(
+    result = (jint)(*jniEnv)->CallStaticIntMethod(
         jniEnv, sctpClass, outboundCallback, sctpPtr, jBuff, jtos, jset_df);
 
     // FIXME: not sure if jBuff should be released
@@ -103,6 +105,8 @@ void callOnSctpOutboundPacket( void*   socketPtr, void*   data,
             printf("Failed to deattach the thread\n");
         }  
     }
+
+    return (int)result;
 }
 
 void callOnSctpInboundPacket( void*    socketPtr, void*    data,
@@ -178,7 +182,7 @@ void callOnSctpInboundPacket( void*    socketPtr, void*    data,
     jppid = (jlong)ntohl(ppid);
     jcontext = (jint)context;
     
-    (*jniEnv)->CallStaticObjectMethod(
+    (*jniEnv)->CallStaticVoidMethod(
         jniEnv, sctpClass, inboundCallback, sctpPtr, jBuff, jsid, jssn, jtsn,
         jppid, jcontext, (jint)flags);
     
@@ -199,12 +203,16 @@ void callOnSctpInboundPacket( void*    socketPtr, void*    data,
 static int onSctpOutboundPacket(void*   addr, void*     data, size_t  length,
                                 uint8_t tos,  uint8_t set_df )
 {
-  if(data && length)
-  {
-    callOnSctpOutboundPacket(addr, data, length, tos, set_df);
-  }
+    if(data && length)
+    {
+        if(callOnSctpOutboundPacket(addr, data, length, tos, set_df) == 0)
+        {
+            return 0;
+        }
+    }
 
-  return 0;
+    //FIXME: not sure about this value, but an error for now
+    return -1;
 }
 
 void debugSctpPrintf(const char *format, ...)
@@ -579,20 +587,11 @@ int connectSctp(struct sctp_socket *sctp_socket, int remotePort)
     connect_result = usrsctp_connect(
         sock, (struct sockaddr *)&sconn, sizeof(struct sockaddr_conn));
 
-//#ifdef _WIN32
-  //  if (connect_result == SOCKET_ERROR)
-    //{
-      //  perror("usrsctp_connect");
-        //return 0;
-//    }
-//#else
-// FIXME: on windows "Unknown error" is returned but the socket works anyway...
     if (connect_result < 0 && errno != SCTP_EINPROGRESS)
     {
         perror("usrsctp_connect");
         return 0;
     }
-//#endif
     return 1;
 }
 

@@ -227,7 +227,7 @@
         <sysproperty
               key="java.library.path"
               path="lib/native/linux-64:lib/native/linux:lib/native/mac:lib/native/windows-64:lib/native/windows" />
-        <test name="org.jitsi.sctp4j.SctpNativeTest"
+        <test name="org.jitsi.sctp4j.SctpTestSuite"
               todir="${junit.reports}"/>
       </junit>
   </target>

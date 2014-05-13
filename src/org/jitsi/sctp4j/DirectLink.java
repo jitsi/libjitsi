@@ -44,6 +44,7 @@ public class DirectLink
      * {@inheritDoc}
      */
     public void onConnOut(final SctpSocket s, final byte[] packet)
+        throws IOException
     {
         final SctpSocket dest = s == this.a ? this.b : this.a;
         new Thread(new Runnable()

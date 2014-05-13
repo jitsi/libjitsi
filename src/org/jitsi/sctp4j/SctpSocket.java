@@ -100,14 +100,18 @@ public class SctpSocket
     /**
      * Initializes SCTP connection by sending INIT message.
      * @param remotePort remote SCTP port.
-     * @return <tt>true</tt> on success.
+     * @throws java.io.IOException if this socket is closed or an error occurs
+     *         while trying to connect the socket.
      */
-    public synchronized boolean connect(int remotePort)
+    public synchronized void connect(int remotePort)
         throws IOException
     {
         checkIsPointerValid();
 
-        return Sctp.usrsctp_connect(socketPtr, remotePort);
+        if(!Sctp.usrsctp_connect(socketPtr, remotePort))
+        {
+            throw new IOException("Failed to connect SCTP");
+        }
     }
 
     /**
@@ -136,10 +140,25 @@ public class SctpSocket
      * @param packet network packet buffer.
      * @param tos type of service???
      * @param set_df use IP don't fragment option
+     * @return 0 if the packet was successfully sent or -1 otherwise.
      */
-    void onSctpOut(byte[] packet, int tos, int set_df)
+    int onSctpOut(byte[] packet, int tos, int set_df)
     {
-        this.link.onConnOut(this, packet);
+        if(link == null)
+            return -1;
+
+        try
+        {
+            this.link.onConnOut(this, packet);
+
+            return 0;
+        }
+        catch (IOException e)
+        {
+            logger.error(
+                "Error while sending packet trough the link: " + link, e);
+        }
+        return -1;
     }
 
     /**

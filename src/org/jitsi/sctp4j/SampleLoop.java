@@ -44,12 +44,7 @@ public class SampleLoop
             {
                 try
                 {
-                    if(!client.connect(server.getPort()))
-                    {
-                        // FIXME: Unknown error returned on Windows,
-                        //        but it works after that
-                        //return;
-                    }
+                    client.connect(server.getPort());
                     logger.info("Client: connect");
 
                     try { Thread.sleep(1000); } catch(Exception e) { }

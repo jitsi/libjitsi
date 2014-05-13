@@ -103,19 +103,13 @@ public class UdpLink
      */
     @Override
     public void onConnOut(final SctpSocket s, final byte[] packetData)
+        throws IOException
     {
-        try
-        {
-            DatagramPacket packet 
-                = new DatagramPacket( packetData,
-                                      packetData.length,
-                                      remoteIp,
-                                      remotePort);
-            udpSocket.send(packet);
-        }
-        catch(IOException e)
-        {
-            logger.error("Error while trying to send SCTP packet", e);
-        }
+        DatagramPacket packet
+            = new DatagramPacket( packetData,
+                                  packetData.length,
+                                  remoteIp,
+                                  remotePort);
+        udpSocket.send(packet);
     }
 }

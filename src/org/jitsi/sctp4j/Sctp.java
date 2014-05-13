@@ -302,8 +302,9 @@ public class Sctp
      * @param data buffer holding packet data
      * @param tos type of service???
      * @param set_df use IP don't fragment option
+     * @return 0 if the packet has been successfully sent or -1 otherwise.
      */
-    public static void onSctpOutboundPacket(long socketAddr, byte[] data,
+    public static int onSctpOutboundPacket(long socketAddr, byte[] data,
                                             int  tos,        int set_df)
     {
         // FIXME: handle tos and set_df
@@ -311,11 +312,12 @@ public class Sctp
         SctpSocket socket = sockets.get(socketAddr);
         if(socket != null)
         {
-            socket.onSctpOut(data, tos, set_df);
+            return socket.onSctpOut(data, tos, set_df);
         }
         else
         {
             logger.error("No SctpSocket found for ptr: " + socketAddr);
+            return -1;
         }
     }
 

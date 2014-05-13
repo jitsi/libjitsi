@@ -20,7 +20,7 @@ import static org.junit.Assert.fail;
  * @author Pawel Domas
  */
 @RunWith(JUnit4.class)
-public class SctpNativeTest
+public class SctpNativeWrapperTest
 {
     /**
      * Tested socket instance.
