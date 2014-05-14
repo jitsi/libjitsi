@@ -277,7 +277,7 @@ JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_on_1network_1in
     
     usrsctp_conninput(sock, (char*)packetDataPtr, packetLength, 0);
 
-    (*env)->ReleaseByteArrayElements(env, jbytesPacket, packetDataPtr, 
+    (*env)->ReleaseByteArrayElements(env, jbytesPacket, packetDataPtr,
         JNI_ABORT/*free the buffer without copying back the possible changes */);
 }
 
@@ -289,19 +289,13 @@ int onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr,
                         void*  data, size_t length, struct sctp_rcvinfo rcv,
                         int flags, void* ulp_info)
 {
-	//union sctp_notification* notification;
-	
-    if(data)
+	if(data)
     {
-    	if (flags & MSG_NOTIFICATION) 
+    	if (flags & MSG_NOTIFICATION)
         {
-            //printf("SCTP NOTIFICATION F: %i L: %i\n", flags, (int)length);
-            //notification = (union sctp_notification*)data;
-            //printf("NOTIFI T: %u F: %u L: %u\n",
-            //    notification->sn_header.sn_type,
-            //    notification->sn_header.sn_flags,
-            //    notification->sn_header.sn_length
-            //);
+            callOnSctpInboundPacket(
+                ulp_info, data, length,
+                0,  0, 0, 0, 0, flags );
         }
         else
         {
@@ -311,7 +305,6 @@ int onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr,
 		        data,         length,
 		        rcv.rcv_sid,  rcv.rcv_ssn,     rcv.rcv_tsn,
 		        rcv.rcv_ppid, rcv.rcv_context, flags );
-		    
         }
         free(data);
     }
@@ -635,7 +628,7 @@ JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1close
 
     closeSocket(sctp);
 
-    free(sctp);    
+    free(sctp);
 }
 
 /*

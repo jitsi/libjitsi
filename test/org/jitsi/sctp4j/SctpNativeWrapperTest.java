@@ -153,6 +153,62 @@ public class SctpNativeWrapperTest
     }
 
     /**
+     * Reproduced JVM crash when socket is closed while having native code
+     * on the stack(that will be executed after the socket was closed).
+     */
+    @Test
+    public void testCloseFromNotification()
+        throws IOException, InterruptedException
+    {
+        testSocket.setNotificationListener(
+            new SctpSocket.NotificationListener()
+        {
+            @Override
+            public void onSctpNotification(SctpSocket socket,
+                                           SctpNotification notification)
+            {
+                /**
+                 * Notification is fired after usrsctp processed network packet
+                 * which means we have native "on_network_in" on current stack.
+                 * We own permission to SctpSocket monitor
+                 * (because on_network_in requires that) and after we close the
+                 * socket and return usrsctp stack will try to finish work after
+                 * firing notification and it will operate on closed socket
+                 * which will crash the JVM.
+                 *
+                 * To fix this problem after usrsctp calls "onSctpInboundPacket"
+                 * it must be executed on different thread, so that the native
+                 * one can continue and finish it's processing without affecting
+                 * {@link SctpSocket#socketPtr}(protected by the lock when
+                 * accessed from java code).
+                 *
+                 * FIXME:
+                 * We can either detect this situation(and throw exception) or
+                 * spawn new thread in "onSctpInboundPacket". For the time
+                 * being the second option was applied.
+                 */
+                if(notification.sn_type == SctpNotification.SCTP_ASSOC_CHANGE)
+                {
+                    socket.close();
+                }
+            }
+        });
+
+        SctpSocket s2 = Sctp.createSocket(5001);
+
+        DirectLink link = new DirectLink(testSocket, s2);
+        testSocket.setLink(link);
+        s2.setLink(link);
+
+        s2.listen();
+        testSocket.connect(5001);
+
+        Thread.sleep(500);
+
+        s2.close();
+    }
+
+    /**
      * Interface used to test whether enclosed code
      * will throw an <tt>IOException</tt>.
      */

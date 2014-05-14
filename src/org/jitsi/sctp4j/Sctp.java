@@ -44,84 +44,6 @@ public class Sctp
      */
     public static final int MSG_NOTIFICATION = 0x2000;
 
-    /********  Notifications  **************/
-
-    /* notification types */
-    public static final int SCTP_ASSOC_CHANGE                = 0x0001;
-    public static final int SCTP_PEER_ADDR_CHANGE            = 0x0002;
-    public static final int SCTP_REMOTE_ERROR                = 0x0003;
-    public static final int SCTP_SEND_FAILED                 = 0x0004;
-    public static final int SCTP_SHUTDOWN_EVENT              = 0x0005;
-    public static final int SCTP_ADAPTATION_INDICATION       = 0x0006;
-    public static final int SCTP_PARTIAL_DELIVERY_EVENT      = 0x0007;
-    public static final int SCTP_AUTHENTICATION_EVENT        = 0x0008;
-    public static final int SCTP_STREAM_RESET_EVENT          = 0x0009;
-    public static final int SCTP_SENDER_DRY_EVENT            = 0x000a;
-    public static final int SCTP_NOTIFICATIONS_STOPPED_EVENT = 0x000b;
-    public static final int SCTP_ASSOC_RESET_EVENT           = 0x000c;
-    public static final int SCTP_STREAM_CHANGE_EVENT         = 0x000d;
-    public static final int SCTP_SEND_FAILED_EVENT           = 0x000e;
-
-    /* notification event structures */
-
-    /* association change event */
-    /*struct sctp_assoc_change {
-	    uint16_t sac_type;
-	    uint16_t sac_flags;
-	    uint32_t sac_length;
-	    uint16_t sac_state;
-	    uint16_t sac_error;
-	    uint16_t sac_outbound_streams;
-	    uint16_t sac_inbound_streams;
-	    sctp_assoc_t sac_assoc_id;
-	    uint8_t sac_info[]; // not available yet
-    };*/
-
-    /* sac_state values */
-    public static final int SCTP_COMM_UP        = 0x0001;
-    public static final int SCTP_COMM_LOST      = 0x0002;
-    public static final int SCTP_RESTART        = 0x0003;
-    public static final int SCTP_SHUTDOWN_COMP  = 0x0004;
-    public static final int SCTP_CANT_STR_ASSOC = 0x0005;
-
-    /* sac_info values */
-    public static final int SCTP_ASSOC_SUPPORTS_PR        = 0x01;
-    public static final int SCTP_ASSOC_SUPPORTS_AUTH      = 0x02;
-    public static final int SCTP_ASSOC_SUPPORTS_ASCONF    = 0x03;
-    public static final int SCTP_ASSOC_SUPPORTS_MULTIBUF  = 0x04;
-    public static final int SCTP_ASSOC_SUPPORTS_RE_CONFIG = 0x05;
-    public static final int SCTP_ASSOC_SUPPORTS_MAX       = 0x05;
-
-    /* Address event */
-    /*struct sctp_paddr_change {
-	    uint16_t spc_type;
-	    uint16_t spc_flags;
-	    uint32_t spc_length;
-	    struct sockaddr_storage spc_aaddr;
-	    uint32_t spc_state;
-	    uint32_t spc_error;
-	    sctp_assoc_t spc_assoc_id;
-	    uint8_t spc_padding[4];
-    };*/
-
-    /* paddr state values */
-    public static final int SCTP_ADDR_AVAILABLE   = 0x0001;
-    public static final int SCTP_ADDR_UNREACHABLE = 0x0002;
-    public static final int SCTP_ADDR_REMOVED     = 0x0003;
-    public static final int SCTP_ADDR_ADDED       = 0x0004;
-    public static final int SCTP_ADDR_MADE_PRIM   = 0x0005;
-    public static final int SCTP_ADDR_CONFIRMED   = 0x0006;
-
-    /* flags in stream_reset_event (strreset_flags) */
-    public static final int SCTP_STREAM_RESET_INCOMING_SSN = 0x0001;
-    public static final int SCTP_STREAM_RESET_OUTGOING_SSN = 0x0002;
-    public static final int SCTP_STREAM_RESET_DENIED       = 0x0004;
-    public static final int SCTP_STREAM_RESET_FAILED       = 0x0008;
-    public static final int SCTP_STREAM_CHANGED_DENIED     = 0x0010;
-
-    public static final int SCTP_STREAM_RESET_INCOMING     = 0x00000001;
-    public static final int SCTP_STREAM_RESET_OUTGOING     = 0x00000002;
-
     /**
      * Track the number of currently running SCTP engines.
      * Each engine calls {@link #init()} on startup and {@link #finish()}
@@ -176,7 +98,7 @@ public class Sctp
         if(ptr != 0)
         {
             SctpSocket sock = new SctpSocket(ptr, localPort);
-            sockets.put(ptr, sock);            
+            sockets.put(ptr, sock);
             return sock;
         }
         else
@@ -333,15 +255,34 @@ public class Sctp
      * @param context
      * @param flags
      */
-    public static void onSctpInboundPacket(long   socketAddr,
-                                           byte[] data,
-                                           int    sid,  int ssn,     int tsn,
-                                           long   ppid, int context, int flags)
+    public static void onSctpInboundPacket(
+            long   socketAddr, final byte[] data, final int    sid,
+            final int ssn,     final int tsn,     final long   ppid,
+            final int context, final int flags)
     {
-        SctpSocket socket = sockets.get(socketAddr);
+        final SctpSocket socket = sockets.get(socketAddr);
         if(socket != null)
         {
-            socket.onSctpIn(data, sid, ssn, tsn, ppid, context, flags);
+            // FIXME: fix threads
+            new Thread(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    if((flags & MSG_NOTIFICATION) > 0)
+                    {
+                        final SctpNotification notification
+                            = SctpNotification.parse(data);
+
+                        socket.onNotification(notification);
+                    }
+                    else
+                    {
+                        socket.onSctpIn(
+                            data, sid, ssn, tsn, ppid, context, flags);
+                    }
+                }
+            }).start();
         }
         else
         {

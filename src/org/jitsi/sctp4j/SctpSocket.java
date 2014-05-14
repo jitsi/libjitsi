@@ -43,6 +43,20 @@ public class SctpSocket
     private SctpDataCallback dataCallback;
 
     /**
+     * SCTP notification listener.
+     */
+    private NotificationListener notificationListener
+        = new NotificationListener()
+    {
+        @Override
+        public void onSctpNotification(SctpSocket socket,
+                                       SctpNotification notification)
+        {
+            logger.trace("SctpSocket(0x" + socketPtr +")event: " + notification);
+        }
+    };
+
+    /**
      * Creates new instance of <tt>SctpSocket</tt>.
      * @param socketPtr native socket pointer.
      * @param localPort local SCTP port on which this socket is bound.
@@ -238,6 +252,27 @@ public class SctpSocket
             throw new IOException("Socket is closed");
         }
     }
+
+    /**
+     * Sets the listener that will be notified about SCTP event.
+     * @param l the {@link NotificationListener} to set.
+     */
+    public void setNotificationListener(NotificationListener l)
+    {
+        this.notificationListener = l;
+    }
+
+    /**
+     * Fired when usrsctp stack sends notification.
+     * @param notification the <tt>SctpNotification</tt> triggered.
+     */
+    void onNotification(SctpNotification notification)
+    {
+        if(notificationListener != null)
+        {
+            notificationListener.onSctpNotification(this, notification);
+        }
+    }
     
     public synchronized static void debugSctpPacket(byte[] packet, String id)
     {
@@ -410,5 +445,19 @@ public class SctpSocket
         return ((fByte << 8
             | sByte))
             & 0xFFFF;
+    }
+
+    /**
+     * Interface used to listen for SCTP notifications on specific socket.
+     */
+    public interface NotificationListener
+    {
+        /**
+         * Fired when usrsctp stack sends notification.
+         * @param socket the {@link SctpSocket} notification source.
+         * @param notification the <tt>SctpNotification</tt> triggered.
+         */
+        void onSctpNotification(SctpSocket socket,
+                                SctpNotification notification);
     }
 }
