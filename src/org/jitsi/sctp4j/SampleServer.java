@@ -41,7 +41,10 @@ public class SampleServer
 
         sock1.listen();
 
-        sock1.accept();
+        while (!sock1.accept())
+        {
+            Thread.sleep(100);
+        }
 
         sock1.setDataCallback(new SctpDataCallback()
         {

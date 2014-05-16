@@ -539,9 +539,9 @@ JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1listen
 /*
  * Class:     org_jitsi_sctp4j_Sctp
  * Method:    usrsctp_accept
- * Signature: (J)V
+ * Signature: (J)Z
  */
-JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1accept
+JNIEXPORT jboolean JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1accept
   (JNIEnv *env, jclass class, jlong ptr)
 {
     struct sctp_socket* sctpSocket;
@@ -549,13 +549,15 @@ JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1accept
 
     sctpSocket = (struct sctp_socket*)((long)ptr);
 
-    while((acceptedSocket = usrsctp_accept(sctpSocket->sock, NULL, NULL))
+    if((acceptedSocket = usrsctp_accept(sctpSocket->sock, NULL, NULL))
             == NULL)
     {
         //perror("usrsctp_accept");
+        return JNI_FALSE;
     }
     usrsctp_close(sctpSocket->sock);
     sctpSocket->sock = acceptedSocket;
+    return JNI_TRUE;
 }
 
 int connectSctp(struct sctp_socket *sctp_socket, int remotePort)

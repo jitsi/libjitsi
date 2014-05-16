@@ -102,13 +102,19 @@ public class SctpSocket
 
     /**
      * Accepts incoming SCTP connection.
+     * FIXME:
+     * Usrscp is currently configured to work in non blocking mode thus this
+     * method should be polled in intervals.
+     *
+     * @return <tt>true</tt> if we have accepted incoming connection
+     *         successfully.
      */
-    public synchronized void accept()
+    public synchronized boolean accept()
         throws IOException
     {
         checkIsPointerValid();
 
-        Sctp.usrsctp_accept(socketPtr);
+        return Sctp.usrsctp_accept(socketPtr);
     }
 
     /**

@@ -136,7 +136,7 @@ public class Sctp
      * Waits for incoming connection.
      * @param socketPtr native socket pointer.
      */
-    native static void usrsctp_accept(long socketPtr);
+    native static boolean usrsctp_accept(long socketPtr);
 
     /**
      * Connects SCTP socket to remote socket on given SCTP port.
