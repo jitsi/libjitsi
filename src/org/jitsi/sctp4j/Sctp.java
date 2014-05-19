@@ -118,12 +118,15 @@ public class Sctp
      * FIXME: add offset and length buffer parameters.
      * @param socketPtr native socket pointer.
      * @param data the data to send.
+     * @param offset the position of the data inside the buffer
+     * @param len data length.
      * @param ordered should we care about message order ?
      * @param sid SCTP stream identifier
      * @param ppid payload protocol identifier
      * @return sent bytes count or <tt>-1</tt> in case of an error.
      */
     native static int usrsctp_send(long socketPtr,  byte[] data,
+                                   int offset,      int len,
                                    boolean ordered, int sid, int ppid);
 
     /**
@@ -294,22 +297,25 @@ public class Sctp
      * Used by {@link SctpSocket} to pass received network packet to native
      * counterpart.
      *
-     * FIXME: add offset and length parameters
-     *
      * @param socketPtr native socket pointer.
      * @param packet network packet data.
+     * @param offset position in the buffer where packet data starts.
+     * @param len length of packet data in the buffer.
      */
-    static void onConnIn(long socketPtr, byte[] packet)
+    static void onConnIn(long socketPtr, byte[] packet, int offset, int len)
     {
-        on_network_in(socketPtr, packet);
+        on_network_in(socketPtr, packet, offset, len);
     }
 
     /**
      * Passes network packet to native SCTP stack counterpart.
      * @param socketPtr native socket pointer.
      * @param packet buffer holding network packet data.
+     * @param offset the position in the buffer where packet data starts.
+     * @param len packet data length.
      */
-    native private static void on_network_in(long socketPtr, byte[] packet);
+    native private static void on_network_in(long socketPtr, byte[] packet,
+                                             int  offset,    int    len);
 
     /*
     FIXME: to be added ?

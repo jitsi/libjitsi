@@ -137,21 +137,47 @@ public class SctpSocket
     /**
      * Sends given <tt>data</tt> on selected SCTP stream using given payload
      * protocol identifier.
-     * FIXME: add offset and length buffer parameters.
+     * @param data the data to send.
+     * @param offset postion of the data inside the buffer
+     * @param len data length
+     * @param ordered should we care about message order ?
+     * @param sid SCTP stream identifier
+     * @param ppid payload protocol identifier
+     * @return sent bytes count or <tt>-1</tt> in case of an error.
+     */
+    public synchronized int send(byte[] data,     int offset,  int len,
+                                 boolean ordered, int sid,     int ppid)
+        throws IOException
+    {
+        if(data == null)
+            throw new NullPointerException("data");
+
+        if(offset < 0 || len <= 0 || offset + len > data.length)
+        {
+            throw new IllegalArgumentException(
+                "o: " + offset + " l: " + len + " data l: " + data.length);
+        }
+
+        // Prevent JVM crash by throwing IOException
+        checkIsPointerValid();
+
+        return Sctp.usrsctp_send(
+            socketPtr, data, offset, len, ordered, sid, ppid);
+    }
+
+    /**
+     * Sends given <tt>data</tt> on selected SCTP stream using given payload
+     * protocol identifier.
      * @param data the data to send.
      * @param ordered should we care about message order ?
      * @param sid SCTP stream identifier
      * @param ppid payload protocol identifier
      * @return sent bytes count or <tt>-1</tt> in case of an error.
      */
-    public synchronized int send(byte[] data, boolean ordered,
-                                 int sid,     int ppid)
+    public int send(byte[] data, boolean ordered, int sid, int ppid)
         throws IOException
     {
-        // Prevent JVM crash by throwing IOException
-        checkIsPointerValid();
-
-        return Sctp.usrsctp_send(socketPtr, data, ordered, sid, ppid);
+        return send(data, 0, data.length, ordered, sid, ppid);
     }
 
     /**
@@ -215,19 +241,27 @@ public class SctpSocket
     /**
      * Call this method to pass network packets received on the link.
      * @param packet network packet received.
+     * @param offset the position in the packet buffer where actual data starts
+     * @param len length of packet data in the buffer.
      */
-    public synchronized void onConnIn(byte[] packet)
+    public synchronized void onConnIn(byte[] packet, int offset, int len)
         throws IOException
     {
         if(packet == null)
             throw new NullPointerException("packet");
+
+        if(offset < 0 || len <= 0 || offset + len > packet.length)
+        {
+            throw new IllegalArgumentException(
+                "o: " + offset + " l: " + len + " packet l: " + packet.length);
+        }
 
         // Prevent JVM crash by throwing IOException
         checkIsPointerValid();
 
         //debugSctpPacket(packet);
 
-        Sctp.onConnIn(socketPtr, packet);
+        Sctp.onConnIn(socketPtr, packet, offset, len);
     }
 
     /**

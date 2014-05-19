@@ -104,7 +104,7 @@ public class SctpNativeWrapperTest
             public void run()
                 throws IOException
             {
-                testSocket.onConnIn(new byte[]{1, 2, 3, 4, 5});
+                testSocket.onConnIn(new byte[]{1, 2, 3, 4, 5}, 0, 5);
             }
         });
     }
@@ -131,7 +131,8 @@ public class SctpNativeWrapperTest
     }
 
     /**
-     * Tests {@link SctpSocket#onConnIn(byte[])} method for invalid arguments.
+     * Tests {@link SctpSocket#onConnIn(byte[], int, int)} method for invalid
+     * arguments.
      */
     @Test
     public void testOnConnIn()
@@ -140,7 +141,7 @@ public class SctpNativeWrapperTest
         // Expect NPE
         try
         {
-            testSocket.onConnIn(null);
+            testSocket.onConnIn(null, 0, 0);
             fail("No NPE onConnIn called with null");
         }
         catch (NullPointerException npe)
@@ -148,8 +149,37 @@ public class SctpNativeWrapperTest
             // OK
         }
 
-        // Test empty buffer, should not crash
-        testSocket.onConnIn(new byte[]{});
+        try
+        {
+            testSocket.onConnIn(new byte[]{}, 0, 0);
+            fail("No illegal argument exception");
+        }
+        catch (IllegalArgumentException e)
+        {
+            // OK
+        }
+
+        try
+        {
+            testSocket.onConnIn(new byte[]{ 1, 2, 3}, -1, 3);
+            fail("No illegal argument exception");
+        }
+        catch (IllegalArgumentException e)
+        {
+            // OK
+        }
+
+        testSocket.onConnIn(new byte[]{ 1, 2, 3}, 0, 3);
+
+        try
+        {
+            testSocket.onConnIn(new byte[]{ 1, 2, 3}, 2, 2);
+            fail("No illegal argument exception");
+        }
+        catch (IllegalArgumentException e)
+        {
+            // OK
+        }
     }
 
     /**

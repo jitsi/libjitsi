@@ -259,23 +259,23 @@ JNIEXPORT jboolean JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1init
 /*
  * Class:     org_jitsi_sctp4j_Sctp
  * Method:    on_network_in
- * Signature: (J[B)V
+ * Signature: (J[BII)V
  */
 JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_on_1network_1in
-  (JNIEnv *env, jclass class, jlong ptr, jbyteArray jbytesPacket)
+  (JNIEnv     *env,         jclass class,  jlong ptr,
+   jbyteArray jbytesPacket, jint   offset, jint  len)
 {
     struct sctp_socket* sock;
     jbyte* packetDataPtr;
-    jsize packetLength;
     
     sock = (struct sctp_socket*)(long)ptr;
     
     packetDataPtr = (*env)->GetByteArrayElements(
         env, jbytesPacket, JNI_FALSE/* not a copy */);
 
-    packetLength = (*env)->GetArrayLength(env, jbytesPacket);
-    
-    usrsctp_conninput(sock, (char*)packetDataPtr, packetLength, 0);
+    packetDataPtr += offset;
+
+    usrsctp_conninput(sock, (char*)packetDataPtr, len, 0);
 
     (*env)->ReleaseByteArrayElements(env, jbytesPacket, packetDataPtr,
         JNI_ABORT/*free the buffer without copying back the possible changes */);
@@ -314,12 +314,12 @@ int onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr,
 /*
  * Class:     org_jitsi_sctp4j_Sctp
  * Method:    usrsctp_send
- * Signature: (J[BZII)I
+ * Signature: (J[BIIZII)I
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1send
   (JNIEnv   *env,    jclass     class,
-   jlong    ptr,     jbyteArray jdata,
-   jboolean ordered, jint       sid,  jint  ppid )
+   jlong    ptr,     jbyteArray jdata, jint  offset, jint len,
+   jboolean ordered, jint       sid,   jint  ppid )
 {
     struct sctp_socket* sctpSocket;
     struct sctp_sndinfo sndinfo;
@@ -329,7 +329,6 @@ JNIEXPORT jint JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1send
     //struct sctp_sendv_spa spa;
 
     jbyte* dataPtr;
-    jsize dataLength;
 
     sctpSocket = (struct sctp_socket*)((long)ptr);    
 
@@ -357,7 +356,8 @@ JNIEXPORT jint JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1send
     //}
 
     dataPtr = (*env)->GetByteArrayElements(env, jdata, JNI_FALSE/* not a copy */);
-    dataLength = (*env)->GetArrayLength(env, jdata);
+
+    dataPtr += offset;
 
     // We don't fragment.
     //send_res = usrsctp_sendv(sctpSocket->sock, dataPtr, dataLength,
@@ -376,7 +376,7 @@ JNIEXPORT jint JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1send
     }
 
     send_res = usrsctp_sendv(
-        sctpSocket->sock, dataPtr, dataLength, NULL, 0, (void *)&sndinfo,
+        sctpSocket->sock, dataPtr, len, NULL, 0, (void *)&sndinfo,
         (socklen_t)sizeof(struct sctp_sndinfo), SCTP_SENDV_SNDINFO, 0);
 
     /*send_res = usrsctp_sendv(

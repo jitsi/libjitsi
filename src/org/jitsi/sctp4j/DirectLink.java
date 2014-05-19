@@ -53,7 +53,7 @@ public class DirectLink
             {
                 try
                 {
-                    dest.onConnIn(packet);
+                    dest.onConnIn(packet, 0, packet.length);
                 }
                 catch (IOException e)
                 {

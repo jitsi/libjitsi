@@ -83,10 +83,8 @@ public class UdpLink
                         while(true)
                         {
                             udpSocket.receive(p);
-                            int len = p.getLength();
-                            byte[] packet = new byte[len];
-                            System.arraycopy(buff, 0, packet, 0, len);
-                            UdpLink.this.sctpSocket.onConnIn(packet);
+                            UdpLink.this.sctpSocket.onConnIn(
+                                p.getData(), p.getOffset(), p.getLength());
                         }
                     }
                     catch(IOException e)

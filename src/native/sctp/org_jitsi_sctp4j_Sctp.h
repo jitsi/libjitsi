@@ -28,10 +28,10 @@ JNIEXPORT jlong JNICALL Java_org_jitsi_sctp4j_Sctp_usersctp_1socket
 /*
  * Class:     org_jitsi_sctp4j_Sctp
  * Method:    usrsctp_send
- * Signature: (J[BZII)I
+ * Signature: (J[BIIZII)I
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1send
-  (JNIEnv *, jclass, jlong, jbyteArray, jboolean, jint, jint);
+  (JNIEnv *, jclass, jlong, jbyteArray, jint, jint, jboolean, jint, jint);
 
 /*
  * Class:     org_jitsi_sctp4j_Sctp
@@ -76,10 +76,10 @@ JNIEXPORT jboolean JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1finish
 /*
  * Class:     org_jitsi_sctp4j_Sctp
  * Method:    on_network_in
- * Signature: (J[B)V
+ * Signature: (J[BII)V
  */
 JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_on_1network_1in
-  (JNIEnv *, jclass, jlong, jbyteArray);
+  (JNIEnv *, jclass, jlong, jbyteArray, jint, jint);
 
 #ifdef __cplusplus
 }
