@@ -597,7 +597,9 @@ public class DtlsPacketTransformer
                              * In DTLS-SRTP no application data is transmitted
                              * over the DTLS channel.
                              */
-                            pkt = null;
+                            // FIXME: returns data packets so that they can be
+                            // used by SCTP data channels.
+                            //pkt = null;
                         }
                     }
                     catch (IOException ioe)
@@ -949,6 +951,20 @@ public class DtlsPacketTransformer
                 notifyAll();
             }
         }
+    }
+
+    /**
+     * FIXME: no interface used
+     * Sends application packet over DTLS layer.
+     * @param packet the buffer that contains packet with application data.
+     * @param offset offset in the buffer pointing to the beginning of the data.
+     * @param length length of the data to be sent.
+     * @throws IOException in case of DTLS transport layer failure.
+     */
+    public void sendOverDtls(byte[] packet, int offset, int length)
+        throws IOException
+    {
+        dtlsTransport.send(packet, offset, length);
     }
 
     /**
