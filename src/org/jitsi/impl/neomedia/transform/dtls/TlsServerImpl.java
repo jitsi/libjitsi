@@ -237,6 +237,11 @@ public class TlsServerImpl
     {
         Hashtable serverExtensions = super.getServerExtensions();
 
+        if (getDtlsControl().isSrtpDisabled())
+        {
+            return serverExtensions;
+        }
+
         if (TlsSRTPUtils.getUseSRTPExtension(serverExtensions) == null)
         {
             if (serverExtensions == null)
@@ -329,6 +334,12 @@ public class TlsServerImpl
     public void processClientExtensions(Hashtable clientExtensions)
         throws IOException
     {
+        if (getDtlsControl().isSrtpDisabled())
+        {
+            super.processClientExtensions(clientExtensions);
+            return;
+        }
+
         UseSRTPData useSRTPData
             = TlsSRTPUtils.getUseSRTPExtension(clientExtensions);
 

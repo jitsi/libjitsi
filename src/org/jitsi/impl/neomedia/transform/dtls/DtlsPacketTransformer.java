@@ -18,7 +18,8 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
- * Implements {@link PacketTransformer} for DTLS-SRTP.
+ * Implements {@link PacketTransformer} for DTLS-SRTP. It's capable of working
+ * in pure DTLS mode if appropriate flag was set in <tt>DtlsControlImpl</tt>.
  *
  * @author Lyubomir Marinov
  */
@@ -597,9 +598,8 @@ public class DtlsPacketTransformer
                              * In DTLS-SRTP no application data is transmitted
                              * over the DTLS channel.
                              */
-                            // FIXME: returns data packets so that they can be
-                            // used by SCTP data channels.
-                            //pkt = null;
+                            if (!transformEngine.isSrtpDisabled())
+                                pkt = null;
                         }
                     }
                     catch (IOException ioe)
@@ -618,6 +618,13 @@ public class DtlsPacketTransformer
                  */
                 pkt = null;
             }
+        }
+        else if (transformEngine.isSrtpDisabled())
+        {
+            /**
+             * In pure DTLS mode only DTLS records pass through.
+             */
+            pkt = null;
         }
         else
         {
@@ -685,7 +692,7 @@ public class DtlsPacketTransformer
                     }
                 }
             }
-            if (dtlsTransport != null)
+            if (dtlsTransport != null && !transformEngine.isSrtpDisabled())
             {
                 srtpProtectionProfile = tlsClient.getChosenProtectionProfile();
                 tlsContext = tlsClient.getContext();
@@ -724,7 +731,7 @@ public class DtlsPacketTransformer
                     }
                 }
             }
-            if (dtlsTransport != null)
+            if (dtlsTransport != null && !transformEngine.isSrtpDisabled())
             {
                 srtpProtectionProfile = tlsServer.getChosenProtectionProfile();
                 tlsContext = tlsServer.getContext();
@@ -734,7 +741,7 @@ public class DtlsPacketTransformer
             throw new IllegalStateException("dtlsProtocol");
 
         SinglePacketTransformer srtpTransformer
-            = (dtlsTransport == null)
+            = (dtlsTransport == null || transformEngine.isSrtpDisabled())
                 ? null
                 : initializeSRTPTransformer(srtpProtectionProfile, tlsContext);
         boolean closeSRTPTransformer;
@@ -954,20 +961,6 @@ public class DtlsPacketTransformer
     }
 
     /**
-     * FIXME: no interface used
-     * Sends application packet over DTLS layer.
-     * @param packet the buffer that contains packet with application data.
-     * @param offset offset in the buffer pointing to the beginning of the data.
-     * @param length length of the data to be sent.
-     * @throws IOException in case of DTLS transport layer failure.
-     */
-    public void sendOverDtls(byte[] packet, int offset, int length)
-        throws IOException
-    {
-        dtlsTransport.send(packet, offset, length);
-    }
-
-    /**
      * {@inheritDoc}
      */
     public RawPacket transform(RawPacket pkt)
@@ -981,7 +974,11 @@ public class DtlsPacketTransformer
          * through this PacketTransformer (e.g. it has been sent through
          * DatagramPacketImpl).
          */
-        if (!isDtlsRecord(buf, off, len))
+        if (isDtlsRecord(buf, off, len))
+            return pkt;
+
+        /* SRTP mode */
+        if (!transformEngine.isSrtpDisabled())
         {
             /*
              * XXX If DTLS-SRTP has not been initialized yet or has failed to
@@ -993,6 +990,31 @@ public class DtlsPacketTransformer
 
             if (srtpTransformer != null)
                 pkt = srtpTransformer.transform(pkt);
+        }
+        /* Pure DTLS mode */
+        else
+        {
+            /*
+             * The specified pkt will pass through this PacketTransformer only
+             * if it gets transformed into a DTLS record.
+             */
+            pkt = null;
+
+            DTLSTransport dtlsTransport = this.dtlsTransport;
+
+            if (dtlsTransport != null)
+            {
+                try
+                {
+                    dtlsTransport.send(buf, off, len);
+                }
+                catch (IOException ioe)
+                {
+                    logger.error(
+                        "Failed to send application data over DTLS"
+                            + " transport!", ioe);
+                }
+            }
         }
         return pkt;
     }

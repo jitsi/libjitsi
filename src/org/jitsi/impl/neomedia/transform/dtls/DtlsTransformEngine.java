@@ -233,4 +233,14 @@ public class DtlsTransformEngine
     {
         setMediaType(mediaType);
     }
+
+    /**
+     * Indicates if SRTP extensions should be disabled which means we are
+     * currently working in pure DTLS mode.
+     * @return <tt>true</tt> if SRTP extensions should be disabled.
+     */
+    boolean isSrtpDisabled()
+    {
+        return dtlsControl.isSrtpDisabled();
+    }
 }

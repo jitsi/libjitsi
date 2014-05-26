@@ -75,6 +75,12 @@ public class DtlsControlImpl
     private final org.bouncycastle.crypto.tls.Certificate certificate;
 
     /**
+     * Indicates whether this <tt>DtlsControl</tt> will work in DTLS/SRTP or
+     * DTLS mode.
+     */
+    private final boolean disableSRTP;
+
+    /**
      * The <tt>RTPConnector</tt> which uses the <tt>TransformEngine</tt> of this
      * <tt>SrtpControl</tt>.
      */
@@ -121,7 +127,20 @@ public class DtlsControlImpl
      */
     public DtlsControlImpl()
     {
+        // By default we work in DTLS/SRTP mode
+        this(false);
+    }
+
+    /**
+     * Initializes a new <tt>DtlsControlImpl</tt> instance.
+     * @param disableSRTP <tt>true</tt> if pure DTLS mode without SRTP
+     *                    extensions should be used.
+     */
+    public DtlsControlImpl(boolean disableSRTP)
+    {
         super(SrtpControlType.DTLS_SRTP);
+
+        this.disableSRTP = disableSRTP;
 
         keyPair = generateKeyPair();
 
@@ -139,6 +158,16 @@ public class DtlsControlImpl
             = computeFingerprint(
                     x509Certificate,
                     localFingerprintHashFunction);
+    }
+
+    /**
+     * Indicates if SRTP extensions are disabled which means we're working in
+     * pure DTLS mode.
+     * @return <tt>true</tt> if SRTP extensions must be disabled.
+     */
+    boolean isSrtpDisabled()
+    {
+        return disableSRTP;
     }
 
     /**
