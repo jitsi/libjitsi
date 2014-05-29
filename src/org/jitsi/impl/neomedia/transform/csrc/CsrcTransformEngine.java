@@ -38,7 +38,7 @@ public class CsrcTransformEngine
     /**
      * The dispatcher that is delivering audio levels to the media steam.
      */
-    private CsrcAudioLevelDispatcher csrcAudioLevelDispatcher = null;
+    private final CsrcAudioLevelDispatcher csrcAudioLevelDispatcher;
 
     /**
      * The buffer that we use to encode the csrc audio level extensions.
@@ -93,6 +93,18 @@ public class CsrcTransformEngine
                 }
             }
         }
+
+        // Audio levels are received in RTP audio streams only.
+        if (this.mediaStream instanceof AudioMediaStreamImpl)
+        {
+            csrcAudioLevelDispatcher
+                = new CsrcAudioLevelDispatcher(
+                        (AudioMediaStreamImpl) this.mediaStream);
+        }
+        else
+        {
+            csrcAudioLevelDispatcher = null;
+        }
     }
 
     /**
@@ -102,7 +114,7 @@ public class CsrcTransformEngine
     public void close()
     {
         if (csrcAudioLevelDispatcher != null)
-            csrcAudioLevelDispatcher.stop();
+            csrcAudioLevelDispatcher.setMediaStream(null);
     }
 
     /**
@@ -209,20 +221,14 @@ public class CsrcTransformEngine
     public RawPacket reverseTransform(RawPacket pkt)
     {
         if ((csrcAudioLevelExtID > 0)
-                && csrcAudioLevelDirection.allowsReceiving())
+                && csrcAudioLevelDirection.allowsReceiving()
+                && (csrcAudioLevelDispatcher != null))
         {
             //extract the audio levels and send them to the dispatcher.
             long[] levels = pkt.extractCsrcAudioLevels(csrcAudioLevelExtID);
 
             if (levels != null)
-            {
-                if (csrcAudioLevelDispatcher == null)
-                {
-                    csrcAudioLevelDispatcher = new CsrcAudioLevelDispatcher();
-                    new Thread(csrcAudioLevelDispatcher).start();
-                }
                 csrcAudioLevelDispatcher.addLevels(levels);
-            }
         }
 
         return pkt;
@@ -284,89 +290,5 @@ public class CsrcTransformEngine
         }
 
         return pkt;
-    }
-
-    /**
-     * A simple thread that waits for new levels to be reported from incoming
-     * RTP packets and then delivers them to the <tt>AudioMediaStream</tt>
-     * associated with this engine. The reason we need to do this in a separate
-     * thread is, of course, the time sensitive nature of incoming RTP packets.
-     */
-    private class CsrcAudioLevelDispatcher
-        implements Runnable
-    {
-        /** Indicates whether this thread is supposed to be running */
-        private boolean isRunning = false;
-
-        /** The levels that we last received from the reverseTransform thread*/
-        private long[] lastReportedLevels = null;
-
-        /**
-         * A level matrix that we should deliver to our media stream and
-         * its listeners in a separate thread.
-         *
-         * @param levels the levels that we'd like to queue for processing.
-         */
-        public void addLevels(long[] levels)
-        {
-            synchronized(this)
-            {
-                this.lastReportedLevels = levels;
-                notifyAll();
-            }
-        }
-
-        /**
-         * Waits for new levels to be reported via the <tt>addLevels()</tt>
-         * method and then delivers them to the <tt>AudioMediaStream</tt> that
-         * we are associated with.
-         */
-        public void run()
-        {
-            isRunning = true;
-
-            // Audio levels are received in RTP audio streams only.
-            if(!(mediaStream instanceof AudioMediaStreamImpl))
-                return;
-
-            AudioMediaStreamImpl audioStream
-                = (AudioMediaStreamImpl) mediaStream;
-
-            while(isRunning)
-            {
-                long[] audioLevels;
-
-                synchronized(this)
-                {
-                    if(lastReportedLevels == null)
-                    {
-                        try { wait(); } catch (InterruptedException ie) {}
-                        continue;
-                    }
-                    else
-                    {
-                        audioLevels = lastReportedLevels;
-                        lastReportedLevels = null;
-                    }
-                }
-
-                if(audioLevels != null)
-                    audioStream.audioLevelsReceived(audioLevels);
-            }
-        }
-
-        /**
-         * Causes our run method to exit so that this thread would stop
-         * handling levels.
-         */
-        public void stop()
-        {
-            synchronized(this)
-            {
-                this.lastReportedLevels = null;
-                isRunning = false;
-                notifyAll();
-            }
-        }
     }
 }

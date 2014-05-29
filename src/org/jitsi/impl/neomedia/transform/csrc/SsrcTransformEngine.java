@@ -69,6 +69,11 @@ public class SsrcTransformEngine
     private static boolean readConfigurationServicePropertiesOnce = true;
 
     /**
+     * The dispatcher that is delivering audio levels to the media steam.
+     */
+    private final CsrcAudioLevelDispatcher csrcAudioLevelDispatcher;
+
+    /**
      * The number of consecutive RTP packets indicated as generated from a muted
      * audio source and dropped in {@link #reverseTransform(RawPacket)}.
      */
@@ -120,6 +125,18 @@ public class SsrcTransformEngine
         }
 
         readConfigurationServicePropertiesOnce();
+
+        // Audio levels are received in RTP audio streams only.
+        if (mediaStream instanceof AudioMediaStreamImpl)
+        {
+            csrcAudioLevelDispatcher
+                = new CsrcAudioLevelDispatcher(
+                        (AudioMediaStreamImpl) mediaStream);
+        }
+        else
+        {
+            csrcAudioLevelDispatcher = null;
+        }
     }
 
     /**
@@ -128,6 +145,8 @@ public class SsrcTransformEngine
      */
     public void close()
     {
+        if (csrcAudioLevelDispatcher != null)
+            csrcAudioLevelDispatcher.setMediaStream(null);
     }
 
     /**
@@ -214,6 +233,19 @@ public class SsrcTransformEngine
                 {
                     pkt.setFlags(Buffer.FLAG_SILENCE | pkt.getFlags());
                 }
+            }
+
+            /*
+             * Notify the AudioMediaStream associated with this instance about
+             * the received audio level.
+             */
+            if (!dropPkt && (csrcAudioLevelDispatcher != null))
+            {
+                long[] levels = new long[2];
+
+                levels[0] = 0xFFFFFFFFL & pkt.getSSRC();
+                levels[1] = 127 - level;
+                csrcAudioLevelDispatcher.addLevels(levels);
             }
         }
         if (dropPkt)
