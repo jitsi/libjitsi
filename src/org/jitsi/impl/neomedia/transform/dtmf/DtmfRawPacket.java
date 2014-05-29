@@ -62,7 +62,7 @@ public class DtmfRawPacket
     {
         super(buffer, offset, length);
 
-        setPayload(payload);
+        setPayloadType(payload);
     }
 
     /**

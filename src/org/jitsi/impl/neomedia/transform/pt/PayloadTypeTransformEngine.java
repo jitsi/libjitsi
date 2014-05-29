@@ -58,7 +58,7 @@ public class PayloadTypeTransformEngine
 
         Byte newPT = mappingOverridesCopy.get(pkt.getPayloadType());
         if(newPT != null)
-            pkt.setPayload(newPT);
+            pkt.setPayloadType(newPT);
 
         return pkt;
     }

@@ -114,15 +114,6 @@ public class ZrtpRawPacket extends RawPacket
     }
 
     /**
-     * Set SSRC in this packet
-     * @param ssrc SSRC to set
-     */
-    protected void setSSRC(int ssrc)
-    {
-        writeInt(8, ssrc);
-    }
-
-    /**
      * Check if the CRC of this packet is ok.
      *
      * @return true if the CRC is valid, false otherwise

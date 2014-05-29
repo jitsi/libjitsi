@@ -608,6 +608,15 @@ public class RawPacket
     }
 
     /**
+     * Gets the payload type number of an RTCP packet.
+     * @return the payload type number of an RTCP packet.
+     */
+    public int getRTCPPayloadType()
+    {
+        return 0xff & buffer[offset + 1];
+    }
+
+    /**
      * Get RTP sequence number from a RTP packet
      *
      * @return RTP sequence num from source packet
@@ -974,13 +983,33 @@ public class RawPacket
      * @param payload the RTP payload type describing the content of this
      * packet.
      */
-    public void setPayload(byte payload)
+    public void setPayloadType(byte payload)
     {
         //this is supposed to be a 7bit payload so make sure that the leftmost
         //bit is 0 so that we don't accidentally overwrite the marker.
         payload &= (byte)0x7F;
 
         buffer[offset + 1] = (byte)((buffer[offset + 1] & 0x80) | payload);
+    }
+
+    /**
+      * Set the RTP sequence number of an RTP packet
+      * @param seq the sequence number to set (only the least-significant 16bits
+      * are used)
+      */
+    public void setSequenceNumber(int seq)
+    {
+            writeByte(2, (byte) (seq>>8 & 0xff));
+            writeByte(3, (byte) (seq & 0xff));
+    }
+
+    /**
+     * Set the SSRC of this packet
+     * @param ssrc SSRC to set
+     */
+    public void setSSRC(int ssrc)
+    {
+        writeInt(8, ssrc);
     }
 
     /**
