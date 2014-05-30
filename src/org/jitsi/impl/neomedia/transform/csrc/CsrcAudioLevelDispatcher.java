@@ -1,8 +1,15 @@
+/*
+ * Jitsi, the OpenSource Java VoIP and Instant Messaging client.
+ *
+ * Distributable under LGPL license.
+ * See terms of license at gnu.org.
+ */
 package org.jitsi.impl.neomedia.transform.csrc;
 
 import java.util.concurrent.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * A simple thread that waits for new levels to be reported from incoming
@@ -21,41 +28,9 @@ public class CsrcAudioLevelDispatcher
      * <tt>CsrcAudioLevelDispatcher</tt>s.
      */
     private static final ExecutorService threadPool
-        = Executors.newCachedThreadPool(
-                new ThreadFactory()
-                {
-                    /**
-                     * The default <tt>ThreadFactory</tt> implementation which
-                     * is augmented by this instance to create daemon
-                     * <tt>Thread</tt>s.
-                     */
-                    private final ThreadFactory defaultThreadFactory
-                        = Executors.defaultThreadFactory();
-
-                    @Override
-                    public Thread newThread(Runnable r)
-                    {
-                        Thread t = defaultThreadFactory.newThread(r);
-
-                        if (t != null)
-                        {
-                            t.setDaemon(true);
-
-                            /*
-                             * Additionally, make it known through the name of
-                             * the Thread that it is associated with the
-                             * CsrcAudioLevelDispatcher class for
-                             * debugging/informational purposes.
-                             */
-                            String name = t.getName();
-
-                            if (name == null)
-                                name = "";
-                            t.setName("CsrcAudioLevelDispatcher-" + name);
-                        }
-                        return t;
-                    }
-                });
+        = ExecutorUtils.newCachedThreadPool(
+                true,
+                "CsrcAudioLevelDispatcher");
 
     /** The levels that we last received from the reverseTransform thread*/
     private long[] lastReportedLevels = null;
