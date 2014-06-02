@@ -395,4 +395,8 @@ public interface MediaStream
      * synchronization source (SSRC) identifiers
      */
     public void setSSRCFactory(SSRCFactory ssrcFactory);
+
+    public Object getProperty(String propertyName);
+
+    public void setProperty(String propertyName, Object value);
 }

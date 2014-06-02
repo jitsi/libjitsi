@@ -23,6 +23,7 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
+import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.dtls.*;
 import org.jitsi.impl.neomedia.transform.sdes.*;
 import org.jitsi.impl.neomedia.transform.zrtp.*;

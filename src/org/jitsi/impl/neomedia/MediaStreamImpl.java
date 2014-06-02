@@ -23,6 +23,7 @@ import javax.media.rtp.rtcp.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.protocol.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.impl.neomedia.transform.dtmf.*;
@@ -243,6 +244,9 @@ public class MediaStreamImpl
      * Engine chain overriding payload type if needed.
      */
     private PayloadTypeTransformEngine ptTransformEngine;
+
+    private final Map<String,Object> properties
+        = Collections.synchronizedMap(new HashMap<String,Object>());
 
     /**
      * The <tt>SSRCFactory</tt> to be utilized by this instance to generate new
@@ -3214,5 +3218,26 @@ public class MediaStreamImpl
             if (rtpManager != null)
                 rtpManager.setSSRCFactory(ssrcFactory);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Object getProperty(String propertyName)
+    {
+        return properties.get(propertyName);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setProperty(String propertyName, Object value)
+    {
+        if (value == null)
+            properties.remove(propertyName);
+        else
+            properties.put(propertyName, value);
     }
 }

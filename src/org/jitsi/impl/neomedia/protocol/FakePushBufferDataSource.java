@@ -12,7 +12,6 @@ import javax.media.*;
 import javax.media.control.*;
 import javax.media.protocol.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 
 /**
@@ -218,6 +217,7 @@ public class FakePushBufferDataSource
          * from this <tt>PushBufferStream</tt> into the specified
          * <tt>buffer</tt>
          */
+        @Override
         public void read(Buffer buffer)
             throws IOException
         {

@@ -124,7 +124,24 @@ public class PropertyChangeNotifier
                         oldValue, newValue);
 
             for (PropertyChangeListener l : ls)
-                l.propertyChange(ev);
+            {
+                try
+                {
+                    l.propertyChange(ev);
+                }
+                catch (Throwable t)
+                {
+                    if (t instanceof InterruptedException)
+                        Thread.currentThread().interrupt();
+                    else if (t instanceof ThreadDeath)
+                        throw (ThreadDeath) t;
+
+                    logger.warn(
+                            "A PropertyChangeListener threw an exception while"
+                                + " handling a PropertyChangeEvent.",
+                            t);
+                }
+            }
         }
     }
 

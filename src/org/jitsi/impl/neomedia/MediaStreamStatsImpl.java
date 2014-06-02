@@ -10,14 +10,15 @@ import java.awt.*;
 import java.net.*;
 import java.util.*;
 
-import javax.media.format.*;
 import javax.media.control.*;
+import javax.media.format.*;
 import javax.media.protocol.*;
 import javax.media.rtp.*;
 
 import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.format.*;
