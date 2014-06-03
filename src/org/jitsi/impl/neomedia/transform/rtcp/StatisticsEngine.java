@@ -61,9 +61,10 @@ public class StatisticsEngine
 
             if (v == RTCPHeader.VERSION)
             {
-                int length = (buf[off + 2] << 8) + (buf[off + 3] << 0);
+                int lengthInWords = (buf[off + 2] << 8) + (buf[off + 3] << 0);
+                int lengthInBytes = (lengthInWords + 1) * 4;
 
-                if (length <= len)
+                if (lengthInBytes <= len)
                     b = true;
             }
         }

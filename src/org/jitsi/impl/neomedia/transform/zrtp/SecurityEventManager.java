@@ -101,7 +101,7 @@ public class SecurityEventManager extends ZrtpUserCallback
     /**
      * Set the type of this session.
      *
-     * @param type the <tt>MediaType</tt> of this session
+     * @param sessionType the <tt>MediaType</tt> of this session
      */
     public void setSessionType(MediaType sessionType)
     {
