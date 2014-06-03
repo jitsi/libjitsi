@@ -499,6 +499,7 @@ public class CachingPushBufferStream
                     out.setHeader(in.getHeader());
                     out.setSequenceNumber(in.getSequenceNumber());
                     out.setTimeStamp(in.getTimeStamp());
+                    out.setRtpTimeStamp(in.getRtpTimeStamp());
 
                     /*
                      * It's possible that we've split the input into multiple

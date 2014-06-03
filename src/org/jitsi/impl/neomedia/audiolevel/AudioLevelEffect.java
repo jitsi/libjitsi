@@ -214,6 +214,7 @@ public class AudioLevelEffect
             outputBuffer.setHeader(inputBuffer.getHeader());
             outputBuffer.setSequenceNumber(inputBuffer.getSequenceNumber());
             outputBuffer.setTimeStamp(inputBuffer.getTimeStamp());
+            outputBuffer.setRtpTimeStamp(inputBuffer.getRtpTimeStamp());
             outputBuffer.setFlags(inputBuffer.getFlags());
             outputBuffer.setDiscard(inputBuffer.isDiscard());
             outputBuffer.setEOM(inputBuffer.isEOM());

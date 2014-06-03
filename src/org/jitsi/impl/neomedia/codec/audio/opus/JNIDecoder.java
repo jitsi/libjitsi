@@ -256,6 +256,13 @@ public class JNIDecoder
                             | (((in == null) || (inLength == 0))
                                     ? BUFFER_FLAG_PLC
                                     : BUFFER_FLAG_FEC));
+
+                long ts = inBuf.getRtpTimeStamp();
+                ts -= lostSeqNoCount * lastFrameSizeInSamplesPerChannel;
+                if (ts < 0)
+                    ts += 1L<<32;
+                outBuf.setRtpTimeStamp(ts);
+
                 nbDecodedFec++;
             }
 
@@ -310,7 +317,7 @@ public class JNIDecoder
         if (outLength > 0)
         {
             outBuf.setDuration(
-                    totalFrameSizeInSamplesPerChannel * channels * 1000L * 1000L
+                    totalFrameSizeInSamplesPerChannel * 1000L * 1000L * 1000L
                         / outputSampleRate);
             outBuf.setFormat(getOutputFormat());
             outBuf.setLength(outLength);
