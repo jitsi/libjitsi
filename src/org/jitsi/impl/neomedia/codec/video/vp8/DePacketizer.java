@@ -224,13 +224,11 @@ public class DePacketizer
     @Override
     protected int doProcess(Buffer inBuffer, Buffer outBuffer)
     {
-        System.err.println("depack "+hashCode()+" in "+inBuffer.getSequenceNumber());
         byte[] inData = (byte[])inBuffer.getData();
         int inOffset = inBuffer.getOffset();
 
         if (!VP8PayloadDescriptor.isValid(inData, inOffset))
         {
-            System.err.println("depack "+hashCode()+" invalid VP8 PD "+inBuffer.getSequenceNumber());
             logger.warn("Invalid RTP/VP8 packet discarded.");
             outBuffer.setDiscard(true);
             return BUFFER_PROCESSED_FAILED; //XXX: FAILED or OK?
@@ -253,7 +251,6 @@ public class DePacketizer
             if (logger.isInfoEnabled())
                 logger.info("Discarding old packet (while empty) " + inSeq);
             outBuffer.setDiscard(true);
-            System.err.println("depack "+hashCode()+" discard old "+inSeq);
             return BUFFER_PROCESSED_OK;
         }
 
@@ -274,7 +271,6 @@ public class DePacketizer
                     if (logger.isInfoEnabled())
                         logger.info("Discarding old packet " + inSeq);
                     outBuffer.setDiscard(true);
-                    System.err.println("depack "+hashCode()+" discard old2 "+inBuffer.getSequenceNumber());
                     return BUFFER_PROCESSED_OK;
                 }
                 else //inSeq > firstSeq (and also presumably isSeq > lastSeq)
@@ -314,7 +310,6 @@ public class DePacketizer
 
             lastSentSeq = inSeq;
 
-            System.err.println("depack "+hashCode()+" out pictureID="+pictureId);
             return BUFFER_PROCESSED_OK;
         }
 
@@ -331,7 +326,6 @@ public class DePacketizer
                 logger.info("(Probable) duplicate packet detected, discarding "
                                     + inSeq);
             outBuffer.setDiscard(true);
-            System.err.println("depack "+hashCode()+" discard dup "+inBuffer.getSequenceNumber());
             return BUFFER_PROCESSED_OK;
         }
 
@@ -396,7 +390,6 @@ public class DePacketizer
             // prepare for the next frame
             reinit();
 
-            System.err.println("depack "+hashCode()+" out2 pictureID="+inPictureId);
             return BUFFER_PROCESSED_OK;
         }
         else
