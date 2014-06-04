@@ -23,10 +23,25 @@ import org.jitsi.util.*;
 public class DominantSpeakerIdentification
     extends AbstractActiveSpeakerDetector
 {
+    /**
+     * The threshold of the relevant speech activities in the immediate
+     * time-interval in &quot;global decision&quot;/&quot;Dominant speaker
+     * selection&quot; phase of the algorithm.
+     */
     private static final double C1 = 3;
 
+    /**
+     * The threshold of the relevant speech activities in the medium
+     * time-interval in &quot;global decision&quot;/&quot;Dominant speaker
+     * selection&quot; phase of the algorithm.
+     */
     private static final double C2 = 2;
 
+    /**
+     * The threshold of the relevant speech activities in the long
+     * time-interval in &quot;global decision&quot;/&quot;Dominant speaker
+     * selection&quot; phase of the algorithm.
+     */
     private static final double C3 = 0;
 
     /**
@@ -34,9 +49,6 @@ public class DominantSpeakerIdentification
      * the dominant speaker in a multipoint conference.
      */
     private static final long DECISION_INTERVAL = 300;
-
-    @SuppressWarnings("unused")
-    private static final int IMMEDIATE_THRESHOLD = 0;
 
     /**
      * The interval of time without a call to {@link Speaker#levelChanged(int)}
@@ -46,6 +58,10 @@ public class DominantSpeakerIdentification
      */
     private static final long LEVEL_IDLE_TIMEOUT = 30;
 
+    /**
+     * The (total) number of long time-intervals used for speech activity score
+     * evaluation at a specific time-frame.
+     */
     private static final int LONG_COUNT = 1;
 
     /**
@@ -60,14 +76,34 @@ public class DominantSpeakerIdentification
      */
     private static final int MIN_LEVEL = 0;
 
+    /**
+     * The (total) number of sub-bands in the frequency range evaluated for
+     * immediate speech activity.
+     */
     private static final int N1 = 13;
 
+    /**
+     * The threshold in terms of active sub-bands in a frame which is used
+     * during the speech activity evaluation step for the medium length
+     * time-interval.
+     */
     private static final int N1_BASED_MEDIUM_THRESHOLD = N1 / 2 - 1;
 
+    /**
+     * The number of frames (i.e. {@link Speaker#immediates} evaluated for
+     * medium speech activity.
+     */
     private static final int N2 = 5;
 
+    /**
+     * The threshold in terms of active medium-length blocks which is used
+     * during the speech activity evaluation step for the long time-interval.
+     */
     private static final int N2_BASED_LONG_THRESHOLD = N2 - 1;
 
+    /**
+     * The number of medium-length blocks constituting a long time-interval.
+     */
     private static final int N3 = 10;
 
     /**
@@ -100,21 +136,6 @@ public class DominantSpeakerIdentification
             t = t * i / j;
 
         return t;
-    }
-
-    @SuppressWarnings("unused")
-    private static int binomialCoefficientAlt(int n, int m)
-    {
-        int[] b = new int[n + 1];
-
-        b[0] = 1;
-        for (int i = 1; i <= n; ++i)
-        {
-            b[i] = 1;
-            for (int j = i - 1; j > 0; --j)
-                b[j] += b[j - 1];
-        }
-        return b[m];
     }
 
     private static boolean computeBigs(
@@ -195,6 +216,12 @@ public class DominantSpeakerIdentification
      */
     private long lastLevelIdleTime;
 
+    /**
+     * The relative speech activities for the immediate, medium and long
+     * time-intervals, respectively, which were last calculated for a
+     * <tt>Speaker</tt>. Simply reduces the number of allocations and the
+     * penalizing effects of the garbage collector.
+     */
     private final double[] relativeSpeechActivities = new double[3];
 
     /**
@@ -597,6 +624,15 @@ public class DominantSpeakerIdentification
 
         private double immediateSpeechActivityScore;
 
+        /**
+         * The time in milliseconds of the most recent invocation of
+         * {@link #levelChanged(int)} i.e. the last time at which an actual
+         * (audio) level was reported or measured for this <tt>Speaker</tt>. If
+         * no level is reported or measured for this <tt>Speaker</tt> long
+         * enough i.e. {@link #LEVEL_IDLE_TIMEOUT}, the associated
+         * <tt>DominantSpeakerIdentification</tt> will presume that this
+         * <tt>Speaker</tt> was muted for the duration of a certain frame.
+         */
         private long lastLevelChangedTime = System.currentTimeMillis();
 
         private final byte[] longs = new byte[LONG_COUNT];
