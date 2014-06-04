@@ -9,9 +9,6 @@ package org.jitsi.impl.neomedia.transform;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.util.*;
 
-import java.util.HashSet;
-import java.util.Set;
-
 /**
  * Implements a {@link org.jitsi.impl.neomedia.transform.PacketTransformer} and
  * {@link org.jitsi.impl.neomedia.transform.TransformEngine} for RED (RFC2198).
