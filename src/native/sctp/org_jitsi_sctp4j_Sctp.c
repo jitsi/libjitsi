@@ -5,7 +5,7 @@
 #include <string.h>
 
 // errno returned after connect call on success
-#define SCTP_EINPROGRESS 115
+#define SCTP_EINPROGRESS EINPROGRESS
 
 // Name of the class that contains callback methods.
 #define SCTP_CLASS "org/jitsi/sctp4j/Sctp"
@@ -15,79 +15,81 @@ struct sctp_socket
 {
     // Socket object created by SCTP stack
     struct socket *sock;
-    
+
     int localPort;
 };
 
 // Java Virtual Machine instance
 JavaVM* jvm;
 
-void callOnSctpOutboundPacket( void*   socketPtr, void*   data,
+int callOnSctpOutboundPacket( void*   socketPtr, void*   data,
                                size_t  length,    uint8_t tos,
                                uint8_t set_df )
 {
     JNIEnv* jniEnv;
-    
+
     int hadToAttach = 0;
-    
+
     int getEnvStat;
-	
-	jclass sctpClass;    
+
+    jclass sctpClass;
     jmethodID outboundCallback;
-    
-    jlong sctpPtr;  
-    jbyteArray jBuff;    
-    jint jtos;    
+
+    jlong sctpPtr;
+    jbyteArray jBuff;
+    jint jtos;
     jint jset_df;
-	
-	getEnvStat = (*jvm)->GetEnv(jvm, (void **)&jniEnv, JNI_VERSION_1_6);
+
+    jint result;
+
+    getEnvStat = (*jvm)->GetEnv(jvm, (void **)&jniEnv, JNI_VERSION_1_6);
     if (getEnvStat == JNI_EDETACHED) 
     {
         hadToAttach = 1;
-        
+
         if ((*jvm)->AttachCurrentThread(jvm, (void **) &jniEnv, NULL) != 0)
         {
           printf("Failed to attach new thread\n");
-          return;
+          return -1;
         }
     }
-    else if (getEnvStat == JNI_EVERSION) 
+    else if (getEnvStat == JNI_EVERSION)
     {
         printf("GetEnv: version not supported\n");
-        return;
+        return -1;
     }
-    else if (getEnvStat == JNI_OK) 
+    else if (getEnvStat == JNI_OK)
     {
         // OK
     }
-    
+
     sctpClass = (*jniEnv)->FindClass(jniEnv, SCTP_CLASS);
     if(!sctpClass)
     {
         printf("Failed to get SCTP class\n");
-        return;
+        return -1;
     }
 
 
     outboundCallback = (*jniEnv)->GetStaticMethodID(
-        jniEnv, sctpClass, "onSctpOutboundPacket", "(J[BII)V");
+        jniEnv, sctpClass, "onSctpOutboundPacket", "(J[BII)I");
 
     if(!outboundCallback)
     {
         printf("Failed to get onSctpOutboundPacket method\n");
-        return;
+        return -1;
     }
-    
+
     sctpPtr = (jlong)(long)socketPtr;
-  
-    jBuff = (*jniEnv)->NewByteArray(jniEnv, length);       
+
+    jBuff = (*jniEnv)->NewByteArray(jniEnv, length);
     (*jniEnv)->SetByteArrayRegion(jniEnv, jBuff, 0, length, (jbyte*) data);
-    
+
     jtos = (jint)tos;
-    
+
     jset_df = (jint)set_df;
-    
-    (*jniEnv)->CallStaticObjectMethod(
+
+    result = (jint)(*jniEnv)->CallStaticIntMethod(
         jniEnv, sctpClass, outboundCallback, sctpPtr, jBuff, jtos, jset_df);
 
     // FIXME: not sure if jBuff should be released
@@ -95,14 +97,16 @@ void callOnSctpOutboundPacket( void*   socketPtr, void*   data,
     //(*jniEnv)->ReleaseByteArrayElements(jniEnv, jBuff, packetDataPtr,
       //  JNI_ABORT/*free the buffer without copying back the possible changes */);
     (*jniEnv)->DeleteLocalRef(jniEnv, jBuff);
-      
+
     if(hadToAttach)
-    {  
-        if ((*jvm)->DetachCurrentThread(jvm) != 0) 
+    {
+        if ((*jvm)->DetachCurrentThread(jvm) != 0)
         {
             printf("Failed to deattach the thread\n");
-        }  
+        }
     }
+
+    return (int)result;
 }
 
 void callOnSctpInboundPacket( void*    socketPtr, void*    data,
@@ -114,31 +118,31 @@ void callOnSctpInboundPacket( void*    socketPtr, void*    data,
     JNIEnv* jniEnv;
     
     int hadToAttach = 0;
-	
-	int getEnvStat;
-	
-	jclass sctpClass;    
+
+    int getEnvStat;
+    
+    jclass sctpClass;
     jmethodID inboundCallback;
-    
+
     jlong sctpPtr;
-	
+
     jbyteArray jBuff;
-    
+
     jint jsid;
     jint jssn;
     jint jtsn;
     jlong jppid;
     jint jcontext;
-    
+
     getEnvStat = (*jvm)->GetEnv(jvm, (void **)&jniEnv, JNI_VERSION_1_6);
-    if (getEnvStat == JNI_EDETACHED) 
+    if (getEnvStat == JNI_EDETACHED)
     {
         hadToAttach = 1;
-        
+
         if ((*jvm)->AttachCurrentThread(jvm, (void **) &jniEnv, NULL) != 0)
         {
-          printf("Failed to attach new thread\n");
-          return;
+            printf("Failed to attach new thread\n");
+            return;
         }
     }
     else if (getEnvStat == JNI_EVERSION) 
@@ -150,14 +154,14 @@ void callOnSctpInboundPacket( void*    socketPtr, void*    data,
     {
         // OK
     }
-    
+
     sctpClass = (*jniEnv)->FindClass(jniEnv, SCTP_CLASS);
     if(!sctpClass)
     {
         printf("Failed to get SCTP class\n");
         return;
     }
-    
+
     inboundCallback = (*jniEnv)->GetStaticMethodID(
         jniEnv, sctpClass, "onSctpInboundPacket", "(J[BIIIJII)V");
 
@@ -166,54 +170,58 @@ void callOnSctpInboundPacket( void*    socketPtr, void*    data,
         printf("Failed to get onSctpInboundPacket method\n");
         return;
     }
-    
+
     sctpPtr = (jlong)(long)socketPtr;
-  
-    jBuff = (*jniEnv)->NewByteArray(jniEnv, length);       
+
+    jBuff = (*jniEnv)->NewByteArray(jniEnv, length);
     (*jniEnv)->SetByteArrayRegion(jniEnv, jBuff, 0, length, (jbyte*) data);
-    
+
     jsid = (jint)sid;
     jssn = (jint)ssn;
     jtsn = (jint)tsn;
     jppid = (jlong)ntohl(ppid);
     jcontext = (jint)context;
-    
-    (*jniEnv)->CallStaticObjectMethod(
+
+    (*jniEnv)->CallStaticVoidMethod(
         jniEnv, sctpClass, inboundCallback, sctpPtr, jBuff, jsid, jssn, jtsn,
         jppid, jcontext, (jint)flags);
-    
+
     // Release byte array
-    //(*jniEnv)->ReleaseByteArrayElements(jniEnv, jBuff, packetDataPtr, 
+    //(*jniEnv)->ReleaseByteArrayElements(jniEnv, jBuff, packetDataPtr,
       //  JNI_ABORT/*free the buffer without copying back the possible changes */);
     (*jniEnv)->DeleteLocalRef(jniEnv, jBuff);
-      
+
     if(hadToAttach)
-    {  
-        if ((*jvm)->DetachCurrentThread(jvm) != 0) 
+    {
+        if ((*jvm)->DetachCurrentThread(jvm) != 0)
         {
             printf("Failed to deattach the thread\n");
-        }  
-    }        
+        }
+    }
 }
 
 static int onSctpOutboundPacket(void*   addr, void*     data, size_t  length,
                                 uint8_t tos,  uint8_t set_df )
 {
-  if(data && length)
-  {
-    callOnSctpOutboundPacket(addr, data, length, tos, set_df);
-  }
+    if(data && length)
+    {
+        if(callOnSctpOutboundPacket(addr, data, length, tos, set_df) == 0)
+        {
+            return 0;
+        }
+    }
 
-  return 0;
+    //FIXME: not sure about this value, but an error for now
+    return -1;
 }
 
 void debugSctpPrintf(const char *format, ...)
 {
-	va_list ap;
+    va_list ap;
 
-	va_start(ap, format);
-	vprintf(format, ap);
-	va_end(ap);
+    va_start(ap, format);
+    vprintf(format, ap);
+    va_end(ap);
 }
 
 /*
@@ -257,9 +265,9 @@ JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_on_1network_1in
   (JNIEnv *env, jclass class, jlong ptr, jbyteArray jbytesPacket)
 {
     struct sctp_socket* sock;
-	jbyte* packetDataPtr;
+    jbyte* packetDataPtr;
     jsize packetLength;
-	
+    
     sock = (struct sctp_socket*)(long)ptr;
     
     packetDataPtr = (*env)->GetByteArrayElements(
@@ -269,7 +277,7 @@ JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_on_1network_1in
     
     usrsctp_conninput(sock, (char*)packetDataPtr, packetLength, 0);
 
-    (*env)->ReleaseByteArrayElements(env, jbytesPacket, packetDataPtr, 
+    (*env)->ReleaseByteArrayElements(env, jbytesPacket, packetDataPtr,
         JNI_ABORT/*free the buffer without copying back the possible changes */);
 }
 
@@ -281,29 +289,22 @@ int onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr,
                         void*  data, size_t length, struct sctp_rcvinfo rcv,
                         int flags, void* ulp_info)
 {
-	//union sctp_notification* notification;
-	
     if(data)
     {
-    	if (flags & MSG_NOTIFICATION) 
+        if (flags & MSG_NOTIFICATION)
         {
-            //printf("SCTP NOTIFICATION F: %i L: %i\n", flags, (int)length);
-            //notification = (union sctp_notification*)data;
-            //printf("NOTIFI T: %u F: %u L: %u\n",
-            //    notification->sn_header.sn_type,
-            //    notification->sn_header.sn_flags,
-            //    notification->sn_header.sn_length
-            //);
+            callOnSctpInboundPacket(
+                ulp_info, data, length,
+                0,  0, 0, 0, 0, flags );
         }
         else
         {
             // Pass packet data to Java
-		    callOnSctpInboundPacket(
-		        ulp_info,
-		        data,         length,
-		        rcv.rcv_sid,  rcv.rcv_ssn,     rcv.rcv_tsn,
-		        rcv.rcv_ppid, rcv.rcv_context, flags );
-		    
+            callOnSctpInboundPacket(
+                ulp_info,
+                data,         length,
+                rcv.rcv_sid,  rcv.rcv_ssn,     rcv.rcv_tsn,
+                rcv.rcv_ppid, rcv.rcv_context, flags );
         }
         free(data);
     }
@@ -326,12 +327,12 @@ JNIEXPORT jint JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1send
     // data using SCTP.
     ssize_t send_res = 0;  // result from usrsctp_sendv.
     //struct sctp_sendv_spa spa;
-	
-	jbyte* dataPtr;
+
+    jbyte* dataPtr;
     jsize dataLength;
-	
-	sctpSocket = (struct sctp_socket*)((long)ptr);    
-    
+
+    sctpSocket = (struct sctp_socket*)((long)ptr);    
+
     //memset(&spa, 0, sizeof(struct sctp_sendv_spa));
     //spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
     //spa.sendv_sndinfo.snd_sid = sid;//params.ssrc;
@@ -362,34 +363,34 @@ JNIEXPORT jint JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1send
     //send_res = usrsctp_sendv(sctpSocket->sock, dataPtr, dataLength,
       //                       NULL, 0, &spa, sizeof(spa),
         //                     SCTP_SENDV_SPA, 0);
-        
+
 
     sndinfo.snd_sid = sid;
-	sndinfo.snd_flags = 0;//8;
-	sndinfo.snd_ppid = htonl(ppid);
-	sndinfo.snd_context = 0;
-	sndinfo.snd_assoc_id = 0;
-	if(ordered != JNI_TRUE)
-	{
-	    sndinfo.snd_flags |= SCTP_UNORDERED;
-	}
+    sndinfo.snd_flags = 0;//8;
+    sndinfo.snd_ppid = htonl(ppid);
+    sndinfo.snd_context = 0;
+    sndinfo.snd_assoc_id = 0;
+    if(ordered != JNI_TRUE)
+    {
+        sndinfo.snd_flags |= SCTP_UNORDERED;
+    }
 
     send_res = usrsctp_sendv(
         sctpSocket->sock, dataPtr, dataLength, NULL, 0, (void *)&sndinfo,
         (socklen_t)sizeof(struct sctp_sndinfo), SCTP_SENDV_SNDINFO, 0);
-                            
+
     /*send_res = usrsctp_sendv(
         sctpSocket->sock, dataPtr, dataLength, 
         NULL, 0, NULL, 0, SCTP_SENDV_NOINFO, 0);*/
-                             
+
     (*env)->ReleaseByteArrayElements(env, jdata, dataPtr, 
         JNI_ABORT/*free the buffer without copying back the possible changes */);                             
-                             
+
     if (send_res < 0) 
     {
         perror("Sctp send error: ");
     }
-    
+
     return (jint)send_res;
 }
 
@@ -402,19 +403,19 @@ JNIEXPORT jlong JNICALL Java_org_jitsi_sctp4j_Sctp_usersctp_1socket
   (JNIEnv *env, jclass class, jint localPort)
 {
     struct sctp_socket* sctpSocket = malloc(sizeof(struct sctp_socket));
-	struct socket *sock;
-	struct linger linger_opt;
+    struct socket *sock;
+    struct linger linger_opt;
     struct sctp_assoc_value stream_rst;
     uint32_t nodelay = 1;
-	size_t i;
-	
+    size_t i;
+
     int event_types[] = {SCTP_ASSOC_CHANGE,
                          SCTP_PEER_ADDR_CHANGE,
                          SCTP_SEND_FAILED_EVENT,
                          SCTP_SENDER_DRY_EVENT,
                          SCTP_STREAM_RESET_EVENT};
     struct sctp_event event;
-    
+
     // Register this class as an address for usrsctp. This is used by SCTP to
     // direct the packets received (by the created socket) to this class.
     usrsctp_register_address((void*)sctpSocket);
@@ -427,27 +428,27 @@ JNIEXPORT jlong JNICALL Java_org_jitsi_sctp4j_Sctp_usersctp_1socket
         free(sctpSocket);
         return 0;
     }
-    
+
     // Make the socket non-blocking. Connect, close, shutdown etc will not block
     // the thread waiting for the socket operation to complete.
     if (usrsctp_set_non_blocking(sock, 1) < 0)
     {
-      perror("Failed to set SCTP to non blocking.");
-      free(sctpSocket);
-      return 0;
+        perror("Failed to set SCTP to non blocking.");
+        free(sctpSocket);
+        return 0;
     }
 
     // This ensures that the usrsctp close call deletes the association. This
     // prevents usrsctp from calling OnSctpOutboundPacket with references to
-    // this class as the address.    
+    // this class as the address.
     linger_opt.l_onoff = 1;
     linger_opt.l_linger = 0;
     if (usrsctp_setsockopt(sock, SOL_SOCKET, SO_LINGER, &linger_opt,
                            sizeof(linger_opt)))
     {
-      perror("Failed to set SO_LINGER.");
-      free(sctpSocket);
-      return 0;
+        perror("Failed to set SO_LINGER.");
+        free(sctpSocket);
+        return 0;
     }
 
     // Enable stream ID resets.
@@ -456,18 +457,18 @@ JNIEXPORT jlong JNICALL Java_org_jitsi_sctp4j_Sctp_usersctp_1socket
     if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET,
                            &stream_rst, sizeof(stream_rst)))
     {
-      perror("Failed to set SCTP_ENABLE_STREAM_RESET.");
-      free(sctpSocket);
-      return 0;
+        perror("Failed to set SCTP_ENABLE_STREAM_RESET.");
+        free(sctpSocket);
+        return 0;
     }
 
     // Nagle.
     if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_NODELAY, &nodelay,
                            sizeof(nodelay)))
     {
-      perror("Failed to set SCTP_NODELAY.");
-      free(sctpSocket);
-      return 0;
+        perror("Failed to set SCTP_NODELAY.");
+        free(sctpSocket);
+        return 0;
     }
 
     // Subscribe to SCTP event notifications.
@@ -488,7 +489,7 @@ JNIEXPORT jlong JNICALL Java_org_jitsi_sctp4j_Sctp_usersctp_1socket
 
     sctpSocket->sock = sock;
     sctpSocket->localPort = (int)localPort;
-    
+
     return (jlong)((long)sctpSocket);
 }
 
@@ -496,12 +497,12 @@ struct sockaddr_conn getSctpSockAddr(int port, void* adr)
 {
     struct sockaddr_conn sconn;
     memset(&sconn, 0, sizeof(struct sockaddr_conn));
-	sconn.sconn_family = AF_CONN;
+    sconn.sconn_family = AF_CONN;
 #ifdef HAVE_SCONN_LEN
-	sconn.sconn_len = sizeof(struct sockaddr_conn);
+    sconn.sconn_len = sizeof(struct sockaddr_conn);
 #endif
-	sconn.sconn_port = htons(port);
-	sconn.sconn_addr = adr;
+    sconn.sconn_port = htons(port);
+    sconn.sconn_addr = adr;
     return sconn;
 }
 
@@ -514,85 +515,78 @@ JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1listen
   (JNIEnv *env, jclass class, jlong ptr)
 {
     struct sctp_socket* sctpSocket;
-	struct sockaddr_conn sconn;
-	
+    struct sockaddr_conn sconn;
+
     sctpSocket = (struct sctp_socket*)((long)ptr);    
-    
+
     sconn = getSctpSockAddr(sctpSocket->localPort, (void*)sctpSocket);
-    
+
     /* Bind server socket */
-	if (usrsctp_bind( sctpSocket->sock,
-	                  (struct sockaddr *) &sconn,
-	                  sizeof(struct sockaddr_conn)) < 0)
+    if (usrsctp_bind( sctpSocket->sock,
+                      (struct sockaddr *) &sconn,
+                      sizeof(struct sockaddr_conn)) < 0)
     {
-		perror("usrsctp_bind");
-	}
-    
+        perror("usrsctp_bind");
+    }
+
     /* Make server side passive... */
-	if (usrsctp_listen(sctpSocket->sock, 1) < 0)
-	{
-		perror("usrsctp_listen");
-	}
+    if (usrsctp_listen(sctpSocket->sock, 1) < 0)
+    {
+        perror("usrsctp_listen");
+    }
 }
 
 /*
  * Class:     org_jitsi_sctp4j_Sctp
  * Method:    usrsctp_accept
- * Signature: (J)V
+ * Signature: (J)Z
  */
-JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1accept
+JNIEXPORT jboolean JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1accept
   (JNIEnv *env, jclass class, jlong ptr)
 {
     struct sctp_socket* sctpSocket;
     struct socket* acceptedSocket;
-	
-	sctpSocket = (struct sctp_socket*)((long)ptr);
 
-	while((acceptedSocket = usrsctp_accept(sctpSocket->sock, NULL, NULL))
-	        == NULL)
-	{
-    	//perror("usrsctp_accept");
-	}
-	usrsctp_close(sctpSocket->sock);
-	sctpSocket->sock = acceptedSocket;
+    sctpSocket = (struct sctp_socket*)((long)ptr);
+
+    if((acceptedSocket = usrsctp_accept(sctpSocket->sock, NULL, NULL))
+            == NULL)
+    {
+        //perror("usrsctp_accept");
+        return JNI_FALSE;
+    }
+    usrsctp_close(sctpSocket->sock);
+    sctpSocket->sock = acceptedSocket;
+    return JNI_TRUE;
 }
 
 int connectSctp(struct sctp_socket *sctp_socket, int remotePort)
 {
     struct socket* sock;
-	struct sockaddr_conn sconn;
-	int connect_result;
+    struct sockaddr_conn sconn;
+    int connect_result;
 
-	sock = sctp_socket->sock;
+    sock = sctp_socket->sock;
 
     sconn = getSctpSockAddr(sctp_socket->localPort, (void*)sctp_socket);
 
-	if (usrsctp_bind( sock,
-	                  (struct sockaddr *)&sconn,
-	                  sizeof(struct sockaddr_conn)) < 0)
+    if (usrsctp_bind( sock,
+                      (struct sockaddr *)&sconn,
+                      sizeof(struct sockaddr_conn)) < 0)
     {
-		perror("usrsctp_bind");
-		return 0;
-	}
+        perror("usrsctp_bind");
+        return 0;
+    }
 
     sconn = getSctpSockAddr(remotePort, (void*)sctp_socket);
     connect_result = usrsctp_connect(
         sock, (struct sockaddr *)&sconn, sizeof(struct sockaddr_conn));
 
-//#ifdef _WIN32
-  //  if (connect_result == SOCKET_ERROR)
-    //{
-      //  perror("usrsctp_connect");
-        //return 0;
-//    }
-//#else
-// FIXME: on windows "Unknown error" is returned but the socket works anyway...
     if (connect_result < 0 && errno != SCTP_EINPROGRESS)
     {
         perror("usrsctp_connect");
         return 0;
     }
-//#endif
     return 1;
 }
 
@@ -630,13 +624,13 @@ void closeSocket(struct sctp_socket* sctp)
  */
 JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1close
   (JNIEnv *env, jclass class, jlong ptr)
-{   
+{
     struct sctp_socket* sctp;
     sctp = (struct sctp_socket*)((long)ptr);
 
     closeSocket(sctp);
 
-    free(sctp);    
+    free(sctp);
 }
 
 /*
@@ -649,10 +643,10 @@ JNIEXPORT jboolean JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1finish
 {
     if(usrsctp_finish() != 0)
     {
-	    return JNI_TRUE;
-	}
-	else 
-	{
+        return JNI_TRUE;
+    }
+    else 
+    {
         return JNI_FALSE;
     }
 }

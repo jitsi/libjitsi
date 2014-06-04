@@ -30,7 +30,7 @@ public class SampleClient
         int remotePort = 48001;
         int remoteSctpPort = 5001;
 
-        Sctp.init(0);
+        Sctp.init();
 
         final SctpSocket client = Sctp.createSocket(localSctpPort);
 

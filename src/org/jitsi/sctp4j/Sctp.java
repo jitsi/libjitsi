@@ -8,6 +8,7 @@ package org.jitsi.sctp4j;
 
 import org.jitsi.util.*;
 
+import java.io.*;
 import java.util.*;
 
 /**
@@ -43,101 +44,33 @@ public class Sctp
      */
     public static final int MSG_NOTIFICATION = 0x2000;
 
-    /********  Notifications  **************/
-
-    /* notification types */
-    public static final int SCTP_ASSOC_CHANGE                = 0x0001;
-    public static final int SCTP_PEER_ADDR_CHANGE            = 0x0002;
-    public static final int SCTP_REMOTE_ERROR                = 0x0003;
-    public static final int SCTP_SEND_FAILED                 = 0x0004;
-    public static final int SCTP_SHUTDOWN_EVENT              = 0x0005;
-    public static final int SCTP_ADAPTATION_INDICATION       = 0x0006;
-    public static final int SCTP_PARTIAL_DELIVERY_EVENT      = 0x0007;
-    public static final int SCTP_AUTHENTICATION_EVENT        = 0x0008;
-    public static final int SCTP_STREAM_RESET_EVENT          = 0x0009;
-    public static final int SCTP_SENDER_DRY_EVENT            = 0x000a;
-    public static final int SCTP_NOTIFICATIONS_STOPPED_EVENT = 0x000b;
-    public static final int SCTP_ASSOC_RESET_EVENT           = 0x000c;
-    public static final int SCTP_STREAM_CHANGE_EVENT         = 0x000d;
-    public static final int SCTP_SEND_FAILED_EVENT           = 0x000e;
-
-    /* notification event structures */
-
-    /* association change event */
-    /*struct sctp_assoc_change {
-	    uint16_t sac_type;
-	    uint16_t sac_flags;
-	    uint32_t sac_length;
-	    uint16_t sac_state;
-	    uint16_t sac_error;
-	    uint16_t sac_outbound_streams;
-	    uint16_t sac_inbound_streams;
-	    sctp_assoc_t sac_assoc_id;
-	    uint8_t sac_info[]; // not available yet
-    };*/
-
-    /* sac_state values */
-    public static final int SCTP_COMM_UP        = 0x0001;
-    public static final int SCTP_COMM_LOST      = 0x0002;
-    public static final int SCTP_RESTART        = 0x0003;
-    public static final int SCTP_SHUTDOWN_COMP  = 0x0004;
-    public static final int SCTP_CANT_STR_ASSOC = 0x0005;
-
-    /* sac_info values */
-    public static final int SCTP_ASSOC_SUPPORTS_PR        = 0x01;
-    public static final int SCTP_ASSOC_SUPPORTS_AUTH      = 0x02;
-    public static final int SCTP_ASSOC_SUPPORTS_ASCONF    = 0x03;
-    public static final int SCTP_ASSOC_SUPPORTS_MULTIBUF  = 0x04;
-    public static final int SCTP_ASSOC_SUPPORTS_RE_CONFIG = 0x05;
-    public static final int SCTP_ASSOC_SUPPORTS_MAX       = 0x05;
-
-    /* Address event */
-    /*struct sctp_paddr_change {
-	    uint16_t spc_type;
-	    uint16_t spc_flags;
-	    uint32_t spc_length;
-	    struct sockaddr_storage spc_aaddr;
-	    uint32_t spc_state;
-	    uint32_t spc_error;
-	    sctp_assoc_t spc_assoc_id;
-	    uint8_t spc_padding[4];
-    };*/
-
-    /* paddr state values */
-    public static final int SCTP_ADDR_AVAILABLE   = 0x0001;
-    public static final int SCTP_ADDR_UNREACHABLE = 0x0002;
-    public static final int SCTP_ADDR_REMOVED     = 0x0003;
-    public static final int SCTP_ADDR_ADDED       = 0x0004;
-    public static final int SCTP_ADDR_MADE_PRIM   = 0x0005;
-    public static final int SCTP_ADDR_CONFIRMED   = 0x0006;
-
-    /* flags in stream_reset_event (strreset_flags) */
-    public static final int SCTP_STREAM_RESET_INCOMING_SSN = 0x0001;
-    public static final int SCTP_STREAM_RESET_OUTGOING_SSN = 0x0002;
-    public static final int SCTP_STREAM_RESET_DENIED       = 0x0004;
-    public static final int SCTP_STREAM_RESET_FAILED       = 0x0008;
-    public static final int SCTP_STREAM_CHANGED_DENIED     = 0x0010;
-
-    public static final int SCTP_STREAM_RESET_INCOMING     = 0x00000001;
-    public static final int SCTP_STREAM_RESET_OUTGOING     = 0x00000002;
+    /**
+     * Track the number of currently running SCTP engines.
+     * Each engine calls {@link #init()} on startup and {@link #finish()}
+     * on shutdown. We want {@link #init()} to be effectively called only when
+     * there are 0 engines currently running and {@link #finish()} when the last
+     * one is performing a shutdown.
+     */
+    private static int sctpEngineCount;
 
     /**
-     * Track initialization state of native counterpart.
+     * FIXME: Remove once usrsctp_finish is fixed
      */
     private static boolean initialized;
 
     /**
      * Initializes native SCTP counterpart.
-     * @param port UDP encapsulation port.
      */
-    public static synchronized void init(int port)
+    public static synchronized void init()
     {
-        if(initialized)
-            return;
-
-        usrsctp_init(port);
-
-        initialized = true;
+        // Skip if we're not the first one
+        //if(sctpEngineCount++ > 0)
+        //    return;
+        if(!initialized)
+        {
+            usrsctp_init(0);
+            initialized = true;
+        }
     }
 
     /**
@@ -165,7 +98,7 @@ public class Sctp
         if(ptr != 0)
         {
             SctpSocket sock = new SctpSocket(ptr, localPort);
-            sockets.put(ptr, sock);            
+            sockets.put(ptr, sock);
             return sock;
         }
         else
@@ -203,7 +136,7 @@ public class Sctp
      * Waits for incoming connection.
      * @param socketPtr native socket pointer.
      */
-    native static void usrsctp_accept(long socketPtr);
+    native static boolean usrsctp_accept(long socketPtr);
 
     /**
      * Connects SCTP socket to remote socket on given SCTP port.
@@ -232,28 +165,50 @@ public class Sctp
 
     /**
      * Disposes of the resources held by native counterpart.
+     *
+     * @throws IOException if usrsctp stack has failed to shutdown.
      */
     public static synchronized void finish()
+        throws IOException
     {
-        if(!initialized)
-            return;
+        // Skip if we're not the last one
+        //if(--sctpEngineCount > 0)
+          //  return;
 
-        try
-        {
+        //try
+        //{
             // FIXME: fix this loop ?
             // it comes from SCTP samples written in C
-            while(!usrsctp_finish())
-            {            
-                Thread.sleep(50);
-            }
 
-            initialized = false;
-        }
-        catch(InterruptedException e)
-        {
-            logger.error("Finish interrupted", e);
-            Thread.currentThread().interrupt();
-        }
+            // Retry limited amount of times
+            /*
+              FIXME: usrsctp issue:
+              SCTP stack is now never deinitialized in order to prevent deadlock
+              in usrsctp_finish.
+              https://code.google.com/p/webrtc/issues/detail?id=2749
+
+            final int CLOSE_RETRY_COUNT = 20;
+
+            for(int i=0; i < CLOSE_RETRY_COUNT; i++)
+            {
+                if(usrsctp_finish())
+                    return;
+
+                Thread.sleep(50);
+            }*/
+
+            //FIXME: after throwing we might end up with other SCTP users broken
+            // (or stack not disposed) at this point because engine count will
+            // be out of sync for the purpose of calling init() and finish()
+            // methods.
+        //    throw new IOException("Failed to shutdown usrsctp stack" +
+        //                              " after 20 retries");
+        //}
+        //catch(InterruptedException e)
+        //{
+        //    logger.error("Finish interrupted", e);
+        //    Thread.currentThread().interrupt();
+        //}
     }
 
     /**
@@ -269,8 +224,9 @@ public class Sctp
      * @param data buffer holding packet data
      * @param tos type of service???
      * @param set_df use IP don't fragment option
+     * @return 0 if the packet has been successfully sent or -1 otherwise.
      */
-    public static void onSctpOutboundPacket(long socketAddr, byte[] data,
+    public static int onSctpOutboundPacket(long socketAddr, byte[] data,
                                             int  tos,        int set_df)
     {
         // FIXME: handle tos and set_df
@@ -278,11 +234,12 @@ public class Sctp
         SctpSocket socket = sockets.get(socketAddr);
         if(socket != null)
         {
-            socket.onSctpOut(data, tos, set_df);
+            return socket.onSctpOut(data, tos, set_df);
         }
         else
         {
             logger.error("No SctpSocket found for ptr: " + socketAddr);
+            return -1;
         }
     }
 
@@ -298,15 +255,34 @@ public class Sctp
      * @param context
      * @param flags
      */
-    public static void onSctpInboundPacket(long   socketAddr,
-                                           byte[] data,
-                                           int    sid,  int ssn,     int tsn,
-                                           long   ppid, int context, int flags)
+    public static void onSctpInboundPacket(
+            long   socketAddr, final byte[] data, final int    sid,
+            final int ssn,     final int tsn,     final long   ppid,
+            final int context, final int flags)
     {
-        SctpSocket socket = sockets.get(socketAddr);
+        final SctpSocket socket = sockets.get(socketAddr);
         if(socket != null)
         {
-            socket.onSctpIn(data, sid, ssn, tsn, ppid, context, flags);
+            // FIXME: fix threads
+            new Thread(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    if((flags & MSG_NOTIFICATION) > 0)
+                    {
+                        final SctpNotification notification
+                            = SctpNotification.parse(data);
+
+                        socket.onNotification(notification);
+                    }
+                    else
+                    {
+                        socket.onSctpIn(
+                            data, sid, ssn, tsn, ppid, context, flags);
+                    }
+                }
+            }).start();
         }
         else
         {

@@ -8,6 +8,8 @@ package org.jitsi.sctp4j;
 
 import org.jitsi.util.*;
 
+import java.io.*;
+
 /**
  * SCTP socket implemented using "usrsctp" lib.
  *
@@ -41,12 +43,29 @@ public class SctpSocket
     private SctpDataCallback dataCallback;
 
     /**
+     * SCTP notification listener.
+     */
+    private NotificationListener notificationListener
+        = new NotificationListener()
+    {
+        @Override
+        public void onSctpNotification(SctpSocket socket,
+                                       SctpNotification notification)
+        {
+            logger.trace("SctpSocket(0x" + socketPtr +")event: " + notification);
+        }
+    };
+
+    /**
      * Creates new instance of <tt>SctpSocket</tt>.
      * @param socketPtr native socket pointer.
      * @param localPort local SCTP port on which this socket is bound.
      */
     SctpSocket(long socketPtr, int localPort)
     {
+        if(socketPtr == 0)
+            throw new NullPointerException();
+
         this.socketPtr = socketPtr;
         this.localPort = localPort;
     }
@@ -73,27 +92,46 @@ public class SctpSocket
     /**
      * Makes SCTP socket passive.
      */
-    public void listen()
+    public synchronized void listen()
+        throws IOException
     {
+        checkIsPointerValid();
+
         Sctp.usrsctp_listen(socketPtr);
     }
 
     /**
      * Accepts incoming SCTP connection.
+     * FIXME:
+     * Usrscp is currently configured to work in non blocking mode thus this
+     * method should be polled in intervals.
+     *
+     * @return <tt>true</tt> if we have accepted incoming connection
+     *         successfully.
      */
-    public void accept()
+    public synchronized boolean accept()
+        throws IOException
     {
-        Sctp.usrsctp_accept(socketPtr);
+        checkIsPointerValid();
+
+        return Sctp.usrsctp_accept(socketPtr);
     }
 
     /**
      * Initializes SCTP connection by sending INIT message.
      * @param remotePort remote SCTP port.
-     * @return <tt>true</tt> on success.
+     * @throws java.io.IOException if this socket is closed or an error occurs
+     *         while trying to connect the socket.
      */
-    public boolean connect(int remotePort)
+    public synchronized void connect(int remotePort)
+        throws IOException
     {
-        return Sctp.usrsctp_connect(socketPtr, remotePort);
+        checkIsPointerValid();
+
+        if(!Sctp.usrsctp_connect(socketPtr, remotePort))
+        {
+            throw new IOException("Failed to connect SCTP");
+        }
     }
 
     /**
@@ -106,8 +144,13 @@ public class SctpSocket
      * @param ppid payload protocol identifier
      * @return sent bytes count or <tt>-1</tt> in case of an error.
      */
-    public int send(byte[] data, boolean ordered, int sid, int ppid)
+    public synchronized int send(byte[] data, boolean ordered,
+                                 int sid,     int ppid)
+        throws IOException
     {
+        // Prevent JVM crash by throwing IOException
+        checkIsPointerValid();
+
         return Sctp.usrsctp_send(socketPtr, data, ordered, sid, ppid);
     }
 
@@ -117,10 +160,25 @@ public class SctpSocket
      * @param packet network packet buffer.
      * @param tos type of service???
      * @param set_df use IP don't fragment option
+     * @return 0 if the packet was successfully sent or -1 otherwise.
      */
-    void onSctpOut(byte[] packet, int tos, int set_df)
+    int onSctpOut(byte[] packet, int tos, int set_df)
     {
-        this.link.onConnOut(this, packet);
+        if(link == null)
+            return -1;
+
+        try
+        {
+            this.link.onConnOut(this, packet);
+
+            return 0;
+        }
+        catch (IOException e)
+        {
+            logger.error(
+                "Error while sending packet trough the link: " + link, e);
+        }
+        return -1;
     }
 
     /**
@@ -158,8 +216,15 @@ public class SctpSocket
      * Call this method to pass network packets received on the link.
      * @param packet network packet received.
      */
-    public void onConnIn(byte[] packet)
+    public synchronized void onConnIn(byte[] packet)
+        throws IOException
     {
+        if(packet == null)
+            throw new NullPointerException("packet");
+
+        // Prevent JVM crash by throwing IOException
+        checkIsPointerValid();
+
         //debugSctpPacket(packet);
 
         Sctp.onConnIn(socketPtr, packet);
@@ -169,13 +234,49 @@ public class SctpSocket
      * Closes this socket. After call to this method this instance MUST NOT be
      * used.
      */
-    public void close()
+    public synchronized void close()
     {
         if(socketPtr != 0)
         {
             Sctp.closeSocket(socketPtr);
 
             socketPtr = 0;
+        }
+    }
+
+    /**
+     * Checks if {@link #socketPtr} is not null. Otherwise throws
+     * <tt>IOException</tt>.
+     *
+     * @throws IOException in case this socket pointer is invalid.
+     */
+    private void checkIsPointerValid()
+        throws IOException
+    {
+        if(socketPtr == 0)
+        {
+            throw new IOException("Socket is closed");
+        }
+    }
+
+    /**
+     * Sets the listener that will be notified about SCTP event.
+     * @param l the {@link NotificationListener} to set.
+     */
+    public void setNotificationListener(NotificationListener l)
+    {
+        this.notificationListener = l;
+    }
+
+    /**
+     * Fired when usrsctp stack sends notification.
+     * @param notification the <tt>SctpNotification</tt> triggered.
+     */
+    void onNotification(SctpNotification notification)
+    {
+        if(notificationListener != null)
+        {
+            notificationListener.onSctpNotification(this, notification);
         }
     }
     
@@ -350,5 +451,19 @@ public class SctpSocket
         return ((fByte << 8
             | sByte))
             & 0xFFFF;
+    }
+
+    /**
+     * Interface used to listen for SCTP notifications on specific socket.
+     */
+    public interface NotificationListener
+    {
+        /**
+         * Fired when usrsctp stack sends notification.
+         * @param socket the {@link SctpSocket} notification source.
+         * @param notification the <tt>SctpNotification</tt> triggered.
+         */
+        void onSctpNotification(SctpSocket socket,
+                                SctpNotification notification);
     }
 }
