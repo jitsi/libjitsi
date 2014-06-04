@@ -239,7 +239,7 @@ public class SsrcTransformEngine
              * Notify the AudioMediaStream associated with this instance about
              * the received audio level.
              */
-            if (!dropPkt && (csrcAudioLevelDispatcher != null))
+            if (!dropPkt && (csrcAudioLevelDispatcher != null) && (level >= 0))
             {
                 long[] levels = new long[2];
 
