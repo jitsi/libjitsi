@@ -578,7 +578,31 @@
   <!-- compile jnspeex library -->
   <target name="speex" description="Build jnspeex shared library" depends="init-native">
 
-    <fail message="speex repository not set!" unless="speex" />
+      <condition property="is.speex.set" value="true">
+          <and>
+              <isset property="speex"/>
+              <not>
+                  <isset property="speex.dynamic"/>
+              </not>
+          </and>
+      </condition>
+      <condition property="is.speex.set" value="true">
+          <and>
+              <isset property="speex.dynamic"/>
+              <not>
+                  <isset property="speex"/>
+              </not>
+          </and>
+      </condition>
+
+      <condition property="is.speex.dynamic.set" value="true">
+          <and>
+              <isset property="speex.dynamic"/>
+              <isset property="is.running.linux"/>
+          </and>
+      </condition>
+
+      <fail message="speex repository not set!" unless="is.speex.set" />
 
     <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnspeex" objdir="${obj}">
       <!-- common compiler flags -->
@@ -602,10 +626,13 @@
       <!-- static libraries MUST be at the end otherwise
       they will not be added to shared library
       -->
-      <linkerarg value="-Wl,-Bstatic" location="end" if="is.running.linux" />
-      <linkerarg value="-lspeex" location="end" if="is.running.linux" />
-      <linkerarg value="-lspeexdsp" location="end" if="is.running.linux" />
+      <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
+      <linkerarg value="-Wl,-Bstatic" location="end" if="is.running.linux" unless="speex.dynamic"/>
+      <linkerarg value="-lspeex" location="end" if="is.running.linux" unless="speex.dynamic"/>
+      <linkerarg value="-lspeexdsp" location="end" if="is.running.linux" unless="speex.dynamic"/>
       <linkerarg value="-Wl,-Bdynamic" location="end" if="is.running.linux" />
+      <linkerarg value="-lspeex" location="end" if="is.speex.dynamic.set"/>
+      <linkerarg value="-lspeexdsp" location="end" if="is.speex.dynamic.set"/>
       <linkerarg value="-lm" location="end" if="is.running.linux" />
 
       <!-- Mac OS X specific flags -->
