@@ -47,18 +47,16 @@ Depends: ${misc:Depends},
          libjson-simple-java
 Recommends: ${java:Recommends}
 Description: VoIP and Instant Messaging client
- Libjitsi is an application that allows you to do audio/video
- conversations over the Internet through the SIP and XMPP/Jabber protocol,
- as well as chat with your friends using some of the most popular instant
- messaging protocols such as SIP/SIMPLE, XMPP/Jabber, AIM/ICQ, Yahoo and others.
+ Libjitsi is an advanced Java media library for secure real-time audio/video
+ communication. It allows applications to capture, playback, stream,
+ encode/decode and encrypt audio and video flows. It also allows for advanced
+ features such as audio mixing, handling multiple streams, participation in
+ audio and video conferences.
 
 Package: libjitsi-jni
 Section: libs
 Architecture: amd64 i386
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Libjitsi JNI library
- These are the jni bindings for  Libjitsi the Java VoIP
- and Instant Messaging client. Libraries to access audio and video devices.
- Native binaries used to render the video and detect network configuration
- changes. Binaries for audio codecs like opus and g722. Global shortcuts,
- notifications and hid devices control.
+ These are the jni bindings for Libjitsi the advanced Java media library for
+ secure real-time audio/video communication.
