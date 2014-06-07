@@ -1,5 +1,7 @@
 <project name="libjitsi-debian" basedir=".">
 
+    <property name="tmp" value="tmp"/>
+
     <!-- The target that is called just after clean
     and before building. Will prepare all sources in ${tmp} folder.
     Expects ../libsrc, ../fmj and ../ice4j to exist.

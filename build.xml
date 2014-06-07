@@ -27,7 +27,7 @@
   </path>
 
   <condition property="build.label"
-             value="-${label}"
+             value="${label}"
              else="">
     <isset property="label"/>
   </condition>
@@ -182,37 +182,37 @@
 
   <!-- build all binaries and the libjitsi.jar -->
   <target name="dist" depends="make">
-      <zip destfile="${dist}/windows/libjitsi${build.label}-x86.zip">
+      <zip destfile="${dist}/windows/libjitsi-${build.label}-x86.zip">
           <zipfileset file="libjitsi.jar" />
           <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
           <zipfileset dir="lib/native/windows" includes="*.dll"
                       prefix="lib/native/windows"/>
       </zip>
-      <zip destfile="${dist}/windows/libjitsi${build.label}-x64.zip">
+      <zip destfile="${dist}/windows/libjitsi-${build.label}-x64.zip">
           <zipfileset file="libjitsi.jar" />
           <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
           <zipfileset dir="lib/native/windows-64" includes="*.dll"
                       prefix="lib/native/windows-64"/>
       </zip>
-      <zip destfile="${dist}/macosx/libjitsi${build.label}.zip">
+      <zip destfile="${dist}/macosx/libjitsi-${build.label}.zip">
           <zipfileset file="libjitsi.jar" />
           <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
           <zipfileset dir="lib/native/mac" includes="*.jnilib"
                       prefix="lib/native/mac"/>
       </zip>
-      <zip destfile="${dist}/linux/libjitsi${build.label}-i386.zip">
+      <zip destfile="${dist}/linux/libjitsi-${build.label}-i386.zip">
           <zipfileset file="libjitsi.jar" />
           <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
           <zipfileset dir="lib/native/linux" includes="*.so"
                       prefix="lib/native/linux"/>
       </zip>
-      <zip destfile="${dist}/linux/libjitsi${build.label}-amd64.zip">
+      <zip destfile="${dist}/linux/libjitsi-${build.label}-amd64.zip">
           <zipfileset file="libjitsi.jar" />
           <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
           <zipfileset dir="lib/native/linux-64" includes="*.so"
                       prefix="lib/native/linux-64"/>
       </zip>
-      <zip destfile="${dist}/src/libjitsi-src${build.label}.zip">
+      <zip destfile="${dist}/src/libjitsi-src-${build.label}.zip">
         <zipfileset dir="." prefix="libjitsi">
             <exclude name="classes/"/>
             <exclude name="dist/"/>
