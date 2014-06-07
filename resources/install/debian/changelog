@@ -1,0 +1,6 @@
+libjitsi (372-0) unstable; urgency=low
+
+  * Initial release.
+  * Add patch from Anton Khirnov and compile against libav10 (Closes: #739432)
+
+ -- Damian Minkov <damencho@jitsi.org>  Wed, 2 Apr 2014 15:03:34 -0500

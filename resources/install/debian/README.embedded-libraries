@@ -1,0 +1,51 @@
+Libraries that we bundle directly in libjitsi:
+
+Note 1: Currently all libraries live in lib/src.
+Note 2: We have indicated when Jitsi community members are also somehow affiliated with the project
+
+- fmj http://fmj-sf.net/
+FMJ is an open-source project with the goal of providing an alternative
+to Java Media Framework (JMF).
+Jitsi team is maintainer of the project.
+Reason: No Debian package.
+
+- ice4j http://code.google.com/p/ice4j/
+This project provides a Java implementation of the ICE protocol
+that would be usable by both SIP and XMPP applications.
+The Jitsi community is the maintainer of this project.
+Reason: No Debian package.
+
+- jsip http://jsip.java.net/
+This project publishes a full implementation of the RFC 3261 Specification
+and as well as support for several SIP RFCs.
+Emil Ivov from Jitsi team is contributor and has commit right in the project.
+Reason: No Debian package.
+
+- portaudio http://www.portaudio.com/
+PortAudio is a free, cross-platform, open-source, audio I/O library.
+Reason: A Debian package does exist for port audio however, the Jitsi community is using one of its forks (i.e. the hotplug branch) with a number of additional changes such as:
+* further improved device hotplug for windows.
+* device hotplug for macosx and linux
+* fixes for various problems with device locks.
+
+- weupnp http://code.google.com/p/weupnp/
+Weupnp is a lightweight Java library implements the UPnP protocol.
+Jitsi’s Sebastien Vincent is contributor and has commit right in the project.
+Reason: No Debian package.
+
+- bccontrib https://github.com/jitsi/bccontrib
+This project contains the Skein hash function, the Threefish encryption
+function and the Fortuna random generator as a Java implementation. The API is
+designed to be compatible to BouncyCastle.
+Reason: No Debian package.
+
+- sdes4j http://code.google.com/p/sdes4j/
+Implementation of RFC4568: Session Description Protocol (SDP)
+Security Descriptions for Media Streams for Java.
+Jitsi’s Ingo Bauersachs is maintainer and owner of the project.
+Reason: No Debian package.
+
+- zrtp4j https://github.com/wernerd/ZRTP4J
+Java implementation of ZRTP protocol.
+Werner Dittmann from Jitsi team is maintainer and owner of the project.
+Reason: No Debian package.

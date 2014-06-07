@@ -35,6 +35,9 @@
   <!-- Import JNI build xml -->
   <import file="${src}/native/build.xml"/>
 
+  <!-- Import debian build xml -->
+  <import file="resources/install/build-debian.xml"/>
+
   <target
       name="clean"
       description="Remove all compiled/generated files and prepare for a clean compile/build.">

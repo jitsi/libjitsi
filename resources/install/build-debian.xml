@@ -1,0 +1,362 @@
+<project name="libjitsi-debian" basedir=".">
+
+    <!-- The target that is called just after clean
+    and before building. Will prepare all sources in ${tmp} folder.
+    Expects ../libsrc, ../fmj and ../ice4j to exist.
+    -->
+    <target name="deb-src" depends="deb-copy-libjitsi">
+        <!-- pack as original sources -->
+        <tar destfile="${dist}/libjitsi_${build.label}.orig.tar.gz"
+             compression="gzip"
+             basedir="${tmp}"/>
+        <delete failonerror="false" includeemptydirs="true">
+            <fileset dir="${tmp}"/>
+        </delete>
+    </target>
+
+    <target name="deb-copy-libjitsi">
+        <mkdir dir="${tmp}/libjitsi/lib/src"/>
+
+        <!-- First copy libjitsi itself -->
+        <copy todir="${tmp}/libjitsi">
+            <fileset dir=".">
+                <include name="src/**"/>
+                <include name="build.xml"/>
+                <include name="resources/install/build-debian.xml"/>
+                <exclude name="**/macosx/**"/>
+                <exclude name="**/windows/**"/>
+            </fileset>
+        </copy>
+        <copy todir="${tmp}/libjitsi">
+            <fileset dir="resources/install/">
+                <include name="debian/**"/>
+            </fileset>
+        </copy>
+
+        <!-- ice4j
+        svn checkout http://ice4j.googlecode.com/svn/trunk/ ice4j
+        -->
+        <copy todir="${tmp}/libjitsi/lib/src/ice4j">
+            <fileset dir="../ice4j">
+                <include name="src/**"/>
+                <include name="build.xml"/>
+            </fileset>
+        </copy>
+
+        <!-- weupnp -->
+        <unzip src="../libsrc/weupnp.zip"
+               dest="${tmp}/libjitsi/lib/src"/>
+
+        <!-- jsip -->
+        <unzip src="../libsrc/jsip.zip"
+               dest="${tmp}/libjitsi/lib/src/">
+            <patternset>
+                <exclude name="**/.svn/**"/>
+                <exclude name="**/*.jar"/>
+            </patternset>
+        </unzip>
+
+        <!-- sdes -->
+        <unzip src="../libsrc/sdes4j.zip"
+               dest="${tmp}/libjitsi/lib/src">
+            <patternset>
+                <exclude name="**/.svn"/>
+            </patternset>
+        </unzip>
+
+        <!-- fmj
+        svn checkout http://svn.code.sf.net/p/fmj/code/fmj fmj
+        -->
+        <copy todir="${tmp}/libjitsi/lib/src/fmj">
+            <fileset dir="../fmj">
+                <exclude name="**/.svn"/>
+                <include name="*/**"/>
+                <exclude name="**/macosx/**"/>
+                <exclude name="**/windows/**"/>
+                <exclude name="**/lib/**"/>
+                <exclude name="**/*.so"/>
+                <exclude name="**/*.dll"/>
+            </fileset>
+        </copy>
+
+        <!-- zrtp4j -->
+        <unzip src="../libsrc/zrtp4j-src-3.2.0.zip"
+               dest="${tmp}/libjitsi/lib/src"/>
+
+        <!-- bccontrib -->
+        <unzip src="../libsrc/bccontrib.zip"
+               dest="${tmp}/libjitsi/lib/src/">
+            <patternset>
+                <exclude name="**/*.jar"/>
+                <exclude name="**/*.class"/>
+            </patternset>
+        </unzip>
+
+        <!-- portaudio -->
+        <unzip src="../libsrc/portaudio.zip"
+               dest="${tmp}/libjitsi/lib/src/">
+            <patternset>
+                <exclude name="**/*.log"/>
+                <exclude name="**/*.orig"/>
+                <exclude name="**/bindings/**"/>
+                <exclude name="**/macosx/**"/>
+                <exclude name="**/windows/**"/>
+            </patternset>
+        </unzip>
+        <exec   dir="${tmp}/libjitsi/lib/src/portaudio/"
+                executable="make"
+                failonerror="true">
+            <arg value="distclean" />
+        </exec>
+
+    </target>
+
+    <!-- used to build sources for debuilding deb package
+    invoked from rules
+     -->
+    <target name="deb-src-rebuild">
+            <!--depends="make"-->
+
+        <!-- weupnp -->
+        <ant dir="lib/src/weupnp"
+             inheritAll="false"
+             target="jar"/>
+
+        <mkdir dir="lib/src/ice4j/lib"/>
+        <symlink resource="../../weupnp/weupnp.jar"
+                 overwrite="true"
+                 link="lib/src/ice4j/lib/weupnp-0.1.2-SNAPSHOT.jar"/>
+
+        <!-- sdes -->
+        <mkdir dir="lib/src/sdes4j/lib"/>
+        <symlink resource="/usr/share/java/commons-codec.jar"
+                 overwrite="true"
+                 link="lib/src/sdes4j/lib/commons-codec.jar"/>
+        <ant dir="lib/src/sdes4j"
+             inheritAll="false"
+             target="jar">
+        </ant>
+        <copy todir="lib"
+              file="lib/src/sdes4j/build/SDES4J-1.0.1.jar"/>
+
+        <symlink resource="/usr/share/java/org.apache.felix.framework.jar"
+                 overwrite="true"
+                 link="lib/felix.jar"/>
+        <symlink resource="/usr/share/java/json-simple.jar"
+                 overwrite="true"
+                 link="lib"/>
+
+        <!-- jsip -->
+        <symlink resource="/usr/share/java/log4j-1.2.jar"
+                 overwrite="true"
+                 link="lib/src/jsip/lib/log4j-1.2.15.jar"/>
+        <ant dir="lib/src/jsip"
+             inheritAll="false"
+             target="dist">
+        </ant>
+        <copy tofile="lib/jain-sdp.jar"
+              file="lib/src/jsip/jain-sip-sdp-1.2.159.jar"/>
+        <symlink resource="../../jsip/jain-sip-sdp-1.2.159.jar"
+                 overwrite="true"
+                 link="lib/src/ice4j/lib/jain-sdp.jar"/>
+
+        <!-- ice4j -->
+        <ant dir="lib/src/ice4j"
+             inheritAll="false"
+             target="jar">
+            <property name="src2" value="src"/>
+        </ant>
+        <copy todir="lib"
+              file="lib/src/ice4j/ice4j.jar"/>
+
+        <!-- compile and pack bccontrib -->
+        <mkdir dir="lib/src/bccontrib/target/classes"/>
+        <javac debug="false" optimize="true"
+               destdir="lib/src/bccontrib/target/classes"
+               nowarn="false"
+               source="1.5" target="1.5" fork="true">
+            <src path="lib/src/bccontrib/src/main/java"/>
+            <classpath>
+                <pathelement location="/usr/share/java/bcprov.jar"/>
+            </classpath>
+        </javac>
+        <jar compress="true"
+             destfile="lib/src/bccontrib/target/bccontrib-1.0-SNAPSHOT.jar">
+            <fileset dir="lib/src/bccontrib/target/classes"/>
+            <manifest>
+                <attribute name="Bundle-Name" value="bccontrib"/>
+                <attribute name="Bundle-SymbolicName"
+                           value="org.jitsi.bccontrib"/>
+                <attribute name="Bundle-Version" value="1.0.5.SNAPSHOT"/>
+
+                <attribute name="Import-Package"
+                           value="org.bouncycastle.crypto,
+org.bouncycastle.crypto.digests,
+org.bouncycastle.crypto.engines,
+org.bouncycastle.crypto.params,
+org.bouncycastle.crypto.prng"/>
+                <attribute name="Export-Package"
+                           value="org.jitsi.bccontrib.digests,
+org.jitsi.bccontrib.engines,
+org.jitsi.bccontrib.macs,
+org.jitsi.bccontrib.params,
+org.jitsi.bccontrib.prng,
+org.jitsi.bccontrib.util"/>
+            </manifest>
+        </jar>
+        <copy todir="lib"
+              file="lib/src/bccontrib/target/bccontrib-1.0-SNAPSHOT.jar"/>
+
+        <!-- compile and pack fmj -->
+        <property name="fmj.src.folder" value="lib/src/fmj"/>
+        <mkdir dir="${fmj.src.folder}/build/classes" />
+        <javac debug="false" optimize="true"
+               destdir="${fmj.src.folder}/build/classes"
+               nowarn="false"
+               source="1.5" target="1.5" fork="true">
+            <src path="${fmj.src.folder}/src"/>
+            <src path="${fmj.src.folder}/src.capture"/>
+            <src path="${fmj.src.folder}/src.ejmf"/>
+            <src path="${fmj.src.folder}/src.apps"/>
+            <src path="${fmj.src.folder}/src.ffmpeg-java"/>
+            <src path="${fmj.src.folder}/src.fmjstudio"/>
+            <src path="${fmj.src.folder}/src.gst"/>
+            <src path="${fmj.src.folder}/src.rtp"/>
+            <src path="${fmj.src.folder}/src.sip-communicator"/>
+            <src path="${fmj.src.folder}/src.stubs"/>
+            <src path="${fmj.src.folder}/src.sunibm.base"/>
+            <src path="${fmj.src.folder}/src.sunibm.replace"/>
+            <src path="${fmj.src.folder}/src.t4l"/>
+            <src path="${fmj.src.folder}/src.theora-java"/>
+            <src path="${fmj.src.folder}/src.utils"/>
+
+            <exclude name="**/civil/**" />
+            <exclude name="net/sf/fmj/media/cdp/GlobalCaptureDevicePlugger.java" />
+            <exclude name="net/sf/fmj/ejmf/toolkit/gui/**"/>
+            <exclude name="net/java/**" />
+            <exclude name="net/sf/fmj/apps/**" />
+            <exclude name="net/sf/fmj/capture/**" />
+            <exclude name="net/sf/fmj/ds/**" />
+            <exclude name="net/sf/fmj/ffmpeg_java/**" />
+            <exclude name="net/sf/fmj/gst/**" />
+            <exclude name="net/sf/fmj/gui/**" />
+            <exclude name="net/sf/fmj/test/**" />
+            <exclude name="net/sf/fmj/theora_java/**" />
+            <exclude name="net/sf/fmj/qt/**" />
+            <exclude name="net/sf/fmj/ui/**" />
+            <exclude name="net/sf/jdshow/**" />
+            <exclude name="fi/iki/elonen/nanohttpd/**" />
+
+        </javac>
+        <jar compress="true" destfile="${fmj.src.folder}/fmj.jar">
+            <fileset dir="${fmj.src.folder}/build/classes">
+                <exclude name="net/sf/fmj/test/*" />
+            </fileset>
+        </jar>
+        <copy todir="lib"
+              file="lib/src/fmj/fmj.jar"/>
+
+        <!-- zrtp -->
+        <mkdir dir="lib/src/zrtp4j/lib"/>
+        <symlink resource="../../bccontrib/target/bccontrib-1.0-SNAPSHOT.jar"
+                 overwrite="true"
+                 link="lib/src/zrtp4j/lib"/>
+        <symlink resource="/usr/share/java/bcprov.jar"
+                 overwrite="true"
+                 link="lib/src/zrtp4j/lib/bcprov-jdk15on-148.jar"/>
+        <!-- its not error zrtp build expects jmf.jar -->
+        <symlink resource="../../fmj/fmj.jar"
+                 overwrite="true"
+                 link="lib/src/zrtp4j/lib/jmf.jar"/>
+        <symlink resource="/usr/share/java/junit.jar"
+                 overwrite="true"
+                 link="lib/src/zrtp4j/lib/junit.jar"/>
+        <ant dir="lib/src/zrtp4j"
+             inheritAll="false"
+             target="jar">
+        </ant>
+        <copy todir="lib"
+              file="lib/src/zrtp4j/dist/zrtp4j-light.jar"/>
+
+        <!-- libjitsi -->
+        <symlink resource="/usr/share/java/bcprov.jar"
+                 overwrite="true"
+                 link="lib"/>
+        <symlink resource="/usr/share/java/bcpkix.jar"
+                 overwrite="true"
+                 link="lib"/>
+
+        <symlink resource="/usr/share/java/jna.jar"
+                 link="lib"/>
+
+        <ant inheritAll="false"
+             target="jar">
+        </ant>
+
+        <!-- will build native libs -->
+        <mkdir dir="lib/installer-exclude"/>
+        <mkdir dir="lib/native/linux"/>
+        <mkdir dir="lib/native/linux-64"/>
+        <symlink resource="/usr/share/java/ant-contrib-cpptasks.jar"
+                 overwrite="true"
+                 link="lib/installer-exclude/cpptasks.jar"/>
+
+        <!-- opus -->
+        <ant target="opus">
+            <property name="opus" value=""/>
+        </ant>
+
+        <ant target="screencapture"/>
+
+        <chmod file="lib/src/portaudio/configure" perm="+x"/>
+        <exec   dir="lib/src/portaudio"
+                executable="configure"
+                resolveexecutable="true"
+                failonerror="true">
+            <arg value="--disable-shared" />
+            <arg value="--enable-static" />
+            <arg value="--with-pic" />
+            <arg value="--with-jack=no" />
+        </exec>
+        <exec   dir="lib/src/portaudio"
+                executable="make"
+                failonerror="true"/>
+
+        <dirname property="current.basedir" file="${ant.file.libjitsi}"/>
+        <ant target="portaudio">
+            <property name="portaudio" value="${current.basedir}/lib/src/portaudio"/>
+            <property name="speex.dynamic" value="true"/>
+        </ant>
+
+        <!-- ffmpeg -->
+        <ant target="ffmpeg">
+            <property name="ffmpeg" value=""/>
+            <property name="x264" value=""/>
+            <property name="lame" value=""/>
+            <property name="libvpx" value=""/>
+            <property name="LIBAV" value=""/>
+        </ant>
+
+        <!-- video4linux -->
+        <ant target="video4linux2"/>
+
+        <!-- awtrenderer -->
+        <ant target="jawtrenderer"/>
+
+        <!--pulseaudio-->
+        <ant target="pulseaudio"/>
+
+        <ant target="g722"/>
+
+        <!-- jnspeex -->
+        <ant target="speex">
+            <property name="speex.dynamic" value="true"/>
+        </ant>
+
+        <!--libvpx-->
+        <ant target="libvpx">
+            <property name="libvpx" value=""/>
+        </ant>
+    </target>
+
+</project>
