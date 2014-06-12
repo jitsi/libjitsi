@@ -87,6 +87,8 @@ public abstract class AudioSystem
 
     public static final String LOCATOR_PROTOCOL_AUDIORECORD = "audiorecord";
 
+    public static final String LOCATOR_PROTOCOL_AUDIOSILENCE = "audiosilence";
+
     public static final String LOCATOR_PROTOCOL_JAVASOUND = "javasound";
 
     /**
