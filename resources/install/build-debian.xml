@@ -34,6 +34,9 @@
                 <include name="debian/**"/>
             </fileset>
         </copy>
+        <replace file="${tmp}/libjitsi/debian/changelog">
+            <replacefilter token="_VER_" value="${build.label}"/>
+        </replace>
 
         <!-- ice4j
         svn checkout http://ice4j.googlecode.com/svn/trunk/ ice4j
@@ -359,6 +362,96 @@ org.jitsi.bccontrib.util"/>
         <ant target="libvpx">
             <property name="libvpx" value=""/>
         </ant>
+    </target>
+
+    <target name="deb" depends="-init-deb,deb-32,deb-64">
+        <delete failonerror="false" includeemptydirs="true">
+            <fileset dir="${tmp}"/>
+        </delete>
+    </target>
+
+    <target name="deb-32">
+        <antcall target="-make-deb-package">
+            <param name="deb-arch" value="i386"/>
+        </antcall>
+    </target>
+
+    <target name="deb-64">
+        <antcall target="-make-deb-package">
+            <param name="deb-arch" value="amd64"/>
+        </antcall>
+    </target>
+
+    <target name="-init-deb" depends="jar">
+        <!-- First copy libjitsi itself -->
+        <copy todir="${tmp}/libjitsi">
+            <fileset dir=".">
+                <include name="src/native/build.xml"/>
+                <include name="lib/**"/>
+                <include name="libjitsi.jar"/>
+                <include name="build.xml"/>
+                <include name="resources/install/build-debian.xml"/>
+                <exclude name="**/macosx/**"/>
+                <exclude name="**/windows*/**"/>
+                <exclude name="**/freebsd*/**"/>
+                <exclude name="**/mac/**"/>
+                <exclude name="**/test/**"/>
+                <exclude name="**/installer-exclude/**"/>
+            </fileset>
+        </copy>
+        <copy todir="${tmp}/libjitsi">
+            <fileset dir="resources/install/">
+                <include name="debian/**"/>
+            </fileset>
+        </copy>
+        <replace file="${tmp}/libjitsi/debian/changelog">
+            <replacefilter token="_VER_" value="${build.label}"/>
+        </replace>
+
+        <replace file="${tmp}/libjitsi/debian/rules"
+                 token="override_dh_auto_build:">
+            <replacevalue>#override_dh_auto_build:</replacevalue>
+        </replace>
+        <replace file="${tmp}/libjitsi/debian/rules"
+                 token="&#009;dh_auto_build -- deb-src-rebuild">
+            <replacevalue>#dh_auto_build -- deb-src-rebuild</replacevalue>
+        </replace>
+        <replace file="${tmp}/libjitsi/debian/rules"
+                 token="dh_install -plibjitsi-jni">
+            <replacevalue>dh_install -plibjitsi</replacevalue>
+        </replace>
+        <replace file="${tmp}/libjitsi/debian/rules"
+                 token="dh_auto_clean -- clean">
+            <replacevalue># do nothing</replacevalue>
+        </replace>
+
+        <delete failonerror="true">
+            <fileset dir="${tmp}/libjitsi/debian">
+                <include name="libjitsi.links"/>
+            </fileset>
+        </delete>
+        <move file="${tmp}/libjitsi/debian/control.binary.pkg"
+              tofile="${tmp}/libjitsi/debian/control"/>
+
+    </target>
+
+    <target name="-make-deb-package">
+        <!-- Build binary .deb package -->
+        <exec executable="${dpkg-buildpackage}" dir="${tmp}/libjitsi">
+            <arg value="-tc"/>
+            <arg value="-us"/>
+            <arg value="-uc"/>
+            <arg value="-b"/>
+            <arg value="-d"/>
+            <arg value="-a${deb-arch}"/>
+        </exec>
+
+        <move todir="${dist}">
+            <fileset dir="${tmp}">
+                <include name="*.deb"/>
+                <include name="*.changes"/>
+            </fileset>
+        </move>
     </target>
 
 </project>
