@@ -12,15 +12,20 @@ import javax.media.format.*;
 import net.sf.fmj.media.*;
 
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.service.neomedia.control.*;
 import org.jitsi.util.*;
+
+import java.awt.*;
 
 /**
  * Implements a MP3 encoder using the native FFmpeg library.
  *
  * @author Lyubomir Marinov
+ * @author Boris Grozev
  */
 public class JNIEncoder
     extends AbstractCodec2
+    implements FlushableControl
 {
     /**
      * The <tt>Logger</tt> used by the <tt>JNIEncoder</tt> class and its
@@ -90,6 +95,11 @@ public class JNIEncoder
     private int prevInputLength;
 
     /**
+     * Synchronize access to <tt>prevInput</tt> and <tt>prevInputLength</tt>
+     */
+    private Object prevInputSyncRoot = new Object();
+
+    /**
      * Initializes a new <tt>JNIEncoder</tt> instance.
      */
     public JNIEncoder()
@@ -97,12 +107,14 @@ public class JNIEncoder
         super("MP3 JNI Encoder", AudioFormat.class, SUPPORTED_OUTPUT_FORMATS);
 
         inputFormats = SUPPORTED_INPUT_FORMATS;
+
+        addControl(this);
     }
 
     /**
-     * Implements {@link AbstractCodecExt#doClose()}.
+     * Implements {@link AbstractCodec2#doClose()}.
      *
-     * @see AbstractCodecExt#doClose()
+     * @see AbstractCodec2#doClose()
      */
     @Override
     protected synchronized void doClose()
@@ -127,7 +139,7 @@ public class JNIEncoder
      *
      * @throws ResourceUnavailableException if any of the resources that this
      * <tt>Codec</tt> needs to operate cannot be acquired
-     * @see AbstractCodecExt#doOpen()
+     * @see AbstractCodec2#doOpen()
      */
     @Override
     protected synchronized void doOpen()
@@ -200,11 +212,11 @@ public class JNIEncoder
     }
 
     /**
-     * Implements {@link AbstractCodecExt#doProcess(Buffer, Buffer)}.
+     * Implements {@link AbstractCodec2#doProcess(Buffer, Buffer)}.
      *
      * @param inputBuffer
      * @param outputBuffer
-     * @see AbstractCodecExt#doProcess(Buffer, Buffer)
+     * @see AbstractCodec2#doProcess(Buffer, Buffer)
      */
     @Override
     protected synchronized int doProcess(
@@ -215,6 +227,8 @@ public class JNIEncoder
         int inputLength = inputBuffer.getLength();
         int inputOffset = inputBuffer.getOffset();
 
+        synchronized (prevInputSyncRoot)
+        {
         if ((prevInputLength > 0) || (inputLength < frameSizeInBytes))
         {
             int newPrevInputLength
@@ -288,5 +302,24 @@ public class JNIEncoder
             else
                 return BUFFER_PROCESSED_OK;
         }
+        } //synchronized
+    }
+
+    @Override
+    public void flush()
+    {
+        synchronized (prevInputSyncRoot)
+        {
+            prevInputLength = 0;
+        }
+    }
+
+    /**
+     * Implements {@link javax.media.Control#getControlComponent()}.
+     */
+    @Override
+    public Component getControlComponent()
+    {
+        return null;
     }
 }
