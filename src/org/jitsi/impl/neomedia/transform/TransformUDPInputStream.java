@@ -65,7 +65,7 @@ public class TransformUDPInputStream
 
         /* Don't try to transform invalid packets (for ex. empty) */
         for(int i=0; i<pkts.length; i++)
-            if(pkts[i].isInvalid())
+            if(pkts[i] != null && pkts[i].isInvalid())
                 pkts[i] = null; //null elements are just ignored
 
         return
