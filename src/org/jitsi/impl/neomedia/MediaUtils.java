@@ -154,6 +154,20 @@ public class MediaUtils
             Constants.TELEPHONE_EVENT,
             8000);
 
+        // Although we use "red" and "ulpfec" as jmf encodings here, FMJ
+        // should never see RTP packets of these types. Such packets should be
+        // handled by transform engines before being passed to FMJ.
+        addMediaFormats(
+            MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
+            Constants.RED,
+            MediaType.VIDEO,
+            Constants.RED);
+        addMediaFormats(
+            MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
+            Constants.ULPFEC,
+            MediaType.VIDEO,
+            Constants.ULPFEC);
+
 
         ConfigurationService cfg = LibJitsi.getConfigurationService();
 
@@ -178,6 +192,7 @@ public class MediaUtils
         boolean opusDtx = cfg.getBoolean(Constants.PROP_OPUS_DTX, true);
         if(opusDtx)
             opusFormatParams.put("usedtx", "1");
+        //opusFormatParams.put("minptime", "10");
         addMediaFormats(
             MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
             "opus",
