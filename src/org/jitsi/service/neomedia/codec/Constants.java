@@ -188,7 +188,7 @@ public class Constants
     public static final String TELEPHONE_EVENT = "telephone-event";
 
     /**
-     * The VP* constant
+     * The VP8 constant
      */
     public static final String VP8 = "VP8";
 
@@ -196,4 +196,14 @@ public class Constants
      * The VP8/RTP constant.
      */
     public static final String VP8_RTP = "VP8/rtp";
+
+    /**
+     * The name of the RED RTP format (RFC2198)
+     */
+    public static final String RED = "red";
+
+    /**
+     * The name of the ulpfec RTP format (RFC5109)
+     */
+    public static final String ULPFEC = "ulpfec";
 }
