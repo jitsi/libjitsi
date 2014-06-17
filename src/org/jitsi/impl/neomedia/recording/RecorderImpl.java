@@ -4,7 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.impl.neomedia;
+package org.jitsi.impl.neomedia.recording;
 
 import java.io.*;
 import java.util.*;
@@ -14,6 +14,7 @@ import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.service.neomedia.MediaException;
 import org.jitsi.util.*;
 
@@ -23,6 +24,7 @@ import org.jitsi.util.*;
  *
  * @author Dmitri Melnikov
  * @author Lubomir Marinov
+ * @author Boris Grozev
  */
 public class RecorderImpl
     implements Recorder
@@ -48,6 +50,13 @@ public class RecorderImpl
      * being recorded by this <tt>Recorder</tt>.
      */
     private final AudioMixerMediaDevice device;
+
+    /**
+     * The <tt>RecorderEventHandler</tt> which this <tt>Recorder</tt>
+     * should notify when events related to recording (such as start/end of a
+     * recording) occur.
+     */
+    private RecorderEventHandler eventHandler = null;
 
     /**
      * The <tt>MediaDeviceSession</tt> is used to create an output data source.
@@ -281,6 +290,16 @@ public class RecorderImpl
                             exception);
                 }
             }
+
+            if (eventHandler != null)
+            {
+                RecorderEvent event = new RecorderEvent();
+                event.setType(RecorderEvent.Type.RECORDING_STARTED);
+                event.setInstant(System.currentTimeMillis());
+                event.setMediaType(MediaType.AUDIO);
+                event.setFilename(filename);
+                eventHandler.handleEvent(event);
+            }
         }
     }
 
@@ -320,6 +339,16 @@ public class RecorderImpl
             }
             for (Recorder.Listener listener : listeners)
                 listener.recorderStopped(this);
+
+            if (eventHandler != null)
+            {
+                RecorderEvent event = new RecorderEvent();
+                event.setType(RecorderEvent.Type.RECORDING_ENDED);
+                event.setInstant(System.currentTimeMillis());
+                event.setMediaType(MediaType.AUDIO);
+                event.setFilename(filename);
+                eventHandler.handleEvent(event);
+            }
         }
     }
 
@@ -348,5 +377,13 @@ public class RecorderImpl
     public String getFilename()
     {
         return filename;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void setEventHandler(RecorderEventHandler eventHandler)
+    {
+        this.eventHandler = eventHandler;
     }
 }

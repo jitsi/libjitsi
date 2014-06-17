@@ -4,7 +4,9 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package org.jitsi.service.neomedia;
+package org.jitsi.service.neomedia.recording;
+
+import org.jitsi.service.neomedia.MediaException;
 
 import java.io.*;
 import java.util.*;
@@ -15,6 +17,7 @@ import java.util.*;
  *
  * @author Dmitri Melnikov
  * @author Lubomir Marinov
+ * @author Boris Grozev
  */
 public interface Recorder
 {
@@ -72,12 +75,12 @@ public interface Recorder
      * this <tt>Recorder</tt> is to be recorded
      * @throws IOException if anything goes wrong with the input and/or output
      * performed by this <tt>Recorder</tt>
-     * @throws MediaException if anything else goes wrong while starting the
+     * @throws org.jitsi.service.neomedia.MediaException if anything else goes wrong while starting the
      * recording of media performed by this <tt>Recorder</tt>
      */
     public void start(String format, String filename)
         throws IOException,
-               MediaException;
+            MediaException;
 
     /**
      * Stops the recording of the media associated with this <tt>Recorder</tt>
@@ -118,4 +121,12 @@ public interface Recorder
      * null if not started.
      */
     public String getFilename();
+
+    /**
+     * Sets the <tt>RecorderEventHandler</tt> which this <tt>Recorder</tt>
+     * should notify when events related to recording (such as start/end of a
+     * recording) occur.
+     * @param eventHandler the <tt>RecorderEventHandler</tt> to set.
+     */
+    public void setEventHandler(RecorderEventHandler eventHandler);
 }
