@@ -1046,4 +1046,24 @@ public class RTPTranslatorImpl
                         rtcpFeedbackMessage,
                         destination);
     }
+
+    /**
+    * Sets the <tt>SSRCFactory</tt> which is to generate new synchronization
+    * source (SSRC) identifiers.
+    *
+    * @param ssrcFactory the <tt>SSRCFactory</tt> which is to generate new
+    * synchronization source (SSRC) identifiers or <tt>null</tt> if this
+    * <tt>MediaStream</tt> is to employ internal logic to generate new
+    * synchronization source (SSRC) identifiers
+    */
+    public void setSSRCFactory(SSRCFactory ssrcFactory)
+    {
+        RTPManager manager = this.manager;
+        if (manager instanceof
+            org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)
+        {
+            ((org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)manager)
+                  .setSSRCFactory(ssrcFactory);
+        }
+    }
 }
