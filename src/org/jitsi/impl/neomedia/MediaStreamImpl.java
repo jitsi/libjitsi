@@ -175,7 +175,8 @@ public class MediaStreamImpl
     /**
      * Our own SSRC identifier.
      */
-    private long localSourceID = new Random().nextInt();
+    private long localSourceID = Math.abs(new Random().nextLong())
+            % Integer.MAX_VALUE;
 
     /**
      * The list of CSRC IDs contributing to the media that this
