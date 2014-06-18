@@ -259,14 +259,23 @@ public class StreamRTPManager
      */
     public void setSSRCFactory(SSRCFactory ssrcFactory)
     {
-        RTPManager m = this.manager;
-
-        if (m instanceof org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)
+        if (translator == null)
         {
-            org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr sm
-                = (org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr) m;
+            RTPManager m = this.manager;
 
-            sm.setSSRCFactory(ssrcFactory);
+            if (m instanceof
+                    org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)
+            {
+                org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr sm
+                   = (org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr) m;
+
+                sm.setSSRCFactory(ssrcFactory);
+            }
         }
+        else
+        {
+            translator.setSSRCFactory(ssrcFactory);
+        }
+
     }
 }
