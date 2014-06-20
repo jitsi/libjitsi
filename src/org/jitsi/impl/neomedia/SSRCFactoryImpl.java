@@ -18,8 +18,8 @@ import java.util.*;
  * @author Lyubomir Marinov
  * @author Boris Grozev
  */
-class SSRCFactoryImpl
-        implements SSRCFactory
+public class SSRCFactoryImpl
+    implements SSRCFactory
 {
     private int i = 0;
     private long initialLocalSSRC = -1;
