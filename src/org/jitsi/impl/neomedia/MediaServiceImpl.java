@@ -864,6 +864,15 @@ public class MediaServiceImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Recorder createRecorder(RTPTranslator translator)
+    {
+        return new RecorderRtpImpl(translator);
+    }
+
+    /**
      * Returns a {@link Map} that binds indicates whatever preferences this
      * media service implementation may have for the RTP payload type numbers
      * that get dynamically assigned to {@link MediaFormat}s with no static
@@ -1782,4 +1791,15 @@ public class MediaServiceImpl
             }
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RecorderEventHandler createRecorderEventHandlerJson(String filename)
+            throws IOException
+    {
+        return new RecorderEventHandlerJSONImpl(filename);
+    }
+
 }

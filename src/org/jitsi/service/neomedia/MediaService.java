@@ -7,6 +7,7 @@
 package org.jitsi.service.neomedia;
 
 import java.beans.*;
+import java.io.*;
 import java.util.*;
 
 import org.jitsi.service.neomedia.codec.*;
@@ -200,6 +201,16 @@ public interface MediaService
     public Recorder createRecorder(MediaDevice device);
 
     /**
+     * Creates a new <tt>Recorder</tt> instance that can be used to record media
+     * from a specific <tt>RTPTranslator</tt>.
+     * @param translator the <tt>RTPTranslator</tt> for which to create a
+     * <tt>Recorder</tt>
+     * @return a new <tt>Recorder</tt> instance that can be used to record media
+     * from a specific <tt>RTPTranslator</tt>.
+     */
+    public Recorder createRecorder(RTPTranslator translator);
+
+    /**
      * Initializes a new <tt>RTPTranslator</tt> which is to forward RTP and RTCP
      * traffic between multiple <tt>MediaStream</tt>s.
      *
@@ -391,4 +402,17 @@ public interface MediaService
      * libjitsi.
      */
     public String getRtpCname();
+
+    /**
+     * Creates a <tt>RecorderEventHandler</tt> instance that saves received
+     * events in JSON format.
+     * @param filename the filename into which the created
+     * <tt>RecorderEventHandler</tt> will save received events.
+     * @return a <tt>RecorderEventHandler</tt> instance that saves received
+     * events in JSON format.
+     * @throws IOException if a <tt>RecorderEventHandler</tt> could not be
+     * created for <tt>filename</tt>.
+     */
+    public RecorderEventHandler createRecorderEventHandlerJson(String filename)
+            throws IOException;
 }
