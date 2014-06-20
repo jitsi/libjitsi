@@ -28,10 +28,12 @@ import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.impl.neomedia.transform.dtmf.*;
+import org.jitsi.impl.neomedia.transform.fec.*;
 import org.jitsi.impl.neomedia.transform.pt.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.impl.neomedia.transform.zrtp.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
@@ -387,7 +389,7 @@ public class MediaStreamImpl
      */
     private TransformEngineChain createTransformEngineChain()
     {
-        List<TransformEngine> engineChain = new ArrayList<TransformEngine>(5);
+        List<TransformEngine> engineChain = new ArrayList<TransformEngine>(8);
 
         // CSRCs and CSRC audio levels
         if (csrcEngine == null)
@@ -410,6 +412,16 @@ public class MediaStreamImpl
         if (ptTransformEngine == null)
             ptTransformEngine = new PayloadTypeTransformEngine();
         engineChain.add(ptTransformEngine);
+
+        // FEC
+        FECTransformEngine fecTransformEngine = getFecTransformEngine();
+        if (fecTransformEngine != null)
+            engineChain.add(fecTransformEngine);
+
+        // RED
+        REDTransformEngine redTransformEngine = getRedTransformEngine();
+        if (redTransformEngine != null)
+            engineChain.add(redTransformEngine);
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
@@ -472,8 +484,33 @@ public class MediaStreamImpl
         {
             dynamicRTPPayloadTypes.put(Byte.valueOf(rtpPayloadType), format);
 
-            if (rtpManager != null)
+            String encoding = format.getEncoding();
+
+            if (Constants.RED.equals(encoding))
             {
+                REDTransformEngine redTransformEngine = getRedTransformEngine();
+                if (redTransformEngine != null)
+                {
+                    redTransformEngine.setIncomingPT(rtpPayloadType);
+                    // setting outgoingPT enables RED encapsulation for outgoing
+                    // packets.
+                    redTransformEngine.setOutgoingPT(rtpPayloadType);
+                }
+            }
+            else if (Constants.ULPFEC.equals(encoding))
+            {
+                FECTransformEngine fecTransformEngine = getFecTransformEngine();
+                if (fecTransformEngine != null)
+                {
+                    fecTransformEngine.setIncomingPT(rtpPayloadType);
+                    fecTransformEngine.setOutgoingPT(rtpPayloadType);
+                }
+            }
+            else if (rtpManager != null)
+            {
+                // we do not add RED and FEC payload types to the RTP Manager,
+                // because RED and FEC packets will be handled before they get
+                // to the RTP Manager.
                 rtpManager.addFormat(
                         mediaFormatImpl.getFormat(),
                         rtpPayloadType);
@@ -3244,5 +3281,25 @@ public class MediaStreamImpl
             properties.remove(propertyName);
         else
             properties.put(propertyName, value);
+    }
+
+    /**
+     * Creates the <tt>FECTransformEngine</tt> for this <tt>MediaStream</tt>.
+     * By default none is created, allows extenders to implement it.
+     * @return the <tt>FECTransformEngine</tt> created.
+     */
+    protected FECTransformEngine getFecTransformEngine()
+    {
+        return null;
+    }
+
+    /**
+     * Creates the <tt>REDTransformEngine</tt> for this <tt>MediaStream</tt>.
+     * By default none is created, allows extenders to implement it.
+     * @return the <tt>REDTransformEngine</tt> created.
+     */
+    protected REDTransformEngine getRedTransformEngine()
+    {
+        return null;
     }
 }
