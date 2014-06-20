@@ -200,6 +200,7 @@ public class RecorderEventHandlerJSONImpl
         }
     }
 
+    @SuppressWarnings("unchecked")
     private String getJSON(RecorderEvent ev)
     {
         JSONObject json = new JSONObject();
