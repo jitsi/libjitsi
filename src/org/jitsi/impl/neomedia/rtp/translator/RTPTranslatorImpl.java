@@ -84,6 +84,14 @@ public class RTPTranslatorImpl
         = new ArrayList<StreamRTPManagerDesc>();
 
     /**
+     * An instance which can be used to send RTCP Feedback Messages, using
+     * as 'packet sender SSRC' the SSRC of (the <tt>RTPManager</tt> of) this
+     * <tt>RTPTranslator</tt>.
+     */
+    private final RTCPFeedbackMessageSender rtcpFeedbackMessageSender
+        = new RTCPFeedbackMessageSender(this);
+
+    /**
      * Initializes a new <tt>RTPTranslatorImpl</tt> instance.
      */
     public RTPTranslatorImpl()
@@ -1065,5 +1073,34 @@ public class RTPTranslatorImpl
             ((org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)manager)
                   .setSSRCFactory(ssrcFactory);
         }
+    }
+
+    /**
+     * Returns a list of <tt>StreamRTPManager</tt>s currently attached to
+     * this <tt>RTPTranslator</tt>.
+     * @return a list of <tt>StreamRTPManager</tt>s currently attached to
+     * this <tt>RTPTranslator</tt>.
+     */
+    List<StreamRTPManager> getStreamRTPManagers()
+    {
+        List<StreamRTPManager> ret
+                = new ArrayList<StreamRTPManager>(streamRTPManagers.size());
+        for (StreamRTPManagerDesc streamRTPManagerDesc : streamRTPManagers)
+        {
+            ret.add(streamRTPManagerDesc.streamRTPManager);
+        }
+
+        return ret;
+    }
+
+    /**
+     * Gets the <tt>RTCPFeedbackMessageSender</tt> which should be used for
+     * sending RTCP Feedback Messages from this <tt>RTPTranslator</tt>.
+     * @return the <tt>RTCPFeedbackMessageSender</tt> which should be used for
+     * sending RTCP Feedback Messages from this <tt>RTPTranslator</tt>.
+     */
+    public RTCPFeedbackMessageSender getRtcpFeedbackMessageSender()
+    {
+        return rtcpFeedbackMessageSender;
     }
 }
