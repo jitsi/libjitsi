@@ -386,4 +386,26 @@ public class RecorderImpl
     {
         this.eventHandler = eventHandler;
     }
+
+
+    /**
+     * {@inheritDoc}
+     *
+     * This <tt>Recorder</tt> implementation does not use a
+     * <tt>Synchronizer</tt>.
+     */
+    public Synchronizer getSynchronizer()
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * This <tt>Recorder</tt> implementation does not use a
+     * <tt>Synchronizer</tt>.
+     */
+    public void setSynchronizer(Synchronizer synchronizer)
+    {
+    }
 }

@@ -129,4 +129,16 @@ public interface Recorder
      * @param eventHandler the <tt>RecorderEventHandler</tt> to set.
      */
     public void setEventHandler(RecorderEventHandler eventHandler);
+
+    /**
+     * Gets the <tt>Synchronizer</tt> of this <tt>Recorder</tt>.
+     * @return  the <tt>Synchronizer</tt> of this <tt>Recorder</tt>.
+     */
+    public Synchronizer getSynchronizer();
+
+    /**
+     * Sets the <tt>Synchronizer</tt> that this instance should use.
+     * @param synchronizer the <tt>Synchronizer</tt> to set.
+     */
+    public void setSynchronizer(Synchronizer synchronizer);
 }
