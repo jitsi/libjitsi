@@ -41,6 +41,13 @@ public class WebmDataSink
     private long ssrc = -1;
 
     /**
+     * Whether this <tt>DataSink</tt> is open and should write to its
+     * <tt>WebmWriter</tt>.
+     */
+    private boolean open = false;
+    private final Object openCloseSyncRoot = new Object();
+
+    /**
      * Whether we are in a state of waiting for a keyframe and discarding
      * non-key frames.
      */
@@ -129,21 +136,25 @@ public class WebmDataSink
     @Override
     public void close()
     {
-        if (writer != null)
-            writer.close();
-        if (eventHandler != null && firstFrameTime != -1 && lastFramePts != -1)
+        synchronized (openCloseSyncRoot)
         {
-            RecorderEvent event = new RecorderEvent();
-            event.setType(RecorderEvent.Type.RECORDING_ENDED);
-            event.setSsrc(ssrc);
-            event.setFilename(filename);
+            if (writer != null)
+                writer.close();
+            if (eventHandler != null && firstFrameTime != -1 && lastFramePts != -1)
+            {
+                RecorderEvent event = new RecorderEvent();
+                event.setType(RecorderEvent.Type.RECORDING_ENDED);
+                event.setSsrc(ssrc);
+                event.setFilename(filename);
 
-            // make sure that the difference in the 'instant'-s of the
-            // STARTED and ENDED events matches the duration of the file
-            event.setDuration(lastFramePts);
+                // make sure that the difference in the 'instant'-s of the
+                // STARTED and ENDED events matches the duration of the file
+                event.setDuration(lastFramePts);
 
-            event.setMediaType(MediaType.VIDEO);
-            eventHandler.handleEvent(event);
+                event.setMediaType(MediaType.VIDEO);
+                eventHandler.handleEvent(event);
+            }
+            open = false;
         }
     }
 
@@ -171,22 +182,27 @@ public class WebmDataSink
     @Override
     public void open() throws IOException, SecurityException
     {
-        if (dataSource instanceof PushBufferDataSource)
+        synchronized (openCloseSyncRoot)
         {
-            PushBufferDataSource pbds = (PushBufferDataSource) dataSource;
-            PushBufferStream[] streams = pbds.getStreams();
-
-            //XXX: should we allow for multiple streams in the data source?
-            for (PushBufferStream stream : streams)
+            if (dataSource instanceof PushBufferDataSource)
             {
-                //XXX whats the proper way to check for this? and handle?
-                if (!stream.getFormat().matches(new VideoFormat("VP8")))
-                    throw new IOException("Unsupported stream format");
+                PushBufferDataSource pbds = (PushBufferDataSource) dataSource;
+                PushBufferStream[] streams = pbds.getStreams();
 
-                stream.setTransferHandler(this);
+                //XXX: should we allow for multiple streams in the data source?
+                for (PushBufferStream stream : streams)
+                {
+                    //XXX whats the proper way to check for this? and handle?
+                    if (!stream.getFormat().matches(new VideoFormat("VP8")))
+                        throw new IOException("Unsupported stream format");
+
+                    stream.setTransferHandler(this);
+                }
             }
+            dataSource.connect();
+
+            open = true;
         }
-        dataSource.connect();
     }
 
     /**
@@ -261,6 +277,10 @@ public class WebmDataSink
     @Override
     public void transferData(PushBufferStream stream)
     {
+        synchronized (openCloseSyncRoot)
+        {
+        if (!open)
+            return;
         try
         {
             stream.read(buffer);
@@ -391,6 +411,7 @@ public class WebmDataSink
 
             lastFramePts = fd.pts;
         }
+        } //synchronized
     }
 
     /**
