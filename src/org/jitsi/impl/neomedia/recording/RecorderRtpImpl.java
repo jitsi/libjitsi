@@ -71,6 +71,7 @@ public class RecorderRtpImpl
                               Format.NOT_SPECIFIED);
 
     private static final int FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE = 300;
+    private static final int FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE = 16;
 
     /**
      * The <tt>ContentDescriptor</tt> to use when saving audio.
@@ -93,6 +94,9 @@ public class RecorderRtpImpl
         Registry.set(
                 "video_jitter_buffer_MIN_SIZE",
                 FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE);
+        Registry.set(
+                "adaptive_jitter_buffer_MIN_SIZE",
+                FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE);
     }
 
     /**
