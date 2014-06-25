@@ -63,15 +63,15 @@ public class FECTransformEngine
      * Maps an SSRC to a <tt>FECReceiver</tt> to be used for packets
      * with that SSRC.
      */
-    private final Map<Integer,FECReceiver> fecReceivers
-            = new HashMap<Integer,FECReceiver>();
+    private final Map<Long,FECReceiver> fecReceivers
+            = new HashMap<Long,FECReceiver>();
 
     /**
      * Maps an SSRC to a <tt>FECSender</tt> to be used for packets with that
      * SSRC.
      */
-    private final Map<Integer,FECSender> fecSenders
-            = new HashMap<Integer,FECSender>();
+    private final Map<Long,FECSender> fecSenders
+            = new HashMap<Long,FECSender>();
 
     /**
      * Initializes a new <tt>FECTransformEngine</tt> instance.
@@ -107,7 +107,7 @@ public class FECTransformEngine
             return pkts;
 
         // Assumption: all packets in pkts have the same SSRC
-        Integer ssrc = findSSRC(pkts);
+        Long ssrc = findSSRC(pkts);
         if (ssrc == null)
             return pkts;
 
@@ -137,7 +137,7 @@ public class FECTransformEngine
         if (outgoingPT == -1 || pkts == null)
             return pkts;
 
-        Integer ssrc = findSSRC(pkts);
+        Long ssrc = findSSRC(pkts);
         if (ssrc == null)
             return pkts;
 
@@ -255,16 +255,16 @@ public class FECTransformEngine
      * @return the SSRC in the first non-null element of <tt>pkts</tt> or
      * <tt>null</tt> if all elements of <tt>pkts</tt> are <tt>null</tt>
      */
-    private Integer findSSRC(RawPacket[] pkts)
+    private Long findSSRC(RawPacket[] pkts)
     {
-        Integer ret = null;
+        Long ret = null;
         if (pkts != null)
         {
             for (RawPacket p : pkts)
             {
                 if (p != null)
                 {
-                    ret = p.getSSRC();
+                    ret = 0xffffffffL & p.getSSRC();
                     break;
                 }
             }

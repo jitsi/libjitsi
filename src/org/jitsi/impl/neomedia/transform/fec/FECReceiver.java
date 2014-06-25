@@ -74,7 +74,7 @@ class FECReceiver
     /**
      * The single SSRC with which this <tt>FECReceiver</tt> works.
      */
-    private int ssrc;
+    private long ssrc;
 
     /**
      * The number of media packets to keep.
@@ -124,14 +124,6 @@ class FECReceiver
     private final Reconstructor reconstructor;
 
     /**
-     * A <tt>PacketTransformer</tt> which is used as a small buffer, so that
-     * packets recovered via ulpfec are correctly ordered.
-     *
-     * TODO: get rid of this
-     */
-    private final ReorderBuffer outputBuffer;
-
-    /**
      * A <tt>Set</tt> of packets which will be reused every time a
      * packet is recovered. Defined here to avoid recreating it on every call
      * to <tt>reverseTransform</tt>.
@@ -153,11 +145,10 @@ class FECReceiver
      * packets with SSRC equal to <tt>ssrc</tt>
      * @param ssrc the SSRC for the <tt>FECReceiver</tt>
      */
-    FECReceiver(int ssrc, byte ulpfecPT)
+    FECReceiver(long ssrc, byte ulpfecPT)
     {
         this.ssrc = ssrc;
         this.ulpfecPT = ulpfecPT;
-        outputBuffer = new ReorderBuffer(ssrc, OUTPUT_BUFFER_MAX_SIZE);
         reconstructor = new Reconstructor(mediaPackets, ssrc);
         if (logger.isInfoEnabled())
             logger.info("New FECReceiver for SSRC="+ssrc);
@@ -277,7 +268,7 @@ class FECReceiver
                 fecPackets.remove(p.getSequenceNumber());
         }
 
-        return outputBuffer.reverseTransform(pkts);
+        return pkts;
     }
 
     /**
@@ -393,7 +384,7 @@ class FECReceiver
         /**
          * SSRC to set on reconstructed packets.
          */
-        private int ssrc;
+        private long ssrc;
 
         /**
          * All available media packets.
@@ -405,7 +396,7 @@ class FECReceiver
          * @param mediaPackets all available media packets.
          * @param ssrc the ssrc to use
          */
-        Reconstructor(Map<Integer, RawPacket> mediaPackets, int ssrc)
+        Reconstructor(Map<Integer, RawPacket> mediaPackets, long ssrc)
         {
             this.mediaPackets = mediaPackets;
             this.ssrc = ssrc;
@@ -551,188 +542,10 @@ class FECReceiver
 
             RawPacket recovered
                     = new RawPacket(recoveredBuf, 0, lengthRecovery + 12);
-            recovered.setSSRC(this.ssrc);
+            recovered.setSSRC((int)this.ssrc);
             recovered.setSequenceNumber(sequenceNumber);
 
             return recovered;
-        }
-    }
-
-    private class ReorderBuffer
-            implements PacketTransformer
-    {
-        /**
-         * Maximum size of the buffer. If at some point the buffer reaches or
-         * exceeds this number of packets, it will be partially "flushed".
-         */
-        private int maxSize;
-
-        /**
-         * The SSRC that this <tt>ReorderBuffer</tt> works with.
-         */
-        private int ssrc;
-
-        /**
-         * The sequence of the last sequence number which was output.
-         */
-        private int lastSent = -1;
-        private SortedMap<Integer, RawPacket> buffer = new TreeMap<Integer, RawPacket>();
-
-        /**
-         * Initialize a new instance.
-         * @param ssrc the SSRC to use.
-         * @param maxSize the maximum size.
-         */
-        ReorderBuffer(int ssrc, int maxSize)
-        {
-            this.ssrc = ssrc;
-            this.maxSize = maxSize;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket[] reverseTransform(RawPacket[] pkts)
-        {
-            //TODO drop very old packets?
-
-            //TODO force a reset if we detect...what?
-            //else if (getLastSeq(pkts) > lastSent + 100)
-            //reset();
-
-            // move packets which are supposed to be queued to this.buffer
-            for (int i = 0; i < pkts.length; i++)
-            {
-                RawPacket pkt = pkts[i];
-                if (pkt != null && pkt.getPayloadType() != 0)
-                {
-                    int pktSeq = pkt.getSequenceNumber();
-                    if (seqNumComparator.compare(pktSeq, lastSent) == -1
-                            || pktSeq == lastSent)
-                    {
-                        //keep old packets in pkts, we pass them on
-                    }
-                    else
-                    {
-                        // move pkt to our buffer
-                        buffer.put(pktSeq, pkt);
-                        pkts[i] = null;
-                    }
-                }
-            }
-
-            if (!buffer.isEmpty())
-            {
-                if (buffer.size() >= maxSize)
-                {
-                    // enough blocking, 'flush'
-                    pkts = addUntilMissing(pkts);
-                }
-                else if (buffer.firstKey() == (lastSent + 1) % (1<<16))
-                {
-                    // no missing packet, no need to block
-                    pkts = addUntilMissing(pkts);
-                }
-                else //firstKey comes after lastSent+1
-                {
-                    // lastSent+1 is missing. Wait for it (that is, keep the
-                    // packets in buffer) until size < maxSize
-                }
-            }
-
-            return pkts;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket[] transform(RawPacket[] pkts)
-        {
-            return pkts;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void close()
-        {
-        }
-
-        /**
-         * Moves packets from <tt>this.buffer</tt> to <tt>pkts</tt> until either
-         * <tt>this.buffer</tt> is empty, or a missing sequence number is
-         * encountered. For example, if buffer contains packet with sequence
-         * numbers N, N+1, N+3, N+4, only the first two will be moved (because
-         * N+2 is missing).
-         *
-         * @param pkts the array into which to copy.
-         * @return
-         */
-        private RawPacket[] addUntilMissing(RawPacket[] pkts)
-        {
-            if (buffer.isEmpty())
-                return pkts;
-
-            int count = 1; // how many packets to copy
-            int firstSeq = buffer.get(buffer.firstKey()).getSequenceNumber();
-            while (buffer.containsKey(firstSeq+count))
-                count++;
-
-            int free = 0;
-            for (RawPacket pkt : pkts)
-                if (pkt == null)
-                    free++;
-
-            if (free < count)
-            {
-                RawPacket[] pkts2 = new RawPacket[pkts.length - free + count];
-                System.arraycopy(pkts, 0, pkts2, 0, pkts.length);
-                pkts = pkts2;
-            }
-
-            int freeIdx = 0;
-            for (int i = 0; i < count; i++)
-            {
-                while (pkts[freeIdx] != null)
-                    freeIdx++;
-                lastSent = buffer.firstKey();
-                pkts[freeIdx] = buffer.remove(lastSent);
-            }
-
-            return pkts;
-        }
-
-        /**
-         * Gets the biggest sequence number from the packets in <tt>pkts</tt>.
-         * @param pkts
-         * @return the biggest sequence number from the packets in <tt>pkts</tt>.
-         */
-        private int getLastSeq(RawPacket[] pkts)
-        {
-            // set lastSent to the biggest in pkts
-            int last = -1;
-            int cur;
-            for (RawPacket pkt : pkts)
-            {
-                if (pkt != null)
-                {
-                    cur = pkt.getSequenceNumber();
-                    if (last == -1 || seqNumComparator.compare(cur, last) == 1)
-                        last = cur;
-                }
-            }
-            return last;
-        }
-
-        /**
-         * Resets the buffer.
-         */
-        private void reset()
-        {
-            lastSent = -1;
         }
     }
 }

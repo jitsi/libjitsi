@@ -29,7 +29,7 @@ class FECSender
     /**
      * The single SSRC with which this <tt>FECSender</tt> works.
      */
-    private int ssrc;
+    private long ssrc;
 
     /**
      * The ulpfec payload type.
@@ -66,7 +66,7 @@ class FECSender
      * @param fecRate the rate at which to add ulpfec packets.
      * @param ulpfecPT the payload to use for ulpfec packets.
      */
-    FECSender(int ssrc, int fecRate, byte ulpfecPT)
+    FECSender(long ssrc, int fecRate, byte ulpfecPT)
     {
         this.ssrc = ssrc;
         this.fecRate = fecRate;
@@ -259,7 +259,7 @@ class FECSender
         /**
          * The SSRC of this packet.
          */
-        int ssrc;
+        long ssrc;
 
         /**
          * The RTP timestamp of the last added media packet.
@@ -287,7 +287,7 @@ class FECSender
          * <tt>new</tt>.
          * @param ssrc the SSRC
          */
-        FECPacket(int ssrc, byte payloadType)
+        FECPacket(long ssrc, byte payloadType)
         {
             super(new byte[FECTransformEngine.INITIAL_BUFFER_SIZE],
                     0,
@@ -377,7 +377,7 @@ class FECSender
             buf[0] = (byte) 0x80; //no Padding, no Extension, no CSRCs
             setPayloadType(payloadType);
             setSequenceNumber(lastAddedSeq + 1);
-            setSSRC(ssrc);
+            setSSRC((int)ssrc);
             setTimestamp(lastAddedTS); //TODO: check 5109 -- which TS should be used?
 
             // FEC Header
