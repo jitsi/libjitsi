@@ -92,6 +92,11 @@ public class RTPTranslatorImpl
         = new RTCPFeedbackMessageSender(this);
 
     /**
+     * A local SSRC for this <tt>RTPTranslator</tt>.
+     */
+    private long localSSRC = -1;
+
+    /**
      * Initializes a new <tt>RTPTranslatorImpl</tt> instance.
      */
     public RTPTranslatorImpl()
@@ -555,6 +560,8 @@ public class RTPTranslatorImpl
      */
     public long getLocalSSRC(StreamRTPManager streamRTPManager)
     {
+        if (streamRTPManager == null)
+            return localSSRC;
         return ((RTPSessionMgr) manager).getLocalSSRC();
     }
 
@@ -1102,5 +1109,14 @@ public class RTPTranslatorImpl
     public RTCPFeedbackMessageSender getRtcpFeedbackMessageSender()
     {
         return rtcpFeedbackMessageSender;
+    }
+
+    /**
+     * Sets the local SSRC for this <tt>RTPTranslatorImpl</tt>.
+     * @param localSSRC the SSRC to set.
+     */
+    public void setLocalSSRC(long localSSRC)
+    {
+        this.localSSRC = localSSRC;
     }
 }
