@@ -32,6 +32,12 @@ public class WebmDataSink
      */
     private static final Logger logger
             = Logger.getLogger(WebmDataSink.class);
+
+    /**
+     * Whether to generate a RECORDING_ENDED event when closing.
+     */
+    private static final boolean USE_RECORDING_ENDED_EVENTS = false;
+
     /**
      * The <tt>WebmWriter</tt> which we use to write the frames to a file.
      */
@@ -140,7 +146,10 @@ public class WebmDataSink
         {
             if (writer != null)
                 writer.close();
-            if (eventHandler != null && firstFrameTime != -1 && lastFramePts != -1)
+            if (USE_RECORDING_ENDED_EVENTS
+                    && eventHandler != null
+                    && firstFrameTime != -1
+                    && lastFramePts != -1)
             {
                 RecorderEvent event = new RecorderEvent();
                 event.setType(RecorderEvent.Type.RECORDING_ENDED);
