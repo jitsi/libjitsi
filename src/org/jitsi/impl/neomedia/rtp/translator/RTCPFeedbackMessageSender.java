@@ -88,19 +88,17 @@ public class RTCPFeedbackMessageSender
     public boolean sendFIR(int mediaSenderSSRC)
     {
         boolean sentFIR = false;
-
+        /*
+         * XXX Currently this methond results in a FIR message being effectively
+         * broadcast (sent to all streams connected to the translator). This
+         * is because the MediaStreams' getRemoteSourceIds returns an empty list
+         * (possibly due to RED being used).
+         */
         for (StreamRTPManager streamRTPManager
                 : rtpTranslator.getStreamRTPManagers())
         {
             MediaStream stream = streamRTPManager.getMediaStream();
-            for (long streamSSRC : stream.getRemoteSourceIDs())
-            {
-                if (streamSSRC == (0xffffffffL & mediaSenderSSRC))
-                {
-                    sentFIR |= sendFIR(stream, mediaSenderSSRC);
-                    break;
-                }
-            }
+            sentFIR |= sendFIR(stream, mediaSenderSSRC);
         }
 
         return sentFIR;
