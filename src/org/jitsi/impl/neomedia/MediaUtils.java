@@ -140,11 +140,17 @@ public class MediaUtils
             8000);
         if (EncodingConfigurationImpl.G729)
         {
+            Map<String, String> g729FormatParams
+                = new HashMap<String, String>();
+            g729FormatParams.put("annexb", "no");
+
             addMediaFormats(
                 (byte) SdpConstants.G729,
                 "G729",
                 MediaType.AUDIO,
                 AudioFormat.G729_RTP,
+                g729FormatParams,
+                null,
                 8000);
         }
         addMediaFormats(
