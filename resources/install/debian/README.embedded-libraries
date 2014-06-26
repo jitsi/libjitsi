@@ -28,11 +28,6 @@ Reason: A Debian package does exist for port audio however, the Jitsi community 
 * device hotplug for macosx and linux
 * fixes for various problems with device locks.
 
-- weupnp http://code.google.com/p/weupnp/
-Weupnp is a lightweight Java library implements the UPnP protocol.
-Jitsi’s Sebastien Vincent is contributor and has commit right in the project.
-Reason: No Debian package.
-
 - bccontrib https://github.com/jitsi/bccontrib
 This project contains the Skein hash function, the Threefish encryption
 function and the Fortuna random generator as a Java implementation. The API is
