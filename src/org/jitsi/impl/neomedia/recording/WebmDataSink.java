@@ -144,6 +144,12 @@ public class WebmDataSink
     {
         synchronized (openCloseSyncRoot)
         {
+            if (!open)
+            {
+                if (logger.isDebugEnabled())
+                    logger.debug("Not closing WebmDataSink: already closed.");
+                return;
+            }
             if (writer != null)
                 writer.close();
             if (USE_RECORDING_ENDED_EVENTS
