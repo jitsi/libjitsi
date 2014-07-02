@@ -15,6 +15,26 @@ package org.jitsi.service.neomedia;
 public interface RTPTranslator
 {
     /**
+     * Gets the current active <tt>RTCPTerminationStrategy</tt> which is to
+     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     *
+     * @return the <tt>RTCPTerminationStrategy</tt> which is to inspect and
+     * modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     */
+    public RTCPTerminationStrategy getRTCPTerminationStrategy();
+
+    /**
+     * Sets the current active <tt>RTCPTerminationStrategy</tt> which is to
+     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     *
+     * @param rtcpTerminationStrategy the <tt>RTCPTerminationStrategy</tt> which
+     * is to inspect and modify RTCP traffic between multiple
+     * <tt>MediaStream</tt>s.
+     */
+    public void setRTCPTerminationStrategy(
+            RTCPTerminationStrategy rtcpTerminationStrategy);
+
+    /**
      * Defines a packet filter which allows an observer of an
      * <tt>RTPTranslator</tt> to disallow the writing of specific packets into
      * a specific destination identified by a <tt>MediaStream</tt>.

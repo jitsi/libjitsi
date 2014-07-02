@@ -97,6 +97,20 @@ public class RTPTranslatorImpl
     private long localSSRC = -1;
 
     /**
+     * The <tt>RTCPTerminationStrategy</tt> which is to inspect and modify RTCP
+     * traffic between multiple <tt>MediaStream</tt>s.
+     */
+    private RTCPTerminationStrategy rtcpTerminationStrategy;
+
+    /**
+     * The <tt>DelegatingRTCPReportBuilder</tt> that delegates its calls to the
+     * <tt>RTCPReportBuilder</tt> of the active
+     * <tt>RTCPTerminationStrategy</tt>.
+     */
+    private final DelegatingRTCPReportBuilder delegatingRTCPReportBuilder
+            = new DelegatingRTCPReportBuilder();
+
+    /**
      * Initializes a new <tt>RTPTranslatorImpl</tt> instance.
      */
     public RTPTranslatorImpl()
@@ -661,6 +675,49 @@ public class RTPTranslatorImpl
         return s;
     }
 
+    /**
+     * Gets the current active <tt>RTCPTerminationStrategy</tt> which is to
+     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     *
+     * @return the <tt>RTCPTerminationStrategy</tt> which is to inspect and
+     * modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     */
+    public RTCPTerminationStrategy getRTCPTerminationStrategy()
+    {
+        return rtcpTerminationStrategy;
+    }
+
+    /**
+     * Sets the current active <tt>RTCPTerminationStrategy</tt> which is to
+     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     *
+     * @param rtcpTerminationStrategy the <tt>RTCPTerminationStrategy</tt> which
+     * is to inspect and modify RTCP traffic between multiple
+     * <tt>MediaStream</tt>s.
+     */
+    public void setRTCPTerminationStrategy(
+            RTCPTerminationStrategy rtcpTerminationStrategy)
+    {
+        if (this.rtcpTerminationStrategy != rtcpTerminationStrategy)
+        {
+            this.rtcpTerminationStrategy = rtcpTerminationStrategy;
+            onRTCPTerminationStrategyChanged();
+        }
+    }
+
+    private void onRTCPTerminationStrategyChanged()
+    {
+        RTCPTerminationStrategy strategy = this.rtcpTerminationStrategy;
+        if (strategy != null)
+        {
+            delegatingRTCPReportBuilder.setDelegate(
+                    strategy.getRTCPReportBuilder());
+        } else
+        {
+            delegatingRTCPReportBuilder.setDelegate(null);
+        }
+    }
+
     public synchronized void initialize(
             StreamRTPManager streamRTPManager,
             RTPConnector connector)
@@ -668,6 +725,14 @@ public class RTPTranslatorImpl
         if (this.connector == null)
         {
             this.connector = new RTPConnectorImpl(this);
+
+            // Override the default FMJ RTCP builder factory.
+            if (manager instanceof RTPSessionMgr)
+            {
+                ((RTPSessionMgr) manager).setRTCPReportBuilder(
+                        this.delegatingRTCPReportBuilder);
+            }
+
             manager.initialize(this.connector);
         }
 

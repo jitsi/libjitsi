@@ -399,6 +399,12 @@ public class MediaStreamImpl
         if (dtmfEngine != null)
             engineChain.add(dtmfEngine);
 
+        // RTCP Strategy : Engine chain passing received RTCP reports to the
+        // <tt>RTCPTerminationStrategy</tt> for inspection and modification.
+        RTCPTerminationTransformEngine rtcpTerminationTransformEngine
+                = new RTCPTerminationTransformEngine(this);
+        engineChain.add(rtcpTerminationTransformEngine);
+
         // RTCP Statistics
         if (statisticsEngine == null)
             statisticsEngine = new StatisticsEngine(this);
@@ -3080,6 +3086,15 @@ public class MediaStreamImpl
                 .append(mediaStreamStatsImpl.getNbFec());
 
         logger.info(buff);
+    }
+
+    /**
+     * Gets the <tt>RTPTranslator</tt> which is to forward RTP and RTCP traffic
+     * between this and other <tt>MediaStream</tt>s.
+     */
+    public RTPTranslator getRTPTranslator()
+    {
+        return rtpTranslator;
     }
 
     /**

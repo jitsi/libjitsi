@@ -360,6 +360,12 @@ public interface MediaStream
     public SrtpControl getSrtpControl();
 
     /**
+     * Gets the <tt>RTPTranslator</tt> which is to forward RTP and RTCP traffic
+     * between this and other <tt>MediaStream</tt>s.
+     */
+    public RTPTranslator getRTPTranslator();
+
+    /**
      * Sets the <tt>RTPTranslator</tt> which is to forward RTP and RTCP traffic
      * between this and other <tt>MediaStream</tt>s.
      *

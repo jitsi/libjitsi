@@ -208,7 +208,7 @@ public class RTCPFeedbackMessagePacket
      * @param off the offset in <tt>buf</tt> at which the writing of
      * <tt>ssrc</tt> is to start
      */
-    private static void writeSSRC(long ssrc, byte[] buf, int off)
+    public static void writeSSRC(long ssrc, byte[] buf, int off)
     {
         buf[off++] = (byte) (ssrc >> 24);
         buf[off++] = (byte) ((ssrc >> 16) & 0xFF);
