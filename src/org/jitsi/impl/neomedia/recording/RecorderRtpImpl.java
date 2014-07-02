@@ -322,6 +322,9 @@ public class RecorderRtpImpl
         rtpConnector.rtpPacketTransformer.close();
         rtpManager.dispose();
 
+        if (activeSpeakerDetector != null)
+            activeSpeakerDetector.removeActiveSpeakerChangedListener(this);
+
         started=false;
         }
 
