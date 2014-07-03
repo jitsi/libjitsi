@@ -34,7 +34,7 @@ Build-Depends: debhelper (>= 9), javahelper,
                libswscale-dev (>= 6:10~),
                libpulse-dev,
                libvpx-dev
-Standards-Version: 3.9.4
+Standards-Version: 3.9.5
 
 Package: libjitsi
 Architecture: all

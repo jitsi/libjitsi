@@ -1,4 +1,4 @@
-libjitsi (_VER_-0) unstable; urgency=low
+libjitsi (_VER_-1) unstable; urgency=low
 
   * Initial release.
   * Add patch from Anton Khirnov and compile against libav10 (Closes: #739432)
