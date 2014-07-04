@@ -4,7 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package net.java.sip.communicator.impl.neomedia.codec.audio.g722;
+package org.jitsi.impl.neomedia.codec.audio.g722;
 
 import javax.media.*;
 import javax.media.format.*;

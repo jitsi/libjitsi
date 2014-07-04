@@ -687,6 +687,7 @@
 
       <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
       <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
+      <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
 
       <!-- Mac OS X specific flags -->
       <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
@@ -694,8 +695,8 @@
       <compilerarg value="x86_64" if="is.running.macos" />
       <compilerarg value="-arch" if="is.running.macos" />
       <compilerarg value="i386" if="is.running.macos" />
-      <compilerarg value="-arch" if="is.running.macos" />
-      <compilerarg value="ppc" if="is.running.macos" />
+      <!--<compilerarg value="-arch" if="is.running.macos" />-->
+      <!--<compilerarg value="ppc" if="is.running.macos" />-->
       <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
 
       <linkerarg value="-o" location="end" if="is.running.macos" />
@@ -705,8 +706,8 @@
       <linkerarg value="x86_64" if="is.running.macos" />
       <linkerarg value="-arch" if="is.running.macos" />
       <linkerarg value="i386" if="is.running.macos" />
-      <linkerarg value="-arch" if="is.running.macos" />
-      <linkerarg value="ppc" if="is.running.macos" />
+      <!--<linkerarg value="-arch" if="is.running.macos" />-->
+      <!--<linkerarg value="ppc" if="is.running.macos" />-->
 
       <!-- Windows specific flags -->
       <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.windows" />

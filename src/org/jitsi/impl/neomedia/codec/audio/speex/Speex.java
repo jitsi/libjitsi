@@ -4,7 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-package net.java.sip.communicator.impl.neomedia.codec.audio.speex;
+package org.jitsi.impl.neomedia.codec.audio.speex;
 
 /**
  * Provides the interface to the native Speex library.
