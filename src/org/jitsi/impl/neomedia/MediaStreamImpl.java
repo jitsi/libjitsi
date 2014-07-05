@@ -3045,33 +3045,26 @@ public class MediaStreamImpl
             //print flow statistics.
             GlobalTransmissionStats s = rtpManager.getGlobalTransmissionStats();
 
-            StringBuilder buff
-                = new StringBuilder(StatisticsEngine.RTP_STAT_PREFIX);
+            String rtpstat = StatisticsEngine.RTP_STAT_PREFIX;
+            StringBuilder buff = new StringBuilder(rtpstat);
             MediaType mediaType = getMediaType();
             String mediaTypeStr
                 = (mediaType == null) ? "" : mediaType.toString();
+            String eol = "\n" + rtpstat;
 
-            buff.append("call stats for outgoing ")
-                .append(mediaTypeStr)
-                .append(" stream SSRC:")
-                .append(getLocalSourceID())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
-                .append("bytes sent: ").append(s.getBytesSent())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
-                .append("RTP sent: ").append(s.getRTPSent())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
-                .append("remote reported min interarrival jitter : ")
-                        .append(minRemoteInterArrivalJitter)
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
-                .append("remote reported max interarrival jitter : ")
-                        .append(maxRemoteInterArrivalJitter)
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+            buff.append("call stats for outgoing ").append(mediaTypeStr)
+                .append(" stream SSRC: ").append(getLocalSourceID()).append(eol)
+                .append("bytes sent: ").append(s.getBytesSent()).append(eol)
+                .append("RTP sent: ").append(s.getRTPSent()).append(eol)
+                .append("remote reported min interarrival jitter: ")
+                    .append(minRemoteInterArrivalJitter).append(eol)
+                .append("remote reported max interarrival jitter: ")
+                    .append(maxRemoteInterArrivalJitter).append(eol)
                 .append("local collisions: ").append(s.getLocalColls())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
                 .append("remote collisions: ").append(s.getRemoteColls())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
-                .append("RTCP sent: ").append(s.getRTCPSent())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
+                .append("RTCP sent: ").append(s.getRTCPSent()).append(eol)
                 .append("transmit failed: ").append(s.getTransmitFailed());
 
             logger.info(buff);
@@ -3079,48 +3072,45 @@ public class MediaStreamImpl
             GlobalReceptionStats rs = rtpManager.getGlobalReceptionStats();
             MediaFormat format = getFormat();
 
-            buff = new StringBuilder(StatisticsEngine.RTP_STAT_PREFIX);
+            buff = new StringBuilder(rtpstat);
             buff.append("call stats for incoming ")
                 .append((format == null) ? "" : format)
-                .append(" stream SSRC:")
-                .append(getRemoteSourceID())
-                .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                .append(" stream SSRC: ").append(getRemoteSourceID())
+                    .append(eol)
                 .append("packets received: ").append(rs.getPacketsRecd())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
                 .append("bytes received: ").append(rs.getBytesRecd())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
                 .append("packets lost: ").append(statisticsEngine.getLost())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
-                .append("min interarrival jitter : ")
+                    .append(eol)
+                .append("min interarrival jitter: ")
                     .append(statisticsEngine.getMinInterArrivalJitter())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
-                .append("max interarrival jitter : ")
+                        .append(eol)
+                .append("max interarrival jitter: ")
                     .append(statisticsEngine.getMaxInterArrivalJitter())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
-                .append("RTCPs received: ").append(rs.getRTCPRecd())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                        .append(eol)
+                .append("RTCPs received: ").append(rs.getRTCPRecd()).append(eol)
                 .append("bad RTCP packets: ").append(rs.getBadRTCPPkts())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
                 .append("bad RTP packets: ").append(rs.getBadRTPkts())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
                 .append("local collisions: ").append(rs.getLocalColls())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
                 .append("malformed BYEs: ").append(rs.getMalformedBye())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
                 .append("malformed RRs: ").append(rs.getMalformedRR())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
                 .append("malformed SDESs: ").append(rs.getMalformedSDES())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
                 .append("malformed SRs: ").append(rs.getMalformedSR())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
                 .append("packets looped: ").append(rs.getPacketsLooped())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
                 .append("remote collisions: ").append(rs.getRemoteColls())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
-                .append("SRRs received: ").append(rs.getSRRecd())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
+                .append("SRs received: ").append(rs.getSRRecd()).append(eol)
                 .append("transmit failed: ").append(rs.getTransmitFailed())
-                    .append("\n").append(StatisticsEngine.RTP_STAT_PREFIX)
+                    .append(eol)
                 .append("unknown types: ").append(rs.getUnknownTypes());
 
             logger.info(buff);

@@ -1550,7 +1550,7 @@ public class RecorderRtpImpl
                 public RawPacket reverseTransform(RawPacket pkt)
                 {
                     RecorderRtpImpl.this.handleRtcpPacket(pkt);
-                    if (pkt != null && pkt.getRTCPPayloadType() == 203)
+                    if (pkt != null && pkt.getRTCPPacketType() == 203)
                     {
                         // An RTCP BYE packet. Remove the receive stream before
                         // it gets to FMJ, because we want to, for example,

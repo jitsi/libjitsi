@@ -21,35 +21,63 @@ import java.util.*;
  * @author Boris Grozev
  */
 public class CompoundPacketEngine
-        implements TransformEngine, PacketTransformer
+    implements TransformEngine,
+               PacketTransformer
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>CompoundPacketEngine</tt> class and its
-     * instances for logging output.
+     * The <tt>Logger</tt> used by the <tt>CompoundPacketEngine</tt> class and
+     * its instances for logging output.
      */
     private static final Logger logger
-            = Logger.getLogger(CompoundPacketEngine.class);
+        = Logger.getLogger(CompoundPacketEngine.class);
 
     /**
      * The maximum number of individual RTCP packets contained in an RTCP
      * compound packet. If an input packet (seems to) contain more than this,
      * it will remain unchanged.
      */
-    final private static int MAX_INDIVIDUAL = 20;
+    private final static int MAX_INDIVIDUAL = 20;
+
+    /**
+     * Returns the length in bytes of the RTCP packet contained in <tt>buf</tt>
+     * at offset <tt>off</tt>. Assumes that <tt>buf</tt> is valid at least until
+     * index <tt>off</tt>+3.
+     * @return the length in bytes of the RTCP packet contained in <tt>buf</tt>
+     * at offset <tt>off</tt>.
+     */
+    private static int getLengthInBytes(byte[] buf, int off, int len)
+    {
+        if (len < 4)
+            return -1;
+        int v = (buf[off] & 0xc0) >>> 6;
+        if (RTCPHeader.VERSION != v)
+            return -1;
+
+        int lengthInWords = (buf[off + 2] << 8) + buf[off + 3];
+        int lengthInBytes = (lengthInWords + 1) * 4;
+        if (len < lengthInBytes)
+            return -1;
+
+        return lengthInBytes;
+    }
+
+    private int c = 0;
 
     /**
      * Used in <tt>reverseTransform</tt>, declared here to avoid recreation.
      */
-    int[] counts = new int[MAX_INDIVIDUAL];
+    private final int[] counts = new int[MAX_INDIVIDUAL];
 
     /**
-     * Close the transformer and underlying transform engine.
+     * Closes the transformer and underlying transform engine.
      *
      * Nothing to do here.
      */
+    @Override
     public void close()
     {
-        System.err.println("compoundpacketengine new RawPacket:"+c);
+        if (logger.isTraceEnabled())
+            logger.trace(".close: new RawPackets " + c);
     }
 
     /**
@@ -59,6 +87,7 @@ public class CompoundPacketEngine
      * @return a reference to <tt>this</tt> instance of the
      * <tt>CompoundPacketEngine</tt>.
      */
+    @Override
     public PacketTransformer getRTCPTransformer()
     {
         return this;
@@ -71,15 +100,13 @@ public class CompoundPacketEngine
      * @return <tt>null</tt> since this engine does not require any
      * RTP transformations.
      */
+    @Override
     public PacketTransformer getRTPTransformer()
     {
         return null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    private int c=0;
+    @Override
     public RawPacket[] reverseTransform(RawPacket[] pkts)
     {
         int needed = 0; //total number of individual packets in pkts
@@ -125,9 +152,8 @@ public class CompoundPacketEngine
         if (needed > pkts.length)
         {
             RawPacket[] newPkts = new RawPacket[needed];
-            for (int i = 0; i < pkts.length; i++)
-                newPkts[i] = pkts[i];
 
+            System.arraycopy(pkts, 0, newPkts, 0, pkts.length);
             pkts = newPkts;
         }
 
@@ -159,7 +185,7 @@ public class CompoundPacketEngine
                 pkts[i].setLength(oldLen - len);
                 counts[i]--;
 
-                i--; //try that packet one again
+                i--; //try that packet once again
             }
         }
 
@@ -168,34 +194,14 @@ public class CompoundPacketEngine
 
     /**
      * {@inheritDoc}
+     *
+     * The implementation of <tt>CompoundPacketEngine</tt> does not transform
+     * when sending RTCP packets because the only purpose is to split received
+     * compound RTCP packets.
      */
+    @Override
     public RawPacket[] transform(RawPacket[] pkts)
     {
         return pkts;
     }
-
-    /**
-     * Returns the length in bytes of the RTCP packet contained in <tt>buf</tt>
-     * at offset <tt>off</tt>. Assumes that <tt>buf</tt> is valid at least until
-     * index <tt>off</tt>+3.
-     * @return the length in bytes of the RTCP packet contained in <tt>buf</tt>
-     * at offset <tt>off</tt>.
-     */
-    private static int getLengthInBytes(byte[] buf, int off, int len)
-    {
-        if (len < 4)
-            return -1;
-        int v = (buf[off] & 0xc0) >>> 6;
-        if (RTCPHeader.VERSION != v)
-            return -1;
-
-        int lengthInWords = (buf[off + 2] << 8) + buf[off + 3];
-        int lengthInBytes = (lengthInWords + 1) * 4;
-        if (len < lengthInBytes)
-            return -1;
-
-        return lengthInBytes;
-    }
-
 }
-

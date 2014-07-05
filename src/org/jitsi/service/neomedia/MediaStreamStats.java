@@ -241,6 +241,4 @@ public interface MediaStreamStats
      * @return the number of packets currently in the packet queue.
      */
     public int getPacketQueueCountPackets();
-
-
 }

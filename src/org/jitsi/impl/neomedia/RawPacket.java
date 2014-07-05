@@ -635,10 +635,11 @@ public class RawPacket
     }
 
     /**
-     * Gets the payload type number of an RTCP packet.
-     * @return the payload type number of an RTCP packet.
+     * Gets the packet type of this RTCP packet.
+     *
+     * @return the packet type of this RTCP packet.
      */
-    public int getRTCPPayloadType()
+    public int getRTCPPacketType()
     {
         return 0xff & buffer[offset + 1];
     }
