@@ -13,14 +13,15 @@ import org.jitsi.service.neomedia.*;
 /**
  * Created by gp on 7/1/14.
  */
-public class LegacyRTCPTerminationStrategy
+public class SilentBridgeRTCPTerminationStrategy
     implements RTCPTerminationStrategy
 {
-    private final RTCPPacketTransformer packetTransformer
-            = new NullRTCPPacketTransformer();
+    private final RTCPReportBuilder reportBuilder =
+            new NullRTCPReportBuilderImpl();
 
-    private final RTCPReportBuilder reportBuilder
-            = new DefaultRTCPReportBuilderImpl();
+    private final RTCPPacketTransformer packetTransformer =
+            new NullRTCPPacketTransformer();
+
 
     @Override
     public RTCPPacketTransformer getRTCPPacketTransformer()
@@ -32,5 +33,10 @@ public class LegacyRTCPTerminationStrategy
     public RTCPReportBuilder getRTCPReportBuilder()
     {
         return reportBuilder;
+    }
+
+    @Override
+    public void setRTPTranslator(RTPTranslator translator) {
+        // Nothing to do here.
     }
 }

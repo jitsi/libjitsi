@@ -25,6 +25,14 @@ import net.sf.fmj.media.rtp.*;
  */
 public abstract class RTCPFBPacket extends RTCPPacket
 {
+    public RTCPFBPacket(int fmt, int type, long senderSSRC, long sourceSSRC)
+    {
+        this.fmt = fmt;
+        super.type = type;
+        this.senderSSRC = senderSSRC;
+        this.sourceSSRC = sourceSSRC;
+    }
+
     public RTCPFBPacket(RTCPCompoundPacket base)
     {
         super(base);

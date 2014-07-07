@@ -53,6 +53,20 @@ public class RTCPREMBPacket extends RTCPFBPacket
      */
     public long[] dest;
 
+    public RTCPREMBPacket(
+            long senderSSRC,
+            long mediaSSRC,
+            int exp,
+            int mantissa,
+            long[] dest)
+    {
+        super(15, 206, senderSSRC, mediaSSRC);
+
+        this.exp = exp;
+        this.mantissa = mantissa;
+        this.dest = dest;
+    }
+
     public RTCPREMBPacket(RTCPCompoundPacket base)
     {
         super(base);

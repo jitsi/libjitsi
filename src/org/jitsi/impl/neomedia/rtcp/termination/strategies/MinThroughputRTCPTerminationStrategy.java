@@ -15,14 +15,14 @@ import java.util.*;
 /**
  * Created by gp on 7/1/14.
  */
-public class MaximizingThroughputRTCPTerminationStrategy
+public class MinThroughputRTCPTerminationStrategy
         implements RTCPTerminationStrategy, RTCPPacketTransformer
 {
     private final RTCPReportBuilder reportBuilder
             = new DefaultRTCPReportBuilderImpl();
 
-    private static final int mantissa = 262143;
-    private static final int exp = 63;
+    public static final int MIN_MANTISSA = 10;
+    public static final int MIN_EXP = 1;
 
     @Override
     public RTCPCompoundPacket transformRTCPPacket(RTCPCompoundPacket inPacket)
@@ -56,8 +56,8 @@ public class MaximizingThroughputRTCPTerminationStrategy
                             // Mute REMBs.
                             RTCPREMBPacket remb = (RTCPREMBPacket)p;
 
-                            remb.mantissa = mantissa;
-                            remb.exp = exp;
+                            remb.mantissa = MIN_MANTISSA;
+                            remb.exp = MIN_EXP;
                             outPackets.add(remb);
                             break;
                         default:
@@ -91,5 +91,10 @@ public class MaximizingThroughputRTCPTerminationStrategy
     public RTCPReportBuilder getRTCPReportBuilder()
     {
         return reportBuilder;
+    }
+
+    @Override
+    public void setRTPTranslator(RTPTranslator translator) {
+        // Nothing to do here.
     }
 }

@@ -1,3 +1,9 @@
+/*
+ * Jitsi, the OpenSource Java VoIP and Instant Messaging client.
+ *
+ * Distributable under LGPL license.
+ * See terms of license at gnu.org.
+ */
 package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
 import net.sf.fmj.media.rtp.*;
@@ -9,14 +15,14 @@ import java.util.*;
 /**
  * Created by gp on 7/1/14.
  */
-public class MinimizingThroughputRTCPTerminationStrategy
+public class MaxThroughputRTCPTerminationStrategy
         implements RTCPTerminationStrategy, RTCPPacketTransformer
 {
     private final RTCPReportBuilder reportBuilder
             = new DefaultRTCPReportBuilderImpl();
 
-    private static final int mantissa = 10;
-    private static final int exp = 1;
+    public static final int MAX_MANTISSA = 262143;
+    public static final int MAX_EXP = 63;
 
     @Override
     public RTCPCompoundPacket transformRTCPPacket(RTCPCompoundPacket inPacket)
@@ -50,8 +56,8 @@ public class MinimizingThroughputRTCPTerminationStrategy
                             // Mute REMBs.
                             RTCPREMBPacket remb = (RTCPREMBPacket)p;
 
-                            remb.mantissa = mantissa;
-                            remb.exp = exp;
+                            remb.mantissa = MAX_MANTISSA;
+                            remb.exp = MAX_EXP;
                             outPackets.add(remb);
                             break;
                         default:
@@ -85,5 +91,10 @@ public class MinimizingThroughputRTCPTerminationStrategy
     public RTCPReportBuilder getRTCPReportBuilder()
     {
         return reportBuilder;
+    }
+
+    @Override
+    public void setRTPTranslator(RTPTranslator translator) {
+        // Nothing to do here.
     }
 }

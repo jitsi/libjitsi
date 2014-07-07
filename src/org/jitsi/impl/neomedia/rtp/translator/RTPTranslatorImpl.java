@@ -708,6 +708,7 @@ public class RTPTranslatorImpl
     private void onRTCPTerminationStrategyChanged()
     {
         RTCPTerminationStrategy strategy = this.rtcpTerminationStrategy;
+        strategy.setRTPTranslator(this);
         if (strategy != null)
         {
             delegatingRTCPReportBuilder.setDelegate(
