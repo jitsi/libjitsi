@@ -11,6 +11,10 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.neomedia.codec.*;
+import org.jitsi.service.neomedia.control.*;
+
+import java.awt.*;
+import java.util.*;
 
 /**
  * Implements an iLBC encoder and RTP packetizer as a {@link Codec}.
@@ -20,11 +24,12 @@ import org.jitsi.service.neomedia.codec.*;
  */
 public class JavaEncoder
     extends AbstractCodec2
+    implements FormatParametersAwareCodec
 {
     /**
      * The <tt>ilbc_encoder</tt> adapted to <tt>Codec</tt> by this instance.
      */
-    private ilbc_encoder enc;
+    private ilbc_encoder enc = null;
 
     /**
      * The input length in bytes with which {@link #enc} has been initialized.
@@ -89,12 +94,14 @@ public class JavaEncoder
                         this,
                         false,
                         false));
+
+        addControl(this);
     }
 
     /**
-     * Implements {@link AbstractCodecExt#doClose()}.
+     * Implements {@link AbstractCodec2#doClose()}.
      *
-     * @see AbstractCodecExt#doClose()
+     * @see AbstractCodec2#doClose()
      */
     @Override
     protected void doClose()
@@ -108,27 +115,36 @@ public class JavaEncoder
     }
 
     /**
-     * Implements {@link AbstractCodecExt#doOpen()}.
+     * Implements {@link AbstractCodec2#doOpen()}.
      *
-     * @see AbstractCodecExt#doOpen()
+     * @see AbstractCodec2#doOpen()
      */
     @Override
     protected void doOpen()
     {
-        int mode = Constants.ILBC_MODE;
+        // if not already initialised, use the constant for default value (30)
+        if(enc == null)
+            initEncoder(Constants.ILBC_MODE);
+    }
 
+    /**
+     * Init encoder with specified mode.
+     * @param mode the mode to use.
+     */
+    private void initEncoder(int mode)
+    {
         enc = new ilbc_encoder(mode);
 
         switch (mode)
         {
-        case 20:
-            outputLength = ilbc_constants.NO_OF_BYTES_20MS;
-            break;
-        case 30:
-            outputLength = ilbc_constants.NO_OF_BYTES_30MS;
-            break;
-        default:
-            throw new IllegalStateException("mode");
+            case 20:
+                outputLength = ilbc_constants.NO_OF_BYTES_20MS;
+                break;
+            case 30:
+                outputLength = ilbc_constants.NO_OF_BYTES_30MS;
+                break;
+            default:
+                throw new IllegalStateException("mode");
         }
         /* mode is 20 or 30 ms, duration must be in nanoseconds */
         duration = mode * 1000000;
@@ -178,12 +194,12 @@ public class JavaEncoder
     }
 
     /**
-     * Implements {@link AbstractCodecExt#doProcess(Buffer, Buffer)}.
+     * Implements {@link AbstractCodec2#doProcess(Buffer, Buffer)}.
      *
-     * @param inputBuffer
-     * @param outputBuffer
-     * @return
-     * @see AbstractCodecExt#doProcess(Buffer, Buffer)
+     * @param inputBuffer the input buffer
+     * @param outputBuffer the output buffer
+     * @return the status of the processing, whether buffer is consumed/filled..
+     * @see AbstractCodec2#doProcess(Buffer, Buffer)
      */
     @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
@@ -250,5 +266,38 @@ public class JavaEncoder
         if (inputBuffer.getLength() > 0)
             ret |= INPUT_BUFFER_NOT_CONSUMED;
         return ret;
+    }
+
+    /**
+     * Sets the format parameters to <tt>fmtps</tt>
+     *
+     * @param fmtps The format parameters to set
+     */
+    @Override
+    public void setFormatParameters(Map<String, String> fmtps)
+    {
+        String modeStr = fmtps.get("mode");
+
+        if(modeStr != null)
+        {
+            try
+            {
+                int mode = Integer.valueOf(modeStr);
+
+                // supports only mode 20 or 30
+                if(mode == 20 || mode == 30)
+                    initEncoder(mode);
+            }
+            catch(Throwable t){}
+        }
+    }
+
+    /**
+     * Implements {@link javax.media.Control#getControlComponent()}.
+     */
+    @Override
+    public Component getControlComponent()
+    {
+        return null;
     }
 }
