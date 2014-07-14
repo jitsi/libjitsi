@@ -9,6 +9,7 @@ package org.jitsi.impl.neomedia;
 import java.awt.*;
 import java.net.*;
 import java.util.*;
+import java.util.List;
 
 import javax.media.control.*;
 import javax.media.format.*;
@@ -22,6 +23,7 @@ import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 
 /**
@@ -29,17 +31,11 @@ import org.jitsi.util.*;
  *
  * @author Vincent Lucas
  * @author Boris Grozev
+ * @author Lyubomir Marinov
  */
 public class MediaStreamStatsImpl
     implements MediaStreamStats
 {
-    /**
-     * The <tt>Logger</tt> used by the <tt>MediaStreamImpl</tt> class and its
-     * instances for logging output.
-     */
-    private static final Logger logger
-        = Logger.getLogger(MediaStreamStatsImpl.class);
-
     /**
      * Enumeration of the direction (DOWNLOAD or UPLOAD) used for the stats.
      */
@@ -50,30 +46,116 @@ public class MediaStreamStatsImpl
     }
 
     /**
+     * The <tt>Logger</tt> used by the <tt>MediaStreamImpl</tt> class and its
+     * instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(MediaStreamStatsImpl.class);
+
+    /**
+     * Computes an Exponentially Weighted Moving Average (EWMA). Thus, the most
+     * recent history has a more preponderant importance in the average
+     * computed.
+     *
+     * @param nbStepSinceLastUpdate The number of step which has not been
+     * computed since last update. In our case the number of packets received
+     * since the last computation.
+     * @param lastValue The value computed during the last update.
+     * @param newValue The value newly computed.
+     *
+     * @return The EWMA average computed.
+     */
+    private static double computeEWMA(
+            long nbStepSinceLastUpdate,
+            double lastValue,
+            double newValue)
+    {
+        // For each new packet received the EWMA moves by a 0.1 coefficient.
+        double EWMACoeff = 0.01 * nbStepSinceLastUpdate;
+        // EWMA must be <= 1.
+        if(EWMACoeff > 1)
+            EWMACoeff = 1.0;
+        return lastValue * (1.0 - EWMACoeff) + newValue * EWMACoeff;
+    }
+
+    /**
+     * Computes the loss rate.
+     *
+     * @param nbLostAndRecv The number of lost and received packets.
+     * @param nbLost The number of lost packets.
+     *
+     * @return The loss rate in percent.
+     */
+    private static double computePercentLoss(long nbLostAndRecv, long nbLost)
+    {
+        return
+            (nbLostAndRecv == 0)
+                ? 0
+                : (((double) 100 * nbLost) / nbLostAndRecv);
+    }
+
+    /**
+     * Computes the bandwidth usage in Kilo bits per seconds.
+     *
+     * @param nbByteRecv The number of Byte received.
+     * @param callNbTimeMsSpent The time spent since the mediaStreamImpl is
+     * connected to the endpoint.
+     *
+     * @return the bandwidth rate computed in Kilo bits per seconds.
+     */
+    private static double computeRateKiloBitPerSec(
+            long nbByteRecv,
+            long callNbTimeMsSpent)
+    {
+        return
+            (nbByteRecv == 0)
+                ? 0
+                : ((nbByteRecv * 8.0 / 1000.0) / (callNbTimeMsSpent / 1000.0));
+    }
+
+    /**
+     * Gets the <tt>JitterBufferControl</tt> of a <tt>ReceiveStream</tt>.
+     *
+     * @param receiveStream the <tt>ReceiveStream</tt> to get the
+     * <tt>JitterBufferControl</tt> of
+     * @return the <tt>JitterBufferControl</tt> of <tt>receiveStream</tt>.
+     */
+    public static JitterBufferControl getJitterBufferControl(
+            ReceiveStream receiveStream)
+    {
+        DataSource ds = receiveStream.getDataSource();
+
+        if (ds instanceof PushBufferDataSource)
+        {
+            for (PushBufferStream pbs
+                    : ((PushBufferDataSource) ds).getStreams())
+            {
+                JitterBufferControl pqc
+                    = (JitterBufferControl)
+                        pbs.getControl(JitterBufferControl.class.getName());
+
+                if (pqc != null)
+                    return pqc;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The last jitter received/sent in a RTCP feedback (in RTP timestamp
+     * units).
+     */
+    private double[] jitterRTPTimestampUnits = {0, 0};
+
+    /**
      * The source data stream to analyze in order to compute the stats.
      */
     private final MediaStreamImpl mediaStreamImpl;
 
     /**
-     * The last time these stats have been updated.
+     * The last number of received/sent Bytes.
      */
-    private long updateTimeMs;
-
-    /**
-     * The last number of received/sent packets.
-     */
-    private long[] nbPackets = {0, 0};
-
-    /**
-     * The last number of sent packets when the last feedback has been received.
-     * This counter is used to compute the upload loss rate.
-     */
-    private long uploadFeedbackNbPackets = 0;
-
-    /**
-     * The last number of download/upload lost packets.
-     */
-    private long[] nbLost = {0, 0};
+    private long[] nbByte = {0, 0};
 
     /**
      * The total number of discarded packets
@@ -86,14 +168,14 @@ public class MediaStreamStatsImpl
     private long nbFec = 0;
 
     /**
-     * The last number of received/sent Bytes.
+     * The last number of download/upload lost packets.
      */
-    private long[] nbByte = {0, 0};
+    private long[] nbLost = {0, 0};
 
     /**
-     * The last download/upload loss rate computed (in %).
+     * The last number of received/sent packets.
      */
-    private double[] percentLoss = {0, 0};
+    private long[] nbPackets = {0, 0};
 
     /**
      * The last percent of discarded packets
@@ -101,15 +183,65 @@ public class MediaStreamStatsImpl
     private double percentDiscarded = 0;
 
     /**
+     * The last download/upload loss rate computed (in %).
+     */
+    private double[] percentLoss = {0, 0};
+
+    /**
      * The last used bandwidth computed in download/upload (in Kbit/s).
      */
     private double[] rateKiloBitPerSec = {0, 0};
 
     /**
-     * The last jitter received/sent in a RTCP feedback (in RTP timestamp
-     * units).
+     * The <tt>RTCPReportListener</tt> which listens to {@link #rtcpReports}
+     * about the sending and the receiving of RTCP sender/receiver reports and
+     * updates this <tt>MediaStreamStats</tt> with their feedback reports.
      */
-    private double[] jitterRTPTimestampUnits = {0, 0};
+    private final RTCPReportListener rtcpReportListener
+        = new RTCPReportAdapter()
+        {
+            /**
+             * {@inheritDoc}
+             *
+             * Updates this <tt>MediaStreamStats</tt> with the received feedback
+             * (report).
+             */
+            @Override
+            public void rtcpReportReceived(RTCPReport report)
+            {
+                List<?> feedbackReports = report.getFeedbackReports();
+
+                if (!feedbackReports.isEmpty())
+                {
+                    updateNewReceivedFeedback(
+                            (RTCPFeedback) feedbackReports.get(0));
+                }
+            }
+
+            /**
+             * {@inheritDoc}
+             *
+             * Updates this <tt>MediaStreamStats</tt> with the sent feedback
+             * (report).
+             */
+            @Override
+            public void rtcpReportSent(RTCPReport report)
+            {
+                List<?> feedbackReports = report.getFeedbackReports();
+
+                if (!feedbackReports.isEmpty())
+                {
+                    updateNewSentFeedback(
+                            (RTCPFeedback) feedbackReports.get(0));
+                }
+            }
+        };
+
+    /**
+     * The detailed statistics about the RTCP reports sent and received by the
+     * associated local peer.
+     */
+    private final RTCPReports rtcpReports = new RTCPReports();
 
     /**
      * The RTT computed with the RTCP feedback (cf. RFC3550, section 6.4.1,
@@ -119,169 +251,142 @@ public class MediaStreamStatsImpl
     private long rttMs = -1;
 
     /**
+     * The last time these stats have been updated.
+     */
+    private long updateTimeMs;
+
+    /**
+     * The last number of sent packets when the last feedback has been received.
+     * This counter is used to compute the upload loss rate.
+     */
+    private long uploadFeedbackNbPackets = 0;
+
+    /**
      * Creates a new instance of stats concerning a MediaStream.
      *
      * @param mediaStreamImpl The MediaStreamImpl used to compute the stats.
      */
     public MediaStreamStatsImpl(MediaStreamImpl mediaStreamImpl)
     {
-        this.updateTimeMs = System.currentTimeMillis();
         this.mediaStreamImpl = mediaStreamImpl;
+
+        getRTCPReports().addRTCPReportListener(rtcpReportListener);
+
+        updateTimeMs = System.currentTimeMillis();
     }
 
     /**
-     * Computes and updates information for a specific stream.
-     */
-    public void updateStats()
-    {
-        // Gets the current time.
-        long currentTimeMs = System.currentTimeMillis();
-
-        // UPdates stats for the download stream.
-        this.updateStreamDirectionStats(
-                StreamDirection.DOWNLOAD,
-                currentTimeMs);
-        // UPdates stats for the upload stream.
-        this.updateStreamDirectionStats(
-                StreamDirection.UPLOAD,
-                currentTimeMs);
-
-        // Saves the last update values.
-        this.updateTimeMs = currentTimeMs;
-    }
-
-    /**
-     * Computes and updates information for a specific stream.
+     * Computes the RTT with the data (LSR and DLSR) contained in the last
+     * RTCP Sender Report (RTCP feedback). This RTT computation is based on
+     * RFC3550, section 6.4.1, subsection "delay since last SR (DLSR): 32
+     * bits".
      *
-     * @param streamDirection The stream direction (DOWNLOAD or UPLOAD) of the
-     * stream from which this function updates the stats.
-     * @param currentTimeMs The current time in ms.
+     * @param feedback The last RTCP feedback received by the MediaStream.
+     *
+     * @return The RTT in milliseconds, or -1 if the RTT is not computable.
      */
-    private void updateStreamDirectionStats(
-            StreamDirection streamDirection,
-            long currentTimeMs)
+    private long computeRTTInMs(RTCPFeedback feedback)
     {
-        int streamDirectionIndex = streamDirection.ordinal();
+        long now = System.currentTimeMillis();
+        long lsr = feedback.getLSR();
+        long dlsr = feedback.getDLSR();
+        int rtt = RecvSSRCInfo.getRoundTripDelay(now, lsr, dlsr);
 
-        // Gets the current number of packets correctly received since the
-        // beginning of this stream.
-        long newNbRecv = this.getNbPDU(streamDirection);
-        // Gets the number of byte received/sent since the beginning of this
-        // stream.
-        long newNbByte = this.getNbBytes(streamDirection);
-
-        // Computes the number of update steps which has not been done since
-        // last update.
-        long nbSteps = newNbRecv - this.nbPackets[streamDirectionIndex];
-        // Even if the remote peer does not send any packets (i.e. is
-        // microphone is muted), Jitsi must updates it stats. Thus, Jitsi
-        // computes a number of steps equivalent as if Jitsi receives a packet
-        // each 20ms (default value).
-        if(nbSteps == 0)
+        /*
+         * If the RTT is greater than a minute, it may signal a bug in the
+         * computation. Log such occurrences in order to debug them.
+         */
+        if ((rtt >= 65536) && logger.isInfoEnabled())
         {
-            nbSteps = (currentTimeMs - this.updateTimeMs) / 20;
+            logger.info(
+                    "Stream: " + mediaStreamImpl.getName()
+                        + ", RTT computation may be wrong (" + rtt
+                        + ">= 65536 milliseconds): now " + now + ", lsr " + lsr
+                        + ", dlsr " + dlsr);
         }
 
-        // The upload percentLoss is only computed when a new RTCP feedback is
-        // received. This is not the case for the download percentLoss which is
-        // updated for each new RTP packet received.
-        // Computes the loss rate for this stream.
-        if(streamDirection == StreamDirection.DOWNLOAD)
+        return rtt;
+    }
+
+    /**
+     * Returns the jitter average of this download stream.
+     *
+     * @return the last jitter average computed (in ms).
+     */
+    public double getDownloadJitterMs()
+    {
+        return getJitterMs(StreamDirection.DOWNLOAD);
+    }
+
+    /**
+     * Returns the number of Protocol Data Units (PDU) lost in download since
+     * the beginning of the session.
+     *
+     * @return the number of packets lost for this stream.
+     */
+    private long getDownloadNbPDULost()
+    {
+        MediaDeviceSession devSession = mediaStreamImpl.getDeviceSession();
+        int nbLost = 0;
+
+        if (devSession != null)
         {
-            // Gets the current number of losses in download since the beginning
-            // of this stream.
-            long newNbLost =
-                this.getDownloadNbPDULost() - this.nbLost[streamDirectionIndex];
-
-            updateNbLoss(streamDirection, newNbLost, nbSteps + newNbLost);
-
-            long newNbDiscarded = this.getNbDiscarded() - this.nbDiscarded;
-            updateNbDiscarded(newNbDiscarded, nbSteps + newNbDiscarded);
+            for(ReceiveStream receiveStream : devSession.getReceiveStreams())
+                nbLost += receiveStream.getSourceReceptionStats().getPDUlost();
         }
-
-        // Computes the bandwidth used by this stream.
-        double newRateKiloBitPerSec =
-            MediaStreamStatsImpl.computeRateKiloBitPerSec(
-                    newNbByte - this.nbByte[streamDirectionIndex],
-                    currentTimeMs - this.updateTimeMs);
-        this.rateKiloBitPerSec[streamDirectionIndex] =
-            MediaStreamStatsImpl.computeEWMA(
-                    nbSteps,
-                    this.rateKiloBitPerSec[streamDirectionIndex],
-                    newRateKiloBitPerSec);
-
-        // Saves the last update values.
-        this.nbPackets[streamDirectionIndex] = newNbRecv;
-        this.nbByte[streamDirectionIndex] = newNbByte;
-
-        updateNbFec();
+        return nbLost;
     }
 
     /**
-     * Returns the local IP address of the MediaStream.
+     * Returns the percent loss of the download stream.
      *
-     * @return the local IP address of the stream.
+     * @return the last loss rate computed (in %).
      */
-    public String getLocalIPAddress()
+    public double getDownloadPercentLoss()
     {
-        InetSocketAddress mediaStreamLocalDataAddress
-            = mediaStreamImpl.getLocalDataAddress();
-
-        return
-            (mediaStreamLocalDataAddress == null)
-                ? null
-                : mediaStreamLocalDataAddress.getAddress().getHostAddress();
+        return percentLoss[StreamDirection.DOWNLOAD.ordinal()];
     }
 
     /**
-     * Returns the local port of the MediaStream.
+     * Returns the bandwidth used by this download stream.
      *
-     * @return the local port of the stream.
+     * @return the last used download bandwidth computed (in Kbit/s).
      */
-    public int getLocalPort()
+    public double getDownloadRateKiloBitPerSec()
     {
-        InetSocketAddress mediaStreamLocalDataAddress
-            = mediaStreamImpl.getLocalDataAddress();
-
-        return
-            (mediaStreamLocalDataAddress == null)
-                ? -1
-                : mediaStreamLocalDataAddress.getPort();
+        return rateKiloBitPerSec[StreamDirection.DOWNLOAD.ordinal()];
     }
 
     /**
-     * Returns the remote IP address of the MediaStream.
+     * Returns the download video format if this stream downloads a video, or
+     * null if not.
      *
-     * @return the remote IP address of the stream.
+     * @return the download video format if this stream downloads a video, or
+     * null if not.
      */
-    public String getRemoteIPAddress()
+    private VideoFormat getDownloadVideoFormat()
     {
-        MediaStreamTarget mediaStreamTarget = mediaStreamImpl.getTarget();
+        MediaDeviceSession deviceSession = mediaStreamImpl.getDeviceSession();
 
-        // Gets this stream IP address endpoint. Stops if the endpoint is
-        // disconnected.
         return
-            (mediaStreamTarget == null)
-                ? null
-                : mediaStreamTarget.getDataAddress().getAddress()
-                        .getHostAddress();
+            (deviceSession instanceof VideoMediaDeviceSession)
+                ? ((VideoMediaDeviceSession) deviceSession)
+                    .getReceivedVideoFormat()
+                : null;
     }
 
     /**
-     * Returns the remote port of the MediaStream.
+     * Returns the download video size if this stream downloads a video, or
+     * null if not.
      *
-     * @return the remote port of the stream.
+     * @return the download video size if this stream downloads a video, or null
+     * if not.
      */
-    public int getRemotePort()
+    public Dimension getDownloadVideoSize()
     {
-        MediaStreamTarget mediaStreamTarget = mediaStreamImpl.getTarget();
+        VideoFormat format = getDownloadVideoFormat();
 
-        // Gets this stream port endpoint. Stops if the endpoint is
-        // disconnected.
-        return
-            (mediaStreamTarget == null)
-                ? -1
-                : mediaStreamTarget.getDataAddress().getPort();
+        return (format == null) ? null : format.getSize();
     }
 
     /**
@@ -309,137 +414,35 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * Returns the upload video format if this stream uploads a video, or null
-     * if not.
+     * Returns the delay in milliseconds introduced by the jitter buffer.
+     * Since there might be multiple <tt>ReceiveStreams</tt>, returns the
+     * biggest delay found in any of them.
      *
-     * @return the upload video format if this stream uploads a video, or null
-     * if not.
+     * @return the delay in milliseconds introduces by the jitter buffer
      */
-    private VideoFormat getUploadVideoFormat()
+    public int getJitterBufferDelayMs()
     {
-        MediaDeviceSession deviceSession = mediaStreamImpl.getDeviceSession();
-
-        return
-            (deviceSession instanceof VideoMediaDeviceSession)
-                ? ((VideoMediaDeviceSession) deviceSession)
-                    .getSentVideoFormat()
-                : null;
+        int delay = 0;
+        for(JitterBufferControl pqc : getJitterBufferControls())
+          if(pqc.getCurrentDelayMs() > delay)
+              delay = pqc.getCurrentDelayMs();
+        return delay;
     }
 
     /**
-     * Returns the download video format if this stream downloads a video, or
-     * null if not.
+     * Returns the delay in number of packets introduced by the jitter buffer.
+     * Since there might be multiple <tt>ReceiveStreams</tt>, returns the
+     * biggest delay found in any of them.
      *
-     * @return the download video format if this stream downloads a video, or
-     * null if not.
+     * @return the delay in number of packets introduced by the jitter buffer
      */
-    private VideoFormat getDownloadVideoFormat()
+    public int getJitterBufferDelayPackets()
     {
-        MediaDeviceSession deviceSession = mediaStreamImpl.getDeviceSession();
-
-        return
-            (deviceSession instanceof VideoMediaDeviceSession)
-                ? ((VideoMediaDeviceSession) deviceSession)
-                    .getReceivedVideoFormat()
-                : null;
-    }
-
-    /**
-     * Returns the upload video size if this stream uploads a video, or null if
-     * not.
-     *
-     * @return the upload video size if this stream uploads a video, or null if
-     * not.
-     */
-    public Dimension getUploadVideoSize()
-    {
-        VideoFormat format = getUploadVideoFormat();
-
-        return (format == null) ? null : format.getSize();
-    }
-
-    /**
-     * Returns the download video size if this stream downloads a video, or
-     * null if not.
-     *
-     * @return the download video size if this stream downloads a video, or null
-     * if not.
-     */
-    public Dimension getDownloadVideoSize()
-    {
-        VideoFormat format = getDownloadVideoFormat();
-
-        return (format == null) ? null : format.getSize();
-    }
-
-    /**
-     * Returns the percent loss of the download stream.
-     *
-     * @return the last loss rate computed (in %).
-     */
-    public double getDownloadPercentLoss()
-    {
-        return this.percentLoss[StreamDirection.DOWNLOAD.ordinal()];
-    }
-
-    /**
-     * Returns the percent of discarded packets
-     *
-     * @return the percent of discarded packets
-     */
-    public double getPercentDiscarded()
-    {
-        return percentDiscarded;
-    }
-
-    /**
-     * Returns the percent loss of the upload stream.
-     *
-     * @return the last loss rate computed (in %).
-     */
-    public double getUploadPercentLoss()
-    {
-        return this.percentLoss[StreamDirection.UPLOAD.ordinal()];
-    }
-
-    /**
-     * Returns the bandwidth used by this download stream.
-     *
-     * @return the last used download bandwidth computed (in Kbit/s).
-     */
-    public double getDownloadRateKiloBitPerSec()
-    {
-        return this.rateKiloBitPerSec[StreamDirection.DOWNLOAD.ordinal()];
-    }
-
-    /**
-     * Returns the bandwidth used by this download stream.
-     *
-     * @return the last used upload bandwidth computed (in Kbit/s).
-     */
-    public double getUploadRateKiloBitPerSec()
-    {
-        return this.rateKiloBitPerSec[StreamDirection.UPLOAD.ordinal()];
-    }
-
-    /**
-     * Returns the jitter average of this download stream.
-     *
-     * @return the last jitter average computed (in ms).
-     */
-    public double getDownloadJitterMs()
-    {
-        return this.getJitterMs(StreamDirection.DOWNLOAD);
-    }
-
-    /**
-     * Returns the jitter average of this upload stream.
-     *
-     * @return the last jitter average computed (in ms).
-     */
-    public double getUploadJitterMs()
-    {
-        return this.getJitterMs(StreamDirection.UPLOAD);
+        int delay = 0;
+        for(JitterBufferControl pqc : getJitterBufferControls())
+            if(pqc.getCurrentDelayPackets() > delay)
+                delay = pqc.getCurrentDelayPackets();
+        return delay;
     }
 
     /**
@@ -480,159 +483,155 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * Updates the jitter stream stats with the new feedback sent.
+     * Returns the local IP address of the MediaStream.
      *
-     * @param feedback The last RTCP feedback sent by the MediaStream.
-     * @param streamDirection The stream direction (DOWNLOAD or UPLOAD) of the
-     * stream from which this function retrieve the jitter.
+     * @return the local IP address of the stream.
      */
-    private void updateJitterRTPTimestampUnits(
-            RTCPFeedback feedback,
-            StreamDirection streamDirection)
+    public String getLocalIPAddress()
     {
-        // Updates the download jitter in RTP timestamp units.
-        // There is no need to compute a jitter average, since (cf. RFC3550,
-        // section 6.4.1 SR: Sender Report RTCP Packet, subsection interarrival
-        // jitter: 32 bits) the value contained in the RTCP sender report packet
-        // contains a mean deviation of the jitter.
-        this.jitterRTPTimestampUnits[streamDirection.ordinal()] =
-            feedback.getJitter();
+        InetSocketAddress mediaStreamLocalDataAddress
+            = mediaStreamImpl.getLocalDataAddress();
+
+        return
+            (mediaStreamLocalDataAddress == null)
+                ? null
+                : mediaStreamLocalDataAddress.getAddress().getHostAddress();
     }
 
     /**
-     * Updates this stream stats with the new feedback sent.
+     * Returns the local port of the MediaStream.
      *
-     * @param feedback The last RTCP feedback sent by the MediaStream.
+     * @return the local port of the stream.
      */
-    public void updateNewSentFeedback(RTCPFeedback feedback)
+    public int getLocalPort()
     {
-        updateJitterRTPTimestampUnits(feedback, StreamDirection.DOWNLOAD);
+        InetSocketAddress mediaStreamLocalDataAddress
+            = mediaStreamImpl.getLocalDataAddress();
 
-        // No need to update the download loss as we have a more accurate value
-        // in the global reception stats, which are updated for each new packet
-        // received.
+        return
+            (mediaStreamLocalDataAddress == null)
+                ? -1
+                : mediaStreamLocalDataAddress.getPort();
     }
 
     /**
-     * Updates this stream stats with the new feedback received.
-     *
-     * @param feedback The last RTCP feedback received by the MediaStream.
-     */
-    public void updateNewReceivedFeedback(RTCPFeedback feedback)
-    {
-        StreamDirection streamDirection = StreamDirection.UPLOAD;
-
-        updateJitterRTPTimestampUnits(feedback, streamDirection);
-
-        // Updates the loss rate with the RTCP sender report feedback, since
-        // this is the only information source available for the upload stream.
-        long uploadNewNbRecv = feedback.getXtndSeqNum();
-        long newNbLost
-            = feedback.getNumLost() - this.nbLost[streamDirection.ordinal()];
-        long nbSteps = uploadNewNbRecv - this.uploadFeedbackNbPackets;
-
-        updateNbLoss(streamDirection, newNbLost, nbSteps);
-
-        // Updates the upload loss counters.
-        this.uploadFeedbackNbPackets = uploadNewNbRecv;
-
-        // Computes RTT.
-        this.rttMs = computeRTTInMs(feedback);
-    }
-
-    /**
-     * Updates the number of loss for a given stream.
+     * Returns the number of sent/received bytes since the beginning of the
+     * session.
      *
      * @param streamDirection The stream direction (DOWNLOAD or UPLOAD) of the
-     * stream from which this function updates the stats.
-     * @param newNbLost The last update of the number of lost.
-     * @param nbSteps The number of elapsed steps since the last number of loss
-     * update.
+     * stream from which this function retrieve the number of sent/received
+     * bytes.
+     *
+     * @return the number of sent/received bytes for this stream.
      */
-    private void updateNbLoss(
-            StreamDirection streamDirection,
-            long newNbLost,
-            long nbSteps)
+    private long getNbBytes(StreamDirection streamDirection)
     {
-        int streamDirectionIndex = streamDirection.ordinal();
+        StreamRTPManager rtpManager = mediaStreamImpl.queryRTPManager();
+        long nbBytes = 0;
 
-        double newPercentLoss = MediaStreamStatsImpl.computePercentLoss(
-                nbSteps,
-                newNbLost);
-        this.percentLoss[streamDirectionIndex] =
-            MediaStreamStatsImpl.computeEWMA(
-                    nbSteps,
-                    this.percentLoss[streamDirectionIndex],
-                    newPercentLoss);
-
-        // Saves the last update number download lost value.
-        this.nbLost[streamDirectionIndex] += newNbLost;
+        if(rtpManager != null)
+        {
+            switch(streamDirection)
+            {
+            case DOWNLOAD:
+                nbBytes = rtpManager.getGlobalReceptionStats().getBytesRecd();
+                break;
+            case UPLOAD:
+                nbBytes
+                    = rtpManager.getGlobalTransmissionStats().getBytesSent();
+                break;
+            }
+        }
+        return nbBytes;
     }
 
     /**
-     * Computes the loss rate.
+     * Returns the total number of Protocol Data Units (PDU) discarded by the
+     * FMJ packet queue since the beginning of the session. It's the sum over
+     * all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
      *
-     * @param nbLostAndRecv The number of lost and received packets.
-     * @param nbLost The number of lost packets.
-     *
-     * @return The loss rate in percent.
+     * @return the number of discarded packets.
      */
-    private static double computePercentLoss(long nbLostAndRecv, long nbLost)
+    public long getNbDiscarded()
     {
-        if(nbLostAndRecv == 0)
-        {
-            return 0;
-        }
-        return ((double) 100 * nbLost) / ((nbLostAndRecv));
+        int nbDiscarded = 0;
+        for(JitterBufferControl pqc : getJitterBufferControls())
+            nbDiscarded =+ pqc.getDiscarded();
+        return nbDiscarded;
     }
 
     /**
-     * Computes the bandwidth usage in Kilo bits per seconds.
+     * Returns the number of Protocol Data Units (PDU) discarded by the
+     * FMJ packet queue since the beginning of the session because it was full.
+     * It's the sum over all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
      *
-     * @param nbByteRecv The number of Byte received.
-     * @param callNbTimeMsSpent The time spent since the mediaStreamImpl is
-     * connected to the endpoint.
-     *
-     * @return the bandwidth rate computed in Kilo bits per seconds.
+     * @return the number of discarded packets because it was full.
      */
-    private static double computeRateKiloBitPerSec(
-            long nbByteRecv,
-            long callNbTimeMsSpent)
+    public int getNbDiscardedFull()
     {
-        if(nbByteRecv == 0)
-        {
-            return 0;
-        }
-        return (nbByteRecv * 8.0 / 1000.0) / (callNbTimeMsSpent / 1000.0);
+        int nbDiscardedFull = 0;
+        for(JitterBufferControl pqc : getJitterBufferControls())
+            nbDiscardedFull =+ pqc.getDiscardedFull();
+        return nbDiscardedFull;
     }
 
     /**
-     * Computes an Exponentially Weighted Moving Average (EWMA). Thus, the most
-     * recent history has a more preponderant importance in the average
-     * computed.
+     * Returns the number of Protocol Data Units (PDU) discarded by the
+     * FMJ packet queue since the beginning of the session because they were late.
+     * It's the sum over all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
      *
-     * @param nbStepSinceLastUpdate The number of step which has not been
-     * computed since last update. In our case the number of packets received
-     * since the last computation.
-     * @param lastValue The value computed during the last update.
-     * @param newValue The value newly computed.
-     *
-     * @return The EWMA average computed.
+     * @return the number of discarded packets because they were late.
      */
-    private static double computeEWMA(
-            long nbStepSinceLastUpdate,
-            double lastValue,
-            double newValue)
+    public int getNbDiscardedLate()
     {
-        // For each new packet received the EWMA moves by a 0.1 coefficient.
-        double EWMACoeff = 0.01 * nbStepSinceLastUpdate;
-        // EWMA must be <= 1.
-        if(EWMACoeff > 1)
-        {
-            EWMACoeff = 1.0;
-        }
-        return lastValue * (1.0 - EWMACoeff) + newValue * EWMACoeff;
+        int nbDiscardedLate = 0;
+        for(JitterBufferControl pqc : getJitterBufferControls())
+            nbDiscardedLate =+ pqc.getDiscardedLate();
+        return nbDiscardedLate;
+    }
 
+    /**
+     * Returns the number of Protocol Data Units (PDU) discarded by the
+     * FMJ packet queue since the beginning of the session during resets.
+     * It's the sum over all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
+     *
+     * @return the number of discarded packets during resets.
+     */
+    public int getNbDiscardedReset()
+    {
+        int nbDiscardedReset = 0;
+        for(JitterBufferControl pqc : getJitterBufferControls())
+            nbDiscardedReset =+ pqc.getDiscardedReset();
+        return nbDiscardedReset;
+    }
+
+    /**
+     * Returns the number of Protocol Data Units (PDU) discarded by the
+     * FMJ packet queue since the beginning of the session due to shrinking.
+     * It's the sum over all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
+     *
+     * @return the number of discarded packets due to shrinking.
+     */
+    public int getNbDiscardedShrink()
+    {
+        int nbDiscardedShrink = 0;
+        for(JitterBufferControl pqc : getJitterBufferControls())
+            nbDiscardedShrink =+ pqc.getDiscardedShrink();
+        return nbDiscardedShrink;
+    }
+
+    /**
+     * Returns the number of packets for which FEC data was decoded. Currently
+     * this is cumulative over all <tt>ReceiveStream</tt>s.
+     *
+     * @return the number of packets for which FEC data was decoded. Currently
+     * this is cumulative over all <tt>ReceiveStream</tt>s.
+     *
+     * @see org.jitsi.impl.neomedia.MediaStreamStatsImpl#updateNbFec()
+     */
+    public long getNbFec()
+    {
+        return nbFec;
     }
 
     /**
@@ -673,202 +672,118 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * Returns the number of Protocol Data Units (PDU) lost in download since
-     * the beginning of the session.
+     * Returns the set of <tt>PacketQueueControls</tt> found for all the
+     * <tt>DataSource</tt>s of all the <tt>ReceiveStream</tt>s. The set contains
+     * only non-null elements.
      *
-     * @return the number of packets lost for this stream.
+     * @return the set of <tt>PacketQueueControls</tt> found for all the
+     * <tt>DataSource</tt>s of all the <tt>ReceiveStream</tt>s. The set contains
+     * only non-null elements.
      */
-    private long getDownloadNbPDULost()
+    private Set<JitterBufferControl> getJitterBufferControls()
     {
-        MediaDeviceSession devSession = mediaStreamImpl.getDeviceSession();
-        int nbLost = 0;
+        Set<JitterBufferControl> set = new HashSet<JitterBufferControl>();
 
-        if (devSession != null)
+        if (mediaStreamImpl.isStarted())
         {
-            for(ReceiveStream receiveStream : devSession.getReceiveStreams())
-                nbLost += receiveStream.getSourceReceptionStats().getPDUlost();
-        }
-        return nbLost;
-    }
+            MediaDeviceSession devSession = mediaStreamImpl.getDeviceSession();
 
-    /**
-     * Returns the total number of Protocol Data Units (PDU) discarded by the
-     * FMJ packet queue since the beginning of the session. It's the sum over
-     * all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
-     *
-     * @return the number of discarded packets.
-     */
-    public long getNbDiscarded()
-    {
-        int nbDiscarded = 0;
-        for(PacketQueueControl pqc : getPacketQueueControls())
-            nbDiscarded =+ pqc.getDiscarded();
-        return nbDiscarded;
-    }
-
-    /**
-     * Returns the number of Protocol Data Units (PDU) discarded by the
-     * FMJ packet queue since the beginning of the session due to shrinking.
-     * It's the sum over all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
-     *
-     * @return the number of discarded packets due to shrinking.
-     */
-    public int getNbDiscardedShrink()
-    {
-        int nbDiscardedShrink = 0;
-        for(PacketQueueControl pqc : getPacketQueueControls())
-            nbDiscardedShrink =+ pqc.getDiscardedShrink();
-        return nbDiscardedShrink;
-    }
-
-    /**
-     * Returns the number of Protocol Data Units (PDU) discarded by the
-     * FMJ packet queue since the beginning of the session because it was full.
-     * It's the sum over all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
-     *
-     * @return the number of discarded packets because it was full.
-     */
-    public int getNbDiscardedFull()
-    {
-        int nbDiscardedFull = 0;
-        for(PacketQueueControl pqc : getPacketQueueControls())
-            nbDiscardedFull =+ pqc.getDiscardedFull();
-        return nbDiscardedFull;
-    }
-
-    /**
-     * Returns the number of Protocol Data Units (PDU) discarded by the
-     * FMJ packet queue since the beginning of the session because they were late.
-     * It's the sum over all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
-     *
-     * @return the number of discarded packets because they were late.
-     */
-    public int getNbDiscardedLate()
-    {
-        int nbDiscardedLate = 0;
-        for(PacketQueueControl pqc : getPacketQueueControls())
-            nbDiscardedLate =+ pqc.getDiscardedLate();
-        return nbDiscardedLate;
-    }
-
-    /**
-     * Returns the number of Protocol Data Units (PDU) discarded by the
-     * FMJ packet queue since the beginning of the session during resets.
-     * It's the sum over all <tt>ReceiveStream</tt>s of the <tt>MediaStream</tt>
-     *
-     * @return the number of discarded packets during resets.
-     */
-    public int getNbDiscardedReset()
-    {
-        int nbDiscardedReset = 0;
-        for(PacketQueueControl pqc : getPacketQueueControls())
-            nbDiscardedReset =+ pqc.getDiscardedReset();
-        return nbDiscardedReset;
-    }
-
-    /**
-     * Returns the number of sent/received bytes since the beginning of the
-     * session.
-     *
-     * @param streamDirection The stream direction (DOWNLOAD or UPLOAD) of the
-     * stream from which this function retrieve the number of sent/received
-     * bytes.
-     *
-     * @return the number of sent/received bytes for this stream.
-     */
-    private long getNbBytes(StreamDirection streamDirection)
-    {
-        StreamRTPManager rtpManager = mediaStreamImpl.queryRTPManager();
-        long nbBytes = 0;
-
-        if(rtpManager != null)
-        {
-            switch(streamDirection)
+            if (devSession != null)
             {
-            case DOWNLOAD:
-                nbBytes = rtpManager.getGlobalReceptionStats().getBytesRecd();
-                break;
-            case UPLOAD:
-                nbBytes
-                    = rtpManager.getGlobalTransmissionStats().getBytesSent();
-                break;
+                for(ReceiveStream receiveStream
+                        : devSession.getReceiveStreams())
+                {
+                    JitterBufferControl pqc
+                        = getJitterBufferControl(receiveStream);
+
+                    if(pqc != null)
+                        set.add(pqc);
+                }
             }
         }
-        return nbBytes;
+        return set;
     }
 
     /**
-     * Computes the RTT with the data (LSR and DLSR) contained in the last
-     * RTCP Sender Report (RTCP feedback). This RTT computation is based on
-     * RFC3550, section 6.4.1, subsection "delay since last SR (DLSR): 32
-     * bits".
+     * Returns the number of packets in the first <tt>JitterBufferControl</tt>
+     * found via <tt>getJitterBufferControls</tt>.
      *
-     * @param feedback The last RTCP feedback received by the MediaStream.
-     *
-     * @return The RTT in milliseconds, or -1 if the RTT is not computable.
+     * @return the number of packets in the first <tt>JitterBufferControl</tt>
+     * found via <tt>getJitterBufferControls</tt>.
      */
-    private long computeRTTInMs(RTCPFeedback feedback)
+    public int getPacketQueueCountPackets()
     {
-        // Computes RTT.
-        long currentTime = System.currentTimeMillis();
-        long DLSR = feedback.getDLSR();
-        long LSR = feedback.getLSR();
+        for(JitterBufferControl pqc : getJitterBufferControls())
+            return pqc.getCurrentPacketCount();
+        return 0;
+    }
 
-        // If the peer sending us the sender report has at least received on
-        // sender report from our side, then computes the RTT.
-        if(DLSR != 0 && LSR != 0)
-        {
-            long LSRs = LSR >> 16;
-            long LSRms = ((LSR & 0xffff) * 1000) / 0xffff;
-            long DLSRs = DLSR / 0xffff;
-            long DLSRms = ((DLSR & 0xffff) *1000) / 0xffff;
-            long currentTimeS = (currentTime / 1000) & 0x0000ffff;
-            long currentTimeMs = (currentTime % 1000);
+    /**
+     * Returns the size of the first <tt>JitterBufferControl</tt> found via
+     * <tt>getJitterBufferControls</tt>.
+     *
+     * @return the size of the first <tt>JitterBufferControl</tt> found via
+     * <tt>getJitterBufferControls</tt>.
+     */
+    public int getPacketQueueSize()
+    {
+        for(JitterBufferControl pqc : getJitterBufferControls())
+            return pqc.getCurrentSizePackets();
+        return 0;
+    }
 
-            long rttS = currentTimeS - DLSRs - LSRs;
-            long rttMs = currentTimeMs - DLSRms - LSRms;
+    /**
+     * Returns the percent of discarded packets
+     *
+     * @return the percent of discarded packets
+     */
+    public double getPercentDiscarded()
+    {
+        return percentDiscarded;
+    }
 
-            long computedRTTms = (rttS * 1000) + rttMs;
+    /**
+     * Returns the remote IP address of the MediaStream.
+     *
+     * @return the remote IP address of the stream.
+     */
+    public String getRemoteIPAddress()
+    {
+        MediaStreamTarget mediaStreamTarget = mediaStreamImpl.getTarget();
 
-            // If the RTT is greater than a minute there might be a bug. Thus we
-            // log the info to see the source of this error.
-            if(computedRTTms > 60000 && logger.isInfoEnabled())
-            {
-                logger.info("Stream: " + mediaStreamImpl.getName()
-                        + ", RTT computation seems to be wrong ("
-                        + computedRTTms + "> 60 seconds):"
+        // Gets this stream IP address endpoint. Stops if the endpoint is
+        // disconnected.
+        return
+            (mediaStreamTarget == null)
+                ? null
+                : mediaStreamTarget.getDataAddress().getAddress()
+                        .getHostAddress();
+    }
 
-                        + "\n\tcurrentTime: " + currentTime
-                        + " (" + Long.toHexString(currentTime) + ")"
-                        + "\n\tDLSR: " + DLSR
-                        + " (" + Long.toHexString(DLSR) + ")"
-                        + "\n\tLSR: " + LSR
-                        + " (" + Long.toHexString(LSR) + ")"
+    /**
+     * Returns the remote port of the MediaStream.
+     *
+     * @return the remote port of the stream.
+     */
+    public int getRemotePort()
+    {
+        MediaStreamTarget mediaStreamTarget = mediaStreamImpl.getTarget();
 
-                        + "\n\n\tcurrentTimeS: " + currentTimeS
-                        + " (" + Long.toHexString(currentTimeS) + ")"
-                        + "\n\tDLSRs: " + DLSRs
-                        + " (" + Long.toHexString(DLSRs) + ")"
-                        + "\n\tLSRs: " + LSRs
-                        + " (" + Long.toHexString(LSRs) + ")"
-                        + "\n\trttS: " + rttS
-                        + " (" + Long.toHexString(rttS) + ")"
+        // Gets this stream port endpoint. Stops if the endpoint is
+        // disconnected.
+        return
+            (mediaStreamTarget == null)
+                ? -1
+                : mediaStreamTarget.getDataAddress().getPort();
+    }
 
-                        + "\n\n\tcurrentTimeMs: " + currentTimeMs
-                        + " (" + Long.toHexString(currentTimeMs) + ")"
-                        + "\n\tDLSRms: " + DLSRms
-                        + " (" + Long.toHexString(DLSRms) + ")"
-                        + "\n\tLSRms: " + LSRms
-                        + " (" + Long.toHexString(LSRms) + ")"
-                        + "\n\trttMs: " + rttMs
-                        + " (" + Long.toHexString(rttMs) + ")"
-                        );
-            }
-
-            return computedRTTms;
-        }
-        // Else the RTT can not be computed yet.
-        return -1;
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RTCPReports getRTCPReports()
+    {
+        return rtcpReports;
     }
 
     /**
@@ -880,21 +795,120 @@ public class MediaStreamStatsImpl
      */
     public long getRttMs()
     {
-        return this.rttMs;
+        return rttMs;
     }
 
     /**
-     * Returns the number of packets for which FEC data was decoded. Currently
-     * this is cumulative over all <tt>ReceiveStream</tt>s.
+     * Returns the jitter average of this upload stream.
      *
-     * @return the number of packets for which FEC data was decoded. Currently
-     * this is cumulative over all <tt>ReceiveStream</tt>s.
-     *
-     * @see org.jitsi.impl.neomedia.MediaStreamStatsImpl#updateNbFec()
+     * @return the last jitter average computed (in ms).
      */
-    public long getNbFec()
+    public double getUploadJitterMs()
     {
-        return nbFec;
+        return getJitterMs(StreamDirection.UPLOAD);
+    }
+
+    /**
+     * Returns the percent loss of the upload stream.
+     *
+     * @return the last loss rate computed (in %).
+     */
+    public double getUploadPercentLoss()
+    {
+        return percentLoss[StreamDirection.UPLOAD.ordinal()];
+    }
+
+    /**
+     * Returns the bandwidth used by this download stream.
+     *
+     * @return the last used upload bandwidth computed (in Kbit/s).
+     */
+    public double getUploadRateKiloBitPerSec()
+    {
+        return rateKiloBitPerSec[StreamDirection.UPLOAD.ordinal()];
+    }
+
+    /**
+     * Returns the upload video format if this stream uploads a video, or null
+     * if not.
+     *
+     * @return the upload video format if this stream uploads a video, or null
+     * if not.
+     */
+    private VideoFormat getUploadVideoFormat()
+    {
+        MediaDeviceSession deviceSession = mediaStreamImpl.getDeviceSession();
+
+        return
+            (deviceSession instanceof VideoMediaDeviceSession)
+                ? ((VideoMediaDeviceSession) deviceSession)
+                    .getSentVideoFormat()
+                : null;
+    }
+
+    /**
+     * Returns the upload video size if this stream uploads a video, or null if
+     * not.
+     *
+     * @return the upload video size if this stream uploads a video, or null if
+     * not.
+     */
+    public Dimension getUploadVideoSize()
+    {
+        VideoFormat format = getUploadVideoFormat();
+
+        return (format == null) ? null : format.getSize();
+    }
+
+    public boolean isAdaptiveBufferEnabled()
+    {
+        for(JitterBufferControl pcq : getJitterBufferControls())
+            if(pcq.isAdaptiveBufferEnabled())
+                return true;
+        return false;
+    }
+
+    /**
+     * Updates the jitter stream stats with the new feedback sent.
+     *
+     * @param feedback The last RTCP feedback sent by the MediaStream.
+     * @param streamDirection The stream direction (DOWNLOAD or UPLOAD) of the
+     * stream from which this function retrieve the jitter.
+     */
+    private void updateJitterRTPTimestampUnits(
+            RTCPFeedback feedback,
+            StreamDirection streamDirection)
+    {
+        // Updates the download jitter in RTP timestamp units. There is no need
+        // to compute a jitter average, since (cf. RFC3550, section 6.4.1 SR:
+        // Sender Report RTCP Packet, subsection interarrival jitter: 32 bits)
+        // the value contained in the RTCP sender report packet contains a mean
+        // deviation of the jitter.
+        jitterRTPTimestampUnits[streamDirection.ordinal()]
+            = feedback.getJitter();
+    }
+
+    /**
+     * Updates the number of discarded packets.
+     *
+     * @param newNbDiscarded The last update of the number of lost.
+     * @param nbSteps The number of elapsed steps since the last number of loss
+     * update.
+     */
+    private void updateNbDiscarded(
+            long newNbDiscarded,
+            long nbSteps)
+    {
+        double newPercentDiscarded
+            = MediaStreamStatsImpl.computePercentLoss(nbSteps, newNbDiscarded);
+
+        percentDiscarded
+            = MediaStreamStatsImpl.computeEWMA(
+                    nbSteps,
+                    percentDiscarded,
+                    newPercentDiscarded);
+        // Saves the last update number download lost value.
+        nbDiscarded += newNbDiscarded;
     }
 
     /**
@@ -923,136 +937,151 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * Updates the number of discarded packets.
+     * Updates the number of loss for a given stream.
      *
-     * @param newNbDiscarded The last update of the number of lost.
+     * @param streamDirection The stream direction (DOWNLOAD or UPLOAD) of the
+     * stream from which this function updates the stats.
+     * @param newNbLost The last update of the number of lost.
      * @param nbSteps The number of elapsed steps since the last number of loss
      * update.
      */
-    private void updateNbDiscarded(
-            long newNbDiscarded,
+    private void updateNbLoss(
+            StreamDirection streamDirection,
+            long newNbLost,
             long nbSteps)
     {
+        int streamDirectionIndex = streamDirection.ordinal();
+        double newPercentLoss
+            = MediaStreamStatsImpl.computePercentLoss(nbSteps, newNbLost);
 
-        double newPercentDiscarded = MediaStreamStatsImpl.computePercentLoss(
-                nbSteps,
-                newNbDiscarded);
-        this.percentDiscarded =
-                MediaStreamStatsImpl.computeEWMA(
-                        nbSteps,
-                        this.percentDiscarded,
-                        newPercentDiscarded);
-
+        percentLoss[streamDirectionIndex]
+            = MediaStreamStatsImpl.computeEWMA(
+                    nbSteps,
+                    percentLoss[streamDirectionIndex],
+                    newPercentLoss);
         // Saves the last update number download lost value.
-        this.nbDiscarded += newNbDiscarded;
-    }
-
-    public boolean isAdaptiveBufferEnabled()
-    {
-        for(PacketQueueControl pcq : getPacketQueueControls())
-            if(pcq.isAdaptiveBufferEnabled())
-                return true;
-        return false;
+        nbLost[streamDirectionIndex] += newNbLost;
     }
 
     /**
-     * Returns the delay in number of packets introduced by the jitter buffer.
-     * Since there might be multiple <tt>ReceiveStreams</tt>, returns the
-     * biggest delay found in any of them.
+     * Updates this stream stats with the new feedback received.
      *
-     * @return the delay in number of packets introduced by the jitter buffer
+     * @param feedback The last RTCP feedback received by the MediaStream.
      */
-    public int getJitterBufferDelayPackets()
+    private void updateNewReceivedFeedback(RTCPFeedback feedback)
     {
-        int delay = 0;
-        for(PacketQueueControl pqc : getPacketQueueControls())
-            if(pqc.getCurrentDelayPackets() > delay)
-                delay = pqc.getCurrentDelayPackets();
+        StreamDirection streamDirection = StreamDirection.UPLOAD;
 
-        return delay;
+        updateJitterRTPTimestampUnits(feedback, streamDirection);
+
+        // Updates the loss rate with the RTCP sender report feedback, since
+        // this is the only information source available for the upload stream.
+        long uploadNewNbRecv = feedback.getXtndSeqNum();
+        long newNbLost
+            = feedback.getNumLost() - nbLost[streamDirection.ordinal()];
+        long nbSteps = uploadNewNbRecv - uploadFeedbackNbPackets;
+
+        updateNbLoss(streamDirection, newNbLost, nbSteps);
+
+        // Updates the upload loss counters.
+        uploadFeedbackNbPackets = uploadNewNbRecv;
+
+        // Computes RTT.
+        rttMs = computeRTTInMs(feedback);
     }
 
     /**
-     * Returns the delay in milliseconds introduced by the jitter buffer.
-     * Since there might be multiple <tt>ReceiveStreams</tt>, returns the
-     * biggest delay found in any of them.
+     * Updates this stream stats with the new feedback sent.
      *
-     * @return the delay in milliseconds introduces by the jitter buffer
+     * @param feedback The last RTCP feedback sent by the MediaStream.
      */
-    public int getJitterBufferDelayMs()
+    private void updateNewSentFeedback(RTCPFeedback feedback)
     {
-        int delay = 0;
-        for(PacketQueueControl pqc : getPacketQueueControls())
-          if(pqc.getCurrentDelayMs() > delay)
-              delay = pqc.getCurrentDelayMs();
-        return delay;
+        updateJitterRTPTimestampUnits(feedback, StreamDirection.DOWNLOAD);
+
+        // No need to update the download loss as we have a more accurate value
+        // in the global reception stats, which are updated for each new packet
+        // received.
     }
 
     /**
-     * Returns the size of the first <tt>PacketQueueControl</tt> found via
-     * <tt>getPacketQueueControls</tt>.
-     *
-     * @return the size of the first <tt>PacketQueueControl</tt> found via
-     * <tt>getPacketQueueControls</tt>.
+     * Computes and updates information for a specific stream.
      */
-    public int getPacketQueueSize()
+    public void updateStats()
     {
-        for(PacketQueueControl pqc : getPacketQueueControls())
-            return pqc.getCurrentSizePackets();
-        return 0;
+        // Gets the current time.
+        long currentTimeMs = System.currentTimeMillis();
+
+        // UPdates stats for the download stream.
+        updateStreamDirectionStats(StreamDirection.DOWNLOAD, currentTimeMs);
+        // UPdates stats for the upload stream.
+        updateStreamDirectionStats(StreamDirection.UPLOAD, currentTimeMs);
+        // Saves the last update values.
+        updateTimeMs = currentTimeMs;
     }
 
     /**
-     * Returns the number of packets in the first <tt>PacketQueueControl</tt>
-     * found via <tt>getPacketQueueControls</tt>.
+     * Computes and updates information for a specific stream.
      *
-     * @return the number of packets in the first <tt>PacketQueueControl</tt>
-     * found via <tt>getPacketQueueControls</tt>.
+     * @param streamDirection The stream direction (DOWNLOAD or UPLOAD) of the
+     * stream from which this function updates the stats.
+     * @param currentTimeMs The current time in ms.
      */
-    public int getPacketQueueCountPackets()
+    private void updateStreamDirectionStats(
+            StreamDirection streamDirection,
+            long currentTimeMs)
     {
-        for(PacketQueueControl pqc : getPacketQueueControls())
-            return pqc.getCurrentPacketCount();
-        return 0;
-    }
+        int streamDirectionIndex = streamDirection.ordinal();
 
-    /**
-     * Returns the set of <tt>PacketQueueControls</tt> found for all the
-     * <tt>DataSource</tt>s of all the <tt>ReceiveStream</tt>s. The set contains
-     * only non-null elements.
-     *
-     * @return the set of <tt>PacketQueueControls</tt> found for all the
-     * <tt>DataSource</tt>s of all the <tt>ReceiveStream</tt>s. The set contains
-     * only non-null elements.
-     */
-    private Set<PacketQueueControl> getPacketQueueControls()
-    {
-        Set<PacketQueueControl> set = new HashSet<PacketQueueControl>();
-        if (mediaStreamImpl.isStarted())
+        // Gets the current number of packets correctly received since the
+        // beginning of this stream.
+        long newNbRecv = getNbPDU(streamDirection);
+        // Gets the number of byte received/sent since the beginning of this
+        // stream.
+        long newNbByte = getNbBytes(streamDirection);
+
+        // Computes the number of update steps which has not been done since
+        // last update.
+        long nbSteps = newNbRecv - nbPackets[streamDirectionIndex];
+        // Even if the remote peer does not send any packets (i.e. is
+        // microphone is muted), Jitsi must updates it stats. Thus, Jitsi
+        // computes a number of steps equivalent as if Jitsi receives a packet
+        // each 20ms (default value).
+        if(nbSteps == 0)
+            nbSteps = (currentTimeMs - updateTimeMs) / 20;
+
+        // The upload percentLoss is only computed when a new RTCP feedback is
+        // received. This is not the case for the download percentLoss which is
+        // updated for each new RTP packet received.
+        // Computes the loss rate for this stream.
+        if(streamDirection == StreamDirection.DOWNLOAD)
         {
-            MediaDeviceSession devSession = mediaStreamImpl.getDeviceSession();
-            if (devSession != null)
-            {
-                for(ReceiveStream receiveStream
-                        : devSession.getReceiveStreams())
-                {
-                    DataSource ds = receiveStream.getDataSource();
-                    if(ds instanceof net.sf.fmj.media.protocol.rtp.DataSource)
-                    {
-                        for (PushBufferStream pbs :
-                                ((net.sf.fmj.media.protocol.rtp.DataSource)ds)
-                                        .getStreams())
-                        {
-                            PacketQueueControl pqc = (PacketQueueControl)
-                                    pbs.getControl(
-                                            PacketQueueControl.class.getName());
-                            if(pqc != null)
-                                set.add(pqc);
-                        }
-                    }
-                }
-            }
+            // Gets the current number of losses in download since the beginning
+            // of this stream.
+            long newNbLost
+                = getDownloadNbPDULost() - nbLost[streamDirectionIndex];
+
+            updateNbLoss(streamDirection, newNbLost, nbSteps + newNbLost);
+
+            long newNbDiscarded = getNbDiscarded() - nbDiscarded;
+            updateNbDiscarded(newNbDiscarded, nbSteps + newNbDiscarded);
         }
-        return set;
+
+        // Computes the bandwidth used by this stream.
+        double newRateKiloBitPerSec
+            = MediaStreamStatsImpl.computeRateKiloBitPerSec(
+                    newNbByte - nbByte[streamDirectionIndex],
+                    currentTimeMs - updateTimeMs);
+        rateKiloBitPerSec[streamDirectionIndex]
+            = MediaStreamStatsImpl.computeEWMA(
+                    nbSteps,
+                    rateKiloBitPerSec[streamDirectionIndex],
+                    newRateKiloBitPerSec);
+
+        // Saves the last update values.
+        nbPackets[streamDirectionIndex] = newNbRecv;
+        nbByte[streamDirectionIndex] = newNbByte;
+
+        updateNbFec();
     }
 }

@@ -384,7 +384,7 @@ public class MediaDeviceImpl
     public List<MediaFormat> getSupportedFormats(
             EncodingConfiguration encodingConfiguration)
     {
-            return getSupportedFormats(null, null, encodingConfiguration);
+        return getSupportedFormats(null, null, encodingConfiguration);
     }
 
     /**
@@ -443,11 +443,8 @@ public class MediaDeviceImpl
             {
                 if("h264".equalsIgnoreCase(f.getEncoding()))
                 {
-                    Map<String,String> h264AdvancedAttributes
+                    Map<String,String> advancedAttrs
                         = f.getAdvancedAttributes();
-
-                    if (h264AdvancedAttributes == null)
-                        h264AdvancedAttributes = new HashMap<String, String>();
 
                     CaptureDeviceInfo captureDeviceInfo
                         = getCaptureDeviceInfo();
@@ -496,7 +493,7 @@ public class MediaDeviceImpl
                             = (screen == null) ? null : screen.getSize();
                     }
 
-                    h264AdvancedAttributes.put(
+                    advancedAttrs.put(
                             "imageattr",
                             MediaUtils.createImageAttr(sendSize, receiveSize));
                     f
@@ -504,7 +501,7 @@ public class MediaDeviceImpl
                                 f.getEncoding(),
                                 f.getClockRate(),
                                 f.getFormatParameters(),
-                                h264AdvancedAttributes);
+                                advancedAttrs);
                 }
 
                 if (f != null)

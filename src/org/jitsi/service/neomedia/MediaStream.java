@@ -369,11 +369,11 @@ public interface MediaStream
     public void setRTPTranslator(RTPTranslator rtpTranslator);
 
     /**
-     * Returns a MediaStreamStats object used to get statistics about this
-     * MediaStream.
+     * Returns a <tt>MediaStreamStats</tt> object used to get statistics about
+     * this <tt>MediaStream</tt>.
      *
-     * @return the MediaStreamStats object used to compute the statistics about
-     * this MediaStream.
+     * @return the <tt>MediaStreamStats</tt> object used to get statistics about
+     * this <tt>MediaStream</tt>.
      */
     public MediaStreamStats getMediaStreamStats();
 
@@ -396,7 +396,26 @@ public interface MediaStream
      */
     public void setSSRCFactory(SSRCFactory ssrcFactory);
 
+    /**
+     * Gets the value of a specific opaque property of this
+     * <tt>MediaStream</tt>.
+     *
+     * @param propertyName the name of the opaque property of this
+     * <tt>MediaStream</tt> the value of which is to be returned
+     * @return the value of the opaque property of this <tt>MediaStrea</tt>
+     * specified by <tt>propertyName</tt>
+     */
     public Object getProperty(String propertyName);
 
+    /**
+     * Sets the value of a specific opaque property of this
+     * <tt>MediaStream</tt>.
+     *
+     * @param propertyName the name of the opaque property of this
+     * <tt>MediaStream</tt> the value of which is to be set to the specified
+     * <tt>value</tt>
+     * @param value the value of the opaque property of this <tt>MediaStrea</tt>
+     * specified by <tt>propertyName</tt> to be set
+     */
     public void setProperty(String propertyName, Object value);
 }

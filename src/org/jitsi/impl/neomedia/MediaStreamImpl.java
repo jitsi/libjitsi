@@ -249,9 +249,6 @@ public class MediaStreamImpl
      */
     private PayloadTypeTransformEngine ptTransformEngine;
 
-    private final Map<String,Object> properties
-        = Collections.synchronizedMap(new HashMap<String,Object>());
-
     /**
      * The <tt>SSRCFactory</tt> to be utilized by this instance to generate new
      * synchronization source (SSRC) identifiers. If <tt>null</tt>, this
@@ -540,37 +537,6 @@ public class MediaStreamImpl
     }
 
     /**
-     * Asserts that the state of this instance will remain consistent if a
-     * specific <tt>MediaDirection</tt> (i.e. <tt>direction</tt>) and a
-     * <tt>MediaDevice</tt> with a specific <tt>MediaDirection</tt> (i.e.
-     * <tt>deviceDirection</tt>) are both set on this instance.
-     *
-     * @param direction the <tt>MediaDirection</tt> to validate against the
-     * specified <tt>deviceDirection</tt>
-     * @param deviceDirection the <tt>MediaDirection</tt> of a
-     * <tt>MediaDevice</tt> to validate against the specified <tt>direction</tt>
-     * @param illegalArgumentExceptionMessage the message of the
-     * <tt>IllegalArgumentException</tt> to be thrown if the state of this
-     * instance would've been compromised if <tt>direction</tt> and the
-     * <tt>MediaDevice</tt> associated with <tt>deviceDirection</tt> were both
-     * set on this instance
-     * @throws IllegalArgumentException if the state of this instance would've
-     * been compromised were both <tt>direction</tt> and the
-     * <tt>MediaDevice</tt> associated with <tt>deviceDirection</tt> set on this
-     * instance
-     */
-    private void assertDirection(
-            MediaDirection direction,
-            MediaDirection deviceDirection,
-            String illegalArgumentExceptionMessage)
-        throws IllegalArgumentException
-    {
-        if ((direction != null)
-                && !direction.and(deviceDirection).equals(direction))
-            throw new IllegalArgumentException(illegalArgumentExceptionMessage);
-    }
-
-    /**
      * Returns a map containing all currently active <tt>RTPExtension</tt>s in
      * use by this stream.
      *
@@ -626,9 +592,11 @@ public class MediaStreamImpl
      */
     public void close()
     {
-        /* Some statistics cannot be taken from the RTP manager and have to
+        /*
+         * Some statistics cannot be taken from the RTP manager and have to
          * be gathered from the ReceiveStream. We need to do this before
-         * calling stop(). */
+         * calling stop().
+         */
         if(logger.isInfoEnabled())
             printReceiveStreamStatistics();
 
@@ -1905,18 +1873,6 @@ public class MediaStreamImpl
     }
 
     /**
-     * Handles attributes contained in <tt>MediaFormat</tt>.
-     *
-     * @param format the <tt>MediaFormat</tt> to handle the attributes of
-     * @param attrs the attributes <tt>Map</tt> to handle
-     */
-    protected void handleAttributes(
-            MediaFormat format,
-            Map<String, String> attrs)
-    {
-    }
-
-    /**
      * Causes this <tt>MediaStream</tt> to stop transmitting the media being fed
      * from this stream's <tt>MediaDevice</tt> and transmit "silence" instead.
      * "Silence" for video is understood as video data which is not the captured
@@ -2047,18 +2003,12 @@ public class MediaStreamImpl
                 MediaStreamStats stats = getMediaStreamStats();
 
                 logger.info(
-                        mediaType
-                            + " codec/freq: "
-                            + stats.getEncoding()
-                            + "/"
-                            + stats.getEncodingClockRate()
-                            + " Hz");
+                        mediaType + " codec/freq: " + stats.getEncoding() + "/"
+                            + stats.getEncodingClockRate() + " Hz");
                 logger.info(
-                        mediaType
-                            + " remote IP/port: "
-                            + stats.getRemoteIPAddress()
-                            + "/"
-                            + String.valueOf(stats.getRemotePort()));
+                        mediaType + " remote IP/port: "
+                            + stats.getRemoteIPAddress() + "/"
+                            + stats.getRemotePort());
             }
         }
 
@@ -2102,34 +2052,16 @@ public class MediaStreamImpl
      * this <tt>MediaStreamImpl</tt> will have a single <tt>ReceiveStream</tt>
      * in its list.
      */
-    @SuppressWarnings("unchecked")
     private void startReceiveStreams()
     {
-        StreamRTPManager rtpManager = getRTPManager();
-        Set<ReceiveStream> streamsToStart = new HashSet<ReceiveStream>();
-
-        try
-        {
-            streamsToStart.addAll(rtpManager.getReceiveStreams());
-        }
-        catch (Exception ex)
-        {
-            /*
-             * It appears that in early call states when there are no streams, a
-             * NullPointerException could be thrown. Make sure we handle it
-             * gracefully.
-             */
-            if (logger.isTraceEnabled())
-                logger.trace("Failed to retrieve receive streams", ex);
-        }
-
         /*
-         * It has been observed that sometimes there are valid ReceiveStream-s
-         * in this.receiveStreams which are not returned by the RTP manager.
+         * The ReceiveStreams originate from RtpManager, make sure that there is
+         * an actual RTPManager to initialize ReceiveStreams which are then to
+         * be started.
          */
-        streamsToStart.addAll(getReceiveStreams());
+        getRTPManager();
 
-        for (ReceiveStream receiveStream : streamsToStart)
+        for (ReceiveStream receiveStream : getReceiveStreams())
         {
             try
             {
@@ -2150,7 +2082,6 @@ public class MediaStreamImpl
                         "Failed to start receive stream " + receiveStream,
                         ioex);
             }
-
         }
     }
 
@@ -2289,33 +2220,9 @@ public class MediaStreamImpl
      * this <tt>MediaStreamImpl</tt> will have a single <tt>ReceiveStream</tt>
      * in its list.
      */
-    @SuppressWarnings("unchecked")
     private void stopReceiveStreams()
     {
-        Set<ReceiveStream> streamsToStop = new HashSet<ReceiveStream>();
-
-        try
-        {
-            streamsToStop.addAll(rtpManager.getReceiveStreams());
-        }
-        catch (Exception ex)
-        {
-            /*
-             * It appears that in early call states when there are no streams, a
-             * NullPointerException could be thrown. Make sure we handle it
-             * gracefully.
-             */
-            if (logger.isTraceEnabled())
-                logger.trace("Failed to retrieve receive streams", ex);
-        }
-
-        /*
-         * It has been observed that sometimes there are valid ReceiveStream-s
-         * in this.receiveStreams which are not returned by the RTP manager.
-         */
-        streamsToStop.addAll(getReceiveStreams());
-
-        for (ReceiveStream receiveStream : streamsToStop)
+        for (ReceiveStream receiveStream : getReceiveStreams())
         {
             try
             {
@@ -2521,9 +2428,8 @@ public class MediaStreamImpl
             }
             else if (participant != null)
             {
-                List<ReceiveStream> receiveStreams = getReceiveStreams();
-                @SuppressWarnings("rawtypes")
-                Vector rtpManagerReceiveStreams
+                Collection<ReceiveStream> receiveStreams = getReceiveStreams();
+                Collection<?> rtpManagerReceiveStreams
                     = rtpManager.getReceiveStreams();
 
                 for(ReceiveStream receiveStream: receiveStreams)
@@ -2696,26 +2602,67 @@ public class MediaStreamImpl
     }
 
     /**
+     * Gets a <tt>ReceiveStream</tt> which this instance plays back on its
+     * associated <tt>MediaDevice</tt> and which has a specific synchronization
+     * source identifier (SSRC).
+     *
+     * @param ssrc the synchronization source identifier of the
+     * <tt>ReceiveStream</tt> to return
+     * @return a <tt>ReceiveStream</tt> which this instance plays back on its
+     * associated <tt>MediaDevice</tt> and which has the specified <tt>ssrc</tt>
+     */
+    public ReceiveStream getReceiveStream(int ssrc)
+    {
+        for (ReceiveStream receiveStream : getReceiveStreams())
+        {
+            int receiveStreamSSRC = (int) receiveStream.getSSRC();
+
+            if (receiveStreamSSRC == ssrc)
+                return receiveStream;
+        }
+        return null;
+    }
+
+    /**
      * Gets a list of the <tt>ReceiveStream</tt>s this instance plays back on
      * its associated <tt>MediaDevice</tt>.
      *
      * @return a list of the <tt>ReceiveStream</tt>s this instance plays back on
      * its associated <tt>MediaDevice</tt>
      */
-    private List<ReceiveStream> getReceiveStreams()
+    public Collection<ReceiveStream> getReceiveStreams()
     {
+        Set<ReceiveStream> receiveStreams = new HashSet<ReceiveStream>();
+
+        // This instance maintains a list of the ReceiveStreams.
         Lock readLock = receiveStreamsLock.readLock();
-        List<ReceiveStream> receiveStreams;
 
         readLock.lock();
         try
         {
-            receiveStreams = new ArrayList<ReceiveStream>(this.receiveStreams);
+            receiveStreams.addAll(this.receiveStreams);
         }
         finally
         {
             readLock.unlock();
         }
+
+        /*
+         * Unfortunately, it has been observed that sometimes there are valid
+         * ReceiveStreams in this instance which are not returned by the
+         * rtpManager.
+         */
+        StreamRTPManager rtpManager = queryRTPManager();
+
+        if (rtpManager != null)
+        {
+            @SuppressWarnings("unchecked")
+            Collection<ReceiveStream> rtpManagerReceiveStreams
+                = rtpManager.getReceiveStreams();
+
+            receiveStreams.addAll(rtpManagerReceiveStreams);
+        }
+
         return receiveStreams;
     }
 
@@ -3124,12 +3071,14 @@ public class MediaStreamImpl
     private void printReceiveStreamStatistics()
     {
         mediaStreamStatsImpl.updateStats();
-        StringBuilder buff = new StringBuilder("\nReceive stream stats: " +
-            "discarded RTP packets: ")
+
+        StringBuilder buff
+            = new StringBuilder(
+                    "\nReceive stream stats: discarded RTP packets: ")
                 .append(mediaStreamStatsImpl.getNbDiscarded())
-                .append("\n").append("Receive stream stats: " +
-                    "decoded with FEC: ")
+                .append("\nReceive stream stats: decoded with FEC: ")
                 .append(mediaStreamStatsImpl.getNbFec());
+
         logger.info(buff);
     }
 
@@ -3147,15 +3096,15 @@ public class MediaStreamImpl
     }
 
     /**
-     * Returns a MediaStreamStats object used to get statistics about this
-     * MediaStream.
+     * Returns the statistical information gathered about this
+     * <tt>MediaStream</tt>.
      *
-     * @return the MediaStreamStats object used to compute the statistics about
-     * this MediaStream.
+     * @return the statistical information gathered about this
+     * <tt>MediaStream</tt>
      */
-    public MediaStreamStats getMediaStreamStats()
+    public MediaStreamStatsImpl getMediaStreamStats()
     {
-        return this.mediaStreamStatsImpl;
+        return mediaStreamStatsImpl;
     }
 
     /**
@@ -3215,19 +3164,8 @@ public class MediaStreamImpl
     @Override
     public void removeReceiveStreamForSsrc(long ssrc)
     {
-        ReceiveStream toRemove = null;
+        ReceiveStream toRemove = getReceiveStream((int) ssrc);
 
-        for (Object o : rtpManager.getReceiveStreams())
-        {
-            ReceiveStream receiveStream = (ReceiveStream) o;
-            long receiveStreamSSRC = receiveStream.getSSRC() & 0xFFFFFFFFL;
-
-            if (receiveStreamSSRC == ssrc)
-            {
-                toRemove = receiveStream;
-                break;
-            }
-        }
         if (toRemove != null)
             removeReceiveStream(toRemove);
     }
@@ -3250,27 +3188,6 @@ public class MediaStreamImpl
             else if (translator instanceof RTPTranslatorImpl)
                 ((RTPTranslatorImpl)translator).setSSRCFactory(ssrcFactory);
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Object getProperty(String propertyName)
-    {
-        return properties.get(propertyName);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setProperty(String propertyName, Object value)
-    {
-        if (value == null)
-            properties.remove(propertyName);
-        else
-            properties.put(propertyName, value);
     }
 
     /**

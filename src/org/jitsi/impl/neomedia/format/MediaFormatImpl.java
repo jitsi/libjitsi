@@ -383,9 +383,7 @@ public abstract class MediaFormatImpl<T extends Format>
      */
     public Map<String, String> getAdvancedAttributes()
     {
-        return (advancedAttributes == EMPTY_FORMAT_PARAMETERS)
-                ? EMPTY_FORMAT_PARAMETERS
-                : new HashMap<String, String>(advancedAttributes);
+        return new HashMap<String, String>(advancedAttributes);
     }
 
     /**

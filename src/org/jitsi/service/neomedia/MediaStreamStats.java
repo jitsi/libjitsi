@@ -8,79 +8,22 @@ package org.jitsi.service.neomedia;
 
 import java.awt.*;
 
-import net.sf.fmj.media.rtp.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * Class used to compute stats concerning a MediaStream.
  *
  * @author Vincent Lucas
+ * @author Lyubomir Marinov
  */
 public interface MediaStreamStats
 {
     /**
-     * Computes and updates information for a specific stream.
-     */
-    public void updateStats();
-
-    /**
-     * Returns the MediaStream enconding.
+     * Returns the jitter average of this download stream.
      *
-     * @return the encoding used by the stream.
+     * @return the last jitter average computed (in ms).
      */
-    public String getEncoding();
-
-    /**
-     * Returns the MediaStream enconding rate (in Hz)..
-     *
-     * @return the encoding rate used by the stream.
-     */
-    public String getEncodingClockRate();
-
-    /**
-     * Returns the upload video size if this stream uploads a video, or null if
-     * not.
-     *
-     * @return the upload video size if this stream uploads a video, or null if
-     * not.
-     */
-    public Dimension getUploadVideoSize();
-
-    /**
-     * Returns the download video size if this stream downloads a video, or
-     * null if not.
-     *
-     * @return the download video size if this stream downloads a video, or null
-     * if not.
-     */
-    public Dimension getDownloadVideoSize();
-
-    /**
-     * Returns the local IP address of the MediaStream.
-     *
-     * @return the local IP address of the stream.
-     */
-    public String getLocalIPAddress();
-
-    /**
-     * Returns the local port of the MediaStream.
-     *
-     * @return the local port of the stream.
-     */
-    public int getLocalPort();
-
-    /**
-     * Returns the remote IP address of the MediaStream.
-     *
-     * @return the remote IP address of the stream.
-     */
-    public String getRemoteIPAddress();
-
-    /**
-     * Returns the remote port of the MediaStream.
-     *
-     * @return the remote port of the stream.
-     */
-    public int getRemotePort();
+    public double getDownloadJitterMs();
 
     /**
      * Returns the percent loss of the download stream.
@@ -90,13 +33,6 @@ public interface MediaStreamStats
     public double getDownloadPercentLoss();
 
     /**
-     * Returns the percent loss of the upload stream.
-     *
-     * @return the last loss rate computed (in %).
-     */
-    public double getUploadPercentLoss();
-
-    /**
      * Returns the bandwidth used by this download stream.
      *
      * @return the last used download bandwidth computed (in Kbit/s).
@@ -104,53 +40,55 @@ public interface MediaStreamStats
     public double getDownloadRateKiloBitPerSec();
 
     /**
-     * Returns the bandwidth used by this download stream.
+     * Returns the download video size if this stream downloads a video, or
+     * <tt>null</tt> if not.
      *
-     * @return the last used upload bandwidth computed (in Kbit/s).
+     * @return the download video size if this stream downloads a video, or
+     * <tt>null</tt> if not.
      */
-    public double getUploadRateKiloBitPerSec();
+    public Dimension getDownloadVideoSize();
 
     /**
-     * Returns the jitter average of this download stream.
+     * Returns the <tt>MediaStream</tt> enconding.
      *
-     * @return the last jitter average computed (in ms).
+     * @return the encoding used by the stream.
      */
-    public double getDownloadJitterMs();
+    public String getEncoding();
 
     /**
-     * Returns the jitter average of this upload stream.
+     * Returns the <tt>MediaStream</tt> enconding rate (in Hz).
      *
-     * @return the last jitter average computed (in ms).
+     * @return the encoding rate used by the stream.
      */
-    public double getUploadJitterMs();
+    public String getEncodingClockRate();
 
     /**
-     * Updates this stream stats with the new feedback sent.
+     * Returns the delay in milliseconds introduced by the jitter buffer.
      *
-     * @param feedback The last RTCP feedback sent by the MediaStream.
+     * @return the delay in milliseconds introduced by the jitter buffer
      */
-    public void updateNewSentFeedback(RTCPFeedback feedback);
+    public int getJitterBufferDelayMs();
 
     /**
-     * Updates this stream stats with the new feedback received.
+     * Returns the delay in number of packets introduced by the jitter buffer.
      *
-     * @param feedback The last RTCP feedback received by the MediaStream.
+     * @return the delay in number of packets introduced by the jitter buffer
      */
-    public void updateNewReceivedFeedback(RTCPFeedback feedback);
+    public int getJitterBufferDelayPackets();
 
     /**
-     * Returns the RTT computed with the RTCP feedback (cf. RFC3550, section
-     * 6.4.1, subsection "delay since last SR (DLSR): 32 bits").
+     * Returns the local IP address of the <tt>MediaStream</tt>.
      *
-     * @return The RTT computed with the RTCP feedback. Returns -1 if the RTT
-     * has not been computed yet. Otherwise the RTT in ms.
+     * @return the local IP address of the stream.
      */
-    public long getRttMs();
+    public String getLocalIPAddress();
 
     /**
-     * Returns the number of packets for which FEC data was decoded.
+     * Returns the local port of the <tt>MediaStream</tt>.
+     *
+     * @return the local port of the stream.
      */
-    public long getNbFec();
+    public int getLocalPort();
 
     /**
      * Returns the total number of discarded packets since the beginning of the
@@ -162,44 +100,13 @@ public interface MediaStreamStats
     public long getNbDiscarded();
 
     /**
-     * Returns the current percent of discarded packets.
-     *
-     * @return the current percent of discarded packets.
-     */
-    public double getPercentDiscarded();
-
-    /**
-     * Checks whether there is an adaptive jitter buffer enabled for at least
-     * one of the <tt>ReceiveStream</tt>s of the <tt>MediaStreamImpl</tt>.
-     *
-     * @return <tt>true</tt> if there is an adaptive jitter buffer enabled for
-     * at least one of the <tt>ReceiveStream</tt>s of the
-     * <tt>MediaStreamImpl</tt>. Otherwise, <tt>false</tt>
-     */
-    public boolean isAdaptiveBufferEnabled();
-
-    /**
-     * Returns the delay in number of packets introduced by the jitter buffer.
-     *
-     * @return the delay in number of packets introduced by the jitter buffer
-     */
-    public int getJitterBufferDelayPackets();
-
-    /**
-     * Returns the delay in milliseconds introduced by the jitter buffer.
-     *
-     * @return the delay in milliseconds introduces by the jitter buffer
-     */
-    public int getJitterBufferDelayMs();
-
-    /**
      * Returns the number of packets discarded since the beginning of the
-     * session, because the packet queue was reset.
+     * session, because the packet queue was full.
      *
      * @return the number of packets discarded since the beginning of the
-     * session, because the packet queue was reset.
+     * session, because the packet queue was full.
      */
-    public int getNbDiscardedReset();
+    public int getNbDiscardedFull();
 
     /**
      * Returns the number of packets discarded since the beginning of the
@@ -212,6 +119,15 @@ public interface MediaStreamStats
 
     /**
      * Returns the number of packets discarded since the beginning of the
+     * session, because the packet queue was reset.
+     *
+     * @return the number of packets discarded since the beginning of the
+     * session, because the packet queue was reset.
+     */
+    public int getNbDiscardedReset();
+
+    /**
+     * Returns the number of packets discarded since the beginning of the
      * session, while the packet queue was shrinking.
      *
      * @return the number of packets discarded since the beginning of the
@@ -220,13 +136,18 @@ public interface MediaStreamStats
     public int getNbDiscardedShrink();
 
     /**
-     * Returns the number of packets discarded since the beginning of the
-     * session, because the packet queue was full.
+     * Returns the number of packets for which FEC data was decoded.
      *
-     * @return the number of packets discarded since the beginning of the
-     * session, because the packet queue was full.
+     * @return the number of packets for which FEC data was decoded
      */
-    public int getNbDiscardedFull();
+    public long getNbFec();
+
+    /**
+     * Returns the number of packets currently in the packet queue.
+     *
+     * @return the number of packets currently in the packet queue.
+     */
+    public int getPacketQueueCountPackets();
 
     /**
      * Returns the current size of the packet queue.
@@ -236,9 +157,86 @@ public interface MediaStreamStats
     public int getPacketQueueSize();
 
     /**
-     * Returns the number of packets currently in the packet queue.
+     * Returns the current percent of discarded packets.
      *
-     * @return the number of packets currently in the packet queue.
+     * @return the current percent of discarded packets.
      */
-    public int getPacketQueueCountPackets();
+    public double getPercentDiscarded();
+
+    /**
+     * Returns the remote IP address of the <tt>MediaStream</tt>.
+     *
+     * @return the remote IP address of the stream.
+     */
+    public String getRemoteIPAddress();
+
+    /**
+     * Returns the remote port of the <tt>MediaStream</tt>.
+     *
+     * @return the remote port of the stream.
+     */
+    public int getRemotePort();
+
+    /**
+     * Gets the detailed statistics about the RTCP reports sent and received by
+     * the associated local peer.
+     *
+     * @return the detailed statistics about the RTCP reports sent and received
+     * by the associated local peer
+     */
+    public RTCPReports getRTCPReports();
+
+    /**
+     * Returns the RTT computed with the RTCP feedback (cf. RFC3550, section
+     * 6.4.1, subsection "delay since last SR (DLSR): 32 bits").
+     *
+     * @return The RTT computed with the RTCP feedback. Returns <tt>-1</tt> if
+     * the RTT has not been computed yet. Otherwise the RTT in ms.
+     */
+    public long getRttMs();
+
+    /**
+     * Returns the jitter average of this upload stream.
+     *
+     * @return the last jitter average computed (in ms).
+     */
+    public double getUploadJitterMs();
+
+    /**
+     * Returns the percent loss of the upload stream.
+     *
+     * @return the last loss rate computed (in %).
+     */
+    public double getUploadPercentLoss();
+
+    /**
+     * Returns the bandwidth used by this download stream.
+     *
+     * @return the last used upload bandwidth computed (in Kbit/s).
+     */
+    public double getUploadRateKiloBitPerSec();
+
+    /**
+     * Returns the upload video size if this stream uploads a video, or
+     * <tt>null</tt> if not.
+     *
+     * @return the upload video size if this stream uploads a video, or
+     * <tt>null</tt> if not.
+     */
+    public Dimension getUploadVideoSize();
+
+    /**
+     * Checks whether there is an adaptive jitter buffer enabled for at least
+     * one of the <tt>ReceiveStream</tt>s of the <tt>MediaStreamImpl</tt>.
+     *
+     * @return <tt>true</tt> if there is an adaptive jitter buffer enabled for
+     * at least one of the <tt>ReceiveStream</tt>s of the
+     * <tt>MediaStreamImpl</tt>; otherwise, <tt>false</tt>
+     */
+    public boolean isAdaptiveBufferEnabled();
+
+    /**
+     * Computes and updates information for a specific stream.
+     */
+    public void updateStats();
 }
