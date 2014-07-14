@@ -43,22 +43,7 @@ public class VideoGreyFadingMediaDevice
      */
     public VideoGreyFadingMediaDevice()
     {
-        super(new CaptureDeviceInfo(
-                    "GreyFadingVideo",
-                    new MediaLocator("greyfading:"),
-                    new Format[]
-                            {
-                            new RGBFormat(
-                                 (Dimension)DEFAULT_DIMENSION.clone(), // size
-                                 Format.NOT_SPECIFIED, // maxDataLength
-                                 Format.byteArray, // dataType
-                                 DEFAULT_FRAMERATE, // frameRate
-                                 32, // bitsPerPixel
-                                 2 /* red */,
-                                 3 /* green */,
-                                 4 /* blue */)
-                            }),
-                MediaType.VIDEO);
+        this(DEFAULT_FRAMERATE,DEFAULT_DIMENSION);
     }
     
     /**
@@ -69,22 +54,7 @@ public class VideoGreyFadingMediaDevice
      */
     public VideoGreyFadingMediaDevice(int framerate)
     {
-        super(new CaptureDeviceInfo(
-                    "GreyFadingVideo",
-                    new MediaLocator("greyfading:"),
-                    new Format[]
-                            {
-                            new RGBFormat(
-                                 (Dimension)DEFAULT_DIMENSION.clone(), // size
-                                 Format.NOT_SPECIFIED, // maxDataLength
-                                 Format.byteArray, // dataType
-                                 framerate, // frameRate
-                                 32, // bitsPerPixel
-                                 2 /* red */,
-                                 3 /* green */,
-                                 4 /* blue */)
-                            }),
-                MediaType.VIDEO);
+        this(framerate,DEFAULT_DIMENSION);
     }
     
     /**
@@ -95,22 +65,7 @@ public class VideoGreyFadingMediaDevice
      */
     public VideoGreyFadingMediaDevice(Dimension dimension)
     {
-        super(new CaptureDeviceInfo(
-                    "GreyFadingVideo",
-                    new MediaLocator("greyfading:"),
-                    new Format[]
-                            {
-                            new RGBFormat(
-                                 dimension, // size
-                                 Format.NOT_SPECIFIED, // maxDataLength
-                                 Format.byteArray, // dataType
-                                 DEFAULT_FRAMERATE, // frameRate
-                                 32, // bitsPerPixel
-                                 2 /* red */,
-                                 3 /* green */,
-                                 4 /* blue */)
-                            }),
-                MediaType.VIDEO);
+        this(DEFAULT_FRAMERATE,dimension);
     }
     
     /**
