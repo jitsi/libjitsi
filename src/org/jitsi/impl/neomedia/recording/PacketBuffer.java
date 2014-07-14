@@ -162,6 +162,16 @@ public class PacketBuffer
         getBuffer(ssrc).disabled = true;
     }
 
+    void reset(long ssrc)
+    {
+        synchronized (buffers)
+        {
+            Buffer buffer = buffers.get(ssrc);
+            if (buffer != null)
+                buffers.remove(buffer);
+        }
+    }
+
     /**
      * Gets the <tt>Buffer</tt> instance responsible for buffering packets with
      * SSRC <tt>ssrc</tt>. Creates it if necessary, always returns non-null.

@@ -513,8 +513,13 @@ public class RecorderRtpImpl
     {
         if (receiveStream.format instanceof VideoFormat)
         {
-            rtpConnector.packetBuffer.disable(receiveStream.ssrc);
-            emptyPacketBuffer(receiveStream.ssrc);
+            long ssrc = receiveStream.ssrc;
+            // Don't accept packets with this SSRC
+            rtpConnector.packetBuffer.disable(ssrc);
+            emptyPacketBuffer(ssrc);
+
+            // Continue accepting packets with this SSRC
+            rtpConnector.packetBuffer.reset(ssrc);
         }
 
         if (receiveStream.dataSink != null)
