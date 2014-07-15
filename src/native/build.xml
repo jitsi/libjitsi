@@ -1294,9 +1294,36 @@
     <!-- compile sctp
     usrsctp - compile steps in README file-->
     <target name="sctp" description="Build sctp shared library"
-            depends="init-native,-sctp-macosx,-sctp-other"/>
+            depends="init-native,-sctp-macosx,-sctp-win"/>
 
-    <target name="-sctp-other" unless="is.running.macos">
+    <target name="-sctp-win" if="is.running.windows">
+
+        <fail message="usrsctp repository not set!" unless="usrsctp"/>
+
+        <cc outtype="shared" name="msvc"
+            outfile="${native_install_dir}/jnsctp"
+            objdir="${obj}">
+
+            <compilerarg value="/O2" />
+            <compilerarg value="/Zi" />
+            <compilerarg value="/I${system.JAVA_HOME}\include" />
+            <compilerarg value="/I${system.JAVA_HOME}\include\win32" />
+            <compilerarg value="/I${usrsctp}\usrsctplib" />
+            <compilerarg value="-DINET6=1" />
+            <!--<compilerarg value="/LD" />-->
+
+            <linkerarg value="/DEBUG" />
+            <linkerarg value="/LIBPATH:${usrsctp}\usrsctplib"/>
+            <linkerarg value="/LIBPATH:${system.JAVA_HOME}\lib"/>
+
+            <fileset dir="${src}/native/sctp" includes="org_jitsi_sctp4j_Sctp.c"/>
+            <fileset dir="${usrsctp}\usrsctplib\" includes="usrsctp.lib"/>
+        </cc>
+
+        <delete dir="${native_install_dir}">
+            <include name="jnsctp.*"/>
+            <exclude name="jnsctp.dll"/>
+        </delete>
 
     </target>
 
