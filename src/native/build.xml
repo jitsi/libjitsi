@@ -1320,9 +1320,11 @@
             <fileset dir="${usrsctp}\usrsctplib\" includes="usrsctp.lib"/>
         </cc>
 
-        <delete dir="${native_install_dir}">
-            <include name="jnsctp.*"/>
-            <exclude name="jnsctp.dll"/>
+        <delete>
+            <fileset dir="${native_install_dir}">
+                <include name="jnsctp.*"/>
+                <exclude name="jnsctp.dll"/>
+            </fileset>
         </delete>
 
     </target>
