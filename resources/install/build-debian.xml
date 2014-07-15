@@ -110,6 +110,15 @@
             <arg value="distclean" />
         </exec>
 
+        <!-- usrsctp -->
+        <unzip src="../libsrc/usrsctp.zip"
+               dest="${tmp}/libjitsi/lib/src">
+            <patternset>
+                <exclude name="**/.svn"/>
+            </patternset>
+        </unzip>
+
+
     </target>
 
     <!-- used to build sources for debuilding deb package
@@ -326,6 +335,39 @@ org.jitsi.bccontrib.util"/>
         <ant target="portaudio">
             <property name="portaudio" value="${current.basedir}/lib/src/portaudio"/>
             <property name="speex.dynamic" value="true"/>
+        </ant>
+
+        <exec   dir="lib/src/usrsctp" failonerror="true"
+                executable="libtoolize" />
+        <exec   dir="lib/src/usrsctp" failonerror="true"
+                executable="aclocal" />
+        <exec   dir="lib/src/usrsctp" failonerror="true"
+                executable="autoconf" />
+        <exec   dir="lib/src/usrsctp" failonerror="true"
+                executable="touch">
+            <arg value="AUTHORS"/>
+            <arg value="NEWS"/>
+            <arg value="README"/>
+            <arg value="ChangeLog"/>
+        </exec>
+        <exec   dir="lib/src/usrsctp" failonerror="true"
+                executable="automake">
+            <arg value="--add-missing"/>
+        </exec>
+        <chmod file="lib/src/usrsctp/configure" perm="+x"/>
+        <exec   dir="lib/src/usrsctp"
+                executable="configure"
+                resolveexecutable="true"
+                failonerror="true">
+            <arg value="--prefix=/usr" />
+            <arg value="--with-pic" />
+        </exec>
+        <exec   dir="lib/src/usrsctp"
+                executable="make"
+                failonerror="true"/>
+        <!-- sctp -->
+        <ant target="sctp">
+            <property name="usrsctp" value="lib/src/usrsctp"/>
         </ant>
 
         <!-- ffmpeg -->
