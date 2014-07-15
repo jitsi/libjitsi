@@ -72,14 +72,36 @@ public class IVFFileReader
     }
 
     /**
-     * Get the next vp8 frame of the IVF file as a <tt>byte</tt> array. 
+     * Get the next vp8 frame of the IVF file as a <tt>byte</tt> array.
+     * A VP8Frame is allocated for each call to this function.
+     * 
      * @param loopFile if true and that the end of the file is reached,
      * this <tt>IVFFileReader</tt> will go back at the beginning of the file
      * and start over the reading of the file.
      * @return the next vp8 frame of the IVF file as a <tt>byte</tt> array.
      * @throws IOException if an error occur during the read, of if EOF is reached.
      */
-    public byte[] getNextFrame(boolean loopFile) throws IOException
+    public VP8Frame getNextFrame(boolean loopFile) throws IOException
+    {
+        VP8Frame frame = new VP8Frame();
+        getNextFrame(frame, loopFile);
+        return frame;
+    }
+    
+    /**
+     * Get the next vp8 frame of the IVF file as a <tt>byte</tt> array.
+     * You should use this function if you don't want to allocate a new VP8Frame
+     * for each call.
+     * 
+     * @param frame the <tt>VP8Frame</tt> that will be filled with the
+     * informations and data of the next frame read.
+     * @param loopFile if true and that the end of the file is reached,
+     * this <tt>IVFFileReader</tt> will go back at the beginning of the file
+     * and start over the reading of the file.
+     * @return the next vp8 frame of the IVF file as a <tt>byte</tt> array.
+     * @throws IOException if an error occur during the read, of if EOF is reached.
+     */
+    public void getNextFrame(VP8Frame frame,boolean loopFile) throws IOException
     {
         if((loopFile == true) && (frameNo >= header.getNumberOfFramesInFile()))
         {
@@ -89,15 +111,16 @@ public class IVFFileReader
         
         byte[] data;
         int frameSizeInBytes;
+        long timestamp;
         
         
         frameSizeInBytes = changeEndianness(stream.readInt());
-        stream.skipBytes(8);
+        timestamp = changeEndianness(stream.readLong());
         data = new byte[frameSizeInBytes];
         stream.read(data);
         frameNo++;
         
-        return data;
+        frame.set(timestamp,frameSizeInBytes,data);
     }
     
     /**
@@ -124,5 +147,25 @@ public class IVFFileReader
         return (short) (
         ((value << 8) & 0xFF00) |
         ((value >> 8) & 0x00FF) );
+    }
+    
+    /**
+     * Change the endianness of a 64bits long.
+     * @param value the value which you want to change the endianness.
+     * @return the <tt>value</tt> with a changed endianness
+     */
+    public static long changeEndianness(long value)
+    {
+      long b1 = (value >>  0) & 0xff;
+      long b2 = (value >>  8) & 0xff;
+      long b3 = (value >> 16) & 0xff;
+      long b4 = (value >> 24) & 0xff;
+      long b5 = (value >> 32) & 0xff;
+      long b6 = (value >> 40) & 0xff;
+      long b7 = (value >> 48) & 0xff;
+      long b8 = (value >> 56) & 0xff;
+
+      return b1 << 56 | b2 << 48 | b3 << 40 | b4 << 32 |
+             b5 << 24 | b6 << 16 | b7 <<  8 | b8 <<  0;
     }
 }
