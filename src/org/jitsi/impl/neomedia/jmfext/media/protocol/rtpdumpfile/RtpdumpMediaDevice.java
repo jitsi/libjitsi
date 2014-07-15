@@ -13,7 +13,6 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.service.neomedia.codec.Constants;
 
 
 /**
