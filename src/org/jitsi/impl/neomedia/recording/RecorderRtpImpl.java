@@ -1270,14 +1270,14 @@ public class RecorderRtpImpl
                 this.isControlStream = isControlStream;
             }
 
-            public int write(byte[] buffer,
+            public synchronized int write(byte[] buffer,
                              int offset,
                              int length)
             {
                 return write(buffer, offset, length, true);
             }
 
-            public int write(byte[] buffer,
+            public synchronized int write(byte[] buffer,
                              int offset,
                              int length,
                              boolean transform)
@@ -1311,7 +1311,6 @@ public class RecorderRtpImpl
 
                 SourceTransferHandler transferHandler;
                 PushSourceStream pushSourceStream;
-
                 try
                 {
                     if (isControlStream)
