@@ -32,6 +32,7 @@ import org.jitsi.util.*;
  * @author Vincent Lucas
  * @author Boris Grozev
  * @author Lyubomir Marinov
+ * @author Hristo Terezov
  */
 public class MediaStreamStatsImpl
     implements MediaStreamStats
@@ -669,6 +670,28 @@ public class MediaStreamStatsImpl
             }
         }
         return nbPDU;
+    }
+
+    /**
+     * Returns the total number of packets that are send or receive for this
+     * stream since the stream is created.
+     * @return the total number of packets.
+     */
+    public long getNbPackets()
+    {
+        return getNbPDU(StreamDirection.DOWNLOAD)
+            + nbLost[StreamDirection.DOWNLOAD.ordinal()]
+            + uploadFeedbackNbPackets;
+    }
+
+    /**
+     * Returns the number of lost packets for that stream.
+     * @return the number of lost packets.
+     */
+    public long getNbPacketsLost()
+    {
+        return nbLost[StreamDirection.DOWNLOAD.ordinal()]
+            + nbLost[StreamDirection.UPLOAD.ordinal()];
     }
 
     /**

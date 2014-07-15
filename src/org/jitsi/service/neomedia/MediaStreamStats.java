@@ -15,6 +15,7 @@ import org.jitsi.service.neomedia.rtp.*;
  *
  * @author Vincent Lucas
  * @author Lyubomir Marinov
+ * @author Hristo Terezov
  */
 public interface MediaStreamStats
 {
@@ -141,6 +142,19 @@ public interface MediaStreamStats
      * @return the number of packets for which FEC data was decoded
      */
     public long getNbFec();
+
+    /**
+     * Returns the total number of packets that are send or receive for this
+     * stream since the stream is created.
+     * @return the total number of packets.
+     */
+    public long getNbPackets();
+
+    /**
+     * Returns the number of lost packets for that stream.
+     * @return the number of lost packets.
+     */
+    public long getNbPacketsLost();
 
     /**
      * Returns the number of packets currently in the packet queue.
