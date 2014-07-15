@@ -1294,7 +1294,41 @@
     <!-- compile sctp
     usrsctp - compile steps in README file-->
     <target name="sctp" description="Build sctp shared library"
-            depends="init-native,-sctp-macosx,-sctp-win"/>
+            depends="init-native,-sctp-macosx,-sctp-win,-sctp-linux"/>
+
+    <target name="-sctp-linux" if="is.running.linux">
+
+        <fail message="usrsctp repository not set!" unless="usrsctp"/>
+
+        <cc outtype="shared" name="gcc"
+            outfile="${native_install_dir}/jnsctp"
+            objdir="${obj}">
+
+            <!--compilerarg value="-Wall" /-->
+            <!--compilerarg value="-Werror" /-->
+            <compilerarg value="-std=c99" />
+            <compilerarg value="-I${system.JAVA_HOME}/include" />
+            <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux"/>
+            <compilerarg value="-I${usrsctp}/usrsctplib" />
+            <compilerarg value="-DINET6=1" />
+            <compilerarg value="-fPIC"/>
+
+            <compilerarg value="-m32" if="cross_32" />
+            <compilerarg value="-m64" if="cross_64" />
+
+            <linkerarg value="-m32" if="cross_32" />
+            <linkerarg value="-m64" if="cross_64" />
+
+            <linkerarg value="-Wl,-Bstatic" location="end" />
+            <linkerarg value="-lusrsctp" location="end" />
+            <linkerarg value="-Wl,-Bdynamic" location="end" />
+            <linkerarg value="-lpthread" location="end" />
+            <linkerarg value="-L${usrsctp}/usrsctplib/.libs" />
+
+            <fileset dir="${src}/native/sctp" includes="org_jitsi_sctp4j_Sctp.c"/>
+
+        </cc>
+    </target>
 
     <target name="-sctp-win" if="is.running.windows">
 

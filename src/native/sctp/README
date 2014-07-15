@@ -61,8 +61,10 @@
 #    e) automake --add-missing
 #
 #    f) ./configure --prefix=/usr
+#       (./configure --prefix=/usr --with-pic, in order to static link the usrsctp)
 #
 #    g) sudo make install
+#       ( no need to install if making binary with ant target)
 #
 # BUILD NATIVE WRAPPER FOR SCTP
 #
