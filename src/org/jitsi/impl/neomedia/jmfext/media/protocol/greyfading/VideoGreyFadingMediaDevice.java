@@ -4,19 +4,15 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
-
- 
 package org.jitsi.impl.neomedia.jmfext.media.protocol.greyfading;
 
-import java.awt.Dimension;
+import java.awt.*;
 
 import javax.media.*;
 import javax.media.format.*;
-import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
-
 
 /**
  * Implements a <tt>MediaDevice</tt> which provides a fading animation from
