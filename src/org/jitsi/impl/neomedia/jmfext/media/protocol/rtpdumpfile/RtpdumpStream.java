@@ -92,7 +92,7 @@ public class RtpdumpStream
         }
            
         
-        RTPPacket rtpPacket = rtpFileReader.getNextPacket(true);
+        RtpdumpPacket rtpPacket = rtpFileReader.getNextPacket(true);
         byte[] data = rtpPacket.getPayload(); 
         
         buffer.setData(data);
@@ -104,7 +104,7 @@ public class RtpdumpStream
         {
             rtpTimestamp = System.nanoTime();
         }
-        if( (lastReadWasMarked = rtpPacket.hasMarker()) == true)
+        if( (lastReadWasMarked = rtpPacket.isPacketMarked()) == true)
         {
             buffer.setFlags(buffer.getFlags() | Buffer.FLAG_RTP_MARKER);
         }
