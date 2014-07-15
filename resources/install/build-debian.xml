@@ -354,7 +354,6 @@ org.jitsi.bccontrib.util"/>
                 executable="automake">
             <arg value="--add-missing"/>
         </exec>
-        <chmod file="lib/src/usrsctp/configure" perm="+x"/>
         <exec   dir="lib/src/usrsctp"
                 executable="configure"
                 resolveexecutable="true"
@@ -367,7 +366,7 @@ org.jitsi.bccontrib.util"/>
                 failonerror="true"/>
         <!-- sctp -->
         <ant target="sctp">
-            <property name="usrsctp" value="lib/src/usrsctp"/>
+            <property name="usrsctp" value="${current.basedir}/lib/src/usrsctp"/>
         </ant>
 
         <!-- ffmpeg -->
