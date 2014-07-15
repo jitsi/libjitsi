@@ -31,7 +31,7 @@ import java.io.*;
  */
 public class RtpdumpFileReader
 {
-    /*
+    /**
      * The size of the first header of the file (in bytes).
      * 
      * The file wireshark/ui/tap-rtp-common.c , more specificaly the function
@@ -76,30 +76,30 @@ public class RtpdumpFileReader
      * @param loopFile if true, when the end of the rtpdump file is reached,
      * this <tt>RtpdumpFileReader</tt> will go back at the beginning of the file
      * and get the first packet.
-     * @return a <tt>RTPPacket</tt> containing all the informations and data
+     * @return a <tt>RtpdumpPacket</tt> containing all the informations and data
      * of the next rtp packet recorded in the rtpdump file
      * @throws IOException if <tt>loopFile</tt> was false and the end of the file
      * is reached.
      */
-    public RTPPacket getNextPacket(boolean loopFile) throws IOException
+    public RtpdumpPacket getNextPacket(boolean loopFile) throws IOException
     {
         if((loopFile == true) && (stream.getFilePointer() >= stream.length()))
         {
             resetFile();
         }
         
-        byte[] rtpPacket;
+        byte[] RtpdumpPacket;
         int sizeInBytes;
         int rtpdump_timestamp;
                 
         stream.readShort();//read away an useless short (2 bytes)
         sizeInBytes = stream.readUnsignedShort();
-        rtpPacket = new byte[sizeInBytes];
+        RtpdumpPacket = new byte[sizeInBytes];
         rtpdump_timestamp = stream.readInt();//read away the rtpdump timestamp of the send/receive
         
-        stream.read(rtpPacket);
+        stream.read(RtpdumpPacket);
         
-        return new RTPPacket(rtpPacket,rtpdump_timestamp);
+        return new RtpdumpPacket(RtpdumpPacket,rtpdump_timestamp);
     }
     
     /**
