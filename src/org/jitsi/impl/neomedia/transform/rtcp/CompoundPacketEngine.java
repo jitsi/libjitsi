@@ -25,13 +25,6 @@ public class CompoundPacketEngine
                PacketTransformer
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>CompoundPacketEngine</tt> class and
-     * its instances for logging output.
-     */
-    private static final Logger logger
-        = Logger.getLogger(CompoundPacketEngine.class);
-
-    /**
      * The maximum number of individual RTCP packets contained in an RTCP
      * compound packet. If an input packet (seems to) contain more than this,
      * it will remain unchanged.
@@ -76,8 +69,6 @@ public class CompoundPacketEngine
     @Override
     public void close()
     {
-        if (logger.isTraceEnabled())
-            logger.trace(".close: new RawPackets " + c);
     }
 
     /**
