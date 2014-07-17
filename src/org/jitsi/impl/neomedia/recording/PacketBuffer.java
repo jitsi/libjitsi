@@ -162,13 +162,18 @@ public class PacketBuffer
         getBuffer(ssrc).disabled = true;
     }
 
+    /**
+     * Resets the buffer for a particular SSRC (effectively re-enabling it if
+     * it was disabled).
+     * @param ssrc
+     */
     void reset(long ssrc)
     {
         synchronized (buffers)
         {
             Buffer buffer = buffers.get(ssrc);
             if (buffer != null)
-                buffers.remove(buffer);
+                buffers.remove(ssrc);
         }
     }
 
