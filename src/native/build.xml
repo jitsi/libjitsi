@@ -808,7 +808,53 @@
         </cc>
     </target>
 
-    <target name="libvpx" description="Build the libvpx shared library" depends="init-native">
+    <!-- see src/native/vpx/README.md -->
+    <target name="libvpx-debian"
+        description="Build the libjnvpx shared library for debian"
+        depends="init-native"
+        if="is.running.debian">
+
+        <fail message="libmkv repository not set!" unless="libmkv"/>
+
+        <cc name="gcc"
+            objdir="${obj}"
+            outfile="${native_install_dir}/jnvpx">
+            <!-- common compiler flags -->
+            <compilerarg value="-Wall" />
+            <compilerarg value="-fPIC"/>
+            <compilerarg value="-O2" />
+            <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+
+            <!-- java includes -->
+            <compilerarg value="-I${system.JAVA_HOME}/include" />
+            <compilerarg value="-I${system.JAVA_HOME}/include/linux" />
+
+            <!-- libvpx includes -->
+            <compilerarg value="-I/usr/include/vpx" />
+            <compilerarg value="-I${libmkv}/.." />
+
+            <!-- architecture flags -->
+            <compilerarg value="-m32" if="cross_32" />
+            <compilerarg value="-m64" if="cross_64" />
+
+            <!-- linker flags -->
+            <linkerarg value="-shared" />
+            <linkerarg value="-m32" if="cross_32" />
+            <linkerarg value="-m64" if="cross_64" />
+            <linkerarg value="-lstdc++" />
+            <linkerarg value="-lvpx" />
+            <linkerarg value="-olibjnvpx.so" location="end" if="is.running.unix" />
+
+
+            <fileset dir="${src}/native/vpx" includes="*.c"/>
+            <fileset dir="${src}/native/vpx" includes="*.cc"/>
+            <fileset dir="${libmkv}" includes="EbmlWriter.c"/>
+        </cc>
+
+    </target>
+
+    <!-- see src/native/vpx/README.md -->
+    <target name="libvpx" description="Build the libjnvpx shared library" depends="init-native">
         <!-- TODO: strip -->
 
         <fail message="libvpx repository not set!" unless="libvpx"/>
@@ -831,9 +877,8 @@
             <compilerarg value="-I/Applications/Xcode.app//Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers/" if="is.running.macos" />
 
             <!-- libvpx includes -->
-            <compilerarg value="-I${libvpx}" unless="is.running.debian"/>
-            <compilerarg value="-I/usr/include/vpx" if="is.running.debian"/>
-            <compilerarg value="-I${libvpx}/third_party" unless="is.running.debian"/>
+            <compilerarg value="-I${libvpx}" />
+            <compilerarg value="-I${libvpx}/third_party" />
 
             <!-- architecture flags -->
             <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
