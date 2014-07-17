@@ -222,6 +222,10 @@ public class RecorderEventHandlerJSONImpl
         if (aspectRatio != RecorderEvent.AspectRatio.ASPECT_RATIO_UNKNOWN)
             json.put("aspectRatio", aspectRatio.toString());
 
+        long rtpTimestamp = ev.getRtpTimestamp();
+        if (rtpTimestamp != -1)
+            json.put("rtpTimestamp", rtpTimestamp);
+
         String filename = ev.getFilename();
         if (filename != null)
         {
