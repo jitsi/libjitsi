@@ -4,7 +4,7 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
- 
+
 package org.jitsi.impl.neomedia.jmfext.media.protocol.ivffile;
 
 import javax.media.*;
@@ -12,8 +12,7 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.service.neomedia.codec.Constants;
-
+import org.jitsi.service.neomedia.codec.*;
 
 /**
  * Implements a <tt>MediaDevice</tt> which provides a fading animation from
@@ -33,7 +32,7 @@ public class IVFMediaDevice
                 {
                     new VideoFormat(Constants.VP8)
                 };
-    
+
     /**
      * Initializes a new <tt>IVFMediaDevice</tt> instance which will read
      * the IVF file located at <tt>filename</tt>.
@@ -44,9 +43,9 @@ public class IVFMediaDevice
     public IVFMediaDevice(String filename)
     {
         super(new CaptureDeviceInfo(
-                    filename,
-                    new MediaLocator("ivffile:"+filename),
-                    IVFMediaDevice.SUPPORTED_FORMATS),
-                MediaType.VIDEO);
+                  filename,
+                  new MediaLocator("ivffile:"+filename),
+                  IVFMediaDevice.SUPPORTED_FORMATS),
+              MediaType.VIDEO);
     }
 }

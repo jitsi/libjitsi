@@ -19,22 +19,22 @@ public class VP8Frame
      * The timestamp of the frame (of the frame's header in the ivf file)
      */
     private long timestamp;
-    
+
     /**
      * The length (in byte) of the frame.
      */
     private int frameLength;
-    
+
     /**
      * The data of the frame.
      */
     private byte[] frameData;
-    
+
     /**
      * Create an empty <tt>VP8Frame</tt> that need to be set later.
      */
     public VP8Frame() {}
-    
+
     /**
      * Create a <tt>VP8Frame</tt> filled with the data of the frame, its
      * timestamp and the length of the data (in bytes)
@@ -47,7 +47,7 @@ public class VP8Frame
     {
         this.set(timestamp,frameLength,frameData);
     }
-    
+
     /**
      * Get the timestamp of the frame as declared in its header.
      * @return the timestamp of the frame.
@@ -56,7 +56,7 @@ public class VP8Frame
     {
         return timestamp;
     }
-    
+
     /**
      * Get the length of the frame (in bytes) as declared in its header.
      * @return the length of the frame.
@@ -65,7 +65,7 @@ public class VP8Frame
     {
         return frameLength;
     }
-    
+
     /**
      * Get the data composing the VP8 frame.
      * @return the data of the VP8 frame.

@@ -16,11 +16,10 @@ import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import java.io.*;
 
 /**
- * 
- * @author Thomas Kuntz
- * 
  * Implements a <tt>PullBufferStream</tt> which read an IVF file for the frames
  * of the video stream.
+ *
+ * @author Thomas Kuntz
  */
 public class IVFStream
     extends AbstractVideoPullBufferStream<DataSource>
@@ -30,26 +29,26 @@ public class IVFStream
      * (the timestamp is taken just before the return).
      */
     private long timeLastRead = 0;
-    
+
     /**
      * The timestamp of the frame (of its header) read during the last call
      * to doRead. It's used to determine if enough time has passed during the
      * last frame and the next frame to be returned.
      */
     private long lastFrameTimestamp = 0;
-    
+
     /**
      * The VP8Frame that is filled by the VP8 frame and header read in the IVF
      * file. We use the same VP8Frame object (set with the new frame each time
      * of course) to avoid the allocation of a new VP8Frame each time.
      */
     private VP8Frame frame = new VP8Frame();
-    
+
     /**
      * The <tt>IVFFileReader</tt> used to get the frame of the IVF file.
      */
     private IVFFileReader ivfFileReader;
-    
+
     /**
      * The timebase of the video stream (timescale / framerate)
      * 
@@ -61,9 +60,8 @@ public class IVFStream
      * 
      * Here the timebase should be in nanoseconds.
      */
-    private long TIMEBASE;
-    
-    
+    private final long TIMEBASE;
+
     /**
      * Initializes a new <tt>IVFStream</tt> instance which is to have a
      * specific <tt>FormatControl</tt>
@@ -78,13 +76,12 @@ public class IVFStream
         super(dataSource, formatControl);
         this.ivfFileReader = new IVFFileReader(
                 dataSource.getLocator().getRemainder());
-        
+
         //this.TIMEBASE = (int)(1000. / ((VideoFormat)getFormat()).getFrameRate());
         IVFHeader header = ivfFileReader.getHeader();
         this.TIMEBASE = 1000000000 *  header.getTimeScale() / header.getFramerate();
     }
 
-    
     /**
      * Reads available media data from this instance into a specific
      * <tt>Buffer</tt>.
@@ -109,18 +106,16 @@ public class IVFStream
             if (format != null)
                 buffer.setFormat(format);
         }
-                
-        ivfFileReader.getNextFrame(frame,true);
-        
+
+        ivfFileReader.getNextFrame(frame, true);
+
         buffer.setData(frame.getFrameData());
         buffer.setOffset(0);
         buffer.setLength(frame.getFrameLength());
-        
-        
+
         buffer.setTimeStamp(System.nanoTime());
         buffer.setFlags(Buffer.FLAG_SYSTEM_TIME | Buffer.FLAG_LIVE_DATA);
-        
-        
+
         /*
          * We just check if the time that has passed since the last call to doRead
          * took more or less milliseconds & nanoseconds than the number of
@@ -131,7 +126,8 @@ public class IVFStream
          */
         nanos = System.nanoTime() - this.timeLastRead;
         nanos = (frame.getTimestamp() - lastFrameTimestamp) * TIMEBASE - nanos;
-        /**
+
+        /*
          * Even if we loop the IVF file, there won't be any problem with millis
          * when the last frame of the file was reached and the current frame is
          * the first one : (frame.getTimestamp() - lastFrameTimestamp) will
@@ -151,6 +147,6 @@ public class IVFStream
             }
         }
         this.lastFrameTimestamp = frame.getTimestamp();
-        this.timeLastRead=System.nanoTime();
+        this.timeLastRead = System.nanoTime();
     }
 }

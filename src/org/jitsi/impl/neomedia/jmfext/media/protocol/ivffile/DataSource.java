@@ -4,10 +4,10 @@
  * Distributable under LGPL license.
  * See terms of license at gnu.org.
  */
- 
+
 package org.jitsi.impl.neomedia.jmfext.media.protocol.ivffile;
 
-import java.io.IOException;
+import java.io.*;
 
 import javax.media.*;
 import javax.media.control.*;
@@ -29,34 +29,31 @@ public class DataSource
      * The format of the VP8 video contained in the IVF file.
      */
     private Format[] SUPPORTED_FORMATS = new Format[1];
-    
+
     /**
      * The location of the IVF file this <tt>DataSource</tt> will use for the
      * VP8 frames.
      */
     private String fileLocation;
-    
+
     /**
      * The header of the IVF file this <tt>DataSource</tt> will use for the
      * VP8 frames.
      */
     private IVFHeader ivfHeader;
-    
+
     /**
-     * doConnect allow us to initialize the DataSource with informations that
+     * doConnect allows us to initialize the DataSource with information that
      * we couldn't have in the constructor, like the MediaLocator that give us
      * the path of the ivf file which give us information on the format 
      */
-    public void doConnect() throws IOException
+    public void doConnect()
+        throws IOException
     {
         super.doConnect();
         this.fileLocation = getLocator().getRemainder();
         ivfHeader = new IVFHeader(this.fileLocation);
-        
-        /*
-         * The real framerate of an ivf file is the framerate in the header of
-         * the file divided by the timescale (also given in the header).
-         */
+
         this.SUPPORTED_FORMATS[0] = new VideoFormat(
                 Constants.VP8,
                 ivfHeader.getDimension(),
@@ -64,7 +61,7 @@ public class DataSource
                 Format.byteArray,
                 Format.NOT_SPECIFIED);
     }
-    
+
     /**
      * {@inheritDoc}
      *
@@ -78,8 +75,6 @@ public class DataSource
         return new IVFStream(this, formatControl);
     }
 
-    
-    
     /**
      * {@inheritDoc}
      *
