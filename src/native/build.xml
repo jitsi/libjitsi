@@ -873,8 +873,8 @@
             <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux" />
             <compilerarg value="-I${system.JAVA_HOME}/include/freebsd" if="is.running.freebsd" />
             <compilerarg value="-I${system.JAVA_HOME}/include/win32" if="is.running.windows" />
-            <!--<compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" /> -->
-            <compilerarg value="-I/Applications/Xcode.app//Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers/" if="is.running.macos" />
+            <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
+            <!--<compilerarg value="-I/Applications/Xcode.app//Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers/" if="is.running.macos" /> -->
 
             <!-- libvpx includes -->
             <compilerarg value="-I${libvpx}" />
