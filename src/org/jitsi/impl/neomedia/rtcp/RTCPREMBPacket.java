@@ -60,7 +60,7 @@ public class RTCPREMBPacket extends RTCPFBPacket
             int mantissa,
             long[] dest)
     {
-        super(15, 206, senderSSRC, mediaSSRC);
+        super(RTCPPSFBFormat.REMB, RTCPPacketType.PSFB, senderSSRC, mediaSSRC);
 
         this.exp = exp;
         this.mantissa = mantissa;
@@ -70,8 +70,8 @@ public class RTCPREMBPacket extends RTCPFBPacket
     public RTCPREMBPacket(RTCPCompoundPacket base)
     {
         super(base);
-        super.fmt = 15;
-        super.type = 206;
+        super.fmt = RTCPPSFBFormat.REMB;
+        super.type = RTCPPacketType.PSFB;
     }
 
 /*
