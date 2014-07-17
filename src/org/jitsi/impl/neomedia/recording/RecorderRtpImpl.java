@@ -499,6 +499,15 @@ public class RecorderRtpImpl
 
                 removeReceiveStream(receiveStreamDesc, true);
             }
+            else
+            {
+                if (logger.isInfoEnabled())
+                {
+                    logger.info("ReceiveStream timeout for an unknown stream"
+                                    + " (already removed?) "
+                                    + getReceiveStreamSSRC(receiveStream));
+                }
+            }
         }
         else if (event != null && logger.isInfoEnabled())
         {
@@ -511,9 +520,9 @@ public class RecorderRtpImpl
     private void removeReceiveStream(ReceiveStreamDesc receiveStream,
                                      boolean emptyJB)
     {
+        long ssrc = receiveStream.ssrc;
         if (receiveStream.format instanceof VideoFormat)
         {
-            long ssrc = receiveStream.ssrc;
             // Don't accept packets with this SSRC
             rtpConnector.packetBuffer.disable(ssrc);
             emptyPacketBuffer(ssrc);
@@ -559,6 +568,12 @@ public class RecorderRtpImpl
         synchronized(receiveStreams)
         {
             receiveStreams.remove(receiveStream);
+        }
+
+        synchronized (activeVideoSsrcs)
+        {
+            if (activeVideoSsrcs.contains(ssrc))
+                activeVideoSsrcs.remove(ssrc);
         }
     }
 
