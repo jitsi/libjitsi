@@ -183,6 +183,17 @@ public abstract class LibJitsi
      */
     private static void start(Object context)
     {
+        if (null != LibJitsi.impl)
+        {
+            if (logger.isInfoEnabled())
+            {
+                logger.info("LibJitsi already started, using as " +
+                        "implementation: " + impl.getClass().getCanonicalName());
+            }
+            
+            return;
+        }
+        
         /*
          * LibJitsi implements multiple backends and tries to choose the most
          * appropriate at run time. For example, an OSGi-aware backend is used
