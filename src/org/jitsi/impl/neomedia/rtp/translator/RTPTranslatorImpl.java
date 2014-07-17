@@ -705,15 +705,21 @@ public class RTPTranslatorImpl
         }
     }
 
+    /**
+     * Notifies this instance that {@link #rtcpTerminationStrategy} has changed.
+     */
     private void onRTCPTerminationStrategyChanged()
     {
-        RTCPTerminationStrategy strategy = this.rtcpTerminationStrategy;
-        strategy.setRTPTranslator(this);
-        if (strategy != null)
+        RTCPTerminationStrategy rtcpTerminationStrategy
+            = getRTCPTerminationStrategy();
+
+        if (rtcpTerminationStrategy != null)
         {
+            rtcpTerminationStrategy.setRTPTranslator(this);
             delegatingRTCPReportBuilder.setDelegate(
-                    strategy.getRTCPReportBuilder());
-        } else
+                    rtcpTerminationStrategy.getRTCPReportBuilder());
+        }
+        else
         {
             delegatingRTCPReportBuilder.setDelegate(null);
         }
