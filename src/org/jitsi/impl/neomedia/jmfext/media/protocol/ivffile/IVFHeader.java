@@ -63,6 +63,11 @@ public class IVFHeader
     
     /**
      * The number of frame in the ivf file.
+     * IVF being kind of a debug/toy format used to test VP8/VP9,
+     * the format isn't well known.
+     * In ffmppeg this field of the header will be the duration of the
+     * video (weirdly enough, it's always 0), but mkvextract set the number
+     * of frames of the video. 
      */
     private int numberOfFramesInFile;
     

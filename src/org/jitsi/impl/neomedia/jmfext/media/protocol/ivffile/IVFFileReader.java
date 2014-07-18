@@ -103,7 +103,7 @@ public class IVFFileReader
      */
     public void getNextFrame(VP8Frame frame,boolean loopFile) throws IOException
     {
-        if((loopFile == true) && (frameNo >= header.getNumberOfFramesInFile()))
+        if((loopFile == true) && (stream.getFilePointer() >= stream.length()))
         {
             stream.seek(header.getHeaderLengh());
             frameNo = 0;
