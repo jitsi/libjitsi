@@ -51,10 +51,17 @@ public class IVFStream
     private IVFFileReader ivfFileReader;
     
     /**
-     * The timebase of the video stream (in millisecondes).
-     * TIMEBASE = 1000 * timescale / framerate = 1000 / ( framerate / timescale )
+     * The timebase of the video stream (timescale / framerate)
+     * 
+     * an IVF file doesn't have a well-defined "framerate" :
+     * each frame has its own timestamp. The two fields in the IVF file header,
+     * "rate" and "scale" are used to specify the "timebase",
+     * which controls how the frames' timestamps are to be interpreted.
+     * A frame timestamp of "X" means "X * scale / rate" seconds.
+     * 
+     * Here the timebase should be in nanoseconds.
      */
-    private int TIMEBASE;
+    private long TIMEBASE;
     
     
     /**
@@ -72,7 +79,9 @@ public class IVFStream
         this.ivfFileReader = new IVFFileReader(
                 dataSource.getLocator().getRemainder());
         
-        this.TIMEBASE = (int)(1000. / ((VideoFormat)getFormat()).getFrameRate());
+        //this.TIMEBASE = (int)(1000. / ((VideoFormat)getFormat()).getFrameRate());
+        IVFHeader header = ivfFileReader.getHeader();
+        this.TIMEBASE = 1000000000 *  header.getTimeScale() / header.getFramerate();
     }
 
     
@@ -90,7 +99,7 @@ public class IVFStream
     protected void doRead(Buffer buffer)
         throws IOException
     {
-        long millis = 0;
+        long nanos = 0;
         VideoFormat format;
         
         format = (VideoFormat)buffer.getFormat();
@@ -114,24 +123,27 @@ public class IVFStream
         
         /*
          * We just check if the time that has passed since the last call to doRead
-         * took more or less milliseconds than the number of milliseconds
+         * took more or less milliseconds & nanoseconds than the number of
+         * milliseconds & nanoseconds
          * between 2 consecutive frames (based on their timestamps and the
          * the timebase). If it's less, we wait the remaining
          * time (and if its more, we directly return).
          */
-        millis = System.currentTimeMillis() - this.timeLastRead;
-        millis = (frame.getTimestamp() - lastFrameTimestamp) * TIMEBASE - millis;
+        nanos = System.nanoTime() - this.timeLastRead;
+        nanos = (frame.getTimestamp() - lastFrameTimestamp) * TIMEBASE - nanos;
         /**
          * Even if we loop the IVF file, there won't be any problem with millis
          * when the last frame of the file was reached and the current frame is
          * the first one : (frame.getTimestamp() - lastFrameTimestamp) will
          * be negative so we won't sleep this time.
          */
-        if(millis > 0)
+        if(nanos > 0)
         {
             try
             {
-                Thread.sleep(millis);
+                Thread.sleep(
+                        nanos / 1000000,
+                        (int) (nanos % 1000000));
             }
             catch (InterruptedException e)
             {
@@ -139,6 +151,6 @@ public class IVFStream
             }
         }
         this.lastFrameTimestamp = frame.getTimestamp();
-        this.timeLastRead=System.currentTimeMillis();
+        this.timeLastRead=System.nanoTime();
     }
 }

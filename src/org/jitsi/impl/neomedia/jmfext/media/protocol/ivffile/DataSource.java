@@ -62,7 +62,7 @@ public class DataSource
                 ivfHeader.getDimension(),
                 Format.NOT_SPECIFIED,
                 Format.byteArray,
-                ivfHeader.getFramerate() / ivfHeader.getTimeScale());
+                Format.NOT_SPECIFIED);
     }
     
     /**
