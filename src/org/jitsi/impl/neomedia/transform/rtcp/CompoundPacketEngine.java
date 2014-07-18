@@ -6,13 +6,12 @@
  */
 package org.jitsi.impl.neomedia.transform.rtcp;
 
+import java.util.*;
+
 import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.util.*;
-
-import java.util.*;
 
 /**
  * Implements a <tt>TransformEngine</tt> which splits incoming RTCP compound
@@ -53,8 +52,6 @@ public class CompoundPacketEngine
 
         return lengthInBytes;
     }
-
-    private int c = 0;
 
     /**
      * Used in <tt>reverseTransform</tt>, declared here to avoid recreation.
@@ -168,7 +165,6 @@ public class CompoundPacketEngine
 
                 byte[] buf = new byte[len];
                 System.arraycopy(oldBuf, oldOff, buf, 0, len);
-                c++;
                 pkts[j] = new RawPacket(buf, 0, len);
                 counts[j]++;
 
