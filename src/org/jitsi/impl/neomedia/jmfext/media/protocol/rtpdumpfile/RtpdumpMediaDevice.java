@@ -13,33 +13,69 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
-
+import org.jitsi.service.neomedia.device.*;
 
 /**
- * Implements a <tt>MediaDevice</tt> that represent a CaptureDevice that
- * read a rtpdump file to provide recorded rtp packet.
- *
+ * This class contains the method <tt>createRtpdumpMediaDevice</tt> that
+ * can create <tt>MediaDevice</tt>s that will read the rtpdump file given.
+ * This static method is here for convenience. 
+ * 
  * @author Thomas Kuntz
  */
 public class RtpdumpMediaDevice
-    extends MediaDeviceImpl
 {
     /**
-     * Initializes a new <tt>RtpdumpMediaDevice</tt> instance which will read
-     * the rtpdump file located at <tt>filename</tt>, and which will have the
-     * type <tt>payloadTypeConstant</tt>.
+     * Create a new <tt>MediaDevice</tt> instance which will read
+     * the rtpdump file located at <tt>filePath</tt>, and which will have the
+     * encoding format <tt>encodingConstant</tt>.
      * 
-     * @param filename filename the location of the IVF the <tt>RtpdumpStream<tt>.
+     * @param filename filename 
      * @param formatConstant the format this <tt>MediaDevice</tt> will have.
      * You can find the list of possible format in the class <tt>Constants</tt>
      * of libjitsi (ex : Constants.VP8_RTP).
+     * 
+     * @param filePath the location of the rtpdump file
+     * @param encodingConstant the format this <tt>MediaDevice</tt> will have.
+     * You can find the list of possible format in the class <tt>Constants</tt>
+     * of libjitsi (ex : Constants.VP8_RTP).
+     * @param sampleRate The sampleRate of the format behind the rtp packet
+     * recorded in the rtpdump file (only if the <tt>MediaDevice</tt> wanted
+     * is an audio device).
+     * @param type the <tt>MediaType</tt> of the <tt>MediaDevice</tt> you want
+     * to create.
+     * @return a <tt>MediaDevice</tt> that will read the rtpdump file given.
      */
-    public RtpdumpMediaDevice(String filePath, String formatConstant)
+    public static MediaDevice createRtpdumpMediaDevice(
+            String filePath,
+            String encodingConstant,
+            double sampleRate,
+            MediaType type)
     {
-        super(new CaptureDeviceInfo(
-                    filePath,
-                    new MediaLocator("rtpdumpfile:" + filePath),
-                    new Format[] { new VideoFormat(formatConstant) } ),
-                MediaType.VIDEO);
+        MediaDevice dev = null;
+        
+        switch(type)
+        {
+            case AUDIO:
+                dev = new AudioMediaDeviceImpl(new CaptureDeviceInfo(
+                            "Audio rtpdump file",
+                            new MediaLocator("rtpdumpfile:" + filePath),
+                            new Format[]{ new AudioFormat(
+                                    encodingConstant,
+                                    sampleRate,
+                                    Format.NOT_SPECIFIED,
+                                    Format.NOT_SPECIFIED) }));
+                break;
+            case VIDEO:
+                dev = new MediaDeviceImpl(new CaptureDeviceInfo(
+                            "Video rtpdump file",
+                            new MediaLocator("rtpdumpfile:" + filePath),
+                            new Format[] { new VideoFormat(encodingConstant)}),
+                        MediaType.VIDEO);
+                break;
+            default:
+                break;
+        }
+        
+        return dev;
     }
 }
