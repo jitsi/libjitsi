@@ -151,7 +151,7 @@ public class RTCPFeedbackMessageSender
 
         fir.setSequenceNumber(
                 getNextSequenceNumber((int) senderSSRC, mediaSenderSSRC));
-        return rtpTranslator.writeRTCPFeedbackMessage(fir, destination);
+        return rtpTranslator.writeControlPayload(fir, destination);
     }
 
     /**

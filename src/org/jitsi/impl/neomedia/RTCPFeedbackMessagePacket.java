@@ -8,6 +8,7 @@ package org.jitsi.impl.neomedia;
 
 import javax.media.rtp.*;
 
+import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.event.*;
 
 /**
@@ -19,6 +20,7 @@ import org.jitsi.service.neomedia.event.*;
  * @author Lyubomir Marinov
  */
 public class RTCPFeedbackMessagePacket
+    implements Payload
 {
     /**
      * Feedback message type (FMT).

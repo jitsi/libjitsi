@@ -13,7 +13,6 @@ import java.util.*;
 import javax.media.protocol.*;
 import javax.media.rtp.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
 
 /**
@@ -337,13 +336,13 @@ class RTPConnectorImpl
      * Writes an <tt>RTCPFeedbackMessage</tt> into a destination identified by
      * a specific <tt>MediaStream</tt>.
      *
-     * @param rtcpFeedbackMessage
+     * @param controlPayload
      * @param destination
-     * @return <tt>true</tt> if the <tt>rtcpFeedbackMessage</tt> was written
+     * @return <tt>true</tt> if the <tt>controlPayload</tt> was written
      * into the <tt>destination</tt>; otherwise, <tt>false</tt>
      */
-    boolean writeRTCPFeedbackMessage(
-            RTCPFeedbackMessagePacket rtcpFeedbackMessage,
+    boolean writeControlPayload(
+            Payload controlPayload,
             MediaStream destination)
     {
         OutputDataStreamImpl controlOutputStream = this.controlOutputStream;
@@ -351,8 +350,8 @@ class RTPConnectorImpl
         return
             (controlOutputStream == null)
                 ? false
-                : controlOutputStream.writeRTCPFeedbackMessage(
-                        rtcpFeedbackMessage,
-                        destination);
+                : controlOutputStream.writeControlPayload(
+                    controlPayload,
+                    destination);
     }
 }

@@ -615,13 +615,13 @@ class OutputDataStreamImpl
      * Writes an <tt>RTCPFeedbackMessage</tt> into a destination identified by
      * a specific <tt>MediaStream</tt>.
      *
-     * @param rtcpFeedbackMessage
+     * @param controlPayload
      * @param destination
-     * @return <tt>true</tt> if the <tt>rtcpFeedbackMessage</tt> was written
+     * @return <tt>true</tt> if the <tt>controlPayload</tt> was written
      * into the <tt>destination</tt>; otherwise, <tt>false</tt>
      */
-    synchronized boolean writeRTCPFeedbackMessage(
-            RTCPFeedbackMessagePacket rtcpFeedbackMessage,
+    synchronized boolean writeControlPayload(
+            Payload controlPayload,
             MediaStream destination)
     {
         for (int streamIndex = 0, streamCount = streams.size();
@@ -637,7 +637,7 @@ class OutputDataStreamImpl
                                 .streamRTPManager
                                     .getMediaStream())
             {
-                rtcpFeedbackMessage.writeTo(streamDesc.stream);
+                controlPayload.writeTo(streamDesc.stream);
                 return true;
             }
         }
