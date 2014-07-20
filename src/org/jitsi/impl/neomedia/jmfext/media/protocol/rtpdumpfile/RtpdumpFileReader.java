@@ -9,7 +9,7 @@ package org.jitsi.impl.neomedia.jmfext.media.protocol.rtpdumpfile;
 
 import java.io.*;
 
-import org.jitsi.impl.neomedia.RawPacket;
+import org.jitsi.impl.neomedia.*;
 
 /**
  * This class represent a rtpdump file and provide an API to get the
@@ -113,7 +113,7 @@ public class RtpdumpFileReader
     private void resetFile() throws IOException
     {
         stream.seek( 0 );
-        stream.readLine();//read the first line that is ascii
+        stream.readLine();//read the first line that is in ascii
         stream.seek( stream.getFilePointer() + RtpdumpFileReader.FILE_HEADER_LENGTH );
     }
 }

@@ -14,7 +14,7 @@ import javax.media.format.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
-import org.jitsi.service.neomedia.format.MediaFormat;
+import org.jitsi.service.neomedia.format.*;
 
 /**
  * This class contains the method <tt>createRtpdumpMediaDevice</tt> that
@@ -30,20 +30,12 @@ public class RtpdumpMediaDevice
      * the rtpdump file located at <tt>filePath</tt>, and which will have the
      * encoding format <tt>encodingConstant</tt>.
      * 
-     * @param filename filename 
-     * @param formatConstant the format this <tt>MediaDevice</tt> will have.
-     * You can find the list of possible format in the class <tt>Constants</tt>
-     * of libjitsi (ex : Constants.VP8_RTP).
-     * 
      * @param filePath the location of the rtpdump file
-     * @param encodingConstant the format this <tt>MediaDevice</tt> will have.
+     * @param rtpEncodingConstant the format this <tt>MediaDevice</tt> will have.
      * You can find the list of possible format in the class <tt>Constants</tt>
      * of libjitsi (ex : Constants.VP8_RTP).
-     * @param sampleRate The sampleRate of the format behind the rtp packet
-     * recorded in the rtpdump file (only if the <tt>MediaDevice</tt> wanted
-     * is an audio device).
-     * @param type the <tt>MediaType</tt> of the <tt>MediaDevice</tt> you want
-     * to create.
+     * @param format the <tt>MediaFormat</tt> of the data contained in the
+     * payload of the recorded rtp packet in the rtpdump file.
      * @return a <tt>MediaDevice</tt> that will read the rtpdump file given.
      */
     public static MediaDevice createRtpdumpMediaDevice(
