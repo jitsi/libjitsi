@@ -14,6 +14,7 @@ import javax.media.format.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
+import org.jitsi.service.neomedia.format.MediaFormat;
 
 /**
  * This class contains the method <tt>createRtpdumpMediaDevice</tt> that
@@ -47,35 +48,41 @@ public class RtpdumpMediaDevice
      */
     public static MediaDevice createRtpdumpMediaDevice(
             String filePath,
-            String encodingConstant,
-            double sampleRate,
-            MediaType type)
+            String rtpEncodingConstant,
+            MediaFormat format)
     {
         MediaDevice dev = null;
-        
-        switch(type)
+
+        switch(format.getMediaType())
         {
             case AUDIO:
                 dev = new AudioMediaDeviceImpl(new CaptureDeviceInfo(
                             "Audio rtpdump file",
                             new MediaLocator("rtpdumpfile:" + filePath),
                             new Format[]{ new AudioFormat(
-                                    encodingConstant,
-                                    sampleRate,
-                                    Format.NOT_SPECIFIED,
-                                    Format.NOT_SPECIFIED) }));
+                                    rtpEncodingConstant, /* Encoding */
+                                    format.getClockRate(), /* sampleRate */
+                                    Format.NOT_SPECIFIED, /* sampleSizeInBits */
+                                    Format.NOT_SPECIFIED) /* channels */
+                            }));
                 break;
             case VIDEO:
                 dev = new MediaDeviceImpl(new CaptureDeviceInfo(
                             "Video rtpdump file",
                             new MediaLocator("rtpdumpfile:" + filePath),
-                            new Format[] { new VideoFormat(encodingConstant)}),
+                            new Format[] { new VideoFormat(
+                                    rtpEncodingConstant, /* Encoding */
+                                    null, /* Dimension */
+                                    Format.NOT_SPECIFIED, /* maxDataLength */
+                                    Format.byteArray, /* dataType */
+                                    (float) format.getClockRate()) /* frameRate */
+                            }),
                         MediaType.VIDEO);
                 break;
             default:
                 break;
         }
-        
+
         return dev;
     }
 }

@@ -9,6 +9,8 @@ package org.jitsi.impl.neomedia.jmfext.media.protocol.rtpdumpfile;
 
 import java.io.*;
 
+import org.jitsi.impl.neomedia.RawPacket;
+
 /**
  * This class represent a rtpdump file and provide an API to get the
  * payload of the rtp packet it contains.
@@ -39,7 +41,7 @@ public class RtpdumpFileReader
      * is 4+4+4+2+2=16 bytes.
      */
     public final static int FILE_HEADER_LENGTH = 4 + 4 + 4 + 2 + 2;
-    
+
     /**
      * The <tt>RandomAccessFile</tt> used to read the rtpdump file.
      * 
@@ -47,7 +49,7 @@ public class RtpdumpFileReader
      * of the file when the loop is activated.
      */
     private RandomAccessFile stream;
-    
+
     /**
      * Initialize a new instance of <tt>RtpdumpFileReader</tt> that will the
      * rtpdump file located by <tt>filePath</tt>.
@@ -81,27 +83,26 @@ public class RtpdumpFileReader
      * @throws IOException if <tt>loopFile</tt> was false and the end of the file
      * is reached.
      */
-    public RtpdumpPacket getNextPacket(boolean loopFile) throws IOException
+    public RawPacket getNextPacket(boolean loopFile) throws IOException
     {
-        if((loopFile == true) && (stream.getFilePointer() >= stream.length()))
+        if(loopFile && (stream.getFilePointer() >= stream.length()))
         {
             resetFile();
         }
-        
-        byte[] RtpdumpPacket;
+
+        byte[] rtpdumpPacket;
         int sizeInBytes;
-        int rtpdump_timestamp;
-                
+
         stream.readShort();//read away an useless short (2 bytes)
         sizeInBytes = stream.readUnsignedShort();
-        RtpdumpPacket = new byte[sizeInBytes];
-        rtpdump_timestamp = stream.readInt();//read away the rtpdump timestamp of the send/receive
-        
-        stream.read(RtpdumpPacket);
-        
-        return new RtpdumpPacket(RtpdumpPacket,rtpdump_timestamp);
+        rtpdumpPacket = new byte[sizeInBytes];
+        stream.readInt();//read away the rtpdump timestamp of the send/receive
+
+        stream.read(rtpdumpPacket);
+
+        return new RawPacket(rtpdumpPacket,0,rtpdumpPacket.length);
     }
-    
+
     /**
      * Go to the beginning of the rtpdum file and
      * skip the first line of ascii (giving the file version) and
