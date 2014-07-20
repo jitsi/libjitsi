@@ -9,7 +9,9 @@ package org.jitsi.impl.neomedia.jmfext.media.protocol.rtpdumpfile;
 
 import javax.media.*;
 import javax.media.control.*;
+import javax.media.format.*;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 
 import java.io.*;
@@ -24,33 +26,44 @@ public class RtpdumpStream
     extends AbstractVideoPullBufferStream<DataSource>
 {
     /**
-     * The timestamp of the last time the <tt>doRead</tt> function returned
-     * (the timestamp is taken just before the return).
-     */
-    private long timeLastRead = 0;
-    
-    /**
-     * The timestamp used for the rtp packet (the timestamp change only when
+     * The timestamp of the last rtp packet (the timestamp change only when
      * a marked packet has been sent).
+     * 
+     * It is initialize with Long.MAX_VALUE because the timestamp of the first
+     * packet read isn't generally 0, and the difference between it and the
+     * first value of lastRtpTimestamp would in this case be huge, making the
+     * stream sleep forever. 
      */
-    private long rtpTimestamp = 0;
-    
+    private long lastRtpTimestamp = Long.MAX_VALUE;
+
     /**
      * Boolean indicating if the last call to <tt>doRead</tt> return a marked
      * rtp packet (to know if <tt>rtpTimestamp</tt> needs to be updated).
      */
     private boolean lastReadWasMarked = true;
-    
+
     /**
      * The <tt>RtpdumpFileReader</tt> used by this stream to get the rtp payload.
      */
     private RtpdumpFileReader rtpFileReader;
-    
-    
-    
+
     /**
-     * Initializes a new <tt>ImageStream</tt> instance which is to have a
-     * specific <tt>FormatControl</tt>
+     * The timebase of the stream in nanoseconds.
+     * timebase = 1sec / clock rate.
+     * The clock rate is the sample rate for audio format, and framerate for
+     * video format.
+     */
+    private final long TIMEBASE;
+
+    /**
+     * The timestamp use for the timestamp of the RTP packet.
+     */
+    private long rtpTimestamp;
+
+
+
+    /**
+     * Initializes a new <tt>RtpdumpStream</tt> instance
      *
      * @param dataSource the <tt>DataSource</tt> which is creating the new
      * instance so that it becomes one of its <tt>streams</tt>
@@ -60,12 +73,28 @@ public class RtpdumpStream
     RtpdumpStream(DataSource dataSource, FormatControl formatControl)
     {
         super(dataSource, formatControl);
-        
+
+        Format format = getFormat();
+        if(format instanceof AudioFormat)
+        {
+            AudioFormat audioFormat = ((AudioFormat)format);
+            this.TIMEBASE = (long) (1000000000 / audioFormat.getSampleRate());
+        }
+        else if(format instanceof VideoFormat)
+        {
+            VideoFormat videoFormat = ((VideoFormat)format);
+            this.TIMEBASE = (long) (1000000000 / videoFormat.getFrameRate());
+        }
+        else
+        {
+            this.TIMEBASE = 1;
+        }
+
         String rtpdumpFilePath = dataSource.getLocator().getRemainder();
         this.rtpFileReader = new RtpdumpFileReader(rtpdumpFilePath);
     }
 
-    
+
     /**
      * Reads available media data from this instance into a specific
      * <tt>Buffer</tt>.
@@ -80,9 +109,9 @@ public class RtpdumpStream
     protected void doRead(Buffer buffer)
         throws IOException
     {
-        long millis = 0;
+        long nanos = 0;
         Format format;
-        
+
         format = buffer.getFormat();
         if (format == null)
         {
@@ -90,39 +119,45 @@ public class RtpdumpStream
             if (format != null)
                 buffer.setFormat(format);
         }
-           
-        
-        RtpdumpPacket rtpPacket = rtpFileReader.getNextPacket(true);
+
+
+        RawPacket rtpPacket = rtpFileReader.getNextPacket(true);
         byte[] data = rtpPacket.getPayload(); 
-        
+
         buffer.setData(data);
-        buffer.setOffset(0);
-        buffer.setLength(data.length);
-        
+        buffer.setOffset(rtpPacket.getOffset());
+        buffer.setLength(rtpPacket.getPayloadLength());
+
+
+
         buffer.setFlags(Buffer.FLAG_SYSTEM_TIME | Buffer.FLAG_LIVE_DATA);
         if(lastReadWasMarked == true)
         {
             rtpTimestamp = System.nanoTime();
         }
-        if( (lastReadWasMarked = rtpPacket.isPacketMarked()) == true)
+        lastReadWasMarked = rtpPacket.isPacketMarked();
+        if(rtpPacket.isPacketMarked())
         {
             buffer.setFlags(buffer.getFlags() | Buffer.FLAG_RTP_MARKER);
         }
         buffer.setTimeStamp(rtpTimestamp);
-        
-        
-        millis = rtpPacket.getRtpdumpTimestamp() - this.timeLastRead;
-        if(millis > 0)
+
+
+        nanos = rtpPacket.getTimestamp() - this.lastRtpTimestamp;
+        nanos = this.TIMEBASE * nanos;
+        if(nanos > 0)
         {
             try
             {
-                Thread.sleep(millis);
+                Thread.sleep(
+                               nanos / 1000000,
+                        (int) (nanos % 1000000));
             }
             catch (InterruptedException e)
             {
                 e.printStackTrace();
             }
         }
-        this.timeLastRead=rtpPacket.getRtpdumpTimestamp();
+        this.lastRtpTimestamp=rtpPacket.getTimestamp();
     }
 }
