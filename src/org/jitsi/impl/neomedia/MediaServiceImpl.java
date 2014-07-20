@@ -1605,6 +1605,7 @@ public class MediaServiceImpl
 
         FMJPlugInConfiguration.registerCustomPackages();
         FMJPlugInConfiguration.registerCustomCodecs();
+        FMJPlugInConfiguration.registerCustomMultiplexers();
     }
 
     /**

@@ -15,7 +15,7 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.util.*;
 
 /**
- * Utility class that handles registration of JFM packages and plugins.
+ * Utility class that handles registration of FMJ packages and plugins.
  *
  * @author Damian Minkov
  * @author Lyubomir Marinov
@@ -24,9 +24,14 @@ import org.jitsi.util.*;
 public class FMJPlugInConfiguration
 {
     /**
-     * Whether custom codecs have been registered with JFM
+     * Whether the custom codecs have been registered with FMJ.
      */
     private static boolean codecsRegistered = false;
+
+    /**
+     * Whether the custom multiplexers have been registered with FMJ.
+     */
+    private static boolean multiplexersRegistered = false;
 
     /**
      * The additional custom JMF codecs.
@@ -100,6 +105,15 @@ public class FMJPlugInConfiguration
             "org.jitsi.impl.neomedia.jmfext",
             "net.java.sip.communicator.impl.neomedia.jmfext",
             "net.sf.fmj"
+        };
+
+    /**
+     * The list of class names to register as FMJ plugins with type
+     * <tt>PlugInManager.MULTIPLEXER</tt>.
+     */
+    private static final String[] CUSTOM_MULTIPLEXERS
+        = {
+            "org.jitsi.impl.neomedia.recording.BasicWavMux"
         };
 
     /**
@@ -325,5 +339,97 @@ public class FMJPlugInConfiguration
             logger.debug("Registering new protocol prefix list: " + packages);
 
         packagesRegistered = true;
+    }
+
+    /**
+     * Registers custom libjitsi <tt>Multiplexer</tt> implementations.
+     */
+    @SuppressWarnings("unchecked")
+    public static void registerCustomMultiplexers()
+    {
+        if (multiplexersRegistered)
+            return;
+
+        // Remove the FMJ WAV multiplexers, as they don't work.
+        PlugInManager.removePlugIn(
+                "com.sun.media.multiplexer.audio.WAVMux",
+                PlugInManager.MULTIPLEXER);
+        PlugInManager.removePlugIn(
+                "net.sf.fmj.media.multiplexer.audio.WAVMux",
+                PlugInManager.MULTIPLEXER);
+
+        Collection<String> registeredMuxers
+            = new HashSet<String>(
+                PlugInManager.getPlugInList(
+                    null,
+                    null,
+                    PlugInManager.MULTIPLEXER));
+
+        boolean commit = false;
+        for (String className : CUSTOM_MULTIPLEXERS)
+        {
+            if (className == null)
+                continue;
+            if (registeredMuxers.contains(className))
+            {
+                if (logger.isDebugEnabled())
+                    logger.debug("Multiplexer " + className + " is already "
+                                 + "registered");
+                continue;
+            }
+
+            boolean registered;
+            Throwable exception = null;
+            try
+            {
+                Multiplexer multiplexer
+                        = (Multiplexer) Class.forName(className).newInstance();
+
+                registered =
+                    PlugInManager.addPlugIn(
+                        className,
+                        multiplexer.getSupportedInputFormats(),
+                        multiplexer.getSupportedOutputContentDescriptors(null),
+                        PlugInManager.MULTIPLEXER);
+            }
+            catch (Throwable ex)
+            {
+                registered = false;
+                exception = ex;
+            }
+
+            if (registered)
+            {
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace(
+                            "Codec " + className
+                                    + " is successfully registered");
+                }
+            }
+            else
+            {
+                logger.warn(
+                        "Codec " + className
+                                + " is NOT successfully registered",
+                        exception);
+            }
+
+            commit |= registered;
+        }
+
+        if (commit && !MediaServiceImpl.isJmfRegistryDisableLoad())
+        {
+            try
+            {
+                PlugInManager.commit();
+            }
+            catch (IOException ex)
+            {
+                logger.error("Cannot commit to PlugInManager", ex);
+            }
+        }
+
+        multiplexersRegistered = true;
     }
 }

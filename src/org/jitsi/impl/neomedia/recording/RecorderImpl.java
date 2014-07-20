@@ -40,8 +40,8 @@ public class RecorderImpl
                     /* Disables formats currently not working
                     SoundFileUtils.aif,
                     SoundFileUtils.au,
-                    SoundFileUtils.gsm,
-                    SoundFileUtils.wav,*/
+                    SoundFileUtils.gsm, */
+                    SoundFileUtils.wav,
                     SoundFileUtils.mp3
                 };
 
