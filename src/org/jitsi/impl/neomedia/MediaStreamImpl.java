@@ -509,7 +509,8 @@ public class MediaStreamImpl
                     fecTransformEngine.setOutgoingPT(rtpPayloadType);
                 }
             }
-            else if (rtpManager != null)
+
+            if (rtpManager != null)
             {
                 // we do not add RED and FEC payload types to the RTP Manager,
                 // because RED and FEC packets will be handled before they get
@@ -2928,7 +2929,7 @@ public class MediaStreamImpl
      * {@link #dynamicRTPPayloadTypes} will likely represent the view of the
      * local peer while the <tt>Format</tt> set on this <tt>MediaStream</tt>
      * instance will likely represent the view of the remote peer. The view of
-     * the remote peer matters for the playback of <tt>ReceiveStream</tt>s. 
+     * the remote peer matters for the playback of <tt>ReceiveStream</tt>s.
      *
      * @param rtpManager the <tt>StreamRTPManager</tt> to update the registered
      * FMJ <tt>Format</tt>s of. If <tt>null</tt>, the method uses

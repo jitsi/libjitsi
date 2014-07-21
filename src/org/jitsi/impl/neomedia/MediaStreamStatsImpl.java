@@ -680,7 +680,7 @@ public class MediaStreamStatsImpl
     public long getNbPackets()
     {
         return getNbPDU(StreamDirection.DOWNLOAD)
-            + nbLost[StreamDirection.DOWNLOAD.ordinal()]
+            + getDownloadNbPacketLost()
             + uploadFeedbackNbPackets;
     }
 
@@ -690,9 +690,24 @@ public class MediaStreamStatsImpl
      */
     public long getNbPacketsLost()
     {
-        return nbLost[StreamDirection.DOWNLOAD.ordinal()]
-            + nbLost[StreamDirection.UPLOAD.ordinal()];
+        return nbLost[StreamDirection.UPLOAD.ordinal()]
+            + getDownloadNbPacketLost();
     }
+
+    /**
+     * Returns the number of lost packets for the receive streams.
+     * @return  the number of lost packets for the receive streams.
+     */
+    private long getDownloadNbPacketLost()
+    {
+        long downloadLost = 0;
+        for(ReceiveStream stream : mediaStreamImpl.getReceiveStreams())
+        {
+                downloadLost += stream.getSourceReceptionStats().getPDUlost();
+        }
+        return downloadLost;
+    }
+
 
     /**
      * Returns the set of <tt>PacketQueueControls</tt> found for all the
