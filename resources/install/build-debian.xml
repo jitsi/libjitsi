@@ -37,6 +37,9 @@
         <replace file="${tmp}/libjitsi/debian/changelog">
             <replacefilter token="_VER_" value="${build.label}"/>
         </replace>
+        <replace file="${tmp}/libjitsi/debian/rules">
+            <replacefilter token="-- clean" value="-- clean-debuild"/>
+        </replace>
 
         <!-- ice4j
         svn checkout http://ice4j.googlecode.com/svn/trunk/ ice4j
@@ -125,6 +128,85 @@
             </fileset>
         </copy>
 
+    </target>
+
+    <target name="clean-debuild">
+
+        <delete failonerror="false">
+            <fileset dir="lib">
+                <include name="*.jar"/>
+            </fileset>
+            <fileset dir="lib/installer-exclude">
+                <include name="*.jar"/>
+            </fileset>
+            <fileset dir="lib/src/ice4j/lib">
+                <include name="*"/>
+            </fileset>
+            <fileset dir="lib/src/zrtp4j/lib">
+                <include name="*"/>
+            </fileset>
+            <fileset dir="lib/src/sdes4j/lib">
+                <include name="*"/>
+            </fileset>
+            <fileset dir="lib/src/jsip/lib">
+                <include name="*"/>
+            </fileset>
+            <fileset dir="lib/native/linux-64">
+                <include name="*"/>
+            </fileset>
+            <fileset dir="lib/native/linux">
+                <include name="*"/>
+            </fileset>
+            <fileset dir="lib/src/fmj">
+                <include name="fmj.jar"/>
+            </fileset>
+        </delete>
+        <delete dir="lib/src/bccontrib/target" failonerror="false"/>
+
+        <ant dir="lib/src/ice4j"
+             inheritAll="false"
+             target="clean"/>
+        <ant dir="lib/src/sdes4j"
+             inheritAll="false"
+             target="clean"/>
+        <ant dir="lib/src/jsip"
+             inheritAll="false"
+             target="clean"/>
+        <ant dir="lib/src/fmj"
+             inheritAll="false"
+             target="clean"/>
+        <ant dir="lib/src/zrtp4j"
+             inheritAll="false"
+             target="clean"/>
+
+        <exec   dir="lib/src/usrsctp" failonerror="false"
+                executable="make">
+                <arg value="distclean"/>
+        </exec>
+
+        <delete failonerror="false">
+            <fileset dir="lib/src/usrsctp/m4">
+                <include name="*"/>
+            </fileset>
+            <fileset dir="lib/src/usrsctp">
+                <include name="AUTHORS"/>
+                <include name="COPYING"/>
+                <include name="ChangeLog"/>
+                <include name="INSTALL"/>
+                <include name="**/Makefile.in"/>
+                <include name="NEWS"/>
+                <include name="README"/>
+                <include name="aclocal.m4"/>
+                <include name="compile"/>
+                <include name="config.*"/>
+                <include name="configure"/>
+                <include name="d*"/>
+                <include name="i*"/>
+                <include name="l*"/>
+                <include name="m*"/>
+            </fileset>
+        </delete>
+        <delete dir="lib/src/usrsctp/m4"/>
     </target>
 
     <!-- used to build sources for debuilding deb package
@@ -404,6 +486,14 @@ org.jitsi.bccontrib.util"/>
         <ant target="libvpx-debian">
             <property name="libmkv" value="${current.basedir}/lib/src/libmkv"/>
         </ant>
+
+        <!-- clean portaudio configure logs give warnings -->
+        <exec   dir="${current.basedir}/lib/src/portaudio"
+                executable="make"
+                failonerror="true">
+            <arg value="distclean" />
+        </exec>
+
     </target>
 
     <target name="deb" depends="-init-deb,deb-32,deb-64">
