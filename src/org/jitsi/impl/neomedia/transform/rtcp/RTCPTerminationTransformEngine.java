@@ -95,7 +95,7 @@ public class RTCPTerminationTransformEngine
         }
         catch (BadFormatException e)
         {
-            // TODO decide what to do with malformed packets!
+            // TODO(gp) decide what to do with malformed packets!
             logger.error("Could not parse RTCP packet.", e);
             return pkt;
         }
