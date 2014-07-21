@@ -118,6 +118,12 @@
             </patternset>
         </unzip>
 
+        <!-- libmkv -->
+        <copy todir="${tmp}/libjitsi/lib/src/libmkv">
+            <fileset dir="../libvpx/third_party/libmkv">
+                <include name="**/*"/>
+            </fileset>
+        </copy>
 
     </target>
 
@@ -395,8 +401,8 @@ org.jitsi.bccontrib.util"/>
         </ant>
 
         <!--libvpx-->
-        <ant target="libvpx">
-            <property name="libvpx" value=""/>
+        <ant target="libvpx-debian">
+            <property name="libmkv" value="${current.basedir}/lib/src/libmkv"/>
         </ant>
     </target>
 
