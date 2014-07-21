@@ -6,12 +6,19 @@
  */
 #include <stdlib.h>
 #include <string.h>
-#include "org_jitsi_impl_neomedia_codec_video_VPX.h"
 
 #include "vpx/vpx_decoder.h"
 #include "vpx/vpx_encoder.h"
 #include "vpx/vp8dx.h"
 #include "vpx/vp8cx.h"
+
+/*
+ * Both openjdk-1.7's jni_md.h and vpx/vpx_codec.h define the 'UNUSED' macro.
+ * Include this here, after the vpx includes, because it brings in jni_md.h, and
+ * using this order at least allows for successful compilation.
+ */
+#include "org_jitsi_impl_neomedia_codec_video_VPX.h"
+
 #define VPX_CODEC_DISABLE_COMPAT 1
 
 /* Convert the INTERFACE_* constants defined in java to
