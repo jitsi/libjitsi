@@ -12,6 +12,12 @@ apt-get install libvpx-dev
 git clone https://chromium.googlesource.com/webm/libvpx
 ```
 
+### Install a jdk and set the JAVA_HOME variable
+```
+apt-get install default-jdk
+export JAVA_HOME=/usr/lib/jvm/default-java/
+```
+
 ### Build the libjitsi code with the libvpx-debian ant target
 ```
 ant libvpx -Dlibmkv=/path/to/libvpx/third_party/libmkv
