@@ -28,7 +28,7 @@ public class BasicRTCPTerminationStrategy
      * A cache of media receiver feedback. It contains both receiver report
      * blocks and REMB packets.
      */
-    private final FeedbackCache feedbackCache;
+    protected final FeedbackCache feedbackCache;
 
     /**
      * The cache processor that will be making the RTCP reports coming from
@@ -46,7 +46,7 @@ public class BasicRTCPTerminationStrategy
     /**
      * The <tt>RTPTranslator</tt> associated with this strategy.
      */
-    private RTPTranslator translator;
+    protected RTPTranslator translator;
 
     @Override
     public RTCPPacket[] makeReports()
@@ -94,6 +94,8 @@ public class BasicRTCPTerminationStrategy
         }
 
         // Include REMB.
+
+        // TODO(gp) build REMB packets from scratch.
         if (this.feedbackCacheProcessor == null)
         {
             this.feedbackCacheProcessor
@@ -204,19 +206,25 @@ public class BasicRTCPTerminationStrategy
         this.translator = translator;
     }
 
+    /**
+     * 1. Removes receiver report blocks from RRs and SRs and kills REMBs.
+     * 2. Updates the receiver feedback cache.
+     *
+     * @param inPacket
+     * @return
+     */
     @Override
     public RTCPCompoundPacket transformRTCPPacket(
             RTCPCompoundPacket inPacket)
     {
-        // Removes receiver report blocks from RRs and SRs and kills REMBs.
-
         if (inPacket == null
                 || inPacket.packets == null || inPacket.packets.length == 0)
         {
             return inPacket;
         }
 
-        Vector<RTCPPacket> outPackets = new Vector<RTCPPacket>(inPacket.packets.length);
+        Vector<RTCPPacket> outPackets = new Vector<RTCPPacket>(
+                inPacket.packets.length);
 
         // These are the data that are of interest to us : RR report blocks and
         // REMBs. We'll also need the SSRC of the RTCP report sender.
