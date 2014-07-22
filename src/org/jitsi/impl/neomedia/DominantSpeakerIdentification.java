@@ -112,7 +112,7 @@ public class DominantSpeakerIdentification
      * non-dominant <tt>Speaker</tt> is to be automatically removed from
      * {@link #speakers}.
      */
-    private static final long SPEAKER_IDLE_TIMEOUT = 12 * 60 * 1000;
+    private static final long SPEAKER_IDLE_TIMEOUT = 60 * 60 * 1000;
 
     /**
      * The pool of <tt>Thread</tt>s which run
@@ -123,6 +123,17 @@ public class DominantSpeakerIdentification
                 true,
                 "DominantSpeakerIdentification");
 
+    /**
+     * Computes the binomial coefficient indexed by <tt>n</tt> and <tt>r</tt>
+     * i.e. the number of ways of picking <tt>r</tt> unordered outcomes from
+     * <tt>n</tt> possibilities.
+     *
+     * @param n the number of possibilities to pick from
+     * @param r the number unordered outcomes to pick from <tt>n</tt>
+     * @return the binomial coefficient indexed by <tt>n</tt> and <tt>r</tt>
+     * i.e. the number of ways of picking <tt>r</tt> unordered outcomes from
+     * <tt>n</tt> possibilities
+     */
     public static long binomialCoefficient(int n, int r)
     {
         int m = n - r; // r = Math.max(r, n - r);
@@ -176,8 +187,8 @@ public class DominantSpeakerIdentification
                 + (nR - vL) * Math.log(1 - p) - Math.log(lambda) + lambda * vL;
 
         /*
-         * FIXME (1) We are going to use speechActivityScore as the argument of
-         * a logarithmic function and the latter is undefined for negative
+         * XXX (1) We are going to use speechActivityScore as the argument of a
+         * logarithmic function and the latter is undefined for negative
          * arguments. (2) Additionally, we will be dividing by
          * speechActivityScore and we are not sure what we are going to do with
          * the result of such a division. 
@@ -237,6 +248,16 @@ public class DominantSpeakerIdentification
     {
     }
 
+    /**
+     * Notifies this <tt>DominantSpeakerIdentification</tt> instance that a
+     * specific <tt>DecisionMaker</tt> has permanently stopped executing (in its
+     * background/daemon <tt>Thread</tt>). If the specified
+     * <tt>decisionMaker</tt> is the one utilized by this
+     * <tt>DominantSpeakerIdentification</tt> instance, the latter will update
+     * its state to reflect that the former has exited.
+     *
+     * @param decisionMaker the <tt>DecisionMaker</tt> which has exited
+     */
     synchronized void decisionMakerExited(DecisionMaker decisionMaker)
     {
         if (this.decisionMaker == decisionMaker)
@@ -265,7 +286,6 @@ public class DominantSpeakerIdentification
 
             maybeStartDecisionMaker();
         }
-
         return speaker;
     }
 
@@ -419,6 +439,14 @@ public class DominantSpeakerIdentification
         }
     }
 
+    /**
+     * Runs in the background/daemon <tt>Thread</tt> of {@link #decisionMaker}
+     * and makes the decision whether there has been a speaker switch event.
+     *
+     * @return a negative integer if the <tt>DecisionMaker</tt> is to exit or
+     * a non-negative integer to specify the time in milliseconds until the next
+     * execution of the <tt>DecisionMaker</tt>
+     */
     private long runInDecisionMaker()
     {
         long now = System.currentTimeMillis();
@@ -461,6 +489,16 @@ public class DominantSpeakerIdentification
         return sleep;
     }
 
+    /**
+     * Runs in the background/daemon <tt>Thread</tt> of a specific
+     * <tt>DecisionMaker</tt> and makes the decision whether there has been a
+     * speaker switch event.
+     *
+     * @param decisionMaker the <tt>DecisionMaker</tt> invoking the method
+     * @return a negative integer if the <tt>decisionMaker</tt> is to exit or
+     * a non-negative integer to specify the time in milliseconds until the next
+     * execution of the <tt>decisionMaker</tt>
+     */
     long runInDecisionMaker(DecisionMaker decisionMaker)
     {
         synchronized (this)
@@ -490,22 +528,22 @@ public class DominantSpeakerIdentification
         while (i.hasNext())
         {
             Speaker speaker = i.next().getValue();
-            long lastLevelChangedTime = speaker.getLastLevelChangedTime();
+            long idle = now - speaker.getLastLevelChangedTime();
 
             /*
              * Remove a non-dominant Speaker if he/she has been idle for far too
              * long.
              */
-            if ((lastLevelChangedTime + SPEAKER_IDLE_TIMEOUT < now)
+            if ((SPEAKER_IDLE_TIMEOUT < idle)
                     && ((dominantSSRC == null)
                             || (speaker.ssrc != dominantSSRC)))
             {
                 i.remove();
-                continue;
             }
-
-            if (lastLevelChangedTime + LEVEL_IDLE_TIMEOUT < now)
+            else if (LEVEL_IDLE_TIMEOUT < idle)
+            {
                 speaker.levelTimedOut();
+            }
         }
     }
 
@@ -718,6 +756,13 @@ public class DominantSpeakerIdentification
             }
         }
 
+        /**
+         * Gets the time in milliseconds at which an actual (audio) level was
+         * reported or measured for this <tt>Speaker</tt> last.
+         *
+         * @return the time in milliseconds at which an actual (audio) level
+         * was reported or measured for this <tt>Speaker</tt> last
+         */
         public synchronized long getLastLevelChangedTime()
         {
             return lastLevelChangedTime;
@@ -756,13 +801,12 @@ public class DominantSpeakerIdentification
          *
          * @param level the audio level which has been received or measured for
          * this <tt>Speaker</tt>
-         * @param time the time at which the specified <tt>leve</tt> has been
+         * @param time the time at which the specified <tt>level</tt> has been
          * received or measured
          */
         private synchronized void levelChanged(int level, long time)
         {
             lastLevelChangedTime = time;
-
             computeImmediates(level);
         }
 
