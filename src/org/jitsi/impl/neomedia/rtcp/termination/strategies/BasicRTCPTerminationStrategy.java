@@ -28,7 +28,7 @@ public class BasicRTCPTerminationStrategy
      * A cache of media receiver feedback. It contains both receiver report
      * blocks and REMB packets.
      */
-    private final Map<Integer, FeedbackCacheEntry> feedbackCache;
+    private final FeedbackCache feedbackCache;
 
     /**
      * The cache processor that will be making the RTCP reports coming from
@@ -38,8 +38,7 @@ public class BasicRTCPTerminationStrategy
 
     public BasicRTCPTerminationStrategy()
     {
-        this.feedbackCache
-                = new ConcurrentHashMap<Integer, FeedbackCacheEntry>();
+        this.feedbackCache = new FeedbackCache();
 
         reset();
     }
@@ -281,40 +280,7 @@ public class BasicRTCPTerminationStrategy
             }
         }
 
-        // Update the cache with the new data we've gathered.
-        if (ssrc != 0
-                && ((reports != null && reports.length != 0) || remb != null))
-        {
-            long lastUpdate = System.currentTimeMillis();
-
-            FeedbackCacheEntry item = new FeedbackCacheEntry();
-            item.reports = reports;
-            item.remb = remb;
-            item.lastUpdate = lastUpdate;
-
-            if (reports == null || reports.length == 0 || remb == null)
-            {
-                // Complete the cache item from the cache item already in the
-                // cache, if needed.
-                if (feedbackCache.containsKey(ssrc))
-                {
-                    FeedbackCacheEntry base = feedbackCache.get(ssrc);
-
-                    if (base != null
-                            && (reports == null || reports.length == 0))
-                    {
-                        item.reports = base.reports;
-                    }
-
-                    if (base != null && remb == null)
-                    {
-                        item.remb = base.remb;
-                    }
-                }
-            }
-
-            feedbackCache.put(ssrc, item);
-        }
+        feedbackCache.update(ssrc, reports, remb);
 
         RTCPPacket[] outarr = new RTCPPacket[outPackets.size()];
         outPackets.copyInto(outarr);

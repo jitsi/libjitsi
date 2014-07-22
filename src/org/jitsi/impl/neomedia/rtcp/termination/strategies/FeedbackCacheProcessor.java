@@ -17,7 +17,7 @@ import java.util.*;
 class FeedbackCacheProcessor
 {
     public FeedbackCacheProcessor(
-            Map<Integer, FeedbackCacheEntry> feedbackCache)
+            FeedbackCache feedbackCache)
     {
         this.feedbackCache = feedbackCache;
     }
@@ -26,7 +26,7 @@ class FeedbackCacheProcessor
      * A cache of media receiver feedback. It contains both receiver report
      * blocks and REMB packets.
      */
-    private final Map<Integer, FeedbackCacheEntry> feedbackCache;
+    private final FeedbackCache feedbackCache;
 
     /**
      * Adapt media senders to the needs of the this percentile of media
