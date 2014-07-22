@@ -115,8 +115,17 @@ public class RTCPTerminationTransformEngine
             return pkt;
         }
 
-        logger.debug("Transformed the received packet to : " +
-                outRTCPPacket.toString());
+        if (outRTCPPacket == null)
+        {
+            logger.debug("The RTCP termination strategy dropped the received " +
+                    "packet from the transform engine chain.");
+        }
+        else
+        {
+            logger.debug("Transformed the received packet to : " +
+                    outRTCPPacket.toString());
+        }
+
 
         if (outRTCPPacket == null
                 || outRTCPPacket.packets == null
