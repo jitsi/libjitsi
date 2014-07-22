@@ -14,7 +14,7 @@ import java.util.*;
 /**
 * Created by gp on 11/07/14.
 */
-class FeedbackCacheProcessor
+public class FeedbackCacheProcessor
 {
     public FeedbackCacheProcessor(
             FeedbackCache feedbackCache)
