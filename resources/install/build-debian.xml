@@ -229,7 +229,7 @@
              target="jar">
         </ant>
         <copy tofile="lib/sdes4j.jar"
-              file="lib/src/sdes4j/build/SDES4J-1.0.1.jar"/>
+              file="lib/src/sdes4j/build/dist/sdes4j-1.1.2.jar"/>
 
         <symlink resource="/usr/share/java/org.apache.felix.framework.jar"
                  overwrite="true"
