@@ -80,6 +80,8 @@ public class RecorderEvent
      */
     private String participantDescription = null;
 
+    private String endpointId = null;
+
     private boolean disableOtherVideosOnTop = false;
 
     /**
@@ -141,6 +143,10 @@ public class RecorderEvent
         o = json.get("participantDescription");
         if (o != null && o instanceof String)
             participantDescription = (String) o;
+
+        o = json.get("endpointId");
+        if (o != null && o instanceof String)
+            endpointId = (String) o;
 
         o = json.get("mediaType");
         if (o != null)
@@ -299,6 +305,16 @@ public class RecorderEvent
     {
         return "RecorderEvent: " + getType().toString() + " @" + getInstant()
                 + "(" + getMediaType() + ")";
+    }
+
+    public void setEndpointId(String endpointId)
+    {
+        this.endpointId = endpointId;
+    }
+
+    public String getEndpointId()
+    {
+        return endpointId;
     }
 
     /**

@@ -226,6 +226,10 @@ public class RecorderEventHandlerJSONImpl
         if (rtpTimestamp != -1)
             json.put("rtpTimestamp", rtpTimestamp);
 
+        String endpointId = ev.getEndpointId();
+        if (endpointId != null)
+            json.put("endpointId", endpointId);
+
         String filename = ev.getFilename();
         if (filename != null)
         {
