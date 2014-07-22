@@ -515,6 +515,19 @@ public class MediaStreamStatsImpl
                 : mediaStreamLocalDataAddress.getPort();
     }
 
+
+    @Override
+    public long getNbSentBytes()
+    {
+        return getNbBytes(StreamDirection.UPLOAD);
+    }
+
+    @Override
+    public long getNbReceivedBytes()
+    {
+        return getNbBytes(StreamDirection.DOWNLOAD);
+    }
+
     /**
      * Returns the number of sent/received bytes since the beginning of the
      * session.

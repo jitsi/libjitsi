@@ -92,6 +92,22 @@ public interface MediaStreamStats
     public int getLocalPort();
 
     /**
+     * Returns the number of received bytes since the beginning of the
+     * session.
+     *
+     * @return the number of received bytes for this stream.
+     */
+    public long getNbReceivedBytes();
+
+    /**
+     * Returns the number of sent bytes since the beginning of the
+     * session.
+     *
+     * @return the number of sent bytes for this stream.
+     */
+    public long getNbSentBytes();
+
+    /**
      * Returns the total number of discarded packets since the beginning of the
      * session.
      *
