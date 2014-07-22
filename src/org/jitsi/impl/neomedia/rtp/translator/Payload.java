@@ -1,7 +1,6 @@
 package org.jitsi.impl.neomedia.rtp.translator;
 
 import javax.media.rtp.*;
-import java.io.*;
 
 /**
  * Created by gp on 18/07/14.

@@ -6,13 +6,13 @@
  */
 package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
+import java.util.*;
+
 import net.sf.fmj.media.rtp.*;
+
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.*;
-
-import java.util.*;
-import java.util.concurrent.*;
 
 /**
  * Created by gp on 16/07/14.
