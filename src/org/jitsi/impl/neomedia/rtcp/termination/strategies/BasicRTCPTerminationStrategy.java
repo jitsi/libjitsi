@@ -19,10 +19,10 @@ import java.util.concurrent.*;
  */
 public class BasicRTCPTerminationStrategy
         implements RTCPTerminationStrategy,
-        RTCPPacketTransformer,
-        RTCPReportBuilder
+            RTCPPacketTransformer,
+            RTCPReportBuilder
 {
-    private RTCPTransmitter rtcpTransmitter;
+    protected RTCPTransmitter rtcpTransmitter;
 
     /**
      * A cache of media receiver feedback. It contains both receiver report
