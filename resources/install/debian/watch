@@ -1,0 +1,3 @@
+version=3
+https://github.com/jitsi/libjitsi/tags \
+  .*/archive/([\d\.]+)\.tar\.gz
