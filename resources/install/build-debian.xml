@@ -37,9 +37,6 @@
         <replace file="${tmp}/libjitsi/debian/changelog">
             <replacefilter token="_VER_" value="${build.label}"/>
         </replace>
-        <replace file="${tmp}/libjitsi/debian/rules">
-            <replacefilter token="-- clean" value="-- clean-debuild"/>
-        </replace>
 
         <!-- ice4j
         svn checkout http://ice4j.googlecode.com/svn/trunk/ ice4j
@@ -100,6 +97,7 @@
         <unzip src="../libsrc/portaudio.zip"
                dest="${tmp}/libjitsi/lib/src/">
             <patternset>
+                <exclude name="**/*.o"/>
                 <exclude name="**/*.log"/>
                 <exclude name="**/*.orig"/>
                 <exclude name="**/bindings/**"/>
@@ -207,6 +205,7 @@
             </fileset>
         </delete>
         <delete dir="lib/src/usrsctp/m4"/>
+        <ant target="clean-native"/>
     </target>
 
     <!-- used to build sources for debuilding deb package
@@ -553,7 +552,7 @@ org.jitsi.bccontrib.util"/>
             <replacevalue>dh_install -plibjitsi</replacevalue>
         </replace>
         <replace file="${tmp}/libjitsi/debian/rules"
-                 token="dh_auto_clean -- clean">
+                 token="dh_auto_clean -- clean-debuild">
             <replacevalue># do nothing</replacevalue>
         </replace>
 

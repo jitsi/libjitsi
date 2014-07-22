@@ -26,7 +26,7 @@ else
 endif
 
 override_dh_auto_clean:
-	dh_auto_clean -- clean
+	dh_auto_clean -- clean-debuild
 
 get-orig-source:
 	uscan
