@@ -527,6 +527,15 @@ public class RecorderRtpImpl
             rtpConnector.packetBuffer.disable(ssrc);
             emptyPacketBuffer(ssrc);
 
+            /*
+             * Workaround an issue with Chrome resetting the RTP timestamps
+             * after a stream's direction changes: if the stream with the same
+             * SSRC starts again later, we will obtain new mappings based on
+             * the new Sender Reports.
+             * See https://code.google.com/p/webrtc/issues/detail?id=3597
+             */
+            getSynchronizer().removeMapping(ssrc);
+
             // Continue accepting packets with this SSRC
             rtpConnector.packetBuffer.reset(ssrc);
         }

@@ -457,6 +457,30 @@ public class SynchronizerImpl
     }
 
     /**
+     * Removes the RTP-NTP mapping for a given SSRC.
+     *
+     * @param ssrc the SSRC for which to remove the RTP-NTP mapping
+     */
+    void removeMapping(long ssrc)
+    {
+        if (ssrcs.containsKey(ssrc))
+        {
+            synchronized (ssrcs)
+            {
+                SSRCDesc ssrcDesc = ssrcs.get(ssrc);
+                if (ssrcDesc != null)
+                {
+                    synchronized (ssrcDesc)
+                    {
+                        ssrcDesc.ntpTime = -1.0;
+                        ssrcDesc.rtpTime = -1;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Represents an SSRC for the purpose of this <tt>Synchronizer</tt>.
      */
     private class SSRCDesc
