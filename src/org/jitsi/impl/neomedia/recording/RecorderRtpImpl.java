@@ -16,6 +16,7 @@ import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.fec.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
+import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.MediaException;
@@ -72,6 +73,13 @@ public class RecorderRtpImpl
 
     private static final int FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE = 300;
     private static final int FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE = 16;
+
+    /**
+     * The name of the property which controls whether the recorder should
+     * perform active speaker detection.
+     */
+    private static String PERFORM_ASD_PNAME =
+            RecorderRtpImpl.class.getCanonicalName() + ".PERFORM_ASD";
 
     /**
      * The <tt>ContentDescriptor</tt> to use when saving audio.
@@ -151,6 +159,12 @@ public class RecorderRtpImpl
      */
     private ActiveSpeakerDetector activeSpeakerDetector = null;
 
+    /**
+     * Controls whether this <tt>RecorderRtpImpl</tt> should perform active
+     * speaker detection and fire <tt>SPEAKER_CHANGED</tt> recorder events.
+     */
+    private final boolean performActiveSpeakerDetection;
+
     StreamRTPManager streamRTPManager;
 
     private SynchronizerImpl synchronizer;
@@ -165,8 +179,16 @@ public class RecorderRtpImpl
     public RecorderRtpImpl(RTPTranslator translator)
     {
         this.translator = (RTPTranslatorImpl) translator;
-        activeSpeakerDetector = new ActiveSpeakerDetectorImpl();
-        activeSpeakerDetector.addActiveSpeakerChangedListener(this);
+
+
+        boolean performActiveSpeakerDetection = false;
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        if (cfg != null)
+        {
+            performActiveSpeakerDetection = cfg.getBoolean(PERFORM_ASD_PNAME,
+                                                           false);
+        }
+        this.performActiveSpeakerDetection = performActiveSpeakerDetection;
     }
 
     /**
@@ -247,6 +269,12 @@ public class RecorderRtpImpl
         path = dirname;
 
         MediaService mediaService = LibJitsi.getMediaService();
+
+        if (performActiveSpeakerDetection)
+        {
+            activeSpeakerDetector = new ActiveSpeakerDetectorImpl();
+            activeSpeakerDetector.addActiveSpeakerChangedListener(this);
+        }
 
         /*
          * Note that we use only one RTPConnector for both the RTPTranslator
@@ -638,8 +666,10 @@ public class RecorderRtpImpl
 
                 if (audio)
                 {
+                    List<Codec> codecList = new LinkedList<Codec>();
                     final long ssrc = desc.ssrc;
                     SilenceEffect silenceEffect;
+
                     if (Constants.OPUS_RTP.equals(desc.format.getEncoding()))
                     {
                         silenceEffect = new SilenceEffect(48000);
@@ -676,8 +706,13 @@ public class RecorderRtpImpl
                             }
                     );
                     desc.silenceEffect = silenceEffect;
-                    AudioLevelEffect audioLevelEffect = new AudioLevelEffect();
-                    audioLevelEffect.setAudioLevelListener(
+                    codecList.add(silenceEffect);
+
+                    if (performActiveSpeakerDetection)
+                    {
+                        AudioLevelEffect audioLevelEffect
+                                = new AudioLevelEffect();
+                        audioLevelEffect.setAudioLevelListener(
                             new SimpleAudioLevelListener()
                             {
                                 @Override
@@ -686,15 +721,17 @@ public class RecorderRtpImpl
                                     activeSpeakerDetector.levelChanged(ssrc,level);
                                 }
                             }
-                    );
+                        );
+
+                        codecList.add(audioLevelEffect);
+                    }
 
                     try
                     {
                         // We add an effect, which will insert "silence" in
                         // place of lost packets.
-                        track.setCodecChain(new Codec[]{
-                                silenceEffect,
-                                audioLevelEffect});
+                        track.setCodecChain(
+                                codecList.toArray(new Codec[codecList.size()]));
                     }
                     catch (UnsupportedPlugInException upie)
                     {
@@ -1052,15 +1089,18 @@ public class RecorderRtpImpl
     @Override
     public void activeSpeakerChanged(long ssrc)
     {
-        if (eventHandler !=null)
+        if (performActiveSpeakerDetection)
         {
-            RecorderEvent e = new RecorderEvent();
-            e.setAudioSsrc(ssrc);
-            //TODO: how do we time this?
-            e.setInstant(System.currentTimeMillis());
-            e.setType(RecorderEvent.Type.SPEAKER_CHANGED);
-            e.setMediaType(MediaType.VIDEO);
-            eventHandler.handleEvent(e);
+            if (eventHandler != null)
+            {
+                RecorderEvent e = new RecorderEvent();
+                e.setAudioSsrc(ssrc);
+                //TODO: how do we time this?
+                e.setInstant(System.currentTimeMillis());
+                e.setType(RecorderEvent.Type.SPEAKER_CHANGED);
+                e.setMediaType(MediaType.VIDEO);
+                eventHandler.handleEvent(e);
+            }
         }
     }
 
