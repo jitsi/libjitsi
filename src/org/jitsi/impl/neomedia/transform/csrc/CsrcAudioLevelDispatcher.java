@@ -32,8 +32,11 @@ public class CsrcAudioLevelDispatcher
                 true,
                 "CsrcAudioLevelDispatcher");
 
-    /** The levels that we last received from the reverseTransform thread*/
-    private long[] lastReportedLevels = null;
+    /**
+     * The levels added to this instance (by the <tt>reverseTransform</tt>
+     * method of a <tt>PacketTransformer</tt> implementation) last.
+     */
+    private long[] levels;
 
     /**
      * The <tt>AudioMediaStreamImpl</tt> which listens to this event dispatcher.
@@ -61,16 +64,18 @@ public class CsrcAudioLevelDispatcher
     }
 
     /**
-     * A level matrix that we should deliver to our media stream and
-     * its listeners in a separate thread.
+     * A level matrix that we should deliver to our media stream and its
+     * listeners in a separate thread.
      *
      * @param levels the levels that we'd like to queue for processing.
+     * @param rtpTime the timestamp carried by the RTP packet which carries the
+     * specified <tt>levels</tt>
      */
-    public void addLevels(long[] levels)
+    public void addLevels(long[] levels, long rtpTime)
     {
         synchronized(this)
         {
-            this.lastReportedLevels = levels;
+            this.levels = levels;
 
             if ((mediaStream != null) && !scheduled)
             {
@@ -107,15 +112,15 @@ public class CsrcAudioLevelDispatcher
                         break;
                     }
 
-                    if(lastReportedLevels == null)
+                    if(this.levels == null)
                     {
                         try { wait(); } catch (InterruptedException ie) {}
                         continue;
                     }
                     else
                     {
-                        levels = lastReportedLevels;
-                        lastReportedLevels = null;
+                        levels = this.levels;
+                        this.levels = null;
                     }
                 }
 
@@ -146,10 +151,10 @@ public class CsrcAudioLevelDispatcher
                 this.mediaStream = mediaStream;
 
                 /*
-                 * If the mediaStream changes, it is unlikely that the
-                 * lastReportedLevels are associated with it.
+                 * If the mediaStream changes, it is unlikely that the (audio)
+                 * levels are associated with it.
                  */
-                lastReportedLevels = null;
+                this.levels = null;
 
                 notifyAll();
             }

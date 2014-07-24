@@ -20,11 +20,10 @@ class FECSender
     implements PacketTransformer
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>FECSender</tt> class and
-     * its instances to print debug information.
+     * The <tt>Logger</tt> used by the <tt>FECSender</tt> class and its
+     * instances to print debug information.
      */
-    private static final Logger logger
-            = Logger.getLogger(FECSender.class);
+    private static final Logger logger = Logger.getLogger(FECSender.class);
 
     /**
      * The single SSRC with which this <tt>FECSender</tt> works.
@@ -159,8 +158,11 @@ class FECSender
     public void close()
     {
         if (logger.isInfoEnabled())
-            logger.info("Closing FECSender for ssrc=" + ssrc
-                    + ". Added " + nbFec + " ulpfec packets.");
+        {
+            logger.info(
+                    "Closing FECSender for ssrc=" + ssrc + ". Added " + nbFec
+                        + " ulpfec packets.");
+        }
     }
 
     /**
@@ -188,8 +190,6 @@ class FECSender
             counter = 0;
         }
     }
-
-
 
     /**
      * A <tt>RawPacket</tt> extension which represents an ulpfec packet. Allows
@@ -228,7 +228,7 @@ class FECSender
      * Followed by 'Protection Length' bytes of 'FEC Level 0 Payload'.
      */
     private class FECPacket
-            extends RawPacket
+        extends RawPacket
     {
         /**
          * SN base. The sequence number of the first media packet added.
@@ -254,12 +254,12 @@ class FECSender
         /**
          * This <tt>RawPacket</tt>'s buffer.
          */
-        byte[] buf;
+        private byte[] buf;
 
         /**
          * The SSRC of this packet.
          */
-        long ssrc;
+        private final long ssrc;
 
         /**
          * The RTP timestamp of the last added media packet.
@@ -269,7 +269,7 @@ class FECSender
         /**
          * The payload type for this packet.
          */
-        private byte payloadType;
+        byte payloadType;
 
         /**
          * Length of the RTP header of this packet.
@@ -289,7 +289,8 @@ class FECSender
          */
         FECPacket(long ssrc, byte payloadType)
         {
-            super(new byte[FECTransformEngine.INITIAL_BUFFER_SIZE],
+            super(
+                    new byte[FECTransformEngine.INITIAL_BUFFER_SIZE],
                     0,
                     FECTransformEngine.INITIAL_BUFFER_SIZE);
 
@@ -313,7 +314,7 @@ class FECSender
             if (buf.length < mediaPayloadLen + RTP_HDR_LEN + FEC_HDR_LEN)
             {
                 byte[] newBuff
-                        = new byte[mediaPayloadLen + RTP_HDR_LEN + FEC_HDR_LEN];
+                    = new byte[mediaPayloadLen + RTP_HDR_LEN + FEC_HDR_LEN];
                 System.arraycopy(buf, 0, newBuff, 0, buf.length);
                 for (int i = buf.length; i < newBuff.length; i++)
                     newBuff[i] = (byte) 0;
@@ -333,10 +334,9 @@ class FECSender
                 buf[RTP_HDR_LEN+9] = (byte) (mediaPayloadLen & 0xff);
 
                 // copy the payload
-                System.arraycopy(mediaBuf,
-                        mediaOff + RTP_HDR_LEN,
-                        buf,
-                        RTP_HDR_LEN + FEC_HDR_LEN,
+                System.arraycopy(
+                        mediaBuf, mediaOff + RTP_HDR_LEN,
+                        buf, RTP_HDR_LEN + FEC_HDR_LEN,
                         mediaPayloadLen);
             }
             else
@@ -345,9 +345,7 @@ class FECSender
 
                 // 8 bytes from media's RTP header --> the FEC Header
                 for (int i = 0; i < 8; i++)
-                {
                     buf[RTP_HDR_LEN + i] ^= mediaBuf[mediaOff + i];
-                }
 
                 // 'length recovery'
                 buf[RTP_HDR_LEN+8] ^= (byte) (mediaPayloadLen>>8 & 0xff);
@@ -355,8 +353,10 @@ class FECSender
 
                 // payload
                 for (int i = 0; i < mediaPayloadLen; i++)
+                {
                     buf[RTP_HDR_LEN + FEC_HDR_LEN + i]
                             ^= mediaBuf[mediaOff + RTP_HDR_LEN + i];
+                }
             }
 
             lastAddedSeq = media.getSequenceNumber();
@@ -398,5 +398,4 @@ class FECSender
             return this;
         }
     }
-
 }
