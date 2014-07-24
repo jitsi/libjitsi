@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia;
 
 import java.awt.*;
+import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.List;
@@ -519,13 +520,55 @@ public class MediaStreamStatsImpl
     @Override
     public long getNbSentBytes()
     {
-        return getNbBytes(StreamDirection.UPLOAD);
+        AbstractRTPConnector connector = mediaStreamImpl.getRTPConnector();
+        if(connector == null)
+        {
+            return 0;
+        }
+
+        RTPConnectorOutputStream stream = null;
+        try
+        {
+            stream = connector.getDataOutputStream(false);
+        }
+        catch (IOException e)
+        {
+            //We should not enter here because we are not creating output stream
+        }
+
+        if(stream == null)
+        {
+            return 0;
+        }
+
+        return stream.getNumberOfBytesSent();
     }
 
     @Override
     public long getNbReceivedBytes()
     {
-        return getNbBytes(StreamDirection.DOWNLOAD);
+        AbstractRTPConnector connector = mediaStreamImpl.getRTPConnector();
+        if(connector == null)
+        {
+            return 0;
+        }
+
+        RTPConnectorInputStream stream = null;
+        try
+        {
+            stream = connector.getDataInputStream();
+        }
+        catch (IOException e)
+        {
+            //We should not enter here because we are not creating stream
+        }
+
+        if(stream == null)
+        {
+            return 0;
+        }
+
+        return stream.getNumberOfReceivedBytes();
     }
 
     /**

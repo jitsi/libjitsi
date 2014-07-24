@@ -88,6 +88,11 @@ public abstract class RTPConnectorOutputStream
     private boolean enabled = true;
 
     /**
+     * Number of bytes sent through this stream.
+     */
+    private long numberOfBytesSent = 0;
+
+    /**
      * Initializes a new <tt>RTPConnectorOutputStream</tt> which is to send
      * packet data out through a specific socket.
      */
@@ -108,6 +113,15 @@ public abstract class RTPConnectorOutputStream
 
         if (!targets.contains(target))
             targets.add(target);
+    }
+
+    /**
+     * Returns the number of bytes sent trough this stream
+     * @return the number of bytes sent
+     */
+    public long getNumberOfBytesSent()
+    {
+        return numberOfBytesSent;
     }
 
     /**
@@ -292,6 +306,8 @@ public abstract class RTPConnectorOutputStream
             try
             {
                 sendToTarget(packet, target);
+
+                numberOfBytesSent += (long)packet.getLength();
 
                 if(logPacket(numberOfPackets))
                 {

@@ -121,6 +121,11 @@ public abstract class RTPConnectorInputStream
     private boolean enabled = true;
 
     /**
+     * Number of received bytes.
+     */
+    private long numberOfReceivedBytes = 0;
+
+    /**
      * Initializes a new <tt>RTPConnectorInputStream</tt> which is to receive
      * packet data from a specific UDP socket.
      */
@@ -307,6 +312,15 @@ public abstract class RTPConnectorInputStream
     public int getMinimumTransferSize()
     {
         return 2 * 1024; // twice the MTU size, just to be safe.
+    }
+
+    /**
+     * Returns the number of received bytes for the stream.
+     * @return the number of received bytes
+     */
+    public long getNumberOfReceivedBytes()
+    {
+        return numberOfReceivedBytes;
     }
 
     /**
@@ -544,6 +558,7 @@ public abstract class RTPConnectorInputStream
                         }
                         else
                         {
+                            numberOfReceivedBytes += (long)pkt.getLength();
                             RawPacket oldPkt;
 
                             synchronized (pktSyncRoot)
