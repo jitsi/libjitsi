@@ -1626,6 +1626,29 @@ public class ConfigurationServiceImpl
     }
 
     /**
+     * Tests whether the application has been launched using Java WebStart
+     */
+    private boolean isLaunchedByWebStart()
+    {
+        boolean hasJNLP = false;
+        try
+        {
+            Class.forName("javax.jnlp.ServiceManager");
+            hasJNLP = true;
+        }
+        catch (ClassNotFoundException ex)
+        {
+            hasJNLP = false;
+        }
+        String jwsVersion = System.getProperty("javawebstart.version");
+        if(jwsVersion != null && jwsVersion.length() > 0)
+        {
+            hasJNLP = true;
+        }
+        return hasJNLP;
+    }
+
+    /**
      * Loads the specified default properties maps from the Jitsi installation
      * directory. Typically this file is to be called for the default properties
      * and the admin overrides.
@@ -1645,9 +1668,23 @@ public class ConfigurationServiceImpl
                         = getClass().getClassLoader()
                                 .getResourceAsStream(fileName);
             }
+            else if(isLaunchedByWebStart())
+            {
+                logger.info("WebStart classloader");
+                fileStream
+                        = Thread.currentThread().getContextClassLoader()
+                                .getResourceAsStream(fileName);
+            }
             else
             {
+                logger.info("Normal classloader");
                 fileStream = ClassLoader.getSystemResourceAsStream(fileName);
+            }
+
+            if(fileStream == null)
+            {
+                logger.info("failed to find " + fileName + " with class loader, will continue without it.");
+                return;
             }
 
             fileProps.load(fileStream);
