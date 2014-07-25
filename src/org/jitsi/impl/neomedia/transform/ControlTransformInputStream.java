@@ -24,7 +24,7 @@ import org.jitsi.service.neomedia.event.*;
  * @author Sebastien Vincent
  */
 public class ControlTransformInputStream
-    extends TransformUDPInputStream
+    extends RTPConnectorUDPInputStream
 {
     /**
      * The list of <tt>RTCPFeedbackMessageListener</tt>s.

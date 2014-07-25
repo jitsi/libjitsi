@@ -10,6 +10,7 @@ import java.io.*;
 import java.net.*;
 
 import org.ice4j.socket.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.util.*;
@@ -20,7 +21,7 @@ import org.jitsi.util.*;
  * @author Sebastien Vincent
  */
 public class RTPConnectorTCPInputStream
-    extends RTPConnectorInputStream
+    extends TransformInputStream
 {
     /**
      * The <tt>Logger</tt> used by instances for logging output.
@@ -49,7 +50,7 @@ public class RTPConnectorTCPInputStream
             {
                 socket.setReceiveBufferSize(65535);
             }
-            catch(Throwable t)
+            catch (Throwable t)
             {
             }
 

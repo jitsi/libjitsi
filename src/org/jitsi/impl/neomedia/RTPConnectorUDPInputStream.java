@@ -10,6 +10,7 @@ import java.io.*;
 import java.net.*;
 
 import org.ice4j.socket.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 
@@ -19,7 +20,7 @@ import org.jitsi.service.packetlogging.*;
  * @author Sebastien Vincent
  */
 public class RTPConnectorUDPInputStream
-    extends RTPConnectorInputStream
+    extends TransformInputStream
 {
 
     /**

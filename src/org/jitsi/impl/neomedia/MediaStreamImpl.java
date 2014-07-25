@@ -1588,10 +1588,10 @@ public class MediaStreamImpl
                 = new RTPTransformUDPConnector(connector)
                 {
                     @Override
-                    protected TransformUDPInputStream createControlInputStream()
+                    protected RTPConnectorUDPInputStream createControlInputStream()
                         throws IOException
                     {
-                        TransformUDPInputStream s
+                        RTPConnectorUDPInputStream s
                             = super.createControlInputStream();
 
                         rtpConnectorInputStreamCreated(s, false);
@@ -1599,10 +1599,10 @@ public class MediaStreamImpl
                     }
 
                     @Override
-                    protected TransformUDPInputStream createDataInputStream()
+                    protected RTPConnectorUDPInputStream createDataInputStream()
                         throws IOException
                     {
-                        TransformUDPInputStream s
+                        RTPConnectorUDPInputStream s
                             = super.createDataInputStream();
 
                         rtpConnectorInputStreamCreated(s, true);
@@ -1629,10 +1629,10 @@ public class MediaStreamImpl
                 = new RTPTransformTCPConnector(connector)
                 {
                     @Override
-                    protected TransformTCPInputStream createControlInputStream()
+                    protected RTPConnectorTCPInputStream createControlInputStream()
                         throws IOException
                     {
-                        TransformTCPInputStream s
+                        RTPConnectorTCPInputStream s
                             = super.createControlInputStream();
 
                         rtpConnectorInputStreamCreated(s, false);
@@ -1640,10 +1640,10 @@ public class MediaStreamImpl
                     }
 
                     @Override
-                    protected TransformTCPInputStream createDataInputStream()
+                    protected RTPConnectorTCPInputStream createDataInputStream()
                         throws IOException
                     {
-                        TransformTCPInputStream s
+                        RTPConnectorTCPInputStream s
                             = super.createDataInputStream();
 
                         rtpConnectorInputStreamCreated(s, true);

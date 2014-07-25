@@ -71,11 +71,11 @@ public class RTPTransformTCPConnector
      * TransformInputStream.
      */
     @Override
-    protected TransformTCPInputStream createControlInputStream()
+    protected RTPConnectorTCPInputStream createControlInputStream()
         throws IOException
     {
-        TransformTCPInputStream controlInputStream
-            = new TransformTCPInputStream(getControlSocket());
+        RTPConnectorTCPInputStream controlInputStream
+            = new RTPConnectorTCPInputStream(getControlSocket());
 
         controlInputStream.setTransformer(getRTCPTransformer());
         return controlInputStream;
@@ -101,11 +101,11 @@ public class RTPTransformTCPConnector
      * TransformInputStream.
      */
     @Override
-    protected TransformTCPInputStream createDataInputStream()
+    protected RTPConnectorTCPInputStream createDataInputStream()
         throws IOException
     {
-        TransformTCPInputStream dataInputStream
-            = new TransformTCPInputStream(getDataSocket());
+        RTPConnectorTCPInputStream dataInputStream
+            = new RTPConnectorTCPInputStream(getDataSocket());
 
         dataInputStream.setTransformer(getRTPTransformer());
         return dataInputStream;
@@ -191,11 +191,11 @@ public class RTPTransformTCPConnector
              * Deliver the new PacketTransformers defined by the new
              * TransformEngine to the respective streams.
              */
-            TransformTCPInputStream controlInputStream;
+            RTPConnectorTCPInputStream controlInputStream;
             try
             {
                 controlInputStream
-                    = (TransformTCPInputStream) getControlInputStream(false);
+                    = (RTPConnectorTCPInputStream) getControlInputStream(false);
             }
             catch (IOException ioex)
             {
@@ -217,11 +217,11 @@ public class RTPTransformTCPConnector
             }
             if (controlOutputStream != null)
                 controlOutputStream.setTransformer(getRTCPTransformer());
-            TransformTCPInputStream dataInputStream;
+            RTPConnectorTCPInputStream dataInputStream;
             try
             {
                 dataInputStream
-                    = (TransformTCPInputStream) getDataInputStream(false);
+                    = (RTPConnectorTCPInputStream) getDataInputStream(false);
             }
             catch (IOException ioex)
             {

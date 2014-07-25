@@ -71,10 +71,10 @@ public class RTPTransformUDPConnector
      * TransformInputStream.
      */
     @Override
-    protected TransformUDPInputStream createControlInputStream()
+    protected RTPConnectorUDPInputStream createControlInputStream()
         throws IOException
     {
-        TransformUDPInputStream controlInputStream
+        RTPConnectorUDPInputStream controlInputStream
             = new ControlTransformInputStream(getControlSocket());
 
         controlInputStream.setTransformer(getRTCPTransformer());
@@ -101,11 +101,11 @@ public class RTPTransformUDPConnector
      * TransformInputStream.
      */
     @Override
-    protected TransformUDPInputStream createDataInputStream()
+    protected RTPConnectorUDPInputStream createDataInputStream()
         throws IOException
     {
-        TransformUDPInputStream dataInputStream
-            = new TransformUDPInputStream(getDataSocket());
+        RTPConnectorUDPInputStream dataInputStream
+            = new RTPConnectorUDPInputStream(getDataSocket());
 
         dataInputStream.setTransformer(getRTPTransformer());
         return dataInputStream;
@@ -191,11 +191,11 @@ public class RTPTransformUDPConnector
              * Deliver the new PacketTransformers defined by the new
              * TransformEngine to the respective streams.
              */
-            TransformUDPInputStream controlInputStream;
+            RTPConnectorUDPInputStream controlInputStream;
             try
             {
                 controlInputStream
-                    = (TransformUDPInputStream) getControlInputStream(false);
+                    = (RTPConnectorUDPInputStream) getControlInputStream(false);
             }
             catch (IOException ioex)
             {
@@ -217,11 +217,11 @@ public class RTPTransformUDPConnector
             }
             if (controlOutputStream != null)
                 controlOutputStream.setTransformer(getRTCPTransformer());
-            TransformUDPInputStream dataInputStream;
+            RTPConnectorUDPInputStream dataInputStream;
             try
             {
                 dataInputStream
-                    = (TransformUDPInputStream) getDataInputStream(false);
+                    = (RTPConnectorUDPInputStream) getDataInputStream(false);
             }
             catch (IOException ioex)
             {
