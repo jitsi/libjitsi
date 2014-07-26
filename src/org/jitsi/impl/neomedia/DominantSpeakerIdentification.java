@@ -51,12 +51,23 @@ public class DominantSpeakerIdentification
     private static final long DECISION_INTERVAL = 300;
 
     /**
+     * The interval of time in milliseconds of idle execution of
+     * <tt>DecisionMaker</tt> after which the latter should cease to exist. The
+     * interval does not have to be very long because the background threads
+     * running the <tt>DecisionMaker</tt>s are pooled anyway.
+     */
+    private static final long DECISION_MAKER_IDLE_TIMEOUT = 15 * 1000;
+
+    /**
      * The interval of time without a call to {@link Speaker#levelChanged(int)}
      * after which <tt>DominantSpeakerIdentification</tt> assumes that there
      * will be no report of a <tt>Speaker</tt>'s level within a certain
-     * time-frame. 
+     * time-frame. The default value of <tt>40</tt> is chosen in order to allow
+     * non-aggressive fading of the last received or measured level and to be
+     * greater than the most common RTP packet durations in milliseconds i.e.
+     * <tt>20</tt> and <tt>30</tt>. 
      */
-    private static final long LEVEL_IDLE_TIMEOUT = 30;
+    private static final long LEVEL_IDLE_TIMEOUT = 40;
 
     /**
      * The (total) number of long time-intervals used for speech activity score
@@ -75,6 +86,15 @@ public class DominantSpeakerIdentification
      * <tt>DominantSpeakerIdentification</tt>.
      */
     private static final int MIN_LEVEL = 0;
+
+    /**
+     * The minimum value of speech activity score supported by
+     * <tt>DominantSpeakerIdentification</tt>. The value must be positive
+     * because (1) we are going to use it as the argument of a logarithmic
+     * function and the latter is undefined for negative arguments and (2) we
+     * will be dividing by the speech activity score.
+     */
+    private static final double MIN_SPEECH_ACTIVITY_SCORE = 0.0000000001;
 
     /**
      * The (total) number of sub-bands in the frequency range evaluated for
@@ -186,15 +206,8 @@ public class DominantSpeakerIdentification
             = Math.log(binomialCoefficient(nR, vL)) + vL * Math.log(p)
                 + (nR - vL) * Math.log(1 - p) - Math.log(lambda) + lambda * vL;
 
-        /*
-         * XXX (1) We are going to use speechActivityScore as the argument of a
-         * logarithmic function and the latter is undefined for negative
-         * arguments. (2) Additionally, we will be dividing by
-         * speechActivityScore and we are not sure what we are going to do with
-         * the result of such a division. 
-         */
-        if (speechActivityScore <= 0)
-            speechActivityScore = 0.00000001;
+        if (speechActivityScore < MIN_SPEECH_ACTIVITY_SCORE)
+            speechActivityScore = MIN_SPEECH_ACTIVITY_SCORE;
         return speechActivityScore;
     }
 
@@ -217,6 +230,12 @@ public class DominantSpeakerIdentification
      * milliseconds.
      */
     private long lastDecisionTime;
+
+    /**
+     * The time in milliseconds of the most recent (audio) level report or
+     * measurement (regardless of the <tt>Speaker</tt>).
+     */
+    private long lastLevelChangedTime;
 
     /**
      * The last/latest time at which this <tt>DominantSpeakerIdentification</tt>
@@ -283,7 +302,11 @@ public class DominantSpeakerIdentification
         {
             speaker = new Speaker(ssrc);
             speakers.put(key, speaker);
-
+            /*
+             * Since we've created a new Speaker in the multipoint conference,
+             * we'll very likely need to make a decision whether there have been
+             * speaker switch events soon.
+             */
             maybeStartDecisionMaker();
         }
         return speaker;
@@ -295,12 +318,40 @@ public class DominantSpeakerIdentification
     @Override
     public void levelChanged(long ssrc, int level)
     {
-        Speaker speaker = getOrCreateSpeaker(ssrc);
+        Speaker speaker;
+        long now = System.currentTimeMillis();
 
+        synchronized (this)
+        {
+            speaker = getOrCreateSpeaker(ssrc);
+
+            /*
+             * Note that this ActiveSpeakerDetector is still in use. When it is
+             * not in use long enough, its DecisionMaker i.e. background thread
+             * will prepare itself and, consequently, this
+             * DominantSpeakerIdentification for garbage collection.
+             */
+            if (lastLevelChangedTime < now)
+            {
+                lastLevelChangedTime = now;
+                /*
+                 * A report or measurement of an audio level indicates that this
+                 * DominantSpeakerIdentification is in use and, consequently,
+                 * that it'll very likely need to make a decision whether there
+                 * have been speaker switch events soon.
+                 */
+                maybeStartDecisionMaker();
+            }
+        }
         if (speaker != null)
-            speaker.levelChanged(level);
+            speaker.levelChanged(level, now);
     }
 
+    /**
+     * Makes the decision whether there has been a speaker switch event. If
+     * there has been such an event, notifies the registered listeners that a
+     * new speaker is dominating the multipoint conference.
+     */
     private synchronized void makeDecision()
     {
         int speakerCount = speakers.size();
@@ -481,7 +532,9 @@ public class DominantSpeakerIdentification
              * iteration should be computed after the end of the decision
              * iteration.
              */
-            decisionTimeout = DECISION_INTERVAL - (now - lastDecisionTime);
+            decisionTimeout
+                = DECISION_INTERVAL - (System.currentTimeMillis() - now);
+
         }
         if ((decisionTimeout > 0) && (sleep > decisionTimeout))
             sleep = decisionTimeout;
@@ -503,8 +556,26 @@ public class DominantSpeakerIdentification
     {
         synchronized (this)
         {
+            /*
+             * Most obviously, DecisionMakers no longer employed by this
+             * DominantSpeakerIdentification should cease to exist as soon as
+             * possible.
+             */
             if (this.decisionMaker != decisionMaker)
                 return -1;
+
+            /*
+             * If the decisionMaker has been unnecessarily executing long
+             * enough, kill it in order to have a more deterministic behavior
+             * with respect to disposal.
+             */
+            if (0 < lastDecisionTime)
+            {
+                long idle = lastDecisionTime - lastLevelChangedTime;
+
+                if (idle >= DECISION_MAKER_IDLE_TIMEOUT)
+                    return -1;
+            }
         }
 
         return runInDecisionMaker();
@@ -642,7 +713,7 @@ public class DominantSpeakerIdentification
                  * Notify the algorithm that this background thread will no
                  * longer run it in order to make the (global) decision about
                  * speaker switches. Subsequently, the algorithm may decide to
-                 * swap another background thread to run the same task.
+                 * spawn another background thread to run the same task.
                  */
                 DominantSpeakerIdentification algorithm = this.algorithm.get();
 
@@ -660,7 +731,11 @@ public class DominantSpeakerIdentification
     {
         private final byte[] immediates = new byte[LONG_COUNT * N3 * N2];
 
-        private double immediateSpeechActivityScore;
+        /**
+         * The speech activity score of this <tt>Speaker</tt> for the immediate
+         * time-interval.
+         */
+        private double immediateSpeechActivityScore = MIN_SPEECH_ACTIVITY_SCORE;
 
         /**
          * The time in milliseconds of the most recent invocation of
@@ -675,11 +750,19 @@ public class DominantSpeakerIdentification
 
         private final byte[] longs = new byte[LONG_COUNT];
 
-        private double longSpeechActivityScore;
+        /**
+         * The speech activity score of this <tt>Speaker</tt> for the long
+         * time-interval.
+         */
+        private double longSpeechActivityScore = MIN_SPEECH_ACTIVITY_SCORE;
 
         private final byte[] mediums = new byte[LONG_COUNT * N3];
 
-        private double mediumSpeechActivityScore;
+        /**
+         * The speech activity score of this <tt>Speaker</tt> for the medium
+         * time-interval.
+         */
+        private double mediumSpeechActivityScore = MIN_SPEECH_ACTIVITY_SCORE;
 
         /**
          * The synchronization source identifier/SSRC of this <tt>Speaker</tt>
@@ -702,8 +785,8 @@ public class DominantSpeakerIdentification
         private void computeImmediates(int level)
         {
             /*
-             * Ensure the specified audio level falls within the supported audio
-             * level range.
+             * Ensure that the specified (audio) level is within the supported
+             * range.
              */
             if (level < MIN_LEVEL)
                 level = MIN_LEVEL;
@@ -717,21 +800,9 @@ public class DominantSpeakerIdentification
             immediates[0] = (byte) (level / N1);
         }
 
-        private void computeImmediateSpeechActivityScore()
-        {
-            immediateSpeechActivityScore
-                = computeSpeechActivityScore(immediates[0], N1, 0.5, 0.78);
-        }
-
         private boolean computeLongs()
         {
             return computeBigs(mediums, longs, N2_BASED_LONG_THRESHOLD);
-        }
-
-        private void computeLongSpeechActivityScore()
-        {
-            longSpeechActivityScore
-                = computeSpeechActivityScore(longs[0], N3, 0.5, 47);
         }
 
         private boolean computeMediums()
@@ -739,20 +810,49 @@ public class DominantSpeakerIdentification
             return computeBigs(immediates, mediums, N1_BASED_MEDIUM_THRESHOLD);
         }
 
-        private void computeMediumSpeechActivityScore()
+        /**
+         * Computes/evaluates the speech activity score of this <tt>Speaker</tt>
+         * for the immediate time-interval.
+         */
+        private void evaluateImmediateSpeechActivityScore()
+        {
+            immediateSpeechActivityScore
+                = computeSpeechActivityScore(immediates[0], N1, 0.5, 0.78);
+        }
+
+        /**
+         * Computes/evaluates the speech activity score of this <tt>Speaker</tt>
+         * for the long time-interval.
+         */
+        private void evaluateLongSpeechActivityScore()
+        {
+            longSpeechActivityScore
+                = computeSpeechActivityScore(longs[0], N3, 0.5, 47);
+        }
+
+        /**
+         * Computes/evaluates the speech activity score of this <tt>Speaker</tt>
+         * for the medium time-interval.
+         */
+        private void evaluateMediumSpeechActivityScore()
         {
             mediumSpeechActivityScore
                 = computeSpeechActivityScore(mediums[0], N2, 0.5, 24);
         }
 
+        /**
+         * Evaluates the speech activity scores of this <tt>Speaker</tt> for the
+         * immediate, medium, and long time-intervals. Invoked when it is time
+         * to decide whether there has been a speaker switch event.
+         */
         synchronized void evaluateSpeechActivityScores()
         {
-            computeImmediateSpeechActivityScore();
+            evaluateImmediateSpeechActivityScore();
             if (computeMediums())
             {
-                computeMediumSpeechActivityScore();
+                evaluateMediumSpeechActivityScore();
                 if (computeLongs())
-                    computeLongSpeechActivityScore();
+                    evaluateLongSpeechActivityScore();
             }
         }
 
@@ -768,9 +868,19 @@ public class DominantSpeakerIdentification
             return lastLevelChangedTime;
         }
 
-        double getSpeechActivityScore(int index)
+        /**
+         * Gets the speech activity score of this <tt>Speaker</tt> for a
+         * specific time-interval.
+         *
+         * @param interval <tt>0</tt> for the immediate time-interval,
+         * <tt>1</tt> for the medium time-interval, or <tt>2</tt> for the long
+         * time-interval
+         * @return the speech activity score of this <tt>Speaker</tt> for the
+         * time-interval specified by <tt>index</tt>
+         */
+        double getSpeechActivityScore(int interval)
         {
-            switch (index)
+            switch (interval)
             {
             case 0:
                 return immediateSpeechActivityScore;
@@ -779,7 +889,7 @@ public class DominantSpeakerIdentification
             case 2:
                 return longSpeechActivityScore;
             default:
-                throw new IllegalArgumentException("index " + index);
+                throw new IllegalArgumentException("interval " + interval);
             }
         }
 
@@ -790,6 +900,7 @@ public class DominantSpeakerIdentification
          * @param level the audio level which has been received or measured for
          * this <tt>Speaker</tt>
          */
+        @SuppressWarnings("unused")
         public void levelChanged(int level)
         {
             levelChanged(level, System.currentTimeMillis());
@@ -801,13 +912,20 @@ public class DominantSpeakerIdentification
          *
          * @param level the audio level which has been received or measured for
          * this <tt>Speaker</tt>
-         * @param time the time at which the specified <tt>level</tt> has been
-         * received or measured
+         * @param time the (local <tt>System</tt>) time in milliseconds at which
+         * the specified <tt>level</tt> has been received or measured
          */
-        private synchronized void levelChanged(int level, long time)
+        public synchronized void levelChanged(int level, long time)
         {
-            lastLevelChangedTime = time;
-            computeImmediates(level);
+            /*
+             * It sounds relatively reasonable that late audio levels should
+             * better be discarded.
+             */
+            if (lastLevelChangedTime <= time)
+            {
+                lastLevelChangedTime = time;
+                computeImmediates(level);
+            }
         }
 
         /**
