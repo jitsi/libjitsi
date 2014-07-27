@@ -152,8 +152,11 @@ public class RtpdumpStream
         lastRtpTimestamp = 0xffffffffL & rtpPacket.getTimestamp();
 
         long rtpDiff = lastRtpTimestamp - previous;
-        if (rtpDiff < 0)
-            rtpDiff += 1L << 32; //rtp timestamps wrap at 2^32
+
+        // rtpDiff < 0 can happen when the timestamps wrap at 2^32, or when
+        // the rtpdump file loops. In the latter case, we don't want to sleep.
+        //if (rtpDiff < 0)
+        //    rtpDiff += 1L << 32; //rtp timestamps wrap at 2^32
 
         long nanos = (rtpDiff * 1000 * 1000 * 1000) / CLOCK_RATE;
         if (nanos > 0)
