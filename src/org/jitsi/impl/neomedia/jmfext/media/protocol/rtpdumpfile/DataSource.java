@@ -7,15 +7,13 @@
 
 package org.jitsi.impl.neomedia.jmfext.media.protocol.rtpdumpfile;
 
-
 import javax.media.control.*;
 
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 
 /**
  * Implements the <tt>CaptureDevice</tt> and <tt>DataSource</tt> for the
- *  purpose of rtpdump file streaming.
- *
+ * purpose of rtpdump file streaming.
  *
  * @author Thomas Kuntz
  */

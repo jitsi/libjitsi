@@ -36,7 +36,7 @@ public class RtpdumpFileReader
     /**
      * The size of the first header of the file (in bytes).
      * 
-     * The file wireshark/ui/tap-rtp-common.c , more specificaly the function
+     * The file wireshark/ui/tap-rtp-common.c , more specifically the function
      * rtp_write_header that write the file header, show that this header
      * is 4+4+4+2+2=16 bytes.
      */
@@ -60,7 +60,7 @@ public class RtpdumpFileReader
     {
         try
         {
-            stream = new RandomAccessFile(filePath,"r");
+            stream = new RandomAccessFile(filePath, "r");
             resetFile();
         }
         catch (FileNotFoundException e) 
@@ -78,12 +78,13 @@ public class RtpdumpFileReader
      * @param loopFile if true, when the end of the rtpdump file is reached,
      * this <tt>RtpdumpFileReader</tt> will go back at the beginning of the file
      * and get the first packet.
-     * @return a <tt>RtpdumpPacket</tt> containing all the informations and data
+     * @return a <tt>RawPacket</tt> containing all the information and data
      * of the next rtp packet recorded in the rtpdump file
      * @throws IOException if <tt>loopFile</tt> was false and the end of the file
      * is reached.
      */
-    public RawPacket getNextPacket(boolean loopFile) throws IOException
+    public RawPacket getNextPacket(boolean loopFile)
+        throws IOException
     {
         if(loopFile && (stream.getFilePointer() >= stream.length()))
         {
@@ -93,18 +94,18 @@ public class RtpdumpFileReader
         byte[] rtpdumpPacket;
         int sizeInBytes;
 
-        stream.readShort();//read away an useless short (2 bytes)
+        stream.readShort(); //read away an useless short (2 bytes)
         sizeInBytes = stream.readUnsignedShort();
         rtpdumpPacket = new byte[sizeInBytes];
-        stream.readInt();//read away the rtpdump timestamp of the send/receive
+        stream.readInt(); //read away the rtpdump timestamp
 
         stream.read(rtpdumpPacket);
 
-        return new RawPacket(rtpdumpPacket,0,rtpdumpPacket.length);
+        return new RawPacket(rtpdumpPacket, 0, rtpdumpPacket.length);
     }
 
     /**
-     * Go to the beginning of the rtpdum file and
+     * Go to the beginning of the rtpdump file and
      * skip the first line of ascii (giving the file version) and
      * skip the file header (useless)
      * @throws IOException if an error occur during the seek and reading of the
@@ -112,8 +113,9 @@ public class RtpdumpFileReader
      */
     private void resetFile() throws IOException
     {
-        stream.seek( 0 );
-        stream.readLine();//read the first line that is in ascii
-        stream.seek( stream.getFilePointer() + RtpdumpFileReader.FILE_HEADER_LENGTH );
+        stream.seek(0);
+        stream.readLine(); //read the first line that is in ascii
+        stream.seek(stream.getFilePointer()
+                             + RtpdumpFileReader.FILE_HEADER_LENGTH );
     }
 }

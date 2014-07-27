@@ -7,7 +7,6 @@
  
 package org.jitsi.impl.neomedia.jmfext.media.protocol.rtpdumpfile;
 
-
 import javax.media.*;
 import javax.media.format.*;
 
@@ -45,6 +44,13 @@ public class RtpdumpMediaDevice
     {
         MediaDevice dev = null;
 
+        /*
+         * NOTE: The RtpdumpStream instance needs to know the RTP clock rate,
+         * to correctly interpret the RTP timestamps. We use the sampleRate
+         * field of AudioFormat, or the frameRate field of VideoFormat, to
+         * piggyback the RTP clock rate. See RtpdumpStream#RtpdumpStream().
+         * TODO: Avoid this hack...
+         */
         switch(format.getMediaType())
         {
             case AUDIO:
