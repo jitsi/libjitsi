@@ -42,13 +42,8 @@ public class RtpdumpStream
     /**
      * The timestamp of the last rtp packet (the timestamp change only when
      * a marked packet has been sent).
-     * 
-     * It is initialize with Long.MAX_VALUE because the timestamp of the first
-     * packet read isn't generally 0, and the difference between it and the
-     * first value of lastRtpTimestamp would in this case be huge, making the
-     * stream sleep forever. 
      */
-    private long lastRtpTimestamp = Long.MAX_VALUE;
+    private long lastRtpTimestamp = -1;
 
     /**
      * Boolean indicating if the last call to <tt>doRead</tt> return a marked
@@ -147,7 +142,16 @@ public class RtpdumpStream
         }
         buffer.setTimeStamp(timestamp);
 
-        long rtpDiff = rtpPacket.getTimestamp() - this.lastRtpTimestamp;
+        if (lastRtpTimestamp == -1)
+        {
+            lastRtpTimestamp = 0xffffffffL & rtpPacket.getTimestamp();
+            return;
+        }
+
+        long previous= lastRtpTimestamp;
+        lastRtpTimestamp = 0xffffffffL & rtpPacket.getTimestamp();
+
+        long rtpDiff = lastRtpTimestamp - previous;
         if (rtpDiff < 0)
             rtpDiff += 1L << 32; //rtp timestamps wrap at 2^32
 
@@ -165,6 +169,5 @@ public class RtpdumpStream
                 e.printStackTrace();
             }
         }
-        this.lastRtpTimestamp = rtpPacket.getTimestamp();
     }
 }
