@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia;
 
+import java.beans.*;
 import java.lang.ref.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -57,6 +58,22 @@ public class DominantSpeakerIdentification
      * running the <tt>DecisionMaker</tt>s are pooled anyway.
      */
     private static final long DECISION_MAKER_IDLE_TIMEOUT = 15 * 1000;
+
+    /**
+     * The name of the <tt>DominantSpeakerIdentification</tt> property
+     * <tt>dominantSpeaker</tt> which specifies the dominant speaker identified
+     * by synchronization source identifier (SSRC).
+     */
+    public static final String DOMINANT_SPEAKER_PROPERTY_NAME
+        = DominantSpeakerIdentification.class.getName() + ".dominantSpeaker";
+
+    /**
+     * The name of the <tt>DominantSpeakerIdentification</tt> property
+     * <tt>internals</tt> which exposes internal information about/state of the
+     * <tt>DominantSpeakerIdentification</tt> instance.
+     */
+    public static final String INTERNALS_PROPERTY_NAME
+        = DominantSpeakerIdentification.class.getName() + ".internals";
 
     /**
      * The interval of time without a call to {@link Speaker#levelChanged(int)}
@@ -247,6 +264,15 @@ public class DominantSpeakerIdentification
     private long lastLevelIdleTime;
 
     /**
+     * The <tt>PropertyChangeNotifier</tt> which facilitates the implementations
+     * of adding and removing <tt>PropertyChangeListener</tt>s to and from this
+     * instance and firing <tt>PropertyChangeEvent</tt>s to the added
+     * <tt>PropertyChangeListener</tt>s.
+     */
+    private final PropertyChangeNotifier propertyChangeNotifier
+        = new PropertyChangeNotifier();
+
+    /**
      * The relative speech activities for the immediate, medium and long
      * time-intervals, respectively, which were last calculated for a
      * <tt>Speaker</tt>. Simply reduces the number of allocations and the
@@ -268,6 +294,20 @@ public class DominantSpeakerIdentification
     }
 
     /**
+     * Adds a <tt>PropertyChangeListener</tt> to the list of listeners
+     * interested in and notified about changes in the values of the properties
+     * of this <tt>DominantSpeakerIdentification</tt>.
+     *
+     * @param listener a <tt>PropertyChangeListener</tt> to be notified about
+     * changes in the values of the properties of this
+     * <tt>DominantSpeakerIdentification</tt>
+     */
+    public void addPropertyChangeListener(PropertyChangeListener listener)
+    {
+        propertyChangeNotifier.addPropertyChangeListener(listener);
+    }
+
+    /**
      * Notifies this <tt>DominantSpeakerIdentification</tt> instance that a
      * specific <tt>DecisionMaker</tt> has permanently stopped executing (in its
      * background/daemon <tt>Thread</tt>). If the specified
@@ -281,6 +321,69 @@ public class DominantSpeakerIdentification
     {
         if (this.decisionMaker == decisionMaker)
             this.decisionMaker = null;
+    }
+
+    /**
+     * Fires a new <tt>PropertyChangeEvent</tt> to the
+     * <tt>PropertyChangeListener</tt>s registered with this
+     * <tt>DominantSpeakerIdentification</tt> in order to notify about a change
+     * in the value of a specific property which had its old value modified to a
+     * specific new value.
+     *
+     * @param property the name of the property of this
+     * <tt>DominantSpeakerIdentification</tt> which had its value changed
+     * @param oldValue the value of the property with the specified name before
+     * the change
+     * @param newValue the value of the property with the specified name after
+     * the change
+     */
+    protected void firePropertyChange(
+            String property,
+            Long oldValue, Long newValue)
+    {
+        firePropertyChange(property, (Object) oldValue, (Object) newValue);
+
+        if (DOMINANT_SPEAKER_PROPERTY_NAME.equals(property))
+        {
+            long ssrc = (newValue == null) ? -1 : newValue.longValue();
+
+            fireActiveSpeakerChanged(ssrc);
+        }
+    }
+
+    /**
+     * Fires a new <tt>PropertyChangeEvent</tt> to the
+     * <tt>PropertyChangeListener</tt>s registered with this
+     * <tt>DominantSpeakerIdentification</tt> in order to notify about a change
+     * in the value of a specific property which had its old value modified to a
+     * specific new value.
+     *
+     * @param property the name of the property of this
+     * <tt>DominantSpeakerIdentification</tt> which had its value changed
+     * @param oldValue the value of the property with the specified name before
+     * the change
+     * @param newValue the value of the property with the specified name after
+     * the change
+     */
+    protected void firePropertyChange(
+            String property,
+            Object oldValue, Object newValue)
+    {
+        propertyChangeNotifier.firePropertyChange(property, oldValue, newValue);
+    }
+
+    /**
+     * Gets the synchronization source identifier (SSRC) of the dominant speaker
+     * in this multipoint conference.
+     *
+     * @return the synchronization source identifier (SSRC) of the dominant
+     * speaker in this multipoint conference
+     */
+    public long getDominantSpeaker()
+    {
+        Long dominantSSRC = this.dominantSSRC;
+
+        return (dominantSSRC == null) ? -1 : dominantSSRC.longValue();
     }
 
     /**
@@ -352,8 +455,17 @@ public class DominantSpeakerIdentification
      * there has been such an event, notifies the registered listeners that a
      * new speaker is dominating the multipoint conference.
      */
-    private synchronized void makeDecision()
+    private void makeDecision()
     {
+        /*
+         * If we have to fire events to any registered listeners eventually, we
+         * will want to do it outside the synchronized block.
+         */
+        Long oldDominantSpeakerValue = null, newDominantSpeakerValue = null;
+
+        synchronized (this)
+        {
+
         int speakerCount = speakers.size();
         Long newDominantSSRC;
 
@@ -456,8 +568,22 @@ public class DominantSpeakerIdentification
         }
         if ((newDominantSSRC != null) && (newDominantSSRC != dominantSSRC))
         {
+            oldDominantSpeakerValue = dominantSSRC;
             dominantSSRC = newDominantSSRC;
-            fireActiveSpeakerChanged(dominantSSRC);
+            newDominantSpeakerValue = dominantSSRC;
+        }
+
+        } // synchronized (this)
+
+        /*
+         * Now that we are outside the synchronized block, fire events, if any,
+         * to any registered listeners.
+         */
+        if (oldDominantSpeakerValue != newDominantSpeakerValue)
+        {
+            firePropertyChange(
+                    DOMINANT_SPEAKER_PROPERTY_NAME,
+                    oldDominantSpeakerValue, newDominantSpeakerValue);
         }
     }
 
@@ -488,6 +614,20 @@ public class DominantSpeakerIdentification
                     this.decisionMaker = null;
             }
         }
+    }
+
+    /**
+     * Removes a <tt>PropertyChangeListener</tt> from the list of listeners
+     * interested in and notified about changes in the values of the properties
+     * of this <tt>DominantSpeakerIdentification</tt>.
+     *
+     * @param listener a <tt>PropertyChangeListener</tt> to no longer be
+     * notified about changes in the values of the properties of this
+     * <tt>DominantSpeakerIdentification</tt>
+     */
+    public void removePropertyChangeListener(PropertyChangeListener listener)
+    {
+        propertyChangeNotifier.removePropertyChangeListener(listener);
     }
 
     /**
@@ -624,6 +764,8 @@ public class DominantSpeakerIdentification
      * <tt>DominantSpeakerIdentification</tt> instance in order to eventually
      * detect that the multipoint conference has actually expired and that the
      * background <tt>Thread</tt> should perish.
+     *
+     * @author Lyubomir Marinov
      */
     private static class DecisionMaker
         implements Runnable
@@ -724,8 +866,48 @@ public class DominantSpeakerIdentification
     }
 
     /**
+     * Facilitates this <tt>DominantSpeakerIdentification</tt> in the
+     * implementations of adding and removing <tt>PropertyChangeListener</tt>s
+     * and firing <tt>PropertyChangeEvent</tt>s to the added
+     * <tt>PropertyChangeListener</tt>s.
+     *
+     * @author Lyubomir Marinov
+     */
+    private class PropertyChangeNotifier
+        extends org.jitsi.util.event.PropertyChangeNotifier
+    {
+        /**
+         * {@inheritDoc}
+         *
+         * Makes the super implementations (which is protected) public.
+         */
+        @Override
+        public void firePropertyChange(
+                String property,
+                Object oldValue, Object newValue)
+        {
+            super.firePropertyChange(property, oldValue, newValue);
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * Always returns this <tt>DominantSpeakerIdentification</tt>.
+         */
+        @Override
+        protected Object getPropertyChangeSource(
+                String property,
+                Object oldValue, Object newValue)
+        {
+            return DominantSpeakerIdentification.this;
+        }
+    }
+
+    /**
      * Represents a speaker in a multipoint conference identified by
      * synchronization source identifier/SSRC.
+     *
+     * @author Lyubomir Marinov
      */
     private static class Speaker
     {

@@ -35,6 +35,13 @@ public class PropertyChangeNotifier
         = new ArrayList<PropertyChangeListener>();
 
     /**
+     * Initializes a new <tt>PropertyChangeNotifier</tt> instance.
+     */
+    public PropertyChangeNotifier()
+    {
+    }
+
+    /**
      * Adds a specific <tt>PropertyChangeListener</tt> to the list of listeners
      * interested in and notified about changes in the values of the properties
      * of this <tt>PropertyChangeNotifier</tt>.
@@ -62,26 +69,6 @@ public class PropertyChangeNotifier
             {
                 if (!listeners.contains(listener))
                     listeners.add(listener);
-            }
-        }
-    }
-
-    /**
-     * Removes a specific <tt>PropertyChangeListener</tt> from the list of
-     * listeners interested in and notified about changes in the values of the
-     * properties of this <tt>PropertyChangeNotifer</tt>.
-     *
-     * @param listener a <tt>PropertyChangeListener</tt> to no longer be
-     * notified about changes in the values of the properties of this
-     * <tt>PropertyChangeNotifier</tt>
-     */
-    public void removePropertyChangeListener(PropertyChangeListener listener)
-    {
-        if (listener != null)
-        {
-            synchronized (listeners)
-            {
-                listeners.remove(listener);
             }
         }
     }
@@ -132,14 +119,20 @@ public class PropertyChangeNotifier
                 catch (Throwable t)
                 {
                     if (t instanceof InterruptedException)
+                    {
                         Thread.currentThread().interrupt();
+                    }
                     else if (t instanceof ThreadDeath)
+                    {
                         throw (ThreadDeath) t;
-
-                    logger.warn(
-                            "A PropertyChangeListener threw an exception while"
-                                + " handling a PropertyChangeEvent.",
-                            t);
+                    }
+                    else
+                    {
+                        logger.warn(
+                                "A PropertyChangeListener threw an exception"
+                                    + " while handling a PropertyChangeEvent.",
+                                t);
+                    }
                 }
             }
         }
@@ -171,5 +164,25 @@ public class PropertyChangeNotifier
             Object oldValue, Object newValue)
     {
         return this;
+    }
+
+    /**
+     * Removes a specific <tt>PropertyChangeListener</tt> from the list of
+     * listeners interested in and notified about changes in the values of the
+     * properties of this <tt>PropertyChangeNotifer</tt>.
+     *
+     * @param listener a <tt>PropertyChangeListener</tt> to no longer be
+     * notified about changes in the values of the properties of this
+     * <tt>PropertyChangeNotifier</tt>
+     */
+    public void removePropertyChangeListener(PropertyChangeListener listener)
+    {
+        if (listener != null)
+        {
+            synchronized (listeners)
+            {
+                listeners.remove(listener);
+            }
+        }
     }
 }

@@ -134,6 +134,20 @@ public class ActiveSpeakerDetectorImpl
     }
 
     /**
+     * Gets the actual algorithm implementation used by this instance for the
+     * detection/identification of the active/dominant speaker in a multipoint
+     * conference.
+     *
+     * @return the actual algorithm implementation used by this instance for
+     * the detection/identification of the active/dominant speaker in a
+     * multipoint conference
+     */
+    public ActiveSpeakerDetector getImpl()
+    {
+        return impl;
+    }
+
+    /**
      * Gets the names of the classes known by <tt>ActiveSpeakerDetectorImpl</tt>
      * to implement actual algorithms for the detection/identification of the
      * active/dominant speaker in a multipoint conference. If the
