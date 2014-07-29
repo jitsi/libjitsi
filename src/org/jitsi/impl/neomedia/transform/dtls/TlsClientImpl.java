@@ -142,7 +142,7 @@ public class TlsClientImpl
     @Override
     public ProtocolVersion getClientVersion()
     {
-        return ProtocolVersion.DTLSv10;
+        return ProtocolVersion.DTLSv12;
     }
 
     /**

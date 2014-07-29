@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.transform.dtls;
 
+import gnu.java.zrtp.utils.*;
+
 import java.io.*;
 import java.math.*;
 import java.security.*;
@@ -69,22 +71,323 @@ public class DtlsControlImpl
         };
 
     /**
+     * Chooses the first from a list of <tt>SRTPProtectionProfile</tt>s that is
+     * supported by <tt>DtlsControlImpl</tt>.
+     *
+     * @param theirs the list of <tt>SRTPProtectionProfile</tt>s to choose from
+     * @return the first from the specified <tt>theirs</tt> that is supported
+     * by <tt>DtlsControlImpl</tt>
+     */
+    static int chooseSRTPProtectionProfile(int... theirs)
+    {
+        int[] ours = SRTP_PROTECTION_PROFILES;
+
+        if (theirs != null)
+        {
+            for (int t = 0; t < theirs.length; t++)
+            {
+                int their = theirs[t];
+
+                for (int o = 0; o < ours.length; o++)
+                {
+                    int our = ours[o];
+
+                    if (their == our)
+                        return their;
+                }
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Computes the fingerprint of a specific certificate using a specific
+     * hash function.
+     *
+     * @param certificate the certificate the fingerprint of which is to be
+     * computed
+     * @param hashFunction the hash function to be used in order to compute the
+     * fingerprint of the specified <tt>certificate</tt> 
+     * @return the fingerprint of the specified <tt>certificate</tt> computed
+     * using the specified <tt>hashFunction</tt>
+     */
+    private static final String computeFingerprint(
+            org.bouncycastle.asn1.x509.Certificate certificate,
+            String hashFunction)
+    {
+        try
+        {
+            AlgorithmIdentifier digAlgId
+                = new DefaultDigestAlgorithmIdentifierFinder().find(
+                        hashFunction.toUpperCase());
+            Digest digest = BcDefaultDigestProvider.INSTANCE.get(digAlgId);
+            byte[] in = certificate.getEncoded(ASN1Encoding.DER);
+            byte[] out = new byte[digest.getDigestSize()];
+
+            digest.update(in, 0, in.length);
+            digest.doFinal(out, 0);
+
+            return toHex(out);
+        }
+        catch (Throwable t)
+        {
+            if (t instanceof ThreadDeath)
+            {
+                throw (ThreadDeath) t;
+            }
+            else
+            {
+                logger.error("Failed to generate certificate fingerprint!", t);
+                if (t instanceof RuntimeException)
+                    throw (RuntimeException) t;
+                else
+                    throw new RuntimeException(t);
+            }
+        }
+    }
+
+    /**
+     * Initializes a new <tt>SecureRandom</tt> instance. Implements a
+     * <tt>SecureRandom</tt> factory to be employed by classes related to
+     * <tt>DtlsControlImpl</tt>.
+     *
+     * @return a new <tt>SecureRandom</tt> instance
+     */
+    @SuppressWarnings("serial")
+    static SecureRandom createSecureRandom()
+    {
+        return
+            new SecureRandom()
+            {
+                /**
+                 * {@inheritDoc}
+                 *
+                 * Employs <tt>ZrtpFortuna</tt> as is common in neomedia. Most
+                 * importantly though, works around a possible hang on Linux
+                 * when reading from <tt>/dev/random</tt>.
+                 */
+                @Override
+                public byte[] generateSeed(int numBytes)
+                {
+                    byte[] seed = new byte[numBytes];
+
+                    ZrtpFortuna.getInstance().nextBytes(seed);
+                    return seed;
+                }
+
+                /**
+                 * {@inheritDoc}
+                 *
+                 * Employs <tt>ZrtpFortuna</tt> as is common in neomedia.
+                 */
+                @Override
+                public void nextBytes(byte[] bytes)
+                {
+                    ZrtpFortuna.getInstance().nextBytes(bytes);
+                }
+            };
+    }
+
+    /**
+     * Determines the hash function i.e. the digest algorithm of the signature
+     * algorithm of a specific certificate.
+     *
+     * @param certificate the certificate the hash function of which is to be
+     * determined
+     * @return the hash function of the specified <tt>certificate</tt>
+     */
+    private static String findHashFunction(
+            org.bouncycastle.asn1.x509.Certificate certificate)
+    {
+        try
+        {
+            AlgorithmIdentifier sigAlgId = certificate.getSignatureAlgorithm();
+            AlgorithmIdentifier digAlgId
+                = new DefaultDigestAlgorithmIdentifierFinder().find(sigAlgId);
+
+            return
+                BcDefaultDigestProvider.INSTANCE
+                    .get(digAlgId)
+                        .getAlgorithmName()
+                            .toLowerCase();
+        }
+        catch (Throwable t)
+        {
+            if (t instanceof ThreadDeath)
+            {
+                throw (ThreadDeath) t;
+            }
+            else
+            {
+                logger.warn(
+                        "Failed to find the hash function of the signature"
+                            + " algorithm of a certificate!",
+                        t);
+                if (t instanceof RuntimeException)
+                    throw (RuntimeException) t;
+                else
+                    throw new RuntimeException(t);
+            }
+        }
+    }
+
+    /**
+     * Generates a new subject for a self-signed certificate to be generated by
+     * <tt>DtlsControlImpl</tt>.
+     * 
+     * @return an <tt>X500Name</tt> which is to be used as the subject of a
+     * self-signed certificate to be generated by <tt>DtlsControlImpl</tt>
+     */
+    private static X500Name generateCN()
+    {
+        X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
+        String applicationName
+            = System.getProperty(Version.PNAME_APPLICATION_NAME);
+        String applicationVersion
+            = System.getProperty(Version.PNAME_APPLICATION_VERSION);
+        StringBuilder cn = new StringBuilder();
+
+        if (!StringUtils.isNullOrEmpty(applicationName, true))
+            cn.append(applicationName);
+        if (!StringUtils.isNullOrEmpty(applicationVersion, true))
+        {
+            if (cn.length() != 0)
+                cn.append(' ');
+            cn.append(applicationVersion);
+        }
+        if (cn.length() == 0)
+            cn.append(DtlsControlImpl.class.getName());
+        builder.addRDN(BCStyle.CN, cn.toString());
+
+        return builder.build();
+    }
+
+    /**
+     * Generates a new pair of private and public keys.
+     *
+     * @return a new pair of private and public keys
+     */
+    private static AsymmetricCipherKeyPair generateKeyPair()
+    {
+        RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
+
+        generator.init(
+                new RSAKeyGenerationParameters(
+                        new BigInteger("10001", 16),
+                        createSecureRandom(),
+                        1024,
+                        80));
+        return generator.generateKeyPair();
+    }
+
+    /**
+     * Generates a new self-signed certificate with a specific subject and a
+     * specific pair of private and public keys.
+     *
+     * @param subject the subject (and issuer) of the new certificate to be
+     * generated
+     * @param keyPair the pair of private and public keys of the certificate to
+     * be generated
+     * @return a new self-signed certificate with the specified <tt>subject</tt>
+     * and <tt>keyPair</tt>
+     */
+    private static org.bouncycastle.asn1.x509.Certificate
+        generateX509Certificate(
+                X500Name subject,
+                AsymmetricCipherKeyPair keyPair)
+    {
+        try
+        {
+            long now = System.currentTimeMillis();
+            Date notBefore = new Date(now - ONE_DAY);
+            Date notAfter = new Date(now + 6 * ONE_DAY);
+            X509v3CertificateBuilder builder
+                = new X509v3CertificateBuilder(
+                        /* issuer */ subject,
+                        /* serial */ BigInteger.valueOf(now),
+                        notBefore,
+                        notAfter,
+                        subject,
+                        /* publicKeyInfo */
+                            SubjectPublicKeyInfoFactory
+                                .createSubjectPublicKeyInfo(
+                                    keyPair.getPublic()));
+            AlgorithmIdentifier sigAlgId
+                = new DefaultSignatureAlgorithmIdentifierFinder()
+                    .find("SHA1withRSA");
+            AlgorithmIdentifier digAlgId
+                = new DefaultDigestAlgorithmIdentifierFinder().find(sigAlgId);
+            ContentSigner signer
+                = new BcRSAContentSignerBuilder(sigAlgId, digAlgId)
+                    .build(keyPair.getPrivate());
+
+            return builder.build(signer).toASN1Structure();
+        }
+        catch (Throwable t)
+        {
+            if (t instanceof ThreadDeath)
+                throw (ThreadDeath) t;
+            else
+            {
+                logger.error(
+                        "Failed to generate self-signed X.509 certificate",
+                        t);
+                if (t instanceof RuntimeException)
+                    throw (RuntimeException) t;
+                else
+                    throw new RuntimeException(t);
+            }
+        }
+    }
+
+    /**
+     * Gets the <tt>String</tt> representation of a fingerprint specified in the
+     * form of an array of <tt>byte</tt>s in accord with RFC 4572.
+     *
+     * @param fingerprint an array of <tt>bytes</tt> which represents a
+     * fingerprint the <tt>String</tt> representation in accord with RFC 4572
+     * of which is to be returned 
+     * @return the <tt>String</tt> representation in accord with RFC 4572 of the
+     * specified <tt>fingerprint</tt>
+     */
+    private static String toHex(byte[] fingerprint)
+    {
+        if (fingerprint.length == 0)
+            throw new IllegalArgumentException("fingerprint");
+
+        char[] chars = new char[3 * fingerprint.length - 1];
+
+        for (int f = 0, fLast = fingerprint.length - 1, c = 0;
+                f <= fLast;
+                f++)
+        {
+            int b = fingerprint[f] & 0xff;
+
+            chars[c++] = HEX_ENCODE_TABLE[b >>> 4];
+            chars[c++] = HEX_ENCODE_TABLE[b & 0x0f];
+            if (f != fLast)
+                chars[c++] = ':';
+        }
+        return new String(chars);
+    }
+
+    /**
      * The certificate with which the local endpoint represented by this
      * instance authenticates its ends of DTLS sessions. 
      */
     private final org.bouncycastle.crypto.tls.Certificate certificate;
 
     /**
-     * Indicates whether this <tt>DtlsControl</tt> will work in DTLS/SRTP or
-     * DTLS mode.
-     */
-    private final boolean disableSRTP;
-
-    /**
      * The <tt>RTPConnector</tt> which uses the <tt>TransformEngine</tt> of this
      * <tt>SrtpControl</tt>.
      */
     private AbstractRTPConnector connector;
+
+    /**
+     * Indicates whether this <tt>DtlsControl</tt> will work in DTLS/SRTP or
+     * DTLS mode.
+     */
+    private final boolean disableSRTP;
 
     /**
      * The indicator which determines whether this instance has been disposed
@@ -161,46 +464,6 @@ public class DtlsControlImpl
     }
 
     /**
-     * Indicates if SRTP extensions are disabled which means we're working in
-     * pure DTLS mode.
-     * @return <tt>true</tt> if SRTP extensions must be disabled.
-     */
-    boolean isSrtpDisabled()
-    {
-        return disableSRTP;
-    }
-
-    /**
-     * Chooses the first from a list of <tt>SRTPProtectionProfile</tt>s that is
-     * supported by <tt>DtlsControlImpl</tt>.
-     *
-     * @param theirs the list of <tt>SRTPProtectionProfile</tt>s to choose from
-     * @return the first from the specified <tt>theirs</tt> that is supported
-     * by <tt>DtlsControlImpl</tt>
-     */
-    static int chooseSRTPProtectionProfile(int... theirs)
-    {
-        int[] ours = SRTP_PROTECTION_PROFILES;
-
-        if (theirs != null)
-        {
-            for (int t = 0; t < theirs.length; t++)
-            {
-                int their = theirs[t];
-
-                for (int o = 0; o < ours.length; o++)
-                {
-                    int our = ours[o];
-
-                    if (their == our)
-                        return their;
-                }
-            }
-        }
-        return 0;
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
@@ -214,52 +477,6 @@ public class DtlsControlImpl
         {
             disposed = true;
             notifyAll();
-        }
-    }
-
-    /**
-     * Computes the fingerprint of a specific certificate using a specific
-     * hash function.
-     *
-     * @param certificate the certificate the fingerprint of which is to be
-     * computed
-     * @param hashFunction the hash function to be used in order to compute the
-     * fingerprint of the specified <tt>certificate</tt> 
-     * @return the fingerprint of the specified <tt>certificate</tt> computed
-     * using the specified <tt>hashFunction</tt>
-     */
-    private static final String computeFingerprint(
-            org.bouncycastle.asn1.x509.Certificate certificate,
-            String hashFunction)
-    {
-        try
-        {
-            AlgorithmIdentifier digAlgId
-                = new DefaultDigestAlgorithmIdentifierFinder().find(
-                        hashFunction.toUpperCase());
-            Digest digest = BcDefaultDigestProvider.INSTANCE.get(digAlgId);
-            byte[] in = certificate.getEncoded(ASN1Encoding.DER);
-            byte[] out = new byte[digest.getDigestSize()];
-
-            digest.update(in, 0, in.length);
-            digest.doFinal(out, 0);
-
-            return toHex(out);
-        }
-        catch (Throwable t)
-        {
-            if (t instanceof ThreadDeath)
-            {
-                throw (ThreadDeath) t;
-            }
-            else
-            {
-                logger.error("Failed to generate certificate fingerprint!", t);
-                if (t instanceof RuntimeException)
-                    throw (RuntimeException) t;
-                else
-                    throw new RuntimeException(t);
-            }
         }
     }
 
@@ -281,112 +498,15 @@ public class DtlsControlImpl
     }
 
     /**
-     * Generates a new subject for a self-signed certificate to be generated by
-     * <tt>DtlsControlImpl</tt>.
-     * 
-     * @return an <tt>X500Name</tt> which is to be used as the subject of a
-     * self-signed certificate to be generated by <tt>DtlsControlImpl</tt>
-     */
-    private static X500Name generateCN()
-    {
-        X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
-        String applicationName
-            = System.getProperty(Version.PNAME_APPLICATION_NAME);
-        String applicationVersion
-            = System.getProperty(Version.PNAME_APPLICATION_VERSION);
-        StringBuilder cn = new StringBuilder();
-
-        if (!StringUtils.isNullOrEmpty(applicationName, true))
-            cn.append(applicationName);
-        if (!StringUtils.isNullOrEmpty(applicationVersion, true))
-        {
-            if (cn.length() != 0)
-                cn.append(' ');
-            cn.append(applicationVersion);
-        }
-        if (cn.length() == 0)
-            cn.append(DtlsControlImpl.class.getName());
-        builder.addRDN(BCStyle.CN, cn.toString());
-
-        return builder.build();
-    }
-
-    /**
-     * Generates a new pair of private and public keys.
+     * Gets the certificate with which the local endpoint represented by this
+     * instance authenticates its ends of DTLS sessions.
      *
-     * @return a new pair of private and public keys
+     * @return the certificate with which the local endpoint represented by this
+     * instance authenticates its ends of DTLS sessions.
      */
-    private static AsymmetricCipherKeyPair generateKeyPair()
+    org.bouncycastle.crypto.tls.Certificate getCertificate()
     {
-        RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
-
-        generator.init(
-                new RSAKeyGenerationParameters(
-                        new BigInteger("10001", 16),
-                        new SecureRandom(),
-                        1024,
-                        80));
-        return generator.generateKeyPair();
-    }
-
-    /**
-     * Generates a new self-signed certificate with a specific subject and a
-     * specific pair of private and public keys.
-     *
-     * @param subject the subject (and issuer) of the new certificate to be
-     * generated
-     * @param keyPair the pair of private and public keys of the certificate to
-     * be generated
-     * @return a new self-signed certificate with the specified <tt>subject</tt>
-     * and <tt>keyPair</tt>
-     */
-    private static org.bouncycastle.asn1.x509.Certificate
-        generateX509Certificate(
-                X500Name subject,
-                AsymmetricCipherKeyPair keyPair)
-    {
-        try
-        {
-            long now = System.currentTimeMillis();
-            Date notBefore = new Date(now - ONE_DAY);
-            Date notAfter = new Date(now + 6 * ONE_DAY);
-            X509v3CertificateBuilder builder
-                = new X509v3CertificateBuilder(
-                        /* issuer */ subject,
-                        /* serial */ BigInteger.valueOf(now),
-                        notBefore,
-                        notAfter,
-                        subject,
-                        /* publicKeyInfo */
-                            SubjectPublicKeyInfoFactory
-                                .createSubjectPublicKeyInfo(
-                                    keyPair.getPublic()));
-            AlgorithmIdentifier sigAlgId
-                = new DefaultSignatureAlgorithmIdentifierFinder()
-                    .find("SHA1withRSA");
-            AlgorithmIdentifier digAlgId
-                = new DefaultDigestAlgorithmIdentifierFinder().find(sigAlgId);
-            ContentSigner signer
-                = new BcRSAContentSignerBuilder(sigAlgId, digAlgId)
-                    .build(keyPair.getPrivate());
-
-            return builder.build(signer).toASN1Structure();
-        }
-        catch (Throwable t)
-        {
-            if (t instanceof ThreadDeath)
-                throw (ThreadDeath) t;
-            else
-            {
-                logger.error(
-                        "Failed to generate self-signed X.509 certificate",
-                        t);
-                if (t instanceof RuntimeException)
-                    throw (RuntimeException) t;
-                else
-                    throw new RuntimeException(t);
-            }
-        }
+        return certificate;
     }
 
     /**
@@ -398,71 +518,6 @@ public class DtlsControlImpl
     AsymmetricCipherKeyPair getKeyPair()
     {
         return keyPair;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean getSecureCommunicationStatus()
-    {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    /**
-     * Determines the hash function i.e. the digest algorithm of the signature
-     * algorithm of a specific certificate.
-     *
-     * @param certificate the certificate the hash function of which is to be
-     * determined
-     * @return the hash function of the specified <tt>certificate</tt>
-     */
-    private static String findHashFunction(
-            org.bouncycastle.asn1.x509.Certificate certificate)
-    {
-        try
-        {
-            AlgorithmIdentifier sigAlgId = certificate.getSignatureAlgorithm();
-            AlgorithmIdentifier digAlgId
-                = new DefaultDigestAlgorithmIdentifierFinder().find(sigAlgId);
-
-            return
-                BcDefaultDigestProvider.INSTANCE
-                    .get(digAlgId)
-                        .getAlgorithmName()
-                            .toLowerCase();
-        }
-        catch (Throwable t)
-        {
-            if (t instanceof ThreadDeath)
-            {
-                throw (ThreadDeath) t;
-            }
-            else
-            {
-                logger.warn(
-                        "Failed to find the hash function of the signature"
-                            + " algorithm of a certificate!",
-                        t);
-                if (t instanceof RuntimeException)
-                    throw (RuntimeException) t;
-                else
-                    throw new RuntimeException(t);
-            }
-        }
-    }
-
-    /**
-     * Gets the certificate with which the local endpoint represented by this
-     * instance authenticates its ends of DTLS sessions.
-     *
-     * @return the certificate with which the local endpoint represented by this
-     * instance authenticates its ends of DTLS sessions.
-     */
-    org.bouncycastle.crypto.tls.Certificate getCertificate()
-    {
-        return certificate;
     }
 
     /**
@@ -481,6 +536,26 @@ public class DtlsControlImpl
     public String getLocalFingerprintHashFunction()
     {
         return localFingerprintHashFunction;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean getSecureCommunicationStatus()
+    {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    /**
+     * Indicates if SRTP extensions are disabled which means we're working in
+     * pure DTLS mode.
+     * @return <tt>true</tt> if SRTP extensions must be disabled.
+     */
+    boolean isSrtpDisabled()
+    {
+        return disableSRTP;
     }
 
     /**
@@ -555,37 +630,6 @@ public class DtlsControlImpl
 
         if (transformEngine != null)
             transformEngine.start(mediaType);
-    }
-
-    /**
-     * Gets the <tt>String</tt> representation of a fingerprint specified in the
-     * form of an array of <tt>byte</tt>s in accord with RFC 4572.
-     *
-     * @param fingerprint an array of <tt>bytes</tt> which represents a
-     * fingerprint the <tt>String</tt> representation in accord with RFC 4572
-     * of which is to be returned 
-     * @return the <tt>String</tt> representation in accord with RFC 4572 of the
-     * specified <tt>fingerprint</tt>
-     */
-    private static String toHex(byte[] fingerprint)
-    {
-        if (fingerprint.length == 0)
-            throw new IllegalArgumentException("fingerprint");
-
-        char[] chars = new char[3 * fingerprint.length - 1];
-
-        for (int f = 0, fLast = fingerprint.length - 1, c = 0;
-                f <= fLast;
-                f++)
-        {
-            int b = fingerprint[f] & 0xff;
-
-            chars[c++] = HEX_ENCODE_TABLE[b >>> 4];
-            chars[c++] = HEX_ENCODE_TABLE[b & 0x0f];
-            if (f != fLast)
-                chars[c++] = ':';
-        }
-        return new String(chars);
     }
 
     /**

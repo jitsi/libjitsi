@@ -841,7 +841,7 @@ public class DtlsPacketTransformer
             throw new NullPointerException("connector");
 
         DtlsControl.Setup setup = this.setup;
-        SecureRandom secureRandom = new SecureRandom();
+        SecureRandom secureRandom = DtlsControlImpl.createSecureRandom();
         final DTLSProtocol dtlsProtocolObj;
         final TlsPeer tlsPeer;
 

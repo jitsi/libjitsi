@@ -117,13 +117,13 @@ public class TlsServerImpl
                         CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA256,
                         CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA256,
                         CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA,
-                        CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA
+                        CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA,
 /* core/src/test/java/org/bouncycastle/crypto/tls/test/MockDTLSServer.java */
-//                        CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-//                        CipherSuite.TLS_ECDHE_RSA_WITH_ESTREAM_SALSA20_SHA1,
-//                        CipherSuite.TLS_ECDHE_RSA_WITH_SALSA20_SHA1,
-//                        CipherSuite.TLS_RSA_WITH_ESTREAM_SALSA20_SHA1,
-//                        CipherSuite.TLS_RSA_WITH_SALSA20_SHA1
+                        CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+                        CipherSuite.TLS_ECDHE_RSA_WITH_ESTREAM_SALSA20_SHA1,
+                        CipherSuite.TLS_ECDHE_RSA_WITH_SALSA20_SHA1,
+                        CipherSuite.TLS_RSA_WITH_ESTREAM_SALSA20_SHA1,
+                        CipherSuite.TLS_RSA_WITH_SALSA20_SHA1
                     };
     }
 
@@ -162,7 +162,7 @@ public class TlsServerImpl
     @Override
     protected ProtocolVersion getMaximumVersion()
     {
-        return ProtocolVersion.DTLSv10;
+        return ProtocolVersion.DTLSv12;
     }
 
     /**
