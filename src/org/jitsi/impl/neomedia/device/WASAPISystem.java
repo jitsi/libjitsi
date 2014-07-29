@@ -1550,6 +1550,7 @@ public class WASAPISystem
      */
     @Override
     protected void postInitialize()
+        throws Exception
     {
         try
         {
@@ -1570,6 +1571,7 @@ public class WASAPISystem
      */
     @Override
     protected void preInitialize()
+        throws Exception
     {
         super.preInitialize();
 

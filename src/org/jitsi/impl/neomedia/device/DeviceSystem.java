@@ -643,6 +643,7 @@ public abstract class DeviceSystem
      * that the list of devices detected by this instance may have changed.
      */
     protected void postInitialize()
+        throws Exception
     {
         try
         {
@@ -708,6 +709,7 @@ public abstract class DeviceSystem
      * protocol as {@link #getLocatorProtocol()} of this instance.
      */
     protected void preInitialize()
+        throws Exception
     {
         Format format = getFormat();
 

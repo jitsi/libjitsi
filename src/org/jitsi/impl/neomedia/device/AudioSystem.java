@@ -558,6 +558,7 @@ public abstract class AudioSystem
      */
     @Override
     protected void postInitialize()
+        throws Exception
     {
         try
         {
@@ -620,6 +621,7 @@ public abstract class AudioSystem
      */
     @Override
     protected void preInitialize()
+        throws Exception
     {
         super.preInitialize();
 
