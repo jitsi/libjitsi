@@ -503,6 +503,8 @@ public abstract class RTPConnectorInputStream
                 break;
             }
 
+            numberOfReceivedBytes += (long)p.getLength();
+
             /*
              * Do the DatagramPacketFilters accept the received DatagramPacket?
              */
@@ -558,7 +560,6 @@ public abstract class RTPConnectorInputStream
                         }
                         else
                         {
-                            numberOfReceivedBytes += (long)pkt.getLength();
                             RawPacket oldPkt;
 
                             synchronized (pktSyncRoot)
