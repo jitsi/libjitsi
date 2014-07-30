@@ -1115,8 +1115,9 @@ public class StatisticsEngine
                     r);
 
             // What follows is used for logging purposes only. Thus, it is
-            // useless to continue unless the logger is at least at INFO level.
-            if(logger.isInfoEnabled())
+            // useless to continue unless the logger is at least at an
+            // appropriate level.
+            if(logger.isTraceEnabled())
             {
                 numberOfRTCPReports++;
 
@@ -1165,7 +1166,7 @@ public class StatisticsEngine
                             .append(", time since previous report:")
                                 .append((int) (feedback.getDLSR() / 65.536))
                             .append("ms]");
-                        logger.info(buff);
+                        logger.trace(buff);
                     }
                 }
             }

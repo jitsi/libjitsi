@@ -2780,7 +2780,11 @@ public class MediaStreamImpl
                 }
             }
 
-            if(logger.isInfoEnabled())
+            /*
+             * The level of logger used here is in accord with the level of
+             * logger used in StatisticsEngine where sent reports are logged.
+             */
+            if(logger.isTraceEnabled())
             {
                 // As reports are received on every 5 seconds
                 // print every 4th packet, on every 20 seconds
@@ -2819,7 +2823,7 @@ public class MediaStreamImpl
                         .append("ms");
                 }
                 buff.append(" ]");
-                logger.info(buff);
+                logger.trace(buff);
             }
         }
     }
