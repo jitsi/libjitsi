@@ -243,6 +243,7 @@ static void write_webm_seek_info(EbmlGlobal *ebml) {
   {
     // segment info
     EbmlLoc startInfo;
+    uint64_t duration;
     uint64_t frame_time = 45; //approx. the duration of a single frame (in ms).
     char version_string[64];
 
@@ -252,11 +253,15 @@ static void write_webm_seek_info(EbmlGlobal *ebml) {
             vpx_codec_version_str(),
             sizeof(version_string) - 1 - strlen(version_string));
 
+    if (ebml->last_pts_ms > 0)
+      duration = ebml->last_pts_ms + frame_time;
+    else
+      duration = 0;
+
     ebml->segment_info_pos = ftello(ebml->stream);
     Ebml_StartSubElement(ebml, &startInfo, Info);
     Ebml_SerializeUnsigned(ebml, TimecodeScale, 1000000);
-    Ebml_SerializeFloat(ebml, Segment_Duration,
-                        ebml->last_pts_ms + frame_time);
+    Ebml_SerializeFloat(ebml, Segment_Duration, duration);
     Ebml_SerializeString(ebml, MuxingApp, version_string);
     Ebml_SerializeString(ebml, WritingApp, version_string);
     Ebml_EndSubElement(ebml, &startInfo);
