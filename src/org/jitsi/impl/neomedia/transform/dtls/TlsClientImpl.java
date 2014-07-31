@@ -142,7 +142,7 @@ public class TlsClientImpl
     @Override
     public ProtocolVersion getClientVersion()
     {
-        return ProtocolVersion.DTLSv12;
+        return ProtocolVersion.DTLSv10;
     }
 
     /**
@@ -294,11 +294,18 @@ public class TlsClientImpl
             {
                 DtlsControlImpl dtlsControl = getDtlsControl();
 
+                /*
+                 * FIXME The signature and hash algorithms should be retrieved
+                 * from the certificate.
+                 */
                 clientCredentials
                     = new DefaultTlsSignerCredentials(
                             context,
                             dtlsControl.getCertificate(),
-                            dtlsControl.getKeyPair().getPrivate());
+                            dtlsControl.getKeyPair().getPrivate(),
+                            new SignatureAndHashAlgorithm(
+                                    HashAlgorithm.sha1,
+                                    SignatureAlgorithm.rsa));
             }
             return clientCredentials;
         }
