@@ -111,7 +111,7 @@ public class SctpNotification
             case SCTP_SEND_FAILED_EVENT:
                 return "SCTP_SEND_FAILED_EVENT";
         }
-        return "SCTP_NOTIFICATION_0x"+Integer.toHexString(sn_type);
+        return "SCTP_NOTIFICATION_0x" + Integer.toHexString(sn_type);
     }
 
     public static SctpNotification parse(byte[] data)

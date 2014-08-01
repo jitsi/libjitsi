@@ -6,10 +6,10 @@
  */
 package org.jitsi.sctp4j;
 
-import org.jitsi.util.*;
-
 import java.io.*;
 import java.util.*;
+
+import org.jitsi.util.*;
 
 /**
  * Class encapsulates native SCTP counterpart.
@@ -19,7 +19,7 @@ import java.util.*;
 public class Sctp
 {
     /**
-     * FIXME: Remove once usrsctp_finish is fixed
+     * FIXME Remove once usrsctp_finish is fixed
      */
     private static boolean initialized;
 
@@ -114,12 +114,12 @@ public class Sctp
 
         //try
         //{
-            // FIXME: fix this loop ?
+            // FIXME fix this loop?
             // it comes from SCTP samples written in C
 
             // Retry limited amount of times
             /*
-              FIXME: usrsctp issue:
+              FIXME usrsctp issue:
               SCTP stack is now never deinitialized in order to prevent deadlock
               in usrsctp_finish.
               https://code.google.com/p/webrtc/issues/detail?id=2749
@@ -134,7 +134,7 @@ public class Sctp
                 Thread.sleep(50);
             }*/
 
-            //FIXME: after throwing we might end up with other SCTP users broken
+            //FIXME after throwing we might end up with other SCTP users broken
             // (or stack not disposed) at this point because engine count will
             // be out of sync for the purpose of calling init() and finish()
             // methods.
@@ -200,37 +200,19 @@ public class Sctp
      * @param flags
      */
     public static void onSctpInboundPacket(
-            long   socketAddr, final byte[] data, final int    sid,
-            final int ssn,     final int tsn,     final long   ppid,
-            final int context, final int flags)
+            long socketAddr, byte[] data, int sid, int ssn, int tsn, long ppid,
+            int context, int flags)
     {
-        final SctpSocket socket = sockets.get(socketAddr);
-        if(socket != null)
-        {
-            // FIXME: fix threads
-            new Thread(new Runnable()
-            {
-                @Override
-                public void run()
-                {
-                    if((flags & MSG_NOTIFICATION) > 0)
-                    {
-                        final SctpNotification notification
-                            = SctpNotification.parse(data);
+        SctpSocket socket = sockets.get(socketAddr);
 
-                        socket.onNotification(notification);
-                    }
-                    else
-                    {
-                        socket.onSctpIn(
-                            data, sid, ssn, tsn, ppid, context, flags);
-                    }
-                }
-            }).start();
+        if(socket == null)
+        {
+            logger.error("No SctpSocket found for ptr: " + socketAddr);
         }
         else
         {
-            logger.error("No SctpSocket found for ptr: " + socketAddr);
+            socket.onSctpInboundPacket(
+                    data, sid, ssn, tsn, ppid, context, flags);
         }
     }
 
@@ -246,7 +228,7 @@ public class Sctp
     public static int onSctpOutboundPacket(long socketAddr, byte[] data,
                                             int  tos,        int set_df)
     {
-        // FIXME: handle tos and set_df
+        // FIXME handle tos and set_df
 
         SctpSocket socket = sockets.get(socketAddr);
         if(socket != null)
@@ -309,7 +291,7 @@ public class Sctp
     /**
      * Sends given <tt>data</tt> on selected SCTP stream using given payload
      * protocol identifier.
-     * FIXME: add offset and length buffer parameters.
+     * FIXME add offset and length buffer parameters.
      * @param socketPtr native socket pointer.
      * @param data the data to send.
      * @param offset the position of the data inside the buffer
@@ -324,9 +306,7 @@ public class Sctp
                                    boolean ordered, int sid, int ppid);
 
     /*
-    FIXME: to be added ?
-    int
-    usrsctp_shutdown(struct socket *so, int how);
+    FIXME to be added?
+    int usrsctp_shutdown(struct socket *so, int how);
     */
-
 }
