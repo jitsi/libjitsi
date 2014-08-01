@@ -19,25 +19,14 @@ import java.util.*;
 public class Sctp
 {
     /**
+     * FIXME: Remove once usrsctp_finish is fixed
+     */
+    private static boolean initialized;
+
+    /**
      * The logger.
      */
     private static final Logger logger = Logger.getLogger(Sctp.class);
-
-    static
-    {
-        String lib = "jnsctp";
-
-        try
-        {
-            System.loadLibrary(lib);
-        }
-        catch (Throwable t)
-        {
-            logger.error(
-                "Failed to load native library " + lib + ": " + t.getMessage());
-            throw new RuntimeException(t);
-        }
-    }
 
     /**
      * SCTP notification
@@ -54,37 +43,43 @@ public class Sctp
     private static int sctpEngineCount;
 
     /**
-     * FIXME: Remove once usrsctp_finish is fixed
+     * List of instantiated <tt>SctpSockets</tt> mapped by native pointer.
      */
-    private static boolean initialized;
+    private static final Map<Long,SctpSocket> sockets
+        = new HashMap<Long,SctpSocket>();
 
-    /**
-     * Initializes native SCTP counterpart.
-     */
-    public static synchronized void init()
+    static
     {
-        // Skip if we're not the first one
-        //if(sctpEngineCount++ > 0)
-        //    return;
-        if(!initialized)
+        String lib = "jnsctp";
+
+        try
         {
-            usrsctp_init(0);
-            initialized = true;
+            System.loadLibrary(lib);
+        }
+        catch (Throwable t)
+        {
+            logger.error(
+                    "Failed to load native library " + lib + ": "
+                        + t.getMessage());
+            if (t instanceof Error)
+                throw (Error) t;
+            else if (t instanceof RuntimeException)
+                throw (RuntimeException) t;
+            else
+                throw new RuntimeException(t);
         }
     }
 
     /**
-     * Initializes native SCTP counterpart.
-     * @param port UDP encapsulation port.
-     * @return <tt>true</tt> on success.
+     * Closes SCTP socket addressed by given native pointer.
+     * @param ptr native socket pointer.
      */
-    native private static boolean usrsctp_init(int port);
-
-    /**
-     * List of instantiated <tt>SctpSockets</tt> mapped by native pointer.
-     */
-    private static Map<Long, SctpSocket> sockets
-        = new HashMap<Long, SctpSocket>();
+    static void closeSocket(Long ptr)
+    {
+        usrsctp_close(ptr);
+    
+        sockets.remove(ptr);
+    }
 
     /**
      * Creates new <tt>SctpSocket</tt> for given SCTP port. Allocates native
@@ -104,67 +99,6 @@ public class Sctp
         else
             return null;
     }
-
-    /**
-     * Creates native SCTP socket and returns pointer to it.
-     * @param localPort local SCTP socket port.
-     * @return native socket pointer or 0 if operation failed.
-     */
-    native private static long usersctp_socket(int localPort);
-
-    /**
-     * Sends given <tt>data</tt> on selected SCTP stream using given payload
-     * protocol identifier.
-     * FIXME: add offset and length buffer parameters.
-     * @param socketPtr native socket pointer.
-     * @param data the data to send.
-     * @param offset the position of the data inside the buffer
-     * @param len data length.
-     * @param ordered should we care about message order ?
-     * @param sid SCTP stream identifier
-     * @param ppid payload protocol identifier
-     * @return sent bytes count or <tt>-1</tt> in case of an error.
-     */
-    native static int usrsctp_send(long socketPtr,  byte[] data,
-                                   int offset,      int len,
-                                   boolean ordered, int sid, int ppid);
-
-    /**
-     * Makes socket passive.
-     * @param socketPtr native socket pointer.
-     */
-    native static void usrsctp_listen(long socketPtr);
-
-    /**
-     * Waits for incoming connection.
-     * @param socketPtr native socket pointer.
-     */
-    native static boolean usrsctp_accept(long socketPtr);
-
-    /**
-     * Connects SCTP socket to remote socket on given SCTP port.
-     * @param socketPtr native socket pointer.
-     * @param remotePort remote SCTP port.
-     * @return <tt>true</tt> if the socket has been successfully connected.
-     */
-    native static boolean usrsctp_connect(long socketPtr, int remotePort);
-
-    /**
-     * Closes SCTP socket addressed by given native pointer.
-     * @param ptr native socket pointer.
-     */
-    static void closeSocket(Long ptr)
-    {
-        usrsctp_close(ptr);
-    
-        sockets.remove(ptr);
-    }
-
-    /**
-     * Closes SCTP socket.
-     * @param socketPtr native socket pointer.
-     */
-    native private static void usrsctp_close(long socketPtr);
 
     /**
      * Disposes of the resources held by native counterpart.
@@ -215,35 +149,42 @@ public class Sctp
     }
 
     /**
-     * Disposes of the resources held by native counterpart.
-     * @return <tt>true</tt> if stack successfully released resources.
+     * Initializes native SCTP counterpart.
      */
-    native private static boolean usrsctp_finish();
+    public static synchronized void init()
+    {
+        // Skip if we're not the first one
+        //if(sctpEngineCount++ > 0)
+        //    return;
+        if(!initialized)
+        {
+            usrsctp_init(0);
+            initialized = true;
+        }
+    }
 
     /**
-     * Method fired by native counterpart when SCTP stack wants to send
-     * network packet.
-     * @param socketAddr native socket pointer
-     * @param data buffer holding packet data
-     * @param tos type of service???
-     * @param set_df use IP don't fragment option
-     * @return 0 if the packet has been successfully sent or -1 otherwise.
+     * Passes network packet to native SCTP stack counterpart.
+     * @param socketPtr native socket pointer.
+     * @param packet buffer holding network packet data.
+     * @param offset the position in the buffer where packet data starts.
+     * @param len packet data length.
      */
-    public static int onSctpOutboundPacket(long socketAddr, byte[] data,
-                                            int  tos,        int set_df)
-    {
-        // FIXME: handle tos and set_df
+    native private static void on_network_in(long socketPtr, byte[] packet,
+                                             int  offset,    int    len);
 
-        SctpSocket socket = sockets.get(socketAddr);
-        if(socket != null)
-        {
-            return socket.onSctpOut(data, tos, set_df);
-        }
-        else
-        {
-            logger.error("No SctpSocket found for ptr: " + socketAddr);
-            return -1;
-        }
+    /**
+     * Used by {@link SctpSocket} to pass received network packet to native
+     * counterpart.
+     *
+     * @param socketPtr native socket pointer.
+     * @param packet network packet data.
+     * @param offset position in the buffer where packet data starts.
+     * @param len length of packet data in the buffer.
+     */
+    static void onConnIn(long socketPtr, byte[] packet, int offset, int len)
+    {
+        on_network_in(socketPtr, packet, offset, len);
     }
 
     /**
@@ -294,28 +235,93 @@ public class Sctp
     }
 
     /**
-     * Used by {@link SctpSocket} to pass received network packet to native
-     * counterpart.
-     *
-     * @param socketPtr native socket pointer.
-     * @param packet network packet data.
-     * @param offset position in the buffer where packet data starts.
-     * @param len length of packet data in the buffer.
+     * Method fired by native counterpart when SCTP stack wants to send
+     * network packet.
+     * @param socketAddr native socket pointer
+     * @param data buffer holding packet data
+     * @param tos type of service???
+     * @param set_df use IP don't fragment option
+     * @return 0 if the packet has been successfully sent or -1 otherwise.
      */
-    static void onConnIn(long socketPtr, byte[] packet, int offset, int len)
+    public static int onSctpOutboundPacket(long socketAddr, byte[] data,
+                                            int  tos,        int set_df)
     {
-        on_network_in(socketPtr, packet, offset, len);
+        // FIXME: handle tos and set_df
+
+        SctpSocket socket = sockets.get(socketAddr);
+        if(socket != null)
+        {
+            return socket.onSctpOut(data, tos, set_df);
+        }
+        else
+        {
+            logger.error("No SctpSocket found for ptr: " + socketAddr);
+            return -1;
+        }
     }
 
     /**
-     * Passes network packet to native SCTP stack counterpart.
-     * @param socketPtr native socket pointer.
-     * @param packet buffer holding network packet data.
-     * @param offset the position in the buffer where packet data starts.
-     * @param len packet data length.
+     * Creates native SCTP socket and returns pointer to it.
+     * @param localPort local SCTP socket port.
+     * @return native socket pointer or 0 if operation failed.
      */
-    native private static void on_network_in(long socketPtr, byte[] packet,
-                                             int  offset,    int    len);
+    native private static long usersctp_socket(int localPort);
+
+    /**
+     * Waits for incoming connection.
+     * @param socketPtr native socket pointer.
+     */
+    native static boolean usrsctp_accept(long socketPtr);
+
+    /**
+     * Closes SCTP socket.
+     * @param socketPtr native socket pointer.
+     */
+    native private static void usrsctp_close(long socketPtr);
+
+    /**
+     * Connects SCTP socket to remote socket on given SCTP port.
+     * @param socketPtr native socket pointer.
+     * @param remotePort remote SCTP port.
+     * @return <tt>true</tt> if the socket has been successfully connected.
+     */
+    native static boolean usrsctp_connect(long socketPtr, int remotePort);
+
+    /**
+     * Disposes of the resources held by native counterpart.
+     * @return <tt>true</tt> if stack successfully released resources.
+     */
+    native private static boolean usrsctp_finish();
+
+    /**
+     * Initializes native SCTP counterpart.
+     * @param port UDP encapsulation port.
+     * @return <tt>true</tt> on success.
+     */
+    native private static boolean usrsctp_init(int port);
+
+    /**
+     * Makes socket passive.
+     * @param socketPtr native socket pointer.
+     */
+    native static void usrsctp_listen(long socketPtr);
+
+    /**
+     * Sends given <tt>data</tt> on selected SCTP stream using given payload
+     * protocol identifier.
+     * FIXME: add offset and length buffer parameters.
+     * @param socketPtr native socket pointer.
+     * @param data the data to send.
+     * @param offset the position of the data inside the buffer
+     * @param len data length.
+     * @param ordered should we care about message order ?
+     * @param sid SCTP stream identifier
+     * @param ppid payload protocol identifier
+     * @return sent bytes count or <tt>-1</tt> in case of an error.
+     */
+    native static int usrsctp_send(long socketPtr,  byte[] data,
+                                   int offset,      int len,
+                                   boolean ordered, int sid, int ppid);
 
     /*
     FIXME: to be added ?

@@ -6,9 +6,9 @@
  */
 package org.jitsi.sctp4j;
 
-import org.jitsi.util.*;
-
 import java.io.*;
+
+import org.jitsi.util.*;
 
 /**
  * SCTP socket implemented using "usrsctp" lib.
@@ -319,7 +319,6 @@ public class SctpSocket
         System.out.println(id);
         if(packet.length >= 12)
         {
-            int i=0;
             //Common header
             int srcPort = bytes_to_short(packet, 0);
             int dstPort = bytes_to_short(packet, 2);
@@ -328,16 +327,10 @@ public class SctpSocket
             long checksum = bytes_to_long(packet, 8);
             
             logger.debug(
-              "SRC P: " + srcPort 
-              + " DST P: " + dstPort
-              + " VTAG: 0x" + Long.toHexString(verificationTag) 
-              + " CHK: 0x" + Long.toHexString(checksum));
-            
-            /*if(verificationTag == 0)
-            {
-                // This is init header
-                System.out.println("WE HAVE INIT!!!");
-            }*/
+                  "SRC P: " + srcPort + " DST P: " + dstPort + " VTAG: 0x"
+                      + Long.toHexString(verificationTag) + " CHK: 0x"
+                      + Long.toHexString(checksum));
+
             debugChunks(packet);
         }
     }
@@ -482,9 +475,7 @@ public class SctpSocket
     {
         int fByte = (0x000000FF & ((int) buffer[offset]));
         int sByte = (0x000000FF & ((int) buffer[offset + 1]));
-        return ((fByte << 8
-            | sByte))
-            & 0xFFFF;
+        return ((fByte << 8) | sByte) & 0xFFFF;
     }
 
     /**
