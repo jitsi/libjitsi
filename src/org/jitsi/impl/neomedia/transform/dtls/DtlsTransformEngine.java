@@ -74,6 +74,13 @@ public class DtlsTransformEngine
     {
         disposed = true;
 
+        /*
+         * SrtpControl.start(MediaType) starts its associated TransformEngine.
+         * We will use that mediaType to signal the normal stop then as well
+         * i.e. we will call setMediaType(null) first.
+         */
+        setMediaType(null);
+
         for (int i = 0; i < packetTransformers.length; i++)
         {
             DtlsPacketTransformer packetTransformer = packetTransformers[i];
@@ -86,7 +93,6 @@ public class DtlsTransformEngine
         }
 
         setConnector(null);
-        setMediaType(null);
     }
 
     /**

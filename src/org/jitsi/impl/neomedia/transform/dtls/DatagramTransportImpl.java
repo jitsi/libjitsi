@@ -115,10 +115,9 @@ public class DatagramTransportImpl
 
         if (connector == null)
         {
-            String msg = getClass().getName() + " is closed!";
-            IOException ioe = new IOException(msg);
+            IOException ioe
+                = new IOException(getClass().getName() + " is closed!");
 
-            logger.error(msg, ioe);
             if (breakOutOfDTLSReliableHandshakeReceiveMessage)
                 breakOutOfDTLSReliableHandshakeReceiveMessage(ioe);
             throw ioe;

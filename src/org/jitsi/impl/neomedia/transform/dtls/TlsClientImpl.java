@@ -196,6 +196,23 @@ public class TlsClientImpl
     /**
      * {@inheritDoc}
      *
+     * Forwards to {@link #packetTransformer}.
+     */
+    @Override
+    public void notifyAlertRaised(
+            short alertLevel,
+            short alertDescription,
+            String message,
+            Exception cause)
+    {
+        packetTransformer.notifyAlertRaised(
+                this,
+                alertLevel, alertDescription, message, cause);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
      * Makes sure that the DTLS extended server hello contains the
      * <tt>use_srtp</tt> extension.
      */

@@ -309,6 +309,23 @@ public class TlsServerImpl
 
     /**
      * {@inheritDoc}
+     *
+     * Forwards to {@link #packetTransformer}.
+     */
+    @Override
+    public void notifyAlertRaised(
+            short alertLevel,
+            short alertDescription,
+            String message,
+            Exception cause)
+    {
+        packetTransformer.notifyAlertRaised(
+                this,
+                alertLevel, alertDescription, message, cause);
+    }
+
+    /**
+     * {@inheritDoc}
      */
     @Override
     public void notifyClientCertificate(Certificate clientCertificate)

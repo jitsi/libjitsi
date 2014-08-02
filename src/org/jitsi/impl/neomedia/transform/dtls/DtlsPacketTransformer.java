@@ -165,6 +165,14 @@ public class DtlsPacketTransformer
     private DtlsControl.Setup setup;
 
     /**
+     * The indicator which determines whether the <tt>TlsPeer</tt> employed by
+     * this <tt>PacketTransformer</tt> has raised an
+     * <tt>AlertDescription.close_notify</tt> <tt>AlertLevel.warning</tt> i.e.
+     * the remote DTLS peer has closed the write side of the connection.
+     */
+    private boolean tlsPeerHasRaisedCloseNotifyWarning;
+
+    /**
      * The <tt>TransformEngine</tt> which has initialized this instance.
      */
     private final DtlsTransformEngine transformEngine;
@@ -190,8 +198,13 @@ public class DtlsPacketTransformer
      */
     public synchronized void close()
     {
-        setConnector(null);
+        /*
+         * SrtpControl.start(MediaType) starts its associated TransformEngine.
+         * We will use that mediaType to signal the normal stop then as well
+         * i.e. we will call setMediaType(null) first.
+         */
         setMediaType(null);
+        setConnector(null);
     }
 
     /**
@@ -309,6 +322,15 @@ public class DtlsPacketTransformer
             String msg,
             int i)
     {
+        /*
+         * SrtpControl.start(MediaType) starts its associated TransformEngine.
+         * We will use that mediaType to signal the normal stop then as well
+         * i.e. we will ignore exception after the procedure to stop this
+         * PacketTransformer has begun.
+         */
+        if (mediaType == null)
+            return false;
+
         if (ioe instanceof TlsFatalAlert)
         {
             TlsFatalAlert tfa = (TlsFatalAlert) ioe;
@@ -519,6 +541,33 @@ public class DtlsPacketTransformer
     }
 
     /**
+     * Notifies this instance that the DTLS record layer associated with a
+     * specific <tt>TlsPeer</tt> has raised an alert.
+     *
+     * @param tlsPeer the <tt>TlsPeer</tt> whose associated DTLS record layer
+     * has raised an alert
+     * @param alertLevel {@link AlertLevel}
+     * @param alertDescription {@link AlertDescription}
+     * @param message a human-readable message explaining what caused the alert.
+     * May be <tt>null</tt>.
+     * @param cause the exception that caused the alert to be raised. May be
+     * <tt>null</tt>.
+     */
+    void notifyAlertRaised(
+            TlsPeer tlsPeer,
+            short alertLevel,
+            short alertDescription,
+            String message,
+            Exception cause)
+    {
+        if ((AlertLevel.warning == alertLevel)
+                && (AlertDescription.close_notify == alertDescription))
+        {
+            tlsPeerHasRaisedCloseNotifyWarning = true;
+        }
+    }
+
+    /**
      * {@inheritDoc}
      */
     public RawPacket reverseTransform(RawPacket pkt)
@@ -605,7 +654,20 @@ public class DtlsPacketTransformer
                     catch (IOException ioe)
                     {
                         pkt = null;
-                        logger.error("Failed to decode a DTLS record!", ioe);
+                        /*
+                         * SrtpControl.start(MediaType) starts its associated
+                         * TransformEngine. We will use that mediaType to signal
+                         * the normal stop then as well i.e. we will ignore
+                         * exception after the procedure to stop this
+                         * PacketTransformer has begun.
+                         */
+                        if ((mediaType != null)
+                                && !tlsPeerHasRaisedCloseNotifyWarning)
+                        {
+                            logger.error(
+                                    "Failed to decode a DTLS record!",
+                                    ioe);
+                        }
                     }
                 }
             }
@@ -793,11 +855,12 @@ public class DtlsPacketTransformer
     {
         if (this.mediaType != mediaType)
         {
-            if (this.mediaType != null)
-                stop();
+            MediaType oldValue = this.mediaType;
 
             this.mediaType = mediaType;
 
+            if (oldValue != null)
+                stop();
             if (this.mediaType != null)
                 start();
         }
@@ -855,6 +918,7 @@ public class DtlsPacketTransformer
             dtlsProtocolObj = new DTLSServerProtocol(secureRandom);
             tlsPeer = new TlsServerImpl(this);
         }
+        tlsPeerHasRaisedCloseNotifyWarning = false;
 
         final DatagramTransportImpl datagramTransport
             = new DatagramTransportImpl(componentID);
@@ -1010,9 +1074,21 @@ public class DtlsPacketTransformer
                 }
                 catch (IOException ioe)
                 {
-                    logger.error(
-                        "Failed to send application data over DTLS"
-                            + " transport!", ioe);
+                    /*
+                     * SrtpControl.start(MediaType) starts its associated
+                     * TransformEngine. We will use that mediaType to signal the
+                     * normal stop then as well i.e. we will ignore exception
+                     * after the procedure to stop this PacketTransformer has
+                     * begun.
+                     */
+                    if ((mediaType != null)
+                            && !tlsPeerHasRaisedCloseNotifyWarning)
+                    {
+                        logger.error(
+                                "Failed to send application data over DTLS"
+                                    + " transport!",
+                                ioe);
+                    }
                 }
             }
         }
