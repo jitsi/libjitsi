@@ -1683,7 +1683,8 @@ public class ConfigurationServiceImpl
 
             if(fileStream == null)
             {
-                logger.info("failed to find " + fileName + " with class loader, will continue without it.");
+                logger.info("failed to find " + fileName + " with class "
+                    + "loader, will continue without it.");
                 return;
             }
 
