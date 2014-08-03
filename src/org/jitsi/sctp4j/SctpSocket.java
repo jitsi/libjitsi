@@ -7,7 +7,6 @@
 package org.jitsi.sctp4j;
 
 import java.io.*;
-import java.util.concurrent.*;
 
 import org.jitsi.util.*;
 
@@ -22,14 +21,6 @@ public class SctpSocket
      * The logger.
      */
     private final static Logger logger = Logger.getLogger(SctpSocket.class);
-
-    /**
-     * The pool of <tt>Thread</tt>s which run <tt>SctpSocket</tt>s.
-     */
-    private static final ExecutorService threadPool
-        = ExecutorUtils.newCachedThreadPool(
-                true,
-                SctpSocket.class.getName());
 
     /**
      * Reads 32 bit unsigned int from the buffer at specified offset
@@ -392,32 +383,28 @@ public class SctpSocket
         }
     }
 
-    void onSctpInboundPacket(
-            final byte[] data,
-            final int sid,
-            final int ssn,
-            final int tsn,
-            final long ppid,
-            final int context,
-            final int flags)
+    /**
+     * Notifies this <tt>SctpSocket</tt> about incoming data.
+     *
+     * @param data buffer holding received data
+     * @param sid stream id
+     * @param ssn
+     * @param tsn
+     * @param ppid payload protocol identifier
+     * @param context
+     * @param flags
+     */
+    void onSctpInboundPacket(byte[] data, int sid, int ssn, int tsn, long ppid,
+            int context, int flags)
     {
-        // FIXME fix threads
-        threadPool.execute(
-                new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        if((flags & Sctp.MSG_NOTIFICATION) > 0)
-                        {
-                            onNotification(SctpNotification.parse(data));
-                        }
-                        else
-                        {
-                            onSctpIn(data, sid, ssn, tsn, ppid, context, flags);
-                        }
-                    }
-                });
+        if((flags & Sctp.MSG_NOTIFICATION) != 0)
+        {
+            onNotification(SctpNotification.parse(data));
+        }
+        else
+        {
+            onSctpIn(data, sid, ssn, tsn, ppid, context, flags);
+        }
     }
 
     /**
