@@ -30,6 +30,21 @@ public class SRTCPTransformer
     private final Map<Integer,SRTCPCryptoContext> contexts;
 
     /**
+     * Constructs an <tt>SRTCPTransformer</tt>, sharing its
+     * <tt>SRTPContextFactory</tt> instances with a given
+     * <tt>SRTPTransformer</tt>.
+     *
+     * @param srtpTransformer the <tt>SRTPTransformer</tt> with which this
+     * <tt>SRTCPTransformer</tt> will share its <tt>SRTPContextFactory</tt>
+     * instances.
+     */
+    public SRTCPTransformer(SRTPTransformer srtpTransformer)
+    {
+        this(srtpTransformer.forwardFactory,
+             srtpTransformer.reverseFactory);
+    }
+
+    /**
      * Constructs a SRTCPTransformer object.
      *
      * @param factory The associated context factory for both

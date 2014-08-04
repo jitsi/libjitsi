@@ -44,8 +44,8 @@ import org.jitsi.impl.neomedia.transform.*;
 public class SRTPTransformer
     extends SinglePacketTransformer
 {
-    private final SRTPContextFactory forwardFactory;
-    private final SRTPContextFactory reverseFactory;
+    final SRTPContextFactory forwardFactory;
+    final SRTPContextFactory reverseFactory;
 
     /**
      * All the known SSRC's corresponding SRTPCryptoContexts
