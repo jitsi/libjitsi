@@ -11,6 +11,7 @@ import java.util.*;
 
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.fileaccess.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
 
 import com.sun.jna.*;
@@ -517,16 +518,24 @@ public class FileAccessServiceImpl implements FileAccessService
         if (initialized)
             return;
 
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
         profileDirLocation
-            = getSystemProperty(
+            = cfg != null
+                ? cfg.getScHomeDirLocation()
+                : getSystemProperty(
                     ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
         if (profileDirLocation == null)
         {
             throw new IllegalStateException(
                     ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
         }
+
         scHomeDirName
-            = getSystemProperty(ConfigurationService.PNAME_SC_HOME_DIR_NAME);
+                = cfg != null
+                    ? cfg.getScHomeDirName()
+                    : getSystemProperty(
+                        ConfigurationService.PNAME_SC_HOME_DIR_NAME);
         if (scHomeDirName == null)
         {
             throw new IllegalStateException(
