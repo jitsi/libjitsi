@@ -1086,6 +1086,13 @@ public class DtlsPacketTransformer
              */
             SinglePacketTransformer srtpTransformer = this.srtpTransformer;
 
+            if (srtpTransformer == null
+                    && rtcpmux
+                    && Component.RTCP == componentID)
+            {
+                srtpTransformer = initializeSRTCPTransformerFromRtp();
+            }
+
             if (srtpTransformer != null)
                 pkt = srtpTransformer.transform(pkt);
         }
