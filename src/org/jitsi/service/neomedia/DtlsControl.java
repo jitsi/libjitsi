@@ -72,6 +72,12 @@ public interface DtlsControl
     public void setSetup(Setup setup);
 
     /**
+     * Enables/disables rtcp-mux.
+     * @param rtcpmux whether to enable or disable.
+     */
+    public void setRtcpmux(boolean rtcpmux);
+
+    /**
      * Enumerates the possible values of the <tt>setup</tt> SDP attribute
      * defined by RFC 4145 &quot;TCP-Based Media Transport in the Session
      * Description Protocol (SDP)&quot;.

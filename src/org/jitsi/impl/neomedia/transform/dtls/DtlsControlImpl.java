@@ -406,6 +406,11 @@ public class DtlsControlImpl
     private final String localFingerprint;
 
     /**
+     * Whether rtcp-mux is in use.
+     */
+    private boolean rtcpmux = false;
+
+    /**
      * The hash function of {@link #localFingerprint} (which is the same as the
      * digest algorithm of the signature algorithm of {@link #certificate} in
      * accord with RFC 4572).
@@ -494,6 +499,7 @@ public class DtlsControlImpl
 
         transformEngine.setConnector(connector);
         transformEngine.setSetup(setup);
+        transformEngine.setRtcpmux(rtcpmux);
         return transformEngine;
     }
 
@@ -764,5 +770,20 @@ public class DtlsControlImpl
                 logger.warn(message + " " + throwableMessage);
         }
         return b;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void setRtcpmux(boolean rtcpmux)
+    {
+        if (this.rtcpmux != rtcpmux)
+        {
+            this.rtcpmux = rtcpmux;
+            DtlsTransformEngine transformEngine = this.transformEngine;
+
+            if (transformEngine != null)
+                transformEngine.setRtcpmux(rtcpmux);
+        }
     }
 }

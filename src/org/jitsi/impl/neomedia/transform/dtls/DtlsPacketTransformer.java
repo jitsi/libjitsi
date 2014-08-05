@@ -178,6 +178,15 @@ public class DtlsPacketTransformer
     private final DtlsTransformEngine transformEngine;
 
     /**
+     * Whether rtcp-mux is in use.
+     *
+     * If enabled, and this is the transformer for RTCP, it will not establish
+     * a DTLS session on its own, but rather wait for the RTP transformer to
+     * do so, and reuse it to initialize the SRTP transformer.
+     */
+    private boolean rtcpmux = false;
+
+    /**
      * Initializes a new <tt>DtlsPacketTransformer</tt> instance.
      *
      * @param transformEngine the <tt>TransformEngine</tt> which is initializing
@@ -578,6 +587,14 @@ public class DtlsPacketTransformer
 
         if (isDtlsRecord(buf, off, len))
         {
+            if (rtcpmux && Component.RTCP == componentID)
+            {
+                // This should never happen.
+                logger.warn("Dropping a DTLS record, because it was received"
+                            + " on the RTCP channel while rtcpmux is in use.");
+                return null;
+            }
+
             boolean receive;
 
             synchronized (this)
@@ -697,6 +714,13 @@ public class DtlsPacketTransformer
              * the session is not secured.
              */
             SinglePacketTransformer srtpTransformer = this.srtpTransformer;
+
+            if (srtpTransformer == null
+                    && rtcpmux
+                    && Component.RTCP == componentID)
+            {
+                srtpTransformer = initializeSRTCPTransformerFromRtp();
+            }
 
             if (srtpTransformer != null)
                 pkt = srtpTransformer.reverseTransform(pkt);
@@ -898,6 +922,16 @@ public class DtlsPacketTransformer
             return;
         }
 
+        if (rtcpmux && Component.RTCP == componentID)
+        {
+            /*
+             * In the case of rtcp-mux, the RTCP transformer does not create
+             * a DTLS session. The SRTP context (srtpTransformer) will be
+             * initialized on demand using initializeSRTCPTransformerFromRtp()
+             */
+            return;
+        }
+
         AbstractRTPConnector connector = this.connector;
 
         if (connector == null)
@@ -1036,7 +1070,7 @@ public class DtlsPacketTransformer
         /*
          * If the specified pkt represents a DTLS record, then it should pass
          * through this PacketTransformer (e.g. it has been sent through
-         * DatagramPacketImpl).
+         * DatagramTransportImpl).
          */
         if (isDtlsRecord(buf, off, len))
             return pkt;
@@ -1093,5 +1127,49 @@ public class DtlsPacketTransformer
             }
         }
         return pkt;
+    }
+
+    /**
+     * Enables/disables rtcp-mux.
+     * @param rtcpmux whether to enable or disable.
+     */
+    void setRtcpmux(boolean rtcpmux)
+    {
+        this.rtcpmux = rtcpmux;
+    }
+
+    /**
+     * Tries to initialize {@link #srtpTransformer} by using the
+     * <tt>DtlsPacketTransformer</tt> for RTP.
+     *
+     * @return the (possibly updated) value of {@link #srtpTransformer}.
+     */
+    private SinglePacketTransformer initializeSRTCPTransformerFromRtp()
+    {
+        if (srtpTransformer != null)
+            return srtpTransformer; //already initialized
+
+        DtlsPacketTransformer rtpDtlsPacketTransformer
+            = (DtlsPacketTransformer) getTransformEngine().getRTPTransformer();
+
+        PacketTransformer rtpSrtpTransformer
+            = rtpDtlsPacketTransformer.srtpTransformer;
+
+        if (rtpSrtpTransformer != null
+                && rtpSrtpTransformer instanceof SRTPTransformer)
+        {
+            synchronized (this)
+            {
+                if (srtpTransformer == null) //previous check was not synchronized
+                {
+                    DtlsPacketTransformer.this.srtpTransformer
+                        = new SRTCPTransformer(
+                            (SRTPTransformer) rtpSrtpTransformer);
+                }
+                return srtpTransformer;
+            }
+        }
+
+        return srtpTransformer;
     }
 }

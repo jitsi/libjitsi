@@ -33,6 +33,15 @@ public class DtlsTransformEngine
     private boolean disposed = false;
 
     /**
+     * Whether rtcp-mux is in use.
+     *
+     * When enabled, the <tt>DtlsPacketTransformer</tt> will, instead of
+     * establishing a DTLS session, wait for the transformer for RTP to
+     * establish one, and reuse it to initialize its SRTP transformer.
+     */
+    private boolean rtcpmux = false;
+
+    /**
      * The <tt>DtlsControl</tt> which has initialized this instance.
      */
     private final DtlsControlImpl dtlsControl;
@@ -111,6 +120,7 @@ public class DtlsTransformEngine
 
         packetTransformer.setConnector(connector);
         packetTransformer.setSetup(setup);
+        packetTransformer.setRtcpmux(rtcpmux);
         packetTransformer.setMediaType(mediaType);
         return packetTransformer;
     }
@@ -248,5 +258,23 @@ public class DtlsTransformEngine
     boolean isSrtpDisabled()
     {
         return dtlsControl.isSrtpDisabled();
+    }
+
+    /**
+     * Enables/disables rtcp-mux.
+     * @param rtcpmux whether to enable or disable.
+     */
+    void setRtcpmux(boolean rtcpmux)
+    {
+        if (this.rtcpmux != rtcpmux)
+        {
+            this.rtcpmux = rtcpmux;
+
+            for (DtlsPacketTransformer packetTransformer : packetTransformers)
+            {
+                if (packetTransformer != null)
+                    packetTransformer.setRtcpmux(rtcpmux);
+            }
+        }
     }
 }
