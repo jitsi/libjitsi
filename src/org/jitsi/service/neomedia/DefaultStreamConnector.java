@@ -72,38 +72,6 @@ public class DefaultStreamConnector
     private static int minPort = -1;
 
     /**
-     * The local <tt>InetAddress</tt> this <tt>StreamConnector</tt> attempts to
-     * bind to on demand.
-     */
-    private final InetAddress bindAddr;
-
-    /**
-     * The <tt>DatagramSocket</tt> that a stream should use for control data
-     * (e.g. RTCP) traffic.
-     */
-    protected DatagramSocket controlSocket;
-
-    /**
-     * The <tt>DatagramSocket</tt> that a stream should use for data (e.g. RTP)
-     * traffic.
-     */
-    protected DatagramSocket dataSocket;
-
-    /**
-     * Initializes a new <tt>DefaultStreamConnector</tt> instance with no
-     * control and data <tt>DatagramSocket</tt>s.
-     * <p>
-     * Suitable for extenders willing to delay the creation of the control and
-     * data sockets. For example, they could override
-     * {@link #getControlSocket()} and/or {@link #getDataSocket()} and create
-     * them on demand.
-     */
-    public DefaultStreamConnector()
-    {
-        this(null, null);
-    }
-
-    /**
      * Creates a new <tt>DatagramSocket</tt> instance which is bound to the
      * specified local <tt>InetAddress</tt> and its port is within the range
      * defined by the <tt>ConfigurationService</tt> properties
@@ -166,6 +134,43 @@ public class DefaultStreamConnector
     }
 
     /**
+     * The local <tt>InetAddress</tt> this <tt>StreamConnector</tt> attempts to
+     * bind to on demand.
+     */
+    private final InetAddress bindAddr;
+
+    /**
+     * The <tt>DatagramSocket</tt> that a stream should use for control data
+     * (e.g. RTCP) traffic.
+     */
+    protected DatagramSocket controlSocket;
+
+    /**
+     * The <tt>DatagramSocket</tt> that a stream should use for data (e.g. RTP)
+     * traffic.
+     */
+    protected DatagramSocket dataSocket;
+
+    /**
+     * Whether this <tt>DefaultStreamConnector</tt> uses rtcp-mux.
+     */
+    protected boolean rtcpmux = false;
+
+    /**
+     * Initializes a new <tt>DefaultStreamConnector</tt> instance with no
+     * control and data <tt>DatagramSocket</tt>s.
+     * <p>
+     * Suitable for extenders willing to delay the creation of the control and
+     * data sockets. For example, they could override
+     * {@link #getControlSocket()} and/or {@link #getDataSocket()} and create
+     * them on demand.
+     */
+    public DefaultStreamConnector()
+    {
+        this(null, null);
+    }
+
+   /**
      * Initializes a new <tt>DefaultStreamConnector</tt> instance with a
      * specific bind <tt>InetAddress</tt>. The new instance is to attempt to
      * bind on demand to the specified <tt>InetAddress</tt> in the port range
@@ -195,9 +200,28 @@ public class DefaultStreamConnector
             DatagramSocket dataSocket,
             DatagramSocket controlSocket)
     {
+        this(dataSocket, controlSocket, false);
+    }
+
+    /**
+     * Initializes a new <tt>DefaultStreamConnector</tt> instance which is to
+     * represent a specific pair of control and data <tt>DatagramSocket</tt>s.
+     *
+     * @param dataSocket the <tt>DatagramSocket</tt> to be used for data (e.g.
+     * RTP) traffic
+     * @param controlSocket the <tt>DatagramSocket</tt> to be used for control
+     * data (e.g. RTCP) traffic
+     * @param rtcpmux whether rtcpmux is used.
+     */
+    public DefaultStreamConnector(
+            DatagramSocket dataSocket,
+            DatagramSocket controlSocket,
+            boolean rtcpmux)
+    {
         this.controlSocket = controlSocket;
         this.dataSocket = dataSocket;
         this.bindAddr = null;
+        this.rtcpmux = rtcpmux;
     }
 
     /**
@@ -206,6 +230,7 @@ public class DefaultStreamConnector
      *
      * @see StreamConnector#close()
      */
+    @Override
     public void close()
     {
         if (controlSocket != null)
@@ -222,6 +247,7 @@ public class DefaultStreamConnector
      * use for control data (e.g. RTCP) traffic
      * @see StreamConnector#getControlSocket()
      */
+    @Override
     public DatagramSocket getControlSocket()
     {
         if ((controlSocket == null) && (bindAddr != null))
@@ -237,6 +263,7 @@ public class DefaultStreamConnector
      * use for data (e.g. RTP) traffic
      * @see StreamConnector#getDataSocket()
      */
+    @Override
     public DatagramSocket getDataSocket()
     {
         if ((dataSocket == null) && (bindAddr != null))
@@ -251,6 +278,7 @@ public class DefaultStreamConnector
      * @return a reference to the <tt>Socket</tt> that a stream should
      * use for data (e.g. RTP) traffic.
      */
+    @Override
     public Socket getDataTCPSocket()
     {
         return null;
@@ -263,6 +291,7 @@ public class DefaultStreamConnector
      * @return a reference to the <tt>Socket</tt> that a stream should
      * use for control data (e.g. RTCP).
      */
+    @Override
     public Socket getControlTCPSocket()
     {
         return null;
@@ -273,6 +302,7 @@ public class DefaultStreamConnector
      *
      * @return the protocol of this <tt>StreamConnector</tt>
      */
+    @Override
     public Protocol getProtocol()
     {
         return Protocol.UDP;
@@ -284,6 +314,7 @@ public class DefaultStreamConnector
      *
      * @see StreamConnector#started()
      */
+    @Override
     public void started()
     {
     }
@@ -295,7 +326,17 @@ public class DefaultStreamConnector
      *
      * @see StreamConnector#stopped()
      */
+    @Override
     public void stopped()
     {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isRtcpmux()
+    {
+        return rtcpmux;
     }
 }

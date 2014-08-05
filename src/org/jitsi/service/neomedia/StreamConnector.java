@@ -102,4 +102,14 @@ public interface StreamConnector
      * should be prepared to be started at a later time again though.
      */
     public void stopped();
+
+    /**
+     * Returns <tt>true</tt> if this <tt>StreamConnector</tt> uses rtcp-mux,
+     * that is, if its data and control sockets share the same local address
+     * and port.
+     * @return <tt>true</tt> if this <tt>StreamConnector</tt> uses rtcp-mux,
+     * that is, if its data and control sockets share the same local address
+     * and port.
+     */
+    public boolean isRtcpmux();
 }

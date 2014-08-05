@@ -43,6 +43,11 @@ public class DefaultTCPStreamConnector
     protected Socket dataSocket;
 
     /**
+     * Whether this <tt>DefaultStreamConnector</tt> uses rtcp-mux.
+     */
+    protected boolean rtcpmux = false;
+
+    /**
      * Initializes a new <tt>DefaultTCPStreamConnector</tt> instance with no
      * control and data <tt>Socket</tt>s.
      * <p>
@@ -69,8 +74,27 @@ public class DefaultTCPStreamConnector
             Socket dataSocket,
             Socket controlSocket)
     {
+        this(dataSocket, controlSocket, false);
+    }
+
+    /**
+     * Initializes a new <tt>DefaultTCPStreamConnector</tt> instance which is to
+     * represent a specific pair of control and data <tt>Socket</tt>s.
+     *
+     * @param dataSocket the <tt>Socket</tt> to be used for data (e.g.
+     * RTP) traffic
+     * @param controlSocket the <tt>Socket</tt> to be used for control
+     * data (e.g. RTCP) traffic
+     * @param rtcpmux whether rtcpmux is used.
+     */
+    public DefaultTCPStreamConnector(
+            Socket dataSocket,
+            Socket controlSocket,
+            boolean rtcpmux)
+    {
         this.controlSocket = controlSocket;
         this.dataSocket = dataSocket;
+        this.rtcpmux = rtcpmux;
     }
 
     /**
@@ -79,6 +103,7 @@ public class DefaultTCPStreamConnector
      *
      * @see StreamConnector#close()
      */
+    @Override
     public void close()
     {
         try
@@ -102,6 +127,7 @@ public class DefaultTCPStreamConnector
      * use for control data (e.g. RTCP) traffic
      * @see StreamConnector#getControlSocket()
      */
+    @Override
     public DatagramSocket getControlSocket()
     {
         return null;
@@ -115,6 +141,7 @@ public class DefaultTCPStreamConnector
      * use for data (e.g. RTP) traffic
      * @see StreamConnector#getDataSocket()
      */
+    @Override
     public DatagramSocket getDataSocket()
     {
         return null;
@@ -127,6 +154,7 @@ public class DefaultTCPStreamConnector
      * @return a reference to the <tt>Socket</tt> that a stream should
      * use for data (e.g. RTP) traffic.
      */
+    @Override
     public Socket getDataTCPSocket()
     {
         return dataSocket;
@@ -139,6 +167,7 @@ public class DefaultTCPStreamConnector
      * @return a reference to the <tt>Socket</tt> that a stream should
      * use for control data (e.g. RTCP).
      */
+    @Override
     public Socket getControlTCPSocket()
     {
         return controlSocket;
@@ -149,6 +178,7 @@ public class DefaultTCPStreamConnector
      *
      * @return the protocol of this <tt>StreamConnector</tt>
      */
+    @Override
     public Protocol getProtocol()
     {
         return Protocol.TCP;
@@ -160,6 +190,7 @@ public class DefaultTCPStreamConnector
      *
      * @see StreamConnector#started()
      */
+    @Override
     public void started()
     {
     }
@@ -171,7 +202,17 @@ public class DefaultTCPStreamConnector
      *
      * @see StreamConnector#stopped()
      */
+    @Override
     public void stopped()
     {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isRtcpmux()
+    {
+        return rtcpmux;
     }
 }
