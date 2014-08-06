@@ -1,0 +1,51 @@
+Index: libjitsi/src/org/jitsi/impl/neomedia/transform/dtls/TlsClientImpl.java
+===================================================================
+--- libjitsi.orig/src/org/jitsi/impl/neomedia/transform/dtls/TlsClientImpl.java	2014-08-06 11:07:43.000000000 -0400
++++ libjitsi/src/org/jitsi/impl/neomedia/transform/dtls/TlsClientImpl.java	2014-08-06 11:09:51.690146000 -0400
+@@ -319,10 +319,10 @@
+                     = new DefaultTlsSignerCredentials(
+                             context,
+                             dtlsControl.getCertificate(),
+-                            dtlsControl.getKeyPair().getPrivate(),
++                            dtlsControl.getKeyPair().getPrivate()/*,
+                             new SignatureAndHashAlgorithm(
+                                     HashAlgorithm.sha1,
+-                                    SignatureAlgorithm.rsa));
++                                    SignatureAlgorithm.rsa)*/);
+             }
+             return clientCredentials;
+         }
+Index: libjitsi/src/org/jitsi/impl/neomedia/transform/dtls/TlsServerImpl.java
+===================================================================
+--- libjitsi.orig/src/org/jitsi/impl/neomedia/transform/dtls/TlsServerImpl.java	2014-08-06 11:07:43.000000000 -0400
++++ libjitsi/src/org/jitsi/impl/neomedia/transform/dtls/TlsServerImpl.java	2014-08-06 11:11:12.138146000 -0400
+@@ -117,13 +117,13 @@
+                         CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA256,
+                         CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA256,
+                         CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA,
+-                        CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA,
+-/* core/src/test/java/org/bouncycastle/crypto/tls/test/MockDTLSServer.java */
++                        CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA//,
++/* core/src/test/java/org/bouncycastle/crypto/tls/test/MockDTLSServer.java 
+                         CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+                         CipherSuite.TLS_ECDHE_RSA_WITH_ESTREAM_SALSA20_SHA1,
+                         CipherSuite.TLS_ECDHE_RSA_WITH_SALSA20_SHA1,
+                         CipherSuite.TLS_RSA_WITH_ESTREAM_SALSA20_SHA1,
+-                        CipherSuite.TLS_RSA_WITH_SALSA20_SHA1
++                        CipherSuite.TLS_RSA_WITH_SALSA20_SHA1*/
+                     };
+     }
+ 
+@@ -223,10 +223,10 @@
+                 = new DefaultTlsSignerCredentials(
+                         context,
+                         dtlsControl.getCertificate(),
+-                        dtlsControl.getKeyPair().getPrivate(),
++                        dtlsControl.getKeyPair().getPrivate()/*,
+                         new SignatureAndHashAlgorithm(
+                                 HashAlgorithm.sha1,
+-                                SignatureAlgorithm.rsa));
++                                SignatureAlgorithm.rsa)*/);
+         }
+         return rsaSignerCredentials;
+     }
