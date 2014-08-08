@@ -120,11 +120,8 @@
         </unzip>
 
         <!-- libmkv -->
-        <copy todir="${tmp}/libjitsi/lib/src/libmkv">
-            <fileset dir="../libvpx/third_party/libmkv">
-                <include name="**/*"/>
-            </fileset>
-        </copy>
+        <unzip src="../libsrc/libmkv.zip"
+               dest="${tmp}/libjitsi/lib/src"/>
 
     </target>
 

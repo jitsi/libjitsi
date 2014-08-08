@@ -3,7 +3,6 @@ libjitsi depends on. In the same folder where libjitsi is checked out do:
 svn checkout http://ice4j.googlecode.com/svn/trunk/ ice4j
 git clone https://github.com/jitsi/libsrc.git
 svn checkout svn://svn.code.sf.net/p/fmj/code/ fmj
-git clone https://chromium.googlesource.com/webm/libvpx
 And then in libjitsi do: ant deb-src
 This will create orig.tar.gz debian sources that can be used to debuild
 debian package.
