@@ -129,7 +129,7 @@ public class FailSafeTransactionImpl
     }
 
     /**
-     * Closes the transation and cancel the changes. Everything written in the
+     * Closes the transaction and cancels the changes. Everything written in the
      * file during the transaction is NOT saved.
      * @throws IllegalStateException if the file doesn't exists anymore
      * @throws IOException if an IOException occurs during the operation
@@ -137,7 +137,8 @@ public class FailSafeTransactionImpl
     public void rollback()
         throws IllegalStateException, IOException
     {
-        if (this.backup == null) {
+        if (this.backup == null)
+        {
             return;
         }
 
@@ -166,19 +167,27 @@ public class FailSafeTransactionImpl
 
         // to ensure a perfect copy, delete the destination if it exists
         File toF = new File(to);
-        if (toF.exists()) {
-            toF.delete();
+        if (toF.exists())
+        {
+            if (!toF.delete())
+                throw new IOException("Failed to delete destination file: "
+                                      + toF.getName());
         }
 
         File ptoF = new File(to + PART_EXT);
-        if (ptoF.exists()) {
-            ptoF.delete();
+        if (ptoF.exists())
+        {
+            if (!ptoF.delete())
+                throw new IOException("Failed to delete partial file: "
+                                      + ptoF.getName());
         }
 
-        try {
+        try
+        {
             in = new FileInputStream(from);
             out = new FileOutputStream(to + PART_EXT);
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e)
+        {
             throw new IllegalStateException(e.getMessage());
         }
 
