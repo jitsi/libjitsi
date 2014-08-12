@@ -39,8 +39,9 @@ public interface SrtpControl
 
     /**
      * Cleans up this <tt>SrtpControl</tt> and its <tt>TransformEngine</tt>.
+     * @param user the instance which requests the clean up.
      */
-    public void cleanup();
+    public void cleanup(Object user);
 
     /**
      * Gets the default secure/insecure communication status for the supported
@@ -119,4 +120,11 @@ public interface SrtpControl
      * @param mediaType the media type of the stream this control controls.
      */
     public void start(MediaType mediaType);
+
+    /**
+     * Registers <tt>user</tt> as an instance which is currently using this
+     * <tt>SrtpControl</tt>.
+     * @param user
+     */
+    public void registerUser(Object user);
 }

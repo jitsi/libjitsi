@@ -47,7 +47,8 @@ public abstract class AbstractSrtpControl<T extends SrtpControl.TransformEngine>
      * The implementation of <tt>AbstractSrtpControl</tt> cleans up its
      * associated <tt>TransformEngine</tt> (if any).
      */
-    public void cleanup()
+    @Override
+    public void cleanup(Object user)
     {
         if (transformEngine != null)
         {
@@ -117,5 +118,12 @@ public abstract class AbstractSrtpControl<T extends SrtpControl.TransformEngine>
     public void setSrtpListener(SrtpListener srtpListener)
     {
         this.srtpListener = srtpListener;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void registerUser(Object user)
+    {
     }
 }

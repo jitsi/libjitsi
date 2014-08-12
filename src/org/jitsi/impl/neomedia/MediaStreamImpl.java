@@ -315,6 +315,8 @@ public class MediaStreamImpl
                             .createSrtpControl(SrtpControlType.ZRTP)
                     : srtpControl;
 
+        this.srtpControl.registerUser(this);
+
         if (connector != null)
             setConnector(connector);
 
@@ -610,7 +612,7 @@ public class MediaStreamImpl
         stop();
         closeSendStreams();
 
-        srtpControl.cleanup();
+        srtpControl.cleanup(this);
 
         if (csrcEngine != null)
         {

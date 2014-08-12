@@ -391,7 +391,7 @@ public class DtlsControlImpl
 
     /**
      * The indicator which determines whether this instance has been disposed
-     * i.e. prepared for garbage collection by {@link #cleanup()}.
+     * i.e. prepared for garbage collection by {@link #doCleanup()}.
      */
     private boolean disposed = false;
 
@@ -429,6 +429,12 @@ public class DtlsControlImpl
      * or a DTLS server.
      */
     private Setup setup;
+
+    /**
+     * The instances currently registered as users of this <tt>SrtpControl</tt>
+     * (through {@link #registerUser(Object)}).
+     */
+    private final Set<Object> users = new HashSet<Object>();
 
     /**
      * Initializes a new <tt>DtlsControlImpl</tt> instance.
@@ -469,12 +475,11 @@ public class DtlsControlImpl
     }
 
     /**
-     * {@inheritDoc}
+     * Prepares this <tt>DtlsControlImpl</tt> for garbage collection.
      */
-    @Override
-    public void cleanup()
+    private void doCleanup()
     {
-        super.cleanup();
+        super.cleanup(null);
 
         setConnector(null);
 
@@ -482,6 +487,19 @@ public class DtlsControlImpl
         {
             disposed = true;
             notifyAll();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void cleanup(Object user)
+    {
+        synchronized (users)
+        {
+            if (users.remove(user) && users.isEmpty())
+                doCleanup();
         }
     }
 
@@ -786,4 +804,17 @@ public class DtlsControlImpl
                 transformEngine.setRtcpmux(rtcpmux);
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void registerUser(Object user)
+    {
+        synchronized (users)
+        {
+            users.add(user);
+        }
+    }
+
 }

@@ -58,9 +58,10 @@ public class ZrtpControlImpl
     /**
      * Cleans up the current zrtp control and its engine.
      */
-    public void cleanup()
+    @Override
+    public void cleanup(Object user)
     {
-        super.cleanup();
+        super.cleanup(user);
 
         zrtpConnector = null;
     }
