@@ -117,6 +117,7 @@ public class StatisticsEngine
         int off = pkt.getOffset();
         List<RTCPExtendedReport> rtcpXRs = null;
 
+        // TODO(gp) maybe move the parsing into <tt>RTCPPacketParserEx</tt>
         do
         {
             /*

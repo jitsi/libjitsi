@@ -11,6 +11,10 @@ import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.service.neomedia.*;
 
 /**
+ * Forwards whatever it receives from the network but it doesn't generate
+ * anything. This strategy will be useful for conferences for up to 2
+ * participants.
+ *
  * Created by gp on 7/1/14.
  */
 public class SilentBridgeRTCPTerminationStrategy

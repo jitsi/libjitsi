@@ -13,6 +13,10 @@ import org.jitsi.service.neomedia.*;
 import java.util.*;
 
 /**
+ * Minimizes endpoint throughput. It does that by sending REMB messages with the
+ * smallest possible exp and mantissa values. This strategy is only meant to be
+ * used in tests.
+ *
  * Created by gp on 7/1/14.
  */
 public class MinThroughputRTCPTerminationStrategy

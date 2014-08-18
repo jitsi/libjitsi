@@ -11,6 +11,10 @@ import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.service.neomedia.*;
 
 /**
+ * Forwards whatever it receives from the network and it also generates RTCP
+ * receiver reports using the FMJ built-in algorithm. This is the default
+ * behavior, at least for now.
+ *
  * Created by gp on 7/1/14.
  */
 public class PassthroughRTCPTerminationStrategy
