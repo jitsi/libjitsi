@@ -659,13 +659,6 @@ public class DtlsPacketTransformer
                             delta = len - received;
                             if (delta > 0)
                                 pkt.shrink(delta);
-
-                            /*
-                             * In DTLS-SRTP no application data is transmitted
-                             * over the DTLS channel.
-                             */
-                            if (!transformEngine.isSrtpDisabled())
-                                pkt = null;
                         }
                     }
                     catch (IOException ioe)
@@ -1134,6 +1127,53 @@ public class DtlsPacketTransformer
             }
         }
         return pkt;
+    }
+
+    /**
+     * Sends the data contained in a specific byte array as application data
+     * through the DTLS connection of this <tt>DtlsPacketTransformer</tt>.
+     *
+     * @param buf the byte array containing data to send.
+     * @param off the offset in <tt>buf</tt> where the data begins.
+     * @param len the length of data to send.
+     */
+    public void sendApplicationData(byte[] buf, int off, int len)
+    {
+        DTLSTransport dtlsTransport = this.dtlsTransport;
+        Exception exception = null;
+
+        if (dtlsTransport != null)
+        {
+            try
+            {
+                dtlsTransport.send(buf, off, len);
+            }
+            catch (IOException ioe)
+            {
+                exception = ioe;
+            }
+        }
+        else
+        {
+            exception = new NullPointerException("dtlsTransport");
+        }
+
+        if (exception != null)
+        {
+            /*
+             * SrtpControl.start(MediaType) starts its associated
+             * TransformEngine. We will use that mediaType to signal the
+             * normal stop then as well i.e. we will ignore exception
+             * after the procedure to stop this PacketTransformer has
+             * begun.
+             */
+            if ((mediaType != null) && !tlsPeerHasRaisedCloseNotifyWarning)
+            {
+                logger.error(
+                        "Failed to send application data over DTLS transport: ",
+                        exception);
+            }
+        }
     }
 
     /**

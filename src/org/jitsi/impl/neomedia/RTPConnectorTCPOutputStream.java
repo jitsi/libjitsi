@@ -91,8 +91,8 @@ public class RTPConnectorTCPOutputStream
      * Returns whether or not this <tt>RTPConnectorOutputStream</tt> has a valid
      * socket.
      *
-     * @returns true if this <tt>RTPConnectorOutputStream</tt> has a valid
-     * socket, false otherwise
+     * @return <tt>true</tt>if this <tt>RTPConnectorOutputStream</tt> has a valid
+     * socket, and <tt>false</tt> otherwise.
      */
     @Override
     protected boolean isSocketValid()
