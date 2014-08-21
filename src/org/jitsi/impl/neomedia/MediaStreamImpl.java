@@ -401,11 +401,14 @@ public class MediaStreamImpl
         if (dtmfEngine != null)
             engineChain.add(dtmfEngine);
 
-        // RTCP Strategy : Engine chain passing received RTCP reports to the
-        // <tt>RTCPTerminationStrategy</tt> for inspection and modification.
-        RTCPTerminationTransformEngine rtcpTerminationTransformEngine
-                = new RTCPTerminationTransformEngine(this);
-        engineChain.add(rtcpTerminationTransformEngine);
+        if (getMediaType() == MediaType.VIDEO)
+        {
+            // RTCP Strategy : Engine chain passing received RTCP reports to the
+            // <tt>RTCPTerminationStrategy</tt> for inspection and modification.
+            RTCPTerminationTransformEngine rtcpTerminationTransformEngine
+                    = new RTCPTerminationTransformEngine(this);
+            engineChain.add(rtcpTerminationTransformEngine);
+        }
 
         // RTCP Statistics
         if (statisticsEngine == null)
