@@ -51,7 +51,8 @@ Depends: ${misc:Depends},
          libfelix-framework-java,
          libbcprov-java,
          libjna-java,
-         libjson-simple-java
+         libjson-simple-java,
+         libweupnp-java
 Recommends: ${java:Recommends}
 Description: VoIP and Instant Messaging client
  Libjitsi is an advanced Java media library for secure real-time audio/video
