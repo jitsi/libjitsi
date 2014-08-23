@@ -38,8 +38,7 @@ Build-Depends: debhelper (>= 9), javahelper,
                libavformat-dev (>= 6:10~),
                libavfilter-dev (>= 6:10~),
                libswscale-dev (>= 6:10~),
-               libpulse-dev,
-               libvpx-dev
+               libpulse-dev
 Standards-Version: 3.9.5
 
 Package: libjitsi
@@ -67,4 +66,5 @@ Architecture: amd64 i386
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Libjitsi JNI library
  These are the jni bindings for Libjitsi the advanced Java media library for
- secure real-time audio/video communication.
+ secure real-time audio/video communication. Handles audio/video devices,
+ screencapture, codecs and SCTP implementation.

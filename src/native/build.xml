@@ -168,6 +168,7 @@
     depends="init-native">
     <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnscreencapture" objdir="${obj}">
       <!-- common compiler flags -->
+      <compilerarg value="-D_FORTIFY_SOURCE=2" if="is.running.debian"/>
       <compilerarg value="-D_XOPEN_SOURCE=600" />
       <compilerarg value="-O3" />
       <compilerarg value="-std=c99" />
@@ -183,6 +184,7 @@
       <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
       <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
       <linkerarg value="-Wl,--no-undefined" unless="is.running.macos" />
+      <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
       <linkerarg value="-lX11" location="end" if="is.running.linux" />
       <linkerarg value="-lXext" location="end" if="is.running.linux" />
 
@@ -824,6 +826,7 @@
             <compilerarg value="-fPIC"/>
             <compilerarg value="-O2" />
             <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+            <compilerarg value="-D_FORTIFY_SOURCE=2" if="is.running.debian"/>
 
             <!-- java includes -->
             <compilerarg value="-I${system.JAVA_HOME}/include" />
@@ -841,10 +844,10 @@
             <linkerarg value="-shared" />
             <linkerarg value="-m32" if="cross_32" />
             <linkerarg value="-m64" if="cross_64" />
+            <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
             <linkerarg value="-lstdc++" />
             <linkerarg value="-lvpx" />
             <linkerarg value="-olibjnvpx.so" location="end" if="is.running.unix" />
-
 
             <fileset dir="${src}/native/vpx" includes="*.c"/>
             <fileset dir="${src}/native/vpx" includes="*.cc"/>
@@ -1369,6 +1372,7 @@
             <linkerarg value="-m32" if="cross_32" />
             <linkerarg value="-m64" if="cross_64" />
 
+            <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
             <linkerarg value="-Wl,-Bstatic" location="end" />
             <linkerarg value="-lusrsctp" location="end" />
             <linkerarg value="-Wl,-Bdynamic" location="end" />
