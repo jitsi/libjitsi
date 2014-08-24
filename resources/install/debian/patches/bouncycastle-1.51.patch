@@ -1,3 +1,4 @@
+Description: Makes sources compile/compatible with bouncycastle 1.49, original is compatible with 1.51
 Index: libjitsi/src/org/jitsi/impl/neomedia/transform/dtls/TlsClientImpl.java
 ===================================================================
 --- libjitsi.orig/src/org/jitsi/impl/neomedia/transform/dtls/TlsClientImpl.java	2014-08-06 11:07:43.000000000 -0400

@@ -1,3 +1,4 @@
+Description: Makes sources compile/compatible with libav10
 Index: libjitsi/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
 ===================================================================
 --- libjitsi.orig/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c	2014-02-27 05:10:28.000000000 +0000
