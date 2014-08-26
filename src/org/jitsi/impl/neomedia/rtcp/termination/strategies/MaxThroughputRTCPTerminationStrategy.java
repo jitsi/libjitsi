@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
 import net.sf.fmj.media.rtp.*;
+
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
 
@@ -43,20 +44,20 @@ public class MaxThroughputRTCPTerminationStrategy
         {
             switch (p.type)
             {
-                case RTCPPacketType.RR:
+                case RTCPPacket.RR:
                     // Mute RRs from the peers. We send our own.
                     break;
-                case RTCPPacketType.SR:
+                case RTCPPacket.SR:
                     // Remove feedback information from the SR and forward.
                     RTCPSRPacket sr = (RTCPSRPacket) p;
                     outPackets.add(sr);
                     sr.reports = new RTCPReportBlock[0];
                     break;
-                case RTCPPacketType.PSFB:
+                case RTCPFBPacket.PSFB:
                     RTCPFBPacket psfb = (RTCPFBPacket) p;
                     switch (psfb.fmt)
                     {
-                        case RTCPPSFBFormat.REMB:
+                        case RTCPREMBPacket.FMT:
                             // Mute REMBs.
                             RTCPREMBPacket remb = (RTCPREMBPacket)p;
 

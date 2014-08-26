@@ -355,7 +355,7 @@ public class MediaStreamImpl
      * configured
      */
     protected void configureDataInputStream(
-            RTPConnectorInputStream dataInputStream)
+            RTPConnectorInputStream<?> dataInputStream)
     {
         dataInputStream.setPriority(getPriority());
     }
@@ -401,13 +401,11 @@ public class MediaStreamImpl
         if (dtmfEngine != null)
             engineChain.add(dtmfEngine);
 
-        if (getMediaType() == MediaType.VIDEO)
+        if (MediaType.VIDEO.equals(getMediaType()))
         {
-            // RTCP Strategy : Engine chain passing received RTCP reports to the
-            // <tt>RTCPTerminationStrategy</tt> for inspection and modification.
-            RTCPTerminationTransformEngine rtcpTerminationTransformEngine
-                    = new RTCPTerminationTransformEngine(this);
-            engineChain.add(rtcpTerminationTransformEngine);
+            // RTCPTerminationTransformEngine passes received RTCP to
+            // RTCPTerminationStrategy for inspection and modification.
+            engineChain.add(new RTCPTerminationTransformEngine(this));
         }
 
         // RTCP Statistics
@@ -1538,7 +1536,7 @@ public class MediaStreamImpl
      * or <tt>false</tt> for RTCP
      */
     private void rtpConnectorInputStreamCreated(
-            RTPConnectorInputStream inputStream,
+            RTPConnectorInputStream<?> inputStream,
             boolean data)
     {
         /*
@@ -1834,10 +1832,11 @@ public class MediaStreamImpl
         if (started)
             start(this.direction);
 
-        // make sure that RTP is filtered in accord with the direction of this
-        // MediaStream, so that we don't have to worry about, for example,
-        // new ReceiveStream-s being created while in sendonly/inactive.
+        // Make sure that RTP is filtered in accord with the direction of this
+        // MediaStream, so that we don't have to worry about, for example, new
+        // ReceiveStreams being created while in sendonly/inactive.
         AbstractRTPConnector connector = getRTPConnector();
+
         if (connector != null)
             connector.setDirection(direction);
     }

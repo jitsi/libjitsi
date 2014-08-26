@@ -548,27 +548,24 @@ public class MediaStreamStatsImpl
     public long getNbReceivedBytes()
     {
         AbstractRTPConnector connector = mediaStreamImpl.getRTPConnector();
-        if(connector == null)
-        {
-            return 0;
-        }
 
-        RTPConnectorInputStream stream = null;
-        try
+        if(connector != null)
         {
-            stream = connector.getDataInputStream();
-        }
-        catch (IOException e)
-        {
-            //We should not enter here because we are not creating stream
-        }
+            RTPConnectorInputStream<?> stream;
 
-        if(stream == null)
-        {
-            return 0;
+            try
+            {
+                stream = connector.getDataInputStream();
+            }
+            catch (IOException ex)
+            {
+                // We should not enter here because we are not creating stream.
+                stream = null;
+            }
+            if(stream != null)
+                return stream.getNumberOfReceivedBytes();
         }
-
-        return stream.getNumberOfReceivedBytes();
+        return 0;
     }
 
     /**

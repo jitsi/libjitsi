@@ -75,7 +75,7 @@ public class RTPConnectorUDPImpl
      * packet input stream
      */
     @Override
-    protected RTPConnectorInputStream createControlInputStream()
+    protected RTPConnectorInputStream<?> createControlInputStream()
         throws IOException
     {
         return new RTCPConnectorInputStream(getControlSocket());
@@ -103,7 +103,7 @@ public class RTPConnectorUDPImpl
      * packet input stream
      */
     @Override
-    protected RTPConnectorInputStream createDataInputStream()
+    protected RTPConnectorInputStream<?> createDataInputStream()
         throws IOException
     {
         return new RTPConnectorUDPInputStream(getDataSocket());

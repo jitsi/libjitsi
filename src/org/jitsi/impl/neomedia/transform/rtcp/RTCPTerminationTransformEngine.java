@@ -18,24 +18,15 @@ import org.jitsi.util.*;
  * Created by gp on 7/1/14.
  */
 public class RTCPTerminationTransformEngine
-        extends SinglePacketTransformer
-        implements TransformEngine
+    extends SinglePacketTransformer
+    implements TransformEngine
 {
-    /**
-     *
-     */
+    private static final Logger logger
+        = Logger.getLogger(RTCPTerminationTransformEngine.class);
+
     private final MediaStream mediaStream;
 
-    /**
-     *
-     */
     private final RTCPPacketParserEx parser;
-
-    /**
-     *
-     */
-    private static final Logger logger
-            = Logger.getLogger(RTCPTerminationTransformEngine.class);
 
     public RTCPTerminationTransformEngine(MediaStream mediaStream)
     {
@@ -44,10 +35,9 @@ public class RTCPTerminationTransformEngine
     }
 
     @Override
-    public PacketTransformer getRTPTransformer()
+    public void close()
     {
-        // RTP packets need not be transformed.
-        return null;
+        // Nothing to do here.
     }
 
     @Override
@@ -57,10 +47,10 @@ public class RTCPTerminationTransformEngine
     }
 
     @Override
-    public RawPacket transform(RawPacket pkt)
+    public PacketTransformer getRTPTransformer()
     {
-        // Outgoing RTCP packets need not be transformed.
-        return pkt;
+        // RTP packets need not be transformed.
+        return null;
     }
 
     @Override
@@ -147,8 +137,9 @@ public class RTCPTerminationTransformEngine
     }
 
     @Override
-    public void close()
+    public RawPacket transform(RawPacket pkt)
     {
-        // Nothing to do here.
+        // Outgoing RTCP packets need not be transformed.
+        return pkt;
     }
 }

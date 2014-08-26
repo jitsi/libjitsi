@@ -111,9 +111,9 @@ public class BasicRTCPTerminationStrategy
         {
             for (RTCPPacket packet : bestReceiverFeedback)
             {
-                if (packet.type == RTCPPacketType.PSFB
+                if (packet.type == RTCPFBPacket.PSFB
                         && packet instanceof RTCPFBPacket
-                        && ((RTCPFBPacket)packet).fmt == RTCPPSFBFormat.REMB)
+                        && ((RTCPFBPacket)packet).fmt == RTCPREMBPacket.FMT)
                 {
                     packets.add(packet);
                 }
@@ -239,7 +239,7 @@ public class BasicRTCPTerminationStrategy
         {
             switch (p.type)
             {
-                case RTCPPacketType.RR:
+                case RTCPPacket.RR:
 
                     // Grab the receiver report blocks to put them into the
                     // cache after the loop is done and mute the RR.
@@ -249,7 +249,7 @@ public class BasicRTCPTerminationStrategy
                     ssrc = Integer.valueOf(rr.ssrc);
 
                     break;
-                case RTCPPacketType.SR:
+                case RTCPPacket.SR:
 
                     // Grab the receiver report blocks to put them into the
                     // cache after the loop is done; mute the receiver report
@@ -261,11 +261,11 @@ public class BasicRTCPTerminationStrategy
                     ssrc = Integer.valueOf(sr.ssrc);
                     sr.reports = new RTCPReportBlock[0];
                     break;
-                case RTCPPacketType.PSFB:
+                case RTCPFBPacket.PSFB:
                     RTCPFBPacket psfb = (RTCPFBPacket) p;
                     switch (psfb.fmt)
                     {
-                        case RTCPPSFBFormat.REMB:
+                        case RTCPREMBPacket.FMT:
 
                             // NOT adding the REMB in the outPacket as we mute
                             // REMBs from the peers.

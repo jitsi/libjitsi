@@ -21,18 +21,13 @@ import org.jitsi.util.*;
  * @author Sebastien Vincent
  */
 public class RTPConnectorTCPInputStream
-    extends TransformInputStream
+    extends TransformInputStream<Socket>
 {
     /**
      * The <tt>Logger</tt> used by instances for logging output.
      */
     private static final Logger logger
         = Logger.getLogger(RTPConnectorTCPInputStream.class);
-
-    /**
-     * TCP socket used to receive data.
-     */
-    private final Socket socket;
 
     /**
      * Initializes a new <tt>RTPConnectorInputStream</tt> which is to receive
@@ -42,41 +37,7 @@ public class RTPConnectorTCPInputStream
      */
     public RTPConnectorTCPInputStream(Socket socket)
     {
-        this.socket = socket;
-
-        if(socket != null)
-        {
-            try
-            {
-                socket.setReceiveBufferSize(65535);
-            }
-            catch (Throwable t)
-            {
-            }
-
-            closed = false;
-            receiverThread = new Thread(this);
-            receiverThread.start();
-        }
-    }
-
-    /**
-     * Close this stream, stops the worker thread.
-     */
-    @Override
-    public synchronized void close()
-    {
-        closed = true;
-        if(socket != null)
-        {
-            try
-            {
-                socket.close();
-            }
-            catch(IOException e)
-            {
-            }
-        }
+        super(socket);
     }
 
     /**
@@ -120,11 +81,11 @@ public class RTPConnectorTCPInputStream
      * @throws IOException if something goes wrong during receiving
      */
     @Override
-    protected void receivePacket(DatagramPacket p)
+    protected void receive(DatagramPacket p)
         throws IOException
     {
-        int len = -1;
-        byte data[] = null;
+        byte[] data;
+        int len;
 
         try
         {
@@ -133,6 +94,8 @@ public class RTPConnectorTCPInputStream
         }
         catch(Exception e)
         {
+            data = null;
+            len = -1;
             logger.info("problem read: " + e);
         }
 
@@ -147,5 +110,12 @@ public class RTPConnectorTCPInputStream
         {
             throw new IOException("Failed to read on TCP socket");
         }
+    }
+
+    @Override
+    protected void setReceiveBufferSize(int receiveBufferSize)
+        throws IOException
+    {
+        socket.setReceiveBufferSize(receiveBufferSize);
     }
 }

@@ -35,6 +35,8 @@ import org.jitsi.impl.neomedia.*;
  */
 public class RTCPREMBPacket extends RTCPFBPacket
 {
+    public static final int FMT = 15;
+
     /**
      * The exponential scaling of the mantissa for the maximum total media
      * bit rate value, ignoring all packet overhead.
@@ -60,7 +62,7 @@ public class RTCPREMBPacket extends RTCPFBPacket
             int mantissa,
             long[] dest)
     {
-        super(RTCPPSFBFormat.REMB, RTCPPacketType.PSFB, senderSSRC, mediaSSRC);
+        super(FMT, PSFB, senderSSRC, mediaSSRC);
 
         this.exp = exp;
         this.mantissa = mantissa;
@@ -70,8 +72,8 @@ public class RTCPREMBPacket extends RTCPFBPacket
     public RTCPREMBPacket(RTCPCompoundPacket base)
     {
         super(base);
-        super.fmt = RTCPPSFBFormat.REMB;
-        super.type = RTCPPacketType.PSFB;
+        super.fmt = FMT;
+        super.type = PSFB;
     }
 
 /*

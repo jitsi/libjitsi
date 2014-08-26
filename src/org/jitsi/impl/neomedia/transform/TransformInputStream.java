@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
+import java.io.*;
 import java.net.*;
 
 import org.jitsi.impl.neomedia.*;
@@ -17,14 +18,19 @@ import org.jitsi.impl.neomedia.*;
  * @author Lubomir Marinov
  * @author Boris Grozev
  */
-public abstract class TransformInputStream
-        extends RTPConnectorInputStream
+public abstract class TransformInputStream<T extends Closeable>
+    extends RTPConnectorInputStream<T>
 {
     /**
      * The user defined <tt>PacketTransformer</tt> which is used to reverse
      * transform packets.
      */
     private PacketTransformer transformer;
+
+    protected TransformInputStream(T socket)
+    {
+        super(socket);
+    }
 
     /**
      * Creates a new <tt>RawPacket</tt> array from a specific

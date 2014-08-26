@@ -42,7 +42,7 @@ public abstract class AbstractRTPConnector
     /**
      * RTCP packet input stream used by <tt>RTPManager</tt>.
      */
-    private RTPConnectorInputStream controlInputStream;
+    private RTPConnectorInputStream<?> controlInputStream;
 
     /**
      * RTCP packet output stream used by <tt>RTPManager</tt>.
@@ -52,7 +52,7 @@ public abstract class AbstractRTPConnector
     /**
      * RTP packet input stream used by <tt>RTPManager</tt>.
      */
-    private RTPConnectorInputStream dataInputStream;
+    private RTPConnectorInputStream<?> dataInputStream;
 
     /**
      * RTP packet output stream used by <tt>RTPManager</tt>.
@@ -139,7 +139,7 @@ public abstract class AbstractRTPConnector
      * @throws IOException if an error occurs during the creation of the RTCP
      * packet input stream
      */
-    protected abstract RTPConnectorInputStream createControlInputStream()
+    protected abstract RTPConnectorInputStream<?> createControlInputStream()
         throws IOException;
 
     /**
@@ -159,7 +159,7 @@ public abstract class AbstractRTPConnector
      * @throws IOException if an error occurs during the creation of the RTP
      * packet input stream
      */
-    protected abstract RTPConnectorInputStream createDataInputStream()
+    protected abstract RTPConnectorInputStream<?> createDataInputStream()
         throws IOException;
 
     /**
@@ -192,7 +192,7 @@ public abstract class AbstractRTPConnector
      * @throws IOException if an error occurs during the creation of the RTCP
      * packet input stream
      */
-    public RTPConnectorInputStream getControlInputStream()
+    public RTPConnectorInputStream<?> getControlInputStream()
         throws IOException
     {
         return getControlInputStream(true);
@@ -211,7 +211,7 @@ public abstract class AbstractRTPConnector
      * and <tt>create</tt> is <tt>false</tt>
      * @throws IOException if creating the <tt>PushSourceStream</tt> fails
      */
-    protected RTPConnectorInputStream getControlInputStream(boolean create)
+    protected RTPConnectorInputStream<?> getControlInputStream(boolean create)
         throws IOException
     {
         if ((controlInputStream == null) && create)
@@ -262,7 +262,7 @@ public abstract class AbstractRTPConnector
      * @throws IOException if an error occurs during the creation of the RTP
      * packet input stream
      */
-    public RTPConnectorInputStream getDataInputStream()
+    public RTPConnectorInputStream<?> getDataInputStream()
         throws IOException
     {
         return getDataInputStream(true);
@@ -281,7 +281,7 @@ public abstract class AbstractRTPConnector
      * and <tt>create</tt> is <tt>false</tt>
      * @throws IOException if creating the <tt>PushSourceStream</tt> fails
      */
-    protected RTPConnectorInputStream getDataInputStream(boolean create)
+    protected RTPConnectorInputStream<?> getDataInputStream(boolean create)
         throws IOException
     {
         if ((dataInputStream == null) && create)
@@ -446,29 +446,34 @@ public abstract class AbstractRTPConnector
 
         try
         {
-            // forcing the stream to be created causes problems
-            RTPConnectorInputStream dataInputStream = getDataInputStream(false);
-            if(dataInputStream != null)
+            // Forcing the stream to be created causes problems.
+            RTPConnectorInputStream<?> dataInputStream
+                = getDataInputStream(false);
+
+            if (dataInputStream != null)
                 dataInputStream.setEnabled(receive);
         }
         catch (IOException ioe)
         {
-            logger.error("Failed to " + (receive ? "enable" : "disable")
-                    + " data input stream.");
+            logger.error(
+                    "Failed to " + (receive ? "enable" : "disable")
+                        + " data input stream.");
         }
 
         try
         {
-            // forcing the stream to be created causes problems
+            // Forcing the stream to be created causes problems.
             RTPConnectorOutputStream dataOutputStream
-                    = getDataOutputStream(false);
+                = getDataOutputStream(false);
+
             if (dataOutputStream != null)
                 dataOutputStream.setEnabled(send);
         }
         catch (IOException ioe)
         {
-            logger.error("Failed to " + (send ? "enable" : "disable")
-                                 + " data output stream.");
+            logger.error(
+                    "Failed to " + (send ? "enable" : "disable")
+                        + " data output stream.");
 
         }
     }

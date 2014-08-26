@@ -20,21 +20,8 @@ import org.jitsi.service.packetlogging.*;
  * @author Sebastien Vincent
  */
 public class RTPConnectorUDPInputStream
-    extends TransformInputStream
+    extends TransformInputStream<DatagramSocket>
 {
-
-    /**
-     * The indicator which determine whether
-     * {@link DatagramSocket#setReceiveBufferSize(int)} has been invoked on
-     * {@link #socket}.
-     */
-    private boolean setReceiveBufferSize = false;
-
-    /**
-     * UDP socket used to receive data.
-     */
-    private final DatagramSocket socket;
-
     /**
      * Initializes a new <tt>RTPConnectorInputStream</tt> which is to receive
      * packet data from a specific UDP socket.
@@ -43,27 +30,7 @@ public class RTPConnectorUDPInputStream
      */
     public RTPConnectorUDPInputStream(DatagramSocket socket)
     {
-        this.socket = socket;
-
-        if(socket != null)
-        {
-            closed = false;
-            receiverThread = new Thread(this);
-            receiverThread.start();
-        }
-    }
-
-    /**
-     * Close this stream, stops the worker thread.
-     */
-    @Override
-    public synchronized void close()
-    {
-        closed = true;
-        if(socket != null)
-        {
-            socket.close();
-        }
+        super(socket);
     }
 
     /**
@@ -105,22 +72,16 @@ public class RTPConnectorUDPInputStream
      * @throws IOException if something goes wrong during receiving
      */
     @Override
-    protected void receivePacket(DatagramPacket p)
+    protected void receive(DatagramPacket p)
         throws IOException
     {
-        if (!setReceiveBufferSize)
-        {
-            setReceiveBufferSize = true;
-            try
-            {
-                socket.setReceiveBufferSize(65535);
-            }
-            catch (Throwable t)
-            {
-                if (t instanceof ThreadDeath)
-                    throw (ThreadDeath) t;
-            }
-        }
         socket.receive(p);
+    }
+
+    @Override
+    protected void setReceiveBufferSize(int receiveBufferSize)
+        throws IOException
+    {
+        socket.setReceiveBufferSize(receiveBufferSize);
     }
 }
