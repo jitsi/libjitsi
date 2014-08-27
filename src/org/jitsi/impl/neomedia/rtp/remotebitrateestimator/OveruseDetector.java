@@ -8,6 +8,12 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import java.util.*;
 
+/**
+ * webrtc/webrtc/modules/remote_bitrate_estimator/overuse_detector.cc
+ * webrtc/webrtc/modules/remote_bitrate_estimator/overuse_detector.h
+ *
+ * @author Lyubomir Marinov
+ */
 public class OveruseDetector
 {
     private static class FrameSample
@@ -20,6 +26,14 @@ public class OveruseDetector
 
         public long timestampMs = -1L;
 
+        /**
+         * Assigns the values of the fields of <tt>source</tt> to the respective
+         * fields of this <tt>FrameSample</tt>.
+         *
+         * @param source the <tt>FrameSample</tt> the values of the fields of
+         * which are to be assigned to the respective fields of this
+         * <tt>FrameSample</tt>
+         */
         public void copy(FrameSample source)
         {
             completeTimeMs = source.completeTimeMs;
@@ -73,27 +87,51 @@ public class OveruseDetector
 
     private double avgNoise;
 
-    private FrameSample currentFrame = new FrameSample();
+    private final FrameSample currentFrame = new FrameSample();
 
-    private double[][] E;
+    private final double[][] E;
 
+    /**
+     * Reduces the effects of allocations and garbage collection of the method
+     * <tt>updateKalman</tt>.
+     */
+    private final double[] Eh = new double[2];
+
+    /**
+     * Reduces the effects of allocations and garbage collection of the method
+     * <tt>updateKalman</tt>.
+     */
+    private final double[] h = new double[2];
+    
     private BandwidthUsage hypothesis = BandwidthUsage.kBwNormal;
+
+    /**
+     * Reduces the effects of allocations and garbage collection of the method
+     * <tt>updateKalman</tt>.
+     */
+    private final double[][] IKh = new double[][] { { 0, 0 }, { 0, 0 } };
+
+    /**
+     * Reduces the effects of allocations and garbage collection of the method
+     * <tt>updateKalman</tt>.
+     */
+    private final double[] K = new double[2];
 
     private int numOfDeltas;
 
     private double offset;
 
-    private OverUseDetectorOptions options;
+    private final OverUseDetectorOptions options;
 
     private int overUseCounter;
 
     private long packetTimeMs;
 
-    private FrameSample prevFrame = new FrameSample();
+    private final FrameSample prevFrame = new FrameSample();
 
     private double prevOffset;
 
-    private double[] processNoise;
+    private final double[] processNoise;
 
     private double slope;
 
@@ -217,6 +255,7 @@ public class OveruseDetector
         if (currentFrame.timestampMs == -1)
         {
             long timestampDiff = currentFrame.timestamp - prevFrame.timestamp;
+
             tsDelta = timestampDiff / 90.0D;
         }
         else
@@ -355,13 +394,14 @@ public class OveruseDetector
             E[1][1] += 10 * processNoise[1] * scaleFactor;
         }
 
-        double[] h = new double[] { fsDelta, 1.0 };
-        double[] Eh
-            = new double[]
-                    {
-                        E[0][0]*h[0] + E[0][1]*h[1],
-                        E[1][0]*h[0] + E[1][1]*h[1]
-                    };
+        double[] h = this.h;
+        double[] Eh = this.Eh;
+
+        h[0] = fsDelta;
+        h[1] = 1.0;
+        Eh[0] = E[0][0]*h[0] + E[0][1]*h[1];
+        Eh[1] = E[1][0]*h[0] + E[1][1]*h[1];
+
         double residual = tTsDelta - slope*h[0] - offset;
         boolean stableState
             = (Math.min(numOfDeltas, 60) * Math.abs(offset) < threshold);
@@ -380,13 +420,16 @@ public class OveruseDetector
                 stableState);
 
         double denom = varNoise + h[0]*Eh[0] + h[1]*Eh[1];
-        double[] K = new double[] { Eh[0] / denom, Eh[1] / denom };
-        double[][] IKh
-            = new double[][]
-                    {
-                        { 1.0 - K[0]*h[0], -K[0]*h[1] },
-                        { -K[1]*h[0], 1.0 - K[1]*h[1] }
-                    };
+        double[] K = this.K;
+        double[][] IKh = this.IKh;
+
+        K[0] = Eh[0] / denom;
+        K[1] = Eh[1] / denom;
+        IKh[0][0] = 1.0 - K[0]*h[0];
+        IKh[0][1] = -K[0]*h[1];
+        IKh[1][0] = -K[1]*h[0];
+        IKh[1][1] = 1.0 - K[1]*h[1];
+
         double e00 = E[0][0];
         double e01 = E[0][1];
 

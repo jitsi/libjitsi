@@ -10,21 +10,38 @@ import java.util.*;
 
 import net.sf.fmj.media.rtp.util.*;
 
+/**
+ * webrtc/webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.cc
+ *
+ * @author Lyubomir Marinov
+ */
 public class RemoteBitrateEstimatorSingleStream
     implements RemoteBitrateEstimator
 {
+    private static final int kProcessIntervalMs = 1000;
+
     private static final int kStreamTimeOutMs = 2000;
 
     private final Object critSect = new Object();
 
-    private RateStatistics incomingBitrate = new RateStatistics(500, 8000);
+    private final RateStatistics incomingBitrate
+        = new RateStatistics(500, 8000);
 
-    private RemoteBitrateObserver observer;
+    /**
+     * Reduces the effects of allocations and garbage collection of the method
+     * <tt>updateEstimate</tt>.
+     */
+    private final RateControlInput input
+        = new RateControlInput(BandwidthUsage.kBwNormal, 0L, 0.0D);
+
+    private long lastProcessTime = -1L;
+
+    private final RemoteBitrateObserver observer;
 
     private final Map<Integer,OveruseDetector> overuseDetectors
         = new HashMap<Integer,OveruseDetector>();
 
-    private RemoteRateControl remoteRate;
+    private final RemoteRateControl remoteRate;
 
     public RemoteBitrateEstimatorSingleStream(
             RemoteBitrateObserver observer,
@@ -52,6 +69,16 @@ public class RemoteBitrateEstimatorSingleStream
         for (Iterator<Integer> it = set.iterator(); it.hasNext();)
             array[i++] = it.next();
         return array;
+    }
+
+    long getTimeUntilNextProcess()
+    {
+        return
+            (lastProcessTime < 0)
+                ? 0
+                : lastProcessTime
+                    + kProcessIntervalMs
+                    - System.currentTimeMillis();
     }
 
     /**
@@ -104,6 +131,23 @@ public class RemoteBitrateEstimatorSingleStream
             }
         }
         } // synchronized (critSect)
+    }
+
+    /**
+     * Triggers a new estimate calculation.
+     *
+     * @return
+     */
+    long process()
+    {
+        if (getTimeUntilNextProcess() <= 0)
+        {
+            long nowMs = System.currentTimeMillis();
+
+            updateEstimate(nowMs);
+            lastProcessTime = nowMs;
+        }
+        return 0;
     }
 
     /**
@@ -165,11 +209,12 @@ public class RemoteBitrateEstimatorSingleStream
         }
 
         double meanNoiseVar = sumNoiseVar / (double) overuseDetectors.size();
-        RateControlInput input
-            = new RateControlInput(
-                    bwState,
-                    incomingBitrate.getRate(nowMs),
-                    meanNoiseVar);
+        RateControlInput input = this.input;
+
+        input.bwState = bwState;
+        input.incomingBitRate = incomingBitrate.getRate(nowMs);
+        input.noiseVar = meanNoiseVar;
+
         RateControlRegion region = remoteRate.update(input, nowMs);
         long targetBitrate = remoteRate.updateBandwidthEstimate(nowMs);
 

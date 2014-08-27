@@ -8,6 +8,11 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import net.sf.fmj.media.rtp.util.*;
 
+/**
+ * webrtc/webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h
+ *
+ * @author Lyubomir Marinov
+ */
 public interface RemoteBitrateEstimator
 {
     /**

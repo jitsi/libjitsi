@@ -6,6 +6,11 @@
  */
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
+/**
+ * webrtc/webrtc/modules/remote_bitrate_estimator/include/bwe_defines.h
+ *
+ * @author Lyubomir Marinov
+ */
 public class RateControlInput
 {
     public BandwidthUsage bwState;
@@ -24,6 +29,14 @@ public class RateControlInput
         this.noiseVar = noiseVar;
     }
 
+    /**
+     * Assigns the values of the fields of <tt>source</tt> to the respective
+     * fields of this <tt>RateControlInput</tt>.
+     *
+     * @param source the <tt>RateControlInput</tt> the values of the fields of
+     * which are to be assigned to the respective fields of this
+     * <tt>RateControlInput</tt>
+     */
     public void copy(RateControlInput source)
     {
         bwState = source.bwState;

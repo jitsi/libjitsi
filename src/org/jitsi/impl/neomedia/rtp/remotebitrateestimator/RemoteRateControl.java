@@ -6,6 +6,12 @@
  */
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
+/**
+ * webrtc/webrtc/modules/remote_bitrate_estimator/remote_rate_control.cc
+ * webrtc/webrtc/modules/remote_bitrate_estimator/remote_rate_control.h
+ *
+ * @author Lyubomir Marinov
+ */
 public class RemoteRateControl
 {
     private static final int kDefaultRttMs = 200;
@@ -21,7 +27,8 @@ public class RemoteRateControl
 
     private long currentBitRate;
 
-    private RateControlInput currentInput;
+    private final RateControlInput currentInput
+        = new RateControlInput(BandwidthUsage.kBwNormal, 0L, 0.0D);
 
     private boolean initializedBitRate;
 
@@ -310,7 +317,9 @@ public class RemoteRateControl
         this.cameFromState = cameFromState;
         rateControlRegion = RateControlRegion.kRcMaxUnknown;
         lastBitRateChange = -1L;
-        currentInput = new RateControlInput(BandwidthUsage.kBwNormal, 0L, 1.0D);
+        currentInput.bwState = BandwidthUsage.kBwNormal;
+        currentInput.incomingBitRate = 0L;
+        currentInput.noiseVar = 1.0D;
         updated = false;
         timeFirstIncomingEstimate = -1L;
         initializedBitRate = false;

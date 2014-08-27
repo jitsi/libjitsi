@@ -9,6 +9,10 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 /**
  * <tt>RemoteBitrateObserver</tt> is used to signal changes in bitrate estimates
  * for the incoming streams.
+ *
+ * webrtc/webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h
+ *
+ * @author Lyubomir Marinov
  */
 public interface RemoteBitrateObserver
 {
