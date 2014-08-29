@@ -43,6 +43,15 @@ public class RemoteBitrateEstimatorSingleStream
 
     private final RemoteRateControl remoteRate;
 
+    /**
+     * The set of synchronization source identifiers (SSRCs) currently being
+     * received. Represents an unmodifiable copy/snapshot of the current keys of
+     * {@link #overuseDetectors} suitable for public access and introduced for
+     * the purposes of reducing the number of allocations and the effects of
+     * garbage collection.
+     */
+    private Collection<Integer> ssrcs;
+
     public RemoteBitrateEstimatorSingleStream(
             RemoteBitrateObserver observer,
             long minBitrateBps)
@@ -60,15 +69,44 @@ public class RemoteBitrateEstimatorSingleStream
         return 0;
     }
 
-    private int[] getSsrcs()
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getLatestEstimate()
     {
-        Set<Integer> set = overuseDetectors.keySet();
-        int[] array = new int[set.size()];
-        int i = 0;
+        long bitrateBps;
 
-        for (Iterator<Integer> it = set.iterator(); it.hasNext();)
-            array[i++] = it.next();
-        return array;
+        synchronized (critSect)
+        {
+            if (remoteRate.isValidEstimate())
+            {
+                if (getSsrcs().isEmpty())
+                    bitrateBps = 0L;
+                else
+                    bitrateBps = remoteRate.getLatestEstimate();
+            }
+            else
+            {
+                bitrateBps = -1L;
+            }
+        }
+        return bitrateBps;
+    }
+
+    @Override
+    public Collection<Integer> getSsrcs()
+    {
+        synchronized (critSect)
+        {
+            if (ssrcs == null)
+            {
+                ssrcs
+                    = Collections.unmodifiableCollection(
+                            new ArrayList<Integer>(overuseDetectors.keySet()));
+            }
+            return ssrcs;
+        }
     }
 
     long getTimeUntilNextProcess()
@@ -109,6 +147,7 @@ public class RemoteBitrateEstimatorSingleStream
             // RemoteBitrateEstimator per REMB group.
             overuseDetector = new OveruseDetector();
             overuseDetectors.put(ssrc, overuseDetector);
+            ssrcs = null;
         }
         overuseDetector.setPacketTimeMs(nowMs);
         this.incomingBitrate.update(payloadSize, nowMs);
@@ -160,6 +199,7 @@ public class RemoteBitrateEstimatorSingleStream
         {
             // Ignoring the return value which is the removed OveruseDetector.
             overuseDetectors.remove(Integer.valueOf(ssrc));
+            ssrcs = null;
         }
     }
 
@@ -187,6 +227,7 @@ public class RemoteBitrateEstimatorSingleStream
                 // This over-use detector hasn't received packets for
                 // kStreamTimeOutMs milliseconds and is considered stale.
                 it.remove();
+                ssrcs = null;
             }
             else
             {

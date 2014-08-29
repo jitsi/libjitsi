@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
+import java.util.*;
+
 import net.sf.fmj.media.rtp.util.*;
 
 /**
@@ -15,6 +17,17 @@ import net.sf.fmj.media.rtp.util.*;
  */
 public interface RemoteBitrateEstimator
 {
+    /**
+     * Returns the estimated payload bitrate in bits per second if a valid
+     * estimate exists; otherwise, <tt>-1</tt>.
+     *
+     * @return the estimated payload bitrate in bits per seconds if a valid
+     * estimate exists; otherwise, <tt>-1</tt>
+     */
+    long getLatestEstimate();
+
+    Collection<Integer> getSsrcs();
+
     /**
      * Called for each incoming packet. Updates the incoming payload bitrate
      * estimate and the over-use detector. If an over-use is detected the remote
