@@ -1550,16 +1550,16 @@ public class MediaStreamImpl
         try
         {
             firePropertyChange(
-                    MediaStreamImpl.class.getName()
-                        + ".rtpConnector."
-                        + (data ? "data" : "control")
-                        + "InputStream",
+                    MediaStreamImpl.class.getName() + ".rtpConnector."
+                        + (data ? "data" : "control") + "InputStream",
                     null,
                     inputStream);
         }
         catch (Throwable t)
         {
-            if (t instanceof ThreadDeath)
+            if (t instanceof InterruptedException)
+                Thread.currentThread().interrupt();
+            else if (t instanceof ThreadDeath)
                 throw (ThreadDeath) t;
             else
                 logger.error(t);

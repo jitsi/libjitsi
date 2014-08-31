@@ -10,6 +10,8 @@ import java.util.*;
 
 import net.sf.fmj.media.rtp.util.*;
 
+import org.jitsi.service.neomedia.rtp.*;
+
 /**
  * webrtc/webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.cc
  *
@@ -25,14 +27,14 @@ public class RemoteBitrateEstimatorSingleStream
     private final Object critSect = new Object();
 
     private final RateStatistics incomingBitrate
-        = new RateStatistics(500, 8000);
+        = new RateStatistics(500, 8000F);
 
     /**
      * Reduces the effects of allocations and garbage collection of the method
      * <tt>updateEstimate</tt>.
      */
     private final RateControlInput input
-        = new RateControlInput(BandwidthUsage.kBwNormal, 0L, 0.0D);
+        = new RateControlInput(BandwidthUsage.kBwNormal, 0L, 0D);
 
     private long lastProcessTime = -1L;
 
@@ -112,8 +114,8 @@ public class RemoteBitrateEstimatorSingleStream
     long getTimeUntilNextProcess()
     {
         return
-            (lastProcessTime < 0)
-                ? 0
+            (lastProcessTime < 0L)
+                ? 0L
                 : lastProcessTime
                     + kProcessIntervalMs
                     - System.currentTimeMillis();
@@ -126,16 +128,15 @@ public class RemoteBitrateEstimatorSingleStream
     public void incomingPacket(
             long arrivalTimeMs,
             int payloadSize,
-            RTPPacket header)
+            int ssrc,
+            long rtpTimestamp)
     {
-        Integer ssrc = Integer.valueOf(header.ssrc);
-        long rtpTimestamp
-            = header.timestamp + getExtensionTransmissionTimeOffset(header);
+        Integer ssrc_ = Integer.valueOf(ssrc);
         long nowMs = System.currentTimeMillis();
 
         synchronized (critSect)
         {
-        OveruseDetector overuseDetector = overuseDetectors.get(ssrc);
+        OveruseDetector overuseDetector = overuseDetectors.get(ssrc_);
 
         if (overuseDetector == null)
         {
@@ -146,20 +147,20 @@ public class RemoteBitrateEstimatorSingleStream
             // This will be automatically cleaned up when we have one
             // RemoteBitrateEstimator per REMB group.
             overuseDetector = new OveruseDetector();
-            overuseDetectors.put(ssrc, overuseDetector);
+            overuseDetectors.put(ssrc_, overuseDetector);
             ssrcs = null;
         }
         overuseDetector.setPacketTimeMs(nowMs);
         this.incomingBitrate.update(payloadSize, nowMs);
 
-        BandwidthUsage prior_state = overuseDetector.getState();
+        BandwidthUsage priorState = overuseDetector.getState();
 
-        overuseDetector.update(payloadSize, -1, rtpTimestamp, arrivalTimeMs);
+        overuseDetector.update(payloadSize, -1L, rtpTimestamp, arrivalTimeMs);
         if (overuseDetector.getState() == BandwidthUsage.kBwOverusing)
         {
             long incomingBitrate = this.incomingBitrate.getRate(nowMs);
 
-            if (prior_state != BandwidthUsage.kBwOverusing
+            if (priorState != BandwidthUsage.kBwOverusing
                     || remoteRate.isTimeToReduceFurther(nowMs, incomingBitrate))
             {
                 // The first overuse should immediately trigger a new estimate.
@@ -173,20 +174,36 @@ public class RemoteBitrateEstimatorSingleStream
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void incomingPacket(
+            long arrivalTimeMs,
+            int payloadSize,
+            RTPPacket header)
+    {
+        int ssrc = header.ssrc;
+        long rtpTimestamp
+            = header.timestamp + getExtensionTransmissionTimeOffset(header);
+
+        incomingPacket(arrivalTimeMs, payloadSize, ssrc, rtpTimestamp);
+    }
+
+    /**
      * Triggers a new estimate calculation.
      *
      * @return
      */
     long process()
     {
-        if (getTimeUntilNextProcess() <= 0)
+        if (getTimeUntilNextProcess() <= 0L)
         {
             long nowMs = System.currentTimeMillis();
 
             updateEstimate(nowMs);
             lastProcessTime = nowMs;
         }
-        return 0;
+        return 0L;
     }
 
     /**
@@ -213,7 +230,7 @@ public class RemoteBitrateEstimatorSingleStream
         synchronized (critSect)
         {
         BandwidthUsage bwState = BandwidthUsage.kBwNormal;
-        double sumNoiseVar = 0.0D;
+        double sumNoiseVar = 0D;
 
         for (Iterator<OveruseDetector> it
                     = overuseDetectors.values().iterator();
@@ -222,7 +239,7 @@ public class RemoteBitrateEstimatorSingleStream
             OveruseDetector overuseDetector = it.next();
             long packetTimeMs = overuseDetector.getPacketTimeMs();
 
-            if (packetTimeMs >= 0 && nowMs - packetTimeMs > kStreamTimeOutMs)
+            if (packetTimeMs >= 0L && nowMs - packetTimeMs > kStreamTimeOutMs)
             {
                 // This over-use detector hasn't received packets for
                 // kStreamTimeOutMs milliseconds and is considered stale.

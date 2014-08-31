@@ -34,13 +34,6 @@ public class RTPTranslatorImpl
     implements ReceiveStreamListener
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>RTPTranslatorImpl</tt> class and its
-     * instances for logging output.
-     */
-    private static final Logger logger
-        = Logger.getLogger(RTPTranslatorImpl.class);
-
-    /**
      * The indicator which determines whether the method
      * {@link #createFakeSendStreamIfNecessary()} is to be executed by
      * <tt>RTPTranslatorImpl</tt>.
@@ -48,11 +41,190 @@ public class RTPTranslatorImpl
     private static final boolean CREATE_FAKE_SEND_STREAM_IF_NECESSARY = false;
 
     /**
+     * The <tt>Logger</tt> used by the <tt>RTPTranslatorImpl</tt> class and its
+     * instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(RTPTranslatorImpl.class);
+
+    public static long getPayloadLengthAndOffsetIfRTP(
+            byte[] buf,
+            int off,
+            int len)
+    {
+        final long PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP = -1L;
+
+        if (len < RTPHeader.SIZE)
+            return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
+
+        byte b0 = buf[off];
+
+        if (/* version (V) */ ((b0 & 0xC0) >>> 6) != RTPHeader.VERSION)
+            return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
+
+        int cc = b0 & 0x0F; // CSRC count (CC)
+        int payloadLen = len - RTPHeader.SIZE;
+        int payloadOff = off + RTPHeader.SIZE;
+
+        if (cc < 0)
+        {
+            return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
+        }
+        else
+        {
+            cc *= 4;
+            payloadLen -= cc;
+            if (payloadLen < 0)
+                return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
+            else
+                payloadOff += cc;
+        }
+
+        if (/* padding (P) */ (b0 & 0x20) != 0)
+        {
+            int padding = 0xFF & buf[off + len - 1];
+
+            payloadLen -= padding;
+            if (payloadLen < 0)
+                return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
+        }
+
+        if (/* extension (X) */ (b0 & 0x10) != 0)
+        {
+            if (payloadLen < /* defined by profile */ 2 + /* length */ 2)
+            {
+                return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
+            }
+            else
+            {
+                int extensionLen
+                    = readUnsignedShort(buf, payloadOff + 2);
+
+                extensionLen = (extensionLen + 1) * 4;
+                payloadLen -= extensionLen;
+                if (payloadLen < 0)
+                    return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
+                else
+                    payloadOff += extensionLen;
+            }
+        }
+
+        long r = payloadLen;
+
+        r <<= 32;
+        r |= payloadOff;
+        return r;
+    }
+
+    /**
+     * Logs information about an RTCP packet using {@link #logger} for debugging
+     * purposes.
+     *
+     * @param obj the object which is the source of the log request
+     * @param methodName the name of the method on <tt>obj</tt> which is the
+     * source of the log request
+     * @param buffer the <tt>byte</tt>s which (possibly) represent an RTCP
+     * packet to be logged for debugging purposes
+     * @param offset the position within <tt>buffer</tt> at which the valid data
+     * begins
+     * @param length the number of bytes in <tt>buffer</tt> which constitute the
+     * valid data
+     */
+    static void logRTCP(
+            Object obj, String methodName,
+            byte[] buffer, int offset, int length)
+    {
+        /*
+         * Do the bytes in the specified buffer resemble (a header of) an RTCP
+         * packet?
+         */
+        if (length >= 8 /* BYE */)
+        {
+            byte b0 = buffer[offset];
+            int v = (b0 & 0xc0) >>> 6;
+
+            if (v == RTCPHeader.VERSION)
+            {
+                byte b1 = buffer[offset + 1];
+                int pt = b1 & 0xff;
+
+                if (pt == 203 /* BYE */)
+                {
+                    // Verify the length field.
+                    int rtcpLength
+                        = (readUnsignedShort(buffer, offset + 2) + 1) * 4;
+
+                    if (rtcpLength <= length)
+                    {
+                        int sc = b0 & 0x1f;
+                        int off = offset + 4;
+
+                        for (int i = 0, end = offset + length;
+                                (i < sc) && (off + 4 <= end);
+                                i++, off += 4)
+                        {
+                            int ssrc = readInt(buffer, off);
+
+                            logger.trace(
+                                    obj.getClass().getName() + '.' + methodName
+                                        + ": RTCP BYE SSRC/CSRC "
+                                        + Long.toString(ssrc & 0xffffffffl));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Reads an <tt>int</tt> from a specific <tt>byte</tt> buffer starting at a
+     * specific offset. The implementation is the same as
+     * {@link DataInputStream#readInt()}.
+     *
+     * @param buf the <tt>byte</tt> buffer to read an <tt>int</tt> from
+     * @param off the zero-based offset in <tt>buf</tt> to start reading an
+     * <tt>int</tt> from
+     * @return an <tt>int</tt> read from the specified <tt>buf</tt> starting at
+     * the specified <tt>off</tt>
+     */
+    public static int readInt(byte[] buf, int off)
+    {
+        return
+            ((buf[off++] & 0xff) << 24)
+                | ((buf[off++] & 0xff) << 16)
+                | ((buf[off++] & 0xff) << 8)
+                | (buf[off] & 0xff);
+    }
+
+    /**
+     * Reads a 16-bit unsigned value from a specific <tt>byte</tt> buffer
+     * starting at a specific offset and returns it as an <tt>int</tt>.
+     *
+     * @param buf the <tt>byte</tt> buffer to read a 16-bit unsigned value from
+     * @param off the zero-based offset in <tt>buf</tt> to start reading a
+     * 16-bit unsigned value from
+     * @return an <tt>int</tt> read from the specified <tt>buf</tt> as a 16-bit
+     * unsigned value starting at the specified <tt>off</tt>
+     */
+    public static int readUnsignedShort(byte[] buf, int off)
+    {
+        return ((buf[off++] & 0xff) << 8) | (buf[off] & 0xff);
+    }
+
+    /**
      * The <tt>RTPConnector</tt> which is used by {@link #manager} and which
      * delegates to the <tt>RTPConnector</tt>s of the <tt>StreamRTPManager</tt>s
      * attached to this instance.
      */
     private RTPConnectorImpl connector;
+
+    /**
+     * The <tt>DelegatingRTCPReportBuilder</tt> that delegates its calls to the
+     * <tt>RTCPReportBuilder</tt> of the active
+     * <tt>RTCPTerminationStrategy</tt>.
+     */
+    private final DelegatingRTCPReportBuilder delegatingRTCPReportBuilder
+            = new DelegatingRTCPReportBuilder();
 
     /**
      * The <tt>SendStream</tt> created by the <tt>RTPManager</tt> in order to
@@ -63,10 +235,29 @@ public class RTPTranslatorImpl
     private SendStream fakeSendStream;
 
     /**
+     * A local SSRC for this <tt>RTPTranslator</tt>.
+     */
+    private long localSSRC = -1;
+
+    /**
      * The <tt>RTPManager</tt> which implements the actual RTP management of
      * this instance.
      */
     private final RTPManager manager = RTPManager.newInstance();
+
+    /**
+     * An instance which can be used to send RTCP Feedback Messages, using
+     * as 'packet sender SSRC' the SSRC of (the <tt>RTPManager</tt> of) this
+     * <tt>RTPTranslator</tt>.
+     */
+    private final RTCPFeedbackMessageSender rtcpFeedbackMessageSender
+        = new RTCPFeedbackMessageSender(this);
+
+    /**
+     * The <tt>RTCPTerminationStrategy</tt> which is to inspect and modify RTCP
+     * traffic between multiple <tt>MediaStream</tt>s.
+     */
+    private RTCPTerminationStrategy rtcpTerminationStrategy;
 
     /**
      * The <tt>SendStream</tt>s created by the <tt>RTPManager</tt> and the
@@ -81,33 +272,6 @@ public class RTPTranslatorImpl
      */
     private final List<StreamRTPManagerDesc> streamRTPManagers
         = new ArrayList<StreamRTPManagerDesc>();
-
-    /**
-     * An instance which can be used to send RTCP Feedback Messages, using
-     * as 'packet sender SSRC' the SSRC of (the <tt>RTPManager</tt> of) this
-     * <tt>RTPTranslator</tt>.
-     */
-    private final RTCPFeedbackMessageSender rtcpFeedbackMessageSender
-        = new RTCPFeedbackMessageSender(this);
-
-    /**
-     * A local SSRC for this <tt>RTPTranslator</tt>.
-     */
-    private long localSSRC = -1;
-
-    /**
-     * The <tt>RTCPTerminationStrategy</tt> which is to inspect and modify RTCP
-     * traffic between multiple <tt>MediaStream</tt>s.
-     */
-    private RTCPTerminationStrategy rtcpTerminationStrategy;
-
-    /**
-     * The <tt>DelegatingRTCPReportBuilder</tt> that delegates its calls to the
-     * <tt>RTCPReportBuilder</tt> of the active
-     * <tt>RTCPTerminationStrategy</tt>.
-     */
-    private final DelegatingRTCPReportBuilder delegatingRTCPReportBuilder
-            = new DelegatingRTCPReportBuilder();
 
     /**
      * Initializes a new <tt>RTPTranslatorImpl</tt> instance.
@@ -425,6 +589,114 @@ public class RTPTranslatorImpl
     }
 
     /**
+     * Notifies this instance that an RTP or RTCP packet has been received from
+     * a peer represented by a specific <tt>PushSourceStreamDesc</tt>.
+     *
+     * @param streamDesc a <tt>PushSourceStreamDesc</tt> which identifies the
+     * peer from which an RTP or RTCP packet has been received
+     * @param buffer the buffer which contains the bytes of the received RTP or
+     * RTCP packet
+     * @param offset the zero-based index in <tt>buffer</tt> at which the bytes
+     * of the received RTP or RTCP packet begin
+     * @param length the number of bytes in <tt>buffer</tt> beginning at
+     * <tt>offset</tt> which represent the received RTP or RTCP packet
+     * @return the number of bytes in <tt>buffer</tt> beginning at
+     * <tt>offset</tt> which represent the received RTP or RTCP packet
+     * @throws IOException if an I/O error occurs while the method processes the
+     * specified RTP or RTCP packet
+     */
+    synchronized int didRead(
+            PushSourceStreamDesc streamDesc,
+            byte[] buffer, int offset, int length)
+        throws IOException
+    {
+        boolean data = streamDesc.data;
+        StreamRTPManagerDesc streamRTPManagerDesc
+            = streamDesc.connectorDesc.streamRTPManagerDesc;
+        Format format = null;
+
+        if (data)
+        {
+            /*
+             * Ignore RTP packets coming from peers whose MediaStream's
+             * direction does not allow receiving.
+             */
+            if (!streamRTPManagerDesc
+                    .streamRTPManager
+                        .getMediaStream()
+                            .getDirection()
+                                .allowsReceiving())
+            {
+                /*
+                 * FIXME We are ignoring RTP packets received from peers who we
+                 * do not want to receive from ONLY in the sense that we are not
+                 * translating/forwarding them to the other peers. Do not we
+                 * want to not receive them locally as well?
+                 */
+                return length;
+            }
+
+            /*
+             * Do the bytes in the specified buffer resemble (a header of) an
+             * RTP packet?
+             */
+            if ((length >= RTPHeader.SIZE)
+                    && (/* v */ ((buffer[offset] & 0xc0) >>> 6)
+                            == RTPHeader.VERSION))
+            {
+                int ssrc = readInt(buffer, offset + 8);
+
+                if (!streamRTPManagerDesc.containsReceiveSSRC(ssrc))
+                {
+                    if (findStreamRTPManagerDescByReceiveSSRC(
+                                ssrc,
+                                streamRTPManagerDesc)
+                            == null)
+                    {
+                        streamRTPManagerDesc.addReceiveSSRC(ssrc);
+                    }
+                    else
+                    {
+                        return 0;
+                    }
+                }
+
+                int pt = buffer[offset + 1] & 0x7f;
+
+                format = streamRTPManagerDesc.getFormat(pt);
+            }
+        }
+        else if (logger.isTraceEnabled())
+        {
+            logRTCP(this, "read", buffer, offset, length);
+        }
+
+        /*
+         * XXX A deadlock between PushSourceStreamImpl.removeStreams and
+         * createFakeSendStreamIfNecessary has been reported. Since the latter
+         * method is disabled at the time of this writing, do not even try to
+         * execute it and thus avoid the deadlock in question. 
+         */
+        if (CREATE_FAKE_SEND_STREAM_IF_NECESSARY)
+            createFakeSendStreamIfNecessary();
+
+        OutputDataStreamImpl outputStream
+            = data
+                ? connector.getDataOutputStream()
+                : connector.getControlOutputStream();
+
+        if (outputStream != null)
+        {
+            outputStream.write(
+                    buffer, offset, length,
+                    format,
+                    streamRTPManagerDesc);
+        }
+
+        return length;
+    }
+
+    /**
      * Releases the resources allocated by this instance in the course of its
      * execution and prepares it to be garbage collected.
      */
@@ -622,6 +894,29 @@ public class RTPTranslatorImpl
     }
 
     /**
+     * Gets the <tt>RTCPFeedbackMessageSender</tt> which should be used for
+     * sending RTCP Feedback Messages from this <tt>RTPTranslator</tt>.
+     * @return the <tt>RTCPFeedbackMessageSender</tt> which should be used for
+     * sending RTCP Feedback Messages from this <tt>RTPTranslator</tt>.
+     */
+    public RTCPFeedbackMessageSender getRtcpFeedbackMessageSender()
+    {
+        return rtcpFeedbackMessageSender;
+    }
+
+    /**
+     * Gets the current active <tt>RTCPTerminationStrategy</tt> which is to
+     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     *
+     * @return the <tt>RTCPTerminationStrategy</tt> which is to inspect and
+     * modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     */
+    public RTCPTerminationStrategy getRTCPTerminationStrategy()
+    {
+        return rtcpTerminationStrategy;
+    }
+
+    /**
      * Gets the <tt>SendStream</tt>s associated with/related to a neomedia
      * <tt>MediaStream</tt> (specified in the form of a
      * <tt>StreamRTPManager</tt> instance for the purposes of and in the terms
@@ -675,53 +970,21 @@ public class RTPTranslatorImpl
     }
 
     /**
-     * Gets the current active <tt>RTCPTerminationStrategy</tt> which is to
-     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
-     *
-     * @return the <tt>RTCPTerminationStrategy</tt> which is to inspect and
-     * modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     * Returns a list of <tt>StreamRTPManager</tt>s currently attached to
+     * this <tt>RTPTranslator</tt>.
+     * @return a list of <tt>StreamRTPManager</tt>s currently attached to
+     * this <tt>RTPTranslator</tt>.
      */
-    public RTCPTerminationStrategy getRTCPTerminationStrategy()
+    List<StreamRTPManager> getStreamRTPManagers()
     {
-        return rtcpTerminationStrategy;
-    }
-
-    /**
-     * Sets the current active <tt>RTCPTerminationStrategy</tt> which is to
-     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
-     *
-     * @param rtcpTerminationStrategy the <tt>RTCPTerminationStrategy</tt> which
-     * is to inspect and modify RTCP traffic between multiple
-     * <tt>MediaStream</tt>s.
-     */
-    public void setRTCPTerminationStrategy(
-            RTCPTerminationStrategy rtcpTerminationStrategy)
-    {
-        if (this.rtcpTerminationStrategy != rtcpTerminationStrategy)
+        List<StreamRTPManager> ret
+                = new ArrayList<StreamRTPManager>(streamRTPManagers.size());
+        for (StreamRTPManagerDesc streamRTPManagerDesc : streamRTPManagers)
         {
-            this.rtcpTerminationStrategy = rtcpTerminationStrategy;
-            onRTCPTerminationStrategyChanged();
+            ret.add(streamRTPManagerDesc.streamRTPManager);
         }
-    }
 
-    /**
-     * Notifies this instance that {@link #rtcpTerminationStrategy} has changed.
-     */
-    private void onRTCPTerminationStrategyChanged()
-    {
-        RTCPTerminationStrategy rtcpTerminationStrategy
-            = getRTCPTerminationStrategy();
-
-        if (rtcpTerminationStrategy != null)
-        {
-            rtcpTerminationStrategy.setRTPTranslator(this);
-            delegatingRTCPReportBuilder.setDelegate(
-                    rtcpTerminationStrategy.getRTCPReportBuilder());
-        }
-        else
-        {
-            delegatingRTCPReportBuilder.setDelegate(null);
-        }
+        return ret;
     }
 
     public synchronized void initialize(
@@ -761,206 +1024,23 @@ public class RTPTranslatorImpl
     }
 
     /**
-     * Logs information about an RTCP packet using {@link #logger} for debugging
-     * purposes.
-     *
-     * @param obj the object which is the source of the log request
-     * @param methodName the name of the method on <tt>obj</tt> which is the
-     * source of the log request
-     * @param buffer the <tt>byte</tt>s which (possibly) represent an RTCP
-     * packet to be logged for debugging purposes
-     * @param offset the position within <tt>buffer</tt> at which the valid data
-     * begins
-     * @param length the number of bytes in <tt>buffer</tt> which constitute the
-     * valid data
+     * Notifies this instance that {@link #rtcpTerminationStrategy} has changed.
      */
-    static void logRTCP(
-            Object obj, String methodName,
-            byte[] buffer, int offset, int length)
+    private void onRTCPTerminationStrategyChanged()
     {
-        /*
-         * Do the bytes in the specified buffer resemble (a header of) an RTCP
-         * packet?
-         */
-        if (length >= 8 /* BYE */)
+        RTCPTerminationStrategy rtcpTerminationStrategy
+            = getRTCPTerminationStrategy();
+
+        if (rtcpTerminationStrategy != null)
         {
-            byte b0 = buffer[offset];
-            int v = (b0 & 0xc0) >>> 6;
-
-            if (v == RTCPHeader.VERSION)
-            {
-                byte b1 = buffer[offset + 1];
-                int pt = b1 & 0xff;
-
-                if (pt == 203 /* BYE */)
-                {
-                    // Verify the length field.
-                    int rtcpLength
-                        = (readUnsignedShort(buffer, offset + 2) + 1) * 4;
-
-                    if (rtcpLength <= length)
-                    {
-                        int sc = b0 & 0x1f;
-                        int off = offset + 4;
-
-                        for (int i = 0, end = offset + length;
-                                (i < sc) && (off + 4 <= end);
-                                i++, off += 4)
-                        {
-                            int ssrc = readInt(buffer, off);
-
-                            logger.trace(
-                                    obj.getClass().getName() + '.' + methodName
-                                        + ": RTCP BYE SSRC/CSRC "
-                                        + Long.toString(ssrc & 0xffffffffl));
-                        }
-                    }
-                }
-            }
+            rtcpTerminationStrategy.setRTPTranslator(this);
+            delegatingRTCPReportBuilder.setDelegate(
+                    rtcpTerminationStrategy.getRTCPReportBuilder());
         }
-    }
-
-    /**
-     * Notifies this instance that an RTP or RTCP packet has been received from
-     * a peer represented by a specific <tt>PushSourceStreamDesc</tt>.
-     *
-     * @param streamDesc a <tt>PushSourceStreamDesc</tt> which identifies the
-     * peer from which an RTP or RTCP packet has been received
-     * @param buffer the buffer which contains the bytes of the received RTP or
-     * RTCP packet
-     * @param offset the zero-based index in <tt>buffer</tt> at which the bytes
-     * of the received RTP or RTCP packet begin
-     * @param length the number of bytes in <tt>buffer</tt> beginning at
-     * <tt>offset</tt> which represent the received RTP or RTCP packet
-     * @return the number of bytes in <tt>buffer</tt> beginning at
-     * <tt>offset</tt> which represent the received RTP or RTCP packet
-     * @throws IOException if an I/O error occurs while the method processes the
-     * specified RTP or RTCP packet
-     */
-    synchronized int didRead(
-            PushSourceStreamDesc streamDesc,
-            byte[] buffer, int offset, int length)
-        throws IOException
-    {
-        boolean data = streamDesc.data;
-        StreamRTPManagerDesc streamRTPManagerDesc
-            = streamDesc.connectorDesc.streamRTPManagerDesc;
-        Format format = null;
-
-        if (data)
+        else
         {
-            /*
-             * Ignore RTP packets coming from peers whose MediaStream's
-             * direction does not allow receiving.
-             */
-            if (!streamRTPManagerDesc
-                    .streamRTPManager
-                        .getMediaStream()
-                            .getDirection()
-                                .allowsReceiving())
-            {
-                /*
-                 * FIXME We are ignoring RTP packets received from peers who we
-                 * do not want to receive from ONLY in the sense that we are not
-                 * translating/forwarding them to the other peers. Do not we
-                 * want to not receive them locally as well?
-                 */
-                return length;
-            }
-
-            /*
-             * Do the bytes in the specified buffer resemble (a header of) an
-             * RTP packet?
-             */
-            if ((length >= 12)
-                    && (/* v */ ((buffer[offset] & 0xc0) >>> 6)
-                            == RTPHeader.VERSION))
-            {
-                int ssrc = readInt(buffer, offset + 8);
-
-                if (!streamRTPManagerDesc.containsReceiveSSRC(ssrc))
-                {
-                    if (findStreamRTPManagerDescByReceiveSSRC(
-                                ssrc,
-                                streamRTPManagerDesc)
-                            == null)
-                    {
-                        streamRTPManagerDesc.addReceiveSSRC(ssrc);
-                    }
-                    else
-                    {
-                        return 0;
-                    }
-                }
-
-                int pt = buffer[offset + 1] & 0x7f;
-
-                format = streamRTPManagerDesc.getFormat(pt);
-            }
+            delegatingRTCPReportBuilder.setDelegate(null);
         }
-        else if (logger.isTraceEnabled())
-        {
-            logRTCP(this, "read", buffer, offset, length);
-        }
-
-        /*
-         * XXX A deadlock between PushSourceStreamImpl.removeStreams and
-         * createFakeSendStreamIfNecessary has been reported. Since the latter
-         * method is disabled at the time of this writing, do not even try to
-         * execute it and thus avoid the deadlock in question. 
-         */
-        if (CREATE_FAKE_SEND_STREAM_IF_NECESSARY)
-            createFakeSendStreamIfNecessary();
-
-        OutputDataStreamImpl outputStream
-            = data
-                ? connector.getDataOutputStream()
-                : connector.getControlOutputStream();
-
-        if (outputStream != null)
-        {
-            outputStream.write(
-                    buffer, offset, length,
-                    format,
-                    streamRTPManagerDesc);
-        }
-
-        return length;
-    }
-
-    /**
-     * Reads an <tt>int</tt> from a specific <tt>byte</tt> buffer starting at a
-     * specific offset. The implementation is the same as
-     * {@link DataInputStream#readInt()}.
-     *
-     * @param buf the <tt>byte</tt> buffer to read an <tt>int</tt> from
-     * @param off the zero-based offset in <tt>buf</tt> to start reading an
-     * <tt>int</tt> from
-     * @return an <tt>int</tt> read from the specified <tt>buf</tt> starting at
-     * the specified <tt>off</tt>
-     */
-    public static int readInt(byte[] buf, int off)
-    {
-        return
-            ((buf[off++] & 0xff) << 24)
-                | ((buf[off++] & 0xff) << 16)
-                | ((buf[off++] & 0xff) << 8)
-                | (buf[off] & 0xff);
-    }
-
-    /**
-     * Reads a 16-bit unsigned value from a specific <tt>byte</tt> buffer
-     * starting at a specific offset and returns it as an <tt>int</tt>.
-     *
-     * @param buf the <tt>byte</tt> buffer to read a 16-bit unsigned value from
-     * @param off the zero-based offset in <tt>buf</tt> to start reading a
-     * 16-bit unsigned value from
-     * @return an <tt>int</tt> read from the specified <tt>buf</tt> as a 16-bit
-     * unsigned value starting at the specified <tt>off</tt>
-     */
-    public static int readUnsignedShort(byte[] buf, int off)
-    {
-        return ((buf[off++] & 0xff) << 8) | (buf[off] & 0xff);
     }
 
     /**
@@ -1036,6 +1116,53 @@ public class RTPTranslatorImpl
             SessionListener listener)
     {
         // TODO Auto-generated method stub
+    }
+
+    /**
+     * Sets the local SSRC for this <tt>RTPTranslatorImpl</tt>.
+     * @param localSSRC the SSRC to set.
+     */
+    public void setLocalSSRC(long localSSRC)
+    {
+        this.localSSRC = localSSRC;
+    }
+
+    /**
+     * Sets the current active <tt>RTCPTerminationStrategy</tt> which is to
+     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     *
+     * @param rtcpTerminationStrategy the <tt>RTCPTerminationStrategy</tt> which
+     * is to inspect and modify RTCP traffic between multiple
+     * <tt>MediaStream</tt>s.
+     */
+    public void setRTCPTerminationStrategy(
+            RTCPTerminationStrategy rtcpTerminationStrategy)
+    {
+        if (this.rtcpTerminationStrategy != rtcpTerminationStrategy)
+        {
+            this.rtcpTerminationStrategy = rtcpTerminationStrategy;
+            onRTCPTerminationStrategyChanged();
+        }
+    }
+
+    /**
+    * Sets the <tt>SSRCFactory</tt> which is to generate new synchronization
+    * source (SSRC) identifiers.
+    *
+    * @param ssrcFactory the <tt>SSRCFactory</tt> which is to generate new
+    * synchronization source (SSRC) identifiers or <tt>null</tt> if this
+    * <tt>MediaStream</tt> is to employ internal logic to generate new
+    * synchronization source (SSRC) identifiers
+    */
+    public void setSSRCFactory(SSRCFactory ssrcFactory)
+    {
+        RTPManager manager = this.manager;
+        if (manager instanceof
+            org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)
+        {
+            ((org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)manager)
+                  .setSSRCFactory(ssrcFactory);
+        }
     }
 
     /**
@@ -1131,63 +1258,5 @@ public class RTPTranslatorImpl
                 : connector.writeControlPayload(
                     controlPayload,
                     destination);
-    }
-
-    /**
-    * Sets the <tt>SSRCFactory</tt> which is to generate new synchronization
-    * source (SSRC) identifiers.
-    *
-    * @param ssrcFactory the <tt>SSRCFactory</tt> which is to generate new
-    * synchronization source (SSRC) identifiers or <tt>null</tt> if this
-    * <tt>MediaStream</tt> is to employ internal logic to generate new
-    * synchronization source (SSRC) identifiers
-    */
-    public void setSSRCFactory(SSRCFactory ssrcFactory)
-    {
-        RTPManager manager = this.manager;
-        if (manager instanceof
-            org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)
-        {
-            ((org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)manager)
-                  .setSSRCFactory(ssrcFactory);
-        }
-    }
-
-    /**
-     * Returns a list of <tt>StreamRTPManager</tt>s currently attached to
-     * this <tt>RTPTranslator</tt>.
-     * @return a list of <tt>StreamRTPManager</tt>s currently attached to
-     * this <tt>RTPTranslator</tt>.
-     */
-    List<StreamRTPManager> getStreamRTPManagers()
-    {
-        List<StreamRTPManager> ret
-                = new ArrayList<StreamRTPManager>(streamRTPManagers.size());
-        for (StreamRTPManagerDesc streamRTPManagerDesc : streamRTPManagers)
-        {
-            ret.add(streamRTPManagerDesc.streamRTPManager);
-        }
-
-        return ret;
-    }
-
-    /**
-     * Gets the <tt>RTCPFeedbackMessageSender</tt> which should be used for
-     * sending RTCP Feedback Messages from this <tt>RTPTranslator</tt>.
-     * @return the <tt>RTCPFeedbackMessageSender</tt> which should be used for
-     * sending RTCP Feedback Messages from this <tt>RTPTranslator</tt>.
-     */
-    public RTCPFeedbackMessageSender getRtcpFeedbackMessageSender()
-    {
-        return rtcpFeedbackMessageSender;
-    }
-
-    /**
-     * Sets the local SSRC for this <tt>RTPTranslatorImpl</tt>.
-     * @param localSSRC the SSRC to set.
-     */
-    public void setLocalSSRC(long localSSRC)
-    {
-        this.localSSRC = localSSRC;
     }
 }

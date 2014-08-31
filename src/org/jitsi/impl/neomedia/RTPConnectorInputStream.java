@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia;
 
 import java.io.*;
+import java.lang.reflect.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -52,6 +53,45 @@ public abstract class RTPConnectorInputStream<T>
     public static final int PACKET_RECEIVE_BUFFER_LENGTH = 4 * 1024;
 
     /**
+     * Adds a specific element to a specific array with a specific component
+     * type if the array does not contain the element yet.
+     * 
+     * @param array the array to add <tt>element</tt> to
+     * @param componentType the component type of <tt>array</tt>
+     * @param element the element to add to <tt>array</tt>
+     * @return an array with the specified <tt>componentType</tt> and
+     * containing <tt>element</tt>. If <tt>array</tt> contained <tt>element</tt>
+     * already, returns <tt>array</tt>.
+     */
+    @SuppressWarnings("unchecked")
+    private static <T> T[] add(T[] array, Class<T> componentType, T element)
+    {
+        if (element == null)
+            throw new NullPointerException("element");
+
+        if (array == null)
+        {
+            array = (T[]) Array.newInstance(componentType, 1);
+        }
+        else
+        {
+            for (int i = 0; i < array.length; i++)
+            {
+                if (element.equals(array[i]))
+                    return array;
+            }
+
+            T[] newArray
+                = (T[]) Array.newInstance(componentType, array.length + 1);
+
+            System.arraycopy(array, 0, newArray, 0, array.length);
+            array = newArray;
+        }
+        array[array.length - 1] = element;
+        return array;
+    }
+
+    /**
      * Packet receive buffer
      */
     private final byte[] buffer = new byte[PACKET_RECEIVE_BUFFER_LENGTH];
@@ -68,6 +108,16 @@ public abstract class RTPConnectorInputStream<T>
      * <tt>RawPacket</tt>s.
      */
     private DatagramPacketFilter[] datagramPacketFilters;
+
+    /**
+     * The <tt>DatagramPacketListeners</tt> to be notified about the receipt of
+     * <tt>DatagramPacket</tt>s. If a received <tt>DatagramPacket</tt> is not
+     * accepted by the {@link #datagramPacketFilters}, the
+     * <tt>datagramPacketListeners</tt>s are not notified about it (and the
+     * <tt>DatagramPacket</tt> in question is discarded/dropped/ignored, of
+     * course).
+     */
+    private DatagramPacketListener[] datagramPacketListeners;
 
     /**
      * Whether this <tt>RTPConnectorInputStream</tt> is enabled or disabled.
@@ -214,6 +264,65 @@ public abstract class RTPConnectorInputStream<T>
     }
 
     /**
+     * Determines whether all {@link #datagramPacketFilters} accept a received
+     * <tt>DatagramPacket</tt> for pushing out of this
+     * <tt>PushSourceStream</tt>. In other words, determines whether <tt>p</tt>
+     * is to be discarded/dropped/ignored.
+     *
+     * @param p the <tt>DatagramPacket</tt> to be considered for acceptance by
+     * all <tt>datagramPacketFilters</tt>
+     * @return <tt>true</tt> if all <tt>datagramPacketFilters</tt> accept
+     * <tt>p</tt>; otherwise, <tt>false</tt>
+     */
+    private boolean accept(DatagramPacket p)
+    {
+        boolean accept;
+
+        if (enabled)
+        {
+            DatagramPacketFilter[] filters = getDatagramPacketFilters();
+
+            if (filters == null)
+            {
+                accept = true;
+            }
+            else
+            {
+                accept = true;
+                for (DatagramPacketFilter filter : filters)
+                {
+                    try
+                    {
+                        if (!filter.accept(p))
+                        {
+                            accept = false;
+                            break;
+                        }
+                    }
+                    catch (Throwable t)
+                    {
+                        if (t instanceof InterruptedException)
+                            Thread.currentThread().interrupt();
+                        else if (t instanceof ThreadDeath)
+                            throw (ThreadDeath) t;
+                    }
+                }
+            }
+        }
+        else
+        {
+            accept = false;
+            if (logger.isTraceEnabled() && !closed)
+            {
+                logger.trace(
+                        "Will drop received packet because this is disabled: "
+                            + p.getLength() + " bytes.");
+            }
+        }
+        return accept;
+    }
+
+    /**
      * Adds a <tt>DatagramPacketFilter</tt> which allows dropping
      * <tt>DatagramPacket</tt>s before they are converted into
      * <tt>RawPacket</tt>s.
@@ -225,32 +334,30 @@ public abstract class RTPConnectorInputStream<T>
     public synchronized void addDatagramPacketFilter(
             DatagramPacketFilter datagramPacketFilter)
     {
-        if (datagramPacketFilter == null)
-            throw new NullPointerException("datagramPacketFilter");
+        datagramPacketFilters
+            = add(
+                    datagramPacketFilters,
+                    DatagramPacketFilter.class,
+                    datagramPacketFilter);
+    }
 
-        if (datagramPacketFilters == null)
-        {
-            datagramPacketFilters
-                = new DatagramPacketFilter[] { datagramPacketFilter };
-        }
-        else
-        {
-            final int length = datagramPacketFilters.length;
-
-            for (int i = 0; i < length; i++)
-                if (datagramPacketFilter.equals(datagramPacketFilters[i]))
-                    return;
-
-            DatagramPacketFilter[] newDatagramPacketFilters
-                = new DatagramPacketFilter[length + 1];
-
-            System.arraycopy(
-                    datagramPacketFilters, 0,
-                    newDatagramPacketFilters, 0,
-                    length);
-            newDatagramPacketFilters[length] = datagramPacketFilter;
-            datagramPacketFilters = newDatagramPacketFilters;
-        }
+    /**
+     * Adds a <tt>DatagramPacketListener</tt> to be notified by this
+     * <tt>RTPConnectorInputStream</tt> about the receipt of
+     * <tt>DatagramPacket</tt>s.
+     *
+     * @param datagramPacketListener the <tt>DatagramPacketListener</tt> to be
+     * notified by this <tt>RTPConnectorInputStream</tt> about the receipt of
+     * <tt>DatagramPacket</tt>s
+     */
+    public synchronized void addDatagramPacketListener(
+            DatagramPacketListener datagramPacketListener)
+    {
+        datagramPacketListeners
+            = add(
+                    datagramPacketListeners,
+                    DatagramPacketListener.class,
+                    datagramPacketListener);
     }
 
     /**
@@ -416,9 +523,23 @@ public abstract class RTPConnectorInputStream<T>
      * <tt>DatagramPacket</tt>s before they are converted into
      * <tt>RawPacket</tt>s.
      */
-    public synchronized DatagramPacketFilter[] getDatagramPacketFilters()
+    protected synchronized DatagramPacketFilter[] getDatagramPacketFilters()
     {
         return datagramPacketFilters;
+    }
+
+    /**
+     * Gets the set of <tt>DatagramPacketListener</tt>s to be notified by this
+     * <tt>RTPConnectorInputStream</tt> about the receipt of
+     * <tt>DatagramPacket</tt>s.
+     *
+     * @return an array of the <tt>DatagramPacketListener</tt>s to be notified
+     * by this <tt>RTPConnectorInputStream</tt> about the receipt of
+     * <tt>DatagramPacket</tt>s
+     */
+    protected synchronized DatagramPacketListener[] getDatagramPacketListeners()
+    {
+        return datagramPacketListeners;
     }
 
     /**
@@ -624,8 +745,9 @@ public abstract class RTPConnectorInputStream<T>
      * @throws IOException if <tt>length</tt> is less than the size of the
      * packet.
      */
+    @Override
     public int read(byte[] buffer, int offset, int length)
-            throws IOException
+        throws IOException
     {
         return read(null, buffer, offset, length);
     }
@@ -667,116 +789,20 @@ public abstract class RTPConnectorInputStream<T>
 
             numberOfReceivedBytes += (long) p.getLength();
 
-            /*
-             * Do the DatagramPacketFilters accept the received DatagramPacket?
-             */
-            DatagramPacketFilter[] datagramPacketFilters
-                = getDatagramPacketFilters();
-            boolean accept;
-
-            if (!enabled)
+            // Do the DatagramPacketFilters accept the received DatagramPacket?
+            if (accept(p))
             {
-                accept = false;
-                if (logger.isTraceEnabled() && !closed)
+                RawPacket[] pkts = createRawPacket(p);
+
+                try
                 {
-                    logger.trace(
-                            "Will drop received packet because this is"
-                                + " disabled: " + p.getLength() + " bytes.");
+                    updateDatagramPacketListeners(p);
+                    transferData(pkts);
                 }
-            }
-            else if (datagramPacketFilters == null)
-            {
-                accept = true;
-            }
-            else
-            {
-                accept = true;
-                for (int i = 0; i < datagramPacketFilters.length; i++)
+                finally
                 {
-                    try
-                    {
-                        if (!datagramPacketFilters[i].accept(p))
-                        {
-                            accept = false;
-                            break;
-                        }
-                    }
-                    catch (Throwable t)
-                    {
-                        if (t instanceof ThreadDeath)
-                            throw (ThreadDeath) t;
-                    }
+                    rawPacketArrayPool.offer(pkts);
                 }
-            }
-
-            if (accept)
-            {
-                RawPacket pkts[] = createRawPacket(p);
-
-                for (int i = 0; i < pkts.length; i++)
-                {
-                    RawPacket pkt = pkts[i];
-
-                    pkts[i] = null;
-
-                    if (pkt != null)
-                    {
-                        if (pkt.isInvalid())
-                        {
-                            /*
-                             * Return pkt to the pool because it is invalid and,
-                             * consequently, will not be made available to
-                             * reading.
-                             */
-                            poolRawPacket(pkt);
-                        }
-                        else
-                        {
-                            RawPacket oldPkt;
-
-                            synchronized (pktSyncRoot)
-                            {
-                                oldPkt = this.pkt;
-                                this.pkt = pkt;
-                            }
-                            if (oldPkt != null)
-                            {
-                                /*
-                                 * Return oldPkt to the pool because it was made
-                                 * available to reading and it was not read.
-                                 */
-                                poolRawPacket(oldPkt);
-                            }
-
-                            if ((transferHandler != null) && !closed)
-                            {
-                                try
-                                {
-                                    transferHandler.transferData(this);
-                                }
-                                catch (Throwable t)
-                                {
-                                    /*
-                                     * XXX We cannot allow transferHandler to
-                                     * kill us.
-                                     */
-                                    if (t instanceof ThreadDeath)
-                                    {
-                                        throw (ThreadDeath) t;
-                                    }
-                                    else
-                                    {
-                                        logger.warn(
-                                            "An RTP packet may have not been"
-                                                + " fully handled.",
-                                            t);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                rawPacketArrayPool.offer(pkts);
             }
         }
     }
@@ -815,6 +841,7 @@ public abstract class RTPConnectorInputStream<T>
      * @param transferHandler the <tt>transferHandler</tt> that this connector
      * should be notifying when new data is available for reading.
      */
+    @Override
     public synchronized void setTransferHandler(
             SourceTransferHandler transferHandler)
     {
@@ -822,6 +849,131 @@ public abstract class RTPConnectorInputStream<T>
         {
             this.transferHandler = transferHandler;
             maybeStartReceiveThread();
+        }
+    }
+
+    /**
+     * Invokes {@link SourceTransferHandler#transferData(PushSourceStream)} on
+     * {@link #transferHandler} for each of <tt>pkts</tt> in order to
+     * consecutively push them out of/make them available outside this
+     * <tt>PushSourceStream</tt>.
+     *
+     * @param pkts the set of <tt>RawPacket</tt>s to push out of this
+     * <tt>PushSourceStream</tt>
+     */
+    private void transferData(RawPacket[] pkts)
+    {
+        for (int i = 0; i < pkts.length; i++)
+        {
+            RawPacket pkt = pkts[i];
+
+            pkts[i] = null;
+
+            if (pkt != null)
+            {
+                if (pkt.isInvalid())
+                {
+                    /*
+                     * Return pkt to the pool because it is invalid and,
+                     * consequently, will not be made available to reading.
+                     */
+                    poolRawPacket(pkt);
+                }
+                else
+                {
+                    RawPacket oldPkt;
+
+                    synchronized (pktSyncRoot)
+                    {
+                        oldPkt = this.pkt;
+                        this.pkt = pkt;
+                    }
+                    if (oldPkt != null)
+                    {
+                        /*
+                         * Return oldPkt to the pool because it was made
+                         * available to reading and it was not read.
+                         */
+                        poolRawPacket(oldPkt);
+                    }
+
+                    if ((transferHandler != null) && !closed)
+                    {
+                        try
+                        {
+                            transferHandler.transferData(this);
+                        }
+                        catch (Throwable t)
+                        {
+                            // XXX We cannot allow transferHandler to kill us.
+                            if (t instanceof InterruptedException)
+                            {
+                                Thread.currentThread().interrupt();
+                            }
+                            else if (t instanceof ThreadDeath)
+                            {
+                                throw (ThreadDeath) t;
+                            }
+                            else
+                            {
+                                logger.warn(
+                                    "An RTP packet may have not been fully"
+                                        + " handled.",
+                                    t);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Notifies the {@link #datagramPacketListeners} that a specific
+     * <tt>DatagramPacket</tt> was received by this
+     * <tt>RTPConnectorInputStream</tt> (and was accepted by the
+     * {@link #datagramPacketFilters}).
+     *
+     * @param p the <tt>DatagramPacket</tt> which was received by this
+     * <tt>RTPConnectorInputStream</tT> (and accepted by the
+     * <tt>datagramPacketFilters</tt>)
+     */
+    private void updateDatagramPacketListeners(DatagramPacket p)
+    {
+        try
+        {
+            DatagramPacketListener[] listeners = getDatagramPacketListeners();
+
+            if ((listeners != null) && (listeners.length != 0))
+            {
+                for (DatagramPacketListener listener : listeners)
+                {
+                    try
+                    {
+                        listener.update(this, p);
+                    }
+                    catch (Throwable t)
+                    {
+                        // The failure of a listener should not affect the other
+                        // listeners.
+                        if (t instanceof InterruptedException)
+                            Thread.currentThread().interrupt();
+                        else if (t instanceof ThreadDeath)
+                            throw (ThreadDeath) t;
+                    }
+                }
+            }
+        }
+        catch (Throwable t)
+        {
+            // The whole purpose of the method is to update the
+            // datagramPacketListeners. If a DatagramPacketListener fails, the
+            // failure is ignored. Consequently, if the method (invocation)
+            // fails, the failure is to be ignored as well.
+            if (t instanceof InterruptedException)
+                Thread.currentThread().interrupt();
+            else if (t instanceof ThreadDeath)
+                throw (ThreadDeath) t;
         }
     }
 }

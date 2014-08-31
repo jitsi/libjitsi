@@ -20,7 +20,7 @@ public class OveruseDetector
     {
         public long completeTimeMs = -1L;
 
-        public long size = 0;
+        public long size = 0L;
 
         public long timestamp = -1L;
 
@@ -82,7 +82,7 @@ public class OveruseDetector
 
         // Assume that a diff this big must be due to reordering. Don't update
         // with reordered samples.
-        return (timestampDiff < 0x80000000);
+        return (timestampDiff < 0x80000000L);
     }
 
     private double avgNoise;
@@ -182,7 +182,7 @@ public class OveruseDetector
         {
             if (offset > 0)
             {
-                if (timeOverUsing == -1)
+                if (timeOverUsing == -1D)
                 {
                     // Initialize the timer. Assume that we've been over-using
                     // half of the time since the previous sample.
@@ -199,7 +199,7 @@ public class OveruseDetector
                 {
                     if (offset >= prevOffset)
                     {
-                        timeOverUsing = 0;
+                        timeOverUsing = 0D;
                         overUseCounter = 0;
                         hypothesis = BandwidthUsage.kBwOverusing;
                     }
@@ -207,14 +207,14 @@ public class OveruseDetector
             }
             else
             {
-                timeOverUsing = -1;
+                timeOverUsing = -1D;
                 overUseCounter = 0;
                 hypothesis = BandwidthUsage.kBwUnderusing;
             }
         }
         else
         {
-            timeOverUsing = -1;
+            timeOverUsing = -1D;
             overUseCounter = 0;
             hypothesis = BandwidthUsage.kBwNormal;
         }
@@ -223,7 +223,7 @@ public class OveruseDetector
 
     private double getCurrentDrift()
     {
-        return 1.0D;
+        return 1D;
     }
 
     public double getNoiseVar()
@@ -252,11 +252,11 @@ public class OveruseDetector
         numOfDeltas++;
         if (numOfDeltas > 1000)
             numOfDeltas = 1000;
-        if (currentFrame.timestampMs == -1)
+        if (currentFrame.timestampMs == -1L)
         {
             long timestampDiff = currentFrame.timestamp - prevFrame.timestamp;
 
-            tsDelta = timestampDiff / 90.0D;
+            tsDelta = timestampDiff / 90D;
         }
         else
         {
@@ -270,11 +270,11 @@ public class OveruseDetector
 
     private boolean isPacketInOrder(long timestamp, long timestampMs)
     {
-        if (currentFrame.timestampMs == -1 && currentFrame.timestamp > -1)
+        if (currentFrame.timestampMs == -1L && currentFrame.timestamp > -1L)
         {
             return isInOrderTimestamp(timestamp, currentFrame.timestamp);
         }
-        else if (currentFrame.timestampMs > 0)
+        else if (currentFrame.timestampMs > 0L)
         {
             // Using timestamps converted to NTP time.
             return timestampMs > currentFrame.timestampMs;
@@ -300,7 +300,7 @@ public class OveruseDetector
         case kRcAboveMax:
         case kRcNearMax:
         {
-            threshold = options.initialThreshold / 2;
+            threshold = options.initialThreshold / 2D;
             break;
         }
         }
@@ -312,9 +312,9 @@ public class OveruseDetector
      */
     private void switchTimeBase()
     {
-        currentFrame.size = 0;
-        currentFrame.completeTimeMs = -1;
-        currentFrame.timestamp = -1;
+        currentFrame.size = 0L;
+        currentFrame.completeTimeMs = -1L;
+        currentFrame.timestamp = -1L;
         prevFrame.copy(currentFrame);
     }
 
@@ -328,13 +328,13 @@ public class OveruseDetector
 
         if (timestampMs >= 0)
         {
-            if (prevFrame.timestampMs == -1 && currentFrame.timestampMs == -1)
+            if (prevFrame.timestampMs == -1L && currentFrame.timestampMs == -1L)
             {
                 switchTimeBase();
             }
             newTimestamp = (timestampMs != currentFrame.timestampMs);
         }
-        if (currentFrame.timestamp == -1)
+        if (currentFrame.timestamp == -1L)
         {
             // This is the first incoming packet. We don't have enough data to
             // update the filter, so we store it until we have two frames of
@@ -344,12 +344,12 @@ public class OveruseDetector
         }
         else if (!isPacketInOrder(rtpTimestamp, timestampMs))
         {
-          return;
+            return;
         }
         else if (newTimestamp)
         {
             // First packet of a later frame, the previous frame sample is ready.
-            if (prevFrame.completeTimeMs >= 0) // This is our second frame.
+            if (prevFrame.completeTimeMs >= 0L) // This is our second frame.
             {
                 getTimeDeltas(currentFrame, prevFrame, timeDeltas);
                 updateKalman(
@@ -362,7 +362,7 @@ public class OveruseDetector
             // The new timestamp is now the current frame.
             currentFrame.timestamp = rtpTimestamp;
             currentFrame.timestampMs = timestampMs;
-            currentFrame.size = 0;
+            currentFrame.size = 0L;
         }
         // Accumulate the frame size
         currentFrame.size += packetSize;
@@ -382,7 +382,7 @@ public class OveruseDetector
         double fsDelta = ((double) frameSize) - prevFrameSize;
 
         // Update the Kalman filter
-        double scaleFactor =  minFramePeriod / (1000.0D / 30.0D);
+        double scaleFactor =  minFramePeriod / (1000D / 30D);
 
         E[0][0] += processNoise[0] * scaleFactor;
         E[1][1] += processNoise[1] * scaleFactor;
@@ -391,14 +391,14 @@ public class OveruseDetector
                 || (hypothesis == BandwidthUsage.kBwUnderusing
                         && offset > prevOffset))
         {
-            E[1][1] += 10 * processNoise[1] * scaleFactor;
+            E[1][1] += 10D * processNoise[1] * scaleFactor;
         }
 
         double[] h = this.h;
         double[] Eh = this.Eh;
 
         h[0] = fsDelta;
-        h[1] = 1.0;
+        h[1] = 1D;
         Eh[0] = E[0][0]*h[0] + E[0][1]*h[1];
         Eh[1] = E[1][0]*h[0] + E[1][1]*h[1];
 
@@ -408,9 +408,9 @@ public class OveruseDetector
 
         // We try to filter out very late frames. For instance periodic key
         // frames doesn't fit the Gaussian model well.
-        double threeTimesSqrtVarNoise = 3 * Math.sqrt(varNoise);
+        double threeTimesSqrtVarNoise = 3D * Math.sqrt(varNoise);
         double residualForUpdateNoiseEstimate
-            =  (Math.abs(residual) < threeTimesSqrtVarNoise)
+            = (Math.abs(residual) < threeTimesSqrtVarNoise)
                 ? residual
                 : threeTimesSqrtVarNoise;
 
@@ -425,10 +425,10 @@ public class OveruseDetector
 
         K[0] = Eh[0] / denom;
         K[1] = Eh[1] / denom;
-        IKh[0][0] = 1.0 - K[0]*h[0];
+        IKh[0][0] = 1D - K[0]*h[0];
         IKh[0][1] = -K[0]*h[1];
         IKh[1][0] = -K[1]*h[0];
-        IKh[1][1] = 1.0 - K[1]*h[1];
+        IKh[1][1] = 1D - K[1]*h[1];
 
         double e00 = E[0][0];
         double e01 = E[0][1];
@@ -481,7 +481,7 @@ public class OveruseDetector
 
         // Only update the noise estimate if we're not over-using beta is a
         // function of alpha and the time delta since the previous update.
-        double beta = Math.pow(1 - alpha, tsDelta * 30.0D / 1000.0D);
+        double beta = Math.pow(1 - alpha, tsDelta * 30D / 1000D);
 
         avgNoise = beta * avgNoise + (1 - beta) * residual;
         varNoise

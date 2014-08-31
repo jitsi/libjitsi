@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia;
 
 import java.awt.*;
+import java.net.*;
 import java.util.*;
 import java.util.List;
 import java.util.regex.*;
@@ -19,12 +20,15 @@ import javax.media.protocol.*;
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
+import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.QualityControl;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.control.KeyFrameControl;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 import org.jitsi.util.event.*;
 
@@ -403,6 +407,27 @@ public class VideoMediaStreamImpl
     private final QualityControlImpl qualityControl = new QualityControlImpl();
 
     /**
+     * The <tt>RemoteBitrateEstimator</tt> which computes bitrate estimates for
+     * the incoming RTP streams.
+     */
+    private final RemoteBitrateEstimator remoteBitrateEstimator
+        = new RemoteBitrateEstimatorSingleStream(
+                new RemoteBitrateObserver()
+                {
+                    @Override
+                    public void onReceiveBitrateChanged(
+                            Collection<Integer> ssrcs,
+                            long bitrate)
+                    {
+                        VideoMediaStreamImpl.this
+                            .remoteBitrateEstimatorOnReceiveBitrateChanged(
+                                    ssrcs,
+                                    bitrate);
+                    }
+                },
+                /* minBitrateBps*/ 0L);
+
+    /**
      * The facility which aids this instance in managing a list of
      * <tt>VideoListener</tt>s and firing <tt>VideoEvent</tt>s to them.
      * <p>
@@ -473,6 +498,33 @@ public class VideoMediaStreamImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void configureDataInputStream(
+            RTPConnectorInputStream<?> dataInputStream)
+    {
+        super.configureDataInputStream(dataInputStream);
+
+        /*
+         * Start listening to the receipt of data/RTP packets in order to notify
+         * remoteBitrateEstimator.
+         */
+        dataInputStream.addDatagramPacketListener(
+                new DatagramPacketListener()
+                {
+                    @Override
+                    public void update(Object source, DatagramPacket p)
+                    {
+                        VideoMediaStreamImpl.this
+                            .dataInputStreamDatagramPacketListenerUpdate(
+                                    source,
+                                    p);
+                    }
+                });
+    }
+
+    /**
      * Performs any optional configuration on a specific
      * <tt>RTPConnectorOuputStream</tt> of an <tt>RTPManager</tt> to be used by
      * this <tt>MediaStreamImpl</tt>.
@@ -535,6 +587,55 @@ public class VideoMediaStreamImpl
         super.configureRTPManagerBufferControl(rtpManager, bufferControl);
 
         bufferControl.setBufferLength(BufferControl.MAX_VALUE);
+    }
+
+    /**
+     * Notifies this <tt>VideoMediaStreamImpl</tt> that a
+     * <tt>DatagramPacket</tt> was received by the data/RTP input stream of this
+     * <tt>MediaStreamImpl</tt>.
+     *
+     * @param source the source of the event
+     * @param p the <tt>DatagramPacket</tt> received by the data/RTP input
+     * stream of this <tt>MediaStreamImpl</tt>
+     */
+    private void dataInputStreamDatagramPacketListenerUpdate(
+            Object source,
+            DatagramPacket p)
+    {
+        RemoteBitrateEstimator remoteBitrateEstimator
+            = getRemoteBitrateEstimator();
+
+        if (remoteBitrateEstimator != null)
+        {
+            // Do the bytes in p resemble (a header of) an RTP packet?
+            byte[] buf = p.getData();
+            int off = p.getOffset();
+            long payloadLenAndOff
+                = RTPTranslatorImpl.getPayloadLengthAndOffsetIfRTP(
+                        buf,
+                        off,
+                        p.getLength());
+
+            if (payloadLenAndOff >= 0)
+            {
+                int payloadLen = (int) (payloadLenAndOff >>> 32);
+                int payloadOff = (int) payloadLenAndOff;
+
+                if (payloadOff >= 0)
+                {
+                    long arrivalTimeMs = System.currentTimeMillis();
+                    long timestamp
+                        = RTPTranslatorImpl.readInt(buf, off + 4) & 0xFFFFFFFFL;
+                    int ssrc = RTPTranslatorImpl.readInt(buf, off + 8);
+
+                    remoteBitrateEstimator.incomingPacket(
+                            arrivalTimeMs,
+                            payloadLen,
+                            ssrc,
+                            timestamp);
+                }
+            }
+        }
     }
 
     /**
@@ -757,6 +858,15 @@ public class VideoMediaStreamImpl
     public QualityControl getQualityControl()
     {
         return qualityControl;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RemoteBitrateEstimator getRemoteBitrateEstimator()
+    {
+        return remoteBitrateEstimator;
     }
 
     /**
@@ -1015,6 +1125,21 @@ public class VideoMediaStreamImpl
                     screen.getIndex(),
                     x - bounds.x, y - bounds.y);
         }
+    }
+
+    /**
+     * Notifies this <tt>VideoMediaStreamImpl</tt> that
+     * {@link #remoteBitrateEstimator} has computed a new bitrate estimate for
+     * the incoming streams.
+     *
+     * @param ssrcs
+     * @param bitrate
+     */
+    private void remoteBitrateEstimatorOnReceiveBitrateChanged(
+            Collection<Integer> ssrcs,
+            long bitrate)
+    {
+        // TODO Auto-generated method stub
     }
 
     /**

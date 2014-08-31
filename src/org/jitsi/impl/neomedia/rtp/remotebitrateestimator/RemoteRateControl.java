@@ -28,7 +28,7 @@ public class RemoteRateControl
     private long currentBitRate;
 
     private final RateControlInput currentInput
-        = new RateControlInput(BandwidthUsage.kBwNormal, 0L, 0.0D);
+        = new RateControlInput(BandwidthUsage.kBwNormal, 0L, 0D);
 
     private boolean initializedBitRate;
 
@@ -88,21 +88,21 @@ public class RemoteRateControl
         }
         case kRcIncrease:
         {
-            if (avgMaxBitRate >= 0)
+            if (avgMaxBitRate >= 0F)
             {
-                if (incomingBitRateKbps > avgMaxBitRate + 3 * stdMaxBitRate)
+                if (incomingBitRateKbps > avgMaxBitRate + 3F * stdMaxBitRate)
                 {
                     changeRegion(RateControlRegion.kRcMaxUnknown);
-                    avgMaxBitRate = -1.0F;
+                    avgMaxBitRate = -1F;
                 }
                 else if (incomingBitRateKbps
-                        > avgMaxBitRate + 2.5 * stdMaxBitRate)
+                        > avgMaxBitRate + 2.5F * stdMaxBitRate)
                 {
                     changeRegion(RateControlRegion.kRcAboveMax);
                 }
             }
 
-            long responseTime = ((long) (avgChangePeriod + 0.5F)) + rtt + 300;
+            long responseTime = ((long) (avgChangePeriod + 0.5F)) + rtt + 300L;
             double alpha
                 = getRateIncreaseFactor(
                         nowMs,
@@ -110,15 +110,15 @@ public class RemoteRateControl
                         responseTime,
                         delayFactor);
 
-            currentBitRate = ((long) (currentBitRate * alpha)) + 1000;
-            if (maxHoldRate > 0 && beta * maxHoldRate > currentBitRate)
+            currentBitRate = ((long) (currentBitRate * alpha)) + 1000L;
+            if (maxHoldRate > 0L && beta * maxHoldRate > currentBitRate)
             {
                 currentBitRate = (long) (beta * maxHoldRate);
                 avgMaxBitRate = beta * maxHoldRate / 1000.0F;
                 changeRegion(RateControlRegion.kRcNearMax);
                 recovery = true;
             }
-            maxHoldRate = 0;
+            maxHoldRate = 0L;
             lastBitRateChange = nowMs;
             break;
         }
@@ -139,15 +139,15 @@ public class RemoteRateControl
                     if (rateControlRegion != RateControlRegion.kRcMaxUnknown)
                     {
                         currentBitRate
-                            = (long) (beta * avgMaxBitRate * 1000 + 0.5f);
+                            = (long) (beta * avgMaxBitRate * 1000F + 0.5F);
                     }
                     currentBitRate
                         = Math.min(currentBitRate, this.currentBitRate);
                 }
                 changeRegion(RateControlRegion.kRcNearMax);
 
-                if (incomingBitRateKbps < avgMaxBitRate - 3 * stdMaxBitRate)
-                    avgMaxBitRate = -1.0F;
+                if (incomingBitRateKbps < avgMaxBitRate - 3F * stdMaxBitRate)
+                    avgMaxBitRate = -1F;
 
                 updateMaxBitRateEstimate(incomingBitRateKbps);
             }
@@ -160,7 +160,7 @@ public class RemoteRateControl
             throw new IllegalStateException("rateControlState");
         }
         if (!recovery
-                && (incomingBitRate > 100000 || currentBitRate > 150000)
+                && (incomingBitRate > 100000L || currentBitRate > 150000L)
                 && currentBitRate > 1.5 * incomingBitRate)
         {
             // Allow changing the bit rate if we are operating at very low rates
@@ -232,32 +232,32 @@ public class RemoteRateControl
     {
         // alpha = 1.02 + B ./ (1 + exp(b*(tr - (c1*s2 + c2))))
         // Parameters
-        double B = 0.0407;
-        double b = 0.0025;
-        double c1 = -6700.0 / (33 * 33);
-        double c2 = 800.0;
-        double d = 0.85;
+        double B = 0.0407D;
+        double b = 0.0025D;
+        double c1 = -6700D / (33D * 33D);
+        double c2 = 800D;
+        double d = 0.85D;
 
         double alpha
-            = 1.005 + B / (1 + Math.exp(b * (d * reactionTimeMs - (c1 * noiseVar + c2))));
+            = 1.005D + B / (1D + Math.exp(b * (d * reactionTimeMs - (c1 * noiseVar + c2))));
 
-        if (alpha < 1.005)
-          alpha = 1.005;
-        else if (alpha > 1.3)
-          alpha = 1.3;
+        if (alpha < 1.005D)
+          alpha = 1.005D;
+        else if (alpha > 1.3D)
+          alpha = 1.3D;
 
-        if (lastMs > -1)
-            alpha = Math.pow(alpha, (nowMs - lastMs) / 1000.0);
+        if (lastMs > -1L)
+            alpha = Math.pow(alpha, (nowMs - lastMs) / 1000D);
 
         if (rateControlRegion == RateControlRegion.kRcNearMax)
         {
             // We're close to our previous maximum. Try to stabilize the bit
             // rate in this region, by increasing in smaller steps.
-            alpha = alpha - (alpha - 1.0) / 2.0;
+            alpha = alpha - (alpha - 1D) / 2D;
         }
         else if (rateControlRegion == RateControlRegion.kRcMaxUnknown)
         {
-            alpha = alpha + (alpha - 1.0) * 2.0;
+            alpha = alpha + (alpha - 1D) * 2D;
         }
 
         return alpha;
@@ -311,7 +311,7 @@ public class RemoteRateControl
         maxConfiguredBitRate = 30000000L;
         currentBitRate = maxConfiguredBitRate;
         maxHoldRate = 0L;
-        avgMaxBitRate = -1.0F;
+        avgMaxBitRate = -1F;
         varMaxBitRate = 0.4F;
         rateControlState = RateControlState.kRcHold;
         this.cameFromState = cameFromState;
@@ -319,11 +319,11 @@ public class RemoteRateControl
         lastBitRateChange = -1L;
         currentInput.bwState = BandwidthUsage.kBwNormal;
         currentInput.incomingBitRate = 0L;
-        currentInput.noiseVar = 1.0D;
+        currentInput.noiseVar = 1D;
         updated = false;
         timeFirstIncomingEstimate = -1L;
         initializedBitRate = false;
-        avgChangePeriod = 1000.0F;
+        avgChangePeriod = 1000F;
         lastChangeMs = -1L;
         beta = 0.9F;
         rtt = kDefaultRttMs;
@@ -338,13 +338,13 @@ public class RemoteRateControl
         // second.
         if (!initializedBitRate)
         {
-            if (timeFirstIncomingEstimate < 0)
+            if (timeFirstIncomingEstimate < 0L)
             {
-                if (input.incomingBitRate > 0)
+                if (input.incomingBitRate > 0L)
                     timeFirstIncomingEstimate = nowMs;
             }
-            else if (nowMs - timeFirstIncomingEstimate > 500
-                    && input.incomingBitRate > 0)
+            else if (nowMs - timeFirstIncomingEstimate > 500L
+                    && input.incomingBitRate > 0L)
             {
                 currentBitRate = input.incomingBitRate;
                 initializedBitRate = true;
@@ -391,7 +391,7 @@ public class RemoteRateControl
     {
         float alpha = 0.05F;
 
-        if (avgMaxBitRate == -1.0F)
+        if (avgMaxBitRate == -1F)
         {
             avgMaxBitRate = incomingBitRateKbps;
         }
@@ -403,7 +403,7 @@ public class RemoteRateControl
 
         // Estimate the max bit rate variance and normalize the variance with
         // the average max bit rate.
-        float norm = Math.max(avgMaxBitRate, 1.0F);
+        float norm = Math.max(avgMaxBitRate, 1F);
 
         varMaxBitRate
             = (1 - alpha) * varMaxBitRate

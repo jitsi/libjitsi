@@ -64,13 +64,13 @@ public class RateStatistics
             long countInOldestBucket = buckets[oldestIndex];
 
             accumulatedCount -= countInOldestBucket;
-            buckets[oldestIndex] = 0;
+            buckets[oldestIndex] = 0L;
             if (++oldestIndex >= buckets.length)
             {
                 oldestIndex = 0;
             }
             ++oldestTime;
-            if (accumulatedCount == 0)
+            if (accumulatedCount == 0L)
             {
                 // This guarantees we go through all the buckets at most once,
                 // even if newOldestTime is far greater than oldestTime.

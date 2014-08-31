@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.List;
 
 import org.jitsi.service.neomedia.control.*;
+import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.event.*;
 
 /**
@@ -24,6 +25,29 @@ public interface VideoMediaStream
     extends MediaStream
 {
     /**
+     * Adds a specific <tt>VideoListener</tt> to this <tt>VideoMediaStream</tt>
+     * in order to receive notifications when visual/video <tt>Component</tt>s
+     * are being added and removed.
+     * <p>
+     * Adding a listener which has already been added does nothing i.e. it is
+     * not added more than once and thus does not receive one and the same
+     * <tt>VideoEvent</tt> multiple times
+     * </p>
+     *
+     * @param listener the <tt>VideoListener</tt> to be notified when
+     * visual/video <tt>Component</tt>s are being added or removed in this
+     * <tt>VideoMediaStream</tt>
+     */
+    public void addVideoListener(VideoListener listener);
+
+    /**
+     * Gets the <tt>KeyFrameControl</tt> of this <tt>VideoMediaStream</tt>.
+     *
+     * @return the <tt>KeyFrameControl</tt> of this <tt>VideoMediaStream</tt>
+     */
+    public KeyFrameControl getKeyFrameControl();
+
+    /**
      * Gets the visual <tt>Component</tt>, if any, depicting the video streamed
      * from the local peer to the remote peer.
      *
@@ -32,6 +56,22 @@ public interface VideoMediaStream
      * otherwise, <tt>null</tt>
      */
     public Component getLocalVisualComponent();
+
+    /**
+     * Gets the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>.
+     *
+     * @return the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>
+     */
+    public QualityControl getQualityControl();
+
+    /**
+     * Gets the <tt>RemoteBitrateEstimator</tt> of this
+     * <tt>VideoMediaStream</tt>.
+     *
+     * @return the <tt>RemoteBitrateEstimator</tt> of this
+     * <tt>VideoMediaStream</tt> if any; otherwise, <tt>null</tt>
+     */
+    RemoteBitrateEstimator getRemoteBitrateEstimator();
 
     /**
      * Gets the visual <tt>Component</tt> where video from the remote peer is
@@ -69,20 +109,12 @@ public interface VideoMediaStream
     public List<Component> getVisualComponents();
 
     /**
-     * Adds a specific <tt>VideoListener</tt> to this <tt>VideoMediaStream</tt>
-     * in order to receive notifications when visual/video <tt>Component</tt>s
-     * are being added and removed.
-     * <p>
-     * Adding a listener which has already been added does nothing i.e. it is
-     * not added more than once and thus does not receive one and the same
-     * <tt>VideoEvent</tt> multiple times
-     * </p>
+     * Move origin of a partial desktop streaming <tt>MediaDevice</tt>.
      *
-     * @param listener the <tt>VideoListener</tt> to be notified when
-     * visual/video <tt>Component</tt>s are being added or removed in this
-     * <tt>VideoMediaStream</tt>
+     * @param x new x coordinate origin
+     * @param y new y coordinate origin
      */
-    public void addVideoListener(VideoListener listener);
+    public void movePartialDesktopStreaming(int x, int y);
 
     /**
      * Removes a specific <tt>VideoListener</tt> from this
@@ -97,32 +129,10 @@ public interface VideoMediaStream
     public void removeVideoListener(VideoListener listener);
 
     /**
-     * Gets the <tt>KeyFrameControl</tt> of this <tt>VideoMediaStream</tt>.
-     *
-     * @return the <tt>KeyFrameControl</tt> of this <tt>VideoMediaStream</tt>
-     */
-    public KeyFrameControl getKeyFrameControl();
-
-    /**
-     * Gets the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>.
-     *
-     * @return the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>
-     */
-    public QualityControl getQualityControl();
-
-    /**
      * Updates the <tt>QualityControl</tt> of this <tt>VideoMediaStream</tt>.
      *
      * @param advancedParams parameters of advanced attributes that may affect
      * quality control
      */
     public void updateQualityControl(Map<String, String> advancedParams);
-
-    /**
-     * Move origin of a partial desktop streaming <tt>MediaDevice</tt>.
-     *
-     * @param x new x coordinate origin
-     * @param y new y coordinate origin
-     */
-    public void movePartialDesktopStreaming(int x, int y);
 }
