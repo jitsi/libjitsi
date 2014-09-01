@@ -69,6 +69,31 @@ public class RTCPREMBPacket extends RTCPFBPacket
         this.dest = dest;
     }
 
+    public RTCPREMBPacket(
+            long senderSSRC,
+            long mediaSSRC,
+            long bitrate,
+            long[] dest)
+    {
+        super(FMT, PSFB, senderSSRC, mediaSSRC);
+
+        // 6 bit Exp
+        // 18 bit mantissa
+        this.exp = 0;
+        for(int i=0; i<64; i++)
+        {
+            if(bitrate <= (0x3ffff << i))
+            {
+                this.exp = i;
+                break;
+            }
+        }
+
+        /* type of bitrate is an unsigned int (32 bits) */
+        this.mantissa = (((int)bitrate) >> this.exp);
+        this.dest = dest;
+    }
+
     public RTCPREMBPacket(RTCPCompoundPacket base)
     {
         super(base);
@@ -161,9 +186,9 @@ public class RTCPREMBPacket extends RTCPFBPacket
         // BR Mantissa (18 bits):   The mantissa of the maximum total media bit
         // rate (ignoring all packet overhead) that the sender of
         // the REMB estimates.
-        buf[off++] = (byte) (((exp & 0x3F) << 2) | (mantissa & 0x30000) >> 16);
-        buf[off++] = (byte) ((mantissa & 0xFF00) >> 8);
-        buf[off++] = (byte) (mantissa & 0xFF);
+        buf[off++] = (byte) (((exp & 0x3f) << 2) | (mantissa & 0x30000) >> 16);
+        buf[off++] = (byte) ((mantissa & 0xff00) >> 8);
+        buf[off++] = (byte) (mantissa & 0xff);
 
         // SSRC feedback (32 bits)  Consists of one or more SSRC entries which
         // this feedback message applies to.
