@@ -52,6 +52,14 @@ public class VideoMediaStreamImpl
         = Logger.getLogger(VideoMediaStreamImpl.class);
 
     /**
+     * The <tt>RecurringProcessibleExecutor</tt> to be utilized by the
+     * <tt>VideoMediaStreamImpl</tt> class and its instances.
+     */
+    private static final RecurringProcessibleExecutor
+        recurringProcessibleExecutor
+            = new RecurringProcessibleExecutor();
+
+    /**
      * The indicator which determines whether RTCP feedback Picture Loss
      * Indication messages are to be used.
      */
@@ -460,6 +468,17 @@ public class VideoMediaStreamImpl
         SrtpControl srtpControl)
     {
         super(connector, device, srtpControl);
+
+        // Register the RemoteBitrateEstimator with the
+        // RecurringProcessibleExecutor.
+        RemoteBitrateEstimator remoteBitrateEstimator
+            = getRemoteBitrateEstimator();
+
+        if (remoteBitrateEstimator instanceof RecurringProcessible)
+        {
+            recurringProcessibleExecutor.registerRecurringProcessible(
+                    (RecurringProcessible) remoteBitrateEstimator);
+        }
     }
 
     /**
@@ -495,6 +514,31 @@ public class VideoMediaStreamImpl
     public void addVideoListener(VideoListener listener)
     {
         videoNotifierSupport.addVideoListener(listener);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close()
+    {
+        try
+        {
+            super.close();
+        }
+        finally
+        {
+            // Deregister the RemoteBitrateEstimator with the
+            // RecurringProcessibleExecutor.
+            RemoteBitrateEstimator remoteBitrateEstimator
+                = getRemoteBitrateEstimator();
+
+            if (remoteBitrateEstimator instanceof RecurringProcessible)
+            {
+                recurringProcessibleExecutor.deRegisterRecurringProcessible(
+                        (RecurringProcessible) remoteBitrateEstimator);
+            }
+        }
     }
 
     /**

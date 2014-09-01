@@ -18,7 +18,8 @@ import org.jitsi.service.neomedia.rtp.*;
  * @author Lyubomir Marinov
  */
 public class RemoteBitrateEstimatorSingleStream
-    implements RemoteBitrateEstimator
+    implements RecurringProcessible,
+               RemoteBitrateEstimator
 {
     private static final int kProcessIntervalMs = 1000;
 
@@ -58,9 +59,6 @@ public class RemoteBitrateEstimatorSingleStream
             RemoteBitrateObserver observer,
             long minBitrateBps)
     {
-        if (observer == null)
-            throw new NullPointerException("observer");
-
         this.observer = observer;
         remoteRate = new RemoteRateControl(minBitrateBps);
     }
@@ -111,7 +109,11 @@ public class RemoteBitrateEstimatorSingleStream
         }
     }
 
-    long getTimeUntilNextProcess()
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getTimeUntilNextProcess()
     {
         return
             (lastProcessTime < 0L)
@@ -194,7 +196,8 @@ public class RemoteBitrateEstimatorSingleStream
      *
      * @return
      */
-    long process()
+    @Override
+    public long process()
     {
         if (getTimeUntilNextProcess() <= 0L)
         {
@@ -277,7 +280,12 @@ public class RemoteBitrateEstimatorSingleStream
         long targetBitrate = remoteRate.updateBandwidthEstimate(nowMs);
 
         if (remoteRate.isValidEstimate())
-            observer.onReceiveBitrateChanged(getSsrcs(), targetBitrate);
+        {
+            RemoteBitrateObserver observer = this.observer;
+
+            if (observer != null)
+                observer.onReceiveBitrateChanged(getSsrcs(), targetBitrate);
+        }
         for (OveruseDetector overuseDetector : overuseDetectors.values())
             overuseDetector.setRateControlRegion(region);
         } // synchronized (critSect)
