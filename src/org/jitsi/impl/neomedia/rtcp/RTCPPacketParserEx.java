@@ -11,6 +11,7 @@ import java.io.*;
 import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.util.*;
 
+import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.util.*;
 
@@ -114,9 +115,10 @@ public class RTCPPacketParserEx
                         byte[] buf = new byte[3];
                         in.read(buf);
                         remb.exp = (buf[0] & 0xFC) >> 2;
-                        remb.mantissa = ((buf[0] & 0x3) << 16) & 0xFF0000
-                                | (buf[1] << 8) & 0xFF00
-                                | buf[2] & 0xFF;
+                        remb.mantissa
+                            = ((buf[0] & 0x3) << 16) & 0xFF0000
+                                | (buf[1] << 8) & 0x00FF00
+                                | buf[2] & 0x0000FF;
 
                         remb.dest = new long[destlen];
                         for (int i = 0; i < remb.dest.length; i++)
@@ -157,7 +159,7 @@ public class RTCPPacketParserEx
         fb.senderSSRC = senderSSRC;
         fb.sourceSSRC = sourceSSRC;
 
-        int fcilen = length - 12; // header+ssrc+ssrc = 14
+        int fcilen = length - 12; // header + ssrc + ssrc = 14
 
         if (fcilen != 0)
         {
@@ -167,8 +169,9 @@ public class RTCPPacketParserEx
 
         if (logger.isTraceEnabled())
         {
-            String ptStr;
-            String fmtStr = null;
+            String ptStr; // Payload type (PT)
+            String fmtStr = null; // Feedback message type (FMT)
+            String detailStr = null;
 
             switch (fb.type)
             {
@@ -199,6 +202,35 @@ public class RTCPPacketParserEx
                     break;
                 case 4: /* Temporary Maximum Media Stream Bit Rate Notification (TMMBN) */
                     fmtStr = "TMMBN";
+
+                    // Log the TMMBN FCI entries.
+                    StringBuilder tmmbnFciEntryStr = new StringBuilder();
+
+                    for (int i = 0, end = fcilen - 8; i < end; i += 8)
+                    {
+                        int ssrc = RTPTranslatorImpl.readInt(fb.fci, i);
+                        byte b4 = fb.fci[i + 4];
+                        int mxTbrExp /* 6 bits */ = (b4 & 0xFC) >>> 2;
+                        byte b6 = fb.fci[i + 6];
+                        int mxTbrMantissa /* 17 bits */
+                            = (((b4 & 0x1) << 16) & 0xFF0000)
+                                | ((fb.fci[i + 5] << 8) & 0x00FF00)
+                                | (b6 & 0x0000FF);
+                        int measuredOverhead /* 9 bits */
+                            = (((b6 & 0x1) << 8) & 0xFF00)
+                                | (fb.fci[i + 7] & 0x00FF);
+
+                        tmmbnFciEntryStr.append(", SSRC 0x");
+                        tmmbnFciEntryStr.append(
+                                Long.toHexString(ssrc & 0xFFFFFFFFL));
+                        tmmbnFciEntryStr.append(", MxTBR Exp ");
+                        tmmbnFciEntryStr.append(mxTbrExp);
+                        tmmbnFciEntryStr.append(", MxTBR Mantissa ");
+                        tmmbnFciEntryStr.append(mxTbrMantissa);
+                        tmmbnFciEntryStr.append(", Measured Overhead ");
+                        tmmbnFciEntryStr.append(measuredOverhead);
+                    }
+                    detailStr = tmmbnFciEntryStr.toString();
                     break;
                 }
                 break;
@@ -208,9 +240,15 @@ public class RTCPPacketParserEx
             }
             if (fmtStr == null)
                 fmtStr = Integer.toString(fb.fmt);
+            if (detailStr == null)
+                detailStr = "";
             logger.trace(
-                    "Payload type (PT): " + ptStr
-                        + ", Feedback message type (FMT): " + fmtStr);
+                    "SSRC of packet sender: 0x" + Long.toHexString(senderSSRC)
+                        + " (" + senderSSRC + "), SSRC of media source: 0x"
+                        + Long.toHexString(sourceSSRC) + " (" + sourceSSRC
+                        + "), Payload type (PT): " + ptStr
+                        + ", Feedback message type (FMT): " + fmtStr
+                        + detailStr);
         }
 
         return fb;
