@@ -46,7 +46,7 @@ public class RemoteRateControl
 
     private RateControlState rateControlState;
 
-    private int rtt;
+    private long rtt;
 
     private long timeFirstIncomingEstimate;
 
@@ -275,7 +275,7 @@ public class RemoteRateControl
      */
     public boolean isTimeToReduceFurther(long timeNow, long incomingBitrate)
     {
-        int bitrateReductionInterval = Math.max(Math.min(rtt, 200), 10);
+        long bitrateReductionInterval = Math.max(Math.min(rtt, 200L), 10L);
 
         if (timeNow - lastBitRateChange >= bitrateReductionInterval)
             return true;
@@ -327,6 +327,11 @@ public class RemoteRateControl
         lastChangeMs = -1L;
         beta = 0.9F;
         rtt = kDefaultRttMs;
+    }
+
+    public void setRtt(long rtt)
+    {
+        this.rtt = rtt;
     }
 
     public RateControlRegion update(RateControlInput input, long nowMs)

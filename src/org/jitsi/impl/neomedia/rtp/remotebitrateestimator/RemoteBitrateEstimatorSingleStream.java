@@ -18,7 +18,8 @@ import org.jitsi.service.neomedia.rtp.*;
  * @author Lyubomir Marinov
  */
 public class RemoteBitrateEstimatorSingleStream
-    implements RecurringProcessible,
+    implements CallStatsObserver,
+               RecurringProcessible,
                RemoteBitrateEstimator
 {
     private static final int kProcessIntervalMs = 1000;
@@ -189,6 +190,18 @@ public class RemoteBitrateEstimatorSingleStream
             = header.timestamp + getExtensionTransmissionTimeOffset(header);
 
         incomingPacket(arrivalTimeMs, payloadSize, ssrc, rtpTimestamp);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onRttUpdate(long rtt)
+    {
+        synchronized (critSect)
+        {
+            remoteRate.setRtt(rtt);
+        }
     }
 
     /**

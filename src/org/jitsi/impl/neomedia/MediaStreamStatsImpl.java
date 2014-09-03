@@ -21,6 +21,7 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.format.*;
@@ -321,6 +322,20 @@ public class MediaStreamStatsImpl
     }
 
     /**
+     * Returns the number of lost packets for the receive streams.
+     * @return  the number of lost packets for the receive streams.
+     */
+    private long getDownloadNbPacketLost()
+    {
+        long downloadLost = 0;
+        for(ReceiveStream stream : mediaStreamImpl.getReceiveStreams())
+        {
+                downloadLost += stream.getSourceReceptionStats().getPDUlost();
+        }
+        return downloadLost;
+    }
+
+    /**
      * Returns the number of Protocol Data Units (PDU) lost in download since
      * the beginning of the session.
      *
@@ -416,6 +431,39 @@ public class MediaStreamStatsImpl
     }
 
     /**
+     * Returns the set of <tt>PacketQueueControls</tt> found for all the
+     * <tt>DataSource</tt>s of all the <tt>ReceiveStream</tt>s. The set contains
+     * only non-null elements.
+     *
+     * @return the set of <tt>PacketQueueControls</tt> found for all the
+     * <tt>DataSource</tt>s of all the <tt>ReceiveStream</tt>s. The set contains
+     * only non-null elements.
+     */
+    private Set<JitterBufferControl> getJitterBufferControls()
+    {
+        Set<JitterBufferControl> set = new HashSet<JitterBufferControl>();
+
+        if (mediaStreamImpl.isStarted())
+        {
+            MediaDeviceSession devSession = mediaStreamImpl.getDeviceSession();
+
+            if (devSession != null)
+            {
+                for(ReceiveStream receiveStream
+                        : devSession.getReceiveStreams())
+                {
+                    JitterBufferControl pqc
+                        = getJitterBufferControl(receiveStream);
+
+                    if(pqc != null)
+                        set.add(pqc);
+                }
+            }
+        }
+        return set;
+    }
+
+    /**
      * Returns the delay in milliseconds introduced by the jitter buffer.
      * Since there might be multiple <tt>ReceiveStreams</tt>, returns the
      * biggest delay found in any of them.
@@ -484,6 +532,7 @@ public class MediaStreamStatsImpl
                 * 1000.0;
     }
 
+
     /**
      * Returns the local IP address of the MediaStream.
      *
@@ -514,58 +563,6 @@ public class MediaStreamStatsImpl
             (mediaStreamLocalDataAddress == null)
                 ? -1
                 : mediaStreamLocalDataAddress.getPort();
-    }
-
-
-    @Override
-    public long getNbSentBytes()
-    {
-        AbstractRTPConnector connector = mediaStreamImpl.getRTPConnector();
-        if(connector == null)
-        {
-            return 0;
-        }
-
-        RTPConnectorOutputStream stream = null;
-        try
-        {
-            stream = connector.getDataOutputStream(false);
-        }
-        catch (IOException e)
-        {
-            //We should not enter here because we are not creating output stream
-        }
-
-        if(stream == null)
-        {
-            return 0;
-        }
-
-        return stream.getNumberOfBytesSent();
-    }
-
-    @Override
-    public long getNbReceivedBytes()
-    {
-        AbstractRTPConnector connector = mediaStreamImpl.getRTPConnector();
-
-        if(connector != null)
-        {
-            RTPConnectorInputStream<?> stream;
-
-            try
-            {
-                stream = connector.getDataInputStream();
-            }
-            catch (IOException ex)
-            {
-                // We should not enter here because we are not creating stream.
-                stream = null;
-            }
-            if(stream != null)
-                return stream.getNumberOfReceivedBytes();
-        }
-        return 0;
     }
 
     /**
@@ -689,6 +686,28 @@ public class MediaStreamStatsImpl
     }
 
     /**
+     * Returns the total number of packets that are send or receive for this
+     * stream since the stream is created.
+     * @return the total number of packets.
+     */
+    public long getNbPackets()
+    {
+        return getNbPDU(StreamDirection.DOWNLOAD)
+            + getDownloadNbPacketLost()
+            + uploadFeedbackNbPackets;
+    }
+
+    /**
+     * Returns the number of lost packets for that stream.
+     * @return the number of lost packets.
+     */
+    public long getNbPacketsLost()
+    {
+        return nbLost[StreamDirection.UPLOAD.ordinal()]
+            + getDownloadNbPacketLost();
+    }
+
+    /**
      * Returns the number of Protocol Data Units (PDU) sent/received since the
      * beginning of the session.
      *
@@ -725,74 +744,56 @@ public class MediaStreamStatsImpl
         return nbPDU;
     }
 
-    /**
-     * Returns the total number of packets that are send or receive for this
-     * stream since the stream is created.
-     * @return the total number of packets.
-     */
-    public long getNbPackets()
+    @Override
+    public long getNbReceivedBytes()
     {
-        return getNbPDU(StreamDirection.DOWNLOAD)
-            + getDownloadNbPacketLost()
-            + uploadFeedbackNbPackets;
-    }
+        AbstractRTPConnector connector = mediaStreamImpl.getRTPConnector();
 
-    /**
-     * Returns the number of lost packets for that stream.
-     * @return the number of lost packets.
-     */
-    public long getNbPacketsLost()
-    {
-        return nbLost[StreamDirection.UPLOAD.ordinal()]
-            + getDownloadNbPacketLost();
-    }
-
-    /**
-     * Returns the number of lost packets for the receive streams.
-     * @return  the number of lost packets for the receive streams.
-     */
-    private long getDownloadNbPacketLost()
-    {
-        long downloadLost = 0;
-        for(ReceiveStream stream : mediaStreamImpl.getReceiveStreams())
+        if(connector != null)
         {
-                downloadLost += stream.getSourceReceptionStats().getPDUlost();
-        }
-        return downloadLost;
-    }
+            RTPConnectorInputStream<?> stream;
 
-
-    /**
-     * Returns the set of <tt>PacketQueueControls</tt> found for all the
-     * <tt>DataSource</tt>s of all the <tt>ReceiveStream</tt>s. The set contains
-     * only non-null elements.
-     *
-     * @return the set of <tt>PacketQueueControls</tt> found for all the
-     * <tt>DataSource</tt>s of all the <tt>ReceiveStream</tt>s. The set contains
-     * only non-null elements.
-     */
-    private Set<JitterBufferControl> getJitterBufferControls()
-    {
-        Set<JitterBufferControl> set = new HashSet<JitterBufferControl>();
-
-        if (mediaStreamImpl.isStarted())
-        {
-            MediaDeviceSession devSession = mediaStreamImpl.getDeviceSession();
-
-            if (devSession != null)
+            try
             {
-                for(ReceiveStream receiveStream
-                        : devSession.getReceiveStreams())
-                {
-                    JitterBufferControl pqc
-                        = getJitterBufferControl(receiveStream);
-
-                    if(pqc != null)
-                        set.add(pqc);
-                }
+                stream = connector.getDataInputStream();
             }
+            catch (IOException ex)
+            {
+                // We should not enter here because we are not creating stream.
+                stream = null;
+            }
+            if(stream != null)
+                return stream.getNumberOfReceivedBytes();
         }
-        return set;
+        return 0;
+    }
+
+
+    @Override
+    public long getNbSentBytes()
+    {
+        AbstractRTPConnector connector = mediaStreamImpl.getRTPConnector();
+        if(connector == null)
+        {
+            return 0;
+        }
+
+        RTPConnectorOutputStream stream = null;
+        try
+        {
+            stream = connector.getDataOutputStream(false);
+        }
+        catch (IOException e)
+        {
+            //We should not enter here because we are not creating output stream
+        }
+
+        if(stream == null)
+        {
+            return 0;
+        }
+
+        return stream.getNumberOfBytesSent();
     }
 
     /**
@@ -960,6 +961,43 @@ public class MediaStreamStatsImpl
     }
 
     /**
+     * Sets a specific value on {@link #rttMs}. If there is an actual difference
+     * between the old and the new values, notifies the (known)
+     * <tt>CallStatsObserver</tt>s.
+     *
+     * @param rttMs the value to set on <tt>MediaStreamStatsImpl.rttMs</tt>
+     */
+    private void setRttMs(long rttMs)
+    {
+        if (this.rttMs != rttMs)
+        {
+            this.rttMs = rttMs;
+
+            // Notify the CallStatsObservers.
+            rttMs = getRttMs();
+            if (rttMs >= 0)
+            {
+                // RemoteBitrateEstimator is a CallStatsObserver and
+                // VideoMediaStream has a RemoteBitrateEstimator.
+                MediaStream mediaStream = this.mediaStreamImpl;
+
+                if (mediaStream instanceof VideoMediaStream)
+                {
+                    RemoteBitrateEstimator remoteBitrateEstimator
+                        = ((VideoMediaStream) mediaStream)
+                            .getRemoteBitrateEstimator();
+
+                    if (remoteBitrateEstimator instanceof CallStatsObserver)
+                    {
+                        ((CallStatsObserver) remoteBitrateEstimator)
+                            .onRttUpdate(rttMs);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Updates the jitter stream stats with the new feedback sent.
      *
      * @param feedback The last RTCP feedback sent by the MediaStream.
@@ -1078,7 +1116,7 @@ public class MediaStreamStatsImpl
         uploadFeedbackNbPackets = uploadNewNbRecv;
 
         // Computes RTT.
-        rttMs = computeRTTInMs(feedback);
+        setRttMs(computeRTTInMs(feedback));
     }
 
     /**
