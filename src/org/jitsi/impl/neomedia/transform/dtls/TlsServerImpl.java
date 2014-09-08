@@ -242,7 +242,7 @@ public class TlsServerImpl
     public Hashtable getServerExtensions()
         throws IOException
     {
-        Hashtable serverExtensions = super.getServerExtensions();
+        Hashtable serverExtensions = getServerExtensionsOverride();
 
         if (getDtlsControl().isSrtpDisabled())
         {
@@ -289,6 +289,68 @@ public class TlsServerImpl
                 this.chosenProtectionProfile = chosenProtectionProfile;
             }
         }
+        return serverExtensions;
+    }
+
+    /**
+     * FIXME: If Client Hello does not include points format extensions then
+     * we will end up with alert 47 failure caused by NPE on
+     * serverECPointFormats. It was causing JitsiMeet to fail with Android
+     * version of Chrome.
+     *
+     * The fix has been posted upstream and this method should be removed once
+     * it is published.
+     */
+    @SuppressWarnings("rawtypes")
+    private Hashtable getServerExtensionsOverride()
+        throws IOException
+    {
+        if (this.encryptThenMACOffered && allowEncryptThenMAC())
+        {
+            /*
+             * draft-ietf-tls-encrypt-then-mac-03 3. If a server receives an
+             * encrypt-then-MAC request extension from a client and then selects
+             * a stream or AEAD cipher suite, it MUST NOT send an
+             * encrypt-then-MAC response extension back to the client.
+             */
+            if (TlsUtils.isBlockCipherSuite(this.selectedCipherSuite))
+            {
+                TlsExtensionsUtils.addEncryptThenMACExtension(
+                    checkServerExtensions());
+            }
+        }
+
+        if (this.maxFragmentLengthOffered >= 0
+            && MaxFragmentLength.isValid(maxFragmentLengthOffered))
+        {
+            TlsExtensionsUtils.addMaxFragmentLengthExtension(
+                checkServerExtensions(), this.maxFragmentLengthOffered);
+        }
+
+        if (this.truncatedHMacOffered && allowTruncatedHMac())
+        {
+            TlsExtensionsUtils.addTruncatedHMacExtension(
+                checkServerExtensions());
+        }
+
+        if (TlsECCUtils.isECCCipherSuite(this.selectedCipherSuite))
+        {
+            /*
+             * RFC 4492 5.2. A server that selects an ECC cipher suite in
+             * response to a ClientHello message including a Supported Point
+             * Formats Extension appends this extension (along with others) to
+             * its ServerHello message, enumerating the point formats it can
+             * parse.
+             */
+            this.serverECPointFormats = new short[]{
+                ECPointFormat.uncompressed,
+                ECPointFormat.ansiX962_compressed_prime,
+                ECPointFormat.ansiX962_compressed_char2, };
+
+            TlsECCUtils.addSupportedPointFormatsExtension(
+                checkServerExtensions(), serverECPointFormats);
+        }
+
         return serverExtensions;
     }
 
