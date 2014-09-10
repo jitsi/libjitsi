@@ -86,6 +86,12 @@ class DelegatingRTCPReportBuilder
         }
     }
 
+    @Override
+    public RTCPTransmitter getRTCPTransmitter()
+    {
+        return this.rtcpTransmitter;
+    }
+
     /**
      *
      */

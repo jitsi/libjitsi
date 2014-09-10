@@ -9,7 +9,7 @@ package org.jitsi.service.neomedia;
 import net.sf.fmj.media.rtp.*;
 
 /**
- * Created by gp on 7/1/14.
+ * @author George Politis
  */
 public interface RTCPTerminationStrategy
 {
@@ -38,4 +38,13 @@ public interface RTCPTerminationStrategy
      * @param translator
      */
     void setRTPTranslator(RTPTranslator translator);
+
+    /**
+     * Gets the <tt>RTPTranslator</tt> associated to this
+     * <tt>RTCPTerminationStrategy</tt>
+     *
+     * @return the <tt>RTPTranslator</tt> associated to this
+     * <tt>RTCPTerminationStrategy</tt>
+     */
+    RTPTranslator getRTPTranslator();
 }

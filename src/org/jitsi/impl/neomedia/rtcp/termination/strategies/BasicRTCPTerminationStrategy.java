@@ -15,166 +15,66 @@ import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.*;
 
 /**
- * Created by gp on 16/07/14.
+ * Removes report blocks and REMB packets (collectively referred to as receiver
+ * feedback) from incoming receiver/sender reports.
+ *
+ * Updates the feedback cache and makes its own reports based on the feedback
+ * cache information.
+ *
+ * Serves as a base for other RTCP termination strategies.
+ *
+ * @author George Politis
  */
 public class BasicRTCPTerminationStrategy
         implements RTCPTerminationStrategy,
             RTCPPacketTransformer,
             RTCPReportBuilder
 {
-    protected RTCPTransmitter rtcpTransmitter;
+    /**
+     *
+     */
+    private RTCPTransmitter rtcpTransmitter;
+
+    /**
+     *
+     */
+    private final ReceiverReporting receiverReporting;
+
+    /**
+     * The <tt>RTPTranslator</tt> associated with this strategy.
+     */
+    private RTPTranslator translator;
 
     /**
      * A cache of media receiver feedback. It contains both receiver report
      * blocks and REMB packets.
      */
-    protected final FeedbackCache feedbackCache;
+    private final FeedbackCache feedbackCache;
 
     /**
-     * The cache processor that will be making the RTCP reports coming from
-     * the bridge.
+     *
+     * @return
      */
-    private FeedbackCacheProcessor feedbackCacheProcessor;
+    public FeedbackCache getFeedbackCache()
+    {
+        return feedbackCache;
+    }
 
+    /**
+     *
+     */
     public BasicRTCPTerminationStrategy()
     {
         this.feedbackCache = new FeedbackCache();
+        this.receiverReporting = new ReceiverReporting(this);
 
         reset();
     }
 
-    /**
-     * The <tt>RTPTranslator</tt> associated with this strategy.
-     */
-    protected RTPTranslator translator;
-
     @Override
     public RTCPPacket[] makeReports()
     {
-        if (rtcpTransmitter == null)
-            throw new IllegalStateException("rtcpTransmitter is not set");
-
-        RTPTranslator t = this.translator;
-        if (t == null || !(t instanceof RTPTranslatorImpl))
-            return new RTCPPacket[0];
-
-        // Use the SSRC of the bridge that is announced and the endpoints won't
-        // drop the packet.
-        int localSSRC = (int) ((RTPTranslatorImpl)t).getLocalSSRC(null);
-
-        Vector<RTCPPacket> packets = new Vector<RTCPPacket>();
-
-        long time = System.currentTimeMillis();
-        RTCPReportBlock reports[] = makeReceiverReports(time);
-        RTCPReportBlock firstrep[] = reports;
-
-        // If the number of sources for which reception statistics are being
-        // reported exceeds 31, the number that will fit into one SR or RR
-        // packet, then additional RR packets SHOULD follow the initial report
-        // packet.
-        if (reports.length > 31)
-        {
-            firstrep = new RTCPReportBlock[31];
-            System.arraycopy(reports, 0, firstrep, 0, 31);
-        }
-
-        packets.addElement(new RTCPRRPacket(localSSRC, firstrep));
-
-        if (firstrep != reports)
-        {
-            for (int offset = 31; offset < reports.length; offset += 31)
-            {
-                if (reports.length - offset < 31)
-                    firstrep = new RTCPReportBlock[reports.length - offset];
-                System.arraycopy(reports, offset, firstrep, 0, firstrep.length);
-                RTCPRRPacket rrp = new RTCPRRPacket(localSSRC, firstrep);
-                packets.addElement(rrp);
-            }
-
-        }
-
-        // Include REMB.
-
-        // TODO(gp) build REMB packets from scratch.
-        if (this.feedbackCacheProcessor == null)
-        {
-            this.feedbackCacheProcessor
-                    = new FeedbackCacheProcessor(feedbackCache);
-
-            // TODO(gp) make percentile configurable.
-            this.feedbackCacheProcessor.setPercentile(70);
-        }
-
-        RTCPPacket[] bestReceiverFeedback = feedbackCacheProcessor.makeReports(
-                localSSRC);
-        if (bestReceiverFeedback != null && bestReceiverFeedback.length != 0)
-        {
-            for (RTCPPacket packet : bestReceiverFeedback)
-            {
-                if (packet.type == RTCPFBPacket.PSFB
-                        && packet instanceof RTCPFBPacket
-                        && ((RTCPFBPacket)packet).fmt == RTCPREMBPacket.FMT)
-                {
-                    packets.add(packet);
-                }
-            }
-        }
-
-        // TODO(gp) for RTCP compound packets MUST contain an SDES packet.
-
-        // Copy into an array and return.
-        RTCPPacket[] res = new RTCPPacket[packets.size()];
-        packets.copyInto(res);
-        return res;
-    }
-
-    private RTCPReportBlock[] makeReceiverReports(long time)
-    {
-        Vector<RTCPReportBlock> reports = new Vector<RTCPReportBlock>();
-
-        // Make receiver reports for all known SSRCs.
-        for (Enumeration<SSRCInfo> elements = rtcpTransmitter.cache.cache.elements();
-             elements.hasMoreElements();)
-        {
-            SSRCInfo info = elements.nextElement();
-            if (!info.ours && info.sender)
-            {
-                int ssrc = info.ssrc;
-                long lastseq = info.maxseq + info.cycles;
-                int jitter = (int) info.jitter;
-                long lsr = (int) ((info.lastSRntptimestamp & 0x0000ffffffff0000L) >> 16);
-                long dlsr = (int) ((time - info.lastSRreceiptTime) * 65.536000000000001D);
-                int packetslost = (int) (((lastseq - info.baseseq) + 1L) - info.received);
-
-                if (packetslost < 0)
-                    packetslost = 0;
-                double frac = (double) (packetslost - info.prevlost)
-                        / (double) (lastseq - info.prevmaxseq);
-                if (frac < 0.0D)
-                    frac = 0.0D;
-
-                int fractionlost  =(int) (frac * 256D);
-                RTCPReportBlock receiverReport = new RTCPReportBlock(
-                    ssrc,
-                    fractionlost,
-                    packetslost,
-                    lastseq,
-                    jitter,
-                    lsr,
-                    dlsr
-                );
-
-
-                info.prevmaxseq = (int) lastseq;
-                info.prevlost = packetslost;
-                reports.addElement(receiverReport);
-            }
-        }
-
-        // Copy into an array and return.
-        RTCPReportBlock res[] = new RTCPReportBlock[reports.size()];
-        reports.copyInto(res);
-        return res;
+        return receiverReporting.makeReports();
     }
 
     @Override
@@ -187,6 +87,12 @@ public class BasicRTCPTerminationStrategy
     public void setRTCPTransmitter(RTCPTransmitter rtcpTransmitter)
     {
         this.rtcpTransmitter = rtcpTransmitter;
+    }
+
+    @Override
+    public RTCPTransmitter getRTCPTransmitter()
+    {
+        return this.rtcpTransmitter;
     }
 
     @Override
@@ -204,6 +110,12 @@ public class BasicRTCPTerminationStrategy
     @Override
     public void setRTPTranslator(RTPTranslator translator) {
         this.translator = translator;
+    }
+
+    @Override
+    public RTPTranslator getRTPTranslator()
+    {
+        return this.translator;
     }
 
     /**

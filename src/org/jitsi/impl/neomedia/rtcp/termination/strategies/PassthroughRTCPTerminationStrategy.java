@@ -15,7 +15,7 @@ import org.jitsi.service.neomedia.*;
  * receiver reports using the FMJ built-in algorithm. This is the default
  * behavior, at least for now.
  *
- * Created by gp on 7/1/14.
+ * @author George Politis
  */
 public class PassthroughRTCPTerminationStrategy
     implements RTCPTerminationStrategy
@@ -41,5 +41,11 @@ public class PassthroughRTCPTerminationStrategy
     @Override
     public void setRTPTranslator(RTPTranslator translator) {
         // Nothing to do here.
+    }
+
+    @Override
+    public RTPTranslator getRTPTranslator()
+    {
+        return null;
     }
 }

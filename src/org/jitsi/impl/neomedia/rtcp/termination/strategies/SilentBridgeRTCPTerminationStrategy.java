@@ -15,7 +15,7 @@ import org.jitsi.service.neomedia.*;
  * anything. This strategy will be useful for conferences for up to 2
  * participants.
  *
- * Created by gp on 7/1/14.
+ * @author George Politis
  */
 public class SilentBridgeRTCPTerminationStrategy
     implements RTCPTerminationStrategy
@@ -42,5 +42,11 @@ public class SilentBridgeRTCPTerminationStrategy
     @Override
     public void setRTPTranslator(RTPTranslator translator) {
         // Nothing to do here.
+    }
+
+    @Override
+    public RTPTranslator getRTPTranslator()
+    {
+        return null;
     }
 }

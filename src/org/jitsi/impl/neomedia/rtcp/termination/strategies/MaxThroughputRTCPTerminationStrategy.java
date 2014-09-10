@@ -18,12 +18,13 @@ import java.util.*;
  * largest possible exp and mantissa values. This strategy is only meant to be
  * used in tests.
  *
- * Created by gp on 7/1/14.
+ * @author George Politis
  */
 public class MaxThroughputRTCPTerminationStrategy
         implements RTCPTerminationStrategy, RTCPPacketTransformer
 {
     private final RTCPReportBuilder reportBuilder
+            // TODO(gp) create an RTCPReportBuilderImpl that reports feedback using the announced SSRC of the bridge
             = new DefaultRTCPReportBuilderImpl();
 
     public static final int MAX_MANTISSA = 262143;
@@ -101,5 +102,11 @@ public class MaxThroughputRTCPTerminationStrategy
     @Override
     public void setRTPTranslator(RTPTranslator translator) {
         // Nothing to do here.
+    }
+
+    @Override
+    public RTPTranslator getRTPTranslator()
+    {
+        return null;
     }
 }

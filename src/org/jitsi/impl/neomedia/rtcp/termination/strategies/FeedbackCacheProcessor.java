@@ -12,7 +12,7 @@ import org.jitsi.impl.neomedia.rtcp.*;
 import java.util.*;
 
 /**
-* Created by gp on 11/07/14.
+* @author George Politis
 */
 public class FeedbackCacheProcessor
 {

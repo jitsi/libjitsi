@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /**
- * Created by gp on 22/07/14.
+ * @author George Politis
  */
 public class FeedbackCache
 {

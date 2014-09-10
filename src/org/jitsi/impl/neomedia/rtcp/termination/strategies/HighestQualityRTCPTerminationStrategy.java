@@ -111,7 +111,7 @@ import org.jitsi.service.neomedia.*;
  * score and we then report that one.
  * </p>
  *
- * Created by gp on 7/4/14.
+ * @author George Politis
  */
 public class HighestQualityRTCPTerminationStrategy
         extends BasicRTCPTerminationStrategy
@@ -127,7 +127,7 @@ public class HighestQualityRTCPTerminationStrategy
     {
         // Uses the cache processor to make the RTCP reports.
 
-        RTPTranslator t = this.translator;
+        RTPTranslator t = this.getRTPTranslator();
         if (t == null || !(t instanceof RTPTranslatorImpl))
             return new RTCPPacket[0];
 
@@ -136,7 +136,7 @@ public class HighestQualityRTCPTerminationStrategy
         if (this.feedbackCacheProcessor == null)
         {
             this.feedbackCacheProcessor
-                    = new FeedbackCacheProcessor(feedbackCache);
+                    = new FeedbackCacheProcessor(getFeedbackCache());
 
             // TODO(gp) make percentile configurable.
             this.feedbackCacheProcessor.setPercentile(70);
