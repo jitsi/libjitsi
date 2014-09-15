@@ -198,13 +198,11 @@ public class Define
 
     static final int MAX_MATRIX_SIZE =                        MAX_LPC_ORDER; /* Max of LPC Order and LTP order */
 
-//TODO: convert a macro to a method.
+    @SuppressWarnings("unused")
     static int NSQ_LPC_BUF_LENGTH()
     {
-        if(MAX_LPC_ORDER > DECISION_DELAY)
-            return MAX_LPC_ORDER;
-        else
-            return DECISION_DELAY;
+        return
+            (MAX_LPC_ORDER > DECISION_DELAY) ? MAX_LPC_ORDER : DECISION_DELAY;
     }
     /***********************/
     /* High pass filtering */
@@ -242,6 +240,7 @@ public class Define
     static final int MAX_NLSF_MSVQ_SURVIVORS_MC_MODE =        4;
 
     /* Based on above defines, calculate how much memory is necessary to allocate */
+    @SuppressWarnings("unused")
     static int NLSF_MSVQ_TREE_SEARCH_MAX_VECTORS_EVALUATED_LC_MODE()
     {
         if(NLSF_MSVQ_MAX_VECTORS_IN_STAGE > ( MAX_NLSF_MSVQ_SURVIVORS_LC_MODE * NLSF_MSVQ_MAX_VECTORS_IN_STAGE_TWO_TO_END ))
@@ -250,6 +249,7 @@ public class Define
             return MAX_NLSF_MSVQ_SURVIVORS_LC_MODE * NLSF_MSVQ_MAX_VECTORS_IN_STAGE_TWO_TO_END;
     }
 
+    @SuppressWarnings("unused")
     static int NLSF_MSVQ_TREE_SEARCH_MAX_VECTORS_EVALUATED()
     {
         if( NLSF_MSVQ_MAX_VECTORS_IN_STAGE > ( MAX_NLSF_MSVQ_SURVIVORS * NLSF_MSVQ_MAX_VECTORS_IN_STAGE_TWO_TO_END ) )
