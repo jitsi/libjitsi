@@ -637,8 +637,9 @@ public class SRTCPCryptoContext
                 mac.init(pfs);
                 break;
             }
+
+            Arrays.fill(authKey, (byte)0);
         }
-        Arrays.fill(authKey, (byte)0);
 
         // compute the session salt
         label = 5;

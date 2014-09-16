@@ -1225,17 +1225,14 @@ public class ZRTPTransformEngine
      *
      *
      * @param  index
-     *         Hello hash of the Hello packet identfied by index. Index must
+     *         Hello hash of the Hello packet identified by index. Index must
      *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
      *
      * @return the Hello packet hash
      */
     public String getHelloHash(int index)
     {
-        return
-            (zrtpEngine != null)
-                ? zrtpEngine.getHelloHash(index)
-                : new String();
+        return (zrtpEngine != null) ? zrtpEngine.getHelloHash(index) : "";
     }
 
     /**
@@ -1266,8 +1263,7 @@ public class ZRTPTransformEngine
      */
     public String getPeerHelloHash()
     {
-        return
-            (zrtpEngine != null) ? zrtpEngine.getPeerHelloHash() : new String();
+        return (zrtpEngine != null) ? zrtpEngine.getPeerHelloHash() : "";
     }
 
     /**

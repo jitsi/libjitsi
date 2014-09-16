@@ -50,7 +50,7 @@ public class FeedbackCacheProcessor
     /**
      * Lightweight report block information placeholder.
      */
-    class RRData
+    static class RRData
     {
         int fraction;
         long lost;
@@ -63,7 +63,7 @@ public class FeedbackCacheProcessor
     /**
      * Lightweight REMB packet information placeholder.
      */
-    class REMBData
+    static class REMBData
     {
         int exp;
         int mantissa;
@@ -74,7 +74,7 @@ public class FeedbackCacheProcessor
      * may hold a reference to the base UDP packet. It'd be a waste of space to
      * keep that in memory since we don't need it.
      */
-    class FeedbackData
+    static class FeedbackData
     {
         REMBData remb;
         RRData rr;

@@ -483,7 +483,7 @@ public class SynchronizerImpl
     /**
      * Represents an SSRC for the purpose of this <tt>Synchronizer</tt>.
      */
-    private class SSRCDesc
+    private static class SSRCDesc
     {
         /**
          * The string identifying the endpoint associated with this SSRC.
@@ -505,7 +505,7 @@ public class SynchronizerImpl
      * between a wallclock at the endpoint and a time we chose on the local
      * system clock to correcpond to it.
      */
-    private class Endpoint
+    private static class Endpoint
     {
         /**
          * The time in seconds on the "endpoint"'s clock.
@@ -521,7 +521,7 @@ public class SynchronizerImpl
     /**
      * Represents an item of type CNAME from an RTCP SDES packet.
      */
-    private class CNAMEItem
+    private static class CNAMEItem
     {
         /**
          * The SSRC of the item.
@@ -534,4 +534,3 @@ public class SynchronizerImpl
         String cname;
     }
 }
-

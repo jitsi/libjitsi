@@ -227,7 +227,7 @@ class FECSender
      *
      * Followed by 'Protection Length' bytes of 'FEC Level 0 Payload'.
      */
-    private class FECPacket
+    private static class FECPacket
         extends RawPacket
     {
         /**

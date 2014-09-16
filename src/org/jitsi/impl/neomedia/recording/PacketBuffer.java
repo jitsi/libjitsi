@@ -6,10 +6,10 @@
  */
 package org.jitsi.impl.neomedia.recording;
 
+import java.util.*;
+
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
-
-import java.util.*;
 
 /**
  * A <tt>TransformEngine</tt> and <tt>PacketTransformer</tt> which implement
@@ -224,7 +224,7 @@ public class PacketBuffer
     /**
      * Represents a buffer for <tt>RawPacket</tt>s.
      */
-    private class Buffer
+    private static class Buffer
     {
         /**
          * The actual contents of this <tt>Buffer</tt>.

@@ -145,10 +145,7 @@ public class ZrtpControlImpl
     public String getPeerHelloHash() {
         ZRTPTransformEngine zrtpEngine = this.transformEngine;
 
-        if (zrtpEngine != null)
-            return zrtpEngine.getPeerHelloHash();
-        else
-            return new String();
+        return (zrtpEngine != null) ? zrtpEngine.getPeerHelloHash() : "";
     }
 
     /*

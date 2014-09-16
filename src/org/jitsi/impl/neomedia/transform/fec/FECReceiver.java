@@ -6,11 +6,11 @@
  */
 package org.jitsi.impl.neomedia.transform.fec;
 
+import java.util.*;
+
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.util.*;
-
-import java.util.*;
 
 /**
  * A <tt>PacketTransformer</tt> which handles incoming ulpfec packets
@@ -89,7 +89,7 @@ class FECReceiver
     /**
      * Output buffer maximum size.
      */
-    private static int OUTPUT_BUFFER_MAX_SIZE = 4;
+//    private static int OUTPUT_BUFFER_MAX_SIZE = 4;
 
     /**
      * Buffer which keeps (copies of) received media packets.
@@ -354,7 +354,7 @@ class FECReceiver
      * 3. Recover a packet with recover()
      *
      */
-    private class Reconstructor
+    private static class Reconstructor
     {
         /**
          * Subset of the media packets which is needed for recovery, given a

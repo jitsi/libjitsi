@@ -568,7 +568,7 @@ public class DePacketizer
     /**
      * A simple container for a <tt>byte[]</tt> and an integer.
      */
-    private class Container
+    private static class Container
     {
         /**
          * This <tt>Container</tt>'s data.
