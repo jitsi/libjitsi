@@ -51,11 +51,6 @@ Copyright:
  2011 School of Engineering Institute of Mobile and Distributed Systems (IMVS)
 License: LGPL-2.1
 
-Files: lib/src/weupnp/*
-Copyright:
- 2008 Alessandro Bahgat Shehata, Daniele Castagna
-License: LGPL-2.1
-
 Files: lib/src/usrsctp/*
 Copyright:
  2001, 2002 Cisco Systems, Inc.

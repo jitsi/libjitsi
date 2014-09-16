@@ -1,3 +1,4 @@
+Description: Fixes compilation errors when using jdk8.
 Index: libjitsi/lib/src/jsip/src/gov/nist/core/MultiMap.java
 ===================================================================
 --- libjitsi.orig/lib/src/jsip/src/gov/nist/core/MultiMap.java
