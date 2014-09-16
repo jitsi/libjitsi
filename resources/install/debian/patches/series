@@ -2,3 +2,5 @@ bouncycastle-1.49.patch
 bouncycastle-1.51.patch
 remove-hflip
 libav10.patch
+encoding.patch
+jdk8
