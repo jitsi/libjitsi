@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.g729;
 
+import java.awt.*;
 import java.util.*;
 
 import javax.media.*;
@@ -15,6 +16,7 @@ import net.sf.fmj.media.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.service.neomedia.control.*;
 
 /**
  *
@@ -22,6 +24,7 @@ import org.jitsi.impl.neomedia.codec.*;
  */
 public class JavaEncoder
     extends AbstractCodec2
+    implements AdvancedAttributesAwareCodec
 {
     private static final short BIT_1 = Ld8k.BIT_1;
 
@@ -32,6 +35,12 @@ public class JavaEncoder
     private static final int INPUT_FRAME_SIZE_IN_BYTES = 2 * L_FRAME;
 
     private static final int OUTPUT_FRAME_SIZE_IN_BYTES = L_FRAME / 8;
+
+    /**
+     * The count of the output frames to packetize. By default we packetize
+     * 2 audio frames in one G729 packet.
+     */
+    private int OUTPUT_FRAMES_COUNT = 2;
 
     private Coder coder;
 
@@ -57,9 +66,10 @@ public class JavaEncoder
 
     /**
      * The duration an output <tt>Buffer</tt> produced by this <tt>Codec</tt>
-     * in nanosecond. We packetize 2 audio frames in one G729 packet.
+     * in nanosecond. We packetize 2 audio frames in one G729 packet by default.
      */
-    private int duration = OUTPUT_FRAME_SIZE_IN_BYTES * 2 * 1000000;
+    private int duration
+        = OUTPUT_FRAME_SIZE_IN_BYTES * OUTPUT_FRAMES_COUNT * 1000000;
 
     /**
      * Initializes a new <code>JavaEncoder</code> instance.
@@ -89,6 +99,8 @@ public class JavaEncoder
                                 AudioFormat.LITTLE_ENDIAN,
                                 AudioFormat.SIGNED)
                     };
+
+        addControl(this);
     }
 
     /**
@@ -162,7 +174,7 @@ public class JavaEncoder
      *
      * @throws ResourceUnavailableException if any of the resources that this
      * <tt>Codec</tt> needs to operate cannot be acquired
-     * @see AbstractCodecExt#doOpen()
+     * @see AbstractCodec2#doOpen()
      */
     @Override
     protected void doOpen()
@@ -223,7 +235,8 @@ public class JavaEncoder
         byte[] output
             = validateByteArraySize(
                     outBuffer,
-                    outBuffer.getOffset() + 2 * OUTPUT_FRAME_SIZE_IN_BYTES,
+                    outBuffer.getOffset()
+                        + OUTPUT_FRAMES_COUNT * OUTPUT_FRAME_SIZE_IN_BYTES,
                     true);
 
         packetize(
@@ -237,11 +250,11 @@ public class JavaEncoder
 
         int ret = BUFFER_PROCESSED_OK;
 
-        if (outFrameCount == 1)
+        if (outFrameCount == (OUTPUT_FRAMES_COUNT - 1))
             outFrameCount = 0;
         else
         {
-            outFrameCount = 1;
+            outFrameCount++;
             ret |= OUTPUT_BUFFER_NOT_FILLED;
         }
         if (inLength > 0)
@@ -285,5 +298,42 @@ public class JavaEncoder
         for (int o=outOffset, i=inOffset; o<outLength; o++, i+=2)
             out[o] = ArrayIOUtils.readShort(in, i);
         return outLength;
+    }
+
+    /**
+     * Sets the additional attributes to <tt>attributes</tt>
+     *
+     * @param attributes The additional attributes to set
+     */
+    @Override
+    public void setAdvancedAttributes(Map<String, String> attributes)
+    {
+        try
+        {
+            String s = attributes.get("ptime");
+
+            if ((s != null) && (s.length() != 0))
+            {
+                int ptime = Integer.parseInt(s);
+
+                OUTPUT_FRAMES_COUNT = ptime / OUTPUT_FRAME_SIZE_IN_BYTES;
+                duration =
+                    OUTPUT_FRAME_SIZE_IN_BYTES * OUTPUT_FRAMES_COUNT * 1000000;
+            }
+        }
+        catch (Exception e)
+        {
+            // Ignore
+        }
+    }
+
+    /**
+     * Not used.
+     * @return null as it is not used.
+     */
+    @Override
+    public Component getControlComponent()
+    {
+        return null;
     }
 }

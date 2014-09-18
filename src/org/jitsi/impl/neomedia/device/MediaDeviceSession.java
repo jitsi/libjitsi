@@ -1467,6 +1467,18 @@ public class MediaDeviceSession
                 if (formatParameters != null)
                     fpac.setFormatParameters(formatParameters);
             }
+            for (AdvancedAttributesAwareCodec aaac
+                    : getAllTrackControls(
+                            AdvancedAttributesAwareCodec.class,
+                            processor))
+            {
+                Map<String, String> advanceAttrs
+                        = format == null
+                        ? null
+                        : format.getAdvancedAttributes();
+                if (advanceAttrs != null)
+                    aaac.setAdvancedAttributes(advanceAttrs);
+            }
         }
     }
 
