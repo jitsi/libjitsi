@@ -40,8 +40,6 @@ Build-Depends: debhelper (>= 9), javahelper,
                libswscale-dev (>= 6:10~),
                libpulse-dev
 Standards-Version: 3.9.5
-Vcs-Git: https://github.com/jitsi/libjitsi.git
-Vcs-Browser: https://github.com/jitsi/libjitsi
 
 
 Package: libjitsi
