@@ -221,4 +221,13 @@ public class RTCPREMBPacket extends RTCPFBPacket
                 + "\n\t\tBR Exp: " + exp
                 + "\n\t\tBR Mantissa: " + mantissa;
     }
+
+    /**
+     * Gets the bitrate described in this packet in bits per second.
+     * @return the bitrate described in this packet in bits per second.
+     */
+    public long getBitrate()
+    {
+        return (long) (mantissa * Math.pow(2, exp));
+    }
 }
