@@ -33,7 +33,7 @@ public interface ActiveSpeakerDetector
      * active stream changes.
      *
      * @param listener the listener to register with this instance for
-     * notificatons about changes of the active speaker
+     * notifications about changes of the active speaker
      */
     public void addActiveSpeakerChangedListener(
             ActiveSpeakerChangedListener listener);
@@ -54,7 +54,7 @@ public interface ActiveSpeakerDetector
      * detector when the active stream changes.
      *
      * @param listener the listener to unregister with this instance for
-     * notificatons about changes of the active speaker
+     * notifications about changes of the active speaker
      */
     public void removeActiveSpeakerChangedListener(
             ActiveSpeakerChangedListener listener);
