@@ -98,22 +98,21 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * Computes the bandwidth usage in Kilo bits per seconds.
+     * Computes the bitrate in kbps.
      *
-     * @param nbByteRecv The number of Byte received.
-     * @param callNbTimeMsSpent The time spent since the mediaStreamImpl is
-     * connected to the endpoint.
+     * @param nbBytes The number of bytes received.
+     * @param intervalMs The number of milliseconds during which
+     * <tt>nbBytes</tt> bytes were sent or received.
      *
-     * @return the bandwidth rate computed in Kilo bits per seconds.
+     * @return the bitraterate computed in kbps (1000 bits per second)
      */
     private static double computeRateKiloBitPerSec(
-            long nbByteRecv,
-            long callNbTimeMsSpent)
+            long nbBytes,
+            long intervalMs)
     {
-        return
-            (nbByteRecv == 0)
-                ? 0
-                : ((nbByteRecv * 8.0 / 1000.0) / (callNbTimeMsSpent / 1000.0));
+        return intervalMs == 0
+            ? 0
+            : (nbBytes * 8.0) / intervalMs;
     }
 
     /**
@@ -1198,14 +1197,12 @@ public class MediaStreamStatsImpl
 
         // Computes the bandwidth used by this stream.
         double newRateKiloBitPerSec
-            = MediaStreamStatsImpl.computeRateKiloBitPerSec(
-                    newNbByte - nbByte[streamDirectionIndex],
-                    currentTimeMs - updateTimeMs);
+            = computeRateKiloBitPerSec(newNbByte - nbByte[streamDirectionIndex],
+                                       currentTimeMs - updateTimeMs);
         rateKiloBitPerSec[streamDirectionIndex]
-            = MediaStreamStatsImpl.computeEWMA(
-                    nbSteps,
-                    rateKiloBitPerSec[streamDirectionIndex],
-                    newRateKiloBitPerSec);
+            = computeEWMA(nbSteps,
+                          rateKiloBitPerSec[streamDirectionIndex],
+                          newRateKiloBitPerSec);
 
         // Saves the last update values.
         nbPackets[streamDirectionIndex] = newNbRecv;

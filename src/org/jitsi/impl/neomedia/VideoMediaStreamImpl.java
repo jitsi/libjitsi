@@ -169,15 +169,6 @@ public class VideoMediaStreamImpl
             res[1] = new java.awt.Dimension(val[1], val[3]);
         }
 
-        token = null;
-        mSingle = null;
-        mRange = null;
-        m = null;
-        pRecvRange = null;
-        pSendSingle = null;
-        pRecvSingle = null;
-        pSendRange = null;
-
         return res;
     }
 
