@@ -13,6 +13,7 @@ import java.util.concurrent.*;
 
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.json.simple.*;
 
 /**
  * Implements {@link ActiveSpeakerDetector} with inspiration from the paper
@@ -46,6 +47,13 @@ public class DominantSpeakerIdentification
     private static final double C3 = 0;
 
     /**
+     * The indicator which determines whether the
+     * <tt>DominantSpeakerIdentification</tt> class and its instances are to
+     * execute in debug mode.
+     */
+    private static final boolean DEBUG;
+
+    /**
      * The interval in milliseconds of the activation of the identification of
      * the dominant speaker in a multipoint conference.
      */
@@ -68,14 +76,6 @@ public class DominantSpeakerIdentification
         = DominantSpeakerIdentification.class.getName() + ".dominantSpeaker";
 
     /**
-     * The name of the <tt>DominantSpeakerIdentification</tt> property
-     * <tt>internals</tt> which exposes internal information about/state of the
-     * <tt>DominantSpeakerIdentification</tt> instance.
-     */
-    public static final String INTERNALS_PROPERTY_NAME
-        = DominantSpeakerIdentification.class.getName() + ".internals";
-
-    /**
      * The interval of time without a call to {@link Speaker#levelChanged(int)}
      * after which <tt>DominantSpeakerIdentification</tt> assumes that there
      * will be no report of a <tt>Speaker</tt>'s level within a certain
@@ -85,6 +85,13 @@ public class DominantSpeakerIdentification
      * <tt>20</tt> and <tt>30</tt>. 
      */
     private static final long LEVEL_IDLE_TIMEOUT = 40;
+
+    /**
+     * The <tt>Logger</tt> used by the <tt>DominantSpeakerIdentification</tt>
+     * class and its instances to print debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(DominantSpeakerIdentification.class);
 
     /**
      * The (total) number of long time-intervals used for speech activity score
@@ -111,7 +118,7 @@ public class DominantSpeakerIdentification
      * function and the latter is undefined for negative arguments and (2) we
      * will be dividing by the speech activity score.
      */
-    private static final double MIN_SPEECH_ACTIVITY_SCORE = 0.0000000001;
+    private static final double MIN_SPEECH_ACTIVITY_SCORE = 0.0000000001D;
 
     /**
      * The (total) number of sub-bands in the frequency range evaluated for
@@ -160,6 +167,11 @@ public class DominantSpeakerIdentification
                 true,
                 "DominantSpeakerIdentification");
 
+    static
+    {
+        DEBUG = logger.isDebugEnabled();
+    }
+
     /**
      * Computes the binomial coefficient indexed by <tt>n</tt> and <tt>r</tt>
      * i.e. the number of ways of picking <tt>r</tt> unordered outcomes from
@@ -171,7 +183,7 @@ public class DominantSpeakerIdentification
      * i.e. the number of ways of picking <tt>r</tt> unordered outcomes from
      * <tt>n</tt> possibilities
      */
-    public static long binomialCoefficient(int n, int r)
+    private static long binomialCoefficient(int n, int r)
     {
         int m = n - r; // r = Math.max(r, n - r);
 
@@ -321,6 +333,70 @@ public class DominantSpeakerIdentification
     {
         if (this.decisionMaker == decisionMaker)
             this.decisionMaker = null;
+    }
+
+    /**
+     * Retrieves a JSON representation of this instance for the purposes of the
+     * REST API of Videobridge.
+     * <p>
+     * By the way, the method name reflects the fact that the method handles an
+     * HTTP GET request.
+     * </p>
+     *
+     * @return a <tt>JSONObject</tt> which represents this instance of the
+     * purposes of the REST API of Videobridge
+     */
+    @SuppressWarnings("unchecked")
+    public JSONObject doGetJSON()
+    {
+        JSONObject jsonObject;
+
+        if (DEBUG)
+        {
+            synchronized (this)
+            {
+                jsonObject = new JSONObject();
+
+                // dominantSpeaker
+                long dominantSpeaker = getDominantSpeaker();
+
+                jsonObject.put(
+                        "dominantSpeaker",
+                        (dominantSpeaker == -1)
+                            ? null
+                            : Long.valueOf(dominantSpeaker));
+
+                // speakers
+                Collection<Speaker> speakersCollection = this.speakers.values();
+                JSONObject[] speakersArray = new JSONObject[speakers.size()];
+                int i = 0;
+
+                for (Speaker speaker : speakersCollection)
+                {
+                    JSONObject speakerJSONObject = new JSONObject();
+
+                    // ssrc
+                    speakerJSONObject.put("ssrc", Long.valueOf(speaker.ssrc));
+
+                    // levels
+                    CircularByteArray levels = speaker.getLevels();
+
+                    speakerJSONObject.put(
+                            "levels",
+                            (levels == null) ? null : levels.toArray());
+                    speakersArray[i++] = speakerJSONObject;
+                }
+                jsonObject.put("speakers", speakersArray);
+            }
+        }
+        else
+        {
+            // Retrieving a JSON representation of a
+            // DominantSpeakerIdentification has been implemented for the
+            // purposes of debugging only.
+            jsonObject = null;
+        }
+        return jsonObject;
     }
 
     /**
@@ -759,6 +835,116 @@ public class DominantSpeakerIdentification
     }
 
     /**
+     * Implements a circular <tt>byte</tt> array.
+     *
+     * @author Lyubomir Marinov
+     */
+    private static class CircularByteArray
+    {
+        /**
+         * The elements of this <tt>CircularByteArray</tt>.
+         */
+        private final byte[] elements;
+
+        /**
+         * The index at which the next invocation of {@link #push(byte)} is to
+         * insert an element.
+         */
+        private int tail;
+
+        /**
+         * Initializes a new <tt>CircularBufferArray</tt> instance with a
+         * specific length.
+         *
+         * @param length the length i.e. the number of elements of the new
+         * instance
+         */
+        public CircularByteArray(int length)
+        {
+            elements = new byte[length];
+            tail = 0;
+        }
+
+        /**
+         * Adds a specific element at the end of this
+         * <tt>CircularByteArray</tt>.
+         *
+         * @param element the element to add at the end of this
+         * <tt>CircularByteArray</tt>
+         */
+        public synchronized void push(byte element)
+        {
+            int tail = this.tail;
+
+            elements[tail] = element;
+            tail++;
+            if (tail >= elements.length)
+                tail = 0;
+            this.tail = tail;
+        }
+
+        /**
+         * Copies the elements of this <tt>CircularByteArray</tt> into a new
+         * <tt>byte</tt> array.
+         *
+         * @return a new <tt>byte</tt> array which contains the same elements
+         * and in the same order as this <tt>CircularByteArray</tt>
+         */
+        public synchronized byte[] toArray()
+        {
+            byte[] elements = this.elements;
+            byte[] array;
+
+            if (elements == null)
+            {
+                array = null;
+            }
+            else
+            {
+                array = new byte[elements.length];
+                for (int i = 0, index = tail; i < elements.length; i++)
+                {
+                    array[i] = elements[index];
+                    index++;
+                    if (index >= elements.length)
+                        index = 0;
+                }
+            }
+            return array;
+        }
+
+        /**
+         * Retrieves a JSON representation of this <tt>CircularByteArray</tt>.
+         *
+         * @return a new <tt>JSONArray</tt> instance which contains the same
+         * elements and in the same order as this <tt>CircularByteArray</tt>
+         */
+        @SuppressWarnings({ "unchecked", "unused" })
+        public synchronized JSONArray toJSONArray()
+        {
+            byte[] elements = this.elements;
+            JSONArray jsonArray;
+
+            if (elements == null)
+            {
+                jsonArray = null;
+            }
+            else
+            {
+                jsonArray = new JSONArray();
+                for (int i = 0, index = tail; i < elements.length; i++)
+                {
+                    jsonArray.add(Byte.valueOf(elements[index]));
+                    index++;
+                    if (index >= elements.length)
+                        index = 0;
+                }
+            }
+            return jsonArray;
+        }
+    }
+
+    /**
      * Represents the background thread which repeatedly makes the (global)
      * decision about speaker switches. Weakly references an associated
      * <tt>DominantSpeakerIdentification</tt> instance in order to eventually
@@ -930,6 +1116,12 @@ public class DominantSpeakerIdentification
          */
         private long lastLevelChangedTime = System.currentTimeMillis();
 
+        /**
+         * The (history of) audio levels received or measured for this
+         * <tt>Speaker</tt>.
+         */
+        private final CircularByteArray levels;
+
         private final byte[] longs = new byte[LONG_COUNT];
 
         /**
@@ -962,24 +1154,31 @@ public class DominantSpeakerIdentification
         public Speaker(long ssrc)
         {
             this.ssrc = ssrc;
+
+            levels = DEBUG ? new CircularByteArray(immediates.length) : null;
         }
 
         private void computeImmediates(int level)
         {
-            /*
-             * Ensure that the specified (audio) level is within the supported
-             * range.
-             */
+            // Ensure that the specified (audio) level is within the supported
+            // range.
+            byte b;
+
             if (level < MIN_LEVEL)
-                level = MIN_LEVEL;
+                b = MIN_LEVEL;
             else if (level > MAX_LEVEL)
-                level = MAX_LEVEL;
+                b = MAX_LEVEL;
+            else
+                b = (byte) level;
+
+            if (levels != null)
+                levels.push(b);
 
             System.arraycopy(
                     immediates, 0,
                     immediates, 1,
                     immediates.length - 1);
-            immediates[0] = (byte) (level / N1);
+            immediates[0] = (byte) (b / N1);
         }
 
         private boolean computeLongs()
@@ -1048,6 +1247,18 @@ public class DominantSpeakerIdentification
         public synchronized long getLastLevelChangedTime()
         {
             return lastLevelChangedTime;
+        }
+
+        /**
+         * Gets the (history of) audio levels received or measured for this
+         * <tt>Speaker</tt>.
+         *
+         * @return a <tt>CircularByteArray</tt> which represents the (history
+         * of) audio levels received or measured for this <tt>Speaker</tt>
+         */
+        CircularByteArray getLevels()
+        {
+            return levels;
         }
 
         /**
