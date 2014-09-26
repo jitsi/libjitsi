@@ -296,7 +296,13 @@ public class DtlsControlImpl
                 X500Name subject,
                 AsymmetricCipherKeyPair keyPair)
     {
-        try
+    	// get system prop algorithm override
+    	String signatureAlgorithm = System.getProperty(Version.PNAME_SIGNATURE_ALGORITHM);
+    	// default to sha1
+    	if (StringUtils.isNullOrEmpty(signatureAlgorithm, true)) {
+    		signatureAlgorithm = "SHA1withRSA";
+    	}
+        try 
         {
             long now = System.currentTimeMillis();
             Date notBefore = new Date(now - ONE_DAY);
@@ -314,7 +320,7 @@ public class DtlsControlImpl
                                     keyPair.getPublic()));
             AlgorithmIdentifier sigAlgId
                 = new DefaultSignatureAlgorithmIdentifierFinder()
-                    .find("SHA1withRSA");
+                    .find(signatureAlgorithm);
             AlgorithmIdentifier digAlgId
                 = new DefaultDigestAlgorithmIdentifierFinder().find(sigAlgId);
             ContentSigner signer
