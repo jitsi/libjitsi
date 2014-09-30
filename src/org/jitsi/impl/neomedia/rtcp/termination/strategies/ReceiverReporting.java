@@ -6,12 +6,13 @@
  */
 package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
+import java.util.*;
+
 import net.sf.fmj.media.rtp.*;
+
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.*;
-
-import java.util.*;
 
 /**
  * @author George Politis
@@ -172,12 +173,9 @@ public class ReceiverReporting
 
     private RTCPReportBlock[] makeReceiverReports(long time)
     {
-        Map<Integer, RTCPReportBlock> map = makeReceiverReportsMap(time);
-        Vector<RTCPReportBlock> reports = new Vector(map.values());
+        Collection<RTCPReportBlock> reports
+            = makeReceiverReportsMap(time).values();
 
-        // Copy into an array and return.
-        RTCPReportBlock res[] = new RTCPReportBlock[reports.size()];
-        reports.copyInto(res);
-        return res;
+        return reports.toArray(new RTCPReportBlock[reports.size()]);
     }
 }

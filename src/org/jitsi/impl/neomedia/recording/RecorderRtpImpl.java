@@ -6,7 +6,17 @@
  */
 package org.jitsi.impl.neomedia.recording;
 
-import com.sun.media.util.*;
+import java.io.*;
+import java.lang.reflect.*;
+import java.util.*;
+
+import javax.media.*;
+import javax.media.control.*;
+import javax.media.format.*;
+import javax.media.protocol.*;
+import javax.media.rtp.*;
+import javax.media.rtp.event.*;
+
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.audiolevel.*;
 import org.jitsi.impl.neomedia.codec.*;
@@ -26,15 +36,7 @@ import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.util.*;
 
-import javax.media.*;
-import javax.media.control.*;
-import javax.media.format.*;
-import javax.media.protocol.*;
-import javax.media.rtp.*;
-import javax.media.rtp.event.*;
-import java.io.*;
-import java.lang.reflect.*;
-import java.util.*;
+import com.sun.media.util.*;
 
 /**
  * A <tt>Recorder</tt> implementation which attaches to an <tt>RTPTranslator</tt>.
@@ -870,11 +872,9 @@ public class RecorderRtpImpl
                     = getNextFilename(path + "/" + ssrc, AUDIO_FILENAME_SUFFIX);
 
             //flush the buffer contained in the MP3 encoder
-            String s= "trying to flush ssrc="+ssrc;
             Processor p = receiveStream.processor;
             if (p != null)
             {
-                s+=" p!=null";
                 for (TrackControl tc : p.getTrackControls())
                 {
                     Object o = tc.getControl(FlushableControl.class.getName());
