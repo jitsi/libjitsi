@@ -1208,7 +1208,9 @@ public class MediaDeviceSession
                 if (!trackControl.isEnabled())
                     continue;
 
-                for (Format supportedFormat : trackControl.getSupportedFormats())
+                for (Format supportedFormat
+                        : trackControl.getSupportedFormats())
+                {
                     switch (mediaType)
                     {
                     case AUDIO:
@@ -1219,7 +1221,13 @@ public class MediaDeviceSession
                         if (supportedFormat instanceof VideoFormat)
                             supportedFormats.add(supportedFormat);
                         break;
+                    default:
+                        // FMJ and LibJitsi handle audio and video only and it
+                        // seems unlikely that support for any other types of
+                        // media will be added here.
+                        break;
                     }
+                }
             }
         }
 
@@ -1790,6 +1798,11 @@ public class MediaDeviceSession
                         supportedFormat
                             = assertSize((VideoFormat) supportedFormat);
                 }
+                break;
+            default:
+                // FMJ and LibJitsi handle audio and video only and it seems
+                // unlikely that support for any other types of media will be
+                // added here.
                 break;
             }
 
