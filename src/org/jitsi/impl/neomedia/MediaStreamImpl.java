@@ -258,6 +258,11 @@ public class MediaStreamImpl
     private SSRCFactory ssrcFactory = new SSRCFactoryImpl(localSourceID);
 
     /**
+     * The <tt>AbsSendTimeEngine</tt> that this instance uses.
+     */
+    private AbsSendTimeEngine absSendTimeEngine;
+
+    /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
      * specified <tt>MediaDevice</tt> for both capture and playback of media.
      * The new instance will not have an associated <tt>StreamConnector</tt> and
@@ -388,7 +393,7 @@ public class MediaStreamImpl
      */
     private TransformEngineChain createTransformEngineChain()
     {
-        List<TransformEngine> engineChain = new ArrayList<TransformEngine>(8);
+        List<TransformEngine> engineChain = new ArrayList<TransformEngine>(9);
 
         // CSRCs and CSRC audio levels
         if (csrcEngine == null)
@@ -428,6 +433,11 @@ public class MediaStreamImpl
         REDTransformEngine redTransformEngine = getRedTransformEngine();
         if (redTransformEngine != null)
             engineChain.add(redTransformEngine);
+
+        // abs-send-time
+        AbsSendTimeEngine absSendTimeEngine = getAbsSendTimeEngine();
+        if (absSendTimeEngine != null)
+            engineChain.add(absSendTimeEngine);
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
@@ -3232,5 +3242,32 @@ public class MediaStreamImpl
     protected REDTransformEngine getRedTransformEngine()
     {
         return null;
+    }
+
+    /**
+     * Returns the <tt>AbsSendTimeEngine</tt> for this <tt>MediaStream</tt>,
+     * creating it if necessary.
+     *
+     * @return the <tt>AbsSendTimeEngine</tt> for this <tt>MediaStream</tt>.
+     */
+    private AbsSendTimeEngine getAbsSendTimeEngine()
+    {
+        if (absSendTimeEngine == null)
+        {
+            absSendTimeEngine = new AbsSendTimeEngine();
+        }
+        return absSendTimeEngine;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setAbsSendTimeExtensionID(int id)
+    {
+        if (absSendTimeEngine != null)
+        {
+            absSendTimeEngine.setExtensionID(id);
+        }
     }
 }
