@@ -158,11 +158,11 @@ public class AudioLevelEventDispatcher
                 idleTimeoutStart = -1;
             }
 
-            int newLevel
-                = AudioLevelCalculator.calculateSoundPressureLevel(
-                        data, 0, dataLength,
-                        SimpleAudioLevelListener.MIN_LEVEL,
-                        SimpleAudioLevelListener.MAX_LEVEL);
+            int level
+                = AudioLevelCalculator.calculateAudioLevel(data, 0, dataLength);
+
+            // FIXME The audio level is expressed in -dBov.
+            level = AudioLevelCalculator.MIN_AUDIO_LEVEL - level;
 
             /*
              * In order to try to mitigate the issue with allocating data, try
@@ -174,15 +174,17 @@ public class AudioLevelEventDispatcher
                 if ((this.data == null)
                         && (this.listener == null)
                         && ((this.cache == null) || (this.ssrc == -1)))
+                {
                     this.data = data;
+                }
             }
 
             // Cache the newLevel if requested.
             if ((cache != null) && (ssrc != -1))
-                cache.putLevel(ssrc, newLevel);
+                cache.putLevel(ssrc, level);
             // Notify the listener about the newLevel if requested.
             if (listener != null)
-                listener.audioLevelChanged(newLevel);
+                listener.audioLevelChanged(level);
         }
     }
 
