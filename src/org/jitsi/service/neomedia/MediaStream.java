@@ -54,7 +54,7 @@ public interface MediaStream
 
     /**
      * Adds an additional RTP payload mapping that will overriding one that
-     * we've set with {@link addDynamicRTPPayloadType(byte, MediaFormat)}.
+     * we've set with {@link #addDynamicRTPPayloadType(byte, MediaFormat)}.
      * This is necessary so that we can support the RFC3264 case where the
      * answerer has the right to declare what payload type mappings it wants to
      * receive RTP packets with even if they are different from those in the
@@ -424,4 +424,19 @@ public interface MediaStream
      * effect on an already closed stream and is simply ignored.
      */
     public void stop();
+
+    /**
+     * Sets the ID of the abs-send-time RTP header extension to be used by
+     * this <tt>MediaStream</tt>.
+     *
+     * If set to a value different than -1, any outgoing RTP packets that
+     * already contain an RTP extension with this ID will have the timestamp
+     * in said extension replaced with one generated locally at (close to) the
+     * time of transmission.
+     *
+     * See http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+     *
+     * @param id the ID to set.
+     */
+    public void setAbsSendTimeExtensionID(int id);
 }
