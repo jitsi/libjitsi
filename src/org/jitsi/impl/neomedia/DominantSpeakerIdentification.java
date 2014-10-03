@@ -100,6 +100,12 @@ public class DominantSpeakerIdentification
     private static final int LONG_COUNT = 1;
 
     /**
+     * The threshold in terms of active medium-length blocks which is used
+     * during the speech activity evaluation step for the long time-interval.
+     */
+    private static final int LONG_THRESHOLD = 4;
+
+    /**
      * The maximum value of audio level supported by
      * <tt>DominantSpeakerIdentification</tt>.
      */
@@ -112,6 +118,15 @@ public class DominantSpeakerIdentification
     private static final int MIN_LEVEL = 0;
 
     /**
+     * The number of (audio) levels received or measured for a <tt>Speaker</tt>
+     * to be monitored in order to determine that the minimum level for the
+     * <tt>Speaker</tt> has increased.
+     */
+    private static final int MIN_LEVEL_WINDOW_LENGTH
+        = 15 /* seconds */ * 1000 /* milliseconds */
+            / 20 /* milliseconds per level */;
+
+    /**
      * The minimum value of speech activity score supported by
      * <tt>DominantSpeakerIdentification</tt>. The value must be positive
      * because (1) we are going to use it as the argument of a logarithmic
@@ -121,29 +136,36 @@ public class DominantSpeakerIdentification
     private static final double MIN_SPEECH_ACTIVITY_SCORE = 0.0000000001D;
 
     /**
-     * The (total) number of sub-bands in the frequency range evaluated for
-     * immediate speech activity.
-     */
-    private static final int N1 = 13;
-
-    /**
      * The threshold in terms of active sub-bands in a frame which is used
      * during the speech activity evaluation step for the medium length
      * time-interval.
      */
-    private static final int N1_BASED_MEDIUM_THRESHOLD = N1 / 2 - 1;
+    private static final int MEDIUM_THRESHOLD = 7;
+
+    /**
+     * The (total) number of sub-bands in the frequency range evaluated for
+     * immediate speech activity. The implementation of the class
+     * <tt>DominantSpeakerIdentification</tt> does not really operate on the
+     * representation of the signal in the frequency domain, it works with audio
+     * levels derived from RFC 6465 &quot;A Real-time Transport Protocol (RTP)
+     * Header Extension for Mixer-to-Client Audio Level Indication&quot;. 
+     */
+    private static final int N1 = 13;
+
+    /**
+     * The length/size of a sub-band in the frequency range evaluated for
+     * immediate speech activity. In the context of the implementation of the
+     * class <tt>DominantSpeakerIdentification</tt>, it specifies the
+     * length/size of a sub-unit of the audio level range defined by RFC 6465.
+     */
+    private static final int N1_SUBUNIT_LENGTH
+        = (MAX_LEVEL - MIN_LEVEL + N1 - 1) / N1;
 
     /**
      * The number of frames (i.e. {@link Speaker#immediates} evaluated for
      * medium speech activity.
      */
     private static final int N2 = 5;
-
-    /**
-     * The threshold in terms of active medium-length blocks which is used
-     * during the speech activity evaluation step for the long time-interval.
-     */
-    private static final int N2_BASED_LONG_THRESHOLD = N2 - 1;
 
     /**
      * The number of medium-length blocks constituting a long time-interval.
@@ -377,13 +399,8 @@ public class DominantSpeakerIdentification
 
                     // ssrc
                     speakerJSONObject.put("ssrc", Long.valueOf(speaker.ssrc));
-
                     // levels
-                    CircularByteArray levels = speaker.getLevels();
-
-                    speakerJSONObject.put(
-                            "levels",
-                            (levels == null) ? null : levels.toArray());
+                    speakerJSONObject.put("levels", speaker.getLevels());
                     speakersArray[i++] = speakerJSONObject;
                 }
                 jsonObject.put("speakers", speakersArray);
@@ -481,11 +498,10 @@ public class DominantSpeakerIdentification
         {
             speaker = new Speaker(ssrc);
             speakers.put(key, speaker);
-            /*
-             * Since we've created a new Speaker in the multipoint conference,
-             * we'll very likely need to make a decision whether there have been
-             * speaker switch events soon.
-             */
+
+            // Since we've created a new Speaker in the multipoint conference,
+            // we'll very likely need to make a decision whether there have been
+            // speaker switch events soon.
             maybeStartDecisionMaker();
         }
         return speaker;
@@ -504,21 +520,18 @@ public class DominantSpeakerIdentification
         {
             speaker = getOrCreateSpeaker(ssrc);
 
-            /*
-             * Note that this ActiveSpeakerDetector is still in use. When it is
-             * not in use long enough, its DecisionMaker i.e. background thread
-             * will prepare itself and, consequently, this
-             * DominantSpeakerIdentification for garbage collection.
-             */
+            // Note that this ActiveSpeakerDetector is still in use. When it is
+            // not in use long enough, its DecisionMaker i.e. background thread
+            // will prepare itself and, consequently, this
+            // DominantSpeakerIdentification for garbage collection.
             if (lastLevelChangedTime < now)
             {
                 lastLevelChangedTime = now;
-                /*
-                 * A report or measurement of an audio level indicates that this
-                 * DominantSpeakerIdentification is in use and, consequently,
-                 * that it'll very likely need to make a decision whether there
-                 * have been speaker switch events soon.
-                 */
+
+                // A report or measurement of an audio level indicates that this
+                // DominantSpeakerIdentification is in use and, consequently,
+                // that it'll very likely need to make a decision whether there
+                // have been speaker switch events soon.
                 maybeStartDecisionMaker();
             }
         }
@@ -533,10 +546,8 @@ public class DominantSpeakerIdentification
      */
     private void makeDecision()
     {
-        /*
-         * If we have to fire events to any registered listeners eventually, we
-         * will want to do it outside the synchronized block.
-         */
+        // If we have to fire events to any registered listeners eventually, we
+        // will want to do it outside the synchronized block.
         Long oldDominantSpeakerValue = null, newDominantSpeakerValue = null;
 
         synchronized (this)
@@ -547,18 +558,14 @@ public class DominantSpeakerIdentification
 
         if (speakerCount == 0)
         {
-            /*
-             * If there are no Speakers in a multipoint conference, then there
-             * are no speaker switch events to detect.
-             */
+            // If there are no Speakers in a multipoint conference, then there
+            // are no speaker switch events to detect.
             newDominantSSRC = null;
         }
         else if (speakerCount == 1)
         {
-            /*
-             * If there is a single Speaker in a multipoint conference, then
-             * his/her speech surely dominates.
-             */
+            // If there is a single Speaker in a multipoint conference, then
+            // his/her speech surely dominates.
             newDominantSSRC = speakers.keySet().iterator().next();
         }
         else
@@ -568,10 +575,8 @@ public class DominantSpeakerIdentification
                     ? null
                     : speakers.get(dominantSSRC);
 
-            /*
-             * If there is no dominant speaker, nominate one at random and then
-             * let the other speakers compete with the nominated one.
-             */
+            // If there is no dominant speaker, nominate one at random and then
+            // let the other speakers compete with the nominated one.
             if (dominantSpeaker == null)
             {
                 Map.Entry<Long,Speaker> s
@@ -588,33 +593,27 @@ public class DominantSpeakerIdentification
             dominantSpeaker.evaluateSpeechActivityScores();
 
             double[] relativeSpeechActivities = this.relativeSpeechActivities;
-            /*
-             * If multiple speakers cause speaker switches, they compete among
-             * themselves by their relative speech activities in the middle
-             * time-interval.
-             */
+            // If multiple speakers cause speaker switches, they compete among
+            // themselves by their relative speech activities in the middle
+            // time-interval.
             double newDominantC2 = C2;
 
             for (Map.Entry<Long,Speaker> s : speakers.entrySet())
             {
                 Speaker speaker = s.getValue();
 
-                /*
-                 * The dominant speaker does not compete with itself. In other
-                 * words, there is no use detecting a speaker switch from the
-                 * dominant speaker to the dominant speaker. Technically, the
-                 * relative speech activities are all zeroes for the dominant
-                 * speaker.
-                 */
+                // The dominant speaker does not compete with itself. In other
+                // words, there is no use detecting a speaker switch from the
+                // dominant speaker to the dominant speaker. Technically, the
+                // relative speech activities are all zeroes for the dominant
+                // speaker.
                 if (speaker == dominantSpeaker)
                     continue;
 
                 speaker.evaluateSpeechActivityScores();
 
-                /*
-                 * Compute the relative speech activities for the immediate,
-                 * medium and long time-intervals.
-                 */
+                // Compute the relative speech activities for the immediate,
+                // medium and long time-intervals.
                 for (int interval = 0;
                         interval < relativeSpeechActivities.length;
                         ++interval)
@@ -632,11 +631,9 @@ public class DominantSpeakerIdentification
 
                 if ((c1 > C1) && (c2 > C2) && (c3 > C3) && (c2 > newDominantC2))
                 {
-                    /*
-                     * If multiple speakers cause speaker switches, they compete
-                     * among themselves by their relative speech activities in
-                     * the middle time-interval.
-                     */
+                    // If multiple speakers cause speaker switches, they compete
+                    // among themselves by their relative speech activities in
+                    // the middle time-interval.
                     newDominantC2 = c2;
                     newDominantSSRC = s.getKey();
                 }
@@ -651,10 +648,8 @@ public class DominantSpeakerIdentification
 
         } // synchronized (this)
 
-        /*
-         * Now that we are outside the synchronized block, fire events, if any,
-         * to any registered listeners.
-         */
+        // Now that we are outside the synchronized block, fire events, if any,
+        // to any registered listeners.
         if (oldDominantSpeakerValue != newDominantSpeakerValue)
         {
             firePropertyChange(
@@ -735,19 +730,15 @@ public class DominantSpeakerIdentification
 
         if (decisionTimeout <= 0)
         {
-            /*
-             * The identification of the dominant active speaker may be a
-             * time-consuming ordeal so the time of the last decision is the
-             * time of the beginning of a decision iteration.
-             */
+            // The identification of the dominant active speaker may be a
+            // time-consuming ordeal so the time of the last decision is the
+            // time of the beginning of a decision iteration.
             lastDecisionTime = now;
             makeDecision();
-            /*
-             * The identification of the dominant active speaker may be a
-             * time-consuming ordeal so the timeout to the next decision
-             * iteration should be computed after the end of the decision
-             * iteration.
-             */
+            // The identification of the dominant active speaker may be a
+            // time-consuming ordeal so the timeout to the next decision
+            // iteration should be computed after the end of the decision
+            // iteration.
             decisionTimeout
                 = DECISION_INTERVAL - (System.currentTimeMillis() - now);
 
@@ -772,19 +763,15 @@ public class DominantSpeakerIdentification
     {
         synchronized (this)
         {
-            /*
-             * Most obviously, DecisionMakers no longer employed by this
-             * DominantSpeakerIdentification should cease to exist as soon as
-             * possible.
-             */
+            // Most obviously, DecisionMakers no longer employed by this
+            // DominantSpeakerIdentification should cease to exist as soon as
+            // possible.
             if (this.decisionMaker != decisionMaker)
                 return -1;
 
-            /*
-             * If the decisionMaker has been unnecessarily executing long
-             * enough, kill it in order to have a more deterministic behavior
-             * with respect to disposal.
-             */
+            // If the decisionMaker has been unnecessarily executing long
+            // enough, kill it in order to have a more deterministic behavior
+            // with respect to disposal.
             if (0 < lastDecisionTime)
             {
                 long idle = lastDecisionTime - lastLevelChangedTime;
@@ -817,10 +804,8 @@ public class DominantSpeakerIdentification
             Speaker speaker = i.next().getValue();
             long idle = now - speaker.getLastLevelChangedTime();
 
-            /*
-             * Remove a non-dominant Speaker if he/she has been idle for far too
-             * long.
-             */
+            // Remove a non-dominant Speaker if he/she has been idle for far too
+            // long.
             if ((SPEAKER_IDLE_TIMEOUT < idle)
                     && ((dominantSSRC == null)
                             || (speaker.ssrc != dominantSSRC)))
@@ -831,116 +816,6 @@ public class DominantSpeakerIdentification
             {
                 speaker.levelTimedOut();
             }
-        }
-    }
-
-    /**
-     * Implements a circular <tt>byte</tt> array.
-     *
-     * @author Lyubomir Marinov
-     */
-    private static class CircularByteArray
-    {
-        /**
-         * The elements of this <tt>CircularByteArray</tt>.
-         */
-        private final byte[] elements;
-
-        /**
-         * The index at which the next invocation of {@link #push(byte)} is to
-         * insert an element.
-         */
-        private int tail;
-
-        /**
-         * Initializes a new <tt>CircularBufferArray</tt> instance with a
-         * specific length.
-         *
-         * @param length the length i.e. the number of elements of the new
-         * instance
-         */
-        public CircularByteArray(int length)
-        {
-            elements = new byte[length];
-            tail = 0;
-        }
-
-        /**
-         * Adds a specific element at the end of this
-         * <tt>CircularByteArray</tt>.
-         *
-         * @param element the element to add at the end of this
-         * <tt>CircularByteArray</tt>
-         */
-        public synchronized void push(byte element)
-        {
-            int tail = this.tail;
-
-            elements[tail] = element;
-            tail++;
-            if (tail >= elements.length)
-                tail = 0;
-            this.tail = tail;
-        }
-
-        /**
-         * Copies the elements of this <tt>CircularByteArray</tt> into a new
-         * <tt>byte</tt> array.
-         *
-         * @return a new <tt>byte</tt> array which contains the same elements
-         * and in the same order as this <tt>CircularByteArray</tt>
-         */
-        public synchronized byte[] toArray()
-        {
-            byte[] elements = this.elements;
-            byte[] array;
-
-            if (elements == null)
-            {
-                array = null;
-            }
-            else
-            {
-                array = new byte[elements.length];
-                for (int i = 0, index = tail; i < elements.length; i++)
-                {
-                    array[i] = elements[index];
-                    index++;
-                    if (index >= elements.length)
-                        index = 0;
-                }
-            }
-            return array;
-        }
-
-        /**
-         * Retrieves a JSON representation of this <tt>CircularByteArray</tt>.
-         *
-         * @return a new <tt>JSONArray</tt> instance which contains the same
-         * elements and in the same order as this <tt>CircularByteArray</tt>
-         */
-        @SuppressWarnings({ "unchecked", "unused" })
-        public synchronized JSONArray toJSONArray()
-        {
-            byte[] elements = this.elements;
-            JSONArray jsonArray;
-
-            if (elements == null)
-            {
-                jsonArray = null;
-            }
-            else
-            {
-                jsonArray = new JSONArray();
-                for (int i = 0, index = tail; i < elements.length; i++)
-                {
-                    jsonArray.add(Byte.valueOf(elements[index]));
-                    index++;
-                    if (index >= elements.length)
-                        index = 0;
-                }
-            }
-            return jsonArray;
         }
     }
 
@@ -1004,23 +879,19 @@ public class DominantSpeakerIdentification
                     {
                         long sleep = algorithm.runInDecisionMaker(this);
 
-                        /*
-                         * A negative sleep value is explicitly supported i.e.
-                         * expected and is contracted to mean that this
-                         * DecisionMaker is instructed by the algorithm to
-                         * commit suicide.
-                         */
+                        // A negative sleep value is explicitly supported i.e.
+                        // expected and is contracted to mean that this
+                        // DecisionMaker is instructed by the algorithm to
+                        // commit suicide.
                         if (sleep < 0)
                         {
                             break;
                         }
                         else if (sleep > 0)
                         {
-                            /*
-                             * Before sleeping, make the currentThread release
-                             * its reference to the associated
-                             * DominantSpeakerIdnetification instance.
-                             */
+                            // Before sleeping, make the currentThread release
+                            // its reference to the associated
+                            // DominantSpeakerIdnetification instance.
                             algorithm = null;
                             try
                             {
@@ -1037,12 +908,10 @@ public class DominantSpeakerIdentification
             }
             finally
             {
-                /*
-                 * Notify the algorithm that this background thread will no
-                 * longer run it in order to make the (global) decision about
-                 * speaker switches. Subsequently, the algorithm may decide to
-                 * spawn another background thread to run the same task.
-                 */
+                // Notify the algorithm that this background thread will no
+                // longer run it in order to make the (global) decision about
+                // speaker switches. Subsequently, the algorithm may decide to
+                // spawn another background thread to run the same task.
                 DominantSpeakerIdentification algorithm = this.algorithm.get();
 
                 if (algorithm != null)
@@ -1120,7 +989,7 @@ public class DominantSpeakerIdentification
          * The (history of) audio levels received or measured for this
          * <tt>Speaker</tt>.
          */
-        private final CircularByteArray levels;
+        private final byte[] levels;
 
         private final byte[] longs = new byte[LONG_COUNT];
 
@@ -1139,6 +1008,30 @@ public class DominantSpeakerIdentification
         private double mediumSpeechActivityScore = MIN_SPEECH_ACTIVITY_SCORE;
 
         /**
+         * The minimum (audio) level received or measured for this
+         * <tt>Speaker</tt>. Since <tt>MIN_LEVEL</tt> is specified for samples
+         * generated by a muted audio source, a value equal to
+         * <tt>MIN_LEVEL</tt> indicates that the minimum level for this
+         * <tt>Speaker</tt> has not been determined yet.
+         */
+        private byte minLevel = MIN_LEVEL;
+
+        /**
+         * The (current) estimate of the minimum (audio) level received or
+         * measured for this <tt>Speaker</tt>. Used to increase the value of
+         * {@link #minLevel}
+         */
+        private byte nextMinLevel = MIN_LEVEL;
+
+        /**
+         * The number of subsequent (audio) levels received or measured for this
+         * <tt>Speaker</tt> which have been monitored thus far in order to
+         * estimate an up-to-date minimum (audio) level received or measured for
+         * this <tt>Speaker</tt>.
+         */
+        private int nextMinLevelWindowLength;
+
+        /**
          * The synchronization source identifier/SSRC of this <tt>Speaker</tt>
          * which is unique within a multipoint conference.
          */
@@ -1155,40 +1048,47 @@ public class DominantSpeakerIdentification
         {
             this.ssrc = ssrc;
 
-            levels = DEBUG ? new CircularByteArray(immediates.length) : null;
+            levels = new byte[immediates.length];
         }
 
-        private void computeImmediates(int level)
+        private boolean computeImmediates()
         {
-            // Ensure that the specified (audio) level is within the supported
-            // range.
-            byte b;
+            // The minimum audio level received or measured for this Speaker is
+            // the level of "silence" for this Speaker. Since the various
+            // Speakers may differ in their levels of "silence", put all
+            // Speakers on equal footing by replacing the individual levels of
+            // "silence" with the uniform level of absolute silence.
+            byte[] immediates = this.immediates;
+            byte[] levels = this.levels;
+            byte minLevel = (byte) (this.minLevel + N1_SUBUNIT_LENGTH);
+            boolean changed = false;
 
-            if (level < MIN_LEVEL)
-                b = MIN_LEVEL;
-            else if (level > MAX_LEVEL)
-                b = MAX_LEVEL;
-            else
-                b = (byte) level;
+            for (int i = 0; i < immediates.length; ++i)
+            {
+                byte level = levels[i];
 
-            if (levels != null)
-                levels.push(b);
+                if (level < minLevel)
+                    level = MIN_LEVEL;
 
-            System.arraycopy(
-                    immediates, 0,
-                    immediates, 1,
-                    immediates.length - 1);
-            immediates[0] = (byte) (b / N1);
+                byte immediate = (byte) (level / N1_SUBUNIT_LENGTH);
+
+                if (immediates[i] != immediate)
+                {
+                    immediates[i] = immediate;
+                    changed = true;
+                }
+            }
+            return changed;
         }
 
         private boolean computeLongs()
         {
-            return computeBigs(mediums, longs, N2_BASED_LONG_THRESHOLD);
+            return computeBigs(mediums, longs, LONG_THRESHOLD);
         }
 
         private boolean computeMediums()
         {
-            return computeBigs(immediates, mediums, N1_BASED_MEDIUM_THRESHOLD);
+            return computeBigs(immediates, mediums, MEDIUM_THRESHOLD);
         }
 
         /**
@@ -1228,12 +1128,15 @@ public class DominantSpeakerIdentification
          */
         synchronized void evaluateSpeechActivityScores()
         {
-            evaluateImmediateSpeechActivityScore();
-            if (computeMediums())
+            if (computeImmediates())
             {
-                evaluateMediumSpeechActivityScore();
-                if (computeLongs())
-                    evaluateLongSpeechActivityScore();
+                evaluateImmediateSpeechActivityScore();
+                if (computeMediums())
+                {
+                    evaluateMediumSpeechActivityScore();
+                    if (computeLongs())
+                        evaluateLongSpeechActivityScore();
+                }
             }
         }
 
@@ -1253,12 +1156,24 @@ public class DominantSpeakerIdentification
          * Gets the (history of) audio levels received or measured for this
          * <tt>Speaker</tt>.
          *
-         * @return a <tt>CircularByteArray</tt> which represents the (history
-         * of) audio levels received or measured for this <tt>Speaker</tt>
+         * @return a <tt>byte</tt> array which represents the (history of) audio
+         * levels received or measured for this <tt>Speaker</tt>
          */
-        CircularByteArray getLevels()
+        byte[] getLevels()
         {
-            return levels;
+            // The levels of Speaker are internally maintained starting with the
+            // last audio level received or measured for this Speaker and ending
+            // with the first audio level received or measured for this Speaker.
+            // Unfortunately, the method is expected to return levels in reverse
+            // order.
+            byte[] src = this.levels;
+            byte[] dst = new byte[src.length];
+
+            for (int s = src.length - 1, d = 0; d < dst.length; --s, ++d)
+            {
+                dst[d] = src[s];
+            }
+            return dst;
         }
 
         /**
@@ -1310,14 +1225,31 @@ public class DominantSpeakerIdentification
          */
         public synchronized void levelChanged(int level, long time)
         {
-            /*
-             * It sounds relatively reasonable that late audio levels should
-             * better be discarded.
-             */
+            // It sounds relatively reasonable that late audio levels should
+            // better be discarded.
             if (lastLevelChangedTime <= time)
             {
                 lastLevelChangedTime = time;
-                computeImmediates(level);
+
+                // Ensure that the specified level is within the supported
+                // range.
+                byte b;
+
+                if (level < MIN_LEVEL)
+                    b = MIN_LEVEL;
+                else if (level > MAX_LEVEL)
+                    b = MAX_LEVEL;
+                else
+                    b = (byte) level;
+
+                // Push the specified level into the history of audio levels
+                // received or measured for this Speaker.
+                System.arraycopy(levels, 0, levels, 1, levels.length - 1);
+                levels[0] = b;
+
+                // Determine the minimum level received or measured for this
+                // Speaker.
+                updateMinLevel(b);
             }
         }
 
@@ -1330,6 +1262,68 @@ public class DominantSpeakerIdentification
         public synchronized void levelTimedOut()
         {
             levelChanged(MIN_LEVEL, lastLevelChangedTime);
+        }
+
+        /**
+         * Updates the minimum (audio) level received or measured for this
+         * <tt>Speaker</tt> in light of the receipt of a specific level.
+         *
+         * @param level the audio level received or measured for this
+         * <tt>Speaker</tt>
+         */
+        private void updateMinLevel(byte level)
+        {
+            if (level != MIN_LEVEL)
+            {
+                if ((minLevel == MIN_LEVEL) || (minLevel > level))
+                {
+                    minLevel = level;
+                    nextMinLevel = MIN_LEVEL;
+                    nextMinLevelWindowLength = 0;
+                }
+                else
+                {
+                    // The specified (audio) level is greater than the minimum
+                    // level received or measure for this Speaker. However, the
+                    // minimum level may be out-of-date by now. Estimate an
+                    // up-to-date minimum level and, eventually, make it the
+                    // minimum level received or measured for this Speaker.
+                    if (nextMinLevel == MIN_LEVEL)
+                    {
+                        nextMinLevel = level;
+                        nextMinLevelWindowLength = 1;
+                    }
+                    else
+                    {
+                        if (nextMinLevel > level)
+                        {
+                            nextMinLevel = level;
+                        }
+                        nextMinLevelWindowLength++;
+                        if (nextMinLevelWindowLength >= MIN_LEVEL_WINDOW_LENGTH)
+                        {
+                            // The arithmetic mean will increase the minimum
+                            // level faster than the geometric mean. Since the
+                            // goal is to track a minimum, it sounds reasonable
+                            // to go with a slow increase.
+                            double newMinLevel
+                                = Math.sqrt(minLevel * (double) nextMinLevel);
+
+                            // Ensure that the new minimum level is within the
+                            // supported range.
+                            if (newMinLevel < MIN_LEVEL)
+                                newMinLevel = MIN_LEVEL;
+                            else if (newMinLevel > MAX_LEVEL)
+                                newMinLevel = MAX_LEVEL;
+
+                            minLevel = (byte) newMinLevel;
+
+                            nextMinLevel = MIN_LEVEL;
+                            nextMinLevelWindowLength = 0;
+                        }
+                    }
+                }
+            }
         }
     }
 }
