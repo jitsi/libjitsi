@@ -44,3 +44,11 @@ Reason: No Debian package.
 Java implementation of ZRTP protocol.
 Werner Dittmann from Jitsi team is maintainer and owner of the project.
 Reason: No Debian package.
+
+- usrsctp http://sctp-refimpl.googlecode.com/svn/trunk/KERN/usrsctp/
+Socket API for the SCTP User-land Implementation (usrsctp).
+Reason: No Debian package.
+
+- libmkv https://chromium.googlesource.com/webm/libvpx
+Use to be part of libvpx third_party code. But was removed.
+Reason: No Debian package.

@@ -32,6 +32,7 @@
         <copy todir="${tmp}/libjitsi">
             <fileset dir="resources/install/">
                 <include name="debian/**"/>
+                <exclude name="debian/control.binary.pkg"/>
             </fileset>
         </copy>
         <replace file="${tmp}/libjitsi/debian/changelog">
