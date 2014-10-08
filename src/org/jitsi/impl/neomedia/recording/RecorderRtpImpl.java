@@ -1632,6 +1632,13 @@ public class RecorderRtpImpl
                         if (receiveStream != null)
                             removeReceiveStream(receiveStream, false);
                     }
+                    else if (pkt != null && pkt.getRTCPPacketType() == 201)
+                    {
+                        // Do not pass Receiver Reports to FMJ, because it does
+                        // not need them (it isn't sending) and because they
+                        // causes weird problems.
+                        return null;
+                    }
 
                     return pkt;
                 }
