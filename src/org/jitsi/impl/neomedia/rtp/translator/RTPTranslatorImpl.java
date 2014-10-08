@@ -8,6 +8,7 @@ package org.jitsi.impl.neomedia.rtp.translator;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.locks.*;
 
 import javax.media.*;
 import javax.media.format.*;
@@ -18,7 +19,6 @@ import javax.media.rtp.event.*;
 import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.RTPHeader;
 
-import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -33,13 +33,6 @@ public class RTPTranslatorImpl
     extends AbstractRTPTranslator
     implements ReceiveStreamListener
 {
-    /**
-     * The indicator which determines whether the method
-     * {@link #createFakeSendStreamIfNecessary()} is to be executed by
-     * <tt>RTPTranslatorImpl</tt>.
-     */
-    private static final boolean CREATE_FAKE_SEND_STREAM_IF_NECESSARY = false;
-
     /**
      * The <tt>Logger</tt> used by the <tt>RTPTranslatorImpl</tt> class and its
      * instances for logging output.
@@ -227,17 +220,17 @@ public class RTPTranslatorImpl
             = new DelegatingRTCPReportBuilder();
 
     /**
-     * The <tt>SendStream</tt> created by the <tt>RTPManager</tt> in order to
-     * ensure that this <tt>RTPTranslatorImpl</tt> is able to disperse RTP and
-     * RTCP received from remote peers even when the local peer is not
-     * generating media to be transmitted.
-     */
-    private SendStream fakeSendStream;
-
-    /**
      * A local SSRC for this <tt>RTPTranslator</tt>.
      */
     private long localSSRC = -1;
+
+    /**
+     * The <tt>ReadWriteLock</tt> which synchronizes the access to and/or
+     * modification of the state of this instance. Replaces
+     * <tt>synchronized</tt> blocks in order to reduce the number of exclusive
+     * locks and, therefore, the risks of superfluous waiting.
+     */
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
      * The <tt>RTPManager</tt> which implements the actual RTP management of
@@ -295,14 +288,26 @@ public class RTPTranslatorImpl
      * @param payloadType the RTP payload type (number) to be associated with
      * the specified <tt>format</tt>
      */
-    public synchronized void addFormat(
+    public void addFormat(
             StreamRTPManager streamRTPManager,
             Format format, int payloadType)
     {
-        manager.addFormat(format, payloadType);
+        Lock lock = this.lock.writeLock();
 
-        getStreamRTPManagerDesc(streamRTPManager, true)
-            .addFormat(format, payloadType);
+        lock.lock();
+        try
+        {
+
+        manager.addFormat(format, payloadType);
+        getStreamRTPManagerDesc(streamRTPManager, true).addFormat(
+                format,
+                payloadType);
+
+        }
+        finally
+        {
+            lock.unlock();
+        }
     }
 
     /**
@@ -324,12 +329,24 @@ public class RTPTranslatorImpl
      * <tt>ReceiveStreamEvent</tt>s related to the specified
      * <tt>streamRTPManager</tt>
      */
-    public synchronized void addReceiveStreamListener(
+    public void addReceiveStreamListener(
             StreamRTPManager streamRTPManager,
             ReceiveStreamListener listener)
     {
+        Lock lock = this.lock.writeLock();
+
+        lock.lock();
+        try
+        {
+
         getStreamRTPManagerDesc(streamRTPManager, true)
             .addReceiveStreamListener(listener);
+
+        }
+        finally
+        {
+            lock.unlock();
+        }
     }
 
     /**
@@ -375,63 +392,19 @@ public class RTPTranslatorImpl
     }
 
     /**
-     * Closes {@link #fakeSendStream} if it exists and is considered no longer
-     * necessary; otherwise, does nothing.
-     */
-    private synchronized void closeFakeSendStreamIfNotNecessary()
-    {
-        /*
-         * If a SendStream has been created in response to a request from the
-         * clients of this RTPTranslator implementation, the newly-created
-         * SendStream in question will disperse the received RTP and RTCP from
-         * remote peers so fakeSendStream will be obsolete.
-         */
-        try
-        {
-            if ((!sendStreams.isEmpty() || (streamRTPManagers.size() < 2))
-                    && (fakeSendStream != null))
-            {
-                try
-                {
-                    fakeSendStream.close();
-                }
-                catch (NullPointerException npe)
-                {
-                    /*
-                     * Refer to MediaStreamImpl#stopSendStreams(
-                     * Iterable<SendStream>, boolean) for an explanation about
-                     * the swallowing of the exception.
-                     */
-                    logger.error("Failed to close fake send stream", npe);
-                }
-                finally
-                {
-                    fakeSendStream = null;
-                }
-            }
-        }
-        catch (Throwable t)
-        {
-            if (t instanceof ThreadDeath)
-                throw (ThreadDeath) t;
-            else if (logger.isDebugEnabled())
-            {
-                logger.debug(
-                        "Failed to close the fake SendStream of this"
-                            + " RTPTranslator.",
-                        t);
-            }
-        }
-    }
-
-    /**
      * Closes a specific <tt>SendStream</tt>.
      *
      * @param sendStreamDesc a <tt>SendStreamDesc</tt> instance that specifies
      * the <tt>SendStream</tt> to be closed
      */
-    synchronized void closeSendStream(SendStreamDesc sendStreamDesc)
+    void closeSendStream(SendStreamDesc sendStreamDesc)
     {
+        Lock lock = this.lock.writeLock();
+
+        lock.lock();
+        try
+        {
+
         if (sendStreams.contains(sendStreamDesc)
                 && (sendStreamDesc.getSendStreamCount() < 1))
         {
@@ -443,82 +416,18 @@ public class RTPTranslatorImpl
             }
             catch (NullPointerException npe)
             {
-                /*
-                 * Refer to MediaStreamImpl#stopSendStreams(
-                 * Iterable<SendStream>, boolean) for an explanation about the
-                 * swallowing of the exception.
-                 */
+                // Refer to MediaStreamImpl#stopSendStreams(
+                // Iterable<SendStream>, boolean) for an explanation about the
+                // swallowing of the exception.
                 logger.error("Failed to close send stream", npe);
             }
             sendStreams.remove(sendStreamDesc);
         }
-    }
 
-    /**
-     * Creates {@link #fakeSendStream} if it does not exist yet and is
-     * considered necessary; otherwise, does nothing.
-     */
-    private synchronized void createFakeSendStreamIfNecessary()
-    {
-        /*
-         * If no SendStream has been created in response to a request from the
-         * clients of this RTPTranslator implementation, it will need
-         * fakeSendStream in order to be able to disperse the received RTP and
-         * RTCP from remote peers. Additionally, the fakeSendStream is not
-         * necessary in the case of a single client of this RTPTranslator
-         * because there is no other remote peer to disperse the received RTP
-         * and RTCP to.
-         */
-        if ((fakeSendStream == null)
-                && sendStreams.isEmpty()
-                && (streamRTPManagers.size() > 1))
+        }
+        finally
         {
-            Format supportedFormat = null;
-
-            for (StreamRTPManagerDesc s : streamRTPManagers)
-            {
-                Format[] formats = s.getFormats();
-
-                if ((formats != null) && (formats.length > 0))
-                {
-                    for (Format f : formats)
-                    {
-                        if (f != null)
-                        {
-                            supportedFormat = f;
-                            break;
-                        }
-                    }
-                    if (supportedFormat != null)
-                        break;
-                }
-            }
-            if (supportedFormat != null)
-            {
-                try
-                {
-                    fakeSendStream
-                        = manager.createSendStream(
-                                new FakePushBufferDataSource(supportedFormat),
-                                0);
-                }
-                catch (Throwable t)
-                {
-                    if (t instanceof ThreadDeath)
-                        throw (ThreadDeath) t;
-                    else
-                    {
-                        logger.error(
-                                "Failed to create a fake SendStream to ensure"
-                                    + " that this RTPTranslator is able to"
-                                    + " disperse RTP and RTCP received from"
-                                    + " remote peers even when the local peer"
-                                    + " is not generating media to be"
-                                    + " transmitted.",
-                                t);
-                    }
-                }
-            }
+            lock.unlock();
         }
     }
 
@@ -550,12 +459,19 @@ public class RTPTranslatorImpl
      * @throws UnsupportedFormatException if an error occurs during the
      * execution of <tt>RTPManager.createSendStream(DataSource, int)</tt>
      */
-    public synchronized SendStream createSendStream(
+    public SendStream createSendStream(
             StreamRTPManager streamRTPManager,
             DataSource dataSource, int streamIndex)
         throws IOException,
                UnsupportedFormatException
     {
+        Lock lock = this.lock.writeLock();
+        SendStream ret;
+
+        lock.lock();
+        try
+        {
+
         SendStreamDesc sendStreamDesc = null;
 
         for (SendStreamDesc s : sendStreams)
@@ -578,14 +494,20 @@ public class RTPTranslatorImpl
                             this,
                             dataSource, streamIndex, sendStream);
                 sendStreams.add(sendStreamDesc);
-
-                closeFakeSendStreamIfNotNecessary();
             }
         }
-        return
-            (sendStreamDesc == null)
+        ret
+            = (sendStreamDesc == null)
                 ? null
                 : sendStreamDesc.getSendStream(streamRTPManager, true);
+
+        }
+        finally
+        {
+            lock.unlock();
+        }
+
+        return ret;
     }
 
     /**
@@ -605,11 +527,17 @@ public class RTPTranslatorImpl
      * @throws IOException if an I/O error occurs while the method processes the
      * specified RTP or RTCP packet
      */
-    synchronized int didRead(
+    int didRead(
             PushSourceStreamDesc streamDesc,
             byte[] buffer, int offset, int length)
         throws IOException
     {
+        Lock lock = this.lock.readLock();
+
+        lock.lock();
+        try
+        {
+
         boolean data = streamDesc.data;
         StreamRTPManagerDesc streamRTPManagerDesc
             = streamDesc.connectorDesc.streamRTPManagerDesc;
@@ -617,29 +545,20 @@ public class RTPTranslatorImpl
 
         if (data)
         {
-            /*
-             * Ignore RTP packets coming from peers whose MediaStream's
-             * direction does not allow receiving.
-             */
-            if (!streamRTPManagerDesc
-                    .streamRTPManager
-                        .getMediaStream()
-                            .getDirection()
-                                .allowsReceiving())
+            // Ignore RTP packets coming from peers whose MediaStream's
+            // direction does not allow receiving.
+            if (!streamRTPManagerDesc.streamRTPManager.getMediaStream()
+                    .getDirection().allowsReceiving())
             {
-                /*
-                 * FIXME We are ignoring RTP packets received from peers who we
-                 * do not want to receive from ONLY in the sense that we are not
-                 * translating/forwarding them to the other peers. Do not we
-                 * want to not receive them locally as well?
-                 */
+                // FIXME We are ignoring RTP packets received from peers who we
+                // do not want to receive from ONLY in the sense that we are not
+                // translating/forwarding them to the other peers. Do not we
+                // want to not receive them locally as well?
                 return length;
             }
 
-            /*
-             * Do the bytes in the specified buffer resemble (a header of) an
-             * RTP packet?
-             */
+            // Do the bytes in the specified buffer resemble (a header of) an
+            // RTP packet?
             if ((length >= RTPHeader.SIZE)
                     && (/* v */ ((buffer[offset] & 0xc0) >>> 6)
                             == RTPHeader.VERSION))
@@ -671,15 +590,6 @@ public class RTPTranslatorImpl
             logRTCP(this, "read", buffer, offset, length);
         }
 
-        /*
-         * XXX A deadlock between PushSourceStreamImpl.removeStreams and
-         * createFakeSendStreamIfNecessary has been reported. Since the latter
-         * method is disabled at the time of this writing, do not even try to
-         * execute it and thus avoid the deadlock in question. 
-         */
-        if (CREATE_FAKE_SEND_STREAM_IF_NECESSARY)
-            createFakeSendStreamIfNecessary();
-
         OutputDataStreamImpl outputStream
             = data
                 ? connector.getDataOutputStream()
@@ -693,6 +603,12 @@ public class RTPTranslatorImpl
                     streamRTPManagerDesc);
         }
 
+        }
+        finally
+        {
+            lock.unlock();
+        }
+
         return length;
     }
 
@@ -701,8 +617,14 @@ public class RTPTranslatorImpl
      * execution and prepares it to be garbage collected.
      */
     @Override
-    public synchronized void dispose()
+    public void dispose()
     {
+        Lock lock = this.lock.writeLock();
+
+        lock.lock();
+        try
+        {
+
         manager.removeReceiveStreamListener(this);
         try
         {
@@ -711,15 +633,21 @@ public class RTPTranslatorImpl
         catch (Throwable t)
         {
             if (t instanceof ThreadDeath)
+            {
                 throw (ThreadDeath) t;
+            }
             else
             {
-                /*
-                 * RTPManager.dispose() often throws at least a
-                 * NullPointerException in relation to some RTP BYE.
-                 */
+                // RTPManager.dispose() often throws at least a
+                // NullPointerException in relation to some RTP BYE.
                 logger.error("Failed to dispose of RTPManager", t);
             }
+        }
+
+        }
+        finally
+        {
+            lock.unlock();
         }
     }
 
@@ -729,8 +657,14 @@ public class RTPTranslatorImpl
      * execution and prepares that <tt>StreamRTPManager</tt> to be garbage
      * collected (as far as this <tt>RTPTranslatorImpl</tt> is concerned).
      */
-    public synchronized void dispose(StreamRTPManager streamRTPManager)
+    public void dispose(StreamRTPManager streamRTPManager)
     {
+        Lock lock = this.lock.writeLock();
+
+        lock.lock();
+        try
+        {
+
         Iterator<StreamRTPManagerDesc> streamRTPManagerIter
             = streamRTPManagers.iterator();
 
@@ -753,11 +687,14 @@ public class RTPTranslatorImpl
                 }
 
                 streamRTPManagerIter.remove();
-
-                closeFakeSendStreamIfNotNecessary();
-
                 break;
             }
+        }
+
+        }
+        finally
+        {
+            lock.unlock();
         }
     }
 
@@ -772,19 +709,36 @@ public class RTPTranslatorImpl
      * @return the first <tt>StreamRTPManager</tt> which is related to the
      * specified <tt>receiveSSRC</tt>
      */
-    private synchronized StreamRTPManagerDesc
+    private StreamRTPManagerDesc
         findStreamRTPManagerDescByReceiveSSRC(
             int receiveSSRC,
             StreamRTPManagerDesc exclusion)
     {
+        Lock lock = this.lock.readLock();
+        StreamRTPManagerDesc ret = null;
+
+        lock.lock();
+        try
+        {
+
         for (int i = 0, count = streamRTPManagers.size(); i < count; i++)
         {
             StreamRTPManagerDesc s = streamRTPManagers.get(i);
 
             if ((s != exclusion) && s.containsReceiveSSRC(receiveSSRC))
-                return s;
+            {
+                ret = s;
+                break;
+            }
         }
-        return null;
+
+        }
+        finally
+        {
+            lock.unlock();
+        }
+
+        return ret;
     }
 
     /**
@@ -861,12 +815,18 @@ public class RTPTranslatorImpl
      * @return the <tt>ReceiveStream</tt>s related to/associated with the
      * specified <tt>streamRTPManager</tt>
      */
-    public synchronized Vector<ReceiveStream> getReceiveStreams(
+    public Vector<ReceiveStream> getReceiveStreams(
             StreamRTPManager streamRTPManager)
     {
+        Lock lock = this.lock.readLock();
+        Vector<ReceiveStream> receiveStreams = null;
+
+        lock.lock();
+        try
+        {
+
         StreamRTPManagerDesc streamRTPManagerDesc
             = getStreamRTPManagerDesc(streamRTPManager, false);
-        Vector<ReceiveStream> receiveStreams = null;
 
         if (streamRTPManagerDesc != null)
         {
@@ -879,10 +839,8 @@ public class RTPTranslatorImpl
                 for (Object s : managerReceiveStreams)
                 {
                     ReceiveStream receiveStream = (ReceiveStream) s;
-                    /*
-                     * FMJ stores the synchronization source (SSRC) identifiers
-                     * as 32-bit signed values.
-                     */
+                    // FMJ stores the synchronization source (SSRC) identifiers
+                    // as 32-bit signed values.
                     int receiveSSRC = (int) receiveStream.getSSRC();
 
                     if (streamRTPManagerDesc.containsReceiveSSRC(receiveSSRC))
@@ -890,6 +848,13 @@ public class RTPTranslatorImpl
                 }
             }
         }
+
+        }
+        finally
+        {
+            lock.unlock();
+        }
+
         return receiveStreams;
     }
 
@@ -927,16 +892,23 @@ public class RTPTranslatorImpl
      * @return the <tt>SendStream</tt>s related to/associated with the specified
      * <tt>streamRTPManager</tt>
      */
-    public synchronized Vector<SendStream> getSendStreams(
+    public Vector<SendStream> getSendStreams(
             StreamRTPManager streamRTPManager)
     {
-        Vector<?> managerSendStreams = manager.getSendStreams();
+        Lock lock = this.lock.readLock();
         Vector<SendStream> sendStreams = null;
+
+        lock.lock();
+        try
+        {
+
+        Vector<?> managerSendStreams = manager.getSendStreams();
 
         if (managerSendStreams != null)
         {
             sendStreams = new Vector<SendStream>(managerSendStreams.size());
             for (SendStreamDesc sendStreamDesc : this.sendStreams)
+            {
                 if (managerSendStreams.contains(sendStreamDesc.sendStream))
                 {
                     SendStream sendStream
@@ -945,28 +917,51 @@ public class RTPTranslatorImpl
                     if (sendStream != null)
                         sendStreams.add(sendStream);
                 }
+            }
         }
+
+        }
+        finally
+        {
+            lock.unlock();
+        }
+
         return sendStreams;
     }
 
-    private synchronized StreamRTPManagerDesc getStreamRTPManagerDesc(
+    private StreamRTPManagerDesc getStreamRTPManagerDesc(
             StreamRTPManager streamRTPManager,
             boolean create)
     {
-        for (StreamRTPManagerDesc s : streamRTPManagers)
-            if (s.streamRTPManager == streamRTPManager)
-                return s;
+        Lock lock = create ? this.lock.writeLock() : this.lock.readLock();
+        StreamRTPManagerDesc ret = null;
 
-        StreamRTPManagerDesc s;
-
-        if (create)
+        lock.lock();
+        try
         {
-            s = new StreamRTPManagerDesc(streamRTPManager);
-            streamRTPManagers.add(s);
+
+        for (StreamRTPManagerDesc s : streamRTPManagers)
+        {
+            if (s.streamRTPManager == streamRTPManager)
+            {
+                ret = s;
+                break;
+            }
         }
-        else
-            s = null;
-        return s;
+
+        if ((ret == null) && create)
+        {
+            ret = new StreamRTPManagerDesc(streamRTPManager);
+            streamRTPManagers.add(ret);
+        }
+
+        }
+        finally
+        {
+            lock.unlock();
+        }
+
+        return ret;
     }
 
     /**
@@ -987,10 +982,16 @@ public class RTPTranslatorImpl
         return ret;
     }
 
-    public synchronized void initialize(
+    public void initialize(
             StreamRTPManager streamRTPManager,
             RTPConnector connector)
     {
+        Lock lock = this.lock.writeLock();
+
+        lock.lock();
+        try
+        {
+
         if (this.connector == null)
         {
             this.connector = new RTPConnectorImpl(this);
@@ -1020,6 +1021,12 @@ public class RTPTranslatorImpl
                         : new RTPConnectorDesc(streamRTPManagerDesc, connector);
             if (connectorDesc != null)
                 this.connector.addConnector(connectorDesc);
+        }
+
+        }
+        finally
+        {
+            lock.unlock();
         }
     }
 
@@ -1061,15 +1068,27 @@ public class RTPTranslatorImpl
      * notified about <tt>ReceiveStreamEvent</tt>s related to the specified
      * <tt>streamRTPManager</tt>
      */
-    public synchronized void removeReceiveStreamListener(
+    public void removeReceiveStreamListener(
             StreamRTPManager streamRTPManager,
             ReceiveStreamListener listener)
     {
+        Lock lock = this.lock.readLock();
+
+        lock.lock();
+        try
+        {
+
         StreamRTPManagerDesc streamRTPManagerDesc
             = getStreamRTPManagerDesc(streamRTPManager, false);
 
         if (streamRTPManagerDesc != null)
             streamRTPManagerDesc.removeReceiveStreamListener(listener);
+
+        }
+        finally
+        {
+            lock.unlock();
+        }
     }
 
     /**
