@@ -1533,7 +1533,7 @@ public class MediaDeviceSession
             return;
         }
 
-        long[] newSsrcList = new long[ssrcList.length];
+        long[] newSsrcList = new long[ssrcList.length - 1];
 
         System.arraycopy(ssrcList, 0, newSsrcList, 0, index);
         if (index < ssrcList.length - 1)
