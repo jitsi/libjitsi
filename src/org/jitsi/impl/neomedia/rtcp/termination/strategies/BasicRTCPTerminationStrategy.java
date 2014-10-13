@@ -85,7 +85,27 @@ public class BasicRTCPTerminationStrategy
     @Override
     public void setRTCPTransmitter(RTCPTransmitter rtcpTransmitter)
     {
-        this.rtcpTransmitter = rtcpTransmitter;
+        if (rtcpTransmitter != this.rtcpTransmitter)
+        {
+            this.rtcpTransmitter = rtcpTransmitter;
+            onRTCPTransmitterChanged();
+        }
+    }
+
+    /**
+     * Notifies this instance that the <tt>RTCPTransmitter</tt> has changed.
+     */
+    private void onRTCPTransmitterChanged()
+    {
+        RTCPTransmitter t;
+        SSRCCache c;
+        if ((t = this.rtcpTransmitter) != null
+                && (c = t.cache) != null)
+        {
+            // Make the SSRCCache to "calculate" an RTCP reporting interval of 
+            // 1s.
+            c.audio = false;
+        }
     }
 
     @Override
