@@ -134,36 +134,10 @@ public class ReceiverReporting
             {
                 if (!info.ours)
                 {
+                    RTCPReportBlock receiverReport
+                            = info.makeReceiverReport(time);
 
-                    int ssrc = info.ssrc;
-                    long lastseq = info.maxseq + info.cycles;
-                    int jitter = (int) info.jitter;
-                    long lsr = (int) ((info.lastSRntptimestamp & 0x0000ffffffff0000L) >> 16);
-                    long dlsr = (int) ((time - info.lastSRreceiptTime) * 65.536000000000001D);
-                    int packetslost = (int) (((lastseq - info.baseseq) + 1L) - info.received);
-
-                    if (packetslost < 0)
-                        packetslost = 0;
-                    double frac = (double) (packetslost - info.prevlost)
-                            / (double) (lastseq - info.prevmaxseq);
-                    if (frac < 0.0D)
-                        frac = 0.0D;
-
-                    int fractionlost = (int) (frac * 256D);
-                    RTCPReportBlock receiverReport = new RTCPReportBlock(
-                            ssrc,
-                            fractionlost,
-                            packetslost,
-                            lastseq,
-                            jitter,
-                            lsr,
-                            dlsr
-                    );
-
-
-                    info.prevmaxseq = (int) lastseq;
-                    info.prevlost = packetslost;
-                    reports.put(ssrc, receiverReport);
+                    reports.put(info.ssrc, receiverReport);
                 }
             }
         }
