@@ -19,11 +19,52 @@ import org.jitsi.impl.neomedia.protocol.*;
  * and if a <tt>Processor</tt> is created on it, it freezes in the
  * {@link javax.media.Processor#Configuring} state.
  *
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class ReceiveStreamPushBufferDataSource
     extends PushBufferDataSourceDelegate<PushBufferDataSource>
 {
+    /**
+     * Sets a <tt>BufferTransferHandler</tt> on a specific
+     * <tt>ReceiveStream</tt> which reads data as soon as possible and throws it
+     * away.
+     *
+     * @param receiveStream the <tt>ReceiveStream</tt> on which to set a
+     * <tt>BufferTransferHandler</tt> which reads data as soon as possible and
+     * throws it away
+     */
+    public static void setNullTransferHandler(ReceiveStream receiveStream)
+    {
+        DataSource dataSource = receiveStream.getDataSource();
+
+        if (dataSource != null)
+        {
+            if (dataSource instanceof PushBufferDataSource)
+            {
+                PushBufferStream[] streams
+                    = ((PushBufferDataSource) dataSource).getStreams();
+
+                if ((streams != null) && (streams.length != 0))
+                {
+                    for (PushBufferStream stream : streams)
+                    {
+                        stream.setTransferHandler(
+                                new NullBufferTransferHandler());
+                    }
+                }
+
+                // If data is to be read as soon as possible and thrown away,
+                // it sounds reasonable that buffering while stopped should be
+                // disabled.
+                if (dataSource
+                        instanceof net.sf.fmj.media.protocol.rtp.DataSource)
+                {
+                    ((net.sf.fmj.media.protocol.rtp.DataSource) dataSource)
+                        .setBufferWhenStopped(false);
+                }
+            }
+        }
+    }
 
     /**
      * The <tt>ReceiveStream</tt> which has its <tt>DataSource</tt> wrapped by
@@ -62,7 +103,7 @@ public class ReceiveStreamPushBufferDataSource
     /**
      * Initializes a new <tt>ReceiveStreamPushBufferDataSource</tt> instance
      * which is to wrap a specific <tt>DataSource</tt> of a specific
-     * <tt>ReceiveStream</tt> for the purposes of enabling explicity control of
+     * <tt>ReceiveStream</tt> for the purposes of enabling explicitly control of
      * calls to its {@link DataSource#disconnect()} and, optionally, activates
      * the suppresses the call in question.
      *
