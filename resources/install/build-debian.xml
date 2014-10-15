@@ -23,6 +23,7 @@
         <copy todir="${tmp}/libjitsi">
             <fileset dir=".">
                 <include name="src/**"/>
+                <exclude name="src/**/g729/**"/>
                 <include name="build.xml"/>
                 <include name="resources/install/build-debian.xml"/>
                 <exclude name="**/macosx/**"/>
@@ -78,6 +79,7 @@
                 <exclude name="**/lib/**"/>
                 <exclude name="**/*.so"/>
                 <exclude name="**/*.dll"/>
+                <exclude name="**/src.examples.jmf/**"/>
             </fileset>
         </copy>
 
