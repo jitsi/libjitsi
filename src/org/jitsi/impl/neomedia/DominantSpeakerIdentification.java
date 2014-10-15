@@ -891,7 +891,7 @@ public class DominantSpeakerIdentification
                         {
                             // Before sleeping, make the currentThread release
                             // its reference to the associated
-                            // DominantSpeakerIdnetification instance.
+                            // DominantSpeakerIdentification instance.
                             algorithm = null;
                             try
                             {
