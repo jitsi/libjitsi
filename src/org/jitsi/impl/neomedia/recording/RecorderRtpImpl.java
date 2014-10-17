@@ -171,6 +171,7 @@ public class RecorderRtpImpl
 
     private SynchronizerImpl synchronizer;
     private boolean started = false;
+    private MediaStream mediaStream;
 
     /**
      * Constructor.
@@ -305,10 +306,10 @@ public class RecorderRtpImpl
          * Register a fake call participant.
          * TODO: can we use a more generic MediaStream here?
          */
-        streamRTPManager = new StreamRTPManager(
-                mediaService.createMediaStream(new MediaDeviceImpl(
-                        new CaptureDeviceInfo(), MediaType.VIDEO)),
-                translator);
+        mediaStream
+            = mediaService.createMediaStream(new MediaDeviceImpl(
+                        new CaptureDeviceInfo(), MediaType.VIDEO));
+        streamRTPManager = new StreamRTPManager(mediaStream, translator);
 
         streamRTPManager.initialize(rtpConnector);
 
@@ -323,6 +324,14 @@ public class RecorderRtpImpl
         //((RTPTranslatorImpl)videoRTPTranslator).addFormat(streamRTPManager, mediaFormatImpl.getFormat(), vp8PayloadType);
 
         started = true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public MediaStream getMediaStream()
+    {
+        return mediaStream;
     }
 
     @Override
