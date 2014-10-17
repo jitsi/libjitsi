@@ -101,7 +101,6 @@ public class SynchronizerImpl
                 {
                     if (ssrcDesc.rtpTime == -1 || ssrcDesc.ntpTime == -1.0)
                     {
-
                         ssrcDesc.rtpTime = rtpTime;
                         ssrcDesc.ntpTime = ntpTime;
                     }

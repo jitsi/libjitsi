@@ -6,7 +6,7 @@
  */
 package org.jitsi.service.neomedia.recording;
 
-import org.jitsi.service.neomedia.MediaException;
+import org.jitsi.service.neomedia.*;
 
 import java.io.*;
 import java.util.*;
@@ -141,4 +141,10 @@ public interface Recorder
      * @param synchronizer the <tt>Synchronizer</tt> to set.
      */
     public void setSynchronizer(Synchronizer synchronizer);
+
+    /**
+     * Gets the <tt>MediaStream</tt> associated with this <tt>Recorder</tt>.
+     * @return the <tt>MediaStream</tt> associated with this <tt>Recorder</tt>.
+     */
+    public MediaStream getMediaStream();
 }

@@ -408,4 +408,12 @@ public class RecorderImpl
     public void setSynchronizer(Synchronizer synchronizer)
     {
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public MediaStream getMediaStream()
+    {
+        return null;
+    }
 }
