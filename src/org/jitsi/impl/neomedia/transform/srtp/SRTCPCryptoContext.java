@@ -29,7 +29,6 @@ package org.jitsi.impl.neomedia.transform.srtp;
 import java.util.*;
 
 import org.bouncycastle.crypto.*;
-import org.bouncycastle.crypto.digests.*;
 import org.bouncycastle.crypto.engines.*;
 import org.bouncycastle.crypto.macs.*;
 import org.bouncycastle.crypto.params.*;
@@ -244,7 +243,7 @@ public class SRTCPCryptoContext
         switch (policy.getAuthType())
         {
         case SRTPPolicy.HMACSHA1_AUTHENTICATION:
-            mac = new HMac(new SHA1Digest());
+            mac = new HMac(SHA1.createDigest());
             authKey = new byte[policy.getAuthKeyLength()];
             tagStore = new byte[mac.getMacSize()];
             break;

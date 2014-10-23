@@ -157,11 +157,11 @@ class AES
                             if ((name == null) || (name.length() == 0))
                                 name = "org.jitsi.impl.neomedia.transform.srtp";
 
-                            provider
-                                = new sun.security.pkcs11.SunPKCS11(
-                                        "--name=" + name + "\\n"
-                                            + "nssDbMode=noDb\\n"
-                                            + "attributes=compatibility");
+//                            provider
+//                                = new sun.security.pkcs11.SunPKCS11(
+//                                        "--name=" + name + "\\n"
+//                                            + "nssDbMode=noDb\\n"
+//                                            + "attributes=compatibility");
                         }
                         else
                         {

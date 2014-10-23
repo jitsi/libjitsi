@@ -29,7 +29,6 @@ package org.jitsi.impl.neomedia.transform.srtp;
 import java.util.*;
 
 import org.bouncycastle.crypto.*;
-import org.bouncycastle.crypto.digests.*;
 import org.bouncycastle.crypto.engines.*;
 import org.bouncycastle.crypto.macs.*;
 import org.bouncycastle.crypto.params.*;
@@ -367,7 +366,7 @@ public class SRTPCryptoContext
         {
         case SRTPPolicy.HMACSHA1_AUTHENTICATION:
             authKey = new byte[policy.getAuthKeyLength()];
-            mac = new HMac(new SHA1Digest());
+            mac = new HMac(SHA1.createDigest());
             tagStore = new byte[mac.getMacSize()];
             break;
 
@@ -380,7 +379,7 @@ public class SRTPCryptoContext
         case SRTPPolicy.NULL_AUTHENTICATION:
         default:
             authKey = null;
-            mac = new HMac(new SHA1Digest());
+            mac = new HMac(SHA1.createDigest());
             tagStore = null;
             break;
         }
