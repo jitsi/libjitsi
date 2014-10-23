@@ -39,7 +39,7 @@ Build-Depends: debhelper (>= 9), javahelper,
                libavfilter-dev (>= 6:10~),
                libswscale-dev (>= 6:10~),
                libpulse-dev
-Standards-Version: 3.9.5
+Standards-Version: 3.9.6
 
 
 Package: libjitsi
