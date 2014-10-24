@@ -109,8 +109,8 @@ class AES
                 {
                     logger.warn(
                             "Failed to employ a java.security.Provider for an"
-                                + " optimized AES implementation.",
-                            t);
+                                + " optimized AES implementation: "
+                                + t.getLocalizedMessage());
                 }
             }
         }
