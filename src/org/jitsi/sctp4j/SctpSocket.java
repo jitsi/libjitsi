@@ -7,6 +7,7 @@
 package org.jitsi.sctp4j;
 
 import java.io.*;
+import java.util.concurrent.locks.*;
 
 import org.jitsi.util.*;
 
@@ -14,6 +15,7 @@ import org.jitsi.util.*;
  * SCTP socket implemented using "usrsctp" lib.
  *
  * @author Pawel Domas
+ * @author George Politis
  */
 public class SctpSocket
 {
@@ -21,6 +23,16 @@ public class SctpSocket
      * The logger.
      */
     private final static Logger logger = Logger.getLogger(SctpSocket.class);
+
+    /**
+     * Reader access synchronization lock to the native socket pointer.
+     */
+    private final Lock rl;
+
+    /**
+     * Writer access synchronization lock to the native socket pointer.
+     */
+    private final Lock wl;
 
     /**
      * Reads 32 bit unsigned int from the buffer at specified offset
@@ -166,7 +178,7 @@ public class SctpSocket
         }
     }
 
-    public synchronized static void debugSctpPacket(byte[] packet, String id)
+    public static void debugSctpPacket(byte[] packet, String id)
     {
         System.out.println(id);
         if(packet.length >= 12)
@@ -200,7 +212,7 @@ public class SctpSocket
     /**
      * Local SCTP port.
      */
-    int localPort;
+    final int localPort;
 
     /**
      * SCTP notification listener.
@@ -225,7 +237,7 @@ public class SctpSocket
     /**
      * Pointer to native socket counterpart.
      */
-    long socketPtr;
+    final long socketPtr;
 
     /**
      * Creates new instance of <tt>SctpSocket</tt>.
@@ -239,6 +251,100 @@ public class SctpSocket
 
         this.socketPtr = socketPtr;
         this.localPort = localPort;
+
+        // We slightly changed the synchronization scheme used in this class in
+        // order to avoid the following deadlock:
+        //
+        // "org.jitsi.videobridge.SctpConnection-pool-5-thread-21":
+        // at org.jitsi.sctp4j.SctpSocket.send(SctpSocket.java:470)
+        // - waiting to lock <0x0000000775ec1010> (a org.jitsi.sctp4j.SctpSocket)
+        // at org.jitsi.sctp4j.SctpSocket.send(SctpSocket.java:452)
+        // at org.jitsi.videobridge.WebRtcDataStream.sendString(WebRtcDataStream.java:128)
+        // at org.jitsi.videobridge.Endpoint.sendMessageOnDataChannel(Endpoint.java:365)
+        // at org.jitsi.videobridge.sim.SimulcastManager.maybeSendStartHighQualityStreamCommand(SimulcastManager.java:924)
+        // at org.jitsi.videobridge.sim.SimulcastManager.onSelectedEndpointChanged(SimulcastManager.java:717)
+        // at org.jitsi.videobridge.sim.SimulcastManager.propertyChange(SimulcastManager.java:641)
+        // at org.jitsi.util.event.WeakReferencePropertyChangeListener.propertyChange(WeakReferencePropertyChangeListener.java:45)
+        // at org.jitsi.util.event.PropertyChangeNotifier.firePropertyChange(PropertyChangeNotifier.java:117)
+        // at org.jitsi.videobridge.Endpoint.onStringData(Endpoint.java:491)
+        // at org.jitsi.videobridge.WebRtcDataStream.onStringMsg(WebRtcDataStream.java:113)
+        // at org.jitsi.videobridge.SctpConnection.onSctpPacket(SctpConnection.java:764)
+        // at org.jitsi.sctp4j.SctpSocket.onSctpIn(SctpSocket.java:381)
+        // at org.jitsi.sctp4j.SctpSocket.onSctpInboundPacket(SctpSocket.java:406)
+        // at org.jitsi.sctp4j.Sctp.onSctpInboundPacket(Sctp.java:214)
+        // at org.jitsi.sctp4j.Sctp.on_network_in(Native Method)
+        // at org.jitsi.sctp4j.Sctp.onConnIn(Sctp.java:187)
+        // at org.jitsi.sctp4j.SctpSocket.onConnIn(SctpSocket.java:349)
+        // - locked <0x0000000775e123b8> (a org.jitsi.sctp4j.SctpSocket)
+        // at org.jitsi.videobridge.SctpConnection.runOnDtlsTransport(SctpConnection.java:1070)
+        // at org.jitsi.videobridge.SctpConnection.access$000(SctpConnection.java:44)
+        // at org.jitsi.videobridge.SctpConnection$1.run(SctpConnection.java:431)
+        // at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+        // at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
+        // at java.lang.Thread.run(Thread.java:745)
+        // "org.jitsi.videobridge.SctpConnection-pool-5-thread-25":
+        // at org.jitsi.sctp4j.SctpSocket.send(SctpSocket.java:470)
+        // - waiting to lock <0x0000000775e123b8> (a org.jitsi.sctp4j.SctpSocket)
+        // at org.jitsi.sctp4j.SctpSocket.send(SctpSocket.java:452)
+        // at org.jitsi.videobridge.WebRtcDataStream.sendString(WebRtcDataStream.java:128)
+        // at org.jitsi.videobridge.Endpoint.sendMessageOnDataChannel(Endpoint.java:365)
+        // at org.jitsi.videobridge.sim.SimulcastManager.maybeSendStartHighQualityStreamCommand(SimulcastManager.java:924)
+        // at org.jitsi.videobridge.sim.SimulcastManager.onSelectedEndpointChanged(SimulcastManager.java:717)
+        // at org.jitsi.videobridge.sim.SimulcastManager.propertyChange(SimulcastManager.java:641)
+        // at org.jitsi.util.event.WeakReferencePropertyChangeListener.propertyChange(WeakReferencePropertyChangeListener.java:45)
+        // at org.jitsi.util.event.PropertyChangeNotifier.firePropertyChange(PropertyChangeNotifier.java:117)
+        // at org.jitsi.videobridge.Endpoint.onStringData(Endpoint.java:491)
+        // at org.jitsi.videobridge.WebRtcDataStream.onStringMsg(WebRtcDataStream.java:113)
+        // at org.jitsi.videobridge.SctpConnection.onSctpPacket(SctpConnection.java:764)
+        // at org.jitsi.sctp4j.SctpSocket.onSctpIn(SctpSocket.java:381)
+        // at org.jitsi.sctp4j.SctpSocket.onSctpInboundPacket(SctpSocket.java:406)
+        // at org.jitsi.sctp4j.Sctp.onSctpInboundPacket(Sctp.java:214)
+        // at org.jitsi.sctp4j.Sctp.on_network_in(Native Method)
+        // at org.jitsi.sctp4j.Sctp.onConnIn(Sctp.java:187)
+        // at org.jitsi.sctp4j.SctpSocket.onConnIn(SctpSocket.java:349)
+        // - locked <0x0000000775ec1010> (a org.jitsi.sctp4j.SctpSocket)
+        // at org.jitsi.videobridge.SctpConnection.runOnDtlsTransport(SctpConnection.java:1070)
+        // at org.jitsi.videobridge.SctpConnection.access$000(SctpConnection.java:44)
+        // at org.jitsi.videobridge.SctpConnection$1.run(SctpConnection.java:431)
+        // at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+        // at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
+        // at java.lang.Thread.run(Thread.java:745)
+        //
+        // What happened is that both A and B must have selected a participant
+        // at about the same time (it's not important, but, for the shake of
+        // example, suppose that A selected B and that B selected A). That
+        // resulted in a data channel message being fired from both endpoints
+        // notifying the bridge who's the selected participant at each endpoint
+        // and locking 0x0000000775ec1010 and 0x0000000775e123b8.
+        //
+        // Upon reception of the selection notification from A, his simulcast
+        // manager decided to request from B (by sending a data channel message)
+        // to start its high quality stream (waiting to lock 0x0000000775ec1010)
+        // and visa-versa, i.e. B's simulcast manager decided to request from
+        // his endpoint to start A's high quality stream (waiting to lock
+        // 0x0000000775e123b8). Boom!
+        //
+        // Possible solutions are:
+        //
+        // 1. use an incoming SCTP packets queue and a single processing thread.
+        // 2. use an outgoing SCTP packets queue and a single sending thread.
+        // 3. when there are incoming SCTP packets, execute each data callback
+        //    in its own thread without queuing
+        // 4. when there are outgoing SCTP packets, execute the send in its own
+        //    thread without queuing (I'm not sure whether the underlying native
+        //    SCTP socket is thread safe though, so this could be a little
+        //    risky)
+        // 5. a combination of the above
+        // 6. change the synchronization scheme
+        //
+        // However, usrsctp seems to already be queueing packets and having
+        // sending/processing threads so there's no need to duplicate this
+        // functionality here. We implement a readers-writers scheme that
+        // protects the native socket pointer instead.
+
+        final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock(true);
+        this.wl = rwl.writeLock();
+        this.rl = rwl.readLock();
     }
 
     /**
@@ -250,12 +356,20 @@ public class SctpSocket
      * @return <tt>true</tt> if we have accepted incoming connection
      *         successfully.
      */
-    public synchronized boolean accept()
+    public boolean accept()
         throws IOException
     {
-        checkIsPointerValid();
+        rl.lock();
+        try
+        {
+            checkIsPointerValid();
 
-        return Sctp.usrsctp_accept(socketPtr);
+            return Sctp.usrsctp_accept(socketPtr);
+        }
+        finally
+        {
+            rl.unlock();
+        }
     }
 
     /**
@@ -277,12 +391,31 @@ public class SctpSocket
      * Closes this socket. After call to this method this instance MUST NOT be
      * used.
      */
-    public synchronized void close()
+    public void close()
     {
-        if(socketPtr != 0)
+        rl.lock();
+        if (socketPtr != 0)
         {
-            Sctp.closeSocket(socketPtr);
-            socketPtr = 0;
+            // Must release read lock before acquiring write lock
+            rl.unlock();
+            wl.lock();
+            try
+            {
+                // Recheck state because another thread might have
+                // acquired write lock and changed state before we did.
+                if (socketPtr != 0)
+                {
+                    Sctp.closeSocket(socketPtr);
+                }
+            }
+            finally
+            {
+                wl.unlock();
+            }
+        }
+        else
+        {
+            rl.unlock();
         }
     }
 
@@ -292,14 +425,22 @@ public class SctpSocket
      * @throws java.io.IOException if this socket is closed or an error occurs
      *         while trying to connect the socket.
      */
-    public synchronized void connect(int remotePort)
+    public void connect(int remotePort)
         throws IOException
     {
-        checkIsPointerValid();
-
-        if(!Sctp.usrsctp_connect(socketPtr, remotePort))
+        rl.lock();
+        try
         {
-            throw new IOException("Failed to connect SCTP");
+            checkIsPointerValid();
+
+            if (!Sctp.usrsctp_connect(socketPtr, remotePort))
+            {
+                throw new IOException("Failed to connect SCTP");
+            }
+        }
+        finally
+        {
+            rl.unlock();
         }
     }
 
@@ -315,12 +456,21 @@ public class SctpSocket
     /**
      * Makes SCTP socket passive.
      */
-    public synchronized void listen()
+    public void listen()
         throws IOException
     {
-        checkIsPointerValid();
+        rl.lock();
 
-        Sctp.usrsctp_listen(socketPtr);
+        try
+        {
+            checkIsPointerValid();
+
+            Sctp.usrsctp_listen(socketPtr);
+        }
+        finally
+        {
+            rl.unlock();
+        }
     }
 
     /**
@@ -329,7 +479,7 @@ public class SctpSocket
      * @param offset the position in the packet buffer where actual data starts
      * @param len length of packet data in the buffer.
      */
-    public synchronized void onConnIn(byte[] packet, int offset, int len)
+    public void onConnIn(byte[] packet, int offset, int len)
         throws IOException
     {
         if(packet == null)
@@ -341,12 +491,21 @@ public class SctpSocket
                 "o: " + offset + " l: " + len + " packet l: " + packet.length);
         }
 
-        // Prevent JVM crash by throwing IOException
-        checkIsPointerValid();
+        rl.lock();
 
-        //debugSctpPacket(packet);
+        try
+        {
+            // Prevent JVM crash by throwing IOException
+            checkIsPointerValid();
 
-        Sctp.onConnIn(socketPtr, packet, offset, len);
+            //debugSctpPacket(packet);
+
+            Sctp.onConnIn(socketPtr, packet, offset, len);
+        }
+        finally
+        {
+            rl.unlock();
+        }
     }
 
     /**
@@ -463,7 +622,7 @@ public class SctpSocket
      * @param ppid payload protocol identifier
      * @return sent bytes count or <tt>-1</tt> in case of an error.
      */
-    public synchronized int send(byte[] data,     int offset,  int len,
+    public int send(byte[] data,     int offset,  int len,
                                  boolean ordered, int sid,     int ppid)
         throws IOException
     {
@@ -476,11 +635,19 @@ public class SctpSocket
                 "o: " + offset + " l: " + len + " data l: " + data.length);
         }
 
-        // Prevent JVM crash by throwing IOException
-        checkIsPointerValid();
+        rl.lock();
+        try
+        {
+            // Prevent JVM crash by throwing IOException
+            checkIsPointerValid();
 
-        return Sctp.usrsctp_send(
-            socketPtr, data, offset, len, ordered, sid, ppid);
+            return Sctp.usrsctp_send(
+                    socketPtr, data, offset, len, ordered, sid, ppid);
+        }
+        finally
+        {
+            rl.unlock();
+        }
     }
     /**
      * Sets the callback that will be fired when new data is received.
