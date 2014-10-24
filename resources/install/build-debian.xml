@@ -36,8 +36,14 @@
                 <exclude name="debian/control.binary.pkg"/>
             </fileset>
         </copy>
+        <tstamp>
+            <format property="date"
+                    pattern="EEE, d MMM yyyy HH:mm:ss Z"
+                    locale="en,US"/>
+        </tstamp>
         <replace file="${tmp}/libjitsi/debian/changelog">
             <replacefilter token="_VER_" value="${build.label}"/>
+            <replacefilter token="_DATE_" value="${date}"/>
         </replace>
 
         <!-- ice4j
@@ -535,8 +541,14 @@ org.jitsi.bccontrib.util"/>
                 <include name="debian/**"/>
             </fileset>
         </copy>
+        <tstamp>
+            <format property="date"
+                    pattern="EEE, d MMM yyyy HH:mm:ss Z"
+                    locale="en,US"/>
+        </tstamp>
         <replace file="${tmp}/libjitsi/debian/changelog">
             <replacefilter token="_VER_" value="${build.label}"/>
+            <replacefilter token="_DATE_" value="${date}"/>
         </replace>
 
         <replace file="${tmp}/libjitsi/debian/rules"
