@@ -237,7 +237,7 @@ public class SctpSocket
     /**
      * Pointer to native socket counterpart.
      */
-    final long socketPtr;
+    long socketPtr;
 
     /**
      * Creates new instance of <tt>SctpSocket</tt>.
@@ -406,6 +406,7 @@ public class SctpSocket
                 if (socketPtr != 0)
                 {
                     Sctp.closeSocket(socketPtr);
+                    socketPtr = 0;
                 }
             }
             finally
