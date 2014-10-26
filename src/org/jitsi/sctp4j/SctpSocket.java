@@ -253,62 +253,7 @@ public class SctpSocket
         this.localPort = localPort;
 
         // We slightly changed the synchronization scheme used in this class in
-        // order to avoid the following deadlock:
-        //
-        // "org.jitsi.videobridge.SctpConnection-pool-5-thread-21":
-        // at org.jitsi.sctp4j.SctpSocket.send(SctpSocket.java:470)
-        // - waiting to lock <0x0000000775ec1010> (a org.jitsi.sctp4j.SctpSocket)
-        // at org.jitsi.sctp4j.SctpSocket.send(SctpSocket.java:452)
-        // at org.jitsi.videobridge.WebRtcDataStream.sendString(WebRtcDataStream.java:128)
-        // at org.jitsi.videobridge.Endpoint.sendMessageOnDataChannel(Endpoint.java:365)
-        // at org.jitsi.videobridge.sim.SimulcastManager.maybeSendStartHighQualityStreamCommand(SimulcastManager.java:924)
-        // at org.jitsi.videobridge.sim.SimulcastManager.onSelectedEndpointChanged(SimulcastManager.java:717)
-        // at org.jitsi.videobridge.sim.SimulcastManager.propertyChange(SimulcastManager.java:641)
-        // at org.jitsi.util.event.WeakReferencePropertyChangeListener.propertyChange(WeakReferencePropertyChangeListener.java:45)
-        // at org.jitsi.util.event.PropertyChangeNotifier.firePropertyChange(PropertyChangeNotifier.java:117)
-        // at org.jitsi.videobridge.Endpoint.onStringData(Endpoint.java:491)
-        // at org.jitsi.videobridge.WebRtcDataStream.onStringMsg(WebRtcDataStream.java:113)
-        // at org.jitsi.videobridge.SctpConnection.onSctpPacket(SctpConnection.java:764)
-        // at org.jitsi.sctp4j.SctpSocket.onSctpIn(SctpSocket.java:381)
-        // at org.jitsi.sctp4j.SctpSocket.onSctpInboundPacket(SctpSocket.java:406)
-        // at org.jitsi.sctp4j.Sctp.onSctpInboundPacket(Sctp.java:214)
-        // at org.jitsi.sctp4j.Sctp.on_network_in(Native Method)
-        // at org.jitsi.sctp4j.Sctp.onConnIn(Sctp.java:187)
-        // at org.jitsi.sctp4j.SctpSocket.onConnIn(SctpSocket.java:349)
-        // - locked <0x0000000775e123b8> (a org.jitsi.sctp4j.SctpSocket)
-        // at org.jitsi.videobridge.SctpConnection.runOnDtlsTransport(SctpConnection.java:1070)
-        // at org.jitsi.videobridge.SctpConnection.access$000(SctpConnection.java:44)
-        // at org.jitsi.videobridge.SctpConnection$1.run(SctpConnection.java:431)
-        // at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
-        // at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
-        // at java.lang.Thread.run(Thread.java:745)
-        // "org.jitsi.videobridge.SctpConnection-pool-5-thread-25":
-        // at org.jitsi.sctp4j.SctpSocket.send(SctpSocket.java:470)
-        // - waiting to lock <0x0000000775e123b8> (a org.jitsi.sctp4j.SctpSocket)
-        // at org.jitsi.sctp4j.SctpSocket.send(SctpSocket.java:452)
-        // at org.jitsi.videobridge.WebRtcDataStream.sendString(WebRtcDataStream.java:128)
-        // at org.jitsi.videobridge.Endpoint.sendMessageOnDataChannel(Endpoint.java:365)
-        // at org.jitsi.videobridge.sim.SimulcastManager.maybeSendStartHighQualityStreamCommand(SimulcastManager.java:924)
-        // at org.jitsi.videobridge.sim.SimulcastManager.onSelectedEndpointChanged(SimulcastManager.java:717)
-        // at org.jitsi.videobridge.sim.SimulcastManager.propertyChange(SimulcastManager.java:641)
-        // at org.jitsi.util.event.WeakReferencePropertyChangeListener.propertyChange(WeakReferencePropertyChangeListener.java:45)
-        // at org.jitsi.util.event.PropertyChangeNotifier.firePropertyChange(PropertyChangeNotifier.java:117)
-        // at org.jitsi.videobridge.Endpoint.onStringData(Endpoint.java:491)
-        // at org.jitsi.videobridge.WebRtcDataStream.onStringMsg(WebRtcDataStream.java:113)
-        // at org.jitsi.videobridge.SctpConnection.onSctpPacket(SctpConnection.java:764)
-        // at org.jitsi.sctp4j.SctpSocket.onSctpIn(SctpSocket.java:381)
-        // at org.jitsi.sctp4j.SctpSocket.onSctpInboundPacket(SctpSocket.java:406)
-        // at org.jitsi.sctp4j.Sctp.onSctpInboundPacket(Sctp.java:214)
-        // at org.jitsi.sctp4j.Sctp.on_network_in(Native Method)
-        // at org.jitsi.sctp4j.Sctp.onConnIn(Sctp.java:187)
-        // at org.jitsi.sctp4j.SctpSocket.onConnIn(SctpSocket.java:349)
-        // - locked <0x0000000775ec1010> (a org.jitsi.sctp4j.SctpSocket)
-        // at org.jitsi.videobridge.SctpConnection.runOnDtlsTransport(SctpConnection.java:1070)
-        // at org.jitsi.videobridge.SctpConnection.access$000(SctpConnection.java:44)
-        // at org.jitsi.videobridge.SctpConnection$1.run(SctpConnection.java:431)
-        // at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
-        // at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
-        // at java.lang.Thread.run(Thread.java:745)
+        // order to avoid a deadlock.
         //
         // What happened is that both A and B must have selected a participant
         // at about the same time (it's not important, but, for the shake of
