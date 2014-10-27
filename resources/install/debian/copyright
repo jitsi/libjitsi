@@ -10,7 +10,7 @@ License: LGPL-2.1
 
 Files: lib/src/fmj/*
 Copyright: UNKNOWN:
-License: LGPL-2
+License: LGPL-2.1
 
 Files: src.capture/net/sf/fmj/media/protocol/javasound/SimpleAudioRecorder.java
 Copyright: 1999 - 2003 by Matthias Pfisterer
