@@ -1,0 +1,19 @@
+Index: libjitsi/src/org/jitsi/impl/neomedia/codec/FMJPlugInConfiguration.java
+===================================================================
+--- libjitsi.orig/src/org/jitsi/impl/neomedia/codec/FMJPlugInConfiguration.java
++++ libjitsi/src/org/jitsi/impl/neomedia/codec/FMJPlugInConfiguration.java
+@@ -70,10 +70,10 @@ public class FMJPlugInConfiguration
+                 : null,
+             "org.jitsi.impl.neomedia.codec.audio.g722.JNIDecoder",
+             "org.jitsi.impl.neomedia.codec.audio.g722.JNIEncoder",
+-            "org.jitsi.impl.neomedia.codec.audio.gsm.Decoder",
+-            "org.jitsi.impl.neomedia.codec.audio.gsm.Encoder",
+-            "org.jitsi.impl.neomedia.codec.audio.gsm.DePacketizer",
+-            "org.jitsi.impl.neomedia.codec.audio.gsm.Packetizer",
++            //"org.jitsi.impl.neomedia.codec.audio.gsm.Decoder",
++            //"org.jitsi.impl.neomedia.codec.audio.gsm.Encoder",
++            //"org.jitsi.impl.neomedia.codec.audio.gsm.DePacketizer",
++            //"org.jitsi.impl.neomedia.codec.audio.gsm.Packetizer",
+             "org.jitsi.impl.neomedia.codec.audio.silk.JavaDecoder",
+             "org.jitsi.impl.neomedia.codec.audio.silk.JavaEncoder",
+             "org.jitsi.impl.neomedia.codec.video.h263p.DePacketizer",
