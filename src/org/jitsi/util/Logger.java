@@ -205,6 +205,17 @@ public class Logger
     }
 
     /**
+     * Check if a message with a WARN level would actually be logged by this
+     * logger.
+     * <p>
+     * @return true if the WARN level is currently being logged
+     */
+    public boolean isWarnEnabled()
+    {
+        return loggerDelegate.isLoggable(Level.WARNING);
+    }
+
+    /**
      * Log a WARN message.
      * <p>
      * If the logger is currently enabled for the WARN message
