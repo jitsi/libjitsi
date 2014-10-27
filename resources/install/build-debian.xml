@@ -28,6 +28,7 @@
                 <include name="resources/install/build-debian.xml"/>
                 <exclude name="**/macosx/**"/>
                 <exclude name="**/windows/**"/>
+                <exclude name="**/gsm/**"/>
             </fileset>
         </copy>
         <copy todir="${tmp}/libjitsi">
@@ -79,15 +80,47 @@
         <copy todir="${tmp}/libjitsi/lib/src/fmj">
             <fileset dir="../fmj">
                 <exclude name="**/.svn"/>
-                <include name="*/**"/>
+
+                <include name="build.xml"/>
+                <include name="src/**"/>
+                <include name="src.capture/**"/>
+                <include name="src.ejmf/**"/>
+                <include name="src.rtp/**"/>
+                <include name="src.stubs/**"/>
+                <include name="src.sunibm.base/**"/>
+                <include name="src.sunibm.replace/**"/>
+                <include name="src.t4l/**"/>
+                <include name="src.utils/**"/>
+
                 <exclude name="**/macosx/**"/>
                 <exclude name="**/windows/**"/>
                 <exclude name="**/lib/**"/>
                 <exclude name="**/*.so"/>
                 <exclude name="**/*.dll"/>
                 <exclude name="**/src.examples.jmf/**"/>
+
+                <exclude name="**/civil/**" />
+                <exclude name="**/net/sf/fmj/media/cdp/GlobalCaptureDevicePlugger.java" />
+                <exclude name="**/net/sf/fmj/ejmf/toolkit/gui/**"/>
+                <exclude name="**/net/java/**" />
+                <exclude name="**/net/sf/fmj/capture/**" />
+                <exclude name="**/net/sf/fmj/ds/**" />
+                <exclude name="**/net/sf/fmj/gui/**" />
+                <exclude name="**/net/sf/fmj/test/**" />
+                <exclude name="**/net/sf/fmj/qt/**" />
+                <exclude name="**/net/sf/jdshow/**" />
+                <exclude name="**/gsm/**" />
+                <exclude name="**/rubycoder/**" />
+                <exclude name="**/fi/iki/elonen/nanohttpd/**" />
+
             </fileset>
         </copy>
+        <mkdir dir="${tmp}/libjitsi/lib/src/fmj/src.apps"/>
+        <mkdir dir="${tmp}/libjitsi/lib/src/fmj/src.ffmpeg-java"/>
+        <mkdir dir="${tmp}/libjitsi/lib/src/fmj/src.fmjstudio"/>
+        <mkdir dir="${tmp}/libjitsi/lib/src/fmj/src.gst"/>
+        <mkdir dir="${tmp}/libjitsi/lib/src/fmj/src.sip-communicator"/>
+        <mkdir dir="${tmp}/libjitsi/lib/src/fmj/src.theora-java"/>
 
         <!-- zrtp4j -->
         <unzip src="../libsrc/zrtp4j-src-3.2.0.zip"

@@ -4,3 +4,4 @@ remove-hflip
 libav10.patch
 encoding.patch
 jdk8
+remove-gsm
