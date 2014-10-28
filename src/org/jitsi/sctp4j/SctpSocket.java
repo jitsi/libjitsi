@@ -25,16 +25,6 @@ public class SctpSocket
     private final static Logger logger = Logger.getLogger(SctpSocket.class);
 
     /**
-     * Reader access synchronization lock to the native socket pointer.
-     */
-    private final Lock rl;
-
-    /**
-     * Writer access synchronization lock to the native socket pointer.
-     */
-    private final Lock wl;
-
-    /**
      * Reads 32 bit unsigned int from the buffer at specified offset
      *
      * @param buffer
@@ -212,7 +202,7 @@ public class SctpSocket
     /**
      * Local SCTP port.
      */
-    final int localPort;
+    private final int localPort;
 
     /**
      * SCTP notification listener.
@@ -235,12 +225,23 @@ public class SctpSocket
         };
 
     /**
+     * Reader access synchronization lock to the native socket pointer.
+     */
+    private final Lock rl;
+
+    /**
      * Pointer to native socket counterpart.
      */
-    long socketPtr;
+    private long socketPtr;
+
+    /**
+     * Writer access synchronization lock to the native socket pointer.
+     */
+    private final Lock wl;
 
     /**
      * Creates new instance of <tt>SctpSocket</tt>.
+     *
      * @param socketPtr native socket pointer.
      * @param localPort local SCTP port on which this socket is bound.
      */
@@ -282,12 +283,12 @@ public class SctpSocket
         // 5. a combination of the above
         // 6. change the synchronization scheme
         //
-        // However, usrsctp seems to already be queueing packets and having
+        // However, usrsctp seems to already be queuing packets and having
         // sending/processing threads so there's no need to duplicate this
         // functionality here. We implement a readers-writers scheme that
         // protects the native socket pointer instead.
+        ReentrantReadWriteLock rwl = new ReentrantReadWriteLock(true);
 
-        final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock(true);
         this.wl = rwl.writeLock();
         this.rl = rwl.readLock();
     }
@@ -307,9 +308,7 @@ public class SctpSocket
         rl.lock();
         try
         {
-            checkIsPointerValid();
-
-            return Sctp.usrsctp_accept(socketPtr);
+            return Sctp.usrsctp_accept(assertSocketPtr());
         }
         finally
         {
@@ -318,18 +317,21 @@ public class SctpSocket
     }
 
     /**
-     * Checks if {@link #socketPtr} is not null. Otherwise throws
-     * <tt>IOException</tt>.
+     * Throws an <tt>IOException</tt> if {@link #socketPtr} equals <tt>0</tt>;
+     * otherwise, returns <tt>socketPtr</tt>s.
      *
-     * @throws IOException in case this socket pointer is invalid.
+     * @return <tt>socketPtr</tt> if it is not <tt>0</tt>
+     * @throws IOException if <tt>socketPtr</tt> is <tt>0</tt>
      */
-    private void checkIsPointerValid()
+    private long assertSocketPtr()
         throws IOException
     {
-        if(socketPtr == 0)
-        {
-            throw new IOException("Socket is closed");
-        }
+        long socketPtr = this.socketPtr;
+
+        if (socketPtr == 0)
+            throw new IOException("SctpSocket is closed");
+        else
+            return socketPtr;
     }
 
     /**
@@ -346,8 +348,8 @@ public class SctpSocket
             wl.lock();
             try
             {
-                // Recheck state because another thread might have
-                // acquired write lock and changed state before we did.
+                // Recheck state because another thread might have acquired the
+                // write lock and changed the state before we did.
                 if (socketPtr != 0)
                 {
                     Sctp.closeSocket(socketPtr);
@@ -367,9 +369,10 @@ public class SctpSocket
 
     /**
      * Initializes SCTP connection by sending INIT message.
+     *
      * @param remotePort remote SCTP port.
      * @throws java.io.IOException if this socket is closed or an error occurs
-     *         while trying to connect the socket.
+     * while trying to connect the socket.
      */
     public void connect(int remotePort)
         throws IOException
@@ -377,12 +380,8 @@ public class SctpSocket
         rl.lock();
         try
         {
-            checkIsPointerValid();
-
-            if (!Sctp.usrsctp_connect(socketPtr, remotePort))
-            {
+            if (!Sctp.usrsctp_connect(assertSocketPtr(), remotePort))
                 throw new IOException("Failed to connect SCTP");
-            }
         }
         finally
         {
@@ -392,6 +391,7 @@ public class SctpSocket
 
     /**
      * Returns SCTP port used by this socket.
+     *
      * @return SCTP port used by this socket.
      */
     public int getPort()
@@ -406,12 +406,9 @@ public class SctpSocket
         throws IOException
     {
         rl.lock();
-
         try
         {
-            checkIsPointerValid();
-
-            Sctp.usrsctp_listen(socketPtr);
+            Sctp.usrsctp_listen(assertSocketPtr());
         }
         finally
         {
@@ -421,6 +418,7 @@ public class SctpSocket
 
     /**
      * Call this method to pass network packets received on the link.
+     *
      * @param packet network packet received.
      * @param offset the position in the packet buffer where actual data starts
      * @param len length of packet data in the buffer.
@@ -438,15 +436,9 @@ public class SctpSocket
         }
 
         rl.lock();
-
         try
         {
-            // Prevent JVM crash by throwing IOException
-            checkIsPointerValid();
-
-            //debugSctpPacket(packet);
-
-            Sctp.onConnIn(socketPtr, packet, offset, len);
+            Sctp.onConnIn(assertSocketPtr(), packet, offset, len);
         }
         finally
         {
@@ -456,6 +448,7 @@ public class SctpSocket
 
     /**
      * Fired when usrsctp stack sends notification.
+     *
      * @param notification the <tt>SctpNotification</tt> triggered.
      */
     private void onNotification(SctpNotification notification)
@@ -511,10 +504,11 @@ public class SctpSocket
             onSctpIn(data, sid, ssn, tsn, ppid, context, flags);
         }
     }
-
+    
     /**
-     * Callback triggered by Sctp stack whenever it wants to send some
-     * network packet.
+     * Callback triggered by Sctp stack whenever it wants to send some network
+     * packet.
+     *
      * @param packet network packet buffer.
      * @param tos type of service???
      * @param set_df use IP don't fragment option
@@ -545,6 +539,7 @@ public class SctpSocket
     /**
      * Sends given <tt>data</tt> on selected SCTP stream using given payload
      * protocol identifier.
+     *
      * @param data the data to send.
      * @param ordered should we care about message order ?
      * @param sid SCTP stream identifier
@@ -556,20 +551,23 @@ public class SctpSocket
     {
         return send(data, 0, data.length, ordered, sid, ppid);
     }
-    
+
     /**
      * Sends given <tt>data</tt> on selected SCTP stream using given payload
      * protocol identifier.
+     *
      * @param data the data to send.
-     * @param offset postion of the data inside the buffer
+     * @param offset position of the data inside the buffer
      * @param len data length
      * @param ordered should we care about message order ?
      * @param sid SCTP stream identifier
      * @param ppid payload protocol identifier
      * @return sent bytes count or <tt>-1</tt> in case of an error.
      */
-    public int send(byte[] data,     int offset,  int len,
-                                 boolean ordered, int sid,     int ppid)
+    public int send(
+            byte[] data, int offset, int len,
+            boolean ordered,
+            int sid, int ppid)
         throws IOException
     {
         if(data == null)
@@ -584,21 +582,24 @@ public class SctpSocket
         rl.lock();
         try
         {
-            // Prevent JVM crash by throwing IOException
-            checkIsPointerValid();
-
-            return Sctp.usrsctp_send(
-                    socketPtr, data, offset, len, ordered, sid, ppid);
+            return
+                Sctp.usrsctp_send(
+                        assertSocketPtr(),
+                        data, offset, len,
+                        ordered,
+                        sid, ppid);
         }
         finally
         {
             rl.unlock();
         }
     }
+
     /**
      * Sets the callback that will be fired when new data is received.
-     * @param callback the callback that will be fired when new data
-     *                 is received.
+     *
+     * @param callback the callback that will be fired when new data is
+     * received.
      */
     public void setDataCallback(SctpDataCallback callback)
     {
@@ -607,8 +608,9 @@ public class SctpSocket
 
     /**
      * Sets the link that will be used to send network packets.
+     *
      * @param link <tt>NetworkLink</tt> that will be used by this instance to
-     *             send network packets.
+     * send network packets.
      */
     public void setLink(NetworkLink link)
     {
@@ -617,6 +619,7 @@ public class SctpSocket
 
     /**
      * Sets the listener that will be notified about SCTP event.
+     *
      * @param l the {@link NotificationListener} to set.
      */
     public void setNotificationListener(NotificationListener l)
@@ -631,11 +634,11 @@ public class SctpSocket
     {
         /**
          * Fired when usrsctp stack sends notification.
+         *
          * @param socket the {@link SctpSocket} notification source.
          * @param notification the <tt>SctpNotification</tt> triggered.
          */
-        void onSctpNotification(
-                SctpSocket socket,
+        void onSctpNotification( SctpSocket socket,
                 SctpNotification notification);
     }
 }
