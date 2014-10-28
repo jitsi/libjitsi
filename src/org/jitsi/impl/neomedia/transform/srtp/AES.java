@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia.transform.srtp;
 
+import java.lang.reflect.*;
 import java.security.*;
 
 import javax.crypto.*;
@@ -21,7 +22,7 @@ import org.jitsi.util.*;
  *
  * @author Lyubomir Marinov
  */
-class AES
+public class AES
 {
     /**
      * The <tt>Logger</tt> used by the <tt>AES</tt> class to print out debug
@@ -59,7 +60,7 @@ class AES
      * @return a new <tt>BlockCipher</tt> instance which implements Advanced
      * Encryption Standard (AES)
      */
-    static BlockCipher createBlockCipher()
+    public static BlockCipher createBlockCipher()
     {
         // The value of useProvider changes from true to false only and it does
         // not sound like a problem to have multiple threads access it
@@ -126,6 +127,7 @@ class AES
      * an optimized AES implementation
      */
     private static Provider getProvider()
+        throws Exception
     {
         Provider provider;
 
@@ -146,22 +148,37 @@ class AES
                     {
                         if ("SunPKCS11".equals(providerName))
                         {
-                            // The SunPKCS11 Config name should be unique in
-                            // order to avoid repeated initialization
-                            // exceptions.
-                            String name = null;
-                            Package pkg = AES.class.getPackage();
+                            Class<?> clazz
+                                = Class.forName(
+                                        "sun.security.pkcs11.SunPKCS11");
 
-                            if (pkg != null)
-                                name = pkg.getName();
-                            if ((name == null) || (name.length() == 0))
-                                name = "org.jitsi.impl.neomedia.transform.srtp";
+                            if (Provider.class.isAssignableFrom(clazz))
+                            {
+                                Constructor<?> contructor
+                                    = clazz.getConstructor(String.class);
 
-//                            provider
-//                                = new sun.security.pkcs11.SunPKCS11(
-//                                        "--name=" + name + "\\n"
-//                                            + "nssDbMode=noDb\\n"
-//                                            + "attributes=compatibility");
+                                // The SunPKCS11 Config name should be unique in
+                                // order to avoid repeated initialization
+                                // exceptions.
+                                String name = null;
+                                Package pkg = AES.class.getPackage();
+
+                                if (pkg != null)
+                                    name = pkg.getName();
+                                if (name == null || name.length() == 0)
+                                {
+                                    name
+                                        = "org.jitsi.impl.neomedia.transform"
+                                            + ".srtp";
+                                }
+
+                                provider
+                                    = (Provider)
+                                        contructor.newInstance(
+                                                "--name=" + name + "\\n"
+                                                    + "nssDbMode=noDb\\n"
+                                                    + "attributes=compatibility");
+                            }
                         }
                         else
                         {
