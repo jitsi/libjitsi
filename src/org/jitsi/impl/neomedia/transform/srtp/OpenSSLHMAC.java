@@ -7,15 +7,16 @@
 package org.jitsi.impl.neomedia.transform.srtp;
 
 import org.bouncycastle.crypto.*;
+import org.bouncycastle.crypto.params.*;
 
 /**
- * Implements the interface <tt>org.bouncycastle.crypto.Digest</tt> using the
+ * Implements the interface <tt>org.bouncycastle.crypto.Mac</tt> using the
  * OpenSSL Crypto library.
  *
  * @author Lyubomir Marinov
  */
-public class OpenSSLDigest
-    implements ExtendedDigest
+public class OpenSSLHMAC
+    implements Mac
 {
     private static long EVP_sha1;
 
@@ -26,33 +27,29 @@ public class OpenSSLDigest
      */
     private static boolean loadLibrary = true;
 
-    /**
-     * The algorithm of the SHA-1 cryptographic hash function/digest.
-     */
-    public static final int SHA1 = 1;
-
-    private static native int EVP_DigestFinal_ex(
-            long ctx,
-            byte[] md, int off);
-
-    private static native boolean EVP_DigestInit_ex(
-            long ctx,
-            long type,
-            long impl);
-
-    private static native boolean EVP_DigestUpdate(
-            long ctx,
-            byte[] d, int off, int cnt);
-
-    private static native int EVP_MD_CTX_block_size(long ctx);
-
-    private static native long EVP_MD_CTX_create();
-
-    private static native void EVP_MD_CTX_destroy(long ctx);
-
-    private static native int EVP_MD_CTX_size(long ctx);
+    private static native int EVP_MD_size(long md);
 
     private static native long EVP_sha1();
+
+    private static native void HMAC_CTX_cleanup(long ctx);
+
+    private static native long HMAC_CTX_create();
+
+    private static native void HMAC_CTX_destroy(long ctx);
+
+    private static native int HMAC_Final(
+            long ctx,
+            byte[] md, int mdOff, int mdLen);
+
+    private static native boolean HMAC_Init_ex(
+            long ctx,
+            byte[] key, int keyLen,
+            long md,
+            long impl);
+
+    private static native boolean HMAC_Update(
+            long ctx,
+            byte[] data, int off, int len);
 
     /**
      * The name of the algorithm implemented by this instance.
@@ -60,42 +57,47 @@ public class OpenSSLDigest
     private final String algorithmName;
 
     /**
-     * The size in bytes of the internal buffer the digest applies its
-     * compression function to.
-     */
-    private final int byteLength;
-
-    /**
-     * The digest context of the OpenSSL (Crypto) library through which the
-     * actual algorithm implementation is invoked by this instance.
+     * The context of the OpenSSL (Crypto) library through which the actual
+     * algorithm implementation is invoked by this instance.
      */
     private long ctx;
 
     /**
-     * The size in bytes of the digest produced by this message digest.
+     * The key provided in the form of a {@link KeyParameter} in the last
+     * invocation of {@link #init(CipherParameters)}.
      */
-    private final int digestSize;
+    private byte[] key;
+
+    /**
+     * The block size in bytes for this MAC.
+     */
+    private final int macSize;
 
     /**
      * The OpenSSL Crypto type of the message digest implemented by this
      * instance.
      */
-    private final long type;
+    private final long md;
 
     /**
-     * Initializes a new <tt>OpenSSLDigest</tt> instance with a specific
+     * Initializes a new <tt>OpenSSLHMAC</tt> instance with a specific digest
      * algorithm.
      *
-     * @param algorithm the algorithm with which to initialize the new instance
-     * @see #SHA1
+     * @param digestAlgorithm the algorithm of the digest to initialize the new
+     * instance with
+     * @see OpenSSLDigest#SHA1
      */
-    public OpenSSLDigest(int algorithm)
+    public OpenSSLHMAC(int digestAlgorithm)
     {
-        // Make sure the provided arguments are legal.
-        if (algorithm == SHA1)
-            algorithmName = "SHA-1";
+        if (digestAlgorithm == OpenSSLDigest.SHA1)
+        {
+            algorithmName = "SHA-1/HMAC";
+        }
         else
-            throw new IllegalArgumentException("algorithm " + algorithm);
+        {
+            throw new IllegalArgumentException(
+                    "digestAlgorithm " + digestAlgorithm);
+        }
 
         // Load the OpenSSL (Crypto) library if necessary.
         synchronized (OpenSSLDigest.class)
@@ -114,31 +116,32 @@ public class OpenSSLDigest
             }
         }
 
-        long type;
+        long md;
 
-        if (algorithm == SHA1)
+        if (digestAlgorithm == OpenSSLDigest.SHA1)
         {
-            long EVP_sha1 = OpenSSLDigest.EVP_sha1;
+            long EVP_sha1 = OpenSSLHMAC.EVP_sha1;
 
             if (EVP_sha1 == 0)
                 throw new IllegalStateException("EVP_sha1");
             else
-                type = EVP_sha1;
+                md = EVP_sha1;
         }
         else
         {
             // It must have been checked prior to loading the OpenSSL (Crypto)
             // library but the compiler needs it to be convinced that we are not
             // attempting to use an uninitialized variable.
-            throw new IllegalArgumentException("algorithm " + algorithm);
+            throw new IllegalArgumentException(
+                    "digestAlgorithm " + digestAlgorithm);
         }
-        this.type = type;
+        this.md = md;
 
-        long ctx = EVP_MD_CTX_create();
+        long ctx = HMAC_CTX_create();
 
         if (ctx == 0)
         {
-            throw new RuntimeException("EVP_MD_CTX_create");
+            throw new RuntimeException("HMAC_CTX_create");
         }
         else
         {
@@ -149,11 +152,7 @@ public class OpenSSLDigest
             {
                 reset();
 
-                // The byteLength and digestSize are actually properties of the
-                // (OpenSSL Crypto) type so it is really safe to query them
-                // once in light of the fact that the type is final.
-                byteLength = EVP_MD_CTX_block_size(ctx);
-                digestSize = EVP_MD_CTX_size(ctx);
+                macSize = EVP_MD_size(md);
 
                 ok = true;
             }
@@ -163,7 +162,7 @@ public class OpenSSLDigest
                 {
                     if (this.ctx == ctx)
                         this.ctx = 0;
-                    EVP_MD_CTX_destroy(ctx);
+                    HMAC_CTX_destroy(ctx);
                 }
             }
         }
@@ -173,12 +172,23 @@ public class OpenSSLDigest
      * {@inheritDoc}
      */
     @Override
-    public int doFinal(byte[] out, int off)
+    public int doFinal(byte[] out, int outOff)
+        throws DataLengthException, IllegalStateException
     {
         if (out == null)
             throw new NullPointerException("out");
-        if ((off < 0) || (out.length <= off))
-            throw new ArrayIndexOutOfBoundsException(off);
+        if ((outOff < 0) || (out.length <= outOff))
+            throw new ArrayIndexOutOfBoundsException(outOff);
+
+        int outLen = out.length - outOff;
+        int macSize = getMacSize();
+
+        if (outLen < macSize)
+        {
+            throw new DataLengthException(
+                    "Space in out must be at least " + macSize + "bytes but is "
+                        + outLen + " bytes!");
+        }
 
         long ctx = this.ctx;
 
@@ -188,18 +198,17 @@ public class OpenSSLDigest
         }
         else
         {
-            int s = EVP_DigestFinal_ex(ctx, out, off);
-
-            if (s < 0)
+            outLen = HMAC_Final(ctx, out, outOff, outLen);
+            if (outLen < 0)
             {
-                throw new RuntimeException("EVP_DigestFinal_ex");
+                throw new RuntimeException("HMAC_Final");
             }
             else
             {
                 // As the javadoc on interface method specifies, the doFinal
                 // call leaves this Digest reset.
                 reset();
-                return s;
+                return outLen;
             }
         }
     }
@@ -221,7 +230,7 @@ public class OpenSSLDigest
             if (ctx != 0)
             {
                 this.ctx = 0;
-                EVP_MD_CTX_destroy(ctx);
+                HMAC_CTX_destroy(ctx);
             }
         }
         finally
@@ -243,18 +252,26 @@ public class OpenSSLDigest
      * {@inheritDoc}
      */
     @Override
-    public int getByteLength()
+    public int getMacSize()
     {
-        return byteLength;
+        return macSize;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public int getDigestSize()
+    public void init(CipherParameters params)
+        throws IllegalArgumentException
     {
-        return digestSize;
+        byte[] key
+            = (params instanceof KeyParameter)
+                ? ((KeyParameter) params).getKey()
+                : null;
+
+        this.key = key;
+
+        reset();
     }
 
     /**
@@ -269,10 +286,22 @@ public class OpenSSLDigest
         {
             throw new IllegalStateException("ctx");
         }
-        else if (!EVP_DigestInit_ex(ctx, type, /* impl */ 0L))
+        else
         {
-            throw new RuntimeException(
-                    "EVP_DigestInit_ex(" + getAlgorithmName() + ")");
+            HMAC_CTX_cleanup(ctx);
+
+            // As the javadoc on the interface declaration of the method reset
+            // defines. resetting this cipher leaves it in the same state as it
+            // was after the last init (if there was one).
+            if (!HMAC_Init_ex(
+                    ctx,
+                    key, (key == null) ? 0 : key.length,
+                    md,
+                    /* impl */ 0))
+            {
+                throw new RuntimeException(
+                        "HMAC_Init_ex(" + getAlgorithmName() + ")");
+            }
         }
     }
 
@@ -281,6 +310,7 @@ public class OpenSSLDigest
      */
     @Override
     public void update(byte in)
+        throws IllegalStateException
     {
         // TODO Auto-generated method stub
     }
@@ -290,6 +320,7 @@ public class OpenSSLDigest
      */
     @Override
     public void update(byte[] in, int off, int len)
+        throws DataLengthException, IllegalStateException
     {
         if (len != 0)
         {
@@ -304,8 +335,8 @@ public class OpenSSLDigest
 
             if (ctx == 0)
                 throw new IllegalStateException("ctx");
-            else if (!EVP_DigestUpdate(ctx, in, off, len))
-                throw new RuntimeException("EVP_DigestUpdate");
+            else if (!HMAC_Update(ctx, in, off, len))
+                throw new RuntimeException("HMAC_Update");
         }
     }
 }

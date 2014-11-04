@@ -28,11 +28,7 @@ package org.jitsi.impl.neomedia.transform.srtp;
 
 import java.util.*;
 
-import org.bouncycastle.crypto.*;
-import org.bouncycastle.crypto.engines.*;
-import org.bouncycastle.crypto.macs.*;
 import org.bouncycastle.crypto.params.*;
-import org.jitsi.bccontrib.macs.SkeinMac;
 import org.jitsi.bccontrib.params.*;
 import org.jitsi.impl.neomedia.*;
 
@@ -54,96 +50,24 @@ import org.jitsi.impl.neomedia.*;
  * Cryptographic related parameters, i.e. encryption mode / authentication mode,
  * master encryption key and master salt key are determined outside the scope of
  * SRTP implementation. They can be assigned manually, or can be assigned
- * automatically using some key management protocol, such as MIKEY (RFC3830) or
- * Phil Zimmermann's ZRTP protocol.
+ * automatically using some key management protocol, such as MIKEY (RFC3830),
+ * SDES (RFC4568) or Phil Zimmermann's ZRTP protocol (RFC6189).
  *
  * @author Bing SU (nova.su@gmail.com)
  * @author Lyubomir Marinov
  */
 public class SRTCPCryptoContext
+    extends BaseSRTPCryptoContext
 {
-    /**
-     * The replay check windows size
-     */
-    private static final long REPLAY_WINDOW_SIZE = 64;
-
-    /**
-     * Derived session authentication key
-     */
-    private final byte[] authKey;
-
-    // The symmetric cipher engines we need here
-    private final BlockCipher cipher;
-
-    // implements the counter cipher mode for RTP according to RFC 3711
-    private final SRTPCipherCTR cipherCtr = new SRTPCipherCTR();
-
-    private final BlockCipher cipherF8; // used inside F8 mode only
-
-    /**
-     * Derived session encryption key
-     */
-    private final byte[] encKey;
-
-    private final byte[] ivStore = new byte[16];
-
-    /**
-     * The HMAC object we used to do packet authentication
-     */
-    private final Mac mac; // used for various HMAC computations
-
-    /**
-     * Master encryption key
-     */
-    private final byte[] masterKey;
-
-    /**
-     * Master salting key
-     */
-    private final byte[] masterSalt;
-
-    /**
-     * Master key identifier
-     */
-    private final byte[] mki = null;
-
-    /**
-     * Encryption / Authentication policy for this session
-     */
-    private final SRTPPolicy policy;
-
-    private final byte[] rbStore = new byte[4];
-
     /**
      * Index received so far
      */
     private int receivedIndex = 0;
-    /**
-     * Bit mask for replay check
-     */
-    private long replayWindow;
-
-    /**
-     * Derived session salting key
-     */
-    private final byte[] saltKey;
 
     /**
      * Index sent so far
      */
     private int sentIndex = 0;
-
-    /**
-     * RTCP SSRC of this cryptographic context
-     */
-    private final int ssrc;
-
-    private final byte[] tagStore;
-
-    // this is some working store, used by some methods to avoid new operations
-    // the methods must use this only to store some results for immediate
-    // processing
-    private final byte[] tempStore = new byte[100];
 
     /**
      * Construct an empty SRTPCryptoContext using ssrc. The other parameters are
@@ -153,18 +77,7 @@ public class SRTCPCryptoContext
      */
     public SRTCPCryptoContext(int ssrc)
     {
-        this.ssrc = ssrc;
-
-        authKey = null;
-        cipher = null;
-        cipherF8 = null;
-        encKey = null;
-        mac = null;
-        masterKey = null;
-        masterSalt = null;
-        policy = null;
-        saltKey = null;
-        tagStore = null;
+        super(ssrc);
     }
 
     /**
@@ -188,100 +101,7 @@ public class SRTCPCryptoContext
             byte[] masterS,
             SRTPPolicy policy)
     {
-        this.ssrc = ssrc;
-        this.policy = policy;
-
-        int encKeyLength = policy.getEncKeyLength();
-
-        masterKey = new byte[encKeyLength];
-        System.arraycopy(masterK, 0, masterKey, 0, encKeyLength);
-
-        int saltKeyLength = policy.getSaltKeyLength();
-
-        masterSalt = new byte[saltKeyLength];
-        System.arraycopy(masterS, 0, masterSalt, 0, saltKeyLength);
-
-        BlockCipher cipher = null;
-        BlockCipher cipherF8 = null;
-        byte[] encKey = null;
-        byte[] saltKey = null;
-
-        switch (policy.getEncType())
-        {
-        case SRTPPolicy.NULL_ENCRYPTION:
-            break;
-
-        case SRTPPolicy.AESF8_ENCRYPTION:
-            cipherF8 = AES.createBlockCipher();
-            //$FALL-THROUGH$
-
-        case SRTPPolicy.AESCM_ENCRYPTION:
-            cipher = AES.createBlockCipher();
-            encKey = new byte[encKeyLength];
-            saltKey = new byte[saltKeyLength];
-            break;
-
-        case SRTPPolicy.TWOFISHF8_ENCRYPTION:
-            cipherF8 = new TwofishEngine();
-            //$FALL-THROUGH$
-
-        case SRTPPolicy.TWOFISH_ENCRYPTION:
-            cipher = new TwofishEngine();
-            encKey = new byte[encKeyLength];
-            saltKey = new byte[saltKeyLength];
-            break;
-        }
-        this.cipher = cipher;
-        this.cipherF8 = cipherF8;
-        this.encKey = encKey;
-        this.saltKey = saltKey;
-
-        byte[] authKey;
-        Mac mac;
-        byte[] tagStore;
-
-        switch (policy.getAuthType())
-        {
-        case SRTPPolicy.HMACSHA1_AUTHENTICATION:
-            mac = new HMac(SHA1.createDigest());
-            authKey = new byte[policy.getAuthKeyLength()];
-            tagStore = new byte[mac.getMacSize()];
-            break;
-
-        case SRTPPolicy.SKEIN_AUTHENTICATION:
-            mac = new SkeinMac();
-            authKey = new byte[policy.getAuthKeyLength()];
-            tagStore = new byte[policy.getAuthTagLength()];
-            break;
-
-        case SRTPPolicy.NULL_AUTHENTICATION:
-        default:
-            authKey = null;
-            mac = null;
-            tagStore = null;
-            break;
-        }
-        this.authKey = authKey;
-        this.mac = mac;
-        this.tagStore = tagStore;
-    }
-
-    /**
-     * Authenticate a packet. Calculated authentication tag is stored in
-     * {@link #tagStore} area.
-     *
-     * @param pkt the RTP packet to be authenticated
-     */
-    private void authenticatePacket(RawPacket pkt, int index)
-    {
-        mac.update(pkt.getBuffer(), 0, pkt.getLength());
-        // byte[] rb = new byte[4];
-        rbStore[0] = (byte) (index >> 24);
-        rbStore[1] = (byte) (index >> 16);
-        rbStore[2] = (byte) (index >> 8);
-        rbStore[3] = (byte) index;
-        mac.update(rbStore, 0, rbStore.length);
-        mac.doFinal(tagStore, 0);
+        super(ssrc, masterK, masterS, policy);
     }
 
     /**
@@ -308,19 +128,6 @@ public class SRTCPCryptoContext
             return false; // Packet already received!
         else
             return true; // Packet not yet received
-    }
-
-    /**
-     * Closes this crypto context. The close functions deletes key data and
-     * performs a cleanup of the crypto context. Clean up key data, maybe this
-     * is the second time. However, sometimes we cannot know if the
-     * CryptoContext was used and the application called deriveSrtpKeys(...) tah
-     * would have cleaned the key data.
-     */
-    public void close()
-    {
-        Arrays.fill(masterKey, (byte)0);
-        Arrays.fill(masterSalt, (byte)0);
     }
 
     /**
@@ -362,94 +169,56 @@ public class SRTCPCryptoContext
     public void deriveSrtcpKeys()
     {
         // compute the session encryption key
-        byte label = 3;
-        computeIv(label);
+        computeIv((byte) 3);
 
-        KeyParameter encryptionKey = new KeyParameter(masterKey);
-        cipher.init(true, encryptionKey);
-        Arrays.fill(masterKey, (byte)0);
+        cipher.init(true, new KeyParameter(masterKey));
+        Arrays.fill(masterKey, (byte) 0);
 
         cipherCtr.getCipherStream(
                 cipher,
-                encKey,
-                policy.getEncKeyLength(),
+                encKey, policy.getEncKeyLength(),
                 ivStore);
 
         if (authKey != null)
         {
-            label = 4;
-            computeIv(label);
+            computeIv((byte) 4);
             cipherCtr.getCipherStream(
                     cipher,
-                    authKey,
-                    policy.getAuthKeyLength(),
+                    authKey, policy.getAuthKeyLength(),
                     ivStore);
 
-            switch ((policy.getAuthType()))
+            switch (policy.getAuthType())
             {
             case SRTPPolicy.HMACSHA1_AUTHENTICATION:
-                KeyParameter key =  new KeyParameter(authKey);
-                mac.init(key);
+                mac.init(new KeyParameter(authKey));
                 break;
 
             case SRTPPolicy.SKEIN_AUTHENTICATION:
                 // Skein MAC uses number of bits as MAC size, not just bytes
-                ParametersForSkein pfs = new ParametersForSkein(
-                    new KeyParameter(authKey),
-                    ParametersForSkein.Skein512, tagStore.length * 8);
-                mac.init(pfs);
+                mac.init(
+                        new ParametersForSkein(
+                                new KeyParameter(authKey),
+                                ParametersForSkein.Skein512,
+                                tagStore.length * 8));
                 break;
             }
 
-            Arrays.fill(authKey, (byte)0);
+            Arrays.fill(authKey, (byte) 0);
         }
 
         // compute the session salt
-        label = 5;
-        computeIv(label);
+        computeIv((byte) 5);
         cipherCtr.getCipherStream(
                 cipher,
-                saltKey,
-                policy.getSaltKeyLength(),
+                saltKey, policy.getSaltKeyLength(),
                 ivStore);
-        Arrays.fill(masterSalt, (byte)0);
+        Arrays.fill(masterSalt, (byte) 0);
 
         // As last step: initialize cipher with derived encryption key.
         if (cipherF8 != null)
             SRTPCipherF8.deriveForIV(cipherF8, encKey, saltKey);
-        encryptionKey = new KeyParameter(encKey);
-        cipher.init(true, encryptionKey);
-        Arrays.fill(encKey, (byte)0);
-    }
-
-    /**
-     * Gets the authentication tag length of this SRTP cryptographic context
-     *
-     * @return the authentication tag length of this SRTP cryptographic context
-     */
-    public int getAuthTagLength()
-    {
-        return policy.getAuthTagLength();
-    }
-
-    /**
-     * Gets the MKI length of this SRTP cryptographic context
-     *
-     * @return the MKI length of this SRTP cryptographic context
-     */
-    public int getMKILength()
-    {
-        return (mki == null) ? 0 : mki.length;
-    }
-
-    /**
-     * Gets the SSRC of this SRTP cryptographic context
-     *
-     * @return the SSRC of this SRTP cryptographic context
-     */
-    public int getSSRC()
-    {
-        return ssrc;
+        cipher.init(true, new KeyParameter(encKey));
+        Arrays.fill(encKey, (byte) 0);
     }
 
     /**
@@ -476,28 +245,29 @@ public class SRTCPCryptoContext
         ivStore[3] = saltKey[3];
 
         // The shifts transform the ssrc and index into network order
-        ivStore[4] = (byte) (((ssrc >> 24) & 0xff) ^ this.saltKey[4]);
-        ivStore[5] = (byte) (((ssrc >> 16) & 0xff) ^ this.saltKey[5]);
-        ivStore[6] = (byte) (((ssrc >> 8) & 0xff) ^ this.saltKey[6]);
-        ivStore[7] = (byte) ((ssrc & 0xff) ^ this.saltKey[7]);
+        ivStore[4] = (byte) (((ssrc >> 24) & 0xff) ^ saltKey[4]);
+        ivStore[5] = (byte) (((ssrc >> 16) & 0xff) ^ saltKey[5]);
+        ivStore[6] = (byte) (((ssrc >> 8) & 0xff) ^ saltKey[6]);
+        ivStore[7] = (byte) ((ssrc & 0xff) ^ saltKey[7]);
 
         ivStore[8] = saltKey[8];
         ivStore[9] = saltKey[9];
 
-        ivStore[10] = (byte) (((index >> 24) & 0xff) ^ this.saltKey[10]);
-        ivStore[11] = (byte) (((index >> 16) & 0xff) ^ this.saltKey[11]);
-        ivStore[12] = (byte) (((index >> 8) & 0xff) ^ this.saltKey[12]);
-        ivStore[13] = (byte) ((index & 0xff) ^ this.saltKey[13]);
+        ivStore[10] = (byte) (((index >> 24) & 0xff) ^ saltKey[10]);
+        ivStore[11] = (byte) (((index >> 16) & 0xff) ^ saltKey[11]);
+        ivStore[12] = (byte) (((index >> 8) & 0xff) ^ saltKey[12]);
+        ivStore[13] = (byte) ((index & 0xff) ^ saltKey[13]);
 
         ivStore[14] = ivStore[15] = 0;
 
         // Encrypted part excludes fixed header (8 bytes)
-        final int payloadOffset = 8;
-        final int payloadLength = pkt.getLength() - payloadOffset;
+        int payloadOffset = 8;
+        int payloadLength = pkt.getLength() - payloadOffset;
 
-        cipherCtr.process(cipher, pkt.getBuffer(),
-            pkt.getOffset() + payloadOffset,
-            payloadLength, ivStore);
+        cipherCtr.process(
+                cipher,
+                pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
+                ivStore);
     }
 
     /**
@@ -507,8 +277,6 @@ public class SRTCPCryptoContext
      */
     public void processPacketAESF8(RawPacket pkt, int index)
     {
-        // byte[] iv = new byte[16];
-
         // 4 bytes of the iv are zero
         // the first byte of the RTP header is not used.
         ivStore[0] = 0;
@@ -530,13 +298,14 @@ public class SRTCPCryptoContext
 
         // Encrypted part excludes fixed header (8 bytes), index (4 bytes), and
         // authentication tag (variable according to policy)
-        final int payloadOffset = 8;
-        final int payloadLength
-            = pkt.getLength() - (4 + policy.getAuthTagLength());
+        int payloadOffset = 8;
+        int payloadLength = pkt.getLength() - (4 + policy.getAuthTagLength());
 
-        SRTPCipherF8.process(cipher, pkt.getBuffer(),
-            pkt.getOffset() + payloadOffset,
-            payloadLength, ivStore, cipherF8);
+        SRTPCipherF8.process(
+                cipher,
+                pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
+                ivStore,
+                cipherF8);
     }
 
     /**
@@ -583,7 +352,7 @@ public class SRTCPCryptoContext
             pkt.shrink(tagLength + 4);
 
             // compute, then save authentication in tagStore
-            authenticatePacket(pkt, indexEflag);
+            authenticatePacketHMAC(pkt, indexEflag);
 
             for (int i = 0; i < tagLength; i++)
             {
@@ -660,7 +429,7 @@ public class SRTCPCryptoContext
         // it in network order in rbStore variable.
         if (policy.getAuthType() != SRTPPolicy.NULL_AUTHENTICATION)
         {
-            authenticatePacket(pkt, index);
+            authenticatePacketHMAC(pkt, index);
             pkt.append(rbStore, 4);
             pkt.append(tagStore, policy.getAuthTagLength());
         }

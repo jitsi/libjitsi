@@ -56,67 +56,39 @@ import org.bouncycastle.crypto.*;
  */
 public class SRTPCipherCTR
 {
+    private static final int BLKLEN = 16;
+    private static final int MAX_BUFFER_LENGTH = 10 * 1024;
 
-    private final static int BLKLEN = 16;
-    private final static int MAX_BUFFER_LENGTH = 10*1024;
     private final byte[] cipherInBlock = new byte[BLKLEN];
-    private final byte[] tmpCipherBlock = new byte[BLKLEN];
     private byte[] streamBuf = new byte[1024];
+    private final byte[] tmpCipherBlock = new byte[BLKLEN];
 
     public SRTPCipherCTR()
     {
-    }
-
-    public void process(BlockCipher cipher, byte[] data, int off, int len,
-        byte[] iv)
-    {
-        if (off + len > data.length)
-            return;
-
-        // if data fits in inter buffer - use it. Otherwise allocate bigger
-        // buffer store it to use it for later processing - up to a defined
-        // maximum size.
-        byte[] cipherStream = null;
-        if (len > streamBuf.length)
-        {
-            cipherStream = new byte[len];
-            if (cipherStream.length <= MAX_BUFFER_LENGTH)
-            {
-                streamBuf = cipherStream;
-            }
-        }
-        else
-        {
-            cipherStream = streamBuf;
-        }
-
-        getCipherStream(cipher, cipherStream, len, iv);
-        for (int i = 0; i < len; i++)
-            data[i + off] ^= cipherStream[i];
     }
 
     /**
      * Computes the cipher stream for AES CM mode. See section 4.1.1 in RFC3711
      * for detailed description.
      *
-     * @param out
-     *            byte array holding the output cipher stream
-     * @param length
-     *            length of the cipher stream to produce, in bytes
-     * @param iv
-     *            initialization vector used to generate this cipher stream
+     * @param out byte array holding the output cipher stream
+     * @param length length of the cipher stream to produce, in bytes
+     * @param iv initialization vector used to generate this cipher stream
      */
-    public void getCipherStream(BlockCipher aesCipher, byte[] out, int length,
-        byte[] iv)
+    public void getCipherStream(
+            BlockCipher aesCipher,
+            byte[] out, int length,
+            byte[] iv)
     {
         System.arraycopy(iv, 0, cipherInBlock, 0, 14);
 
-        int ctr;
-        for (ctr = 0; ctr < length / BLKLEN; ctr++)
+        int ctr, ctrEnd;
+
+        for (ctr = 0, ctrEnd = length / BLKLEN; ctr < ctrEnd; ctr++)
         {
             // compute the cipher stream
             cipherInBlock[14] = (byte) ((ctr & 0xFF00) >> 8);
-            cipherInBlock[15] = (byte) ((ctr & 0x00FF));
+            cipherInBlock[15] = (byte) (ctr & 0x00FF);
 
             aesCipher.processBlock(cipherInBlock, 0, out, ctr * BLKLEN);
         }
@@ -127,5 +99,34 @@ public class SRTPCipherCTR
 
         aesCipher.processBlock(cipherInBlock, 0, tmpCipherBlock, 0);
         System.arraycopy(tmpCipherBlock, 0, out, ctr * BLKLEN, length % BLKLEN);
+    }
+
+    public void process(
+            BlockCipher cipher,
+            byte[] data, int off, int len,
+            byte[] iv)
+    {
+        if (off + len > data.length)
+            return;
+
+        // If data fits in inter buffer, use it. Otherwise, allocate bigger
+        // buffer and store it (up to a defined maximum size) to use it for
+        // later processing.
+        byte[] cipherStream;
+
+        if (len > streamBuf.length)
+        {
+            cipherStream = new byte[len];
+            if (cipherStream.length <= MAX_BUFFER_LENGTH)
+                streamBuf = cipherStream;
+        }
+        else
+        {
+            cipherStream = streamBuf;
+        }
+
+        getCipherStream(cipher, cipherStream, len, iv);
+        for (int i = 0; i < len; i++)
+            data[i + off] ^= cipherStream[i];
     }
 }
