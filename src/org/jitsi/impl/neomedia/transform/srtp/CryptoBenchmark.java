@@ -137,7 +137,7 @@ public class CryptoBenchmark
         long time0 = 0;
         int dMax = Math.max(digests.length, messageDigests.length);
         final int iEnd = 1000, jEnd = 1000;
-        Base64.Encoder byteEncoder = Base64.getEncoder().withoutPadding();
+//        Base64.Encoder byteEncoder = Base64.getEncoder().withoutPadding();
 
         inNIO.order(ByteOrder.nativeOrder());
         outNIO.order(ByteOrder.nativeOrder());
@@ -244,7 +244,7 @@ public class CryptoBenchmark
                         clazz.getName() + ": ratio "
                             + String.format("%.2f", time / (double) time0)
                             + ", time " + time + ", out "
-                            + byteEncoder.encodeToString(out) + ".");
+                            /*+ byteEncoder.encodeToString(out)*/ + ".");
             }
 
             // org.bouncycastle.crypto.Digest & java.security.MessageDigest
@@ -286,7 +286,7 @@ public class CryptoBenchmark
                             digest.getClass().getName() + ": ratio "
                                 + String.format("%.2f", time / (double) time0)
                                 + ", time " + time + ", digest "
-                                + byteEncoder.encodeToString(out) + ".");
+                                /*+ byteEncoder.encodeToString(out)*/ + ".");
                 }
 
                 // java.security.MessageDigest
@@ -295,6 +295,7 @@ public class CryptoBenchmark
 
                 if (messageDigest != null)
                 {
+                    @SuppressWarnings("unused")
                     byte[] t = null;
 
                     startTime = System.nanoTime();
@@ -318,7 +319,7 @@ public class CryptoBenchmark
                                 + ": ratio "
                                 + String.format("%.2f", time / (double) time0)
                                 + ", time " + (endTime - startTime)
-                                + ", digest " + byteEncoder.encodeToString(t)
+                                + ", digest " /*+ byteEncoder.encodeToString(t)*/
                                 + ".");
                 }
             }
@@ -353,7 +354,7 @@ public class CryptoBenchmark
                         mac.getClass().getName() + ": ratio "
                             + String.format("%.2f", time / (double) time0)
                             + ", time " + time + ", out "
-                            + byteEncoder.encodeToString(out) + ".");
+                            /*+ byteEncoder.encodeToString(out)*/ + ".");
             }
         }
     }
