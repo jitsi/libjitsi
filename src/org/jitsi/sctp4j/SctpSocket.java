@@ -7,7 +7,6 @@
 package org.jitsi.sctp4j;
 
 import java.io.*;
-import java.util.concurrent.locks.*;
 
 import org.jitsi.util.*;
 
@@ -16,6 +15,7 @@ import org.jitsi.util.*;
  *
  * @author Pawel Domas
  * @author George Politis
+ * @author Lyubomir Marinov
  */
 public class SctpSocket
 {
@@ -58,7 +58,7 @@ public class SctpSocket
         return ((fByte << 8) | sByte) & 0xFFFF;
     }
 
-    static void debugChunks(byte[] packet)
+    private static void debugChunks(byte[] packet)
     {
         int offset = 12;// After common header
         while((packet.length-offset) >= 4)
@@ -190,6 +190,13 @@ public class SctpSocket
     }
 
     /**
+     * The indicator which determines whether {@link #close()} has been invoked
+     * on this <tt>SctpSocket</tt>. It does NOT indicate whether
+     * {@link Sctp#closeSocket(long)} has been invoked with {@link #ptr}.
+     */
+    private boolean closed = false;
+
+    /**
      * Callback used to notify about received data.
      */
     private SctpDataCallback dataCallback;
@@ -210,6 +217,9 @@ public class SctpSocket
     private NotificationListener notificationListener
         = new NotificationListener()
         {
+            /**
+             * {@inheritDoc}
+             */
             @Override
             public void onSctpNotification(
                     SctpSocket socket,
@@ -218,39 +228,36 @@ public class SctpSocket
                 if (logger.isTraceEnabled())
                 {
                     logger.trace(
-                            "SctpSocket 0x" + Long.toHexString(socketPtr)
+                            "SctpSocket 0x" + Long.toHexString(ptr)
                                 + " notification: " + notification);
                 }
             }
         };
 
     /**
-     * Reader access synchronization lock to the native socket pointer.
-     */
-    private final Lock rl;
-
-    /**
      * Pointer to native socket counterpart.
      */
-    private long socketPtr;
+    private long ptr;
 
     /**
-     * Writer access synchronization lock to the native socket pointer.
+     * The number of current readers of {@link #ptr} which are preventing the
+     * writer (i.e. {@link #close()}) from invoking
+     * {@link Sctp#closeSocket(long)}.
      */
-    private final Lock wl;
+    private int ptrLockCount = 0;
 
     /**
      * Creates new instance of <tt>SctpSocket</tt>.
      *
-     * @param socketPtr native socket pointer.
+     * @param ptr native socket pointer.
      * @param localPort local SCTP port on which this socket is bound.
      */
-    SctpSocket(long socketPtr, int localPort)
+    SctpSocket(long ptr, int localPort)
     {
-        if(socketPtr == 0)
-            throw new NullPointerException("socketPtr");
+        if (ptr == 0)
+            throw new NullPointerException("ptr");
 
-        this.socketPtr = socketPtr;
+        this.ptr = ptr;
         this.localPort = localPort;
 
         // We slightly changed the synchronization scheme used in this class in
@@ -287,10 +294,6 @@ public class SctpSocket
         // sending/processing threads so there's no need to duplicate this
         // functionality here. We implement a readers-writers scheme that
         // protects the native socket pointer instead.
-        ReentrantReadWriteLock rwl = new ReentrantReadWriteLock(true);
-
-        this.wl = rwl.writeLock();
-        this.rl = rwl.readLock();
     }
 
     /**
@@ -305,33 +308,18 @@ public class SctpSocket
     public boolean accept()
         throws IOException
     {
-        rl.lock();
+        long ptr = lockPtr();
+        boolean r;
+
         try
         {
-            return Sctp.usrsctp_accept(assertSocketPtr());
+            r = Sctp.usrsctp_accept(ptr);
         }
         finally
         {
-            rl.unlock();
+            unlockPtr();
         }
-    }
-
-    /**
-     * Throws an <tt>IOException</tt> if {@link #socketPtr} equals <tt>0</tt>;
-     * otherwise, returns <tt>socketPtr</tt>s.
-     *
-     * @return <tt>socketPtr</tt> if it is not <tt>0</tt>
-     * @throws IOException if <tt>socketPtr</tt> is <tt>0</tt>
-     */
-    private long assertSocketPtr()
-        throws IOException
-    {
-        long socketPtr = this.socketPtr;
-
-        if (socketPtr == 0)
-            throw new IOException("SctpSocket is closed");
-        else
-            return socketPtr;
+        return r;
     }
 
     /**
@@ -340,31 +328,33 @@ public class SctpSocket
      */
     public void close()
     {
-        rl.lock();
-        if (socketPtr != 0)
+        // The value of the field closed only ever changes from false to true.
+        // Additionally, its reading is always synchronized and combined with
+        // access to the field ptrLockCount governed by logic which binds the
+        // meanings of the two values together. Consequently, the
+        // synchronization with respect to closed is considered consistent.
+        // Allowing the writing outside the synchronized block expedites the
+        // actual closing of ptr.
+        closed = true;
+
+        long ptr;
+
+        synchronized (this)
         {
-            // Must release read lock before acquiring write lock
-            rl.unlock();
-            wl.lock();
-            try
+            if (ptrLockCount == 0)
             {
-                // Recheck state because another thread might have acquired the
-                // write lock and changed the state before we did.
-                if (socketPtr != 0)
-                {
-                    Sctp.closeSocket(socketPtr);
-                    socketPtr = 0;
-                }
+                // The actual closing of ptr will not be deferred.
+                ptr = this.ptr;
+                this.ptr = 0;
             }
-            finally
+            else
             {
-                wl.unlock();
+                // The actual closing of ptr will be deferred.
+                ptr = 0;
             }
         }
-        else
-        {
-            rl.unlock();
-        }
+        if (ptr != 0)
+            Sctp.closeSocket(ptr);
     }
 
     /**
@@ -377,15 +367,16 @@ public class SctpSocket
     public void connect(int remotePort)
         throws IOException
     {
-        rl.lock();
+        long ptr = lockPtr();
+
         try
         {
-            if (!Sctp.usrsctp_connect(assertSocketPtr(), remotePort))
+            if (!Sctp.usrsctp_connect(ptr, remotePort))
                 throw new IOException("Failed to connect SCTP");
         }
         finally
         {
-            rl.unlock();
+            unlockPtr();
         }
     }
 
@@ -405,15 +396,51 @@ public class SctpSocket
     public void listen()
         throws IOException
     {
-        rl.lock();
+        long ptr = lockPtr();
+
         try
         {
-            Sctp.usrsctp_listen(assertSocketPtr());
+            Sctp.usrsctp_listen(ptr);
         }
         finally
         {
-            rl.unlock();
+            unlockPtr();
         }
+    }
+
+    /**
+     * Locks {@link #ptr} for reading and returns its value if this
+     * <tt>SctpSocket</tt> has not been closed (yet). Each <tt>lockPtr</tt>
+     * method invocation must be balanced with a subsequent <tt>unlockPtr</tt>
+     * method invocation.
+     *
+     * @return <tt>ptr</tt>
+     * @throws IOException if this <tt>SctpSocket</tt> has (already) been closed
+     */
+    private long lockPtr()
+        throws IOException
+    {
+        long ptr;
+
+        synchronized (this)
+        {
+            // It may seem that the synchronization with respect to the field
+            // closed is inconsistent because there is no synchronization upon
+            // writing its value. It is consistent though.
+            if (closed)
+            {
+                throw new IOException("SctpSocket is closed!");
+            }
+            else
+            {
+                ptr = this.ptr;
+                if (ptr == 0)
+                    throw new IOException("SctpSocket is closed!");
+                else
+                    ++ptrLockCount;
+            }
+        }
+        return ptr;
     }
 
     /**
@@ -427,22 +454,24 @@ public class SctpSocket
         throws IOException
     {
         if(packet == null)
+        {
             throw new NullPointerException("packet");
-
+        }
         if(offset < 0 || len <= 0 || offset + len > packet.length)
         {
             throw new IllegalArgumentException(
                 "o: " + offset + " l: " + len + " packet l: " + packet.length);
         }
 
-        rl.lock();
+        long ptr = lockPtr();
+
         try
         {
-            Sctp.onConnIn(assertSocketPtr(), packet, offset, len);
+            Sctp.onConnIn(ptr, packet, offset, len);
         }
         finally
         {
-            rl.unlock();
+            unlockPtr();
         }
     }
 
@@ -480,7 +509,7 @@ public class SctpSocket
                     data, sid, ssn, tsn, ppid, context, flags);
         }
     }
-
+    
     /**
      * Notifies this <tt>SctpSocket</tt> about incoming data.
      *
@@ -535,7 +564,7 @@ public class SctpSocket
         }
         return ret;
     }
-    
+
     /**
      * Sends given <tt>data</tt> on selected SCTP stream using given payload
      * protocol identifier.
@@ -571,28 +600,27 @@ public class SctpSocket
         throws IOException
     {
         if(data == null)
+        {
             throw new NullPointerException("data");
-
+        }
         if(offset < 0 || len <= 0 || offset + len > data.length)
         {
             throw new IllegalArgumentException(
                 "o: " + offset + " l: " + len + " data l: " + data.length);
         }
 
-        rl.lock();
+        long ptr = lockPtr();
+        int r;
+
         try
         {
-            return
-                Sctp.usrsctp_send(
-                        assertSocketPtr(),
-                        data, offset, len,
-                        ordered,
-                        sid, ppid);
+            r = Sctp.usrsctp_send(ptr, data, offset, len, ordered, sid, ppid);
         }
         finally
         {
-            rl.unlock();
+            unlockPtr();
         }
+        return r;
     }
 
     /**
@@ -628,6 +656,47 @@ public class SctpSocket
     }
 
     /**
+     * Unlocks {@link #ptr} for reading. If this <tt>SctpSocket</tt> has been
+     * closed while <tt>ptr</tt> was locked for reading and there are no other
+     * readers at the time of the method invocation, closes <tt>ptr</tt>. Each
+     * <tt>unlockPtr</tt> method invocation must be balanced with a previous
+     * <tt>lockPtr</tt> method invocation.
+     */
+    private void unlockPtr()
+    {
+        long ptr;
+
+        synchronized (this)
+        {
+            int ptrLockCount = this.ptrLockCount - 1;
+
+            if (ptrLockCount < 0)
+            {
+                throw new RuntimeException(
+                        "Unbalanced SctpSocket#unlockPtr() method invocation!");
+            }
+            else
+            {
+                this.ptrLockCount = ptrLockCount;
+                if (closed && (ptrLockCount == 0))
+                {
+                    // The actual closing of ptr was deferred until now.
+                    ptr = this.ptr;
+                    this.ptr = 0;
+                }
+                else
+                {
+                    // The actual closing of ptr may not have been requested or
+                    // will be deferred.
+                    ptr = 0;
+                }
+            }
+        }
+        if (ptr != 0)
+            Sctp.closeSocket(ptr);
+    }
+
+    /**
      * Interface used to listen for SCTP notifications on specific socket.
      */
     public interface NotificationListener
@@ -638,7 +707,8 @@ public class SctpSocket
          * @param socket the {@link SctpSocket} notification source.
          * @param notification the <tt>SctpNotification</tt> triggered.
          */
-        void onSctpNotification( SctpSocket socket,
+        public void onSctpNotification(
+                SctpSocket socket,
                 SctpNotification notification);
     }
 }

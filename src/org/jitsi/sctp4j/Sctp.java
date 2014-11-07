@@ -72,32 +72,38 @@ public class Sctp
 
     /**
      * Closes SCTP socket addressed by given native pointer.
+     *
      * @param ptr native socket pointer.
      */
-    static void closeSocket(Long ptr)
+    static void closeSocket(long ptr)
     {
         usrsctp_close(ptr);
     
-        sockets.remove(ptr);
+        sockets.remove(Long.valueOf(ptr));
     }
 
     /**
      * Creates new <tt>SctpSocket</tt> for given SCTP port. Allocates native
      * resources bound to the socket.
+     *
      * @param localPort local SCTP socket port.
      * @return new <tt>SctpSocket</tt> for given SCTP port.
      */
     public static SctpSocket createSocket(int localPort)
     {
-        Long ptr = usersctp_socket(localPort);
-        if(ptr != 0)
+        long ptr = usersctp_socket(localPort);
+        SctpSocket socket;
+
+        if (ptr == 0)
         {
-            SctpSocket sock = new SctpSocket(ptr, localPort);
-            sockets.put(ptr, sock);
-            return sock;
+            socket = null;
         }
         else
-            return null;
+        {
+            socket = new SctpSocket(ptr, localPort);
+            sockets.put(Long.valueOf(ptr), socket);
+        }
+        return socket;
     }
 
     /**
@@ -203,7 +209,7 @@ public class Sctp
             long socketAddr, byte[] data, int sid, int ssn, int tsn, long ppid,
             int context, int flags)
     {
-        SctpSocket socket = sockets.get(socketAddr);
+        SctpSocket socket = sockets.get(Long.valueOf(socketAddr));
 
         if(socket == null)
         {
@@ -225,21 +231,24 @@ public class Sctp
      * @param set_df use IP don't fragment option
      * @return 0 if the packet has been successfully sent or -1 otherwise.
      */
-    public static int onSctpOutboundPacket(long socketAddr, byte[] data,
-                                            int  tos,        int set_df)
+    public static int onSctpOutboundPacket(
+            long socketAddr, byte[] data, int tos, int set_df)
     {
         // FIXME handle tos and set_df
 
-        SctpSocket socket = sockets.get(socketAddr);
-        if(socket != null)
+        SctpSocket socket = sockets.get(Long.valueOf(socketAddr));
+        int ret;
+
+        if(socket == null)
         {
-            return socket.onSctpOut(data, tos, set_df);
+            ret = -1;
+            logger.error("No SctpSocket found for ptr: " + socketAddr);
         }
         else
         {
-            logger.error("No SctpSocket found for ptr: " + socketAddr);
-            return -1;
+            ret = socket.onSctpOut(data, tos, set_df);
         }
+        return ret;
     }
 
     /**
