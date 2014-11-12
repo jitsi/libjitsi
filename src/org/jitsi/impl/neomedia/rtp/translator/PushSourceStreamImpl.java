@@ -86,9 +86,7 @@ class PushSourceStreamImpl
         this.connector = connector;
         this.data = data;
 
-        readQCapacity
-            = RTPConnectorOutputStream
-                .MAX_PACKETS_PER_MILLIS_POLICY_PACKET_QUEUE_CAPACITY;
+        readQCapacity = MaxPacketsPerMillisPolicy.PACKET_QUEUE_CAPACITY;
         readQ = new ArrayBlockingQueue<SourcePacket>(readQCapacity);
 
         transferDataThread = new Thread(this, getClass().getName());

@@ -22,7 +22,7 @@ public class RTPConnectorTCPOutputStream
     extends RTPConnectorOutputStream
 {
     /**
-     * UDP socket used to send packet data
+     * TCP socket used to send packet data
      */
     private final Socket socket;
 
@@ -34,6 +34,13 @@ public class RTPConnectorTCPOutputStream
     public RTPConnectorTCPOutputStream(Socket socket)
     {
         this.socket = socket;
+
+        // The transmission of data over a TCP socket is generally slower in
+        // comparison to UDP. Moreover, we have observed that writes will block
+        // for prolonged periods of time. In order to reduce the effects of
+        // these on the threads which invoke the writes, perform the very
+        // writing on a background thread.
+        setMaxPacketsPerMillis(Integer.MAX_VALUE, 1);
     }
 
     /**

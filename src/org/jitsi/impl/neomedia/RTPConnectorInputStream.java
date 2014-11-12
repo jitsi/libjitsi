@@ -92,6 +92,52 @@ public abstract class RTPConnectorInputStream<T>
     }
 
     /**
+     * Sets a specific priority on a specific <tt>Thread</tt>.
+     * 
+     * @param thread the <tt>Thread</tt> to set the specified <tt>priority</tt>
+     * on
+     * @param priority the priority to set on the specified <tt>thread</tt>
+     */
+    public static void setThreadPriority(Thread thread, int priority)
+    {
+        int oldPriority = thread.getPriority();
+
+        if (priority != oldPriority)
+        {
+            Throwable throwable = null;
+
+            try
+            {
+                thread.setPriority(priority);
+            }
+            catch (IllegalArgumentException iae)
+            {
+                throwable = iae;
+            }
+            catch (SecurityException se)
+            {
+                throwable = se;
+            }
+            if (throwable != null)
+            {
+                logger.warn("Failed to use Thread priority: " + priority);
+            }
+            if (logger.isDebugEnabled())
+            {
+                int newPriority = thread.getPriority();
+
+                if (priority != newPriority)
+                {
+                    logger.debug(
+                            "Did not change Thread priority from "
+                                + oldPriority + " to " + priority + ", "
+                                + newPriority + " instead.");
+                }
+            }
+        }
+    }
+
+    /**
      * Packet receive buffer
      */
     private final byte[] buffer = new byte[PACKET_RECEIVE_BUFFER_LENGTH];
@@ -583,26 +629,9 @@ public abstract class RTPConnectorInputStream<T>
                         RTPConnectorInputStream.class.getName()
                             + ".receiveThread");
 
-                // Thread.priority
-                int priority = MediaThread.getNetworkPriority();
-                int oldPriority = receiveThread.getPriority();
-
-                if (priority != oldPriority)
-                {
-                    receiveThread.setPriority(priority);
-                    if (logger.isDebugEnabled())
-                    {
-                        int newPriority = receiveThread.getPriority();
-
-                        if (priority != newPriority)
-                        {
-                            logger.debug(
-                                    "Did not change Thread priority from "
-                                        + oldPriority + " to " + priority + ", "
-                                        + newPriority + " instead.");
-                        }
-                    }
-                }
+                setThreadPriority(
+                        receiveThread,
+                        MediaThread.getNetworkPriority());
 
                 receiveThread.start();
             }
