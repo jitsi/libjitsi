@@ -48,8 +48,7 @@ class OutputDataStreamImpl
         = RTPTranslatorImpl.class.getName() + ".removeRTPHeaderExtensions";
 
     private static final int WRITE_QUEUE_CAPACITY
-        = RTPConnectorOutputStream
-            .MAX_PACKETS_PER_MILLIS_POLICY_PACKET_QUEUE_CAPACITY;
+        = MaxPacketsPerMillisPolicy.PACKET_QUEUE_CAPACITY;
 
     private boolean closed;
 
