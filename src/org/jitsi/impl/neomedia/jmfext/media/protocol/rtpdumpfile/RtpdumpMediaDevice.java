@@ -25,7 +25,7 @@ import org.jitsi.service.neomedia.format.*;
 public class RtpdumpMediaDevice
 {
     /**
-     * Create a new <tt>MediaDevice</tt> instance which will read
+     * Create a new video <tt>MediaDevice</tt> instance which will read
      * the rtpdump file located at <tt>filePath</tt>, and which will have the
      * encoding format <tt>encodingConstant</tt>.
      * 
@@ -37,50 +37,97 @@ public class RtpdumpMediaDevice
      * payload of the recorded rtp packet in the rtpdump file.
      * @return a <tt>MediaDevice</tt> that will read the rtpdump file given.
      */
-    public static MediaDevice createRtpdumpMediaDevice(
+    public static MediaDevice createRtpdumpVideoMediaDevice(
             String filePath,
             String rtpEncodingConstant,
             MediaFormat format)
     {
-        MediaDevice dev = null;
-
         /*
          * NOTE: The RtpdumpStream instance needs to know the RTP clock rate,
-         * to correctly interpret the RTP timestamps. We use the sampleRate
-         * field of AudioFormat, or the frameRate field of VideoFormat, to
-         * piggyback the RTP clock rate. See RtpdumpStream#RtpdumpStream().
+         * to correctly interpret the RTP timestamps. We use the frameRate field
+         * of VideoFormat, to piggyback the RTP clock rate. See
+         * RtpdumpStream#RtpdumpStream().
          * TODO: Avoid this hack...
          */
-        switch(format.getMediaType())
-        {
-            case AUDIO:
-                dev = new AudioMediaDeviceImpl(new CaptureDeviceInfo(
-                            "Audio rtpdump file",
-                            new MediaLocator("rtpdumpfile:" + filePath),
-                            new Format[]{ new AudioFormat(
-                                    rtpEncodingConstant, /* Encoding */
-                                    format.getClockRate(), /* sampleRate */
-                                    Format.NOT_SPECIFIED, /* sampleSizeInBits */
-                                    Format.NOT_SPECIFIED) /* channels */
-                            }));
-                break;
-            case VIDEO:
-                dev = new MediaDeviceImpl(new CaptureDeviceInfo(
-                            "Video rtpdump file",
-                            new MediaLocator("rtpdumpfile:" + filePath),
-                            new Format[] { new VideoFormat(
-                                    rtpEncodingConstant, /* Encoding */
-                                    null, /* Dimension */
-                                    Format.NOT_SPECIFIED, /* maxDataLength */
-                                    Format.byteArray, /* dataType */
-                                    (float) format.getClockRate()) /* frameRate */
-                            }),
-                        MediaType.VIDEO);
-                break;
-            default:
-                break;
+        return new MediaDeviceImpl(
+            new CaptureDeviceInfo(
+                    "Video rtpdump file",
+                    new MediaLocator("rtpdumpfile:" + filePath),
+                    new Format[] { new VideoFormat(
+                            rtpEncodingConstant, /* Encoding */
+                            null, /* Dimension */
+                            Format.NOT_SPECIFIED, /* maxDataLength */
+                            Format.byteArray, /* dataType */
+                            (float) format.getClockRate()) /* frameRate */
+                    }),
+                MediaType.VIDEO);
         }
 
-        return dev;
+    /**
+     * Create a new audio <tt>MediaDevice</tt> instance which will read
+     * the rtpdump file located at <tt>filePath</tt>, and which will have the
+     * encoding format <tt>format</tt>.
+     *
+     * Note: for proper function, <tt>format</tt> has to implement correctly
+     * the <tt>computeDuration(long)</tt> method, because FMJ insists on using
+     * this to compute its own RTP timestamps.
+     *
+     * Note: The RtpdumpStream instance needs to know the RTP clock rate to
+     * correctly interpret the RTP timestamps. We use the sampleRate field of
+     * AudioFormat, or the frameRate field of VideoFormat, to piggyback the RTP
+     * clock rate. See
+     * {@link RtpdumpStream#RtpdumpStream(DataSource, javax.media.control.FormatControl)}
+     * TODO: Avoid this hack...
+     *
+     * @param filePath the location of the rtpdump file
+     * @param format the <tt>AudioFormat</tt> of the data contained in the
+     * payload of the recorded rtp packet in the rtpdump file.
+     * @return a <tt>MediaDevice</tt> that will read the rtpdump file given.
+     */
+    public static MediaDevice createRtpdumpAudioMediaDevice(
+            String filePath,
+            AudioFormat format)
+    {
+        return new MyAudioMediaDeviceImpl(new CaptureDeviceInfo(
+                "Audio rtpdump file",
+                new MediaLocator("rtpdumpfile:" + filePath),
+                new Format[]{format}));
+    }
+
+    /**
+     * An implementation of <tt>AudioMediaDevice</tt>.
+     */
+    private static class MyAudioMediaDeviceImpl
+        extends AudioMediaDeviceImpl
+    {
+        /**
+         * Initializes a new <tt>MyAudioMediaDeviceImpl</tt>.
+         * @param captureDeviceInfo
+         */
+        private MyAudioMediaDeviceImpl(CaptureDeviceInfo captureDeviceInfo)
+        {
+            super(captureDeviceInfo);
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * Makes sure that the <tt>MediaDeviceSession</tt> created by this
+         * <tt>AudioMediaDevice</tt> does not try to register an
+         * <tt>AudioLevelEffect</tt>, because this causes media to be re-encoded
+         * (as <tt>AudioLevelEffect</tt> only works with raw audio formats).
+         */
+        @Override
+        public MediaDeviceSession createSession()
+        {
+            return new AudioMediaDeviceSession(MyAudioMediaDeviceImpl.this)
+            {
+                @Override
+                protected void registerLocalUserAudioLevelEffect(
+                        Processor processor)
+                {
+                }
+            };
+        }
     }
 }
