@@ -14,6 +14,8 @@ import org.ice4j.ice.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -26,6 +28,8 @@ import org.jitsi.util.*;
 public class DtlsPacketTransformer
     extends SinglePacketTransformer
 {
+    private static final long CONNECT_RETRY_INTERVAL = 500;
+
     /**
      * The maximum number of times that
      * {@link #runInConnectThread(DTLSProtocol, TlsPeer, DatagramTransport)} is
@@ -36,7 +40,23 @@ public class DtlsPacketTransformer
      */
     private static final int CONNECT_TRIES = 3;
 
-    private static final long CONNECT_RETRY_INTERVAL = 500;
+    /**
+     * The indicator which determines whether unencrypted packets sent or
+     * received through <tt>DtlsPacketTransformer</tt> are to be dropped. The
+     * default value is <tt>false</tt>.
+     *
+     * @see #DROP_UNENCRYPTED_PKTS_PNAME
+     */
+    private static final boolean DROP_UNENCRYPTED_PKTS;
+
+    /**
+     * The name of the <tt>ConfigurationService</tt> and/or <tt>System</tt>
+     * property which indicates whether unencrypted packets sent or received
+     * through <tt>DtlsPacketTransformer</tt> are to be dropped. The default
+     * value is <tt>false</tt>.
+     */
+    private static final String DROP_UNENCRYPTED_PKTS_PNAME
+        = DtlsPacketTransformer.class.getName() + ".dropUnencryptedPkts";
 
     /**
      * The length of the header of a DTLS record.
@@ -55,6 +75,28 @@ public class DtlsPacketTransformer
      */
     private static final Logger logger
         = Logger.getLogger(DtlsPacketTransformer.class);
+
+    static
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        boolean dropUnencryptedPkts = false;
+
+        if (cfg == null)
+        {
+            String s = System.getProperty(DROP_UNENCRYPTED_PKTS_PNAME);
+
+            if (s != null)
+                dropUnencryptedPkts = Boolean.parseBoolean(s);
+        }
+        else
+        {
+            dropUnencryptedPkts
+                = cfg.getBoolean(
+                        DROP_UNENCRYPTED_PKTS_PNAME,
+                        dropUnencryptedPkts);
+        }
+        DROP_UNENCRYPTED_PKTS = dropUnencryptedPkts;
+    }
 
     /**
      * Determines whether a specific array of <tt>byte</tt>s appears to contain
@@ -123,14 +165,14 @@ public class DtlsPacketTransformer
     private final int componentID;
 
     /**
-     * The background <tt>Thread</tt> which initializes {@link #dtlsTransport}.
-     */
-    private Thread connectThread;
-
-    /**
      * The <tt>RTPConnector</tt> which uses this <tt>PacketTransformer</tt>.
      */
     private AbstractRTPConnector connector;
+
+    /**
+     * The background <tt>Thread</tt> which initializes {@link #dtlsTransport}.
+     */
+    private Thread connectThread;
 
     /**
      * The <tt>DatagramTransport</tt> implementation which adapts
@@ -152,9 +194,13 @@ public class DtlsPacketTransformer
     private MediaType mediaType;
 
     /**
-     * The <tt>SRTPTransformer</tt> to be used by this instance.
+     * Whether rtcp-mux is in use.
+     *
+     * If enabled, and this is the transformer for RTCP, it will not establish
+     * a DTLS session on its own, but rather wait for the RTP transformer to
+     * do so, and reuse it to initialize the SRTP transformer.
      */
-    private SinglePacketTransformer srtpTransformer;
+    private boolean rtcpmux = false;
 
     /**
      * The value of the <tt>setup</tt> SDP attribute defined by RFC 4145
@@ -163,6 +209,11 @@ public class DtlsPacketTransformer
      * or a DTLS server.
      */
     private DtlsControl.Setup setup;
+
+    /**
+     * The <tt>SRTPTransformer</tt> to be used by this instance.
+     */
+    private SinglePacketTransformer srtpTransformer;
 
     /**
      * The indicator which determines whether the <tt>TlsPeer</tt> employed by
@@ -176,15 +227,6 @@ public class DtlsPacketTransformer
      * The <tt>TransformEngine</tt> which has initialized this instance.
      */
     private final DtlsTransformEngine transformEngine;
-
-    /**
-     * Whether rtcp-mux is in use.
-     *
-     * If enabled, and this is the transformer for RTCP, it will not establish
-     * a DTLS session on its own, but rather wait for the RTP transformer to
-     * do so, and reuse it to initialize the SRTP transformer.
-     */
-    private boolean rtcpmux = false;
 
     /**
      * Initializes a new <tt>DtlsPacketTransformer</tt> instance.
@@ -205,6 +247,7 @@ public class DtlsPacketTransformer
     /**
      * {@inheritDoc}
      */
+    @Override
     public synchronized void close()
     {
         /*
@@ -373,6 +416,41 @@ public class DtlsPacketTransformer
 
         logger.error(msg, ioe);
         return false;
+    }
+
+    /**
+     * Tries to initialize {@link #srtpTransformer} by using the
+     * <tt>DtlsPacketTransformer</tt> for RTP.
+     *
+     * @return the (possibly updated) value of {@link #srtpTransformer}.
+     */
+    private SinglePacketTransformer initializeSRTCPTransformerFromRtp()
+    {
+        if (srtpTransformer != null)
+            return srtpTransformer; //already initialized
+
+        DtlsPacketTransformer rtpDtlsPacketTransformer
+            = (DtlsPacketTransformer) getTransformEngine().getRTPTransformer();
+
+        PacketTransformer rtpSrtpTransformer
+            = rtpDtlsPacketTransformer.srtpTransformer;
+
+        if (rtpSrtpTransformer != null
+                && rtpSrtpTransformer instanceof SRTPTransformer)
+        {
+            synchronized (this)
+            {
+                if (srtpTransformer == null) //previous check was not synchronized
+                {
+                    DtlsPacketTransformer.this.srtpTransformer
+                        = new SRTCPTransformer(
+                            (SRTPTransformer) rtpSrtpTransformer);
+                }
+                return srtpTransformer;
+            }
+        }
+
+        return srtpTransformer;
     }
 
     /**
@@ -579,6 +657,7 @@ public class DtlsPacketTransformer
     /**
      * {@inheritDoc}
      */
+    @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
         byte[] buf = pkt.getBuffer();
@@ -590,8 +669,9 @@ public class DtlsPacketTransformer
             if (rtcpmux && Component.RTCP == componentID)
             {
                 // This should never happen.
-                logger.warn("Dropping a DTLS record, because it was received"
-                            + " on the RTCP channel while rtcpmux is in use.");
+                logger.warn(
+                        "Dropping a DTLS record, because it was received on the"
+                            + " RTCP channel while rtcpmux is in use.");
                 return null;
             }
 
@@ -693,9 +773,7 @@ public class DtlsPacketTransformer
         }
         else if (transformEngine.isSrtpDisabled())
         {
-            /**
-             * In pure DTLS mode only DTLS records pass through.
-             */
+            // In pure DTLS mode only DTLS records pass through.
             pkt = null;
         }
         else
@@ -717,6 +795,8 @@ public class DtlsPacketTransformer
 
             if (srtpTransformer != null)
                 pkt = srtpTransformer.reverseTransform(pkt);
+            else if (DROP_UNENCRYPTED_PKTS)
+                pkt = null;
         }
         return pkt;
     }
@@ -842,6 +922,53 @@ public class DtlsPacketTransformer
     }
 
     /**
+     * Sends the data contained in a specific byte array as application data
+     * through the DTLS connection of this <tt>DtlsPacketTransformer</tt>.
+     *
+     * @param buf the byte array containing data to send.
+     * @param off the offset in <tt>buf</tt> where the data begins.
+     * @param len the length of data to send.
+     */
+    public void sendApplicationData(byte[] buf, int off, int len)
+    {
+        DTLSTransport dtlsTransport = this.dtlsTransport;
+        Exception exception = null;
+
+        if (dtlsTransport != null)
+        {
+            try
+            {
+                dtlsTransport.send(buf, off, len);
+            }
+            catch (IOException ioe)
+            {
+                exception = ioe;
+            }
+        }
+        else
+        {
+            exception = new NullPointerException("dtlsTransport");
+        }
+
+        if (exception != null)
+        {
+            /*
+             * SrtpControl.start(MediaType) starts its associated
+             * TransformEngine. We will use that mediaType to signal the
+             * normal stop then as well i.e. we will ignore exception
+             * after the procedure to stop this PacketTransformer has
+             * begun.
+             */
+            if ((mediaType != null) && !tlsPeerHasRaisedCloseNotifyWarning)
+            {
+                logger.error(
+                        "Failed to send application data over DTLS transport: ",
+                        exception);
+            }
+        }
+    }
+
+    /**
      * Sets the <tt>RTPConnector</tt> which is to use or uses this
      * <tt>PacketTransformer</tt>.
      *
@@ -881,6 +1008,15 @@ public class DtlsPacketTransformer
             if (this.mediaType != null)
                 start();
         }
+    }
+
+    /**
+     * Enables/disables rtcp-mux.
+     * @param rtcpmux whether to enable or disable.
+     */
+    void setRtcpmux(boolean rtcpmux)
+    {
+        this.rtcpmux = rtcpmux;
     }
 
     /**
@@ -1054,6 +1190,7 @@ public class DtlsPacketTransformer
     /**
      * {@inheritDoc}
      */
+    @Override
     public RawPacket transform(RawPacket pkt)
     {
         byte[] buf = pkt.getBuffer();
@@ -1088,6 +1225,8 @@ public class DtlsPacketTransformer
 
             if (srtpTransformer != null)
                 pkt = srtpTransformer.transform(pkt);
+            else if (DROP_UNENCRYPTED_PKTS)
+                pkt = null;
         }
         /* Pure DTLS mode */
         else
@@ -1127,96 +1266,5 @@ public class DtlsPacketTransformer
             }
         }
         return pkt;
-    }
-
-    /**
-     * Sends the data contained in a specific byte array as application data
-     * through the DTLS connection of this <tt>DtlsPacketTransformer</tt>.
-     *
-     * @param buf the byte array containing data to send.
-     * @param off the offset in <tt>buf</tt> where the data begins.
-     * @param len the length of data to send.
-     */
-    public void sendApplicationData(byte[] buf, int off, int len)
-    {
-        DTLSTransport dtlsTransport = this.dtlsTransport;
-        Exception exception = null;
-
-        if (dtlsTransport != null)
-        {
-            try
-            {
-                dtlsTransport.send(buf, off, len);
-            }
-            catch (IOException ioe)
-            {
-                exception = ioe;
-            }
-        }
-        else
-        {
-            exception = new NullPointerException("dtlsTransport");
-        }
-
-        if (exception != null)
-        {
-            /*
-             * SrtpControl.start(MediaType) starts its associated
-             * TransformEngine. We will use that mediaType to signal the
-             * normal stop then as well i.e. we will ignore exception
-             * after the procedure to stop this PacketTransformer has
-             * begun.
-             */
-            if ((mediaType != null) && !tlsPeerHasRaisedCloseNotifyWarning)
-            {
-                logger.error(
-                        "Failed to send application data over DTLS transport: ",
-                        exception);
-            }
-        }
-    }
-
-    /**
-     * Enables/disables rtcp-mux.
-     * @param rtcpmux whether to enable or disable.
-     */
-    void setRtcpmux(boolean rtcpmux)
-    {
-        this.rtcpmux = rtcpmux;
-    }
-
-    /**
-     * Tries to initialize {@link #srtpTransformer} by using the
-     * <tt>DtlsPacketTransformer</tt> for RTP.
-     *
-     * @return the (possibly updated) value of {@link #srtpTransformer}.
-     */
-    private SinglePacketTransformer initializeSRTCPTransformerFromRtp()
-    {
-        if (srtpTransformer != null)
-            return srtpTransformer; //already initialized
-
-        DtlsPacketTransformer rtpDtlsPacketTransformer
-            = (DtlsPacketTransformer) getTransformEngine().getRTPTransformer();
-
-        PacketTransformer rtpSrtpTransformer
-            = rtpDtlsPacketTransformer.srtpTransformer;
-
-        if (rtpSrtpTransformer != null
-                && rtpSrtpTransformer instanceof SRTPTransformer)
-        {
-            synchronized (this)
-            {
-                if (srtpTransformer == null) //previous check was not synchronized
-                {
-                    DtlsPacketTransformer.this.srtpTransformer
-                        = new SRTCPTransformer(
-                            (SRTPTransformer) rtpSrtpTransformer);
-                }
-                return srtpTransformer;
-            }
-        }
-
-        return srtpTransformer;
     }
 }

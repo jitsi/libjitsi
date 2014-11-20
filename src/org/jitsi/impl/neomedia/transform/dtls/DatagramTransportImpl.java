@@ -151,6 +151,7 @@ public class DatagramTransportImpl
     /**
      * {@inheritDoc}
      */
+    @Override
     public void close()
         throws IOException
     {
@@ -224,6 +225,7 @@ public class DatagramTransportImpl
     /**
      * {@inheritDoc}
      */
+    @Override
     public int getReceiveLimit()
         throws IOException
     {
@@ -239,6 +241,7 @@ public class DatagramTransportImpl
     /**
      * {@inheritDoc}
      */
+    @Override
     public int getSendLimit()
         throws IOException
     {
@@ -316,6 +319,7 @@ public class DatagramTransportImpl
     /**
      * {@inheritDoc}
      */
+    @Override
     public int receive(byte[] buf, int off, int len, int waitMillis)
         throws IOException
     {
@@ -453,6 +457,7 @@ public class DatagramTransportImpl
     /**
      * {@inheritDoc}
      */
+    @Override
     public void send(byte[] buf, int off, int len)
         throws IOException
     {

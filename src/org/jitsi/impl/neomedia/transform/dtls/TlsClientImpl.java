@@ -62,6 +62,7 @@ public class TlsClientImpl
     /**
      * {@inheritDoc}
      */
+    @Override
     public synchronized TlsAuthentication getAuthentication()
         throws IOException
     {
@@ -303,6 +304,7 @@ public class TlsClientImpl
         /**
          * {@inheritDoc}
          */
+        @Override
         public TlsCredentials getClientCredentials(
                 CertificateRequest certificateRequest)
             throws IOException
@@ -330,6 +332,7 @@ public class TlsClientImpl
         /**
          * {@inheritDoc}
          */
+        @Override
         public void notifyServerCertificate(Certificate serverCertificate)
             throws IOException
         {
