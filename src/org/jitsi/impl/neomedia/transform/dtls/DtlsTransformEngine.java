@@ -33,15 +33,6 @@ public class DtlsTransformEngine
     private boolean disposed = false;
 
     /**
-     * Whether rtcp-mux is in use.
-     *
-     * When enabled, the <tt>DtlsPacketTransformer</tt> will, instead of
-     * establishing a DTLS session, wait for the transformer for RTP to
-     * establish one, and reuse it to initialize its SRTP transformer.
-     */
-    private boolean rtcpmux = false;
-
-    /**
      * The <tt>DtlsControl</tt> which has initialized this instance.
      */
     private final DtlsControlImpl dtlsControl;
@@ -58,6 +49,15 @@ public class DtlsTransformEngine
      */
     private final DtlsPacketTransformer[] packetTransformers
         = new DtlsPacketTransformer[2];
+
+    /**
+     * Whether rtcp-mux is in use.
+     *
+     * When enabled, the <tt>DtlsPacketTransformer</tt> will, instead of
+     * establishing a DTLS session, wait for the transformer for RTP to
+     * establish one, and reuse it to initialize its SRTP transformer.
+     */
+    private boolean rtcpmux = false;
 
     /**
      * The value of the <tt>setup</tt> SDP attribute defined by RFC 4145
@@ -175,6 +175,16 @@ public class DtlsTransformEngine
     }
 
     /**
+     * Indicates if SRTP extensions should be disabled which means we are
+     * currently working in pure DTLS mode.
+     * @return <tt>true</tt> if SRTP extensions should be disabled.
+     */
+    boolean isSrtpDisabled()
+    {
+        return dtlsControl.isSrtpDisabled();
+    }
+
+    /**
      * Sets the <tt>RTPConnector</tt> which is to use or uses this
      * <tt>TransformEngine</tt>.
      *
@@ -217,6 +227,24 @@ public class DtlsTransformEngine
     }
 
     /**
+     * Enables/disables rtcp-mux.
+     * @param rtcpmux whether to enable or disable.
+     */
+    void setRtcpmux(boolean rtcpmux)
+    {
+        if (this.rtcpmux != rtcpmux)
+        {
+            this.rtcpmux = rtcpmux;
+
+            for (DtlsPacketTransformer packetTransformer : packetTransformers)
+            {
+                if (packetTransformer != null)
+                    packetTransformer.setRtcpmux(rtcpmux);
+            }
+        }
+    }
+
+    /**
      * Sets the DTLS protocol according to which this
      * <tt>DtlsTransformEngine</tt> is to act either as a DTLS server or a DTLS
      * client.
@@ -248,33 +276,5 @@ public class DtlsTransformEngine
     void start(MediaType mediaType)
     {
         setMediaType(mediaType);
-    }
-
-    /**
-     * Indicates if SRTP extensions should be disabled which means we are
-     * currently working in pure DTLS mode.
-     * @return <tt>true</tt> if SRTP extensions should be disabled.
-     */
-    boolean isSrtpDisabled()
-    {
-        return dtlsControl.isSrtpDisabled();
-    }
-
-    /**
-     * Enables/disables rtcp-mux.
-     * @param rtcpmux whether to enable or disable.
-     */
-    void setRtcpmux(boolean rtcpmux)
-    {
-        if (this.rtcpmux != rtcpmux)
-        {
-            this.rtcpmux = rtcpmux;
-
-            for (DtlsPacketTransformer packetTransformer : packetTransformers)
-            {
-                if (packetTransformer != null)
-                    packetTransformer.setRtcpmux(rtcpmux);
-            }
-        }
     }
 }

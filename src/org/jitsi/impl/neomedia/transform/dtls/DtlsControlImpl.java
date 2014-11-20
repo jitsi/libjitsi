@@ -406,11 +406,6 @@ public class DtlsControlImpl
     private final String localFingerprint;
 
     /**
-     * Whether rtcp-mux is in use.
-     */
-    private boolean rtcpmux = false;
-
-    /**
      * The hash function of {@link #localFingerprint} (which is the same as the
      * digest algorithm of the signature algorithm of {@link #certificate} in
      * accord with RFC 4572).
@@ -421,6 +416,11 @@ public class DtlsControlImpl
      * The fingerprints presented by the remote endpoint via the signaling path. 
      */
     private Map<String,String> remoteFingerprints;
+
+    /**
+     * Whether rtcp-mux is in use.
+     */
+    private boolean rtcpmux = false;
 
     /**
      * The value of the <tt>setup</tt> SDP attribute defined by RFC 4145
@@ -475,22 +475,6 @@ public class DtlsControlImpl
     }
 
     /**
-     * Prepares this <tt>DtlsControlImpl</tt> for garbage collection.
-     */
-    private void doCleanup()
-    {
-        super.cleanup(null);
-
-        setConnector(null);
-
-        synchronized (this)
-        {
-            disposed = true;
-            notifyAll();
-        }
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
@@ -519,6 +503,22 @@ public class DtlsControlImpl
         transformEngine.setSetup(setup);
         transformEngine.setRtcpmux(rtcpmux);
         return transformEngine;
+    }
+
+    /**
+     * Prepares this <tt>DtlsControlImpl</tt> for garbage collection.
+     */
+    private void doCleanup()
+    {
+        super.cleanup(null);
+
+        setConnector(null);
+
+        synchronized (this)
+        {
+            disposed = true;
+            notifyAll();
+        }
     }
 
     /**
@@ -584,6 +584,18 @@ public class DtlsControlImpl
 
     /**
      * {@inheritDoc}
+     */
+    @Override
+    public void registerUser(Object user)
+    {
+        synchronized (users)
+        {
+            users.add(user);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
      *
      * The implementation of <tt>DtlsControlImpl</tt> always returns
      * <tt>true</tt>.
@@ -624,6 +636,22 @@ public class DtlsControlImpl
         {
             this.remoteFingerprints = remoteFingerprints;
             notifyAll();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setRtcpmux(boolean rtcpmux)
+    {
+        if (this.rtcpmux != rtcpmux)
+        {
+            this.rtcpmux = rtcpmux;
+            DtlsTransformEngine transformEngine = this.transformEngine;
+
+            if (transformEngine != null)
+                transformEngine.setRtcpmux(rtcpmux);
         }
     }
 
@@ -789,32 +817,4 @@ public class DtlsControlImpl
         }
         return b;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    public void setRtcpmux(boolean rtcpmux)
-    {
-        if (this.rtcpmux != rtcpmux)
-        {
-            this.rtcpmux = rtcpmux;
-            DtlsTransformEngine transformEngine = this.transformEngine;
-
-            if (transformEngine != null)
-                transformEngine.setRtcpmux(rtcpmux);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void registerUser(Object user)
-    {
-        synchronized (users)
-        {
-            users.add(user);
-        }
-    }
-
 }
