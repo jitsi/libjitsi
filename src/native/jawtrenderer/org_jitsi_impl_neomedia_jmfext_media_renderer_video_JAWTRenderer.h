@@ -9,6 +9,14 @@ extern "C" {
 #endif
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
+ * Method:    addNotify
+ * Signature: (JLjava/awt/Component;)V
+ */
+JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_addNotify
+  (JNIEnv *, jclass, jlong, jobject);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
  * Method:    close
  * Signature: (JLjava/awt/Component;)V
  */
@@ -38,6 +46,14 @@ JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_vi
  */
 JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_process
   (JNIEnv *, jclass, jlong, jobject, jintArray, jint, jint, jint, jint);
+
+/*
+ * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
+ * Method:    removeNotify
+ * Signature: (JLjava/awt/Component;)V
+ */
+JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_removeNotify
+  (JNIEnv *, jclass, jlong, jobject);
 
 /*
  * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer

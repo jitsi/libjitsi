@@ -51,22 +51,42 @@
             forLayerTime:(CFTimeInterval)timeInterval
              displayTime:(const CVTimeStamp *)timeStamp;
 - (id)init;
+- (void)setFrameFromJAWTDrawingSurfaceInfo:(JAWT_DrawingSurfaceInfo *)dsi;
 @end /* JAWTRendererLayer */
+
+/*
+ * JAWT version 1.7 does not define the type JAWT_MacOSXDrawingSurfaceInfo.
+ */
+#ifdef JAWT_VERSION_1_7
+// Legacy NSView-based rendering
+typedef struct JAWT_MacOSXDrawingSurfaceInfo {
+    NSView *cocoaViewRef; // the view is guaranteed to be valid only for the duration of Component.paint method
+}
+JAWT_MacOSXDrawingSurfaceInfo;
+#endif /* #ifdef JAWT_VERSION_1_7 */
+
+void
+JAWTRenderer_addNotify
+    (JNIEnv *env, jclass clazz, jlong handle, jobject component)
+{
+    /* TODO Auto-generated method stub */
+}
 
 void
 JAWTRenderer_close(JNIEnv *env, jclass clazz, jlong handle, jobject component)
 {
-    JAWTRendererLayer **thiz;
-    NSAutoreleasePool *autoreleasePool;
+    JAWTRendererLayer **thiz = (JAWTRendererLayer **) (intptr_t) handle;
+    JAWTRendererLayer *layer = *thiz;
 
-    thiz = (JAWTRendererLayer **) (intptr_t) handle;
-    autoreleasePool = [[NSAutoreleasePool alloc] init];
+    if (layer)
+    {
+        NSAutoreleasePool *autoreleasePool;
 
-    if (*thiz)
-        [*thiz release];
+        autoreleasePool = [[NSAutoreleasePool alloc] init];
+        [layer release];
+        [autoreleasePool release];
+    }
     free(thiz);
-
-    [autoreleasePool release];
 }
 
 jlong
@@ -84,6 +104,7 @@ JAWTRenderer_paint
     JAWTRendererLayer *thizLayer;
     jboolean wantsPaint = JNI_TRUE;
     JAWTRendererLayer **thiz;
+    JAWTRendererLayer *oldThizLayer;
 
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
@@ -98,14 +119,22 @@ JAWTRenderer_paint
         CALayer *layer = surfaceLayers.layer;
 
         if (layer && [layer isKindOfClass:[JAWTRendererLayer class]])
+        {
             thizLayer = (JAWTRendererLayer *) layer;
+        }
         else
         {
             thizLayer = [JAWTRendererLayer layer];
             if (thizLayer)
+            {
+                [thizLayer setFrameFromJAWTDrawingSurfaceInfo:dsi];
                 surfaceLayers.layer = thizLayer;
+                [thizLayer autorelease];
+            }
             else
+            {
                 wantsPaint = JNI_FALSE;
+            }
         }
     }
     else
@@ -116,17 +145,23 @@ JAWTRenderer_paint
         CALayer *layer = [view layer];
 
         if (layer && [layer isKindOfClass:[JAWTRendererLayer class]])
+        {
             thizLayer = (JAWTRendererLayer *) layer;
+        }
         else
         {
             thizLayer = [JAWTRendererLayer layer];
             if (thizLayer)
             {
+                [thizLayer setFrameFromJAWTDrawingSurfaceInfo:dsi];
                 [view setLayer:thizLayer];
                 [view setWantsLayer:YES];
+                [thizLayer autorelease];
             }
             else
+            {
                 wantsPaint = JNI_FALSE;
+            }
         }
     }
 
@@ -135,10 +170,11 @@ JAWTRenderer_paint
      * native peer of the AWT Canvas that is the component of this JAWTRenderer.
      */
     thiz = (JAWTRendererLayer **) (intptr_t) handle;
-    if (*thiz != thizLayer)
+    oldThizLayer = *thiz;
+    if (oldThizLayer != thizLayer)
     {
-        if (*thiz)
-            [*thiz release];
+        if (oldThizLayer)
+            [oldThizLayer release];
         *thiz = thizLayer;
         if (thizLayer)
             [thizLayer retain];
@@ -250,6 +286,28 @@ JAWTRenderer_process
     return JNI_TRUE;
 }
 
+void
+JAWTRenderer_removeNotify
+    (JNIEnv *env, jclass clazz, jlong handle, jobject component)
+{
+    /*
+     * The AWT Comonent notifies that it is being made undisplayable by
+     * destroying its native screen resource. For an unknown reason, the
+     * JAWTRendererLayer is not automatically removed from its superlayer and
+     * remains visible.
+     */
+    JAWTRendererLayer *thiz = *((JAWTRendererLayer **) (intptr_t) handle);
+
+    if (thiz)
+    {
+    	NSAutoreleasePool *autoreleasePool;
+
+        autoreleasePool = [[NSAutoreleasePool alloc] init];
+        [thiz removeFromSuperlayer];
+        [autoreleasePool release];
+    }
+}
+
 jstring
 JAWTRenderer_sysctlbyname(JNIEnv *env, jstring name)
 {
@@ -270,7 +328,9 @@ JAWTRenderer_sysctlbyname(JNIEnv *env, jstring name)
             {
                 if ((0 == sysctlbyname(_name, _value, &valueLength, NULL, 0))
                         && valueLength)
+                {
                     _value[valueLength] = 0;
+                }
                 else
                 {
                     free(_value);
@@ -279,7 +339,9 @@ JAWTRenderer_sysctlbyname(JNIEnv *env, jstring name)
             }
         }
         else
+        {
             _value = NULL;
+        }
         (*env)->ReleaseStringUTFChars(env, name, _name);
 
         if (_value)
@@ -406,11 +468,13 @@ JAWTRenderer_sysctlbyname(JNIEnv *env, jstring name)
                         == CGLCreateContext(_pixelFormat, NULL, &_glContext)))
         {
             self.asynchronous = YES;
+            self.autoresizingMask = kCALayerNotSizable;
             /*
              * The AWT Canvas that corresponds to this CAOpenGLLayer will ensure
              * that the latter will be displayed on bounds changes.
              */
             self.needsDisplayOnBoundsChange = NO;
+            self.opaque = YES;
         }
         else
         {
@@ -419,5 +483,22 @@ JAWTRenderer_sysctlbyname(JNIEnv *env, jstring name)
         }
     }
     return self;
+}
+
+- (void)setFrameFromJAWTDrawingSurfaceInfo:(JAWT_DrawingSurfaceInfo *)dsi
+{
+    JAWT_Rectangle *jawtrect;
+
+    jawtrect = &(dsi->bounds);
+    if (jawtrect->height > 0 && jawtrect->width > 0)
+    {
+        CGRect cgrect;
+
+        cgrect.origin.x = jawtrect->x;
+        cgrect.origin.y = -(jawtrect->y);
+        cgrect.size.height = jawtrect->height;
+        cgrect.size.width = jawtrect->width;
+        self.frame = cgrect;
+    }
 }
 @end /* JAWTRendererLayer */
