@@ -90,6 +90,8 @@ public class JAWTRenderer
         System.loadLibrary("jnawtrenderer");
     }
 
+    static native void addNotify(long handle, Component component);
+
     /**
      * Closes the native counterpart of a <tt>JAWTRenderer</tt> specified by its
      * handle as returned by {@link #open(Component)} and rendering into a
@@ -179,6 +181,8 @@ public class JAWTRenderer
             int[] data, int offset, int length,
             int width, int height);
 
+    static native void removeNotify(long handle, Component component);
+
     private static native String sysctlbyname(String name);
 
     /**
@@ -205,6 +209,7 @@ public class JAWTRenderer
     private final Runnable reflectInputFormatOnComponentInEventDispatchThread
         = new Runnable()
         {
+            @Override
             public void run()
             {
                 reflectInputFormatOnComponentInEventDispatchThread();
@@ -228,6 +233,7 @@ public class JAWTRenderer
      * <tt>PlugIn</tt> afterwards. A closed <tt>PlugIn</tt> can be reinstated by
      * calling <tt>open</tt> again.
      */
+    @Override
     public synchronized void close()
     {
         if (handle != 0)
@@ -245,6 +251,7 @@ public class JAWTRenderer
      * @return the region in the component of this <tt>VideoRenderer</tt> where
      * the video is rendered; <tt>null</tt> if the entire component is used
      */
+    @Override
     public Rectangle getBounds()
     {
         return null;
@@ -257,6 +264,7 @@ public class JAWTRenderer
      * @return the AWT <tt>Component</tt> into which this <tt>VideoRenderer</tt>
      * draws
      */
+    @Override
     public synchronized Component getComponent()
     {
         if (component == null)
@@ -304,18 +312,14 @@ public class JAWTRenderer
             if (reflectiveOperationException != null)
                 throw new RuntimeException(reflectiveOperationException);
 
-            /*
-             * Make sure to have non-zero height and width because actual video
-             * frames may have not been processed yet.
-             */
+            // Make sure to have non-zero height and width because actual video
+            // frames may have not been processed yet.
             component.setSize(
                     DEFAULT_COMPONENT_HEIGHT_OR_WIDTH,
                     DEFAULT_COMPONENT_HEIGHT_OR_WIDTH);
-            /*
-             * XXX The component has not been exposed outside of this instance
-             * yet so it seems relatively safe to set its properties outside the
-             * AWT event dispatching thread.
-             */
+            // XXX The component has not been exposed outside of this instance
+            // yet so it seems relatively safe to set its properties outside the
+            // AWT event dispatching thread.
             reflectInputFormatOnComponentInEventDispatchThread();
         }
         return component;
@@ -349,6 +353,7 @@ public class JAWTRenderer
      *
      * @return the human-readable name of this <tt>PlugIn</tt>
      */
+    @Override
     public String getName()
     {
         return PLUGIN_NAME;
@@ -361,6 +366,7 @@ public class JAWTRenderer
      * @return an array of <tt>Format</tt> elements which represent the input
      * <tt>Format</tt>s supported by this <tt>Renderer</tt>
      */
+    @Override
     public Format[] getSupportedInputFormats()
     {
         return SUPPORTED_INPUT_FORMATS.clone();
@@ -374,6 +380,7 @@ public class JAWTRenderer
      *
      * @throws ResourceUnavailableException if there is a problem during opening
      */
+    @Override
     public void open()
         throws ResourceUnavailableException
     {
@@ -384,12 +391,10 @@ public class JAWTRenderer
         {
             if (handle == 0)
             {
-                /*
-                 * If this JAWTRenderer gets opened after its visual/video
-                 * Component has been created, send addNotify to the Component
-                 * once this JAWTRenderer gets opened so that the Component may
-                 * use the handle if it needs to.
-                 */
+                // If this JAWTRenderer gets opened after its visual/video
+                // Component has been created, send addNotify to the Component
+                // once this JAWTRenderer gets opened so that the Component may
+                // use the handle if it needs to.
                 addNotify
                     = (this.component != null)
                         && (this.component.getParent() != null);
@@ -408,15 +413,14 @@ public class JAWTRenderer
                 component = null;
             }
         }
-        /*
-         * The #addNotify() invocation, if any, should happen outside the
-         * synchronized block in order to avoid a deadlock.
-         */
+        // The #addNotify() invocation, if any, should happen outside the
+        // synchronized block in order to avoid a deadlock.
         if (addNotify)
         {
             SwingUtilities.invokeLater(
                     new Runnable()
                     {
+                        @Override
                         public void run()
                         {
                             component.addNotify();
@@ -435,6 +439,7 @@ public class JAWTRenderer
      * otherwise, the other possible return codes defined in the <tt>PlugIn</tt>
      * interface
      */
+    @Override
     public synchronized int process(Buffer buffer)
     {
         if (buffer.isDiscard())
@@ -470,11 +475,9 @@ public class JAWTRenderer
                     return BUFFER_PROCESSED_FAILED;
             }
 
-            /*
-             * XXX If the size of the video frame to be displayed is tiny enough
-             * to crash sws_scale, then it may cause issues with other
-             * functionality as well. Stay on the safe side.
-             */
+            // XXX If the size of the video frame to be displayed is tiny enough
+            // to crash sws_scale, then it may cause issues with other
+            // functionality as well. Stay on the safe side.
             if ((size.width >= SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
                     && (size.height >= SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
             {
@@ -508,7 +511,9 @@ public class JAWTRenderer
     private void reflectInputFormatOnComponent()
     {
         if (SwingUtilities.isEventDispatchThread())
+        {
             reflectInputFormatOnComponentInEventDispatchThread();
+        }
         else
         {
             SwingUtilities.invokeLater(
@@ -524,22 +529,18 @@ public class JAWTRenderer
      */
     private void reflectInputFormatOnComponentInEventDispatchThread()
     {
-        /*
-         * Reflect the width and height of the input onto the prefSize of our
-         * AWT Component (if necessary).
-         */
+        // Reflect the width and height of the input onto the prefSize of our
+        // AWT Component (if necessary).
         if ((component != null) && (width > 0) && (height > 0))
         {
             Dimension prefSize = component.getPreferredSize();
 
-            /*
-             * Apart from the simplest of cases in which the component has no
-             * prefSize, it is also necessary to reflect the width and height of
-             * the input onto the prefSize when the ratio of the input is
-             * different than the ratio of the prefSize. It may also be argued
-             * that the component needs to know of the width and height of the
-             * input if its prefSize is with the same ratio but is smaller.
-             */
+            // Apart from the simplest of cases in which the component has no
+            // prefSize, it is also necessary to reflect the width and height of
+            // the input onto the prefSize when the ratio of the input is
+            // different than the ratio of the prefSize. It may also be argued
+            // that the component needs to know of the width and height of the
+            // input if its prefSize is with the same ratio but is smaller.
             if ((prefSize == null)
                     || (prefSize.width < 1) || (prefSize.height < 1)
                     || !VideoLayout.areAspectRatiosEqual(
@@ -551,12 +552,10 @@ public class JAWTRenderer
                         new Dimension(width, height));
             }
 
-            /*
-             * If the component does not have a size, it looks strange given
-             * that we know a prefSize for it. However, if the component has
-             * already been added into a Container, the Container will dictate
-             * the size as part of its layout logic.
-             */
+            // If the component does not have a size, it looks strange given
+            // that we know a prefSize for it. However, if the component has
+            // already been added into a Container, the Container will dictate
+            // the size as part of its layout logic.
             if (component.isPreferredSizeSet()
                     && (component.getParent() == null))
             {
@@ -583,6 +582,7 @@ public class JAWTRenderer
      * where the video is to be rendered; <tt>null</tt> if the entire component
      * is to be used
      */
+    @Override
     public void setBounds(Rectangle bounds) {}
 
     /**
@@ -596,6 +596,7 @@ public class JAWTRenderer
      * specified <tt>component</tt> as the AWT <tt>Component</tt> into which it
      * is to draw; <tt>false</tt>, otherwise
      */
+    @Override
     public boolean setComponent(Component component)
     {
         return false;
@@ -619,10 +620,8 @@ public class JAWTRenderer
         VideoFormat oldInputFormat = inputFormat;
         Format newInputFormat = super.setInputFormat(format);
 
-        /*
-         * Short-circuit because we will be calculating a lot and we do not want
-         * to do that unless necessary.
-         */
+        // Short-circuit because we will be calculating a lot and we do not want
+        // to do that unless necessary.
         if (oldInputFormat == inputFormat)
             return newInputFormat;
 
@@ -634,17 +633,17 @@ public class JAWTRenderer
                         + " set to input in " + inputFormat);
         }
 
-        /*
-         * Know the width and height of the input because we'll be depicting it
-         * and we may want, for example, to report them as the preferred size of
-         * our AWT Component. More importantly, know them because they determine
-         * certain arguments to be passed to the native counterpart of this
-         * JAWTRenderer i.e. handle.
-         */
+        // Know the width and height of the input because we'll be depicting it
+        // and we may want, for example, to report them as the preferred size of
+        // our AWT Component. More importantly, know them because they determine
+        // certain arguments to be passed to the native counterpart of this
+        // JAWTRenderer i.e. handle.
         Dimension size = inputFormat.getSize();
 
         if (size == null)
+        {
             width = height = 0;
+        }
         else
         {
             width = size.width;
@@ -660,10 +659,12 @@ public class JAWTRenderer
      * Starts the rendering process. Begins rendering any data available in the
      * internal buffers of this <tt>Renderer</tt>.
      */
+    @Override
     public void start() {}
 
     /**
      * Stops the rendering process.
      */
+    @Override
     public void stop() {}
 }
