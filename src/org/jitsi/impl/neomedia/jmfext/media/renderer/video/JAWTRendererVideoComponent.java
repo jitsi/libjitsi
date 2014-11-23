@@ -9,6 +9,7 @@ package org.jitsi.impl.neomedia.jmfext.media.renderer.video;
 import java.awt.*;
 
 import org.jitsi.impl.neomedia.codec.video.*;
+import org.jitsi.util.*;
 
 /**
  * Implements an AWT <tt>Component</tt> in which <tt>JAWTRenderer</tt> paints.
@@ -64,6 +65,57 @@ public class JAWTRendererVideoComponent
         super.addNotify();
 
         wantsPaint = true;
+
+        synchronized (getHandleLock())
+        {
+            long handle;
+
+            if ((handle = getHandle()) != 0)
+            {
+                try
+                {
+                    JAWTRenderer.addNotify(handle, this);
+                }
+                catch (UnsatisfiedLinkError uler)
+                {
+                    // The function/method has been introduced in a revision of
+                    // the JAWTRenderer API and may not be available in the
+                    // binary.
+                }
+                // The first task of the method paint(Graphics) is to attach to
+                // the native view/widget/window of this Canvas. The sooner, the
+                // better. Technically, it should be possible to do it
+                // immediately after the method addNotify().
+                try
+                {
+                    paint(null);
+
+                    if (OSUtils.IS_MAC)
+                    {
+                        // XXX After JAWT is told about the CALayer via
+                        // assignment to JAWT_SurfaceLayers, JAWT does not
+                        // automatically place the CALayer in the necessary
+                        // location and no video is drawn. A resize was observed
+                        // to fix the two issues.
+                        int x = getX(), y = getY();
+                        int width = getWidth(), height = getHeight();
+
+                        setBounds(
+                                x - SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH,
+                                y - SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH,
+                                width + SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH,
+                                height + SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH);
+                        setBounds(x, y, width, height);
+                    }
+                }
+                finally
+                {
+                    // Well, we explicitly invoked the method paint(Graphics)
+                    // which is kind of extraordinary.
+                    wantsPaint = true;
+                }
+            }
+        }
     }
 
     /**
@@ -98,14 +150,12 @@ public class JAWTRendererVideoComponent
     @Override
     public void paint(Graphics g)
     {
-        /*
-         * XXX If the size of this Component is tiny enough to crash sws_scale,
-         * then it may cause issues with other functionality as well. Stay on
-         * the safe side.
-         */
+        // XXX If the size of this Component is tiny enough to crash sws_scale,
+        // then it may cause issues with other functionality as well. Stay on
+        // the safe side.
         if (wantsPaint
-                && (getWidth() >= SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
-                && (getHeight() >= SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH))
+                && getWidth() >= SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH
+                && getHeight() >= SwScale.MIN_SWS_SCALE_HEIGHT_OR_WIDTH)
         {
             synchronized (getHandleLock())
             {
@@ -114,10 +164,22 @@ public class JAWTRendererVideoComponent
                 if ((handle = getHandle()) != 0)
                 {
                     Container parent = getParent();
-                    int zOrder
-                        = (parent == null)
-                            ? -1
-                            : parent.getComponentZOrder(this);
+                    int zOrder;
+
+                    if (parent == null)
+                    {
+                        zOrder = -1;
+                    }
+                    else
+                    {
+                        zOrder = parent.getComponentZOrder(this);
+                        // CALayer is used in the implementation of JAWTRenderer
+                        // on OS X and its zPosition is the reverse of AWT's
+                        // componentZOrder (in terms of what appears above and
+                        // bellow). 
+                        if (OSUtils.IS_MAC && (zOrder != -1))
+                            zOrder = parent.getComponentCount() - 1 - zOrder;
+                    }
 
                     wantsPaint = JAWTRenderer.paint(handle, this, g, zOrder);
                 }
@@ -133,11 +195,28 @@ public class JAWTRendererVideoComponent
     @Override
     public void removeNotify()
     {
-        /*
-         * In case the associated JAWTRenderer has said that it does not
-         * want paint events/notifications, ask it again next time because
-         * the native handle of this Canvas may be recreated.
-         */
+        synchronized (getHandleLock())
+        {
+            long handle;
+
+            if ((handle = getHandle()) != 0)
+            {
+                try
+                {
+                    JAWTRenderer.removeNotify(handle, this);
+                }
+                catch (UnsatisfiedLinkError uler)
+                {
+                    // The function/method has been introduced in a revision of
+                    // the JAWTRenderer API and may not be available in the
+                    // binary.
+                }
+            }
+        }
+
+        // In case the associated JAWTRenderer has said that it does not want
+        // paint events/notifications, ask it again next time because the native
+        // handle of this Canvas may be recreated.
         wantsPaint = true;
 
         super.removeNotify();
@@ -152,17 +231,15 @@ public class JAWTRendererVideoComponent
     {
         synchronized (getHandleLock())
         {
-            if (!wantsPaint || (getHandle() == 0))
+            if (!wantsPaint || getHandle() == 0)
             {
                 super.update(g);
                 return;
             }
         }
 
-        /*
-         * Skip the filling with the background color because it causes
-         * flickering.
-         */
+        // Skip the filling with the background color because it causes
+        // flickering.
         paint(g);
     }
 }
