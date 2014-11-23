@@ -8,6 +8,25 @@
 #include "org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer.h"
 #include "JAWTRenderer.h"
 
+/*
+ * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
+ * Method:    addNotify
+ * Signature: (JLjava/awt/Component;)V
+ */
+JNIEXPORT void JNICALL
+Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_addNotify
+    (JNIEnv *env, jclass clazz, jlong handle, jobject component)
+{
+#ifdef __APPLE__
+    JAWTRenderer_addNotify(env, clazz, handle, component);
+#endif /* #ifdef __APPLE__ */
+}
+
+/*
+ * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
+ * Method:    close
+ * Signature: (JLjava/awt/Component;)V
+ */
 JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_close
     (JNIEnv *env, jclass clazz, jlong handle, jobject component)
@@ -15,6 +34,11 @@ Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_close
     JAWTRenderer_close(env, clazz, handle, component);
 }
 
+/*
+ * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
+ * Method:    open
+ * Signature: (Ljava/awt/Component;)J
+ */
 JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_open
     (JNIEnv *env, jclass clazz, jobject component)
@@ -22,6 +46,11 @@ Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_open
     return JAWTRenderer_open(env, clazz, component);
 }
 
+/*
+ * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
+ * Method:    paint
+ * Signature: (JLjava/awt/Component;Ljava/awt/Graphics;I)Z
+ */
 JNIEXPORT jboolean JNICALL
 Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_paint
     (JNIEnv *env, jclass clazz, jlong handle, jobject component, jobject g,
@@ -99,6 +128,11 @@ Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_paint
 #endif /* #ifdef __ANDROID__ */
 }
 
+/*
+ * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
+ * Method:    process
+ * Signature: (JLjava/awt/Component;[IIIII)Z
+ */
 JNIEXPORT jboolean JNICALL
 Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_process
     (JNIEnv *env, jclass clazz, jlong handle, jobject component, jintArray data,
@@ -126,6 +160,25 @@ Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_process
     return processed;
 }
 
+/*
+ * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
+ * Method:    removeNotify
+ * Signature: (JLjava/awt/Component;)V
+ */
+JNIEXPORT void JNICALL
+Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_removeNotify
+    (JNIEnv *env, jclass clazz, jlong handle, jobject component)
+{
+#ifdef __APPLE__
+    JAWTRenderer_removeNotify(env, clazz, handle, component);
+#endif /* #ifdef __APPLE__ */
+}
+
+/*
+ * Class:     org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer
+ * Method:    sysctlbyname
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
+ */
 JNIEXPORT jstring JNICALL
 Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_sysctlbyname
     (JNIEnv *env, jclass clazz, jstring name)

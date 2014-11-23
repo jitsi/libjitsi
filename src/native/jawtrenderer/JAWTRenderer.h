@@ -8,11 +8,11 @@
 #ifndef _JAWTRENDERER_H_
 #define _JAWTRENDERER_H_
 
-#ifndef __ANDROID__
-    #include <jawt.h>
-#else /* #ifndef __ANDROID__ */
+#ifdef __ANDROID__
     typedef void JAWT_DrawingSurfaceInfo;
-#endif /* #ifndef __ANDROID__ */
+#else /* #ifdef __ANDROID__ */
+    #include <jawt.h>
+#endif /* #ifdef __ANDROID__ */
 #include <jni.h>
 
 #ifndef NULL
@@ -23,6 +23,8 @@
 extern "C" {
 #endif /* #ifdef __cplusplus */
 
+void JAWTRenderer_addNotify
+    (JNIEnv *env, jclass clazz, jlong handle, jobject component);
 void JAWTRenderer_close
     (JNIEnv *env, jclass clazz, jlong handle, jobject component);
 jlong JAWTRenderer_open(JNIEnv *env, jclass clazz, jobject component);
@@ -32,6 +34,8 @@ jboolean JAWTRenderer_paint
 jboolean JAWTRenderer_process
     (JNIEnv *env, jclass clazz,jlong handle, jobject component, jint *data,
         jint length, jint width, jint height);
+void JAWTRenderer_removeNotify
+    (JNIEnv *env, jclass clazz, jlong handle, jobject component);
 
 #ifdef __APPLE__
 jstring JAWTRenderer_sysctlbyname(JNIEnv *env, jstring name);
