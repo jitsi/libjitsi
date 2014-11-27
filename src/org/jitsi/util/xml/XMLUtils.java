@@ -203,13 +203,13 @@ public class XMLUtils
     public static void writeXML(Document document, File out)
         throws java.io.IOException
     {
-//        indentedWriteXML(document, new FileOutputStream(out));
+        FileOutputStream fos = new FileOutputStream(out);
+//        indentedWriteXML(document, fos);
         writeXML(document
-                 , new StreamResult(
-                        new OutputStreamWriter(
-                                new FileOutputStream(out), "UTF-8"))
+                 , new StreamResult(new OutputStreamWriter(fos, "UTF-8"))
                  , null
                  , null);
+        fos.close();
     }
 
     /**
@@ -227,6 +227,7 @@ public class XMLUtils
         throws java.io.IOException
     {
         writeXML(document, new StreamResult(writer), null, null);
+        writer.close();
     }
 
     /**
