@@ -4,3 +4,4 @@ libjitsi.jar
 *.swp
 dist
 *.class
+.settings/*
