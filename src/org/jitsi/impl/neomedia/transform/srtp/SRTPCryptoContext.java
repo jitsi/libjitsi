@@ -561,6 +561,17 @@ public class SRTPCryptoContext
      */
     public boolean reverseTransformPacket(RawPacket pkt)
     {
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Reverse transform for SSRC " + this.ssrc
+                + " SeqNo=" + pkt.getSequenceNumber()
+                + " s_l=" + s_l
+                + " seqNumSet=" + seqNumSet
+                + " guessedROC=" + guessedROC
+                + " roc=" + roc
+            );
+        }
+
         int seqNo = pkt.getSequenceNumber();
 
         if (!seqNumSet)
@@ -602,6 +613,10 @@ public class SRTPCryptoContext
                 update(seqNo, guessedIndex);
 
                 b = true;
+            }
+            else if (logger.isDebugEnabled())
+            {
+                logger.debug("SRTP auth failed for SSRC " + ssrc);
             }
         }
 

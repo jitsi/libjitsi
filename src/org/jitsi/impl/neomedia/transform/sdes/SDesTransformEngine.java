@@ -22,6 +22,10 @@ public class SDesTransformEngine
 {
     private SRTPTransformer srtpTransformer;
     private SRTCPTransformer srtcpTransformer;
+    private SrtpCryptoAttribute inAttribute;
+    private SrtpCryptoAttribute outAttribute;
+    private SRTPContextFactory reverseCtx;
+    private SRTPContextFactory forwardCtx;
 
     /**
      * Creates a new instance of this class.
@@ -42,12 +46,47 @@ public class SDesTransformEngine
     public void update(SrtpCryptoAttribute inAttribute,
             SrtpCryptoAttribute outAttribute)
     {
-        SRTPContextFactory forwardCtx
-            = getTransformEngine(outAttribute, true /* sender */);
-        SRTPContextFactory reverseCtx
-            = getTransformEngine(inAttribute, false /* receiver */);
-        srtpTransformer = new SRTPTransformer(forwardCtx, reverseCtx);
-        srtcpTransformer = new SRTCPTransformer(forwardCtx, reverseCtx);
+        // Only reset the context if the new keys are really different,
+        // otherwise the ROC of an active but paused (on hold) stream will be
+        // reset. A new stream (with a fresh context) should be advertised by
+        // a new SSRC and thus receive a ROC of zero.
+        boolean changed = false;
+        if (!inAttribute.equals(this.inAttribute))
+        {
+            this.inAttribute = inAttribute;
+            reverseCtx = getTransformEngine(inAttribute, false /* receiver */);
+            changed = true;
+        }
+
+        if (!outAttribute.equals(this.outAttribute))
+        {
+            this.outAttribute = outAttribute;
+            forwardCtx = getTransformEngine(outAttribute, true /* sender */);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            if (srtpTransformer == null)
+            {
+                srtpTransformer = new SRTPTransformer(forwardCtx, reverseCtx);
+            }
+            else
+            {
+                srtpTransformer.setContextFactory(forwardCtx, true);
+                srtpTransformer.setContextFactory(reverseCtx, false);
+            }
+
+            if (srtcpTransformer == null)
+            {
+                srtcpTransformer = new SRTCPTransformer(forwardCtx, reverseCtx);
+            }
+            else
+            {
+                srtcpTransformer.updateFactory(forwardCtx, true);
+                srtcpTransformer.updateFactory(reverseCtx, false);
+            }
+        }
     }
 
     /**
