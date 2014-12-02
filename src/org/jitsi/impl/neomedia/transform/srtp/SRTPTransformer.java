@@ -44,8 +44,8 @@ import org.jitsi.impl.neomedia.transform.*;
 public class SRTPTransformer
     extends SinglePacketTransformer
 {
-    final SRTPContextFactory forwardFactory;
-    final SRTPContextFactory reverseFactory;
+    SRTPContextFactory forwardFactory;
+    SRTPContextFactory reverseFactory;
 
     /**
      * All the known SSRC's corresponding SRTPCryptoContexts
@@ -78,6 +78,41 @@ public class SRTPTransformer
         this.forwardFactory = forwardFactory;
         this.reverseFactory = reverseFactory;
         this.contexts = new HashMap<Integer,SRTPCryptoContext>();
+    }
+
+    /**
+     * Sets a new key factory when key material has changed.
+     * 
+     * @param factory The associated context factory for transformations.
+     * @param forward <tt>true</tt> if the supplied factory is for forward
+     *            transformations, <tt>false</tt> for the reverse transformation
+     *            factory.
+     */
+    public void setContextFactory(SRTPContextFactory factory, boolean forward)
+    {
+        synchronized (contexts)
+        {
+            if (forward)
+            {
+                if (this.forwardFactory != null
+                    && this.forwardFactory != factory)
+                {
+                    this.forwardFactory.close();
+                }
+
+                this.forwardFactory = factory;
+            }
+            else
+            {
+                if (this.reverseFactory != null &&
+                    this.reverseFactory != factory)
+                {
+                    this.reverseFactory.close();
+                }
+
+                this.reverseFactory = factory;
+            }
+        }
     }
 
     /**
