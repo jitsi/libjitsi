@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://www.netbeans.org/ns/project/1">
+    <type>org.netbeans.modules.ant.freeform</type>
+    <configuration>
+        <general-data xmlns="http://www.netbeans.org/ns/freeform-project/1">
+            <!-- Do not use Project Properties customizer when editing this file manually. 
+ To prevent the customizer from showing, create nbproject/project.properties file and enter 
+auxiliary.show.customizer=false 
+property there. Adding 
+auxiliary.show.customizer.message=<message>
+ will show your customized message when someone attempts to open the customizer.  -->
+            <name>libjitsi</name>
+            <properties/>
+            <folders>
+                <source-folder>
+                    <label>src</label>
+                    <type>java</type>
+                    <location>src</location>
+                </source-folder>
+                <source-folder>
+                    <label>test</label>
+                    <type>java</type>
+                    <location>test</location>
+                </source-folder>
+            </folders>
+            <ide-actions>
+                <action name="build">
+                    <target>make</target>
+                </action>
+                <action name="clean">
+                    <target>clean</target>
+                </action>
+                <action name="javadoc">
+                    <target>javadoc</target>
+                </action>
+                <action name="run">
+                    <target>run-example</target>
+                </action>
+                <action name="test">
+                    <target>test</target>
+                </action>
+                <action name="rebuild">
+                    <target>clean</target>
+                    <target>make</target>
+                </action>
+            </ide-actions>
+            <export>
+                <type>jar</type>
+                <location>libjitsi.jar</location>
+                <build-target>make</build-target>
+            </export>
+            <export>
+                <type>folder</type>
+                <location>classes</location>
+                <build-target>make</build-target>
+            </export>
+            <view>
+                <items>
+                    <source-folder style="packages">
+                        <label>src</label>
+                        <location>src</location>
+                    </source-folder>
+                    <source-folder style="packages">
+                        <label>test</label>
+                        <location>test</location>
+                    </source-folder>
+                    <source-file>
+                        <location>build.xml</location>
+                    </source-file>
+                </items>
+                <context-menu>
+                    <ide-action name="build"/>
+                    <ide-action name="rebuild"/>
+                    <ide-action name="clean"/>
+                    <ide-action name="javadoc"/>
+                    <ide-action name="run"/>
+                    <ide-action name="test"/>
+                </context-menu>
+            </view>
+            <subprojects/>
+        </general-data>
+        <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/2">
+            <compilation-unit>
+                <package-root>src</package-root>
+                <classpath mode="compile">lib/bccontrib-1.0-SNAPSHOT.jar:lib/bcpkix-jdk15on-151.jar:lib/bcprov-jdk15on-151.jar:lib/fmj.jar:lib/ice4j.jar:lib/jain-sdp.jar:lib/jna.jar:lib/json-simple-1.1.1.jar:lib/jspeex.jar:lib/osgi.core.jar:lib/sdes4j.jar:lib/zrtp4j-light.jar</classpath>
+                <built-to>libjitsi.jar</built-to>
+                <built-to>classes</built-to>
+                <javadoc-built-to>doc/api</javadoc-built-to>
+                <source-level>1.5</source-level>
+            </compilation-unit>
+            <compilation-unit>
+                <package-root>test</package-root>
+                <unit-tests/>
+                <classpath mode="compile">lib/bccontrib-1.0-SNAPSHOT.jar:lib/bcpkix-jdk15on-151.jar:lib/bcprov-jdk15on-151.jar:lib/fmj.jar:lib/ice4j.jar:lib/jain-sdp.jar:lib/jna.jar:lib/json-simple-1.1.1.jar:lib/jspeex.jar:lib/osgi.core.jar:lib/sdes4j.jar:lib/zrtp4j-light.jar:lib/installer-exclude/cpptasks.jar:lib/test/hamcrest-core-1.3.jar:lib/test/junit-4.11.jar:classes</classpath>
+                <source-level>1.5</source-level>
+            </compilation-unit>
+        </java-data>
+    </configuration>
+</project>
