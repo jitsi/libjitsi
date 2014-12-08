@@ -14,7 +14,7 @@ import org.jitsi.impl.neomedia.*;
  * Extends <tt>RTPConnectorInputStream</tt> with transform logic.
  *
  * @author Bing SU (nova.su@gmail.com)
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  * @author Boris Grozev
  */
 public abstract class TransformInputStream<T>
@@ -26,6 +26,13 @@ public abstract class TransformInputStream<T>
      */
     private PacketTransformer transformer;
 
+    /**
+     * Initializes a new <tt>TransformInputStream</tt> which is to transform the
+     * packets received from a specific (network) socket.
+     *
+     * @param socket the (network) socket from which packets are to be received
+     * and transformed by the new instance
+     */
     protected TransformInputStream(T socket)
     {
         super(socket);
@@ -49,16 +56,21 @@ public abstract class TransformInputStream<T>
     @Override
     protected RawPacket[] createRawPacket(DatagramPacket datagramPacket)
     {
-        PacketTransformer transformer = getTransformer();
-        RawPacket pkts[] = super.createRawPacket(datagramPacket);
+        RawPacket[] pkts = super.createRawPacket(datagramPacket);
 
-        /* Don't try to transform invalid packets (for ex. empty) */
-        for (int i=0; i<pkts.length; i++)
-            if(pkts[i] != null && pkts[i].isInvalid())
-                pkts[i] = null; //null elements are just ignored
+        // Don't try to transform invalid (e.g. empty) packets.
+        for (int i = 0; i < pkts.length; i++)
+        {
+            RawPacket pkt = pkts[i];
+
+            if (pkt != null && pkt.isInvalid())
+                pkts[i] = null; // null elements are ignored
+        }
+
+        PacketTransformer transformer = getTransformer();
 
         return
-                (transformer == null)
+            (transformer == null)
                 ? pkts
                 : transformer.reverseTransform(pkts);
     }

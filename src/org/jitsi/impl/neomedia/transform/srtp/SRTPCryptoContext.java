@@ -28,6 +28,8 @@ package org.jitsi.impl.neomedia.transform.srtp;
 
 import java.util.*;
 
+import javax.media.*;
+
 import org.bouncycastle.crypto.params.*;
 import org.jitsi.bccontrib.params.*;
 import org.jitsi.impl.neomedia.*;
@@ -563,13 +565,13 @@ public class SRTPCryptoContext
     {
         if (logger.isDebugEnabled())
         {
-            logger.debug("Reverse transform for SSRC " + this.ssrc
-                + " SeqNo=" + pkt.getSequenceNumber()
-                + " s_l=" + s_l
-                + " seqNumSet=" + seqNumSet
-                + " guessedROC=" + guessedROC
-                + " roc=" + roc
-            );
+            logger.debug(
+                    "Reverse transform for SSRC " + this.ssrc
+                        + " SeqNo=" + pkt.getSequenceNumber()
+                        + " s_l=" + s_l
+                        + " seqNumSet=" + seqNumSet
+                        + " guessedROC=" + guessedROC
+                        + " roc=" + roc);
         }
 
         int seqNo = pkt.getSequenceNumber();
@@ -591,25 +593,33 @@ public class SRTPCryptoContext
             // Authenticate the packet.
             if (authenticatePacket(pkt))
             {
-                switch (policy.getEncType())
+                // If a RawPacket is flagged with Buffer.FLAG_DISCARD, then it
+                // should have been discarded earlier. Anyway, at least skip its
+                // decrypting. We flag a RawPacket with Buffer.FLAG_SILENCE when
+                // we want to ignore its payload. In the context of SRTP, we
+                // want to skip its decrypting.
+                if ((pkt.getFlags()
+                            & (Buffer.FLAG_DISCARD /* | Buffer.FLAG_SILENCE */))
+                        == 0)
                 {
-                // Decrypt the packet using Counter Mode encryption.
-                case SRTPPolicy.AESCM_ENCRYPTION:
-                case SRTPPolicy.TWOFISH_ENCRYPTION:
-                    processPacketAESCM(pkt);
-                    break;
-        
-                // Decrypt the packet using F8 Mode encryption.
-                case SRTPPolicy.AESF8_ENCRYPTION:
-                case SRTPPolicy.TWOFISHF8_ENCRYPTION:
-                    processPacketAESF8(pkt);
-                    break;
+                    switch (policy.getEncType())
+                    {
+                    // Decrypt the packet using Counter Mode encryption.
+                    case SRTPPolicy.AESCM_ENCRYPTION:
+                    case SRTPPolicy.TWOFISH_ENCRYPTION:
+                        processPacketAESCM(pkt);
+                        break;
+
+                    // Decrypt the packet using F8 Mode encryption.
+                    case SRTPPolicy.AESF8_ENCRYPTION:
+                    case SRTPPolicy.TWOFISHF8_ENCRYPTION:
+                        processPacketAESF8(pkt);
+                        break;
+                    }
                 }
 
-                /*
-                 * Update the rollover counter and highest sequence number if
-                 * necessary.
-                 */
+                // Update the rollover counter and highest sequence number if
+                // necessary.
                 update(seqNo, guessedIndex);
 
                 b = true;

@@ -830,7 +830,6 @@ public class MediaStreamImpl
 
         // DTMF
         DtmfTransformEngine dtmfEngine = createDtmfTransformEngine();
-
         if (dtmfEngine != null)
             engineChain.add(dtmfEngine);
 
@@ -876,7 +875,6 @@ public class MediaStreamImpl
          * prevent RTP packets from a muted audio source from being decrypted.
          */
         SsrcTransformEngine ssrcEngine = createSsrcTransformEngine();
-
         if (ssrcEngine != null)
             engineChain.add(ssrcEngine);
 
@@ -2109,14 +2107,42 @@ public class MediaStreamImpl
              * stream.
              */
             if(newValue instanceof RTPTransformUDPConnector)
-                ((RTPTransformUDPConnector)newValue)
+            {
+                ((RTPTransformUDPConnector) newValue)
                     .setEngine(createTransformEngineChain());
+            }
             else if(newValue instanceof RTPTransformTCPConnector)
-                ((RTPTransformTCPConnector)newValue)
+            {
+                ((RTPTransformTCPConnector) newValue)
                     .setEngine(createTransformEngineChain());
+            }
 
             if (rtpConnectorTarget != null)
                 doSetTarget(rtpConnectorTarget);
+        }
+
+        /*
+         * TODO The following is a very ugly way to expose the RTPConnector
+         * created by this instance so it may be configured from outside the
+         * class hierarchy. That's why the property in use bellow is not defined
+         * as a well-known constant and is to be considered internal and likely
+         * to be removed in a future revision.
+         */
+        try
+        {
+            firePropertyChange(
+                    MediaStreamImpl.class.getName() + ".rtpConnector",
+                    oldValue,
+                    newValue);
+        }
+        catch (Throwable t)
+        {
+            if (t instanceof InterruptedException)
+                Thread.currentThread().interrupt();
+            else if (t instanceof ThreadDeath)
+                throw (ThreadDeath) t;
+            else
+                logger.error(t);
         }
     }
 

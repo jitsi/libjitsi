@@ -208,8 +208,7 @@ class PushSourceStreamImpl
             if (length < pktLength)
             {
                 throw new IOException(
-                        "Length " + length
-                            + " is insuffient. Must be at least "
+                        "Length " + length + " is insuffient. Must be at least "
                             + pktLength + ".");
             }
 

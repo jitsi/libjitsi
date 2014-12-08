@@ -13,7 +13,7 @@ import org.jitsi.impl.neomedia.*;
  * stream.
  *
  * @author Emil Ivov
- * @author Lubomir Marinov
+ * @author Lyubomir Marinov
  */
 public class TransformEngineChain
     implements TransformEngine
@@ -21,22 +21,23 @@ public class TransformEngineChain
 
     /**
      * The sequence of <tt>TransformEngine</tt>s whose
-     * <tt>PacketTransformer</tt>s that this engine chain will be applying to
-     * RTP and RTCP packets.
+     * <tt>PacketTransformer</tt>s this engine chain will be applying to RTP and
+     * RTCP packets. Implemented as copy-on-write storage for the purposes of
+     * performance.
      */
-    private final TransformEngine[] engineChain;
-
-    /**
-     * The sequence of <tt>PacketTransformer</tt>s that this engine chain will
-     * be applying to RTP packets.
-     */
-    private PacketTransformerChain rtpTransformChain;
+    private TransformEngine[] engineChain;
 
     /**
      * The sequence of <tt>PacketTransformer</tt>s that this engine chain will
      * be applying to RTCP packets.
      */
     private PacketTransformerChain rtcpTransformChain;
+
+    /**
+     * The sequence of <tt>PacketTransformer</tt>s that this engine chain will
+     * be applying to RTP packets.
+     */
+    private PacketTransformerChain rtpTransformChain;
 
     /**
      * Creates a new <tt>TransformEngineChain</tt> using the
@@ -52,47 +53,44 @@ public class TransformEngineChain
         this.engineChain = engineChain.clone();
     }
 
-    /**
-     * Returns the meta <tt>PacketTransformer</tt> that will be applying
-     * RTCP transformations from all engines registered in this
-     * <tt>TransformEngineChain</tt>.
-     *
-     * @return a <tt>PacketTransformerChain</tt> over all RTP transformers in
-     * this engine chain.
-     */
-    public PacketTransformer getRTPTransformer()
+    public boolean addEngine(TransformEngine engine)
     {
-        /*
-         * XXX Certain TransformEngine implementations in engineChain may
-         * postpone the initialization of their PacketTransformer until it is
-         * requested for the first time AND may have to send packets at that
-         * very moment, not earlier (e.g. DTLS-SRTP may have to send Client
-         * Hello). Make sure that, when the PacketTransformer of this
-         * TransformEngine is requested for the first time, the same method will
-         * be invoked on each of the TransformEngines in engineChain.
-         */
-        boolean invokeOnEngineChain;
-        PacketTransformer rtpTransformer;
+        if (engine == null)
+            throw new NullPointerException("engine");
 
         synchronized (this)
         {
-            if (rtpTransformChain == null)
+            TransformEngine[] oldValue = this.engineChain;
+
+            for (TransformEngine e : oldValue)
             {
-                rtpTransformChain = new PacketTransformerChain(true);
-                invokeOnEngineChain = true;
+                if (engine.equals(e))
+                    return false;
             }
-            else
-            {
-                invokeOnEngineChain = false;
-            }
-            rtpTransformer = rtpTransformChain;
+
+            int oldLength = oldValue.length;
+            TransformEngine[] newValue = new TransformEngine[oldLength + 1];
+
+            if (oldLength != 0)
+                System.arraycopy(oldValue, 0, newValue, 0, oldLength);
+            newValue[oldLength] = engine;
         }
-        if (invokeOnEngineChain)
-        {
-            for (TransformEngine engine : engineChain)
-                engine.getRTPTransformer();
-        }
-        return rtpTransformer;
+
+        return true;
+    }
+
+    /**
+     * Gets the sequence of <tt>TransformEngine</tt>s whose
+     * <tt>PacketTransformer</tt>s this engine chain applies to RTP and RTCP
+     * packets.
+     *
+     * @return the sequence of <tt>TransformEngine</tt>s whose
+     * <tt>PacketTransformer</tt>s this engine chain applies to RTP and RTCP
+     * packets
+     */
+    public TransformEngine[] getEngineChain()
+    {
+        return engineChain.clone();
     }
 
     /**
@@ -103,6 +101,7 @@ public class TransformEngineChain
      * @return a <tt>PacketTransformerChain</tt> over all RTCP transformers in
      * this engine chain.
      */
+    @Override
     public PacketTransformer getRTCPTransformer()
     {
         /*
@@ -139,6 +138,50 @@ public class TransformEngineChain
     }
 
     /**
+     * Returns the meta <tt>PacketTransformer</tt> that will be applying
+     * RTCP transformations from all engines registered in this
+     * <tt>TransformEngineChain</tt>.
+     *
+     * @return a <tt>PacketTransformerChain</tt> over all RTP transformers in
+     * this engine chain.
+     */
+    @Override
+    public PacketTransformer getRTPTransformer()
+    {
+        /*
+         * XXX Certain TransformEngine implementations in engineChain may
+         * postpone the initialization of their PacketTransformer until it is
+         * requested for the first time AND may have to send packets at that
+         * very moment, not earlier (e.g. DTLS-SRTP may have to send Client
+         * Hello). Make sure that, when the PacketTransformer of this
+         * TransformEngine is requested for the first time, the same method will
+         * be invoked on each of the TransformEngines in engineChain.
+         */
+        boolean invokeOnEngineChain;
+        PacketTransformer rtpTransformer;
+
+        synchronized (this)
+        {
+            if (rtpTransformChain == null)
+            {
+                rtpTransformChain = new PacketTransformerChain(true);
+                invokeOnEngineChain = true;
+            }
+            else
+            {
+                invokeOnEngineChain = false;
+            }
+            rtpTransformer = rtpTransformChain;
+        }
+        if (invokeOnEngineChain)
+        {
+            for (TransformEngine engine : engineChain)
+                engine.getRTPTransformer();
+        }
+        return rtpTransformer;
+    }
+
+    /**
      * A <tt>PacketTransformerChain</tt> is a meta <tt>PacketTransformer</tt>
      * that applies all transformers present in this engine chain. The class
      * respects the order of the engine chain for outgoing packets and reverses
@@ -156,7 +199,7 @@ public class TransformEngineChain
 
         /**
          * Creates an instance of this packet transformer and prepares it to
-         * deal with RTP or RTCP according to the <tt>isRtp</tt> arg.
+         * deal with RTP or RTCP according to the <tt>isRtp</tt> argument.
          *
          * @param isRtp <tt>true</tt> if this transformer will be dealing with
          * RTP (i.e. will transform packets via the RTP transformers in this
@@ -172,6 +215,7 @@ public class TransformEngineChain
          *
          * Propagate the close to all transformers in chain.
          */
+        @Override
         public void close()
         {
             for (TransformEngine engine : engineChain)
@@ -191,9 +235,39 @@ public class TransformEngineChain
         /**
          * {@inheritDoc}
          *
+         * Reverse-transforms the given packets using each of the
+         * <tt>TransformEngine</tt>-s in the engine chain in reverse order.
+         */
+        @Override
+        public RawPacket[] reverseTransform(RawPacket pkts[])
+        {
+            TransformEngine[] engineChain
+                = TransformEngineChain.this.engineChain;
+
+            for (int i = engineChain.length - 1 ; i >= 0; i--)
+            {
+                TransformEngine engine = engineChain[i];
+                PacketTransformer pTransformer
+                    = isRtp
+                        ? engine.getRTPTransformer()
+                        : engine.getRTCPTransformer();
+
+                //the packet transformer may be null if for example the engine
+                //only does RTP transformations and this is an RTCP transformer.
+                if (pTransformer != null)
+                    pkts = pTransformer.reverseTransform(pkts);
+            }
+
+            return pkts;
+        }
+
+        /**
+         * {@inheritDoc}
+         *
          * Transforms the given packets using each of the
          * <tt>TransformEngine</tt>-s in the engine chain in order.
          */
+        @Override
         public RawPacket[] transform(RawPacket[] pkts)
         {
             for (TransformEngine engine : engineChain)
@@ -207,31 +281,6 @@ public class TransformEngineChain
                 //only does RTP transformations and this is an RTCP transformer.
                 if (pTransformer != null)
                     pkts = pTransformer.transform(pkts);
-            }
-
-            return pkts;
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * Reverse-transforms the given packets using each of the
-         * <tt>TransformEngine</tt>-s in the engine chain in reverse order.
-         */
-        public RawPacket[] reverseTransform(RawPacket pkts[])
-        {
-            for (int i = engineChain.length - 1 ; i >= 0; i--)
-            {
-                TransformEngine engine = engineChain[i];
-                PacketTransformer pTransformer
-                    = isRtp
-                        ? engine.getRTPTransformer()
-                        : engine.getRTCPTransformer();
-
-                //the packet transformer may be null if for example the engine
-                //only does RTP transformations and this is an RTCP transformer.
-                if (pTransformer != null)
-                    pkts = pTransformer.reverseTransform(pkts);
             }
 
             return pkts;
