@@ -599,7 +599,7 @@ public class SRTPCryptoContext
                 // we want to ignore its payload. In the context of SRTP, we
                 // want to skip its decrypting.
                 if ((pkt.getFlags()
-                            & (Buffer.FLAG_DISCARD /* | Buffer.FLAG_SILENCE */))
+                            & (Buffer.FLAG_DISCARD | Buffer.FLAG_SILENCE))
                         == 0)
                 {
                     switch (policy.getEncType())

@@ -522,6 +522,7 @@ public class RTPTranslatorImpl
      * of the received RTP or RTCP packet begin
      * @param length the number of bytes in <tt>buffer</tt> beginning at
      * <tt>offset</tt> which represent the received RTP or RTCP packet
+     * @param flags <tt>Buffer.FLAG_XXX</tt>
      * @return the number of bytes in <tt>buffer</tt> beginning at
      * <tt>offset</tt> which represent the received RTP or RTCP packet
      * @throws IOException if an I/O error occurs while the method processes the
@@ -529,7 +530,8 @@ public class RTPTranslatorImpl
      */
     int didRead(
             PushSourceStreamDesc streamDesc,
-            byte[] buffer, int offset, int length)
+            byte[] buffer, int offset, int length,
+            int flags)
         throws IOException
     {
         Lock lock = this.lock.readLock();
@@ -556,6 +558,13 @@ public class RTPTranslatorImpl
                 // want to not receive them locally as well?
                 return length;
             }
+
+            // We flag an RTP packet with Buffer.FLAG_SILENCE when we want to
+            // ignore its payload. Because the payload may have skipped
+            // decryption as a result of the flag, it is unwise to
+            // translate/forward it.
+            if ((flags & Buffer.FLAG_SILENCE) == Buffer.FLAG_SILENCE)
+                return length;
 
             // Do the bytes in the specified buffer resemble (a header of) an
             // RTP packet?

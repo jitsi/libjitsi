@@ -10,6 +10,7 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
+import javax.media.*;
 import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.*;
@@ -224,6 +225,7 @@ class PushSourceStreamImpl
 
         PushSourceStreamDesc streamDesc = pkt.streamDesc;
         int read = pktLength;
+        int flags = pkt.getFlags();
 
         pkt.streamDesc = null;
         sourcePacketPool.offer(pkt);
@@ -233,7 +235,13 @@ class PushSourceStreamImpl
             RTPTranslatorImpl translator = getTranslator();
 
             if (translator != null)
-                read = translator.didRead(streamDesc, buffer, offset, read);
+            {
+                read
+                    = translator.didRead(
+                            streamDesc,
+                            buffer, offset, read,
+                            flags);
+            }
         }
 
         return read;
@@ -366,19 +374,46 @@ class PushSourceStreamImpl
         if ((pkt == null) || ((buf = pkt.getBuffer()).length < len))
         {
             buf = new byte[len];
-            pkt = new SourcePacket(buf, 0, len);
+            pkt = new SourcePacket(buf, 0, 0);
         }
         else
         {
             buf = pkt.getBuffer();
             len = buf.length;
+            pkt.setFlags(0);
+            pkt.setLength(0);
+            pkt.setOffset(0);
         }
 
         int read = 0;
 
         try
         {
-            read = stream.read(buf, 0, len);
+            PushBufferStream streamAsPushBufferStream
+                = streamDesc.streamAsPushBufferStream;
+
+            if (streamAsPushBufferStream == null)
+            {
+                read = stream.read(buf, 0, len);
+            }
+            else
+            {
+                streamAsPushBufferStream.read(pkt);
+                if (pkt.isDiscard())
+                {
+                    read = 0;
+                }
+                else
+                {
+                    read = pkt.getLength();
+                    if ((read < 1)
+                            && ((pkt.getFlags() & Buffer.FLAG_EOM)
+                                    == Buffer.FLAG_EOM))
+                    {
+                        read = -1;
+                    }
+                }
+            }
         }
         catch (IOException ioe)
         {
@@ -389,7 +424,6 @@ class PushSourceStreamImpl
             if (read > 0)
             {
                 pkt.setLength(read);
-                pkt.setOffset(0);
                 pkt.streamDesc = streamDesc;
 
                 boolean yield;
@@ -441,13 +475,33 @@ class PushSourceStreamImpl
     }
 
     private static class SourcePacket
-        extends RawPacket
+        extends Buffer
     {
+        private byte[] buffer;
+
         public PushSourceStreamDesc streamDesc;
 
         public SourcePacket(byte[] buf, int off, int len)
         {
-            super(buf, off, len);
+            setData(buf);
+            setOffset(off);
+            setLength(len);
+        }
+
+        public byte[] getBuffer()
+        {
+            return buffer;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void setData(Object data)
+        {
+            super.setData(data);
+
+            buffer = (byte[]) data;
         }
     }
 }

@@ -8,6 +8,8 @@ package org.jitsi.impl.neomedia.rtp.translator;
 
 import javax.media.protocol.*;
 
+import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
+
 /**
  * Describes a <tt>PushSourceStream</tt> associated with an endpoint from which
  * an <tt>RTPTranslatorImpl</tt> is translating.
@@ -34,6 +36,13 @@ class PushSourceStreamDesc
     public final PushSourceStream stream;
 
     /**
+     * The <tt>PushBufferStream</tt> control over {@link #stream}, if available,
+     * which may provide Buffer properties other than <tt>data</tt>,
+     * <tt>length</tt> and <tt>offset</tt> such as <tt>flags</tt>.
+     */
+    public final PushBufferStream streamAsPushBufferStream;
+
+    /**
      * Initializes a new <tt>PushSourceStreamDesc</tt> instance which is to
      * describe a specific endpoint <tt>PushSourceStream</tt> for an
      * <tt>RTPTranslatorImpl</tt>.
@@ -54,5 +63,10 @@ class PushSourceStreamDesc
         this.connectorDesc = connectorDesc;
         this.stream = stream;
         this.data = data;
+
+        streamAsPushBufferStream
+            = (PushBufferStream)
+                stream.getControl(
+                        AbstractPushBufferStream.PUSH_BUFFER_STREAM_CLASS_NAME);
     }
 }

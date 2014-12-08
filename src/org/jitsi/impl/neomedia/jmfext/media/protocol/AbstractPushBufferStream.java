@@ -20,6 +20,11 @@ public abstract class AbstractPushBufferStream<T extends PushBufferDataSource>
     extends AbstractBufferStream<T>
     implements PushBufferStream
 {
+    /**
+     * The name of the <tt>PushBufferStream</tt> class.
+     */
+    public static final String PUSH_BUFFER_STREAM_CLASS_NAME
+        = PushBufferStream.class.getName();
 
     /**
      * The <tt>BufferTransferHandler</tt> which is notified by this
