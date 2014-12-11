@@ -177,12 +177,12 @@ public class XMLConfigurationStore
      */
     private Map<String, Object> loadConfiguration(File file)
         throws IOException,
-        XMLException
+               XMLException
     {
         try
         {
-            DocumentBuilderFactory factory =
-                DocumentBuilderFactory.newInstance();
+            DocumentBuilderFactory factory
+                = XMLUtils.newDocumentBuilderFactory();
             DocumentBuilder builder = factory.newDocumentBuilder();
             Map<String, Object> props = new Hashtable<String, Object>();
 

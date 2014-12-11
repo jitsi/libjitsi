@@ -35,6 +35,38 @@ import org.w3c.dom.*;
 public class XMLUtils
 {
     /**
+     * The string identifying the <tt>DocumentBuilderFactory</tt>feature which
+     * controls whether inclusion of external general entities is allowed.
+     * See
+     * {@link "http://xerces.apache.org/xerces-j/features.html#external-general-entities"}
+     * and
+     * {@link "http://xerces.apache.org/xerces2-j/features.html#external-general-entities"}
+     */
+    private static final String FEATURE_EXTERNAL_GENERAL_ENTITIES
+        = "http://xml.org/sax/features/external-general-entities";
+
+    /**
+     * The string identifying the <tt>DocumentBuilderFactory</tt>feature which
+     * controls whether inclusion of external parameter entities is allowed.
+     * See
+     * {@link "http://xerces.apache.org/xerces-j/features.html#external-parameter-entities"}
+     * and
+     * {@link "http://xerces.apache.org/xerces2-j/features.html#external-parameter-entities"}
+     */
+    private static final String FEATURE_EXTERNAL_PARAMETER_ENTITIES
+        = "http://xml.org/sax/features/external-parameter-entities";
+
+
+    /**
+     * The string identifying the <tt>DocumentBuilderFactory</tt>feature which
+     * controls whether DOCTYPE declaration is allowed.
+     * See
+     * {@link "http://xerces.apache.org/xerces2-j/features.html#disallow-doctype-decl"}
+     */
+    private static final String FEATURE_DISSALLOW_DOCTYPE
+        = "http://apache.org/xml/features/disallow-doctype-decl";
+
+    /**
      * The <tt>Logger</tt> used by the <tt>XMLUtils</tt> class for logging
      * output.
      */
@@ -657,15 +689,19 @@ public class XMLUtils
      * Creates W3C Document from the xml.
      *
      * @param xml the xml that needs to be converted.
+     * @param allowExternalEntities whether parsing of XML external entities
+     * and DOCTYPE declarations should be allowed.
      * @return the W3C Document.
      * @throws Exception is there is some error during operation.
      */
-    public static Document createDocument(String xml)
+    public static Document createDocument(String xml,
+                                          boolean allowExternalEntities)
             throws Exception
     {
-        DocumentBuilderFactory builderFactory =
-                DocumentBuilderFactory.newInstance();
+        DocumentBuilderFactory builderFactory
+                = newDocumentBuilderFactory(allowExternalEntities);
         builderFactory.setNamespaceAware(true);
+
         DocumentBuilder documentBuilder = builderFactory.newDocumentBuilder();
         if (!isNullOrEmpty(xml))
         {
@@ -676,6 +712,19 @@ public class XMLUtils
         {
             return documentBuilder.newDocument();
         }
+    }
+
+    /**
+     * Creates W3C Document from the xml.
+     *
+     * @param xml the xml that needs to be converted.
+     * @return the W3C Document.
+     * @throws Exception is there is some error during operation.
+     */
+    public static Document createDocument(String xml)
+            throws Exception
+    {
+        return createDocument(xml, false);
     }
 
     /**
@@ -698,4 +747,49 @@ public class XMLUtils
         return stringWriter.toString();
     }
 
+    /**
+     * Creates and returns a new <tt>DocumentBuilderFactory</tt> instance, and
+     * sets the default set of features.
+     * @return the created factory
+     * @throws ParserConfigurationException if setting a feature fails.
+     */
+    public static DocumentBuilderFactory newDocumentBuilderFactory()
+            throws ParserConfigurationException
+    {
+        return newDocumentBuilderFactory(false);
+    }
+
+    /**
+     * Creates and returns a new <tt>DocumentBuilderFactory</tt> instance, and
+     * sets the default set of features.
+     *
+     * @param allowExternalEntities whether parsing of XML external entities
+     * and DOCTYPE declarations should be allowed.
+     * @return the created factory
+     * @throws ParserConfigurationException if setting a feature fails.
+     */
+    public static DocumentBuilderFactory newDocumentBuilderFactory(
+            boolean allowExternalEntities)
+        throws ParserConfigurationException
+    {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        if (!allowExternalEntities)
+            disableExternalEntities(factory);
+        return factory;
+    }
+
+    /**
+     * Tries to set the features which disable inclusion of XML external
+     * entities and DOCTYPE declarations.
+     * @param factory the factory
+     * @throws javax.xml.parsers.ParserConfigurationException if setting any
+     * of the features fails.
+     */
+    public static void disableExternalEntities(DocumentBuilderFactory factory)
+        throws ParserConfigurationException
+    {
+        factory.setFeature(FEATURE_EXTERNAL_GENERAL_ENTITIES, false);
+        factory.setFeature(FEATURE_EXTERNAL_PARAMETER_ENTITIES, false);
+        factory.setFeature(FEATURE_DISSALLOW_DOCTYPE, true);
+    }
 }
