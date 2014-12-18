@@ -455,6 +455,7 @@ public class JNIEncoder
      * @see net.sf.fmj.media.AbstractCodec#getOutputFormat()
      */
     @Override
+    @SuppressWarnings("serial")
     public Format getOutputFormat()
     {
         Format f = super.getOutputFormat();

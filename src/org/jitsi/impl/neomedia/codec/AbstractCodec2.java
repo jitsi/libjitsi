@@ -181,6 +181,65 @@ public abstract class AbstractCodec2
     }
 
     /**
+     * Ensures that the value of the <tt>data</tt> property of a specific
+     * <tt>Buffer</tt> is an array of <tt>byte</tt>s whose length is at least a
+     * specific number of bytes.
+     *
+     * @param buffer the <tt>Buffer</tt> whose <tt>data</tt> property value is
+     * to be validated
+     * @param newSize the minimum length of the array of <tt>byte</tt> which is
+     * to be the value of the <tt>data</tt> property of <tt>buffer</tt>
+     * @param arraycopy <tt>true</tt> to copy the bytes which are in the
+     * value of the <tt>data</tt> property of <tt>buffer</tt> at the time of the
+     * invocation of the method if the value of the <tt>data</tt> property of
+     * <tt>buffer</tt> is an array of <tt>byte</tt> whose length is less than
+     * <tt>newSize</tt>; otherwise, <tt>false</tt>
+     * @return an array of <tt>byte</tt>s which is the value of the
+     * <tt>data</tt> property of <tt>buffer</tt> and whose length is at least
+     * <tt>newSize</tt> number of bytes
+     */
+    public static byte[] validateByteArraySize(
+            Buffer buffer,
+            int newSize,
+            boolean arraycopy)
+    {
+        Object data = buffer.getData();
+        byte[] newBytes;
+
+        if (data instanceof byte[])
+        {
+            byte[] bytes = (byte[]) data;
+
+            if (bytes.length < newSize)
+            {
+                newBytes = new byte[newSize];
+                buffer.setData(newBytes);
+                if (arraycopy)
+                {
+                    System.arraycopy(bytes, 0, newBytes, 0, bytes.length);
+                }
+                else
+                {
+                    buffer.setLength(0);
+                    buffer.setOffset(0);
+                }
+            }
+            else
+            {
+                newBytes = bytes;
+            }
+        }
+        else
+        {
+            newBytes = new byte[newSize];
+            buffer.setData(newBytes);
+            buffer.setLength(0);
+            buffer.setOffset(0);
+        }
+        return newBytes;
+    }
+
+    /**
      * The bitmap/flag mask of optional features supported by this
      * <tt>AbstractCodec2</tt> such as {@link #BUFFER_FLAG_FEC} and
      * {@link #BUFFER_FLAG_PLC}.
@@ -411,61 +470,6 @@ public abstract class AbstractCodec2
         outputBuffer.setFormat(format);
         outputBuffer.setLength(length);
         outputBuffer.setOffset(offset);
-    }
-
-    /**
-     * Ensures that the value of the <tt>data</tt> property of a specific
-     * <tt>Buffer</tt> is an array of <tt>byte</tt>s whose length is at least a
-     * specific number of bytes.
-     *
-     * @param buffer the <tt>Buffer</tt> whose <tt>data</tt> property value is
-     * to be validated
-     * @param newSize the minimum length of the array of <tt>byte</tt> which is
-     * to be the value of the <tt>data</tt> property of <tt>buffer</tt>
-     * @param arraycopy <tt>true</tt> to copy the bytes which are in the
-     * value of the <tt>data</tt> property of <tt>buffer</tt> at the time of the
-     * invocation of the method if the value of the <tt>data</tt> property of
-     * <tt>buffer</tt> is an array of <tt>byte</tt> whose length is less than
-     * <tt>newSize</tt>; otherwise, <tt>false</tt>
-     * @return an array of <tt>byte</tt>s which is the value of the
-     * <tt>data</tt> property of <tt>buffer</tt> and whose length is at least
-     * <tt>newSize</tt> number of bytes
-     */
-    public static byte[] validateByteArraySize(
-            Buffer buffer,
-            int newSize,
-            boolean arraycopy)
-    {
-        Object data = buffer.getData();
-        byte[] newBytes;
-
-        if (data instanceof byte[])
-        {
-            byte[] bytes = (byte[]) data;
-
-            if (bytes.length < newSize)
-            {
-                newBytes = new byte[newSize];
-                buffer.setData(newBytes);
-                if (arraycopy)
-                    System.arraycopy(bytes, 0, newBytes, 0, bytes.length);
-                else
-                {
-                    buffer.setLength(0);
-                    buffer.setOffset(0);
-                }
-            }
-            else
-                newBytes = bytes;
-        }
-        else
-        {
-            newBytes = new byte[newSize];
-            buffer.setData(newBytes);
-            buffer.setLength(0);
-            buffer.setOffset(0);
-        }
-        return newBytes;
     }
 
     protected short[] validateShortArraySize(Buffer buffer, int newSize)

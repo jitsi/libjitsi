@@ -302,8 +302,9 @@
   <target name="ffmpeg" description="Build ffmpeg shared library" depends="init-native">
 
     <fail message="ffmpeg repository not set!" unless="ffmpeg" />
-    <fail message="x264 repository not set!" unless="x264" />
     <fail message="lame repository not set!" unless="lame" />
+    <fail message="vo-amrwbenc repository not set!" unless="voamrwbenc" />
+    <fail message="x264 repository not set!" unless="x264" />
 
     <cc outtype="shared" name="gcc" outfile="${native_install_dir}/jnffmpeg" objdir="${obj}">
       <!-- common compiler flags -->
@@ -328,6 +329,7 @@
       -->
       <linkerarg value="-L${lame}/libmp3lame" />
       <linkerarg value="-L${lame}/libmp3lame/.libs" />
+      <linkerarg value="-L${voamrwbenc}/.libs" />
       <linkerarg value="-L${x264}" />
       <linkerarg value="-m${arch}" />
       <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
@@ -341,6 +343,7 @@
       <linkerarg value="-lavutil" location="end" />
       <linkerarg value="-lswscale" location="end" />
       <linkerarg value="-lmp3lame" location="end" />
+      <linkerarg value="-lvo-amrwbenc" location="end" />
       <linkerarg value="-lx264" location="end" />
 
       <!-- Unix specific flags -->
@@ -352,6 +355,10 @@
 
       <!-- Mac OS X specific flags -->
       <compilerarg value="-mmacosx-version-min=10.4" if="is.running.macos"/>
+      <compilerarg value="-I${java.home}/include" if="is.running.macos" />
+      <compilerarg value="-I${java.home}/include/darwin" if="is.running.macos" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.macos" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/darwin" if="is.running.macos" />
       <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
 
       <!-- ffmpeg/x264 libraries cannot be built as universal binaries

@@ -16,9 +16,32 @@ package org.jitsi.service.neomedia.codec;
 public class Constants
 {
     /**
-     * The ALAW/RTP constant.
+     * The <tt>/rtp</tt> constant. Introduced in order to achieve consistency in
+     * the casing of the <tt>String</tt>.
      */
-    public static final String ALAW_RTP = "ALAW/rtp";
+    public static final String _RTP = "/rtp";
+
+    /**
+     * The ALAW/rtp constant.
+     */
+    public static final String ALAW_RTP = "ALAW" + _RTP;
+
+    /**
+     * The AMR-WB constant.
+     */
+    public static final String AMR_WB = "AMR-WB";
+
+    /**
+     * The AMR-WB/rtp constant.
+     */
+    public static final String AMR_WB_RTP = AMR_WB + _RTP;
+
+    /**
+     * The Android Surface constant. It is used as VideoFormat pseudo encoding
+     * in which case the object is passed through the buffers instead of byte
+     * array for example.
+     */
+    public static final String ANDROID_SURFACE = "android_surface";
 
     /**
      * The list of well-known sample rates of audio data used throughout
@@ -33,19 +56,19 @@ public class Constants
     public static final String G722 = "g722";
 
     /**
-     * The G722/RTP constant.
+     * The G722/rtp constant.
      */
-    public static final String G722_RTP = "g722/rtp";
+    public static final String G722_RTP = G722 + _RTP;
 
     /**
      * The H263+ constant.
      */
-    public static final String H263P = "H263-1998";
+    public static final String H263P = "h263-1998";
 
     /**
-     * The H263+/RTP constant.
+     * The H263+/rtp constant.
      */
-    public static final String H263P_RTP = "h263-1998/rtp";
+    public static final String H263P_RTP = H263P + _RTP;
 
     /**
      * The H264 constant.
@@ -53,19 +76,12 @@ public class Constants
     public static final String H264 = "h264";
 
     /**
-     * The H264/RTP constant.
+     * The H264/rtp constant.
      */
-    public static final String H264_RTP = "h264/rtp";
+    public static final String H264_RTP = H264 + _RTP;
 
     /**
-     * The Android Surface constant. It is used as VideoFormat pseudo encoding
-     * in which case the object is passed through the buffers instead of byte
-     * array for example.
-     */
-    public static final String ANDROID_SURFACE = "android_surface";
-
-    /**
-     * The iLBC constant.
+     * The ilbc constant.
      */
     public static final String ILBC = "ilbc";
 
@@ -74,22 +90,22 @@ public class Constants
      * 20 - 20 ms
      * 30 - 30 ms
      */
-    public static int ILBC_MODE = 30;
+    public static final int ILBC_MODE = 30;
 
     /**
-     * The iLBC/RTP constant.
+     * The ilbc/rtp constant.
      */
-    public static final String ILBC_RTP = "ilbc/rtp";
+    public static final String ILBC_RTP = ILBC + _RTP;
 
     /**
-     * The OPUS constant.
+     * The opus constant.
      */
     public static final String OPUS = "opus";
 
     /**
-     * The OPUS/RTP constant.
+     * The opus/rtp constant.
      */
-    public static final String OPUS_RTP = "opus/rtp";
+    public static final String OPUS_RTP = OPUS + _RTP;
 
     /**
      * The name of the property used to control the Opus encoder
@@ -169,13 +185,19 @@ public class Constants
             + ".SPEECH_ACTIVITY_THRESHOLD";
 
     /**
+     * The name of the RED RTP format (RFC2198)
+     */
+    public static final String RED = "red";
+
+    /**
      * The SILK constant.
      */
     public static final String SILK = "SILK";
+
     /**
-     * The SILK/RTP constant.
+     * The SILK/rtp constant.
      */
-    public static final String SILK_RTP = "SILK/rtp";
+    public static final String SILK_RTP = SILK + _RTP;
 
     /**
      * The SPEEX constant.
@@ -185,7 +207,7 @@ public class Constants
     /**
      * The SPEEX/RTP constant.
      */
-    public static final String SPEEX_RTP = "speex/rtp";
+    public static final String SPEEX_RTP = SPEEX + _RTP;
 
     /**
      * Pseudo format representing DTMF tones sent over RTP.
@@ -193,22 +215,17 @@ public class Constants
     public static final String TELEPHONE_EVENT = "telephone-event";
 
     /**
+     * The name of the ulpfec RTP format (RFC5109)
+     */
+    public static final String ULPFEC = "ulpfec";
+
+    /**
      * The VP8 constant
      */
     public static final String VP8 = "VP8";
 
     /**
-     * The VP8/RTP constant.
+     * The VP8/rtp constant.
      */
-    public static final String VP8_RTP = "VP8/rtp";
-
-    /**
-     * The name of the RED RTP format (RFC2198)
-     */
-    public static final String RED = "red";
-
-    /**
-     * The name of the ulpfec RTP format (RFC5109)
-     */
-    public static final String ULPFEC = "ulpfec";
+    public static final String VP8_RTP = VP8 + _RTP;
 }

@@ -20,4 +20,3 @@ public interface FlushableControl extends Control
      */
     public void flush();
 }
-

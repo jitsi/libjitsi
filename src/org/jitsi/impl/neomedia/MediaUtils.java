@@ -128,7 +128,7 @@ public class MediaUtils
             8000);
         addMediaFormats(
             MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
-            "speex",
+            Constants.SPEEX,
             MediaType.AUDIO,
             Constants.SPEEX_RTP,
             8000, 16000, 32000);
@@ -160,9 +160,9 @@ public class MediaUtils
             Constants.TELEPHONE_EVENT,
             8000);
 
-        // Although we use "red" and "ulpfec" as jmf encodings here, FMJ
-        // should never see RTP packets of these types. Such packets should be
-        // handled by transform engines before being passed to FMJ.
+        // Although we use "red" and "ulpfec" as jmf encodings here, FMJ should
+        // never see RTP packets of these types. Such packets should be handled
+        // by transform engines before being passed to FMJ.
         addMediaFormats(
             MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
             Constants.RED,
@@ -174,11 +174,10 @@ public class MediaUtils
             MediaType.VIDEO,
             Constants.ULPFEC);
 
-
         ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         boolean advertiseFEC
-                = cfg.getBoolean(Constants.PROP_SILK_ADVERSISE_FEC, false);
+            = cfg.getBoolean(Constants.PROP_SILK_ADVERSISE_FEC, false);
         Map<String,String> silkFormatParams = new HashMap<String, String>();
         if(advertiseFEC)
             silkFormatParams.put("useinbandfec", "1");
@@ -200,14 +199,22 @@ public class MediaUtils
             opusFormatParams.put("usedtx", "1");
         //opusFormatParams.put("minptime", "10");
         addMediaFormats(
-            MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
-            "opus",
-            MediaType.AUDIO,
-            Constants.OPUS_RTP,
-            2,
-            opusFormatParams,
-            null,
-            48000);
+                MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
+                Constants.OPUS,
+                MediaType.AUDIO,
+                Constants.OPUS_RTP,
+                2,
+                opusFormatParams,
+                null,
+                48000);
+
+        // Adaptive Multi-Rate Wideband (AMR-WB)
+        addMediaFormats(
+                MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
+                Constants.AMR_WB,
+                MediaType.AUDIO,
+                Constants.AMR_WB_RTP,
+                16000);
 
         /*
          * We don't really support these.

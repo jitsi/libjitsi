@@ -57,6 +57,16 @@ public class FFmpeg
     public static final int CODEC_FLAG2_INTRA_REFRESH = 0x00200000;
 
     /**
+     * AMR-NB codec ID.
+     */
+    private static final int CODEC_ID_AMR_NB = 0x12000;
+
+    /**
+     * AMR-WB codec ID
+     */
+    public static final int CODEC_ID_AMR_WB = CODEC_ID_AMR_NB + 1;
+
+    /**
      * H263 codec ID.
      */
     public static final int CODEC_ID_H263 = 5;
@@ -112,14 +122,14 @@ public class FFmpeg
     public static final int FF_PROFILE_H264_BASELINE = 66;
 
     /**
-     * The H264 main profile.
-     */
-    public static final int FF_PROFILE_H264_MAIN = 77;
-
-    /**
      * The H264 high profile.
      */
     public static final int FF_PROFILE_H264_HIGH = 100;
+
+    /**
+     * The H264 main profile.
+     */
+    public static final int FF_PROFILE_H264_MAIN = 77;
 
     /**
      * ARGB format.
@@ -248,10 +258,10 @@ public class FFmpeg
     public static native void av_register_all();
 
     /**
-     * Allocate a AVContext.
+     * Allocates a new <tt>AVCodecContext</tt>.
      *
      * @param codec
-     * @return native pointer to AVContext
+     * @return native pointer to the new <tt>AVCodecContext</tt>
      */
     public static native long avcodec_alloc_context3(long codec);
 
@@ -264,6 +274,8 @@ public class FFmpeg
      */
     public static native long avcodec_alloc_frame();
 
+    public static native long avcodec_alloc_packet(int size);
+
     /**
      * Close an AVCodecContext
      *
@@ -271,6 +283,9 @@ public class FFmpeg
      * @return 0 if success, -1 otherwise
      */
     public static native int avcodec_close(long ctx);
+
+    public static native int avcodec_decode_audio4(long avctx, long frame,
+            boolean[] got_frame, long avpkt);
 
     /**
      * Decode a video frame.
@@ -283,7 +298,7 @@ public class FFmpeg
      * @return number of bytes written to buff if success
      */
     public static native int avcodec_decode_video(long ctx, long frame,
-        boolean[] got_picture, byte[] buf, int buf_size);
+            boolean[] got_picture, byte[] buf, int buf_size);
 
     /**
      * Decode a video frame.
@@ -294,8 +309,8 @@ public class FFmpeg
      * @param src_length input buffer size
      * @return number of bytes written to buff if success
      */
-    public static native int avcodec_decode_video(long ctx,
-            long avframe, long src, int src_length);
+    public static native int avcodec_decode_video(long ctx, long avframe,
+            long src, int src_length);
 
     /**
      * Encodes an audio frame from <tt>samples</tt> into <tt>buf</tt>.
@@ -367,6 +382,8 @@ public class FFmpeg
         // FIXME Invoke the native function avcodec_free_frame(AVFrame **).
         av_free(frame);
     }
+
+    public static native void avcodec_free_packet(long pkt);
 
     /**
      * Initializes the specified <tt>AVCodecContext</tt> to use the specified
@@ -694,6 +711,10 @@ public class FFmpeg
      */
     public static native void avfilter_unref_buffer(long ref);
 
+    public static native long avframe_get_data0(long frame);
+
+    public static native int avframe_get_linesize0(long frame);
+
     public static native long avframe_get_pts(long frame);
 
     public static native void avframe_set_data(
@@ -708,6 +729,10 @@ public class FFmpeg
             long frame,
             int linesize0, int linesize1, int linesize2);
 
+    public static native void avpacket_set_data(
+            long pkt,
+            byte[] data, int offset, int length);
+
     public static native int avpicture_fill(long picture, long ptr,
         int pix_fmt, int width, int height);
 
@@ -717,11 +742,14 @@ public class FFmpeg
             long ffsink,
             long output);
 
+    public static native void memcpy(byte[] dst, int dst_offset, int dst_length,
+            long src);
+
     public static native void memcpy(int[] dst, int dst_offset, int dst_length,
-        long src);
+            long src);
 
     public static native void memcpy(long dst, byte[] src, int src_offset,
-        int src_length);
+            int src_length);
 
     /**
      * Get BGR32 pixel format.
