@@ -1366,14 +1366,15 @@
             outfile="${native_install_dir}/jnsctp"
             objdir="${obj}">
 
-            <!--compilerarg value="-Wall" /-->
-            <!--compilerarg value="-Werror" /-->
+            <compilerarg value="-D_JNI_IMPLEMENTATION_" />
+            <compilerarg value="-DINET6=1" />
+            <compilerarg value="-fPIC" />
             <compilerarg value="-std=c99" />
+            <compilerarg value="-O2" />
+            <compilerarg value="-Wall" />
             <compilerarg value="-I${system.JAVA_HOME}/include" />
             <compilerarg value="-I${system.JAVA_HOME}/include/linux" if="is.running.linux"/>
             <compilerarg value="-I${usrsctp}/usrsctplib" />
-            <compilerarg value="-DINET6=1" />
-            <compilerarg value="-fPIC"/>
 
             <compilerarg value="-m32" if="cross_32" />
             <compilerarg value="-m64" if="cross_64" />
@@ -1451,13 +1452,16 @@
         </condition>
 
         <exec executable="gcc">
-            <arg value="-Wall"/>
-            <arg value="-Werror"/>
-            <arg value="-std=c99"/>
-            <arg value="-I/System/Library/Frameworks/JavaVM.framework/Versions/Current/Headers"/>
-            <arg value="-I${usrsctp}"/>
+            <arg value="-D_JNI_IMPLEMENTATION_" />
             <arg value="-DINET6=1"/>
             <arg value="-fPIC"/>
+            <arg value="-O2" />
+            <arg value="-std=c99"/>
+            <arg value="-Wall"/>
+            <arg value="-I/System/Library/Frameworks/JavaVM.framework/Versions/Current/Headers"/>
+            <arg value="-I${system.JAVA_HOME}/include" />
+            <arg value="-I${system.JAVA_HOME}/include/darwin" />
+            <arg value="-I${usrsctp}/usrsctplib" />
             <arg value="-arch"/>
             <arg value="${arch_param}"/>
             <arg value="${src}/native/sctp/org_jitsi_sctp4j_Sctp.c"/>
@@ -1466,13 +1470,16 @@
             <arg value="${obj}/org_jitsi_sctp4j_Sctp.o"/>
         </exec>
         <exec executable="gcc">
-            <arg value="-Wall"/>
-            <arg value="-Werror"/>
-            <arg value="-std=c99"/>
-            <arg value="-I/System/Library/Frameworks/JavaVM.framework/Versions/Current/Headers"/>
-            <arg value="-I${usrsctp}"/>
+            <arg value="-D_JNI_IMPLEMENTATION_" />
             <arg value="-DINET6=1"/>
             <arg value="-fPIC"/>
+            <arg value="-O2" />
+            <arg value="-std=c99"/>
+            <arg value="-Wall"/>
+            <arg value="-I/System/Library/Frameworks/JavaVM.framework/Versions/Current/Headers"/>
+            <arg value="-I${system.JAVA_HOME}/include" />
+            <arg value="-I${system.JAVA_HOME}/include/darwin" />
+            <arg value="-I${usrsctp}/usrsctplib" />
             <arg value="-arch"/>
             <arg value="${arch_param}"/>
             <arg value="${obj}/org_jitsi_sctp4j_Sctp.o"/>

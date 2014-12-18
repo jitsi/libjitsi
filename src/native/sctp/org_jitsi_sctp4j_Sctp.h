@@ -11,35 +11,11 @@ extern "C" {
 #define org_jitsi_sctp4j_Sctp_MSG_NOTIFICATION 8192L
 /*
  * Class:     org_jitsi_sctp4j_Sctp
- * Method:    usrsctp_init
- * Signature: (I)Z
+ * Method:    on_network_in
+ * Signature: (J[BII)V
  */
-JNIEXPORT jboolean JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1init
-  (JNIEnv *, jclass, jint);
-
-/*
- * Class:     org_jitsi_sctp4j_Sctp
- * Method:    usersctp_socket
- * Signature: (I)J
- */
-JNIEXPORT jlong JNICALL Java_org_jitsi_sctp4j_Sctp_usersctp_1socket
-  (JNIEnv *, jclass, jint);
-
-/*
- * Class:     org_jitsi_sctp4j_Sctp
- * Method:    usrsctp_send
- * Signature: (J[BIIZII)I
- */
-JNIEXPORT jint JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1send
-  (JNIEnv *, jclass, jlong, jbyteArray, jint, jint, jboolean, jint, jint);
-
-/*
- * Class:     org_jitsi_sctp4j_Sctp
- * Method:    usrsctp_listen
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1listen
-  (JNIEnv *, jclass, jlong);
+JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_on_1network_1in
+  (JNIEnv *, jclass, jlong, jbyteArray, jint, jint);
 
 /*
  * Class:     org_jitsi_sctp4j_Sctp
@@ -47,6 +23,14 @@ JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1listen
  * Signature: (J)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1accept
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jitsi_sctp4j_Sctp
+ * Method:    usrsctp_close
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1close
   (JNIEnv *, jclass, jlong);
 
 /*
@@ -59,14 +43,6 @@ JNIEXPORT jboolean JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1connect
 
 /*
  * Class:     org_jitsi_sctp4j_Sctp
- * Method:    usrsctp_close
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1close
-  (JNIEnv *, jclass, jlong);
-
-/*
- * Class:     org_jitsi_sctp4j_Sctp
  * Method:    usrsctp_finish
  * Signature: ()Z
  */
@@ -75,11 +51,35 @@ JNIEXPORT jboolean JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1finish
 
 /*
  * Class:     org_jitsi_sctp4j_Sctp
- * Method:    on_network_in
- * Signature: (J[BII)V
+ * Method:    usrsctp_init
+ * Signature: (I)Z
  */
-JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_on_1network_1in
-  (JNIEnv *, jclass, jlong, jbyteArray, jint, jint);
+JNIEXPORT jboolean JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1init
+  (JNIEnv *, jclass, jint);
+
+/*
+ * Class:     org_jitsi_sctp4j_Sctp
+ * Method:    usrsctp_listen
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1listen
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_jitsi_sctp4j_Sctp
+ * Method:    usrsctp_send
+ * Signature: (J[BIIZII)I
+ */
+JNIEXPORT jint JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1send
+  (JNIEnv *, jclass, jlong, jbyteArray, jint, jint, jboolean, jint, jint);
+
+/*
+ * Class:     org_jitsi_sctp4j_Sctp
+ * Method:    usrsctp_socket
+ * Signature: (I)J
+ */
+JNIEXPORT jlong JNICALL Java_org_jitsi_sctp4j_Sctp_usrsctp_1socket
+  (JNIEnv *, jclass, jint);
 
 #ifdef __cplusplus
 }

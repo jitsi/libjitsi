@@ -1,3 +1,10 @@
+#
+# Jitsi, the OpenSource Java VoIP and Instant Messaging client.
+#
+# Distributable under LGPL license.
+# See terms of license at gnu.org.
+#
+
 CC=gcc
 
 JNI_HEADERS = -I"$(JAVA_HOME)/include" -I"$(JAVA_HOME)/include/linux"

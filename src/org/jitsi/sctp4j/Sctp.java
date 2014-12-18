@@ -91,7 +91,7 @@ public class Sctp
      */
     public static SctpSocket createSocket(int localPort)
     {
-        long ptr = usersctp_socket(localPort);
+        long ptr = usrsctp_socket(localPort);
         SctpSocket socket;
 
         if (ptr == 0)
@@ -171,13 +171,14 @@ public class Sctp
 
     /**
      * Passes network packet to native SCTP stack counterpart.
-     * @param socketPtr native socket pointer.
-     * @param packet buffer holding network packet data.
-     * @param offset the position in the buffer where packet data starts.
+     * @param ptr native socket pointer.
+     * @param pkt buffer holding network packet data.
+     * @param off the position in the buffer where packet data starts.
      * @param len packet data length.
      */
-    native private static void on_network_in(long socketPtr, byte[] packet,
-                                             int  offset,    int    len);
+    private static native void on_network_in(
+            long ptr,
+            byte[] pkt, int off, int len);
 
     /**
      * Used by {@link SctpSocket} to pass received network packet to native
@@ -252,31 +253,24 @@ public class Sctp
     }
 
     /**
-     * Creates native SCTP socket and returns pointer to it.
-     * @param localPort local SCTP socket port.
-     * @return native socket pointer or 0 if operation failed.
-     */
-    native private static long usersctp_socket(int localPort);
-
-    /**
      * Waits for incoming connection.
-     * @param socketPtr native socket pointer.
+     * @param ptr native socket pointer.
      */
-    native static boolean usrsctp_accept(long socketPtr);
+    static native boolean usrsctp_accept(long ptr);
 
     /**
      * Closes SCTP socket.
-     * @param socketPtr native socket pointer.
+     * @param ptr native socket pointer.
      */
-    native private static void usrsctp_close(long socketPtr);
+    private static native void usrsctp_close(long ptr);
 
     /**
      * Connects SCTP socket to remote socket on given SCTP port.
-     * @param socketPtr native socket pointer.
+     * @param ptr native socket pointer.
      * @param remotePort remote SCTP port.
      * @return <tt>true</tt> if the socket has been successfully connected.
      */
-    native static boolean usrsctp_connect(long socketPtr, int remotePort);
+    static native boolean usrsctp_connect(long ptr, int remotePort);
 
     /**
      * Disposes of the resources held by native counterpart.
@@ -289,19 +283,19 @@ public class Sctp
      * @param port UDP encapsulation port.
      * @return <tt>true</tt> on success.
      */
-    native private static boolean usrsctp_init(int port);
+    private static native boolean usrsctp_init(int port);
 
     /**
      * Makes socket passive.
-     * @param socketPtr native socket pointer.
+     * @param ptr native socket pointer.
      */
-    native static void usrsctp_listen(long socketPtr);
+    static native void usrsctp_listen(long ptr);
 
     /**
      * Sends given <tt>data</tt> on selected SCTP stream using given payload
      * protocol identifier.
      * FIXME add offset and length buffer parameters.
-     * @param socketPtr native socket pointer.
+     * @param ptr native socket pointer.
      * @param data the data to send.
      * @param offset the position of the data inside the buffer
      * @param len data length.
@@ -310,9 +304,19 @@ public class Sctp
      * @param ppid payload protocol identifier
      * @return sent bytes count or <tt>-1</tt> in case of an error.
      */
-    native static int usrsctp_send(long socketPtr,  byte[] data,
-                                   int offset,      int len,
-                                   boolean ordered, int sid, int ppid);
+    static native int usrsctp_send(
+            long ptr,
+            byte[] data, int off, int len,
+            boolean ordered,
+            int sid,
+            int ppid);
+
+    /**
+     * Creates native SCTP socket and returns pointer to it.
+     * @param localPort local SCTP socket port.
+     * @return native socket pointer or 0 if operation failed.
+     */
+    private static native long usrsctp_socket(int localPort);
 
     /*
     FIXME to be added?
