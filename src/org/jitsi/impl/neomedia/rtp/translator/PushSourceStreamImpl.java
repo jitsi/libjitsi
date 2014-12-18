@@ -456,11 +456,9 @@ class PushSourceStreamImpl
 
                     if (readQ.offer(pkt))
                     {
-                        /*
-                         * TODO It appears that it is better to not yield
-                         * based on whether the read method has read after
-                         * the last write.
-                         */
+                        // TODO It appears that it is better to not yield based
+                        // on whether the read method has read after the last
+                        // write.
                         // this.read = false;
                     }
                     readQ.notifyAll();

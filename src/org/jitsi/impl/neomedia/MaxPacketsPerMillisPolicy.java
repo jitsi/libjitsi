@@ -11,6 +11,9 @@ import java.util.concurrent.locks.*;
 
 import net.sf.fmj.media.util.*;
 
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
+
 /**
  * Implements the functionality which allows this <tt>OutputDataStream</tt>
  * to control how many RTP packets it sends through its
@@ -26,7 +29,39 @@ public abstract class MaxPacketsPerMillisPolicy
      * <tt>OutOfMemoryError</tt>s which, technically, may arise if the capacity
      * of the queue is unlimited.
      */
-    public static final int PACKET_QUEUE_CAPACITY = 256;
+    public static final int PACKET_QUEUE_CAPACITY;
+
+    /**
+     * The name of the <tt>ConfigurationService</tt> and/or <tt>System</tt>
+     * integer property which specifies the value of
+     * {@link #PACKET_QUEUE_CAPACITY}.
+     */
+    private static final String PACKET_QUEUE_CAPACITY_PNAME
+        = MaxPacketsPerMillisPolicy.class.getName() + ".PACKET_QUEUE_CAPACITY";
+
+    static
+    {
+        // Read the value of PACKET_QUEUE_CAPACITY from the ConfigurationService
+        // and/or System property PACKET_QUEUE_CAPACITY_PNAME.
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        int packetQueueCapacity = 256;
+
+        if (cfg == null)
+        {
+            packetQueueCapacity
+                = Integer.getInteger(
+                        PACKET_QUEUE_CAPACITY_PNAME,
+                        packetQueueCapacity);
+        }
+        else
+        {
+            packetQueueCapacity
+                = cfg.getInt(
+                        PACKET_QUEUE_CAPACITY_PNAME,
+                        packetQueueCapacity);
+        }
+        PACKET_QUEUE_CAPACITY = packetQueueCapacity;
+    }
 
     /**
      * The indicator which determines whether {@link #close()} has been
