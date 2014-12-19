@@ -361,16 +361,16 @@ public class MediaUtils
         {
             AudioMediaFormatImpl audioMediaFormat
                 = (AudioMediaFormatImpl) mediaFormat;
+            String encoding = audioMediaFormat.getEncoding();
             int channels = audioMediaFormat.getChannels();
-            /*
-             * The opus/rtp format has 2 channels, but we don't want it to
-             * trigger use of 2 channels elsewhere.
-             */
-            if ("opus".equals(audioMediaFormat.getEncoding()))
-                channels = 1;
             double sampleRate = audioMediaFormat.getClockRate();
             int sampleSizeInBits
                 = audioMediaFormat.getFormat().getSampleSizeInBits();
+
+            // The opus/rtp format has 2 channels, but we don't want it to
+            // trigger use of stereo elsewhere.
+            if (Constants.OPUS.equalsIgnoreCase(encoding))
+                channels = 1;
 
             if (maxAudioChannels < channels)
                 maxAudioChannels = channels;
@@ -417,47 +417,6 @@ public class MediaUtils
             null,
             null,
             clockRates);
-    }
-
-    /**
-     * Adds a new mapping of a specific RTP payload type to a list of
-     * <tt>MediaFormat</tt>s of a specific <tt>MediaType</tt>, with a specific
-     * JMF encoding and, optionally, with specific clock rates.
-     *
-     * @param rtpPayloadType the RTP payload type to be associated with a list
-     * of <tt>MediaFormat</tt>s
-     * @param encoding the well-known encoding (name) corresponding to
-     * <tt>rtpPayloadType</tt> (in contrast to the JMF-specific encoding
-     * specified by <tt>jmfEncoding</tt>)
-     * @param mediaType the <tt>MediaType</tt> of the <tt>MediaFormat</tt>s to
-     * be associated with <tt>rtpPayloadType</tt>
-     * @param jmfEncoding the JMF encoding of the <tt>MediaFormat</tt>s to be
-     * associated with <tt>rtpPayloadType</tt>
-     * @param formatParameters the set of format-specific parameters of the
-     * <tt>MediaFormat</tt>s to be associated with <tt>rtpPayloadType</tt>
-     * @param advancedAttributes the set of advanced attributes of the
-     * <tt>MediaFormat</tt>s to be associated with <tt>rtpPayload</tt>
-     * @param clockRates the optional list of clock rates of the
-     * <tt>MediaFormat</tt>s to be associated with <tt>rtpPayloadType</tt>
-     */
-    private static void addMediaFormats(
-            byte rtpPayloadType,
-            String encoding,
-            MediaType mediaType,
-            String jmfEncoding,
-            Map<String, String> formatParameters,
-            Map<String, String> advancedAttributes,
-            double... clockRates)
-    {
-        addMediaFormats(
-                rtpPayloadType,
-                encoding,
-                mediaType,
-                jmfEncoding,
-                1 /* channel */,
-                formatParameters,
-                advancedAttributes,
-                clockRates);
     }
 
     /**
@@ -588,6 +547,47 @@ public class MediaUtils
     }
 
     /**
+     * Adds a new mapping of a specific RTP payload type to a list of
+     * <tt>MediaFormat</tt>s of a specific <tt>MediaType</tt>, with a specific
+     * JMF encoding and, optionally, with specific clock rates.
+     *
+     * @param rtpPayloadType the RTP payload type to be associated with a list
+     * of <tt>MediaFormat</tt>s
+     * @param encoding the well-known encoding (name) corresponding to
+     * <tt>rtpPayloadType</tt> (in contrast to the JMF-specific encoding
+     * specified by <tt>jmfEncoding</tt>)
+     * @param mediaType the <tt>MediaType</tt> of the <tt>MediaFormat</tt>s to
+     * be associated with <tt>rtpPayloadType</tt>
+     * @param jmfEncoding the JMF encoding of the <tt>MediaFormat</tt>s to be
+     * associated with <tt>rtpPayloadType</tt>
+     * @param formatParameters the set of format-specific parameters of the
+     * <tt>MediaFormat</tt>s to be associated with <tt>rtpPayloadType</tt>
+     * @param advancedAttributes the set of advanced attributes of the
+     * <tt>MediaFormat</tt>s to be associated with <tt>rtpPayload</tt>
+     * @param clockRates the optional list of clock rates of the
+     * <tt>MediaFormat</tt>s to be associated with <tt>rtpPayloadType</tt>
+     */
+    private static void addMediaFormats(
+            byte rtpPayloadType,
+            String encoding,
+            MediaType mediaType,
+            String jmfEncoding,
+            Map<String, String> formatParameters,
+            Map<String, String> advancedAttributes,
+            double... clockRates)
+    {
+        addMediaFormats(
+                rtpPayloadType,
+                encoding,
+                mediaType,
+                jmfEncoding,
+                1 /* channel */,
+                formatParameters,
+                advancedAttributes,
+                clockRates);
+    }
+
+    /**
      * Creates value of an imgattr.
      *
      * http://tools.ietf.org/html/draft-ietf-mmusic-image-attributes-04
@@ -643,9 +643,7 @@ public class MediaUtils
         /* receive size */
         if(maxRecvSize != null)
         {
-            /* basically we can receive any size up to our
-             * screen display size
-             */
+            // basically we can receive any size up to our screen display size
 
             /* recv [x=[min-max],y=[min-max]] */
             img.append(" recv [x=[0-");
@@ -772,7 +770,8 @@ public class MediaUtils
     public static MediaFormat[] getMediaFormats(byte rtpPayloadType)
     {
         MediaFormat[] mediaFormats
-            = rtpPayloadTypeStrToMediaFormats.get(Byte.toString(rtpPayloadType));
+            = rtpPayloadTypeStrToMediaFormats.get(
+                    Byte.toString(rtpPayloadType));
 
         return
             (mediaFormats == null)
@@ -910,7 +909,6 @@ public class MediaUtils
         else
             return MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN;
     }
-
 
     /**
      * Gets the well-known encoding (name) as defined in RFC 3551 "RTP Profile

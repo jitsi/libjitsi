@@ -27,6 +27,11 @@ public class JavaEncoder
     implements FormatParametersAwareCodec
 {
     /**
+     * The duration an output <tt>Buffer</tt> produced by this <tt>Codec</tt>.
+     */
+    private int duration = 0;
+
+    /**
      * The <tt>ilbc_encoder</tt> adapted to <tt>Codec</tt> by this instance.
      */
     private ilbc_encoder enc = null;
@@ -34,29 +39,23 @@ public class JavaEncoder
     /**
      * The input length in bytes with which {@link #enc} has been initialized.
      */
-    private int inputLength;
+    private int inLen;
 
     /**
      * The output length in bytes with which {@link #enc} has been initialized.
      */
-    private int outputLength;
+    private int outLen;
 
     /**
      * The input from previous calls to {@link #doProcess(Buffer, Buffer)} which
      * has not been consumed yet.
      */
-    private byte[] prevInput;
+    private byte[] prevIn;
 
     /**
-     * The number of bytes in {@link #prevInput} which have not been consumed
-     * yet.
+     * The number of bytes in {@link #prevIn} which have not been consumed yet.
      */
-    private int prevInputLength;
-
-    /**
-     * The duration an output <tt>Buffer</tt> produced by this <tt>Codec</tt>.
-     */
-    private int duration = 0;
+    private int prevInLen;
 
     /**
      * Initializes a new iLBC <tt>JavaEncoder</tt> instance.
@@ -107,10 +106,10 @@ public class JavaEncoder
     protected void doClose()
     {
         enc = null;
-        outputLength = 0;
-        inputLength = 0;
-        prevInput = null;
-        prevInputLength = 0;
+        outLen = 0;
+        inLen = 0;
+        prevIn = null;
+        prevInLen = 0;
         duration = 0;
     }
 
@@ -122,9 +121,126 @@ public class JavaEncoder
     @Override
     protected void doOpen()
     {
-        // if not already initialised, use the constant for default value (30)
+        // if not already initialised, use the default value (30).
         if(enc == null)
             initEncoder(Constants.ILBC_MODE);
+    }
+
+    /**
+     * Implements {@link AbstractCodec2#doProcess(Buffer, Buffer)}.
+     *
+     * @param inBuffer the input buffer
+     * @param outBuffer the output buffer
+     * @return the status of the processing, whether buffer is consumed/filled..
+     * @see AbstractCodec2#doProcess(Buffer, Buffer)
+     */
+    @Override
+    protected int doProcess(Buffer inBuffer, Buffer outBuffer)
+    {
+        int inLen = inBuffer.getLength();
+        byte[] in = (byte[]) inBuffer.getData();
+        int inOff = inBuffer.getOffset();
+
+        if ((prevInLen != 0) || (inLen < this.inLen))
+        {
+            int bytesToCopy = this.inLen - prevInLen;
+
+            if (bytesToCopy > inLen)
+                bytesToCopy = inLen;
+            System.arraycopy(in, inOff, prevIn, prevInLen, bytesToCopy);
+            prevInLen += bytesToCopy;
+
+            inBuffer.setLength(inLen - bytesToCopy);
+            inBuffer.setOffset(inOff + bytesToCopy);
+
+            inLen = prevInLen;
+            in = prevIn;
+            inOff = 0;
+        }
+        else
+        {
+            inBuffer.setLength(inLen - this.inLen);
+            inBuffer.setOffset(inOff + this.inLen);
+        }
+
+        int ret;
+
+        if (inLen >= this.inLen)
+        {
+            /*
+             * If we are about to encode from prevInput, we already have
+             * prevInputLength taken into consideration by using prevInput in
+             * the first place and we have to make sure that we will not use the
+             * same prevInput more than once.
+             */
+            prevInLen = 0;
+
+            int outOff = 0;
+            byte[] out
+                = validateByteArraySize(outBuffer, outOff + outLen, true);
+
+            enc.encode(out, outOff, in, inOff);
+
+            updateOutput(outBuffer, getOutputFormat(), outLen, outOff);
+            outBuffer.setDuration(duration);
+            ret = BUFFER_PROCESSED_OK;
+        }
+        else
+        {
+            ret = OUTPUT_BUFFER_NOT_FILLED;
+        }
+
+        if (inBuffer.getLength() > 0)
+            ret |= INPUT_BUFFER_NOT_CONSUMED;
+        return ret;
+    }
+
+    /**
+     * Implements {@link javax.media.Control#getControlComponent()}.
+     */
+    @Override
+    public Component getControlComponent()
+    {
+        return null;
+    }
+
+    /**
+     * Get the output format.
+     *
+     * @return output format
+     * @see net.sf.fmj.media.AbstractCodec#getOutputFormat()
+     */
+    @Override
+    @SuppressWarnings("serial")
+    public Format getOutputFormat()
+    {
+        Format f = super.getOutputFormat();
+
+        if ((f != null) && (f.getClass() == AudioFormat.class))
+        {
+            AudioFormat af = (AudioFormat) f;
+
+            f
+                = setOutputFormat(
+                        new AudioFormat(
+                                    af.getEncoding(),
+                                    af.getSampleRate(),
+                                    af.getSampleSizeInBits(),
+                                    af.getChannels(),
+                                    af.getEndian(),
+                                    af.getSigned(),
+                                    af.getFrameSizeInBits(),
+                                    af.getFrameRate(),
+                                    af.getDataType())
+                                {
+                                    @Override
+                                    public long computeDuration(long length)
+                                    {
+                                        return JavaEncoder.this.duration;
+                                    }
+                                });
+        }
+        return f;
     }
 
     /**
@@ -137,135 +253,20 @@ public class JavaEncoder
 
         switch (mode)
         {
-            case 20:
-                outputLength = ilbc_constants.NO_OF_BYTES_20MS;
-                break;
-            case 30:
-                outputLength = ilbc_constants.NO_OF_BYTES_30MS;
-                break;
-            default:
-                throw new IllegalStateException("mode");
+        case 20:
+            outLen = ilbc_constants.NO_OF_BYTES_20MS;
+            break;
+        case 30:
+            outLen = ilbc_constants.NO_OF_BYTES_30MS;
+            break;
+        default:
+            throw new IllegalStateException("mode");
         }
         /* mode is 20 or 30 ms, duration must be in nanoseconds */
         duration = mode * 1000000;
-        inputLength = enc.ULP_inst.blockl * 2;
-        prevInput = new byte[inputLength];
-        prevInputLength = 0;
-    }
-
-    /**
-     * Get the output format.
-     *
-     * @return output format
-     * @see net.sf.fmj.media.AbstractCodec#getOutputFormat()
-     */
-    @Override
-    public Format getOutputFormat()
-    {
-        Format outputFormat = super.getOutputFormat();
-
-        if ((outputFormat != null)
-                && (outputFormat.getClass() == AudioFormat.class))
-        {
-            AudioFormat outputAudioFormat = (AudioFormat) outputFormat;
-
-            outputFormat = setOutputFormat(
-                new AudioFormat(
-                            outputAudioFormat.getEncoding(),
-                            outputAudioFormat.getSampleRate(),
-                            outputAudioFormat.getSampleSizeInBits(),
-                            outputAudioFormat.getChannels(),
-                            outputAudioFormat.getEndian(),
-                            outputAudioFormat.getSigned(),
-                            outputAudioFormat.getFrameSizeInBits(),
-                            outputAudioFormat.getFrameRate(),
-                            outputAudioFormat.getDataType())
-                        {
-                            private static final long serialVersionUID = 0L;
-
-                            @Override
-                            public long computeDuration(long length)
-                            {
-                                return JavaEncoder.this.duration;
-                            }
-                        });
-        }
-        return outputFormat;
-    }
-
-    /**
-     * Implements {@link AbstractCodec2#doProcess(Buffer, Buffer)}.
-     *
-     * @param inputBuffer the input buffer
-     * @param outputBuffer the output buffer
-     * @return the status of the processing, whether buffer is consumed/filled..
-     * @see AbstractCodec2#doProcess(Buffer, Buffer)
-     */
-    @Override
-    protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
-    {
-        int inputLength = inputBuffer.getLength();
-        byte[] input = (byte[]) inputBuffer.getData();
-        int inputOffset = inputBuffer.getOffset();
-
-        if ((prevInputLength != 0) || (inputLength < this.inputLength))
-        {
-            int bytesToCopy = this.inputLength - prevInputLength;
-
-            if (bytesToCopy > inputLength)
-                bytesToCopy = inputLength;
-            System.arraycopy(
-                    input, inputOffset,
-                    prevInput, prevInputLength,
-                    bytesToCopy);
-            prevInputLength += bytesToCopy;
-
-            inputBuffer.setLength(inputLength - bytesToCopy);
-            inputBuffer.setOffset(inputOffset + bytesToCopy);
-
-            inputLength = prevInputLength;
-            input = prevInput;
-            inputOffset = 0;
-        }
-        else
-        {
-            inputBuffer.setLength(inputLength - this.inputLength);
-            inputBuffer.setOffset(inputOffset + this.inputLength);
-        }
-
-        int ret;
-
-        if (inputLength >= this.inputLength)
-        {
-            /*
-             * If we are about to encode from prevInput, we already have
-             * prevInputLength taken into consideration by using prevInput in
-             * the first place and we have to make sure that we will not use the
-             * same prevInput more than once.
-             */
-            prevInputLength = 0;
-
-            int outputOffset = 0;
-            byte[] output
-                = validateByteArraySize(
-                        outputBuffer,
-                        outputOffset + outputLength,
-                        true);
-
-            enc.encode(output, outputOffset, input, inputOffset);
-
-            updateOutput(
-                    outputBuffer,
-                    getOutputFormat(), outputLength, outputOffset);
-            outputBuffer.setDuration(duration);
-            ret = BUFFER_PROCESSED_OK;
-        }
-        else
-            ret = OUTPUT_BUFFER_NOT_FILLED;
-
-        if (inputBuffer.getLength() > 0)
-            ret |= INPUT_BUFFER_NOT_CONSUMED;
-        return ret;
+        inLen = enc.ULP_inst.blockl * 2;
+        prevIn = new byte[inLen];
+        prevInLen = 0;
     }
 
     /**
@@ -288,16 +289,9 @@ public class JavaEncoder
                 if(mode == 20 || mode == 30)
                     initEncoder(mode);
             }
-            catch(Throwable t){}
+            catch(Throwable t)
+            {
+            }
         }
-    }
-
-    /**
-     * Implements {@link javax.media.Control#getControlComponent()}.
-     */
-    @Override
-    public Component getControlComponent()
-    {
-        return null;
     }
 }

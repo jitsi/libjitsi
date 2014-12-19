@@ -332,10 +332,10 @@ public class FFmpeg
         int buf_size, long frame);
 
     /**
-     * Find a registered decoder with a matching ID.
+     * Finds a registered decoder with a matching ID.
      *
-     * @param id <tt>CodecID</tt> of the requested encoder
-     * @return an <tt>AVCodec</tt> encoder if one was found; <tt>0</tt>,
+     * @param id <tt>AVCodecID</tt> of the requested encoder
+     * @return an <tt>AVCodec</tt> decoder if one was found; <tt>0</tt>,
      * otherwise
      */
     public static native long avcodec_find_decoder(int id);
@@ -343,7 +343,7 @@ public class FFmpeg
     /**
      * Finds a registered encoder with a matching codec ID.
      *
-     * @param id <tt>CodecID</tt> of the requested encoder
+     * @param id <tt>AVCodecID</tt> of the requested encoder
      * @return an <tt>AVCodec</tt> encoder if one was found; <tt>0</tt>,
      * otherwise
      */
