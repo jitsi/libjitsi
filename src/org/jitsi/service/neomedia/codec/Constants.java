@@ -82,6 +82,11 @@ public class Constants
     public static final String ILBC_RTP = "ilbc/rtp";
 
     /**
+     * The OPUS constant.
+     */
+    public static final String OPUS = "opus";
+
+    /**
      * The OPUS/RTP constant.
      */
     public static final String OPUS_RTP = "opus/rtp";
