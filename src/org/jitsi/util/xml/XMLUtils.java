@@ -788,8 +788,49 @@ public class XMLUtils
     public static void disableExternalEntities(DocumentBuilderFactory factory)
         throws ParserConfigurationException
     {
-        factory.setFeature(FEATURE_EXTERNAL_GENERAL_ENTITIES, false);
-        factory.setFeature(FEATURE_EXTERNAL_PARAMETER_ENTITIES, false);
-        factory.setFeature(FEATURE_DISSALLOW_DOCTYPE, true);
+        // It seems that currently the android parsers do not support the below
+        // features, but also do not support external entities and thus are not
+        // vulnerable to the attacks which setting these features aims to
+        // prevent. In other words, it is (currently) safe to ignore the
+        // exceptions on android.
+
+        try
+        {
+            factory.setFeature(FEATURE_EXTERNAL_GENERAL_ENTITIES, false);
+        }
+        catch (ParserConfigurationException pce)
+        {
+            if (OSUtils.IS_ANDROID)
+                logger.warn("Failed to set feature: "
+                            + FEATURE_EXTERNAL_GENERAL_ENTITIES);
+            else
+                throw pce;
+        }
+
+        try
+        {
+            factory.setFeature(FEATURE_EXTERNAL_PARAMETER_ENTITIES, false);
+        }
+        catch (ParserConfigurationException pce)
+        {
+            if (OSUtils.IS_ANDROID)
+                logger.warn("Failed to set feature: "
+                                    + FEATURE_EXTERNAL_PARAMETER_ENTITIES);
+            else
+                throw pce;
+        }
+
+        try
+        {
+            factory.setFeature(FEATURE_DISSALLOW_DOCTYPE, true);
+        }
+        catch (ParserConfigurationException pce)
+        {
+            if (OSUtils.IS_ANDROID)
+                logger.warn("Failed to set feature: "
+                                    + FEATURE_DISSALLOW_DOCTYPE);
+            else
+                throw pce;
+        }
     }
 }
