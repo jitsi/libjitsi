@@ -10,6 +10,8 @@ import java.util.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
 
 /**
@@ -79,27 +81,53 @@ class FECReceiver
     /**
      * The number of media packets to keep.
      */
-    private static final int MEDIA_BUFF_SIZE = 16;
+    private static int MEDIA_BUFF_SIZE = 64;
 
     /**
      * The maximum number of ulpfec packets to keep.
      */
-    private static final int FEC_BUFF_SIZE = 4;
+    private static int FEC_BUFF_SIZE = 32;
 
     /**
-     * Output buffer maximum size.
+     * The name of the <tt>ConfigurationService</tt> property which specifies
+     * the value of {@link #MEDIA_BUFF_SIZE}.
      */
-//    private static int OUTPUT_BUFFER_MAX_SIZE = 4;
+    private static final String MEDIA_BUFF_SIZE_PNAME
+            = FECReceiver.class.getName() + ".MEDIA_BUFF_SIZE";
+
+    /**
+     * The name of the <tt>ConfigurationService</tt> property which specifies
+     * the value of {@link #FEC_BUFF_SIZE}.
+     */
+    private static final String FEC_BUFF_SIZE_PNAME
+            = FECReceiver.class.getName() + ".FEC_BUFF_SIZE";
+
+    static
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        if (cfg != null)
+        {
+            FEC_BUFF_SIZE = cfg.getInt(FEC_BUFF_SIZE_PNAME, FEC_BUFF_SIZE);
+            MEDIA_BUFF_SIZE = cfg.getInt(MEDIA_BUFF_SIZE_PNAME, MEDIA_BUFF_SIZE);
+        }
+    }
 
     /**
      * Buffer which keeps (copies of) received media packets.
      *
      * We keep them ordered by their RTP sequence numbers, so that
      * we can easily select the oldest one to discard when the buffer is
-     * full (when the map has more than <tt>MEDIA_BUFF_SIZE</tt> entries.
+     * full (when the map has more than <tt>MEDIA_BUFF_SIZE</tt> entries).
      *
      * We keep them in a <tt>Map</tt> so that we can easily search for a
      * packet with a specific sequence number.
+     *
+     * Note: This might turn out to be inefficient, especially with increased
+     * buffer sizes. In the vast majority of cases (e.g. on every received
+     * packet) we do an insert at one end and a delete from the other -- this
+     * can be optimized. We very rarely (when we receive a packet out of order)
+     * need to insert at an arbitrary location.
      */
     private final SortedMap<Integer, RawPacket> mediaPackets
         = new TreeMap<Integer, RawPacket>(seqNumComparator);
@@ -113,6 +141,12 @@ class FECReceiver
      *
      * We keep them in a <tt>Map</tt> so that we can easily search for a
      * packet with a specific sequence number.
+     *
+     * Note: This might turn out to be inefficient, especially with increased
+     * buffer sizes. In the vast majority of cases (e.g. on every received
+     * packet) we do an insert at one end and a delete from the other -- this
+     * can be optimized. We very rarely (when we receive a packet out of order)
+     * need to insert at an arbitrary location.
      */
     private final SortedMap<Integer,RawPacket> fecPackets
         = new TreeMap<Integer, RawPacket>(seqNumComparator);
