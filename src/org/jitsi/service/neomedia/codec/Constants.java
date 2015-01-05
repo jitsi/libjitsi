@@ -87,6 +87,11 @@ public class Constants
     public static final String OPUS_RTP = "opus/rtp";
 
     /**
+     * The OPUS constant.
+     */
+    public static final String OPUS = "opus";
+
+    /**
      * The name of the property used to control the Opus encoder
      * "audio bandwidth" setting
      */

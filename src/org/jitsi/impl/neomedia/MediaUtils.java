@@ -184,7 +184,7 @@ public class MediaUtils
             silkFormatParams.put("useinbandfec", "1");
         addMediaFormats(
                 MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
-                "SILK",
+                Constants.SILK,
                 MediaType.AUDIO,
                 Constants.SILK_RTP,
                 silkFormatParams,
@@ -201,7 +201,7 @@ public class MediaUtils
         //opusFormatParams.put("minptime", "10");
         addMediaFormats(
             MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
-            "opus",
+            Constants.OPUS,
             MediaType.AUDIO,
             Constants.OPUS_RTP,
             2,
@@ -361,7 +361,6 @@ public class MediaUtils
         {
             AudioMediaFormatImpl audioMediaFormat
                 = (AudioMediaFormatImpl) mediaFormat;
-            String encoding = audioMediaFormat.getEncoding();
             int channels = audioMediaFormat.getChannels();
             double sampleRate = audioMediaFormat.getClockRate();
             int sampleSizeInBits
@@ -369,9 +368,8 @@ public class MediaUtils
 
             // The opus/rtp format has 2 channels, but we don't want it to
             // trigger use of stereo elsewhere.
-            if (Constants.OPUS.equalsIgnoreCase(encoding))
+            if (Constants.OPUS.equalsIgnoreCase(audioMediaFormat.getEncoding()))
                 channels = 1;
-
             if (maxAudioChannels < channels)
                 maxAudioChannels = channels;
             if (maxAudioSampleRate < sampleRate)
