@@ -90,8 +90,9 @@ public class Constants
      * The OPUS constant.
      */
     public static final String OPUS = "opus";
-
     public static final String PCMU = "PCMU";
+    public static final String G723 = "G723";
+    public static final String PCMA = "PCMA";
 
     /**
      * The name of the property used to control the Opus encoder

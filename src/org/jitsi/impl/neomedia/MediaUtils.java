@@ -100,7 +100,7 @@ public class MediaUtils
             g723FormatParams.put("bitrate", "6.3");
             addMediaFormats(
                     (byte) SdpConstants.G723,
-                    "G723",
+                    Constants.G723,
                     MediaType.AUDIO,
                     AudioFormat.G723_RTP,
                     g723FormatParams,
@@ -116,7 +116,7 @@ public class MediaUtils
             8000);
         addMediaFormats(
             (byte) SdpConstants.PCMA,
-            "PCMA",
+            Constants.PCMA,
             MediaType.AUDIO,
             Constants.ALAW_RTP,
             8000);

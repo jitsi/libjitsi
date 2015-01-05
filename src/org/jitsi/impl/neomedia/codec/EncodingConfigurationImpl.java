@@ -77,21 +77,21 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
             800);
 
         // audio
-        setEncodingPreference("opus", 48000, 750);
-        setEncodingPreference("SILK", 24000, 714);
-        setEncodingPreference("SILK", 16000, 713);
-        setEncodingPreference("G722", 8000 /* actually, 16 kHz */, 705);
+        setEncodingPreference(Constants.OPUS, 48000, 750);
+        setEncodingPreference(Constants.SILK, 24000, 714);
+        setEncodingPreference(Constants.SILK, 16000, 713);
+        setEncodingPreference(Constants.G722, 8000 /* actually, 16 kHz */, 705);
         setEncodingPreference("speex", 32000, 701);
         setEncodingPreference("speex", 16000, 700);
         setEncodingPreference(Constants.PCMU, 8000, 650);
-        setEncodingPreference("PCMA", 8000, 600);
+        setEncodingPreference(Constants.PCMA, 8000, 600);
         setEncodingPreference("iLBC", 8000, 500);
         setEncodingPreference("GSM", 8000, 450);
         setEncodingPreference("speex", 8000, 352);
-        setEncodingPreference("G723", 8000, 150);
+        setEncodingPreference(Constants.G723, 8000, 150);
 
-        setEncodingPreference("SILK", 12000, 0);
-        setEncodingPreference("SILK", 8000, 0);
+        setEncodingPreference(Constants.SILK, 12000, 0);
+        setEncodingPreference(Constants.SILK, 8000, 0);
         setEncodingPreference("G729", 8000, 0 /* proprietary */);
 
         // enables by default telephone event(DTMF rfc4733), with lowest
