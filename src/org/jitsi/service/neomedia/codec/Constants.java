@@ -91,6 +91,8 @@ public class Constants
      */
     public static final String OPUS = "opus";
 
+    public static final String PCMU = "PCMU";
+
     /**
      * The name of the property used to control the Opus encoder
      * "audio bandwidth" setting

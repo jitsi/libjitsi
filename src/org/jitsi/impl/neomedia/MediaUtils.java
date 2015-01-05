@@ -83,7 +83,7 @@ public class MediaUtils
     {
         addMediaFormats(
             (byte) SdpConstants.PCMU,
-            "PCMU",
+            Constants.PCMU,
             MediaType.AUDIO,
             AudioFormat.ULAW_RTP,
             8000);

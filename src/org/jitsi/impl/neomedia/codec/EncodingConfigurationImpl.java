@@ -83,7 +83,7 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
         setEncodingPreference("G722", 8000 /* actually, 16 kHz */, 705);
         setEncodingPreference("speex", 32000, 701);
         setEncodingPreference("speex", 16000, 700);
-        setEncodingPreference("PCMU", 8000, 650);
+        setEncodingPreference(Constants.PCMU, 8000, 650);
         setEncodingPreference("PCMA", 8000, 600);
         setEncodingPreference("iLBC", 8000, 500);
         setEncodingPreference("GSM", 8000, 450);
