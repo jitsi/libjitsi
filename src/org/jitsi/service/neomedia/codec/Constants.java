@@ -93,6 +93,8 @@ public class Constants
     public static final String PCMU = "PCMU";
     public static final String G723 = "G723";
     public static final String PCMA = "PCMA";
+    public static final String H261 = "H261";
+    public static final String G729 = "G729";
 
     /**
      * The name of the property used to control the Opus encoder
