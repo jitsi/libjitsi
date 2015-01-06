@@ -20,7 +20,7 @@ export JAVA_HOME=/usr/lib/jvm/default-java/
 
 ### Build the libjitsi code with the libvpx-debian ant target
 ```
-ant libvpx -Dlibmkv=/path/to/libvpx/third_party/libmkv
+ant libvpx-debian -Dlibmkv=/path/to/libvpx/third_party/libmkv
 ```
 
 
