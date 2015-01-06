@@ -30,6 +30,14 @@ Ultimately, though, you can always use Jitsi’s source code as a reference to l
 
 You can also peruse the [javadocs](http://bluejimp.com/jitsi/libjitsi/javadoc/) `libjitsi’s` API.
 
+Links
+-----
+
+* [GSoC 2014, Part 1 : ice4j tutorial](http://blog.sharedmemory.fr/en/2014/06/22/gsoc-2014-ice4j-tutorial/)
+* [GSoC 2014, Part 2 : Libjitsi tutorial with ice4j](http://blog.sharedmemory.fr/en/2014/07/07/gsoc-2014-libjitsi-tutorial/)
+* [Java Bells: A Jingle implementation for Java based on LibJitsi, Ice4J and Smack](https://github.com/bejayoharen/java-bells)
+* [Video Conferencing Project in Java Source Code](http://matrixsust.blogspot.com/2013/07/video-conferencing-project-in-java.html)
+
 Mailing list
 ------------
 
