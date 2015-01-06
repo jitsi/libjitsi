@@ -5,3 +5,4 @@ libjitsi.jar
 dist
 *.class
 .settings/*
+junit-reports

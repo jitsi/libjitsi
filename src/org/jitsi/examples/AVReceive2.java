@@ -12,6 +12,7 @@ import java.util.*;
 
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.codec.Constants;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 
@@ -134,7 +135,7 @@ public class AVReceive2
             switch (device.getMediaType())
             {
             case AUDIO:
-                encoding = "PCMU";
+                encoding = Constants.PCMU;
                 clockRate = 8000;
                 /* PCMU has a static RTP payload type number assigned. */
                 dynamicRTPPayloadType = -1;
