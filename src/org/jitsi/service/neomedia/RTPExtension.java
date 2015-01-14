@@ -19,6 +19,22 @@ import java.net.*;
 public class RTPExtension
 {
     /**
+     * The URN identifying the RTP extension that allows mixers to send to
+     * conference participants the audio levels of all contributing sources.
+     * Defined in RFC6465.
+     */
+    public static final String CSRC_AUDIO_LEVEL_URN
+            = "urn:ietf:params:rtp-hdrext:csrc-audio-level";
+
+    /**
+     * The URN identifying the RTP extension that allows clients to send to
+     * conference mixers the audio level of their packet payload. Defined in
+     * RFC6464.
+     */
+    public static final String SSRC_AUDIO_LEVEL_URN
+            = "urn:ietf:params:rtp-hdrext:ssrc-audio-level";
+
+    /**
      * The direction that this extension will be transmitted in.
      */
     private MediaDirection direction = MediaDirection.SENDRECV;
@@ -32,20 +48,6 @@ public class RTPExtension
      * Extension specific attributes.
      */
     private String extensionAttributes = null;
-
-    /**
-     * The URN identifying the RTP extension that allows mixers to send to
-     * conference participants the audio levels of all contributing sources.
-     */
-    public static final String CSRC_AUDIO_LEVEL_URN
-        = "urn:ietf:params:rtp-hdrext:csrc-audio-level";
-
-    /**
-     * The URN identifying the RTP extension that allows clients to send to
-     * conference mixers the audio level of their packet payload.
-     */
-    public static final String SSRC_AUDIO_LEVEL_URN
-        = "urn:ietf:params:rtp-hdrext:ssrc-audio-level";
 
     /**
      * Creates an <tt>RTPExtension</tt> instance for the specified
