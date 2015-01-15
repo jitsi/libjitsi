@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia.transform.pt;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 
@@ -53,7 +54,9 @@ public class PayloadTypeTransformEngine
      */
     public RawPacket transform(RawPacket pkt)
     {
-        if(mappingOverridesCopy == null || mappingOverridesCopy.isEmpty())
+        if (mappingOverridesCopy == null
+                || mappingOverridesCopy.isEmpty()
+                || pkt.getVersion() != RTPHeader.VERSION)
             return pkt;
 
         Byte newPT = mappingOverridesCopy.get(pkt.getPayloadType());

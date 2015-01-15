@@ -8,6 +8,7 @@ package org.jitsi.impl.neomedia.transform.csrc;
 
 import java.util.*;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
@@ -268,10 +269,8 @@ public class CsrcTransformEngine
     @Override
     public synchronized RawPacket transform(RawPacket pkt)
     {
-        // if somebody has modified the packet and added an extension
-        // don't process it. As ZRTP creates special RTP packets carrying no
-        // RTP data and those packets are used only by ZRTP we don't use them.
-        if(pkt.getExtensionBit())
+        // Only transform RTP packets (and not ZRTP/DTLS, etc)
+        if (pkt == null || pkt.getVersion() != RTPHeader.VERSION)
             return pkt;
 
         long[] csrcList = mediaStream.getLocalContributingSourceIDs();

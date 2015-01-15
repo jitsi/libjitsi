@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 
 /**
@@ -38,6 +39,8 @@ public class AbsSendTimeEngine
     public RawPacket transform(RawPacket pkt)
     {
         if (extensionID != -1
+              && pkt != null
+              && pkt.getVersion() == RTPHeader.VERSION
               && pkt.getExtensionBit())
         {
             replaceAbsSendTime(pkt);

@@ -10,6 +10,7 @@ import java.util.*;
 
 import javax.media.*;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
@@ -272,7 +273,9 @@ public class DtmfTransformEngine
      */
     public RawPacket transform(RawPacket pkt)
     {
-        if(currentTone.isEmpty())
+        if (currentTone.isEmpty()
+                || pkt == null
+                || pkt.getVersion() != RTPHeader.VERSION)
         {
             return pkt;
         }

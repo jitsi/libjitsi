@@ -88,10 +88,10 @@ public class RawPacket
     }
 
     /**
-     * Adds the <tt>extBuff</tt> buffer to as an extension of this packet
+     * Adds the <tt>extBuff</tt> buffer as an extension of this packet
      * according the rules specified in RFC 5285. Note that this method does
      * not replace extensions so if you add the same buffer twice it would be
-     * added as to separate extensions.
+     * added as a separate extension.
      *
      * @param extBuff the buffer that we'd like to add as an extension in this
      * packet.
@@ -578,6 +578,15 @@ public class RawPacket
     public int getOffset()
     {
         return this.offset;
+    }
+
+    /**
+     * Gets the value of the "version" field of an RTP packet.
+     * @return the value of the RTP "version" field.
+     */
+    public int getVersion()
+    {
+        return (buffer[offset] & 0xC0) >> 6;
     }
 
     /**

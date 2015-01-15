@@ -108,11 +108,14 @@ public class DtmfRawPacket
                 " Marker = " + marker + " End = " + end);
         }
 
-        // Set the payload type and the marker
+        // Set the marker
         setMarker(marker);
 
         // set the Timestamp
         setTimestamp(timestamp);
+
+        // Clear any RTP header extensions
+        removeExtension();
 
          // Create the RTP data
         setDtmfPayload(code, end, duration, volume);

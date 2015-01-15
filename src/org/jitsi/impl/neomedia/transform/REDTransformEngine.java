@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.util.*;
 
@@ -145,9 +146,7 @@ public class REDTransformEngine
 
         for (RawPacket pkt : pkts)
         {
-            // we don't touch packets with PT=0, because they might be ZRTP
-            // packets. Do we need any other filters -- PT, SSRC?
-            if (pkt != null && pkt.getPayloadType() != 0)
+            if (pkt != null && pkt.getVersion() == RTPHeader.VERSION)
             {
                 byte[] buf = pkt.getBuffer();
                 int len = pkt.getLength();

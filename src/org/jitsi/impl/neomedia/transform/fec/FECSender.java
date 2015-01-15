@@ -6,6 +6,7 @@
  */
 package org.jitsi.impl.neomedia.transform.fec;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.util.Logger;
@@ -90,7 +91,7 @@ class FECSender
         RawPacket pkt = null;
         for (RawPacket p : pkts)
         {
-            if (p != null && p.getPayloadType() != 0) //might be ZRTP
+            if (p != null && p.getVersion() == RTPHeader.VERSION)
             {
                 pkt = p;
                 break;

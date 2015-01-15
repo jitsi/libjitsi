@@ -539,7 +539,7 @@ class FECReceiver
             }
 
             // set the version to 2
-            recoveredBuf[0] &= 0x3f; //set version to 2
+            recoveredBuf[0] &= 0x3f;
             recoveredBuf[0] |= 0x80;
             // the RTP header is now set, except for SSRC and seq. which are not
             // recoverable in this way and will be set later
