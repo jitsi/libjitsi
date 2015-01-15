@@ -427,6 +427,7 @@ public class JNIEncoder
             outBuffer.setFormat(getOutputFormat());
             outBuffer.setLength(outLength);
             outBuffer.setOffset(0);
+            outBuffer.setHeaderExtension(inBuffer.getHeaderExtension());
         }
 
         if (inLength < 1)
