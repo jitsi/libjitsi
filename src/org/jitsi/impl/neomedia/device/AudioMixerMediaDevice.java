@@ -428,18 +428,21 @@ public class AudioMixerMediaDevice
     {
         if (rtpExtensions == null)
         {
-            rtpExtensions = new ArrayList<RTPExtension>(1);
+            rtpExtensions = new ArrayList<RTPExtension>(2);
 
             URI csrcAudioLevelURN;
+            URI ssrcAudioLevelURN;
             try
             {
                 csrcAudioLevelURN = new URI(RTPExtension.CSRC_AUDIO_LEVEL_URN);
+                ssrcAudioLevelURN = new URI(RTPExtension.SSRC_AUDIO_LEVEL_URN);
             }
             catch (URISyntaxException e)
             {
                 // can't happen since CSRC_AUDIO_LEVEL_URN is a valid URI and
                 // never changes.
                 csrcAudioLevelURN = null;
+                ssrcAudioLevelURN = null;
                 if (logger.isInfoEnabled())
                     logger.info("Aha! Someone messed with the source!", e);
             }
@@ -449,6 +452,13 @@ public class AudioMixerMediaDevice
                 rtpExtensions.add(
                         new RTPExtension(
                                 csrcAudioLevelURN,
+                                MediaDirection.SENDRECV));
+            }
+            if (ssrcAudioLevelURN != null)
+            {
+                rtpExtensions.add(
+                        new RTPExtension(
+                                ssrcAudioLevelURN,
                                 MediaDirection.SENDRECV));
             }
         }

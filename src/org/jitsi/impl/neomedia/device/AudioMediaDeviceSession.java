@@ -22,6 +22,7 @@ import org.jitsi.util.*;
  * @author Emil Ivov
  * @author Damian Minkov
  * @author Lyubomir Marinov
+ * @author Boris Grozev
  */
 public class AudioMediaDeviceSession
     extends MediaDeviceSession
@@ -39,6 +40,12 @@ public class AudioMediaDeviceSession
      */
     private final AudioLevelEffect localUserAudioLevelEffect
         = new AudioLevelEffect();
+
+    /**
+     * The <tt>Effect</tt> that we will register with our output data source
+     * in order to measure the outgoing audio levels.
+     */
+    private AudioLevelEffect2 outputAudioLevelEffect = null;
 
     /**
      * The <tt>VolumeControl</tt> which is to control the volume (level) of the
@@ -328,6 +335,70 @@ public class AudioMediaDeviceSession
                 = (AbstractAudioRenderer<?>) renderer;
 
             abstractAudioRenderer.setVolumeControl(volumeControl);
+        }
+    }
+
+    /**
+     * Performs additional configuration on the <tt>Processor</tt>, after it is
+     * <tt>configure</tt>d, but before it is <tt>realize</tt>d. Adds the
+     * <tt>AudioLevelEffect2</tt> instance to the codec chain, if necessary, in
+     * order to enabled audio level measurements.
+     *
+     * {@inheritDoc}
+     */
+    @Override
+    protected Processor createProcessor()
+    {
+        Processor processor = super.createProcessor();
+        if (processor != null)
+        {
+            if (outputAudioLevelEffect != null)
+            {
+                for (TrackControl track : processor.getTrackControls())
+                {
+                    try
+                    {
+                        track.setCodecChain(
+                                new Codec[]{ outputAudioLevelEffect });
+                    }
+                    catch (UnsupportedPlugInException upie)
+                    {
+                        logger.warn("Failed to insert the audio level Effect. "
+                                  + "Output levels will not be included. "
+                                  + upie);
+                    }
+                }
+            }
+        }
+
+        return processor;
+    }
+
+    /**
+     * Enables or disables measuring audio levels for the output
+     * <tt>DataSource</tt> of this <tt>AudioMediaDeviceSession</tt>.
+     *
+     * Note that if audio levels are to be enabled, this method needs to be
+     * called (with <tt>enabled</tt> set to <tt>true</tt>) before the output
+     * <tt>DataSource</tt>, or the <tt>Processor</tt> are accessed (via
+     * {@link #getOutputDataSource()} and {@link #getProcessor()}).
+     * This limitation allows to not insert an <tt>Effect</tt> in the codec
+     * chain when measuring audio levels is not required (since we can only do
+     * this before the <tt>Processor</tt> is realized).
+     *
+     * @param enabled whether to enable or disable output audio levels.
+     */
+    public void enableOutputSSRCAudioLevels(boolean enabled, byte extensionID)
+    {
+        if (enabled && outputAudioLevelEffect == null)
+        {
+            outputAudioLevelEffect = new AudioLevelEffect2();
+        }
+
+        if (outputAudioLevelEffect != null)
+        {
+            outputAudioLevelEffect.setEnabled(enabled);
+            outputAudioLevelEffect.setRtpHeaderExtensionId(extensionID);
         }
     }
 }

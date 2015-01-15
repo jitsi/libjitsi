@@ -10,19 +10,26 @@ import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.control.*;
-import org.jitsi.service.neomedia.event.*;
 
 /**
- * An effect that would pass data to the <tt>AudioLevelEventDispatcher</tt>
- * so that it would calculate levels and dispatch changes to interested parties.
+ * An {@link javax.media.Effect} implementation which calculates audio levels
+ * based on the samples in the <tt>Buffer</tt> and includes them in the
+ * buffer's <tt>headerExtension</tt> field in the SSRC audio level format
+ * specified in RFC6464.
  *
+ * The class is based on
+ * {@link org.jitsi.impl.neomedia.audiolevel.AudioLevelEffect}, but an important
+ * difference is that the actual calculation is performed in the same thread
+ * that calls {@link #process(javax.media.Buffer, javax.media.Buffer)}.
+ *
+ * @author Boris Grozev
  * @author Damian Minkov
  * @author Emil Ivov
  * @author Lyubomir Marinov
  */
-public class AudioLevelEffect
-    extends ControlsAdapter
-    implements Effect
+public class AudioLevelEffect2
+        extends ControlsAdapter
+        implements Effect
 {
     /**
      * The indicator which determines whether <tt>AudioLevelEffect</tt>
@@ -33,37 +40,31 @@ public class AudioLevelEffect
     private static final boolean COPY_DATA_FROM_INPUT_TO_OUTPUT = true;
 
     /**
-     * The <tt>SimpleAudioLevelListener</tt> which this instance associates with
-     * its {@link #eventDispatcher}.
-     */
-    private SimpleAudioLevelListener audioLevelListener = null;
-
-    /**
-     * The dispatcher of the events which handles the calculation and the event
-     * firing in different thread in order to now slow down the JMF codec chain.
-     */
-    private final AudioLevelEventDispatcher eventDispatcher
-        = new AudioLevelEventDispatcher("AudioLevelEffect Dispatcher");
-
-    /**
-     * The indicator which determines whether {@link #open()} has been called on
-     * this instance without an intervening {@link #close()}.
-     */
-    private boolean open = false;
-
-    /**
      * The supported audio formats by this effect.
      */
     private Format[] supportedAudioFormats;
 
     /**
-     * The minimum and maximum values of the scale
+     * Whether this effect is enabled or disabled. If disabled, this
+     * <tt>Effect</tt> will set the RTP header extension of the output buffer
+     * to <tt>null</tt>.
      */
-    public AudioLevelEffect()
+    private boolean enabled = false;
+
+    /**
+     * The ID of the RTP header extension for SSRC audio levels, which is to be
+     * added by this <tt>Effect</tt>.
+     */
+    private byte rtpHeaderExtensionId = -1;
+
+    /**
+     * Initializes a new <tt>AudioLevelEffect2</tt>.
+     */
+    public AudioLevelEffect2()
     {
         supportedAudioFormats
-            = new Format[]
-                    {
+                = new Format[]
+                {
                         new AudioFormat(
                                 AudioFormat.LINEAR,
                                 Format.NOT_SPECIFIED,
@@ -74,41 +75,7 @@ public class AudioLevelEffect
                                 16,
                                 Format.NOT_SPECIFIED,
                                 Format.byteArray)
-                    };
-    }
-
-    /**
-     * Sets (or unsets if <tt>listener</tt> is <tt>null</tt>), the listener that
-     * is going to be notified of audio level changes detected by this effect.
-     * Given the semantics of the {@link AudioLevelEventDispatcher} this effect
-     * would do no real work if no listener is set or if it is set to
-     * <tt>null</tt>.
-     *
-     * @param listener the <tt>SimpleAudioLevelListener</tt> that we'd like to
-     * receive level changes or <tt>null</tt> if we'd like level measurements
-     * to stop.
-     */
-    public void setAudioLevelListener(SimpleAudioLevelListener listener)
-    {
-        synchronized (eventDispatcher)
-        {
-            audioLevelListener = listener;
-            if (open)
-                eventDispatcher.setAudioLevelListener(audioLevelListener);
-        }
-    }
-
-    /**
-     * Returns the audio level listener.
-     *
-     * @return the audio level listener or <tt>null</tt> if it does not exist.
-     */
-    public SimpleAudioLevelListener getAudioLevelListener()
-    {
-        synchronized (eventDispatcher)
-        {
-            return audioLevelListener;
-        }
+                };
     }
 
     /**
@@ -131,19 +98,19 @@ public class AudioLevelEffect
     public Format[] getSupportedOutputFormats(Format input)
     {
         return
-            new Format[]
-                    {
-                        new AudioFormat(
-                                AudioFormat.LINEAR,
-                                ((AudioFormat)input).getSampleRate(),
-                                16,
-                                1,
-                                AudioFormat.LITTLE_ENDIAN,
-                                AudioFormat.SIGNED,
-                                16,
-                                Format.NOT_SPECIFIED,
-                                Format.byteArray)
-                    };
+                new Format[]
+                        {
+                                new AudioFormat(
+                                        AudioFormat.LINEAR,
+                                        ((AudioFormat)input).getSampleRate(),
+                                        16,
+                                        1,
+                                        AudioFormat.LITTLE_ENDIAN,
+                                        AudioFormat.SIGNED,
+                                        16,
+                                        Format.NOT_SPECIFIED,
+                                        Format.byteArray)
+                        };
     }
 
     /**
@@ -180,10 +147,6 @@ public class AudioLevelEffect
      */
     public int process(Buffer inputBuffer, Buffer outputBuffer)
     {
-        /*
-         * In accord with what an Effect is generally supposed to do, copy the
-         * data from the inputBuffer into outputBuffer.
-         */
         if (COPY_DATA_FROM_INPUT_TO_OUTPUT)
         {
             // Copy the actual data from the input to the output.
@@ -205,9 +168,9 @@ public class AudioLevelEffect
             outputBuffer.setOffset(0);
 
             System.arraycopy(
-                inputBuffer.getData(), inputBuffer.getOffset(),
-                bufferData, 0,
-                inputBufferLength);
+                    inputBuffer.getData(), inputBuffer.getOffset(),
+                    bufferData, 0,
+                    inputBufferLength);
 
             // Now copy the remaining attributes.
             outputBuffer.setFormat(inputBuffer.getFormat());
@@ -225,12 +188,36 @@ public class AudioLevelEffect
             outputBuffer.copy(inputBuffer);
         }
 
-        /*
-         * At long last, do the job which this AudioLevelEffect exists for i.e.
-         * deliver the data to eventDispatcher so that its audio level gets
-         * calculated and delivered to audioEventListener.
-         */
-        eventDispatcher.addData(outputBuffer);
+        Object data = outputBuffer.getData();
+        Buffer.RTPHeaderExtension ext = outputBuffer.getHeaderExtension();
+
+        if (enabled && rtpHeaderExtensionId != -1 && data instanceof byte[])
+        {
+            byte level
+                = AudioLevelCalculator.calculateAudioLevel(
+                    (byte[]) data,
+                    outputBuffer.getOffset(),
+                    outputBuffer.getLength());
+
+            if (ext == null)
+            {
+                ext = new Buffer.RTPHeaderExtension(rtpHeaderExtensionId,
+                                                    new byte[1]);
+            }
+
+            ext.id = rtpHeaderExtensionId;
+            if (ext.value == null || ext.value.length < 1)
+                ext.value = new byte[1];
+            ext.value[0] = level;
+
+            outputBuffer.setHeaderExtension(ext);
+        }
+        else
+        {
+            // Make sure that the output buffer doesn't retain the extension
+            // from a previous payload.
+            outputBuffer.setHeaderExtension(null);
+        }
 
         return BUFFER_PROCESSED_OK;
     }
@@ -243,47 +230,55 @@ public class AudioLevelEffect
      */
     public String getName()
     {
-        return "Audio Level Effect";
+        return "Audio Level Effect2";
     }
 
     /**
-     * Opens this effect.
-     *
-     * @throws ResourceUnavailableException If all of the required resources
-     * cannot be acquired.
+     * {@inheritDoc}
      */
+    @Override
     public void open()
-        throws ResourceUnavailableException
     {
-        synchronized (eventDispatcher)
-        {
-            if (!open)
-            {
-                open = true;
-                eventDispatcher.setAudioLevelListener(audioLevelListener);
-            }
-        }
     }
 
     /**
-     * Closes this effect.
+     * {@inheritDoc}
      */
+    @Override
     public void close()
     {
-        synchronized (eventDispatcher)
-        {
-            if (open)
-            {
-                open = false;
-                eventDispatcher.setAudioLevelListener(null);
-            }
-        }
     }
 
     /**
-     * Resets its state.
+     * {@inheritDoc}
      */
+    @Override
     public void reset()
     {
     }
+    public boolean isEnabled()
+    {
+        return enabled;
+    }
+
+    /**
+     * Enables or disables this <tt>AudioLevelEffect2</tt> according to the
+     * value of <tt>enabled</tt>.
+     * @param enabled whether to enable or disabled this <tt>Effect</tt>.
+     */
+    public void setEnabled(boolean enabled)
+    {
+        this.enabled = enabled;
+    }
+
+    /**
+     * Sets the ID of the RTP header extension which will be added.
+     * @param rtpHeaderExtensionId the ID to set.
+     */
+    public void setRtpHeaderExtensionId(byte rtpHeaderExtensionId)
+    {
+        this.rtpHeaderExtensionId = rtpHeaderExtensionId;
+    }
+
 }
+

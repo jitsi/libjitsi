@@ -236,16 +236,24 @@ public class AudioMediaStreamImpl
                 ssrcEngine.setSsrcAudioLevelExtensionID(
                         (ssrcExtID == null) ? -1 : ssrcExtID.byteValue(),
                         ssrcDir);
+
+                if (ssrcDir.allowsSending())
+                {
+                    AudioMediaDeviceSession deviceSession = getDeviceSession();
+                    deviceSession.enableOutputSSRCAudioLevels(
+                            true,
+                            ssrcExtID == null ? -1 : ssrcExtID);
+                }
             }
         }
     }
 
     /**
-     * Delivers the <tt>audioLevels</tt> map to whoever's interested. This
+     * Delivers the <tt>audioLevels</tt> map to whoever is interested. This
      * method is meant for use primarily by the transform engine handling
      * incoming RTP packets (currently <tt>CsrcTransformEngine</tt>).
      *
-     * @param audioLevels a array mapping CSRC IDs to audio levels in
+     * @param audioLevels an array mapping CSRC IDs to audio levels in
      * consecutive elements.
      */
     public void audioLevelsReceived(long[] audioLevels)

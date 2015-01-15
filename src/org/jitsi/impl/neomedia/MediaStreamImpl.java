@@ -695,7 +695,7 @@ public class MediaStreamImpl
      * Creates new <tt>SendStream</tt> instances for the streams of
      * {@link #deviceSession} through {@link #rtpManager}.
      */
-    private void createSendStreams()
+    protected void createSendStreams()
     {
         StreamRTPManager rtpManager = getRTPManager();
         MediaDeviceSession deviceSession = getDeviceSession();
