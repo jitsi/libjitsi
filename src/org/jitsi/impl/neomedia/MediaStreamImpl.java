@@ -535,12 +535,25 @@ public class MediaStreamImpl
     @Override
     public void addRTPExtension(byte extensionID, RTPExtension rtpExtension)
     {
+        boolean active
+                = !MediaDirection.INACTIVE.equals(rtpExtension.getDirection());
         synchronized (activeRTPExtensions)
         {
-            if (MediaDirection.INACTIVE.equals(rtpExtension.getDirection()))
-                activeRTPExtensions.remove(extensionID);
-            else
+            if (active)
                 activeRTPExtensions.put(extensionID, rtpExtension);
+            else
+                activeRTPExtensions.remove(extensionID);
+        }
+
+        if (RTPExtension.ABS_SEND_TIME_URN
+                .equals(rtpExtension.getURI().toString()))
+        {
+            AbsSendTimeEngine absSendTimeEngine = getAbsSendTimeEngine();
+            if (absSendTimeEngine != null)
+            {
+                absSendTimeEngine.setExtensionID(
+                        active ? extensionID : -1);
+            }
         }
     }
 
@@ -2184,16 +2197,6 @@ public class MediaStreamImpl
             else
                 logger.error(t);
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setAbsSendTimeExtensionID(int id)
-    {
-        if (absSendTimeEngine != null)
-            absSendTimeEngine.setExtensionID(id);
     }
 
     /**

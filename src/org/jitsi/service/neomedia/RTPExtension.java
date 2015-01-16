@@ -35,6 +35,14 @@ public class RTPExtension
             = "urn:ietf:params:rtp-hdrext:ssrc-audio-level";
 
     /**
+     * The URN identifying the abs-send-time RTP extension.
+     * Defined at
+     * {@link "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"}
+     */
+    public static final String ABS_SEND_TIME_URN
+            = "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time";
+
+    /**
      * The direction that this extension will be transmitted in.
      */
     private MediaDirection direction = MediaDirection.SENDRECV;

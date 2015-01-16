@@ -424,19 +424,4 @@ public interface MediaStream
      * effect on an already closed stream and is simply ignored.
      */
     public void stop();
-
-    /**
-     * Sets the ID of the abs-send-time RTP header extension to be used by
-     * this <tt>MediaStream</tt>.
-     *
-     * If set to a value different than -1, any outgoing RTP packets that
-     * already contain an RTP extension with this ID will have the timestamp
-     * in said extension replaced with one generated locally at (close to) the
-     * time of transmission.
-     *
-     * See http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
-     *
-     * @param id the ID to set.
-     */
-    public void setAbsSendTimeExtensionID(int id);
 }
