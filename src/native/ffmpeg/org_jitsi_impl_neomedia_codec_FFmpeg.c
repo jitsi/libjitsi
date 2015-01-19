@@ -756,7 +756,7 @@ JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_codec_FFmpeg_avframe_1get_1data0
     (JNIEnv *env, jclass clazz, jlong frame)
 {
-    return (jlong) (((AVFrame *) (intptr_t) frame)->data[0]);
+    return (jlong) (intptr_t) (((AVFrame *) (intptr_t) frame)->data[0]);
 }
 
 /*
@@ -846,7 +846,7 @@ Java_org_jitsi_impl_neomedia_codec_FFmpeg_avpacket_1set_1data
     if (JNI_TRUE == ok)
     {
         int delta;
-        AVPacket *pkt_ = (AVPacket *) pkt;
+        AVPacket *pkt_ = (AVPacket *) (intptr_t) pkt;
 
         delta = length - pkt_->size;
         if (delta > 0)
