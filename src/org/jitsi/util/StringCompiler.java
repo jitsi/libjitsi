@@ -11,6 +11,11 @@ import java.util.*;
 import java.util.regex.*;
 
 /**
+ * Primarily meant for debugging purposes, the <tt>StringCompiler</tt> takes a
+ * string X in this format "The value of var1.field is {var1.field}" and a
+ * <tt>Map</tt> of "variable" bindings and it "compiles" the string X by
+ * replacing {var1.field} with the value of var1.field.
+ *
  * @author George Politis
  *
  */
