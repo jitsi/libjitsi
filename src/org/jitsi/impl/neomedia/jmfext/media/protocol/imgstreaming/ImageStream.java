@@ -250,8 +250,7 @@ public class ImageStream
                 = desktopInteract.captureScreen(
                         displayIndex,
                         x, y, dim.width, dim.height,
-                        data.getPtr(),
-                        data.getLength());
+                        data.getPtr(), data.getLength());
         }
         catch (Throwable t)
         {

@@ -51,7 +51,7 @@ public class ScreenCapture
     public static native boolean grabScreen(
             int display,
             int x, int y, int width, int height,
-            byte output[]);
+            byte[] output);
 
     /**
      * Grab desktop screen and get raw bytes.

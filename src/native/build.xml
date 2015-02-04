@@ -192,17 +192,19 @@
       <compilerarg value="-mmacosx-version-min=10.5" if="is.running.macos"/>
       <compilerarg value="-arch" if="is.running.macos" />
       <compilerarg value="x86_64" if="is.running.macos" />
-      <compilerarg value="-arch" if="is.running.macos" />
-      <compilerarg value="i386" if="is.running.macos" />
+      <!--compilerarg value="-arch" if="is.running.macos" />
+      <compilerarg value="i386" if="is.running.macos" /-->
       <compilerarg value="-I/System/Library/Frameworks/ApplicationServices.framework/Headers" if="is.running.macos" />
       <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
+      <compilerarg value="-I${system.JAVA_HOME}/include" if="is.running.macos" />
+      <compilerarg value="-I${system.JAVA_HOME}/include/darwin" if="is.running.macos" />
 
       <linkerarg value="-o" location="end" if="is.running.macos" />
       <linkerarg value="libjnscreencapture.jnilib" location="end" if="is.running.macos" />
       <linkerarg value="-arch" if="is.running.macos" />
       <linkerarg value="x86_64" if="is.running.macos" />
-      <linkerarg value="-arch" if="is.running.macos" />
-      <linkerarg value="i386" if="is.running.macos" />
+      <!--linkerarg value="-arch" if="is.running.macos" />
+      <linkerarg value="i386" if="is.running.macos" /-->
       <linkerarg value="-framework" if="is.running.macos" />
       <linkerarg value="ApplicationServices" if="is.running.macos" />
 

@@ -86,8 +86,12 @@ public class DesktopInteractImpl
     public boolean captureScreen(int display, long buffer, int bufferLength)
     {
         Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
-        return captureScreen(display, 0, 0, dim.width, dim.height, buffer,
-                bufferLength);
+
+        return
+            captureScreen(
+                    display,
+                    0, 0, dim.width, dim.height,
+                    buffer, bufferLength);
     }
 
     /**
@@ -112,17 +116,14 @@ public class DesktopInteractImpl
     public boolean captureScreen(
             int display,
             int x, int y, int width, int height,
-            byte output[])
+            byte[] output)
     {
-        if (OSUtils.IS_LINUX || OSUtils.IS_MAC || OSUtils.IS_WINDOWS)
-        {
-            return
-                ScreenCapture.grabScreen(
+        return
+            (OSUtils.IS_LINUX || OSUtils.IS_MAC || OSUtils.IS_WINDOWS)
+                && ScreenCapture.grabScreen(
                         display,
                         x, y, width, height,
                         output);
-        }
-        return false;
     }
 
     /**
@@ -150,15 +151,12 @@ public class DesktopInteractImpl
             int x, int y, int width, int height,
             long buffer, int bufferLength)
     {
-        if (OSUtils.IS_LINUX || OSUtils.IS_MAC || OSUtils.IS_WINDOWS)
-        {
-            return
-                ScreenCapture.grabScreen(
+        return
+            (OSUtils.IS_LINUX || OSUtils.IS_MAC || OSUtils.IS_WINDOWS)
+                && ScreenCapture.grabScreen(
                         display,
                         x, y, width, height,
                         buffer, bufferLength);
-        }
-        return false;
     }
 
     /**

@@ -23,7 +23,7 @@
 #include <wingdi.h>
 
 #elif defined(__APPLE__)
-#include <ApplicationServices.h>
+#include <ApplicationServices/ApplicationServices.h>
 
 #else /* Unix */
 #include <sys/types.h>
@@ -287,28 +287,29 @@ static int windows_grab_screen(jbyte* data, unsigned int display, int x, int y, 
  * \param h capture height
  * \return 0 if success, -1 otherwise
  */
-static int quartz_grab_screen(jbyte* data, unsigned int display, int x, int y, int w, int h)
+static int
+quartz_grab_screen
+    (jbyte *data, unsigned int display, int x, int y, int w, int h)
 {
   CGImageRef img = NULL;
   CGDataProviderRef provider = NULL;
   CFDataRef dataRef = NULL;
-  uint8_t* pixels = NULL;
-  size_t len = 0;
-  size_t off = 0;
-  size_t i = 0;
+  uint8_t *pixels = NULL;
+  int iw, ih;
   CGRect rect;
   uint32_t test = 1;
-  int little_endian = *((uint8_t*)&test);
+  int little_endian = *((uint8_t *) &test);
   CGDirectDisplayID displayIds[16];
   CGDisplayCount displayNb = 0;
+  UInt imgBytesPerRow;
 
   /* find display */
-  if(CGGetActiveDisplayList(display + 1, displayIds, &displayNb) != kCGErrorSuccess)
+  if (CGGetActiveDisplayList(display + 1, displayIds, &displayNb)
+      != kCGErrorSuccess)
   {
     return -1;
   }
-
-  if(displayNb < (display + 1))
+  if (displayNb < (display + 1))
   {
     /* request a non existent display */
     return -1;
@@ -319,39 +320,51 @@ static int quartz_grab_screen(jbyte* data, unsigned int display, int x, int y, i
   rect.size.height = h;
   rect.origin.x += x;
   rect.origin.y += y;
-  img = CGWindowListCreateImage(rect, kCGWindowListOptionOnScreenOnly, kCGNullWindowID, kCGWindowImageDefault);
-
-  if(img == NULL)
+  img
+    = CGWindowListCreateImage(
+        rect,
+        kCGWindowListOptionOnScreenOnly,
+        kCGNullWindowID,
+        kCGWindowImageDefault);
+  if (img == NULL)
   {
-    fprintf(stderr, "CGWindowListCreateImage failed\n!");
+    fprintf(stderr, "CGWindowListCreateImage failed!\n");
+    fflush(stderr);
     return -1;
   }
 
   /* get pixels */
   provider = CGImageGetDataProvider(img);
   dataRef = CGDataProviderCopyData(provider);
-  pixels = (uint8_t*)CFDataGetBytePtr(dataRef);
+  pixels = (uint8_t *) CFDataGetBytePtr(dataRef);
 
-  len = CFDataGetLength(dataRef);
+  imgBytesPerRow = CGImageGetBytesPerRow(img); /* XXX Image stride! */
 
-  for(i = 0 ; i < len ; i+=4)
+  for (ih = 0; ih < h; ++ih)
   {
-    uint32_t pixel = *((uint32_t*)&pixels[i]);
-    
-    pixel |= (0xff << 24);
+    uint32_t *p = (uint32_t *) pixels;
 
-    /* Java int is always big endian so output as ARGB */
-    if(little_endian)
+    for (iw = 0; iw < w; ++iw)
     {
-      /* ARGB is BGRA in little-endian */
-      uint8_t r = (pixel >> 16) & 0xff;
-      uint8_t g = (pixel >> 8) & 0xff;
-      uint8_t b = pixel & 0xff;
-      pixel = b << 24 | g << 16 | r << 8 | 0xff;
-    }
+      uint32_t pixel = *p++;
 
-    memcpy(data + off, &pixel, 4);
-    off += 4;
+      pixel |= (0xff << 24);
+
+      /* Java int is always big endian so output as ARGB. */
+      if (little_endian)
+      {
+        /* ARGB is BGRA in little-endian. */
+        uint8_t r = (pixel >> 16) & 0xff;
+        uint8_t g = (pixel >> 8) & 0xff;
+        uint8_t b = pixel & 0xff;
+
+        pixel = b << 24 | g << 16 | r << 8 | 0xff;
+      }
+
+      memcpy(data, &pixel, 4);
+      data += 4;
+    }
+    pixels += imgBytesPerRow;
   }
 
   /* cleanup */
@@ -545,39 +558,52 @@ static int x11_grab_screen(jbyte* data, unsigned int displayIndex, int x, int y,
  */
 JNIEXPORT jboolean JNICALL
 Java_org_jitsi_impl_neomedia_imgstreaming_ScreenCapture_grabScreen__IIIII_3B
-    (JNIEnv* env, jclass clazz, jint display, jint x, jint y, jint width, jint height, jbyteArray output)
+    (JNIEnv* env, jclass clazz, jint display, jint x, jint y, jint width,
+        jint height, jbyteArray output)
 {
-  jint size = width * height * 4;
-  jbyte* data = NULL;
+    jboolean b;
 
-  clazz = clazz; /* not used */
+    /* unused */
+    (void) clazz;
 
-  if(!output || (*env)->GetArrayLength(env, output) < size)
-  {
-    return JNI_FALSE;
-  }
+    if (output)
+    {
+        jint size = width * height * 4;
 
-  data = (*env)->GetPrimitiveArrayCritical(env, output, 0);
+        if ((*env)->GetArrayLength(env, output) >= size)
+        {
+            jbyte *output_
+                = (*env)->GetPrimitiveArrayCritical(env, output, NULL);
 
-  if(!data)
-  {
-    return JNI_FALSE;
-  }
-
+            if (output_)
+            {
+                int i
+                    =
 #if defined (_WIN32) || defined(_WIN64)
-  if(windows_grab_screen(data, display, x, y, width, height) == -1)
+                    windows_grab_screen
 #elif defined(__APPLE__)
-    if(quartz_grab_screen(data, display, x, y, width, height) == -1)
+                    quartz_grab_screen
 #else /* Unix */
-  if(x11_grab_screen(data, display, x, y, width, height) == -1)
+                    x11_grab_screen
 #endif
-  {
-    (*env)->ReleasePrimitiveArrayCritical(env, output, data, 0);
-    return JNI_FALSE;
-  }
+                    (output_, display, x, y, width, height);
 
-  (*env)->ReleasePrimitiveArrayCritical(env, output, data, 0);
-  return JNI_TRUE;
+                b = (-1 == i) ? JNI_FALSE : JNI_TRUE;
+                (*env)->ReleasePrimitiveArrayCritical(
+                        env,
+                        output,
+                        output_,
+                        (JNI_TRUE == b) ? 0 : JNI_ABORT);
+            }
+            else
+                b = JNI_FALSE;
+        }
+        else
+            b = JNI_FALSE;
+    }
+    else
+        b = JNI_FALSE;
+    return b;
 }
 
 /**
@@ -596,28 +622,37 @@ JNIEXPORT jboolean JNICALL
 Java_org_jitsi_impl_neomedia_imgstreaming_ScreenCapture_grabScreen__IIIIIJI
     (JNIEnv* env, jclass clazz, jint display, jint x, jint y, jint width, jint height, jlong output, jint outputLength)
 {
-  jint size = width * height * 4;
-  jbyte* data = (jbyte*) (intptr_t) output;
+    jboolean b;
 
-  /* not used */
-  clazz = clazz;
-  env = env;
+    /* unused */
+    (void) clazz;
+    (void) env;
 
-  if(!data || outputLength < size)
-  {
-    return JNI_FALSE;
-  }
+    if (output)
+    {
+        jint size = width * height * 4;
 
+        if (outputLength >= size)
+        {
+            jbyte *output_ = (jbyte *) (intptr_t) output;
+
+            int i
+                =
 #if defined (_WIN32) || defined(_WIN64)
-  if(windows_grab_screen(data, display, x, y, width, height) == -1)
+                windows_grab_screen
 #elif defined(__APPLE__)
-    if(quartz_grab_screen(data, display, x, y, width, height) == -1)
+                quartz_grab_screen
 #else /* Unix */
-  if(x11_grab_screen(data, display, x, y, width, height) == -1)
+                x11_grab_screen
 #endif
-  {
-    return JNI_FALSE;
-  }
+                (output_, display, x, y, width, height);
 
-  return JNI_TRUE;
+            b = (-1 == i) ? JNI_FALSE : JNI_TRUE;
+        }
+        else
+            b = JNI_FALSE;
+    }
+    else
+        b = JNI_FALSE;
+    return b;
 }

@@ -69,8 +69,10 @@ public interface DesktopInteract
      * Be sure that output length is sufficient
      * @return true if success, false if JNI error or output length too short
      */
-    public boolean captureScreen(int display, int x, int y, int width,
-            int height, byte output[]);
+    public boolean captureScreen(
+            int display,
+            int x, int y, int width, int height,
+            byte[] output);
 
     /**
      * Capture a part of the desktop screen using native grabber.
