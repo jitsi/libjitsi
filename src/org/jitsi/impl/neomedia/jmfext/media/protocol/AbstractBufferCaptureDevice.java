@@ -99,7 +99,7 @@ public abstract class AbstractBufferCaptureDevice
      * <tt>PushBufferDataSource</tt> gives access to its media data.
      * <p>
      * Warning: Caution is advised when directly using the field and access to
-     * it is to be synchronized with sync root <tt>this</tt>.
+     * it is to be synchronized with synchronization root <tt>this</tt>.
      * </p>
      */
     private AbstractBufferStream<?>[] streams;
@@ -685,15 +685,9 @@ public abstract class AbstractBufferCaptureDevice
      */
     private Format internalGetFormat(int streamIndex, Format oldValue)
     {
-        boolean locked;
-
-        synchronized (this)
+        if (lock.tryLock())
         {
-            locked = lock.tryLock();
-        }
-        try
-        {
-            if (locked)
+            try
             {
                 synchronized (getStreamSyncRoot())
                 {
@@ -711,23 +705,17 @@ public abstract class AbstractBufferCaptureDevice
                     }
                 }
             }
-            else
+            finally
             {
-                /*
-                 * XXX In order to prevent a deadlock, do not ask the streams
-                 * about the format.
-                 */
+                lock.unlock();
             }
         }
-        finally
+        else
         {
-            if (locked)
-            {
-                synchronized (this)
-                {
-                    lock.unlock();
-                }
-            }
+            /*
+             * XXX In order to prevent a deadlock, do not ask the streams about
+             * the format.
+             */
         }
         return getFormat(streamIndex, oldValue);
     }
@@ -903,7 +891,7 @@ public abstract class AbstractBufferCaptureDevice
         return setFormat(streamIndex, oldValue, newValue);
     }
 
-    private synchronized void lock()
+    private void lock()
     {
         lock.lock();
     }
@@ -1006,7 +994,7 @@ public abstract class AbstractBufferCaptureDevice
         return streams;
     }
 
-    private synchronized void unlock()
+    private void unlock()
     {
         lock.unlock();
     }
