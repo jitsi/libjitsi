@@ -327,6 +327,12 @@ public class JNIDecoder
 
         long avcodec = FFmpeg.avcodec_find_decoder(FFmpeg.CODEC_ID_H264);
 
+        if (avcodec == 0)
+        {
+            throw new ResourceUnavailableException(
+                    "Could not find H.264 decoder.");
+        }
+
         avctx = FFmpeg.avcodec_alloc_context3(avcodec);
         FFmpeg.avcodeccontext_set_workaround_bugs(avctx,
                 FFmpeg.FF_BUG_AUTODETECT);
@@ -336,7 +342,7 @@ public class JNIDecoder
                 FFmpeg.CODEC_FLAG2_CHUNKS);
 
         if (FFmpeg.avcodec_open2(avctx, avcodec) < 0)
-            throw new RuntimeException("Could not open codec CODEC_ID_H264");
+            throw new RuntimeException("Could not open H.264 decoder.");
 
         gotPictureAtLeastOnce = false;
 

@@ -542,6 +542,12 @@ public class JNIEncoder
 
         long avcodec = FFmpeg.avcodec_find_encoder(FFmpeg.CODEC_ID_H264);
 
+        if (avcodec == 0)
+        {
+            throw new ResourceUnavailableException(
+                    "Could not find H.264 encoder.");
+        }
+
         avctx = FFmpeg.avcodec_alloc_context3(avcodec);
 
         FFmpeg.avcodeccontext_set_pix_fmt(avctx, FFmpeg.PIX_FMT_YUV420P);
@@ -650,8 +656,8 @@ public class JNIEncoder
                 < 0)
         {
             throw new ResourceUnavailableException(
-                    "Could not open codec. (size= " + width + "x" + height
-                        + ")");
+                    "Could not open H.264 encoder. (size= " + width + "x"
+                            + height + ")");
         }
 
         rawFrameLen = (width * height * 3) / 2;
