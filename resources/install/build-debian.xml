@@ -68,7 +68,7 @@
 
         <!-- sdes -->
         <unzip src="../libsrc/sdes4j.zip"
-               dest="${tmp}/libjitsi/lib/src">
+               dest="${tmp}/libjitsi/lib/src/sdes4j">
             <patternset>
                 <exclude name="**/.svn"/>
             </patternset>
@@ -268,7 +268,7 @@
              target="jar">
         </ant>
         <copy tofile="lib/sdes4j.jar"
-              file="lib/src/sdes4j/build/dist/sdes4j-1.1.2.jar"/>
+              file="lib/src/sdes4j/build/dist/sdes4j-1.1.3.jar"/>
 
         <symlink resource="/usr/share/java/org.apache.felix.framework.jar"
                  overwrite="true"
@@ -501,6 +501,7 @@ org.jitsi.bccontrib.util"/>
             <property name="x264" value=""/>
             <property name="lame" value=""/>
             <property name="libvpx" value=""/>
+            <property name="voamrwbenc" value=""/>
             <property name="LIBAV" value=""/>
         </ant>
 

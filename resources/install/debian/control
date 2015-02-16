@@ -38,6 +38,7 @@ Build-Depends: debhelper (>= 9), javahelper,
                libavformat-dev (>= 6:10~),
                libavfilter-dev (>= 6:10~),
                libswscale-dev (>= 6:10~),
+               libvo-amrwbenc-dev,
                libpulse-dev
 Standards-Version: 3.9.6
 

@@ -1,64 +1,68 @@
 Description: Makes sources compile/compatible with libav10
 Index: libjitsi/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
 ===================================================================
---- libjitsi.orig/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c	2014-02-27 05:10:28.000000000 +0000
-+++ libjitsi/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c	2014-02-27 16:45:02.128964921 +0000
-@@ -163,14 +163,28 @@
-                 = (*env)->GetByteArrayElements (env, samples, NULL);
+--- libjitsi.orig/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
++++ libjitsi/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
+@@ -224,17 +224,27 @@ Java_org_jitsi_impl_neomedia_codec_FFmpe
  
-             if (samples_ptr) {
--                ret = (jint) avcodec_encode_audio(
--                        (AVCodecContext *) (intptr_t) ctx,
--                        (uint8_t *) (buf_ptr + buf_offset), (int) buf_size,
--                        (const short *) (samples_ptr + samples_offset));
-+       AVCodecContext *avctx = (AVCodecContext*)(intptr_t)ctx;
-+                AVPacket pkt;
-+       AVFrame *frame = av_frame_alloc();
-+       int got_output;
+             if (samples_)
+             {
+-                ret
+-                    = (jint)
+-                        avcodec_encode_audio(
+-                                (AVCodecContext *) (intptr_t) ctx,
+-                                (uint8_t *) (buf_ + buf_offset),
+-                                (int) buf_size,
+-                                (const short *) (samples_ + samples_offset));
++               AVCodecContext *avctx = (AVCodecContext*)(intptr_t)ctx;
++               AVPacket pkt;
++               AVFrame *frame = av_frame_alloc();
++               int got_output;
 +
-+       if (!frame)
-+           return AVERROR(ENOMEM);
-+       frame->data[0] = (uint8_t*)(samples_ptr + samples_offset);
-+       frame->linesize[0] = avctx->frame_size * av_get_bytes_per_sample(avctx->sample_fmt) *
-+           avctx->channels;
++               if (!frame)
++                   return AVERROR(ENOMEM);
++               frame->data[0] = (uint8_t*)(samples_ + samples_offset);
++               frame->linesize[0] = avctx->frame_size * av_get_bytes_per_sample(avctx->sample_fmt) *
++                   avctx->channels;
 +
-+       pkt.data = (uint8_t*)(buf_ptr + buf_offset);
-+       pkt.size = buf_size;
-+                ret = (jint) avcodec_encode_audio2(
-+                        avctx, &pkt, frame, &got_output);
++               pkt.data = (uint8_t*)(buf_ + buf_offset);
++               pkt.size = buf_size;
++               ret = (jint) avcodec_encode_audio2(avctx, &pkt, frame, &got_output);
                  (*env)->ReleaseByteArrayElements(
                          env,
-                         samples, samples_ptr,
+                         samples, samples_,
                          JNI_ABORT);
-+       av_frame_free(&frame);
-+       if (ret >= 0)
-+           ret = got_output ? pkt.size : 0;
-             } else
-                 ret = -1;
-             (*env)->ReleaseByteArrayElements (env, buf, buf_ptr, 0);
-@@ -192,12 +206,18 @@
-         jbyte *buf_ptr = (*env)->GetByteArrayElements (env, buf, NULL);
++               av_frame_free(&frame);
++               if (ret >= 0)
++                   ret = got_output ? pkt.size : 0;
+             }
+             else
+             {
+@@ -267,13 +277,19 @@ Java_org_jitsi_impl_neomedia_codec_FFmpe
  
-         if (buf_ptr) {
-+       int got_output;
-+       AVPacket pkt;
-+       pkt.data = (uint8_t*)buf_ptr;
-+       pkt.size = (int)buf_size;
+         if (buf_)
+         {
++            int got_output;
++            AVPacket pkt;
++            pkt.data = (uint8_t*)buf_;
++            pkt.size = (int)buf_size;
              ret
                  = (jint)
 -                    avcodec_encode_video(
 +                    avcodec_encode_video2(
                              (AVCodecContext *) (intptr_t) ctx,
--                            (uint8_t *) buf_ptr, (int) buf_size,
+-                            (uint8_t *) buf_,
+-                            (int) buf_size,
 -                            (const AVFrame *) (intptr_t) frame);
-+                            &pkt, (const AVFrame *) (intptr_t) frame,
-+               &got_output);
-+       if (ret >= 0)
-+           ret = got_output ? pkt.size : 0;
-             (*env)->ReleaseByteArrayElements (env, buf, buf_ptr, 0);
-         } else
-             ret = -1;
-@@ -210,14 +230,14 @@
++                            &pkt,
++                            (const AVFrame *) (intptr_t) frame,
++                            &got_output);
++            if (ret >= 0)
++                ret = got_output ? pkt.size : 0;
+             (*env)->ReleaseByteArrayElements(env, buf, buf_, 0);
+         }
+         else
+@@ -292,14 +308,14 @@ JNIEXPORT jlong JNICALL
  Java_org_jitsi_impl_neomedia_codec_FFmpeg_avcodec_1find_1decoder
      (JNIEnv *env, jclass clazz, jint id)
  {
@@ -74,4 +78,4 @@ Index: libjitsi/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
 +    return (jlong) (intptr_t) avcodec_find_encoder((enum AVCodecID) id);
  }
  
- JNIEXPORT jint JNICALL
+ /*
