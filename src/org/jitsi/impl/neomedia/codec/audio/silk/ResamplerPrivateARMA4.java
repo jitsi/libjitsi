@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Fourth order ARMA filter.
  * Internally operates as two biquad filters in sequence.
@@ -54,17 +56,17 @@ public class ResamplerPrivateARMA4
             out2_Q8 = out1_Q8 + ( S[ S_offset+2 ] << 2 );
 
             /* Update states, which are stored in Q6. Coefficients are in Q14 here */
-            X      = Macros.SKP_SMLAWB( S[ S_offset+1 ], in_Q8,   Coef[ Coef_offset ] );
-            S[ S_offset ] = Macros.SKP_SMLAWB( X,      out1_Q8, Coef[ Coef_offset+2 ] );
+            X      = SKP_SMLAWB( S[ S_offset+1 ], in_Q8,   Coef[ Coef_offset ] );
+            S[ S_offset ] = SKP_SMLAWB( X,      out1_Q8, Coef[ Coef_offset+2 ] );
 
-            X      = Macros.SKP_SMLAWB( S[ S_offset+3 ], out1_Q8, Coef[ Coef_offset+1 ] );
-            S[ S_offset+2 ] = Macros.SKP_SMLAWB( X,      out2_Q8, Coef[ Coef_offset+4 ] );
+            X      = SKP_SMLAWB( S[ S_offset+3 ], out1_Q8, Coef[ Coef_offset+1 ] );
+            S[ S_offset+2 ] = SKP_SMLAWB( X,      out2_Q8, Coef[ Coef_offset+4 ] );
 
-            S[ S_offset+1 ] = Macros.SKP_SMLAWB( in_Q8 >> 2, out1_Q8, Coef[ Coef_offset+3 ] );
-            S[ S_offset+3 ] = Macros.SKP_SMLAWB( out1_Q8 >> 2 , out2_Q8, Coef[ Coef_offset+5 ] );
+            S[ S_offset+1 ] = SKP_SMLAWB( in_Q8 >> 2, out1_Q8, Coef[ Coef_offset+3 ] );
+            S[ S_offset+3 ] = SKP_SMLAWB( out1_Q8 >> 2 , out2_Q8, Coef[ Coef_offset+5 ] );
 
             /* Apply gain and store to output. The coefficient is in Q16 */
-            out[ out_offset+k ] = (short)SigProcFIX.SKP_SAT16( Macros.SKP_SMLAWB( 128, out2_Q8, Coef[ Coef_offset+6 ] ) >> 8  );
+            out[ out_offset+k ] = (short)SigProcFIX.SKP_SAT16( SKP_SMLAWB( 128, out2_Q8, Coef[ Coef_offset+6 ] ) >> 8  );
         }
     }
 }

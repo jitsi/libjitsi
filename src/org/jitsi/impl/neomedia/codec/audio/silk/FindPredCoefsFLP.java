@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 import java.util.*;
 
 /**
@@ -34,28 +36,28 @@ public class FindPredCoefsFLP
     )
     {
         int         i;
-        float[]       WLTP = new float[ Define.NB_SUBFR * Define.LTP_ORDER * Define.LTP_ORDER ];
-        float[]       invGains = new float[ Define.NB_SUBFR ], Wght = new float[ Define.NB_SUBFR ];
-        float[]       NLSF = new float[ Define.MAX_LPC_ORDER ];
+        float[]       WLTP = new float[ NB_SUBFR * LTP_ORDER * LTP_ORDER ];
+        float[]       invGains = new float[ NB_SUBFR ], Wght = new float[ NB_SUBFR ];
+        float[]       NLSF = new float[ MAX_LPC_ORDER ];
         float[] x_ptr;
         int x_ptr_offset;
-        float[]       x_pre_ptr, LPC_in_pre = new float[ Define.NB_SUBFR * Define.MAX_LPC_ORDER + Define.MAX_FRAME_LENGTH ];
+        float[]       x_pre_ptr, LPC_in_pre = new float[ NB_SUBFR * MAX_LPC_ORDER + MAX_FRAME_LENGTH ];
         int x_pre_ptr_offset;
 
         /* Weighting for weighted least squares */
-        for( i = 0; i < Define.NB_SUBFR; i++ )
+        for( i = 0; i < NB_SUBFR; i++ )
         {
             assert( psEncCtrl.Gains[ i ] > 0.0f );
             invGains[ i ] = 1.0f / psEncCtrl.Gains[ i ];
             Wght[ i ]     = invGains[ i ] * invGains[ i ];
         }
 
-        if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED )
+        if( psEncCtrl.sCmn.sigtype == SIG_TYPE_VOICED )
         {
             /**********/
             /* VOICED */
             /**********/
-            assert( psEnc.sCmn.frame_length - psEnc.sCmn.predictLPCOrder >= psEncCtrl.sCmn.pitchL[ 0 ] + Define.LTP_ORDER / 2 );
+            assert( psEnc.sCmn.frame_length - psEnc.sCmn.predictLPCOrder >= psEncCtrl.sCmn.pitchL[ 0 ] + LTP_ORDER / 2 );
 
             /* LTP analysis */
             float[] LTPredCodGain_ptr = new float[1];
@@ -90,14 +92,14 @@ public class FindPredCoefsFLP
 
             x_pre_ptr = LPC_in_pre;
             x_pre_ptr_offset = 0;
-            for( i = 0; i < Define.NB_SUBFR; i++ ) {
+            for( i = 0; i < NB_SUBFR; i++ ) {
                 ScaleCopyVectorFLP.SKP_Silk_scale_copy_vector_FLP( x_pre_ptr, x_pre_ptr_offset, x_ptr, x_ptr_offset, invGains[ i ],
                     psEnc.sCmn.subfr_length + psEnc.sCmn.predictLPCOrder );
                 x_pre_ptr_offset += psEnc.sCmn.subfr_length + psEnc.sCmn.predictLPCOrder;
                 x_ptr_offset     += psEnc.sCmn.subfr_length;
             }
 
-            Arrays.fill(psEncCtrl.LTPCoef, 0, Define.NB_SUBFR * Define.LTP_ORDER, 0.0f);
+            Arrays.fill(psEncCtrl.LTPCoef, 0, NB_SUBFR * LTP_ORDER, 0.0f);
             psEncCtrl.LTPredCodGain = 0.0f;
         }
 
@@ -115,7 +117,7 @@ public class FindPredCoefsFLP
 //        /**
 //         * Test for NLSF
 //         */
-//        float[]       nlsf = new float[ Define.MAX_LPC_ORDER ];
+//        float[]       nlsf = new float[ MAX_LPC_ORDER ];
 //        String nlsf_filename = "D:/gsoc/nlsf/nlsf";
 //        nlsf_filename += frame_cnt;
 //        DataInputStream nlsf_datain = null;

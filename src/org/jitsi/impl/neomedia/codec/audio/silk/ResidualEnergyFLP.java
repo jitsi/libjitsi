@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  * Residual energy.
  *
@@ -107,7 +109,7 @@ public class ResidualEnergyFLP
     {
         int         shift;
 //        SKP_float       *LPC_res_ptr, LPC_res[ ( MAX_FRAME_LENGTH + NB_SUBFR * MAX_LPC_ORDER ) / 2 ];
-        float       LPC_res_ptr[], LPC_res[] = new float[ ( Define.MAX_FRAME_LENGTH + Define.NB_SUBFR * Define.MAX_LPC_ORDER ) / 2 ];
+        float       LPC_res_ptr[], LPC_res[] = new float[ ( MAX_FRAME_LENGTH + NB_SUBFR * MAX_LPC_ORDER ) / 2 ];
 
 //        LPC_res_ptr = LPC_res + LPC_order;
         LPC_res_ptr = LPC_res;

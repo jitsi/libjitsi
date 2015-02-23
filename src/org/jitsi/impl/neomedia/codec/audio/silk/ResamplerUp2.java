@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Up-sample by a factor 2, low quality.
  *
@@ -47,7 +49,7 @@ public class ResamplerUp2
 
             /* All-pass section for even output sample */
             Y      = in32 - S[ S_offset + 0 ];
-            X      = Macros.SKP_SMULWB( Y, ResamplerRom.SKP_Silk_resampler_up2_lq_0 );
+            X      = SKP_SMULWB( Y, ResamplerRom.SKP_Silk_resampler_up2_lq_0 );
             out32  = S[ S_offset + 0 ] + X;
             S[ S_offset + 0 ] = in32 + X;
 
@@ -56,7 +58,7 @@ public class ResamplerUp2
 
             /* All-pass section for odd output sample */
             Y      = in32 - S[ S_offset + 1 ];
-            X      = Macros.SKP_SMLAWB( Y, Y, ResamplerRom.SKP_Silk_resampler_up2_lq_1 );
+            X      = SKP_SMLAWB( Y, Y, ResamplerRom.SKP_Silk_resampler_up2_lq_1 );
             out32  = S[ S_offset + 1 ] + X;
             S[ S_offset + 1 ] = in32 + X;
 

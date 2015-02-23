@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 import java.util.*;
 
 /**
@@ -77,7 +80,7 @@ public class DecAPI
 
         if( psDec.moreInternalDecoderFrames == 0 &&    /* First frame in packet    */
             lostFlag == 0 &&                            /* Not packet loss          */
-            nBytesIn > Define.MAX_ARITHM_BYTES ) {             /* Too long payload         */
+            nBytesIn > MAX_ARITHM_BYTES ) {             /* Too long payload         */
                 /* Avoid trying to decode a too large packet */
                 lostFlag = 1;
                 ret = Errors.SKP_SILK_DEC_PAYLOAD_TOO_LARGE;
@@ -94,7 +97,7 @@ public class DecAPI
 
         if( used_bytes !=0) /* Only Call if not a packet loss */
         {
-            if( psDec.nBytesLeft > 0 && psDec.FrameTermination == Define.SKP_SILK_MORE_FRAMES && psDec.nFramesDecoded < 5 ) {
+            if( psDec.nBytesLeft > 0 && psDec.FrameTermination == SKP_SILK_MORE_FRAMES && psDec.nFramesDecoded < 5 ) {
                 /* We have more frames in the Payload */
                 psDec.moreInternalDecoderFrames = 1;
             } else {
@@ -103,16 +106,16 @@ public class DecAPI
                 psDec.nFramesInPacket = psDec.nFramesDecoded;
 
                 /* Track inband FEC usage */
-                if( psDec.vadFlag == Define.VOICE_ACTIVITY ) {
-                    if( psDec.FrameTermination == Define.SKP_SILK_LAST_FRAME ) {
+                if( psDec.vadFlag == VOICE_ACTIVITY ) {
+                    if( psDec.FrameTermination == SKP_SILK_LAST_FRAME ) {
                         psDec.no_FEC_counter++;
-                        if( psDec.no_FEC_counter > Define.NO_LBRR_THRES ) {
+                        if( psDec.no_FEC_counter > NO_LBRR_THRES ) {
                             psDec.inband_FEC_offset = 0;
                         }
-                    } else if( psDec.FrameTermination == Define.SKP_SILK_LBRR_VER1 ) {
+                    } else if( psDec.FrameTermination == SKP_SILK_LBRR_VER1 ) {
                         psDec.inband_FEC_offset = 1; /* FEC info with 1 packet delay */
                         psDec.no_FEC_counter    = 0;
-                    } else if( psDec.FrameTermination == Define.SKP_SILK_LBRR_VER2 ) {
+                    } else if( psDec.FrameTermination == SKP_SILK_LBRR_VER2 ) {
                         psDec.inband_FEC_offset = 2; /* FEC info with 2 packets delay */
                         psDec.no_FEC_counter    = 0;
                     }
@@ -120,7 +123,7 @@ public class DecAPI
             }
         }
 
-        if( Define.MAX_API_FS_KHZ * 1000 < decControl.API_sampleRate ||
+        if( MAX_API_FS_KHZ * 1000 < decControl.API_sampleRate ||
             8000       > decControl.API_sampleRate ) {
             ret = Errors.SKP_SILK_DEC_INVALID_SAMPLING_FREQUENCY;
             return( ret );
@@ -128,8 +131,8 @@ public class DecAPI
 
         /* Resample if needed */
         if( psDec.fs_kHz * 1000 != decControl.API_sampleRate ) {
-            short[] samplesOut_tmp = new short[Define.MAX_API_FS_KHZ * Define.FRAME_LENGTH_MS];
-            Typedef.SKP_assert( psDec.fs_kHz <= Define.MAX_API_FS_KHZ );
+            short[] samplesOut_tmp = new short[MAX_API_FS_KHZ * FRAME_LENGTH_MS];
+            SKP_assert( psDec.fs_kHz <= MAX_API_FS_KHZ );
 
             /* Copy to a tmp buffer as the resampling writes to samplesOut */
             System.arraycopy(samplesOut, samplesOut_offset+0, samplesOut_tmp, 0, nSamplesOut[0]);
@@ -179,9 +182,9 @@ public class DecAPI
     {
         SKP_Silk_decoder_state   sDec = new SKP_Silk_decoder_state(); // Local decoder state to avoid interfering with running decoder */
         SKP_Silk_decoder_control sDecCtrl = new SKP_Silk_decoder_control();
-        int[] TempQ = new int[ Define.MAX_FRAME_LENGTH ];
+        int[] TempQ = new int[ MAX_FRAME_LENGTH ];
 
-        if( lost_offset < 1 || lost_offset > Define.MAX_LBRR_DELAY ) {
+        if( lost_offset < 1 || lost_offset > MAX_LBRR_DELAY ) {
             /* No useful FEC in this packet */
             nLBRRBytes[0] = 0;
             return;
@@ -189,9 +192,9 @@ public class DecAPI
 
         sDec.nFramesDecoded = 0;
         sDec.fs_kHz         = 0; /* Force update parameters LPC_order etc */
-        Arrays.fill(sDec.prevNLSF_Q15, 0, Define.MAX_LPC_ORDER, 0);
+        Arrays.fill(sDec.prevNLSF_Q15, 0, MAX_LPC_ORDER, 0);
 
-        for(int i=0; i<Define.MAX_LPC_ORDER; i++)
+        for(int i=0; i<MAX_LPC_ORDER; i++)
             sDec.prevNLSF_Q15[i] = 0;
 
         RangeCoder.SKP_Silk_range_dec_init( sDec.sRC, inData, inData_offset, nBytesIn );
@@ -211,7 +214,7 @@ public class DecAPI
                 System.arraycopy(inData, inData_offset+nBytesIn - sDec.nBytesLeft, LBRRData, LBRRData_offset+0, sDec.nBytesLeft);
                 break;
             }
-            if( sDec.nBytesLeft > 0 && sDec.FrameTermination == Define.SKP_SILK_MORE_FRAMES ) {
+            if( sDec.nBytesLeft > 0 && sDec.FrameTermination == SKP_SILK_MORE_FRAMES ) {
                 sDec.nFramesDecoded++;
             } else {
                 LBRRData = null;
@@ -235,7 +238,7 @@ public class DecAPI
     {
         SKP_Silk_decoder_state      sDec = new SKP_Silk_decoder_state();
         SKP_Silk_decoder_control    sDecCtrl = new SKP_Silk_decoder_control();
-        int[] TempQ = new int[ Define.MAX_FRAME_LENGTH ];
+        int[] TempQ = new int[ MAX_FRAME_LENGTH ];
 
         sDec.nFramesDecoded = 0;
         sDec.fs_kHz         = 0; /* Force update parameters LPC_order etc */
@@ -255,13 +258,13 @@ public class DecAPI
             }
 //TODO:note the semicolon;
 //          };
-            if( sDec.nBytesLeft > 0 && sDec.FrameTermination == Define.SKP_SILK_MORE_FRAMES ) {
+            if( sDec.nBytesLeft > 0 && sDec.FrameTermination == SKP_SILK_MORE_FRAMES ) {
                 sDec.nFramesDecoded++;
             } else {
                 break;
             }
         }
-        if( Silk_TOC.corrupt !=0 || sDec.FrameTermination == Define.SKP_SILK_MORE_FRAMES ||
+        if( Silk_TOC.corrupt !=0 || sDec.FrameTermination == SKP_SILK_MORE_FRAMES ||
             sDec.nFramesInPacket > SDKAPI.SILK_MAX_FRAMES_PER_PACKET ) {
             /* Corrupt packet */
             {
@@ -279,7 +282,7 @@ public class DecAPI
         } else {
             Silk_TOC.framesInPacket = sDec.nFramesDecoded + 1;
             Silk_TOC.fs_kHz         = sDec.fs_kHz;
-            if( sDec.FrameTermination == Define.SKP_SILK_LAST_FRAME ) {
+            if( sDec.FrameTermination == SKP_SILK_LAST_FRAME ) {
                 Silk_TOC.inbandLBRR = sDec.FrameTermination;
             } else {
                 Silk_TOC.inbandLBRR = sDec.FrameTermination - 1;

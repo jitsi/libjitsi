@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Downsample by a factor 3, low quality.
  *
@@ -59,9 +61,9 @@ public class ResamplerDown3
             while( counter > 2 )
             {
                 /* Inner product */
-                res_Q6 = Macros.SKP_SMULWB(         buf[ buf_ptr   ] + buf[ buf_ptr+5 ], ResamplerRom.SKP_Silk_Resampler_1_3_COEFS_LQ[ 2 ] );
-                res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf[ buf_ptr+1 ] + buf[ buf_ptr+4 ], ResamplerRom.SKP_Silk_Resampler_1_3_COEFS_LQ[ 3 ] );
-                res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf[ buf_ptr+2 ] + buf[ buf_ptr+3 ], ResamplerRom.SKP_Silk_Resampler_1_3_COEFS_LQ[ 4 ] );
+                res_Q6 = SKP_SMULWB(         buf[ buf_ptr   ] + buf[ buf_ptr+5 ], ResamplerRom.SKP_Silk_Resampler_1_3_COEFS_LQ[ 2 ] );
+                res_Q6 = SKP_SMLAWB( res_Q6, buf[ buf_ptr+1 ] + buf[ buf_ptr+4 ], ResamplerRom.SKP_Silk_Resampler_1_3_COEFS_LQ[ 3 ] );
+                res_Q6 = SKP_SMLAWB( res_Q6, buf[ buf_ptr+2 ] + buf[ buf_ptr+3 ], ResamplerRom.SKP_Silk_Resampler_1_3_COEFS_LQ[ 4 ] );
 
                 /* Scale down, saturate and store in output array */
                 out[out_offset++] = (short)SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( res_Q6, 6 ) );

@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Elliptic/Cauer filters designed with 0.1 dB passband ripple,
  * 80 dB minimum stopband attenuation, and
@@ -32,24 +35,24 @@ public class LPVariableCutoff
     {
         int nb, na;
 
-        if( ind < Define.TRANSITION_INT_NUM - 1 )
+        if( ind < TRANSITION_INT_NUM - 1 )
         {
             if( fac_Q16 > 0 )
             {
                 if( fac_Q16 == SigProcFIX.SKP_SAT16( fac_Q16 ) )
                 { /* fac_Q16 is in range of a 16-bit int */
                     /* Piece-wise linear interpolation of B and A */
-                    for( nb = 0; nb < Define.TRANSITION_NB; nb++ )
+                    for( nb = 0; nb < TRANSITION_NB; nb++ )
                     {
-                        B_Q28[ nb ] = Macros.SKP_SMLAWB(
+                        B_Q28[ nb ] = SKP_SMLAWB(
                             TablesOther.SKP_Silk_Transition_LP_B_Q28[ ind     ][ nb ],
                             TablesOther.SKP_Silk_Transition_LP_B_Q28[ ind + 1 ][ nb ] -
                             TablesOther.SKP_Silk_Transition_LP_B_Q28[ ind     ][ nb ],
                             fac_Q16 );
                     }
-                    for( na = 0; na < Define.TRANSITION_NA; na++ )
+                    for( na = 0; na < TRANSITION_NA; na++ )
                     {
-                        A_Q28[ na ] = Macros.SKP_SMLAWB(
+                        A_Q28[ na ] = SKP_SMLAWB(
                             TablesOther.SKP_Silk_Transition_LP_A_Q28[ ind     ][ na ],
                             TablesOther.SKP_Silk_Transition_LP_A_Q28[ ind + 1 ][ na ] -
                             TablesOther.SKP_Silk_Transition_LP_A_Q28[ ind     ][ na ],
@@ -60,14 +63,14 @@ public class LPVariableCutoff
                 { /* Neither fac_Q16 nor ( ( 1 << 16 ) - fac_Q16 ) is in range of a 16-bit int */
 
                     /* Piece-wise linear interpolation of B and A */
-                    for( nb = 0; nb < Define.TRANSITION_NB; nb++ )
+                    for( nb = 0; nb < TRANSITION_NB; nb++ )
                     {
                         B_Q28[ nb ] = SigProcFIX.SKP_RSHIFT(
                             TablesOther.SKP_Silk_Transition_LP_B_Q28[ ind     ][ nb ] +
                             TablesOther.SKP_Silk_Transition_LP_B_Q28[ ind + 1 ][ nb ],
                             1 );
                     }
-                    for( na = 0; na < Define.TRANSITION_NA; na++ )
+                    for( na = 0; na < TRANSITION_NA; na++ )
                     {
                         A_Q28[ na ] = SigProcFIX.SKP_RSHIFT(
                             TablesOther.SKP_Silk_Transition_LP_A_Q28[ ind     ][ na ] +
@@ -80,17 +83,17 @@ public class LPVariableCutoff
 
                     assert( ( ( 1 << 16 ) - fac_Q16 ) == SigProcFIX.SKP_SAT16( ( ( 1 << 16 ) - fac_Q16) ) );
                     /* Piece-wise linear interpolation of B and A */
-                    for( nb = 0; nb < Define.TRANSITION_NB; nb++ )
+                    for( nb = 0; nb < TRANSITION_NB; nb++ )
                     {
-                        B_Q28[ nb ] = Macros.SKP_SMLAWB(
+                        B_Q28[ nb ] = SKP_SMLAWB(
                             TablesOther.SKP_Silk_Transition_LP_B_Q28[ ind + 1 ][ nb ],
                             TablesOther.SKP_Silk_Transition_LP_B_Q28[ ind     ][ nb ] -
                             TablesOther.SKP_Silk_Transition_LP_B_Q28[ ind + 1 ][ nb ],
                             ( 1 << 16 ) - fac_Q16 );
                     }
-                    for( na = 0; na < Define.TRANSITION_NA; na++ )
+                    for( na = 0; na < TRANSITION_NA; na++ )
                     {
-                        A_Q28[ na ] = Macros.SKP_SMLAWB(
+                        A_Q28[ na ] = SKP_SMLAWB(
                             TablesOther.SKP_Silk_Transition_LP_A_Q28[ ind + 1 ][ na ],
                             TablesOther.SKP_Silk_Transition_LP_A_Q28[ ind     ][ na ] -
                             TablesOther.SKP_Silk_Transition_LP_A_Q28[ ind + 1 ][ na ],
@@ -100,18 +103,18 @@ public class LPVariableCutoff
             }
             else
             {
-                for(int i_djinn=0; i_djinn<Define.TRANSITION_NB; i_djinn++)
+                for(int i_djinn=0; i_djinn<TRANSITION_NB; i_djinn++)
                     B_Q28[i_djinn] = TablesOther.SKP_Silk_Transition_LP_B_Q28[ ind ][i_djinn];
-                for(int i_djinn=0; i_djinn<Define.TRANSITION_NA; i_djinn++)
+                for(int i_djinn=0; i_djinn<TRANSITION_NA; i_djinn++)
                     A_Q28[i_djinn] = TablesOther.SKP_Silk_Transition_LP_A_Q28[ ind ][i_djinn];
             }
         }
         else
         {
-            for(int i_djinn=0; i_djinn<Define.TRANSITION_NB; i_djinn++)
-                B_Q28[i_djinn] = TablesOther.SKP_Silk_Transition_LP_B_Q28[ Define.TRANSITION_INT_NUM - 1 ][i_djinn];
-            for(int i_djinn=0; i_djinn<Define.TRANSITION_NA; i_djinn++)
-                A_Q28[i_djinn] = TablesOther.SKP_Silk_Transition_LP_A_Q28[ Define.TRANSITION_INT_NUM - 1 ][i_djinn];
+            for(int i_djinn=0; i_djinn<TRANSITION_NB; i_djinn++)
+                B_Q28[i_djinn] = TablesOther.SKP_Silk_Transition_LP_B_Q28[ TRANSITION_INT_NUM - 1 ][i_djinn];
+            for(int i_djinn=0; i_djinn<TRANSITION_NA; i_djinn++)
+                A_Q28[i_djinn] = TablesOther.SKP_Silk_Transition_LP_A_Q28[ TRANSITION_INT_NUM - 1 ][i_djinn];
         }
     }
 
@@ -137,32 +140,32 @@ public class LPVariableCutoff
         final int                       frame_length    /* I    Frame length                        */
     )
     {
-        int[]   B_Q28 = new int[ Define.TRANSITION_NB ], A_Q28 = new int[ Define.TRANSITION_NA ];
+        int[]   B_Q28 = new int[ TRANSITION_NB ], A_Q28 = new int[ TRANSITION_NA ];
         int fac_Q16 = 0;
         int     ind = 0;
 
         assert( psLP.transition_frame_no >= 0 );
-        assert( ( ( ( psLP.transition_frame_no <= Define.TRANSITION_FRAMES_DOWN ) && ( psLP.mode == 0 ) ) ||
-                      ( ( psLP.transition_frame_no <= Define.TRANSITION_FRAMES_UP   ) && ( psLP.mode == 1 ) ) ) );
+        assert( ( ( ( psLP.transition_frame_no <= TRANSITION_FRAMES_DOWN ) && ( psLP.mode == 0 ) ) ||
+                      ( ( psLP.transition_frame_no <= TRANSITION_FRAMES_UP   ) && ( psLP.mode == 1 ) ) ) );
 
         /* Interpolate filter coefficients if needed */
         if( psLP.transition_frame_no > 0 )
         {
             if( psLP.mode == 0 )
             {
-                if( psLP.transition_frame_no < Define.TRANSITION_FRAMES_DOWN )
+                if( psLP.transition_frame_no < TRANSITION_FRAMES_DOWN )
                 {
                     /* Calculate index and interpolation factor for interpolation */
-                    if( Define.TRANSITION_INT_STEPS_DOWN == 32 )
+                    if( TRANSITION_INT_STEPS_DOWN == 32 )
                     fac_Q16 = psLP.transition_frame_no << ( 16 - 5 );
                     else
-                    fac_Q16 = ( psLP.transition_frame_no << 16 ) / Define.TRANSITION_INT_STEPS_DOWN ;
+                    fac_Q16 = ( psLP.transition_frame_no << 16 ) / TRANSITION_INT_STEPS_DOWN ;
 
                     ind      = fac_Q16 >> 16;
                     fac_Q16 -= ind << 16;
 
                     assert( ind >= 0 );
-                    assert( ind < Define.TRANSITION_INT_NUM );
+                    assert( ind < TRANSITION_INT_NUM );
 
                     /* Interpolate filter coefficients */
                     SKP_Silk_LP_interpolate_filter_taps( B_Q28, A_Q28, ind, fac_Q16 );
@@ -171,27 +174,27 @@ public class LPVariableCutoff
                     psLP.transition_frame_no++;
 
                 }
-                else if( psLP.transition_frame_no == Define.TRANSITION_FRAMES_DOWN )
+                else if( psLP.transition_frame_no == TRANSITION_FRAMES_DOWN )
                 {
                     /* End of transition phase */
-                    SKP_Silk_LP_interpolate_filter_taps( B_Q28, A_Q28, Define.TRANSITION_INT_NUM - 1, 0 );
+                    SKP_Silk_LP_interpolate_filter_taps( B_Q28, A_Q28, TRANSITION_INT_NUM - 1, 0 );
                 }
             }
             else if( psLP.mode == 1 )
             {
-                if( psLP.transition_frame_no < Define.TRANSITION_FRAMES_UP )
+                if( psLP.transition_frame_no < TRANSITION_FRAMES_UP )
                 {
                     /* Calculate index and interpolation factor for interpolation */
-                    if( Define.TRANSITION_INT_STEPS_UP == 64 )
-                    fac_Q16 = ( Define.TRANSITION_FRAMES_UP - psLP.transition_frame_no ) << ( 16 - 6 );
+                    if( TRANSITION_INT_STEPS_UP == 64 )
+                    fac_Q16 = ( TRANSITION_FRAMES_UP - psLP.transition_frame_no ) << ( 16 - 6 );
                     else
-                    fac_Q16 = ( ( Define.TRANSITION_FRAMES_UP - psLP.transition_frame_no ) << 16 ) / Define.TRANSITION_INT_STEPS_UP;
+                    fac_Q16 = ( ( TRANSITION_FRAMES_UP - psLP.transition_frame_no ) << 16 ) / TRANSITION_INT_STEPS_UP;
 
                     ind      = fac_Q16 >> 16;
                     fac_Q16 -= ind << 16;
 
                     assert( ind >= 0 );
-                    assert( ind < Define.TRANSITION_INT_NUM );
+                    assert( ind < TRANSITION_INT_NUM );
 
                     /* Interpolate filter coefficients */
                     SKP_Silk_LP_interpolate_filter_taps( B_Q28, A_Q28, ind, fac_Q16 );
@@ -200,7 +203,7 @@ public class LPVariableCutoff
                     psLP.transition_frame_no++;
 
                 }
-                else if( psLP.transition_frame_no == Define.TRANSITION_FRAMES_UP )
+                else if( psLP.transition_frame_no == TRANSITION_FRAMES_UP )
                 {
                     /* End of transition phase */
                     SKP_Silk_LP_interpolate_filter_taps( B_Q28, A_Q28, 0, 0 );
@@ -211,7 +214,7 @@ public class LPVariableCutoff
         if( psLP.transition_frame_no > 0 )
         {
             /* ARMA low-pass filtering */
-            assert( Define.TRANSITION_NB == 3 && Define.TRANSITION_NA == 2 );
+            assert( TRANSITION_NB == 3 && TRANSITION_NA == 2 );
             BiquadAlt.SKP_Silk_biquad_alt( in,in_offset, B_Q28, A_Q28, psLP.In_LP_State, out,out_offset, frame_length );
         }
         else

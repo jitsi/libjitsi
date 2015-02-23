@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.CommonPitchEstDefines.*;
+
 /**
  * Auto Generated File from generate_pitch_est_tables.m
  *
@@ -57,15 +59,15 @@ public class PitchEstTables
 
     static short[] SKP_Silk_cbk_sizes_stage3 =
     {
-        CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MIN,
-        CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MID,
-        CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MAX
+        PITCH_EST_NB_CBKS_STAGE3_MIN,
+        PITCH_EST_NB_CBKS_STAGE3_MID,
+        PITCH_EST_NB_CBKS_STAGE3_MAX
     };
 
     static short[] SKP_Silk_cbk_offsets_stage3 =
     {
-        ((CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MAX - CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MIN) >> 1),
-        ((CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MAX - CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MID) >> 1),
+        ((PITCH_EST_NB_CBKS_STAGE3_MAX - PITCH_EST_NB_CBKS_STAGE3_MIN) >> 1),
+        ((PITCH_EST_NB_CBKS_STAGE3_MAX - PITCH_EST_NB_CBKS_STAGE3_MID) >> 1),
         0
     };
 }

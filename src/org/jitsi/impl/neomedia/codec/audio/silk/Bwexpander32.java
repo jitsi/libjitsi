@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  *
  * @author Jing Dai
@@ -30,9 +32,9 @@ public class Bwexpander32
 
         tmp_chirp_Q16 = chirp_Q16;
         for( i = 0; i < d - 1; i++ ) {
-            ar[ i ]       = Macros.SKP_SMULWW( ar[ i ],   tmp_chirp_Q16 );
-            tmp_chirp_Q16 = Macros.SKP_SMULWW( chirp_Q16, tmp_chirp_Q16 );
+            ar[ i ]       = SKP_SMULWW( ar[ i ],   tmp_chirp_Q16 );
+            tmp_chirp_Q16 = SKP_SMULWW( chirp_Q16, tmp_chirp_Q16 );
         }
-        ar[ d - 1 ] = Macros.SKP_SMULWW( ar[ d - 1 ], tmp_chirp_Q16 );
+        ar[ d - 1 ] = SKP_SMULWW( ar[ d - 1 ], tmp_chirp_Q16 );
     }
 }

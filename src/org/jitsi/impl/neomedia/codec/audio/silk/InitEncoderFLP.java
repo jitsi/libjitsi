@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  * Initialize Silk Encoder state.
  *
@@ -32,7 +34,7 @@ public class InitEncoderFLP
         /* Initialize to 24 kHz API sampling, 24 kHz max internal sampling, 20 ms packets, 25 kbps, 0% packet loss, and init non-zero values */
         ret = ControlCodecFLP.SKP_Silk_control_encoder_FLP( psEnc, 24000, 24, 20, 25, 0, 0, 0, 10, 0 );
 
-        if(Define.HIGH_PASS_INPUT)
+        if(HIGH_PASS_INPUT)
         {
             psEnc.variable_HP_smth1 = MainFLP.SKP_Silk_log2( 70.0 );
             psEnc.variable_HP_smth2 = MainFLP.SKP_Silk_log2( 70.0 );

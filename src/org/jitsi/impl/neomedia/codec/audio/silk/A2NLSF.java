@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 class A2NLSF_constants
 {
     /* Number of binary divisions, when not in low complexity mode */
@@ -74,7 +77,7 @@ public class A2NLSF
         x_Q16 = x << 4;
         for( n = dd - 1; n >= 0; n-- )
         {
-            y32 = Macros.SKP_SMLAWW( p[ n ], y32, x_Q16 );       /* QPoly */
+            y32 = SKP_SMLAWW( p[ n ], y32, x_Q16 );       /* QPoly */
         }
         return y32;
     }
@@ -242,9 +245,9 @@ public class A2NLSF
                     ffrac += ylo / ( ( ylo - yhi ) >> ( 8 - BIN_DIV_STEPS_A2NLSF_FIX ) );
                 }
                 if(OVERSAMPLE_COSINE_TABLE)
-                    NLSF[ root_ix ] = Math.min( ( k << 7 ) + ffrac, Typedef.SKP_int16_MAX );
+                    NLSF[ root_ix ] = Math.min( ( k << 7 ) + ffrac, SKP_int16_MAX );
                 else
-                    NLSF[ root_ix ] = Math.min( ( k << 8 ) + ffrac, Typedef.SKP_int16_MAX );
+                    NLSF[ root_ix ] = Math.min( ( k << 8 ) + ffrac, SKP_int16_MAX );
 
                 assert( NLSF[ root_ix ] >=     0 );
                 assert( NLSF[ root_ix ] <= 32767 );
@@ -286,13 +289,13 @@ public class A2NLSF
                             NLSF[ 0 ] = ( 1 << 15 ) / ( d + 1 );
                             for( k = 1; k < d; k++ )
                             {
-                                NLSF[ k ] = Macros.SKP_SMULBB( k + 1, NLSF[ 0 ] );
+                                NLSF[ k ] = SKP_SMULBB( k + 1, NLSF[ 0 ] );
                             }
                             return;
                         }
 
                         /* Error: Apply progressively more bandwidth expansion and run again */
-                        Bwexpander32.SKP_Silk_bwexpander_32( a_Q16, d, 65536 - Macros.SKP_SMULBB( 66, i ) ); // 66_Q16 = 0.001
+                        Bwexpander32.SKP_Silk_bwexpander_32( a_Q16, d, 65536 - SKP_SMULBB( 66, i ) ); // 66_Q16 = 0.001
 
                         SKP_Silk_A2NLSF_init( a_Q16, P, Q, dd );
                         p = P;                            /* Pointer to polynomial */
@@ -324,13 +327,13 @@ public class A2NLSF
                             NLSF[ 0 ] = ( 1 << 15 ) / ( d + 1 );
                             for( k = 1; k < d; k++ )
                             {
-                                NLSF[ k ] = Macros.SKP_SMULBB( k + 1, NLSF[ 0 ] );
+                                NLSF[ k ] = SKP_SMULBB( k + 1, NLSF[ 0 ] );
                             }
                             return;
                         }
 
                         /* Error: Apply progressively more bandwidth expansion and run again */
-                        Bwexpander32.SKP_Silk_bwexpander_32( a_Q16, d, 65536 - Macros.SKP_SMULBB( 66, i ) ); // 66_Q16 = 0.001
+                        Bwexpander32.SKP_Silk_bwexpander_32( a_Q16, d, 65536 - SKP_SMULBB( 66, i ) ); // 66_Q16 = 0.001
 
                         SKP_Silk_A2NLSF_init( a_Q16, P, Q, dd );
                         p = P;                            /* Pointer to polynomial */

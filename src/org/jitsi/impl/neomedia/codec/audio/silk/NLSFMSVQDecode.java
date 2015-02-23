@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 /**
  * NLSF vector decoder.
  *
@@ -34,7 +37,7 @@ public class NLSFMSVQDecode
         int    i;
 
         /* Check that each index is within valid range */
-        Typedef.SKP_assert( 0 <= NLSFIndices[ 0 ] && NLSFIndices[ 0 ] < psNLSF_CB.CBStages[ 0 ].nVectors );
+        SKP_assert( 0 <= NLSFIndices[ 0 ] && NLSFIndices[ 0 ] < psNLSF_CB.CBStages[ 0 ].nVectors );
 
         /* Point to the first vector element */
         pCB_element = psNLSF_CB.CBStages[ 0 ].CB_NLSF_Q15;
@@ -47,7 +50,7 @@ public class NLSFMSVQDecode
 
         for( s = 1; s < psNLSF_CB.nStages; s++ ) {
             /* Check that each index is within valid range */
-            Typedef.SKP_assert( 0 <= NLSFIndices[ s ] && NLSFIndices[ s ] < psNLSF_CB.CBStages[ s ].nVectors );
+            SKP_assert( 0 <= NLSFIndices[ s ] && NLSFIndices[ s ] < psNLSF_CB.CBStages[ s ].nVectors );
 
             if( LPC_order == 16 ) {
                 /* Point to the first vector element */
@@ -74,7 +77,7 @@ public class NLSFMSVQDecode
             } else {
                 /* Point to the first vector element */
                 pCB_element = psNLSF_CB.CBStages[ s ].CB_NLSF_Q15;
-                pCB_element_offset = Macros.SKP_SMULBB( NLSFIndices[ s ], LPC_order );
+                pCB_element_offset = SKP_SMULBB( NLSFIndices[ s ], LPC_order );
 
                 /* Add the codebook vector from the current stage */
                 for( i = 0; i < LPC_order; i++ ) {

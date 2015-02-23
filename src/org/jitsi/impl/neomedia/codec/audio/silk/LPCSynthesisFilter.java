@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 /**
  * even order AR filter.
  * Coefficients are in Q12
@@ -40,18 +43,18 @@ public class LPCSynthesisFilter
         int SA, SB, out32_Q10, out32;
 
         /* Order must be even */
-        Typedef.SKP_assert( 2 * Order_half == Order );
+        SKP_assert( 2 * Order_half == Order );
 
         /* S[] values are in Q14 */
         for( k = 0; k < len; k++ ) {
             SA = S[ Order - 1 ];
             out32_Q10 = 0;
             for( j = 0; j < ( Order_half - 1 ); j++ ) {
-                idx = Macros.SKP_SMULBB( 2, j ) + 1;
+                idx = SKP_SMULBB( 2, j ) + 1;
                 SB = S[ Order - 1 - idx ];
                 S[ Order - 1 - idx ] = SA;
-                out32_Q10 = Macros.SKP_SMLAWB( out32_Q10, SA, A_Q12[ ( j << 1 ) ] );
-                out32_Q10 = Macros.SKP_SMLAWB( out32_Q10, SB, A_Q12[ ( j << 1 ) + 1 ] );
+                out32_Q10 = SKP_SMLAWB( out32_Q10, SA, A_Q12[ ( j << 1 ) ] );
+                out32_Q10 = SKP_SMLAWB( out32_Q10, SB, A_Q12[ ( j << 1 ) + 1 ] );
                 SA = S[ Order - 2 - idx ];
                 S[ Order - 2 - idx ] = SB;
             }
@@ -59,10 +62,10 @@ public class LPCSynthesisFilter
             /* unrolled loop: epilog */
             SB = S[ 0 ];
             S[ 0 ] = SA;
-            out32_Q10 = Macros.SKP_SMLAWB( out32_Q10, SA, A_Q12[ Order - 2 ] );
-            out32_Q10 = Macros.SKP_SMLAWB( out32_Q10, SB, A_Q12[ Order - 1 ] );
+            out32_Q10 = SKP_SMLAWB( out32_Q10, SA, A_Q12[ Order - 2 ] );
+            out32_Q10 = SKP_SMLAWB( out32_Q10, SB, A_Q12[ Order - 1 ] );
             /* apply gain to excitation signal and add to prediction */
-            out32_Q10 = Macros.SKP_ADD_SAT32( out32_Q10, Macros.SKP_SMULWB( Gain_Q26, in[ k ] ) );
+            out32_Q10 = SKP_ADD_SAT32( out32_Q10, SKP_SMULWB( Gain_Q26, in[ k ] ) );
 
             /* scale to Q0 */
             out32 = SigProcFIX.SKP_RSHIFT_ROUND( out32_Q10, 10 );

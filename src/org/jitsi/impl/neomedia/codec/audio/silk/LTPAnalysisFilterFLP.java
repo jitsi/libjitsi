@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 public class LTPAnalysisFilterFLP
 {
     /**
@@ -34,7 +36,7 @@ public class LTPAnalysisFilterFLP
         float [] x_lag_ptr;
         int x_ptr_offset, x_lag_ptr_offset;
 
-        float   Btmp[] = new float[ Define.LTP_ORDER ];
+        float   Btmp[] = new float[ LTP_ORDER ];
         float   []LTP_res_ptr;
         int     LTP_res_ptr_offset;
         float   inv_gain;
@@ -44,20 +46,20 @@ public class LTPAnalysisFilterFLP
         x_ptr_offset = x_offset;
         LTP_res_ptr = LTP_res;
         LTP_res_ptr_offset = 0;
-        for( k = 0; k < Define.NB_SUBFR; k++ ) {
+        for( k = 0; k < NB_SUBFR; k++ ) {
             x_lag_ptr = x_ptr;
             x_lag_ptr_offset = x_ptr_offset - pitchL[ k ];
             inv_gain = invGains[ k ];
-            for( i = 0; i < Define.LTP_ORDER; i++ ) {
-                Btmp[ i ] = B[ k * Define.LTP_ORDER + i ];
+            for( i = 0; i < LTP_ORDER; i++ ) {
+                Btmp[ i ] = B[ k * LTP_ORDER + i ];
             }
 
             /* LTP analysis FIR filter */
             for( i = 0; i < subfr_length + pre_length; i++ ) {
                 LTP_res_ptr[ LTP_res_ptr_offset + i ] = x_ptr[ x_ptr_offset + i ];
                 /* Subtract long-term prediction */
-                for( j = 0; j < Define.LTP_ORDER; j++ ) {
-                    LTP_res_ptr[ LTP_res_ptr_offset + i ] -= Btmp[ j ] * x_lag_ptr[ x_lag_ptr_offset + Define.LTP_ORDER / 2 - j ];
+                for( j = 0; j < LTP_ORDER; j++ ) {
+                    LTP_res_ptr[ LTP_res_ptr_offset + i ] -= Btmp[ j ] * x_lag_ptr[ x_lag_ptr_offset + LTP_ORDER / 2 - j ];
                 }
                 LTP_res_ptr[ LTP_res_ptr_offset + i ] *= inv_gain;
                 x_lag_ptr_offset++;

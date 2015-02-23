@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 import java.util.*;
 
 /**
@@ -34,14 +36,14 @@ public class PrefilterFLP
         int   j, k, lag;
         float HarmShapeGain, Tilt, LF_MA_shp, LF_AR_shp;
         float[] B = new float[ 2 ];
-        float[] AR1_shp = new float[ Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX ];
+        float[] AR1_shp = new float[ NB_SUBFR * SHAPE_LPC_ORDER_MAX ];
         float[] px;
         int px_offset;
         float[] pxw, pst_res;
         int pxw_offset;
         int pst_res_offset;
         float[] HarmShapeFIR = new float[ 3 ];
-        float[] st_res = new float[ Define.MAX_FRAME_LENGTH / Define.NB_SUBFR + Define.MAX_LPC_ORDER ];
+        float[] st_res = new float[ MAX_FRAME_LENGTH / NB_SUBFR + MAX_LPC_ORDER ];
 
         /* Setup pointers */
         px  = x;
@@ -49,10 +51,10 @@ public class PrefilterFLP
         pxw = xw;
         pxw_offset = 0;
         lag = P.lagPrev;
-        for( k = 0; k < Define.NB_SUBFR; k++ )
+        for( k = 0; k < NB_SUBFR; k++ )
         {
             /* Update Variables that change per sub frame */
-            if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED )
+            if( psEncCtrl.sCmn.sigtype == SIG_TYPE_VOICED )
             {
                 lag = psEncCtrl.sCmn.pitchL[ k ];
             }
@@ -67,10 +69,10 @@ public class PrefilterFLP
             LF_AR_shp =  psEncCtrl.LF_AR_shp[ k ];
 //TODO: copy the psEncCtrl.AR1 to a local buffer or use a reference(pointer) to the struct???
 //            AR1_shp   = psEncCtrl.AR1;
-//            AR1_shp_offset = k * Define.SHAPE_LPC_ORDER_MAX;
+//            AR1_shp_offset = k * SHAPE_LPC_ORDER_MAX;
             Arrays.fill(AR1_shp, 0);
-            System.arraycopy(psEncCtrl.AR1,  k * Define.SHAPE_LPC_ORDER_MAX,
-                    AR1_shp, 0, psEncCtrl.AR1.length-k * Define.SHAPE_LPC_ORDER_MAX);
+            System.arraycopy(psEncCtrl.AR1,  k * SHAPE_LPC_ORDER_MAX,
+                    AR1_shp, 0, psEncCtrl.AR1.length-k * SHAPE_LPC_ORDER_MAX);
 
             /* Short term FIR filtering*/
             LPCAnalysisFilterFLP.SKP_Silk_LPC_analysis_filter_FLP( st_res, AR1_shp,
@@ -96,7 +98,7 @@ public class PrefilterFLP
             px_offset  += psEnc.sCmn.subfr_length;
             pxw_offset += psEnc.sCmn.subfr_length;
         }
-        P.lagPrev = psEncCtrl.sCmn.pitchL[ Define.NB_SUBFR - 1 ];
+        P.lagPrev = psEncCtrl.sCmn.pitchL[ NB_SUBFR - 1 ];
     }
 
     /**
@@ -141,11 +143,11 @@ public class PrefilterFLP
 
         for( i = 0; i < length; i++ ) {
             if( lag > 0 ) {
-                assert( Define.HARM_SHAPE_FIR_TAPS == 3 );
+                assert( HARM_SHAPE_FIR_TAPS == 3 );
                 idx = lag + LTP_shp_buf_idx;
-                n_LTP  = LTP_shp_buf[ ( idx - Define.HARM_SHAPE_FIR_TAPS / 2 - 1) & Define.LTP_MASK ] * HarmShapeFIR[ 0 ];
-                n_LTP += LTP_shp_buf[ ( idx - Define.HARM_SHAPE_FIR_TAPS / 2    ) & Define.LTP_MASK ] * HarmShapeFIR[ 1 ];
-                n_LTP += LTP_shp_buf[ ( idx - Define.HARM_SHAPE_FIR_TAPS / 2 + 1) & Define.LTP_MASK ] * HarmShapeFIR[ 2 ];
+                n_LTP  = LTP_shp_buf[ ( idx - HARM_SHAPE_FIR_TAPS / 2 - 1) & LTP_MASK ] * HarmShapeFIR[ 0 ];
+                n_LTP += LTP_shp_buf[ ( idx - HARM_SHAPE_FIR_TAPS / 2    ) & LTP_MASK ] * HarmShapeFIR[ 1 ];
+                n_LTP += LTP_shp_buf[ ( idx - HARM_SHAPE_FIR_TAPS / 2 + 1) & LTP_MASK ] * HarmShapeFIR[ 2 ];
             } else {
                 n_LTP = 0;
             }
@@ -156,7 +158,7 @@ public class PrefilterFLP
             sLF_AR_shp = st_res[ st_res_offset + i ] - n_Tilt;
             sLF_MA_shp = sLF_AR_shp - n_LF;
 
-            LTP_shp_buf_idx = ( LTP_shp_buf_idx - 1 ) & Define.LTP_MASK;
+            LTP_shp_buf_idx = ( LTP_shp_buf_idx - 1 ) & LTP_MASK;
             LTP_shp_buf[ LTP_shp_buf_idx ] = sLF_MA_shp;
             xw[ xw_offset + i ] = sLF_MA_shp - n_LTP;
         }

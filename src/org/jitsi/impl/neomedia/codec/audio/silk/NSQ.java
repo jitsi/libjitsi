@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 import java.util.*;
 
 /**
@@ -57,14 +60,14 @@ public class NSQ
         int           A_Q12_offset, B_Q14_offset, AR_shp_Q13_offset;
         short   []pxq;
         int     pxq_offset;
-        int     sLTP_Q16[] = new int[ 2 * Define.MAX_FRAME_LENGTH ];
-        short   sLTP[] = new short[ 2 * Define.MAX_FRAME_LENGTH ];
+        int     sLTP_Q16[] = new int[ 2 * MAX_FRAME_LENGTH ];
+        short   sLTP[] = new short[ 2 * MAX_FRAME_LENGTH ];
         int     HarmShapeFIRPacked_Q14;
         int     offset_Q10;
-        int     FiltState[] = new int[ Define.MAX_LPC_ORDER ];
-        int     x_sc_Q10[] = new int[ Define.MAX_FRAME_LENGTH / Define.NB_SUBFR ];
+        int     FiltState[] = new int[ MAX_LPC_ORDER ];
+        int     x_sc_Q10[] = new int[ MAX_FRAME_LENGTH / NB_SUBFR ];
 
-        subfr_length = psEncC.frame_length / Define.NB_SUBFR;
+        subfr_length = psEncC.frame_length / NB_SUBFR;
 
         NSQ.rand_seed  =  psEncCtrlC.Seed;
         /* Set unvoiced lag to the previous one, overwrite later for voiced */
@@ -92,13 +95,13 @@ public class NSQ
         byte[]  q_tmp = q.clone();
         int     q_tmp_offset = 0;
 
-        for( k = 0; k < Define.NB_SUBFR; k++ ) {
+        for( k = 0; k < NB_SUBFR; k++ ) {
             A_Q12      = PredCoef_Q12;
-            A_Q12_offset = (( k >> 1 ) | ( 1 - LSF_interpolation_flag )) * Define.MAX_LPC_ORDER;
+            A_Q12_offset = (( k >> 1 ) | ( 1 - LSF_interpolation_flag )) * MAX_LPC_ORDER;
             B_Q14      = LTPCoef_Q14;
-            B_Q14_offset = k * Define.LTP_ORDER;
+            B_Q14_offset = k * LTP_ORDER;
             AR_shp_Q13 = AR2_Q13;
-            AR_shp_Q13_offset = k * Define.SHAPE_LPC_ORDER_MAX;
+            AR_shp_Q13_offset = k * SHAPE_LPC_ORDER_MAX;
 
             /* Noise shape parameters */
             assert( HarmShapeGain_Q14[ k ] >= 0 );
@@ -106,7 +109,7 @@ public class NSQ
             HarmShapeFIRPacked_Q14 |= ( ( HarmShapeGain_Q14[ k ] >> 1 ) << 16 );
 
 
-            if( psEncCtrlC.sigtype == Define.SIG_TYPE_VOICED ) {
+            if( psEncCtrlC.sigtype == SIG_TYPE_VOICED ) {
                 /* Voiced */
                 lag = psEncCtrlC.pitchL[ k ];
 
@@ -115,7 +118,7 @@ public class NSQ
                 if( ( k & ( 3 - ( LSF_interpolation_flag << 1 ) ) ) == 0 ) {
                     /* Rewhiten with new A coefs */
 
-                    start_idx = psEncC.frame_length - lag - psEncC.predictLPCOrder - Define.LTP_ORDER / 2;
+                    start_idx = psEncC.frame_length - lag - psEncC.predictLPCOrder - LTP_ORDER / 2;
                     start_idx = SigProcFIX.SKP_LIMIT_int( start_idx, 0, psEncC.frame_length - psEncC.predictLPCOrder ); /* Limit */
 
                     Arrays.fill(FiltState, 0, psEncC.predictLPCOrder, 0);
@@ -145,7 +148,7 @@ public class NSQ
         /* Save scalars for this layer */
         NSQ.sLF_AR_shp_Q12                 = NSQ.sLF_AR_shp_Q12;
         NSQ.prev_inv_gain_Q16              = NSQ.prev_inv_gain_Q16;
-        NSQ.lagPrev                        = psEncCtrlC.pitchL[ Define.NB_SUBFR - 1 ];
+        NSQ.lagPrev                        = psEncCtrlC.pitchL[ NB_SUBFR - 1 ];
     /* Save quantized speech and noise shaping signals */
         System.arraycopy(NSQ.xq, psEncC.frame_length, NSQ.xq, 0, psEncC.frame_length);
         System.arraycopy(NSQ.sLTP_shp_Q10, psEncC.frame_length, NSQ.sLTP_shp_Q10, 0, psEncC.frame_length);
@@ -221,18 +224,18 @@ public class NSQ
         int   shp_lag_ptr_offset, pred_lag_ptr_offset;
 
         shp_lag_ptr  = NSQ.sLTP_shp_Q10;
-        shp_lag_ptr_offset = NSQ.sLTP_shp_buf_idx - lag + Define.HARM_SHAPE_FIR_TAPS / 2;
+        shp_lag_ptr_offset = NSQ.sLTP_shp_buf_idx - lag + HARM_SHAPE_FIR_TAPS / 2;
         pred_lag_ptr = sLTP_Q16;
-        pred_lag_ptr_offset = NSQ.sLTP_buf_idx - lag + Define.LTP_ORDER / 2;
+        pred_lag_ptr_offset = NSQ.sLTP_buf_idx - lag + LTP_ORDER / 2;
 
         /* Setup short term AR state */
         psLPC_Q14     = NSQ.sLPC_Q14;
-        psLPC_Q14_offset = Define.MAX_LPC_ORDER - 1;
+        psLPC_Q14_offset = MAX_LPC_ORDER - 1;
 
         /* Quantization thresholds */
         thr1_Q10 = ( -1536 - (Lambda_Q10 >> 1));
         thr2_Q10 = ( -512 - (Lambda_Q10 >> 1));
-        thr2_Q10 = ( thr2_Q10 + (Macros.SKP_SMULBB( offset_Q10, Lambda_Q10 ) >> 10 ));
+        thr2_Q10 = ( thr2_Q10 + (SKP_SMULBB( offset_Q10, Lambda_Q10 ) >> 10 ));
         thr3_Q10 = (  512 + (Lambda_Q10 >> 1));
 
         for( i = 0; i < length; i++ ) {
@@ -247,28 +250,28 @@ public class NSQ
 //            SKP_assert( ( (SKP_int64)a_Q12 & 3 ) == 0 );    /* check that array starts at 4-byte aligned address */
             assert( predictLPCOrder >= 10 );            /* check that unrolling works */
             /* Partially unrolled */
-            LPC_pred_Q10 = Macros.SKP_SMULWB(               psLPC_Q14[  psLPC_Q14_offset+0 ], a_Q12[ a_Q12_offset+0 ] );
-            LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-1 ], a_Q12[ a_Q12_offset+1 ] );
-            LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-2 ], a_Q12[ a_Q12_offset+2 ] );
-            LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-3 ], a_Q12[ a_Q12_offset+3 ] );
-            LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-4 ], a_Q12[ a_Q12_offset+4 ] );
-            LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-5 ], a_Q12[ a_Q12_offset+5 ] );
-            LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-6 ], a_Q12[ a_Q12_offset+6 ] );
-            LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-7 ], a_Q12[ a_Q12_offset+7 ] );
-            LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-8 ], a_Q12[ a_Q12_offset+8 ] );
-            LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-9 ], a_Q12[ a_Q12_offset+9 ] );
+            LPC_pred_Q10 = SKP_SMULWB(               psLPC_Q14[  psLPC_Q14_offset+0 ], a_Q12[ a_Q12_offset+0 ] );
+            LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-1 ], a_Q12[ a_Q12_offset+1 ] );
+            LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-2 ], a_Q12[ a_Q12_offset+2 ] );
+            LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-3 ], a_Q12[ a_Q12_offset+3 ] );
+            LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-4 ], a_Q12[ a_Q12_offset+4 ] );
+            LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-5 ], a_Q12[ a_Q12_offset+5 ] );
+            LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-6 ], a_Q12[ a_Q12_offset+6 ] );
+            LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-7 ], a_Q12[ a_Q12_offset+7 ] );
+            LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-8 ], a_Q12[ a_Q12_offset+8 ] );
+            LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-9 ], a_Q12[ a_Q12_offset+9 ] );
 
             for( j = 10; j < predictLPCOrder; j ++ ) {
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-j ], a_Q12[ a_Q12_offset+j ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-j ], a_Q12[ a_Q12_offset+j ] );
             }
             /* Long-term prediction */
-            if( sigtype == Define.SIG_TYPE_VOICED ) {
+            if( sigtype == SIG_TYPE_VOICED ) {
                 /* Unrolled loop */
-                LTP_pred_Q14 = Macros.SKP_SMULWB(               pred_lag_ptr[ pred_lag_ptr_offset +0 ], b_Q14[ b_Q14_offset+0 ] );
-                LTP_pred_Q14 = Macros.SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset -1 ], b_Q14[ b_Q14_offset+1 ] );
-                LTP_pred_Q14 = Macros.SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset -2 ], b_Q14[ b_Q14_offset+2 ] );
-                LTP_pred_Q14 = Macros.SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset -3 ], b_Q14[ b_Q14_offset+3 ] );
-                LTP_pred_Q14 = Macros.SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset -4 ], b_Q14[ b_Q14_offset+4 ] );
+                LTP_pred_Q14 = SKP_SMULWB(               pred_lag_ptr[ pred_lag_ptr_offset +0 ], b_Q14[ b_Q14_offset+0 ] );
+                LTP_pred_Q14 = SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset -1 ], b_Q14[ b_Q14_offset+1 ] );
+                LTP_pred_Q14 = SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset -2 ], b_Q14[ b_Q14_offset+2 ] );
+                LTP_pred_Q14 = SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset -3 ], b_Q14[ b_Q14_offset+3 ] );
+                LTP_pred_Q14 = SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset -4 ], b_Q14[ b_Q14_offset+4 ] );
                 pred_lag_ptr_offset++;
             } else {
                 LTP_pred_Q14 = 0;
@@ -279,36 +282,36 @@ public class NSQ
 //            SKP_assert( ( (SKP_int64)AR_shp_Q13 & 3 ) == 0 );   /* check that array starts at 4-byte aligned address */
             assert( shapingLPCOrder >= 12 );                /* check that unrolling works */
             /* Partially unrolled */
-            n_AR_Q10 = Macros.SKP_SMULWB(           psLPC_Q14[   psLPC_Q14_offset+0 ], AR_shp_Q13[AR_shp_Q13_offset+0 ] );
-            n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-1 ], AR_shp_Q13[AR_shp_Q13_offset+1 ] );
-            n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-2 ], AR_shp_Q13[AR_shp_Q13_offset+2 ] );
-            n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-3 ], AR_shp_Q13[AR_shp_Q13_offset+3 ] );
-            n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-4 ], AR_shp_Q13[AR_shp_Q13_offset+4 ] );
-            n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-5 ], AR_shp_Q13[AR_shp_Q13_offset+5 ] );
-            n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-6 ], AR_shp_Q13[AR_shp_Q13_offset+6 ] );
-            n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-7 ], AR_shp_Q13[AR_shp_Q13_offset+7 ] );
-            n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-8 ], AR_shp_Q13[AR_shp_Q13_offset+8 ] );
-            n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-9 ], AR_shp_Q13[AR_shp_Q13_offset+9 ] );
-            n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[ psLPC_Q14_offset-10 ], AR_shp_Q13[AR_shp_Q13_offset+10] );
-            n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[ psLPC_Q14_offset-11 ], AR_shp_Q13[AR_shp_Q13_offset+11] );
+            n_AR_Q10 = SKP_SMULWB(           psLPC_Q14[   psLPC_Q14_offset+0 ], AR_shp_Q13[AR_shp_Q13_offset+0 ] );
+            n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-1 ], AR_shp_Q13[AR_shp_Q13_offset+1 ] );
+            n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-2 ], AR_shp_Q13[AR_shp_Q13_offset+2 ] );
+            n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-3 ], AR_shp_Q13[AR_shp_Q13_offset+3 ] );
+            n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-4 ], AR_shp_Q13[AR_shp_Q13_offset+4 ] );
+            n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-5 ], AR_shp_Q13[AR_shp_Q13_offset+5 ] );
+            n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-6 ], AR_shp_Q13[AR_shp_Q13_offset+6 ] );
+            n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-7 ], AR_shp_Q13[AR_shp_Q13_offset+7 ] );
+            n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-8 ], AR_shp_Q13[AR_shp_Q13_offset+8 ] );
+            n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-9 ], AR_shp_Q13[AR_shp_Q13_offset+9 ] );
+            n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[ psLPC_Q14_offset-10 ], AR_shp_Q13[AR_shp_Q13_offset+10] );
+            n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[ psLPC_Q14_offset-11 ], AR_shp_Q13[AR_shp_Q13_offset+11] );
 
             for( j = 12; j < shapingLPCOrder; j ++ ) {
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[ psLPC_Q14_offset-j ], AR_shp_Q13[ AR_shp_Q13_offset+j ] );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[ psLPC_Q14_offset-j ], AR_shp_Q13[ AR_shp_Q13_offset+j ] );
             }
             n_AR_Q10 = ( n_AR_Q10 >> 1 );   /* Q11 -> Q10 */
-            n_AR_Q10  = Macros.SKP_SMLAWB( n_AR_Q10, NSQ.sLF_AR_shp_Q12, Tilt_Q14 );
+            n_AR_Q10  = SKP_SMLAWB( n_AR_Q10, NSQ.sLF_AR_shp_Q12, Tilt_Q14 );
 
-            n_LF_Q10   = ( Macros.SKP_SMULWB( NSQ.sLTP_shp_Q10[ NSQ.sLTP_shp_buf_idx - 1 ], LF_shp_Q14 ) << 2 );
-            n_LF_Q10   = Macros.SKP_SMLAWT( n_LF_Q10, NSQ.sLF_AR_shp_Q12, LF_shp_Q14 );
+            n_LF_Q10   = ( SKP_SMULWB( NSQ.sLTP_shp_Q10[ NSQ.sLTP_shp_buf_idx - 1 ], LF_shp_Q14 ) << 2 );
+            n_LF_Q10   = SKP_SMLAWT( n_LF_Q10, NSQ.sLF_AR_shp_Q12, LF_shp_Q14 );
 
-            assert( lag > 0 || sigtype == Define.SIG_TYPE_UNVOICED );
+            assert( lag > 0 || sigtype == SIG_TYPE_UNVOICED );
 
             /* Long-term shaping */
             if( lag > 0 ) {
                 /* Symmetric, packed FIR coefficients */
-                n_LTP_Q14 = Macros.SKP_SMULWB((shp_lag_ptr[ shp_lag_ptr_offset+0 ] + shp_lag_ptr[ shp_lag_ptr_offset-2 ] ),
+                n_LTP_Q14 = SKP_SMULWB((shp_lag_ptr[ shp_lag_ptr_offset+0 ] + shp_lag_ptr[ shp_lag_ptr_offset-2 ] ),
                         HarmShapeFIRPacked_Q14 );
-                n_LTP_Q14 = Macros.SKP_SMLAWT(n_LTP_Q14, shp_lag_ptr[ shp_lag_ptr_offset-1 ],HarmShapeFIRPacked_Q14 );
+                n_LTP_Q14 = SKP_SMLAWT(n_LTP_Q14, shp_lag_ptr[ shp_lag_ptr_offset-1 ],HarmShapeFIRPacked_Q14 );
                 shp_lag_ptr_offset++;
                 n_LTP_Q14 = ( n_LTP_Q14 << 6 );
             } else {
@@ -354,7 +357,7 @@ public class NSQ
             xq_Q10      = ( LPC_exc_Q10 + LPC_pred_Q10 );
 
             /* Scale XQ back to normal level before saving */
-            xq[ xq_offset + i ] = (  short)SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( Macros.SKP_SMULWW( xq_Q10, Gain_Q16 ), 10 ) );
+            xq[ xq_offset + i ] = (  short)SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( SKP_SMULWW( xq_Q10, Gain_Q16 ), 10 ) );
 
 
             /* Update states */
@@ -372,7 +375,7 @@ public class NSQ
             NSQ.rand_seed += q[ q_offset + i ];
         }
         /* Update LPC synth buffer */
-        System.arraycopy(NSQ.sLPC_Q14, length, NSQ.sLPC_Q14, 0, Define.MAX_LPC_ORDER);
+        System.arraycopy(NSQ.sLPC_Q14, length, NSQ.sLPC_Q14, 0, MAX_LPC_ORDER);
     }
 
     /**
@@ -415,43 +418,43 @@ public class NSQ
             inv_gain_Q32 = ( inv_gain_Q16 << 16 );
             if( subfr == 0 ) {
                 /* Do LTP downscaling */
-                inv_gain_Q32 = ( Macros.SKP_SMULWB( inv_gain_Q32, LTP_scale_Q14 ) << 2 );
+                inv_gain_Q32 = ( SKP_SMULWB( inv_gain_Q32, LTP_scale_Q14 ) << 2 );
             }
-            for( i = NSQ.sLTP_buf_idx - lag - Define.LTP_ORDER / 2; i < NSQ.sLTP_buf_idx; i++ ) {
-                sLTP_Q16[ i ] = Macros.SKP_SMULWB( inv_gain_Q32, sLTP[ i ] );
+            for( i = NSQ.sLTP_buf_idx - lag - LTP_ORDER / 2; i < NSQ.sLTP_buf_idx; i++ ) {
+                sLTP_Q16[ i ] = SKP_SMULWB( inv_gain_Q32, sLTP[ i ] );
             }
         }
 
         /* Prepare for Worst case. Next frame starts with max lag voiced */
-        scale_length = length * Define.NB_SUBFR;                                           /* approx max lag */
-        scale_length = scale_length - Macros.SKP_SMULBB( Define.NB_SUBFR - (subfr + 1), length ); /* subtract samples that will be too old in next frame */
-        scale_length = SigProcFIX.SKP_max_int( scale_length, lag + Define.LTP_ORDER );                /* make sure to scale whole pitch period if voiced */
+        scale_length = length * NB_SUBFR;                                           /* approx max lag */
+        scale_length = scale_length - SKP_SMULBB( NB_SUBFR - (subfr + 1), length ); /* subtract samples that will be too old in next frame */
+        scale_length = SigProcFIX.SKP_max_int( scale_length, lag + LTP_ORDER );                /* make sure to scale whole pitch period if voiced */
 
         /* Adjust for changing gain */
         if( inv_gain_Q16 != NSQ.prev_inv_gain_Q16 ) {
             gain_adj_Q16 =  Inlines.SKP_DIV32_varQ( inv_gain_Q16, NSQ.prev_inv_gain_Q16, 16 );
 
             for( i = NSQ.sLTP_shp_buf_idx - scale_length; i < NSQ.sLTP_shp_buf_idx; i++ ) {
-                NSQ.sLTP_shp_Q10[ i ] = Macros.SKP_SMULWW( gain_adj_Q16, NSQ.sLTP_shp_Q10[ i ] );
+                NSQ.sLTP_shp_Q10[ i ] = SKP_SMULWW( gain_adj_Q16, NSQ.sLTP_shp_Q10[ i ] );
             }
 
             /* Scale LTP predict state */
             if( NSQ.rewhite_flag == 0 ) {
-                for( i = NSQ.sLTP_buf_idx - lag - Define.LTP_ORDER / 2; i < NSQ.sLTP_buf_idx; i++ ) {
-                    sLTP_Q16[ i ] = Macros.SKP_SMULWW( gain_adj_Q16, sLTP_Q16[ i ] );
+                for( i = NSQ.sLTP_buf_idx - lag - LTP_ORDER / 2; i < NSQ.sLTP_buf_idx; i++ ) {
+                    sLTP_Q16[ i ] = SKP_SMULWW( gain_adj_Q16, sLTP_Q16[ i ] );
                 }
             }
-            NSQ.sLF_AR_shp_Q12 = Macros.SKP_SMULWW( gain_adj_Q16, NSQ.sLF_AR_shp_Q12 );
+            NSQ.sLF_AR_shp_Q12 = SKP_SMULWW( gain_adj_Q16, NSQ.sLF_AR_shp_Q12 );
 
             /* scale short term state */
-            for( i = 0; i < Define.MAX_LPC_ORDER; i++ ) {
-                NSQ.sLPC_Q14[ i ] = Macros.SKP_SMULWW( gain_adj_Q16, NSQ.sLPC_Q14[ i ] );
+            for( i = 0; i < MAX_LPC_ORDER; i++ ) {
+                NSQ.sLPC_Q14[ i ] = SKP_SMULWW( gain_adj_Q16, NSQ.sLPC_Q14[ i ] );
             }
         }
 
         /* Scale input */
         for( i = 0; i < length; i++ ) {
-            x_sc_Q10[ i ] = ( Macros.SKP_SMULBB( x[ x_offset + i ], ( short )inv_gain_Q16 ) >> 6 );
+            x_sc_Q10[ i ] = ( SKP_SMULBB( x[ x_offset + i ], ( short )inv_gain_Q16 ) >> 6 );
         }
 
         /* save inv_gain */

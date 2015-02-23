@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  * Limit, stabilize, convert and quantize NLSFs.
  *
@@ -26,22 +28,22 @@ public class ProcessNLSFsFLP
     )
     {
         boolean     doInterpolate;
-        float   pNLSFW[] = new float[ Define.MAX_LPC_ORDER ];
+        float   pNLSFW[] = new float[ MAX_LPC_ORDER ];
         float   NLSF_mu, NLSF_mu_fluc_red, i_sqr, NLSF_interpolation_factor = 0.0f;
         final SKP_Silk_NLSF_CB_FLP psNLSF_CB_FLP;
 
 
         /* Used only for NLSF interpolation */
-        float   pNLSF0_temp[] = new float[  Define.MAX_LPC_ORDER ];
-        float   pNLSFW0_temp[] = new float[ Define.MAX_LPC_ORDER ];
+        float   pNLSF0_temp[] = new float[  MAX_LPC_ORDER ];
+        float   pNLSFW0_temp[] = new float[ MAX_LPC_ORDER ];
         int     i;
 
-        assert( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED || psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_UNVOICED );
+        assert( psEncCtrl.sCmn.sigtype == SIG_TYPE_VOICED || psEncCtrl.sCmn.sigtype == SIG_TYPE_UNVOICED );
 
         /***********************/
         /* Calculate mu values */
         /***********************/
-        if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) {
+        if( psEncCtrl.sCmn.sigtype == SIG_TYPE_VOICED ) {
             NLSF_mu          = 0.002f - 0.001f * psEnc.speech_activity;
             NLSF_mu_fluc_red = 0.1f   - 0.05f  * psEnc.speech_activity;
         } else {

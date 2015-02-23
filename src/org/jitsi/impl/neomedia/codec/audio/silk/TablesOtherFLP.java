@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  *
  * @author Jing Dai
@@ -18,7 +20,7 @@ public class TablesOtherFLP
 
     float[][] SKP_Silk_Quantization_Offsets =
     {
-        { Define.OFFSET_VL_Q10 / 1024.0f,  Define.OFFSET_VH_Q10 / 1024.0f  },
-        { Define.OFFSET_UVL_Q10 / 1024.0f, Define.OFFSET_UVH_Q10 / 1024.0f }
+        { OFFSET_VL_Q10 / 1024.0f,  OFFSET_VH_Q10 / 1024.0f  },
+        { OFFSET_UVL_Q10 / 1024.0f, OFFSET_UVH_Q10 / 1024.0f }
     };
 }

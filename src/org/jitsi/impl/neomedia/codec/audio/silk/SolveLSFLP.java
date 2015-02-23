@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 public class SolveLSFLP
 {
     /**
@@ -28,13 +30,13 @@ public class SolveLSFLP
     )
     {
         int i;
-//        float L[][] = new float[Define.MAX_MATRIX_SIZE][Define.MAX_MATRIX_SIZE];
+//        float L[][] = new float[MAX_MATRIX_SIZE][MAX_MATRIX_SIZE];
 //TODO:change L from two dimension to one dimension.
-        float L_tmp[] = new float[Define.MAX_MATRIX_SIZE*Define.MAX_MATRIX_SIZE];
-        float T[] = new float[Define.MAX_MATRIX_SIZE];
-        float Dinv[] = new float[Define.MAX_MATRIX_SIZE];// inverse diagonal elements of D
+        float L_tmp[] = new float[MAX_MATRIX_SIZE*MAX_MATRIX_SIZE];
+        float T[] = new float[MAX_MATRIX_SIZE];
+        float Dinv[] = new float[MAX_MATRIX_SIZE];// inverse diagonal elements of D
 
-        assert( M <= Define.MAX_MATRIX_SIZE );
+        assert( M <= MAX_MATRIX_SIZE );
 
         /***************************************************
         Factorize A by LDL such that A = L*D*(L^T),
@@ -168,9 +170,9 @@ public class SolveLSFLP
         float ptr1[], ptr2[];
         int ptr1_offset, ptr2_offset;
         double temp, diag_min_value;
-        float v[] = new float[ Define.MAX_MATRIX_SIZE ], D[] = new float[ Define.MAX_MATRIX_SIZE ]; // temp arrays
+        float v[] = new float[ MAX_MATRIX_SIZE ], D[] = new float[ MAX_MATRIX_SIZE ]; // temp arrays
 
-        assert( M <= Define.MAX_MATRIX_SIZE );
+        assert( M <= MAX_MATRIX_SIZE );
 
         diag_min_value = DefineFLP.FIND_LTP_COND_FAC * 0.5f * ( A[ A_offset + 0 ] + A[ A_offset + M * M - 1 ] );
         for( loop_count = 0; loop_count < M && err == 1; loop_count++ ) {

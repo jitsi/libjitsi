@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Resample with a 2x downsampler (optional), a 2nd order AR filter followed by FIR interpolation.
  *
@@ -86,12 +88,12 @@ public class ResamplerPrivateDownFIR
                     buf_ptr_offset = index_Q16 >> 16;
 
                     /* Inner product */
-                    res_Q6 = Macros.SKP_SMULWB(         buf_ptr[ buf_ptr_offset   ]+buf_ptr[ buf_ptr_offset+11 ], FIR_Coefs[ FIR_Coefs_offset   ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+1 ]+buf_ptr[ buf_ptr_offset+10 ], FIR_Coefs[ FIR_Coefs_offset+1 ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+2 ]+buf_ptr[  buf_ptr_offset+9 ], FIR_Coefs[ FIR_Coefs_offset+2 ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+3 ]+buf_ptr[  buf_ptr_offset+8 ], FIR_Coefs[ FIR_Coefs_offset+3 ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+4 ]+buf_ptr[  buf_ptr_offset+7 ], FIR_Coefs[ FIR_Coefs_offset+4 ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+5 ]+buf_ptr[  buf_ptr_offset+6 ], FIR_Coefs[ FIR_Coefs_offset+5 ] );
+                    res_Q6 = SKP_SMULWB(         buf_ptr[ buf_ptr_offset   ]+buf_ptr[ buf_ptr_offset+11 ], FIR_Coefs[ FIR_Coefs_offset   ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+1 ]+buf_ptr[ buf_ptr_offset+10 ], FIR_Coefs[ FIR_Coefs_offset+1 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+2 ]+buf_ptr[  buf_ptr_offset+9 ], FIR_Coefs[ FIR_Coefs_offset+2 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+3 ]+buf_ptr[  buf_ptr_offset+8 ], FIR_Coefs[ FIR_Coefs_offset+3 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+4 ]+buf_ptr[  buf_ptr_offset+7 ], FIR_Coefs[ FIR_Coefs_offset+4 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+5 ]+buf_ptr[  buf_ptr_offset+6 ], FIR_Coefs[ FIR_Coefs_offset+5 ] );
 
                     /* Scale down, saturate and store in output array */
                     out[out_offset++] = (short)SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( res_Q6, 6 ) );
@@ -106,27 +108,27 @@ public class ResamplerPrivateDownFIR
                     buf_ptr_offset = index_Q16 >> 16;
 
                     /* Fractional part gives interpolation coefficients */
-                    interpol_ind = Macros.SKP_SMULWB( index_Q16 & 0xFFFF, S.FIR_Fracs );
+                    interpol_ind = SKP_SMULWB( index_Q16 & 0xFFFF, S.FIR_Fracs );
 
                     /* Inner product */
                     interpol_ptr = FIR_Coefs;
 //BugFix                    interpol_ptr_offset = ResamplerRom.RESAMPLER_DOWN_ORDER_FIR / 2 * interpol_ind;
                     interpol_ptr_offset = FIR_Coefs_offset + ResamplerRom.RESAMPLER_DOWN_ORDER_FIR / 2 * interpol_ind;
-                    res_Q6 = Macros.SKP_SMULWB(         buf_ptr[ buf_ptr_offset   ], interpol_ptr[ interpol_ptr_offset   ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+1 ], interpol_ptr[ interpol_ptr_offset+1 ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+2 ], interpol_ptr[ interpol_ptr_offset+2 ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+3 ], interpol_ptr[ interpol_ptr_offset+3 ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+4 ], interpol_ptr[ interpol_ptr_offset+4 ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+5 ], interpol_ptr[ interpol_ptr_offset+5 ] );
+                    res_Q6 = SKP_SMULWB(         buf_ptr[ buf_ptr_offset   ], interpol_ptr[ interpol_ptr_offset   ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+1 ], interpol_ptr[ interpol_ptr_offset+1 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+2 ], interpol_ptr[ interpol_ptr_offset+2 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+3 ], interpol_ptr[ interpol_ptr_offset+3 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+4 ], interpol_ptr[ interpol_ptr_offset+4 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+5 ], interpol_ptr[ interpol_ptr_offset+5 ] );
                     interpol_ptr = FIR_Coefs;
 //BugFix                    interpol_ptr_offset = ResamplerRom.RESAMPLER_DOWN_ORDER_FIR / 2 * ( S.FIR_Fracs - 1 - interpol_ind );
                     interpol_ptr_offset = FIR_Coefs_offset + ResamplerRom.RESAMPLER_DOWN_ORDER_FIR / 2 * ( S.FIR_Fracs - 1 - interpol_ind );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+11 ], interpol_ptr[ interpol_ptr_offset   ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+10 ], interpol_ptr[ interpol_ptr_offset+1 ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[  buf_ptr_offset+9 ], interpol_ptr[ interpol_ptr_offset+2 ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[  buf_ptr_offset+8 ], interpol_ptr[ interpol_ptr_offset+3 ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[  buf_ptr_offset+7 ], interpol_ptr[ interpol_ptr_offset+4 ] );
-                    res_Q6 = Macros.SKP_SMLAWB( res_Q6, buf_ptr[  buf_ptr_offset+6 ], interpol_ptr[ interpol_ptr_offset+5 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+11 ], interpol_ptr[ interpol_ptr_offset   ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[ buf_ptr_offset+10 ], interpol_ptr[ interpol_ptr_offset+1 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[  buf_ptr_offset+9 ], interpol_ptr[ interpol_ptr_offset+2 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[  buf_ptr_offset+8 ], interpol_ptr[ interpol_ptr_offset+3 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[  buf_ptr_offset+7 ], interpol_ptr[ interpol_ptr_offset+4 ] );
+                    res_Q6 = SKP_SMLAWB( res_Q6, buf_ptr[  buf_ptr_offset+6 ], interpol_ptr[ interpol_ptr_offset+5 ] );
 
                     /* Scale down, saturate and store in output array */
                     out[out_offset++] = (short)SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( res_Q6, 6 ) );

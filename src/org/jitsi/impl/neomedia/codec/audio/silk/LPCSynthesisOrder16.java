@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * 16th order AR filter.
  * Coefficients are in Q12.
@@ -42,7 +44,7 @@ public class LPCSynthesisOrder16
             SA = S[ 15 ];
             SB = S[ 14 ];
             S[ 14 ] = SA;
-            out32_Q10 = Macros.SKP_SMULWB(SA, A_Q12[ 0 ]);
+            out32_Q10 = SKP_SMULWB(SA, A_Q12[ 0 ]);
             out32_Q10 = SigProcFIX.SKP_SMLAWB_ovflw( out32_Q10, SB, A_Q12[ 1 ] );
             SA = S[ 13 ];
             S[ 13 ] = SB;
@@ -102,7 +104,7 @@ public class LPCSynthesisOrder16
 
             /* unrolled loop: end */
             /* apply gain to excitation signal and add to prediction */
-            out32_Q10 = Macros.SKP_ADD_SAT32( out32_Q10, Macros.SKP_SMULWB( Gain_Q26, in[ k ] ) );
+            out32_Q10 = SKP_ADD_SAT32( out32_Q10, SKP_SMULWB( Gain_Q26, in[ k ] ) );
 
             /* scale to Q0 */
             out32 = SigProcFIX.SKP_RSHIFT_ROUND( out32_Q10, 10 );

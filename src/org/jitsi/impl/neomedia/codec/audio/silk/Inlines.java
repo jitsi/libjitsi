@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  *
  * @author Jing Dai
@@ -80,7 +82,7 @@ public class Inlines
         y >>= (lz[0]>>1);
 
         /* increment using fractional part of input */
-        y = Macros.SKP_SMLAWB(y, y, Macros.SKP_SMULBB(213, frac_Q7[0]));
+        y = SKP_SMLAWB(y, y, SKP_SMULBB(213, frac_Q7[0]));
 
         return y;
     }
@@ -155,13 +157,13 @@ public class Inlines
         b32_inv = (Integer.MAX_VALUE >> 2) / (b32_nrm>>16) ;  /* Q: 29 + 16 - b_headrm        */
 
         /* First approximation */
-        result = Macros.SKP_SMULWB(a32_nrm, b32_inv);                                  /* Q: 29 + a_headrm - b_headrm    */
+        result = SKP_SMULWB(a32_nrm, b32_inv);                                  /* Q: 29 + a_headrm - b_headrm    */
 
         /* Compute residual by subtracting product of denominator and first approximation */
         a32_nrm -= SigProcFIX.SKP_SMMUL(b32_nrm, result)<<3;           /* Q: a_headrm                    */
 
         /* Refinement */
-        result = Macros.SKP_SMLAWB(result, a32_nrm, b32_inv);                          /* Q: 29 + a_headrm - b_headrm    */
+        result = SKP_SMLAWB(result, a32_nrm, b32_inv);                          /* Q: 29 + a_headrm - b_headrm    */
 
         /* Convert to Qres domain */
         lshift = 29 + a_headrm - b_headrm - Qres;
@@ -212,10 +214,10 @@ public class Inlines
         result = b32_inv<<16;                                       /* Q: 61 - b_headrm            */
 
         /* Compute residual by subtracting product of denominator and first approximation from one */
-        err_Q32 = -Macros.SKP_SMULWB(b32_nrm, b32_inv)<<3;         /* Q32                        */
+        err_Q32 = -SKP_SMULWB(b32_nrm, b32_inv)<<3;         /* Q32                        */
 
         /* Refinement */
-        result = Macros.SKP_SMLAWW(result, err_Q32, b32_inv);                          /* Q: 61 - b_headrm            */
+        result = SKP_SMLAWW(result, err_Q32, b32_inv);                          /* Q: 61 - b_headrm            */
 
         /* Convert to Qres domain */
         lshift = 61 - b_headrm - Qres;
@@ -269,12 +271,12 @@ public class Inlines
             if( x < 1100 )
             {
                 /* Special case: high accuracy */
-                return Macros.SKP_SMLAWB( 1 << 24, x*x, -5053 );
+                return SKP_SMLAWB( 1 << 24, x*x, -5053 );
             }
-            x = Macros.SKP_SMULWB( x<<8 , x );        /* contains x^2 in Q20 */
-            y_Q30 = Macros.SKP_SMLAWB( SKP_SIN_APPROX_CONST2, x, SKP_SIN_APPROX_CONST3 );
-            y_Q30 = Macros.SKP_SMLAWW( SKP_SIN_APPROX_CONST1, x, y_Q30 );
-            y_Q30 = Macros.SKP_SMLAWW( SKP_SIN_APPROX_CONST0 + 66, x, y_Q30 );
+            x = SKP_SMULWB( x<<8 , x );        /* contains x^2 in Q20 */
+            y_Q30 = SKP_SMLAWB( SKP_SIN_APPROX_CONST2, x, SKP_SIN_APPROX_CONST3 );
+            y_Q30 = SKP_SMLAWW( SKP_SIN_APPROX_CONST1, x, y_Q30 );
+            y_Q30 = SKP_SMLAWW( SKP_SIN_APPROX_CONST0 + 66, x, y_Q30 );
         }
         else
         {
@@ -291,12 +293,12 @@ public class Inlines
             if( x < 1100 )
             {
                 /* Special case: high accuracy */
-                return Macros.SKP_SMLAWB( -1 << 24, x*x , 5053 );
+                return SKP_SMLAWB( -1 << 24, x*x , 5053 );
             }
-            x = Macros.SKP_SMULWB( x<<8 , x );        /* contains x^2 in Q20 */
-            y_Q30 = Macros.SKP_SMLAWB( -SKP_SIN_APPROX_CONST2, x, -SKP_SIN_APPROX_CONST3 );
-            y_Q30 = Macros.SKP_SMLAWW( -SKP_SIN_APPROX_CONST1, x, y_Q30 );
-            y_Q30 = Macros.SKP_SMLAWW( -SKP_SIN_APPROX_CONST0, x, y_Q30 );
+            x = SKP_SMULWB( x<<8 , x );        /* contains x^2 in Q20 */
+            y_Q30 = SKP_SMLAWB( -SKP_SIN_APPROX_CONST2, x, -SKP_SIN_APPROX_CONST3 );
+            y_Q30 = SKP_SMLAWW( -SKP_SIN_APPROX_CONST1, x, y_Q30 );
+            y_Q30 = SKP_SMLAWW( -SKP_SIN_APPROX_CONST0, x, y_Q30 );
         }
         return SigProcFIX.SKP_RSHIFT_ROUND( y_Q30, 6 );
     }

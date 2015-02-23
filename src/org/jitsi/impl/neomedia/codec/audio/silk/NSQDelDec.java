@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 import java.util.*;
 
 /**
@@ -14,13 +17,13 @@ import java.util.*;
  */
 class NSQDelDecStruct
 {
-    int RandState[] = new int[ Define.DECISION_DELAY ];
-    int Q_Q10[]     = new int[ Define.DECISION_DELAY ];
-    int Xq_Q10[]    = new int[ Define.DECISION_DELAY ];
-    int Pred_Q16[]  = new int[ Define.DECISION_DELAY ];
-    int Shape_Q10[] = new int[ Define.DECISION_DELAY ];
-    int Gain_Q16[]  = new int[ Define.DECISION_DELAY ];
-    int sLPC_Q14[]  = new int[ Define.MAX_FRAME_LENGTH / Define.NB_SUBFR + Define.NSQ_LPC_BUF_LENGTH() ];
+    int RandState[] = new int[ DECISION_DELAY ];
+    int Q_Q10[]     = new int[ DECISION_DELAY ];
+    int Xq_Q10[]    = new int[ DECISION_DELAY ];
+    int Pred_Q16[]  = new int[ DECISION_DELAY ];
+    int Shape_Q10[] = new int[ DECISION_DELAY ];
+    int Gain_Q16[]  = new int[ DECISION_DELAY ];
+    int sLPC_Q14[]  = new int[ MAX_FRAME_LENGTH / NB_SUBFR + NSQ_LPC_BUF_LENGTH() ];
     int LF_AR_Q12;
     int Seed;
     int SeedInit;
@@ -99,25 +102,25 @@ public class NSQDelDec
         int           A_Q12_offset, B_Q14_offset, AR_shp_Q13_offset;
         short[] pxq;
         int     pxq_offset;
-        int   sLTP_Q16[] = new int[ 2 * Define.MAX_FRAME_LENGTH ];
-        short   sLTP[] = new short[ 2 * Define.MAX_FRAME_LENGTH ];
+        int   sLTP_Q16[] = new int[ 2 * MAX_FRAME_LENGTH ];
+        short   sLTP[] = new short[ 2 * MAX_FRAME_LENGTH ];
         int   HarmShapeFIRPacked_Q14;
         int     offset_Q10;
-        int   FiltState[] = new int[ Define.MAX_LPC_ORDER ], RDmin_Q10;
-        int   x_sc_Q10[] = new int[ Define.MAX_FRAME_LENGTH / Define.NB_SUBFR ];
-        NSQDelDecStruct psDelDec[] = new NSQDelDecStruct[ Define.DEL_DEC_STATES_MAX ];
+        int   FiltState[] = new int[ MAX_LPC_ORDER ], RDmin_Q10;
+        int   x_sc_Q10[] = new int[ MAX_FRAME_LENGTH / NB_SUBFR ];
+        NSQDelDecStruct psDelDec[] = new NSQDelDecStruct[ DEL_DEC_STATES_MAX ];
         /*
          * psDelDec is an array of references, which has to be created manually.
          */
         {
-            for(int psDelDecIni_i=0; psDelDecIni_i<Define.DEL_DEC_STATES_MAX; psDelDecIni_i++)
+            for(int psDelDecIni_i=0; psDelDecIni_i<DEL_DEC_STATES_MAX; psDelDecIni_i++)
             {
                 psDelDec[psDelDecIni_i] = new NSQDelDecStruct();
             }
         }
         NSQDelDecStruct psDD;
 
-        subfr_length = psEncC.frame_length / Define.NB_SUBFR;
+        subfr_length = psEncC.frame_length / NB_SUBFR;
 
         /* Set unvoiced lag to the previous one, overwrite later for voiced */
         lag = NSQ.lagPrev;
@@ -146,19 +149,19 @@ public class NSQDelDec
             psDD.LF_AR_Q12      = NSQ.sLF_AR_shp_Q12;
             psDD.Shape_Q10[ 0 ] = NSQ.sLTP_shp_Q10[ psEncC.frame_length - 1 ];
 //            SKP_memcpy( psDD.sLPC_Q14, NSQ.sLPC_Q14, NSQ_LPC_BUF_LENGTH * sizeof( SKP_int32 ) );
-            System.arraycopy(NSQ.sLPC_Q14, 0, psDD.sLPC_Q14, 0, Define.NSQ_LPC_BUF_LENGTH());
+            System.arraycopy(NSQ.sLPC_Q14, 0, psDD.sLPC_Q14, 0, NSQ_LPC_BUF_LENGTH());
         }
 
         offset_Q10   = TablesOther.SKP_Silk_Quantization_Offsets_Q10[ psEncCtrlC.sigtype ][ psEncCtrlC.QuantOffsetType ];
         smpl_buf_idx = 0; /* index of oldest samples */
 
-        decisionDelay = ( Define.DECISION_DELAY < subfr_length ? Define.DECISION_DELAY:subfr_length );
+        decisionDelay = ( DECISION_DELAY < subfr_length ? DECISION_DELAY:subfr_length );
 
         /* For voiced frames limit the decision delay to lower than the pitch lag */
-        if( psEncCtrlC.sigtype == Define.SIG_TYPE_VOICED ) {
-            for( k = 0; k < Define.NB_SUBFR; k++ ) {
-                decisionDelay = ( decisionDelay < (psEncCtrlC.pitchL[ k ] - Define.LTP_ORDER / 2 - 1) ?
-                        decisionDelay:(psEncCtrlC.pitchL[ k ] - Define.LTP_ORDER / 2 - 1));
+        if( psEncCtrlC.sigtype == SIG_TYPE_VOICED ) {
+            for( k = 0; k < NB_SUBFR; k++ ) {
+                decisionDelay = ( decisionDelay < (psEncCtrlC.pitchL[ k ] - LTP_ORDER / 2 - 1) ?
+                        decisionDelay:(psEncCtrlC.pitchL[ k ] - LTP_ORDER / 2 - 1));
             }
         }
 
@@ -174,16 +177,16 @@ public class NSQDelDec
         NSQ.sLTP_shp_buf_idx = psEncC.frame_length;
         NSQ.sLTP_buf_idx     = psEncC.frame_length;
         subfr = 0;
-        for( k = 0; k < Define.NB_SUBFR; k++ ) {
+        for( k = 0; k < NB_SUBFR; k++ ) {
             A_Q12      = PredCoef_Q12;
-            A_Q12_offset =  ( ( k >> 1 ) | ( 1 - LSF_interpolation_flag ) ) * Define.MAX_LPC_ORDER ;
+            A_Q12_offset =  ( ( k >> 1 ) | ( 1 - LSF_interpolation_flag ) ) * MAX_LPC_ORDER ;
             B_Q14      = LTPCoef_Q14;
-            B_Q14_offset = k * Define.LTP_ORDER;
+            B_Q14_offset = k * LTP_ORDER;
             AR_shp_Q13 = AR2_Q13;
-            AR_shp_Q13_offset = k * Define.SHAPE_LPC_ORDER_MAX;
+            AR_shp_Q13_offset = k * SHAPE_LPC_ORDER_MAX;
 
             NSQ.rewhite_flag = 0;
-            if( psEncCtrlC.sigtype == Define.SIG_TYPE_VOICED ) {
+            if( psEncCtrlC.sigtype == SIG_TYPE_VOICED ) {
                 /* Voiced */
                 lag = psEncCtrlC.pitchL[ k ];
 
@@ -211,7 +214,7 @@ public class NSQDelDec
                         psDD = psDelDec[ Winner_ind ];
                         last_smple_idx = smpl_buf_idx + decisionDelay;
                         for( i = 0; i < decisionDelay; i++ ) {
-                            last_smple_idx = ( last_smple_idx - 1 ) & Define.DECISION_DELAY_MASK;
+                            last_smple_idx = ( last_smple_idx - 1 ) & DECISION_DELAY_MASK;
 //                            q[   i - decisionDelay ] = ( SKP_int )SKP_RSHIFT( psDD.Q_Q10[ last_smple_idx ], 10 );
                             q_tmp[   q_tmp_offset + i - decisionDelay ] = (byte) ( psDD.Q_Q10[ last_smple_idx ] >> 10 );
 
@@ -219,7 +222,7 @@ public class NSQDelDec
 //                                SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ],
 //                                psDD.Gain_Q16[ last_smple_idx ] ), 10 ) );
                             pxq[ pxq_offset + i - decisionDelay ] = (short) SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND(
-                                    Macros.SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ],
+                                    SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ],
                                     psDD.Gain_Q16[ last_smple_idx ] ), 10 ) );
                             NSQ.sLTP_shp_Q10[ NSQ.sLTP_shp_buf_idx - decisionDelay + i ] = psDD.Shape_Q10[ last_smple_idx ];
                         }
@@ -228,7 +231,7 @@ public class NSQDelDec
                     }
 
                     /* Rewhiten with new A coefs */
-                    start_idx = psEncC.frame_length - lag - psEncC.predictLPCOrder - Define.LTP_ORDER / 2;
+                    start_idx = psEncC.frame_length - lag - psEncC.predictLPCOrder - LTP_ORDER / 2;
                     start_idx = SigProcFIX.SKP_LIMIT_int( start_idx, 0, psEncC.frame_length - psEncC.predictLPCOrder );
 
 //                    SKP_memset( FiltState, 0, psEncC.predictLPCOrder * sizeof( SKP_int32 ) );
@@ -278,21 +281,21 @@ public class NSQDelDec
         psEncCtrlC.Seed = psDD.SeedInit;
         last_smple_idx = smpl_buf_idx + decisionDelay;
         for( i = 0; i < decisionDelay; i++ ) {
-            last_smple_idx = ( last_smple_idx - 1 ) & Define.DECISION_DELAY_MASK;
+            last_smple_idx = ( last_smple_idx - 1 ) & DECISION_DELAY_MASK;
             q_tmp[q_tmp_offset + i - decisionDelay] = ( byte )( psDD.Q_Q10[ last_smple_idx ] >> 10 );
             pxq[ pxq_offset + i - decisionDelay ] = ( short )SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND(
-                Macros.SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ], psDD.Gain_Q16[ last_smple_idx ] ), 10 ) );
+                SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ], psDD.Gain_Q16[ last_smple_idx ] ), 10 ) );
             NSQ.sLTP_shp_Q10[ NSQ.sLTP_shp_buf_idx - decisionDelay + i ] = psDD.Shape_Q10[ last_smple_idx ];
             sLTP_Q16[          NSQ.sLTP_buf_idx     - decisionDelay + i ] = psDD.Pred_Q16[  last_smple_idx ];
 
         }
 //        SKP_memcpy( NSQ.sLPC_Q14, &psDD.sLPC_Q14[ psEncC.subfr_length ], NSQ_LPC_BUF_LENGTH * sizeof( SKP_int32 ) );
-        System.arraycopy(psDD.sLPC_Q14, psEncC.subfr_length, NSQ.sLPC_Q14, 0, Define.NSQ_LPC_BUF_LENGTH());
+        System.arraycopy(psDD.sLPC_Q14, psEncC.subfr_length, NSQ.sLPC_Q14, 0, NSQ_LPC_BUF_LENGTH());
 
         /* Update states */
         NSQ.sLF_AR_shp_Q12    = psDD.LF_AR_Q12;
         NSQ.prev_inv_gain_Q16 = NSQ.prev_inv_gain_Q16;
-        NSQ.lagPrev           = psEncCtrlC.pitchL[ Define.NB_SUBFR - 1 ];
+        NSQ.lagPrev           = psEncCtrlC.pitchL[ NB_SUBFR - 1 ];
 
         /* Save quantized speech and noise shaping signals */
 //        SKP_memcpy( NSQ.xq,           &NSQ.xq[           psEncC.frame_length ], psEncC.frame_length * sizeof( SKP_int16 ) );
@@ -379,12 +382,12 @@ public class NSQDelDec
         int   pred_lag_ptr[], shp_lag_ptr[];
         int   pred_lag_ptr_offset, shp_lag_ptr_offset;
         int   []psLPC_Q14; int psLPC_Q14_offset;
-        NSQ_sample_struct  psSampleState[][] = new NSQ_sample_struct[ Define.DEL_DEC_STATES_MAX ][ 2 ];
+        NSQ_sample_struct  psSampleState[][] = new NSQ_sample_struct[ DEL_DEC_STATES_MAX ][ 2 ];
         /*
          * psSampleState is an two-dimension array of reference, which should be created manually.
          */
         {
-            for(int Ini_i=0; Ini_i<Define.DEL_DEC_STATES_MAX; Ini_i++)
+            for(int Ini_i=0; Ini_i<DEL_DEC_STATES_MAX; Ini_i++)
             {
                 for(int Ini_j=0; Ini_j<2; Ini_j++)
                 {
@@ -396,21 +399,21 @@ public class NSQDelDec
         NSQ_sample_struct[]  psSS;
 
         shp_lag_ptr  = NSQ.sLTP_shp_Q10;
-        shp_lag_ptr_offset = NSQ.sLTP_shp_buf_idx - lag + Define.HARM_SHAPE_FIR_TAPS / 2;
+        shp_lag_ptr_offset = NSQ.sLTP_shp_buf_idx - lag + HARM_SHAPE_FIR_TAPS / 2;
         pred_lag_ptr = sLTP_Q16;
-        pred_lag_ptr_offset = NSQ.sLTP_buf_idx - lag + Define.LTP_ORDER / 2;
+        pred_lag_ptr_offset = NSQ.sLTP_buf_idx - lag + LTP_ORDER / 2;
 
         for( i = 0; i < length; i++ ) {
             /* Perform common calculations used in all states */
 
             /* Long-term prediction */
-            if( sigtype == Define.SIG_TYPE_VOICED ) {
+            if( sigtype == SIG_TYPE_VOICED ) {
                 /* Unrolled loop */
-                LTP_pred_Q14 = Macros.SKP_SMULWB(               pred_lag_ptr[ pred_lag_ptr_offset+0 ], b_Q14[ b_Q14_offset+0 ] );
-                LTP_pred_Q14 = Macros.SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset-1 ], b_Q14[ b_Q14_offset+1 ] );
-                LTP_pred_Q14 = Macros.SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset-2 ], b_Q14[ b_Q14_offset+2 ] );
-                LTP_pred_Q14 = Macros.SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset-3 ], b_Q14[ b_Q14_offset+3 ] );
-                LTP_pred_Q14 = Macros.SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset-4 ], b_Q14[ b_Q14_offset+4 ] );
+                LTP_pred_Q14 = SKP_SMULWB(               pred_lag_ptr[ pred_lag_ptr_offset+0 ], b_Q14[ b_Q14_offset+0 ] );
+                LTP_pred_Q14 = SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset-1 ], b_Q14[ b_Q14_offset+1 ] );
+                LTP_pred_Q14 = SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset-2 ], b_Q14[ b_Q14_offset+2 ] );
+                LTP_pred_Q14 = SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset-3 ], b_Q14[ b_Q14_offset+3 ] );
+                LTP_pred_Q14 = SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset-4 ], b_Q14[ b_Q14_offset+4 ] );
                 pred_lag_ptr_offset++;
             } else {
                 LTP_pred_Q14 = 0;
@@ -419,8 +422,8 @@ public class NSQDelDec
             /* Long-term shaping */
             if( lag > 0 ) {
                 /* Symmetric, packed FIR coefficients */
-                n_LTP_Q14 = Macros.SKP_SMULWB( ( shp_lag_ptr[ shp_lag_ptr_offset+0 ] + shp_lag_ptr[ shp_lag_ptr_offset-2 ] ), HarmShapeFIRPacked_Q14 );
-                n_LTP_Q14 = Macros.SKP_SMLAWT( n_LTP_Q14, shp_lag_ptr[ shp_lag_ptr_offset-1 ], HarmShapeFIRPacked_Q14 );
+                n_LTP_Q14 = SKP_SMULWB( ( shp_lag_ptr[ shp_lag_ptr_offset+0 ] + shp_lag_ptr[ shp_lag_ptr_offset-2 ] ), HarmShapeFIRPacked_Q14 );
+                n_LTP_Q14 = SKP_SMLAWT( n_LTP_Q14, shp_lag_ptr[ shp_lag_ptr_offset-1 ], HarmShapeFIRPacked_Q14 );
 //                n_LTP_Q14 = SKP_LSHIFT( n_LTP_Q14, 6 );
                 n_LTP_Q14 = ( n_LTP_Q14 << 6 );
                 shp_lag_ptr_offset++;
@@ -444,25 +447,25 @@ public class NSQDelDec
 
                 /* Pointer used in short term prediction and shaping */
                 psLPC_Q14 = psDD.sLPC_Q14;
-                psLPC_Q14_offset = Define.NSQ_LPC_BUF_LENGTH() - 1 + i;
+                psLPC_Q14_offset = NSQ_LPC_BUF_LENGTH() - 1 + i;
                 /* Short-term prediction */
                 assert( predictLPCOrder >= 10 );            /* check that unrolling works */
                 assert( ( predictLPCOrder  & 1 ) == 0 );    /* check that order is even */
 //                SKP_assert( ( (SKP_int64)a_Q12 & 3 ) == 0 );    /* check that array starts at 4-byte aligned address */
                 /* Partially unrolled */
-                LPC_pred_Q10 = Macros.SKP_SMULWB(               psLPC_Q14[ psLPC_Q14_offset+0 ], a_Q12[ a_Q12_offset+0 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-1 ], a_Q12[ a_Q12_offset+1 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-2 ], a_Q12[ a_Q12_offset+2 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-3 ], a_Q12[ a_Q12_offset+3 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-4 ], a_Q12[ a_Q12_offset+4 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-5 ], a_Q12[ a_Q12_offset+5 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-6 ], a_Q12[ a_Q12_offset+6 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-7 ], a_Q12[ a_Q12_offset+7 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-8 ], a_Q12[ a_Q12_offset+8 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-9 ], a_Q12[ a_Q12_offset+9 ] );
+                LPC_pred_Q10 = SKP_SMULWB(               psLPC_Q14[ psLPC_Q14_offset+0 ], a_Q12[ a_Q12_offset+0 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-1 ], a_Q12[ a_Q12_offset+1 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-2 ], a_Q12[ a_Q12_offset+2 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-3 ], a_Q12[ a_Q12_offset+3 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-4 ], a_Q12[ a_Q12_offset+4 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-5 ], a_Q12[ a_Q12_offset+5 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-6 ], a_Q12[ a_Q12_offset+6 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-7 ], a_Q12[ a_Q12_offset+7 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-8 ], a_Q12[ a_Q12_offset+8 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-9 ], a_Q12[ a_Q12_offset+9 ] );
 
                 for( j = 10; j < predictLPCOrder; j ++ ) {
-                    LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-j ], a_Q12[ a_Q12_offset+j]);
+                    LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psLPC_Q14[ psLPC_Q14_offset-j ], a_Q12[ a_Q12_offset+j]);
                 }
 
                 /* Noise shape feedback */
@@ -470,29 +473,29 @@ public class NSQDelDec
 //                assert( ( (SKP_int64)AR_shp_Q13 & 3 ) == 0 );   /* check that array starts at 4-byte aligned address */
                 assert( shapingLPCOrder >= 12 );                /* check that unrolling works */
                 /* Partially unrolled */
-                n_AR_Q10 = Macros.SKP_SMULWB(           psLPC_Q14[  psLPC_Q14_offset+0 ], AR_shp_Q13[  AR_shp_Q13_offset+0 ] );
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-1 ], AR_shp_Q13[  AR_shp_Q13_offset+1 ] );
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-2 ], AR_shp_Q13[  AR_shp_Q13_offset+2 ] );
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-3 ], AR_shp_Q13[  AR_shp_Q13_offset+3 ] );
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-4 ], AR_shp_Q13[  AR_shp_Q13_offset+4 ] );
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-5 ], AR_shp_Q13[  AR_shp_Q13_offset+5 ] );
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-6 ], AR_shp_Q13[  AR_shp_Q13_offset+6 ] );
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-7 ], AR_shp_Q13[  AR_shp_Q13_offset+7 ] );
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-8 ], AR_shp_Q13[  AR_shp_Q13_offset+8 ] );
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-9 ], AR_shp_Q13[  AR_shp_Q13_offset+9 ] );
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-10 ],AR_shp_Q13[  AR_shp_Q13_offset+10 ] );
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-11 ],AR_shp_Q13[  AR_shp_Q13_offset+11 ] );
+                n_AR_Q10 = SKP_SMULWB(           psLPC_Q14[  psLPC_Q14_offset+0 ], AR_shp_Q13[  AR_shp_Q13_offset+0 ] );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-1 ], AR_shp_Q13[  AR_shp_Q13_offset+1 ] );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-2 ], AR_shp_Q13[  AR_shp_Q13_offset+2 ] );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-3 ], AR_shp_Q13[  AR_shp_Q13_offset+3 ] );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-4 ], AR_shp_Q13[  AR_shp_Q13_offset+4 ] );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-5 ], AR_shp_Q13[  AR_shp_Q13_offset+5 ] );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-6 ], AR_shp_Q13[  AR_shp_Q13_offset+6 ] );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-7 ], AR_shp_Q13[  AR_shp_Q13_offset+7 ] );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-8 ], AR_shp_Q13[  AR_shp_Q13_offset+8 ] );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-9 ], AR_shp_Q13[  AR_shp_Q13_offset+9 ] );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-10 ],AR_shp_Q13[  AR_shp_Q13_offset+10 ] );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[  psLPC_Q14_offset-11 ],AR_shp_Q13[  AR_shp_Q13_offset+11 ] );
 
                 for( j = 12; j < shapingLPCOrder; j ++ ) {
-                    n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psLPC_Q14[ psLPC_Q14_offset-j ], AR_shp_Q13[ AR_shp_Q13_offset+j ] );
+                    n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psLPC_Q14[ psLPC_Q14_offset-j ], AR_shp_Q13[ AR_shp_Q13_offset+j ] );
                 }
 
 //                n_AR_Q10 = SKP_RSHIFT( n_AR_Q10, 1 );           /* Q11 -> Q10 */
                 n_AR_Q10 = ( n_AR_Q10 >> 1 );           /* Q11 -> Q10 */
-                n_AR_Q10 = Macros.SKP_SMLAWB( n_AR_Q10, psDD.LF_AR_Q12, Tilt_Q14 );
+                n_AR_Q10 = SKP_SMLAWB( n_AR_Q10, psDD.LF_AR_Q12, Tilt_Q14 );
 
-                n_LF_Q10   = ( Macros.SKP_SMULWB( psDD.Shape_Q10[ smpl_buf_idx[0] ], LF_shp_Q14 ) << 2 );
-                n_LF_Q10   = Macros.SKP_SMLAWT( n_LF_Q10, psDD.LF_AR_Q12, LF_shp_Q14 );
+                n_LF_Q10   = ( SKP_SMULWB( psDD.Shape_Q10[ smpl_buf_idx[0] ], LF_shp_Q14 ) << 2 );
+                n_LF_Q10   = SKP_SMLAWT( n_LF_Q10, psDD.LF_AR_Q12, LF_shp_Q14 );
 
                 /* Input minus prediction plus noise feedback                       */
                 /* r = x[ i ] - LTP_pred - LPC_pred + n_AR + n_Tilt + n_LF + n_LTP  */
@@ -512,20 +515,20 @@ public class NSQDelDec
                 if( r_Q10 < -1536 ) {
                     q1_Q10  = ( SigProcFIX.SKP_RSHIFT_ROUND( r_Q10, 10 ) << 10 );
                     r_Q10   = ( r_Q10 - q1_Q10 );
-                    rd1_Q10 = ( Macros.SKP_SMLABB( ( -( q1_Q10 + offset_Q10 ) * Lambda_Q10 ), r_Q10, r_Q10 ) >> 10 );
+                    rd1_Q10 = ( SKP_SMLABB( ( -( q1_Q10 + offset_Q10 ) * Lambda_Q10 ), r_Q10, r_Q10 ) >> 10 );
                     rd2_Q10 = ( rd1_Q10 + 1024 );
                     rd2_Q10 = ( rd2_Q10 - SigProcFIX.SKP_ADD_LSHIFT32( Lambda_Q10, r_Q10, 1 ) );
                     q2_Q10  = ( q1_Q10 + 1024 );
                 } else if( r_Q10 > 512 ) {
                     q1_Q10  = ( SigProcFIX.SKP_RSHIFT_ROUND( r_Q10, 10 ) << 10 );
                     r_Q10   = ( r_Q10 - q1_Q10 );
-                    rd1_Q10 = ( Macros.SKP_SMLABB( ( ( q1_Q10 + offset_Q10 ) * Lambda_Q10 ), r_Q10, r_Q10 ) >> 10 );
+                    rd1_Q10 = ( SKP_SMLABB( ( ( q1_Q10 + offset_Q10 ) * Lambda_Q10 ), r_Q10, r_Q10 ) >> 10 );
                     rd2_Q10 = ( rd1_Q10 + 1024 );
                     rd2_Q10 = ( rd2_Q10 - SigProcFIX.SKP_SUB_LSHIFT32( Lambda_Q10, r_Q10, 1 ) );
                     q2_Q10  = ( q1_Q10 - 1024 );
                 } else {            /* r_Q10 >= -1536 && q1_Q10 <= 512 */
-                    rr_Q20  = Macros.SKP_SMULBB( offset_Q10, Lambda_Q10 );
-                    rd2_Q10 = ( Macros.SKP_SMLABB( rr_Q20, r_Q10, r_Q10 ) >> 10 );
+                    rr_Q20  = SKP_SMULBB( offset_Q10, Lambda_Q10 );
+                    rd2_Q10 = ( SKP_SMLABB( rr_Q20, r_Q10, r_Q10 ) >> 10 );
                     rd1_Q10 = ( rd2_Q10 + 1024 );
                     rd1_Q10 = ( rd1_Q10 + SigProcFIX.SKP_SUB_RSHIFT32( SigProcFIX.SKP_ADD_LSHIFT32( Lambda_Q10, r_Q10, 1 ), rr_Q20, 9 ) );
                     q1_Q10  = -1024;
@@ -579,8 +582,8 @@ public class NSQDelDec
                 psSS[ 1 ].LPC_exc_Q16  = ( LPC_exc_Q10 << 6 );
             }
 
-            smpl_buf_idx[0]  = ( smpl_buf_idx[0] - 1 ) & Define.DECISION_DELAY_MASK;                   /* Index to newest samples              */
-            last_smple_idx = ( smpl_buf_idx[0] + decisionDelay ) & Define.DECISION_DELAY_MASK;       /* Index to decisionDelay old samples   */
+            smpl_buf_idx[0]  = ( smpl_buf_idx[0] - 1 ) & DECISION_DELAY_MASK;                   /* Index to newest samples              */
+            last_smple_idx = ( smpl_buf_idx[0] + decisionDelay ) & DECISION_DELAY_MASK;       /* Index to decisionDelay old samples   */
 
             /* Find winner */
             RDmin_Q10 = psSampleState[ 0 ][ 0 ].RD_Q10;
@@ -634,7 +637,7 @@ public class NSQDelDec
             if( subfr > 0 || i >= decisionDelay ) {
                 q[  q_offset + i - decisionDelay ] = ( byte )( psDD.Q_Q10[ last_smple_idx ] >> 10 );
                 xq[ xq_offset + i - decisionDelay ] = ( short )SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND(
-                    Macros.SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ], psDD.Gain_Q16[ last_smple_idx ] ), 10 ) );
+                    SKP_SMULWW( psDD.Xq_Q10[ last_smple_idx ], psDD.Gain_Q16[ last_smple_idx ] ), 10 ) );
                 NSQ.sLTP_shp_Q10[ NSQ.sLTP_shp_buf_idx - decisionDelay ] = psDD.Shape_Q10[ last_smple_idx ];
                 sLTP_Q16[          NSQ.sLTP_buf_idx     - decisionDelay ] = psDD.Pred_Q16[  last_smple_idx ];
             }
@@ -648,7 +651,7 @@ public class NSQDelDec
 //                psSS                                     = &psSampleState[ k ][ 0 ];
                 psSS                                     = psSampleState[ k ];
                 psDD.LF_AR_Q12                          = psSS[0].LF_AR_Q12;
-                psDD.sLPC_Q14[ Define.NSQ_LPC_BUF_LENGTH() + i ] = psSS[0].xq_Q14;
+                psDD.sLPC_Q14[ NSQ_LPC_BUF_LENGTH() + i ] = psSS[0].xq_Q14;
                 psDD.Xq_Q10[    smpl_buf_idx[0] ]         = ( psSS[0].xq_Q14 >> 4 );
                 psDD.Q_Q10[     smpl_buf_idx[0] ]         = psSS[0].Q_Q10;
                 psDD.Pred_Q16[  smpl_buf_idx[0] ]         = psSS[0].LPC_exc_Q16;
@@ -662,7 +665,7 @@ public class NSQDelDec
         /* Update LPC states */
         for( k = 0; k < nStatesDelayedDecision; k++ ) {
             psDD = psDelDec[ k ];
-            System.arraycopy(psDD.sLPC_Q14, length, psDD.sLPC_Q14, 0, Define.NSQ_LPC_BUF_LENGTH());
+            System.arraycopy(psDD.sLPC_Q14, length, psDD.sLPC_Q14, 0, NSQ_LPC_BUF_LENGTH());
         }
     }
 
@@ -712,11 +715,11 @@ public class NSQDelDec
             inv_gain_Q32 = ( inv_gain_Q16 << 16 );
             if( subfr == 0 ) {
                 /* Do LTP downscaling */
-                inv_gain_Q32 = ( Macros.SKP_SMULWB( inv_gain_Q32, LTP_scale_Q14 ) << 2 );
+                inv_gain_Q32 = ( SKP_SMULWB( inv_gain_Q32, LTP_scale_Q14 ) << 2 );
             }
-            for( i = NSQ.sLTP_buf_idx - lag - Define.LTP_ORDER / 2; i < NSQ.sLTP_buf_idx; i++ ) {
-                assert( i < Define.MAX_FRAME_LENGTH );
-                sLTP_Q16[ i ] = Macros.SKP_SMULWB( inv_gain_Q32, sLTP[ i ] );
+            for( i = NSQ.sLTP_buf_idx - lag - LTP_ORDER / 2; i < NSQ.sLTP_buf_idx; i++ ) {
+                assert( i < MAX_FRAME_LENGTH );
+                sLTP_Q16[ i ] = SKP_SMULWB( inv_gain_Q32, sLTP[ i ] );
             }
         }
 
@@ -728,41 +731,41 @@ public class NSQDelDec
                 psDD = psDelDec[ k ];
 
                 /* Scale scalar states */
-                psDD.LF_AR_Q12 = Macros.SKP_SMULWW( gain_adj_Q16, psDD.LF_AR_Q12 );
+                psDD.LF_AR_Q12 = SKP_SMULWW( gain_adj_Q16, psDD.LF_AR_Q12 );
 
                 /* scale short term state */
-                for( i = 0; i < Define.NSQ_LPC_BUF_LENGTH(); i++ ) {
-                    psDD.sLPC_Q14[ Define.NSQ_LPC_BUF_LENGTH() - i - 1 ] = Macros.SKP_SMULWW( gain_adj_Q16,
-                            psDD.sLPC_Q14[ Define.NSQ_LPC_BUF_LENGTH() - i - 1 ] );
+                for( i = 0; i < NSQ_LPC_BUF_LENGTH(); i++ ) {
+                    psDD.sLPC_Q14[ NSQ_LPC_BUF_LENGTH() - i - 1 ] = SKP_SMULWW( gain_adj_Q16,
+                            psDD.sLPC_Q14[ NSQ_LPC_BUF_LENGTH() - i - 1 ] );
                 }
-                for( i = 0; i < Define.DECISION_DELAY; i++ ) {
-                    psDD.Pred_Q16[  i ] = Macros.SKP_SMULWW( gain_adj_Q16, psDD.Pred_Q16[  i ] );
-                    psDD.Shape_Q10[ i ] = Macros.SKP_SMULWW( gain_adj_Q16, psDD.Shape_Q10[ i ] );
+                for( i = 0; i < DECISION_DELAY; i++ ) {
+                    psDD.Pred_Q16[  i ] = SKP_SMULWW( gain_adj_Q16, psDD.Pred_Q16[  i ] );
+                    psDD.Shape_Q10[ i ] = SKP_SMULWW( gain_adj_Q16, psDD.Shape_Q10[ i ] );
                 }
             }
 
             /* Scale long term shaping state */
 
             /* Calculate length to be scaled, Worst case: Next frame is voiced with max lag */
-            scale_length = length * Define.NB_SUBFR;                                               /* aprox max lag */
-            scale_length = scale_length - Macros.SKP_SMULBB( Define.NB_SUBFR - ( subfr + 1 ), length );   /* subtract samples that will be too old in next frame */
-            scale_length = Math.max( scale_length, lag + Define.LTP_ORDER );                    /* make sure to scale whole pitch period if voiced */
+            scale_length = length * NB_SUBFR;                                               /* aprox max lag */
+            scale_length = scale_length - SKP_SMULBB( NB_SUBFR - ( subfr + 1 ), length );   /* subtract samples that will be too old in next frame */
+            scale_length = Math.max( scale_length, lag + LTP_ORDER );                    /* make sure to scale whole pitch period if voiced */
 
             for( i = NSQ.sLTP_shp_buf_idx - scale_length; i < NSQ.sLTP_shp_buf_idx; i++ ) {
-                NSQ.sLTP_shp_Q10[ i ] = Macros.SKP_SMULWW( gain_adj_Q16, NSQ.sLTP_shp_Q10[ i ] );
+                NSQ.sLTP_shp_Q10[ i ] = SKP_SMULWW( gain_adj_Q16, NSQ.sLTP_shp_Q10[ i ] );
             }
 
             /* Scale LTP predict state */
             if( NSQ.rewhite_flag == 0 ) {
-                for( i = NSQ.sLTP_buf_idx - lag - Define.LTP_ORDER / 2; i < NSQ.sLTP_buf_idx; i++ ) {
-                    sLTP_Q16[ i ] = Macros.SKP_SMULWW( gain_adj_Q16, sLTP_Q16[ i ] );
+                for( i = NSQ.sLTP_buf_idx - lag - LTP_ORDER / 2; i < NSQ.sLTP_buf_idx; i++ ) {
+                    sLTP_Q16[ i ] = SKP_SMULWW( gain_adj_Q16, sLTP_Q16[ i ] );
                 }
             }
         }
 
         /* Scale input */
         for( i = 0; i < length; i++ ) {
-            x_sc_Q10[ i ] = (Macros.SKP_SMULBB( x[ x_offset + i ], ( short )inv_gain_Q16 ) >> 6 );
+            x_sc_Q10[ i ] = (SKP_SMULBB( x[ x_offset + i ], ( short )inv_gain_Q16 ) >> 6 );
         }
 
         /* save inv_gain */
@@ -782,13 +785,13 @@ public class NSQDelDec
             int                 LPC_state_idx           /* I    Index to LPC buffer                 */
     )
     {
-        System.arraycopy(DD_src.RandState, 0, DD_dst.RandState, 0, Define.DECISION_DELAY);
-        System.arraycopy(DD_src.Q_Q10, 0, DD_dst.Q_Q10, 0, Define.DECISION_DELAY);
-        System.arraycopy(DD_src.Pred_Q16, 0, DD_dst.Pred_Q16, 0, Define.DECISION_DELAY);
-        System.arraycopy(DD_src.Shape_Q10, 0, DD_dst.Shape_Q10, 0, Define.DECISION_DELAY);
-        System.arraycopy(DD_src.Xq_Q10, 0, DD_dst.Xq_Q10, 0, Define.DECISION_DELAY);
+        System.arraycopy(DD_src.RandState, 0, DD_dst.RandState, 0, DECISION_DELAY);
+        System.arraycopy(DD_src.Q_Q10, 0, DD_dst.Q_Q10, 0, DECISION_DELAY);
+        System.arraycopy(DD_src.Pred_Q16, 0, DD_dst.Pred_Q16, 0, DECISION_DELAY);
+        System.arraycopy(DD_src.Shape_Q10, 0, DD_dst.Shape_Q10, 0, DECISION_DELAY);
+        System.arraycopy(DD_src.Xq_Q10, 0, DD_dst.Xq_Q10, 0, DECISION_DELAY);
 
-        System.arraycopy(DD_src.sLPC_Q14, LPC_state_idx, DD_dst.sLPC_Q14, LPC_state_idx, Define.NSQ_LPC_BUF_LENGTH());
+        System.arraycopy(DD_src.sLPC_Q14, LPC_state_idx, DD_dst.sLPC_Q14, LPC_state_idx, NSQ_LPC_BUF_LENGTH());
         DD_dst.LF_AR_Q12 = DD_src.LF_AR_Q12;
         DD_dst.Seed      = DD_src.Seed;
         DD_dst.SeedInit  = DD_src.SeedInit;

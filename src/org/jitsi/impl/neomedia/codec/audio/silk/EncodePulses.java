@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  * Encode quantization indices of excitation.
  *
@@ -60,9 +62,9 @@ public class EncodePulses
     {
         int   i, k, j, iter, bit, nLS, scale_down, RateLevelIndex = 0;
         int abs_q, minSumBits_Q6, sumBits_Q6;
-        int[]   abs_pulses = new int[ Define.MAX_FRAME_LENGTH ];
-        int[]   sum_pulses = new int[ Define.MAX_NB_SHELL_BLOCKS ];
-        int[]   nRshifts   = new int[ Define.MAX_NB_SHELL_BLOCKS ];
+        int[]   abs_pulses = new int[ MAX_FRAME_LENGTH ];
+        int[]   sum_pulses = new int[ MAX_NB_SHELL_BLOCKS ];
+        int[]   nRshifts   = new int[ MAX_NB_SHELL_BLOCKS ];
         int[]   pulses_comb = new int[ 8 ];
         int   []abs_pulses_ptr;
         int abs_pulses_ptr_offset;
@@ -76,7 +78,7 @@ public class EncodePulses
         /* Prepare for shell coding */
         /****************************/
         /* Calculate number of shell blocks */
-        iter = frame_length / Define.SHELL_CODEC_FRAME_LENGTH;
+        iter = frame_length / SHELL_CODEC_FRAME_LENGTH;
 
         /* Take the absolute value of the pulses */
         for( i = 0; i < frame_length; i+=4 ) {
@@ -114,7 +116,7 @@ public class EncodePulses
                 if( scale_down !=0 ) {
                     /* We need to down scale the quantization signal */
                     nRshifts[ i ]++;
-                    for( k = 0; k < Define.SHELL_CODEC_FRAME_LENGTH; k++ ) {
+                    for( k = 0; k < SHELL_CODEC_FRAME_LENGTH; k++ ) {
                         abs_pulses_ptr[ abs_pulses_ptr_offset + k ] = ( abs_pulses_ptr[ abs_pulses_ptr_offset + k ] >>1 );
                     }
                 } else {
@@ -122,7 +124,7 @@ public class EncodePulses
                     break;
                 }
             }
-            abs_pulses_ptr_offset += Define.SHELL_CODEC_FRAME_LENGTH;
+            abs_pulses_ptr_offset += SHELL_CODEC_FRAME_LENGTH;
         }
 
         /**************/
@@ -130,12 +132,12 @@ public class EncodePulses
         /**************/
         /* find rate level that leads to fewest bits for coding of pulses per block info */
         minSumBits_Q6 = Integer.MAX_VALUE;
-        for( k = 0; k < Define.N_RATE_LEVELS - 1; k++ ) {
+        for( k = 0; k < N_RATE_LEVELS - 1; k++ ) {
             nBits_ptr  = TablesPulsesPerBlock.SKP_Silk_pulses_per_block_BITS_Q6[ k ];
             sumBits_Q6 = TablesPulsesPerBlock.SKP_Silk_rate_levels_BITS_Q6[sigtype][ k ];
             for( i = 0; i < iter; i++ ) {
                 if( nRshifts[ i ] > 0 ) {
-                    sumBits_Q6 += nBits_ptr[ Define.MAX_PULSES + 1 ];
+                    sumBits_Q6 += nBits_ptr[ MAX_PULSES + 1 ];
                 } else {
                     sumBits_Q6 += nBits_ptr[ sum_pulses[ i ] ];
                 }
@@ -156,13 +158,13 @@ public class EncodePulses
             if( nRshifts[ i ] == 0 ) {
                 RangeCoder.SKP_Silk_range_encoder( psRC, sum_pulses[ i ], cdf_ptr, 0);
             } else {
-                RangeCoder.SKP_Silk_range_encoder( psRC, Define.MAX_PULSES + 1, cdf_ptr, 0);
+                RangeCoder.SKP_Silk_range_encoder( psRC, MAX_PULSES + 1, cdf_ptr, 0);
                 for( k = 0; k < nRshifts[ i ] - 1; k++ ) {
-                    RangeCoder.SKP_Silk_range_encoder( psRC, Define.MAX_PULSES + 1,
-                            TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF[ Define.N_RATE_LEVELS - 1 ], 0);
+                    RangeCoder.SKP_Silk_range_encoder( psRC, MAX_PULSES + 1,
+                            TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF[ N_RATE_LEVELS - 1 ], 0);
                 }
                 RangeCoder.SKP_Silk_range_encoder( psRC, sum_pulses[ i ],
-                        TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF[ Define.N_RATE_LEVELS - 1 ], 0);
+                        TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF[ N_RATE_LEVELS - 1 ], 0);
             }
         }
 
@@ -171,7 +173,7 @@ public class EncodePulses
         /******************/
         for( i = 0; i < iter; i++ ) {
             if( sum_pulses[ i ] > 0 ) {
-                ShellCoder.SKP_Silk_shell_encoder( psRC, abs_pulses, i * Define.SHELL_CODEC_FRAME_LENGTH);
+                ShellCoder.SKP_Silk_shell_encoder( psRC, abs_pulses, i * SHELL_CODEC_FRAME_LENGTH);
             }
         }
 
@@ -181,9 +183,9 @@ public class EncodePulses
         for( i = 0; i < iter; i++ ) {
             if( nRshifts[ i ] > 0 ) {
                 pulses_ptr = q;
-                pulses_ptr_offset = i * Define.SHELL_CODEC_FRAME_LENGTH;
+                pulses_ptr_offset = i * SHELL_CODEC_FRAME_LENGTH;
                 nLS = nRshifts[ i ] - 1;
-                for( k = 0; k < Define.SHELL_CODEC_FRAME_LENGTH; k++ ) {
+                for( k = 0; k < SHELL_CODEC_FRAME_LENGTH; k++ ) {
                     abs_q = pulses_ptr[pulses_ptr_offset + k] > 0 ? pulses_ptr[pulses_ptr_offset + k]: (-pulses_ptr[pulses_ptr_offset + k]);
                     for( j = nLS; j > 0; j-- ) {
                         bit = ( abs_q >> j ) & 1;

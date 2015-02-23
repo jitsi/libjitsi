@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  *
  * @author Jing Dai
@@ -24,8 +26,8 @@ public class LBRRReset
     {
         int i;
 
-        for( i = 0; i < Define.MAX_LBRR_DELAY; i++ ) {
-            psEncC.LBRR_buffer[ i ].usage = Define.SKP_SILK_NO_LBRR;
+        for( i = 0; i < MAX_LBRR_DELAY; i++ ) {
+            psEncC.LBRR_buffer[ i ].usage = SKP_SILK_NO_LBRR;
         }
     }
 }

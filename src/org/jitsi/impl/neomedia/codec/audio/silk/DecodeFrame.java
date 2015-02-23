@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 /**
  * Decode frame
  *
@@ -42,14 +45,14 @@ public class DecodeFrame
     {
         SKP_Silk_decoder_control sDecCtrl = new SKP_Silk_decoder_control();
         int         L, fs_Khz_old, LPC_order_old, ret = 0;
-        int[]         Pulses = new int[ Define.MAX_FRAME_LENGTH ];
+        int[]         Pulses = new int[ MAX_FRAME_LENGTH ];
 
 
         L = psDec.frame_length;
         sDecCtrl.LTP_scale_Q14 = 0;
 
         /* Safety checks */
-        Typedef.SKP_assert( L > 0 && L <= Define.MAX_FRAME_LENGTH );
+        SKP_assert( L > 0 && L <= MAX_FRAME_LENGTH );
 
         /********************************************/
         /* Decode Frame if packet is not lost  */
@@ -81,7 +84,7 @@ public class DecodeFrame
                 /* Avoid crashing */
                 decBytes[0] = psDec.sRC.bufferLength;
 
-                if( psDec.sRC.error == Define.RANGE_CODER_DEC_PAYLOAD_TOO_LONG ) {
+                if( psDec.sRC.error == RANGE_CODER_DEC_PAYLOAD_TOO_LONG ) {
                     ret = Errors.SKP_SILK_DEC_PAYLOAD_TOO_LARGE;
                 } else {
                     ret = Errors.SKP_SILK_DEC_PAYLOAD_ERROR;
@@ -138,7 +141,7 @@ public class DecodeFrame
         /********************************************/
         /* HP filter output                            */
         /********************************************/
-        Typedef.SKP_assert( ( ( psDec.fs_kHz == 12 ) && ( L % 3 ) == 0 ) ||
+        SKP_assert( ( ( psDec.fs_kHz == 12 ) && ( L % 3 ) == 0 ) ||
                     ( ( psDec.fs_kHz != 12 ) && ( L % 2 ) == 0 ) );
         Biquad.SKP_Silk_biquad( pOut, pOut_offset, psDec.HP_B, psDec.HP_A, psDec.HPState, pOut, pOut_offset, L );
 
@@ -148,7 +151,7 @@ public class DecodeFrame
         pN[0] = (short)L;
 
         /* Update some decoder state variables */
-        psDec.lagPrev = sDecCtrl.pitchL[ Define.NB_SUBFR - 1 ];
+        psDec.lagPrev = sDecCtrl.pitchL[ NB_SUBFR - 1 ];
 
         return ret;
     }

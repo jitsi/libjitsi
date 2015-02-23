@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 /**
  * Variable order MA filter.
  *
@@ -41,13 +44,13 @@ public class MA
 
         for( k = 0; k < len; k++ ) {
             in16 = in[ in_offset + k ];
-            out32 = Macros.SKP_SMLABB(S[0], in16, B[ 0 ]);
+            out32 = SKP_SMLABB(S[0], in16, B[ 0 ]);
             out32 = SigProcFIX.SKP_RSHIFT_ROUND( out32, 13 );
 
             for( d = 1; d < order; d++ ) {
-                S[ d - 1 ] = Macros.SKP_SMLABB( S[ d ], in16, B[ d ] );
+                S[ d - 1 ] = SKP_SMLABB( S[ d ], in16, B[ d ] );
             }
-            S[ order - 1 ] = Macros.SKP_SMULBB( in16, B[ order ] );
+            S[ order - 1 ] = SKP_SMULBB( in16, B[ order ] );
 
             /* Limit */
             out[ out_offset + k ] = (short)SigProcFIX.SKP_SAT16( out32 );
@@ -89,7 +92,7 @@ public class MA
             for( d = 0; d < order - 1; d++ ) {
                 S[ d ] = SigProcFIX.SKP_SMLABB_ovflw( S[ d + 1 ], in16, B[ B_offset + d ] );
             }
-            S[ order - 1 ] = Macros.SKP_SMULBB( in16, B[ B_offset + order - 1 ] );
+            S[ order - 1 ] = SKP_SMULBB( in16, B[ B_offset + order - 1 ] );
 
             /* Limit */
             out[ out_offset + k ] = (short)SigProcFIX.SKP_SAT16( out32 );
@@ -126,9 +129,9 @@ public class MA
             out32 = SigProcFIX.SKP_RSHIFT_ROUND( out32, 13 );
 
             for( d = 0; d < order - 1; d++ ) {
-                S[ d ] = Macros.SKP_SMLABB( S[ d + 1 ], in16, B[ d ] );
+                S[ d ] = SKP_SMLABB( S[ d + 1 ], in16, B[ d ] );
             }
-            S[ order - 1 ] = Macros.SKP_SMULBB( in16, B[ order - 1 ] );
+            S[ order - 1 ] = SKP_SMULBB( in16, B[ order - 1 ] );
 
             /* Limit */
             out[ out_offset + k ] = ( short )SigProcFIX.SKP_SAT16( out32 );
@@ -161,19 +164,19 @@ public class MA
         int out32_Q12, out32;
         short SA, SB;
         /* Order must be even */
-        Typedef.SKP_assert( 2 * Order_half == Order );
+        SKP_assert( 2 * Order_half == Order );
 
         /* S[] values are in Q0 */
         for( k = 0; k < len; k++ ) {
             SA = S[ 0 ];
             out32_Q12 = 0;
             for( j = 0; j < ( Order_half - 1 ); j++ ) {
-                idx = Macros.SKP_SMULBB( 2, j ) + 1;
+                idx = SKP_SMULBB( 2, j ) + 1;
                 /* Multiply-add two prediction coefficients for each loop */
                 SB = S[ idx ];
                 S[ idx ] = SA;
-                out32_Q12 = Macros.SKP_SMLABB( out32_Q12, SA, B[ idx - 1 ] );
-                out32_Q12 = Macros.SKP_SMLABB( out32_Q12, SB, B[ idx ] );
+                out32_Q12 = SKP_SMLABB( out32_Q12, SA, B[ idx - 1 ] );
+                out32_Q12 = SKP_SMLABB( out32_Q12, SB, B[ idx ] );
                 SA = S[ idx + 1 ];
                 S[ idx + 1 ] = SB;
             }
@@ -181,11 +184,11 @@ public class MA
             /* Unrolled loop: epilog */
             SB = S[ Order - 1 ];
             S[ Order - 1 ] = SA;
-            out32_Q12 = Macros.SKP_SMLABB( out32_Q12, SA, B[ Order - 2 ] );
-            out32_Q12 = Macros.SKP_SMLABB( out32_Q12, SB, B[ Order - 1 ] );
+            out32_Q12 = SKP_SMLABB( out32_Q12, SA, B[ Order - 2 ] );
+            out32_Q12 = SKP_SMLABB( out32_Q12, SB, B[ Order - 1 ] );
 
             /* Subtract prediction */
-            out32_Q12 = Macros.SKP_SUB_SAT32( ( in[ in_offset + k ] << 12 ), out32_Q12 );
+            out32_Q12 = SKP_SUB_SAT32( ( in[ in_offset + k ] << 12 ), out32_Q12 );
 
             /* Scale to Q0 */
             out32 = SigProcFIX.SKP_RSHIFT_ROUND( out32_Q12, 12 );

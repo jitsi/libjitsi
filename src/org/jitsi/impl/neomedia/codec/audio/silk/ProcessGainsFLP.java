@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  * processing of gains.
  *
@@ -25,13 +27,13 @@ public class ProcessGainsFLP
     {
         SKP_Silk_shape_state_FLP psShapeSt = psEnc.sShape;
         int     k;
-        int     pGains_Q16[] = new int[ Define.NB_SUBFR ];
+        int     pGains_Q16[] = new int[ NB_SUBFR ];
         float   s, InvMaxSqrVal, gain;
 
         /* Gain reduction when LTP coding gain is high */
-        if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) {
+        if( psEncCtrl.sCmn.sigtype == SIG_TYPE_VOICED ) {
             s = 1.0f - 0.5f * SigProcFLP.SKP_sigmoid( 0.25f * ( psEncCtrl.LTPredCodGain - 12.0f ) );
-            for( k = 0; k < Define.NB_SUBFR; k++ ) {
+            for( k = 0; k < NB_SUBFR; k++ ) {
                 psEncCtrl.Gains[ k ] *= s;
             }
         }
@@ -39,7 +41,7 @@ public class ProcessGainsFLP
         /* Limit the quantized signal */
         InvMaxSqrVal = ( float )( Math.pow( 2.0f, 0.33f * ( 21.0f - psEncCtrl.current_SNR_dB ) ) / psEnc.sCmn.subfr_length );
 
-        for( k = 0; k < Define.NB_SUBFR; k++ ) {
+        for( k = 0; k < NB_SUBFR; k++ ) {
             /* Soft limit on ratio residual energy and squared gains */
             gain = psEncCtrl.Gains[ k ];
             gain = ( float )Math.sqrt( gain * gain + psEncCtrl.ResNrg[ k ] * InvMaxSqrVal );
@@ -47,7 +49,7 @@ public class ProcessGainsFLP
         }
 
         /* Prepare gains for noise shaping quantization */
-        for( k = 0; k < Define.NB_SUBFR; k++ ) {
+        for( k = 0; k < NB_SUBFR; k++ ) {
             pGains_Q16[ k ] = ( int ) ( psEncCtrl.Gains[ k ] * 65536.0f );
         }
 
@@ -58,12 +60,12 @@ public class ProcessGainsFLP
                 LastGainIndex_ptr, psEnc.sCmn.nFramesInPayloadBuf );
         psShapeSt.LastGainIndex = LastGainIndex_ptr[0];
         /* Overwrite unquantized gains with quantized gains and convert back to Q0 from Q16 */
-        for( k = 0; k < Define.NB_SUBFR; k++ ) {
+        for( k = 0; k < NB_SUBFR; k++ ) {
             psEncCtrl.Gains[ k ] = pGains_Q16[ k ] / 65536.0f;
         }
 
         /* Set quantizer offset for voiced signals. Larger offset when LTP coding gain is low or tilt is high (ie low-pass) */
-        if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) {
+        if( psEncCtrl.sCmn.sigtype == SIG_TYPE_VOICED ) {
             if( psEncCtrl.LTPredCodGain + psEncCtrl.input_tilt > 1.0f ) {
                 psEncCtrl.sCmn.QuantOffsetType = 0;
             } else {
@@ -72,7 +74,7 @@ public class ProcessGainsFLP
         }
 
         /* Quantizer boundary adjustment */
-        if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) {
+        if( psEncCtrl.sCmn.sigtype == SIG_TYPE_VOICED ) {
             psEncCtrl.Lambda = 1.2f - 0.4f * psEnc.speech_activity
                                      - 0.3f * psEncCtrl.input_quality
                                      + 0.2f * psEncCtrl.sCmn.QuantOffsetType

@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 public class LPCStabilize
 {
 
@@ -52,7 +54,7 @@ public class LPCStabilize
                 sc_Q16 = 65536 - sc_Q16;
                 sc_Q16 = ( sc_Q16 /(idx + 1) );
                 sc_Q16 = 65536 - sc_Q16;
-                sc_Q16 = ( Macros.SKP_SMULWB( sc_Q16, 32604 ) << 1 ); // 0.995 in Q16
+                sc_Q16 = ( SKP_SMULWB( sc_Q16, 32604 ) << 1 ); // 0.995 in Q16
                 Bwexpander32.SKP_Silk_bwexpander_32( a_Q16, L, sc_Q16 );
             } else {
                 break;

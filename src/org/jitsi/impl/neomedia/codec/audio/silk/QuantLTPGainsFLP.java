@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  *
  * @author Dingxin Xu
@@ -38,7 +40,7 @@ public class QuantLTPGainsFLP
 //        const SKP_float     *b_ptr, *W_ptr;
 //        SKP_float           rate_dist_subfr, rate_dist, min_rate_dist;
         int j,k,cbk_size;
-        int[] temp_idx = new int[Define.NB_SUBFR];
+        int[] temp_idx = new int[NB_SUBFR];
         int[] cdf_ptr; int cdf_ptr_offset;
         short[] cl_ptr; int cl_ptr_offset;
         short[] cbk_ptr_Q14; int cbk_ptr_Q14_offset;
@@ -68,7 +70,7 @@ public class QuantLTPGainsFLP
             b_ptr_offset = 0;
 
             rate_dist = 0.0f;
-            for( j = 0; j < Define.NB_SUBFR; j++ ) {
+            for( j = 0; j < NB_SUBFR; j++ ) {
 
                 float [] rate_dist_subfr_ptr = new float[1];
                 rate_dist_subfr_ptr[0] = rate_dist_subfr;
@@ -103,15 +105,15 @@ public class QuantLTPGainsFLP
 
 //                b_ptr += LTP_ORDER;
 //                W_ptr += LTP_ORDER * LTP_ORDER;
-                b_ptr_offset += Define.LTP_ORDER;
-                W_ptr_offset += Define.LTP_ORDER * Define.LTP_ORDER;
+                b_ptr_offset += LTP_ORDER;
+                W_ptr_offset += LTP_ORDER * LTP_ORDER;
             }
 
             if( rate_dist < min_rate_dist ) {
                 min_rate_dist = rate_dist;
 //                SKP_memcpy( cbk_index, temp_idx, NB_SUBFR * sizeof( SKP_int ) );
 //                *periodicity_index = k;
-                System.arraycopy(temp_idx, 0, cbk_index, 0, Define.NB_SUBFR);
+                System.arraycopy(temp_idx, 0, cbk_index, 0, NB_SUBFR);
                 periodicity_index[0] = k;
             }
 
@@ -124,16 +126,16 @@ public class QuantLTPGainsFLP
 //        cbk_ptr_Q14 = SKP_Silk_LTP_vq_ptrs_Q14[ *periodicity_index ];
         cbk_ptr_Q14 = TablesLTP.SKP_Silk_LTP_vq_ptrs_Q14[periodicity_index[0]];
 
-        for( j = 0; j < Define.NB_SUBFR; j++ ) {
+        for( j = 0; j < NB_SUBFR; j++ ) {
 //            SKP_short2float_array( &B[ j * LTP_ORDER ],
 //                &cbk_ptr_Q14[ cbk_index[ j ] * LTP_ORDER ],
 //                LTP_ORDER );
-            SigProcFLP.SKP_short2float_array(B, j*Define.LTP_ORDER,
-                    cbk_ptr_Q14, cbk_index[ j ] * Define.LTP_ORDER,
-                    Define.LTP_ORDER);
+            SigProcFLP.SKP_short2float_array(B, j*LTP_ORDER,
+                    cbk_ptr_Q14, cbk_index[ j ] * LTP_ORDER,
+                    LTP_ORDER);
         }
 
-        for( j = 0; j < Define.NB_SUBFR * Define.LTP_ORDER; j++ ) {
+        for( j = 0; j < NB_SUBFR * LTP_ORDER; j++ ) {
             B[ j ] *= DefineFLP.Q14_CONVERSION_FAC;
         }
     }

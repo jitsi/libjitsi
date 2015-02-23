@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  *
  * @author Dingxin Xu
@@ -98,7 +100,7 @@ public class VQNearestNeighborFLP
             }
 
             /* Go to next cbk vector */
-            cb_row_offset += Define.LTP_ORDER;
+            cb_row_offset += LTP_ORDER;
         }
     }
 }

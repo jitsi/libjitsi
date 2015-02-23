@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Upsample by a factor 2, high quality.
  *
@@ -52,47 +54,47 @@ public class ResamplerPrivateUp2HQ
 
             /* First all-pass section for even output sample */
             Y       = in32 - S[ S_offset ];
-            X       = Macros.SKP_SMULWB( Y, ResamplerRom.SKP_Silk_resampler_up2_hq_0[ 0 ] );
+            X       = SKP_SMULWB( Y, ResamplerRom.SKP_Silk_resampler_up2_hq_0[ 0 ] );
             out32_1 = S[ S_offset ] + X;
             S[ S_offset ]  = in32 + X;
 
             /* Second all-pass section for even output sample */
             Y       = out32_1 - S[ S_offset+1 ];
-            X       = Macros.SKP_SMLAWB( Y, Y, ResamplerRom.SKP_Silk_resampler_up2_hq_0[ 1 ] );
+            X       = SKP_SMLAWB( Y, Y, ResamplerRom.SKP_Silk_resampler_up2_hq_0[ 1 ] );
             out32_2 = S[ S_offset+1 ] + X;
             S[ S_offset+1 ]  = out32_1 + X;
 
             /* Biquad notch filter */
-            out32_2 = Macros.SKP_SMLAWB( out32_2, S[ S_offset+5 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 2 ] );
-            out32_2 = Macros.SKP_SMLAWB( out32_2, S[ S_offset+4 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 1 ] );
-            out32_1 = Macros.SKP_SMLAWB( out32_2, S[ S_offset+4 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 0 ] );
+            out32_2 = SKP_SMLAWB( out32_2, S[ S_offset+5 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 2 ] );
+            out32_2 = SKP_SMLAWB( out32_2, S[ S_offset+4 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 1 ] );
+            out32_1 = SKP_SMLAWB( out32_2, S[ S_offset+4 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 0 ] );
             S[ S_offset+5 ]  = out32_2 - S[ S_offset+5 ];
 
             /* Apply gain in Q15, convert back to int16 and store to output */
             out[ out_offset + 2 * k ] = (short)SigProcFIX.SKP_SAT16(
-                Macros.SKP_SMLAWB( 256, out32_1, ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 3 ] ) >> 9 );
+                SKP_SMLAWB( 256, out32_1, ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 3 ] ) >> 9 );
 
             /* First all-pass section for odd output sample */
             Y       = in32 - S[ S_offset+2 ];
-            X       = Macros.SKP_SMULWB( Y, ResamplerRom.SKP_Silk_resampler_up2_hq_1[ 0 ] );
+            X       = SKP_SMULWB( Y, ResamplerRom.SKP_Silk_resampler_up2_hq_1[ 0 ] );
             out32_1 = S[ S_offset+2 ] + X;
             S[ S_offset+2 ]  = in32 + X;
 
             /* Second all-pass section for odd output sample */
             Y       = out32_1 - S[ S_offset+3 ];
-            X       = Macros.SKP_SMLAWB( Y, Y, ResamplerRom.SKP_Silk_resampler_up2_hq_1[ 1 ] );
+            X       = SKP_SMLAWB( Y, Y, ResamplerRom.SKP_Silk_resampler_up2_hq_1[ 1 ] );
             out32_2 = S[ S_offset+3 ] + X;
             S[ S_offset+3 ]  = out32_1 + X;
 
             /* Biquad notch filter */
-            out32_2 = Macros.SKP_SMLAWB( out32_2, S[ S_offset+4 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 2 ] );
-            out32_2 = Macros.SKP_SMLAWB( out32_2, S[ S_offset+5 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 1 ] );
-            out32_1 = Macros.SKP_SMLAWB( out32_2, S[ S_offset+5 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 0 ] );
+            out32_2 = SKP_SMLAWB( out32_2, S[ S_offset+4 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 2 ] );
+            out32_2 = SKP_SMLAWB( out32_2, S[ S_offset+5 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 1 ] );
+            out32_1 = SKP_SMLAWB( out32_2, S[ S_offset+5 ], ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 0 ] );
             S[ S_offset+4 ]  = out32_2 - S[ S_offset+4 ];
 
             /* Apply gain in Q15, convert back to int16 and store to output */
             out[ out_offset + 2 * k + 1 ] = (short)SigProcFIX.SKP_SAT16(
-                Macros.SKP_SMLAWB( 256, out32_1, ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 3 ] ) >> 9 );
+                SKP_SMLAWB( 256, out32_1, ResamplerRom.SKP_Silk_resampler_up2_hq_notch[ 3 ] ) >> 9 );
         }
     }
 

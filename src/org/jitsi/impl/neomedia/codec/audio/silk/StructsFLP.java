@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 import java.util.*;
 
 /**
@@ -50,10 +52,10 @@ class SKP_Silk_shape_state_FLP
  */
 class SKP_Silk_prefilter_state_FLP
 {
-    float[]   sLTP_shp1 = new float[ Define.LTP_BUF_LENGTH ];
-    float[]   sLTP_shp2 = new float[ Define.LTP_BUF_LENGTH ];
-    float[]   sAR_shp1 = new float[ Define.SHAPE_LPC_ORDER_MAX + 1 ];
-    float[]   sAR_shp2 = new float[ Define.SHAPE_LPC_ORDER_MAX ];
+    float[]   sLTP_shp1 = new float[ LTP_BUF_LENGTH ];
+    float[]   sLTP_shp2 = new float[ LTP_BUF_LENGTH ];
+    float[]   sAR_shp1 = new float[ SHAPE_LPC_ORDER_MAX + 1 ];
+    float[]   sAR_shp2 = new float[ SHAPE_LPC_ORDER_MAX ];
     int     sLTP_shp_buf_idx1;
     int     sLTP_shp_buf_idx2;
     int     sAR_shp_buf_idx2;
@@ -99,7 +101,7 @@ class SKP_Silk_predict_state_FLP
     int     pitch_LPC_win_length;
     int     min_pitch_lag;                      /* Lowest possible pitch lag (samples)  */
     int     max_pitch_lag;                      /* Highest possible pitch lag (samples) */
-    float[]   prev_NLSFq = new float[ Define.MAX_LPC_ORDER ];        /* Previously quantized NLSF vector     */
+    float[]   prev_NLSFq = new float[ MAX_LPC_ORDER ];        /* Previously quantized NLSF vector     */
 
     /**
      * set all fields of the instance to zero
@@ -219,7 +221,7 @@ class SKP_Silk_encoder_state_FLP
 
 
     /* Buffer for find pitch and noise shape analysis */
-    float[]                         x_buf = new float[ 2 * Define.MAX_FRAME_LENGTH + Define.LA_SHAPE_MAX ];/* Buffer for find pitch and noise shape analysis */
+    float[]                         x_buf = new float[ 2 * MAX_FRAME_LENGTH + LA_SHAPE_MAX ];/* Buffer for find pitch and noise shape analysis */
 // djinn: add a parameter: offset
     int x_buf_offset;
     float                           LTPCorr;                    /* Normalized correlation from pitch lag estimator */
@@ -250,40 +252,40 @@ class SKP_Silk_encoder_control_FLP
     SKP_Silk_encoder_control    sCmn = new SKP_Silk_encoder_control();                               /* Common struct, shared with fixed-point code */
 
     /* Prediction and coding parameters */
-    float[]                   Gains = new float[Define.NB_SUBFR];
-    float[][]                   PredCoef = new float[ 2 ][ Define.MAX_LPC_ORDER ];     /* holds interpolated and final coefficients */
-    float[]                   LTPCoef = new float[Define.LTP_ORDER * Define.NB_SUBFR];
+    float[]                   Gains = new float[NB_SUBFR];
+    float[][]                   PredCoef = new float[ 2 ][ MAX_LPC_ORDER ];     /* holds interpolated and final coefficients */
+    float[]                   LTPCoef = new float[LTP_ORDER * NB_SUBFR];
     float                   LTP_scale;
 
     /* Prediction and coding parameters */
-    int[]                   Gains_Q16 = new int[ Define.NB_SUBFR ];
+    int[]                   Gains_Q16 = new int[ NB_SUBFR ];
 //TODO:    SKP_array_of_int16_4_byte_aligned( PredCoef_Q12[ 2 ], MAX_LPC_ORDER );
     int dummy_int32PredCoef_Q12[] = new int[ 2 ];
-    short PredCoef_Q12[][] = new short[ 2 ][Define.MAX_LPC_ORDER];
+    short PredCoef_Q12[][] = new short[ 2 ][MAX_LPC_ORDER];
 
-    short[]                   LTPCoef_Q14 = new short[ Define.LTP_ORDER * Define.NB_SUBFR ];
+    short[]                   LTPCoef_Q14 = new short[ LTP_ORDER * NB_SUBFR ];
     int                     LTP_scale_Q14;
 
     /* Noise shaping parameters */
     /* Testing */
 //TODO    SKP_array_of_int16_4_byte_aligned( AR2_Q13, NB_SUBFR * SHAPE_LPC_ORDER_MAX );
     int dummy_int32AR2_Q13;
-    short[] AR2_Q13 = new short[Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX];
+    short[] AR2_Q13 = new short[NB_SUBFR * SHAPE_LPC_ORDER_MAX];
 
-    int[]                     LF_shp_Q14 = new int[        Define.NB_SUBFR ];      /* Packs two int16 coefficients per int32 value             */
-    int[]                     Tilt_Q14 = new int[          Define.NB_SUBFR ];
-    int[]                     HarmShapeGain_Q14 = new int[ Define.NB_SUBFR ];
+    int[]                     LF_shp_Q14 = new int[        NB_SUBFR ];      /* Packs two int16 coefficients per int32 value             */
+    int[]                     Tilt_Q14 = new int[          NB_SUBFR ];
+    int[]                     HarmShapeGain_Q14 = new int[ NB_SUBFR ];
     int                     Lambda_Q10;
 
     /* Noise shaping parameters */
-    float[]                   AR1 = new float[ Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX ];
-    float[]                   AR2 = new float[ Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX ];
-    float[]                   LF_MA_shp = new float[     Define.NB_SUBFR ];
-    float[]                   LF_AR_shp = new float[     Define.NB_SUBFR ];
-    float[]                   GainsPre = new float[      Define.NB_SUBFR ];
-    float[]                   HarmBoost = new float[     Define.NB_SUBFR ];
-    float[]                   Tilt = new float[          Define.NB_SUBFR ];
-    float[]                   HarmShapeGain = new float[ Define.NB_SUBFR ];
+    float[]                   AR1 = new float[ NB_SUBFR * SHAPE_LPC_ORDER_MAX ];
+    float[]                   AR2 = new float[ NB_SUBFR * SHAPE_LPC_ORDER_MAX ];
+    float[]                   LF_MA_shp = new float[     NB_SUBFR ];
+    float[]                   LF_AR_shp = new float[     NB_SUBFR ];
+    float[]                   GainsPre = new float[      NB_SUBFR ];
+    float[]                   HarmBoost = new float[     NB_SUBFR ];
+    float[]                   Tilt = new float[          NB_SUBFR ];
+    float[]                   HarmShapeGain = new float[ NB_SUBFR ];
     float                   Lambda;
     float                   input_quality;
     float                   coding_quality;
@@ -293,9 +295,9 @@ class SKP_Silk_encoder_control_FLP
     /* Measures */
     float                   sparseness;
     float                   LTPredCodGain;
-    float[]                   input_quality_bands = new float[ Define.VAD_N_BANDS ];
+    float[]                   input_quality_bands = new float[ VAD_N_BANDS ];
     float                   input_tilt;
-    float[]                   ResNrg = new float[ Define.NB_SUBFR ];                 /* Residual energy per subframe */
+    float[]                   ResNrg = new float[ NB_SUBFR ];                 /* Residual energy per subframe */
 }
 
 interface NoiseShapingQuantizerFP

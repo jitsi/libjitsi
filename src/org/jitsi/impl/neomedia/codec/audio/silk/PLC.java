@@ -6,6 +6,10 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 import java.util.*;
 
 /**
@@ -28,14 +32,15 @@ public class PLC
     static final int LOG2_INV_LPC_GAIN_LOW_THRES =    8;               /* 2^8 = 24 dB LPC gain             */
     static final int PITCH_DRIFT_FAC_Q16   =          655;            /* 0.01 in Q16                      */
 
-    static final int  NB_ATT =  2;
+    private static final int  NB_ATT =  2;
 
-    static short[] HARM_ATT_Q15              = { 32440, 31130 }; /* 0.99, 0.95 */
-    static short[] PLC_RAND_ATTENUATE_V_Q15  = { 31130, 26214 }; /* 0.95, 0.8 */
-    static short[] PLC_RAND_ATTENUATE_UV_Q15 = { 32440, 29491 }; /* 0.99, 0.9 */
+    private static final short[] HARM_ATT_Q15              = { 32440, 31130 }; /* 0.99, 0.95 */
+    private static final short[] PLC_RAND_ATTENUATE_V_Q15  = { 31130, 26214 }; /* 0.95, 0.8 */
+    private static final short[] PLC_RAND_ATTENUATE_UV_Q15 = { 32440, 29491 }; /* 0.99, 0.9 */
 
     /**
      * PLC reset.
+     *
      * @param psDec Decoder state.
      */
     static void SKP_Silk_PLC_Reset(
@@ -57,10 +62,10 @@ public class PLC
     static void SKP_Silk_PLC(
             SKP_Silk_decoder_state      psDec,             /* I Decoder state          */
             SKP_Silk_decoder_control    psDecCtrl,         /* I Decoder control        */
-            short                       signal[],           /* O Concealed signal       */
+            short[]                     signal,            /* O Concealed signal       */
             int                         signal_offset,
-            int                            length,             /* I length of residual     */
-            int                          lost                /* I Loss flag              */
+            int                         length,            /* I length of residual     */
+            int                         lost               /* I Loss flag              */
     )
     {
         /* PLC control function */
@@ -74,6 +79,8 @@ public class PLC
             /* Generate Signal          */
             /****************************/
             SKP_Silk_PLC_conceal( psDec, psDecCtrl, signal, signal_offset, length );
+
+            psDec.lossCnt++;
         } else {
             /****************************/
             /* Update state             */
@@ -84,6 +91,7 @@ public class PLC
 
     /**
      * Update state of PLC
+     *
      * @param psDec Decoder state.
      * @param psDecCtrl Decoder control.
      * @param signal
@@ -93,9 +101,9 @@ public class PLC
     static void SKP_Silk_PLC_update(
             SKP_Silk_decoder_state     psDec,             /* (I/O) Decoder state          */
             SKP_Silk_decoder_control   psDecCtrl,         /* (I/O) Decoder control        */
-            short                      signal[],
+            short[]                    signal,
             int                        signal_offset,
-            int                    length
+            int                        length
     )
     {
         int LTP_Gain_Q14, temp_LTP_Gain_Q14;
@@ -107,25 +115,28 @@ public class PLC
         /* Update parameters used in case of packet loss */
         psDec.prev_sigtype = psDecCtrl.sigtype;
         LTP_Gain_Q14 = 0;
-        if( psDecCtrl.sigtype == Define.SIG_TYPE_VOICED ) {
+        if( psDecCtrl.sigtype == SIG_TYPE_VOICED ) {
             /* Find the parameters for the last subframe which contains a pitch pulse */
-            for( j = 0; j * psDec.subfr_length  < psDecCtrl.pitchL[ Define.NB_SUBFR - 1 ]; j++ ) {
+            for( j = 0; j * psDec.subfr_length  < psDecCtrl.pitchL[ NB_SUBFR - 1 ]; j++ ) {
                 temp_LTP_Gain_Q14 = 0;
-                for( i = 0; i < Define.LTP_ORDER; i++ ) {
-                    temp_LTP_Gain_Q14 += psDecCtrl.LTPCoef_Q14[ ( Define.NB_SUBFR - 1 - j ) * Define.LTP_ORDER  + i ];
+                for( i = 0; i < LTP_ORDER; i++ ) {
+                    temp_LTP_Gain_Q14 += psDecCtrl.LTPCoef_Q14[ ( NB_SUBFR - 1 - j ) * LTP_ORDER  + i ];
                 }
                 if( temp_LTP_Gain_Q14 > LTP_Gain_Q14 ) {
                     LTP_Gain_Q14 = temp_LTP_Gain_Q14;
-                    System.arraycopy(psDecCtrl.LTPCoef_Q14, Macros.SKP_SMULBB( Define.NB_SUBFR - 1 - j, Define.LTP_ORDER ),
-                            psPLC.LTPCoef_Q14, 0, Define.LTP_ORDER);
-                    psPLC.pitchL_Q8 = ( psDecCtrl.pitchL[ Define.NB_SUBFR - 1 - j ] << 8 );
+                    System.arraycopy(
+                            psDecCtrl.LTPCoef_Q14, SKP_SMULBB( NB_SUBFR - 1 - j, LTP_ORDER ),
+                            psPLC.LTPCoef_Q14, 0,
+                            LTP_ORDER);
+
+                    psPLC.pitchL_Q8 = ( psDecCtrl.pitchL[ NB_SUBFR - 1 - j ] << 8 );
                 }
             }
 
             if(USE_SINGLE_TAP)
             {
-                Arrays.fill(psPLC.LTPCoef_Q14, 0, Define.LTP_ORDER, (short)0);
-                 psPLC.LTPCoef_Q14[ Define.LTP_ORDER / 2 ] = (short) LTP_Gain_Q14;
+                Arrays.fill(psPLC.LTPCoef_Q14, 0, LTP_ORDER, (short)0);
+                psPLC.LTPCoef_Q14[ LTP_ORDER / 2 ] = (short) LTP_Gain_Q14;
             }
 
             /* Limit LT coefs */
@@ -134,11 +145,9 @@ public class PLC
                 int tmp;
 
                 tmp = ( V_PITCH_GAIN_START_MIN_Q14 << 10 );
-
                 scale_Q10 = ( tmp / Math.max( LTP_Gain_Q14, 1 ) );
-
-                for( i = 0; i < Define.LTP_ORDER; i++ ) {
-                     psPLC.LTPCoef_Q14[ i ] = (short) ( Macros.SKP_SMULBB( psPLC.LTPCoef_Q14[ i ], scale_Q10 ) >> 10 );
+                for( i = 0; i < LTP_ORDER; i++ ) {
+                     psPLC.LTPCoef_Q14[ i ] = (short) ( SKP_SMULBB( psPLC.LTPCoef_Q14[ i ], scale_Q10 ) >> 10 );
                 }
             } else if( LTP_Gain_Q14 > V_PITCH_GAIN_START_MAX_Q14 ) {
                 int   scale_Q14;
@@ -146,14 +155,13 @@ public class PLC
 
                 tmp = ( V_PITCH_GAIN_START_MAX_Q14 << 14 );
                 scale_Q14 = ( tmp / Math.max( LTP_Gain_Q14, 1 ) );
-
-                for( i = 0; i < Define.LTP_ORDER; i++ ) {
-                    psPLC.LTPCoef_Q14[ i ] = (short) ( Macros.SKP_SMULBB( psPLC.LTPCoef_Q14[ i ], scale_Q14 ) << 14 );
+                for( i = 0; i < LTP_ORDER; i++ ) {
+                    psPLC.LTPCoef_Q14[ i ] = (short) ( SKP_SMULBB( psPLC.LTPCoef_Q14[ i ], scale_Q14 ) >> 14 );
                 }
             }
         } else {
-             psPLC.pitchL_Q8 = ( Macros.SKP_SMULBB( psDec.fs_kHz, 18 ) << 8 );
-             Arrays.fill(psPLC.LTPCoef_Q14, 0, Define.LTP_ORDER, (short)0);
+             psPLC.pitchL_Q8 = ( SKP_SMULBB( psDec.fs_kHz, 18 ) << 8 );
+             Arrays.fill(psPLC.LTPCoef_Q14, 0, LTP_ORDER, (short)0);
         }
 
         /* Save LPC coeficients */
@@ -161,8 +169,7 @@ public class PLC
         psPLC.prevLTP_scale_Q14 = (short) psDecCtrl.LTP_scale_Q14;
 
         /* Save Gains */
-        System.arraycopy(psDecCtrl.Gains_Q16, 0, psPLC.prevGain_Q16, 0, Define.NB_SUBFR);
-
+        System.arraycopy(psDecCtrl.Gains_Q16, 0, psPLC.prevGain_Q16, 0, NB_SUBFR);
     }
 
     /**
@@ -176,34 +183,31 @@ public class PLC
     static void SKP_Silk_PLC_conceal(
             SKP_Silk_decoder_state      psDec,             /* I/O Decoder state */
             SKP_Silk_decoder_control    psDecCtrl,         /* I/O Decoder control */
-            short                   signal[],           /* O concealed signal */
-            int                     signal_offset,
-            int                     length              /* I length of residual */
+            short[]                     signal,            /* O concealed signal */
+            int                         signal_offset,
+            int                         length             /* I length of residual */
     )
     {
         int   i, j, k;
         short[] B_Q14;
-        short[] exc_buf = new short[Define.MAX_FRAME_LENGTH];
+        short[] exc_buf = new short[MAX_FRAME_LENGTH];
         short[] exc_buf_ptr;
         int     exc_buf_ptr_offset;
 
         short rand_scale_Q14;
-        short[] A_Q12_tmp = new short[Define.MAX_LPC_ORDER];
-
+        short[] A_Q12_tmp = new short[MAX_LPC_ORDER];
 
         int rand_seed, harm_Gain_Q15, rand_Gain_Q15;
-        int   lag, idx, shift1, shift2;
-        int shift1_ptr[] = new int[1];
-        int shift2_ptr[] = new int[1];
+        int   lag, idx, sLTP_buf_idx, shift1, shift2;
+        int[] shift_ptr = new int[1];
 
         int energy1, energy2;
-        int energy1_ptr[] = new int[1];
-        int energy2_ptr[] = new int[1];
+        int[] energy_ptr = new int[1];
 
         int[]  rand_ptr, pred_lag_ptr;
         int    rand_ptr_offset, pred_lag_ptr_offset;
 
-        int[] sig_Q10 = new int[Define.MAX_FRAME_LENGTH];
+        int[] sig_Q10 = new int[MAX_FRAME_LENGTH];
         int[] sig_Q10_ptr;
         int   sig_Q10_ptr_offset;
 
@@ -222,24 +226,21 @@ public class PLC
         /* Scale previous excitation signal */
         exc_buf_ptr = exc_buf;
         exc_buf_ptr_offset = 0;
-
-        for( k = ( Define.NB_SUBFR >> 1 ); k < Define.NB_SUBFR; k++ ) {
+        for( k = ( NB_SUBFR >> 1 ); k < NB_SUBFR; k++ ) {
             for( i = 0; i < psDec.subfr_length; i++ ) {
-                exc_buf_ptr[exc_buf_ptr_offset + i ] = ( short )( Macros.SKP_SMULWW( psDec.exc_Q10[ i + k * psDec.subfr_length ], psPLC.prevGain_Q16[ k ] ) >> 10 );
-
+                exc_buf_ptr[exc_buf_ptr_offset + i ] = ( short )( SKP_SMULWW( psDec.exc_Q10[ i + k * psDec.subfr_length ], psPLC.prevGain_Q16[ k ] ) >> 10 );
             }
             exc_buf_ptr_offset += psDec.subfr_length;
         }
         /* Find the subframe with lowest energy of the last two and use that as random noise generator */
-        SumSqrShift.SKP_Silk_sum_sqr_shift( energy1_ptr, shift1_ptr, exc_buf, 0, psDec.subfr_length );
-        energy1 = energy1_ptr[0];
-        shift1  = shift1_ptr[0];
+        SumSqrShift.SKP_Silk_sum_sqr_shift( energy_ptr, shift_ptr, exc_buf, 0, psDec.subfr_length );
+        energy1 = energy_ptr[0];
+        shift1  = shift_ptr[0];
+        SumSqrShift.SKP_Silk_sum_sqr_shift( energy_ptr, shift_ptr, exc_buf,  psDec.subfr_length , psDec.subfr_length );
+        energy2 = energy_ptr[0];
+        shift2  = shift_ptr[0];
 
-        SumSqrShift.SKP_Silk_sum_sqr_shift( energy2_ptr, shift2_ptr, exc_buf,  psDec.subfr_length , psDec.subfr_length );
-        energy2 = energy2_ptr[0];
-        shift2  = shift2_ptr[0];
-
-        if( ( energy1 >> shift2 ) < ( energy1 >> shift2 ) ) {
+        if( ( energy1 >> shift2 ) < ( energy2 >> shift1 ) ) {
             /* First sub-frame has lowest energy */
             rand_ptr = psDec.exc_Q10;
             rand_ptr_offset = Math.max( 0, 3 * psDec.subfr_length - RAND_BUF_SIZE );
@@ -255,7 +256,7 @@ public class PLC
 
         /* Setup attenuation gains */
         harm_Gain_Q15 = HARM_ATT_Q15[ Math.min( NB_ATT - 1, psDec.lossCnt ) ];
-        if( psDec.prev_sigtype == Define.SIG_TYPE_VOICED ) {
+        if( psDec.prev_sigtype == SIG_TYPE_VOICED ) {
             rand_Gain_Q15 = PLC_RAND_ATTENUATE_V_Q15[  Math.min( NB_ATT - 1, psDec.lossCnt ) ];
         } else {
             rand_Gain_Q15 = PLC_RAND_ATTENUATE_UV_Q15[ Math.min( NB_ATT - 1, psDec.lossCnt ) ];
@@ -266,18 +267,19 @@ public class PLC
             rand_scale_Q14 = (1 << 14 );
 
             /* Reduce random noise Gain for voiced frames */
-            if( psDec.prev_sigtype == Define.SIG_TYPE_VOICED ) {
-                for( i = 0; i < Define.LTP_ORDER; i++ ) {
+            if( psDec.prev_sigtype == SIG_TYPE_VOICED ) {
+                for( i = 0; i < LTP_ORDER; i++ ) {
                     rand_scale_Q14 -= B_Q14[ i ];
                 }
                 rand_scale_Q14 = (short) Math.max( 3277, rand_scale_Q14 ); /* 0.2 */
-                rand_scale_Q14 = ( short )( Macros.SKP_SMULBB( rand_scale_Q14, psPLC.prevLTP_scale_Q14 ) >> 14 );
+                rand_scale_Q14 = ( short )( SKP_SMULBB( rand_scale_Q14, psPLC.prevLTP_scale_Q14 ) >> 14 );
             }
 
             /* Reduce random noise for unvoiced frames with high LPC gain */
-            if( psDec.prev_sigtype == Define.SIG_TYPE_UNVOICED ) {
+            if( psDec.prev_sigtype == SIG_TYPE_UNVOICED ) {
                 int invGain_Q30, down_scale_Q30;
                 int invGain_Q30_ptr[] = new int[1];
+
                 LPCInvPredGain.SKP_Silk_LPC_inverse_pred_gain( invGain_Q30_ptr, psPLC.prevLPC_Q12, psDec.LPC_order );
                 invGain_Q30 = invGain_Q30_ptr[0];
 
@@ -285,62 +287,57 @@ public class PLC
                 down_scale_Q30 = Math.max( ( ( 1 << 30 ) >> LOG2_INV_LPC_GAIN_LOW_THRES ), down_scale_Q30 );
                 down_scale_Q30 = ( down_scale_Q30 << LOG2_INV_LPC_GAIN_HIGH_THRES );
 
-                rand_Gain_Q15 = ( Macros.SKP_SMULWB( down_scale_Q30, rand_Gain_Q15 ) >> 14 );
+                rand_Gain_Q15 = ( SKP_SMULWB( down_scale_Q30, rand_Gain_Q15 ) >> 14 );
             }
         }
 
-        rand_seed           = psPLC.rand_seed;
-        lag                 = SigProcFIX.SKP_RSHIFT_ROUND( psPLC.pitchL_Q8, 8 );
-        psDec.sLTP_buf_idx = psDec.frame_length;
+        rand_seed    = psPLC.rand_seed;
+        lag          = SigProcFIX.SKP_RSHIFT_ROUND( psPLC.pitchL_Q8, 8 );
+        sLTP_buf_idx = psDec.frame_length;
 
         /***************************/
         /* LTP synthesis filtering */
         /***************************/
         sig_Q10_ptr = sig_Q10;
         sig_Q10_ptr_offset = 0;
-
-
-        for( k = 0; k < Define.NB_SUBFR; k++ ) {
+        for( k = 0; k < NB_SUBFR; k++ ) {
             /* Setup pointer */
             pred_lag_ptr = psDec.sLTP_Q16;
-            pred_lag_ptr_offset = psDec.sLTP_buf_idx - lag + Define.LTP_ORDER / 2;
-
+            pred_lag_ptr_offset = sLTP_buf_idx - lag + LTP_ORDER / 2;
             for( i = 0; i < psDec.subfr_length; i++ ) {
                 rand_seed = SigProcFIX.SKP_RAND( rand_seed );
                 idx = ( rand_seed >> 25 ) & RAND_BUF_MASK;
 
                 /* Unrolled loop */
-//                LTP_pred_Q14 = Macros.SKP_SMULWB(               pred_lag_ptr[ pred_lag_ptr_offset + 0 ], B_Q14[ 0 ] );
-//TODO: array bonds check???
-                LTP_pred_Q14 = Macros.SKP_SMULWB(               pred_lag_ptr[ pred_lag_ptr_offset + 0 ], B_Q14[ 0 ] );
-                LTP_pred_Q14 = Macros.SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset - 1 ], B_Q14[ 1 ] );
-                LTP_pred_Q14 = Macros.SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset - 2 ], B_Q14[ 2 ] );
-                LTP_pred_Q14 = Macros.SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset - 3 ], B_Q14[ 3 ] );
-                LTP_pred_Q14 = Macros.SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset - 4 ], B_Q14[ 4 ] );
+                LTP_pred_Q14 = SKP_SMULWB(               pred_lag_ptr[ pred_lag_ptr_offset +0 ], B_Q14[ 0 ] );
+                LTP_pred_Q14 = SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset -1 ], B_Q14[ 1 ] );
+                LTP_pred_Q14 = SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset -2 ], B_Q14[ 2 ] );
+                LTP_pred_Q14 = SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset -3 ], B_Q14[ 3 ] );
+                LTP_pred_Q14 = SKP_SMLAWB( LTP_pred_Q14, pred_lag_ptr[ pred_lag_ptr_offset -4 ], B_Q14[ 4 ] );
                 pred_lag_ptr_offset++;
 
                 /* Generate LPC residual */
-                LPC_exc_Q10 = ( Macros.SKP_SMULWB( rand_ptr[rand_ptr_offset + idx ], rand_scale_Q14 ) << 2 ); /* Random noise part */
+                LPC_exc_Q10 = ( SKP_SMULWB( rand_ptr[rand_ptr_offset + idx ], rand_scale_Q14 ) << 2 ); /* Random noise part */
                 LPC_exc_Q10 = ( LPC_exc_Q10 + SigProcFIX.SKP_RSHIFT_ROUND( LTP_pred_Q14, 4 ) );  /* Harmonic part */
 
                 /* Update states */
-                psDec.sLTP_Q16[ psDec.sLTP_buf_idx ] = ( LPC_exc_Q10 << 6 );
-                psDec.sLTP_buf_idx++;
+                psDec.sLTP_Q16[ sLTP_buf_idx ] = ( LPC_exc_Q10 << 6 );
+                sLTP_buf_idx++;
 
                 /* Save LPC residual */
                 sig_Q10_ptr[ sig_Q10_ptr_offset + i ] = LPC_exc_Q10;
             }
             sig_Q10_ptr_offset += psDec.subfr_length;
             /* Gradually reduce LTP gain */
-            for( j = 0; j < Define.LTP_ORDER; j++ ) {
-                B_Q14[ j ] = (short) ( Macros.SKP_SMULBB( harm_Gain_Q15, B_Q14[ j ] )>> 15 );
+            for( j = 0; j < LTP_ORDER; j++ ) {
+                B_Q14[ j ] = (short) ( SKP_SMULBB( harm_Gain_Q15, B_Q14[ j ] ) >> 15 );
             }
             /* Gradually reduce excitation gain */
-            rand_scale_Q14 = (short) ( Macros.SKP_SMULBB( rand_scale_Q14, rand_Gain_Q15 ) >> 15 );
+            rand_scale_Q14 = (short) ( SKP_SMULBB( rand_scale_Q14, rand_Gain_Q15 ) >> 15 );
 
             /* Slowly increase pitch lag */
-            psPLC.pitchL_Q8 += Macros.SKP_SMULWB( psPLC.pitchL_Q8, PITCH_DRIFT_FAC_Q16 );
-            psPLC.pitchL_Q8 = Math.min( psPLC.pitchL_Q8, ( Macros.SKP_SMULBB( MAX_PITCH_LAG_MS, psDec.fs_kHz ) << 8 ) );
+            psPLC.pitchL_Q8 += SKP_SMULWB( psPLC.pitchL_Q8, PITCH_DRIFT_FAC_Q16 );
+            psPLC.pitchL_Q8 = Math.min( psPLC.pitchL_Q8, ( SKP_SMULBB( MAX_PITCH_LAG_MS, psDec.fs_kHz ) << 8 ) );
             lag = SigProcFIX.SKP_RSHIFT_ROUND( psPLC.pitchL_Q8, 8 );
         }
 
@@ -351,39 +348,38 @@ public class PLC
         sig_Q10_ptr_offset = 0;
         /* Preload LPC coeficients to array on stack. Gives small performance gain */
         System.arraycopy(psPLC.prevLPC_Q12, 0, A_Q12_tmp, 0, psDec.LPC_order);
-        Typedef.SKP_assert( psDec.LPC_order >= 10 ); /* check that unrolling works */
-
-        for( k = 0; k < Define.NB_SUBFR; k++ ) {
+        SKP_assert( psDec.LPC_order >= 10 ); /* check that unrolling works */
+        for( k = 0; k < NB_SUBFR; k++ ) {
             for( i = 0; i < psDec.subfr_length; i++ ){
                 /* partly unrolled */
-                LPC_pred_Q10 = Macros.SKP_SMULWB(               psDec.sLPC_Q14[ Define.MAX_LPC_ORDER + i -  1 ], A_Q12_tmp[ 0 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ Define.MAX_LPC_ORDER + i -  2 ], A_Q12_tmp[ 1 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ Define.MAX_LPC_ORDER + i -  3 ], A_Q12_tmp[ 2 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ Define.MAX_LPC_ORDER + i -  4 ], A_Q12_tmp[ 3 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ Define.MAX_LPC_ORDER + i -  5 ], A_Q12_tmp[ 4 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ Define.MAX_LPC_ORDER + i -  6 ], A_Q12_tmp[ 5 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ Define.MAX_LPC_ORDER + i -  7 ], A_Q12_tmp[ 6 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ Define.MAX_LPC_ORDER + i -  8 ], A_Q12_tmp[ 7 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ Define.MAX_LPC_ORDER + i -  9 ], A_Q12_tmp[ 8 ] );
-                LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ Define.MAX_LPC_ORDER + i - 10 ], A_Q12_tmp[ 9 ] );
+                LPC_pred_Q10 = SKP_SMULWB(               psDec.sLPC_Q14[ MAX_LPC_ORDER + i -  1 ], A_Q12_tmp[ 0 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ MAX_LPC_ORDER + i -  2 ], A_Q12_tmp[ 1 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ MAX_LPC_ORDER + i -  3 ], A_Q12_tmp[ 2 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ MAX_LPC_ORDER + i -  4 ], A_Q12_tmp[ 3 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ MAX_LPC_ORDER + i -  5 ], A_Q12_tmp[ 4 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ MAX_LPC_ORDER + i -  6 ], A_Q12_tmp[ 5 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ MAX_LPC_ORDER + i -  7 ], A_Q12_tmp[ 6 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ MAX_LPC_ORDER + i -  8 ], A_Q12_tmp[ 7 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ MAX_LPC_ORDER + i -  9 ], A_Q12_tmp[ 8 ] );
+                LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ MAX_LPC_ORDER + i - 10 ], A_Q12_tmp[ 9 ] );
 
                 for( j = 10; j < psDec.LPC_order; j++ ) {
-                    LPC_pred_Q10 = Macros.SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ Define.MAX_LPC_ORDER + i - j - 1 ], A_Q12_tmp[ j ] );
+                    LPC_pred_Q10 = SKP_SMLAWB( LPC_pred_Q10, psDec.sLPC_Q14[ MAX_LPC_ORDER + i - j - 1 ], A_Q12_tmp[ j ] );
                 }
                 /* Add prediction to LPC residual */
-                sig_Q10_ptr[ sig_Q10_ptr_offset = i ] = ( sig_Q10_ptr[ sig_Q10_ptr_offset +i ] + LPC_pred_Q10 );
+                sig_Q10_ptr[ sig_Q10_ptr_offset + i ] = ( sig_Q10_ptr[ sig_Q10_ptr_offset + i ] + LPC_pred_Q10 );
 
                 /* Update states */
-                psDec.sLPC_Q14[ Define.MAX_LPC_ORDER + i ] = ( sig_Q10_ptr[sig_Q10_ptr_offset+ i ] << 4 );
+                psDec.sLPC_Q14[ MAX_LPC_ORDER + i ] = ( sig_Q10_ptr[sig_Q10_ptr_offset + i ] << 4 );
             }
             sig_Q10_ptr_offset  += psDec.subfr_length;
             /* Update LPC filter state */
-            System.arraycopy(psDec.sLPC_Q14, psDec.subfr_length, psDec.sLPC_Q14, 0, Define.MAX_LPC_ORDER);
+            System.arraycopy(psDec.sLPC_Q14, psDec.subfr_length, psDec.sLPC_Q14, 0, MAX_LPC_ORDER);
         }
 
         /* Scale with Gain */
         for( i = 0; i < psDec.frame_length; i++ ) {
-            signal[ signal_offset + i ] = ( short )SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( Macros.SKP_SMULWW( sig_Q10[ i ], psPLC.prevGain_Q16[ Define.NB_SUBFR - 1 ] ), 10 ) );
+            signal[ signal_offset + i ] = ( short )SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( SKP_SMULWW( sig_Q10[ i ], psPLC.prevGain_Q16[ NB_SUBFR - 1 ] ), 10 ) );
         }
 
         /**************************************/
@@ -391,13 +387,14 @@ public class PLC
         /**************************************/
         psPLC.rand_seed     = rand_seed;
         psPLC.randScale_Q14 = rand_scale_Q14;
-        for( i = 0; i < Define.NB_SUBFR; i++ ) {
+        for( i = 0; i < NB_SUBFR; i++ ) {
             psDecCtrl.pitchL[ i ] = lag;
         }
     }
 
     /**
      * Glues concealed frames with new good recieved frames.
+     *
      * @param psDec Decoder state.
      * @param psDecCtrl Decoder control.
      * @param signal signal.
@@ -407,41 +404,41 @@ public class PLC
     static void SKP_Silk_PLC_glue_frames(
             SKP_Silk_decoder_state      psDec,             /* I/O decoder state    */
             SKP_Silk_decoder_control    psDecCtrl,         /* I/O Decoder control  */
-            short                       signal[],           /* I/O signal           */
-            int                            signal_offset,
-            int                         length              /* I length of residual */
+            short[]                     signal,            /* I/O signal           */
+            int                         signal_offset,
+            int                         length             /* I length of residual */
     )
     {
         int   i, energy_shift;
         int energy;
-        int energy_ptr[] = new int[1];
-        int energy_shift_ptr[] = new int[1];
 
         SKP_Silk_PLC_struct psPLC;
         psPLC = psDec.sPLC;
 
         if( psDec.lossCnt != 0) {
             /* Calculate energy in concealed residual */
-            int[] conc_energy_ptr = new int[1];
-            int[] conc_energy_shift_ptr = new int[1];
-            SumSqrShift.SKP_Silk_sum_sqr_shift( conc_energy_ptr, conc_energy_shift_ptr, signal, signal_offset, length );
-            psPLC.conc_energy = conc_energy_ptr[0];
-            psPLC.conc_energy_shift = conc_energy_shift_ptr[0];
+            int[] energy_ptr = new int[1];
+            int[] energy_shift_ptr = new int[1];
+            SumSqrShift.SKP_Silk_sum_sqr_shift( energy_ptr, energy_shift_ptr, signal, signal_offset, length );
+            psPLC.conc_energy = energy_ptr[0];
+            psPLC.conc_energy_shift = energy_shift_ptr[0];
 
             psPLC.last_frame_lost = 1;
         } else {
             if( psDec.sPLC.last_frame_lost != 0 ) {
+                int[] energy_ptr = new int[1];
+                int[] energy_shift_ptr = new int[1];
+
                 /* Calculate residual in decoded signal if last frame was lost */
                 SumSqrShift.SKP_Silk_sum_sqr_shift( energy_ptr, energy_shift_ptr, signal, signal_offset, length );
                 energy = energy_ptr[0];
                 energy_shift = energy_shift_ptr[0];
 
-
                 /* Normalize energies */
                 if( energy_shift > psPLC.conc_energy_shift ) {
-                    psPLC.conc_energy = ( psPLC.conc_energy >> energy_shift - psPLC.conc_energy_shift );
+                    psPLC.conc_energy = psPLC.conc_energy >> ( energy_shift - psPLC.conc_energy_shift );
                 } else if( energy_shift < psPLC.conc_energy_shift ) {
-                    energy = ( energy >> psPLC.conc_energy_shift - energy_shift );
+                    energy = energy >> ( psPLC.conc_energy_shift - energy_shift );
                 }
 
                 /* Fade in the energy difference */
@@ -449,7 +446,7 @@ public class PLC
                     int frac_Q24, LZ;
                     int gain_Q12, slope_Q12;
 
-                    LZ = Macros.SKP_Silk_CLZ32( psPLC.conc_energy );
+                    LZ = SKP_Silk_CLZ32( psPLC.conc_energy );
                     LZ = LZ - 1;
                     psPLC.conc_energy = ( psPLC.conc_energy << LZ );
                     energy = ( energy >> Math.max( 24 - LZ, 0 ) );
@@ -457,7 +454,7 @@ public class PLC
                     frac_Q24 = ( psPLC.conc_energy / Math.max( energy, 1 ) );
 
                     gain_Q12 = Inlines.SKP_Silk_SQRT_APPROX( frac_Q24 );
-                    slope_Q12 = ( ( 1 << 12 ) - gain_Q12 / length );
+                    slope_Q12 = ( ( 1 << 12 ) - gain_Q12 ) / length;
 
                     for( i = 0; i < length; i++ ) {
                         signal[signal_offset + i ] = (short) ( ( gain_Q12 * signal[ signal_offset + i ] ) >> 12 );
@@ -467,7 +464,6 @@ public class PLC
                 }
             }
             psPLC.last_frame_lost = 0;
-
         }
     }
 }

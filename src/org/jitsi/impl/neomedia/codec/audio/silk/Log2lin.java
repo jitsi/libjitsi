@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Convert input to a linear scale.
  *
@@ -34,10 +36,10 @@ public class Log2lin
         frac_Q7 = inLog_Q7 & 0x7F;
         if( inLog_Q7 < 2048 ) {
             /* Piece-wise parabolic approximation */
-            out = SigProcFIX.SKP_ADD_RSHIFT( out, SigProcFIX.SKP_MUL( out, Macros.SKP_SMLAWB( frac_Q7, SigProcFIX.SKP_MUL( frac_Q7, 128 - frac_Q7 ), -174 ) ), 7 );
+            out = SigProcFIX.SKP_ADD_RSHIFT( out, SigProcFIX.SKP_MUL( out, SKP_SMLAWB( frac_Q7, SigProcFIX.SKP_MUL( frac_Q7, 128 - frac_Q7 ), -174 ) ), 7 );
         } else {
             /* Piece-wise parabolic approximation */
-            out = SigProcFIX.SKP_MLA( out, SigProcFIX.SKP_RSHIFT( out, 7 ), Macros.SKP_SMLAWB( frac_Q7, SigProcFIX.SKP_MUL( frac_Q7, 128 - frac_Q7 ), -174 ) );
+            out = SigProcFIX.SKP_MLA( out, SigProcFIX.SKP_RSHIFT( out, 7 ), SKP_SMLAWB( frac_Q7, SigProcFIX.SKP_MUL( frac_Q7, 128 - frac_Q7 ), -174 ) );
         }
         return out;
     }

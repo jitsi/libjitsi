@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  *
  * @author Jing Dai
@@ -26,8 +28,8 @@ public class WrappersFLP
     )
     {
         int   i;
-        int[]   NLSF_fix = new int[  Define.MAX_LPC_ORDER ];
-        int[] a_fix_Q16 = new int[ Define.MAX_LPC_ORDER ];
+        int[]   NLSF_fix = new int[  MAX_LPC_ORDER ];
+        int[] a_fix_Q16 = new int[ MAX_LPC_ORDER ];
 
         for( i = 0; i < LPC_order; i++ )
         {
@@ -49,8 +51,8 @@ public class WrappersFLP
     )
     {
         int   i;
-        int[]   NLSF_fix = new int[  Define.MAX_LPC_ORDER ];
-        short[] a_fix_Q12 = new short[ Define.MAX_LPC_ORDER ];
+        int[]   NLSF_fix = new int[  MAX_LPC_ORDER ];
+        short[] a_fix_Q12 = new short[ MAX_LPC_ORDER ];
 
         for( i = 0; i < LPC_order; i++ )
         {
@@ -74,7 +76,7 @@ public class WrappersFLP
     )
     {
         int   i;
-        int[]   NLSF_Q15 = new int[ Define.MAX_LPC_ORDER ], ndelta_min_Q15 = new int[ Define.MAX_LPC_ORDER + 1 ];
+        int[]   NLSF_Q15 = new int[ MAX_LPC_ORDER ], ndelta_min_Q15 = new int[ MAX_LPC_ORDER + 1 ];
 
         for( i = 0; i < LPC_order; i++ )
         {
@@ -101,7 +103,7 @@ public class WrappersFLP
         final int                   d                   /* I    Number of parameters                    */
     )
     {
-        int[] x0_int = new int[ Define.MAX_LPC_ORDER ], x1_int = new int[ Define.MAX_LPC_ORDER ], xi_int = new int[ Define.MAX_LPC_ORDER ];
+        int[] x0_int = new int[ MAX_LPC_ORDER ], x1_int = new int[ MAX_LPC_ORDER ], xi_int = new int[ MAX_LPC_ORDER ];
         int ifact_Q2 = ( int )( ifact * 4.0f );
         int i;
 
@@ -133,13 +135,13 @@ public class WrappersFLP
     {
         int i, ret;
         int[] SA_Q8 = new int[1], SNR_dB_Q7 = new int[1], Tilt_Q15 = new int[1];
-        int[] Quality_Bands_Q15 = new int[ Define.VAD_N_BANDS ];
+        int[] Quality_Bands_Q15 = new int[ VAD_N_BANDS ];
 
         ret = VAD.SKP_Silk_VAD_GetSA_Q8( psEnc.sCmn.sVAD, SA_Q8, SNR_dB_Q7, Quality_Bands_Q15, Tilt_Q15,
             pIn,pIn_offset, psEnc.sCmn.frame_length );
 
         psEnc.speech_activity = SA_Q8[0] / 256.0f;
-        for( i = 0; i < Define.VAD_N_BANDS; i++ )
+        for( i = 0; i < VAD_N_BANDS; i++ )
         {
             psEncCtrl.input_quality_bands[ i ] = Quality_Bands_Q15[ i ] / 32768.0f;
         }
@@ -163,24 +165,24 @@ public class WrappersFLP
     {
         int     i, j;
         float   tmp_float;
-        short[]   x_16 = new short[ Define.MAX_FRAME_LENGTH ];
+        short[]   x_16 = new short[ MAX_FRAME_LENGTH ];
         /* Prediction and coding parameters */
-        int[]   Gains_Q16 = new int[ Define.NB_SUBFR ];
-        short[][] PredCoef_Q12 = new short[ 2 ][ Define.MAX_LPC_ORDER ];
-        short[]   LTPCoef_Q14 = new short[ Define.LTP_ORDER * Define.NB_SUBFR ];
+        int[]   Gains_Q16 = new int[ NB_SUBFR ];
+        short[][] PredCoef_Q12 = new short[ 2 ][ MAX_LPC_ORDER ];
+        short[]   LTPCoef_Q14 = new short[ LTP_ORDER * NB_SUBFR ];
         int     LTP_scale_Q14;
 
         /* Noise shaping parameters */
         /* Testing */
-        short[] AR2_Q13 = new short[ Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX ];
-        int[]   LF_shp_Q14 = new int[ Define.NB_SUBFR ];         /* Packs two int16 coefficients per int32 value             */
+        short[] AR2_Q13 = new short[ NB_SUBFR * SHAPE_LPC_ORDER_MAX ];
+        int[]   LF_shp_Q14 = new int[ NB_SUBFR ];         /* Packs two int16 coefficients per int32 value             */
         int     Lambda_Q10;
-        int[]     Tilt_Q14 = new int[ Define.NB_SUBFR ];
-        int[]     HarmShapeGain_Q14 = new int[ Define.NB_SUBFR ];
+        int[]     Tilt_Q14 = new int[ NB_SUBFR ];
+        int[]     HarmShapeGain_Q14 = new int[ NB_SUBFR ];
 
         /* Convert control struct to fix control struct */
         /* Noise shape parameters */
-        for( i = 0; i < Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX; i++ )
+        for( i = 0; i < NB_SUBFR * SHAPE_LPC_ORDER_MAX; i++ )
         {
             AR2_Q13[ i ] = (short)SigProcFIX.SKP_SAT16( SigProcFLP.SKP_float2int( psEncCtrl.AR2[ i ] * 8192.0f ) );
         }
@@ -190,7 +192,7 @@ public class WrappersFLP
          * test of the AR2_Q13
          *
          */
-//        short[] ar2_q13 = new short[ Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX ];
+//        short[] ar2_q13 = new short[ NB_SUBFR * SHAPE_LPC_ORDER_MAX ];
 //        String ar2_q13_filename = "D:/gsoc/ar2_q13";
 //
 //        /*
@@ -203,7 +205,7 @@ public class WrappersFLP
 //                                                 new FileInputStream(
 //                                                     new File(ar2_q13_filename)));
 //
-//            for( i = 0; i < Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX; i++ )
+//            for( i = 0; i < NB_SUBFR * SHAPE_LPC_ORDER_MAX; i++ )
 //            {
 //     //           AR2_Q13[ i ] = (short)SigProcFIX.SKP_SAT16( SigProcFLP.SKP_float2int( psEncCtrl.AR2[ i ] * 8192.0f ) );
 //                  try
@@ -242,7 +244,7 @@ public class WrappersFLP
 //            try
 //            {
 //                ar2_q13_datain_rand.seek(ar2_q13_file_offset);
-//                for( i = 0; i < Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX; i++ )
+//                for( i = 0; i < NB_SUBFR * SHAPE_LPC_ORDER_MAX; i++ )
 //                {
 //         //           AR2_Q13[ i ] = (short)SigProcFIX.SKP_SAT16( SigProcFLP.SKP_float2int( psEncCtrl.AR2[ i ] * 8192.0f ) );
 //                      try
@@ -291,7 +293,7 @@ public class WrappersFLP
 //                                                 new FileInputStream(
 //                                                     new File(ar2_q13_filename)));
 //
-//            for( i = 0; i < Define.NB_SUBFR * Define.SHAPE_LPC_ORDER_MAX; i++ )
+//            for( i = 0; i < NB_SUBFR * SHAPE_LPC_ORDER_MAX; i++ )
 //            {
 //     //           AR2_Q13[ i ] = (short)SigProcFIX.SKP_SAT16( SigProcFLP.SKP_float2int( psEncCtrl.AR2[ i ] * 8192.0f ) );
 //                  try
@@ -322,7 +324,7 @@ public class WrappersFLP
 //        }
         /*TEST End***********************************************************************/
 
-        for( i = 0; i < Define.NB_SUBFR; i++ )
+        for( i = 0; i < NB_SUBFR; i++ )
         {
             LF_shp_Q14[ i ] =   ( SigProcFLP.SKP_float2int( psEncCtrl.LF_AR_shp[ i ]     * 16384.0f ) << 16 ) |
                                   ( 0x0000FFFF & SigProcFLP.SKP_float2int( psEncCtrl.LF_MA_shp[ i ]     * 16384.0f ) );
@@ -332,20 +334,20 @@ public class WrappersFLP
         Lambda_Q10 = SigProcFLP.SKP_float2int( psEncCtrl.Lambda * 1024.0f );
 
         /* prediction and coding parameters */
-        for( i = 0; i < Define.NB_SUBFR * Define.LTP_ORDER; i++ )
+        for( i = 0; i < NB_SUBFR * LTP_ORDER; i++ )
         {
             LTPCoef_Q14[ i ] = ( short )SigProcFLP.SKP_float2int( psEncCtrl.LTPCoef[ i ] * 16384.0f );
         }
 
-        for( j = 0; j < Define.NB_SUBFR >> 1; j++ )
+        for( j = 0; j < NB_SUBFR >> 1; j++ )
         {
-            for( i = 0; i < Define.MAX_LPC_ORDER; i++ )
+            for( i = 0; i < MAX_LPC_ORDER; i++ )
             {
                 PredCoef_Q12[ j ][ i ] = ( short )SigProcFLP.SKP_float2int( psEncCtrl.PredCoef[ j ][ i ] * 4096.0f );
             }
         }
 
-        for( i = 0; i < Define.NB_SUBFR; i++ )
+        for( i = 0; i < NB_SUBFR; i++ )
         {
             tmp_float = SigProcFIX.SKP_LIMIT( ( psEncCtrl.Gains[ i ] * 65536.0f ), 2147483000.0f, -2147483000.0f );
             Gains_Q16[ i ] = SigProcFLP.SKP_float2int( tmp_float );
@@ -356,7 +358,7 @@ public class WrappersFLP
             }
         }
 
-        if( psEncCtrl.sCmn.sigtype == Define.SIG_TYPE_VOICED ) {
+        if( psEncCtrl.sCmn.sigtype == SIG_TYPE_VOICED ) {
 
             LTP_scale_Q14 = TablesOther.SKP_Silk_LTPScales_table_Q14[ psEncCtrl.sCmn.LTP_scaleIndex ];
         }
@@ -372,7 +374,7 @@ public class WrappersFLP
         /**
          * test of x_16
          */
-//        short x_16_test[] = new short[ Define.MAX_FRAME_LENGTH ];
+//        short x_16_test[] = new short[ MAX_FRAME_LENGTH ];
 //        String x_16_filename = "D:/gsoc/x_16";
 //        /*
 //         * Option 1:

@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  *
  * @author Jing Dai
@@ -14,9 +17,9 @@ package org.jitsi.impl.neomedia.codec.audio.silk;
 public class GainQuant
 {
 
-    static final int OFFSET =         ( ( Define.MIN_QGAIN_DB * 128 ) / 6 + 16 * 128 );
-    static final int SCALE_Q16 =      ( ( 65536 * ( Define.N_LEVELS_QGAIN - 1 ) ) / ( ( ( Define.MAX_QGAIN_DB - Define.MIN_QGAIN_DB ) * 128 ) / 6 ) );
-    static final int INV_SCALE_Q16 =   ( ( 65536 * ( ( ( Define.MAX_QGAIN_DB - Define.MIN_QGAIN_DB ) * 128 ) / 6 ) ) / ( Define.N_LEVELS_QGAIN - 1 ) );
+    static final int OFFSET =         ( ( MIN_QGAIN_DB * 128 ) / 6 + 16 * 128 );
+    static final int SCALE_Q16 =      ( ( 65536 * ( N_LEVELS_QGAIN - 1 ) ) / ( ( ( MAX_QGAIN_DB - MIN_QGAIN_DB ) * 128 ) / 6 ) );
+    static final int INV_SCALE_Q16 =   ( ( 65536 * ( ( ( MAX_QGAIN_DB - MIN_QGAIN_DB ) * 128 ) / 6 ) ) / ( N_LEVELS_QGAIN - 1 ) );
 
     /**
      * Gain scalar quantization with hysteresis, uniform on log scale.
@@ -34,9 +37,9 @@ public class GainQuant
     {
         int k;
 
-        for( k = 0; k < Define.NB_SUBFR; k++ ) {
+        for( k = 0; k < NB_SUBFR; k++ ) {
             /* Add half of previous quantization error, convert to log scale, scale, floor() */
-            ind[ k ] = Macros.SKP_SMULWB( SCALE_Q16, Lin2log.SKP_Silk_lin2log( gain_Q16[ k ] ) - OFFSET );
+            ind[ k ] = SKP_SMULWB( SCALE_Q16, Lin2log.SKP_Silk_lin2log( gain_Q16[ k ] ) - OFFSET );
 
             /* Round towards previous quantized gain (hysteresis) */
             if( ind[ k ] < prev_ind[0] ) {
@@ -46,20 +49,20 @@ public class GainQuant
             /* Compute delta indices and limit */
             if( k == 0 && conditional == 0 ) {
                 /* Full index */
-                ind[ k ] = SigProcFIX.SKP_LIMIT_int( ind[ k ], 0, Define.N_LEVELS_QGAIN - 1 );
-                ind[ k ] = Math.max( ind[ k ], prev_ind[0] + Define.MIN_DELTA_GAIN_QUANT );
+                ind[ k ] = SigProcFIX.SKP_LIMIT_int( ind[ k ], 0, N_LEVELS_QGAIN - 1 );
+                ind[ k ] = Math.max( ind[ k ], prev_ind[0] + MIN_DELTA_GAIN_QUANT );
                 prev_ind[0] = ind[ k ];
             } else {
                 /* Delta index */
-                ind[ k ] = SigProcFIX.SKP_LIMIT_int( ind[ k ] - prev_ind[0], Define.MIN_DELTA_GAIN_QUANT, Define.MAX_DELTA_GAIN_QUANT );
+                ind[ k ] = SigProcFIX.SKP_LIMIT_int( ind[ k ] - prev_ind[0], MIN_DELTA_GAIN_QUANT, MAX_DELTA_GAIN_QUANT );
                 /* Accumulate deltas */
                 prev_ind[0] += ind[ k ];
                 /* Shift to make non-negative */
-                ind[ k ] -= Define.MIN_DELTA_GAIN_QUANT;
+                ind[ k ] -= MIN_DELTA_GAIN_QUANT;
             }
 
             /* Convert to linear scale and scale */
-            gain_Q16[ k ] = Log2lin.SKP_Silk_log2lin( Math.min( Macros.SKP_SMULWB( INV_SCALE_Q16, prev_ind[0] ) + OFFSET, 3967 ) ); /* 3967 = 31 in Q7 */
+            gain_Q16[ k ] = Log2lin.SKP_Silk_log2lin( Math.min( SKP_SMULWB( INV_SCALE_Q16, prev_ind[0] ) + OFFSET, 3967 ) ); /* 3967 = 31 in Q7 */
         }
     }
 
@@ -79,16 +82,16 @@ public class GainQuant
     {
         int   k;
 
-        for( k = 0; k < Define.NB_SUBFR; k++ ) {
+        for( k = 0; k < NB_SUBFR; k++ ) {
             if( k == 0 && conditional == 0 ) {
                 prev_ind[0] = ind[ k ];
             } else {
                 /* Delta index */
-                prev_ind[0] += ind[ k ] + Define.MIN_DELTA_GAIN_QUANT;
+                prev_ind[0] += ind[ k ] + MIN_DELTA_GAIN_QUANT;
             }
 
             /* Convert to linear scale and scale */
-            gain_Q16[ k ] = Log2lin.SKP_Silk_log2lin( Math.min( Macros.SKP_SMULWB( INV_SCALE_Q16, prev_ind[0] ) + OFFSET, 3967 ) ); /* 3967 = 31 in Q7 */
+            gain_Q16[ k ] = Log2lin.SKP_Silk_log2lin( Math.min( SKP_SMULWB( INV_SCALE_Q16, prev_ind[0] ) + OFFSET, 3967 ) ); /* 3967 = 31 in Q7 */
         }
     }
 }

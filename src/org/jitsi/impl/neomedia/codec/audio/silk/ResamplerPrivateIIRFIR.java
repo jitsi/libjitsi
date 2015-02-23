@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Upsample using a combination of allpass-based 2x upsampling and FIR interpolation.
  *
@@ -73,14 +75,14 @@ public class ResamplerPrivateIIRFIR
             /* Interpolate upsampled signal and store in output array */
             for( index_Q16 = 0; index_Q16 < max_index_Q16; index_Q16 += index_increment_Q16 )
             {
-                table_index = Macros.SKP_SMULWB( index_Q16 & 0xFFFF, 144 );
+                table_index = SKP_SMULWB( index_Q16 & 0xFFFF, 144 );
                 buf_ptr = index_Q16 >> 16;
-                res_Q15 = Macros.SKP_SMULBB(          buf[ buf_ptr   ], ResamplerRom.SKP_Silk_resampler_frac_FIR_144[       table_index ][ 0 ] );
-                res_Q15 = Macros.SKP_SMLABB( res_Q15, buf[ buf_ptr+1 ], ResamplerRom.SKP_Silk_resampler_frac_FIR_144[       table_index ][ 1 ] );
-                res_Q15 = Macros.SKP_SMLABB( res_Q15, buf[ buf_ptr+2 ], ResamplerRom.SKP_Silk_resampler_frac_FIR_144[       table_index ][ 2 ] );
-                res_Q15 = Macros.SKP_SMLABB( res_Q15, buf[ buf_ptr+3 ], ResamplerRom.SKP_Silk_resampler_frac_FIR_144[ 143 - table_index ][ 2 ] );
-                res_Q15 = Macros.SKP_SMLABB( res_Q15, buf[ buf_ptr+4 ], ResamplerRom.SKP_Silk_resampler_frac_FIR_144[ 143 - table_index ][ 1 ] );
-                res_Q15 = Macros.SKP_SMLABB( res_Q15, buf[ buf_ptr+5 ], ResamplerRom.SKP_Silk_resampler_frac_FIR_144[ 143 - table_index ][ 0 ] );
+                res_Q15 = SKP_SMULBB(          buf[ buf_ptr   ], ResamplerRom.SKP_Silk_resampler_frac_FIR_144[       table_index ][ 0 ] );
+                res_Q15 = SKP_SMLABB( res_Q15, buf[ buf_ptr+1 ], ResamplerRom.SKP_Silk_resampler_frac_FIR_144[       table_index ][ 1 ] );
+                res_Q15 = SKP_SMLABB( res_Q15, buf[ buf_ptr+2 ], ResamplerRom.SKP_Silk_resampler_frac_FIR_144[       table_index ][ 2 ] );
+                res_Q15 = SKP_SMLABB( res_Q15, buf[ buf_ptr+3 ], ResamplerRom.SKP_Silk_resampler_frac_FIR_144[ 143 - table_index ][ 2 ] );
+                res_Q15 = SKP_SMLABB( res_Q15, buf[ buf_ptr+4 ], ResamplerRom.SKP_Silk_resampler_frac_FIR_144[ 143 - table_index ][ 1 ] );
+                res_Q15 = SKP_SMLABB( res_Q15, buf[ buf_ptr+5 ], ResamplerRom.SKP_Silk_resampler_frac_FIR_144[ 143 - table_index ][ 0 ] );
                 out[out_offset++] = (short)SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( res_Q15, 15 ) );
             }
             in_offset += nSamplesIn;

@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 /**
  * Insertion sort (fast for already almost sorted arrays):
  *    Best case:  O(n)   for an already sorted array
@@ -192,7 +195,7 @@ public class Sort
         int    i, j;
 
         /* Safety checks */
-        Typedef.SKP_assert( L >  0 );
+        SKP_assert( L >  0 );
 
         /* Sort vector elements by value, increasing order */
         for( i = 1; i < L; i++ ) {
@@ -222,9 +225,9 @@ public class Sort
         int      i, j, inc, idx;
 
         /* Safety checks */
-        Typedef.SKP_assert( K >  0 );
-        Typedef.SKP_assert( L >  0 );
-        Typedef.SKP_assert( L >= K );
+        SKP_assert( K >  0 );
+        SKP_assert( L >  0 );
+        SKP_assert( L >= K );
 
         /* Calculate initial step size */
         inc_Q16_tmp = ( L << 15 );
@@ -249,7 +252,7 @@ public class Sort
                 index[ j + inc ] = idx;   /* Write index */
             }
 //            inc_Q16_tmp = SKP_SMULWB( inc_Q16_tmp, 29789 ); // 29789_Q16 = 2.2^(-1)_Q0
-            inc_Q16_tmp = Macros.SKP_SMULWB( inc_Q16_tmp, 29789 ); // 29789_Q16 = 2.2^(-1)_Q0
+            inc_Q16_tmp = SKP_SMULWB( inc_Q16_tmp, 29789 ); // 29789_Q16 = 2.2^(-1)_Q0
 
 //            inc = SKP_RSHIFT_ROUND( inc_Q16_tmp, 16 );
             inc = SigProcFIX.SKP_RSHIFT_ROUND( inc_Q16_tmp, 16 );
@@ -288,7 +291,7 @@ public class Sort
         int      i, j, inc, idx;
 
         /* Safety checks */
-        Typedef.SKP_assert( L >  0 );
+        SKP_assert( L >  0 );
 
         /* Calculate initial step size */
 //        inc_Q16_tmp = SKP_LSHIFT( (int)L, 15 );
@@ -315,7 +318,7 @@ public class Sort
                 index[ j + inc ] = idx; /* Write index */
             }
 //            inc_Q16_tmp = SKP_SMULWB( inc_Q16_tmp, 29789 ); // 29789_Q16 = 2.2^(-1)_Q0
-            inc_Q16_tmp = Macros.SKP_SMULWB( inc_Q16_tmp, 29789 ); // 29789_Q16 = 2.2^(-1)_Q0
+            inc_Q16_tmp = SKP_SMULWB( inc_Q16_tmp, 29789 ); // 29789_Q16 = 2.2^(-1)_Q0
 
 //            inc = SKP_RSHIFT_ROUND( inc_Q16_tmp, 16 );
             inc = SigProcFIX.SKP_RSHIFT_ROUND( inc_Q16_tmp, 16 );

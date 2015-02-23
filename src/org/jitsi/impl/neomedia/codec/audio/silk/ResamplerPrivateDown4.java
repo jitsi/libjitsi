@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Downsample by a factor 4.
  * Note: very low quality, only use with input sampling rates above 96 kHz.
@@ -50,7 +52,7 @@ public class ResamplerPrivateDown4
 
             /* All-pass section for even input sample */
             Y      = in32 - S[ S_offset ];
-            X      = Macros.SKP_SMLAWB( Y, Y, ResamplerRom.SKP_Silk_resampler_down2_1 );
+            X      = SKP_SMLAWB( Y, Y, ResamplerRom.SKP_Silk_resampler_down2_1 );
             out32  = S[ S_offset ] + X;
             S[ S_offset ] = in32 + X;
 
@@ -59,7 +61,7 @@ public class ResamplerPrivateDown4
 
             /* All-pass section for odd input sample */
             Y      = in32 - S[ S_offset+1 ];
-            X      = Macros.SKP_SMULWB( Y, ResamplerRom.SKP_Silk_resampler_down2_0 );
+            X      = SKP_SMULWB( Y, ResamplerRom.SKP_Silk_resampler_down2_0 );
             out32  = out32 + S[ S_offset+1 ];
             out32  = out32 + X;
             S[ S_offset+1 ] = in32 + X;

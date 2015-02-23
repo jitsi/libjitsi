@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.CommonPitchEstDefines.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Pitch analyzer function.
  *
@@ -30,17 +33,17 @@ public class DecodePitch
     {
         int lag, i, min_lag;
 
-        min_lag = Macros.SKP_SMULBB(CommonPitchEstDefines.PITCH_EST_MIN_LAG_MS, Fs_kHz);
+        min_lag = SKP_SMULBB(PITCH_EST_MIN_LAG_MS, Fs_kHz);
 
         /* Only for 24 / 16 kHz version for now */
         lag = min_lag + lagIndex;
         if( Fs_kHz == 8 ) {
             /* Only a small codebook for 8 khz */
-            for( i = 0; i < CommonPitchEstDefines.PITCH_EST_NB_SUBFR; i++ ) {
+            for( i = 0; i < PITCH_EST_NB_SUBFR; i++ ) {
                 pitch_lags[ i ] = lag + PitchEstTables.SKP_Silk_CB_lags_stage2[ i ][ contourIndex ];
             }
         } else {
-            for( i = 0; i < CommonPitchEstDefines.PITCH_EST_NB_SUBFR; i++ ) {
+            for( i = 0; i < PITCH_EST_NB_SUBFR; i++ ) {
                 pitch_lags[ i ] = lag + PitchEstTables.SKP_Silk_CB_lags_stage3[ i ][ contourIndex ];
             }
         }

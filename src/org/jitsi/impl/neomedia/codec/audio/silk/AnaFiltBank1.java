@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Split signal into two decimated bands using first-order allpass filters.
  *
@@ -57,7 +59,7 @@ public class AnaFiltBank1
 
             /* All-pass section for even input sample */
             Y      = in32 - S[ S_offset + 0 ];
-            X      = Macros.SKP_SMLAWB( Y, Y, A_fb1_21[ 0 ] );
+            X      = SKP_SMLAWB( Y, Y, A_fb1_21[ 0 ] );
             out_1  = S[ S_offset + 0 ] + X;
             S[ S_offset + 0 ] = in32 + X;
 
@@ -66,7 +68,7 @@ public class AnaFiltBank1
 
             /* All-pass section for odd input sample, and add to output of previous section */
             Y      = in32 - S[ S_offset + 1 ];
-            X      = Macros.SKP_SMULWB( Y, A_fb1_20[ 0 ] );
+            X      = SKP_SMULWB( Y, A_fb1_20[ 0 ] );
             out_2  = S[ S_offset + 1 ] + X;
             S[ S_offset + 1 ] = in32 + X;
 

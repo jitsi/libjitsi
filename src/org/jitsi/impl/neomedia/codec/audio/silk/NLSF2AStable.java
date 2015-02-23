@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Convert NLSF parameters to stable AR prediction filter coefficients.
  *
@@ -33,10 +36,10 @@ public class NLSF2AStable
 
 
         /* Ensure stable LPCs */
-        for( i = 0; i < Define.MAX_LPC_STABILIZE_ITERATIONS; i++ ) {
+        for( i = 0; i < MAX_LPC_STABILIZE_ITERATIONS; i++ ) {
             if( LPCInvPredGain.SKP_Silk_LPC_inverse_pred_gain( invGain_Q30_ptr, pAR_Q12, LPC_order ) == 1 ) {
                 invGain_Q30 = invGain_Q30_ptr[0];
-                Bwexpander.SKP_Silk_bwexpander( pAR_Q12, LPC_order, 65536 - Macros.SKP_SMULBB( 66, i ) ); /* 66_Q16 = 0.001 */
+                Bwexpander.SKP_Silk_bwexpander( pAR_Q12, LPC_order, 65536 - SKP_SMULBB( 66, i ) ); /* 66_Q16 = 0.001 */
             } else {
                 invGain_Q30 = invGain_Q30_ptr[0];
                 break;
@@ -44,7 +47,7 @@ public class NLSF2AStable
         }
 
         /* Reached the last iteration */
-        if( i == Define.MAX_LPC_STABILIZE_ITERATIONS ) {
+        if( i == MAX_LPC_STABILIZE_ITERATIONS ) {
             for( i = 0; i < LPC_order; i++ ) {
                 pAR_Q12[ i ] = 0;
             }

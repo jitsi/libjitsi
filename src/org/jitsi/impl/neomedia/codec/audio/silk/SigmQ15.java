@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * approximate sigmoid function.
  *
@@ -46,7 +48,7 @@ public class SigmQ15
             {
                 /* Linear interpolation of look up table */
                 ind = in_Q5 >> 5;
-                return( sigm_LUT_neg_Q15[ ind ] - Macros.SKP_SMULBB( sigm_LUT_slope_Q10[ ind ], in_Q5 & 0x1F ) );
+                return( sigm_LUT_neg_Q15[ ind ] - SKP_SMULBB( sigm_LUT_slope_Q10[ ind ], in_Q5 & 0x1F ) );
             }
         }
         else
@@ -60,7 +62,7 @@ public class SigmQ15
             {
                 /* Linear interpolation of look up table */
                 ind = in_Q5 >> 5;
-                return( sigm_LUT_pos_Q15[ ind ] + Macros.SKP_SMULBB( sigm_LUT_slope_Q10[ ind ], in_Q5 & 0x1F ) );
+                return( sigm_LUT_pos_Q15[ ind ] + SKP_SMULBB( sigm_LUT_slope_Q10[ ind ], in_Q5 & 0x1F ) );
             }
         }
     }

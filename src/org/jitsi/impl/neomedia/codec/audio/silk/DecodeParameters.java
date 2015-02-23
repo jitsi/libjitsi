@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 import java.util.*;
 
 /**
@@ -32,11 +35,11 @@ public class DecodeParameters
     {
         int   i, k, Ix, fs_kHz_dec, nBytesUsed;
         int[] Ix_ptr = new int[1];
-        int[]   Ixs = new int[ Define.NB_SUBFR ];
-        int[]   GainsIndices = new int[ Define.NB_SUBFR ];
-        int[]   NLSFIndices = new int[ Define.NLSF_MSVQ_MAX_CB_STAGES ];
-        int[]   pNLSF_Q15 = new int[ Define.MAX_LPC_ORDER ];
-        int []  pNLSF0_Q15 = new int[ Define.MAX_LPC_ORDER ];
+        int[]   Ixs = new int[ NB_SUBFR ];
+        int[]   GainsIndices = new int[ NB_SUBFR ];
+        int[]   NLSFIndices = new int[ NLSF_MSVQ_MAX_CB_STAGES ];
+        int[]   pNLSF_Q15 = new int[ MAX_LPC_ORDER ];
+        int []  pNLSF0_Q15 = new int[ MAX_LPC_ORDER ];
 
         short[] cbk_ptr_Q14;
         SKP_Silk_NLSF_CB_struct psNLSF_CB = null;
@@ -52,7 +55,7 @@ public class DecodeParameters
 
             /* check that sampling rate is supported */
             if( Ix < 0 || Ix > 3 ) {
-                psRC.error = Define.RANGE_CODER_ILLEGAL_SAMPLING_RATE;
+                psRC.error = RANGE_CODER_ILLEGAL_SAMPLING_RATE;
                 return;
             }
             fs_kHz_dec = TablesOther.SKP_Silk_SamplingRates_table[ Ix ];
@@ -89,7 +92,7 @@ public class DecodeParameters
         }
 
         /* remaining subframes */
-        for( i = 1; i < Define.NB_SUBFR; i++ ) {
+        for( i = 1; i < NB_SUBFR; i++ ) {
             RangeCoder.SKP_Silk_range_decoder( GainsIndices, i, psRC, TablesGain.SKP_Silk_delta_gain_CDF, 0, TablesGain.SKP_Silk_delta_gain_CDF_offset );
         }
 
@@ -152,11 +155,11 @@ public class DecodeParameters
 
         /* After a packet loss do BWE of LPC coefs */
         if( psDec.lossCnt !=0 ) {
-            Bwexpander.SKP_Silk_bwexpander( psDecCtrl.PredCoef_Q12[ 0 ], psDec.LPC_order, Define.BWE_AFTER_LOSS_Q16 );
-            Bwexpander.SKP_Silk_bwexpander( psDecCtrl.PredCoef_Q12[ 1 ], psDec.LPC_order, Define.BWE_AFTER_LOSS_Q16 );
+            Bwexpander.SKP_Silk_bwexpander( psDecCtrl.PredCoef_Q12[ 0 ], psDec.LPC_order, BWE_AFTER_LOSS_Q16 );
+            Bwexpander.SKP_Silk_bwexpander( psDecCtrl.PredCoef_Q12[ 1 ], psDec.LPC_order, BWE_AFTER_LOSS_Q16 );
         }
 
-        if( psDecCtrl.sigtype == Define.SIG_TYPE_VOICED ) {
+        if( psDecCtrl.sigtype == SIG_TYPE_VOICED ) {
             /*********************/
             /* Decode pitch lags */
             /*********************/
@@ -198,12 +201,12 @@ public class DecodeParameters
             /* Decode Codebook Index */
             cbk_ptr_Q14 = TablesLTP.SKP_Silk_LTP_vq_ptrs_Q14[ psDecCtrl.PERIndex ]; // set pointer to start of codebook
 
-            for( k = 0; k < Define.NB_SUBFR; k++ ) {
+            for( k = 0; k < NB_SUBFR; k++ ) {
                 RangeCoder.SKP_Silk_range_decoder( Ix_ptr, 0, psRC, TablesLTP.SKP_Silk_LTP_gain_CDF_ptrs[psDecCtrl.PERIndex],  0 ,
                         TablesLTP.SKP_Silk_LTP_gain_CDF_offsets[ psDecCtrl.PERIndex ] );
                 Ix = Ix_ptr[0];
-                for( i = 0; i < Define.LTP_ORDER; i++ ) {
-                    psDecCtrl.LTPCoef_Q14[ Macros.SKP_SMULBB( k, Define.LTP_ORDER ) + i ] = cbk_ptr_Q14[ Macros.SKP_SMULBB( Ix, Define.LTP_ORDER ) + i ];
+                for( i = 0; i < LTP_ORDER; i++ ) {
+                    psDecCtrl.LTPCoef_Q14[ SKP_SMULBB( k, LTP_ORDER ) + i ] = cbk_ptr_Q14[ SKP_SMULBB( Ix, LTP_ORDER ) + i ];
                 }
             }
 
@@ -214,8 +217,8 @@ public class DecodeParameters
             Ix = Ix_ptr[0];
             psDecCtrl.LTP_scale_Q14 = TablesOther.SKP_Silk_LTPScales_table_Q14[ Ix ];
         } else {
-            Arrays.fill(psDecCtrl.pitchL, 0, Define.NB_SUBFR, 0);
-            Arrays.fill(psDecCtrl.LTPCoef_Q14, 0, Define.NB_SUBFR, (short)0);
+            Arrays.fill(psDecCtrl.pitchL, 0, NB_SUBFR, 0);
+            Arrays.fill(psDecCtrl.LTPCoef_Q14, 0, NB_SUBFR, (short)0);
             psDecCtrl.PERIndex      = 0;
             psDecCtrl.LTP_scale_Q14 = 0;
         }
@@ -256,7 +259,7 @@ public class DecodeParameters
 
         psDec.nBytesLeft = psRC.bufferLength - nBytesUsed;
         if( psDec.nBytesLeft < 0 ) {
-            psRC.error = Define.RANGE_CODER_READ_BEYOND_BUFFER;
+            psRC.error = RANGE_CODER_READ_BEYOND_BUFFER;
         }
 
         /****************************************/

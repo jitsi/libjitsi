@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Encoder API.
  *
@@ -37,7 +39,7 @@ public class EncAPI
         psEnc = ( SKP_Silk_encoder_state_FLP )encState;
 
         encStatus.API_sampleRate        = psEnc.sCmn.API_fs_Hz;
-        encStatus.maxInternalSampleRate = Macros.SKP_SMULBB( psEnc.sCmn.maxInternal_fs_kHz, 1000 );
+        encStatus.maxInternalSampleRate = SKP_SMULBB( psEnc.sCmn.maxInternal_fs_kHz, 1000 );
         encStatus.packetSize            = ( psEnc.sCmn.API_fs_Hz * psEnc.sCmn.PacketSize_ms / 1000 );  /* convert samples -> ms */
         encStatus.bitRate               = psEnc.sCmn.TargetRate_bps;
         encStatus.packetLossPercentage  = psEnc.sCmn.PacketLoss_perc;
@@ -176,7 +178,7 @@ public class EncAPI
         while( true )
         {
             nSamplesToBuffer = psEnc.sCmn.frame_length - psEnc.sCmn.inputBufIx;
-            if( API_fs_Hz == Macros.SKP_SMULBB( 1000, psEnc.sCmn.fs_kHz ) )
+            if( API_fs_Hz == SKP_SMULBB( 1000, psEnc.sCmn.fs_kHz ) )
             {
                 nSamplesToBuffer  = Math.min( nSamplesToBuffer, nSamplesIn );
                 nSamplesFromInput = nSamplesToBuffer;

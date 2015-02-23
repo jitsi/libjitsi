@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 /**
  * shell coder; pulse-subframe length is hardcoded.
  *
@@ -116,7 +119,7 @@ public class ShellCoder
         int[] pulses1 = new int[ 8 ], pulses2 = new int[ 4 ], pulses3 = new int[ 2 ], pulses4 = new int[ 1 ];
 
         /* this function operates on one shell code frame of 16 pulses */
-        assert( Define.SHELL_CODEC_FRAME_LENGTH == 16 );
+        assert( SHELL_CODEC_FRAME_LENGTH == 16 );
 
         /* tree representation per pulse-subframe */
         combine_pulses( pulses1,0, pulses0,pulses0_offset, 8 );
@@ -164,7 +167,7 @@ public class ShellCoder
         int[] pulses3 = new int[ 2 ], pulses2 = new int[ 4 ], pulses1 = new int[ 8 ];
 
         /* this function operates on one shell code frame of 16 pulses */
-        Typedef.SKP_assert( Define.SHELL_CODEC_FRAME_LENGTH == 16 );
+        SKP_assert( SHELL_CODEC_FRAME_LENGTH == 16 );
 
         decode_split( pulses3, 0, pulses3, 1, sRC, pulses4, TablesPulsesPerBlock.SKP_Silk_shell_code_table3 );
 

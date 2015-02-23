@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  *
  * @author Jing Dai
@@ -647,11 +649,11 @@ public class SigProcFIX
     /* Number of rightshift required to fit the multiplication */
     static int SKP_NSHIFT_MUL_32_32(int a, int b)
     {
-        return -(31- (32-Macros.SKP_Silk_CLZ32(Math.abs(a)) + (32-Macros.SKP_Silk_CLZ32(Math.abs(b)))));
+        return -(31- (32-SKP_Silk_CLZ32(Math.abs(a)) + (32-SKP_Silk_CLZ32(Math.abs(b)))));
     }
     static int SKP_NSHIFT_MUL_16_16(short a, short b)
     {
-        return -(15- (16-Macros.SKP_Silk_CLZ16((short)Math.abs(a)) + (16-Macros.SKP_Silk_CLZ16((short)Math.abs(b)))));
+        return -(15- (16-SKP_Silk_CLZ16((short)Math.abs(a)) + (16-SKP_Silk_CLZ16((short)Math.abs(b)))));
     }
 
 

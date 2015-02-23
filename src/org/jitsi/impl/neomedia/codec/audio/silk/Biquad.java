@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Second order ARMA filter
  * Can handle slowly varying filter coefficients
@@ -47,14 +49,14 @@ public class Biquad
         for( k = 0; k < len; k++ ) {
             /* S[ 0 ], S[ 1 ]: Q13 */
             in16  = in[ in_offset + k ];
-            out32 = Macros.SKP_SMLABB( S0, in16, B[ 0 ] );
+            out32 = SKP_SMLABB( S0, in16, B[ 0 ] );
 
-            S0 = Macros.SKP_SMLABB( S1, in16, B[ 1 ] );
-            S0 += ( Macros.SKP_SMULWB( out32, A0_neg ) << 3 );
+            S0 = SKP_SMLABB( S1, in16, B[ 1 ] );
+            S0 += ( SKP_SMULWB( out32, A0_neg ) << 3 );
 
 
-            S1 = ( Macros.SKP_SMULWB( out32, A1_neg ) << 3 );
-            S1 = Macros.SKP_SMLABB( S1, in16, B[ 2 ] );
+            S1 = ( SKP_SMULWB( out32, A1_neg ) << 3 );
+            S1 = SKP_SMLABB( S1, in16, B[ 2 ] );
             tmp32    = SigProcFIX.SKP_RSHIFT_ROUND( out32, 13 ) + 1;
             out[ out_offset + k ] = (short)SigProcFIX.SKP_SAT16( tmp32 );
         }

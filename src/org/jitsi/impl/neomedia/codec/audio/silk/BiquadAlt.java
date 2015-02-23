@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Second order ARMA filter, alternative implementation.
  *
@@ -50,15 +52,15 @@ public class BiquadAlt
         {
             /* S[ 0 ], S[ 1 ]: Q12 */
             inval = in[ in_offset+k ];
-            out32_Q14 = Macros.SKP_SMLAWB( S[ 0 ], B_Q28[ 0 ], inval ) << 2;
+            out32_Q14 = SKP_SMLAWB( S[ 0 ], B_Q28[ 0 ], inval ) << 2;
 
-            S[ 0 ] = S[1] + ( Macros.SKP_SMULWB( out32_Q14, A0_L_Q28 ) >> 14 );
-            S[ 0 ] = Macros.SKP_SMLAWB( S[ 0 ], out32_Q14, A0_U_Q28 );
-            S[ 0 ] = Macros.SKP_SMLAWB( S[ 0 ], B_Q28[ 1 ], inval);
+            S[ 0 ] = S[1] + ( SKP_SMULWB( out32_Q14, A0_L_Q28 ) >> 14 );
+            S[ 0 ] = SKP_SMLAWB( S[ 0 ], out32_Q14, A0_U_Q28 );
+            S[ 0 ] = SKP_SMLAWB( S[ 0 ], B_Q28[ 1 ], inval);
 
-            S[ 1 ] = Macros.SKP_SMULWB( out32_Q14, A1_L_Q28 ) >> 14;
-            S[ 1 ] = Macros.SKP_SMLAWB( S[ 1 ], out32_Q14, A1_U_Q28 );
-            S[ 1 ] = Macros.SKP_SMLAWB( S[ 1 ], B_Q28[ 2 ], inval );
+            S[ 1 ] = SKP_SMULWB( out32_Q14, A1_L_Q28 ) >> 14;
+            S[ 1 ] = SKP_SMLAWB( S[ 1 ], out32_Q14, A1_U_Q28 );
+            S[ 1 ] = SKP_SMLAWB( S[ 1 ], B_Q28[ 2 ], inval );
 
             /* Scale back to Q0 and saturate */
             out[ out_offset+k ] = (short)SigProcFIX.SKP_SAT16( ( out32_Q14 >> 14 ) + 2 );

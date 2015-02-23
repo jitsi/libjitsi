@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 /**
  *  NLSF stabilizer:
  *  - Moves NLSFs further apart if they are too close
@@ -43,7 +45,7 @@ public class NLSFStabilize
         int        i, I=0, k;
 
         /* This is necessary to ensure an output within range of a SKP_int16 */
-        Typedef.SKP_assert( NDeltaMin_Q15[L] >= 1 );
+        SKP_assert( NDeltaMin_Q15[L] >= 1 );
 
         for( loops = 0; loops < MAX_LOOPS; loops++ ) {
             /**************************/

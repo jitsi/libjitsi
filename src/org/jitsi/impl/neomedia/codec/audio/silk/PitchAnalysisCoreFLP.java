@@ -6,6 +6,10 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.CommonPitchEstDefines.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.PitchEstDefinesFLP.*;
+
 /**
  * Pitch analysis.
  *
@@ -52,26 +56,26 @@ public class PitchAnalysisCoreFLP
         final int   complexity          /* I Complexity setting, 0-2, where 2 is highest                    */
     )
     {
-        float[] signal_8kHz = new float[ CommonPitchEstDefines.PITCH_EST_FRAME_LENGTH_MS * 8 ];
-        float[] signal_4kHz = new float[ CommonPitchEstDefines.PITCH_EST_FRAME_LENGTH_MS * 4 ];
-        float[] scratch_mem = new float[ CommonPitchEstDefines.PITCH_EST_MAX_FRAME_LENGTH * 3 ];
-        float[] filt_state = new float[ CommonPitchEstDefines.PITCH_EST_MAX_DECIMATE_STATE_LENGTH ];
+        float[] signal_8kHz = new float[ PITCH_EST_FRAME_LENGTH_MS * 8 ];
+        float[] signal_4kHz = new float[ PITCH_EST_FRAME_LENGTH_MS * 4 ];
+        float[] scratch_mem = new float[ PITCH_EST_MAX_FRAME_LENGTH * 3 ];
+        float[] filt_state = new float[ PITCH_EST_MAX_DECIMATE_STATE_LENGTH ];
         int   i, k, d, j;
         float threshold, contour_bias;
-        float[][] C = new float[CommonPitchEstDefines.PITCH_EST_NB_SUBFR][(CommonPitchEstDefines.PITCH_EST_MAX_LAG >> 1) + 5]; /* use to be +2 but then valgrind reported errors for SWB */
-        float[] CC = new float[CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE2_EXT];
+        float[][] C = new float[PITCH_EST_NB_SUBFR][(PITCH_EST_MAX_LAG >> 1) + 5]; /* use to be +2 but then valgrind reported errors for SWB */
+        float[] CC = new float[PITCH_EST_NB_CBKS_STAGE2_EXT];
         float[] target_ptr, basis_ptr;
         int target_ptr_offset, basis_ptr_offset;
         double    cross_corr, normalizer, energy, energy_tmp;
-        int[]   d_srch = new int[CommonPitchEstDefines.PITCH_EST_D_SRCH_LENGTH];
-        short[] d_comp = new short[(CommonPitchEstDefines.PITCH_EST_MAX_LAG >> 1) + 5];
+        int[]   d_srch = new int[PITCH_EST_D_SRCH_LENGTH];
+        short[] d_comp = new short[(PITCH_EST_MAX_LAG >> 1) + 5];
         int   length_d_srch, length_d_comp;
         float Cmax, CCmax, CCmax_b, CCmax_new_b, CCmax_new;
         int   CBimax, CBimax_new, lag, start_lag, end_lag, lag_new;
         int   cbk_offset, cbk_size;
         float lag_log2, prevLag_log2, delta_lag_log2_sqr;
-        float[][][] energies_st3 = new float[ CommonPitchEstDefines.PITCH_EST_NB_SUBFR ][ CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MAX ][ CommonPitchEstDefines.PITCH_EST_NB_STAGE3_LAGS ];
-        float[][][] cross_corr_st3 = new float[ CommonPitchEstDefines.PITCH_EST_NB_SUBFR ][ CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MAX ][ CommonPitchEstDefines.PITCH_EST_NB_STAGE3_LAGS ];
+        float[][][] energies_st3 = new float[ PITCH_EST_NB_SUBFR ][ PITCH_EST_NB_CBKS_STAGE3_MAX ][ PITCH_EST_NB_STAGE3_LAGS ];
+        float[][][] cross_corr_st3 = new float[ PITCH_EST_NB_SUBFR ][ PITCH_EST_NB_CBKS_STAGE3_MAX ][ PITCH_EST_NB_STAGE3_LAGS ];
 
         int diff, lag_counter;
         int frame_length, frame_length_8kHz, frame_length_4kHz;
@@ -92,42 +96,42 @@ public class PitchAnalysisCoreFLP
         assert( search_thres2 >= 0.0f && search_thres2 <= 1.0f );
 
         /* Setup frame lengths max / min lag for the sampling frequency */
-        frame_length      = CommonPitchEstDefines.PITCH_EST_FRAME_LENGTH_MS * Fs_kHz;
-        frame_length_4kHz = CommonPitchEstDefines.PITCH_EST_FRAME_LENGTH_MS * 4;
-        frame_length_8kHz = CommonPitchEstDefines.PITCH_EST_FRAME_LENGTH_MS * 8;
+        frame_length      = PITCH_EST_FRAME_LENGTH_MS * Fs_kHz;
+        frame_length_4kHz = PITCH_EST_FRAME_LENGTH_MS * 4;
+        frame_length_8kHz = PITCH_EST_FRAME_LENGTH_MS * 8;
         sf_length         = frame_length >>      3;
         sf_length_4kHz    = frame_length_4kHz >> 3;
         sf_length_8kHz    = frame_length_8kHz >> 3;
-        min_lag           = CommonPitchEstDefines.PITCH_EST_MIN_LAG_MS * Fs_kHz;
-        min_lag_4kHz      = CommonPitchEstDefines.PITCH_EST_MIN_LAG_MS * 4;
-        min_lag_8kHz      = CommonPitchEstDefines.PITCH_EST_MIN_LAG_MS * 8;
-        max_lag           = CommonPitchEstDefines.PITCH_EST_MAX_LAG_MS * Fs_kHz;
-        max_lag_4kHz      = CommonPitchEstDefines.PITCH_EST_MAX_LAG_MS * 4;
-        max_lag_8kHz      = CommonPitchEstDefines.PITCH_EST_MAX_LAG_MS * 8;
+        min_lag           = PITCH_EST_MIN_LAG_MS * Fs_kHz;
+        min_lag_4kHz      = PITCH_EST_MIN_LAG_MS * 4;
+        min_lag_8kHz      = PITCH_EST_MIN_LAG_MS * 8;
+        max_lag           = PITCH_EST_MAX_LAG_MS * Fs_kHz;
+        max_lag_4kHz      = PITCH_EST_MAX_LAG_MS * 4;
+        max_lag_8kHz      = PITCH_EST_MAX_LAG_MS * 8;
 
-        for(int i_djinn=0; i_djinn< CommonPitchEstDefines.PITCH_EST_NB_SUBFR; i_djinn++)
-        for(int j_djinn=0; j_djinn< (CommonPitchEstDefines.PITCH_EST_MAX_LAG >> 1) + 5; j_djinn++)
+        for(int i_djinn=0; i_djinn< PITCH_EST_NB_SUBFR; i_djinn++)
+        for(int j_djinn=0; j_djinn< (PITCH_EST_MAX_LAG >> 1) + 5; j_djinn++)
             C[i_djinn][j_djinn] = 0;
 
         /* Resample from input sampled at Fs_kHz to 8 kHz */
         if( Fs_kHz == 12 )
         {
-            short[] signal_12 = new short[ 12 * CommonPitchEstDefines.PITCH_EST_FRAME_LENGTH_MS ];
-            short[] signal_8 = new short[   8 * CommonPitchEstDefines.PITCH_EST_FRAME_LENGTH_MS ];
+            short[] signal_12 = new short[ 12 * PITCH_EST_FRAME_LENGTH_MS ];
+            short[] signal_8 = new short[   8 * PITCH_EST_FRAME_LENGTH_MS ];
             int[] R23 = new int[ 6 ];
 
             /* Resample to 12 -> 8 khz */
             for(int i_djinn=0; i_djinn<6; i_djinn++)
                 R23[i_djinn] = 0;
-            SigProcFLP.SKP_float2short_array( signal_12,0, signal,0, CommonPitchEstDefines.PITCH_EST_FRAME_LENGTH_MS * 12);
-            ResamplerDown23.SKP_Silk_resampler_down2_3( R23,0, signal_8,0, signal_12,0, CommonPitchEstDefines.PITCH_EST_FRAME_LENGTH_MS * 12 );
+            SigProcFLP.SKP_float2short_array( signal_12,0, signal,0, PITCH_EST_FRAME_LENGTH_MS * 12);
+            ResamplerDown23.SKP_Silk_resampler_down2_3( R23,0, signal_8,0, signal_12,0, PITCH_EST_FRAME_LENGTH_MS * 12 );
             SigProcFLP.SKP_short2float_array( signal_8kHz,0, signal_8,0, frame_length_8kHz );
         }
         else if( Fs_kHz == 16 )
         {
             if( complexity == SigProcFIX.SKP_Silk_PITCH_EST_MAX_COMPLEX )
             {
-                assert( 4 <= CommonPitchEstDefines.PITCH_EST_MAX_DECIMATE_STATE_LENGTH );
+                assert( 4 <= PITCH_EST_MAX_DECIMATE_STATE_LENGTH );
                 for(int i_djinn=0; i_djinn<4; i_djinn++)
                     filt_state[i_djinn] = 0;
 
@@ -136,7 +140,7 @@ public class PitchAnalysisCoreFLP
             }
             else
             {
-                assert( 2 <= CommonPitchEstDefines.PITCH_EST_MAX_DECIMATE_STATE_LENGTH );
+                assert( 2 <= PITCH_EST_MAX_DECIMATE_STATE_LENGTH );
                 for(int i_djinn=0; i_djinn<2; i_djinn++)
                     filt_state[i_djinn] = 0;
 
@@ -146,15 +150,15 @@ public class PitchAnalysisCoreFLP
         }
         else if( Fs_kHz == 24 )
         {
-            short[] signal_24 = new short[ CommonPitchEstDefines.PITCH_EST_MAX_FRAME_LENGTH ];
-            short[] signal_8 = new short[ 8 * CommonPitchEstDefines.PITCH_EST_FRAME_LENGTH_MS ];
+            short[] signal_24 = new short[ PITCH_EST_MAX_FRAME_LENGTH ];
+            short[] signal_8 = new short[ 8 * PITCH_EST_FRAME_LENGTH_MS ];
             int[] filt_state_fix = new int[ 8 ];
 
             /* Resample to 24 -> 8 khz */
-            SigProcFLP.SKP_float2short_array( signal_24,0, signal,0, 24 * CommonPitchEstDefines.PITCH_EST_FRAME_LENGTH_MS );
+            SigProcFLP.SKP_float2short_array( signal_24,0, signal,0, 24 * PITCH_EST_FRAME_LENGTH_MS );
             for(int i_djinn=0; i_djinn<8; i_djinn++)
                 filt_state_fix[i_djinn] = 0;
-            ResamplerDown3.SKP_Silk_resampler_down3( filt_state_fix,0, signal_8,0, signal_24,0, 24 * CommonPitchEstDefines.PITCH_EST_FRAME_LENGTH_MS );
+            ResamplerDown3.SKP_Silk_resampler_down3( filt_state_fix,0, signal_8,0, signal_24,0, 24 * PITCH_EST_FRAME_LENGTH_MS );
             SigProcFLP.SKP_short2float_array( signal_8kHz,0, signal_8,0, frame_length_8kHz );
         }
         else
@@ -167,7 +171,7 @@ public class PitchAnalysisCoreFLP
         /* Decimate again to 4 kHz. Set mem to zero */
         if( complexity == SigProcFIX.SKP_Silk_PITCH_EST_MAX_COMPLEX )
         {
-            assert( 4 <= CommonPitchEstDefines.PITCH_EST_MAX_DECIMATE_STATE_LENGTH );
+            assert( 4 <= PITCH_EST_MAX_DECIMATE_STATE_LENGTH );
             for(int i_djinn=0; i_djinn<4; i_djinn++)
                 filt_state[i_djinn] = 0;
             Decimate2CoarseFLP.SKP_Silk_decimate2_coarse_FLP( signal_8kHz,0, filt_state,0,
@@ -175,7 +179,7 @@ public class PitchAnalysisCoreFLP
         }
         else
         {
-            assert( 2 <= CommonPitchEstDefines.PITCH_EST_MAX_DECIMATE_STATE_LENGTH );
+            assert( 2 <= PITCH_EST_MAX_DECIMATE_STATE_LENGTH );
             for(int i_djinn=0; i_djinn<4; i_djinn++)
                 filt_state[i_djinn] = 0;
             Decimate2CoarsestFLP.SKP_Silk_decimate2_coarsest_FLP( signal_8kHz,0, filt_state,0,
@@ -243,7 +247,7 @@ public class PitchAnalysisCoreFLP
 
         /* Sort */
         length_d_srch = 5 + complexity;
-        assert( length_d_srch <= CommonPitchEstDefines.PITCH_EST_D_SRCH_LENGTH );
+        assert( length_d_srch <= PITCH_EST_D_SRCH_LENGTH );
         SortFLP.SKP_Silk_insertion_sort_decreasing_FLP( C[ 0 ],min_lag_4kHz, d_srch, max_lag_4kHz - min_lag_4kHz + 1, length_d_srch );
 
         /* Escape if correlation is very low already here */
@@ -258,7 +262,7 @@ public class PitchAnalysisCoreFLP
         threshold = Cmax * Cmax;
         if( energy / 16.0f > threshold )
         {
-            for(int i_djinn=0; i_djinn<CommonPitchEstDefines.PITCH_EST_NB_SUBFR; i_djinn++)
+            for(int i_djinn=0; i_djinn<PITCH_EST_NB_SUBFR; i_djinn++)
                 pitch_out[i_djinn] = 0;
             LTPCorr[0]      = 0.0f;
             lagIndex[0]     = 0;
@@ -321,13 +325,13 @@ public class PitchAnalysisCoreFLP
         /*********************************************************************************
         * Find energy of each subframe projected onto its history, for a range of delays
         *********************************************************************************/
-        for(int i_djinn=0; i_djinn< CommonPitchEstDefines.PITCH_EST_NB_SUBFR; i_djinn++)
-            for(int j_djinn=0; j_djinn< ((CommonPitchEstDefines.PITCH_EST_MAX_LAG >> 1) + 5); j_djinn++)
+        for(int i_djinn=0; i_djinn< PITCH_EST_NB_SUBFR; i_djinn++)
+            for(int j_djinn=0; j_djinn< ((PITCH_EST_MAX_LAG >> 1) + 5); j_djinn++)
                 C[i_djinn][j_djinn] = 0;
 
         target_ptr = signal_8kHz; /* point to middle of frame */
         target_ptr_offset = frame_length_4kHz;
-        for( k = 0; k < CommonPitchEstDefines.PITCH_EST_NB_SUBFR; k++ )
+        for( k = 0; k < PITCH_EST_NB_SUBFR; k++ )
         {
             /* Check that we are within range of the array */
             assert( target_ptr_offset >= 0 );
@@ -390,11 +394,11 @@ public class PitchAnalysisCoreFLP
         /* If input is 8 khz use a larger codebook here because it is last stage */
         if( Fs_kHz == 8 && complexity > SigProcFIX.SKP_Silk_PITCH_EST_MIN_COMPLEX )
         {
-            nb_cbks_stage2 = CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE2_EXT;
+            nb_cbks_stage2 = PITCH_EST_NB_CBKS_STAGE2_EXT;
         }
         else
         {
-            nb_cbks_stage2 = CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE2;
+            nb_cbks_stage2 = PITCH_EST_NB_CBKS_STAGE2;
         }
 
         for( k = 0; k < length_d_srch; k++ )
@@ -403,7 +407,7 @@ public class PitchAnalysisCoreFLP
             for( j = 0; j < nb_cbks_stage2; j++ )
             {
                 CC[j] = 0.0f;
-                for( i = 0; i < CommonPitchEstDefines.PITCH_EST_NB_SUBFR; i++ ) {
+                for( i = 0; i < PITCH_EST_NB_SUBFR; i++ ) {
                     /* Try all codebooks */
                     CC[ j ] += C[ i ][ d + PitchEstTables.SKP_Silk_CB_lags_stage2[ i ][ j ] ];
                 }
@@ -424,17 +428,17 @@ public class PitchAnalysisCoreFLP
 
             /* Bias towards shorter lags */
             lag_log2 = SKP_P_log2(d);
-            CCmax_new_b -= PitchEstDefinesFLP.PITCH_EST_FLP_SHORTLAG_BIAS * CommonPitchEstDefines.PITCH_EST_NB_SUBFR * lag_log2;
+            CCmax_new_b -= PITCH_EST_FLP_SHORTLAG_BIAS * PITCH_EST_NB_SUBFR * lag_log2;
 
             /* Bias towards previous lag */
             if ( prevLag > 0 )
             {
                 delta_lag_log2_sqr = lag_log2 - prevLag_log2;
                 delta_lag_log2_sqr *= delta_lag_log2_sqr;
-                CCmax_new_b -= PitchEstDefinesFLP.PITCH_EST_FLP_PREVLAG_BIAS * CommonPitchEstDefines.PITCH_EST_NB_SUBFR * LTPCorr[0] * delta_lag_log2_sqr / (delta_lag_log2_sqr + 0.5f);
+                CCmax_new_b -= PITCH_EST_FLP_PREVLAG_BIAS * PITCH_EST_NB_SUBFR * LTPCorr[0] * delta_lag_log2_sqr / (delta_lag_log2_sqr + 0.5f);
             }
 
-            if ( CCmax_new_b > CCmax_b && CCmax_new > CommonPitchEstDefines.PITCH_EST_NB_SUBFR * search_thres2 * search_thres2 )
+            if ( CCmax_new_b > CCmax_b && CCmax_new > PITCH_EST_NB_SUBFR * search_thres2 * search_thres2 )
             {
                 CCmax_b = CCmax_new_b;
                 CCmax   = CCmax_new;
@@ -446,7 +450,7 @@ public class PitchAnalysisCoreFLP
         if( lag == -1 )
         {
             /* No suitable candidate found */
-            for(int i_djinn=0; i_djinn<CommonPitchEstDefines.PITCH_EST_NB_SUBFR; i_djinn++)
+            for(int i_djinn=0; i_djinn<PITCH_EST_NB_SUBFR; i_djinn++)
                 pitch_out[i_djinn] = 0;
             LTPCorr[0]      = 0.0f;
             lagIndex[0]     = 0;
@@ -461,7 +465,7 @@ public class PitchAnalysisCoreFLP
             assert( lag == SigProcFIX.SKP_SAT16( lag ) );
             if( Fs_kHz == 12 )
             {
-                lag = SigProcFIX.SKP_RSHIFT_ROUND( Macros.SKP_SMULBB( lag, 3 ), 1 );
+                lag = SigProcFIX.SKP_RSHIFT_ROUND( SKP_SMULBB( lag, 3 ), 1 );
             }
             else if( Fs_kHz == 16 )
             {
@@ -469,7 +473,7 @@ public class PitchAnalysisCoreFLP
             }
             else
             {
-                lag = Macros.SKP_SMULBB( lag, 3 );
+                lag = SKP_SMULBB( lag, 3 );
             }
 
             lag = SigProcFIX.SKP_LIMIT_int( lag, min_lag, max_lag );
@@ -478,7 +482,7 @@ public class PitchAnalysisCoreFLP
             lag_new   = lag;                                    /* to avoid undefined lag */
             CBimax    = 0;                                      /* to avoid undefined lag */
             assert( CCmax >= 0.0f );
-            LTPCorr[0] = (float)Math.sqrt( CCmax / CommonPitchEstDefines.PITCH_EST_NB_SUBFR );   // Output normalized correlation
+            LTPCorr[0] = (float)Math.sqrt( CCmax / PITCH_EST_NB_SUBFR );   // Output normalized correlation
 
             CCmax = -1000.0f;
 
@@ -488,7 +492,7 @@ public class PitchAnalysisCoreFLP
 
             lag_counter = 0;
             assert( lag == SigProcFIX.SKP_SAT16( lag ) );
-            contour_bias = PitchEstDefinesFLP.PITCH_EST_FLP_FLATCONTOUR_BIAS / lag;
+            contour_bias = PITCH_EST_FLP_FLATCONTOUR_BIAS / lag;
 
             /* Setup cbk parameters according to complexity setting */
             cbk_size   = PitchEstTables.SKP_Silk_cbk_sizes_stage3[   complexity ];
@@ -500,7 +504,7 @@ public class PitchAnalysisCoreFLP
                 {
                     cross_corr = 0.0;
                     energy = eps;
-                    for( k = 0; k < CommonPitchEstDefines.PITCH_EST_NB_SUBFR; k++ )
+                    for( k = 0; k < PITCH_EST_NB_SUBFR; k++ )
                     {
                         energy     +=   energies_st3[ k ][ j ][ lag_counter ];
                         cross_corr += cross_corr_st3[ k ][ j ][ lag_counter ];
@@ -509,7 +513,7 @@ public class PitchAnalysisCoreFLP
                     {
                         CCmax_new = (float)(cross_corr * cross_corr / energy);
                         /* Reduce depending on flatness of contour */
-                        diff = j - ( CommonPitchEstDefines.PITCH_EST_NB_CBKS_STAGE3_MAX >> 1 );
+                        diff = j - ( PITCH_EST_NB_CBKS_STAGE3_MAX >> 1 );
                         CCmax_new *= ( 1.0f - contour_bias * diff * diff );
                     }
                     else
@@ -527,7 +531,7 @@ public class PitchAnalysisCoreFLP
                 lag_counter++;
             }
 
-            for( k = 0; k < CommonPitchEstDefines.PITCH_EST_NB_SUBFR; k++ )
+            for( k = 0; k < PITCH_EST_NB_SUBFR; k++ )
             {
                 pitch_out[k] = lag_new + PitchEstTables.SKP_Silk_CB_lags_stage3[ k ][ CBimax ];
             }
@@ -538,8 +542,8 @@ public class PitchAnalysisCoreFLP
         {
             /* Save Lags and correlation */
             assert( CCmax >= 0.0f );
-            LTPCorr[0] = (float)Math.sqrt(CCmax / CommonPitchEstDefines.PITCH_EST_NB_SUBFR); /* Output normalized correlation */
-            for( k = 0; k < CommonPitchEstDefines.PITCH_EST_NB_SUBFR; k++ )
+            LTPCorr[0] = (float)Math.sqrt(CCmax / PITCH_EST_NB_SUBFR); /* Output normalized correlation */
+            for( k = 0; k < PITCH_EST_NB_SUBFR; k++ )
             {
                 pitch_out[ k ] = lag + PitchEstTables.SKP_Silk_CB_lags_stage2[ k ][ CBimax ];
             }
@@ -598,7 +602,7 @@ public class PitchAnalysisCoreFLP
 
         target_ptr = signal;/* Pointer to middle of frame */
         target_ptr_offset = signal_offset+( sf_length << 2 );
-        for( k = 0; k < CommonPitchEstDefines.PITCH_EST_NB_SUBFR; k++ )
+        for( k = 0; k < PITCH_EST_NB_SUBFR; k++ )
         {
             lag_counter = 0;
 
@@ -618,7 +622,7 @@ public class PitchAnalysisCoreFLP
                 /* Fill out the 3 dim array that stores the correlations for */
                 /* each code_book vector for each start lag */
                 idx = PitchEstTables.SKP_Silk_CB_lags_stage3[ k ][ i ] - delta;
-                for( j = 0; j < CommonPitchEstDefines.PITCH_EST_NB_STAGE3_LAGS; j++ )
+                for( j = 0; j < PITCH_EST_NB_STAGE3_LAGS; j++ )
                 {
                     assert( idx + j < SCRATCH_SIZE );
                     assert( idx + j < lag_counter );
@@ -666,7 +670,7 @@ public class PitchAnalysisCoreFLP
 
         target_ptr = signal;
         target_ptr_offset = signal_offset+( sf_length << 2 );
-        for( k = 0; k < CommonPitchEstDefines.PITCH_EST_NB_SUBFR; k++ )
+        for( k = 0; k < PITCH_EST_NB_SUBFR; k++ )
         {
             lag_counter = 0;
 
@@ -698,7 +702,7 @@ public class PitchAnalysisCoreFLP
                 /* Fill out the 3 dim array that stores the correlations for    */
                 /* each code_book vector for each start lag                     */
                 idx = PitchEstTables.SKP_Silk_CB_lags_stage3[ k ][ i ] - delta;
-                for(j = 0; j < CommonPitchEstDefines.PITCH_EST_NB_STAGE3_LAGS; j++)
+                for(j = 0; j < PITCH_EST_NB_STAGE3_LAGS; j++)
                 {
                     assert( idx + j < SCRATCH_SIZE );
                     assert( idx + j < lag_counter );

@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  * Encode parameters to create the payload.
  *
@@ -71,7 +73,7 @@ public class EncodeParameters
         }
 
         /* remaining subframes */
-        for( i = 1; i < Define.NB_SUBFR; i++ ) {
+        for( i = 1; i < NB_SUBFR; i++ ) {
             RangeCoder.SKP_Silk_range_encoder( psRC, psEncCtrlC.GainsIndices[ i ], TablesGain.SKP_Silk_delta_gain_CDF, 0);
         }
 
@@ -88,7 +90,7 @@ public class EncodeParameters
         RangeCoder.SKP_Silk_range_encoder( psRC, psEncCtrlC.NLSFInterpCoef_Q2, TablesOther.SKP_Silk_NLSF_interpolation_factor_CDF, 0);
 
 
-        if( psEncCtrlC.sigtype == Define.SIG_TYPE_VOICED ) {
+        if( psEncCtrlC.sigtype == SIG_TYPE_VOICED ) {
             /*********************/
             /* Encode pitch lags */
             /*********************/
@@ -123,7 +125,7 @@ public class EncodeParameters
             RangeCoder.SKP_Silk_range_encoder( psRC, psEncCtrlC.PERIndex, TablesLTP.SKP_Silk_LTP_per_index_CDF, 0);
 
             /* Codebook Indices */
-            for( k = 0; k < Define.NB_SUBFR; k++ ) {
+            for( k = 0; k < NB_SUBFR; k++ ) {
                 RangeCoder.SKP_Silk_range_encoder( psRC, psEncCtrlC.LTPIndex[ k ], TablesLTP.SKP_Silk_LTP_gain_CDF_ptrs[ psEncCtrlC.PERIndex ], 0);
             }
 

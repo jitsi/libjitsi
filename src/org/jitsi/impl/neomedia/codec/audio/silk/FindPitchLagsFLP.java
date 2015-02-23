@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  *
  * @author Jing Dai
@@ -33,10 +35,10 @@ public class FindPitchLagsFLP
 //            const SKP_float *x_buf_ptr, *x_buf;
             float[] x_buf_ptr, x_buf;
             int x_buf_ptr_offset, x_buf_offset;
-            float[] auto_corr = new float[ Define.FIND_PITCH_LPC_ORDER_MAX + 1 ];
-            float[] A = new float[         Define.FIND_PITCH_LPC_ORDER_MAX ];
-            float[] refl_coef = new float[ Define.FIND_PITCH_LPC_ORDER_MAX ];
-            float[] Wsig = new float[      Define.FIND_PITCH_LPC_WIN_MAX ];
+            float[] auto_corr = new float[ FIND_PITCH_LPC_ORDER_MAX + 1 ];
+            float[] A = new float[         FIND_PITCH_LPC_ORDER_MAX ];
+            float[] refl_coef = new float[ FIND_PITCH_LPC_ORDER_MAX ];
+            float[] Wsig = new float[      FIND_PITCH_LPC_WIN_MAX ];
             float thrhld;
             float[] Wsig_ptr;
             int Wsig_ptr_offset;

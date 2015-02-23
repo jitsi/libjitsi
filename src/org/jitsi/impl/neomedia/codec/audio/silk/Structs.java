@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 import java.util.*;
 
 /**
@@ -25,10 +27,10 @@ public class Structs
  */
 class SKP_Silk_nsq_state implements Cloneable
 {
-    short[] xq = new short[2 * Define.MAX_FRAME_LENGTH]; /* Buffer for quantized output signal */
-    int[]   sLTP_shp_Q10 = new int[ 2 * Define.MAX_FRAME_LENGTH ];
-    int[]   sLPC_Q14 = new int[ Define.MAX_FRAME_LENGTH / Define.NB_SUBFR + Define.MAX_LPC_ORDER ];
-    int[]   sAR2_Q14 = new int[ Define.SHAPE_LPC_ORDER_MAX ];
+    short[] xq = new short[2 * MAX_FRAME_LENGTH]; /* Buffer for quantized output signal */
+    int[]   sLTP_shp_Q10 = new int[ 2 * MAX_FRAME_LENGTH ];
+    int[]   sLPC_Q14 = new int[ MAX_FRAME_LENGTH / NB_SUBFR + MAX_LPC_ORDER ];
+    int[]   sAR2_Q14 = new int[ SHAPE_LPC_ORDER_MAX ];
     int     sLF_AR_shp_Q12;
     int     lagPrev;
     int     sLTP_buf_idx;
@@ -82,7 +84,7 @@ class SKP_Silk_nsq_state implements Cloneable
  */
 class SKP_SILK_LBRR_struct
 {
-    byte[]        payload = new byte[Define.MAX_ARITHM_BYTES];
+    byte[]        payload = new byte[MAX_ARITHM_BYTES];
     int         nBytes;                         /* Number of bytes in payload                               */
     int         usage;                          /* Tells how the payload should be used as FEC              */
 
@@ -105,12 +107,12 @@ class SKP_Silk_VAD_state
     int[]     AnaState = new int[ 2 ];                  /* Analysis filterbank state: 0-8 kHz                       */
     int[]     AnaState1 = new int[ 2 ];                 /* Analysis filterbank state: 0-4 kHz                       */
     int[]     AnaState2 = new int[ 2 ];                 /* Analysis filterbank state: 0-2 kHz                       */
-    int[]     XnrgSubfr = new int[ Define.VAD_N_BANDS ];       /* Subframe energies                                        */
-    int[]     NrgRatioSmth_Q8 = new int[ Define.VAD_N_BANDS ]; /* Smoothed energy level in each band                       */
+    int[]     XnrgSubfr = new int[ VAD_N_BANDS ];       /* Subframe energies                                        */
+    int[]     NrgRatioSmth_Q8 = new int[ VAD_N_BANDS ]; /* Smoothed energy level in each band                       */
     short     HPstate;                        /* State of differentiator in the lowest band               */
-    int[]     NL = new int[ Define.VAD_N_BANDS ];              /* Noise energy level in each band                          */
-    int[]     inv_NL = new int[ Define.VAD_N_BANDS ];          /* Inverse noise energy level in each band                  */
-    int[]     NoiseLevelBias = new int[ Define.VAD_N_BANDS ];  /* Noise level estimator bias/offset                        */
+    int[]     NL = new int[ VAD_N_BANDS ];              /* Noise energy level in each band                          */
+    int[]     inv_NL = new int[ VAD_N_BANDS ];          /* Inverse noise energy level in each band                  */
+    int[]     NoiseLevelBias = new int[ VAD_N_BANDS ];  /* Noise level estimator bias/offset                        */
     int   counter;                        /* Frame counter used in the initial phase                  */
 }
 
@@ -127,7 +129,7 @@ class SKP_Silk_range_coder_state
     long  base_Q32;
     long  range_Q16;
     int   error;
-    byte[] buffer = new byte[Define.MAX_ARITHM_BYTES];/* Buffer containing payload                                */
+    byte[] buffer = new byte[MAX_ARITHM_BYTES];/* Buffer containing payload                                */
 }
 
 /**
@@ -138,7 +140,7 @@ class SKP_Silk_range_coder_state
  */
 class SKP_Silk_detect_SWB_state
 {
-    int[][] S_HP_8_kHz = new int[ Define.NB_SOS ][ 2 ];  /* HP filter State */
+    int[][] S_HP_8_kHz = new int[ NB_SOS ][ 2 ];  /* HP filter State */
     int     ConsecSmplsAboveThres;
     int     ActiveSpeech_ms;            /* Accumulated time with active speech */
     int     SWB_detected;               /* Flag to indicate SWB input */
@@ -272,7 +274,7 @@ class SKP_Silk_encoder_state
     int                         first_frame_after_reset;        /* Flag for deactivating NLSF interp. and fluc. reduction after resets  */
 
     /* Input/output buffering */
-    short[]                     inputBuf = new short[ Define.MAX_FRAME_LENGTH ];   /* buffer containin input signal                                        */
+    short[]                     inputBuf = new short[ MAX_FRAME_LENGTH ];   /* buffer containin input signal                                        */
     int                         inputBufIx;
     int                         nFramesInPayloadBuf;            /* number of frames sitting in outputBuf                                */
     int                         nBytesInPayloadBuf;             /* number of bytes sitting in outputBuf                                 */
@@ -283,12 +285,12 @@ class SKP_Silk_encoder_state
     SKP_Silk_NLSF_CB_struct[]   psNLSF_CB = new SKP_Silk_NLSF_CB_struct[ 2 ];                /* Pointers to voiced/unvoiced NLSF codebooks */
 
     /* Struct for Inband LBRR */
-    SKP_SILK_LBRR_struct[]      LBRR_buffer = new SKP_SILK_LBRR_struct[ Define.MAX_LBRR_DELAY ];
+    SKP_SILK_LBRR_struct[]      LBRR_buffer = new SKP_SILK_LBRR_struct[ MAX_LBRR_DELAY ];
     /*
      * LBRR_buffer is an array of references, which has to be created manually.
      */
     {
-        for(int LBRR_bufferIni_i=0; LBRR_bufferIni_i<Define.MAX_LBRR_DELAY; LBRR_bufferIni_i++)
+        for(int LBRR_bufferIni_i=0; LBRR_bufferIni_i<MAX_LBRR_DELAY; LBRR_bufferIni_i++)
         {
             LBRR_buffer[LBRR_bufferIni_i] = new SKP_SILK_LBRR_struct();
         }
@@ -315,8 +317,8 @@ class SKP_Silk_encoder_state
 
 
     /* Buffers */
-    byte[]                      q = new byte[ Define.MAX_FRAME_LENGTH ];      /* pulse signal buffer */
-    byte[]                      q_LBRR = new byte[ Define.MAX_FRAME_LENGTH ]; /* pulse signal buffer */
+    byte[]                      q = new byte[ MAX_FRAME_LENGTH ];      /* pulse signal buffer */
+    byte[]                      q_LBRR = new byte[ MAX_FRAME_LENGTH ]; /* pulse signal buffer */
 }
 
 /**
@@ -331,10 +333,10 @@ class SKP_Silk_encoder_control
     int     lagIndex;
     int     contourIndex;
     int     PERIndex;
-    int[]   LTPIndex = new int[ Define.NB_SUBFR ];
-    int[]   NLSFIndices = new int[ Define.NLSF_MSVQ_MAX_CB_STAGES ];  /* NLSF path of quantized LSF vector   */
+    int[]   LTPIndex = new int[ NB_SUBFR ];
+    int[]   NLSFIndices = new int[ NLSF_MSVQ_MAX_CB_STAGES ];  /* NLSF path of quantized LSF vector   */
     int     NLSFInterpCoef_Q2;
-    int[]   GainsIndices = new int[ Define.NB_SUBFR ];
+    int[]   GainsIndices = new int[ NB_SUBFR ];
     int     Seed;
     int     LTP_scaleIndex;
     int     RateLevelIndex;
@@ -342,7 +344,7 @@ class SKP_Silk_encoder_control
     int     sigtype;
 
     /* Prediction and coding parameters */
-    int[]   pitchL = new int[ Define.NB_SUBFR ];
+    int[]   pitchL = new int[ NB_SUBFR ];
 
     int     LBRR_usage;                     /* Low bitrate redundancy usage                             */
 }
@@ -356,15 +358,15 @@ class SKP_Silk_encoder_control
  class SKP_Silk_PLC_struct
  {
     int       pitchL_Q8;                      /* Pitch lag to use for voiced concealment                  */
-    short[]   LTPCoef_Q14 = new short[ Define.LTP_ORDER ];       /* LTP coeficients to use for voiced concealment            */
-    short[]   prevLPC_Q12 = new short[ Define.MAX_LPC_ORDER ];
+    short[]   LTPCoef_Q14 = new short[ LTP_ORDER ];       /* LTP coeficients to use for voiced concealment            */
+    short[]   prevLPC_Q12 = new short[ MAX_LPC_ORDER ];
     int         last_frame_lost;                /* Was previous frame lost                                  */
     int       rand_seed;                      /* Seed for unvoiced signal generation                      */
     short     randScale_Q14;                  /* Scaling of unvoiced random signal                        */
     int       conc_energy;
     int       conc_energy_shift;
     short     prevLTP_scale_Q14;
-    int[]     prevGain_Q16 = new int[ Define.NB_SUBFR ];
+    int[]     prevGain_Q16 = new int[ NB_SUBFR ];
     int       fs_kHz;
 }
 
@@ -376,16 +378,16 @@ class SKP_Silk_encoder_control
   */
  class SKP_Silk_CNG_struct
  {
-     int[]   CNG_exc_buf_Q10 = new int[ Define.MAX_FRAME_LENGTH ];
-     int[]   CNG_smth_NLSF_Q15 = new int[ Define.MAX_LPC_ORDER ];
-     int[]   CNG_synth_state = new int[ Define.MAX_LPC_ORDER ];
+     int[]   CNG_exc_buf_Q10 = new int[ MAX_FRAME_LENGTH ];
+     int[]   CNG_smth_NLSF_Q15 = new int[ MAX_LPC_ORDER ];
+     int[]   CNG_synth_state = new int[ MAX_LPC_ORDER ];
      int     CNG_smth_Gain_Q16;
      int     rand_seed;
      int     fs_kHz;
  }
 
  /**
-  * Deocder state
+  * Decoder state
   *
   * @author Jing Dai
   * @author Dingxin Xu
@@ -394,17 +396,16 @@ class SKP_Silk_encoder_control
  {
     SKP_Silk_range_coder_state  sRC = new  SKP_Silk_range_coder_state();                            /* Range coder state */
     int       prev_inv_gain_Q16;
-    int[]     sLTP_Q16 = new int[ 2 * Define.MAX_FRAME_LENGTH ];
-    int[]     sLPC_Q14 = new int[ Define.MAX_FRAME_LENGTH / Define.NB_SUBFR + Define.MAX_LPC_ORDER ];
-    int[]     exc_Q10 = new int [ Define.MAX_FRAME_LENGTH ];
-    int[]     res_Q10 = new int [ Define.MAX_FRAME_LENGTH ];
-    short[]   outBuf = new short[ 2 * Define.MAX_FRAME_LENGTH ];             /* Buffer for output signal                                             */
-    int       sLTP_buf_idx;                               /* LTP_buf_index                                                        */
+    int[]     sLTP_Q16 = new int[ 2 * MAX_FRAME_LENGTH ];
+    int[]     sLPC_Q14 = new int[ MAX_FRAME_LENGTH / NB_SUBFR + MAX_LPC_ORDER ];
+    int[]     exc_Q10 = new int [ MAX_FRAME_LENGTH ];
+    int[]     res_Q10 = new int [ MAX_FRAME_LENGTH ];
+    short[]   outBuf = new short[ 2 * MAX_FRAME_LENGTH ];             /* Buffer for output signal                                             */
     int       lagPrev;                                    /* Previous Lag                                                         */
     int       LastGainIndex;                              /* Previous gain index                                                  */
     int       LastGainIndex_EnhLayer;                     /* Previous gain index                                                  */
     int       typeOffsetPrev;                             /* Previous signal type and quantization offset                         */
-    int[]     HPState = new int[ Define.DEC_HP_ORDER ];                    /* HP filter state                                                      */
+    int[]     HPState = new int[ DEC_HP_ORDER ];                    /* HP filter state                                                      */
     short[]   HP_A;                                        /* HP filter AR coefficients                                            */
     short[]   HP_B;                                        /* HP filter MA coefficients                                            */
     int       fs_kHz;                                     /* Sampling frequency in kHz                                            */
@@ -412,7 +413,7 @@ class SKP_Silk_encoder_control
     int         frame_length;                               /* Frame length (samples)                                               */
     int         subfr_length;                               /* Subframe length (samples)                                            */
     int         LPC_order;                                  /* LPC order                                                            */
-    int[]       prevNLSF_Q15 = new int[ Define.MAX_LPC_ORDER ];              /* Used to interpolate LSFs                                             */
+    int[]       prevNLSF_Q15 = new int[ MAX_LPC_ORDER ];              /* Used to interpolate LSFs                                             */
     int         first_frame_after_reset;                    /* Flag for deactivating NLSF interp. and fluc. reduction after resets  */
 
     /* For buffering payload in case of more frames per packet */
@@ -448,15 +449,15 @@ class SKP_Silk_encoder_control
 class SKP_Silk_decoder_control
 {
     /* prediction and coding parameters */
-    int[]             pitchL = new int[ Define.NB_SUBFR ];
-    int[]             Gains_Q16 = new int[ Define.NB_SUBFR ];
+    int[]             pitchL = new int[ NB_SUBFR ];
+    int[]             Gains_Q16 = new int[ NB_SUBFR ];
     int               Seed;
     /* holds interpolated and final coefficients, 4-byte aligned */
     //TODO:
     int[]            dummy_int32PredCoef_Q12 = new int[2];
-    short[][]        PredCoef_Q12 = new short[2][Define.MAX_LPC_ORDER];
+    short[][]        PredCoef_Q12 = new short[2][MAX_LPC_ORDER];
 
-    short[]           LTPCoef_Q14 = new short[ Define.LTP_ORDER * Define.NB_SUBFR ];
+    short[]           LTPCoef_Q14 = new short[ LTP_ORDER * NB_SUBFR ];
     int               LTP_scale_Q14;
 
     /* quantization indices */

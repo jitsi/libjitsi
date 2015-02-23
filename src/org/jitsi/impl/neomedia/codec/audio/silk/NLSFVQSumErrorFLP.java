@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  * compute weighted quantization errors for LPC_order element input vectors, over one codebook stage.
  *
@@ -35,7 +37,7 @@ public class NLSFVQSumErrorFLP
     {
         int     i, n;
         float   diff, sum_error;
-        float   Wcpy[] = new float[ Define.MAX_LPC_ORDER ];
+        float   Wcpy[] = new float[ MAX_LPC_ORDER ];
         float[] cb_vec;
         int cb_vec_offset;
 

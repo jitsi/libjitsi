@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  *
  * @author Dingxin Xu
@@ -33,26 +35,26 @@ public class FindLPCFLP
     )
     {
         int     k;
-        float[]   a = new float[ Define.MAX_LPC_ORDER ];
+        float[]   a = new float[ MAX_LPC_ORDER ];
 
         /* Used only for NLSF interpolation */
         double      res_nrg, res_nrg_2nd, res_nrg_interp;
-        float   a_tmp[] = new float[ Define.MAX_LPC_ORDER ], NLSF0[] = new float[ Define.MAX_LPC_ORDER ];
-        float   LPC_res[] = new float[ ( Define.MAX_FRAME_LENGTH + Define.NB_SUBFR * Define.MAX_LPC_ORDER ) / 2 ];
+        float   a_tmp[] = new float[ MAX_LPC_ORDER ], NLSF0[] = new float[ MAX_LPC_ORDER ];
+        float   LPC_res[] = new float[ ( MAX_FRAME_LENGTH + NB_SUBFR * MAX_LPC_ORDER ) / 2 ];
 
         /* Default: No interpolation */
         interpIndex[0] = 4;
 
         /* Burg AR analysis for the full frame */
-        res_nrg = BurgModifiedFLP.SKP_Silk_burg_modified_FLP( a, x, 0, subfr_length, Define.NB_SUBFR,
+        res_nrg = BurgModifiedFLP.SKP_Silk_burg_modified_FLP( a, x, 0, subfr_length, NB_SUBFR,
                 DefineFLP.FIND_LPC_COND_FAC, LPC_order );
 
         if( useInterpNLSFs == 1 ) {
 
             /* Optimal solution for last 10 ms; subtract residual energy here, as that's easier than        */
             /* adding it to the residual energy of the first 10 ms in each iteration of the search below    */
-            res_nrg -= BurgModifiedFLP.SKP_Silk_burg_modified_FLP( a_tmp, x, ( Define.NB_SUBFR / 2 ) * subfr_length,
-                subfr_length, Define.NB_SUBFR / 2, DefineFLP.FIND_LPC_COND_FAC, LPC_order );
+            res_nrg -= BurgModifiedFLP.SKP_Silk_burg_modified_FLP( a_tmp, x, ( NB_SUBFR / 2 ) * subfr_length,
+                subfr_length, NB_SUBFR / 2, DefineFLP.FIND_LPC_COND_FAC, LPC_order );
 
             /* Convert to NLSFs */
             WrappersFLP.SKP_Silk_A2NLSF_FLP( NLSF, a_tmp, LPC_order );

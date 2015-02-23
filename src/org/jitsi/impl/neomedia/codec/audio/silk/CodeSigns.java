@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  *
  * @author Jing Dai
@@ -48,7 +51,7 @@ public class CodeSigns
         int inData;
         int[] cdf = new int[3];
 
-        i = Macros.SKP_SMULBB( Define.N_RATE_LEVELS - 1, ( sigtype << 1 ) + QuantOffsetType ) + RateLevelIndex;
+        i = SKP_SMULBB( N_RATE_LEVELS - 1, ( sigtype << 1 ) + QuantOffsetType ) + RateLevelIndex;
         cdf[ 0 ] = 0;
         cdf[ 1 ] = TablesSign.SKP_Silk_sign_CDF[ i ];
         cdf[ 2 ] = 65535;
@@ -87,7 +90,7 @@ public class CodeSigns
         int data_ptr[] = new int[1];
         int[] cdf = new int[3];
 
-        i = Macros.SKP_SMULBB( Define.N_RATE_LEVELS - 1, ( sigtype << 1 ) + QuantOffsetType ) + RateLevelIndex;
+        i = SKP_SMULBB( N_RATE_LEVELS - 1, ( sigtype << 1 ) + QuantOffsetType ) + RateLevelIndex;
         cdf[ 0 ] = 0;
         cdf[ 1 ] = TablesSign.SKP_Silk_sign_CDF[ i ];
         cdf[ 2 ] = 65535;

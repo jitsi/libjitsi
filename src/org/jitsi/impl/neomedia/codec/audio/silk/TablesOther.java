@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  *
  * @author Jing Dai
@@ -95,7 +97,7 @@ public class TablesOther
 
     /* Quantization offsets */
     static final short[][] SKP_Silk_Quantization_Offsets_Q10 = {
-            { Define.OFFSET_VL_Q10, Define.OFFSET_VH_Q10 }, { Define.OFFSET_UVL_Q10, Define.OFFSET_UVH_Q10 }
+            { OFFSET_VL_Q10, OFFSET_VH_Q10 }, { OFFSET_UVL_Q10, OFFSET_UVH_Q10 }
         };
 
     /* Table for LTPScale */

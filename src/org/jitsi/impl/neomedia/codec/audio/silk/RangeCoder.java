@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 /**
  * Range coder
  *
@@ -87,7 +90,7 @@ public class RangeCoder
                 /* Make sure not to write beyond buffer */
                 if( bufferIx >= psRC.bufferLength )
                 {
-                    psRC.error = Define.RANGE_CODER_WRITE_BEYOND_BUFFER;
+                    psRC.error = RANGE_CODER_WRITE_BEYOND_BUFFER;
                     return;
                 }
                 /* Write one byte to buffer */
@@ -99,7 +102,7 @@ public class RangeCoder
             /* Make sure not to write beyond buffer */
             if( bufferIx >= psRC.bufferLength )
             {
-                psRC.error = Define.RANGE_CODER_WRITE_BEYOND_BUFFER;
+                psRC.error = RANGE_CODER_WRITE_BEYOND_BUFFER;
                 return;
             }
             /* Write one byte to buffer */
@@ -185,7 +188,7 @@ public class RangeCoder
                 high_Q16 = low_Q16;
                 /* Test for out of range */
                 if( high_Q16 == 0 ) {
-                    psRC.error = Define.RANGE_CODER_CDF_OUT_OF_RANGE;
+                    psRC.error = RANGE_CODER_CDF_OUT_OF_RANGE;
                     /* Set output to zero */
                     data[data_offset + 0] = 0;
                     return;
@@ -203,7 +206,7 @@ public class RangeCoder
                 }
                 /* Test for out of range */
                 if( high_Q16 == 0xFFFF ) {
-                    psRC.error = Define.RANGE_CODER_CDF_OUT_OF_RANGE;
+                    psRC.error = RANGE_CODER_CDF_OUT_OF_RANGE;
                     /* Set output to zero */
                     data[data_offset + 0] = 0;
                     return;
@@ -231,7 +234,7 @@ public class RangeCoder
                 range_Q16 = ( range_Q32 >>> 8 );
                 /* Check for errors */
                 if( ( base_Q32 >>> 24 ) != 0) {
-                    psRC.error = Define.RANGE_CODER_NORMALIZATION_FAILED;
+                    psRC.error = RANGE_CODER_NORMALIZATION_FAILED;
                     /* Set output to zero */
                     data[data_offset + 0] = 0;
                     return;
@@ -242,7 +245,7 @@ public class RangeCoder
                 /* Check for errors */
 //TODO:                if( ( base_Q32 >> 16 ) != 0 ) {
                     if((base_Q32 >>>16) != 0) {
-                    psRC.error = Define.RANGE_CODER_NORMALIZATION_FAILED;
+                    psRC.error = RANGE_CODER_NORMALIZATION_FAILED;
                     /* Set output to zero */
                     data[data_offset + 0] = 0;
                     return;
@@ -268,7 +271,7 @@ public class RangeCoder
 
         /* Check for zero interval length */
         if( range_Q16 == 0 ) {
-            psRC.error = Define.RANGE_CODER_ZERO_INTERVAL_WIDTH;
+            psRC.error = RANGE_CODER_ZERO_INTERVAL_WIDTH;
             /* Set output to zero */
             data[data_offset + 0] = 0;
             return;
@@ -311,7 +314,7 @@ public class RangeCoder
     )
     {
         /* Initialize structure */
-        psRC.bufferLength = Define.MAX_ARITHM_BYTES;
+        psRC.bufferLength = MAX_ARITHM_BYTES;
         psRC.range_Q16    = 0x0000FFFF;
         psRC.bufferIx     = 0;
         psRC.base_Q32     = 0;
@@ -333,8 +336,8 @@ public class RangeCoder
     )
     {
         /* check input */
-        if( bufferLength > Define.MAX_ARITHM_BYTES ) {
-            psRC.error = Define.RANGE_CODER_DEC_PAYLOAD_TOO_LONG;
+        if( bufferLength > MAX_ARITHM_BYTES ) {
+            psRC.error = RANGE_CODER_DEC_PAYLOAD_TOO_LONG;
             return;
         }
         /* Initialize structure */
@@ -368,7 +371,7 @@ public class RangeCoder
         int nBits;
 
         /* Number of bits in stream */
-        nBits = ( psRC.bufferIx << 3 ) + Macros.SKP_Silk_CLZ32((int) (psRC.range_Q16 - 1) ) - 14;
+        nBits = ( psRC.bufferIx << 3 ) + SKP_Silk_CLZ32((int) (psRC.range_Q16 - 1) ) - 14;
 
         nBytes [0] = (( nBits + 7)>> 3 );
         /* Return number of bits in bitstream */
@@ -454,7 +457,7 @@ public class RangeCoder
 
         /* Make sure not to read beyond buffer */
         if( nBytes - 1 >= psRC.bufferLength ) {
-            psRC.error = Define.RANGE_CODER_DECODER_CHECK_FAILED;
+            psRC.error = RANGE_CODER_DECODER_CHECK_FAILED;
             return;
         }
 
@@ -463,7 +466,7 @@ public class RangeCoder
             mask = ( 0xFF >>( bits_in_stream & 7) );
 
             if( ( psRC.buffer[ nBytes - 1 ] & mask ) != mask ) {
-                psRC.error = Define.RANGE_CODER_DECODER_CHECK_FAILED;
+                psRC.error = RANGE_CODER_DECODER_CHECK_FAILED;
                 return;
             }
         }

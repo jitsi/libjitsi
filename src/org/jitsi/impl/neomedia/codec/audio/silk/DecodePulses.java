@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+
 import java.util.*;
 
 /**
@@ -31,8 +34,8 @@ public class DecodePulses
     )
     {
         int   i, j, k, iter, abs_q, nLS, bit;
-        int[]   sum_pulses = new int[ Define.MAX_NB_SHELL_BLOCKS ];
-        int[]   nLshifts = new int[ Define.MAX_NB_SHELL_BLOCKS ];
+        int[]   sum_pulses = new int[ MAX_NB_SHELL_BLOCKS ];
+        int[]   nLshifts = new int[ MAX_NB_SHELL_BLOCKS ];
         int[]   pulses_ptr;
         int     pulses_ptr_offset;
         int[]   cdf_ptr;
@@ -47,7 +50,7 @@ public class DecodePulses
         psDecCtrl.RateLevelIndex = RateLevelIndex_ptr[0];
 
         /* Calculate number of shell blocks */
-        iter = frame_length / Define.SHELL_CODEC_FRAME_LENGTH;
+        iter = frame_length / SHELL_CODEC_FRAME_LENGTH;
 
         /***************************************************/
         /* Sum-Weighted-Pulses Decoding                    */
@@ -59,10 +62,10 @@ public class DecodePulses
             RangeCoder.SKP_Silk_range_decoder( sum_pulses, i, psRC, cdf_ptr, 0, TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF_offset );
 
             /* LSB indication */
-            while( sum_pulses[ i ] == ( Define.MAX_PULSES + 1 ) ) {
+            while( sum_pulses[ i ] == ( MAX_PULSES + 1 ) ) {
                 nLshifts[ i ]++;
                 RangeCoder.SKP_Silk_range_decoder( sum_pulses, i, psRC,
-                        TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF[ Define.N_RATE_LEVELS - 1 ], 0, TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF_offset );
+                        TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF[ N_RATE_LEVELS - 1 ], 0, TablesPulsesPerBlock.SKP_Silk_pulses_per_block_CDF_offset );
             }
         }
 
@@ -71,10 +74,10 @@ public class DecodePulses
         /***************************************************/
         for( i = 0; i < iter; i++ ) {
             if( sum_pulses[ i ] > 0 ) {
-                ShellCoder.SKP_Silk_shell_decoder( q, Macros.SKP_SMULBB( i, Define.SHELL_CODEC_FRAME_LENGTH ), psRC, sum_pulses[ i ] );
+                ShellCoder.SKP_Silk_shell_decoder( q, SKP_SMULBB( i, SHELL_CODEC_FRAME_LENGTH ), psRC, sum_pulses[ i ] );
             } else {
-                Arrays.fill(q, (Macros.SKP_SMULBB(i, Define.SHELL_CODEC_FRAME_LENGTH)),
-                        ((Macros.SKP_SMULBB(i, Define.SHELL_CODEC_FRAME_LENGTH)) + Define.SHELL_CODEC_FRAME_LENGTH), 0);
+                Arrays.fill(q, (SKP_SMULBB(i, SHELL_CODEC_FRAME_LENGTH)),
+                        ((SKP_SMULBB(i, SHELL_CODEC_FRAME_LENGTH)) + SHELL_CODEC_FRAME_LENGTH), 0);
             }
         }
 
@@ -85,9 +88,9 @@ public class DecodePulses
             if( nLshifts[ i ] > 0 ) {
                 nLS = nLshifts[ i ];
                 pulses_ptr = q;
-                pulses_ptr_offset = Macros.SKP_SMULBB(i, Define.SHELL_CODEC_FRAME_LENGTH);
+                pulses_ptr_offset = SKP_SMULBB(i, SHELL_CODEC_FRAME_LENGTH);
 
-                for( k = 0; k < Define.SHELL_CODEC_FRAME_LENGTH; k++ ) {
+                for( k = 0; k < SHELL_CODEC_FRAME_LENGTH; k++ ) {
                     abs_q = pulses_ptr[pulses_ptr_offset + k];
                     for( j = 0; j < nLS; j++ ) {
                         abs_q = abs_q << 1;

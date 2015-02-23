@@ -6,6 +6,10 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 import java.util.*;
 
 /**
@@ -39,7 +43,7 @@ public class CNG
         int seed;
         int   i, idx, exc_mask;
 
-        exc_mask = Define.CNG_BUF_MASK_MAX;
+        exc_mask = CNG_BUF_MASK_MAX;
         while( exc_mask > length ) {
              exc_mask = ( exc_mask >> 1 );
         }
@@ -49,9 +53,9 @@ public class CNG
         for( i = 0; i < length; i++ ) {
             seed = SigProcFIX.SKP_RAND( seed );
             idx = ( ( seed >> 24 ) & exc_mask );
-            Typedef.SKP_assert( idx >= 0 );
-            Typedef.SKP_assert( idx <= Define.CNG_BUF_MASK_MAX );
-            residual[ residual_offset+i ] = ( short )SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( Macros.SKP_SMULWW( exc_buf_Q10[ idx ], Gain_Q16 ), 10 ) );
+            SKP_assert( idx >= 0 );
+            SKP_assert( idx <= CNG_BUF_MASK_MAX );
+            residual[ residual_offset+i ] = ( short )SigProcFIX.SKP_SAT16( SigProcFIX.SKP_RSHIFT_ROUND( SKP_SMULWW( exc_buf_Q10[ idx ], Gain_Q16 ), 10 ) );
         }
         rand_seed[0] = seed;
     }
@@ -66,7 +70,7 @@ public class CNG
     {
         int i, NLSF_step_Q15, NLSF_acc_Q15;
 
-        NLSF_step_Q15 = ( Typedef.SKP_int16_MAX / (psDec.LPC_order + 1) );
+        NLSF_step_Q15 = ( SKP_int16_MAX / (psDec.LPC_order + 1) );
         NLSF_acc_Q15 = 0;
         for( i = 0; i < psDec.LPC_order; i++ ) {
             NLSF_acc_Q15 += NLSF_step_Q15;
@@ -94,8 +98,8 @@ public class CNG
     {
         int   i, subfr;
         int tmp_32, Gain_Q26, max_Gain_Q16;
-        short[] LPC_buf = new short[Define.MAX_LPC_ORDER];
-        short[] CNG_sig = new short[Define.MAX_FRAME_LENGTH];
+        short[] LPC_buf = new short[MAX_LPC_ORDER];
+        short[] CNG_sig = new short[MAX_FRAME_LENGTH];
 
         SKP_Silk_CNG_struct  psCNG;
 
@@ -107,28 +111,28 @@ public class CNG
 
             psCNG.fs_kHz = psDec.fs_kHz;
         }
-        if( psDec.lossCnt == 0 && psDec.vadFlag == Define.NO_VOICE_ACTIVITY ) {
+        if( psDec.lossCnt == 0 && psDec.vadFlag == NO_VOICE_ACTIVITY ) {
             /* Update CNG parameters */
 
             /* Smoothing of LSF's  */
             for( i = 0; i < psDec.LPC_order; i++ ) {
-                psCNG.CNG_smth_NLSF_Q15[ i ] += Macros.SKP_SMULWB( psDec.prevNLSF_Q15[ i ] - psCNG.CNG_smth_NLSF_Q15[ i ], Define.CNG_NLSF_SMTH_Q16 );
+                psCNG.CNG_smth_NLSF_Q15[ i ] += SKP_SMULWB( psDec.prevNLSF_Q15[ i ] - psCNG.CNG_smth_NLSF_Q15[ i ], CNG_NLSF_SMTH_Q16 );
             }
             /* Find the subframe with the highest gain */
             max_Gain_Q16 = 0;
             subfr        = 0;
-            for( i = 0; i < Define.NB_SUBFR; i++ ) {
+            for( i = 0; i < NB_SUBFR; i++ ) {
                 if( psDecCtrl.Gains_Q16[ i ] > max_Gain_Q16 ) {
                     max_Gain_Q16 = psDecCtrl.Gains_Q16[ i ];
                     subfr        = i;
                 }
             }
             /* Update CNG excitation buffer with excitation from this subframe */
-            System.arraycopy(psCNG.CNG_exc_buf_Q10, 0, psCNG.CNG_exc_buf_Q10, psDec.subfr_length, ( Define.NB_SUBFR - 1 ) * psDec.subfr_length);
+            System.arraycopy(psCNG.CNG_exc_buf_Q10, 0, psCNG.CNG_exc_buf_Q10, psDec.subfr_length, ( NB_SUBFR - 1 ) * psDec.subfr_length);
             System.arraycopy(psDec.exc_Q10, subfr * psDec.subfr_length , psCNG.CNG_exc_buf_Q10, 0, psDec.subfr_length);
             /* Smooth gains */
-            for( i = 0; i < Define.NB_SUBFR; i++ ) {
-                psCNG.CNG_smth_Gain_Q16 += Macros.SKP_SMULWB( psDecCtrl.Gains_Q16[ i ] - psCNG.CNG_smth_Gain_Q16, Define.CNG_GAIN_SMTH_Q16 );
+            for( i = 0; i < NB_SUBFR; i++ ) {
+                psCNG.CNG_smth_Gain_Q16 += SKP_SMULWB( psDecCtrl.Gains_Q16[ i ] - psCNG.CNG_smth_Gain_Q16, CNG_GAIN_SMTH_Q16 );
             }
         }
 

@@ -6,6 +6,9 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 import java.util.*;
 
 /**
@@ -142,7 +145,7 @@ public class Resampler
                 /* Ratio of output/input samples */
                 S.ratio_Q16 = ( ( Fs_Hz_out<<13 ) / Fs_Hz_in )<<3;
                 /* Make sure the ratio is rounded up */
-                while( Macros.SKP_SMULWW( S.ratio_Q16, Fs_Hz_in ) < Fs_Hz_out )
+                while( SKP_SMULWW( S.ratio_Q16, Fs_Hz_in ) < Fs_Hz_out )
                     S.ratio_Q16++;
 
                 /* Batch size is 10 ms */
@@ -322,7 +325,7 @@ public class Resampler
         /* Ratio of input/output samples */
         S.invRatio_Q16 = ( ( Fs_Hz_in << 14 + up2 - down2 ) / Fs_Hz_out ) << 2 ;
         /* Make sure the ratio is rounded up */
-        while( Macros.SKP_SMULWW( S.invRatio_Q16, Fs_Hz_out << down2 ) < ( Fs_Hz_in << up2 ) )
+        while( SKP_SMULWW( S.invRatio_Q16, Fs_Hz_out << down2 ) < ( Fs_Hz_in << up2 ) )
         {
             S.invRatio_Q16++;
         }
@@ -389,10 +392,10 @@ public class Resampler
                 while( inLen > 0 ) {
                     /* Number of input and output samples to process */
                     nSamplesIn = SigProcFIX.SKP_min( inLen, S.batchSizePrePost );
-                    nSamplesOut = Macros.SKP_SMULWB( S.ratio_Q16, nSamplesIn );
+                    nSamplesOut = SKP_SMULWB( S.ratio_Q16, nSamplesIn );
 
-                    Typedef.SKP_assert( ( nSamplesIn  >>  S.nPreDownsamplers ) <= 480 );
-                    Typedef.SKP_assert( ( nSamplesOut >> S.nPostUpsamplers  ) <= 480 );
+                    SKP_assert( ( nSamplesIn  >>  S.nPreDownsamplers ) <= 480 );
+                    SKP_assert( ( nSamplesOut >> S.nPostUpsamplers  ) <= 480 );
 
                     if( S.nPreDownsamplers > 0 ) {
                         S.down_pre_function(S.sDownPre, in_buf, 0, in, in_offset, nSamplesIn);

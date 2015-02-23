@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 /**
  * conversion between prediction filter coefficients and LSFs
  * order should be even
@@ -77,12 +79,12 @@ public class NLSF2A
 
         int maxabs, absval, idx=0, sc_Q16;
 
-        Typedef.SKP_assert(SigProcFIX.LSF_COS_TAB_SZ_FIX == 128);
+        SKP_assert(SigProcFIX.LSF_COS_TAB_SZ_FIX == 128);
 
         /* convert LSFs to 2*cos(LSF(i)), using piecewise linear curve from table */
         for( k = 0; k < d; k++ ) {
-            Typedef.SKP_assert(NLSF[k] >= 0 );
-            Typedef.SKP_assert(NLSF[k] <= 32767 );
+            SKP_assert(NLSF[k] >= 0 );
+            SKP_assert(NLSF[k] <= 32767 );
 
             /* f_int on a scale 0-127 (rounded down) */
             f_int = ( NLSF[k] >> (15 - 7) );
@@ -91,8 +93,8 @@ public class NLSF2A
             f_frac = NLSF[k] - ( f_int << (15 - 7) );
 
 
-            Typedef.SKP_assert(f_int >= 0);
-            Typedef.SKP_assert(f_int < SigProcFIX.LSF_COS_TAB_SZ_FIX );
+            SKP_assert(f_int >= 0);
+            SKP_assert(f_int < SigProcFIX.LSF_COS_TAB_SZ_FIX );
 
             /* Read start and end value from table */
             cos_val = LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ f_int ];                /* Q12 */
@@ -133,10 +135,10 @@ public class NLSF2A
                 }
             }
 
-            if( maxabs > Typedef.SKP_int16_MAX ) {
+            if( maxabs > SKP_int16_MAX ) {
                 /* Reduce magnitude of prediction coefficients */
                 maxabs = SigProcFIX.SKP_min( maxabs, 98369 ); // ( SKP_int32_MAX / ( 65470 >> 2 ) ) + SKP_int16_MAX = 98369
-                sc_Q16 = 65470 - ( ( (65470 >> 2) * (maxabs - Typedef.SKP_int16_MAX) ) /
+                sc_Q16 = 65470 - ( ( (65470 >> 2) * (maxabs - SKP_int16_MAX) ) /
                         ( ( maxabs * (idx + 1)) >> 2 ) );
                 Bwexpander32.SKP_Silk_bwexpander_32( a_int32, d, sc_Q16 );
 
@@ -147,7 +149,7 @@ public class NLSF2A
 
         /* Reached the last iteration */
         if( i == 10 ) {
-            Typedef.SKP_assert(false);
+            SKP_assert(false);
             for( k = 0; k < d; k++ ) {
                 a_int32[k] = SigProcFIX.SKP_SAT16( a_int32[k] );
             }

@@ -6,6 +6,10 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Macros.*;
+import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
+
 /**
  *
  * @author Jing Dai
@@ -30,21 +34,21 @@ public class VAD
 
         /* init noise levels */
         /* Initialize array with approx pink noise levels (psd proportional to inverse of frequency) */
-        for( b = 0; b < Define.VAD_N_BANDS; b++ )
+        for( b = 0; b < VAD_N_BANDS; b++ )
         {
-            psSilk_VAD.NoiseLevelBias[ b ] = Math.max( Define.VAD_NOISE_LEVELS_BIAS / ( b + 1 ), 1 );
+            psSilk_VAD.NoiseLevelBias[ b ] = Math.max( VAD_NOISE_LEVELS_BIAS / ( b + 1 ), 1 );
         }
 
         /* Initialize state */
-        for( b = 0; b < Define.VAD_N_BANDS; b++ )
+        for( b = 0; b < VAD_N_BANDS; b++ )
         {
             psSilk_VAD.NL[ b ]     = 100 * psSilk_VAD.NoiseLevelBias[ b ];
-            psSilk_VAD.inv_NL[ b ] = Typedef.SKP_int32_MAX / psSilk_VAD.NL[ b ];
+            psSilk_VAD.inv_NL[ b ] = SKP_int32_MAX / psSilk_VAD.NL[ b ];
         }
         psSilk_VAD.counter = 15;
 
         /* init smoothed energy-to-noise ratio*/
-        for( b = 0; b < Define.VAD_N_BANDS; b++ ) {
+        for( b = 0; b < VAD_N_BANDS; b++ ) {
             psSilk_VAD.NrgRatioSmth_Q8[ b ] = 100 * 256;       /* 100 * 256 --> 20 dB SNR */
         }
 
@@ -78,20 +82,20 @@ public class VAD
     )
     {
         int   SA_Q15, input_tilt;
-        int[] scratch = new int[ 3 * Define.MAX_FRAME_LENGTH / 2 ];
+        int[] scratch = new int[ 3 * MAX_FRAME_LENGTH / 2 ];
         int   decimated_framelength, dec_subframe_length, dec_subframe_offset, SNR_Q7, i, b, s;
         int sumSquared=0, smooth_coef_Q16;
         short HPstateTmp;
 
-        short[][] X = new short[ Define.VAD_N_BANDS ][ Define.MAX_FRAME_LENGTH / 2 ];
-        int[] Xnrg = new int[ Define.VAD_N_BANDS ];
-        int[] NrgToNoiseRatio_Q8 = new int[ Define.VAD_N_BANDS ];
+        short[][] X = new short[ VAD_N_BANDS ][ MAX_FRAME_LENGTH / 2 ];
+        int[] Xnrg = new int[ VAD_N_BANDS ];
+        int[] NrgToNoiseRatio_Q8 = new int[ VAD_N_BANDS ];
         int speech_nrg, x_tmp;
         int   ret = 0;
 
         /* Safety checks */
-        assert( Define.VAD_N_BANDS == 4 );
-        assert( Define.MAX_FRAME_LENGTH >= framelength );
+        assert( VAD_N_BANDS == 4 );
+        assert( MAX_FRAME_LENGTH >= framelength );
         assert( framelength <= 512 );
 
         /***********************/
@@ -123,19 +127,19 @@ public class VAD
         /*************************************/
         /* Calculate the energy in each band */
         /*************************************/
-        for( b = 0; b < Define.VAD_N_BANDS; b++ )
+        for( b = 0; b < VAD_N_BANDS; b++ )
         {
             /* Find the decimated framelength in the non-uniformly divided bands */
-            decimated_framelength = framelength >> Math.min( Define.VAD_N_BANDS - b, Define.VAD_N_BANDS - 1);
+            decimated_framelength = framelength >> Math.min( VAD_N_BANDS - b, VAD_N_BANDS - 1);
 
             /* Split length into subframe lengths */
-            dec_subframe_length = decimated_framelength >> Define.VAD_INTERNAL_SUBFRAMES_LOG2;
+            dec_subframe_length = decimated_framelength >> VAD_INTERNAL_SUBFRAMES_LOG2;
             dec_subframe_offset = 0;
 
             /* Compute energy per sub-frame */
             /* initialize with summed energy of last subframe */
             Xnrg[ b ] = psSilk_VAD.XnrgSubfr[ b ];
-            for( s = 0; s < Define.VAD_INTERNAL_SUBFRAMES; s++ )
+            for( s = 0; s < VAD_INTERNAL_SUBFRAMES; s++ )
             {
                 sumSquared = 0;
                 for( i = 0; i < dec_subframe_length; i++ )
@@ -143,14 +147,14 @@ public class VAD
                     /* The energy will be less than dec_subframe_length * ( SKP_int16_MIN / 8 )^2.              */
                     /* Therefore we can accumulate with no risk of overflow (unless dec_subframe_length > 128)  */
                     x_tmp = X[ b ][ i + dec_subframe_offset ] >> 3;
-                    sumSquared = Macros.SKP_SMLABB( sumSquared, x_tmp, x_tmp );
+                    sumSquared = SKP_SMLABB( sumSquared, x_tmp, x_tmp );
 
                     /* Safety check */
                     assert( sumSquared >= 0 );
                 }
 
                 /* add/saturate summed energy of current subframe */
-                if( s < Define.VAD_INTERNAL_SUBFRAMES - 1 )
+                if( s < VAD_INTERNAL_SUBFRAMES - 1 )
                 {
                     Xnrg[ b ] = SigProcFIX.SKP_ADD_POS_SAT32( Xnrg[ b ], sumSquared );
                 }
@@ -175,7 +179,7 @@ public class VAD
         /***********************************************/
         sumSquared = 0;
         input_tilt = 0;
-        for( b = 0; b < Define.VAD_N_BANDS; b++ )
+        for( b = 0; b < VAD_N_BANDS; b++ )
         {
             speech_nrg = Xnrg[ b ] - psSilk_VAD.NL[ b ];
             if( speech_nrg > 0 )
@@ -194,14 +198,14 @@ public class VAD
                 SNR_Q7 = Lin2log.SKP_Silk_lin2log( NrgToNoiseRatio_Q8[ b ] ) - 8 * 128;
 
                 /* Sum-of-squares */
-                sumSquared = Macros.SKP_SMLABB( sumSquared, SNR_Q7, SNR_Q7 );          /* Q14 */
+                sumSquared = SKP_SMLABB( sumSquared, SNR_Q7, SNR_Q7 );          /* Q14 */
 
                 /* Tilt measure */
                 if( speech_nrg < ( 1 << 20 ) ) {
                     /* Scale down SNR value for small subband speech energies */
-                    SNR_Q7 = Macros.SKP_SMULWB( Inlines.SKP_Silk_SQRT_APPROX( speech_nrg ) << 6, SNR_Q7 );
+                    SNR_Q7 = SKP_SMULWB( Inlines.SKP_Silk_SQRT_APPROX( speech_nrg ) << 6, SNR_Q7 );
                 }
-                input_tilt = Macros.SKP_SMLAWB( input_tilt, tiltWeights[ b ], SNR_Q7 );
+                input_tilt = SKP_SMLAWB( input_tilt, tiltWeights[ b ], SNR_Q7 );
             }
             else
             {
@@ -210,7 +214,7 @@ public class VAD
         }
 
         /* Mean-of-squares */
-        sumSquared = sumSquared / Define.VAD_N_BANDS;           /* Q14 */
+        sumSquared = sumSquared / VAD_N_BANDS;           /* Q14 */
 
         /* Root-mean-square approximation, scale to dBs, and write to output pointer */
         pSNR_dB_Q7[0] = ( short )( 3 * Inlines.SKP_Silk_SQRT_APPROX( sumSquared ) );  /* Q7 */
@@ -218,7 +222,7 @@ public class VAD
         /*********************************/
         /* Speech Probability Estimation */
         /*********************************/
-        SA_Q15 = SigmQ15.SKP_Silk_sigm_Q15( Macros.SKP_SMULWB( Define.VAD_SNR_FACTOR_Q16, pSNR_dB_Q7[0] ) - Define.VAD_NEGATIVE_OFFSET_Q5 );
+        SA_Q15 = SigmQ15.SKP_Silk_sigm_Q15( SKP_SMULWB( VAD_SNR_FACTOR_Q16, pSNR_dB_Q7[0] ) - VAD_NEGATIVE_OFFSET_Q5 );
 
         /**************************/
         /* Frequency Tilt Measure */
@@ -229,7 +233,7 @@ public class VAD
         /* Scale the sigmoid output based on power levels */
         /**************************************************/
         speech_nrg = 0;
-        for( b = 0; b < Define.VAD_N_BANDS; b++ )
+        for( b = 0; b < VAD_N_BANDS; b++ )
         {
             /* Accumulate signal-without-noise energies, higher frequency bands have more weight */
             speech_nrg += ( b + 1 ) * ( ( Xnrg[ b ] - psSilk_VAD.NL[ b ] ) >> 4 );
@@ -244,21 +248,21 @@ public class VAD
         {
             /* square-root */
             speech_nrg = Inlines.SKP_Silk_SQRT_APPROX( speech_nrg << 15 );
-            SA_Q15 = Macros.SKP_SMULWB( 32768 + speech_nrg, SA_Q15 );
+            SA_Q15 = SKP_SMULWB( 32768 + speech_nrg, SA_Q15 );
         }
 
         /* Copy the resulting speech activity in Q8 to *pSA_Q8 */
-        pSA_Q8[0] = Math.min( SA_Q15 >> 7, Typedef.SKP_uint8_MAX );
+        pSA_Q8[0] = Math.min( SA_Q15 >> 7, SKP_uint8_MAX );
 
         /***********************************/
         /* Energy Level and SNR estimation */
         /***********************************/
         /* smoothing coefficient */
-        smooth_coef_Q16 = Macros.SKP_SMULWB( Define.VAD_SNR_SMOOTH_COEF_Q18, Macros.SKP_SMULWB( SA_Q15, SA_Q15 ) );
-        for( b = 0; b < Define.VAD_N_BANDS; b++ )
+        smooth_coef_Q16 = SKP_SMULWB( VAD_SNR_SMOOTH_COEF_Q18, SKP_SMULWB( SA_Q15, SA_Q15 ) );
+        for( b = 0; b < VAD_N_BANDS; b++ )
         {
             /* compute smoothed energy-to-noise ratio per band */
-            psSilk_VAD.NrgRatioSmth_Q8[ b ] = Macros.SKP_SMLAWB( psSilk_VAD.NrgRatioSmth_Q8[ b ],
+            psSilk_VAD.NrgRatioSmth_Q8[ b ] = SKP_SMLAWB( psSilk_VAD.NrgRatioSmth_Q8[ b ],
                 NrgToNoiseRatio_Q8[ b ] - psSilk_VAD.NrgRatioSmth_Q8[ b ], smooth_coef_Q16 );
 
             /* signal to noise ratio in dB per band */
@@ -288,14 +292,14 @@ public class VAD
         /* Initially faster smoothing */
         if( psSilk_VAD.counter < 1000 )
         { /* 1000 = 20 sec */
-            min_coef = Typedef.SKP_int16_MAX / ( ( psSilk_VAD.counter >> 4 ) + 1 );
+            min_coef = SKP_int16_MAX / ( ( psSilk_VAD.counter >> 4 ) + 1 );
         }
         else
         {
             min_coef = 0;
         }
 
-        for( k = 0; k < Define.VAD_N_BANDS; k++ )
+        for( k = 0; k < VAD_N_BANDS; k++ )
         {
             /* Get old noise level estimate for current band */
             nl = psSilk_VAD.NL[ k ];
@@ -306,32 +310,32 @@ public class VAD
             assert( nrg > 0 );
 
             /* Invert energies */
-            inv_nrg = Typedef.SKP_int32_MAX / nrg;
+            inv_nrg = SKP_int32_MAX / nrg;
             assert( inv_nrg >= 0 );
 
             /* Less update when subband energy is high */
             if( nrg > nl<<3 )
             {
-                coef = Define.VAD_NOISE_LEVEL_SMOOTH_COEF_Q16 >> 3;
+                coef = VAD_NOISE_LEVEL_SMOOTH_COEF_Q16 >> 3;
             }
             else if( nrg < nl )
             {
-                coef = Define.VAD_NOISE_LEVEL_SMOOTH_COEF_Q16;
+                coef = VAD_NOISE_LEVEL_SMOOTH_COEF_Q16;
             }
             else
             {
-                coef = Macros.SKP_SMULWB( Macros.SKP_SMULWW( inv_nrg, nl ), Define.VAD_NOISE_LEVEL_SMOOTH_COEF_Q16 << 1 );
+                coef = SKP_SMULWB( SKP_SMULWW( inv_nrg, nl ), VAD_NOISE_LEVEL_SMOOTH_COEF_Q16 << 1 );
             }
 
             /* Initially faster smoothing */
             coef = Math.max( coef, min_coef );
 
             /* Smooth inverse energies */
-            psSilk_VAD.inv_NL[ k ] = Macros.SKP_SMLAWB( psSilk_VAD.inv_NL[ k ], inv_nrg - psSilk_VAD.inv_NL[ k ], coef );
+            psSilk_VAD.inv_NL[ k ] = SKP_SMLAWB( psSilk_VAD.inv_NL[ k ], inv_nrg - psSilk_VAD.inv_NL[ k ], coef );
             assert( psSilk_VAD.inv_NL[ k ] >= 0 );
 
             /* Compute noise level by inverting again */
-            nl = Typedef.SKP_int32_MAX / psSilk_VAD.inv_NL[ k ];
+            nl = SKP_int32_MAX / psSilk_VAD.inv_NL[ k ];
             assert( nl >= 0 );
 
             /* Limit noise levels (guarantee 7 bits of head room) */

@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 /**
  *
  * @author Jing Dai
@@ -41,7 +43,7 @@ public class HPVariableCutoffFLP
         /*********************************************/
         /* Estimate low end of pitch frequency range */
         /*********************************************/
-        if( psEnc.sCmn.prev_sigtype == Define.SIG_TYPE_VOICED )
+        if( psEnc.sCmn.prev_sigtype == SIG_TYPE_VOICED )
         {
 
             /* Difference, in log domain */

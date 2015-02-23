@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 import java.util.*;
 
 /**
@@ -44,7 +46,7 @@ public class NLSFMSVQEncodeFLP
     {
         int     i, s, k, cur_survivors, prev_survivors, input_index, cb_index, bestIndex;
         float   se, wsse, rateDistThreshold, bestRateDist;
-        float   pNLSF_in[] = new float[ Define.MAX_LPC_ORDER ];
+        float   pNLSF_in[] = new float[ MAX_LPC_ORDER ];
 
         float   pRateDist[];
         float   pRate[];
@@ -54,26 +56,26 @@ public class NLSFMSVQEncodeFLP
         int     pPath_new[];
         float   pRes[];
         float   pRes_new[];
-        if(Define.LOW_COMPLEXITY_ONLY)
+        if(LOW_COMPLEXITY_ONLY)
         {
-            pRateDist =    new float[Define.NLSF_MSVQ_TREE_SEARCH_MAX_VECTORS_EVALUATED_LC_MODE()];
-            pRate =        new float[Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE ];
-            pRate_new =    new float[Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE ];
-            pTempIndices = new int[Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE ];
-            pPath =        new int[Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE * Define.NLSF_MSVQ_MAX_CB_STAGES];
-            pPath_new =    new int[Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE * Define.NLSF_MSVQ_MAX_CB_STAGES];
-            pRes =         new float[Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE * Define.MAX_LPC_ORDER ];
-            pRes_new =     new float[Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE * Define.MAX_LPC_ORDER ];
+            pRateDist =    new float[NLSF_MSVQ_TREE_SEARCH_MAX_VECTORS_EVALUATED_LC_MODE()];
+            pRate =        new float[MAX_NLSF_MSVQ_SURVIVORS_LC_MODE ];
+            pRate_new =    new float[MAX_NLSF_MSVQ_SURVIVORS_LC_MODE ];
+            pTempIndices = new int[MAX_NLSF_MSVQ_SURVIVORS_LC_MODE ];
+            pPath =        new int[MAX_NLSF_MSVQ_SURVIVORS_LC_MODE * NLSF_MSVQ_MAX_CB_STAGES];
+            pPath_new =    new int[MAX_NLSF_MSVQ_SURVIVORS_LC_MODE * NLSF_MSVQ_MAX_CB_STAGES];
+            pRes =         new float[MAX_NLSF_MSVQ_SURVIVORS_LC_MODE * MAX_LPC_ORDER ];
+            pRes_new =     new float[MAX_NLSF_MSVQ_SURVIVORS_LC_MODE * MAX_LPC_ORDER ];
         }else
         {
-            pRateDist =    new float[Define.NLSF_MSVQ_TREE_SEARCH_MAX_VECTORS_EVALUATED() ];
-            pRate =        new float[Define.MAX_NLSF_MSVQ_SURVIVORS ];
-            pRate_new =    new float[Define.MAX_NLSF_MSVQ_SURVIVORS ];
-            pTempIndices = new int[Define.MAX_NLSF_MSVQ_SURVIVORS ];
-            pPath =        new int[Define.MAX_NLSF_MSVQ_SURVIVORS * Define.NLSF_MSVQ_MAX_CB_STAGES ];
-            pPath_new =    new int[Define.MAX_NLSF_MSVQ_SURVIVORS * Define.NLSF_MSVQ_MAX_CB_STAGES ];
-            pRes =         new float[Define.MAX_NLSF_MSVQ_SURVIVORS * Define.MAX_LPC_ORDER ];
-            pRes_new =     new float[Define.MAX_NLSF_MSVQ_SURVIVORS * Define.MAX_LPC_ORDER ];
+            pRateDist =    new float[NLSF_MSVQ_TREE_SEARCH_MAX_VECTORS_EVALUATED() ];
+            pRate =        new float[MAX_NLSF_MSVQ_SURVIVORS ];
+            pRate_new =    new float[MAX_NLSF_MSVQ_SURVIVORS ];
+            pTempIndices = new int[MAX_NLSF_MSVQ_SURVIVORS ];
+            pPath =        new int[MAX_NLSF_MSVQ_SURVIVORS * NLSF_MSVQ_MAX_CB_STAGES ];
+            pPath_new =    new int[MAX_NLSF_MSVQ_SURVIVORS * NLSF_MSVQ_MAX_CB_STAGES ];
+            pRes =         new float[MAX_NLSF_MSVQ_SURVIVORS * MAX_LPC_ORDER ];
+            pRes_new =     new float[MAX_NLSF_MSVQ_SURVIVORS * MAX_LPC_ORDER ];
         }
 
         float[] pConstFloat;int pConstFloat_offset;
@@ -83,8 +85,8 @@ public class NLSFMSVQEncodeFLP
         float[] pCB_element;int pCB_element_offset;
         SKP_Silk_NLSF_CBS_FLP pCurrentCBStage;
 
-        assert( NLSF_MSVQ_Survivors <= Define.MAX_NLSF_MSVQ_SURVIVORS );
-        assert( ( !Define.LOW_COMPLEXITY_ONLY ) || ( NLSF_MSVQ_Survivors <= Define.MAX_NLSF_MSVQ_SURVIVORS_LC_MODE ) );
+        assert( NLSF_MSVQ_Survivors <= MAX_NLSF_MSVQ_SURVIVORS );
+        assert( ( !LOW_COMPLEXITY_ONLY ) || ( NLSF_MSVQ_Survivors <= MAX_NLSF_MSVQ_SURVIVORS_LC_MODE ) );
 
         cur_survivors = NLSF_MSVQ_Survivors;
 
@@ -115,7 +117,7 @@ public class NLSFMSVQEncodeFLP
             /* Calculate the number of survivors in the current stage */
             cur_survivors = Math.min( NLSF_MSVQ_Survivors, prev_survivors * pCurrentCBStage.nVectors );
 
-            if(!Define.NLSF_MSVQ_FLUCTUATION_REDUCTION) {
+            if(!NLSF_MSVQ_FLUCTUATION_REDUCTION) {
                  /* Find a single best survivor in the last stage, if we */
                  /* do not need candidates for fluctuation reduction     */
                  if( s == psNLSF_CB_FLP.nStages - 1 ) {
@@ -130,7 +132,7 @@ public class NLSFMSVQEncodeFLP
             SortFLP.SKP_Silk_insertion_sort_increasing_FLP( pRateDist, 0, pTempIndices, prev_survivors * pCurrentCBStage.nVectors, cur_survivors );
 
             /* Discard survivors with rate-distortion values too far above the best one */
-            rateDistThreshold = Define.NLSF_MSVQ_SURV_MAX_REL_RD * pRateDist[ 0 ];
+            rateDistThreshold = NLSF_MSVQ_SURV_MAX_REL_RD * pRateDist[ 0 ];
             while( pRateDist[ cur_survivors - 1 ] > rateDistThreshold && cur_survivors > 1 ) {
                 cur_survivors--;
             }
@@ -195,7 +197,7 @@ public class NLSFMSVQEncodeFLP
         /* (Preliminary) index of the best survivor, later to be decoded */
         bestIndex = 0;
 
-        if (Define.NLSF_MSVQ_FLUCTUATION_REDUCTION)
+        if (NLSF_MSVQ_FLUCTUATION_REDUCTION)
         {
             /******************************/
             /* NLSF fluctuation reduction */

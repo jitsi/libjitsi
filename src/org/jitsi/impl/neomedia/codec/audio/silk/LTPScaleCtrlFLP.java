@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.silk;
 
+import static org.jitsi.impl.neomedia.codec.audio.silk.Define.*;
+
 public class LTPScaleCtrlFLP
 {
     static final int NB_THRESHOLDS = 11;
@@ -55,7 +57,7 @@ public class LTPScaleCtrlFLP
         /* Only scale if first frame in packet 0% */
         if( psEnc.sCmn.nFramesInPayloadBuf == 0 ){
 
-            frames_per_packet = psEnc.sCmn.PacketSize_ms / Define.FRAME_LENGTH_MS;
+            frames_per_packet = psEnc.sCmn.PacketSize_ms / FRAME_LENGTH_MS;
 
             round_loss += ( frames_per_packet - 1 );
 //            thrld1 = LTPScaleThresholds[ Math.min( round_loss,     NB_THRESHOLDS - 1 ) ];
