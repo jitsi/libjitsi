@@ -18,8 +18,8 @@ public class AnaFiltBank1
 {
     /* Coefficients for 2-band filter bank based on first-order allpass filters */
     // old
-    static short[] A_fb1_20 = {  5394 << 1 };
-    static short[] A_fb1_21 = { (short)(20623 << 1) };        /* wrap-around to negative number is intentional */
+    private static final short[] A_fb1_20 = {  5394 << 1 };
+    private static final short[] A_fb1_21 = { (short)(20623 << 1) };        /* wrap-around to negative number is intentional */
 
     /**
      * Split signal into two decimated bands using first-order allpass filters.

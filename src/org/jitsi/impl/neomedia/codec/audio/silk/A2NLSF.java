@@ -278,81 +278,46 @@ public class A2NLSF
                 xlo    = xhi;
                 ylo    = yhi;
 
+                boolean b;
+
                 if (OVERSAMPLE_COSINE_TABLE)
-                {
-                    if( k > 2 * SigProcFIX.LSF_COS_TAB_SZ_FIX )
-                    {
-                        i++;
-                        if( i > MAX_ITERATIONS_A2NLSF_FIX )
-                        {
-                            /* Set NLSFs to white spectrum and exit */
-                            NLSF[ 0 ] = ( 1 << 15 ) / ( d + 1 );
-                            for( k = 1; k < d; k++ )
-                            {
-                                NLSF[ k ] = SKP_SMULBB( k + 1, NLSF[ 0 ] );
-                            }
-                            return;
-                        }
-
-                        /* Error: Apply progressively more bandwidth expansion and run again */
-                        Bwexpander32.SKP_Silk_bwexpander_32( a_Q16, d, 65536 - SKP_SMULBB( 66, i ) ); // 66_Q16 = 0.001
-
-                        SKP_Silk_A2NLSF_init( a_Q16, P, Q, dd );
-                        p = P;                            /* Pointer to polynomial */
-                        xlo = LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ 0 ]; // Q12
-                        ylo = SKP_Silk_A2NLSF_eval_poly( p, xlo, dd );
-                        if( ylo < 0 )
-                        {
-                            /* Set the first NLSF to zero and move on to the next */
-                            NLSF[ 0 ] = 0;
-                            p = Q;                        /* Pointer to polynomial */
-                            ylo = SKP_Silk_A2NLSF_eval_poly( p, xlo, dd );
-                            root_ix = 1;                /* Index of current root */
-                        }
-                        else
-                        {
-                            root_ix = 0;                /* Index of current root */
-                        }
-                        k = 1;                            /* Reset loop counter */
-                    }
-                }
+                    b = ( k > 2 * SigProcFIX.LSF_COS_TAB_SZ_FIX );
                 else
+                    b = ( k > SigProcFIX.LSF_COS_TAB_SZ_FIX );
+                if (b)
                 {
-                    if( k > SigProcFIX.LSF_COS_TAB_SZ_FIX )
+                    i++;
+                    if( i > MAX_ITERATIONS_A2NLSF_FIX )
                     {
-                        i++;
-                        if( i > MAX_ITERATIONS_A2NLSF_FIX )
+                        /* Set NLSFs to white spectrum and exit */
+                        NLSF[ 0 ] = ( 1 << 15 ) / ( d + 1 );
+                        for( k = 1; k < d; k++ )
                         {
-                            /* Set NLSFs to white spectrum and exit */
-                            NLSF[ 0 ] = ( 1 << 15 ) / ( d + 1 );
-                            for( k = 1; k < d; k++ )
-                            {
-                                NLSF[ k ] = SKP_SMULBB( k + 1, NLSF[ 0 ] );
-                            }
-                            return;
+                            NLSF[ k ] = SKP_SMULBB( k + 1, NLSF[ 0 ] );
                         }
-
-                        /* Error: Apply progressively more bandwidth expansion and run again */
-                        Bwexpander32.SKP_Silk_bwexpander_32( a_Q16, d, 65536 - SKP_SMULBB( 66, i ) ); // 66_Q16 = 0.001
-
-                        SKP_Silk_A2NLSF_init( a_Q16, P, Q, dd );
-                        p = P;                            /* Pointer to polynomial */
-                        xlo = LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ 0 ]; // Q12
-                        ylo = SKP_Silk_A2NLSF_eval_poly( p, xlo, dd );
-                        if( ylo < 0 )
-                        {
-                            /* Set the first NLSF to zero and move on to the next */
-                            NLSF[ 0 ] = 0;
-                            p = Q;                        /* Pointer to polynomial */
-                            ylo = SKP_Silk_A2NLSF_eval_poly( p, xlo, dd );
-                            root_ix = 1;                /* Index of current root */
-                        }
-                        else
-                        {
-                            root_ix = 0;                /* Index of current root */
-                        }
-                        k = 1;                            /* Reset loop counter */
+                        return;
                     }
+
+                    /* Error: Apply progressively more bandwidth expansion and run again */
+                    Bwexpander32.SKP_Silk_bwexpander_32( a_Q16, d, 65536 - SKP_SMULBB( 10 + i, i ) ); // 10_Q16 = 0.00015
+
+                    SKP_Silk_A2NLSF_init( a_Q16, P, Q, dd );
+                    p = P;                            /* Pointer to polynomial */
+                    xlo = LSFCosTable.SKP_Silk_LSFCosTab_FIX_Q12[ 0 ]; // Q12
+                    ylo = SKP_Silk_A2NLSF_eval_poly( p, xlo, dd );
+                    if( ylo < 0 )
+                    {
+                        /* Set the first NLSF to zero and move on to the next */
+                        NLSF[ 0 ] = 0;
+                        p = Q;                        /* Pointer to polynomial */
+                        ylo = SKP_Silk_A2NLSF_eval_poly( p, xlo, dd );
+                        root_ix = 1;                /* Index of current root */
+                    }
+                    else
+                    {
+                        root_ix = 0;                /* Index of current root */
+                    }
+                    k = 1;                            /* Reset loop counter */
                 }
             }
         }

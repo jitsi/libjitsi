@@ -48,13 +48,13 @@ public class AllpassInt
         int    Y2, X2, S0;
         int        k;
 
-        S0 = S[ S_offset+ 0 ];
+        S0 = S[ S_offset ];
         for( k = len - 1; k >= 0; k-- ) {
-            Y2         = in[in_offset + 0] - S0;
+            Y2         = in[in_offset] - S0;
             X2         = ( Y2 >> 15 ) * A + ( ( ( Y2 & 0x00007FFF ) * A ) >> 15 );
-            ( out[out_offset++]) = S0 + X2;
+            out[out_offset++] = S0 + X2;
             S0         = in[in_offset++] + X2;
         }
-        S[ S_offset + 0 ] = S0;
+        S[ S_offset ] = S0;
     }
 }
