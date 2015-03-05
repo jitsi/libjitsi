@@ -364,16 +364,6 @@
       <compilerarg value="-I${system.JAVA_HOME}/include/darwin" if="is.running.macos" />
       <compilerarg value="-I/System/Library/Frameworks/JavaVM.framework/Headers" if="is.running.macos" />
 
-      <!-- ffmpeg/x264 libraries cannot be built as universal binaries
-           so you have to setup and compile ffmpeg/x264 for each architecture separately.
-           Run this ant script with:
-           -Darch=32 (rename libjnffmpeg.dyld to libjnffmpeg.dyld.32)
-           -Darch=64 (rename libjnffmpeg.dyld to libjnffmpeg.dyld.64)
-           -Darch=ppc (rename libjnffmpeg.dyld to libjnffmpeg.dyld.ppc)
-
-           Finally create the universal binary with:
-           lipo -create libjnffmpeg.dyld.32 libjnffmpeg.dyld.64 libjnffmpeg.dyld.ppc -output libjnffmpeg.jnilib
-      -->
       <linkerarg value="-o" location="end" if="is.running.macos" />
       <linkerarg value="libjnffmpeg.jnilib" location="end" if="is.running.macos" />
       <linkerarg value="-dynamiclib" if="is.running.macos" />

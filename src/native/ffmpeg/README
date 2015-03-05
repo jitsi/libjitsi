@@ -25,6 +25,12 @@ vo-amrwbenc-0.1.3 does not have the vo-amrwbenc directory so go into
 vo-amrwbenc-0.1.3 and "ln -s . vo-amrwbenc" on Linux and Mac OS X or
 "mklink /d vo-amrwbenc ." on Windows.
 
+- Macosx 10.8
+Seems Apples's buildtools doesn't support the following instructions:
+-Wl,-Bstatic (from ffmpeg target). And to static link vo-amrwbenc in ffmpeg,
+use the following configure:
+./configure --with-pic --enable-static --enable-shared=no
+
 1. lame
 
 ./configure \
