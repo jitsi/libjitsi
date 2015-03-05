@@ -81,4 +81,12 @@ public abstract class SinglePacketTransformer
 
         return pkts;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close()
+    {
+    }
 }

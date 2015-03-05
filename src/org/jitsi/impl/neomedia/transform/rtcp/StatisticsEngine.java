@@ -13,6 +13,7 @@ import javax.media.control.*;
 import javax.media.rtp.*;
 
 import net.sf.fmj.media.rtp.*;
+import net.sf.fmj.media.rtp.RTPHeader; //disambiguation
 import net.sf.fmj.utility.*;
 
 import org.jitsi.impl.neomedia.*;
@@ -33,6 +34,7 @@ import org.jitsi.util.*;
  *
  * @author Damian Minkov
  * @author Lyubomir Marinov
+ * @author Boris Grozev
  */
 public class StatisticsEngine
     extends SinglePacketTransformer
@@ -203,7 +205,8 @@ public class StatisticsEngine
     private long lost = 0;
 
     /**
-     * The minimum inter arrival jitter value we have reported.
+     * The minimum inter arrival jitter value we have reported, in RTP timestamp
+     * units.
      */
     private long maxInterArrivalJitter = 0;
 
@@ -214,20 +217,60 @@ public class StatisticsEngine
 
     /**
      * The <tt>MediaType</tt> of {@link #mediaStream}. Cached for the purposes
-     * of purformance.
+     * of performance.
      */
     private final MediaType mediaType;
 
     /**
-     * The minimum inter arrival jitter value we have reported.
+     * The minimum inter arrival jitter value we have reported, in RTP timestamp
+     * units.
      */
     private long minInterArrivalJitter = -1;
 
     /**
      * The number of RTCP sender reports (SR) and/or receiver reports (RR) sent.
-     * Used for logging and debug purposes only.
      */
     private long numberOfRTCPReports = 0;
+
+    /**
+     * The sum of the jitter values we have reported in RTCP reports, in RTP
+     * timestamp units.
+     */
+    private long jitterSum = 0;
+
+    /**
+     * The number of RTP packets sent though this instance.
+     */
+    private long rtpPacketsSent = 0;
+
+    /**
+     * The number of RTP packets sent though this instance.
+     */
+    private long rtpPacketsReceived = 0;
+
+    /**
+     * The <tt>PacketTransformer</tt> instance to use for RTP. It only counts
+     * packets.
+     */
+    private final PacketTransformer rtpTransformer
+            = new SinglePacketTransformer()
+    {
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            if (pkt != null && pkt.getVersion() == RTPHeader.VERSION)
+                StatisticsEngine.this.rtpPacketsSent++;
+            return pkt;
+        }
+
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            if (pkt != null && pkt.getVersion() == RTPHeader.VERSION)
+                StatisticsEngine.this.rtpPacketsReceived++;
+            return pkt;
+        }
+    };
 
     /**
      * Creates Statistic engine.
@@ -867,6 +910,17 @@ public class StatisticsEngine
     }
 
     /**
+     * Gets the average value of the jitter reported in RTCP packets, in RTP
+     * timestamp units.
+     */
+    public double getAvgInterArrivalJitter()
+    {
+        return numberOfRTCPReports == 0
+                ? 0
+                : ((double) jitterSum) / numberOfRTCPReports;
+    }
+
+    /**
      * The maximum inter arrival jitter value we have reported.
      * @return maximum inter arrival jitter value we have reported.
      */
@@ -898,7 +952,7 @@ public class StatisticsEngine
     @Override
     public PacketTransformer getRTPTransformer()
     {
-        return null;
+        return rtpTransformer;
     }
 
     /**
@@ -1115,29 +1169,28 @@ public class StatisticsEngine
             mediaStream.getMediaStreamStats().getRTCPReports().rtcpReportSent(
                     r);
 
-            // What follows is used for logging purposes only. Thus, it is
-            // useless to continue unless the logger is at least at an
-            // appropriate level.
-            if(logger.isTraceEnabled())
+            List<?> feedbackReports = r.getFeedbackReports();
+
+            if(!feedbackReports.isEmpty())
             {
+                RTCPFeedback feedback
+                        = (RTCPFeedback) feedbackReports.get(0);
+                long jitter = feedback.getJitter();
+
                 numberOfRTCPReports++;
 
-                List<?> feedbackReports = r.getFeedbackReports();
+                if ((jitter < getMinInterArrivalJitter())
+                        || (getMinInterArrivalJitter() == -1))
+                    minInterArrivalJitter = jitter;
+                if (getMaxInterArrivalJitter() < jitter)
+                    maxInterArrivalJitter = jitter;
 
-                if(!feedbackReports.isEmpty())
+                jitterSum += jitter;
+
+                lost = feedback.getNumLost();
+
+                if(logger.isTraceEnabled())
                 {
-                    RTCPFeedback feedback
-                        = (RTCPFeedback) feedbackReports.get(0);
-                    long jitter = feedback.getJitter();
-
-                    if((jitter < getMinInterArrivalJitter())
-                            || (getMinInterArrivalJitter() == -1))
-                        minInterArrivalJitter = jitter;
-                    if(getMaxInterArrivalJitter() < jitter)
-                        maxInterArrivalJitter = jitter;
-
-                    lost = feedback.getNumLost();
-
                     // As sender reports are sent on every 5 seconds, print
                     // every 4th packet, on every 20 seconds.
                     if(numberOfRTCPReports % 4 == 1)
@@ -1172,5 +1225,23 @@ public class StatisticsEngine
                 }
             }
         }
+    }
+
+    /**
+     * Gets the number of RTP packets sent though this instance.
+     * @return the number of RTP packets sent though this instance.
+     */
+    public long getRtpPacketsSent()
+    {
+        return rtpPacketsSent;
+    }
+
+    /**
+     * Gets the number of RTP packets received though this instance.
+     * @return the number of RTP packets received though this instance.
+     */
+    public long getRtpPacketsReceived()
+    {
+        return rtpPacketsReceived;
     }
 }

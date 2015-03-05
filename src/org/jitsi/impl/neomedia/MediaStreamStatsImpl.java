@@ -22,6 +22,7 @@ import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
+import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.format.*;
@@ -195,6 +196,12 @@ public class MediaStreamStatsImpl
     private double[] rateKiloBitPerSec = {0, 0};
 
     /**
+     * The number of packets lost, as reported by the remote side in the last
+     * received RTCP RR.
+     */
+    private long nbPacketsLostUpload = 0;
+
+    /**
      * The <tt>RTCPReportListener</tt> which listens to {@link #rtcpReports}
      * about the sending and the receiving of RTCP sender/receiver reports and
      * updates this <tt>MediaStreamStats</tt> with their feedback reports.
@@ -264,6 +271,29 @@ public class MediaStreamStatsImpl
     private long uploadFeedbackNbPackets = 0;
 
     /**
+     * The maximum inter arrival jitter value the other party has reported, in
+     * RTP time units.
+     */
+    private long minRemoteInterArrivalJitter = -1;
+
+    /**
+     * The minimum inter arrival jitter value the other party has reported, in
+     * RTP time units.
+     */
+    private long maxRemoteInterArrivalJitter = 0;
+
+    /**
+     * The sum of all RTP jitter values reported by the remote side, in RTP
+     * time units.
+     */
+    private long remoteJitterSum = 0;
+
+    /**
+     * The number of remote RTP jitter reports received.
+     */
+    private int remoteJitterCount = 0;
+
+    /**
      * Creates a new instance of stats concerning a MediaStream.
      *
      * @param mediaStreamImpl The MediaStreamImpl used to compute the stats.
@@ -324,7 +354,7 @@ public class MediaStreamStatsImpl
      * Returns the number of lost packets for the receive streams.
      * @return  the number of lost packets for the receive streams.
      */
-    private long getDownloadNbPacketLost()
+    public long getDownloadNbPacketLost()
     {
         long downloadLost = 0;
         for(ReceiveStream stream : mediaStreamImpl.getReceiveStreams())
@@ -332,6 +362,15 @@ public class MediaStreamStatsImpl
                 downloadLost += stream.getSourceReceptionStats().getPDUlost();
         }
         return downloadLost;
+    }
+
+    /**
+     * Returns the total number of sent packets lost.
+     * @return  the total number of sent packets lost.
+     */
+    public long getUploadNbPacketLost()
+    {
+        return nbPacketsLostUpload;
     }
 
     /**
@@ -504,21 +543,6 @@ public class MediaStreamStatsImpl
      */
     private double getJitterMs(StreamDirection streamDirection)
     {
-        MediaFormat format = mediaStreamImpl.getFormat();
-        double clockRate;
-
-        if (format == null)
-        {
-            MediaType mediaType = mediaStreamImpl.getMediaType();
-
-            clockRate = MediaType.VIDEO.equals(mediaType) ? 90000 : -1;
-        }
-        else
-            clockRate = format.getClockRate();
-
-        if (clockRate <= 0)
-            return -1;
-
         // RFC3550 says that concerning the RTP timestamp unit (cf. section 5.1
         // RTP Fixed Header Fields, subsection timestamp: 32 bits):
         // As an example, for fixed-rate audio the timestamp clock would likely
@@ -526,11 +550,134 @@ public class MediaStreamStatsImpl
         //
         // Thus we take the jitter in RTP timestamp units, convert it to seconds
         // (/ clockRate) and finally converts it to milliseconds  (* 1000).
-        return
-            (jitterRTPTimestampUnits[streamDirection.ordinal()] / clockRate)
-                * 1000.0;
+        return rtpTimeToMs(jitterRTPTimestampUnits[streamDirection.ordinal()]);
     }
 
+    /**
+     * Gets the RTP clock rate associated with the <tt>MediaStream</tt>.
+     * @return the RTP clock rate associated with the <tt>MediaStream</tt>.
+     */
+    private double getRtpClockRate()
+    {
+        MediaFormat format = mediaStreamImpl.getFormat();
+        double clockRate;
+
+        if (format == null)
+        {
+            MediaType mediaType = mediaStreamImpl.getMediaType();
+
+            clockRate = MediaType.VIDEO.equals(mediaType) ? 90000 : 48000;
+        }
+        else
+            clockRate = format.getClockRate();
+
+        return clockRate;
+    }
+
+    /**
+     * Converts from RTP time units (using the assumed RTP clock rate of the
+     * media stream) to milliseconds. Returns -1D if an appropriate RTP clock
+     * rate cannot be found.
+     * @param rtpTime the RTP time units to convert.
+     * @return the milliseconds corresponding to <tt>rtpTime</tt> RTP units.
+     */
+    private double rtpTimeToMs(double rtpTime)
+    {
+        double rtpClockRate = getRtpClockRate();
+        if (rtpClockRate <= 0)
+            return -1D;
+        return (rtpTime / rtpClockRate) * 1000;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public double getMinDownloadJitterMs()
+    {
+        StatisticsEngine statisticsEngine
+                = mediaStreamImpl.getStatisticsEngine();
+        if (statisticsEngine != null)
+        {
+            return rtpTimeToMs(statisticsEngine.getMinInterArrivalJitter());
+        }
+
+        return -1;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public double getMaxDownloadJitterMs()
+    {
+        StatisticsEngine statisticsEngine
+                = mediaStreamImpl.getStatisticsEngine();
+        if (statisticsEngine != null)
+        {
+            return rtpTimeToMs(statisticsEngine.getMaxInterArrivalJitter());
+        }
+
+        return -1D;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public double getMinUploadJitterMs()
+    {
+        return rtpTimeToMs(minRemoteInterArrivalJitter);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public double getMaxUploadJitterMs()
+    {
+        return rtpTimeToMs(maxRemoteInterArrivalJitter);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public double getAvgDownloadJitterMs()
+    {
+        StatisticsEngine statisticsEngine
+                = mediaStreamImpl.getStatisticsEngine();
+        if (statisticsEngine != null)
+        {
+            return rtpTimeToMs(statisticsEngine.getAvgInterArrivalJitter());
+        }
+
+        return -1;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public double getAvgUploadJitterMs()
+    {
+        int count = remoteJitterCount;
+        if (count == 0)
+            return -1;
+        return rtpTimeToMs(((double) remoteJitterSum) / count);
+    }
+
+    /**
+     * Notifies this instance that an RTCP report with the given value for
+     * RTP jitter was received.
+     * @param remoteJitter the jitter received, in RTP time units.
+     */
+    void updateRemoteJitter(long remoteJitter)
+    {
+        if((remoteJitter < minRemoteInterArrivalJitter)
+                || (minRemoteInterArrivalJitter == -1))
+            minRemoteInterArrivalJitter = remoteJitter;
+
+        if(maxRemoteInterArrivalJitter < remoteJitter)
+            maxRemoteInterArrivalJitter = remoteJitter;
+
+        remoteJitterSum += remoteJitter;
+        remoteJitterCount++;
+    }
 
     /**
      * Returns the local IP address of the MediaStream.
@@ -707,6 +854,22 @@ public class MediaStreamStatsImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public long getNbPacketsSent()
+    {
+        return getNbPDU(StreamDirection.UPLOAD);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public long getNbPacketsReceived()
+    {
+        return getNbPDU(StreamDirection.DOWNLOAD);
+    }
+
+    /**
      * Returns the number of Protocol Data Units (PDU) sent/received since the
      * beginning of the session.
      *
@@ -718,26 +881,23 @@ public class MediaStreamStatsImpl
      */
     private long getNbPDU(StreamDirection streamDirection)
     {
-        StreamRTPManager rtpManager = mediaStreamImpl.queryRTPManager();
+        // We don't use the values from the RTPManager, because they are
+        // incorrect when an RTPTranslator is used.
         long nbPDU = 0;
 
-        if(rtpManager != null)
+        StatisticsEngine statisticsEngine
+                = mediaStreamImpl.getStatisticsEngine();
+        if (statisticsEngine != null)
         {
             switch(streamDirection)
             {
             case UPLOAD:
-                nbPDU = rtpManager.getGlobalTransmissionStats().getRTPSent();
+                nbPDU = statisticsEngine.getRtpPacketsSent();
                 break;
 
             case DOWNLOAD:
-                GlobalReceptionStats globalReceptionStats
-                    = rtpManager.getGlobalReceptionStats();
-
-                nbPDU
-                    = globalReceptionStats.getPacketsRecd()
-                        - globalReceptionStats.getRTCPRecd();
+                nbPDU = statisticsEngine.getRtpPacketsReceived();
                 break;
-
             }
         }
         return nbPDU;
@@ -1105,8 +1265,9 @@ public class MediaStreamStatsImpl
         // Updates the loss rate with the RTCP sender report feedback, since
         // this is the only information source available for the upload stream.
         long uploadNewNbRecv = feedback.getXtndSeqNum();
+        nbPacketsLostUpload = feedback.getNumLost();
         long newNbLost
-            = feedback.getNumLost() - nbLost[streamDirection.ordinal()];
+            = nbPacketsLostUpload - nbLost[streamDirection.ordinal()];
         long nbSteps = uploadNewNbRecv - uploadFeedbackNbPackets;
 
         updateNbLoss(streamDirection, newNbLost, nbSteps);

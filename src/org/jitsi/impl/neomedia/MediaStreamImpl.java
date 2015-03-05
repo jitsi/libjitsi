@@ -165,20 +165,10 @@ public class MediaStreamImpl
             % Integer.MAX_VALUE;
 
     /**
-     * The minimum inter arrival jitter value the other party has reported.
-     */
-    private long maxRemoteInterArrivalJitter = 0;
-
-    /**
      * The MediaStreamStatsImpl object used to compute the statistics about
      * this MediaStreamImpl.
      */
     private MediaStreamStatsImpl mediaStreamStatsImpl;
-
-    /**
-     * The maximum inter arrival jitter value the other party has reported.
-     */
-    private long minRemoteInterArrivalJitter = -1;
 
     /**
      * The indicator which determines whether this <tt>MediaStream</tt> is set
@@ -1878,6 +1868,7 @@ public class MediaStreamImpl
             GlobalTransmissionStats s = rtpManager.getGlobalTransmissionStats();
 
             String rtpstat = StatisticsEngine.RTP_STAT_PREFIX;
+            MediaStreamStatsImpl mss = getMediaStreamStats();
             StringBuilder buff = new StringBuilder(rtpstat);
             MediaType mediaType = getMediaType();
             String mediaTypeStr
@@ -1889,9 +1880,9 @@ public class MediaStreamImpl
                 .append("bytes sent: ").append(s.getBytesSent()).append(eol)
                 .append("RTP sent: ").append(s.getRTPSent()).append(eol)
                 .append("remote reported min interarrival jitter: ")
-                    .append(minRemoteInterArrivalJitter).append(eol)
+                    .append(mss.getMinUploadJitterMs()).append("ms").append(eol)
                 .append("remote reported max interarrival jitter: ")
-                    .append(maxRemoteInterArrivalJitter).append(eol)
+                    .append(mss.getMaxUploadJitterMs()).append("ms").append(eol)
                 .append("local collisions: ").append(s.getLocalColls())
                     .append(eol)
                 .append("remote collisions: ").append(s.getRemoteColls())
@@ -2872,7 +2863,7 @@ public class MediaStreamImpl
              * SendStreams are to be stopped or closed. On one hand, stopping a
              * direction may be a temporary transition which relies on retaining
              * the SSRC. On the other hand, it may be permanent. In which case,
-             * the respective ReveiveStream on the remote peer will timeout at
+             * the respective ReceiveStream on the remote peer will timeout at
              * some point in time. In the context of video conferences, when a
              * member stops the streaming of their video without leaving the
              * conference, they will stop their SendStreams. However, the other
@@ -3211,12 +3202,7 @@ public class MediaStreamImpl
 
                 remoteJitter = feedback.getJitter();
 
-                if((remoteJitter < minRemoteInterArrivalJitter)
-                        || (minRemoteInterArrivalJitter == -1))
-                    minRemoteInterArrivalJitter = remoteJitter;
-
-                if(maxRemoteInterArrivalJitter < remoteJitter)
-                    maxRemoteInterArrivalJitter = remoteJitter;
+                getMediaStreamStats().updateRemoteJitter(remoteJitter);
             }
 
             //Notify encoders of the percentage of packets lost by the
@@ -3331,5 +3317,14 @@ public class MediaStreamImpl
     @Override
     public void update(SessionEvent ev)
     {
+    }
+
+    /**
+     * Returns the <tt>StatisticsEngine</tt> of this instance.
+     * @return  the <tt>StatisticsEngine</tt> of this instance.
+     */
+    StatisticsEngine getStatisticsEngine()
+    {
+        return statisticsEngine;
     }
 }
