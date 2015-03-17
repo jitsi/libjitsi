@@ -483,11 +483,6 @@ public class PulseAudioSystem
             List<CaptureDeviceInfo2> deviceList,
             List<Format> formatList)
     {
-        int sampleSpecFormat = PA.sink_info_get_sample_spec_format(sinkInfo);
-
-        if (sampleSpecFormat != PA.SAMPLE_S16LE)
-            return;
-
         String description = PA.sink_info_get_description(sinkInfo);
         String name = PA.sink_info_get_name(sinkInfo);
 
@@ -515,12 +510,6 @@ public class PulseAudioSystem
         int monitorOfSink = PA.source_info_get_monitor_of_sink(sourceInfo);
 
         if (monitorOfSink != PA.INVALID_INDEX)
-            return;
-
-        int sampleSpecFormat
-            = PA.source_info_get_sample_spec_format(sourceInfo);
-
-        if (sampleSpecFormat != PA.SAMPLE_S16LE)
             return;
 
         int channels = PA.source_info_get_sample_spec_channels(sourceInfo);
