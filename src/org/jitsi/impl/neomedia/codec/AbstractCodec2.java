@@ -249,9 +249,23 @@ public abstract class AbstractCodec2
     private final Class<? extends Format> formatClass;
 
     /**
+     * The total input length processed by all invocations of
+     * {@link #process(Buffer,Buffer)}. Introduced for the purposes of debugging
+     * at the time of this writing.
+     */
+    private long inLenProcessed;
+
+    /**
      * The name of this <tt>PlugIn</tt>.
      */
     private final String name;
+
+    /**
+     * The total output length processed by all invocations of
+     * {@link #process(Buffer,Buffer)}. Introduced for the purposes of debugging
+     * at the time of this writing.
+     */
+    private long outLenProcessed;
 
     private final Format[] supportedOutputFormats;
 
@@ -418,18 +432,48 @@ public abstract class AbstractCodec2
             return BUFFER_PROCESSED_OK;
         }
 
-        /*
-         * Buffer.FLAG_SILENCE is set only when the intention is to drop the
-         * specified input Buffer but to note that it has not been lost. The
-         * latter is usually necessary if this AbstractCodec2 does Forward Error
-         * Correction (FEC) and/or Packet Loss Concealment (PLC) and may cause
-         * noticeable artifacts otherwise.
-         */
+        int process;
+        int inLenProcessed = inBuf.getLength();
+
+        // Buffer.FLAG_SILENCE is set only when the intention is to drop the
+        // specified input Buffer but to note that it has not been lost. The
+        // latter is usually necessary if this AbstractCodec2 does Forward Error
+        // Correction (FEC) and/or Packet Loss Concealment (PLC) and may cause
+        // noticeable artifacts otherwise.
         if ((((BUFFER_FLAG_FEC | BUFFER_FLAG_PLC) & features) == 0)
                 && ((Buffer.FLAG_SILENCE & inBuf.getFlags()) != 0))
-            return OUTPUT_BUFFER_NOT_FILLED;
+        {
+            process = OUTPUT_BUFFER_NOT_FILLED;
+        }
+        else
+        {
+            process = doProcess(inBuf, outBuf);
+        }
 
-        return doProcess(inBuf, outBuf);
+        // Keep track of additional information for the purposes of debugging.
+        if ((process & INPUT_BUFFER_NOT_CONSUMED) != 0)
+            inLenProcessed -= inBuf.getLength();
+        if (inLenProcessed < 0)
+            inLenProcessed = 0;
+
+        int outLenProcessed;
+
+        if (((process & BUFFER_PROCESSED_FAILED) != 0)
+                || ((process & OUTPUT_BUFFER_NOT_FILLED)) != 0)
+        {
+            outLenProcessed = 0;
+        }
+        else
+        {
+            outLenProcessed = outBuf.getLength();
+            if (outLenProcessed < 0)
+                outLenProcessed = 0;
+        }
+
+        this.inLenProcessed += inLenProcessed;
+        this.outLenProcessed += outLenProcessed;
+
+        return process;
     }
 
     @Override

@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Extends the <tt>PacketTransformer</tt> interface with methods which allow
@@ -21,6 +22,29 @@ import org.jitsi.impl.neomedia.*;
 public abstract class SinglePacketTransformer
     implements PacketTransformer
 {
+    /**
+     * The number of <tt>Throwable</tt>s to log with a single call to
+     * <tt>logger</tt>. If every <tt>Throwable</tt> is logged in either of
+     * {@link #reverseTransform(RawPacket)} and {@link #transform(RawPacket)},
+     * the logging may be overwhelming.
+     */
+    private static final int EXCEPTIONS_TO_LOG = 1000;
+
+    /**
+     * The <tt>Logger</tt> used by the <tt>SinglePacketTransformer</tt> class
+     * and its instances to print debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(SinglePacketTransformer.class);
+
+    private long bytesToReverseTransform;
+
+    private long bytesToTransform;
+
+    private long exceptionsInReverseTransform;
+
+    private long exceptionsInTransform;
+
     /**
      * Transforms a specific packet.
      *
@@ -53,7 +77,30 @@ public abstract class SinglePacketTransformer
                 RawPacket pkt = pkts[i];
 
                 if (pkt != null)
-                    pkts[i] = transform(pkt);
+                {
+                    bytesToTransform += pkt.getLength();
+                    try
+                    {
+                        pkts[i] = transform(pkt);
+                    }
+                    catch (Throwable t)
+                    {
+                        exceptionsInTransform++;
+                        if (((exceptionsInTransform % EXCEPTIONS_TO_LOG) == 0)
+                                || (exceptionsInTransform == 1))
+                        {
+                            logger.error(
+                                    "Failed to transform RawPacket(s)!",
+                                    t);
+                        }
+                        if (t instanceof Error)
+                            throw (Error) t;
+                        else if (t instanceof RuntimeException)
+                            throw (RuntimeException) t;
+                        else
+                            throw new RuntimeException(t);
+                    }
+                }
             }
         }
 
@@ -75,7 +122,31 @@ public abstract class SinglePacketTransformer
                 RawPacket pkt = pkts[i];
 
                 if (pkt != null)
-                    pkts[i] = reverseTransform(pkt);
+                {
+                    bytesToReverseTransform += pkt.getLength();
+                    try
+                    {
+                        pkts[i] = reverseTransform(pkt);
+                    }
+                    catch (Throwable t)
+                    {
+                        exceptionsInReverseTransform++;
+                        if (((exceptionsInReverseTransform % EXCEPTIONS_TO_LOG)
+                                    == 0)
+                                || (exceptionsInReverseTransform == 1))
+                        {
+                            logger.error(
+                                    "Failed to reverse-transform RawPacket(s)!",
+                                    t);
+                        }
+                        if (t instanceof Error)
+                            throw (Error) t;
+                        else if (t instanceof RuntimeException)
+                            throw (RuntimeException) t;
+                        else
+                            throw new RuntimeException(t);
+                    }
+                }
             }
         }
 

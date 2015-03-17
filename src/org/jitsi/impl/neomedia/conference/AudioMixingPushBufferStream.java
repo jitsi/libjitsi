@@ -72,6 +72,13 @@ public class AudioMixingPushBufferStream
     private final AudioMixerPushBufferStream audioMixerStream;
 
     /**
+     * The total number of <tt>byte</tt>s read out of this
+     * <tt>PushBufferStream</tt> through {@link #read(Buffer)}. Intended for the
+     * purposes of debugging at the time of this writing.
+     */
+    private long bytesRead;
+
+    /**
      * The <tt>AudioMixingPushBufferDataSource</tt> which created and owns this
      * instance and defines the input data which is to not be mixed in the
      * output of this <tt>PushBufferStream</tt>.
@@ -108,7 +115,7 @@ public class AudioMixingPushBufferStream
      * The time stamp of {@link #inSamples} to be reported in the specified
      * <tt>Buffer</tt> when data is read from this instance.
      */
-    private long timeStamp;
+    private long timeStamp = Buffer.TIME_UNKNOWN;
 
     /**
      * The <tt>BufferTransferHandler</tt> through which this
@@ -345,7 +352,11 @@ public class AudioMixingPushBufferStream
 
             this.inSamples = null;
             this.maxInSampleCount = 0;
-            this.timeStamp = Buffer.TIME_UNKNOWN;
+            // For the purposes of debugging, we want to have the last known
+            // value of the field timeStamp at all times. The reset of the
+            // values of the fields inSamples and/or maxInSampleCount should
+            // suffice.
+            // this.timeStamp = Buffer.TIME_UNKNOWN;
         }
 
         if ((inSamples == null)
@@ -391,6 +402,8 @@ public class AudioMixingPushBufferStream
             buffer.setLength(outLength);
             buffer.setOffset(0);
             buffer.setTimeStamp(timeStamp);
+
+            bytesRead += outLength;
         }
         else
         {
@@ -417,6 +430,7 @@ public class AudioMixingPushBufferStream
         {
             this.inSamples = inSamples;
             this.maxInSampleCount = maxInSampleCount;
+            this.timeStamp = timeStamp;
         }
 
         BufferTransferHandler transferHandler = this.transferHandler;

@@ -132,7 +132,11 @@ public class RawPacket
 
         //if there were no extensions previously, we need to add the hdr now
         if(extensionBit)
-            bufferOffset += 4;
+        {
+            // We've copied "defined by profile" already. Consequently, we have
+            // to skip the length only.
+            bufferOffset += 2;
+        }
         else
         {
            // we will now be adding the RFC 5285 ext header which looks like
@@ -167,9 +171,13 @@ public class RawPacket
         newBufferOffset += newExtensionLen;
 
         //now copy the payload
-        System.arraycopy(buffer, bufferOffset,
-            newBuffer, newBufferOffset, getPayloadLength());
-        newBufferOffset += getPayloadLength();
+        int payloadLength = getPayloadLength();
+
+        System.arraycopy(
+                buffer, bufferOffset,
+                newBuffer, newBufferOffset,
+                payloadLength);
+        newBufferOffset += payloadLength;
 
         buffer = newBuffer;
         this.length = newBufferOffset - offset;

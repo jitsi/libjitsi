@@ -34,8 +34,8 @@ public class JNIEncoder
                PacketLossAwareEncoder
 {
     /**
-     * The <tt>Logger</tt> used by this <tt>JNIEncoder</tt> instance
-     * for logging output.
+     * The <tt>Logger</tt> used by the <tt>JNIEncoder</tt> class and its
+     * instances for logging output.
      */
     private static final Logger logger = Logger.getLogger(JNIEncoder.class);
 
