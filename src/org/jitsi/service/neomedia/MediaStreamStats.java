@@ -269,4 +269,82 @@ public interface MediaStreamStats
      * Computes and updates information for a specific stream.
      */
     public void updateStats();
+
+    /**
+     * Gets the minimum RTP jitter value reported by us in an RTCP report, in
+     * milliseconds. Returns -1D if the value is unknown.
+     * @return the minimum RTP jitter value reported by us in an RTCP report, in
+     * milliseconds.
+     */
+    public double getMinDownloadJitterMs();
+
+    /**
+     * Gets the maximum RTP jitter value reported by us in an RTCP report, in
+     * milliseconds. Returns -1D if the value is unknown.
+     * @return the maximum RTP jitter value reported by us in an RTCP report, in
+     * milliseconds.
+     */
+    public double getMaxDownloadJitterMs();
+
+    /**
+     * Gets the average of the RTP jitter values reported to us in RTCP reports,
+     * in milliseconds. Returns -1D if the value is unknown.
+     * @return  the average of the RTP jitter values reported to us in RTCP
+     * reports, in milliseconds. Returns -1D if the value is unknown.
+     */
+    public double getAvgDownloadJitterMs();
+
+    /**
+     * Gets the minimum RTP jitter value reported to us in an RTCP report, in
+     * milliseconds. Returns -1D if the value is unknown.
+     * @return the minimum RTP jitter value reported to us in an RTCP report, in
+     * milliseconds.
+     */
+    public double getMinUploadJitterMs();
+
+    /**
+     * Gets the maximum RTP jitter value reported to us in an RTCP report, in
+     * milliseconds. Returns -1D if the value is unknown.
+     * @return the maximum RTP jitter value reported to us in an RTCP report, in
+     * milliseconds.
+     */
+    public double getMaxUploadJitterMs();
+
+    /**
+     * Gets the average of the RTP jitter values reported by us in RTCP reports,
+     * in milliseconds. Returns -1D if the value is unknown.
+     * @return  the average of the RTP jitter values reported to us in RTCP
+     * reports, in milliseconds. Returns -1D if the value is unknown.
+     */
+    public double getAvgUploadJitterMs();
+
+    /**
+     * Returns the number of packets sent since the beginning of the session.
+     * @return  the number of packets sent since the beginning of the session.
+     */
+    public long getNbPacketsSent();
+
+    /**
+     * Returns the number of packets received since the beginning of the
+     * session.
+     * @return  the number of packets received since the beginning of the
+     * session.
+     */
+    public long getNbPacketsReceived();
+
+    /**
+     * Returns the number of RTP packets sent by the remote side, but not
+     * received by us.
+     * @return the number of RTP packets sent by the remote side, but not
+     * received by us.
+     */
+    public long getDownloadNbPacketLost();
+
+    /**
+     * Returns the number of RTP packets sent by the remote side, but not
+     * received by us.
+     * @return the number of RTP packets sent by the remote side, but not
+     * received by us.
+     */
+    public long getUploadNbPacketLost();
 }
