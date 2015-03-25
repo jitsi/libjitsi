@@ -382,7 +382,7 @@ public class SRTPCryptoContext
      *
      * @param index the 48 bit SRTP packet index
      */
-    public void deriveSrtpKeys(long index)
+    synchronized public void deriveSrtpKeys(long index)
     {
         // compute the session encryption key
         computeIv(0x00, index);
@@ -561,7 +561,7 @@ public class SRTPCryptoContext
      * @return <tt>true</tt> if the packet can be accepted; <tt>false</tt> if
      * the packet failed authentication or failed replay check
      */
-    public boolean reverseTransformPacket(RawPacket pkt)
+    synchronized public boolean reverseTransformPacket(RawPacket pkt)
     {
         if (logger.isDebugEnabled())
         {
@@ -647,7 +647,7 @@ public class SRTPCryptoContext
      *
      * @param pkt the RTP packet that is going to be sent out
      */
-    public boolean transformPacket(RawPacket pkt)
+    synchronized public boolean transformPacket(RawPacket pkt)
     {
         int seqNo = pkt.getSequenceNumber();
 

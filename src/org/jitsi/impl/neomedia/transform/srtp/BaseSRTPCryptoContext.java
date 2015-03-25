@@ -258,7 +258,7 @@ class BaseSRTPCryptoContext
      * @param pkt the RTP packet to be authenticated
      * @param rocIn Roll-Over-Counter
      */
-    protected void authenticatePacketHMAC(RawPacket pkt, int rocIn)
+    synchronized protected void authenticatePacketHMAC(RawPacket pkt, int rocIn)
     {
         mac.update(pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
         rbStore[0] = (byte) (rocIn >> 24);
@@ -275,7 +275,7 @@ class BaseSRTPCryptoContext
      * is the second time. However, sometimes we cannot know if the
      * CryptoContext was used and the application called deriveSrtpKeys(...).
      */
-    public void close()
+    synchronized public void close()
     {
         Arrays.fill(masterKey, (byte) 0);
         Arrays.fill(masterSalt, (byte) 0);

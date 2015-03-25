@@ -166,7 +166,7 @@ public class SRTCPCryptoContext
     /**
      * Derives the srtcp session keys from the master key.
      */
-    public void deriveSrtcpKeys()
+    synchronized public void deriveSrtcpKeys()
     {
         // compute the session encryption key
         computeIv((byte) 3);
@@ -323,7 +323,7 @@ public class SRTCPCryptoContext
      * @return <tt>true</tt> if the packet can be accepted or <tt>false</tt> if
      * authentication or replay check failed
      */
-    public boolean reverseTransformPacket(RawPacket pkt)
+    synchronized public boolean reverseTransformPacket(RawPacket pkt)
     {
         boolean decrypt = false;
         int tagLength = policy.getAuthTagLength();
@@ -399,7 +399,7 @@ public class SRTCPCryptoContext
      *
      * @param pkt the RTP packet that is going to be sent out
      */
-    public void transformPacket(RawPacket pkt)
+    synchronized public void transformPacket(RawPacket pkt)
     {
         boolean encrypt = false;
         /* Encrypt the packet using Counter Mode encryption */
