@@ -41,6 +41,10 @@ public class PulseAudioRenderer
      */
     private static final boolean SOFTWARE_GAIN = true;
 
+    /**
+     * The list of JMF <tt>Format</tt>s of audio data which
+     * <tt>PulseAudioRenderer</tt> instances are capable of rendering.
+     */
     private static final Format[] SUPPORTED_INPUT_FORMATS
         = new Format[]
         {
@@ -56,10 +60,23 @@ public class PulseAudioRenderer
                     Format.byteArray)
         };
 
+    /**
+     * The number of channels of audio data this <tt>PulseAudioRenderer</tt> is
+     * configured to render.
+     */
     private int channels;
 
+    /**
+     * The indicator which determines whether {@link #stream}'s playback is
+     * paused or resumed.
+     */
     private boolean corked = true;
 
+    /**
+     * The <tt>pa_cvolume</tt> (structure) instance used by this
+     * <tt>PulseAudioRenderer</tt> to set the per-channel volume of
+     * {@link #stream}.
+     */
     private long cvolume;
 
     /**
@@ -67,13 +84,30 @@ public class PulseAudioRenderer
      */
     private String dev;
 
+    /**
+     * The level of the volume specified by the <tt>GainControl</tt> associated
+     * with this <tt>PulseAudioRenderer</tt> which has been applied to
+     * {@link #stream}.
+     */
     private float gainControlLevel;
 
+    /**
+     * The PulseAudio logic role of the media played back by this
+     * <tt>PulseAudioRenderer</tt>.
+     */
     private final String mediaRole;
 
+    /**
+     * The PulseAudio stream which performs the actual rendering of audio data
+     * for this <tt>PulseAudioRenderer</tt>.
+     */
     private long stream;
 
-    private final PA.stream_request_cb_t writeCallback
+    /**
+     * The PulseAudio callback which notifies this <tt>PulseAudioRenderer</tt>
+     * that {@link #stream} requests audio data to play back.
+     */
+    private final PA.stream_request_cb_t writeCb
         = new PA.stream_request_cb_t()
         {
             @Override
@@ -117,6 +151,19 @@ public class PulseAudioRenderer
                 : mediaRole;
     }
 
+    /**
+     * Applies the volume specified by a specific <tt>GainControl</tt> on a
+     * specified sample of audio <tt>data</tt>.
+     *
+     * @param gainControl the <tt>GainControl</tt> which specifies the volume to
+     * set on <tt>data</tt>
+     * @param data the audio data to set the volume specified by
+     * <tt>gainControl</tt> on
+     * @param offset the offset in <tt>data</tt> at which the valid audio data
+     * begins
+     * @param length the number of bytes of valid audio data in <tt>data</tt>
+     * beginning at <tt>offset</tt>
+     */
     @SuppressWarnings("unused")
     private void applyGain(
             GainControl gainControl,
@@ -139,6 +186,9 @@ public class PulseAudioRenderer
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void close()
     {
@@ -180,6 +230,12 @@ public class PulseAudioRenderer
         }
     }
 
+    /**
+     * Pauses or resumes the playback of audio data through {@link #stream}.
+     *
+     * @param b <tt>true</tt> to pause the playback of audio data or
+     * <tt>false</tt> to resume it
+     */
     private void cork(boolean b)
     {
         try
@@ -197,13 +253,22 @@ public class PulseAudioRenderer
         }
     }
 
+    /**
+     * Returns the name of the sink this <tt>PulseAudioRenderer</tt> is
+     * configured to connect {@link #stream} to.
+     *
+     * @return the name of the sink this <tt>PulseAudioRenderer</tt> is
+     * configured to connect {@link #stream} to
+     */
     private String getLocatorDev()
     {
         MediaLocator locator = getLocator();
         String locatorDev;
 
         if (locator == null)
+        {
             locatorDev = null;
+        }
         else
         {
             locatorDev = locator.getRemainder();
@@ -231,6 +296,9 @@ public class PulseAudioRenderer
         return SUPPORTED_INPUT_FORMATS.clone();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void open()
         throws ResourceUnavailableException
@@ -248,6 +316,15 @@ public class PulseAudioRenderer
         }
     }
 
+    /**
+     * Opens this <tt>PulseAudioRenderer</tt> i.e. initializes the PulseAudio
+     * stream which is to play audio data back. The method executes with the
+     * assumption that the PulseAudio event loop object is locked by the
+     * executing thread.
+     *
+     * @throws ResourceUnavailableException if the opening of this
+     * <tt>PulseAudioRenderer</tt> failed
+     */
     private void openWithMainloopLock()
         throws ResourceUnavailableException
     {
@@ -359,9 +436,7 @@ public class PulseAudioRenderer
                     if (state != PA.STREAM_READY)
                         throw new ResourceUnavailableException("stream.state");
 
-                    PA.stream_set_write_callback(
-                            stream,
-                            writeCallback);
+                    PA.stream_set_write_callback(stream, writeCb);
 
                     setStreamVolume(stream);
 
@@ -490,6 +565,17 @@ public class PulseAudioRenderer
         return ret;
     }
 
+    /**
+     * Plays back the audio data of a specific FMJ <tt>Buffer</tt> through
+     * {@link #stream}. The method executes with the assumption that the
+     * PulseAudio event loop object is locked by the executing thread.
+     *
+     * @param buffer the FMJ <tt>Buffer</tt> which specifies the audio data to
+     * play back
+     * @return <tt>BUFFER_PROCESSED_OK</tt> if the specified <tt>buffer</tt> was
+     * successfully sumbitted for playback through {@link #stream}; otherwise,
+     * <tt>BUFFER_PROCESSED_FAILED</tt>
+     */
     private int processWithMainloopLock(Buffer buffer)
     {
         if ((stream == 0) || corked)
@@ -526,7 +612,9 @@ public class PulseAudioRenderer
                         PA.SEEK_RELATIVE);
 
             if (writtenSize < 0)
+            {
                 ret = BUFFER_PROCESSED_FAILED;
+            }
             else
             {
                 ret = BUFFER_PROCESSED_OK;
@@ -534,10 +622,16 @@ public class PulseAudioRenderer
                 buffer.setOffset(offset + writtenSize);
             }
         }
-
         return ret;
     }
 
+    /**
+     * Sets the volume of a specific PulseAudio <tt>stream</tt> to a level
+     * specified by the <tt>GainControl</tt> associated with this
+     * <tt>PulseAudioRenderer</tt>.
+     *
+     * @param stream the PulseAudio stream to set the volume of
+     */
     @SuppressWarnings("unused")
     private void setStreamVolume(long stream)
     {
@@ -568,6 +662,13 @@ public class PulseAudioRenderer
         }
     }
 
+    /**
+     * Sets the volume of a specific PulseAudio <tt>stream</tt> to a specific
+     * <tt>level</tt>.
+     *
+     * @param stream the PulseAudio stream to set the volume of
+     * @param level the volume to set on <tt>stream</tt>
+     */
     private void setStreamVolume(long stream, float level)
     {
         int volume
@@ -633,6 +734,11 @@ public class PulseAudioRenderer
         }
     }
 
+    /**
+     * Pauses the playback of audio data performed by {@link #stream}. The
+     * method executes with the assumption that the PulseAudio event loop object
+     * is locked by the executing thread.
+     */
     private void stopWithMainloopLock()
     {
         if (stream != 0)

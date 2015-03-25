@@ -38,10 +38,19 @@ public class DataSource
 
     private static final int BUFFER_IN_TENS_OF_MILLIS = 10;
 
+    /**
+     * The indicator which determines whether debug-level logging is enabled for
+     * the <tt>DataSource</tt> class and its instances.
+     */
     private static final boolean DEBUG = logger.isDebugEnabled();
 
     private static final int FRAGSIZE_IN_TENS_OF_MILLIS = 2;
 
+    /**
+     * The indicator which determines whether <tt>DataSource</tt> instances
+     * apply audio volume levels on the audio data to be renderer or leave the
+     * task to PulseAudio.
+     */
     private static final boolean SOFTWARE_GAIN;
 
     static
@@ -55,18 +64,15 @@ public class DataSource
             if (libraryVersion != null)
             {
                 StringTokenizer st = new StringTokenizer(libraryVersion, ".");
-                int major = Integer.parseInt(st.nextToken());
-                int minor = Integer.parseInt(st.nextToken());
 
-                if ((major >= 1) && (minor >= 0))
+                if (/* major */ Integer.parseInt(st.nextToken()) >= 1
+                        && /* minor */ Integer.parseInt(st.nextToken()) >= 0)
                 {
-                    /*
-                     * FIXME The control of the volume through the native
-                     * PulseAudio API has been reported to maximize the
-                     * system-wide volume of the source with flat volumes i.e.
-                     * https://java.net/jira/browse/JITSI-1050 (Pulseaudio
-                     * changes volume to maximum values).
-                     */
+                    // FIXME The control of the volume through the native
+                    // PulseAudio API has been reported to maximize the
+                    // system-wide volume of the source with flat volumes i.e.
+                    // https://java.net/jira/browse/JITSI-1050 (Pulseaudio
+                    // changes volume to maximum values).
 //                    softwareGain = false;
 //                    if (logger.isDebugEnabled())
 //                    {
@@ -92,36 +98,76 @@ public class DataSource
     private class PulseAudioStream
         extends AbstractPullBufferStream<DataSource>
     {
+        /**
+         * The <tt>PulseAudioSystem</tt> instance which provides the capture
+         * device and allows creating {@link #stream}.
+         */
         private final PulseAudioSystem audioSystem;
 
         private byte[] buffer;
 
+        /**
+         * The number of channels of audio data this <tt>PulseAudioStream</tt>
+         * is configured to input.
+         */
         private int channels;
 
+        /**
+         * The indicator which determines whether {@link #stream}'s input is
+         * paused or resumed.
+         */
         private boolean corked = true;
 
+        /**
+         * The <tt>pa_cvolume</tt> (structure) instance used by this
+         * <tt>PulseAudioRenderer</tt> to set the per-channel volume of
+         * {@link #stream}.
+         */
         private long cvolume;
 
         private int fragsize;
 
+        /**
+         * The <tt>GainControl</tt> which specifies the volume level to be
+         * applied to the audio data input through this
+         * <tt>PulseAudioStream</tt>.
+         */
         private final GainControl gainControl;
 
+        /**
+         * The volume level specified by {@link #gainControl} which has been
+         * set on {@link #stream}.
+         */
         private float gainControlLevel;
 
+        /**
+         * The number of bytes in {@link #buffer} starting at {@link #offset}.
+         */
         private int length;
 
+        /**
+         * The offset in {@link #buffer}.
+         */
         private int offset;
 
-        private final PA.stream_request_cb_t readCallback
+        /**
+         * The PulseAudio callback which notifies this <tt>PulseAudioStream</tt>
+         * that {@link #stream} has audio data available to input.
+         */
+        private final PA.stream_request_cb_t readCb
             = new PA.stream_request_cb_t()
             {
                 @Override
                 public void callback(long s, int nbytes)
                 {
-                    readCallback(s, nbytes);
+                    readCb(s, nbytes);
                 }
             };
 
+        /**
+         * The PulseAudio stream which inputs audio data from the PulseAudio
+         * source.
+         */
         private long stream;
 
         /**
@@ -150,172 +196,13 @@ public class DataSource
         }
 
         /**
-         * {@inheritDoc}
+         * Connects this <tt>PulseAudioStream</tt> to the configured source and
+         * prepares it to input audio data in the configured FMJ
+         * <tt>Format</tt>.
+         *
+         * @throws IOException if this <tt>PulseAudioStream</tt> fails to
+         * connect to the configured source
          */
-        @Override
-        public void read(Buffer buffer)
-            throws IOException
-        {
-            audioSystem.lockMainloop();
-            try
-            {
-                if (stream == 0)
-                    throw new IOException("stream");
-
-                byte[] data
-                    = AbstractCodec2.validateByteArraySize(
-                            buffer,
-                            fragsize,
-                            false);
-                int toRead = fragsize;
-                int offset = 0;
-                int length = 0;
-
-                while (toRead > 0)
-                {
-                    if (corked)
-                        break;
-
-                    if (this.length <= 0)
-                    {
-                        audioSystem.waitMainloop();
-                        continue;
-                    }
-
-                    int toCopy = (toRead < this.length) ? toRead : this.length;
-
-                    System.arraycopy(
-                            this.buffer, this.offset,
-                            data, offset,
-                            toCopy);
-
-                    this.offset += toCopy;
-                    this.length -= toCopy;
-                    if (this.length <= 0)
-                    {
-                        this.offset = 0;
-                        this.length = 0;
-                    }
-
-                    toRead -= toCopy;
-                    offset += toCopy;
-                    length += toCopy;
-                }
-
-                buffer.setFlags(Buffer.FLAG_SYSTEM_TIME);
-                buffer.setLength(length);
-                buffer.setOffset(0);
-                buffer.setTimeStamp(System.nanoTime());
-
-                if (gainControl != null)
-                {
-                    if (SOFTWARE_GAIN || (cvolume == 0))
-                    {
-                        if (length > 0)
-                        {
-                            BasicVolumeControl.applyGain(
-                                    gainControl,
-                                    data, 0, length);
-                        }
-                    }
-                    else
-                    {
-                        float gainControlLevel = gainControl.getLevel();
-
-                        if (this.gainControlLevel != gainControlLevel)
-                        {
-                            this.gainControlLevel = gainControlLevel;
-                            setStreamVolume(stream, gainControlLevel);
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                audioSystem.unlockMainloop();
-            }
-        }
-
-        private void readCallback(long stream, int length)
-        {
-            try
-            {
-                int peeked;
-
-                if (corked)
-                    peeked = 0;
-                else
-                {
-                    int offset;
-
-                    if ((buffer == null) || (buffer.length < length))
-                    {
-                        buffer = new byte[length];
-                        this.offset = 0;
-                        this.length = 0;
-                        offset = 0;
-                    }
-                    else
-                    {
-                        offset = this.offset + this.length;
-                        if (offset + length > buffer.length)
-                        {
-                            int overflow = this.length + length - buffer.length;
-
-                            if (overflow > 0)
-                            {
-                                if (overflow >= this.length)
-                                {
-                                    if (DEBUG && logger.isDebugEnabled())
-                                    {
-                                        logger.debug(
-                                                "Dropping "
-                                                    + this.length
-                                                    + " bytes!");
-                                    }
-                                    this.offset = 0;
-                                    this.length = 0;
-                                    offset = 0;
-                                }
-                                else
-                                {
-                                    if (DEBUG && logger.isDebugEnabled())
-                                    {
-                                        logger.debug(
-                                                "Dropping "
-                                                    + overflow
-                                                    + " bytes!");
-                                    }
-                                    this.offset += overflow;
-                                    this.length -= overflow;
-                                }
-                            }
-                            if (this.length > 0)
-                            {
-                                for (int i = 0;
-                                        i < this.length;
-                                        i++, this.offset++)
-                                {
-                                    buffer[i] = buffer[this.offset];
-                                }
-                                this.offset = 0;
-                                offset = this.length;
-                            }
-                        }
-                    }
-
-                    peeked = PA.stream_peek(stream, buffer, offset);
-                }
-
-                PA.stream_drop(stream);
-                this.length += peeked;
-            }
-            finally
-            {
-                audioSystem.signalMainloop(false);
-            }
-        }
-
         @SuppressWarnings("unused")
         public void connect()
             throws IOException
@@ -331,6 +218,15 @@ public class DataSource
             }
         }
 
+        /**
+         * Connects this <tt>PulseAudioStream</tt> to the configured source and
+         * prepares it to input audio data in the configured FMJ
+         * <tt>Format</tt>. The method executes with the assumption that the
+         * PulseAudio event loop object is locked by the executing thread.
+         *
+         * @throws IOException if this <tt>PulseAudioStream</tt> fails to
+         * connect to the configured source
+         */
         private void connectWithMainloopLock()
             throws IOException
         {
@@ -439,9 +335,7 @@ public class DataSource
                         if (state != PA.STREAM_READY)
                             throw new IOException("stream.state");
 
-                        PA.stream_set_read_callback(
-                                stream,
-                                readCallback);
+                        PA.stream_set_read_callback(stream, readCb);
 
                         if (!SOFTWARE_GAIN && (gainControl != null))
                         {
@@ -488,6 +382,12 @@ public class DataSource
             }
         }
 
+        /**
+         * Pauses or resumes the input of audio data through {@link #stream}.
+         *
+         * @param b <tt>true</tt> to pause the input of audio data or
+         * <tt>false</tt> to resume it
+         */
         private void cork(boolean b)
             throws IOException
         {
@@ -502,6 +402,10 @@ public class DataSource
             }
         }
 
+        /**
+         * Disconnects this <tt>PulseAudioStream</tt> and its
+         * <tt>DataSource</tt> from the connected capture device.
+         */
         public void disconnect()
             throws IOException
         {
@@ -544,6 +448,182 @@ public class DataSource
             }
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void read(Buffer buffer)
+            throws IOException
+        {
+            audioSystem.lockMainloop();
+            try
+            {
+                if (stream == 0)
+                    throw new IOException("stream");
+
+                byte[] data
+                    = AbstractCodec2.validateByteArraySize(
+                            buffer,
+                            fragsize,
+                            false);
+                int toRead = fragsize;
+                int offset = 0;
+                int length = 0;
+
+                while (toRead > 0)
+                {
+                    if (corked)
+                        break;
+
+                    if (this.length <= 0)
+                    {
+                        audioSystem.waitMainloop();
+                        continue;
+                    }
+
+                    int toCopy = (toRead < this.length) ? toRead : this.length;
+
+                    System.arraycopy(
+                            this.buffer, this.offset,
+                            data, offset,
+                            toCopy);
+
+                    this.offset += toCopy;
+                    this.length -= toCopy;
+                    if (this.length <= 0)
+                    {
+                        this.offset = 0;
+                        this.length = 0;
+                    }
+
+                    toRead -= toCopy;
+                    offset += toCopy;
+                    length += toCopy;
+                }
+
+                buffer.setFlags(Buffer.FLAG_SYSTEM_TIME);
+                buffer.setLength(length);
+                buffer.setOffset(0);
+                buffer.setTimeStamp(System.nanoTime());
+
+                if (gainControl != null)
+                {
+                    if (SOFTWARE_GAIN || (cvolume == 0))
+                    {
+                        if (length > 0)
+                        {
+                            BasicVolumeControl.applyGain(
+                                    gainControl,
+                                    data, 0, length);
+                        }
+                    }
+                    else
+                    {
+                        float gainControlLevel = gainControl.getLevel();
+
+                        if (this.gainControlLevel != gainControlLevel)
+                        {
+                            this.gainControlLevel = gainControlLevel;
+                            setStreamVolume(stream, gainControlLevel);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                audioSystem.unlockMainloop();
+            }
+        }
+
+        private void readCb(long stream, int length)
+        {
+            try
+            {
+                int peeked;
+
+                if (corked)
+                {
+                    peeked = 0;
+                }
+                else
+                {
+                    int offset;
+
+                    if ((buffer == null) || (buffer.length < length))
+                    {
+                        buffer = new byte[length];
+                        this.offset = 0;
+                        this.length = 0;
+                        offset = 0;
+                    }
+                    else
+                    {
+                        offset = this.offset + this.length;
+                        if (offset + length > buffer.length)
+                        {
+                            int overflow = this.length + length - buffer.length;
+
+                            if (overflow > 0)
+                            {
+                                if (overflow >= this.length)
+                                {
+                                    if (DEBUG && logger.isDebugEnabled())
+                                    {
+                                        logger.debug(
+                                                "Dropping "
+                                                    + this.length
+                                                    + " bytes!");
+                                    }
+                                    this.offset = 0;
+                                    this.length = 0;
+                                    offset = 0;
+                                }
+                                else
+                                {
+                                    if (DEBUG && logger.isDebugEnabled())
+                                    {
+                                        logger.debug(
+                                                "Dropping "
+                                                    + overflow
+                                                    + " bytes!");
+                                    }
+                                    this.offset += overflow;
+                                    this.length -= overflow;
+                                }
+                            }
+                            if (this.length > 0)
+                            {
+                                for (int i = 0;
+                                        i < this.length;
+                                        i++, this.offset++)
+                                {
+                                    buffer[i] = buffer[this.offset];
+                                }
+                                this.offset = 0;
+                                offset = this.length;
+                            }
+                        }
+                    }
+
+                    peeked = PA.stream_peek(stream, buffer, offset);
+                }
+
+                PA.stream_drop(stream);
+                this.length += peeked;
+            }
+            finally
+            {
+                audioSystem.signalMainloop(false);
+            }
+        }
+
+        /**
+         * Sets the volume of a specific PulseAudio <tt>stream</tt> to a
+         * specific <tt>level</tt>.
+         *
+         * @param stream the PulseAudio stream to set the volume of
+         * @param level the volume to set on <tt>stream</tt>
+         */
         private void setStreamVolume(long stream, float level)
         {
             int volume
@@ -563,6 +643,9 @@ public class DataSource
                 PA.operation_unref(o);
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public void start()
             throws IOException
@@ -583,6 +666,9 @@ public class DataSource
             super.start();
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public void stop()
             throws IOException
@@ -598,6 +684,11 @@ public class DataSource
             }
         }
 
+        /**
+         * Pauses the input of audio data performed by {@link #stream}. The
+         * method executes with the assumption that the PulseAudio event loop
+         * object is locked by the executing thread.
+         */
         private void stopWithMainloopLock()
             throws IOException
         {
@@ -626,6 +717,9 @@ public class DataSource
         return new PulseAudioStream(formatControl);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void doDisconnect()
     {
@@ -655,13 +749,22 @@ public class DataSource
         super.doDisconnect();
     }
 
+    /**
+     * Returns the name of the PulseAudio source that this <tt>DataSource</tt>
+     * is configured to input audio data from.
+     *
+     * @return the name of the PulseAudio source that this <tt>DataSource</tt>
+     * is configured to input audio data from
+     */
     private String getLocatorDev()
     {
         MediaLocator locator = getLocator();
         String locatorDev;
 
         if (locator == null)
+        {
             locatorDev = null;
+        }
         else
         {
             locatorDev = locator.getRemainder();

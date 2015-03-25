@@ -84,6 +84,15 @@ public final class PA
 
     public static final String PROP_MEDIA_ROLE = "media.role";
 
+    /**
+     * The <tt>pa_sample_format_t</tt> value which specifies an invalid value.
+     */
+    public static final int SAMPLE_INVALID = -1;
+
+    /**
+     * The <tt>pa_sample_format_t</tt> value which specifies signed 16-bit PCM,
+     * little endian.
+     */
     public static final int SAMPLE_S16LE = 3;
 
     public static final int SEEK_RELATIVE = 0;
