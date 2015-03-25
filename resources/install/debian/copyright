@@ -53,6 +53,12 @@ License: public-domain
  not limited to the correctness, accuracy, reliability or usefulness of
  this software.
 
+Files: lib/src/bccontrib/src/main/java/prng/*
+Copyright:
+ Copyright (C) 2010 Werner Dittmann <Werner.Dittmann@t-online.de>
+ Copyright (C) 2004, 2006 Free Software Foundation, Inc.
+License: GPL-2+ with classpath exception
+
 Files: lib/src/bccontrib/*
 Copyright:
  2010 Alberto Fajardo and Werner Dittmann
