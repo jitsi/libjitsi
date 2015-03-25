@@ -85,12 +85,12 @@ License: BSD-3-clause
 Files: lib/src/zrtp4j/src/gnu/java/math/*
 Copyright:
  1999, 2000, 2001, 2004  Free Software Foundation, Inc.
-License: GPL-2 with classpath exception
+License: GPL-2+ with classpath exception
 
 Files: lib/src/zrtp4j/src/gnu/java/bigintcrypto/*
 Copyright:
  1998, 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007, 2009  Free Software Foundation, Inc.
-License: GPL-2 with classpath exception
+License: GPL-3+ with classpath exception
 
 Files: lib/src/zrtp4j/src/gnu/java/bigintcrypto/test/*
        lib/src/zrtp4j/src/gnu/java/zrtp/*
