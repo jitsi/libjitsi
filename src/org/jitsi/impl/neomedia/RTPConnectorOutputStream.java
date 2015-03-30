@@ -66,7 +66,7 @@ public abstract class RTPConnectorOutputStream
      * how many RTP packets it sends through its <tt>DatagramSocket</tt> per a
      * specific number of milliseconds.
      */
-    private MaxPacketsPerMillisPolicy maxPacketsPerMillisPolicy;
+    protected MaxPacketsPerMillisPolicy maxPacketsPerMillisPolicy;
 
     /**
      * Number of bytes sent through this stream.

@@ -106,4 +106,21 @@ public class RTPConnectorTCPOutputStream
     {
         return (socket != null);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setMaxPacketsPerMillis(int maxPackets, long perMillis)
+    {
+        super.setMaxPacketsPerMillis(maxPackets, perMillis);
+
+        if (maxPacketsPerMillisPolicy != null)
+        {
+            // If we are sending more data than the TCP socket can handle, we
+            // prefer to drop packets (as happens with UDP) instead of blocking
+            // the sending thread.
+            maxPacketsPerMillisPolicy.setDropPacketsWhenFull(true);
+        }
+    }
 }

@@ -110,6 +110,12 @@ public abstract class MaxPacketsPerMillisPolicy
     private Thread sendThread;
 
     /**
+     * The flag which indicates whether packets added while the queue is full
+     * should be dropped or not. See {@link #write(RawPacket)}.
+     */
+    private boolean dropPacketsWhenFull = false;
+
+    /**
      * Initializes a new <tt>MaxPacketsPerMillisPolicy</tt> instance which
      * is to control how many RTP packets this <tt>OutputDataSource</tt> is
      * to send through its <tt>DatagramSocket</tt> per a specific number of
@@ -263,6 +269,11 @@ public abstract class MaxPacketsPerMillisPolicy
      * Queues a specific RTP packet to be sent through the
      * <tt>DatagramSocket</tt> of this <tt>OutputDataStream</tt>.
      *
+     * When the queue ({@link #packetQueue}) is full, the behaviour of this
+     * method depends on {@link #dropPacketsWhenFull}. If the flag is set,
+     * the packet will be dropped and the method will return immediately.
+     * Otherwise, the method will block until the packet can be accommodated.
+     *
      * @param packet the RTP packet to be queued for sending through the
      * <tt>DatagramSocket</tt> of this <tt>OutputDataStream</tt>
      */
@@ -272,7 +283,16 @@ public abstract class MaxPacketsPerMillisPolicy
         {
             try
             {
-                packetQueue.put(packet);
+                if (dropPacketsWhenFull)
+                {
+                    // Drop the first rather than the current packet, so that
+                    // receivers can notice the loss earlier.
+                    if (packetQueue.size() == PACKET_QUEUE_CAPACITY)
+                        packetQueue.poll();
+                    packetQueue.offer(packet);
+                }
+                else
+                    packetQueue.put(packet);
                 break;
             }
             catch (InterruptedException iex)
@@ -280,5 +300,14 @@ public abstract class MaxPacketsPerMillisPolicy
             }
         }
         while (true);
+    }
+
+    /**
+     * Sets the <tt>dropPacketsWhenFull</tt> flag.
+     * @param dropPacketsWhenFull the value to set.
+     */
+    public void setDropPacketsWhenFull(boolean dropPacketsWhenFull)
+    {
+        this.dropPacketsWhenFull = dropPacketsWhenFull;
     }
 }
