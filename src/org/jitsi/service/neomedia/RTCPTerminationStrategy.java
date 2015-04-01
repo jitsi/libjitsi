@@ -14,13 +14,13 @@ import net.sf.fmj.media.rtp.*;
 public interface RTCPTerminationStrategy
 {
     /**
-     * Gets the <tt>RTCPPacketTransformer</tt> that is to inspect and modify
+     * Gets the <tt>Transformer</tt> that is to inspect and modify
      * incoming RTCP packets.
      *
-     * @return the <tt>RTCPPacketTransformer</tt> that is to inspect and
+     * @return the <tt>Transformer</tt> that is to inspect and
      * modify incoming RTCP packets.
      */
-    RTCPPacketTransformer getRTCPPacketTransformer();
+    Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer();
 
     /**
      * Gets the <tt>RTCPReportBuilder</tt> that makes the RTCP feedback

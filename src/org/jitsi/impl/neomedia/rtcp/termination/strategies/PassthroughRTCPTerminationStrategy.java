@@ -20,14 +20,14 @@ import org.jitsi.service.neomedia.*;
 public class PassthroughRTCPTerminationStrategy
     implements RTCPTerminationStrategy
 {
-    private final RTCPPacketTransformer packetTransformer
+    private final Transformer<RTCPCompoundPacket> packetTransformer
             = new NullRTCPPacketTransformer();
 
     private final RTCPReportBuilder reportBuilder
             = new DefaultRTCPReportBuilderImpl();
 
     @Override
-    public RTCPPacketTransformer getRTCPPacketTransformer()
+    public Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer()
     {
         return packetTransformer;
     }

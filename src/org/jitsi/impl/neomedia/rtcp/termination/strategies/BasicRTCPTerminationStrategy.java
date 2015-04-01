@@ -26,7 +26,7 @@ import org.jitsi.service.neomedia.*;
  */
 public class BasicRTCPTerminationStrategy
         implements RTCPTerminationStrategy,
-            RTCPPacketTransformer,
+            Transformer<RTCPCompoundPacket>,
             RTCPReportBuilder
 {
     /**
@@ -115,7 +115,7 @@ public class BasicRTCPTerminationStrategy
     }
 
     @Override
-    public RTCPPacketTransformer getRTCPPacketTransformer()
+    public Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer()
     {
         return this;
     }
@@ -145,7 +145,7 @@ public class BasicRTCPTerminationStrategy
      * @return
      */
     @Override
-    public RTCPCompoundPacket transformRTCPPacket(
+    public RTCPCompoundPacket transform(
             RTCPCompoundPacket inPacket)
     {
         if (inPacket == null

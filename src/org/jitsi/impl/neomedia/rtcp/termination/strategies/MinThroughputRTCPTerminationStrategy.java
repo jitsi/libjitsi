@@ -21,7 +21,7 @@ import java.util.*;
  * @author George Politis
  */
 public class MinThroughputRTCPTerminationStrategy
-        implements RTCPTerminationStrategy, RTCPPacketTransformer
+        implements RTCPTerminationStrategy, Transformer<RTCPCompoundPacket>
 {
     private final RTCPReportBuilder reportBuilder
             // TODO(gp) create an RTCPReportBuilderImpl that reports feedback using the announced SSRC of the bridge
@@ -31,7 +31,7 @@ public class MinThroughputRTCPTerminationStrategy
     public static final int MIN_EXP = 1;
 
     @Override
-    public RTCPCompoundPacket transformRTCPPacket(RTCPCompoundPacket inPacket)
+    public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
     {
         if (inPacket == null
                 || inPacket.packets == null || inPacket.packets.length == 0)
@@ -88,7 +88,7 @@ public class MinThroughputRTCPTerminationStrategy
     }
 
     @Override
-    public RTCPPacketTransformer getRTCPPacketTransformer()
+    public Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer()
     {
         return this;
     }

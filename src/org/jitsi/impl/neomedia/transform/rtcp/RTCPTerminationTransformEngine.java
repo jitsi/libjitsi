@@ -15,10 +15,10 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
- * Uses the <tt>RTCPPacketTransformer</tt> of the
- * <tt>RTCPTerminationStrategy</tt> of the <tt>RTPTranslator</tt> of the
- * associated <tt>MediaStream</tt> to transform incoming RTCP packets. Advanced
- * RTCP termination strategies can drop incoming RTCP packets.
+ * Uses the <tt>Transformer</tt> of the <tt>RTCPTerminationStrategy</tt> of the
+ * <tt>RTPTranslator</tt> of the associated <tt>MediaStream</tt> to transform
+ * incoming RTCP packets. Advanced RTCP termination strategies can drop incoming
+ * RTCP packets.
  *
  * @author George Politis
  */
@@ -98,8 +98,8 @@ public class RTCPTerminationTransformEngine
         if (rtcpTerminationStrategy == null)
             return pkt;
 
-        RTCPPacketTransformer rtcpPacketTransformer
-                = rtcpTerminationStrategy.getRTCPPacketTransformer();
+        Transformer<RTCPCompoundPacket> rtcpPacketTransformer
+                = rtcpTerminationStrategy.getRTCPCompoundPacketTransformer();
 
         if (rtcpPacketTransformer == null)
             return pkt;
@@ -124,7 +124,7 @@ public class RTCPTerminationTransformEngine
 
         // Transform the RTCP packet.
         RTCPCompoundPacket outRTCPPacket = rtcpPacketTransformer
-                .transformRTCPPacket(inRTCPPacket);
+                .transform(inRTCPPacket);
 
         // If the outRTCPPacket is the same object as the inRTCPPacket,
         // return the pkt.

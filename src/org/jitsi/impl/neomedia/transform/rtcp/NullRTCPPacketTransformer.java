@@ -12,15 +12,13 @@ import org.jitsi.service.neomedia.*;
 /**
  * Created by gp on 7/2/14.
  */
-public class NullRTCPPacketTransformer implements RTCPPacketTransformer
+public class NullRTCPPacketTransformer implements Transformer<RTCPCompoundPacket>
 {
     /**
-     *
-     * @param inPacket
-     * @return
+     * {@inheritDoc}
      */
     @Override
-    public RTCPCompoundPacket transformRTCPPacket(RTCPCompoundPacket inPacket)
+    public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
     {
         // This strategy does not perform any modifications to incoming RTCP
         // traffic.

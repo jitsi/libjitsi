@@ -23,12 +23,12 @@ public class SilentBridgeRTCPTerminationStrategy
     private final RTCPReportBuilder reportBuilder =
             new NullRTCPReportBuilderImpl();
 
-    private final RTCPPacketTransformer packetTransformer =
+    private final Transformer<RTCPCompoundPacket> packetTransformer =
             new NullRTCPPacketTransformer();
 
 
     @Override
-    public RTCPPacketTransformer getRTCPPacketTransformer()
+    public Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer()
     {
         return packetTransformer;
     }

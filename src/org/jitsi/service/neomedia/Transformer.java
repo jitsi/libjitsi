@@ -6,12 +6,10 @@
  */
 package org.jitsi.service.neomedia;
 
-import net.sf.fmj.media.rtp.*;
-
 /**
  * @author George Politis
  */
-public interface RTCPPacketTransformer
+public interface Transformer<T>
 {
     /**
      * Transforms an incoming RTCP packet.
@@ -21,5 +19,5 @@ public interface RTCPPacketTransformer
      * the method returns the input packet. If the packet is to be dropped,
      * the method returns null.
      */
-    RTCPCompoundPacket transformRTCPPacket(RTCPCompoundPacket inPacket);
+    T transform(T inPacket);
 }
