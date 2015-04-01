@@ -15,7 +15,12 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
- * Created by gp on 7/1/14.
+ * Uses the <tt>RTCPPacketTransformer</tt> of the
+ * <tt>RTCPTerminationStrategy</tt> of the <tt>RTPTranslator</tt> of the
+ * associated <tt>MediaStream</tt> to transform incoming RTCP packets. Advanced
+ * RTCP termination strategies can drop incoming RTCP packets.
+ *
+ * @author George Politis
  */
 public class RTCPTerminationTransformEngine
     extends SinglePacketTransformer
@@ -24,28 +29,46 @@ public class RTCPTerminationTransformEngine
     private static final Logger logger
         = Logger.getLogger(RTCPTerminationTransformEngine.class);
 
+    /**
+     * The associated <tt>MediaStream</tt> of this
+     * <tt><RTCPTerminationTransformEngine/tt>.
+     */
     private final MediaStream mediaStream;
 
     private final RTCPPacketParserEx parser;
 
+    /**
+     * Ctor.
+     *
+     * @param mediaStream
+     */
     public RTCPTerminationTransformEngine(MediaStream mediaStream)
     {
         this.mediaStream = mediaStream;
         this.parser = new RTCPPacketParserEx();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void close()
     {
         // Nothing to do here.
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public PacketTransformer getRTCPTransformer()
     {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public PacketTransformer getRTPTransformer()
     {
@@ -53,6 +76,9 @@ public class RTCPTerminationTransformEngine
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
@@ -60,7 +86,8 @@ public class RTCPTerminationTransformEngine
         if (pkt == null)
             return pkt;
 
-        // Get the RTCP strategy.
+        // Get the RTCP termination strategy from the assiciated media stream
+        // translator.
         RTPTranslator rtpTranslator = mediaStream.getRTPTranslator();
         if (rtpTranslator == null)
             return pkt;
@@ -73,6 +100,9 @@ public class RTCPTerminationTransformEngine
 
         RTCPPacketTransformer rtcpPacketTransformer
                 = rtcpTerminationStrategy.getRTCPPacketTransformer();
+
+        if (rtcpPacketTransformer == null)
+            return pkt;
 
         // Parse the RTCP packet.
         RTCPCompoundPacket inRTCPPacket;
@@ -136,6 +166,9 @@ public class RTCPTerminationTransformEngine
         return pktOut;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public RawPacket transform(RawPacket pkt)
     {

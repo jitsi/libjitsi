@@ -9,24 +9,32 @@ package org.jitsi.impl.neomedia.rtp.translator;
 import net.sf.fmj.media.rtp.*;
 
 /**
-* Created by gp on 7/2/14.
-*/
+ * Implements an <tt>RTCPReportBuilder</tt> which delegates its calls to a
+ * specific <tt>RTCPReportBuilder</tt>. If a delegate is not specified, then
+ * this class delegates its calls to an <tt>DefaultRTCPReportBuilderImpl</tt>
+ * instance.
+ *
+ * This class can be used to change the RTCP termination strategy during the
+ * run-time.
+ *
+ * @author George Politis
+ */
 class DelegatingRTCPReportBuilder
     implements RTCPReportBuilder
 {
     /**
-     *
+     * Delegate <tt><RTCPReportBuilder/tt>.
      */
     private RTCPReportBuilder delegate;
 
     /**
-     *
+     * Fallback <tt><RTCPReportBuilder/tt>.
      */
     private final RTCPReportBuilder fallback =
-            new DefaultRTCPReportBuilderImpl(); // TODO configurable?
+            new DefaultRTCPReportBuilderImpl();
 
     /**
-     *
+     * The <tt>RTCPTransmitter</tt> of this <tt>RTCPReportBuilder</tt>.
      */
     private RTCPTransmitter rtcpTransmitter;
 
@@ -40,8 +48,7 @@ class DelegatingRTCPReportBuilder
     }
 
     /**
-     *
-     * @return
+     * {@inheritDoc}
      */
     @Override
     public RTCPPacket[] makeReports()
@@ -58,7 +65,7 @@ class DelegatingRTCPReportBuilder
     }
 
     /**
-     *
+     * {@inheritDoc}
      */
     @Override
     public void reset()
@@ -73,8 +80,7 @@ class DelegatingRTCPReportBuilder
     }
 
     /**
-     *
-     * @param rtcpTransmitter
+     * {@inheritDoc}
      */
     @Override
     public void setRTCPTransmitter(RTCPTransmitter rtcpTransmitter)
@@ -86,6 +92,9 @@ class DelegatingRTCPReportBuilder
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public RTCPTransmitter getRTCPTransmitter()
     {
@@ -93,7 +102,7 @@ class DelegatingRTCPReportBuilder
     }
 
     /**
-     *
+     * Notifies this instance that {@link #rtcpTransmitter} has changed.
      */
     private void onRTCPTransmitterChanged()
     {
@@ -107,7 +116,7 @@ class DelegatingRTCPReportBuilder
     }
 
     /**
-     *
+     * Notifies this instance that {@link #delegate} has changed.
      */
     private void onDelegateChanged()
     {
