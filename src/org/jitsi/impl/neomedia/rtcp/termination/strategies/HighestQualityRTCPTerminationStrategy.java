@@ -114,13 +114,32 @@ import org.jitsi.service.neomedia.*;
  * @author George Politis
  */
 public class HighestQualityRTCPTerminationStrategy
-        extends BasicRTCPTerminationStrategy
+        extends AbstractRTCPTerminationStrategy
 {
     /**
      * The cache processor that will be making the RTCP reports coming from
      * the bridge.
      */
     private FeedbackCacheProcessor feedbackCacheProcessor;
+
+    /**
+     * A cache of media receiver feedback. It contains both receiver report
+     * blocks and REMB packets.
+     */
+    private final FeedbackCache feedbackCache;
+
+    /**
+     * Ctor.
+     */
+    public HighestQualityRTCPTerminationStrategy()
+    {
+        this.feedbackCache = new FeedbackCache();
+
+        setTransformerChain(new Transformer[]{
+                new FeedbackCacheUpdater(feedbackCache),
+                new ReceiverFeedbackFilter()
+        });
+    }
 
     @Override
     public RTCPPacket[] makeReports()
@@ -136,7 +155,7 @@ public class HighestQualityRTCPTerminationStrategy
         if (this.feedbackCacheProcessor == null)
         {
             this.feedbackCacheProcessor
-                    = new FeedbackCacheProcessor(getFeedbackCache());
+                    = new FeedbackCacheProcessor(feedbackCache);
 
             // TODO(gp) make percentile configurable.
             this.feedbackCacheProcessor.setPercentile(70);

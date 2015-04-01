@@ -12,7 +12,7 @@ import org.jitsi.service.neomedia.*;
 
 /**
  * Forwards whatever it receives from the network but it doesn't generate
- * anything. This strategy will be useful for conferences for up to 2
+ * anything. This strategy will be useful for conferences of up to 2
  * participants.
  *
  * @author George Politis

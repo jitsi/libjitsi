@@ -6,43 +6,31 @@
  */
 package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
-import java.util.*;
-
 import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.*;
+
+import java.util.*;
 
 /**
  * Removes report blocks and REMB packets (collectively referred to as receiver
  * feedback) from incoming receiver/sender reports.
  *
- * Updates the feedback cache and makes its own reports based on the feedback
- * cache information.
- *
- * Serves as a base for other RTCP termination strategies.
+ * Updates the feedback cache and makes its own reports based on information
+ * from FMJ and the feedback cache.
  *
  * @author George Politis
  */
 public class BasicRTCPTerminationStrategy
-        implements RTCPTerminationStrategy,
-            Transformer<RTCPCompoundPacket>,
-            RTCPReportBuilder
+        extends AbstractRTCPTerminationStrategy
 {
     /**
-     *
+     * The cache processor that will be making the RTCP reports coming from
+     * the bridge.
      */
-    private RTCPTransmitter rtcpTransmitter;
-
-    /**
-     *
-     */
-    private final ReceiverReporting receiverReporting;
-
-    /**
-     * The <tt>RTPTranslator</tt> associated with this strategy.
-     */
-    private RTPTranslator translator;
+    private FeedbackCacheProcessor feedbackCacheProcessor;
 
     /**
      * A cache of media receiver feedback. It contains both receiver report
@@ -51,181 +39,139 @@ public class BasicRTCPTerminationStrategy
     private final FeedbackCache feedbackCache;
 
     /**
-     *
-     * @return
-     */
-    public FeedbackCache getFeedbackCache()
-    {
-        return feedbackCache;
-    }
-
-    /**
-     *
+     * Ctor.
      */
     public BasicRTCPTerminationStrategy()
     {
         this.feedbackCache = new FeedbackCache();
-        this.receiverReporting = new ReceiverReporting(this);
 
-        reset();
+        setTransformerChain(new Transformer[]{
+                new FeedbackCacheUpdater(feedbackCache),
+                new ReceiverFeedbackFilter()
+        });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public RTCPPacket[] makeReports()
     {
-        return receiverReporting.makeReports();
-    }
+        RTCPTransmitter rtcpTransmitter
+                = this.getRTCPReportBuilder().getRTCPTransmitter();
 
-    @Override
-    public void reset()
-    {
-        /* Nothing to do here */
-    }
+        if (rtcpTransmitter == null)
+            throw new IllegalStateException("rtcpTransmitter is not set");
 
-    @Override
-    public void setRTCPTransmitter(RTCPTransmitter rtcpTransmitter)
-    {
-        if (rtcpTransmitter != this.rtcpTransmitter)
+        RTPTranslator t = this.getRTPTranslator();
+        if (t == null || !(t instanceof RTPTranslatorImpl))
+            return new RTCPPacket[0];
+
+        // Use the SSRC of the bridge that is announced through signaling so
+        // that the endpoints won't drop the packet.
+        int localSSRC = (int) ((RTPTranslatorImpl) t).getLocalSSRC(null);
+
+        Vector<RTCPPacket> packets = new Vector<RTCPPacket>();
+
+        long time = System.currentTimeMillis();
+        RTCPReportBlock reports[] = makeReceiverReports(time);
+        RTCPReportBlock firstrep[] = reports;
+
+        // If the number of sources for which reception statistics are being
+        // reported exceeds 31, the number that will fit into one SR or RR
+        // packet, then additional RR packets SHOULD follow the initial report
+        // packet.
+        if (reports.length > 31)
         {
-            this.rtcpTransmitter = rtcpTransmitter;
-            onRTCPTransmitterChanged();
-        }
-    }
-
-    /**
-     * Notifies this instance that the <tt>RTCPTransmitter</tt> has changed.
-     */
-    private void onRTCPTransmitterChanged()
-    {
-        RTCPTransmitter t;
-        SSRCCache c;
-        if ((t = this.rtcpTransmitter) != null
-                && (c = t.cache) != null)
-        {
-            // Make the SSRCCache to "calculate" an RTCP reporting interval of 
-            // 1s.
-            c.audio = false;
-        }
-    }
-
-    @Override
-    public RTCPTransmitter getRTCPTransmitter()
-    {
-        return this.rtcpTransmitter;
-    }
-
-    @Override
-    public Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer()
-    {
-        return this;
-    }
-
-    @Override
-    public RTCPReportBuilder getRTCPReportBuilder()
-    {
-        return this;
-    }
-
-    @Override
-    public void setRTPTranslator(RTPTranslator translator) {
-        this.translator = translator;
-    }
-
-    @Override
-    public RTPTranslator getRTPTranslator()
-    {
-        return this.translator;
-    }
-
-    /**
-     * 1. Removes receiver report blocks from RRs and SRs and kills REMBs.
-     * 2. Updates the receiver feedback cache.
-     *
-     * @param inPacket
-     * @return
-     */
-    @Override
-    public RTCPCompoundPacket transform(
-            RTCPCompoundPacket inPacket)
-    {
-        if (inPacket == null
-                || inPacket.packets == null || inPacket.packets.length == 0)
-        {
-            return inPacket;
+            firstrep = new RTCPReportBlock[31];
+            System.arraycopy(reports, 0, firstrep, 0, 31);
         }
 
-        Vector<RTCPPacket> outPackets = new Vector<RTCPPacket>(
-                inPacket.packets.length);
+        packets.addElement(new RTCPRRPacket(localSSRC, firstrep));
 
-        // These are the data that are of interest to us : RR report blocks and
-        // REMBs. We'll also need the SSRC of the RTCP report sender.
-
-        RTCPReportBlock[] reports = null;
-        RTCPREMBPacket remb = null;
-        Integer ssrc = 0;
-
-        // Modify the incoming RTCP packet and/or update the
-        // <tt>feedbackCache</tt>.
-        for (RTCPPacket p : inPacket.packets)
+        if (firstrep != reports)
         {
-            switch (p.type)
+            for (int offset = 31; offset < reports.length; offset += 31)
             {
-                case RTCPPacket.RR:
+                if (reports.length - offset < 31)
+                    firstrep = new RTCPReportBlock[reports.length - offset];
+                System.arraycopy(reports, offset, firstrep, 0, firstrep.length);
+                RTCPRRPacket rrp = new RTCPRRPacket(localSSRC, firstrep);
+                packets.addElement(rrp);
+            }
 
-                    // Grab the receiver report blocks to put them into the
-                    // cache after the loop is done and mute the RR.
+        }
 
-                    RTCPRRPacket rr = (RTCPRRPacket) p;
-                    reports = rr.reports;
-                    ssrc = Integer.valueOf(rr.ssrc);
+        // Include REMB.
 
-                    break;
-                case RTCPPacket.SR:
+        // TODO(gp) build REMB packets from scratch, like we do in the bridge.
+        if (this.feedbackCacheProcessor == null)
+        {
+            this.feedbackCacheProcessor
+                    = new FeedbackCacheProcessor(feedbackCache);
 
-                    // Grab the receiver report blocks to put them into the
-                    // cache after the loop is done; mute the receiver report
-                    // blocks.
+            // TODO(gp) make percentile configurable.
+            this.feedbackCacheProcessor.setPercentile(70);
+        }
 
-                    RTCPSRPacket sr = (RTCPSRPacket) p;
-                    outPackets.add(sr);
-                    reports = sr.reports;
-                    ssrc = Integer.valueOf(sr.ssrc);
-                    sr.reports = new RTCPReportBlock[0];
-                    break;
-                case RTCPFBPacket.PSFB:
-                    RTCPFBPacket psfb = (RTCPFBPacket) p;
-                    switch (psfb.fmt)
-                    {
-                        case RTCPREMBPacket.FMT:
-
-                            // NOT adding the REMB in the outPacket as we mute
-                            // REMBs from the peers.
-                            //
-                            // We put it into the feedback cache instead.
-                            remb = (RTCPREMBPacket) p;
-                            ssrc = Integer.valueOf((int) remb.senderSSRC);
-
-                            break;
-                        default:
-                            // Pass through everything else, like PLIs and NACKs
-                            outPackets.add(psfb);
-                            break;
-                    }
-                    break;
-                default:
-                    // Pass through everything else, like PLIs and NACKs
-                    outPackets.add(p);
-                    break;
+        RTCPPacket[] bestReceiverFeedback = feedbackCacheProcessor.makeReports(
+                localSSRC);
+        if (bestReceiverFeedback != null && bestReceiverFeedback.length != 0)
+        {
+            for (RTCPPacket packet : bestReceiverFeedback)
+            {
+                if (packet.type == RTCPFBPacket.PSFB
+                        && packet instanceof RTCPFBPacket
+                        && ((RTCPFBPacket) packet).fmt == RTCPREMBPacket.FMT)
+                {
+                    packets.add(packet);
+                }
             }
         }
 
-        feedbackCache.update(ssrc, reports, remb);
+        // TODO(gp) for RTCP compound packets MUST contain an SDES packet.
 
-        RTCPPacket[] outarr = new RTCPPacket[outPackets.size()];
-        outPackets.copyInto(outarr);
+        // Copy into an array and return.
+        RTCPPacket[] res = new RTCPPacket[packets.size()];
+        packets.copyInto(res);
+        return res;
+    }
 
-        RTCPCompoundPacket outPacket = new RTCPCompoundPacket(outarr);
+    private Map<Integer, RTCPReportBlock> makeReceiverReportsMap(long time)
+    {
+        Map<Integer, RTCPReportBlock> reports = new HashMap<Integer, RTCPReportBlock>();
 
-        return outPacket;
+        RTCPTransmitter rtcpTransmitter
+                = this.getRTCPReportBuilder().getRTCPTransmitter();
+
+        if (rtcpTransmitter == null)
+            throw new IllegalStateException("rtcpTransmitter is not set");
+
+        // Make receiver reports for all known SSRCs.
+        for (Enumeration<SSRCInfo> elements = rtcpTransmitter.cache.cache.elements();
+             elements.hasMoreElements(); )
+        {
+            SSRCInfo info = elements.nextElement();
+            synchronized (info)
+            {
+                if (!info.ours)
+                {
+                    RTCPReportBlock receiverReport
+                            = info.makeReceiverReport(time);
+
+                    reports.put(info.ssrc, receiverReport);
+                }
+            }
+        }
+
+        return reports;
+    }
+
+    private RTCPReportBlock[] makeReceiverReports(long time)
+    {
+        Collection<RTCPReportBlock> reports
+                = makeReceiverReportsMap(time).values();
+
+        return reports.toArray(new RTCPReportBlock[reports.size()]);
     }
 }
