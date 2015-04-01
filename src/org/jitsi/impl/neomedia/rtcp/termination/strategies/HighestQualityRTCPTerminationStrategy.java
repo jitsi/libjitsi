@@ -120,7 +120,7 @@ public class HighestQualityRTCPTerminationStrategy
      * The cache processor that will be making the RTCP reports coming from
      * the bridge.
      */
-    private FeedbackCacheProcessor feedbackCacheProcessor;
+    private final FeedbackCacheProcessor feedbackCacheProcessor;
 
     /**
      * A cache of media receiver feedback. It contains both receiver report
@@ -134,6 +134,11 @@ public class HighestQualityRTCPTerminationStrategy
     public HighestQualityRTCPTerminationStrategy()
     {
         this.feedbackCache = new FeedbackCache();
+        this.feedbackCacheProcessor
+                = new FeedbackCacheProcessor(feedbackCache);
+
+        // TODO(gp) make percentile configurable.
+        this.feedbackCacheProcessor.setPercentile(70);
 
         setTransformerChain(new Transformer[]{
                 new FeedbackCacheUpdater(feedbackCache),
@@ -151,15 +156,6 @@ public class HighestQualityRTCPTerminationStrategy
             return new RTCPPacket[0];
 
         long localSSRC = ((RTPTranslatorImpl)t).getLocalSSRC(null);
-
-        if (this.feedbackCacheProcessor == null)
-        {
-            this.feedbackCacheProcessor
-                    = new FeedbackCacheProcessor(feedbackCache);
-
-            // TODO(gp) make percentile configurable.
-            this.feedbackCacheProcessor.setPercentile(70);
-        }
 
         RTCPPacket[] packets = feedbackCacheProcessor.makeReports(
                 (int) localSSRC);

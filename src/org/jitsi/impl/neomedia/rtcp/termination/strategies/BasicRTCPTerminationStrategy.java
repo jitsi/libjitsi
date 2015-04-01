@@ -30,7 +30,7 @@ public class BasicRTCPTerminationStrategy
      * The cache processor that will be making the RTCP reports coming from
      * the bridge.
      */
-    private FeedbackCacheProcessor feedbackCacheProcessor;
+    private final FeedbackCacheProcessor feedbackCacheProcessor;
 
     /**
      * A cache of media receiver feedback. It contains both receiver report
@@ -44,6 +44,11 @@ public class BasicRTCPTerminationStrategy
     public BasicRTCPTerminationStrategy()
     {
         this.feedbackCache = new FeedbackCache();
+        this.feedbackCacheProcessor
+                = new FeedbackCacheProcessor(feedbackCache);
+
+        // TODO(gp) make percentile configurable.
+        this.feedbackCacheProcessor.setPercentile(70);
 
         setTransformerChain(new Transformer[]{
                 new FeedbackCacheUpdater(feedbackCache),
@@ -104,15 +109,8 @@ public class BasicRTCPTerminationStrategy
 
         // Include REMB.
 
-        // TODO(gp) build REMB packets from scratch, like we do in the bridge.
-        if (this.feedbackCacheProcessor == null)
-        {
-            this.feedbackCacheProcessor
-                    = new FeedbackCacheProcessor(feedbackCache);
-
-            // TODO(gp) make percentile configurable.
-            this.feedbackCacheProcessor.setPercentile(70);
-        }
+        // TODO(gp) build REMB packets from scratch instead of relying on the
+        // feedback cache processor, just like we do in the JVB.
 
         RTCPPacket[] bestReceiverFeedback = feedbackCacheProcessor.makeReports(
                 localSSRC);
