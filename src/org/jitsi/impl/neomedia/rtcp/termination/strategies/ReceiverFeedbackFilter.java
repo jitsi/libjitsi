@@ -35,11 +35,17 @@ public class ReceiverFeedbackFilter implements Transformer<RTCPCompoundPacket>
         {
             switch (p.type)
             {
+                case RTCPPacket.RR:
+
+                    // mute the receiver report blocks.
+
+                    RTCPRRPacket rr = (RTCPRRPacket) p;
+                    outPackets.add(rr);
+                    rr.reports = new RTCPReportBlock[0];
+                    break;
                 case RTCPPacket.SR:
 
-                    // Grab the receiver report blocks to put them into the
-                    // cache after the loop is done; mute the receiver report
-                    // blocks.
+                    // mute the receiver report blocks.
 
                     RTCPSRPacket sr = (RTCPSRPacket) p;
                     outPackets.add(sr);
