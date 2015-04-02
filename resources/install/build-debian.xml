@@ -1,6 +1,7 @@
 <project name="libjitsi-debian" basedir=".">
 
     <property name="tmp" value="tmp"/>
+    <property name="sdes4j" value="sdes4j-r1.1.3"/>
 
     <!-- The target that is called just after clean
     and before building. Will prepare all sources in ${tmp} folder.
@@ -68,11 +69,7 @@
 
         <!-- sdes -->
         <unzip src="../libsrc/sdes4j.zip"
-               dest="${tmp}/libjitsi/lib/src/sdes4j">
-            <patternset>
-                <exclude name="**/.svn"/>
-            </patternset>
-        </unzip>
+               dest="${tmp}/libjitsi/lib/src/"/>
 
         <!-- fmj
         svn checkout http://svn.code.sf.net/p/fmj/code/fmj fmj
@@ -182,7 +179,7 @@
             <fileset dir="lib/src/zrtp4j/lib">
                 <include name="*"/>
             </fileset>
-            <fileset dir="lib/src/sdes4j/lib">
+            <fileset dir="lib/src/${sdes4j}/lib">
                 <include name="*"/>
             </fileset>
             <fileset dir="lib/src/jsip/lib">
@@ -203,9 +200,15 @@
         <ant dir="lib/src/ice4j"
              inheritAll="false"
              target="clean"/>
-        <ant dir="lib/src/sdes4j"
-             inheritAll="false"
-             target="clean"/>
+        <exec   dir="lib/src/${sdes4j}"
+                executable="mvn-debian"
+                resolveexecutable="true"
+                failonerror="true">
+            <arg value="-f" />
+            <arg value="pom.xml" />
+            <arg value="-Dmaven.test.skip=true" />
+            <arg value="clean" />
+        </exec>
         <ant dir="lib/src/jsip"
              inheritAll="false"
              target="clean"/>
@@ -259,16 +262,17 @@
                  link="lib/src/ice4j/lib/weupnp-0.1.2-SNAPSHOT.jar"/>
 
         <!-- sdes -->
-        <mkdir dir="lib/src/sdes4j/lib"/>
-        <symlink resource="/usr/share/java/commons-codec.jar"
-                 overwrite="true"
-                 link="lib/src/sdes4j/lib/commons-codec.jar"/>
-        <ant dir="lib/src/sdes4j"
-             inheritAll="false"
-             target="jar">
-        </ant>
+        <exec   dir="lib/src/${sdes4j}"
+                executable="mvn-debian"
+                resolveexecutable="true"
+                failonerror="true">
+            <arg value="-f" />
+            <arg value="pom.xml" />
+            <arg value="-Dmaven.test.skip=true" />
+            <arg value="package" />
+        </exec>
         <copy tofile="lib/sdes4j.jar"
-              file="lib/src/sdes4j/build/dist/sdes4j-1.1.3.jar"/>
+              file="lib/src/${sdes4j}/target/sdes4j-1.1.3.jar"/>
 
         <symlink resource="/usr/share/java/org.apache.felix.framework.jar"
                  overwrite="true"
