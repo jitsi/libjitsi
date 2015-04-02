@@ -5,3 +5,4 @@ libav10.patch
 encoding.patch
 jdk8
 remove-gsm
+sdes4j.patch
