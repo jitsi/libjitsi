@@ -364,7 +364,14 @@ public class AudioMediaStreamImpl
     protected DtmfTransformEngine createDtmfTransformEngine()
     {
         if (dtmfTransformEngine == null)
-            dtmfTransformEngine = new DtmfTransformEngine(this);
+        {
+            ConfigurationService cfg = LibJitsi.getConfigurationService();
+            if (cfg == null || !cfg.getBoolean(
+                    AudioMediaStream.DISABLE_DTMF_HANDLING_PNAME, false))
+            {
+                dtmfTransformEngine = new DtmfTransformEngine(this);
+            }
+        }
         return dtmfTransformEngine;
     }
 

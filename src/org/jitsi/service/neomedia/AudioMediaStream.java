@@ -20,6 +20,15 @@ public interface AudioMediaStream
     extends MediaStream
 {
     /**
+     * The name of the property which controls whether handling of RFC4733
+     * DTMF packets should be disabled or enabled. If disabled, packets will
+     * not be processed or dropped (regardless of whether there is a payload
+     * type number registered for the telephone-event format).
+     */
+    public static String DISABLE_DTMF_HANDLING_PNAME
+            = AudioMediaStream.class.getName() + ".DISABLE_DTMF_HANDLING";
+
+    /**
      * Registers a listener that would receive notification events if the
      * remote party starts sending DTMF tones to us.
      *
