@@ -1,8 +1,8 @@
 Description: Updates pom.xml to be able to build with mvn-debian
-Index: libjitsi/lib/src/sdes4j-r1.1.3/pom.xml
+Index: libjitsi/lib/src/sdes4j/pom.xml
 ===================================================================
---- libjitsi.orig/lib/src/sdes4j-r1.1.3/pom.xml
-+++ libjitsi/lib/src/sdes4j-r1.1.3/pom.xml
+--- libjitsi.orig/lib/src/sdes4j/pom.xml
++++ libjitsi/lib/src/sdes4j/pom.xml
 @@ -37,10 +37,10 @@
  		<dependency>
  			<groupId>commons-codec</groupId>

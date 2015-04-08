@@ -1,7 +1,6 @@
 <project name="libjitsi-debian" basedir=".">
 
     <property name="tmp" value="tmp"/>
-    <property name="sdes4j" value="sdes4j-r1.1.3"/>
 
     <!-- The target that is called just after clean
     and before building. Will prepare all sources in ${tmp} folder.
@@ -70,6 +69,14 @@
         <!-- sdes -->
         <unzip src="../libsrc/sdes4j.zip"
                dest="${tmp}/libjitsi/lib/src/"/>
+        <path id="sdes_name">
+            <dirset dir="${tmp}/libjitsi/lib/src/">
+                <include name="sdes4j-*"/>
+            </dirset>
+        </path>
+        <property name="sdes-pkg-name" refid="sdes_name" />
+        <echo message="renaming ${sdes-pkg-name} to ${tmp}/libjitsi/lib/src/sdes4j" />
+        <move file="${sdes-pkg-name}" tofile="${tmp}/libjitsi/lib/src/sdes4j" />
 
         <!-- fmj
         svn checkout http://svn.code.sf.net/p/fmj/code/fmj fmj
@@ -183,7 +190,7 @@
             <fileset dir="lib/src/zrtp4j/lib">
                 <include name="*"/>
             </fileset>
-            <fileset dir="lib/src/${sdes4j}/lib">
+            <fileset dir="lib/src/sdes4j/lib">
                 <include name="*"/>
             </fileset>
             <fileset dir="lib/src/jsip/lib">
@@ -204,7 +211,7 @@
         <ant dir="lib/src/ice4j"
              inheritAll="false"
              target="clean"/>
-        <exec   dir="lib/src/${sdes4j}"
+        <exec   dir="lib/src/sdes4j"
                 executable="mvn-debian"
                 resolveexecutable="true"
                 failonerror="true">
@@ -266,7 +273,7 @@
                  link="lib/src/ice4j/lib/weupnp-0.1.2-SNAPSHOT.jar"/>
 
         <!-- sdes -->
-        <exec   dir="lib/src/${sdes4j}"
+        <exec   dir="lib/src/sdes4j"
                 executable="mvn-debian"
                 resolveexecutable="true"
                 failonerror="true">
@@ -276,7 +283,7 @@
             <arg value="package" />
         </exec>
         <copy tofile="lib/sdes4j.jar"
-              file="lib/src/${sdes4j}/target/sdes4j-1.1.3.jar"/>
+              file="lib/src/sdes4j/target/sdes4j-1.1.3.jar"/>
 
         <symlink resource="/usr/share/java/org.apache.felix.framework.jar"
                  overwrite="true"

@@ -70,7 +70,7 @@ Copyright:
  1999-2006 Ross Bencina and Phil Burk
 License: MIT
 
-Files: lib/src/sdes4j-r1.1.3/*
+Files: lib/src/sdes4j/*
 Copyright:
  2011 University of Applied Sciences Northwestern Switzerland (FHNW)
  2011 School of Engineering Institute of Mobile and Distributed Systems (IMVS)
