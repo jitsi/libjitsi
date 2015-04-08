@@ -121,7 +121,11 @@
 
         <!-- zrtp4j -->
         <unzip src="../libsrc/zrtp4j-src-3.2.0.zip"
-               dest="${tmp}/libjitsi/lib/src"/>
+               dest="${tmp}/libjitsi/lib/src">
+            <patternset>
+                <exclude name="**/demo/**"/>
+            </patternset>
+        </unzip>
 
         <!-- bccontrib -->
         <unzip src="../libsrc/bccontrib.zip"
