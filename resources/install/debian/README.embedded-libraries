@@ -34,6 +34,7 @@ This project contains the Skein hash function, the Threefish encryption
 function and the Fortuna random generator as a Java implementation. The API is
 designed to be compatible to BouncyCastle.
 Reason: No Debian package.
+ITP: http://bugs.debian.org/754198
 
 - sdes4j http://code.google.com/p/sdes4j/
 Implementation of RFC4568: Session Description Protocol (SDP)
