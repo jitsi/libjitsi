@@ -27,10 +27,6 @@ Copyright:
  2005-2006, University of Manchester,  Andrew G D Rowleym, Modified by Christian Vincenot
 License: BSD-3-clause
 
-Files: lib/src/jsip/src/gov/nist/core/MultiMap.java
-Copyright: 1999-2004 The Apache Software Foundation
-License: Apache-2.0
-
 Files: lib/src/jsip/src/gov/*
        lib/src/jsip/src/test/*
        lib/src/jsip/src/tools/*
@@ -53,17 +49,21 @@ License: public-domain
  not limited to the correctness, accuracy, reliability or usefulness of
  this software.
 
-Files: lib/src/bccontrib/src/main/java/org/jitsi/bccontrib/prng
-Copyright:
- Copyright (C) 2010 Werner Dittmann <Werner.Dittmann@t-online.de>
- Copyright (C) 2004, 2006 Free Software Foundation, Inc.
-License: GPL-2+ with classpath exception
+Files: lib/src/jsip/src/gov/nist/core/MultiMap.java
+Copyright: 1999-2004 The Apache Software Foundation
+License: Apache-2.0
 
 Files: lib/src/bccontrib/*
 Copyright:
  2010 Alberto Fajardo and Werner Dittmann
  2004, 2006 Free Software Foundation, Inc.
 License: MIT
+
+Files: lib/src/bccontrib/src/main/java/org/jitsi/bccontrib/prng/*
+Copyright:
+ Copyright (C) 2010 Werner Dittmann <Werner.Dittmann@t-online.de>
+ Copyright (C) 2004, 2006 Free Software Foundation, Inc.
+License: GPL-2+ with classpath exception
 
 Files: lib/src/portaudio/*
 Copyright:
@@ -88,14 +88,24 @@ Copyright:
  2010 The WebM Project authors
 License: BSD-3-clause
 
+Files: lib/src/zrtp4j/src/gnu/java/zrtp/*
+Copyright:
+ 2006-2008 Werner Dittmann
+License: GPL-3+ with classpath exception
+
+Files: lib/src/zrtp4j/src/org/bouncycastle/*
+Copyright:
+ 2000 - 2008 The Legion Of The Bouncy Castle
+License: MIT
+
 Files: lib/src/zrtp4j/src/gnu/java/math/*
 Copyright:
  1999, 2000, 2001, 2004 Free Software Foundation, Inc.
 License: GPL-2+ with classpath exception
 
-Files: lib/src/zrtp4j/src/gnu/java/bigintcrypto/test/BigIntegerCryptoTest.java
+Files: lib/src/zrtp4j/src/gnu/java/bigintcrypto/*
 Copyright:
- 2006-2008 Werner Dittmann
+ 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
 License: GPL-3+ with classpath exception
 
 Files: lib/src/zrtp4j/src/gnu/java/bigintcrypto/test/*
@@ -103,8 +113,22 @@ Files: lib/src/zrtp4j/src/gnu/java/bigintcrypto/test/*
 Copyright: UNKNOWN:
 License: GPL-3+ with classpath exception
 
+Files: lib/src/zrtp4j/src/gnu/java/bigintcrypto/test/BigIntegerCryptoTest.java
+Copyright:
+ 2006-2008 Werner Dittmann
+License: GPL-3+ with classpath exception
+
 Files: lib/src/zrtp4j/src/gnu/java/zrtp/jmf/transform/*
-       lib/src/zrtp4j/src/gnu/java/zrtp/jmf/transform/zrtp/ZRTPTransformEngine.java
+Copyright:
+ 2004-2012 Emil Ivov
+License: LGPL-2.1
+
+Files: lib/src/zrtp4j/src/gnu/java/zrtp/jmf/transform/zrtp/*
+Copyright:
+ 2006-2008 Werner Dittmann
+License: GPL-3+ with classpath exception
+
+Files: lib/src/zrtp4j/src/gnu/java/zrtp/jmf/transform/zrtp/ZRTPTransformEngine.java
 Copyright:
  2004-2012 Emil Ivov
 License: LGPL-2.1
@@ -118,21 +142,6 @@ Copyright:
  2004-2012 Emil Ivov
  2004-2006 the Minisip Team
 License: LGPL-2.1
-
-Files: lib/src/zrtp4j/src/gnu/java/bigintcrypto/*
-Copyright:
- 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
-License: GPL-3+ with classpath exception
-
-Files: lib/src/zrtp4j/src/gnu/java/zrtp/*
-Copyright:
- 2006-2008 Werner Dittmann
-License: GPL-3+ with classpath exception
-
-Files: lib/src/zrtp4j/src/org/bouncycastle
-Copyright:
- 2000 - 2008 The Legion Of The Bouncy Castle
-License: MIT
 
 License: LGPL-2.1
  On Debian systems, the full text of the GNU
