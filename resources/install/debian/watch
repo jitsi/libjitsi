@@ -1,3 +1,2 @@
 version=3
-https://github.com/jitsi/libjitsi/tags \
-  .*/archive/([\d\.]+)\.tar\.gz
+https://download.jitsi.org/jitsi/debian-src libjitsi_(.+).orig.tar.gz
