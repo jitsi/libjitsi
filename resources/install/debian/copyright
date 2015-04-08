@@ -90,19 +90,49 @@ License: BSD-3-clause
 
 Files: lib/src/zrtp4j/src/gnu/java/math/*
 Copyright:
- 1999, 2000, 2001, 2004  Free Software Foundation, Inc.
+ 1999, 2000, 2001, 2004 Free Software Foundation, Inc.
 License: GPL-2+ with classpath exception
 
-Files: lib/src/zrtp4j/src/gnu/java/bigintcrypto/*
+Files: lib/src/zrtp4j/src/gnu/java/bigintcrypto/test/BigIntegerCryptoTest.java
 Copyright:
- 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007, 2009  Free Software Foundation, Inc.
+ 2006-2008 Werner Dittmann
 License: GPL-3+ with classpath exception
 
 Files: lib/src/zrtp4j/src/gnu/java/bigintcrypto/test/*
-       lib/src/zrtp4j/src/gnu/java/zrtp/*
+       lib/src/zrtp4j/src/gnu/java/zrtp/utils/ZrtpFortuna.java
+Copyright: UNKNOWN:
+License: GPL-3+ with classpath exception
+
+Files: lib/src/zrtp4j/src/gnu/java/zrtp/jmf/transform/*
+       lib/src/zrtp4j/src/gnu/java/zrtp/jmf/transform/zrtp/ZRTPTransformEngine.java
+Copyright:
+ 2004-2012 Emil Ivov
+License: LGPL-2.1
+
+Files: lib/src/zrtp4j/src/gnu/java/zrtp/jmf/transform/srtp/SRTCPCryptoContext.java
+       lib/src/zrtp4j/src/gnu/java/zrtp/jmf/transform/srtp/SRTPCipherCTR.java
+       lib/src/zrtp4j/src/gnu/java/zrtp/jmf/transform/srtp/SRTPCipherF8.java
+       lib/src/zrtp4j/src/gnu/java/zrtp/jmf/transform/srtp/SRTPCryptoContext.java
+       lib/src/zrtp4j/src/gnu/java/zrtp/jmf/transform/srtp/SRTPTransformer.java
+Copyright:
+ 2004-2012 Emil Ivov
+ 2004-2006 the Minisip Team
+License: LGPL-2.1
+
+Files: lib/src/zrtp4j/src/gnu/java/bigintcrypto/*
+Copyright:
+ 1998, 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
+License: GPL-3+ with classpath exception
+
+Files: lib/src/zrtp4j/src/gnu/java/zrtp/*
 Copyright:
  2006-2008 Werner Dittmann
-License: GPL-3+
+License: GPL-3+ with classpath exception
+
+Files: lib/src/zrtp4j/src/org/bouncycastle
+Copyright:
+ 2000 - 2008 The Legion Of The Bouncy Castle
+License: MIT
 
 License: LGPL-2.1
  On Debian systems, the full text of the GNU
@@ -241,20 +271,6 @@ License: GPL-3+ with classpath exception
  this exception to your version of the library, but you are not
  obligated to do so.  If you do not wish to do so, delete this
  exception statement from your version.
-
-License: GPL-3+
- This program is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
- .
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- .
- You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License");
