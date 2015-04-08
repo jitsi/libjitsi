@@ -1332,9 +1332,8 @@
                 <linkerarg value="-Wl,--no-undefined" />
                 <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
                 <linkerarg value="-L/usr/local/lib/" if="is.running.freebsd"/>
-                <linkerarg value="-lpulse" />
-                <linkerarg value="-ldl" if="is.running.linux"/>
-
+                <linkerarg value="-lpulse" location="end" />
+                <linkerarg value="-ldl" location="end" if="is.running.linux"/>
                 <compilerarg value="-m32" if="cross_32" />
                 <compilerarg value="-m64" if="cross_64" />
 
