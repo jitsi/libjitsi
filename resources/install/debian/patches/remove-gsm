@@ -1,3 +1,4 @@
+Description: Removes gsm codec due to patent issues.
 Index: libjitsi/src/org/jitsi/impl/neomedia/codec/FMJPlugInConfiguration.java
 ===================================================================
 --- libjitsi.orig/src/org/jitsi/impl/neomedia/codec/FMJPlugInConfiguration.java
