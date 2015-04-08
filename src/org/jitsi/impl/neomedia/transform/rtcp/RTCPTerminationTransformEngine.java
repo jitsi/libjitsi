@@ -124,7 +124,7 @@ public class RTCPTerminationTransformEngine
 
         // Transform the RTCP packet.
         RTCPCompoundPacket outRTCPPacket = rtcpPacketTransformer
-                .transform(inRTCPPacket);
+                .reverseTransform(inRTCPPacket);
 
         // If the outRTCPPacket is the same object as the inRTCPPacket,
         // return the pkt.

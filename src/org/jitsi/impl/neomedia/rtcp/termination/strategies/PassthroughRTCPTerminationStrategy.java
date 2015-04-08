@@ -12,8 +12,8 @@ import org.jitsi.service.neomedia.*;
 
 /**
  * Forwards whatever it receives from the network and it also generates RTCP
- * receiver reports using the FMJ built-in algorithm. This is the default
- * behavior, at least for now.
+ * receiver reports using the FMJ built-in algorithm. This emulates the default
+ * behavior.
  *
  * @author George Politis
  */
@@ -39,7 +39,8 @@ public class PassthroughRTCPTerminationStrategy
     }
 
     @Override
-    public void setRTPTranslator(RTPTranslator translator) {
+    public void setRTPTranslator(RTPTranslator translator)
+    {
         // Nothing to do here.
     }
 

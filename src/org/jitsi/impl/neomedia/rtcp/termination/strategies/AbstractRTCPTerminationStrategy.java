@@ -103,6 +103,24 @@ public abstract class AbstractRTCPTerminationStrategy
      * {@inheritDoc}
      */
     @Override
+    public RTCPCompoundPacket reverseTransform(RTCPCompoundPacket inPacket)
+    {
+        Transformer[] transformers = this.transformerChain;
+        if (transformers != null && transformers.length != 0)
+        {
+            for (Transformer<RTCPCompoundPacket> transformer : transformers)
+            {
+                inPacket = transformer.reverseTransform(inPacket);
+            }
+        }
+
+        return inPacket;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
     {
         Transformer[] transformers = this.transformerChain;
@@ -115,6 +133,15 @@ public abstract class AbstractRTCPTerminationStrategy
         }
 
         return inPacket;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close()
+    {
+        // nothing to be done here
     }
 
     public void setTransformerChain(

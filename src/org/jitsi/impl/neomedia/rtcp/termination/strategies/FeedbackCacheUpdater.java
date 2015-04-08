@@ -23,7 +23,7 @@ public class FeedbackCacheUpdater implements Transformer<RTCPCompoundPacket>
     }
 
     @Override
-    public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
+    public RTCPCompoundPacket reverseTransform(RTCPCompoundPacket inPacket)
     {
         if (inPacket == null
                 || inPacket.packets == null || inPacket.packets.length == 0)
@@ -88,6 +88,24 @@ public class FeedbackCacheUpdater implements Transformer<RTCPCompoundPacket>
 
         feedbackCache.update(ssrc, reports, remb);
 
+        return inPacket;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close()
+    {
+        // nothing to be done here
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
+    {
         return inPacket;
     }
 }

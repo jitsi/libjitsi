@@ -17,8 +17,11 @@ import java.util.*;
  */
 public class ReceiverFeedbackFilter implements Transformer<RTCPCompoundPacket>
 {
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
+    public RTCPCompoundPacket reverseTransform(RTCPCompoundPacket inPacket)
     {
         if (inPacket == null
                 || inPacket.packets == null || inPacket.packets.length == 0)
@@ -79,5 +82,23 @@ public class ReceiverFeedbackFilter implements Transformer<RTCPCompoundPacket>
         RTCPCompoundPacket outPacket = new RTCPCompoundPacket(outarr);
 
         return outPacket;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close()
+    {
+        // nothing to be done here
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
+    {
+        return inPacket;
     }
 }

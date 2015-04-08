@@ -18,10 +18,28 @@ public class NullRTCPPacketTransformer implements Transformer<RTCPCompoundPacket
      * {@inheritDoc}
      */
     @Override
-    public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
+    public RTCPCompoundPacket reverseTransform(RTCPCompoundPacket inPacket)
     {
         // This strategy does not perform any modifications to incoming RTCP
         // traffic.
+        return inPacket;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close()
+    {
+        // nothing to do here
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
+    {
         return inPacket;
     }
 }

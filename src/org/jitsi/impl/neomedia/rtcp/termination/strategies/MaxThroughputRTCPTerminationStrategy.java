@@ -31,7 +31,7 @@ public class MaxThroughputRTCPTerminationStrategy
     public static final int MAX_EXP = 63;
 
     @Override
-    public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
+    public RTCPCompoundPacket reverseTransform(RTCPCompoundPacket inPacket)
     {
         if (inPacket == null
                 || inPacket.packets == null || inPacket.packets.length == 0)
@@ -87,23 +87,54 @@ public class MaxThroughputRTCPTerminationStrategy
         return outPacket;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close()
+    {
+        // nothing to be done here
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
+    {
+        return inPacket;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer()
     {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public RTCPReportBuilder getRTCPReportBuilder()
     {
         return reportBuilder;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void setRTPTranslator(RTPTranslator translator) {
+    public void setRTPTranslator(RTPTranslator translator)
+    {
         // Nothing to do here.
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public RTPTranslator getRTPTranslator()
     {
