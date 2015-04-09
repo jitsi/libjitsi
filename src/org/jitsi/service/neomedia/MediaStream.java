@@ -53,6 +53,12 @@ public interface MediaStream
             MediaFormat format);
 
     /**
+     * Clears the dynamic RTP payload type associations in this
+     * <tt>MediaStream</tt>.
+     */
+    public void clearDynamicRTPPayloadTypes();
+
+    /**
      * Adds an additional RTP payload mapping that will overriding one that
      * we've set with {@link #addDynamicRTPPayloadType(byte, MediaFormat)}.
      * This is necessary so that we can support the RFC3264 case where the

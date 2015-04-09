@@ -415,6 +415,32 @@ public class MediaStreamImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void clearDynamicRTPPayloadTypes()
+    {
+        synchronized (dynamicRTPPayloadTypes)
+        {
+            dynamicRTPPayloadTypes.clear();
+
+            REDTransformEngine redTransformEngine = getRedTransformEngine();
+            if (redTransformEngine != null)
+            {
+                redTransformEngine.setIncomingPT((byte) -1);
+                redTransformEngine.setOutgoingPT((byte) -1);
+            }
+
+            FECTransformEngine fecTransformEngine = getFecTransformEngine();
+            if (fecTransformEngine != null)
+            {
+                fecTransformEngine.setIncomingPT((byte) -1);
+                fecTransformEngine.setOutgoingPT((byte) -1);
+            }
+        }
+    }
+
+    /**
      * Adds an additional RTP payload mapping that will overriding one that
      * we've set with {@link #addDynamicRTPPayloadType(byte, MediaFormat)}.
      * This is necessary so that we can support the RFC3264 case where the
