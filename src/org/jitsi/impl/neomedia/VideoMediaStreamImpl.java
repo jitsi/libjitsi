@@ -22,6 +22,7 @@ import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.QualityControl;
 import org.jitsi.service.neomedia.control.*;
@@ -64,6 +65,24 @@ public class VideoMediaStreamImpl
      * Indication messages are to be used.
      */
     private static final boolean USE_RTCP_FEEDBACK_PLI = true;
+
+    /**
+     * Engine chain removing RED if needed.
+     */
+    private REDFilterTransformEngine redFilterTransformEngine
+            = new REDFilterTransformEngine();
+
+    /**
+     * Creates the <tt>REDFilterTransformEngine</tt> for this
+     * <tt>MediaStream</tt>.
+     *
+     * @return the <tt>REDTransformEngine</tt> created.
+     */
+    @Override
+    protected REDFilterTransformEngine getRedFilterTransformEngine()
+    {
+        return redFilterTransformEngine;
+    }
 
     /**
      * Extracts and returns maximum resolution can receive from the image
