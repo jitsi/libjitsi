@@ -403,6 +403,7 @@ public class MediaStreamImpl
                 if (fecTransformEngine != null)
                 {
                     fecTransformEngine.setIncomingPT(rtpPayloadType);
+                    // TODO ULPFEC without RED doesn't make sense.
                     fecTransformEngine.setOutgoingPT(rtpPayloadType);
                 }
             }

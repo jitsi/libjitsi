@@ -116,6 +116,9 @@ class FECSender
      */
     private RawPacket[] transformSingle(RawPacket pkt, RawPacket[] pkts)
     {
+        // TODO due to the overhead introduced by adding any redundant data it
+        // is usually a good idea to activate it only when the network
+        // conditions require it.
         counter++;
         pkt.setSequenceNumber(pkt.getSequenceNumber() + nbFec);
 

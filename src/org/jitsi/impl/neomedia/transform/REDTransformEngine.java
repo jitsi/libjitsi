@@ -211,6 +211,8 @@ public class REDTransformEngine
 
             // XXX: we might need to optimize
             byte[] newBuf = new byte[hdrLen + blockLen];
+            // XXX: might be wrong but this doesn't look right -- do we really
+            // want to copy the RTP header from inside the payload?
             System.arraycopy(buf, payloadOffset, newBuf, 0, hdrLen + blockLen);
 
             // XXX: we might need to optimize
@@ -239,6 +241,8 @@ public class REDTransformEngine
         pkt.setPayloadType((byte) (buf[idx] & 0x7f));
 
         // reuse the buffer, move the header "right"
+        // XXX: checkout out the REDFilterTransformEngine for some issues to
+        // watch out for when doing packet buffer recycling and SRTP
         System.arraycopy(buf, off, buf, off + payloadOffset - hdrLen, hdrLen);
         pkt.setOffset(off + payloadOffset - hdrLen);
         pkt.setLength(pkt.getLength() - (payloadOffset - hdrLen));
