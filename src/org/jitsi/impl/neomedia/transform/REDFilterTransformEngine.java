@@ -72,13 +72,12 @@ public class REDFilterTransformEngine
                 // XXX: this method is heavily inspired by the
                 // {@link REDTransformEngine#reverseTransformSingle} method only
                 // here we do the transformation in the opposite direction, i.e.
-                // we transform outgoing packets instead of incoming ones. The
-                // reason for doing this is two-fold:
+                // we transform outgoing packets instead of incoming ones.
                 //
-                // The 1st reason is for efficiency. This transform engine has
-                // bee added to enable support for FF that, at the time of this
-                // writing, lacks support for ulpfec/red. Thus its purpose is to
-                // strip ulpfec/red from the outgoing packets that target FF.
+                // This transform engine has bee added to enable support for FF
+                // that, at the time of this writing, lacks support for
+                // ulpfec/red. Thus its purpose is to strip ulpfec/red from the
+                // outgoing packets that target FF.
                 //
                 // We could theoretically strip ulpfec/red from all the incoming
                 // packets (in a reverseTransform method) and selectively re-add
@@ -91,17 +90,6 @@ public class REDFilterTransformEngine
                 // a JVB-based service, it seems a waste of resources to do
                 // that. It's more efficient to strip ulpfec/red only from the
                 // outgoing streams that target FF.
-                //
-                // The 2nd and most important reason is because there seems to
-                // be some problems with the {@link REDTransformEngine}. The
-                // {@link REDTransformEngine} re-uses the incoming packet buffer
-                // to construct the primary packet by right-shifting the RTP
-                // header. Surprisingly, and for unknown reasons (atm), this
-                // packet buffer recycling technique, presumably in combination
-                // with some synchronisation issue corrupts the authentication
-                // tag of outgoing RTP packets resulting in RTP packets being
-                // discarded at the clients (both FF and Chrome) because the RTP
-                // packet authentication fails.
 
                 if (!enabled)
                 {
@@ -185,19 +173,19 @@ public class REDFilterTransformEngine
 
                 byte payloadType = (byte) (buf[idx] & 0x7f);
 
-                // write the primary packet
-                byte[] newBuf = new byte[payloadLen + hdrLen];
-                System.arraycopy(buf, off, newBuf, 0, hdrLen);
-                System.arraycopy(buf, payloadOffset, newBuf, hdrLen, payloadLen);
+                // write the primary packet.
 
-                RawPacket newPkt = new RawPacket();
+                // reuse the buffer, move the payload "left". Moving the payload
+                // right doesn't work because apparently we've got an offset
+                // bug somewhere in libjitsi (in the SRTP transformer?) that
+                // corrupts the authentication tag of outgoing RTP packets
+                // resulting in RTP packets being discarded at the clients (both
+                // FF and Chrome) because the RTP packet authentication fails.
+                pkt.setPayloadType(payloadType);
+                System.arraycopy(buf, payloadOffset, buf, hdrLen, payloadLen);
+                pkt.setLength(len - (payloadOffset - hdrLen));
 
-                newPkt.setBuffer(newBuf);
-                newPkt.setPayloadType(payloadType);
-                newPkt.setLength(newBuf.length);
-                newPkt.setOffset(0);
-
-                return newPkt;
+                return pkt;
             }
 
             /**
@@ -217,34 +205,6 @@ public class REDFilterTransformEngine
     @Override
     public PacketTransformer getRTCPTransformer()
     {
-        return new PacketTransformer()
-        {
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public void close()
-            {
-
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public RawPacket[] reverseTransform(RawPacket[] pkts)
-            {
-                return pkts;
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public RawPacket[] transform(RawPacket[] pkts)
-            {
-                return pkts;
-            }
-        };
+        return null;
     }
 }
