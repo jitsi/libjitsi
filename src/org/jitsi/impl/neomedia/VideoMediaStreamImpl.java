@@ -67,24 +67,6 @@ public class VideoMediaStreamImpl
     private static final boolean USE_RTCP_FEEDBACK_PLI = true;
 
     /**
-     * Engine chain removing RED if needed.
-     */
-    private REDFilterTransformEngine redFilterTransformEngine
-            = new REDFilterTransformEngine();
-
-    /**
-     * Creates the <tt>REDFilterTransformEngine</tt> for this
-     * <tt>MediaStream</tt>.
-     *
-     * @return the <tt>REDTransformEngine</tt> created.
-     */
-    @Override
-    protected REDFilterTransformEngine getRedFilterTransformEngine()
-    {
-        return redFilterTransformEngine;
-    }
-
-    /**
      * Extracts and returns maximum resolution can receive from the image
      * attribute.
      *

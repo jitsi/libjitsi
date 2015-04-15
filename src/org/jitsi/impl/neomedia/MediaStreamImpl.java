@@ -394,11 +394,6 @@ public class MediaStreamImpl
                     // packets.
                     redTransformEngine.setOutgoingPT(rtpPayloadType);
                 }
-
-                REDFilterTransformEngine redFilterTransformEngine
-                        = getRedFilterTransformEngine();
-                if (redFilterTransformEngine != null)
-                    redFilterTransformEngine.setEnabled(false);
             }
             else if (Constants.ULPFEC.equals(encoding))
             {
@@ -446,11 +441,6 @@ public class MediaStreamImpl
                 fecTransformEngine.setIncomingPT((byte) -1);
                 fecTransformEngine.setOutgoingPT((byte) -1);
             }
-
-            REDFilterTransformEngine redFilterTransformEngine
-                    = getRedFilterTransformEngine();
-            if (redFilterTransformEngine != null)
-                redFilterTransformEngine.setEnabled(true);
         }
     }
 
@@ -905,15 +895,6 @@ public class MediaStreamImpl
         REDTransformEngine redTransformEngine = getRedTransformEngine();
         if (redTransformEngine != null)
             engineChain.add(redTransformEngine);
-
-        // Simple RED stripper. The FEC/RED transformers should be sufficient
-        // and the preferred way of terminating FEC/RED. This is a temporary
-        // solution/hack until we have everything sorted out in the FEC/RED
-        // transformers.
-        REDFilterTransformEngine redFilterTransformEngine
-                = getRedFilterTransformEngine();
-        if (redFilterTransformEngine != null)
-            engineChain.add(redFilterTransformEngine);
 
         // abs-send-time
         AbsSendTimeEngine absSendTimeEngine = getAbsSendTimeEngine();
@@ -1562,18 +1543,6 @@ public class MediaStreamImpl
         }
 
         return receiveStreams;
-    }
-
-    /**
-     * Creates the <tt>REDFilterTransformEngine</tt> for this
-     * <tt>MediaStream</tt>. By default none is created, allows extenders to
-     * implement it.
-     *
-     * @return the <tt>REDTransformEngine</tt> created.
-     */
-    protected REDFilterTransformEngine getRedFilterTransformEngine()
-    {
-        return null;
     }
 
     /**
