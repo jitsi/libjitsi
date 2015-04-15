@@ -280,6 +280,9 @@ public class MediaStreamImpl
      */
     private StatisticsEngine statisticsEngine = null;
 
+    private final TransformEngineWrapper externalTransformerWrapper
+        = new TransformEngineWrapper();
+
     /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
      * specified <tt>MediaDevice</tt> for both capture and playback of media.
@@ -879,6 +882,8 @@ public class MediaStreamImpl
             // RTCPTerminationStrategy for inspection and modification.
             engineChain.add(new RTCPTerminationTransformEngine(this));
         }
+
+        engineChain.add(externalTransformerWrapper);
 
         // RTCP Statistics
         if (statisticsEngine == null)
@@ -3385,4 +3390,28 @@ public class MediaStreamImpl
     {
         return statisticsEngine;
     }
+
+    public void setExternalTransformer(TransformEngine transformEngine)
+    {
+        externalTransformerWrapper.wrapped = transformEngine;
+    }
+
+    private class TransformEngineWrapper
+        implements TransformEngine
+    {
+        private TransformEngine wrapped;
+
+        @Override
+        public PacketTransformer getRTPTransformer()
+        {
+            return wrapped == null ? null : wrapped.getRTPTransformer();
+        }
+
+        @Override
+        public PacketTransformer getRTCPTransformer()
+        {
+            return wrapped == null ? null : wrapped.getRTCPTransformer();
+        }
+    }
+
 }

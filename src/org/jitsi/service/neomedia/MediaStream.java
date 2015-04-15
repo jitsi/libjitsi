@@ -10,6 +10,7 @@ import java.beans.*;
 import java.net.*;
 import java.util.*;
 
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 
@@ -430,4 +431,6 @@ public interface MediaStream
      * effect on an already closed stream and is simply ignored.
      */
     public void stop();
+
+    public void setExternalTransformer(TransformEngine transformEngine);
 }
