@@ -432,5 +432,10 @@ public interface MediaStream
      */
     public void stop();
 
+    /**
+     * Sets the external (application-provided) <tt>TransformEngine</tt> of
+     * this <tt>MediaStream</tt>.
+     * @param transformEngine the <tt>TransformerEngine</tt> to use.
+     */
     public void setExternalTransformer(TransformEngine transformEngine);
 }

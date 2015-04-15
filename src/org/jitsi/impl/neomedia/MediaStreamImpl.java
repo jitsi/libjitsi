@@ -275,6 +275,11 @@ public class MediaStreamImpl
      */
     private StatisticsEngine statisticsEngine = null;
 
+    /**
+     * The <tt>TransformEngine</tt> instance registered in the
+     * <tt>RTPConnector</tt>'s transformer chain, which allows the "external"
+     * transformer to be swapped.
+     */
     private final TransformEngineWrapper externalTransformerWrapper
         = new TransformEngineWrapper();
 
@@ -3324,22 +3329,39 @@ public class MediaStreamImpl
         return statisticsEngine;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setExternalTransformer(TransformEngine transformEngine)
     {
         externalTransformerWrapper.wrapped = transformEngine;
     }
 
+    /**
+     * Wraps a <tt>TransformerEngine</tt> (allows the wrapped instance to be
+     * swapped without modifications to the <tt>RTPConnector</tt>'s transformer
+     * engine chain.
+     */
     private class TransformEngineWrapper
         implements TransformEngine
     {
+        /**
+         * The wrapped instance.
+         */
         private TransformEngine wrapped;
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public PacketTransformer getRTPTransformer()
         {
             return wrapped == null ? null : wrapped.getRTPTransformer();
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public PacketTransformer getRTCPTransformer()
         {
