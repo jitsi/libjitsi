@@ -95,11 +95,6 @@ public class MediaStreamImpl
     }
 
     /**
-     * The <tt>AbsSendTimeEngine</tt> that this instance uses.
-     */
-    private AbsSendTimeEngine absSendTimeEngine;
-
-    /**
      * The map of currently active <tt>RTPExtension</tt>s and the IDs that they
      * have been assigned for the lifetime of this <tt>MediaStream</tt>.
      */
@@ -564,17 +559,6 @@ public class MediaStreamImpl
             else
                 activeRTPExtensions.remove(extensionID);
         }
-
-        if (RTPExtension.ABS_SEND_TIME_URN
-                .equals(rtpExtension.getURI().toString()))
-        {
-            AbsSendTimeEngine absSendTimeEngine = getAbsSendTimeEngine();
-            if (absSendTimeEngine != null)
-            {
-                absSendTimeEngine.setExtensionID(
-                        active ? extensionID : -1);
-            }
-        }
     }
 
     /**
@@ -896,11 +880,6 @@ public class MediaStreamImpl
         if (redTransformEngine != null)
             engineChain.add(redTransformEngine);
 
-        // abs-send-time
-        AbsSendTimeEngine absSendTimeEngine = getAbsSendTimeEngine();
-        if (absSendTimeEngine != null)
-            engineChain.add(absSendTimeEngine);
-
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
 
@@ -1132,21 +1111,6 @@ public class MediaStreamImpl
                             + " to " + target);
             }
         }
-    }
-
-    /**
-     * Returns the <tt>AbsSendTimeEngine</tt> for this <tt>MediaStream</tt>,
-     * creating it if necessary.
-     *
-     * @return the <tt>AbsSendTimeEngine</tt> for this <tt>MediaStream</tt>.
-     */
-    private AbsSendTimeEngine getAbsSendTimeEngine()
-    {
-        if (absSendTimeEngine == null)
-        {
-            absSendTimeEngine = new AbsSendTimeEngine();
-        }
-        return absSendTimeEngine;
     }
 
     /**
