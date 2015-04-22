@@ -86,7 +86,7 @@ public class RTCPTerminationTransformEngine
         if (pkt == null)
             return pkt;
 
-        // Get the RTCP termination strategy from the assiciated media stream
+        // Get the RTCP termination strategy from the associated media stream
         // translator.
         RTPTranslator rtpTranslator = mediaStream.getRTPTranslator();
         if (rtpTranslator == null)

@@ -59,7 +59,6 @@ public class MaxThroughputRTCPTerminationStrategy
                     switch (psfb.fmt)
                     {
                         case RTCPREMBPacket.FMT:
-                            // Mute REMBs.
                             RTCPREMBPacket remb = (RTCPREMBPacket)p;
 
                             remb.mantissa = MAX_MANTISSA;

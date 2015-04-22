@@ -15,6 +15,9 @@ import org.jitsi.service.neomedia.*;
  */
 public class FeedbackCacheUpdater implements Transformer<RTCPCompoundPacket>
 {
+    private static RTCPReportBlock[] NO_RTCP_REPORT_BLOCKS
+        = new RTCPReportBlock[0];
+
     private FeedbackCache feedbackCache;
 
     public FeedbackCacheUpdater(FeedbackCache feedbackCache)
@@ -36,7 +39,7 @@ public class FeedbackCacheUpdater implements Transformer<RTCPCompoundPacket>
 
         RTCPReportBlock[] reports = null;
         RTCPREMBPacket remb = null;
-        Integer ssrc = 0;
+        int ssrc = 0;
 
         // Modify the incoming RTCP packet and/or update the
         // <tt>feedbackCache</tt>.
@@ -47,11 +50,11 @@ public class FeedbackCacheUpdater implements Transformer<RTCPCompoundPacket>
                 case RTCPPacket.RR:
 
                     // Grab the receiver report blocks to put them into the
-                    // cache after the loop is done and mute the RR.
+                    // cache after the loop is done.
 
                     RTCPRRPacket rr = (RTCPRRPacket) p;
                     reports = rr.reports;
-                    ssrc = Integer.valueOf(rr.ssrc);
+                    ssrc = rr.ssrc;
 
                     break;
                 case RTCPPacket.SR:
@@ -62,21 +65,16 @@ public class FeedbackCacheUpdater implements Transformer<RTCPCompoundPacket>
 
                     RTCPSRPacket sr = (RTCPSRPacket) p;
                     reports = sr.reports;
-                    ssrc = Integer.valueOf(sr.ssrc);
-                    sr.reports = new RTCPReportBlock[0];
+                    ssrc = sr.ssrc;
+                    sr.reports = NO_RTCP_REPORT_BLOCKS;
                     break;
                 case RTCPFBPacket.PSFB:
                     RTCPFBPacket psfb = (RTCPFBPacket) p;
                     switch (psfb.fmt)
                     {
                         case RTCPREMBPacket.FMT:
-
-                            // NOT adding the REMB in the outPacket as we mute
-                            // REMBs from the peers.
-                            //
-                            // We put it into the feedback cache instead.
                             remb = (RTCPREMBPacket) p;
-                            ssrc = Integer.valueOf((int) remb.senderSSRC);
+                            ssrc = (int) remb.senderSSRC;
 
                             break;
                     }

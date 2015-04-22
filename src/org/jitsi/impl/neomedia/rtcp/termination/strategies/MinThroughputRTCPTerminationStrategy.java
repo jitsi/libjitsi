@@ -59,7 +59,6 @@ public class MinThroughputRTCPTerminationStrategy
                     switch (psfb.fmt)
                     {
                         case RTCPREMBPacket.FMT:
-                            // Mute REMBs.
                             RTCPREMBPacket remb = (RTCPREMBPacket)p;
 
                             remb.mantissa = MIN_MANTISSA;

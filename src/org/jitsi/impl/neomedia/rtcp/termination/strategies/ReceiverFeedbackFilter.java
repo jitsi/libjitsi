@@ -17,6 +17,8 @@ import java.util.*;
  */
 public class ReceiverFeedbackFilter implements Transformer<RTCPCompoundPacket>
 {
+    private static RTCPReportBlock[] NO_RTCP_REPORT_BLOCKS
+        = new RTCPReportBlock[0];
     /**
      * {@inheritDoc}
      */
@@ -32,8 +34,6 @@ public class ReceiverFeedbackFilter implements Transformer<RTCPCompoundPacket>
         Vector<RTCPPacket> outPackets = new Vector<RTCPPacket>(
                 inPacket.packets.length);
 
-        // Modify the incoming RTCP packet and/or update the
-        // <tt>feedbackCache</tt>.
         for (RTCPPacket p : inPacket.packets)
         {
             switch (p.type)
@@ -44,15 +44,15 @@ public class ReceiverFeedbackFilter implements Transformer<RTCPCompoundPacket>
 
                     RTCPRRPacket rr = (RTCPRRPacket) p;
                     outPackets.add(rr);
-                    rr.reports = new RTCPReportBlock[0];
+                    rr.reports = NO_RTCP_REPORT_BLOCKS;
                     break;
                 case RTCPPacket.SR:
 
-                    // mute the receiver report blocks.
+                    // mute the sender report blocks.
 
                     RTCPSRPacket sr = (RTCPSRPacket) p;
                     outPackets.add(sr);
-                    sr.reports = new RTCPReportBlock[0];
+                    sr.reports = NO_RTCP_REPORT_BLOCKS;
                     break;
                 case RTCPFBPacket.PSFB:
                     RTCPFBPacket psfb = (RTCPFBPacket) p;

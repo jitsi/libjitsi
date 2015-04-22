@@ -62,7 +62,7 @@ public abstract class AbstractRTCPTerminationStrategy
     }
 
     /**
-     * Notifies this instance that the {@link rtcpTransmitter} has changed.
+     * Notifies this instance that the {@link #rtcpTransmitter} has changed.
      */
     private void onRTCPTransmitterChanged()
     {
@@ -105,7 +105,7 @@ public abstract class AbstractRTCPTerminationStrategy
     @Override
     public RTCPCompoundPacket reverseTransform(RTCPCompoundPacket inPacket)
     {
-        Transformer[] transformers = this.transformerChain;
+        Transformer<RTCPCompoundPacket>[] transformers = this.transformerChain;
         if (transformers != null && transformers.length != 0)
         {
             for (Transformer<RTCPCompoundPacket> transformer : transformers)
@@ -123,7 +123,7 @@ public abstract class AbstractRTCPTerminationStrategy
     @Override
     public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
     {
-        Transformer[] transformers = this.transformerChain;
+        Transformer<RTCPCompoundPacket>[] transformers = this.transformerChain;
         if (transformers != null && transformers.length != 0)
         {
             for (Transformer<RTCPCompoundPacket> transformer : transformers)
