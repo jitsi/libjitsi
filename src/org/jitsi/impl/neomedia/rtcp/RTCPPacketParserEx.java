@@ -152,7 +152,12 @@ public class RTCPPacketParserEx
             long sourceSSRC)
         throws IOException
     {
-        RTCPFBPacket fb = new RTCPFBPacket(base);
+        RTCPFBPacket fb;
+
+        if (firstbyte == NACKPacket.FMT)
+            fb = new NACKPacket(base);
+        else
+            fb = new RTCPFBPacket(base);
 
         fb.fmt = firstbyte;
         fb.type = type;
