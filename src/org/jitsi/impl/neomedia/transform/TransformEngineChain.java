@@ -25,7 +25,7 @@ public class TransformEngineChain
      * RTCP packets. Implemented as copy-on-write storage for the purposes of
      * performance.
      */
-    private TransformEngine[] engineChain;
+    protected TransformEngine[] engineChain;
 
     /**
      * The sequence of <tt>PacketTransformer</tt>s that this engine chain will
@@ -51,6 +51,16 @@ public class TransformEngineChain
     public TransformEngineChain(TransformEngine[] engineChain)
     {
         this.engineChain = engineChain.clone();
+    }
+
+    /**
+     * Creates a new <tt>TransformEngineChain</tt> without initializing the
+     * array of transformers to be used. Allows extending classes to initialize
+     * the array on their own.
+     */
+    protected TransformEngineChain()
+    {
+        // Extenders must initialize this.engineChain
     }
 
     public boolean addEngine(TransformEngine engine)

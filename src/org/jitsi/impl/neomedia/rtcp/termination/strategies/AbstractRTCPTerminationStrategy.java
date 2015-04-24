@@ -126,6 +126,8 @@ public abstract class AbstractRTCPTerminationStrategy
         Transformer<RTCPCompoundPacket>[] transformers = this.transformerChain;
         if (transformers != null && transformers.length != 0)
         {
+            // XXX(boris): should we traverse the chain in the opposite
+            // direction than the one in reverseTransform()?
             for (Transformer<RTCPCompoundPacket> transformer : transformers)
             {
                 inPacket = transformer.transform(inPacket);
