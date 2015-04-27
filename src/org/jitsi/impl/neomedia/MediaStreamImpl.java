@@ -3369,4 +3369,78 @@ public class MediaStreamImpl
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public void injectPacket(RawPacket pkt, boolean data, boolean encrypt)
+    {
+        if (pkt == null)
+            return;
+
+        if (encrypt)
+        {
+            SrtpControl srtpControl = getSrtpControl();
+            if (srtpControl != null)
+            {
+                TransformEngine srtpTransformEngine
+                        = srtpControl.getTransformEngine();
+                if (srtpTransformEngine != null)
+                {
+                    PacketTransformer transformer
+                            = data
+                            ? srtpTransformEngine.getRTPTransformer()
+                            : srtpTransformEngine.getRTCPTransformer();
+
+                    if (transformer instanceof SinglePacketTransformer)
+                    {
+                        pkt
+                                = ((SinglePacketTransformer) transformer)
+                                .transform(pkt);
+                    }
+                    else
+                    {
+                        RawPacket[] pkts = new RawPacket[1];
+                        pkts[0] = pkt;
+                        pkts = transformer.transform(pkts);
+                        pkt
+                                = pkts != null && pkts.length > 0
+                                ? pkts[0]
+                                : null;
+                    }
+                }
+            }
+        }
+
+        if (pkt != null)
+        {
+            AbstractRTPConnector rtpConnector = getRTPConnector();
+            if (rtpConnector != null)
+            {
+                try
+                {
+                    RTPConnectorOutputStream outputStream
+                            = data
+                            ? rtpConnector.getDataOutputStream(false)
+                            : rtpConnector.getControlOutputStream(false);
+
+                    // Make a copy because the stream's send(RawPacket) method
+                    // will claim the packet it is given and use it for its own
+                    // purposes.
+                    RawPacket pktCopy
+                        = new RawPacket(pkt.getBuffer().clone(),
+                                        pkt.getOffset(),
+                                        pkt.getLength());
+                    outputStream.send(pktCopy);
+                }
+                catch (IOException ioe)
+                {
+                    logger.warn("Failed to inject packet in MediaStream: " + ioe);
+                }
+                catch (NullPointerException npe)
+                {
+                    logger.warn("Failed to inject packet in MediaStream: " + npe);
+                }
+            }
+        }
+    }
 }

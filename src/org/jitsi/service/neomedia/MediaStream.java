@@ -10,6 +10,7 @@ import java.beans.*;
 import java.net.*;
 import java.util.*;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
@@ -438,4 +439,14 @@ public interface MediaStream
      * @param transformEngine the <tt>TransformerEngine</tt> to use.
      */
     public void setExternalTransformer(TransformEngine transformEngine);
+
+    /**
+     * Sends a given RTP or RTCP packet to the remote side, bypassing the
+     * transformations normally performed by the <tt>MediaStream</tt>.
+     * @param pkt the packet to send.
+     * @param data <tt>true</tt> to send an RTP packet, or false to send an
+     * <tt>RTCP</tt> packet.
+     * @param encrypt <tt>true</tt> to encrypt/sign the packet with SRTP/SRTCP.
+     */
+    public void injectPacket(RawPacket pkt, boolean data, boolean encrypt);
 }

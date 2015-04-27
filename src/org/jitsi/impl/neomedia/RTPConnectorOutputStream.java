@@ -257,12 +257,21 @@ public abstract class RTPConnectorOutputStream
      * Sends a specific RTP packet through the <tt>DatagramSocket</tt> of this
      * <tt>OutputDataSource</tt>.
      *
+     * Warning: the <tt>RawPacket</tt> passed to this method, and its underlying
+     * buffer will be consumed and might later be reused by this
+     * <tt>RTPConnectorOutputStream</tt>. They should not be used by the
+     * user afterwards.
+     *
+     * Note: this method has been exposed as package-private in order to
+     * facilitate the injection of packets by a <tt>MediaStream</tt>. It should
+     * be used with caution due to the above warning!
+     *
      * @param packet the RTP packet to be sent through the
      * <tt>DatagramSocket</tt> of this <tt>OutputDataSource</tt>
      * @return <tt>true</tt> if the specified <tt>packet</tt> was successfully
      * sent; otherwise, <tt>false</tt>
      */
-    private boolean send(RawPacket packet)
+    boolean send(RawPacket packet)
     {
         if(!isSocketValid())
         {
