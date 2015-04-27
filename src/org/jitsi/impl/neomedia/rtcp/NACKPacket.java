@@ -147,20 +147,23 @@ public class NACKPacket
         // parse this.fci as containing NACK entries and initialize
         // this.lostPackets
         lostPackets = new LinkedList<Integer>();
-        for (int i = 0; i < (fci.length / 4); i++)
+        if (fci != null)
         {
-            int pid = fci[i*4 + 0] << 8 | fci[i*4 + 1];
-            lostPackets.add(pid);
+            for (int i = 0; i < (fci.length / 4); i++)
+            {
+                int pid = (0xFF & fci[i * 4 + 0]) << 8 | (0xFF & fci[i * 4 + 1]);
+                lostPackets.add(pid);
 
-            // First byte of the BLP
-            for (int j = 0; j < 8; j++)
-                if ( 0 != (fci[i*4 + 2] & (1<<j)) )
-                    lostPackets.add( (pid + 1 + 8 + j) % (1<<16) );
+                // First byte of the BLP
+                for (int j = 0; j < 8; j++)
+                    if (0 != (fci[i * 4 + 2] & (1 << j)))
+                        lostPackets.add((pid + 1 + 8 + j) % (1 << 16));
 
-            // Second byte of the BLP
-            for (int j = 0; j < 8; j++)
-                if ( 0 != (fci[i*4 + 3] & (1<<j)) )
-                    lostPackets.add( (pid + 1 + j) % (1<<16) );
+                // Second byte of the BLP
+                for (int j = 0; j < 8; j++)
+                    if (0 != (fci[i * 4 + 3] & (1 << j)))
+                        lostPackets.add((pid + 1 + j) % (1 << 16));
+            }
         }
 
         return lostPackets;

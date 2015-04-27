@@ -154,7 +154,7 @@ public class RTCPPacketParserEx
     {
         RTCPFBPacket fb;
 
-        if (firstbyte == NACKPacket.FMT)
+        if (type == RTCPFBPacket.RTPFB && firstbyte == NACKPacket.FMT)
             fb = new NACKPacket(base);
         else
             fb = new RTCPFBPacket(base);
