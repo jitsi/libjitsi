@@ -284,6 +284,11 @@ public class MediaStreamImpl
         = new TransformEngineWrapper();
 
     /**
+     * The chain used to by the RTPConnector to transform packets.
+     */
+    private TransformEngine transformEngineChain;
+
+    /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
      * specified <tt>MediaDevice</tt> for both capture and playback of media.
      * The new instance will not have an associated <tt>StreamConnector</tt> and
@@ -590,8 +595,18 @@ public class MediaStreamImpl
 
         if (csrcEngine != null)
         {
-            csrcEngine.close();
             csrcEngine = null;
+        }
+
+        if (transformEngineChain != null)
+        {
+            PacketTransformer t = transformEngineChain.getRTPTransformer();
+            if (t != null)
+                t.close();
+            t = transformEngineChain.getRTCPTransformer();
+            if (t != null)
+                t.close();
+            transformEngineChain = null;
         }
 
         if (rtpManager != null)
@@ -2113,13 +2128,15 @@ public class MediaStreamImpl
              */
             if(newValue instanceof RTPTransformUDPConnector)
             {
+                transformEngineChain = createTransformEngineChain();
                 ((RTPTransformUDPConnector) newValue)
-                    .setEngine(createTransformEngineChain());
+                        .setEngine(transformEngineChain);
             }
             else if(newValue instanceof RTPTransformTCPConnector)
             {
+                transformEngineChain = createTransformEngineChain();
                 ((RTPTransformTCPConnector) newValue)
-                    .setEngine(createTransformEngineChain());
+                        .setEngine(transformEngineChain);
             }
 
             if (rtpConnectorTarget != null)
