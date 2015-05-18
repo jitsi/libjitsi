@@ -103,7 +103,7 @@ public class NACKPacket
             {
                 currentPid = seq;
                 currentNack = new byte[4];
-                currentNack[0] = (byte) (seq & 0xff00);
+                currentNack[0] = (byte) ((seq & 0xff00) >> 8);
                 currentNack[1] = (byte) (seq & 0x00ff);
                 currentNack[2] = 0;
                 currentNack[3] = 0;
