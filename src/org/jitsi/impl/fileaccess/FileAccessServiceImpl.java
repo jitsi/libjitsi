@@ -417,6 +417,14 @@ public class FileAccessServiceImpl implements FileAccessService
         public short data2;
         public short data3;
         public byte[] data4;
+
+        @Override
+        protected List getFieldOrder()
+        {
+            return
+                Arrays.asList(
+                        new String[] { "data1", "data2", "data3", "data4" });
+        }
     }
 
     private static Map<String, Object> OPT;
