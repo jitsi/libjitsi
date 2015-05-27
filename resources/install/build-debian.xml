@@ -3,9 +3,9 @@
     <property name="tmp" value="tmp"/>
     <property name="sdes4j" value="sdes4j-r1.1.3"/>
 
-    <!-- The target that is called just after clean
-    and before building. Will prepare all sources in ${tmp} folder.
-    Expects ../libsrc, ../fmj and ../ice4j to exist.
+    <!-- The target that is called just after clean and before building. Will
+    prepare all sources in ${tmp} folder. Expects ../fmj, ../ice4j,
+    ../jitsi-lgpl-dependencies, and ../libsrc to exist.
     -->
     <target name="deb-src" depends="deb-copy-libjitsi">
         <!-- pack as original sources -->
@@ -47,6 +47,20 @@
             <replacefilter token="_VER_" value="${build.label}"/>
             <replacefilter token="_DATE_" value="${date}"/>
         </replace>
+
+        <!-- jitsi-lgpl-dependencies
+        https://github.com/jitsi/jitsi-lgpl-dependencies.git
+        -->
+        <copy todir="${tmp}/libjitsi/lib/src/jitsi-lgpl-dependencies">
+            <fileset dir="../jitsi-lgpl-dependencies">
+                <include name="build.xml"/>
+                <include name="src/**"/>
+            </fileset>
+        </copy>
+        <mkdir dir="${tmp}/libjitsi/lib/src/jitsi-lgpl-dependencies/lib/installer-exclude"/>
+        <symlink resource="/usr/share/java/ant-contrib-cpptasks.jar"
+                 overwrite="true"
+                 link="${tmp}/libjitsi/lib/src/jitsi-lgpl-dependencies/lib/installer-exclude/cpptasks.jar"/>
 
         <!-- ice4j
         svn checkout http://ice4j.googlecode.com/svn/trunk/ ice4j
@@ -197,6 +211,9 @@
         </delete>
         <delete dir="lib/src/bccontrib/target" failonerror="false"/>
 
+        <ant dir="lib/src/jitsi-lgpl-dependencies"
+             inheritAll="false"
+             target="clean" />
         <ant dir="lib/src/ice4j"
              inheritAll="false"
              target="clean"/>
@@ -250,9 +267,8 @@
         <ant target="clean-native"/>
     </target>
 
-    <!-- used to build sources for debuilding deb package
-    invoked from rules
-     -->
+    <!-- Used to build sources for debuilding deb package. Invoked from rules.
+    -->
     <target name="deb-src-rebuild">
             <!--depends="make"-->
 
@@ -298,6 +314,13 @@
         <symlink resource="../../jsip/jain-sip-sdp-1.2.159.jar"
                  overwrite="true"
                  link="lib/src/ice4j/lib/jain-sdp.jar"/>
+
+        <!-- jitsi-lgpl-dependencies -->
+        <ant dir="lib/src/jitsi-lgpl-dependencies"
+             inheritAll="false"
+             target="jar" />
+        <copy todir="lib"
+              file="lib/src/jitsi-lgpl-dependencies/jitsi-lgpl-dependencies.jar"/>
 
         <!-- ice4j -->
         <ant dir="lib/src/ice4j"
@@ -403,7 +426,7 @@ org.jitsi.bccontrib.util"/>
         <symlink resource="/usr/share/java/bcprov.jar"
                  overwrite="true"
                  link="lib/src/zrtp4j/lib/bcprov-jdk15on-148.jar"/>
-        <!-- its not error zrtp build expects jmf.jar -->
+        <!-- It's not an error - zrtp build expects jmf.jar. -->
         <symlink resource="../../fmj/fmj.jar"
                  overwrite="true"
                  link="lib/src/zrtp4j/lib/jmf.jar"/>
@@ -500,13 +523,28 @@ org.jitsi.bccontrib.util"/>
         </ant>
 
         <!-- ffmpeg -->
-        <ant target="ffmpeg">
+        <ant    dir="lib/src/jitsi-lgpl-dependencies"
+                inheritAll="false"
+                target="ffmpeg">
             <property name="ffmpeg" value=""/>
-            <property name="x264" value=""/>
             <property name="lame" value=""/>
             <property name="libvpx" value=""/>
             <property name="voamrwbenc" value=""/>
+            <property name="x264" value=""/>
             <property name="LIBAV" value=""/>
+            <property name="arch" value="${arch}" />
+            <property name="native.libs" location="${native.libs}" />
+            <property name="obj" location="${obj}" />
+            <property name="os.name" value="${os.name}" />
+        </ant>
+        <!-- g722 -->
+        <ant    dir="lib/src/jitsi-lgpl-dependencies"
+                inheritAll="false"
+                target="g722">
+            <property name="arch" value="${arch}" />
+            <property name="native.libs" location="${native.libs}" />
+            <property name="obj" location="${obj}" />
+            <property name="os.name" value="${os.name}" />
         </ant>
 
         <!-- video4linux -->
@@ -517,8 +555,6 @@ org.jitsi.bccontrib.util"/>
 
         <!--pulseaudio-->
         <ant target="pulseaudio"/>
-
-        <ant target="g722"/>
 
         <!-- jnspeex -->
         <ant target="speex">

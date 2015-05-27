@@ -16,7 +16,7 @@ import org.jitsi.service.neomedia.codec.*;
  *
  * @author Lyubomir Marinov
  */
-public class JNIDecoder
+public class JNIDecoderImpl
     extends AbstractCodec2
 {
     static final Format[] SUPPORTED_INPUT_FORMATS
@@ -44,26 +44,12 @@ public class JNIDecoder
                             Format.byteArray)
                 };
 
-    static
-    {
-        System.loadLibrary("jng722");
-    }
-
-    private static native void g722_decoder_close(long decoder);
-
-    private static native long g722_decoder_open();
-
-    private static native void g722_decoder_process(
-            long decoder,
-            byte[] input, int inputOffset,
-            byte[] output, int outputOffset, int outputLength);
-
     private long decoder;
 
     /**
-     * Initializes a new <tt>JNIDecoder</tt> instance.
+     * Initializes a new {@code JNIDecoderImpl} instance.
      */
-    public JNIDecoder()
+    public JNIDecoderImpl()
     {
         super("G.722 JNI Decoder", AudioFormat.class, SUPPORTED_OUTPUT_FORMATS);
 
@@ -77,7 +63,7 @@ public class JNIDecoder
     @Override
     protected void doClose()
     {
-        g722_decoder_close(decoder);
+        JNIDecoder.g722_decoder_close(decoder);
     }
 
     /**
@@ -89,7 +75,7 @@ public class JNIDecoder
     protected void doOpen()
         throws ResourceUnavailableException
     {
-        decoder = g722_decoder_open();
+        decoder = JNIDecoder.g722_decoder_open();
         if (decoder == 0)
             throw new ResourceUnavailableException("g722_decoder_open");
     }
@@ -114,7 +100,7 @@ public class JNIDecoder
                     outputOffset + outputLength,
                     true);
 
-        g722_decoder_process(
+        JNIDecoder.g722_decoder_process(
                 decoder,
                 input, inputBuffer.getOffset(),
                 output, outputOffset, outputLength);

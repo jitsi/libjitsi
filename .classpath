@@ -6,13 +6,14 @@
 	<classpathentry kind="lib" path="lib/bcpkix-jdk15on-151.jar"/>
 	<classpathentry kind="lib" path="lib/bcprov-jdk15on-151.jar"/>
 	<classpathentry kind="lib" path="lib/fmj.jar" sourcepath="/fmj"/>
-	<classpathentry kind="lib" path="lib/ice4j.jar" sourcepath="../ice4j/src"/>
+	<classpathentry kind="lib" path="lib/ice4j.jar" sourcepath="/ice4j"/>
 	<classpathentry kind="lib" path="lib/jain-sdp.jar"/>
+	<classpathentry kind="lib" path="lib/jitsi-lgpl-dependencies.jar"/>
+	<classpathentry kind="lib" path="lib/jna.jar"/>
 	<classpathentry kind="lib" path="lib/json-simple-1.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/jspeex.jar"/>
 	<classpathentry kind="lib" path="lib/osgi.core.jar"/>
 	<classpathentry kind="lib" path="lib/sdes4j.jar"/>
 	<classpathentry kind="lib" path="lib/zrtp4j-light.jar"/>
-	<classpathentry kind="lib" path="lib/jna.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

@@ -12,38 +12,25 @@ import javax.media.format.*;
 import org.jitsi.impl.neomedia.codec.*;
 
 /**
+ *
  * @author Lyubomir Marinov
  */
-public class JNIEncoder
+public class JNIEncoderImpl
     extends AbstractCodec2
 {
-    static
-    {
-        System.loadLibrary("jng722");
-    }
-
-    private static native void g722_encoder_close(long encoder);
-
-    private static native long g722_encoder_open();
-
-    private static native void g722_encoder_process(
-            long encoder,
-            byte[] input, int inputOffset,
-            byte[] output, int outputOffset, int outputLength);
-
     private long encoder;
 
     /**
-     * Initializes a new <tt>JNIEncoder</tt> instance.
+     * Initializes a new {@code JNIEncoderImpl} instance.
      */
-    public JNIEncoder()
+    public JNIEncoderImpl()
     {
         super(
             "G.722 JNI Encoder",
             AudioFormat.class,
-            JNIDecoder.SUPPORTED_INPUT_FORMATS);
+            JNIDecoderImpl.SUPPORTED_INPUT_FORMATS);
 
-        inputFormats = JNIDecoder.SUPPORTED_OUTPUT_FORMATS;
+        inputFormats = JNIDecoderImpl.SUPPORTED_OUTPUT_FORMATS;
     }
 
     /**
@@ -63,7 +50,7 @@ public class JNIEncoder
     @Override
     protected void doClose()
     {
-        g722_encoder_close(encoder);
+        JNIEncoder.g722_encoder_close(encoder);
     }
 
     /**
@@ -75,7 +62,7 @@ public class JNIEncoder
     protected void doOpen()
         throws ResourceUnavailableException
     {
-        encoder = g722_encoder_open();
+        encoder = JNIEncoder.g722_encoder_open();
         if (encoder == 0)
             throw new ResourceUnavailableException("g722_encoder_open");
     }
@@ -102,7 +89,7 @@ public class JNIEncoder
                     outputOffset + outputLength,
                     true);
 
-        g722_encoder_process(
+        JNIEncoder.g722_encoder_process(
                 encoder,
                 input, inputOffset,
                 output, outputOffset, outputLength);
@@ -145,7 +132,8 @@ public class JNIEncoder
                             @Override
                             public long computeDuration(long length)
                             {
-                                return JNIEncoder.this.computeDuration(length);
+                                return
+                                    JNIEncoderImpl.this.computeDuration(length);
                             }
                         });
         }
