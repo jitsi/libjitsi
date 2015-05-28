@@ -202,6 +202,8 @@ public class SRTPTransformer
         SRTPCryptoContext context
             = getContext(pkt.getSSRC(), forwardFactory, 0);
 
+        if (context == null)
+            return null;
         return context.transformPacket(pkt) ? pkt : null;
     }
 }
