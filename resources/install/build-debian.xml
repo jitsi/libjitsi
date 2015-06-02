@@ -58,9 +58,6 @@
             </fileset>
         </copy>
         <mkdir dir="${tmp}/libjitsi/lib/src/jitsi-lgpl-dependencies/lib/installer-exclude"/>
-        <symlink resource="/usr/share/java/ant-contrib-cpptasks.jar"
-                 overwrite="true"
-                 link="${tmp}/libjitsi/lib/src/jitsi-lgpl-dependencies/lib/installer-exclude/cpptasks.jar"/>
 
         <!-- ice4j
         svn checkout http://ice4j.googlecode.com/svn/trunk/ ice4j
@@ -316,6 +313,9 @@
                  link="lib/src/ice4j/lib/jain-sdp.jar"/>
 
         <!-- jitsi-lgpl-dependencies -->
+        <symlink resource="/usr/share/java/ant-contrib-cpptasks.jar"
+                 overwrite="true"
+                 link="lib/src/jitsi-lgpl-dependencies/lib/installer-exclude/cpptasks.jar"/>
         <ant dir="lib/src/jitsi-lgpl-dependencies"
              inheritAll="false"
              target="jar" />
