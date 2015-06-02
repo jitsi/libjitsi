@@ -77,22 +77,6 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1destr
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_video_VPX
- * Method:    codec_get_mem_map
- * Signature: (J[J[J)I
- */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1get_1mem_1map
-  (JNIEnv *, jclass, jlong, jlongArray, jlongArray);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_video_VPX
- * Method:    codec_set_mem_map
- * Signature: (JJI)I
- */
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1set_1mem_1map
-  (JNIEnv *, jclass, jlong, jlong, jint);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_video_VPX
  * Method:    codec_enc_init
  * Signature: (JIJJ)I
  */
@@ -578,22 +562,6 @@ JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_video_VPX_stream_1info
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1peek_1stream_1info
   (JNIEnv *, jclass, jint, jbyteArray, jint, jint, jlong);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_video_VPX
- * Method:    codec_mmap_get_sz
- * Signature: (J)J
- */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1mmap_1get_1sz
-  (JNIEnv *, jclass, jlong);
-
-/*
- * Class:     org_jitsi_impl_neomedia_codec_video_VPX
- * Method:    codec_mmap_set_base
- * Signature: (JJ)V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1mmap_1set_1base
-  (JNIEnv *, jclass, jlong, jlong);
 
 /*
  * Class:     org_jitsi_impl_neomedia_codec_video_VPX

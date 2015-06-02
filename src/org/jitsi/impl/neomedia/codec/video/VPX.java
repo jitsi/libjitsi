@@ -201,51 +201,6 @@ public class VPX {
     public static native int codec_destroy(long context);
 
     /**
-     * Iterate over the list of segments to allocate.
-     *
-     * This function can only be used on codec implementations which have the
-     * XMA (eXternam Memory Allocation) capability.
-     *
-     * Iterates over a list of the segments to allocate. The iterator storage
-     * should be initialized to NULL to start the iteration. Iteration is
-     * complete when this function returns VPX_CODEC_LIST_END. The amount of
-     * memory needed to allocate is dependent upon the size of the encoded
-     * stream. In cases where the stream is not available at allocation time,
-     * a fixed size must be requested. The codec will not be able to operate on
-     * streams larger than the size used at allocation time.
-     *
-     * @param context The codec context to use.
-     * @param mmap Pointer to a <tt>vpx_codec_mmap_t</tt> to populate
-     * @param iter Iterator storage, initialized by setting its first element
-     * to 0.
-     *
-     * @return <tt>CODEC_OK</tt> on success, or an error code otherwise. The
-     * error code can be converted to a <tt>String</tt> with
-     * {@link VPX#codec_err_to_string(int)}
-     */
-    public static native int codec_get_mem_map(long context,
-                                               long mmap[],
-                                               long[] iter);
-
-    /**
-     * Identify allocated segments to codec instance.
-     *
-     * This function can only be used on codec implementations which have the
-     * XMA (eXternam Memory Allocation) capability.
-     *
-     * @param context The codec context to use.
-     * @param mmap Pointer to the first memory map entry in the list.
-     * @param count Number of entries being set at this time.
-     *
-     * @return <tt>CODEC_OK</tt> on success, or an error code otherwise. The
-     * error code can be converted to a <tt>String</tt> with
-     * {@link VPX#codec_err_to_string(int)}
-     */
-    public static native int codec_set_mem_map(long context,
-                                               long mmap,
-                                               int count);
-
-    /**
      * Initializes a vpx encoder context.
      *
      * @param context Pointer to a pre-allocated <tt>vpx_codec_ctx_t</tt>.
@@ -877,23 +832,6 @@ public class VPX {
                                                     int buf_offset,
                                                     int buf_size,
                                                     long si_ptr);
-
-    /**
-     * Gets the <tt>sz</tt> field of a <tt>vpx_codec_mmap_t</tt>.
-     *
-     * @param mmap Pointer to a <tt>vpx_codec_mmap_t</tt>
-     * @return The <tt>sz</tt> field of <tt>mmap</tt>
-     */
-    public static native long codec_mmap_get_sz(long mmap);
-
-    /**
-     * Sets the <tt>base</tt> field of a <tt>vpx_codec_mmap_t</tt>
-     *
-     * @param mmap Pointer to a <tt>vpx_codec_mmap_t</tt>
-     * @param base The value to set.
-     */
-    public static native void codec_mmap_set_base(long mmap, long base);
-
 
     /**
      * Allocates memorry on the heap (a simple wrapped around the native

@@ -136,49 +136,6 @@ Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1destroy
 }
 
 /*
- * Method:    codec_get_mem_map
- */
-JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1get_1mem_1map
-    (JNIEnv *env,
-     jclass clazz,
-     jlong context,
-     jlongArray mmapArray,
-     jlongArray iterArray)
-{
-    jlong *iter_ptr = (*env)->GetLongArrayElements(env, iterArray, NULL);
-    jlong *mmap_ptr = (*env)->GetLongArrayElements(env, mmapArray, NULL);
-
-    vpx_codec_err_t ret;
-    ret = vpx_codec_get_mem_map((vpx_codec_ctx_t *) (intptr_t) context,
-                                (vpx_codec_mmap_t *) mmap_ptr,
-                                (vpx_codec_iter_t *) iter_ptr);
-
-    (*env)->ReleaseLongArrayElements(env, iterArray, iter_ptr, 0);
-    (*env)->ReleaseLongArrayElements(env, mmapArray, mmap_ptr, 0);
-
-    return (jint) ret;
-}
-
-/*
- * Method:    codec_set_mem_map
- */
-JNIEXPORT jint JNICALL
-Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1set_1mem_1map
-    (JNIEnv *env,
-     jclass clazz,
-     jlong context,
-     jlong mmap,
-     jint count)
-{
-    vpx_codec_err_t ret;
-    ret = vpx_codec_set_mem_map((vpx_codec_ctx_t *) (intptr_t) context,
-                                (vpx_codec_mmap_t *) (intptr_t) mmap,
-                                (unsigned int) count);
-    return (jint) ret;
-}
-
-/*
  * Method:    codec_enc_init
  */
 JNIEXPORT jint JNICALL
@@ -655,31 +612,6 @@ Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1peek_1stream_1info
                                      (vpx_codec_stream_info_t *) (intptr_t)si);
     (*env)->ReleaseByteArrayElements(env, buf, buf_ptr, JNI_ABORT);
     return ret;
-}
-
-/*
- * Method:    codec_mmap_get_sz
- */
-JNIEXPORT jlong JNICALL
-Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1mmap_1get_1sz
-    (JNIEnv *env,
-     jclass clazz,
-     jlong map)
-{
-    return (jlong) ((vpx_codec_mmap_t *) (intptr_t) map)->sz;
-}
-
-/*
- * Method:    codec_mmap_set_base
- */
-JNIEXPORT void JNICALL
-Java_org_jitsi_impl_neomedia_codec_video_VPX_codec_1mmap_1set_1base
-    (JNIEnv *env,
-     jclass clazz,
-     jlong map,
-     jlong base)
-{
-    ((vpx_codec_mmap_t *) (intptr_t) map)->base = (void *) (intptr_t) base;
 }
 
 /*
