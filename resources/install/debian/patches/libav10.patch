@@ -1,8 +1,8 @@
 Description: Makes sources compile/compatible with libav10
-Index: libjitsi/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
+Index: libjitsi/lib/src/jitsi-lgpl-dependencies/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
 ===================================================================
---- libjitsi.orig/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
-+++ libjitsi/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
+--- libjitsi.orig/lib/src/jitsi-lgpl-dependencies/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
++++ libjitsi/lib/src/jitsi-lgpl-dependencies/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
 @@ -224,17 +224,27 @@ Java_org_jitsi_impl_neomedia_codec_FFmpe
  
              if (samples_)

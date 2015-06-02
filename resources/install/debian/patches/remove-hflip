@@ -1,8 +1,8 @@
 Description: Removes hflip, filters internal api availbale in ffmpeg but not in libav
-Index: libjitsi/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
+Index: libjitsi/lib/src/jitsi-lgpl-dependencies/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
 ===================================================================
---- libjitsi.orig/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
-+++ libjitsi/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
+--- libjitsi.orig/lib/src/jitsi-lgpl-dependencies/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
++++ libjitsi/lib/src/jitsi-lgpl-dependencies/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
 @@ -569,7 +569,7 @@ Java_org_jitsi_impl_neomedia_codec_FFmpe
  DEFINE_AVCODECCONTEXT_I_PROPERTY_SETTER(trellis, trellis)
  DEFINE_AVCODECCONTEXT_I_PROPERTY_SETTER(workaround_1bugs, workaround_bugs)
@@ -104,10 +104,10 @@ Index: libjitsi/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.c
  
  /*
   * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
-Index: libjitsi/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.h
+Index: libjitsi/lib/src/jitsi-lgpl-dependencies/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.h
 ===================================================================
---- libjitsi.orig/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.h
-+++ libjitsi/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.h
+--- libjitsi.orig/lib/src/jitsi-lgpl-dependencies/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.h
++++ libjitsi/lib/src/jitsi-lgpl-dependencies/src/native/ffmpeg/org_jitsi_impl_neomedia_codec_FFmpeg.h
 @@ -459,7 +459,7 @@ JNIEXPORT void JNICALL Java_org_jitsi_im
   * Class:     org_jitsi_impl_neomedia_codec_FFmpeg
   * Method:    avfilter_graph_alloc
