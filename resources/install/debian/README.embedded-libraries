@@ -14,6 +14,7 @@ This project provides a Java implementation of the ICE protocol
 that would be usable by both SIP and XMPP applications.
 The Jitsi community is the maintainer of this project.
 Reason: No Debian package.
+ITP: http://bugs.debian.org/698412
 
 - jsip http://jsip.java.net/
 This project publishes a full implementation of the RFC 3261 Specification
@@ -33,6 +34,7 @@ This project contains the Skein hash function, the Threefish encryption
 function and the Fortuna random generator as a Java implementation. The API is
 designed to be compatible to BouncyCastle.
 Reason: No Debian package.
+ITP: http://bugs.debian.org/754198
 
 - sdes4j http://code.google.com/p/sdes4j/
 Implementation of RFC4568: Session Description Protocol (SDP)
