@@ -184,13 +184,15 @@ public class AudioMediaStreamImpl
     @Override
     public void addRTPExtension(byte extensionID, RTPExtension rtpExtension)
     {
-        super.addRTPExtension(extensionID, rtpExtension);
+        if (rtpExtension != null)
+            super.addRTPExtension(extensionID, rtpExtension);
 
-        /*
-         * The method invocation may add, remove, or replace the value
-         * associated with extensionID. Consequently, we have to update
-         * csrcEngine with whatever is in activeRTPExtensions eventually.
-         */
+        // Do go on even if the extension is null, to make sure that the
+        // currently active extensions are configured.
+
+         // The method invocation may add, remove, or replace the value
+         // associated with extensionID. Consequently, we have to update
+         // csrcEngine with whatever is in activeRTPExtensions eventually.
         CsrcTransformEngine csrcEngine = getCsrcEngine();
         SsrcTransformEngine ssrcEngine = this.ssrcTransformEngine;
 
@@ -240,9 +242,12 @@ public class AudioMediaStreamImpl
                 if (ssrcDir.allowsSending())
                 {
                     AudioMediaDeviceSession deviceSession = getDeviceSession();
-                    deviceSession.enableOutputSSRCAudioLevels(
-                            true,
-                            ssrcExtID == null ? -1 : ssrcExtID);
+                    if (deviceSession != null)
+                    {
+                        deviceSession.enableOutputSSRCAudioLevels(
+                                true,
+                                ssrcExtID == null ? -1 : ssrcExtID);
+                    }
                 }
             }
         }

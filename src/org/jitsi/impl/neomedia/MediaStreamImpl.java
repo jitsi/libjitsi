@@ -560,6 +560,9 @@ public class MediaStreamImpl
     @Override
     public void addRTPExtension(byte extensionID, RTPExtension rtpExtension)
     {
+        if (rtpExtension == null)
+            return;
+
         boolean active
                 = !MediaDirection.INACTIVE.equals(rtpExtension.getDirection());
         synchronized (activeRTPExtensions)
@@ -2141,6 +2144,9 @@ public class MediaStreamImpl
 
             if (rtpConnectorTarget != null)
                 doSetTarget(rtpConnectorTarget);
+
+            // Trigger the re-configuration of RTP header extensions
+            addRTPExtension((byte)0, null);
         }
 
         /*
