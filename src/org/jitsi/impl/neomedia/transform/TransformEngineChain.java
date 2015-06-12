@@ -84,6 +84,7 @@ public class TransformEngineChain
             if (oldLength != 0)
                 System.arraycopy(oldValue, 0, newValue, 0, oldLength);
             newValue[oldLength] = engine;
+            this.engineChain = newValue;
         }
 
         return true;
