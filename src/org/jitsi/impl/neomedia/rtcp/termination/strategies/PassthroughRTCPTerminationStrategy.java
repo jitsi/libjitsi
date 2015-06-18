@@ -9,6 +9,7 @@ package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * Forwards whatever it receives from the network and it also generates RTCP
@@ -20,14 +21,14 @@ import org.jitsi.service.neomedia.*;
 public class PassthroughRTCPTerminationStrategy
     implements RTCPTerminationStrategy
 {
-    private final Transformer<RTCPCompoundPacket> packetTransformer
+    private final RTCPPacketTransformer packetTransformer
             = new NullRTCPPacketTransformer();
 
     private final RTCPReportBuilder reportBuilder
             = new DefaultRTCPReportBuilderImpl();
 
     @Override
-    public Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer()
+    public RTCPPacketTransformer getRTCPCompoundPacketTransformer()
     {
         return packetTransformer;
     }

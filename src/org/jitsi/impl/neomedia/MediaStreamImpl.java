@@ -903,6 +903,9 @@ public class MediaStreamImpl
         if (redTransformEngine != null)
             engineChain.add(redTransformEngine);
 
+        // NSA
+        engineChain.add(new DebugTransformEngine(this));
+
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
 

@@ -9,11 +9,12 @@ package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * @author George Politis
  */
-public class FeedbackCacheUpdater implements Transformer<RTCPCompoundPacket>
+public class FeedbackCacheUpdater implements RTCPPacketTransformer
 {
     private static RTCPReportBlock[] NO_RTCP_REPORT_BLOCKS
         = new RTCPReportBlock[0];

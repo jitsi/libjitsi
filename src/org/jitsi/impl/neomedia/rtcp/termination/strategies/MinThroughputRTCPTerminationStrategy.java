@@ -10,6 +10,7 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 import java.util.*;
 
@@ -21,7 +22,7 @@ import java.util.*;
  * @author George Politis
  */
 public class MinThroughputRTCPTerminationStrategy
-        implements RTCPTerminationStrategy, Transformer<RTCPCompoundPacket>
+        implements RTCPTerminationStrategy, RTCPPacketTransformer
 {
     private final RTCPReportBuilder reportBuilder
             // TODO(gp) create an RTCPReportBuilderImpl that reports feedback using the announced SSRC of the bridge
@@ -108,7 +109,7 @@ public class MinThroughputRTCPTerminationStrategy
      * {@inheritDoc}
      */
     @Override
-    public Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer()
+    public RTCPPacketTransformer getRTCPCompoundPacketTransformer()
     {
         return this;
     }

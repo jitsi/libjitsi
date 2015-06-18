@@ -7,12 +7,9 @@
 package org.jitsi.impl.neomedia.transform.rtcp;
 
 import net.sf.fmj.media.rtp.*;
-import net.sf.fmj.media.rtp.util.*;
-import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * Uses the <tt>Transformer</tt> of the <tt>RTCPTerminationStrategy</tt> of the
@@ -23,19 +20,15 @@ import org.jitsi.util.*;
  * @author George Politis
  */
 public class RTCPTerminationTransformEngine
-    extends SinglePacketTransformer
+    extends SingleRTCPPacketTransformer
     implements TransformEngine
 {
-    private static final Logger logger
-        = Logger.getLogger(RTCPTerminationTransformEngine.class);
 
     /**
      * The associated <tt>MediaStream</tt> of this
      * <tt><RTCPTerminationTransformEngine/tt>.
      */
     private final MediaStream mediaStream;
-
-    private final RTCPPacketParserEx parser;
 
     /**
      * Ctor.
@@ -45,7 +38,6 @@ public class RTCPTerminationTransformEngine
     public RTCPTerminationTransformEngine(MediaStream mediaStream)
     {
         this.mediaStream = mediaStream;
-        this.parser = new RTCPPacketParserEx();
     }
 
     /**
@@ -80,12 +72,8 @@ public class RTCPTerminationTransformEngine
      * {@inheritDoc}
      */
     @Override
-    public RawPacket reverseTransform(RawPacket pkt)
+    public RTCPCompoundPacket reverseTransform(RTCPCompoundPacket pkt)
     {
-        // Do you think this is a game?
-        if (pkt == null)
-            return pkt;
-
         // Get the RTCP termination strategy from the associated media stream
         // translator.
         RTPTranslator rtpTranslator = mediaStream.getRTPTranslator();
@@ -98,81 +86,21 @@ public class RTCPTerminationTransformEngine
         if (rtcpTerminationStrategy == null)
             return pkt;
 
-        Transformer<RTCPCompoundPacket> rtcpPacketTransformer
+        RTCPPacketTransformer rtcpPacketTransformer
                 = rtcpTerminationStrategy.getRTCPCompoundPacketTransformer();
 
         if (rtcpPacketTransformer == null)
             return pkt;
 
-        // Parse the RTCP packet.
-        RTCPCompoundPacket inRTCPPacket;
-        try
-        {
-            inRTCPPacket = (RTCPCompoundPacket) parser.parse(
-                    pkt.getBuffer(),
-                    pkt.getOffset(),
-                    pkt.getLength());
-        }
-        catch (BadFormatException e)
-        {
-            // TODO(gp) decide what to do with malformed packets!
-            logger.error("Could not parse RTCP packet.", e);
-            return pkt;
-        }
-
-        logger.debug("Parsed : " + inRTCPPacket.toString());
-
-        // Transform the RTCP packet.
-        RTCPCompoundPacket outRTCPPacket = rtcpPacketTransformer
-                .reverseTransform(inRTCPPacket);
-
-        // If the outRTCPPacket is the same object as the inRTCPPacket,
-        // return the pkt.
-        if (inRTCPPacket == outRTCPPacket)
-        {
-            logger.debug("Did not perform any modifications to the received " +
-                    "packet.");
-            return pkt;
-        }
-
-        if (outRTCPPacket == null)
-        {
-            logger.debug("The RTCP termination strategy dropped the received " +
-                    "packet from the transform engine chain.");
-        }
-        else
-        {
-            logger.debug("Transformed the received packet to : " +
-                    outRTCPPacket.toString());
-        }
-
-
-        if (outRTCPPacket == null
-                || outRTCPPacket.packets == null
-                || outRTCPPacket.packets.length == 0)
-            return null;
-
-        // Assemble the RTCP packet.
-        int len = outRTCPPacket.calcLength();
-        outRTCPPacket.assemble(len, false);
-        byte[] buf = outRTCPPacket.data;
-
-        RawPacket pktOut = new RawPacket();
-
-        pktOut.setBuffer(buf);
-        pktOut.setLength(buf.length);
-        pktOut.setOffset(0);
-
-        return pktOut;
+        return rtcpPacketTransformer.reverseTransform(pkt);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public RawPacket transform(RawPacket pkt)
+    public RTCPCompoundPacket transform(RTCPCompoundPacket rtcpCompoundPacket)
     {
-        // Outgoing RTCP packets need not be transformed.
-        return pkt;
+        return rtcpCompoundPacket;
     }
 }

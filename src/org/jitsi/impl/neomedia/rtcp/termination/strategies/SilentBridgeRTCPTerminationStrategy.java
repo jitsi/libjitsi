@@ -9,6 +9,7 @@ package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * Forwards whatever it receives from the network but it doesn't generate
@@ -23,12 +24,12 @@ public class SilentBridgeRTCPTerminationStrategy
     private final RTCPReportBuilder reportBuilder =
             new NullRTCPReportBuilderImpl();
 
-    private final Transformer<RTCPCompoundPacket> packetTransformer =
+    private final RTCPPacketTransformer packetTransformer =
             new NullRTCPPacketTransformer();
 
 
     @Override
-    public Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer()
+    public RTCPPacketTransformer getRTCPCompoundPacketTransformer()
     {
         return packetTransformer;
     }

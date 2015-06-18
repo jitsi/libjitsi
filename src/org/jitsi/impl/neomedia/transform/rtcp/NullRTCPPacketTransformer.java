@@ -7,12 +7,12 @@
 package org.jitsi.impl.neomedia.transform.rtcp;
 
 import net.sf.fmj.media.rtp.*;
-import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * Created by gp on 7/2/14.
  */
-public class NullRTCPPacketTransformer implements Transformer<RTCPCompoundPacket>
+public class NullRTCPPacketTransformer implements RTCPPacketTransformer
 {
     /**
      * {@inheritDoc}

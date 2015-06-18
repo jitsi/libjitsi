@@ -10,6 +10,7 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * <p>
@@ -140,7 +141,7 @@ public class HighestQualityRTCPTerminationStrategy
         // TODO(gp) make percentile configurable.
         this.feedbackCacheProcessor.setPercentile(70);
 
-        setTransformerChain(new Transformer[]{
+        setTransformerChain(new RTCPPacketTransformer[]{
                 new FeedbackCacheUpdater(feedbackCache),
                 new ReceiverFeedbackFilter()
         });

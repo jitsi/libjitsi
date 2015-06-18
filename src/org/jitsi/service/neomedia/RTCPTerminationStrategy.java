@@ -7,6 +7,7 @@
 package org.jitsi.service.neomedia;
 
 import net.sf.fmj.media.rtp.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * @author George Politis
@@ -20,7 +21,7 @@ public interface RTCPTerminationStrategy
      * @return the <tt>Transformer</tt> that is to inspect and
      * modify incoming RTCP packets.
      */
-    Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer();
+    RTCPPacketTransformer getRTCPCompoundPacketTransformer();
 
     /**
      * Gets the <tt>RTCPReportBuilder</tt> that makes the RTCP feedback

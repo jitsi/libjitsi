@@ -8,13 +8,14 @@ package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * @author George Politis
  */
 public abstract class AbstractRTCPTerminationStrategy
         implements RTCPTerminationStrategy,
-        Transformer<RTCPCompoundPacket>,
+        RTCPPacketTransformer,
         RTCPReportBuilder
 {
     //region fields and ctor
@@ -33,7 +34,7 @@ public abstract class AbstractRTCPTerminationStrategy
     /**
      * The <tt>Transformer</tt> to apply to incoming RTCP compound packets.
      */
-    private Transformer<RTCPCompoundPacket>[] transformerChain;
+    private RTCPPacketTransformer[] transformerChain;
 
     //endregion
 
@@ -94,7 +95,7 @@ public abstract class AbstractRTCPTerminationStrategy
      * {@inheritDoc}
      */
     @Override
-    public Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer()
+    public RTCPPacketTransformer getRTCPCompoundPacketTransformer()
     {
         return this;
     }
@@ -105,10 +106,10 @@ public abstract class AbstractRTCPTerminationStrategy
     @Override
     public RTCPCompoundPacket reverseTransform(RTCPCompoundPacket inPacket)
     {
-        Transformer<RTCPCompoundPacket>[] transformers = this.transformerChain;
+        RTCPPacketTransformer[] transformers = this.transformerChain;
         if (transformers != null && transformers.length != 0)
         {
-            for (Transformer<RTCPCompoundPacket> transformer : transformers)
+            for (RTCPPacketTransformer transformer : transformers)
             {
                 inPacket = transformer.reverseTransform(inPacket);
             }
@@ -123,12 +124,12 @@ public abstract class AbstractRTCPTerminationStrategy
     @Override
     public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
     {
-        Transformer<RTCPCompoundPacket>[] transformers = this.transformerChain;
+        RTCPPacketTransformer[] transformers = this.transformerChain;
         if (transformers != null && transformers.length != 0)
         {
             // XXX(boris): should we traverse the chain in the opposite
             // direction than the one in reverseTransform()?
-            for (Transformer<RTCPCompoundPacket> transformer : transformers)
+            for (RTCPPacketTransformer transformer : transformers)
             {
                 inPacket = transformer.transform(inPacket);
             }
@@ -147,7 +148,7 @@ public abstract class AbstractRTCPTerminationStrategy
     }
 
     public void setTransformerChain(
-            Transformer<RTCPCompoundPacket>[] transformers)
+            RTCPPacketTransformer[] transformers)
     {
         this.transformerChain = transformers;
     }

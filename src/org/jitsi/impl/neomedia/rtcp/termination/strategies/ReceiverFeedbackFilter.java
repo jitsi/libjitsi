@@ -8,14 +8,14 @@ package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.rtcp.*;
-import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 import java.util.*;
 
 /**
  * @author George Politis
  */
-public class ReceiverFeedbackFilter implements Transformer<RTCPCompoundPacket>
+public class ReceiverFeedbackFilter implements RTCPPacketTransformer
 {
     private static RTCPReportBlock[] NO_RTCP_REPORT_BLOCKS
         = new RTCPReportBlock[0];
