@@ -371,7 +371,7 @@ public class WebmDataSink
             if (logger.isInfoEnabled())
                 logger.info("Requesting keyframe. "+ssrc);
             if (keyFrameControl != null)
-                keyframeRequested = keyFrameControl.requestKeyFrame(false);
+                keyframeRequested = keyFrameControl.requestKeyFrame(true);
             framesSinceLastKeyframeRequest = 0;
         }
 
