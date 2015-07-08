@@ -126,12 +126,6 @@ public class NACKPacket
         for (int i = 0; i < nackList.size(); i++)
             System.arraycopy(nackList.get(i), 0, fci, i*4, 4);
 
-        if (nackList.size() > 10)
-        {
-            logger.warn("Created a NACK packet with " + nackList.size()
-                                + " NACK entries. Probably a bug.");
-        }
-
         this.lostPackets = sorted;
     }
 
