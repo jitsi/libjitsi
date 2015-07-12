@@ -3,13 +3,13 @@ Found a bug and know how to fix it? Great! Please read on.
 
 ## Contributor License Agreement
 While libjitsi is released under the
-[LGPL](https://github.com/jitsi/jitsi/blob/master/LICENSE), the copyright
+[Apache](https://github.com/jitsi/libjitsi/blob/master/LICENSE), the copyright
 holder and principal creator is [Blue Jimp](http://www.bluejimp.com/). To
-ensure that we can continue making libjitsi available under an open source
-license and still pay our bills, we need you to sign our
-[contributor license agreement](http://www.bluejimp.com/bca.pdf). If you
-cannot accept the terms laid out in the agreement, unfortunately, we cannot
-accept your contribution.
+ensure that we can continue making libjitsi available under an open source license
+and still pay our bills, we need you to sign our Apache-based contributor 
+license agreement as either a [corporation](https://jitsi.org/ccla) or an 
+[individual](https://jitsi.org/icla). If you cannot accept the terms laid out 
+in the agreement, unfortunately, we cannot accept your contribution.
 
 ## Coding Rules
 - Please read and follow the [code conventions](https://jitsi.org/Documentation/CodeConvention),
