@@ -8,6 +8,7 @@ package org.jitsi.impl.neomedia.transform.srtp;
 
 import org.bouncycastle.crypto.*;
 import org.bouncycastle.crypto.params.*;
+import org.jitsi.util.*;
 
 /**
  * Implements the interface <tt>org.bouncycastle.crypto.Mac</tt> using the
@@ -106,7 +107,9 @@ public class OpenSSLHMAC
             {
                 try
                 {
-                    System.loadLibrary("jnopenssl");
+                    JNIUtils.loadLibrary(
+                            "jnopenssl",
+                            OpenSSLHMAC.class.getClassLoader());
                     EVP_sha1 = EVP_sha1();
                 }
                 finally

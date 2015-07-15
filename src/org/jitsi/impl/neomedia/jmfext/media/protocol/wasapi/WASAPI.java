@@ -112,7 +112,7 @@ public class WASAPI
 
     static
     {
-        System.loadLibrary("jnwasapi");
+        JNIUtils.loadLibrary("jnwasapi", WASAPI.class.getClassLoader());
 
         AUDCLNT_E_NOT_STOPPED
             = MAKE_HRESULT(SEVERITY_ERROR, FACILIY_AUDCLNT, 5);

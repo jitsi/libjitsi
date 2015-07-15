@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.quicktime;
 
+import org.jitsi.util.*;
+
 /**
  * Represents the root of most Objective-C class hierarchies which which objects
  * inherit a basic interface to the runtime system and the ability to behave as
@@ -17,7 +19,7 @@ public class NSObject
 {
     static
     {
-        System.loadLibrary("jnquicktime");
+        JNIUtils.loadLibrary("jnquicktime", NSObject.class.getClassLoader());
     }
 
     /**

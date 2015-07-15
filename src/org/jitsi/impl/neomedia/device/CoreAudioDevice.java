@@ -37,16 +37,23 @@ public class CoreAudioDevice
 
         try
         {
+            String libname = null;
+
             if (OSUtils.IS_MAC)
             {
-                System.loadLibrary("jnmaccoreaudio");
-                isLoaded = true;
+                libname = "jnmaccoreaudio";
             }
             else if (OSUtils.IS_WINDOWS_VISTA
                     || OSUtils.IS_WINDOWS_7
                     || OSUtils.IS_WINDOWS_8)
             {
-                System.loadLibrary("jnwincoreaudio");
+                libname = "jnwincoreaudio";
+            }
+            if (libname != null)
+            {
+                JNIUtils.loadLibrary(
+                        libname,
+                        CoreAudioDevice.class.getClassLoader());
                 isLoaded = true;
             }
         }

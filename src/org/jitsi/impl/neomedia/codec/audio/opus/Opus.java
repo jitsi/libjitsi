@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.opus;
 
+import org.jitsi.util.*;
+
 /**
  * Defines the API of the native opus library to be utilized by the libjitsi
  * library.
@@ -67,7 +69,7 @@ public class Opus
      */
     static
     {
-        System.loadLibrary("jnopus");
+        JNIUtils.loadLibrary("jnopus", Opus.class.getClassLoader());
     }
 
     /**

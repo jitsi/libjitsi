@@ -26,7 +26,7 @@ public class ScreenCapture
 
         try
         {
-            System.loadLibrary(lib);
+            JNIUtils.loadLibrary(lib, ScreenCapture.class.getClassLoader());
         }
         catch (Throwable t)
         {

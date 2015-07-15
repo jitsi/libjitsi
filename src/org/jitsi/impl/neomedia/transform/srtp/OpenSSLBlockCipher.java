@@ -10,6 +10,7 @@ import java.nio.*;
 
 import org.bouncycastle.crypto.*;
 import org.bouncycastle.crypto.params.*;
+import org.jitsi.util.*;
 
 /**
  * Implements the interface <tt>org.bouncycastle.crypto.BlockCipher</tt> using
@@ -135,7 +136,9 @@ public class OpenSSLBlockCipher
             {
                 try
                 {
-                    System.loadLibrary("jnopenssl");
+                    JNIUtils.loadLibrary(
+                            "jnopenssl",
+                            OpenSSLBlockCipher.class.getClassLoader());
                     EVP_aes_128_ctr = EVP_get_cipherbyname("AES-128-CTR");
                     EVP_aes_128_ecb = EVP_aes_128_ecb();
                 }

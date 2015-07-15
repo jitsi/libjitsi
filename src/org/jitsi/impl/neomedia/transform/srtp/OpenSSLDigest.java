@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.transform.srtp;
 
 import org.bouncycastle.crypto.*;
+import org.jitsi.util.*;
 
 /**
  * Implements the interface <tt>org.bouncycastle.crypto.Digest</tt> using the
@@ -104,7 +105,9 @@ public class OpenSSLDigest
             {
                 try
                 {
-                    System.loadLibrary("jnopenssl");
+                    JNIUtils.loadLibrary(
+                            "jnopenssl",
+                            OpenSSLDigest.class.getClassLoader());
                     EVP_sha1 = EVP_sha1();
                 }
                 finally

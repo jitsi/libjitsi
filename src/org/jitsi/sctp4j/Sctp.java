@@ -54,7 +54,7 @@ public class Sctp
 
         try
         {
-            System.loadLibrary(lib);
+            JNIUtils.loadLibrary(lib, Sctp.class.getClassLoader());
         }
         catch (Throwable t)
         {

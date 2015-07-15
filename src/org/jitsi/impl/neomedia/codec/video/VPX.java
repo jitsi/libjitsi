@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.codec.video;
 
+import org.jitsi.util.*;
+
 /**
  * A wrapper for the libvpx native library.
  * See {@link "http://www.webmproject.org/docs/"}
@@ -891,7 +893,7 @@ public class VPX {
 
     static
     {
-        System.loadLibrary("jnvpx");
+        JNIUtils.loadLibrary("jnvpx", VPX.class.getClassLoader());
     }
 
     /**

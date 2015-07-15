@@ -226,7 +226,7 @@ public final class Pa
 
     static
     {
-        System.loadLibrary("jnportaudio");
+        JNIUtils.loadLibrary("jnportaudio", Pa.class.getClassLoader());
 
         try
         {

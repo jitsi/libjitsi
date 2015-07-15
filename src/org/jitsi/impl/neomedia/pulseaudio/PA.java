@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.pulseaudio;
 
+import org.jitsi.util.*;
+
 /**
  * Declares the functions, structures and constants of the native
  * <tt>PulseAudio</tt> API for use within Java in general and neomedia in
@@ -111,7 +113,7 @@ public final class PA
 
     static
     {
-        System.loadLibrary("jnpulseaudio");
+        JNIUtils.loadLibrary("jnpulseaudio", PA.class.getClassLoader());
     }
 
     public static native void buffer_attr_free(long attr);

@@ -1,12 +1,13 @@
 package org.jitsi.impl.neomedia.recording;
 
 import java.io.*;
+import org.jitsi.util.*;
 
 public class WebmWriter
 {
     static
     {
-        System.loadLibrary("jnvpx");
+        JNIUtils.loadLibrary("jnvpx", WebmWriter.class.getClassLoader());
     }
 
     /**

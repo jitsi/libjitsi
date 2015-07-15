@@ -6,6 +6,8 @@
  */
 package org.jitsi.impl.neomedia.quicktime;
 
+import org.jitsi.util.*;
+
 /**
  * @author Lyubomir Marinov
  */
@@ -19,7 +21,9 @@ public final class CVPixelBufferAttributeKey
 
     static
     {
-        System.loadLibrary("jnquicktime");
+        JNIUtils.loadLibrary(
+                "jnquicktime",
+                CVPixelBufferAttributeKey.class.getClassLoader());
 
         kCVPixelBufferHeightKey = kCVPixelBufferHeightKey();
         kCVPixelBufferPixelFormatTypeKey = kCVPixelBufferPixelFormatTypeKey();

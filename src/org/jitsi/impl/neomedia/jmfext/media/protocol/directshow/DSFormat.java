@@ -7,6 +7,7 @@
 package org.jitsi.impl.neomedia.jmfext.media.protocol.directshow;
 
 import javax.media.*;
+import org.jitsi.util.*;
 
 /**
  * DirectShow video format.
@@ -69,7 +70,7 @@ public class DSFormat
 
     static
     {
-        System.loadLibrary("jndirectshow");
+        JNIUtils.loadLibrary("jndirectshow", DSFormat.class.getClassLoader());
 
         ARGB32 = ARGB32();
         I420 = I420();
