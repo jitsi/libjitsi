@@ -1,7 +1,8 @@
 /classes
+/dist
+/.idea
+/.settings/*
+/target
 libjitsi.jar
-.idea
 *.swp
-dist
 *.class
-.settings/*

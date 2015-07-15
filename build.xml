@@ -163,7 +163,7 @@
       </classpath>
       <sysproperty
           key="java.library.path"
-          path="lib/native/linux-64:lib/native/linux:lib/native/mac:lib/native/windows-64:lib/native/windows" />
+          path="lib/native/linux-x86-64:lib/native/linux-x86:lib/native/darwin:lib/native/win32-x86-64:lib/native/win32-x86" />
     </java>
   </target>
 
@@ -202,32 +202,32 @@
       <zip destfile="${dist}/windows/libjitsi-${build.label}-x86.zip">
           <zipfileset file="libjitsi.jar" />
           <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
-          <zipfileset dir="lib/native/windows" includes="*.dll"
-                      prefix="lib/native/windows"/>
+          <zipfileset dir="lib/native/win32-x86" includes="*.dll"
+                      prefix="lib/native/win32-x86"/>
       </zip>
       <zip destfile="${dist}/windows/libjitsi-${build.label}-x64.zip">
           <zipfileset file="libjitsi.jar" />
           <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
-          <zipfileset dir="lib/native/windows-64" includes="*.dll"
-                      prefix="lib/native/windows-64"/>
+          <zipfileset dir="lib/native/win32-x86-64" includes="*.dll"
+                      prefix="lib/native/win32-x86-64"/>
       </zip>
       <zip destfile="${dist}/macosx/libjitsi-${build.label}.zip">
           <zipfileset file="libjitsi.jar" />
           <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
-          <zipfileset dir="lib/native/mac" includes="*.jnilib"
-                      prefix="lib/native/mac"/>
+          <zipfileset dir="lib/native/darwin" includes="*.jnilib"
+                      prefix="lib/native/darwin"/>
       </zip>
       <zip destfile="${dist}/linux/libjitsi-${build.label}-i386.zip">
           <zipfileset file="libjitsi.jar" />
           <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
-          <zipfileset dir="lib/native/linux" includes="*.so"
-                      prefix="lib/native/linux"/>
+          <zipfileset dir="lib/native/linux-x86" includes="*.so"
+                      prefix="lib/native/linux-x86"/>
       </zip>
       <zip destfile="${dist}/linux/libjitsi-${build.label}-amd64.zip">
           <zipfileset file="libjitsi.jar" />
           <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
-          <zipfileset dir="lib/native/linux-64" includes="*.so"
-                      prefix="lib/native/linux-64"/>
+          <zipfileset dir="lib/native/linux-x86-64" includes="*.so"
+                      prefix="lib/native/linux-x86-64"/>
       </zip>
       <zip destfile="${dist}/src/libjitsi-src-${build.label}.zip">
         <zipfileset dir="." prefix="libjitsi">
@@ -246,7 +246,7 @@
         <classpath refid="test.class.path"/>
         <sysproperty
               key="java.library.path"
-              path="lib/native/linux-64:lib/native/linux:lib/native/mac:lib/native/windows-64:lib/native/windows" />
+              path="lib/native/linux-x86-64:lib/native/linux-x86:lib/native/darwin:lib/native/win32-x86-64:lib/native/win32-x86" />
         <test name="org.jitsi.sctp4j.SctpTestSuite"
               todir="${junit.reports}"/>
       </junit>
