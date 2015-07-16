@@ -61,16 +61,12 @@
       <artifactId>jitsi-lgpl-dependencies</artifactId>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>zrtp4j-light</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.core</artifactId>
-    </dependency>
-    <!-- system -->
-    <dependency>
-      <groupId>com.github.wernerd</groupId>
-      <artifactId>zrtp4j-light</artifactId>
-      <version>3.2.0-jitsi-1-SNAPSHOT</version>
-      <scope>system</scope>
-      <systemPath>${project.basedir}/lib/zrtp4j-light.jar</systemPath>
     </dependency>
     <!-- test -->
     <dependency>
