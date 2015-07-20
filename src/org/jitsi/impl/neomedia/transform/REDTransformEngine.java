@@ -240,13 +240,11 @@ public class REDTransformEngine
         //write primary packet: reuse pkt
         pkt.setPayloadType((byte) (buf[idx] & 0x7f));
 
-        // reuse the buffer, move the payload "left". Moving the payload
-        // right doesn't work because apparently we've got an offset
-        // bug somewhere in libjitsi (in the SRTP transformer?) that
-        // corrupts the authentication tag of outgoing RTP packets
-        // resulting in RTP packets being discarded at the clients (both
-        // FF and Chrome) because the RTP packet authentication fails.
-        System.arraycopy(buf, payloadOffset, buf, hdrLen, pkt.getLength() - payloadOffset);
+        // reuse the buffer, move the header "right"
+        // XXX: checkout out the REDFilterTransformEngine for some issues to
+        // watch out for when doing packet buffer recycling and SRTP
+        System.arraycopy(buf, off, buf, off + payloadOffset - hdrLen, hdrLen);
+        pkt.setOffset(off + payloadOffset - hdrLen);
         pkt.setLength(pkt.getLength() - (payloadOffset - hdrLen));
 
         pkts[0] = pkt;
