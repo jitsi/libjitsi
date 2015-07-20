@@ -203,7 +203,7 @@ public class RawPacket
             this.buffer = newBuffer;
         }
         // append data
-        System.arraycopy(data, 0, this.buffer, this.length, len);
+        System.arraycopy(data, 0, this.buffer, this.length + this.offset, len);
         this.length = this.length + len;
 
     }
