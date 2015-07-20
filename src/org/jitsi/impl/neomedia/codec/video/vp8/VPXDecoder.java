@@ -167,7 +167,7 @@ public class VPXDecoder
 
             //YUV420p format , 12 bits per pixel
             outputBuffer.setLength(width * height * 3 / 2);
-            outputBuffer.setTimeStamp(Buffer.TIME_UNKNOWN);
+            outputBuffer.setTimeStamp(inputBuffer.getTimeStamp());
         }
         else
         {
@@ -217,7 +217,7 @@ public class VPXDecoder
 
             //YUV420p format , 12 bits per pixel
             outputBuffer.setLength(width * height * 3 / 2);
-            outputBuffer.setTimeStamp(Buffer.TIME_UNKNOWN);
+            outputBuffer.setTimeStamp(inputBuffer.getTimeStamp());
         }
 
 
