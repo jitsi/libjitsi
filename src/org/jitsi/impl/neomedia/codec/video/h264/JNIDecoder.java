@@ -437,7 +437,7 @@ public class JNIDecoder
 
         if (pts == FFmpeg.AV_NOPTS_VALUE)
         {
-            out.setTimeStamp(Buffer.TIME_UNKNOWN);
+            out.setTimeStamp(in.getTimeStamp());
         }
         else
         {
