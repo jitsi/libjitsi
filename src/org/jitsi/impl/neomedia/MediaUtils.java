@@ -314,16 +314,14 @@ public class MediaUtils
                 h264FormatParams,
                 h264AdvancedAttributes);
 
-        /* H263+ */
+        /* H263+
         Map<String, String> h263FormatParams
             = new HashMap<String, String>();
         Map<String, String> h263AdvancedAttributes
             = new LinkedHashMap<String, String>();
 
-        /*
-         * The maximum resolution we can receive is the size of our screen
-         * device.
-         */
+         // The maximum resolution we can receive is the size of our screen
+         // device.
         if (res != null)
             h263FormatParams.put("CUSTOM", res.width + "," + res.height + ",2");
         h263FormatParams.put("VGA", "2");
@@ -336,7 +334,7 @@ public class MediaUtils
                 MediaType.VIDEO,
                 Constants.H263P_RTP,
                 h263FormatParams,
-                h263AdvancedAttributes);
+                h263AdvancedAttributes);*/
 
         addMediaFormats(
                 MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,

@@ -17,4 +17,4 @@ Index: libjitsi/src/org/jitsi/impl/neomedia/codec/FMJPlugInConfiguration.java
 +            //"org.jitsi.impl.neomedia.codec.audio.gsm.Packetizer",
              "org.jitsi.impl.neomedia.codec.audio.silk.JavaDecoder",
              "org.jitsi.impl.neomedia.codec.audio.silk.JavaEncoder",
-             "org.jitsi.impl.neomedia.codec.video.h263p.DePacketizer",
+             //"org.jitsi.impl.neomedia.codec.video.h263p.DePacketizer",
