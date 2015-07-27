@@ -11,7 +11,6 @@
 	<classpathentry kind="lib" path="lib/jitsi-lgpl-dependencies.jar"/>
 	<classpathentry kind="lib" path="lib/jna.jar"/>
 	<classpathentry kind="lib" path="lib/json-simple-1.1.1.jar"/>
-	<classpathentry kind="lib" path="lib/jspeex.jar"/>
 	<classpathentry kind="lib" path="lib/osgi.core.jar"/>
 	<classpathentry kind="lib" path="lib/sdes4j.jar"/>
 	<classpathentry kind="lib" path="lib/zrtp4j-light.jar"/>
