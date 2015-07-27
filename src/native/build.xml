@@ -811,6 +811,7 @@
         <!-- TODO: strip -->
 
         <fail message="libvpx repository not set!" unless="libvpx"/>
+        <fail message="libmkv repository not set!" unless="libmkv"/>
 
         <cc name="gcc"
             objdir="${obj}"
@@ -831,7 +832,7 @@
 
             <!-- libvpx includes -->
             <compilerarg value="-I${libvpx}" />
-            <compilerarg value="-I${libvpx}/third_party" />
+            <compilerarg value="-I${libmkv}/.." />
 
             <!-- architecture flags -->
             <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
@@ -848,7 +849,7 @@
             <!-- linker flags -->
             <!-- common -->
             <linkerarg value="-shared" />
-            <linkerarg value="-lstdc++" location="end"/>
+            <linkerarg value="-lstdc++" location="end" unless="is.running.linux"/>
 
 
             <!-- architecture flags -->
@@ -872,11 +873,17 @@
             <!-- Unix flags -->
             <linkerarg value="-olibjnvpx.so" location="end" if="is.running.unix" />
 
+            <!-- Linux -->
+            <linkerarg value="-L${libvpx}" if="is.running.linux"/>
+            <linkerarg value="-Wl,-Bstatic" location="end" if="is.running.linux"/>
+            <linkerarg value="-lvpx" location="end" if="is.running.linux"/>
+            <linkerarg value="-Wl,-Bdynamic" location="end" if="is.running.linux"/>
+            <linkerarg value="-lstdc++" location="end" if="is.running.linux"/>
 
             <!-- Input files -->
             <fileset dir="${src}/native/vpx" includes="*.c"/>
             <fileset dir="${src}/native/vpx" includes="*.cc"/>
-            <fileset dir="${libvpx}/third_party/libmkv" includes="EbmlWriter.c"/>
+            <fileset dir="${libmkv}" includes="EbmlWriter.c"/>
             <fileset dir="${libvpx}" includes="libvpx.a"/>
         </cc>
     </target>
