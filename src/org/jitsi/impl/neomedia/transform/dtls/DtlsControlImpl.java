@@ -326,7 +326,9 @@ public class DtlsControlImpl
         catch (Throwable t)
         {
             if (t instanceof ThreadDeath)
+            {
                 throw (ThreadDeath) t;
+            }
             else
             {
                 logger.error(
@@ -441,7 +443,7 @@ public class DtlsControlImpl
      */
     public DtlsControlImpl()
     {
-        // By default we work in DTLS/SRTP mode
+        // By default we work in DTLS/SRTP mode.
         this(false);
     }
 
@@ -648,6 +650,7 @@ public class DtlsControlImpl
         if (this.rtcpmux != rtcpmux)
         {
             this.rtcpmux = rtcpmux;
+
             DtlsTransformEngine transformEngine = this.transformEngine;
 
             if (transformEngine != null)
@@ -698,23 +701,19 @@ public class DtlsControlImpl
             org.bouncycastle.asn1.x509.Certificate certificate)
         throws Exception
     {
-        /*
-         * RFC 4572 "Connection-Oriented Media Transport over the Transport
-         * Layer Security (TLS) Protocol in the Session Description Protocol
-         * (SDP)" defines that "[a] certificate fingerprint MUST be computed
-         * using the same one-way hash function as is used in the certificate's
-         * signature algorithm."
-         */
+        // RFC 4572 "Connection-Oriented Media Transport over the Transport
+        // Layer Security (TLS) Protocol in the Session Description Protocol
+        // (SDP)" defines that "[a] certificate fingerprint MUST be computed
+        // using the same one-way hash function as is used in the certificate's
+        // signature algorithm."
         String hashFunction = findHashFunction(certificate);
         String fingerprint = computeFingerprint(certificate, hashFunction);
 
-        /*
-         * As RFC 5763 "Framework for Establishing a Secure Real-time Transport
-         * Protocol (SRTP) Security Context Using Datagram Transport Layer
-         * Security (DTLS)" states, "the certificate presented during the DTLS
-         * handshake MUST match the fingerprint exchanged via the signaling path
-         * in the SDP."
-         */
+        // As RFC 5763 "Framework for Establishing a Secure Real-time Transport
+        // Protocol (SRTP) Security Context Using Datagram Transport Layer
+        // Security (DTLS)" states, "the certificate presented during the DTLS
+        // handshake MUST match the fingerprint exchanged via the signaling path
+        // in the SDP."
         String remoteFingerprint;
 
         synchronized (this)
@@ -795,22 +794,19 @@ public class DtlsControlImpl
         }
         catch (Exception e)
         {
-            /*
-             * XXX Contrary to RFC 5763 "Framework for Establishing a Secure
-             * Real-time Transport Protocol (SRTP) Security Context Using
-             * Datagram Transport Layer Security (DTLS)", we do NOT want to tear
-             * down the media session if the fingerprint does not match the
-             * hashed certificate. We want to notify the user via the
-             * SrtpListener.
-             */
-            // TODO Auto-generated method stub
+            // XXX Contrary to RFC 5763 "Framework for Establishing a Secure
+            // Real-time Transport Protocol (SRTP) Security Context Using
+            // Datagram Transport Layer Security (DTLS)", we do NOT want to tear
+            // down the media session if the fingerprint does not match the
+            // hashed certificate. We want to notify the user via the
+            // SrtpListener.
             String message
                 = "Failed to verify and/or validate a certificate offered over"
                     + " the media path against fingerprints declared over the"
                     + " signaling path!";
             String throwableMessage = e.getMessage();
 
-            if ((throwableMessage == null) || (throwableMessage.length() == 0))
+            if (throwableMessage == null || throwableMessage.length() == 0)
                 logger.warn(message, e);
             else
                 logger.warn(message + " " + throwableMessage);
