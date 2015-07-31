@@ -26,6 +26,8 @@ import org.bouncycastle.crypto.util.*;
 import org.bouncycastle.operator.*;
 import org.bouncycastle.operator.bc.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.version.*;
 import org.jitsi.util.*;
@@ -69,6 +71,46 @@ public class DtlsControlImpl
             SRTPProtectionProfile.SRTP_AES128_CM_HMAC_SHA1_80,
             SRTPProtectionProfile.SRTP_AES128_CM_HMAC_SHA1_32
         };
+
+    /**
+     * The indicator which specifies whether {@code DtlsControlImpl} is to tear
+     * down the media session if the fingerprint does not match the hashed
+     * certificate. The default value is {@code true} and may be overridden by
+     * the {@code ConfigurationService} and/or {@code System} property
+     * {@code VERIFY_AND_VALIDATE_CERTIFICATE_PNAME}.
+     */
+    private static final boolean VERIFY_AND_VALIDATE_CERTIFICATE;
+
+    /**
+     * The name of the {@code ConfigurationService} and/or {@code System}
+     * property which specifies whether {@code DtlsControlImpl} is to tear down
+     * the media session if the fingerprint does not match the hashed
+     * certificate. The default value is {@code true}.
+     */
+    private static final String VERIFY_AND_VALIDATE_CERTIFICATE_PNAME
+        = DtlsControlImpl.class + ".verifyAndValidateCertificate";
+
+    static
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        boolean verifyAndValidateCertificate = true;
+
+        if (cfg == null)
+        {
+            String s = System.getProperty(VERIFY_AND_VALIDATE_CERTIFICATE_PNAME);
+
+            if (s != null)
+                verifyAndValidateCertificate = Boolean.parseBoolean(s);
+        }
+        else
+        {
+            verifyAndValidateCertificate
+                = cfg.getBoolean(
+                        VERIFY_AND_VALIDATE_CERTIFICATE_PNAME,
+                        verifyAndValidateCertificate);
+        }
+        VERIFY_AND_VALIDATE_CERTIFICATE = verifyAndValidateCertificate;
+    }
 
     /**
      * Chooses the first from a list of <tt>SRTPProtectionProfile</tt>s that is
@@ -794,22 +836,34 @@ public class DtlsControlImpl
         }
         catch (Exception e)
         {
-            // XXX Contrary to RFC 5763 "Framework for Establishing a Secure
-            // Real-time Transport Protocol (SRTP) Security Context Using
-            // Datagram Transport Layer Security (DTLS)", we do NOT want to tear
-            // down the media session if the fingerprint does not match the
-            // hashed certificate. We want to notify the user via the
-            // SrtpListener.
             String message
                 = "Failed to verify and/or validate a certificate offered over"
                     + " the media path against fingerprints declared over the"
                     + " signaling path!";
             String throwableMessage = e.getMessage();
 
-            if (throwableMessage == null || throwableMessage.length() == 0)
-                logger.warn(message, e);
+            if (VERIFY_AND_VALIDATE_CERTIFICATE)
+            {
+                if (throwableMessage == null || throwableMessage.length() == 0)
+                    logger.error(message, e);
+                else
+                    logger.error(message + " " + throwableMessage);
+
+                throw e;
+            }
             else
-                logger.warn(message + " " + throwableMessage);
+            {
+                // XXX Contrary to RFC 5763 "Framework for Establishing a Secure
+                // Real-time Transport Protocol (SRTP) Security Context Using
+                // Datagram Transport Layer Security (DTLS)", we do NOT want to
+                // teardown the media session if the fingerprint does not match
+                // the hashed certificate. We want to notify the user via the
+                // SrtpListener.
+                if (throwableMessage == null || throwableMessage.length() == 0)
+                    logger.warn(message, e);
+                else
+                    logger.warn(message + " " + throwableMessage);
+            }
         }
         return b;
     }
