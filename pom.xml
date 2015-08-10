@@ -87,6 +87,11 @@
     <resources>
       <resource>
         <directory>lib/native</directory>
+        <excludes>
+          <!-- jitsi-lgpl-dependencies -->
+          <exclude>**/*jnffmpeg.*</exclude>
+          <exclude>**/*jng722.*</exclude>
+        </excludes>
       </resource>
     </resources>
   </build>
