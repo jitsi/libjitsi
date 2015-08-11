@@ -4,7 +4,7 @@
 #
 #   a) cd src/native/sctp
 #
-#   b) svn checkout http://sctp-refimpl.googlecode.com/svn/trunk/ sctp-refimpl-read-only
+#   b) git clone https://github.com/sctplab/usrsctp.git
 #
 # 2. Build usrsctp:
 #
@@ -13,6 +13,10 @@
 #   b) cd src/native/sctp/sctp-refimpl-read-only/KERN/usrsctp/
 #
 #   c) nmake -f Makefile.nmake
+# NOTES: Encountering the following warning/errors:
+# user_mbuf.c(735) : error C2220: warning treated as error - no 'object' file generated
+# user_mbuf.c(735) : warning C4244: '=' : conversion from '__int64' to 'int', possible loss of data
+# Editing usrsctplib/Makefile.nmake and removing /WX from CFLAGS will fix it.
 #
 # 3. Build native Sctp wrapper:
 #
@@ -30,6 +34,11 @@
 # The command below is used to re-generate jni header
 # (run from classes output folder)
 # javah -jni org.jitsi.sctp4j.Sctp
+# NOTES: To fix the following error
+#  [cc]    Creating library jnsctp.lib and object jnsctp.exp
+#  [cc] LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+#  [cc] LINK : fatal error LNK1101: incorrect MSPDB140.DLL version; recheck installation of this product
+# > copy "C:\Program Files (x86)\Microsoft Visual Studio 15.0\VC\bin\mspdbsrv.exe" "C:\Program Files (x86)\Microsoft Visual Studio 15.0\Common7\IDE"
 #
 # BUILD INSTRUCTIONS FOR LINUX
 #
@@ -42,7 +51,7 @@
 #
 # 2. Checkout usrsctp
 #
-#    svn checkout http://sctp-refimpl.googlecode.com/svn/trunk/ sctp-refimpl-read-only
+#    git clone https://github.com/sctplab/usrsctp.git
 #
 # 3. Go to usrsctp src root
 #
