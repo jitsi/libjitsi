@@ -195,7 +195,7 @@ public interface MediaStream
      *
      * @param propertyName the name of the opaque property of this
      * <tt>MediaStream</tt> the value of which is to be returned
-     * @return the value of the opaque property of this <tt>MediaStrea</tt>
+     * @return the value of the opaque property of this <tt>MediaStream</tt>
      * specified by <tt>propertyName</tt>
      */
     public Object getProperty(String propertyName);
@@ -381,8 +381,8 @@ public interface MediaStream
      * @param propertyName the name of the opaque property of this
      * <tt>MediaStream</tt> the value of which is to be set to the specified
      * <tt>value</tt>
-     * @param value the value of the opaque property of this <tt>MediaStrea</tt>
-     * specified by <tt>propertyName</tt> to be set
+     * @param value the value of the opaque property of this
+     * <tt>MediaStream</tt> specified by <tt>propertyName</tt> to be set
      */
     public void setProperty(String propertyName, Object value);
 
