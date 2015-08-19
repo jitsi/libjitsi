@@ -62,7 +62,6 @@
         source="1.6"
         target="1.6">
       <src path="${src}"/>
-      <exclude name="org/jitsi/impl/neomedia/codec/audio/speex/Java*"/>
       <exclude
           name="org/jitsi/impl/neomedia/transform/srtp/CryptoBenchmark.java"/>
     </javac>
@@ -104,7 +103,6 @@
         source="1.6"
         target="1.6">
         <src path="${src}"/>
-        <exclude name="org/jitsi/impl/neomedia/codec/audio/speex/Java*"/>
     </javac>
   </target>
 

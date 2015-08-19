@@ -38,7 +38,6 @@ public class SctpTransferTest
         Sctp.init();
 
         peerA = Sctp.createSocket(portA);
-
         peerB = Sctp.createSocket(portB);
     }
 
@@ -47,7 +46,6 @@ public class SctpTransferTest
         throws IOException
     {
         peerA.close();
-
         peerB.close();
 
         Sctp.finish();

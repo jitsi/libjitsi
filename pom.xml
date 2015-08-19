@@ -80,6 +80,17 @@
   <build>
     <sourceDirectory>src</sourceDirectory>
     <testSourceDirectory>test</testSourceDirectory>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>org/jitsi/impl/neomedia/transform/srtp/CryptoBenchmark.java</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+    </plugins>
     <resources>
       <resource>
         <directory>lib/native</directory>
