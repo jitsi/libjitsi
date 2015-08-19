@@ -88,7 +88,7 @@ public class DtlsControlImpl
      * certificate. The default value is {@code true}.
      */
     private static final String VERIFY_AND_VALIDATE_CERTIFICATE_PNAME
-        = DtlsControlImpl.class + ".verifyAndValidateCertificate";
+        = DtlsControlImpl.class.getName() + ".verifyAndValidateCertificate";
 
     static
     {
