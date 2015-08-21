@@ -6,3 +6,5 @@
 libjitsi.jar
 *.swp
 *.class
+.classpath
+.project
