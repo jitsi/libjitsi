@@ -7,7 +7,6 @@
 package org.jitsi.service.neomedia;
 
 import org.jitsi.service.neomedia.event.*;
-import org.jitsi.service.protocol.*;
 
 /**
  * Extends the <tt>MediaStream</tt> interface and adds methods specific to

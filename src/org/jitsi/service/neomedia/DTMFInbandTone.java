@@ -6,8 +6,6 @@
  */
 package org.jitsi.service.neomedia;
 
-import org.jitsi.service.protocol.*;
-
 /**
  * Manages the generation of the inband DMTF signal. A signal is identified by a
  * value (1, 2, 3, 4, 5, 6, 7, 8, 9, *, #, A, B, C and D) and each signal is

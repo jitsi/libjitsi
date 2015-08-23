@@ -23,7 +23,6 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.event.*;
-import org.jitsi.service.protocol.*;
 import org.jitsi.util.*;
 import org.jitsi.util.event.*;
 
