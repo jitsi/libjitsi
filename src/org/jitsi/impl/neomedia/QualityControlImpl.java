@@ -10,7 +10,6 @@ import java.awt.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.service.protocol.*;
 import org.jitsi.util.*;
 
 /**
@@ -49,10 +48,8 @@ class QualityControlImpl
      * Sets the preset.
      *
      * @param preset the desired video settings
-     * @throws OperationFailedException
      */
     private void setRemoteReceivePreset(QualityPreset preset)
-        throws OperationFailedException
     {
         QualityPreset preferredSendPreset = getPreferredSendPreset();
 
@@ -110,10 +107,8 @@ class QualityControlImpl
      * Does nothing specific locally.
      *
      * @param preset the max preset
-     * @throws OperationFailedException not thrown.
      */
     public void setPreferredRemoteSendMaxPreset(QualityPreset preset)
-        throws OperationFailedException
     {
         setRemoteSendMaxPreset(preset);
     }
@@ -157,13 +152,6 @@ class QualityControlImpl
      */
     public void setRemoteReceiveResolution(Dimension res)
     {
-        try
-        {
-            setRemoteReceivePreset(new QualityPreset(res));
-        }
-        catch(OperationFailedException ofe)
-        {
-            logger.warn("Failed to set remote receive resolution", ofe);
-        }
+        setRemoteReceivePreset(new QualityPreset(res));
     }
 }
