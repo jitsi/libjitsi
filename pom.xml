@@ -13,7 +13,7 @@
 
   <artifactId>libjitsi</artifactId>
   <version>1.0-SNAPSHOT</version>
-  <packaging>jar</packaging>
+  <packaging>bundle</packaging>
 
   <name>libjitsi</name>
   <url>https://github.com/jitsi/libjitsi</url>
@@ -89,6 +89,26 @@
             <exclude>org/jitsi/impl/neomedia/transform/srtp/CryptoBenchmark.java</exclude>
           </excludes>
         </configuration>
+      </plugin>
+      <plugin>
+         <groupId>org.apache.felix</groupId>
+         <artifactId>maven-bundle-plugin</artifactId>
+         <configuration>
+            <instructions>
+               <Export-Package>org.jitsi.util.*,
+               org.jitsi.service.*,
+               org.jitsi.sctp4j.*,
+               org.jitsi.impl.neomedia,
+               org.jitsi.impl.neomedia.codec,
+               org.jitsi.impl.neomedia.codec.video.h264,
+               org.jitsi.impl.neomedia.device,
+               org.jitsi.impl.neomedia.format,
+               org.jitsi.impl.neomedia.recording
+               </Export-Package>
+               <Private-Package>org.jitsi.examples.*,org.jitsi.impl.*</Private-Package>
+               <Bundle-Activator>org.jitsi.service.libjitsi.LibJitsiActivator</Bundle-Activator>
+            </instructions>
+         </configuration>
       </plugin>
     </plugins>
     <resources>

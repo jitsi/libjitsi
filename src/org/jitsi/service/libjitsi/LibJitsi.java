@@ -181,7 +181,7 @@ public abstract class LibJitsi
      * specified in which case an OSGi-aware <tt>LibJitsi</tt> implementation
      * will be used.
      */
-    private static void start(Object context)
+    static void start(Object context)
     {
         if (null != LibJitsi.impl)
         {
