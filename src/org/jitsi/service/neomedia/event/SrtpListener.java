@@ -19,6 +19,26 @@ import org.jitsi.service.neomedia.*;
 public interface SrtpListener
 {
     /**
+     * This is a information message. Security will be established.
+     */
+    public static final int INFORMATION = 0;
+
+    /**
+     * This is a warning message. Security will not be established.
+     */
+    public static final int WARNING = 1;
+
+    /**
+     * This is a severe error. Security will not be established.
+     */
+    public static final int SEVERE = 2;
+
+    /**
+     * This is an error message. Security will not be established.
+     */
+    public static final int ERROR = 3;
+
+    /**
      * Indicates that the security has been turned on. When we are in the case
      * of using multistreams when the master stream ZRTP is initialized and
      * established the param multiStreamData holds the data needed for the
