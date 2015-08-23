@@ -630,7 +630,6 @@ public class RTCPReports
                     report.setSystemTimeStamp(System.currentTimeMillis());
 
                 // RTCPFeedback
-                @SuppressWarnings("unchecked")
                 List<RTCPFeedback> feedbacks = report.getFeedbackReports();
 
                 if (feedbacks != null)
@@ -687,7 +686,6 @@ public class RTCPReports
                     report.setSystemTimeStamp(System.currentTimeMillis());
 
                 // RTCPFeedback
-                @SuppressWarnings("unchecked")
                 List<RTCPFeedback> feedbacks = report.getFeedbackReports();
 
                 if (feedbacks != null)
