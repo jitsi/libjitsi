@@ -6,8 +6,6 @@
  */
 package org.jitsi.service.neomedia;
 
-import org.jitsi.service.protocol.*;
-
 /**
  * The quality controls we use to control other party video presets.
  *
@@ -47,8 +45,8 @@ public interface QualityControl
      * will implement this for re-inviting the other party or just sending that
      * media has changed.
      * @param preset the new preset.
-     * @throws OperationFailedException
+     * @throws MediaException
      */
     public void setPreferredRemoteSendMaxPreset(QualityPreset preset)
-        throws OperationFailedException;
+        throws MediaException;
 }

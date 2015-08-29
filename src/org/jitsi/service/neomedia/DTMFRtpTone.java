@@ -6,8 +6,6 @@
  */
 package org.jitsi.service.neomedia;
 
-import org.jitsi.service.protocol.*;
-
 /**
  * Represents all DTMF tones for RTP method (RFC4733).
  *
