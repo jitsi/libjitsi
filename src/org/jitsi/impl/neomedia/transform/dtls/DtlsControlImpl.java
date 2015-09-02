@@ -42,6 +42,15 @@ public class DtlsControlImpl
     implements DtlsControl
 {
     /**
+     * The map which specifies which hash functions are to be considered
+     * &quot;upgrades&quot; of which other hash functions. The keys are the hash
+     * functions which have &quot;upgrades&quot; defined and are written in
+     * lower case.
+     */
+    private static final Map<String,String[]> HASH_FUNCTION_UPGRADES
+        = new HashMap<String,String[]>();
+
+    /**
      * The table which maps half-<tt>byte</tt>s to their hex characters.
      */
     private static final char[] HEX_ENCODE_TABLE
@@ -92,12 +101,14 @@ public class DtlsControlImpl
 
     static
     {
+        // VERIFY_AND_VALIDATE_CERTIFICATE
         ConfigurationService cfg = LibJitsi.getConfigurationService();
         boolean verifyAndValidateCertificate = true;
 
         if (cfg == null)
         {
-            String s = System.getProperty(VERIFY_AND_VALIDATE_CERTIFICATE_PNAME);
+            String s
+                = System.getProperty(VERIFY_AND_VALIDATE_CERTIFICATE_PNAME);
 
             if (s != null)
                 verifyAndValidateCertificate = Boolean.parseBoolean(s);
@@ -110,6 +121,11 @@ public class DtlsControlImpl
                         verifyAndValidateCertificate);
         }
         VERIFY_AND_VALIDATE_CERTIFICATE = verifyAndValidateCertificate;
+
+        // HASH_FUNCTION_UPGRADES
+        HASH_FUNCTION_UPGRADES.put(
+                "sha-1",
+                new String[] { "sha-224", "sha-256", "sha-384", "sha-512" });
     }
 
     /**
@@ -236,7 +252,8 @@ public class DtlsControlImpl
      *
      * @param certificate the certificate the hash function of which is to be
      * determined
-     * @return the hash function of the specified <tt>certificate</tt>
+     * @return the hash function of the specified <tt>certificate</tt> written
+     * in lower case
      */
     private static String findHashFunction(
             org.bouncycastle.asn1.x509.Certificate certificate)
@@ -271,6 +288,40 @@ public class DtlsControlImpl
                     throw new RuntimeException(t);
             }
         }
+    }
+
+    /**
+     * Finds a hash function which is an &quot;upgrade&quot; of a specific hash
+     * function and has a fingerprint associated with it.
+     *
+     * @param hashFunction the hash function which is not associated with a
+     * fingerprint and for which an &quot;upgrade&quot; associated with a
+     * fingerprint is to be found
+     * @param fingerprints the set of available hash function-fingerprint
+     * associations
+     * @return a hash function written in lower case which is an
+     * &quot;upgrade&quot; of the specified {@code hashFunction} and has a
+     * fingerprint associated with it in {@code fingerprints} if there is such a
+     * hash function; otherwise, {@code null}
+     */
+    private static String findHashFunctionUpgrade(
+            String hashFunction,
+            Map<String,String> fingerprints)
+    {
+        String[] hashFunctionUpgrades
+            = HASH_FUNCTION_UPGRADES.get(hashFunction);
+
+        if (hashFunctionUpgrades != null)
+        {
+            for (String hashFunctionUpgrade : hashFunctionUpgrades)
+            {
+                String fingerprint = fingerprints.get(hashFunctionUpgrade);
+
+                if (fingerprint != null)
+                    return hashFunctionUpgrade.toLowerCase();
+            }
+        }
+        return null;
     }
 
     /**
@@ -678,7 +729,29 @@ public class DtlsControlImpl
 
         synchronized (this)
         {
-            this.remoteFingerprints = remoteFingerprints;
+            // Make sure that the hash functions (which are keys of the field
+            // remoteFingerprints) are written in lower case.
+            Map<String,String> rfs
+                = new HashMap<String,String>(remoteFingerprints.size());
+
+            for (Map.Entry<String,String> e : remoteFingerprints.entrySet())
+            {
+                String k = e.getKey();
+
+                // It makes no sense to provide a fingerprint without a hash
+                // function.
+                if (k != null)
+                {
+                    String v = e.getValue();
+
+                    // It makes no sense to provide a hash function without a
+                    // fingerprint.
+                    if (v != null)
+                        rfs.put(k.toLowerCase(), v);
+                }
+            }
+            this.remoteFingerprints = rfs;
+
             notifyAll();
         }
     }
@@ -749,7 +822,6 @@ public class DtlsControlImpl
         // using the same one-way hash function as is used in the certificate's
         // signature algorithm."
         String hashFunction = findHashFunction(certificate);
-        String fingerprint = computeFingerprint(certificate, hashFunction);
 
         // As RFC 5763 "Framework for Establishing a Secure Real-time Transport
         // Protocol (SRTP) Security Context Using Datagram Transport Layer
@@ -761,37 +833,64 @@ public class DtlsControlImpl
         synchronized (this)
         {
             if (disposed)
-            {
                 throw new IllegalStateException("disposed");
-            }
-            else
-            {
-                Map<String,String> remoteFingerprints = this.remoteFingerprints;
 
-                if (remoteFingerprints == null)
+            Map<String,String> remoteFingerprints = this.remoteFingerprints;
+
+            if (remoteFingerprints == null)
+            {
+                throw new IOException(
+                        "No fingerprints declared over the signaling path!");
+            }
+
+            remoteFingerprint = remoteFingerprints.get(hashFunction);
+
+            // Unfortunately, Firefox does not comply with RFC 5763 at the time
+            // of this writing. Its certificate uses SHA-1 and it sends a
+            // fingerprint computed with SHA-256. We could, of course, wait for
+            // Mozilla to make Firefox compliant. However, we would like to
+            // support Firefox in the meantime. That is why we will allow the
+            // fingerprint to "upgrade" the hash function of the certificate
+            // much like SHA-256 is an "upgrade" of SHA-1.
+            if (remoteFingerprint == null)
+            {
+                String hashFunctionUpgrade
+                    = findHashFunctionUpgrade(hashFunction, remoteFingerprints);
+
+                if (hashFunctionUpgrade != null
+                        && !hashFunctionUpgrade.equalsIgnoreCase(hashFunction))
                 {
-                    throw new IOException(
-                            "No fingerprints declared over the signaling"
-                                + " path!");
-                }
-                else
-                {
-                    remoteFingerprint = remoteFingerprints.get(hashFunction);
+                    remoteFingerprint
+                        = remoteFingerprints.get(hashFunctionUpgrade);
+                    if (remoteFingerprint != null)
+                        hashFunction = hashFunctionUpgrade;
                 }
             }
         }
         if (remoteFingerprint == null)
         {
             throw new IOException(
-                    "No fingerprint declared over the signaling path with"
-                        + " hash function: " + hashFunction + "!");
+                    "No fingerprint declared over the signaling path with hash"
+                        + " function: " + hashFunction + "!");
         }
-        else if (!remoteFingerprint.equals(fingerprint))
+
+        String fingerprint = computeFingerprint(certificate, hashFunction);
+
+        if (remoteFingerprint.equals(fingerprint))
+        {
+            if (logger.isTraceEnabled())
+            {
+                logger.trace(
+                        "Fingerprint " + remoteFingerprint + " matches the "
+                            + hashFunction + "-hashed certificate.");
+            }
+        }
+        else
         {
             throw new IOException(
-                    "Fingerprint " + remoteFingerprint
-                        + " does not match the " + hashFunction
-                        + "-hashed certificate " + fingerprint + "!");
+                    "Fingerprint " + remoteFingerprint + " does not match the "
+                        + hashFunction + "-hashed certificate " + fingerprint
+                        + "!");
         }
     }
 
