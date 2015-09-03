@@ -42,7 +42,11 @@ public abstract class AbstractFunction<T, R>
      */
     public <V> AbstractFunction<V, R> compose(
             final AbstractFunction<? super V, ? extends T> before) {
-        Objects.requireNonNull(before);
+
+        if (before == null)
+        {
+            throw new NullPointerException();
+        }
 
         return new AbstractFunction<V, R>()
         {
@@ -71,7 +75,11 @@ public abstract class AbstractFunction<T, R>
      */
     public <V> AbstractFunction<T, V> andThen(
             final AbstractFunction<? super R, ? extends V> after) {
-        Objects.requireNonNull(after);
+
+        if (after == null)
+        {
+            throw new NullPointerException();
+        }
 
         return new AbstractFunction<T, V>()
         {
