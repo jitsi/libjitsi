@@ -393,7 +393,7 @@ public class FileAccessServiceImpl implements FileAccessService
 
                 if (hResult == Shell32.S_OK)
                 {
-                    File f = new File(pszPath.getValue().getString(0, true));
+                    File f = new File(pszPath.getValue().getWideString(0));
                     Ole32.INSTANCE.CoTaskMemFree(pszPath.getValue());
                     return f;
                 }
@@ -419,7 +419,7 @@ public class FileAccessServiceImpl implements FileAccessService
         public byte[] data4;
 
         @Override
-        protected List getFieldOrder()
+        protected List<String> getFieldOrder()
         {
             return
                 Arrays.asList(
