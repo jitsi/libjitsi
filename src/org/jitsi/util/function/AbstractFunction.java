@@ -6,8 +6,6 @@
  */
 package org.jitsi.util.function;
 
-import java.util.*;
-
 /**
  * Represents a function that accepts one argument and produces a result. This
  * is a poor man's backport of the <tt>Function</tt> interface found in Java

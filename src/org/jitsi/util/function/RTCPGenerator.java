@@ -9,8 +9,6 @@ package org.jitsi.util.function;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 
-import java.util.*;
-
 /**
  * A <tt>Function</tt> that produces <tt>RawPacket</tt>s from
  * <tt>RTCPCompoundPacket</tt>s.

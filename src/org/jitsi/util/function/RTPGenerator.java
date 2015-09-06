@@ -9,8 +9,6 @@ package org.jitsi.util.function;
 import net.sf.fmj.media.rtp.util.*;
 import org.jitsi.impl.neomedia.*;
 
-import java.util.*;
-
 /**
  * A <tt>Function</tt> that produces <tt>RawPacket</tt>s from
  * <tt>RTPPacket</tt>s.
@@ -21,7 +19,10 @@ public class RTPGenerator extends AbstractFunction<RTPPacket, RawPacket>
 {
     public RawPacket apply(RTPPacket input)
     {
-        Objects.requireNonNull(input);
+        if (input == null)
+        {
+            throw new NullPointerException();
+        }
 
         // Assemble the RTP packet.
         int len = input.calcLength();
