@@ -95,6 +95,7 @@
          <artifactId>maven-bundle-plugin</artifactId>
          <configuration>
             <instructions>
+               <Import-Package>*,sun.lwawt,sun.lwawt.macosx</Import-Package>
                <Export-Package>org.jitsi.util.*,
                org.jitsi.service.*,
                org.jitsi.sctp4j.*,
@@ -108,15 +109,15 @@
                <Private-Package>org.jitsi.examples.*,org.jitsi.impl.*</Private-Package>
                <Bundle-Activator>org.jitsi.service.libjitsi.LibJitsiActivator</Bundle-Activator>
                <Bundle-NativeCode>
-                   darwin/libjnawtrenderer.jnilib;osname=MacOSX,
-                   darwin/libjnmaccoreaudio.jnilib;osname=MacOSX,
-                   darwin/libjnopus.jnilib;osname=MacOSX,
-                   darwin/libjnportaudio.jnilib;osname=MacOSX,
-                   darwin/libjnquicktime.jnilib;osname=MacOSX,
-                   darwin/libjnscreencapture.jnilib;osname=MacOSX,
-                   darwin/libjnsctp.jnilib;osname=MacOSX,
-                   darwin/libjnspeex.jnilib;osname=MacOSX,
-                   darwin/libjnvpx.jnilib;osname=MacOSX,
+                   darwin/libjnawtrenderer.jnilib;osname=Mac OS X;processor=x86-64,
+                   darwin/libjnmaccoreaudio.jnilib;osname=Mac OS X;processor=x86-64,
+                   darwin/libjnopus.jnilib;osname=Mac OS X;processor=x86-64,
+                   darwin/libjnportaudio.jnilib;osname=Mac OS X;processor=x86-64,
+                   darwin/libjnquicktime.jnilib;osname=Mac OS X;processor=x86-64,
+                   darwin/libjnscreencapture.jnilib;osname=Mac OS X;processor=x86-64,
+                   darwin/libjnsctp.jnilib;osname=Mac OS X;processor=x86-64,
+                   darwin/libjnspeex.jnilib;osname=Mac OS X;processor=x86-64,
+                   darwin/libjnvpx.jnilib;osname=Mac OS X;processor=x86-64,
                    linux-x86/libjnawtrenderer.so;osname=Linux;processor=x86,
                    linux-x86/libjnopenssl.so;osname=Linux;processor=x86,
                    linux-x86/libjnopus.so;osname=Linux;processor=x86,
