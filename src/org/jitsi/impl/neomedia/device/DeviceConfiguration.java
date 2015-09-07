@@ -74,6 +74,7 @@ public class DeviceConfiguration
             OSUtils.IS_ANDROID ? null : ".audio.PortAudioRenderer",
             OSUtils.IS_ANDROID ? ".video.SurfaceRenderer" : null,
             ".video.JAWTRenderer"
+            //".video.PlainRenderer"
         };
 
     /**
