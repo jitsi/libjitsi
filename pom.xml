@@ -109,54 +109,52 @@
                <Private-Package>org.jitsi.examples.*,org.jitsi.impl.*</Private-Package>
                <Bundle-Activator>org.jitsi.service.libjitsi.LibJitsiActivator</Bundle-Activator>
                <Bundle-NativeCode>
-                   darwin/libjnawtrenderer.jnilib;osname=Mac OS X;processor=x86-64,
-                   darwin/libjnmaccoreaudio.jnilib;osname=Mac OS X;processor=x86-64,
-                   darwin/libjnopus.jnilib;osname=Mac OS X;processor=x86-64,
-                   darwin/libjnportaudio.jnilib;osname=Mac OS X;processor=x86-64,
-                   darwin/libjnquicktime.jnilib;osname=Mac OS X;processor=x86-64,
-                   darwin/libjnscreencapture.jnilib;osname=Mac OS X;processor=x86-64,
-                   darwin/libjnsctp.jnilib;osname=Mac OS X;processor=x86-64,
-                   darwin/libjnspeex.jnilib;osname=Mac OS X;processor=x86-64,
+                   darwin/libjnawtrenderer.jnilib;
+                   darwin/libjnmaccoreaudio.jnilib;
+                   darwin/libjnopus.jnilib;
+                   darwin/libjnportaudio.jnilib;
+                   darwin/libjnquicktime.jnilib;
+                   darwin/libjnscreencapture.jnilib;
+                   darwin/libjnsctp.jnilib;
+                   darwin/libjnspeex.jnilib;
                    darwin/libjnvpx.jnilib;osname=Mac OS X;processor=x86-64,
-                   linux-x86/libjnawtrenderer.so;osname=Linux;processor=x86,
-                   linux-x86/libjnopenssl.so;osname=Linux;processor=x86,
-                   linux-x86/libjnopus.so;osname=Linux;processor=x86,
-                   linux-x86/libjnportaudio.so;osname=Linux;processor=x86,
-                   linux-x86/libjnpulseaudio.so;osname=Linux;processor=x86,
-                   linux-x86/libjnscreencapture.so;osname=Linux;processor=x86,
-                   linux-x86/libjnsctp.so;osname=Linux;processor=x86,
-                   linux-x86/libjnspeex.so;osname=Linux;processor=x86,
+                   linux-x86/libjnawtrenderer.so;
+                   linux-x86/libjnopenssl.so;
+                   linux-x86/libjnopus.so;
+                   linux-x86/libjnportaudio.so;
+                   linux-x86/libjnpulseaudio.so;
+                   linux-x86/libjnscreencapture.so;
+                   linux-x86/libjnsctp.so;
+                   linux-x86/libjnspeex.so;
                    linux-x86/libjnvideo4linux2.so;osname=Linux;processor=x86,
+                   linux-x86-64/libjnawtrenderer.so;
+                   linux-x86-64/libjnopenssl.so;
+                   linux-x86-64/libjnopus.so;
+                   linux-x86-64/libjnportaudio.so;
+                   linux-x86-64/libjnpulseaudio.so;
+                   linux-x86-64/libjnscreencapture.so;
+                   linux-x86-64/libjnsctp.so;
+                   linux-x86-64/libjnspeex.so;
+                   linux-x86-64/libjnvideo4linux2.so;
                    linux-x86-64/libjnvpx.so;osname=Linux;processor=x86-64,
-                   linux-x86-64/libjnawtrenderer.so;osname=Linux;processor=x86-64,
-                   linux-x86-64/libjnopenssl.so;osname=Linux;processor=x86-64,
-                   linux-x86-64/libjnopus.so;osname=Linux;processor=x86-64,
-                   linux-x86-64/libjnportaudio.so;osname=Linux;processor=x86-64,
-                   linux-x86-64/libjnpulseaudio.so;osname=Linux;processor=x86-64,
-                   linux-x86-64/libjnscreencapture.so;osname=Linux;processor=x86-64,
-                   linux-x86-64/libjnsctp.so;osname=Linux;processor=x86-64,
-                   linux-x86-64/libjnspeex.so;osname=Linux;processor=x86-64,
-                   linux-x86-64/libjnvideo4linux2.so;osname=Linux;processor=x86-64,
-                   linux-x86-64/libjnvpx.so;osname=Linux;processor=x86-64,
-                   win32-x86/jnawtrenderer.dll;osname=Win32;processor=x86,
-                   win32-x86/jndirectshow.dll;osname=Win32;processor=x86,
-                   win32-x86/jnopus.dll;osname=Win32;processor=x86,
-                   win32-x86/jnportaudio.dll;osname=Win32;processor=x86,
-                   win32-x86/jnscreencapture.dll;osname=Win32;processor=x86,
-                   win32-x86/jnsctp.dll;osname=Win32;processor=x86,
-                   win32-x86/jnspeex.dll;osname=Win32;processor=x86,
-                   win32-x86/jnvpx.dll;osname=Win32;processor=x86,
+                   win32-x86/jnawtrenderer.dll;
+                   win32-x86/jndirectshow.dll;
+                   win32-x86/jnopus.dll;
+                   win32-x86/jnportaudio.dll;
+                   win32-x86/jnscreencapture.dll;
+                   win32-x86/jnsctp.dll;
+                   win32-x86/jnspeex.dll;
+                   win32-x86/jnvpx.dll;
                    win32-x86/jnwasapi.dll;osname=Win32;processor=x86,
-                   win32-x86-64/jnwincoreaudio.dll;osname=Win32;processor=x86-64,
-                   win32-x86-64/jnawtrenderer.dll;osname=Win32;processor=x86-64,
-                   win32-x86-64/jndirectshow.dll;osname=Win32;processor=x86-64,
-                   win32-x86-64/jnopus.dll;osname=Win32;processor=x86-64,
-                   win32-x86-64/jnportaudio.dll;osname=Win32;processor=x86-64,
-                   win32-x86-64/jnscreencapture.dll;osname=Win32;processor=x86-64,
-                   win32-x86-64/jnsctp.dll;osname=Win32;processor=x86-64,
-                   win32-x86-64/jnspeex.dll;osname=Win32;processor=x86-64,
-                   win32-x86-64/jnvpx.dll;osname=Win32;processor=x86-64,
-                   win32-x86-64/jnwasapi.dll;osname=Win32;processor=x86-64,
+                   win32-x86-64/jnawtrenderer.dll;
+                   win32-x86-64/jndirectshow.dll;
+                   win32-x86-64/jnopus.dll;
+                   win32-x86-64/jnportaudio.dll;
+                   win32-x86-64/jnscreencapture.dll;
+                   win32-x86-64/jnsctp.dll;
+                   win32-x86-64/jnspeex.dll;
+                   win32-x86-64/jnvpx.dll;
+                   win32-x86-64/jnwasapi.dll;
                    win32-x86-64/jnwincoreaudio.dll;osname=Win32;processor=x86-64
                </Bundle-NativeCode>
             </instructions>
