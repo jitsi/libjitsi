@@ -212,15 +212,9 @@ public class RTPTranslatorImpl
     private RTPConnectorImpl connector;
 
     /**
-     * The <tt>DelegatingRTCPReportBuilder</tt> that delegates its calls to the
-     * <tt>RTCPReportBuilder</tt> of the active
-     * <tt>RTCPTerminationStrategy</tt>.
-     */
-    private final DelegatingRTCPReportBuilder delegatingRTCPReportBuilder
-            = new DelegatingRTCPReportBuilder();
-
-    /**
-     * A local SSRC for this <tt>RTPTranslator</tt>.
+     * A local SSRC for this <tt>RTPTranslator</tt>. This overrides the SSRC of
+     * the <tt>RTPManager</tt> and it does not deal with SSRC collisions.
+     * TAG(cat4-local-ssrc-hurricane).
      */
     private long localSSRC = -1;
 
@@ -245,12 +239,6 @@ public class RTPTranslatorImpl
      */
     private final RTCPFeedbackMessageSender rtcpFeedbackMessageSender
         = new RTCPFeedbackMessageSender(this);
-
-    /**
-     * The <tt>RTCPTerminationStrategy</tt> which is to inspect and modify RTCP
-     * traffic between multiple <tt>MediaStream</tt>s.
-     */
-    private RTCPTerminationStrategy rtcpTerminationStrategy;
 
     /**
      * The <tt>SendStream</tt>s created by the <tt>RTPManager</tt> and the
@@ -808,9 +796,18 @@ public class RTPTranslatorImpl
      */
     public long getLocalSSRC(StreamRTPManager streamRTPManager)
     {
-        if (streamRTPManager == null)
-            return localSSRC;
-        return ((RTPSessionMgr) manager).getLocalSSRC();
+        // if (streamRTPManager == null)
+        //    return localSSRC;
+        // return ((RTPSessionMgr) manager).getLocalSSRC();
+
+        // XXX(gp) it makes (almost) no sense to use the FMJ SSRC because, at
+        // least in the case of jitsi-videobridge, it's not announced to the
+        // peers, resulting in Chrome's discarding the RTP/RTCP packets with
+        // ((RTPSessionMgr) manager).getLocalSSRC(); as the media sender SSRC.
+        // This makes the ((RTPSessionMgr) manager).getLocalSSRC() useless in
+        // 95% of the use cases (hence the "almost" in the beginning of this
+        // comment).
+        return localSSRC;
     }
 
     /**
@@ -876,18 +873,6 @@ public class RTPTranslatorImpl
     public RTCPFeedbackMessageSender getRtcpFeedbackMessageSender()
     {
         return rtcpFeedbackMessageSender;
-    }
-
-    /**
-     * Gets the current active <tt>RTCPTerminationStrategy</tt> which is to
-     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
-     *
-     * @return the <tt>RTCPTerminationStrategy</tt> which is to inspect and
-     * modify RTCP traffic between multiple <tt>MediaStream</tt>s.
-     */
-    public RTCPTerminationStrategy getRTCPTerminationStrategy()
-    {
-        return rtcpTerminationStrategy;
     }
 
     /**
@@ -974,12 +959,10 @@ public class RTPTranslatorImpl
     }
 
     /**
-     * Returns a list of <tt>StreamRTPManager</tt>s currently attached to
-     * this <tt>RTPTranslator</tt>.
-     * @return a list of <tt>StreamRTPManager</tt>s currently attached to
-     * this <tt>RTPTranslator</tt>.
+     * {@inheritDoc}
      */
-    List<StreamRTPManager> getStreamRTPManagers()
+    @Override
+    public List<StreamRTPManager> getStreamRTPManagers()
     {
         List<StreamRTPManager> ret
                 = new ArrayList<StreamRTPManager>(streamRTPManagers.size());
@@ -1004,14 +987,6 @@ public class RTPTranslatorImpl
         if (this.connector == null)
         {
             this.connector = new RTPConnectorImpl(this);
-
-            // Override the default FMJ RTCP builder factory.
-            if (manager instanceof RTPSessionMgr)
-            {
-                ((RTPSessionMgr) manager).setRTCPReportBuilder(
-                        this.delegatingRTCPReportBuilder);
-            }
-
             manager.initialize(this.connector);
         }
 
@@ -1036,26 +1011,6 @@ public class RTPTranslatorImpl
         finally
         {
             lock.unlock();
-        }
-    }
-
-    /**
-     * Notifies this instance that {@link #rtcpTerminationStrategy} has changed.
-     */
-    private void onRTCPTerminationStrategyChanged()
-    {
-        RTCPTerminationStrategy rtcpTerminationStrategy
-            = getRTCPTerminationStrategy();
-
-        if (rtcpTerminationStrategy != null)
-        {
-            rtcpTerminationStrategy.setRTPTranslator(this);
-            delegatingRTCPReportBuilder.setDelegate(
-                    rtcpTerminationStrategy.getRTCPReportBuilder());
-        }
-        else
-        {
-            delegatingRTCPReportBuilder.setDelegate(null);
         }
     }
 
@@ -1156,24 +1111,6 @@ public class RTPTranslatorImpl
     }
 
     /**
-     * Sets the current active <tt>RTCPTerminationStrategy</tt> which is to
-     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
-     *
-     * @param rtcpTerminationStrategy the <tt>RTCPTerminationStrategy</tt> which
-     * is to inspect and modify RTCP traffic between multiple
-     * <tt>MediaStream</tt>s.
-     */
-    public void setRTCPTerminationStrategy(
-            RTCPTerminationStrategy rtcpTerminationStrategy)
-    {
-        if (this.rtcpTerminationStrategy != rtcpTerminationStrategy)
-        {
-            this.rtcpTerminationStrategy = rtcpTerminationStrategy;
-            onRTCPTerminationStrategyChanged();
-        }
-    }
-
-    /**
     * Sets the <tt>SSRCFactory</tt> which is to generate new synchronization
     * source (SSRC) identifiers.
     *
@@ -1190,6 +1127,27 @@ public class RTPTranslatorImpl
         {
             ((org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)manager)
                   .setSSRCFactory(ssrcFactory);
+        }
+    }
+
+    /**
+     * Sets the <tt>RTCPTransmitterFactory</tt> to be utilized by the
+     * underlying logic (FMJ) to create its <tt>RTCPTransmitter</tt>.
+     *
+     * @param rtcpTransmitterFactory the <tt>RTCPTransmitterFactory</tt> to be
+     * utilized by the underlying logic (FMJ) to create its
+     * <tt>RTCPTransmitter</tt> or <tt>null</tt> if this instance is to employ
+     * internal logic to create its <tt>RTCPTransmitter</tt>.
+     */
+    public void setRTCPTransmitterFactory(
+        RTCPTransmitterFactory rtcpTransmitterFactory)
+    {
+        RTPManager manager = this.manager;
+        if (manager instanceof
+            org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)
+        {
+            ((org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)manager)
+                .setRTCPTransmitterFactory(rtcpTransmitterFactory);
         }
     }
 
@@ -1286,5 +1244,17 @@ public class RTPTranslatorImpl
                 : connector.writeControlPayload(
                     controlPayload,
                     destination);
+    }
+
+    /**
+     * Provides access to the underlying <tt>SSRCCache</tt> that holds
+     * statistics information about each SSRC that we receive.
+     *
+     * @return the underlying <tt>SSRCCache</tt> that holds statistics
+     * information about each SSRC that we receive.
+     */
+    public SSRCCache getSSRCCache()
+    {
+        return ((RTPSessionMgr) manager).getSSRCCache();
     }
 }

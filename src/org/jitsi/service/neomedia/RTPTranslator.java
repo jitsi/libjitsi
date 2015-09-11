@@ -6,6 +6,11 @@
  */
 package org.jitsi.service.neomedia;
 
+import net.sf.fmj.media.rtp.*;
+import org.jitsi.impl.neomedia.rtp.*;
+
+import java.util.*;
+
 /**
  * Represents an RTP translator which forwards RTP and RTCP traffic between
  * multiple <tt>MediaStream</tt>s.
@@ -15,24 +20,25 @@ package org.jitsi.service.neomedia;
 public interface RTPTranslator
 {
     /**
-     * Gets the current active <tt>RTCPTerminationStrategy</tt> which is to
-     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     * Returns a list of <tt>StreamRTPManager</tt>s currently attached to
+     * this <tt>RTPTranslator</tt>. This is
+     * admittedly wrong, to expose the bare <tt>SSRCCache</tt> to the use of
+     * of the <tt>StreamRTPManager</tt>. We should find a better way of exposing
+     * this information. Currently it is necessary for RTCP termination.
      *
-     * @return the <tt>RTCPTerminationStrategy</tt> which is to inspect and
-     * modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     * @return a list of <tt>StreamRTPManager</tt>s currently attached to
+     * this <tt>RTPTranslator</tt>.
      */
-    public RTCPTerminationStrategy getRTCPTerminationStrategy();
+    public List<StreamRTPManager> getStreamRTPManagers();
 
     /**
-     * Sets the current active <tt>RTCPTerminationStrategy</tt> which is to
-     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     * Provides access to the underlying <tt>SSRCCache</tt> that holds
+     * statistics information about each SSRC that we receive.
      *
-     * @param rtcpTerminationStrategy the <tt>RTCPTerminationStrategy</tt> which
-     * is to inspect and modify RTCP traffic between multiple
-     * <tt>MediaStream</tt>s.
+     * @return the underlying <tt>SSRCCache</tt> that holds statistics
+     * information about each SSRC that we receive.
      */
-    public void setRTCPTerminationStrategy(
-            RTCPTerminationStrategy rtcpTerminationStrategy);
+    public SSRCCache getSSRCCache();
 
     /**
      * Defines a packet filter which allows an observer of an

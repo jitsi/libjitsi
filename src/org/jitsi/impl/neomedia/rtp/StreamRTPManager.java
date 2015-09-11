@@ -14,6 +14,7 @@ import javax.media.format.*;
 import javax.media.protocol.*;
 import javax.media.rtp.*;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.*;
 
@@ -277,5 +278,53 @@ public class StreamRTPManager
             translator.setSSRCFactory(ssrcFactory);
         }
 
+    }
+
+    /**
+     * Sets the <tt>RTCPTransmitterFactory</tt> to be utilized by the
+     * underlying logic (FMJ) to create its <tt>RTCPTransmitter</tt>.
+     *
+     * @param rtcpTransmitterFactory the <tt>RTCPTransmitterFactory</tt> to be
+     * utilized by the underlying logic (FMJ) to create its
+     * <tt>RTCPTransmitter</tt> or <tt>null</tt> if this instance is to employ
+     * internal logic to create its <tt>RTCPTransmitter</tt>.
+     */
+    public void setRTCPTransmitterFactory(
+        RTCPTransmitterFactory rtcpTransmitterFactory)
+    {
+        if (translator == null)
+        {
+            RTPManager m = this.manager;
+
+            if (m instanceof
+                org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)
+            {
+                org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr sm
+                    = (org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr) m;
+
+                sm.setRTCPTransmitterFactory(rtcpTransmitterFactory);
+            }
+        }
+        else
+        {
+            translator.setRTCPTransmitterFactory(rtcpTransmitterFactory);
+        }
+    }
+
+    /**
+     * Provides access to the underlying <tt>SSRCCache</tt> that holds
+     * statistics information about each SSRC that we receive. This is
+     * admittedly wrong, to expose the bare <tt>SSRCCache</tt> to the use of
+     * of the <tt>StreamRTPManager</tt>. We should find a better way of exposing
+     * this information. Currently it is necessary for RTCP termination.
+     *
+     * @return the underlying <tt>SSRCCache</tt> that holds statistics
+     * information about each SSRC that we receive.
+     */
+    public SSRCCache getSSRCCache()
+    {
+        return translator != null
+            ? translator.getSSRCCache()
+            : ((RTPSessionMgr) manager).getSSRCCache();
     }
 }

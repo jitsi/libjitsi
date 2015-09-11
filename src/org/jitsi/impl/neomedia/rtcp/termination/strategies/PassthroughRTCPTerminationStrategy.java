@@ -6,8 +6,8 @@
  */
 package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
-import net.sf.fmj.media.rtp.*;
-import org.jitsi.impl.neomedia.transform.rtcp.*;
+import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 
 /**
@@ -20,32 +20,19 @@ import org.jitsi.service.neomedia.*;
 public class PassthroughRTCPTerminationStrategy
     implements RTCPTerminationStrategy
 {
-    private final Transformer<RTCPCompoundPacket> packetTransformer
-            = new NullRTCPPacketTransformer();
 
-    private final RTCPReportBuilder reportBuilder
-            = new DefaultRTCPReportBuilderImpl();
-
-    @Override
-    public Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer()
+    public RawPacket report()
     {
-        return packetTransformer;
+        // TODO Implement the default FMJ behavior here.
+        return null;
     }
 
-    @Override
-    public RTCPReportBuilder getRTCPReportBuilder()
+    public PacketTransformer getRTPTransformer()
     {
-        return reportBuilder;
+        return null;
     }
 
-    @Override
-    public void setRTPTranslator(RTPTranslator translator)
-    {
-        // Nothing to do here.
-    }
-
-    @Override
-    public RTPTranslator getRTPTranslator()
+    public PacketTransformer getRTCPTransformer()
     {
         return null;
     }

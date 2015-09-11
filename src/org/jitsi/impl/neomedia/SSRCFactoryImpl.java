@@ -46,6 +46,8 @@ public class SSRCFactoryImpl
     @Override
     public long generateSSRC(String cause)
     {
+        // XXX(gp) the problem here is that if the initialLocalSSRC changes,
+        // the bridge is unaware of the change. TAG(cat4-local-ssrc-hurricane).
         if (initialLocalSSRC != -1)
         {
             if (i++ == 0)
