@@ -896,11 +896,6 @@ public class MediaStreamImpl
 
         engineChain.add(externalTransformerWrapper);
 
-        // RTCP Statistics
-        if (statisticsEngine == null)
-            statisticsEngine = new StatisticsEngine(this);
-        engineChain.add(statisticsEngine);
-
         // here comes the override payload type transformer
         // as it changes headers of packets, need to go before encryption
         if (ptTransformEngine == null)
@@ -923,8 +918,13 @@ public class MediaStreamImpl
         // RTCPTerminationTransformEngine passes received RTCP to
         // RTCPTerminationStrategy for inspection and modification. The RTCP
         // termination needs to be as close to the SRTP transform engine as
-        // possible. TODO we're probably breaking the RTCP statistics.
+        // possible.
         engineChain.add(rtcpTransformEngineWrapper);
+
+        // RTCP Statistics
+        if (statisticsEngine == null)
+            statisticsEngine = new StatisticsEngine(this);
+        engineChain.add(statisticsEngine);
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
