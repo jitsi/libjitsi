@@ -54,9 +54,10 @@ public class BasicRTCPTerminationStrategy
 
     /**
      * A reusable array that can be used to hold up to
-     * <tt>MAX_RTCP_REPORT_BLOCKS</tt> <tt>RTCPReportBlock</tt>s.
+     * <tt>MAX_RTCP_REPORT_BLOCKS</tt> <tt>RTCPReportBlock</tt>s. It is assumed
+     * that a single thread is accessing this field at a given time.
      */
-    private static final RTCPReportBlock[] MAX_RTCP_REPORT_BLOCKS_ARRAY
+    private final RTCPReportBlock[] MAX_RTCP_REPORT_BLOCKS_ARRAY
         = new RTCPReportBlock[MAX_RTCP_REPORT_BLOCKS];
 
     /**
