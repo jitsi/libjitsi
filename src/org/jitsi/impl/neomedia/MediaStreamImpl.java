@@ -46,6 +46,7 @@ import org.jitsi.util.*;
  * @author Emil Ivov
  * @author Sebastien Vincent
  * @author Boris Grozev
+ * @author George Politis
  */
 public class MediaStreamImpl
     extends AbstractMediaStream
@@ -1718,8 +1719,10 @@ public class MediaStreamImpl
                 configureRTPManagerBufferControl(rtpManager, bc);
 
             rtpManager.setSSRCFactory(ssrcFactory);
-            // If RTCP termination is enabled, override the default RTCP
-            // generation and transmission mechanism in FMJ.
+            // Override the default RTCP generation and transmission mechanism
+            // in FMJ. The default mechanism can be emulated using
+            // PassthroughRTCPTerminationStrategy although this would only be
+            // useful in the case the bridge acts as an audio mixer.
             rtpManager.setRTCPTransmitterFactory(
                 new RTCPTransmitterFactoryImpl(rtpTranslator));
 
@@ -3398,7 +3401,8 @@ public class MediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    public void setRTCPTerminationStrategy(RTCPTerminationStrategy rtcpTerminationStrategy)
+    public void setRTCPTerminationStrategy(
+        RTCPTerminationStrategy rtcpTerminationStrategy)
     {
         rtcpTransformEngineWrapper.wrapped = rtcpTerminationStrategy;
     }
