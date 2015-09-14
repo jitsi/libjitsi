@@ -112,9 +112,474 @@ public class BasicRTCPTerminationStrategy
     private final GarbageCollector garbageCollector = new GarbageCollector();
 
     /**
+     * The RTP <tt>PacketTransformer</tt> of this
+     * <tt>BasicRTCPTerminationStrategy</tt>.
+     */
+    private final PacketTransformer rtpTransformer
+        = new SinglePacketTransformer()
+    {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            // Update our RTP stats map (packets/octet sent).
+            rtpStatsMap.apply(pkt);
+
+            return pkt;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            // Let everything pass through.
+            return pkt;
+        }
+    };
+
+    /**
+     * The RTCP <tt>PacketTransformer</tt> of this
+     * <tt>BasicRTCPTerminationStrategy</tt>.
+     */
+    private final PacketTransformer rtcpTransformer
+        = new SinglePacketTransformer()
+    {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            if (pkt == null)
+            {
+                return pkt;
+            }
+
+            RTCPCompoundPacket inPacket;
+            try
+            {
+                inPacket = (RTCPCompoundPacket) parser.parse(
+                    pkt.getBuffer(),
+                    pkt.getOffset(),
+                    pkt.getLength());
+            }
+            catch (BadFormatException e)
+            {
+                logger.warn("Failed to terminate an RTCP packet. " +
+                    "Dropping packet.");
+                return null;
+            }
+
+            // Update our RTCP stats map (timestamps). This operation is
+            // read-only.
+            remoteClockEstimator.apply(inPacket);
+
+            cnameRegistry.update(inPacket);
+
+            // Remove SRs and RRs from the RTCP packet.
+            pkt = feedbackGateway.gateway(inPacket);
+
+            return pkt;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            // Let everything pass through.
+            return pkt;
+        }
+    };
+
+    /**
      * A counter that counts the number of times we've sent "full-blown" SDES.
      */
     private int sdesCounter = 0;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public PacketTransformer getRTPTransformer()
+    {
+        return rtpTransformer;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public PacketTransformer getRTCPTransformer()
+    {
+        return rtcpTransformer;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RawPacket report()
+    {
+        garbageCollector.cleanup();
+
+        // TODO Compound RTCP packets should not exceed the MTU of the network
+        // path.
+        //
+        // An individual RTP participant should send only one compound RTCP
+        // packet per report interval in order for the RTCP bandwidth per
+        // participant to be estimated correctly, except when the compound
+        // RTCP packet is split for partial encryption.
+        //
+        // If there are too many sources to fit all the necessary RR packets
+        // into one compound RTCP packet without exceeding the maximum
+        // transmission unit (MTU) of the network path, then only the subset
+        // that will fit into one MTU should be included in each interval. The
+        // subsets should be selected round-robin across multiple intervals so
+        // that all sources are reported.
+        //
+        // It is impossible to know in advance what the MTU of path will be.
+        // There are various algorithms for experimenting to find out, but many
+        // devices do not properly implement (or deliberately ignore) the
+        // necessary standards so it all comes down to trial and error. For that
+        // reason, we can just guess 1200 or 1500 bytes per message.
+        long time = System.currentTimeMillis();
+
+        Collection<RTCPPacket> packets = new ArrayList<RTCPPacket>();
+
+        // First, we build the RRs.
+        Collection<RTCPRRPacket> rrPackets = makeRTCPRRPackets(time);
+        if (rrPackets != null && rrPackets.size() != 0)
+        {
+            packets.addAll(rrPackets);
+        }
+
+        // Next, we build the SRs.
+        Collection<RTCPSRPacket> srPackets = makeRTCPSRPackets(time);
+        if (srPackets != null && srPackets.size() != 0)
+        {
+            packets.addAll(srPackets);
+        }
+
+        // Bail out if we have nothing to report.
+        if (packets.size() == 0)
+        {
+            return null;
+        }
+
+        // Next, we build the REMB.
+        RTCPREMBPacket rembPacket = makeRTCPREMBPacket();
+        if (rembPacket != null)
+        {
+            packets.add(rembPacket);
+        }
+
+        // Finally, we add an SDES packet.
+        RTCPSDESPacket sdesPacket = makeSDESPacket();
+        if (sdesPacket != null)
+        {
+            packets.add(sdesPacket);
+        }
+
+        // Prepare the <tt>RTCPCompoundPacket</tt> to return.
+        RTCPPacket rtcpPackets[]
+            = packets.toArray(new RTCPPacket[packets.size()]);
+
+        RTCPCompoundPacket cp = new RTCPCompoundPacket(rtcpPackets);
+
+        // Build the <tt>RTCPCompoundPacket</tt> and return the
+        // <tt>RawPacket</tt> to inject to the <tt>MediaStream</tt>.
+        return generator.apply(cp);
+    }
+
+    /**
+     * (attempts) to get the local SSRC that will be used in the media sender
+     * SSRC field of the RTCP reports. TAG(cat4-local-ssrc-hurricane)
+     * @return
+     */
+    private long getLocalSSRC()
+    {
+        return getStream().getStreamRTPManager().getLocalSSRC();
+    }
+
+    /**
+     * Makes <tt>RTCPRRPacket</tt>s using information in FMJ.
+     *
+     * @param time
+     *
+     * @return A <tt>Collection</tt> of <tt>RTCPRRPacket</tt>s to inject to the
+     * <tt>MediaStream</tt>.
+     */
+    private Collection<RTCPRRPacket> makeRTCPRRPackets(long time)
+    {
+        RTCPReportBlock[] reportBlocks = makeRTCPReportBlocks(time);
+        if (reportBlocks == null || reportBlocks.length == 0)
+        {
+            return null;
+        }
+
+        Collection<RTCPRRPacket> rrPackets = new ArrayList<RTCPRRPacket>();
+
+        // We use the stream's local source ID (SSRC) as the SSRC of packet
+        // sender.
+        long streamSSRC = getLocalSSRC();
+
+        // Since a maximum of 31 reception report blocks will fit in an SR
+        // or RR packet, additional RR packets SHOULD be stacked after the
+        // initial SR or RR packet as needed to contain the reception
+        // reports for all sources heard during the interval since the last
+        // report.
+        if (reportBlocks.length > MAX_RTCP_REPORT_BLOCKS)
+        {
+            for (int offset = 0;
+                 offset < reportBlocks.length;
+                 offset += MAX_RTCP_REPORT_BLOCKS)
+            {
+                RTCPReportBlock[] blocks
+                    = (reportBlocks.length - offset < MAX_RTCP_REPORT_BLOCKS)
+                    ? new RTCPReportBlock[reportBlocks.length - offset]
+                    : MAX_RTCP_REPORT_BLOCKS_ARRAY;
+
+                System.arraycopy(
+                    reportBlocks, offset, blocks, 0, blocks.length);
+
+                RTCPRRPacket rr
+                    = new RTCPRRPacket((int) streamSSRC, blocks);
+                rrPackets.add(rr);
+            }
+        }
+        else
+        {
+            RTCPRRPacket rr
+                = new RTCPRRPacket((int) streamSSRC, reportBlocks);
+            rrPackets.add(rr);
+        }
+
+        return rrPackets;
+    }
+
+    /**
+     * Iterate through all the <tt>ReceiveStream</tt>s that this
+     * <tt>MediaStream</tt> has and make <tt>RTCPReportBlock</tt>s for all of
+     * them.
+     *
+     * @param time
+     * @return
+     */
+    private RTCPReportBlock[] makeRTCPReportBlocks(long time)
+    {
+        MediaStream stream = getStream();
+        // State validation.
+        if (stream == null)
+        {
+            logger.warn("stream is null.");
+            return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
+        }
+
+        StreamRTPManager streamRTPManager = stream.getStreamRTPManager();
+        if (streamRTPManager == null)
+        {
+            logger.warn("streamRTPManager is null.");
+            return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
+        }
+
+        Collection<ReceiveStream> receiveStreams
+            = streamRTPManager.getReceiveStreams();
+
+        if (receiveStreams == null || receiveStreams.size() == 0)
+        {
+            logger.info("There are no receive streams to build report " +
+                "blocks for.");
+            return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
+        }
+
+        SSRCCache cache = streamRTPManager.getSSRCCache();
+        if (cache == null)
+        {
+            logger.info("cache is null.");
+            return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
+        }
+
+        // Create the return object.
+        Collection<RTCPReportBlock> rtcpReportBlocks
+            = new ArrayList<RTCPReportBlock>();
+
+        // Populate the return object.
+        for (ReceiveStream receiveStream : receiveStreams)
+        {
+            // Dig into the guts of FMJ and get the stats for the current
+            // receiveStream.
+            SSRCInfo info = cache.cache.get((int) receiveStream.getSSRC());
+
+            if (!info.ours && info.sender)
+            {
+                RTCPReportBlock rtcpReportBlock = info.makeReceiverReport(time);
+                rtcpReportBlocks.add(rtcpReportBlock);
+            }
+        }
+
+        return rtcpReportBlocks.toArray(
+            new RTCPReportBlock[rtcpReportBlocks.size()]);
+    }
+
+    /**
+     * Makes an <tt>RTCPREMBPacket</tt> that provides receiver feedback to the
+     * endpoint from which we receive.
+     *
+     * @return an <tt>RTCPREMBPacket</tt> that provides receiver feedback to the
+     * endpoint from which we receive.
+     */
+    private RTCPREMBPacket makeRTCPREMBPacket()
+    {
+        // TODO we should only make REMBs if REMB support has been advertised.
+        // Destination
+        RemoteBitrateEstimator remoteBitrateEstimator
+            = ((VideoMediaStream) getStream()).getRemoteBitrateEstimator();
+
+        Collection<Integer> ssrcs = remoteBitrateEstimator.getSsrcs();
+
+        // TODO(gp) intersect with SSRCs from signaled simulcast layers
+        // NOTE(gp) The Google Congestion Control algorithm (sender side)
+        // doesn't seem to care about the SSRCs in the dest field.
+        long[] dest = new long[ssrcs.size()];
+        int i = 0;
+
+        for (Integer ssrc : ssrcs)
+            dest[i++] = ssrc & 0xFFFFFFFFL;
+
+        // Exp & mantissa
+        long bitrate = remoteBitrateEstimator.getLatestEstimate();
+
+        if (bitrate == -1)
+            return null;
+
+        if (logger.isDebugEnabled())
+            logger.debug("Estimated bitrate: " + bitrate);
+
+        // Create and return the packet.
+        // We use the stream's local source ID (SSRC) as the SSRC of packet
+        // sender.
+        long streamSSRC = getLocalSSRC();
+
+        return new RTCPREMBPacket(
+            streamSSRC, /* mediaSSRC */ 0L, bitrate, dest);
+    }
+
+    /**
+     * Makes <tt>RTCPSRPacket</tt>s for all the RTP streams that we're sending.
+     *
+     * @return a <tt>List</tt> of <tt>RTCPSRPacket</tt> for all the RTP streams
+     * that we're sending.
+     */
+    private Collection<RTCPSRPacket> makeRTCPSRPackets(long time)
+    {
+        Collection<RTCPSRPacket> srPackets = new ArrayList<RTCPSRPacket>();
+
+        for (RTPStatsEntry rtpStatsEntry : rtpStatsMap.values())
+        {
+            int ssrc = rtpStatsEntry.getSsrc();
+            RemoteClock estimate = remoteClockEstimator.estimate(ssrc, time);
+            if (estimate == null)
+            {
+                // We're not going to go far without an estimate..
+                continue;
+            }
+
+            RTCPSRPacket srPacket
+                = new RTCPSRPacket(ssrc, MIN_RTCP_REPORTS_BLOCKS_ARRAY);
+
+            // Set the NTP timestamp for this SR.
+            long estimatedRemoteTime = estimate.getRemoteTime();
+            long secs = estimatedRemoteTime / 1000L;
+            double fraction = (estimatedRemoteTime - secs * 1000L) / 1000D;
+            srPacket.ntptimestamplsw = (int) (fraction * 4294967296D);
+            srPacket.ntptimestampmsw = secs;
+
+            // Set the RTP timestamp.
+            srPacket.rtptimestamp = estimate.getRtpTimestamp();
+
+            // Fill-in packet and octet send count.
+            srPacket.packetcount = rtpStatsEntry.getPacketsSent();
+            srPacket.octetcount = rtpStatsEntry.getBytesSent();
+
+            srPackets.add(srPacket);
+        }
+
+        return srPackets;
+    }
+
+    /**
+     * Makes <tt>RTCPSDES</tt> packets for all the RTP streams that we're
+     * sending.
+     *
+     * @return a <tt>List</tt> of <tt>RTCPSDES</tt> packets for all the RTP
+     * streams that we're sending.
+     */
+    private RTCPSDESPacket makeSDESPacket()
+    {
+        Collection<RTCPSDES> sdesChunks = new ArrayList<RTCPSDES>();
+
+        // Create an SDES for our own SSRC.
+        RTCPSDES ownSDES = new RTCPSDES();
+
+        SSRCInfo ourinfo
+            = getStream().getStreamRTPManager().getSSRCCache().ourssrc;
+        ownSDES.ssrc = (int) getLocalSSRC();
+        Collection<RTCPSDESItem> ownItems = new ArrayList<RTCPSDESItem>();
+        ownItems.add(new RTCPSDESItem(
+            RTCPSDESItem.CNAME, ourinfo.sourceInfo.getCNAME()));
+
+        // Throttle the source description bandwidth. See RFC3550#6.3.9
+        // Allocation of Source Description Bandwidth.
+
+        if (sdesCounter % 3 == 0)
+        {
+            if (ourinfo.name != null && ourinfo.name.getDescription() != null)
+                ownItems.add(new RTCPSDESItem(RTCPSDESItem.NAME, ourinfo.name
+                    .getDescription()));
+            if (ourinfo.email != null && ourinfo.email.getDescription() != null)
+                ownItems.add(new RTCPSDESItem(RTCPSDESItem.EMAIL, ourinfo.email
+                    .getDescription()));
+            if (ourinfo.phone != null && ourinfo.phone.getDescription() != null)
+                ownItems.add(new RTCPSDESItem(RTCPSDESItem.PHONE, ourinfo.phone
+                    .getDescription()));
+            if (ourinfo.loc != null && ourinfo.loc.getDescription() != null)
+                ownItems.add(new RTCPSDESItem(RTCPSDESItem.LOC, ourinfo.loc
+                    .getDescription()));
+            if (ourinfo.tool != null && ourinfo.tool.getDescription() != null)
+                ownItems.add(new RTCPSDESItem(RTCPSDESItem.TOOL, ourinfo.tool
+                    .getDescription()));
+            if (ourinfo.note != null && ourinfo.note.getDescription() != null)
+                ownItems.add(new RTCPSDESItem(RTCPSDESItem.NOTE, ourinfo.note
+                    .getDescription()));
+        }
+
+        sdesCounter++;
+
+        ownSDES.items = ownItems.toArray(new RTCPSDESItem[ownItems.size()]);
+
+        sdesChunks.add(ownSDES);
+
+        for (Map.Entry<Integer, byte[]> entry : cnameRegistry.entrySet())
+        {
+            RTCPSDES sdes = new RTCPSDES();
+            sdes.ssrc = entry.getKey();
+            sdes.items = new RTCPSDESItem[]
+                {
+                    new RTCPSDESItem(RTCPSDESItem.CNAME, entry.getValue())
+                };
+        }
+
+        RTCPSDES[] sps = sdesChunks.toArray(new RTCPSDES[sdesChunks.size()]);
+        RTCPSDESPacket sp = new RTCPSDESPacket(sps);
+
+        return sp;
+    }
 
     /**
      * The garbage collector runs at each reporting interval and cleans up
@@ -657,456 +1122,5 @@ public class BasicRTCPTerminationStrategy
                 }
             }
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public PacketTransformer getRTPTransformer()
-    {
-        return new SinglePacketTransformer()
-        {
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public RawPacket transform(RawPacket pkt)
-            {
-                // Update our RTP stats map (packets/octet sent).
-                rtpStatsMap.apply(pkt);
-
-                return pkt;
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public RawPacket reverseTransform(RawPacket pkt)
-            {
-                // Let everything pass through.
-                return pkt;
-            }
-        };
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public PacketTransformer getRTCPTransformer()
-    {
-        return new SinglePacketTransformer()
-        {
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public RawPacket transform(RawPacket pkt)
-            {
-                if (pkt == null)
-                {
-                    return pkt;
-                }
-
-                RTCPCompoundPacket inPacket;
-                try
-                {
-                    inPacket = (RTCPCompoundPacket) parser.parse(
-                        pkt.getBuffer(),
-                        pkt.getOffset(),
-                        pkt.getLength());
-                }
-                catch (BadFormatException e)
-                {
-                    logger.warn("Failed to terminate an RTCP packet. " +
-                        "Dropping packet.");
-                    return null;
-                }
-
-                // Update our RTCP stats map (timestamps). This operation is
-                // read-only.
-                remoteClockEstimator.apply(inPacket);
-
-                cnameRegistry.update(inPacket);
-
-                // Remove SRs and RRs from the RTCP packet.
-                pkt = feedbackGateway.gateway(inPacket);
-
-                return pkt;
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public RawPacket reverseTransform(RawPacket pkt)
-            {
-                // Let everything pass through.
-                return pkt;
-            }
-        };
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public RawPacket report()
-    {
-        garbageCollector.cleanup();
-
-        // TODO Compound RTCP packets should not exceed the MTU of the network
-        // path.
-        //
-        // An individual RTP participant should send only one compound RTCP
-        // packet per report interval in order for the RTCP bandwidth per
-        // participant to be estimated correctly, except when the compound
-        // RTCP packet is split for partial encryption.
-        //
-        // If there are too many sources to fit all the necessary RR packets
-        // into one compound RTCP packet without exceeding the maximum
-        // transmission unit (MTU) of the network path, then only the subset
-        // that will fit into one MTU should be included in each interval. The
-        // subsets should be selected round-robin across multiple intervals so
-        // that all sources are reported.
-        //
-        // It is impossible to know in advance what the MTU of path will be.
-        // There are various algorithms for experimenting to find out, but many
-        // devices do not properly implement (or deliberately ignore) the
-        // necessary standards so it all comes down to trial and error. For that
-        // reason, we can just guess 1200 bytes per message.
-        long time = System.currentTimeMillis();
-
-        Collection<RTCPPacket> packets = new ArrayList<RTCPPacket>();
-
-        // First, we build the RRs.
-        Collection<RTCPRRPacket> rrPackets = makeRTCPRRPackets(time);
-        if (rrPackets != null && rrPackets.size() != 0)
-        {
-            packets.addAll(rrPackets);
-        }
-
-        // Next, we build the SRs.
-        Collection<RTCPSRPacket> srPackets = makeRTCPSRPackets(time);
-        if (srPackets != null && srPackets.size() != 0)
-        {
-            packets.addAll(srPackets);
-        }
-
-        // Bail out if we have nothing to report.
-        if (packets.size() == 0)
-        {
-            return null;
-        }
-
-        // Next, we build the REMB.
-        RTCPREMBPacket rembPacket = makeRTCPREMBPacket();
-        if (rembPacket != null)
-        {
-            packets.add(rembPacket);
-        }
-
-        // Finally, we add an SDES packet.
-        RTCPSDESPacket sdesPacket = makeSDESPacket();
-        if (sdesPacket != null)
-        {
-            packets.add(sdesPacket);
-        }
-
-        // Prepare the <tt>RTCPCompoundPacket</tt> to return.
-        RTCPPacket rtcpPackets[]
-            = packets.toArray(new RTCPPacket[packets.size()]);
-
-        RTCPCompoundPacket cp = new RTCPCompoundPacket(rtcpPackets);
-
-        // Build the <tt>RTCPCompoundPacket</tt> and return the
-        // <tt>RawPacket</tt> to inject to the <tt>MediaStream</tt>.
-        return generator.apply(cp);
-    }
-
-    /**
-     * (attempts) to get the local SSRC that will be used in the media sender
-     * SSRC field of the RTCP reports. TAG(cat4-local-ssrc-hurricane)
-     * @return
-     */
-    private long getLocalSSRC()
-    {
-        return getStream().getStreamRTPManager().getLocalSSRC();
-    }
-
-    /**
-     * Makes <tt>RTCPRRPacket</tt>s using information in FMJ.
-     *
-     * @param time
-     *
-     * @return A <tt>Collection</tt> of <tt>RTCPRRPacket</tt>s to inject to the
-     * <tt>MediaStream</tt>.
-     */
-    private Collection<RTCPRRPacket> makeRTCPRRPackets(long time)
-    {
-        RTCPReportBlock[] reportBlocks = makeRTCPReportBlocks(time);
-        if (reportBlocks == null || reportBlocks.length == 0)
-        {
-            return null;
-        }
-
-        Collection<RTCPRRPacket> rrPackets = new ArrayList<RTCPRRPacket>();
-
-        // We use the stream's local source ID (SSRC) as the SSRC of packet
-        // sender.
-        long streamSSRC = getLocalSSRC();
-
-        // Since a maximum of 31 reception report blocks will fit in an SR
-        // or RR packet, additional RR packets SHOULD be stacked after the
-        // initial SR or RR packet as needed to contain the reception
-        // reports for all sources heard during the interval since the last
-        // report.
-        if (reportBlocks.length > MAX_RTCP_REPORT_BLOCKS)
-        {
-            for (int offset = 0;
-                 offset < reportBlocks.length;
-                 offset += MAX_RTCP_REPORT_BLOCKS)
-            {
-                RTCPReportBlock[] blocks
-                    = (reportBlocks.length - offset < MAX_RTCP_REPORT_BLOCKS)
-                    ? new RTCPReportBlock[reportBlocks.length - offset]
-                    : MAX_RTCP_REPORT_BLOCKS_ARRAY;
-
-                System.arraycopy(
-                    reportBlocks, offset, blocks, 0, blocks.length);
-
-                RTCPRRPacket rr
-                    = new RTCPRRPacket((int) streamSSRC, blocks);
-                rrPackets.add(rr);
-            }
-        }
-        else
-        {
-            RTCPRRPacket rr
-                = new RTCPRRPacket((int) streamSSRC, reportBlocks);
-            rrPackets.add(rr);
-        }
-
-        return rrPackets;
-    }
-
-    /**
-     * Iterate through all the <tt>ReceiveStream</tt>s that this
-     * <tt>MediaStream</tt> has and make <tt>RTCPReportBlock</tt>s for all of
-     * them.
-     *
-     * @param time
-     * @return
-     */
-    private RTCPReportBlock[] makeRTCPReportBlocks(long time)
-    {
-        MediaStream stream = getStream();
-        // State validation.
-        if (stream == null)
-        {
-            logger.warn("stream is null.");
-            return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
-        }
-
-        StreamRTPManager streamRTPManager = stream.getStreamRTPManager();
-        if (streamRTPManager == null)
-        {
-            logger.warn("streamRTPManager is null.");
-            return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
-        }
-
-        Collection<ReceiveStream> receiveStreams
-            = streamRTPManager.getReceiveStreams();
-
-        if (receiveStreams == null || receiveStreams.size() == 0)
-        {
-            logger.info("There are no receive streams to build report " +
-                "blocks for.");
-            return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
-        }
-
-        SSRCCache cache = streamRTPManager.getSSRCCache();
-        if (cache == null)
-        {
-            logger.info("cache is null.");
-            return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
-        }
-
-        // Create the return object.
-        Collection<RTCPReportBlock> rtcpReportBlocks
-            = new ArrayList<RTCPReportBlock>();
-
-        // Populate the return object.
-        for (ReceiveStream receiveStream : receiveStreams)
-        {
-            // Dig into the guts of FMJ and get the stats for the current
-            // receiveStream.
-            SSRCInfo info = cache.cache.get((int) receiveStream.getSSRC());
-
-            if (!info.ours && info.sender)
-            {
-                RTCPReportBlock rtcpReportBlock = info.makeReceiverReport(time);
-                rtcpReportBlocks.add(rtcpReportBlock);
-            }
-        }
-
-        return rtcpReportBlocks.toArray(
-            new RTCPReportBlock[rtcpReportBlocks.size()]);
-    }
-
-    /**
-     * Makes an <tt>RTCPREMBPacket</tt> that provides receiver feedback to the
-     * endpoint from which we receive.
-     *
-     * @return an <tt>RTCPREMBPacket</tt> that provides receiver feedback to the
-     * endpoint from which we receive.
-     */
-    private RTCPREMBPacket makeRTCPREMBPacket()
-    {
-        // TODO we should only make REMBs if REMB support has been advertised.
-        // Destination
-        RemoteBitrateEstimator remoteBitrateEstimator
-            = ((VideoMediaStream) getStream()).getRemoteBitrateEstimator();
-
-        Collection<Integer> ssrcs = remoteBitrateEstimator.getSsrcs();
-
-        // TODO(gp) intersect with SSRCs from signaled simulcast layers
-        // NOTE(gp) The Google Congestion Control algorithm (sender side)
-        // doesn't seem to care about the SSRCs in the dest field.
-        long[] dest = new long[ssrcs.size()];
-        int i = 0;
-
-        for (Integer ssrc : ssrcs)
-            dest[i++] = ssrc & 0xFFFFFFFFL;
-
-        // Exp & mantissa
-        long bitrate = remoteBitrateEstimator.getLatestEstimate();
-
-        if (bitrate == -1)
-            return null;
-
-        if (logger.isDebugEnabled())
-            logger.debug("Estimated bitrate: " + bitrate);
-
-        // Create and return the packet.
-        // We use the stream's local source ID (SSRC) as the SSRC of packet
-        // sender.
-        long streamSSRC = getLocalSSRC();
-
-        return new RTCPREMBPacket(
-            streamSSRC, /* mediaSSRC */ 0L, bitrate, dest);
-    }
-
-    /**
-     * Makes <tt>RTCPSRPacket</tt>s for all the RTP streams that we're sending.
-     *
-     * @return a <tt>List</tt> of <tt>RTCPSRPacket</tt> for all the RTP streams
-     * that we're sending.
-     */
-    private Collection<RTCPSRPacket> makeRTCPSRPackets(long time)
-    {
-        Collection<RTCPSRPacket> srPackets = new ArrayList<RTCPSRPacket>();
-
-        for (RTPStatsEntry rtpStatsEntry : rtpStatsMap.values())
-        {
-            int ssrc = rtpStatsEntry.getSsrc();
-            RemoteClock estimate = remoteClockEstimator.estimate(ssrc, time);
-            if (estimate == null)
-            {
-                // We're not going to go far without an estimate..
-                continue;
-            }
-
-            RTCPSRPacket srPacket
-                = new RTCPSRPacket(ssrc, MIN_RTCP_REPORTS_BLOCKS_ARRAY);
-
-            // Set the NTP timestamp for this SR.
-            long estimatedRemoteTime = estimate.getRemoteTime();
-            long secs = estimatedRemoteTime / 1000L;
-            double fraction = (estimatedRemoteTime - secs * 1000L) / 1000D;
-            srPacket.ntptimestamplsw = (int) (fraction * 4294967296D);
-            srPacket.ntptimestampmsw = secs;
-
-            // Set the RTP timestamp.
-            srPacket.rtptimestamp = estimate.getRtpTimestamp();
-
-            // Fill-in packet and octet send count.
-            srPacket.packetcount = rtpStatsEntry.getPacketsSent();
-            srPacket.octetcount = rtpStatsEntry.getBytesSent();
-
-            srPackets.add(srPacket);
-        }
-
-        return srPackets;
-    }
-
-    /**
-     * Makes <tt>RTCPSDES</tt> packets for all the RTP streams that we're
-     * sending.
-     *
-     * @return a <tt>List</tt> of <tt>RTCPSDES</tt> packets for all the RTP
-     * streams that we're sending.
-     */
-    private RTCPSDESPacket makeSDESPacket()
-    {
-        Collection<RTCPSDES> sdesChunks = new ArrayList<RTCPSDES>();
-
-        // Create an SDES for our own SSRC.
-        RTCPSDES ownSDES = new RTCPSDES();
-
-        SSRCInfo ourinfo
-            = getStream().getStreamRTPManager().getSSRCCache().ourssrc;
-        ownSDES.ssrc = (int) getLocalSSRC();
-        Collection<RTCPSDESItem> ownItems = new ArrayList<RTCPSDESItem>();
-        ownItems.add(new RTCPSDESItem(
-            RTCPSDESItem.CNAME, ourinfo.sourceInfo.getCNAME()));
-
-        // Throttle the source description bandwidth. See RFC3550#6.3.9
-        // Allocation of Source Description Bandwidth.
-
-        if (sdesCounter % 3 == 0)
-        {
-            if (ourinfo.name != null && ourinfo.name.getDescription() != null)
-                ownItems.add(new RTCPSDESItem(RTCPSDESItem.NAME, ourinfo.name
-                    .getDescription()));
-            if (ourinfo.email != null && ourinfo.email.getDescription() != null)
-                ownItems.add(new RTCPSDESItem(RTCPSDESItem.EMAIL, ourinfo.email
-                    .getDescription()));
-            if (ourinfo.phone != null && ourinfo.phone.getDescription() != null)
-                ownItems.add(new RTCPSDESItem(RTCPSDESItem.PHONE, ourinfo.phone
-                    .getDescription()));
-            if (ourinfo.loc != null && ourinfo.loc.getDescription() != null)
-                ownItems.add(new RTCPSDESItem(RTCPSDESItem.LOC, ourinfo.loc
-                    .getDescription()));
-            if (ourinfo.tool != null && ourinfo.tool.getDescription() != null)
-                ownItems.add(new RTCPSDESItem(RTCPSDESItem.TOOL, ourinfo.tool
-                    .getDescription()));
-            if (ourinfo.note != null && ourinfo.note.getDescription() != null)
-                ownItems.add(new RTCPSDESItem(RTCPSDESItem.NOTE, ourinfo.note
-                    .getDescription()));
-        }
-
-        sdesCounter++;
-
-        ownSDES.items = ownItems.toArray(new RTCPSDESItem[ownItems.size()]);
-
-        sdesChunks.add(ownSDES);
-
-        for (Map.Entry<Integer, byte[]> entry : cnameRegistry.entrySet())
-        {
-            RTCPSDES sdes = new RTCPSDES();
-            sdes.ssrc = entry.getKey();
-            sdes.items = new RTCPSDESItem[]
-                {
-                    new RTCPSDESItem(RTCPSDESItem.CNAME, entry.getValue())
-                };
-        }
-
-        RTCPSDES[] sps = sdesChunks.toArray(new RTCPSDES[sdesChunks.size()]);
-        RTCPSDESPacket sp = new RTCPSDESPacket(sps);
-
-        return sp;
     }
 }
