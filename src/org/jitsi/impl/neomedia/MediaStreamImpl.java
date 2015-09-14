@@ -301,7 +301,8 @@ public class MediaStreamImpl
      * <tt>RTCPTerminationStrategy</tt> to be swapped.
      */
     private final TransformEngineWrapper<RTCPTerminationStrategy>
-        rtcpTransformEngineWrapper = new TransformEngineWrapper();
+        rtcpTransformEngineWrapper
+            = new TransformEngineWrapper<RTCPTerminationStrategy>();
 
     /**
      * The chain used to by the RTPConnector to transform packets.
