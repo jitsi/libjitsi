@@ -11,8 +11,8 @@ import org.jitsi.impl.neomedia.transform.*;
 
 /**
  *
- * The <tt>RTCPTerminationStrategy</tt> is owned by a <tt>MediaStream</tt> and
- * its purpose is to terminate the RTCP traffic for that <tt>MediaStream</tt>.
+ * The purpose of an <tt>RTCPTerminationStrategy</tt> its purpose is to
+ * terminate the RTCP traffic for a <tt>MediaStream</tt>.
  *
  * It extends a <tt>TransformEngine</tt> giving it full access to both the RTP
  * traffic for statistics extraction and the RTCP traffic for modification.
