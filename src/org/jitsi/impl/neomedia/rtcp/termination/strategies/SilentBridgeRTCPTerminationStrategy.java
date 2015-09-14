@@ -6,10 +6,8 @@
  */
 package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
-import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.service.neomedia.*;
 
 /**
