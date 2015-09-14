@@ -25,6 +25,88 @@ import org.jitsi.util.function.*;
 public class MinThroughputRTCPTerminationStrategy
     implements RTCPTerminationStrategy
 {
+    private final PacketTransformer rtcpTransformer
+        = new SinglePacketTransformer()
+    {
+        /**
+         * The minimum value of the mantissa in the REMB calculation.
+         */
+        private static final int MIN_MANTISSA = 10;
+
+        /**
+         * The minimum value of the exponent in the REMB calculation.
+         */
+        private static final int MIN_EXP = 1;
+
+        /**
+         * The parser that parses <tt>RawPacket</tt>s to
+         * <tt>RTCPCompoundPacket</tt>s.
+         */
+        private final RTCPPacketParserEx parser = new RTCPPacketParserEx();
+
+        /**
+         * The generator that generates <tt>RawPacket</tt>s from
+         * <tt>RTCPCompoundPacket</tt>s.
+         */
+        private final RTCPGenerator generator = new RTCPGenerator();
+
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            if (pkt == null)
+            {
+                return null;
+            }
+
+            RTCPCompoundPacket inPacket = null;
+            try
+            {
+                inPacket = (RTCPCompoundPacket) parser.parse(
+                    pkt.getBuffer(),
+                    pkt.getOffset(),
+                    pkt.getLength());
+            }
+            catch (BadFormatException e)
+            {
+                return null;
+            }
+
+            if (inPacket == null
+                || inPacket.packets == null
+                || inPacket.packets.length == 0)
+            {
+                return pkt;
+            }
+
+            for (RTCPPacket p : inPacket.packets)
+            {
+                switch (p.type)
+                {
+                    case RTCPFBPacket.PSFB:
+                        RTCPFBPacket psfb = (RTCPFBPacket) p;
+                        switch (psfb.fmt)
+                        {
+                            case RTCPREMBPacket.FMT:
+                                RTCPREMBPacket remb = (RTCPREMBPacket) p;
+
+                                remb.mantissa = MIN_MANTISSA;
+                                remb.exp = MIN_EXP;
+                                break;
+                        }
+                        break;
+                }
+            }
+
+            return generator.apply(new RTCPCompoundPacket(inPacket));
+        }
+
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            return pkt;
+        }
+    };
+
     @Override
     public PacketTransformer getRTPTransformer()
     {
@@ -37,86 +119,7 @@ public class MinThroughputRTCPTerminationStrategy
     {
         // Replace the mantissa and the exponent in the REMB
         // packets.
-        return new SinglePacketTransformer()
-        {
-            /**
-             * The minimum value of the mantissa in the REMB calculation.
-             */
-            private static final int MIN_MANTISSA = 10;
-
-            /**
-             * The minimum value of the exponent in the REMB calculation.
-             */
-            private static final int MIN_EXP = 1;
-
-            /**
-             * The parser that parses <tt>RawPacket</tt>s to
-             * <tt>RTCPCompoundPacket</tt>s.
-             */
-            private final RTCPPacketParserEx parser = new RTCPPacketParserEx();
-
-            /**
-             * The generator that generates <tt>RawPacket</tt>s from
-             * <tt>RTCPCompoundPacket</tt>s.
-             */
-            private final RTCPGenerator generator = new RTCPGenerator();
-
-            @Override
-            public RawPacket transform(RawPacket pkt)
-            {
-                if (pkt == null)
-                {
-                    return null;
-                }
-
-                RTCPCompoundPacket inPacket = null;
-                try
-                {
-                    inPacket = (RTCPCompoundPacket) parser.parse(
-                        pkt.getBuffer(),
-                        pkt.getOffset(),
-                        pkt.getLength());
-                }
-                catch (BadFormatException e)
-                {
-                    return null;
-                }
-
-                if (inPacket == null
-                    || inPacket.packets == null
-                    || inPacket.packets.length == 0)
-                {
-                    return pkt;
-                }
-
-                for (RTCPPacket p : inPacket.packets)
-                {
-                    switch (p.type)
-                    {
-                        case RTCPFBPacket.PSFB:
-                            RTCPFBPacket psfb = (RTCPFBPacket) p;
-                            switch (psfb.fmt)
-                            {
-                                case RTCPREMBPacket.FMT:
-                                    RTCPREMBPacket remb = (RTCPREMBPacket) p;
-
-                                    remb.mantissa = MIN_MANTISSA;
-                                    remb.exp = MIN_EXP;
-                                    break;
-                            }
-                            break;
-                    }
-                }
-
-                return generator.apply(new RTCPCompoundPacket(inPacket));
-            }
-
-            @Override
-            public RawPacket reverseTransform(RawPacket pkt)
-            {
-                return pkt;
-            }
-        };
+        return rtcpTransformer;
     }
 
     public RawPacket report()

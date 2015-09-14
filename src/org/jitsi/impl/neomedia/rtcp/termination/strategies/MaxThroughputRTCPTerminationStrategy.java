@@ -25,6 +25,91 @@ import org.jitsi.util.function.*;
 public class MaxThroughputRTCPTerminationStrategy
     implements RTCPTerminationStrategy
 {
+    /**
+     * The RTCP <tt>PacketTransformer</tt> of this
+     * <tt>MaxThorughputRTCPTerminationStrategy</tt>.
+     */
+    private final PacketTransformer rtcpTransformer
+        = new SinglePacketTransformer()
+    {
+        /**
+         *
+         */
+        public static final int MAX_MANTISSA = 262143;
+
+        /**
+         *
+         */
+        public static final int MAX_EXP = 63;
+
+        /**
+         * The parser that parses <tt>RawPacket</tt>s to
+         * <tt>RTCPCompoundPacket</tt>s.
+         */
+        private final RTCPPacketParserEx parser = new RTCPPacketParserEx();
+
+        /**
+         * The generator that generates <tt>RawPacket</tt>s from
+         * <tt>RTCPCompoundPacket</tt>s.
+         */
+        private final RTCPGenerator generator = new RTCPGenerator();
+
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            if (pkt == null)
+            {
+                return null;
+            }
+
+            RTCPCompoundPacket inPacket = null;
+            try
+            {
+                inPacket = (RTCPCompoundPacket) parser.parse(
+                    pkt.getBuffer(),
+                    pkt.getOffset(),
+                    pkt.getLength());
+            }
+            catch (BadFormatException e)
+            {
+                return null;
+            }
+
+            if (inPacket == null
+                || inPacket.packets == null || inPacket.packets.length == 0)
+            {
+                return pkt;
+            }
+
+            for (RTCPPacket p : inPacket.packets)
+            {
+                switch (p.type)
+                {
+                    case RTCPFBPacket.PSFB:
+                        RTCPFBPacket psfb = (RTCPFBPacket) p;
+                        switch (psfb.fmt)
+                        {
+                            case RTCPREMBPacket.FMT:
+                                RTCPREMBPacket remb = (RTCPREMBPacket)p;
+
+                                remb.mantissa = MAX_MANTISSA;
+                                remb.exp = MAX_EXP;
+                                break;
+                        }
+                        break;
+                }
+            }
+
+            return generator.apply(inPacket);
+        }
+
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            return pkt;
+        }
+    };
+
     @Override
     public PacketTransformer getRTPTransformer()
     {
@@ -36,85 +121,7 @@ public class MaxThroughputRTCPTerminationStrategy
     {
         // Replace the mantissa and the exponent in the REMB
         // packets.
-        return new SinglePacketTransformer()
-        {
-            /**
-             *
-             */
-            public static final int MAX_MANTISSA = 262143;
-
-            /**
-             *
-             */
-            public static final int MAX_EXP = 63;
-
-            /**
-             * The parser that parses <tt>RawPacket</tt>s to
-             * <tt>RTCPCompoundPacket</tt>s.
-             */
-            private final RTCPPacketParserEx parser = new RTCPPacketParserEx();
-
-            /**
-             * The generator that generates <tt>RawPacket</tt>s from
-             * <tt>RTCPCompoundPacket</tt>s.
-             */
-            private final RTCPGenerator generator = new RTCPGenerator();
-
-            @Override
-            public RawPacket transform(RawPacket pkt)
-            {
-                if (pkt == null)
-                {
-                    return null;
-                }
-
-                RTCPCompoundPacket inPacket = null;
-                try
-                {
-                    inPacket = (RTCPCompoundPacket) parser.parse(
-                        pkt.getBuffer(),
-                        pkt.getOffset(),
-                        pkt.getLength());
-                }
-                catch (BadFormatException e)
-                {
-                    return null;
-                }
-
-                if (inPacket == null
-                    || inPacket.packets == null || inPacket.packets.length == 0)
-                {
-                    return pkt;
-                }
-
-                for (RTCPPacket p : inPacket.packets)
-                {
-                    switch (p.type)
-                    {
-                        case RTCPFBPacket.PSFB:
-                            RTCPFBPacket psfb = (RTCPFBPacket) p;
-                            switch (psfb.fmt)
-                            {
-                                case RTCPREMBPacket.FMT:
-                                    RTCPREMBPacket remb = (RTCPREMBPacket)p;
-
-                                    remb.mantissa = MAX_MANTISSA;
-                                    remb.exp = MAX_EXP;
-                                    break;
-                            }
-                            break;
-                    }
-                }
-
-                return generator.apply(inPacket);
-            }
-
-            @Override
-            public RawPacket reverseTransform(RawPacket pkt)
-            {
-                return pkt;
-            }
-        };
+        return rtcpTransformer;
     }
 
     public RawPacket report()
