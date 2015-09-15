@@ -46,6 +46,7 @@ import org.jitsi.util.*;
  * @author Emil Ivov
  * @author Sebastien Vincent
  * @author Boris Grozev
+ * @author George Politis
  */
 public class MediaStreamImpl
     extends AbstractMediaStream
@@ -155,6 +156,10 @@ public class MediaStreamImpl
 
     /**
      * Our own SSRC identifier.
+     *
+     * XXX(gp) how about taking the local source ID directly from
+     * {@link this.rtpManager}, given that it offers this information with its
+     * getLocalSSRC() method? TAG(cat4-local-ssrc-hurricane)
      */
     private long localSourceID = Math.abs(new Random().nextLong())
             % Integer.MAX_VALUE;
@@ -204,6 +209,13 @@ public class MediaStreamImpl
 
     /**
      * The SSRC identifiers of the party that we are exchanging media with.
+     *
+     * XXX(gp) I'm sure there's a reason why we do it the way we do it, but we
+     * might want to re-think about how we manage receive SSRCs. We keep track
+     * of the receive SSRC in at least 3 places, in the MediaStreamImpl (we have
+     * a remoteSourceIDs vector), in StreamRTPManager.receiveSSRCs and in
+     * RtpChannel.receiveSSRCs. TAG(cat4-remote-ssrc-hurricane)
+     *
      */
     private final Vector<Long> remoteSourceIDs = new Vector<Long>(1, 1);
 
@@ -282,6 +294,15 @@ public class MediaStreamImpl
      */
     private final TransformEngineWrapper externalTransformerWrapper
         = new TransformEngineWrapper();
+
+    /**
+     * The <tt>TransformEngine</tt> instance registered in the
+     * <tt>RTPConnector</tt>'s transform chain, which allows the
+     * <tt>RTCPTerminationStrategy</tt> to be swapped.
+     */
+    private final TransformEngineWrapper<RTCPTerminationStrategy>
+        rtcpTransformEngineWrapper
+            = new TransformEngineWrapper<RTCPTerminationStrategy>();
 
     /**
      * The chain used to by the RTPConnector to transform packets.
@@ -873,19 +894,7 @@ public class MediaStreamImpl
         if (dtmfEngine != null)
             engineChain.add(dtmfEngine);
 
-        if (MediaType.VIDEO.equals(getMediaType()))
-        {
-            // RTCPTerminationTransformEngine passes received RTCP to
-            // RTCPTerminationStrategy for inspection and modification.
-            engineChain.add(new RTCPTerminationTransformEngine(this));
-        }
-
         engineChain.add(externalTransformerWrapper);
-
-        // RTCP Statistics
-        if (statisticsEngine == null)
-            statisticsEngine = new StatisticsEngine(this);
-        engineChain.add(statisticsEngine);
 
         // here comes the override payload type transformer
         // as it changes headers of packets, need to go before encryption
@@ -902,6 +911,20 @@ public class MediaStreamImpl
         REDTransformEngine redTransformEngine = getRedTransformEngine();
         if (redTransformEngine != null)
             engineChain.add(redTransformEngine);
+
+        // Debug
+        // engineChain.add(new DebugTransformEngine(this));
+
+        // RTCPTerminationTransformEngine passes received RTCP to
+        // RTCPTerminationStrategy for inspection and modification. The RTCP
+        // termination needs to be as close to the SRTP transform engine as
+        // possible.
+        engineChain.add(rtcpTransformEngineWrapper);
+
+        // RTCP Statistics
+        if (statisticsEngine == null)
+            statisticsEngine = new StatisticsEngine(this);
+        engineChain.add(statisticsEngine);
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
@@ -1697,6 +1720,12 @@ public class MediaStreamImpl
                 configureRTPManagerBufferControl(rtpManager, bc);
 
             rtpManager.setSSRCFactory(ssrcFactory);
+            // Override the default RTCP generation and transmission mechanism
+            // in FMJ. The default mechanism can be emulated using
+            // PassthroughRTCPTerminationStrategy although this would only be
+            // useful in the case the bridge acts as an audio mixer.
+            rtpManager.setRTCPTransmitterFactory(
+                new RTCPTransmitterFactoryImpl(rtpTranslator));
 
             rtpManager.initialize(rtpConnector);
 
@@ -1716,13 +1745,13 @@ public class MediaStreamImpl
     }
 
     /**
-     * Gets the <tt>RTPTranslator</tt> which is to forward RTP and RTCP traffic
-     * between this and other <tt>MediaStream</tt>s.
+     * Gets the <tt>StreamRTPManager</tt> which is to forward RTP and RTCP
+     * traffic between this and other <tt>MediaStream</tt>s.
      */
     @Override
-    public RTPTranslator getRTPTranslator()
+    public StreamRTPManager getStreamRTPManager()
     {
-        return rtpTranslator;
+        return rtpManager;
     }
 
     /**
@@ -3361,17 +3390,36 @@ public class MediaStreamImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RTCPTerminationStrategy getRTCPTerminationStrategy()
+    {
+        return rtcpTransformEngineWrapper.wrapped;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setRTCPTerminationStrategy(
+        RTCPTerminationStrategy rtcpTerminationStrategy)
+    {
+        rtcpTransformEngineWrapper.wrapped = rtcpTerminationStrategy;
+    }
+
+    /**
      * Wraps a <tt>TransformerEngine</tt> (allows the wrapped instance to be
      * swapped without modifications to the <tt>RTPConnector</tt>'s transformer
      * engine chain.
      */
-    private class TransformEngineWrapper
+    private class TransformEngineWrapper<T extends TransformEngine>
         implements TransformEngine
     {
         /**
          * The wrapped instance.
          */
-        private TransformEngine wrapped;
+        private T wrapped;
 
         /**
          * {@inheritDoc}
@@ -3396,6 +3444,7 @@ public class MediaStreamImpl
      * {@inheritDoc}
      */
     public void injectPacket(RawPacket pkt, boolean data, boolean encrypt)
+        throws TransmissionFailedException
     {
         if (pkt == null)
             return;
@@ -3457,11 +3506,11 @@ public class MediaStreamImpl
                 }
                 catch (IOException ioe)
                 {
-                    logger.warn("Failed to inject packet in MediaStream: " + ioe);
+                    throw new TransmissionFailedException(ioe);
                 }
                 catch (NullPointerException npe)
                 {
-                    logger.warn("Failed to inject packet in MediaStream: " + npe);
+                    throw new TransmissionFailedException(npe);
                 }
             }
         }

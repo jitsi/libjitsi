@@ -35,6 +35,13 @@ class StreamRTPManagerDesc
     /**
      * The list of synchronization source (SSRC) identifiers received by
      * {@link #streamRTPManager} (as <tt>ReceiveStream</tt>s).
+     *
+     *
+     * XXX(gp) I'm sure there's a reason why we do it the way we do it, but we
+     * might want to re-think about how we manage receive SSRCs. We keep track
+     * of the receive SSRC in at least 3 places, in the MediaStreamImpl (we have
+     * a remoteSourceIDs vector), in StreamRTPManager.receiveSSRCs and in
+     * RtpChannel.receiveSSRCs. TAG(cat4-remote-ssrc-hurricane)
      */
     private int[] receiveSSRCs = EMPTY_INT_ARRAY;
 

@@ -27,6 +27,8 @@ public class RTCPGenerator
 
         // Assemble the RTP packet.
         int len = input.calcLength();
+
+        // TODO we need to be able to re-use original RawPacket buffer.
         input.assemble(len, false);
         byte[] buf = input.data;
 

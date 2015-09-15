@@ -11,6 +11,7 @@ import java.net.*;
 import java.util.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
@@ -242,10 +243,10 @@ public interface MediaStream
     public List<Long> getRemoteSourceIDs();
 
     /**
-     * Gets the <tt>RTPTranslator</tt> which is to forward RTP and RTCP traffic
-     * between this and other <tt>MediaStream</tt>s.
+     * Gets the <tt>StreamRTPManager</tt> which is to forward RTP and RTCP
+     * traffic between this and other <tt>MediaStream</tt>s.
      */
-    public RTPTranslator getRTPTranslator();
+    public StreamRTPManager getStreamRTPManager();
 
     /**
      * The <tt>ZrtpControl</tt> which controls the ZRTP for this stream.
@@ -447,6 +448,28 @@ public interface MediaStream
      * @param data <tt>true</tt> to send an RTP packet, or false to send an
      * <tt>RTCP</tt> packet.
      * @param encrypt <tt>true</tt> to encrypt/sign the packet with SRTP/SRTCP.
+     * @throws TransmissionFailedException if the transmission failed.
      */
-    public void injectPacket(RawPacket pkt, boolean data, boolean encrypt);
+    public void injectPacket(RawPacket pkt, boolean data, boolean encrypt)
+        throws TransmissionFailedException;
+
+    /**
+     * Gets the current active <tt>RTCPTerminationStrategy</tt> which is to
+     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     *
+     * @return the <tt>RTCPTerminationStrategy</tt> which is to inspect and
+     * modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     */
+    public RTCPTerminationStrategy getRTCPTerminationStrategy();
+
+    /**
+     * Sets the current active <tt>RTCPTerminationStrategy</tt> which is to
+     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     *
+     * @param rtcpTerminationStrategy the <tt>RTCPTerminationStrategy</tt> which
+     * is to inspect and modify RTCP traffic between multiple
+     * <tt>MediaStream</tt>s.
+     */
+    public void setRTCPTerminationStrategy(
+        RTCPTerminationStrategy rtcpTerminationStrategy);
 }

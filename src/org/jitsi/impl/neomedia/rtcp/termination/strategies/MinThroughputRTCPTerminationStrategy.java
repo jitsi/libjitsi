@@ -8,10 +8,12 @@ package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
 import net.sf.fmj.media.rtp.*;
 
+import net.sf.fmj.media.rtp.util.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
-
-import java.util.*;
+import org.jitsi.util.function.*;
 
 /**
  * Minimizes endpoint throughput. It does that by sending REMB messages with the
@@ -21,121 +23,106 @@ import java.util.*;
  * @author George Politis
  */
 public class MinThroughputRTCPTerminationStrategy
-        implements RTCPTerminationStrategy, Transformer<RTCPCompoundPacket>
+    implements RTCPTerminationStrategy
 {
-    private final RTCPReportBuilder reportBuilder
-            // TODO(gp) create an RTCPReportBuilderImpl that reports feedback using the announced SSRC of the bridge
-            = new DefaultRTCPReportBuilderImpl();
-
-    public static final int MIN_MANTISSA = 10;
-    public static final int MIN_EXP = 1;
-
-    @Override
-    public RTCPCompoundPacket reverseTransform(RTCPCompoundPacket inPacket)
+    private final PacketTransformer rtcpTransformer
+        = new SinglePacketTransformer()
     {
-        if (inPacket == null
-                || inPacket.packets == null || inPacket.packets.length == 0)
-        {
-            return inPacket;
-        }
+        /**
+         * The minimum value of the mantissa in the REMB calculation.
+         */
+        private static final int MIN_MANTISSA = 10;
 
-        Vector<RTCPPacket> outPackets = new Vector<RTCPPacket>();
+        /**
+         * The minimum value of the exponent in the REMB calculation.
+         */
+        private static final int MIN_EXP = 1;
 
-        for (RTCPPacket p : inPacket.packets)
+        /**
+         * The parser that parses <tt>RawPacket</tt>s to
+         * <tt>RTCPCompoundPacket</tt>s.
+         */
+        private final RTCPPacketParserEx parser = new RTCPPacketParserEx();
+
+        /**
+         * The generator that generates <tt>RawPacket</tt>s from
+         * <tt>RTCPCompoundPacket</tt>s.
+         */
+        private final RTCPGenerator generator = new RTCPGenerator();
+
+        @Override
+        public RawPacket transform(RawPacket pkt)
         {
-            switch (p.type)
+            if (pkt == null)
             {
-                case RTCPPacket.RR:
-                    // Mute RRs from the peers. We send our own.
-                    break;
-                case RTCPPacket.SR:
-                    // Remove feedback information from the SR and forward.
-                    RTCPSRPacket sr = (RTCPSRPacket) p;
-                    outPackets.add(sr);
-                    sr.reports = new RTCPReportBlock[0];
-                    break;
-                case RTCPFBPacket.PSFB:
-                    RTCPFBPacket psfb = (RTCPFBPacket) p;
-                    switch (psfb.fmt)
-                    {
-                        case RTCPREMBPacket.FMT:
-                            RTCPREMBPacket remb = (RTCPREMBPacket)p;
-
-                            remb.mantissa = MIN_MANTISSA;
-                            remb.exp = MIN_EXP;
-                            outPackets.add(remb);
-                            break;
-                        default:
-                            // Pass through everything else, like PLIs and NACKs
-                            outPackets.add(psfb);
-                            break;
-                    }
-                    break;
-                default:
-                    // Pass through everything else, like PLIs and NACKs
-                    outPackets.add(p);
-                    break;
+                return null;
             }
+
+            RTCPCompoundPacket inPacket = null;
+            try
+            {
+                inPacket = (RTCPCompoundPacket) parser.parse(
+                    pkt.getBuffer(),
+                    pkt.getOffset(),
+                    pkt.getLength());
+            }
+            catch (BadFormatException e)
+            {
+                return null;
+            }
+
+            if (inPacket == null
+                || inPacket.packets == null
+                || inPacket.packets.length == 0)
+            {
+                return pkt;
+            }
+
+            for (RTCPPacket p : inPacket.packets)
+            {
+                switch (p.type)
+                {
+                    case RTCPFBPacket.PSFB:
+                        RTCPFBPacket psfb = (RTCPFBPacket) p;
+                        switch (psfb.fmt)
+                        {
+                            case RTCPREMBPacket.FMT:
+                                RTCPREMBPacket remb = (RTCPREMBPacket) p;
+
+                                remb.mantissa = MIN_MANTISSA;
+                                remb.exp = MIN_EXP;
+                                break;
+                        }
+                        break;
+                }
+            }
+
+            return generator.apply(new RTCPCompoundPacket(inPacket));
         }
 
-        RTCPPacket[] outarr = new RTCPPacket[outPackets.size()];
-        outPackets.copyInto(outarr);
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            return pkt;
+        }
+    };
 
-        RTCPCompoundPacket outPacket = new RTCPCompoundPacket(outarr);
-
-        return outPacket;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void close()
+    public PacketTransformer getRTPTransformer()
     {
-        // nothing to be done here
+        // We don't touch the RTP traffic.
+        return null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public RTCPCompoundPacket transform(RTCPCompoundPacket inPacket)
+    public PacketTransformer getRTCPTransformer()
     {
-        return inPacket;
+        // Replace the mantissa and the exponent in the REMB
+        // packets.
+        return rtcpTransformer;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Transformer<RTCPCompoundPacket> getRTCPCompoundPacketTransformer()
-    {
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public RTCPReportBuilder getRTCPReportBuilder()
-    {
-        return reportBuilder;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setRTPTranslator(RTPTranslator translator)
-    {
-        // Nothing to do here.
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public RTPTranslator getRTPTranslator()
+    public RawPacket report()
     {
         return null;
     }
