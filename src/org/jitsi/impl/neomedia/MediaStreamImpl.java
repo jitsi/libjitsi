@@ -1745,13 +1745,12 @@ public class MediaStreamImpl
     }
 
     /**
-     * Gets the <tt>StreamRTPManager</tt> which is to forward RTP and RTCP
-     * traffic between this and other <tt>MediaStream</tt>s.
+     * {@inheritDoc}
      */
     @Override
     public StreamRTPManager getStreamRTPManager()
     {
-        return rtpManager;
+        return queryRTPManager();
     }
 
     /**

@@ -42,6 +42,12 @@ public abstract class AbstractMediaStream
         = new PropertyChangeSupport(this);
 
     /**
+     * The currently active {@code RTCPTerminationStrategy} which is to inspect
+     * and modify RTCP traffic between multiple {@code MediaStream}s.
+     */
+    private RTCPTerminationStrategy rtcpTerminationStrategy;
+
+    /**
      * Adds a <tt>PropertyChangelistener</tt> to this stream which is to be
      * notified upon property changes such as a SSRC ID which becomes known.
      *
@@ -116,6 +122,7 @@ public abstract class AbstractMediaStream
      * @return the name of this stream or <tt>null</tt> if no name has been
      * set.
      */
+    @Override
     public String getName()
     {
         return name;
@@ -128,6 +135,15 @@ public abstract class AbstractMediaStream
     public Object getProperty(String propertyName)
     {
         return properties.get(propertyName);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RTCPTerminationStrategy getRTCPTerminationStrategy()
+    {
+        return rtcpTerminationStrategy;
     }
 
     /**
@@ -149,6 +165,7 @@ public abstract class AbstractMediaStream
      * @param listener the <tt>PropertyChangeListener</tt> to remove
      * @see MediaStream#removePropertyChangeListener(PropertyChangeListener)
      */
+    @Override
     public void removePropertyChangeListener(PropertyChangeListener listener)
     {
         propertyChangeSupport.removePropertyChangeListener(listener);
@@ -178,5 +195,15 @@ public abstract class AbstractMediaStream
             properties.remove(propertyName);
         else
             properties.put(propertyName, value);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setRTCPTerminationStrategy(
+            RTCPTerminationStrategy rtcpTerminationStrategy)
+    {
+        this.rtcpTerminationStrategy = rtcpTerminationStrategy;
     }
 }

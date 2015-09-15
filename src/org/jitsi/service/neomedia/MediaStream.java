@@ -243,8 +243,11 @@ public interface MediaStream
     public List<Long> getRemoteSourceIDs();
 
     /**
-     * Gets the <tt>StreamRTPManager</tt> which is to forward RTP and RTCP
-     * traffic between this and other <tt>MediaStream</tt>s.
+     * Gets the {@code StreamRTPManager} which is to forward RTP and RTCP
+     * traffic between this and other {@code MediaStream}s.
+     *
+     * @return the {@code StreamRTPManager} which is to forward RTP and RTCP
+     * traffic between this and other {@code MediaStream}s
      */
     public StreamRTPManager getStreamRTPManager();
 
