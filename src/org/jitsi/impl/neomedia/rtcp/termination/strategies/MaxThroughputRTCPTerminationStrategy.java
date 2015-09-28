@@ -123,9 +123,4 @@ public class MaxThroughputRTCPTerminationStrategy
         // packets.
         return rtcpTransformer;
     }
-
-    public RawPacket report()
-    {
-        return null;
-    }
 }

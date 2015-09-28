@@ -20,15 +20,9 @@ import org.jitsi.service.neomedia.*;
 public class PassthroughRTCPTerminationStrategy
     implements RTCPTerminationStrategy
 {
-
-    public RawPacket report()
-    {
-        // TODO Implement the default FMJ behavior here.
-        return null;
-    }
-
     public PacketTransformer getRTPTransformer()
     {
+        // TODO Implement the default FMJ behavior here.
         return null;
     }
 

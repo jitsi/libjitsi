@@ -7,8 +7,6 @@
 package org.jitsi.impl.neomedia.rtp.translator;
 
 import net.sf.fmj.media.rtp.*;
-import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 
 /**
@@ -116,60 +114,5 @@ public class RTCPTransmitterImpl
      */
     public void report()
     {
-        SSRCCache cache = getCache();
-
-        // Iterate through the <tt>StreamRTPManager</tt>s of the
-        // <tt>RTPTranslator</tt>.
-        for (StreamRTPManager streamRTPManager
-            : translator.getStreamRTPManagers())
-        {
-            MediaStream mediaStream = streamRTPManager.getMediaStream();
-
-            // Get the RTCP termination strategy of the <tt>MediaStream</tt>.
-            RTCPTerminationStrategy rtcpTerminationStrategy
-                = mediaStream.getRTCPTerminationStrategy();
-
-            if (rtcpTerminationStrategy == null)
-            {
-                // The <tt>MediaStream</tt> doesn't have an
-                // <tt>RTCPTerminationStrategy</tt>. Move to the next
-                // <tt>MediaStream</tt>.
-                continue;
-            }
-
-            // Make the RTCP reports for the current <tt>MediaStream</tt>.
-            RawPacket rawPacket = rtcpTerminationStrategy.report();
-
-            if (rawPacket == null)
-            {
-                // The <tt>RTCPTerminationStrategy</tt> of the
-                // <tt>MediaStream</tt> did not generate anything. Move to the
-                // next <tt>MediaStream</tt>.
-                continue;
-            }
-
-            // Transmit whatever the RTCP termination produced.
-
-            try
-            {
-                mediaStream.injectPacket(rawPacket, false, true);
-
-                if (ssrcInfo instanceof SendSSRCInfo)
-                {
-                    ((SendSSRCInfo) ssrcInfo).stats.total_rtcp++;
-                    cache.sm.transstats.rtcp_sent++;
-                }
-                cache.updateavgrtcpsize(rawPacket.getLength());
-                if (cache.initial)
-                    cache.initial = false;
-                if (!cache.rtcpsent)
-                    cache.rtcpsent = true;
-            }
-            catch (TransmissionFailedException e)
-            {
-                cache.sm.defaultstats.update(OverallStats.TRANSMITFAILED, 1);
-                cache.sm.transstats.transmit_failed++;
-            }
-        }
     }
 }

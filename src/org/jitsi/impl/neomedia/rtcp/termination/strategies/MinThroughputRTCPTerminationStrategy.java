@@ -121,9 +121,4 @@ public class MinThroughputRTCPTerminationStrategy
         // packets.
         return rtcpTransformer;
     }
-
-    public RawPacket report()
-    {
-        return null;
-    }
 }

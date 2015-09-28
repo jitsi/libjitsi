@@ -112,6 +112,12 @@ public class BasicRTCPTerminationStrategy
     private final GarbageCollector garbageCollector = new GarbageCollector();
 
     /**
+     * Takes care of calling the report() method of this RTCP termination
+     * strategy when it's appropriate time.
+     */
+    private final RTCPReporter rtcpReporter = new RTCPReporter();
+
+    /**
      * The RTP <tt>PacketTransformer</tt> of this
      * <tt>BasicRTCPTerminationStrategy</tt>.
      */
@@ -126,6 +132,7 @@ public class BasicRTCPTerminationStrategy
         {
             // Update our RTP stats map (packets/octet sent).
             rtpStatsMap.apply(pkt);
+            rtcpReporter.maybeReport();
 
             return pkt;
         }
@@ -137,6 +144,7 @@ public class BasicRTCPTerminationStrategy
         public RawPacket reverseTransform(RawPacket pkt)
         {
             // Let everything pass through.
+            rtcpReporter.maybeReport();
             return pkt;
         }
     };
@@ -221,9 +229,12 @@ public class BasicRTCPTerminationStrategy
     }
 
     /**
-     * {@inheritDoc}
+     * Runs in the reporting thread and it generates RTCP reports for the
+     * associated <tt>MediaStream</tt>.
+     *
+     * @return the <tt>RawPacket</tt> representing the RTCP compound packet to
+     * inject to the <tt>MediaStream</tt>.
      */
-    @Override
     public RawPacket report()
     {
         garbageCollector.cleanup();
@@ -1121,6 +1132,77 @@ public class BasicRTCPTerminationStrategy
                         break;
                 }
             }
+        }
+    }
+
+    /**
+     * Takes care of calling the report() method every RTCP_INTERVAL_VIDEO_MS.
+     */
+    class RTCPReporter
+    {
+        /**
+         * For video we use 500ms interval.
+         */
+        private static final int RTCP_INTERVAL_VIDEO_MS = 500;
+
+        /**
+        */
+        private long nextTimeToSendRTCP;
+
+        /**
+         */
+        public void maybeReport()
+        {
+            if (!timeToSendRTCPReport())
+            {
+                return;
+            }
+
+            // Make the RTCP reports for the assoc. <tt>MediaStream</tt>.
+            RawPacket rawPacket = report();
+
+            if (rawPacket == null)
+            {
+                // Nothing was generated.
+                return;
+            }
+
+            try
+            {
+                getStream().injectPacket(rawPacket, false, true);
+
+                // TODO update transmission stats.
+                /*if (ssrcInfo instanceof SendSSRCInfo)
+                {
+                    ((SendSSRCInfo) ssrcInfo).stats.total_rtcp++;
+                    cache.sm.transstats.rtcp_sent++;
+                }
+                cache.updateavgrtcpsize(rawPacket.getLength());
+                if (cache.initial)
+                    cache.initial = false;
+                if (!cache.rtcpsent)
+                    cache.rtcpsent = true;*/
+            }
+            catch (TransmissionFailedException e)
+            {
+                logger.error(e);
+                /*cache.sm.defaultstats
+                    .update(OverallStats.TRANSMITFAILED, 1);
+                cache.sm.transstats.transmit_failed++;*/
+            }
+        }
+
+        private boolean timeToSendRTCPReport()
+        {
+            final long now = System.currentTimeMillis();
+
+            if (now >= nextTimeToSendRTCP)
+            {
+                nextTimeToSendRTCP = now + RTCP_INTERVAL_VIDEO_MS;
+                return true;
+            }
+
+            return false;
         }
     }
 }

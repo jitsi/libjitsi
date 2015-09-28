@@ -22,12 +22,4 @@ import org.jitsi.impl.neomedia.transform.*;
 public interface RTCPTerminationStrategy
     extends TransformEngine
 {
-    /**
-     * Runs in the reporting thread and it generates RTCP reports for the
-     * associated <tt>MediaStream</tt>.
-     *
-     * @return the <tt>RawPacket</tt> representing the RTCP compound packet to
-     * inject to the <tt>MediaStream</tt>.
-     */
-    RawPacket report();
 }

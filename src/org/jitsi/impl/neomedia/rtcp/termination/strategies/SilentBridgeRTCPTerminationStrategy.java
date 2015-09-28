@@ -20,12 +20,6 @@ import org.jitsi.service.neomedia.*;
 public class SilentBridgeRTCPTerminationStrategy
     implements RTCPTerminationStrategy
 {
-
-    public RawPacket report()
-    {
-        return null;
-    }
-
     public PacketTransformer getRTPTransformer()
     {
         return null;
