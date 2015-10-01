@@ -1,6 +1,4 @@
 /*
- * Jitsi, the OpenSource Java VoIP and Instant Messaging client.
- *
  * Copyright @ 2015 Atlassian Pty Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
