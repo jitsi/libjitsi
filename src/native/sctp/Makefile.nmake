@@ -10,10 +10,10 @@ CC = cl /O2 /Zi
 
 JNI_HEADERS = /I"%JAVA_HOME%\include" /I"%JAVA_HOME%\include\win32"
 
-SCTP_HEADERS = /I"sctp-refimpl-read-only\KERN\usrsctp\usrsctplib"
+SCTP_HEADERS = /I"usrsctp\usrsctplib"
 
-LIBS = /link /DEBUG /LIBPATH:"sctp-refimpl-read-only\KERN\usrsctp\usrsctplib" /LIBPATH:"%JAVA_HOME%\lib"
-#LIBS = /link /LIBPATH:"sctp-refimpl-read-only\KERN\usrsctp\usrsctplib" /LIBPATH:"%JAVA_HOME%\lib"
+LIBS = /link /DEBUG /LIBPATH:"usrsctp\usrsctplib" /LIBPATH:"%JAVA_HOME%\lib"
+#LIBS = /link /LIBPATH:"usrsctp\usrsctplib" /LIBPATH:"%JAVA_HOME%\lib"
 
 #CFLAGS = $(JNI_HEADERS) $(SCTP_HEADERS) -DSCTP_DEBUG=1 -DINET6=1
 CFLAGS = $(JNI_HEADERS) $(SCTP_HEADERS) -DINET6=1

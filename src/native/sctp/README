@@ -10,13 +10,15 @@
 #
 #   a) open Visual Studio console(x86 for 32 bit, 64 for 64 bit)
 #
-#   b) cd src/native/sctp/sctp-refimpl-read-only/KERN/usrsctp/
+#   b) cd src/native/sctp/usrsctp/
 #
 #   c) nmake -f Makefile.nmake
 # NOTES: Encountering the following warning/errors:
 # user_mbuf.c(735) : error C2220: warning treated as error - no 'object' file generated
 # user_mbuf.c(735) : warning C4244: '=' : conversion from '__int64' to 'int', possible loss of data
-# Editing usrsctplib/Makefile.nmake and removing /WX from CFLAGS will fix it.
+#
+# Edit usrsctplib/Makefile.nmake and programs/Makefile.nmake and remove /WX
+# from CFLAGS to ignore the warning.
 #
 # 3. Build native Sctp wrapper:
 #
