@@ -115,7 +115,7 @@ public class JNIEncoderImpl
         {
             AudioFormat outputAudioFormat = (AudioFormat) outputFormat;
 
-            setOutputFormat(
+            outputFormat = setOutputFormat(
                 new AudioFormat(
                             outputAudioFormat.getEncoding(),
                             outputAudioFormat.getSampleRate(),
