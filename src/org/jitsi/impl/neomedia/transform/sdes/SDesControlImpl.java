@@ -34,7 +34,7 @@ public class SDesControlImpl
     /**
      * List of supported crypto suites.
      */
-    private final List<String> supportedCryptoSuites = new ArrayList<String>(3);
+    private final List<String> supportedCryptoSuites = new ArrayList<String>(7);
 
     private SrtpCryptoAttribute[] attributes;
 
@@ -57,6 +57,10 @@ public class SDesControlImpl
         {
             supportedCryptoSuites.add(SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_80);
             supportedCryptoSuites.add(SrtpCryptoSuite.AES_CM_128_HMAC_SHA1_32);
+            supportedCryptoSuites.add(SrtpCryptoSuite.AES_192_CM_HMAC_SHA1_80);
+            supportedCryptoSuites.add(SrtpCryptoSuite.AES_192_CM_HMAC_SHA1_32);
+            supportedCryptoSuites.add(SrtpCryptoSuite.AES_256_CM_HMAC_SHA1_80);
+            supportedCryptoSuites.add(SrtpCryptoSuite.AES_256_CM_HMAC_SHA1_32);
             supportedCryptoSuites.add(SrtpCryptoSuite.F8_128_HMAC_SHA1_80);
         }
 
