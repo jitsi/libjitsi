@@ -38,6 +38,8 @@ import org.jitsi.util.function.*;
  */
 public class SsrcRewritingEngine implements TransformEngine
 {
+    //region State
+
     /**
      * The <tt>Logger</tt> used by the <tt>SsrcRewritingEngine</tt> class and
      * its instances to print debug information.
@@ -126,163 +128,23 @@ public class SsrcRewritingEngine implements TransformEngine
      * to this class.
      */
     private final SinglePacketTransformer rtpTransformer
-        = new SinglePacketTransformer()
-    {
-        @Override
-        public RawPacket transform(RawPacket pkt)
-        {
-            if (!initialized || pkt == null)
-            {
-                return pkt;
-            }
-
-            // Use the SSRC of the RTP packet to find which
-            // <tt>SsrcGroupRewriter</tt> to use.
-            int ssrc = pkt.getSSRC();
-            SsrcGroupRewriter ssrcGroupRewriter
-                = origin2rewriter.get(ssrc);
-
-            // If there is an <tt>SsrcGroupRewriter</tt>, rewrite the
-            // package, otherwise return it unaltered.
-            return (ssrcGroupRewriter == null)
-                ? pkt : ssrcGroupRewriter.rewriteRTP(pkt);
-        }
-
-        @Override
-        public RawPacket reverseTransform(RawPacket pkt)
-        {
-            // Just pass through, nothing to do here.
-            return pkt;
-        }
-    };
+        = new MyRTPSinglePacketTransformer();
 
     /**
      * The <tt>PacketTransformer</tt> that rewrites <tt>RawPacket</tt>s that
      * represent RTCP packets.
      */
     private final SinglePacketTransformer rtcpTransformer
-        = new SinglePacketTransformer()
-    {
-        @Override
-        public RawPacket transform(RawPacket pkt)
-        {
-            if (!initialized || pkt == null)
-            {
-                return pkt;
-            }
-
-            // We want to rewrite each individual RTCP packet in an RTCP
-            // compound packet. Furthermore, we want to do that with the
-            // appropriate rewriter.
-            RTCPCompoundPacket inPacket;
-            try
-            {
-                inPacket = (RTCPCompoundPacket) parser.parse(
-                    pkt.getBuffer(),
-                    pkt.getOffset(),
-                    pkt.getLength());
-            }
-            catch (BadFormatException e)
-            {
-                logger.warn("Failed to rewrite an RTCP packet. " +
-                    "Dropping packet.");
-                return null;
-            }
-
-            if (inPacket == null || inPacket.packets == null
-                || inPacket.packets.length == 0)
-            {
-                return pkt;
-            }
-
-            Collection<RTCPPacket> outRTCPPackets
-                = new ArrayList<RTCPPacket>();
-
-            // XXX It turns out that all the simulcast layers share the same
-            // RTP timestamp starting offset. They also share the same NTP clock
-            // and the same clock rate, so we don't need to do any modifications
-            // to the RTP/RTCP timestamps. BUT .. if this assumption stops being
-            // true, everything will probably stop working. You have been
-            // warned.
-
-            for (RTCPPacket inRTCPPacket : inPacket.packets)
-            {
-                // Use the SSRC of the RTCP packet to find which
-                // <tt>SsrcGroupRewriter</tt> to use.
-
-                // XXX we could move the RawPacket methods into a utils
-                // class with static methods so that we don't have to create
-                // new RawPacket's each time we want to use those methods.
-                // For example, PacketBufferUtils sounds like an appropriate
-                // name for this class.
-                RawPacket p = new RawPacket(
-                    inRTCPPacket.data,
-                    inRTCPPacket.offset,
-                    inRTCPPacket.length);
-
-                int ssrc = p.getRTCPSSRC();
-
-                SsrcGroupRewriter ssrcGroupRewriter
-                    = origin2rewriter.get(ssrc);
-
-                // If there is an <tt>SsrcGroupRewriter</tt>, rewrite
-                // the package, otherwise include it unaltered.
-                RTCPPacket outRTCPPacket = (ssrcGroupRewriter == null)
-                    ? inRTCPPacket
-                    : ssrcGroupRewriter.rewriteRTCP(inRTCPPacket);
-
-                outRTCPPackets.add(outRTCPPacket);
-            }
-
-            RTCPPacket rtcpPackets[] = outRTCPPackets.toArray(
-                new RTCPPacket[outRTCPPackets.size()]);
-
-            RTCPCompoundPacket cp = new RTCPCompoundPacket(rtcpPackets);
-
-            return generator.apply(cp);
-        }
-
-        @Override
-        public RawPacket reverseTransform(RawPacket pkt)
-        {
-            // Just pass through, nothing to do here. We rely on RTCP
-            // termination and NACK termination so that we don't have to
-            // do any reverse rewriting (for now). This has the disadvantage
-            // of.. requiring RTCP termination even in the simple case of
-            // 1-1 calls but then again, in this case we don't need simulcast
-            // (but we do need SSRC collision detection and conflict resolution).
-            return pkt;
-        }
-    };
+        = new MyRTCPSinglePacketTransformer();
 
     /**
      * A boolean that indicates whether this transformer is enabled or not.
      */
     private boolean initialized = false;
 
-    /**
-     * Initializes some expensive ConcurrentHashMaps for this engine instance.
-     */
-    private synchronized void assertInitialized()
-    {
-        if (initialized)
-        {
-            return;
-        }
+    //endregion
 
-        origin2rewriter
-            = new ConcurrentHashMap<Integer, SsrcGroupRewriter>();
-        target2rewriter
-            = new HashMap<Integer, Tracked<SsrcGroupRewriter>>();
-
-        rtx2primary = new ConcurrentHashMap<Integer, Integer>();
-
-        ssrc2red = new ConcurrentHashMap<Integer, Byte>();
-
-        ssrc2fec = new ConcurrentHashMap<Integer, Byte>();
-
-        initialized = true;
-    }
+    //region Public methods
 
     /**
      */
@@ -394,6 +256,34 @@ public class SsrcRewritingEngine implements TransformEngine
         }
     }
 
+    //endregion
+
+    //region Private methods
+
+    /**
+     * Initializes some expensive ConcurrentHashMaps for this engine instance.
+     */
+    private synchronized void assertInitialized()
+    {
+        if (initialized)
+        {
+            return;
+        }
+
+        origin2rewriter
+            = new ConcurrentHashMap<Integer, SsrcGroupRewriter>();
+        target2rewriter
+            = new HashMap<Integer, Tracked<SsrcGroupRewriter>>();
+
+        rtx2primary = new ConcurrentHashMap<Integer, Integer>();
+
+        ssrc2red = new ConcurrentHashMap<Integer, Byte>();
+
+        ssrc2fec = new ConcurrentHashMap<Integer, Byte>();
+
+        initialized = true;
+    }
+
     /**
      * Sets up the engine so that ssrcOrig is rewritten to ssrcTarget.
      *
@@ -451,6 +341,144 @@ public class SsrcRewritingEngine implements TransformEngine
             }
         }
     }
+
+    //endregion
+
+    //region Nested types
+
+    /**
+     * The <tt>PacketTransformer</tt> that rewrites <tt>RawPacket</tt>s that
+     * represent RTP packets. This <tt>PacketTransformer</tt> is an entry point
+     * to this class.
+     */
+    class MyRTPSinglePacketTransformer extends SinglePacketTransformer
+    {
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            if (!initialized || pkt == null)
+            {
+                return pkt;
+            }
+
+            // Use the SSRC of the RTP packet to find which
+            // <tt>SsrcGroupRewriter</tt> to use.
+            int ssrc = pkt.getSSRC();
+            SsrcGroupRewriter ssrcGroupRewriter
+                = origin2rewriter.get(ssrc);
+
+            // If there is an <tt>SsrcGroupRewriter</tt>, rewrite the
+            // package, otherwise return it unaltered.
+            return (ssrcGroupRewriter == null)
+                ? pkt : ssrcGroupRewriter.rewriteRTP(pkt);
+        }
+
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            // Just pass through, nothing to do here.
+            return pkt;
+        }
+    };
+
+    /**
+     * The <tt>PacketTransformer</tt> that rewrites <tt>RawPacket</tt>s that
+     * represent RTCP packets.
+     */
+    class MyRTCPSinglePacketTransformer
+           extends SinglePacketTransformer
+    {
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            if (!initialized || pkt == null)
+            {
+                return pkt;
+            }
+
+            // We want to rewrite each individual RTCP packet in an RTCP
+            // compound packet. Furthermore, we want to do that with the
+            // appropriate rewriter.
+            RTCPCompoundPacket inPacket;
+            try
+            {
+                inPacket = (RTCPCompoundPacket) parser.parse(
+                    pkt.getBuffer(),
+                    pkt.getOffset(),
+                    pkt.getLength());
+            }
+            catch (BadFormatException e)
+            {
+                logger.warn("Failed to rewrite an RTCP packet. " +
+                    "Dropping packet.");
+                return null;
+            }
+
+            if (inPacket == null || inPacket.packets == null
+                || inPacket.packets.length == 0)
+            {
+                return pkt;
+            }
+
+            Collection<RTCPPacket> outRTCPPackets
+                = new ArrayList<RTCPPacket>();
+
+            // XXX It turns out that all the simulcast layers share the same
+            // RTP timestamp starting offset. They also share the same NTP clock
+            // and the same clock rate, so we don't need to do any modifications
+            // to the RTP/RTCP timestamps. BUT .. if this assumption stops being
+            // true, everything will probably stop working. You have been
+            // warned.
+
+            for (RTCPPacket inRTCPPacket : inPacket.packets)
+            {
+                // Use the SSRC of the RTCP packet to find which
+                // <tt>SsrcGroupRewriter</tt> to use.
+
+                // XXX we could move the RawPacket methods into a utils
+                // class with static methods so that we don't have to create
+                // new RawPacket's each time we want to use those methods.
+                // For example, PacketBufferUtils sounds like an appropriate
+                // name for this class.
+                RawPacket p = new RawPacket(
+                    inRTCPPacket.data,
+                    inRTCPPacket.offset,
+                    inRTCPPacket.length);
+
+                int ssrc = p.getRTCPSSRC();
+
+                SsrcGroupRewriter ssrcGroupRewriter
+                    = origin2rewriter.get(ssrc);
+
+                // If there is an <tt>SsrcGroupRewriter</tt>, rewrite
+                // the package, otherwise include it unaltered.
+                RTCPPacket outRTCPPacket = (ssrcGroupRewriter == null)
+                    ? inRTCPPacket
+                    : ssrcGroupRewriter.rewriteRTCP(inRTCPPacket);
+
+                outRTCPPackets.add(outRTCPPacket);
+            }
+
+            RTCPPacket rtcpPackets[] = outRTCPPackets.toArray(
+                new RTCPPacket[outRTCPPackets.size()]);
+
+            RTCPCompoundPacket cp = new RTCPCompoundPacket(rtcpPackets);
+
+            return generator.apply(cp);
+        }
+
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            // Just pass through, nothing to do here. We rely on RTCP
+            // termination and NACK termination so that we don't have to
+            // do any reverse rewriting (for now). This has the disadvantage
+            // of.. requiring RTCP termination even in the simple case of
+            // 1-1 calls but then again, in this case we don't need simulcast
+            // (but we do need SSRC collision detection and conflict resolution).
+            return pkt;
+        }
+    };
 
     /**
      * Does the actual work of rewriting a group of SSRCs to a target SSRC. This
@@ -1087,4 +1115,6 @@ public class SsrcRewritingEngine implements TransformEngine
             return this.tracked;
         }
     }
+
+    //endregion
 }
