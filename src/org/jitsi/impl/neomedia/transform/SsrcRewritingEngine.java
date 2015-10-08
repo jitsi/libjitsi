@@ -768,6 +768,8 @@ public class SsrcRewritingEngine implements TransformEngine
             {
                 // TODO take into account roll-overs. introduce the notion of
                 // cycles.
+                // TODO also why do I keep the sequence numbers as ints and not
+                // shorts?
                 int ret = 0;
                 if (currentSequenceNumberInterval != null)
                 {
