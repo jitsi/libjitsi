@@ -450,6 +450,16 @@ public interface ConfigurationService
     public void purgeStoredConfiguration();
 
     /**
+     * Prints all configuration properties on 'INFO' logging level *except*
+     * that properties which name matches given regular expression will have
+     * their values masked with ***.
+     *
+     * @param passwordPattern regular expression which detects properties which
+     *                        values should be masked.
+     */
+    public void logConfigurationProperties(String passwordPattern);
+
+    /**
      * Returns the name of the directory where Jitsi is to store user
      * specific data such as configuration files, message and call history
      * as well as is bundle repository.

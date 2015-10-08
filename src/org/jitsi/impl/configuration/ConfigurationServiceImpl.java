@@ -18,6 +18,7 @@ package org.jitsi.impl.configuration;
 import java.beans.*;
 import java.io.*;
 import java.util.*;
+import java.util.regex.*;
 
 import org.jitsi.impl.configuration.xml.*;
 import org.jitsi.service.configuration.*;
@@ -36,6 +37,7 @@ import org.jitsi.util.xml.*;
  * @author Damian Minkov
  * @author Lyubomir Marinov
  * @author Dmitri Melnikov
+ * @author Pawel Domas
  */
 public class ConfigurationServiceImpl
     implements ConfigurationService
@@ -74,6 +76,20 @@ public class ConfigurationServiceImpl
      */
     private static final String DEFAULT_OVERRIDES_PROPS_FILE_NAME
                                              = "jitsi-default-overrides.properties";
+
+    /**
+     * Specify names of command line arguments which are password, so that their
+     * values will be masked when 'sun.java.command' is printed to the logs.
+     * Separate each name with a comma.
+     */
+    public static String PASSWORD_CMD_LINE_ARGS;
+
+    /**
+     * Set this filed value to a regular expression which will be used to select
+     * system properties keys whose values should be masked when printed out to
+     * the logs.
+     */
+    public static String PASSWORD_SYS_PROPS;
 
     /**
      * A reference to the currently used configuration file.
@@ -1525,10 +1541,68 @@ public class ConfigurationServiceImpl
      */
     private void debugPrintSystemProperties()
     {
-        if (logger.isInfoEnabled())
+        if (!logger.isInfoEnabled())
+            return;
+
+        // Password system properties
+        Pattern exclusion = null;
+        if (PASSWORD_SYS_PROPS != null)
         {
-            for (Map.Entry<Object,Object> e : System.getProperties().entrySet())
-                logger.info(e.getKey() + "=" + e.getValue());
+            exclusion = Pattern.compile(
+                PASSWORD_SYS_PROPS, Pattern.CASE_INSENSITIVE);
+        }
+        // Password command line arguments
+        String[] passwordArgs = null;
+        if (PASSWORD_CMD_LINE_ARGS != null)
+            passwordArgs = PASSWORD_CMD_LINE_ARGS.split(",");
+
+        for (Map.Entry<Object,Object> e : System.getProperties().entrySet())
+        {
+            String key = String.valueOf(e.getKey());
+            String value = String.valueOf(e.getValue());
+            // Check if this key value should be masked
+            if (exclusion != null && exclusion.matcher(key).find())
+            {
+                value = "**********";
+            }
+            // Mask command line arguments
+            if (passwordArgs != null && "sun.java.command".equals(key))
+            {
+                value = PasswordUtil.replacePasswords(value, passwordArgs);
+            }
+            logger.info(key + "=" + value);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void logConfigurationProperties(String excludePattern)
+    {
+        if (!logger.isInfoEnabled())
+            return;
+
+        Pattern exclusion = null;
+        if (!StringUtils.isNullOrEmpty(excludePattern))
+        {
+            exclusion = Pattern.compile(
+                excludePattern, Pattern.CASE_INSENSITIVE);
+        }
+
+        for (String p : getAllPropertyNames())
+        {
+            Object v = getProperty(p);
+
+            // Not sure if this can happen, but just in case...
+            if (v == null)
+                continue;
+
+            if (exclusion != null && exclusion.matcher(p).find())
+            {
+                v = "**********";
+            }
+
+            logger.info(p + "=" + v);
         }
     }
 
