@@ -303,6 +303,14 @@ public class MediaStreamImpl
     private DebugTransformEngine debugTransformEngine;
 
     /**
+     * The transformer which handles SSRC rewriting. It is always created
+     * (which is extremely lightweight) but it needs to be initialized so that
+     * it can work.
+     */
+    private final SsrcRewritingEngine ssrcRewritingEngine
+        = new SsrcRewritingEngine();
+
+    /**
      * The <tt>TransformEngine</tt> instance registered in the
      * <tt>RTPConnector</tt>'s transformer chain, which allows the "external"
      * transformer to be swapped.
@@ -932,6 +940,8 @@ public class MediaStreamImpl
         // termination needs to be as close to the SRTP transform engine as
         // possible.
         engineChain.add(rtcpTransformEngineWrapper);
+
+        engineChain.add(ssrcRewritingEngine);
 
         // RTCP Statistics
         if (statisticsEngine == null)
@@ -3425,6 +3435,21 @@ public class MediaStreamImpl
         RTCPTerminationStrategy rtcpTerminationStrategy)
     {
         rtcpTransformEngineWrapper.wrapped = rtcpTerminationStrategy;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void configureSSRCRewriting(
+        final Set<Integer> ssrcGroup, final Integer ssrcTargetPrimary,
+        final Map<Integer, Byte> ssrc2fec,
+        final Map<Integer, Byte> ssrc2red,
+        final Map<Integer, Integer> rtxGroups, final Integer ssrcTargetRTX)
+    {
+        ssrcRewritingEngine.map(ssrcGroup, ssrcTargetPrimary,
+            ssrc2fec, ssrc2red,
+            rtxGroups, ssrcTargetRTX);
     }
 
     /**

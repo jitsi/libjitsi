@@ -484,4 +484,19 @@ public interface MediaStream
      */
     public void setRTCPTerminationStrategy(
         RTCPTerminationStrategy rtcpTerminationStrategy);
+
+    /**
+     *
+     * @param ssrcGroup
+     * @param ssrcTargetPrimary
+     * @param ssrc2fec
+     * @param ssrc2red
+     * @param rtxGroups
+     * @param ssrcTargetRTX
+     */
+    public void configureSSRCRewriting(
+        final Set<Integer> ssrcGroup, final Integer ssrcTargetPrimary,
+        final Map<Integer, Byte> ssrc2fec,
+        final Map<Integer, Byte> ssrc2red,
+        final Map<Integer, Integer> rtxGroups, final Integer ssrcTargetRTX);
 }
