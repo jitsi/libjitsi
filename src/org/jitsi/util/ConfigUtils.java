@@ -15,9 +15,8 @@
  */
 package org.jitsi.util;
 
-import org.jitsi.service.configuration.*;
-
 import java.io.*;
+import org.jitsi.service.configuration.*;
 
 /**
  * @author George Politis
@@ -75,5 +74,112 @@ public class ConfigUtils
                     .getAbsoluteFile();
         }
         return file;
+    }
+
+    /**
+     * Gets the value as a {@code boolean} of a property from either a specific
+     * {@code ConfigurationService} or {@code System}.
+     *
+     * @param cfg the {@code ConfigurationService} to get the value from or
+     * {@code null} if the property is to be retrieved from {@code System}
+     * @param property the name of the property to get
+     * @param defaultValue the value to be returned if {@code property} is not
+     * associated with a value
+     * @return the value as a {@code boolean} of {@code property} retrieved from
+     * either {@code cfg} or {@code System}
+     */
+    public static boolean getBoolean(
+            ConfigurationService cfg,
+            String property,
+            boolean defaultValue)
+    {
+        boolean b;
+
+        if (cfg == null)
+        {
+            String s = System.getProperty(property);
+
+            b
+                = (s == null || s.length() == 0)
+                    ? defaultValue
+                    : Boolean.parseBoolean(s);
+        }
+        else
+        {
+            b = cfg.getBoolean(property, defaultValue);
+        }
+        return b;
+    }
+
+    /**
+     * Gets the value as an {@code int} of a property from either a specific
+     * {@code ConfigurationService} or {@code System}.
+     *
+     * @param cfg the {@code ConfigurationService} to get the value from or
+     * {@code null} if the property is to be retrieved from {@code System}
+     * @param property the name of the property to get
+     * @param defaultValue the value to be returned if {@code property} is not
+     * associated with a value
+     * @return the value as an {@code int} of {@code property} retrieved from
+     * either {@code cfg} or {@code System}
+     */
+    public static int getInt(
+            ConfigurationService cfg,
+            String property,
+            int defaultValue)
+    {
+        int i;
+
+        if (cfg == null)
+        {
+            String s = System.getProperty(property);
+
+            if (s == null || s.length() == 0)
+            {
+                i = defaultValue;
+            }
+            else
+            {
+                try
+                {
+                    i = Integer.parseInt(s);
+                }
+                catch (NumberFormatException nfe)
+                {
+                    i = defaultValue;
+                }
+            }
+        }
+        else
+        {
+            i = cfg.getInt(property, defaultValue);
+        }
+        return i;
+    }
+
+    /**
+     * Gets the value as a {@code String} of a property from either a specific
+     * {@code ConfigurationService} or {@code System}.
+     *
+     * @param cfg the {@code ConfigurationService} to get the value from or
+     * {@code null} if the property is to be retrieved from {@code System}
+     * @param property the name of the property to get
+     * @param defaultValue the value to be returned if {@code property} is not
+     * associated with a value
+     * @return the value as a {@code String} of {@code property} retrieved from
+     * either {@code cfg} or {@code System}
+     */
+    public static String getString(
+            ConfigurationService cfg,
+            String property,
+            String defaultValue)
+    {
+        String s;
+
+        if (cfg == null)
+            s = System.getProperty(property, defaultValue);
+        else
+            s = cfg.getString(property, defaultValue);
+        return s;
     }
 }
