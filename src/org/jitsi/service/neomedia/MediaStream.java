@@ -486,13 +486,19 @@ public interface MediaStream
         RTCPTerminationStrategy rtcpTerminationStrategy);
 
     /**
+     * Configures the <tt>MediaStream</tt> to rewrite SSRCs. For example,
+     * rewrite RTP streams {S1, S2, S3} to S, and FID streams {F1, F2, F3} to F.
      *
-     * @param ssrcGroup
-     * @param ssrcTargetPrimary
-     * @param ssrc2fec
-     * @param ssrc2red
-     * @param rtxGroups
-     * @param ssrcTargetRTX
+     * You can also define the payload types for FEC and RED, so that FEC and
+     * RED packets have their structure appropriately rewritten.
+     *
+     * @param ssrcGroup A set of primary SSRCs to rewrite.
+     * @param ssrcTargetPrimary the SSRC into which the ssrcGroup will be
+     * rewritten.
+     * @param ssrc2fec A map that maps SSRCs to their FEC payload type.
+     * @param ssrc2red A map that maps SSRCs to their RED payload type.
+     * @param rtxGroups A set of RTX SSRCs to rewrite.
+     * @param ssrcTargetRTX the SSRC into which the rtxGroups will be rewritten.
      */
     public void configureSSRCRewriting(
         final Set<Integer> ssrcGroup, final Integer ssrcTargetPrimary,
