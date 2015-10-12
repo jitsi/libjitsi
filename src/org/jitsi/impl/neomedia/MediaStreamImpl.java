@@ -297,6 +297,13 @@ public class MediaStreamImpl
     private StatisticsEngine statisticsEngine = null;
 
     /**
+     * The <tt>TransformEngine</tt> instance that logs packets going in and out
+     * of this <tt>MediaStream</tt>.
+     */
+    private final DebugTransformEngine debugTransformEngine
+        = new DebugTransformEngine(this);
+
+    /**
      * The <tt>TransformEngine</tt> instance registered in the
      * <tt>RTPConnector</tt>'s transformer chain, which allows the "external"
      * transformer to be swapped.
@@ -921,9 +928,6 @@ public class MediaStreamImpl
         if (redTransformEngine != null)
             engineChain.add(redTransformEngine);
 
-        // Debug
-        // engineChain.add(new DebugTransformEngine(this));
-
         // RTCPTerminationTransformEngine passes received RTCP to
         // RTCPTerminationStrategy for inspection and modification. The RTCP
         // termination needs to be as close to the SRTP transform engine as
@@ -934,6 +938,9 @@ public class MediaStreamImpl
         if (statisticsEngine == null)
             statisticsEngine = new StatisticsEngine(this);
         engineChain.add(statisticsEngine);
+
+        // Debug
+        engineChain.add(debugTransformEngine);
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
@@ -3456,6 +3463,14 @@ public class MediaStreamImpl
     {
         if (pkt == null)
             return;
+
+        PacketTransformer debugTransformer = data
+            ? debugTransformEngine.getRTPTransformer()
+            : debugTransformEngine.getRTCPTransformer();
+
+        // XXX we hard cast so that we don't have to create a new RawPacket
+        // array.
+        ((SinglePacketTransformer)debugTransformer).transform(pkt);
 
         if (encrypt)
         {

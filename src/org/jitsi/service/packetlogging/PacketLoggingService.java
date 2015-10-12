@@ -53,7 +53,12 @@ public interface PacketLoggingService
         /**
          * DNS protocol name.
          */
-        DNS
+        DNS,
+
+        /**
+         * ARBITRARY protocol name.
+         */
+        ARBITRARY
     }
 
     /**
