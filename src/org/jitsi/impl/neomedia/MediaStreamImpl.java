@@ -300,8 +300,7 @@ public class MediaStreamImpl
      * The <tt>TransformEngine</tt> instance that logs packets going in and out
      * of this <tt>MediaStream</tt>.
      */
-    private final DebugTransformEngine debugTransformEngine
-        = new DebugTransformEngine(this);
+    private DebugTransformEngine debugTransformEngine;
 
     /**
      * The <tt>TransformEngine</tt> instance registered in the
@@ -940,7 +939,12 @@ public class MediaStreamImpl
         engineChain.add(statisticsEngine);
 
         // Debug
-        engineChain.add(debugTransformEngine);
+        debugTransformEngine
+            = DebugTransformEngine.createDebugTransformEngine(this);
+        if (debugTransformEngine != null)
+        {
+            engineChain.add(debugTransformEngine);
+        }
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
@@ -3464,13 +3468,16 @@ public class MediaStreamImpl
         if (pkt == null)
             return;
 
-        PacketTransformer debugTransformer = data
-            ? debugTransformEngine.getRTPTransformer()
-            : debugTransformEngine.getRTCPTransformer();
+        if (debugTransformEngine != null)
+        {
+            PacketTransformer debugTransformer = data
+                ? debugTransformEngine.getRTPTransformer()
+                : debugTransformEngine.getRTCPTransformer();
 
-        // XXX we hard cast so that we don't have to create a new RawPacket
-        // array.
-        ((SinglePacketTransformer)debugTransformer).transform(pkt);
+            // XXX we hard cast so that we don't have to create a new RawPacket
+            // array.
+            ((SinglePacketTransformer)debugTransformer).transform(pkt);
+        }
 
         if (encrypt)
         {

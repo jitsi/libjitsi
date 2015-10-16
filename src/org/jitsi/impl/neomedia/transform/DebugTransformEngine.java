@@ -22,7 +22,28 @@ import org.jitsi.service.packetlogging.*;
 import java.net.*;
 
 /**
- * Logs all the packets that go in and out of a <tt>MediaStream</tt>.
+ * Logs all the packets that go in and out of a <tt>MediaStream</tt>. In order
+ * to use it, you can setup logging like this:
+ *
+ * <pre>
+ * net.java.sip.communicator.packetlogging.PACKET_LOGGING_ENABLED=true
+ * net.java.sip.communicator.packetlogging.PACKET_LOGGING_ENABLED=true
+ * net.java.sip.communicator.packetlogging.PACKET_LOGGING_FILE_COUNT=1
+ * net.java.sip.communicator.packetlogging.PACKET_LOGGING_FILE_SIZE=-1
+ * </pre>
+ *
+ * Next, you setup a named pipe like this:
+ *
+ * <pre>
+ * mkfifo ~/.sip-communicator/log/jitsi0.pcap
+ * </pre>
+ *
+ * Finally, you can launch Wireshark like this (assuming that you're using
+ * Bash):
+ *
+ * <pre>
+ * wireshark -k -i <(cat ~/.sip-communicator/log/jitsi0.pcap)
+ * </pre>
  *
  * @author George Politis
  */
@@ -47,17 +68,6 @@ public class DebugTransformEngine implements TransformEngine
     private final PacketTransformer rtcpTransformer
         = new MyRTCPPacketTransformer();
 
-    /**
-     * A boolean that indicates whether packet logging should be enabled or not.
-     */
-    private boolean enabled = false;
-
-    /**
-     * A boolean that indicates whether this instance has been initialized or
-     * not.
-     */
-    private boolean initialized = false;
-
     //endregion
 
     //region Public methods
@@ -70,6 +80,33 @@ public class DebugTransformEngine implements TransformEngine
     public DebugTransformEngine(MediaStreamImpl mediaStream)
     {
         this.mediaStream = mediaStream;
+    }
+
+    /**
+     * Creates and returns a new <tt>DebugTransformEngine</tt> if logging is
+     * enabled for <tt>PacketLoggingService.ProtocolName.ARBITRARY</tt>.
+     *
+     * @param mediaStream the <tt>MediaStream</tt> that will own the newly
+     * created <tt>DebugTransformEngine</tt>.
+     * @return a new <tt>DebugTransformEngine</tt> if logging is enabled for
+     * <tt>PacketLoggingService.ProtocolName.ARBITRARY</tt>, otherwise null.
+     */
+    public static DebugTransformEngine createDebugTransformEngine(
+            MediaStreamImpl mediaStream)
+    {
+        PacketLoggingService packetLogging
+            = LibJitsiImpl.getPacketLoggingService();
+
+        if (packetLogging != null && packetLogging.isLoggingEnabled(
+                    PacketLoggingService.ProtocolName.ARBITRARY))
+        {
+            return new DebugTransformEngine(mediaStream);
+        }
+        else
+        {
+            return null;
+        }
+
     }
 
     @Override
@@ -86,27 +123,6 @@ public class DebugTransformEngine implements TransformEngine
 
     //endregion
 
-    //region Private methods
-
-    private void assertInitialized()
-    {
-        if (initialized)
-        {
-            return;
-        }
-
-        initialized = true;
-
-        PacketLoggingService packetLogging
-            = LibJitsiImpl.getPacketLoggingService();
-
-        this.enabled = packetLogging != null
-            && packetLogging.isLoggingEnabled(
-                    PacketLoggingService.ProtocolName.ARBITRARY);
-    }
-
-    //endregion
-
     //region Nested types
 
     /**
@@ -119,12 +135,6 @@ public class DebugTransformEngine implements TransformEngine
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
-            DebugTransformEngine.this.assertInitialized();
-            if (!enabled)
-            {
-                return pkt;
-            }
-
             PacketLoggingService packetLogging
                 = LibJitsiImpl.getPacketLoggingService();
 
@@ -163,12 +173,6 @@ public class DebugTransformEngine implements TransformEngine
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-            DebugTransformEngine.this.assertInitialized();
-            if (!enabled)
-            {
-                return pkt;
-            }
-
             PacketLoggingService packetLogging
                 = LibJitsiImpl.getPacketLoggingService();
 
@@ -215,12 +219,6 @@ public class DebugTransformEngine implements TransformEngine
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
-            DebugTransformEngine.this.assertInitialized();
-            if (!enabled)
-            {
-                return pkt;
-            }
-
             PacketLoggingService packetLogging
                 = LibJitsiImpl.getPacketLoggingService();
 
@@ -259,12 +257,6 @@ public class DebugTransformEngine implements TransformEngine
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-            DebugTransformEngine.this.assertInitialized();
-            if (!enabled)
-            {
-                return pkt;
-            }
-
             PacketLoggingService packetLogging
                 = LibJitsiImpl.getPacketLoggingService();
 
