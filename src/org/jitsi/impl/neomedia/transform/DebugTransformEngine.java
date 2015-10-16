@@ -42,7 +42,7 @@ import java.net.*;
  * Bash):
  *
  * <pre>
- * wireshark -k -i <(cat ~/.sip-communicator/log/jitsi0.pcap)
+ * wireshark -k -i &lt;(cat ~/.sip-communicator/log/jitsi0.pcap)
  * </pre>
  *
  * @author George Politis
