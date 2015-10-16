@@ -27,7 +27,7 @@ import java.net.*;
  *
  * <pre>
  * net.java.sip.communicator.packetlogging.PACKET_LOGGING_ENABLED=true
- * net.java.sip.communicator.packetlogging.PACKET_LOGGING_ENABLED=true
+ * net.java.sip.communicator.packetlogging.PACKET_LOGGING_ARBITRARY_ENABLED=true
  * net.java.sip.communicator.packetlogging.PACKET_LOGGING_FILE_COUNT=1
  * net.java.sip.communicator.packetlogging.PACKET_LOGGING_FILE_SIZE=-1
  * </pre>
