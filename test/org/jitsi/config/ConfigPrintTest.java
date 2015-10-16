@@ -45,13 +45,13 @@ public class ConfigPrintTest
         System.err.println("********* END OF SYS PROPS *************");
 
         config.setProperty(
-            "org.jitsi.jicofo.FOCUS_USER_PASSWORD", "secret12345");
+            "test.org.jitsi.jicofo.FOCUS_USER_PASSWORD", "secret12345");
         config.setProperty(
-            "org.jitsi.jicofo.COMPONENT_SECRET", "1234");
+            "test.org.jitsi.jicofo.COMPONENT_SECRET", "1234");
         config.setProperty(
-            "org.jitsi.jicofo.BLABLA", "123.44.34.5");
+            "test.org.jitsi.jicofo.BLABLA", "123.44.34.5");
         config.setProperty(
-            "org.jitsi.jicofo.COMPONENT_DOMAIN", "example.com");
+            "test.org.jitsi.jicofo.COMPONENT_DOMAIN", "example.com");
         config.setProperty(
             "com.sun.setting", "true");
         config.setProperty(
