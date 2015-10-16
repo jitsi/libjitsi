@@ -49,8 +49,6 @@ import java.net.*;
  */
 public class DebugTransformEngine implements TransformEngine
 {
-    //region State
-
     /**
      * The <tt>MediaStream</tt> that owns this instance.
      */
@@ -67,10 +65,6 @@ public class DebugTransformEngine implements TransformEngine
      */
     private final PacketTransformer rtcpTransformer
         = new MyRTCPPacketTransformer();
-
-    //endregion
-
-    //region Public methods
 
     /**
      * Ctor.
@@ -120,10 +114,6 @@ public class DebugTransformEngine implements TransformEngine
     {
         return this.rtcpTransformer;
     }
-
-    //endregion
-
-    //region Nested types
 
     /**
      * Logs RTP packets that go in and out of the <tt>MediaStream</tt> that owns
@@ -292,6 +282,4 @@ public class DebugTransformEngine implements TransformEngine
             return pkt;
         }
     }
-
-    //endregion
 }
