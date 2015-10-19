@@ -57,6 +57,13 @@ public class PacketLoggingConfiguration
         = "net.java.sip.communicator.packetlogging.PACKET_LOGGING_ICE4J_ENABLED";
 
     /**
+     * Configuration property for enabling/disabling arbitrary packet logging.
+     */
+    public final static String PACKET_LOGGING_ARBITRARY_ENABLED_PROPERTY_NAME
+        = "net.java.sip.communicator.packetlogging." +
+            "PACKET_LOGGING_ARBITRARY_ENABLED";
+
+    /**
      * Configuration property for packet logging file count.
      */
     public final static String PACKET_LOGGING_FILE_COUNT_PROPERTY_NAME
@@ -92,6 +99,11 @@ public class PacketLoggingConfiguration
      * Is Packet Logging Service enabled for ice4j.
      */
     private boolean ice4jLoggingEnabled = true;
+
+    /**
+     * Is Packet Logging Service enabled for arbitrary packets.
+     */
+    private boolean arbitraryLoggingEnabled = true;
 
     /**
      * The limit for the file size.
@@ -146,11 +158,22 @@ public class PacketLoggingConfiguration
     /**
      * Checks whether packet logging is enabled in the configuration
      * for Ice4J.
-     * @return <tt>true</tt> if packet logging is enabled for RTP.
+     * @return <tt>true</tt> if packet logging is enabled for Ice4J.
      */
     public boolean isIce4JLoggingEnabled()
     {
         return this.ice4jLoggingEnabled;
+    }
+
+    /**
+     * Checks whether packet logging is enabled in the configuration
+     * for arbitrary packets.
+     * @return <tt>true</tt> if packet logging is enabled for arbitrary
+     * packets.
+     */
+    public boolean isArbitraryLoggingEnabled()
+    {
+        return this.arbitraryLoggingEnabled;
     }
 
     /**
@@ -184,6 +207,7 @@ public class PacketLoggingConfiguration
             this.jabberLoggingEnabled = false;
             this.rtpLoggingEnabled = false;
             this.ice4jLoggingEnabled = false;
+            this.arbitraryLoggingEnabled = false;
         }
 
         this.globalLoggingEnabled = enabled;
@@ -223,6 +247,15 @@ public class PacketLoggingConfiguration
     public void setIce4JLoggingEnabled(boolean enabled)
     {
         this.ice4jLoggingEnabled = true;
+    }
+
+    /**
+     * Change whether packet logging for arbitrary packets is enabled.
+     * @param enabled <tt>true</tt> if we enable it.
+     */
+    public void setArbitraryLoggingEnabled(boolean enabled)
+    {
+        this.arbitraryLoggingEnabled = true;
     }
 
     /**
