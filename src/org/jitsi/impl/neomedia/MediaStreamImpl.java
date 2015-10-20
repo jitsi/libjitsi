@@ -308,7 +308,7 @@ public class MediaStreamImpl
      * it can work.
      */
     private final SsrcRewritingEngine ssrcRewritingEngine
-        = new SsrcRewritingEngine();
+        = new SsrcRewritingEngine(this);
 
     /**
      * The <tt>TransformEngine</tt> instance registered in the

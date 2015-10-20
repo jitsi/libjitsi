@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 import java.util.*;
@@ -38,8 +39,6 @@ import org.jitsi.util.function.*;
  */
 public class SsrcRewritingEngine implements TransformEngine
 {
-    //region State
-
     /**
      * The <tt>Logger</tt> used by the <tt>SsrcRewritingEngine</tt> class and
      * its instances to print debug information.
@@ -63,6 +62,11 @@ public class SsrcRewritingEngine implements TransformEngine
      * An int const indicating an invalid SSRC.
      */
     private static final int UNMAP_SSRC = 0;
+
+    /**
+     * The owner of this instance.
+     */
+    private final MediaStream mediaStream;
 
     /**
      * Generates <tt>RawPacket</tt>s from <tt>RTCPCompoundPacket</tt>s.
@@ -142,9 +146,15 @@ public class SsrcRewritingEngine implements TransformEngine
      */
     private boolean initialized = false;
 
-    //endregion
-
-    //region Public methods
+    /**
+     * Ctor.
+     *
+     * @param mediaStream the owner of this instance.
+     */
+    public SsrcRewritingEngine(MediaStream mediaStream)
+    {
+        this.mediaStream = mediaStream;
+    }
 
     /**
      */
@@ -256,9 +266,73 @@ public class SsrcRewritingEngine implements TransformEngine
         }
     }
 
-    //endregion
+    /**
+     * Utility method that prepends the receiver identifier to the printed
+     * debug message.
+     *
+     * @param msg the debug message to print.
+     */
+    private void logDebug(String msg)
+    {
+        if (!logger.isDebugEnabled())
+        {
+            return;
+        }
 
-    //region Private methods
+        logger.debug(
+            mediaStream.getProperty(MediaStream.PNAME_RECEIVER_IDENTIFIER)
+                + ": " + msg);
+    }
+
+    /**
+     * Utility method that prepends the receiver identifier to the printed
+     * warn message.
+     *
+     * @param msg the warning message to print.
+     */
+    private void logWarn(String msg)
+    {
+        if (!logger.isWarnEnabled())
+        {
+            return;
+        }
+
+        logger.warn(
+            mediaStream.getProperty(MediaStream.PNAME_RECEIVER_IDENTIFIER)
+                + ": " + msg);
+    }
+
+     /**
+      * Utility method that prepends the receiver identifier to the printed
+      * error message.
+      *
+      * @param msg the error message to print.
+      * @param t the throwable that caused the error.
+     */
+    private void logError(String msg, Throwable t)
+    {
+        logger.error(
+            mediaStream.getProperty(MediaStream.PNAME_RECEIVER_IDENTIFIER)
+                + ": " + msg, t);
+    }
+
+     /**
+      * Utility method that prepends the receiver identifier to the printed
+      * info message.
+      *
+      *  @param msg the info message to print.
+      */
+    private void logInfo(String msg)
+    {
+        if (logger.isInfoEnabled())
+        {
+            return;
+        }
+
+        logger.info(
+            mediaStream.getProperty(MediaStream.PNAME_RECEIVER_IDENTIFIER)
+                + ": " + msg);
+    }
 
     /**
      * Initializes some expensive ConcurrentHashMaps for this engine instance.
@@ -342,10 +416,6 @@ public class SsrcRewritingEngine implements TransformEngine
         }
     }
 
-    //endregion
-
-    //region Nested types
-
     /**
      * The <tt>PacketTransformer</tt> that rewrites <tt>RawPacket</tt>s that
      * represent RTP packets. This <tt>PacketTransformer</tt> is an entry point
@@ -368,7 +438,7 @@ public class SsrcRewritingEngine implements TransformEngine
                 = origin2rewriter.get(ssrc);
 
             // If there is an <tt>SsrcGroupRewriter</tt>, rewrite the
-            // package, otherwise return it unaltered.
+            // packet, otherwise return it unaltered.
             return (ssrcGroupRewriter == null)
                 ? pkt : ssrcGroupRewriter.rewriteRTP(pkt);
         }
@@ -389,7 +459,7 @@ public class SsrcRewritingEngine implements TransformEngine
            extends SinglePacketTransformer
     {
         @Override
-        public RawPacket transform(RawPacket pkt)
+        public RawPacket reverseTransform(RawPacket pkt)
         {
             if (!initialized || pkt == null)
             {
@@ -409,8 +479,8 @@ public class SsrcRewritingEngine implements TransformEngine
             }
             catch (BadFormatException e)
             {
-                logger.warn("Failed to rewrite an RTCP packet. " +
-                    "Dropping packet.");
+                logError("Failed to rewrite an RTCP packet. " +
+                    "Dropping packet.", e);
                 return null;
             }
 
@@ -440,35 +510,88 @@ public class SsrcRewritingEngine implements TransformEngine
                 // new RawPacket's each time we want to use those methods.
                 // For example, PacketBufferUtils sounds like an appropriate
                 // name for this class.
-                RawPacket p = new RawPacket(
-                    inRTCPPacket.data,
-                    inRTCPPacket.offset,
-                    inRTCPPacket.length);
+                switch (inRTCPPacket.type)
+                {
+                    case RTCPPacket.RR:
+                    case RTCPPacket.SR:
+                    case RTCPPacket.SDES:
+                    case RTCPPacket.BYE:
+                        // RTCP termination takes care of all these, so we
+                        // don't include them in the outPacket..
 
-                int ssrc = p.getRTCPSSRC();
+                        // XXX Well, ideally we would put the correct SR
+                        // information, by reusing code from RTCP termination.
+                        // We would also be able to reverse transform RTCP
+                        // packets, like NACKs.
+                        break;
+                    case RTCPPacket.APP:
+                        RTCPAPPPacket app = (RTCPAPPPacket) inRTCPPacket;
+                        break;
+                    case RTCPFBPacket.PSFB:
+                        // Get the synchronization source identifier of the
+                        // media source that this piece of feedback information
+                        // is related to.
+                        RTCPFBPacket psfb = (RTCPFBPacket) inRTCPPacket;
+                        int ssrc = (int) psfb.sourceSSRC;
 
-                SsrcGroupRewriter ssrcGroupRewriter
-                    = origin2rewriter.get(ssrc);
+                        // If there is an <tt>SsrcGroupRewriter</tt>, rewrite
+                        // the packet, otherwise include it unaltered.
+                        SsrcGroupRewriter ssrcGroupRewriter
+                            = origin2rewriter.get(ssrc);
 
-                // If there is an <tt>SsrcGroupRewriter</tt>, rewrite
-                // the package, otherwise include it unaltered.
-                RTCPPacket outRTCPPacket = (ssrcGroupRewriter == null)
-                    ? inRTCPPacket
-                    : ssrcGroupRewriter.rewriteRTCP(inRTCPPacket);
+                        if (ssrcGroupRewriter == null)
+                        {
+                            if (psfb.fmt != RTCPREMBPacket.FMT)
+                            {
+                                logDebug("Could not find an " +
+                                    "SsrcGroupRewriter for the RTCP packet " +
+                                    "type: " + inRTCPPacket.type + " with " +
+                                    "sourceSSRC: " + ssrc);
+                            }
 
-                outRTCPPackets.add(outRTCPPacket);
+                            continue;
+                        }
+
+                        SsrcGroupRewriter.SsrcRewriter activeRewriter
+                            = ssrcGroupRewriter.getActiveRewriter();
+
+                        if (activeRewriter == null)
+                        {
+
+                            logDebug("Could not find an SsrcRewriter for " +
+                                "the RTCP packet type: ");
+                            continue;
+                        }
+
+                        psfb.sourceSSRC
+                            = activeRewriter.getSourceSSRC() & 0xffffffffl;
+                        outRTCPPackets.add(psfb);
+
+                        break;
+                    default:
+                        logWarn(
+                            "Unhandled RTCP packet type: " + inRTCPPacket.type);
+                        break;
+                }
             }
 
-            RTCPPacket rtcpPackets[] = outRTCPPackets.toArray(
-                new RTCPPacket[outRTCPPackets.size()]);
+            if (outRTCPPackets.size() != 0)
+            {
+                RTCPPacket rtcpPackets[] = outRTCPPackets.toArray(
+                    new RTCPPacket[outRTCPPackets.size()]);
 
-            RTCPCompoundPacket cp = new RTCPCompoundPacket(rtcpPackets);
+                RTCPCompoundPacket cp = new RTCPCompoundPacket(rtcpPackets);
 
-            return generator.apply(cp);
+                return generator.apply(cp);
+            }
+            else
+            {
+                return null;
+            }
         }
 
         @Override
-        public RawPacket reverseTransform(RawPacket pkt)
+        public RawPacket transform(RawPacket pkt)
         {
             // Just pass through, nothing to do here. We rely on RTCP
             // termination and NACK termination so that we don't have to
@@ -537,6 +660,15 @@ public class SsrcRewritingEngine implements TransformEngine
         }
 
         /**
+         *
+         * @return
+         */
+        public SsrcRewriter getActiveRewriter()
+        {
+            return activeRewriter;
+        }
+
+        /**
          * Gets the target SSRC that the rewritten RTP packets will have.
          */
         public int getSSRCTarget()
@@ -563,22 +695,6 @@ public class SsrcRewritingEngine implements TransformEngine
         }
 
         /**
-         *
-         * @param pkt
-         * @return
-         */
-        public RTCPPacket rewriteRTCP(RTCPPacket pkt)
-        {
-            if (pkt == null)
-            {
-                return pkt;
-            }
-
-            return (activeRewriter == null)
-                ? pkt : activeRewriter.rewriteRTCP(pkt);
-        }
-
-        /**
          * Maybe switches the {@link this.activeRewriter}.
          *
          * @param pkt the received packet that will determine the active
@@ -601,6 +717,9 @@ public class SsrcRewritingEngine implements TransformEngine
                 // Got a packet with a different SSRC from the one that the
                 // current SsrcRewriter handles. Pause the current SsrcRewriter
                 // and switch to the correct one.
+                logDebug("Now rewriting " + (pkt.getSSRC() & 0xffffffffl)
+                    + " to " + (ssrcTarget & 0xffffffffl) + " (was rewriting "
+                    + (activeRewriter.getSourceSSRC() & 0xffffffffl) + ").");
                 int len = activeRewriter.pause();
                 currentSeqnumBase += (len + 1);
                 activeRewriter = rewriters.get(sourceSSRC);
@@ -608,13 +727,15 @@ public class SsrcRewritingEngine implements TransformEngine
 
             if (activeRewriter == null)
             {
+                logDebug("Now rewriting " + (pkt.getSSRC() & 0xffffffffl)
+                    + " to " + (ssrcTarget & 0xffffffffl));
                 // We haven't initialized yet.
                 activeRewriter = rewriters.get(sourceSSRC);
             }
 
             if (activeRewriter == null)
             {
-                logger.warn("Don't know about this SSRC. This will never " +
+                logWarn("Don't know about this SSRC. This will never " +
                     "happen or somebody is messing with us.");
             }
         }
@@ -711,7 +832,7 @@ public class SsrcRewritingEngine implements TransformEngine
                     = findRetransmissionInterval(seqnum);
                 if (retransmissionInterval != null)
                 {
-                    logger.debug("Retransmitting packet with SEQNUM "
+                    logDebug("Retransmitting packet with SEQNUM "
                         + seqnum + " of SSRC "
                         + (pkt.getSSRC() & 0xffffffffl)
                         + " from the current interval.");
@@ -724,8 +845,6 @@ public class SsrcRewritingEngine implements TransformEngine
                 if (currentSequenceNumberInterval == null)
                 {
                     // the stream has resumed.
-                    logger.debug("SSRC " + (pkt.getSSRC() & 0xffffffffl)
-                        + " has resumed.");
                     currentSequenceNumberInterval = new SequenceNumberInterval(
                         seqnum, currentSeqnumBase);
                 }
@@ -740,26 +859,8 @@ public class SsrcRewritingEngine implements TransformEngine
             }
 
             /**
-             */
-            public RTCPPacket rewriteRTCP(RTCPPacket pkt)
-            {
-                if (pkt == null)
-                {
-                    return pkt;
-                }
-
-                // 1. Change the media sender SSRC in all RTCP packets.
-                // 2. Put the correct SR information. Reuse code from RTCP
-                // termination.
-                // 3. Be able to reverse transform RTCP packets, like NACKs.
-
-
-                return pkt;
-            }
-
-            /**
              * Moves the current sequence number interval, in the
-             * {@link this.intervals} tree. It is not to be updated anymore.
+             * {@link #intervals} tree. It is not to be updated anymore.
              *
              * @return the length of the sequence number interval that got
              * paused.
@@ -773,17 +874,16 @@ public class SsrcRewritingEngine implements TransformEngine
                 int ret = 0;
                 if (currentSequenceNumberInterval != null)
                 {
-                    logger.debug("Pausing SSRC "
-                        + (this.sourceSSRC & 0xffffffffl) + ".");
                     ret = currentSequenceNumberInterval.length();
-                    intervals.put(currentSequenceNumberInterval.max, currentSequenceNumberInterval);
+                    intervals.put(currentSequenceNumberInterval.max,
+                        currentSequenceNumberInterval);
                     currentSequenceNumberInterval = null;
                     return ret;
                 }
                 else
                 {
                     // this stream is already paused.
-                    logger.info("The stream is already paused.");
+                    logInfo("The stream is already paused.");
                 }
 
                 return ret;
@@ -806,7 +906,7 @@ public class SsrcRewritingEngine implements TransformEngine
                 // not there, try to find the sequence number in a previous
                 // interval.
                 Map.Entry<Integer, SequenceNumberInterval> candidateInterval
-                    = intervals.higherEntry(seqnumOrig);
+                    = intervals.ceilingEntry(seqnumOrig);
 
                 if (candidateInterval != null
                     && candidateInterval.getValue().contains(seqnumOrig))
@@ -829,7 +929,7 @@ public class SsrcRewritingEngine implements TransformEngine
                 private final int min;
 
                 /**
-                 * When did this interval started wrt the target SSRC?
+                 * When did this interval start wrt the target SSRC?
                  */
                 private final int base;
 
@@ -886,8 +986,9 @@ public class SsrcRewritingEngine implements TransformEngine
                     pkt.setSSRC(ssrcTarget);
 
                     // Rewrite the sequence number of the RTP packet.
-                    int diff = pkt.getSequenceNumber() - min;
-                    pkt.setSequenceNumber(base + diff);
+                    int rewriteSeqnum
+                        = rewriteSequenceNumber(pkt.getSequenceNumber());
+                    pkt.setSequenceNumber(rewriteSeqnum);
 
                     Integer primarySSRC = rtx2primary.get(sourceSSRC);
                     if (primarySSRC == null)
@@ -973,18 +1074,18 @@ public class SsrcRewritingEngine implements TransformEngine
                 {
                     if (buf == null || buf.length == 0)
                     {
-                        logger.warn("The buffer is empty.");
+                        logWarn("The buffer is empty.");
                         return;
                     }
 
                     if (buf.length < off + len)
                     {
-                        logger.warn("The buffer is invalid.");
+                        logWarn("The buffer is invalid.");
                         return;
                     }
 
-                    // FIXME similar code can be found in the REDFilterTransformEngine
-                    // and in REDTransformEngine.
+                    // FIXME similar code can be found in the
+                    // REDFilterTransformEngine and in the REDTransformEngine.
 
                     int idx = off; //beginning of RTP payload
                     int pktCount = 0; //number of packets inside RED
@@ -1003,7 +1104,7 @@ public class SsrcRewritingEngine implements TransformEngine
                     idx = off; //back to beginning of RTP payload
 
                     int payloadOffset = idx + pktCount * 4 + 1 /* RED headers */;
-                    for (int i = 0; i < pktCount; i++)
+                    for (int i = 0; i <= pktCount; i++)
                     {
                         byte blockPT = (byte) (buf[idx] & 0x7f);
                         int blockLen = (buf[idx + 2] & 0x03) << 8 | (buf[idx + 3]);
@@ -1036,13 +1137,13 @@ public class SsrcRewritingEngine implements TransformEngine
                 {
                     if (buf == null || buf.length == 0)
                     {
-                        logger.warn("The buffer is empty.");
+                        logWarn("The buffer is empty.");
                         return false;
                     }
 
                     if (buf.length < off + len)
                     {
-                        logger.warn("The buffer is invalid.");
+                        logWarn("The buffer is invalid.");
                         return false;
                     }
 
@@ -1066,13 +1167,13 @@ public class SsrcRewritingEngine implements TransformEngine
 
                     if (snRewritenBase == INVALID_SEQNUM)
                     {
-                        logger.info("We could not find a sequence number " +
+                        logInfo("We could not find a sequence number " +
                             "interval for a FEC packet.");
                         return false;
                     }
 
-                    buf[off + 2] = (byte) (snRewritenBase & 0xf0 >> 8);
-                    buf[off + 3] = (byte) (snRewritenBase & 0x0f);
+                    buf[off + 2] = (byte) (snRewritenBase & 0xff00 >> 8);
+                    buf[off + 3] = (byte) (snRewritenBase & 0x00ff);
                     return true;
                 }
             }
@@ -1117,6 +1218,4 @@ public class SsrcRewritingEngine implements TransformEngine
             return this.tracked;
         }
     }
-
-    //endregion
 }
