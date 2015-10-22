@@ -81,6 +81,14 @@ public class DtlsControlImpl
     private static final long ONE_DAY = 1000L * 60L * 60L * 24L;
 
     /**
+     * The name of the <tt>System</tt> property the value of which is a signature
+     * algorithm used during certificate creation. When a self-signed certificate
+     * is created and this property is not set, the default value of "SHA1withRSA" 
+     * will be used.
+     */
+    public static final String SIGNATURE_ALGORITHM = "org.jitsi.impl.neomedia.transform.dtls.SIGNATURE_ALGORITHM";
+
+    /**
      * The <tt>SRTPProtectionProfile</tt>s supported by
      * <tt>DtlsControlImpl</tt>.
      */
@@ -398,6 +406,13 @@ public class DtlsControlImpl
                 X500Name subject,
                 AsymmetricCipherKeyPair keyPair)
     {
+        // get system property for algorithm override
+        String signatureAlgorithm = System.getProperty(SIGNATURE_ALGORITHM);
+        // default to sha1 if the property was not set
+        if (StringUtils.isNullOrEmpty(signatureAlgorithm, true))
+        {
+            signatureAlgorithm = "SHA1withRSA";
+        }
         try
         {
             long now = System.currentTimeMillis();
@@ -416,7 +431,7 @@ public class DtlsControlImpl
                                     keyPair.getPublic()));
             AlgorithmIdentifier sigAlgId
                 = new DefaultSignatureAlgorithmIdentifierFinder()
-                    .find("SHA1withRSA");
+                    .find(signatureAlgorithm);
             AlgorithmIdentifier digAlgId
                 = new DefaultDigestAlgorithmIdentifierFinder().find(sigAlgId);
             ContentSigner signer
