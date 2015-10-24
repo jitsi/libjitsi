@@ -753,7 +753,7 @@ public class SsrcRewritingEngine implements TransformEngine
                 return INVALID_SEQNUM;
             }
 
-            SsrcRewriter.SequenceNumberInterval retransmissionInterval
+            SsrcRewriter.ExtendedSequenceNumberInterval retransmissionInterval
                 = rewriter.findRetransmissionInterval(sequenceNumber);
 
             if (retransmissionInterval == null)
@@ -782,13 +782,13 @@ public class SsrcRewritingEngine implements TransformEngine
 
             /**
              * A <tt>NavigableMap</tt> that maps <tt>Integer</tt>s representing
-             * interval maxes to <tt>SequenceNumberInterval</tt>s. So, when
+             * interval maxes to <tt>ExtendedSequenceNumberInterval</tt>s. So, when
              * we receive an RTP packet with given sequence number, we can
              * easily find in which sequence number interval it belongs, if it
              * does.
              */
-            private final NavigableMap<Integer, SequenceNumberInterval>
-                intervals = new TreeMap<Integer, SequenceNumberInterval>();
+            private final NavigableMap<Integer, ExtendedSequenceNumberInterval>
+                intervals = new TreeMap<Integer, ExtendedSequenceNumberInterval>();
 
             /**
              * This is the current sequence number interval for this origin
@@ -796,7 +796,7 @@ public class SsrcRewritingEngine implements TransformEngine
              * its max isn't determined yet. If this is null, then it means that
              * this original SSRC is paused (invariant).
              */
-            private SequenceNumberInterval currentSequenceNumberInterval;
+            private ExtendedSequenceNumberInterval currentExtendedSequenceNumberInterval;
 
             /**
              * Ctor.
@@ -828,7 +828,7 @@ public class SsrcRewritingEngine implements TransformEngine
 
                 // first, check if this is a retransmission and rewrite using
                 // an appropriate interval.
-                SequenceNumberInterval retransmissionInterval
+                ExtendedSequenceNumberInterval retransmissionInterval
                     = findRetransmissionInterval(seqnum);
                 if (retransmissionInterval != null)
                 {
@@ -842,20 +842,20 @@ public class SsrcRewritingEngine implements TransformEngine
 
                 // this is not a retransmission.
 
-                if (currentSequenceNumberInterval == null)
+                if (currentExtendedSequenceNumberInterval == null)
                 {
                     // the stream has resumed.
-                    currentSequenceNumberInterval = new SequenceNumberInterval(
+                    currentExtendedSequenceNumberInterval = new ExtendedSequenceNumberInterval(
                         seqnum, currentSeqnumBase);
                 }
                 else
                 {
                     // more packets to the stream, increase the sequence number
                     // interval range.
-                    currentSequenceNumberInterval.max = seqnum;
+                    currentExtendedSequenceNumberInterval.max = seqnum;
                 }
 
-                return currentSequenceNumberInterval.rewriteRTP(pkt);
+                return currentExtendedSequenceNumberInterval.rewriteRTP(pkt);
             }
 
             /**
@@ -872,12 +872,12 @@ public class SsrcRewritingEngine implements TransformEngine
                 // TODO also why do I keep the sequence numbers as ints and not
                 // shorts?
                 int ret = 0;
-                if (currentSequenceNumberInterval != null)
+                if (currentExtendedSequenceNumberInterval != null)
                 {
-                    ret = currentSequenceNumberInterval.length();
-                    intervals.put(currentSequenceNumberInterval.max,
-                        currentSequenceNumberInterval);
-                    currentSequenceNumberInterval = null;
+                    ret = currentExtendedSequenceNumberInterval.length();
+                    intervals.put(currentExtendedSequenceNumberInterval.max,
+                        currentExtendedSequenceNumberInterval);
+                    currentExtendedSequenceNumberInterval = null;
                     return ret;
                 }
                 else
@@ -893,19 +893,19 @@ public class SsrcRewritingEngine implements TransformEngine
              * @param seqnumOrig
              * @return
              */
-            public SequenceNumberInterval findRetransmissionInterval(
+            public ExtendedSequenceNumberInterval findRetransmissionInterval(
                 int seqnumOrig)
             {
                 // first check in the current sequence number interval.
-                if (currentSequenceNumberInterval != null
-                    && currentSequenceNumberInterval.contains(seqnumOrig))
+                if (currentExtendedSequenceNumberInterval != null
+                    && currentExtendedSequenceNumberInterval.contains(seqnumOrig))
                 {
-                    return currentSequenceNumberInterval;
+                    return currentExtendedSequenceNumberInterval;
                 }
 
                 // not there, try to find the sequence number in a previous
                 // interval.
-                Map.Entry<Integer, SequenceNumberInterval> candidateInterval
+                Map.Entry<Integer, ExtendedSequenceNumberInterval> candidateInterval
                     = intervals.ceilingEntry(seqnumOrig);
 
                 if (candidateInterval != null
@@ -921,7 +921,7 @@ public class SsrcRewritingEngine implements TransformEngine
              * Does the dirty job of rewriting SSRCs and sequence numbers of a
              * given sequence number interval of a given source SSRC.
              */
-            class SequenceNumberInterval
+            class ExtendedSequenceNumberInterval
             {
                 /**
                  * The minimum sequence number of this interval.
@@ -945,7 +945,7 @@ public class SsrcRewritingEngine implements TransformEngine
                  * @param baseOrig
                  * @param baseTarget
                  */
-                public SequenceNumberInterval(int baseOrig, int baseTarget)
+                public ExtendedSequenceNumberInterval(int baseOrig, int baseTarget)
                 {
                     this.min = baseOrig;
                     this.max = baseOrig;
