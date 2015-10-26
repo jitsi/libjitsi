@@ -67,46 +67,51 @@ public class MinThroughputRTCPTerminationStrategy
                 return null;
             }
 
-            RTCPCompoundPacket inPacket = null;
+            RTCPCompoundPacket compoundPkt;
+
             try
             {
-                inPacket = (RTCPCompoundPacket) parser.parse(
-                    pkt.getBuffer(),
-                    pkt.getOffset(),
-                    pkt.getLength());
+                compoundPkt
+                    = (RTCPCompoundPacket)
+                        parser.parse(
+                                pkt.getBuffer(),
+                                pkt.getOffset(),
+                                pkt.getLength());
             }
             catch (BadFormatException e)
             {
                 return null;
             }
 
-            if (inPacket == null
-                || inPacket.packets == null
-                || inPacket.packets.length == 0)
+            if (compoundPkt == null
+                    || compoundPkt.packets == null
+                    || compoundPkt.packets.length == 0)
             {
                 return pkt;
             }
 
-            for (RTCPPacket p : inPacket.packets)
+            for (RTCPPacket p : compoundPkt.packets)
             {
                 switch (p.type)
                 {
-                    case RTCPFBPacket.PSFB:
-                        RTCPFBPacket psfb = (RTCPFBPacket) p;
-                        switch (psfb.fmt)
-                        {
-                            case RTCPREMBPacket.FMT:
-                                RTCPREMBPacket remb = (RTCPREMBPacket) p;
+                case RTCPFBPacket.PSFB:
+                    RTCPFBPacket psfb = (RTCPFBPacket) p;
 
-                                remb.mantissa = MIN_MANTISSA;
-                                remb.exp = MIN_EXP;
-                                break;
-                        }
+                    switch (psfb.fmt)
+                    {
+                    case RTCPREMBPacket.FMT:
+                        RTCPREMBPacket remb = (RTCPREMBPacket) p;
+
+                        remb.mantissa = MIN_MANTISSA;
+                        remb.exp = MIN_EXP;
                         break;
+                    }
+                    break;
                 }
             }
 
-            return generator.apply(new RTCPCompoundPacket(inPacket));
+            // We've modified compoundPkt so we have to reassemble it only.
+            return generator.apply(compoundPkt);
         }
 
         @Override
@@ -117,17 +122,16 @@ public class MinThroughputRTCPTerminationStrategy
     };
 
     @Override
+    public PacketTransformer getRTCPTransformer()
+    {
+        // Replace the mantissa and the exponent in the REMB packets.
+        return rtcpTransformer;
+    }
+
+    @Override
     public PacketTransformer getRTPTransformer()
     {
         // We don't touch the RTP traffic.
         return null;
-    }
-
-    @Override
-    public PacketTransformer getRTCPTransformer()
-    {
-        // Replace the mantissa and the exponent in the REMB
-        // packets.
-        return rtcpTransformer;
     }
 }
