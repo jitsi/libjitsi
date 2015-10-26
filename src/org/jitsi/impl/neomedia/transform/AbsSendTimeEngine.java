@@ -68,14 +68,6 @@ public class AbsSendTimeEngine
     }
 
     /**
-     * Implements {@link SinglePacketTransformer#close()}.
-     */
-    @Override
-    public void close()
-    {
-    }
-
-    /**
      * Implements {@link TransformEngine#getRTPTransformer()}.
      */
     @Override

@@ -89,14 +89,6 @@ public class REDFilterTransformEngine
      * {@inheritDoc}
      */
     @Override
-    public void close()
-    {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public RawPacket transform(RawPacket pkt)
     {
         // XXX: this method is heavily inspired by the
