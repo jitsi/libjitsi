@@ -33,7 +33,8 @@ import org.jitsi.util.function.*;
  * rewriting, RTX and FEC/RED rewriting. It is also responsible of "BYEing" the
  * SSRCs it rewrites to. This class is not thread-safe unless otherwise stated.
  *
- * TODO SSRCs should be Longs, like everywhere else in libjitsi.
+ * TODO we should be using Longs for SSRCs, because want a special value for
+ * UNMAP_SSRC and also because it's like this everywhere else in libjitsi.
  *
  * @author George Politis
  */
@@ -62,6 +63,28 @@ public class SsrcRewritingEngine implements TransformEngine
      * An int const indicating an invalid SSRC.
      */
     private static final int UNMAP_SSRC = 0;
+
+    /**
+     * The max value of an unsigned short (2^16).
+     */
+    private static final int MAX_UNSIGNED_SHORT = 65536;
+
+    /**
+     * The median value of an unsigned short (2^15).
+     */
+    private static final int MEDIAN_UNSIGNED_SHORT = 32768;
+
+    /**
+     * We assume that if RETRANSMISSIONS_FRONTIER_MS have passed since we first
+     * saw a sequence number, then that sequence number won't be retransmitted.
+     */
+    private static final long RETRANSMISSIONS_FRONTIER_MS = 30 * 1000;
+
+    /**
+     * The <tt>Random</tt> that generates initial sequence numbers. Instances of
+     * java.util.Random are threadsafe since Java 1.7.
+     */
+    private static final Random random = new Random();
 
     /**
      * The owner of this instance.
@@ -157,14 +180,18 @@ public class SsrcRewritingEngine implements TransformEngine
     }
 
     /**
+     * {@inheritDoc}
      */
+    @Override
     public PacketTransformer getRTPTransformer()
     {
         return rtpTransformer;
     }
 
     /**
+     * {@inheritDoc}
      */
+    @Override
     public PacketTransformer getRTCPTransformer()
     {
         return rtcpTransformer;
@@ -598,7 +625,8 @@ public class SsrcRewritingEngine implements TransformEngine
             // do any reverse rewriting (for now). This has the disadvantage
             // of.. requiring RTCP termination even in the simple case of
             // 1-1 calls but then again, in this case we don't need simulcast
-            // (but we do need SSRC collision detection and conflict resolution).
+            // (but we do need SSRC collision detection and conflict
+            // resolution).
             return pkt;
         }
     };
@@ -623,11 +651,12 @@ public class SsrcRewritingEngine implements TransformEngine
         private final int ssrcTarget;
 
         /**
-         * The sequence number is 16 bits it increments by one for each RTP
-         * data packet sent, and may be used by the receiver to detect packet
-         * loss and to restore packet sequence.
+         * The low 16 bits contain the base sequence number sent in RTP data
+         * packet for {#ssrcTarget} for this cycle, and the most significant 16
+         * bits extend that sequence number with the corresponding count of
+         * sequence number cycles.
          */
-        private int currentSeqnumBase;
+        private int currentExtendedSeqnumBase;
 
         /**
          * The current <tt>SsrcRewriter</tt> that we use to rewrite source
@@ -645,10 +674,12 @@ public class SsrcRewritingEngine implements TransformEngine
         public SsrcGroupRewriter(Integer ssrcTarget)
         {
             this.ssrcTarget = ssrcTarget;
-            this.currentSeqnumBase = new Random().nextInt(0x10000);
+            this.currentExtendedSeqnumBase = random.nextInt(0x10000);
         }
 
         /**
+         * Closes this instance and sends an RTCP BYE packet for the target
+         * SSRC.
          */
         public void close()
         {
@@ -660,8 +691,9 @@ public class SsrcRewritingEngine implements TransformEngine
         }
 
         /**
+         * Gets the active <tt>SsrcRewriter</tt> of this instance.
          *
-         * @return
+         * @return the active <tt>SsrcRewriter</tt> of this instance.
          */
         public SsrcRewriter getActiveRewriter()
         {
@@ -720,8 +752,24 @@ public class SsrcRewritingEngine implements TransformEngine
                 logDebug("Now rewriting " + (pkt.getSSRC() & 0xffffffffl)
                     + " to " + (ssrcTarget & 0xffffffffl) + " (was rewriting "
                     + (activeRewriter.getSourceSSRC() & 0xffffffffl) + ").");
-                int len = activeRewriter.pause();
-                currentSeqnumBase += (len + 1);
+
+                // We don't have to worry about sequence number intervals that
+                // span multiple sequence number cycles because the extended
+                // sequence number interval length is 32 bits.
+                SsrcRewriter.ExtendedSequenceNumberInterval currentInterval
+                    = activeRewriter.getCurrentExtendedSequenceNumberInterval();
+
+                int currentIntervalLength
+                    = currentInterval == null ? 0 : currentInterval.length();
+
+                // Pause the active rewriter (closes its current interval and
+                // puts it in the interval tree).
+                activeRewriter.pause();
+
+                // Because {#currentExtendedSeqnumBase} is an extended sequence
+                // number, if we keep increasing it, it will eventually result
+                // in natural wrap around of the low 16 bits.
+                currentExtendedSeqnumBase += (currentIntervalLength + 1);
                 activeRewriter = rewriters.get(sourceSSRC);
             }
 
@@ -741,11 +789,17 @@ public class SsrcRewritingEngine implements TransformEngine
         }
 
         /**
-         * @param ssrcOrigin
-         * @param sequenceNumber
-         * @return
+         * This method can be used when rewriting FEC and RTX packets.
+         *
+         * @param ssrcOrigin the SSRC of the packet whose sequence number we are
+         * rewriting.
+         * @param sequenceNumber the 16 bits sequence number that we want to
+         * rewrite.
+         *
+         * @return an integer that's either {#INVALID_SEQNUM} or a 16 bits
+         * sequence number.
          */
-        private int rewriteSequenceNumber(int ssrcOrigin, int sequenceNumber)
+        private int rewriteSequenceNumber(int ssrcOrigin, short sequenceNumber)
         {
             SsrcRewriter rewriter = rewriters.get(ssrcOrigin);
             if (rewriter == null)
@@ -753,8 +807,11 @@ public class SsrcRewritingEngine implements TransformEngine
                 return INVALID_SEQNUM;
             }
 
+            int origExtendedSequenceNumber
+                = rewriter.extendOriginalSequenceNumber(sequenceNumber);
+
             SsrcRewriter.ExtendedSequenceNumberInterval retransmissionInterval
-                = rewriter.findRetransmissionInterval(sequenceNumber);
+                = rewriter.findRetransmissionInterval(origExtendedSequenceNumber);
 
             if (retransmissionInterval == null)
             {
@@ -762,9 +819,12 @@ public class SsrcRewritingEngine implements TransformEngine
             }
             else
             {
-                int sn = retransmissionInterval.rewriteSequenceNumber(
-                    sequenceNumber);
-                return sn;
+                int targetExtendedSequenceNumber = retransmissionInterval.rewriteExtendedSequenceNumber(
+                    origExtendedSequenceNumber);
+
+                // Take only the bits that contain the sequence number (the low
+                // 16 bits).
+                return targetExtendedSequenceNumber & 0x0000ffff;
             }
         }
 
@@ -782,10 +842,14 @@ public class SsrcRewritingEngine implements TransformEngine
 
             /**
              * A <tt>NavigableMap</tt> that maps <tt>Integer</tt>s representing
-             * interval maxes to <tt>ExtendedSequenceNumberInterval</tt>s. So, when
-             * we receive an RTP packet with given sequence number, we can
+             * interval maxes to <tt>ExtendedSequenceNumberInterval</tt>s. So,
+             * when we receive an RTP packet with given sequence number, we can
              * easily find in which sequence number interval it belongs, if it
              * does.
+             *
+             * TODO we should not keep more intervals than what's enought to
+             * cover the last 1000 (arbitrary value) sequence numbers (and even
+             * that's way too much).
              */
             private final NavigableMap<Integer, ExtendedSequenceNumberInterval>
                 intervals = new TreeMap<Integer, ExtendedSequenceNumberInterval>();
@@ -809,6 +873,16 @@ public class SsrcRewritingEngine implements TransformEngine
             }
 
             /**
+             *
+             * @return
+             */
+            public ExtendedSequenceNumberInterval
+                getCurrentExtendedSequenceNumberInterval()
+            {
+                return currentExtendedSequenceNumberInterval;
+            }
+
+            /**
              * Gets the source SSRC for this <tt>SsrcRewriter</tt>.
              */
             public int getSourceSSRC()
@@ -820,20 +894,19 @@ public class SsrcRewritingEngine implements TransformEngine
              */
             public RawPacket rewriteRTP(RawPacket pkt)
             {
-                // TODO take care of sequence number roll-overs. We can easily
-                // do that by keeping track of NTP timestamps and by keeping
-                // two interval sets, the current one and the previous one. It
-                // doesn't make any sense to go any further behind the timeline.
-                int seqnum = pkt.getSequenceNumber();
+                short seqnum = (short) pkt.getSequenceNumber();
+
+                int origExtendedSequenceNumber
+                    = extendOriginalSequenceNumber(seqnum);
 
                 // first, check if this is a retransmission and rewrite using
                 // an appropriate interval.
                 ExtendedSequenceNumberInterval retransmissionInterval
-                    = findRetransmissionInterval(seqnum);
+                    = findRetransmissionInterval(origExtendedSequenceNumber);
                 if (retransmissionInterval != null)
                 {
                     logDebug("Retransmitting packet with SEQNUM "
-                        + seqnum + " of SSRC "
+                        + (seqnum & 0xffff) + " of SSRC "
                         + (pkt.getSSRC() & 0xffffffffl)
                         + " from the current interval.");
 
@@ -845,14 +918,17 @@ public class SsrcRewritingEngine implements TransformEngine
                 if (currentExtendedSequenceNumberInterval == null)
                 {
                     // the stream has resumed.
-                    currentExtendedSequenceNumberInterval = new ExtendedSequenceNumberInterval(
-                        seqnum, currentSeqnumBase);
+                    currentExtendedSequenceNumberInterval
+                        = new ExtendedSequenceNumberInterval(
+                            origExtendedSequenceNumber, currentExtendedSeqnumBase);
+                    currentExtendedSequenceNumberInterval.lastSeen = System.currentTimeMillis();
                 }
                 else
                 {
                     // more packets to the stream, increase the sequence number
                     // interval range.
-                    currentExtendedSequenceNumberInterval.max = seqnum;
+                    currentExtendedSequenceNumberInterval.extendedMaxOrig = origExtendedSequenceNumber;
+                    currentExtendedSequenceNumberInterval.lastSeen = System.currentTimeMillis();
                 }
 
                 return currentExtendedSequenceNumberInterval.rewriteRTP(pkt);
@@ -862,43 +938,41 @@ public class SsrcRewritingEngine implements TransformEngine
              * Moves the current sequence number interval, in the
              * {@link #intervals} tree. It is not to be updated anymore.
              *
-             * @return the length of the sequence number interval that got
-             * paused.
+             * @return the extended length of the sequence number interval that
+             * got paused.
              */
-            public int pause()
+            public void pause()
             {
-                // TODO take into account roll-overs. introduce the notion of
-                // cycles.
-                // TODO also why do I keep the sequence numbers as ints and not
-                // shorts?
-                int ret = 0;
                 if (currentExtendedSequenceNumberInterval != null)
                 {
-                    ret = currentExtendedSequenceNumberInterval.length();
-                    intervals.put(currentExtendedSequenceNumberInterval.max,
+                    intervals.put(currentExtendedSequenceNumberInterval.extendedMaxOrig,
                         currentExtendedSequenceNumberInterval);
                     currentExtendedSequenceNumberInterval = null;
-                    return ret;
+
+                    // TODO We don't need to keep track of more than 2 cycles,
+                    // so we need to trim the intervals tree to accommodate just
+                    // that.
                 }
                 else
                 {
                     // this stream is already paused.
                     logInfo("The stream is already paused.");
                 }
-
-                return ret;
             }
 
             /**
-             * @param seqnumOrig
+             * @param origExtendedSeqnumOrig the original extended sequence
+             * number.
+             *
              * @return
              */
             public ExtendedSequenceNumberInterval findRetransmissionInterval(
-                int seqnumOrig)
+                int origExtendedSeqnumOrig)
             {
                 // first check in the current sequence number interval.
                 if (currentExtendedSequenceNumberInterval != null
-                    && currentExtendedSequenceNumberInterval.contains(seqnumOrig))
+                    && currentExtendedSequenceNumberInterval.contains(
+                    origExtendedSeqnumOrig))
                 {
                     return currentExtendedSequenceNumberInterval;
                 }
@@ -906,10 +980,10 @@ public class SsrcRewritingEngine implements TransformEngine
                 // not there, try to find the sequence number in a previous
                 // interval.
                 Map.Entry<Integer, ExtendedSequenceNumberInterval> candidateInterval
-                    = intervals.ceilingEntry(seqnumOrig);
+                    = intervals.ceilingEntry(origExtendedSeqnumOrig);
 
                 if (candidateInterval != null
-                    && candidateInterval.getValue().contains(seqnumOrig))
+                    && candidateInterval.getValue().contains(origExtendedSeqnumOrig))
                 {
                     return candidateInterval.getValue();
                 }
@@ -918,63 +992,201 @@ public class SsrcRewritingEngine implements TransformEngine
             }
 
             /**
+             *
+             * @param ssOrigSeqnum
+             * @return
+             */
+            private int extendOriginalSequenceNumber(short ssOrigSeqnum)
+            {
+                // XXX we're using hungarian notation here to distinguish
+                // between signed short, unsigned short etc.
+
+                // Find the most recent extended sequence number interval for
+                // this SSRC.
+                ExtendedSequenceNumberInterval mostRecentInterval
+                    = currentExtendedSequenceNumberInterval;
+
+                if (mostRecentInterval == null)
+                {
+                    Map.Entry<Integer, ExtendedSequenceNumberInterval>
+                        entry = intervals.lastEntry();
+
+                    if (entry != null)
+                    {
+                        mostRecentInterval = entry.getValue();
+                    }
+                }
+
+                if (mostRecentInterval == null)
+                {
+                    // We don't have a most recent interval for this SSRC. This
+                    // must be the very first RTP packet that we receive for
+                    // this SSRC. The cycle is 0 and the extended sequence
+                    // number is whatever the original sequence number is.
+                    return ssOrigSeqnum & 0x0000ffff;
+                }
+
+                int usOriginalSequenceNumber = ssOrigSeqnum & 0x0000ffff;
+                int usHighestSeenSeqnum = mostRecentInterval.extendedMaxOrig & 0x0000ffff;
+
+                // There are two possible cases, either this is a
+                // re-transmission, or it's a new sequence number that will
+                // be used to either extend the current interval (if there
+                // is a current interval) or start a new one.
+
+                if (usOriginalSequenceNumber - usHighestSeenSeqnum > 0)
+                {
+                    // If the received sequence number (unsigned 16 bits) is
+                    // bigger than the most recent max, then one of the
+                    // following holds:
+                    //
+                    // 1. this is a new sequence number from this cycle.
+                    //    For example, usOriginalSequenceNumber = 60001 and usHighestSeenSeqnum = 60000.
+                    // 2. this is a new sequence number from a subsequent
+                    //    cycle. For example, usOriginalSequenceNumber = 60001 and usHighestSeenSeqnum = 60000.
+                    // 3. this is a retransmission from the previous cycle.
+                    //    For example, usOriginalSequenceNumber = 65536 and usHighestSeenSeqnum = 1
+                    //
+                    // If this is a packet from a subsequent cycle, then
+                    // this means that the sequence numbers have advanced
+                    // at least one cycle. Assuming that a cycle takes at
+                    // least 30 seconds to complete (atm it takes ~ 20
+                    // mins), then the mostRecentInterval must have been
+                    // last touched more than 30s ago.
+
+                    if (System.currentTimeMillis() - mostRecentInterval.lastSeen - RETRANSMISSIONS_FRONTIER_MS < 0)
+                    {
+                        // the last sequence number is recent.
+                        if (usOriginalSequenceNumber - (usHighestSeenSeqnum + MAX_UNSIGNED_SHORT) - MEDIAN_UNSIGNED_SHORT > 0)
+                        {
+                            // retransmission from the previous cycle.
+                            return ((((usHighestSeenSeqnum & 0xffff0000) >> 4) - 1) << 4) | (usOriginalSequenceNumber & 0x0000ffff);
+                        }
+                        else
+                        {
+                            // new sequence number from this cycle.
+                            return (usHighestSeenSeqnum & 0xffff0000) | (usOriginalSequenceNumber & 0x0000ffff);
+                        }
+                    }
+                    else
+                    {
+                        // sequence number from _a_ subsequent cycle (not sure
+                        // which one).
+                        return ((((usHighestSeenSeqnum & 0xffff0000) >> 4) + 1) << 4) | (usOriginalSequenceNumber & 0x0000ffff);
+                    }
+                }
+                else
+                {
+                    // Else, the received sequence number (unsigned 16 bits) is
+                    // smaller than the most recent max, then one of the
+                    // following holds:
+                    //
+                    // 1. this is a new sequence number from _a_ subsequent
+                    //    cycle.
+                    // 2. this is a retransmission from this cycle.
+
+                    if (System.currentTimeMillis() - mostRecentInterval.lastSeen - RETRANSMISSIONS_FRONTIER_MS < 0)
+                    {
+                        // the last sequence number is recent
+                        if ((usHighestSeenSeqnum - usOriginalSequenceNumber) - MEDIAN_UNSIGNED_SHORT > 0)
+                        {
+                            // if the distance to the last max is greater
+                            // than 2^15, then the sequence numbers must
+                            // have wrapped around (new cycle).
+                            return ((((usHighestSeenSeqnum & 0xffff0000) >> 4) + 1) << 4) | (usOriginalSequenceNumber & 0x0000ffff);
+                        }
+                        else
+                        {
+                            // else, this is a retransmission from this cycle.
+                            return (usHighestSeenSeqnum & 0xffff0000) | (usOriginalSequenceNumber & 0x0000ffff);
+                        }
+                    }
+                    else
+                    {
+                        // this can't possibly be a retransmission as
+                        // it would refer to something that's too old,
+                        // so the sequence numbers must have wrapped
+                        // around.
+                        return ((((usHighestSeenSeqnum & 0xffff0000) >> 4) + 1) << 4) | (usOriginalSequenceNumber & 0x0000ffff);
+                    }
+                }
+            }
+
+            /**
              * Does the dirty job of rewriting SSRCs and sequence numbers of a
-             * given sequence number interval of a given source SSRC.
+             * given extended sequence number interval of a given source SSRC.
              */
             class ExtendedSequenceNumberInterval
             {
                 /**
-                 * The minimum sequence number of this interval.
+                 * The extended minimum sequence number of this interval.
                  */
-                private final int min;
+                private final int extendedMinOrig;
 
                 /**
-                 * When did this interval start wrt the target SSRC?
+                 * Holds the value of the extended sequence number of the target
+                 * SSRC when this interval started.
                  */
-                private final int base;
+                private final int extendedBaseTarget;
 
                 /**
-                 * The maximum sequence number of this interval, potentially
-                 * updated when we receive an RTP packet.
+                 * The extended maximum sequence number of this interval.
                  */
-                private int max;
+                private int extendedMaxOrig;
+
+                /**
+                 * The time this interval has been closed.
+                 */
+                private long lastSeen;
 
                 /**
                  * Ctor.
                  *
-                 * @param baseOrig
-                 * @param baseTarget
+                 * @param extendedBaseOrig
+                 * @param extendedBaseTarget
                  */
-                public ExtendedSequenceNumberInterval(int baseOrig, int baseTarget)
+                public ExtendedSequenceNumberInterval(
+                    int extendedBaseOrig, int extendedBaseTarget)
                 {
-                    this.min = baseOrig;
-                    this.max = baseOrig;
-                    this.base = baseTarget;
+                    this.extendedBaseTarget = extendedBaseTarget;
+
+                    this.extendedMinOrig = extendedBaseOrig;
+                    this.extendedMaxOrig = extendedBaseOrig;
                 }
 
                 /**
                  * Returns a boolean determining whether a sequence number
                  * is contained in this interval or not.
                  *
-                 * @param x the sequence number to determine whether it belongs
-                 * in the interval or not.
+                 * @param extendedSequenceNumber the sequence number to
+                 * determine whether it belongs in the interval or not.
                  * @return true if the sequence number is contained in the
                  * interval, otherwise false.
                  */
-                public boolean contains(int x)
+                public boolean contains(int extendedSequenceNumber)
                 {
-                    return min >= x && x <= max;
+                    return extendedMinOrig >= extendedSequenceNumber
+                        && extendedSequenceNumber <= extendedMaxOrig;
                 }
 
+                /**
+                 * {@inheritDoc}
+                 */
                 public String toString()
                 {
-                    return "[" + min + ", " + max + "]";
+                    return "[" + extendedMinOrig + ", " + extendedMaxOrig + "]";
                 }
 
-                public int rewriteSequenceNumber(int sequenceNumber)
+                /**
+                 *
+                 * @param extendedSequenceNumber
+                 * @return
+                 */
+                public int rewriteExtendedSequenceNumber(
+                    int extendedSequenceNumber)
                 {
-                    int diff = sequenceNumber - min;
-                    return base + diff;
+                    int diff = extendedSequenceNumber - extendedMinOrig;
+                    return extendedBaseTarget + diff;
                 }
 
                 /**
@@ -986,8 +1198,10 @@ public class SsrcRewritingEngine implements TransformEngine
                     pkt.setSSRC(ssrcTarget);
 
                     // Rewrite the sequence number of the RTP packet.
-                    int rewriteSeqnum
-                        = rewriteSequenceNumber(pkt.getSequenceNumber());
+                    short ssSeqnum = (short) pkt.getSequenceNumber();
+                    int extendedSequenceNumber = extendOriginalSequenceNumber(ssSeqnum);
+                    int rewriteSeqnum = rewriteExtendedSequenceNumber(extendedSequenceNumber);
+                    // This will disregard the high 16 bits.
                     pkt.setSequenceNumber(rewriteSeqnum);
 
                     Integer primarySSRC = rtx2primary.get(sourceSSRC);
@@ -1035,7 +1249,7 @@ public class SsrcRewritingEngine implements TransformEngine
                 {
                     // This is an RTX packet. Replace RTX OSN field or drop.
                     int ssrcOrig = rtx2primary.get(sourceSSRC);
-                    int snOrig = pkt.getOriginalSequenceNumber() & 0xffff;
+                    short snOrig = pkt.getOriginalSequenceNumber();
 
                     SsrcGroupRewriter rewriterPrimary = origin2rewriter.get(ssrcOrig);
 
@@ -1054,13 +1268,15 @@ public class SsrcRewritingEngine implements TransformEngine
                 }
 
                 /**
-                 * Calculates and returns the length of this interval.
+                 * Calculates and returns the length of this interval. Note that
+                 * all 32 bits are used to represent the interval length because
+                 * an interval can span multiple cycles.
                  *
                  * @return the length of this interval.
                  */
                 public int length()
                 {
-                    return max - min;
+                    return extendedMaxOrig - extendedMinOrig;
                 }
 
                 /**
@@ -1156,7 +1372,7 @@ public class SsrcRewritingEngine implements TransformEngine
                     // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                     // |        length recovery        |
                     // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                    int snBase = buf[off + 2] << 8 | buf[off + 3];
+                    short snBase = (short) (buf[off + 2] << 8 | buf[off + 3]);
 
                     SsrcGroupRewriter rewriter
                         = origin2rewriter.get(sourceSSRC);
