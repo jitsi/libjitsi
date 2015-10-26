@@ -26,6 +26,8 @@ import org.bouncycastle.crypto.util.*;
 import org.bouncycastle.operator.*;
 import org.bouncycastle.operator.bc.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.configuration.ConfigurationService;
+import org.jitsi.service.libjitsi.LibJitsi;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.version.*;
 import org.jitsi.util.*;
@@ -61,12 +63,11 @@ public class DtlsControlImpl
     private static final long ONE_DAY = 1000L * 60L * 60L * 24L;
 
     /**
-     * The name of the <tt>System</tt> property the value of which is a signature
-     * algorithm used during certificate creation. When a self-signed certificate
-     * is created and this property is not set, the default value of "SHA1withRSA" 
-     * will be used.
+     * The name of the property which specifies the signature algorithm used 
+     * during certificate creation. When a certificate is created and this 
+     * property is not set, a default value of "SHA1withRSA" will be used.
      */
-    public static final String SIGNATURE_ALGORITHM = "org.jitsi.impl.neomedia.transform.dtls.SIGNATURE_ALGORITHM";
+    public static final String PROP_SIGNATURE_ALGORITHM = "org.jitsi.impl.neomedia.transform.dtls.SIGNATURE_ALGORITHM";
 
     /**
      * The <tt>SRTPProtectionProfile</tt>s supported by
@@ -304,12 +305,13 @@ public class DtlsControlImpl
                 X500Name subject,
                 AsymmetricCipherKeyPair keyPair)
     {
-        // get system property for algorithm override
-        String signatureAlgorithm = System.getProperty(SIGNATURE_ALGORITHM);
-        // default to sha1 if the property was not set
-        if (StringUtils.isNullOrEmpty(signatureAlgorithm, true))
+    	ConfigurationService cfg = LibJitsi.getConfigurationService();
+        // get property for certificate creation and default to sha1
+        String signatureAlgorithm = cfg.getString(PROP_SIGNATURE_ALGORITHM, 
+        		"SHA1withRSA");
+        if (logger.isDebugEnabled())
         {
-            signatureAlgorithm = "SHA1withRSA";
+        	logger.debug("Signature algorithm: " + signatureAlgorithm);
         }
         try
         {
