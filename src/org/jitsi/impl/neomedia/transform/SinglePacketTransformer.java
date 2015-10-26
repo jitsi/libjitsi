@@ -46,12 +46,14 @@ public abstract class SinglePacketTransformer
     private static final Logger logger
         = Logger.getLogger(SinglePacketTransformer.class);
 
-    private long bytesToReverseTransform;
-
-    private long bytesToTransform;
-
+    /**
+     * The number of exceptions caught in {@link #reverseTransform(RawPacket)}.
+     */
     private long exceptionsInReverseTransform;
 
+    /**
+     * The number of exceptions caught in {@link #transform(RawPacket)}.
+     */
     private long exceptionsInTransform;
 
     /**
@@ -87,7 +89,6 @@ public abstract class SinglePacketTransformer
 
                 if (pkt != null)
                 {
-                    bytesToTransform += pkt.getLength();
                     try
                     {
                         pkts[i] = transform(pkt);
@@ -132,7 +133,6 @@ public abstract class SinglePacketTransformer
 
                 if (pkt != null)
                 {
-                    bytesToReverseTransform += pkt.getLength();
                     try
                     {
                         pkts[i] = reverseTransform(pkt);
