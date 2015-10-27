@@ -67,8 +67,12 @@ public class DtlsControlImpl
      * during certificate creation. When a certificate is created and this 
      * property is not set, a default value of "SHA1withRSA" will be used.
      */
+<<<<<<< HEAD
     public static final String PROP_SIGNATURE_ALGORITHM = 
         "org.jitsi.impl.neomedia.transform.dtls.SIGNATURE_ALGORITHM";
+=======
+    public static final String PROP_SIGNATURE_ALGORITHM = "org.jitsi.impl.neomedia.transform.dtls.SIGNATURE_ALGORITHM";
+>>>>>>> 336211506c3d88501c9b3f819d290234f0025a71
 
     /**
      * The <tt>SRTPProtectionProfile</tt>s supported by
