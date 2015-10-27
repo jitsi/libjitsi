@@ -67,7 +67,8 @@ public class DtlsControlImpl
      * during certificate creation. When a certificate is created and this 
      * property is not set, a default value of "SHA1withRSA" will be used.
      */
-    public static final String PROP_SIGNATURE_ALGORITHM = "org.jitsi.impl.neomedia.transform.dtls.SIGNATURE_ALGORITHM";
+    public static final String PROP_SIGNATURE_ALGORITHM = 
+        "org.jitsi.impl.neomedia.transform.dtls.SIGNATURE_ALGORITHM";
 
     /**
      * The <tt>SRTPProtectionProfile</tt>s supported by
@@ -297,18 +298,23 @@ public class DtlsControlImpl
      * generated
      * @param keyPair the pair of private and public keys of the certificate to
      * be generated
-     * @return a new self-signed certificate with the specified <tt>subject</tt>
-     * and <tt>keyPair</tt>
+     * @return a new self-signed certificate with the specified 
+     * <tt>subject</tt> and <tt>keyPair</tt>
      */
     private static org.bouncycastle.asn1.x509.Certificate
         generateX509Certificate(
                 X500Name subject,
                 AsymmetricCipherKeyPair keyPair)
     {
-    	ConfigurationService cfg = LibJitsi.getConfigurationService();
         // get property for certificate creation and default to sha1
-        String signatureAlgorithm = cfg.getString(PROP_SIGNATURE_ALGORITHM, 
-        		"SHA1withRSA");
+        String signatureAlgorithm = "SHA1withRSA";
+        // get property override from the config service if it exists
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        if (cfg != null)
+        {
+            signatureAlgorithm = cfg.getString(PROP_SIGNATURE_ALGORITHM, 
+                "SHA1withRSA");
+        }        
         if (logger.isDebugEnabled())
         {
         	logger.debug("Signature algorithm: " + signatureAlgorithm);
