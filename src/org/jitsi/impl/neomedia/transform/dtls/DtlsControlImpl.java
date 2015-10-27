@@ -35,8 +35,8 @@ import org.bouncycastle.crypto.util.*;
 import org.bouncycastle.operator.*;
 import org.bouncycastle.operator.bc.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.service.configuration.*;
-import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.configuration.ConfigurationService;
+import org.jitsi.service.libjitsi.LibJitsi;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.version.*;
 import org.jitsi.util.*;
@@ -79,6 +79,14 @@ public class DtlsControlImpl
      * The number of milliseconds within a day i.e. 24 hours.
      */
     private static final long ONE_DAY = 1000L * 60L * 60L * 24L;
+
+    /**
+     * The name of the property which specifies the signature algorithm used 
+     * during certificate creation. When a certificate is created and this 
+     * property is not set, a default value of "SHA1withRSA" will be used.
+     */
+    public static final String PROP_SIGNATURE_ALGORITHM = 
+        "org.jitsi.impl.neomedia.transform.dtls.SIGNATURE_ALGORITHM";
 
     /**
      * The <tt>SRTPProtectionProfile</tt>s supported by
@@ -390,14 +398,27 @@ public class DtlsControlImpl
      * generated
      * @param keyPair the pair of private and public keys of the certificate to
      * be generated
-     * @return a new self-signed certificate with the specified <tt>subject</tt>
-     * and <tt>keyPair</tt>
+     * @return a new self-signed certificate with the specified 
+     * <tt>subject</tt> and <tt>keyPair</tt>
      */
     private static org.bouncycastle.asn1.x509.Certificate
         generateX509Certificate(
                 X500Name subject,
                 AsymmetricCipherKeyPair keyPair)
     {
+        // get property for certificate creation and default to sha1
+        String signatureAlgorithm = "SHA1withRSA";
+        // get property override from the config service if it exists
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        if (cfg != null)
+        {
+            signatureAlgorithm = cfg.getString(PROP_SIGNATURE_ALGORITHM, 
+                "SHA1withRSA");
+        }        
+        if (logger.isDebugEnabled())
+        {
+        	logger.debug("Signature algorithm: " + signatureAlgorithm);
+        }
         try
         {
             long now = System.currentTimeMillis();
@@ -416,7 +437,7 @@ public class DtlsControlImpl
                                     keyPair.getPublic()));
             AlgorithmIdentifier sigAlgId
                 = new DefaultSignatureAlgorithmIdentifierFinder()
-                    .find("SHA1withRSA");
+                    .find(signatureAlgorithm);
             AlgorithmIdentifier digAlgId
                 = new DefaultDigestAlgorithmIdentifierFinder().find(sigAlgId);
             ContentSigner signer
@@ -842,8 +863,9 @@ public class DtlsControlImpl
         synchronized (this)
         {
             if (disposed)
+            {
                 throw new IllegalStateException("disposed");
-
+            }
             Map<String,String> remoteFingerprints = this.remoteFingerprints;
 
             if (remoteFingerprints == null)
