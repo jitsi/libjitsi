@@ -33,14 +33,6 @@ public interface Version
      */
     public static final String PNAME_APPLICATION_VERSION
         = "sip-communicator.version";
-    
-    /**
-     * The name of the <tt>System</tt> property the value of which is a signature
-     * algorithm used during certificate creation. If a self-signed certificate is
-     * created in <tt>DtlsControlImpl</tt> and this property is not set, the value 
-     * of "SHA1withRSA" will be used.
-     */
-    public static final String PNAME_SIGNATURE_ALGORITHM = "signature.algorithm";
 
     /**
      * Returns the version major of the current Jitsi version. In an
