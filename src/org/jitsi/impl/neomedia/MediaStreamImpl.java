@@ -3495,13 +3495,14 @@ public class MediaStreamImpl
 
         if (debugTransformEngine != null)
         {
-            PacketTransformer debugTransformer = data
-                ? debugTransformEngine.getRTPTransformer()
-                : debugTransformEngine.getRTCPTransformer();
+            PacketTransformer debugTransformer
+                = data
+                    ? debugTransformEngine.getRTPTransformer()
+                    : debugTransformEngine.getRTCPTransformer();
 
             // XXX we hard cast so that we don't have to create a new RawPacket
             // array.
-            ((SinglePacketTransformer)debugTransformer).transform(pkt);
+            ((SinglePacketTransformer) debugTransformer).transform(pkt);
         }
 
         if (encrypt)
@@ -3514,14 +3515,14 @@ public class MediaStreamImpl
                 if (srtpTransformEngine != null)
                 {
                     PacketTransformer transformer
-                            = data
+                        = data
                             ? srtpTransformEngine.getRTPTransformer()
                             : srtpTransformEngine.getRTCPTransformer();
 
                     if (transformer instanceof SinglePacketTransformer)
                     {
                         pkt
-                                = ((SinglePacketTransformer) transformer)
+                            = ((SinglePacketTransformer) transformer)
                                 .transform(pkt);
                     }
                     else
@@ -3529,10 +3530,7 @@ public class MediaStreamImpl
                         RawPacket[] pkts = new RawPacket[1];
                         pkts[0] = pkt;
                         pkts = transformer.transform(pkts);
-                        pkt
-                                = pkts != null && pkts.length > 0
-                                ? pkts[0]
-                                : null;
+                        pkt = pkts != null && pkts.length > 0 ? pkts[0] : null;
                     }
                 }
             }
@@ -3546,7 +3544,7 @@ public class MediaStreamImpl
                 try
                 {
                     RTPConnectorOutputStream outputStream
-                            = data
+                        = data
                             ? rtpConnector.getDataOutputStream(false)
                             : rtpConnector.getControlOutputStream(false);
 

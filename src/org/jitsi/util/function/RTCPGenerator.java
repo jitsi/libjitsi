@@ -27,26 +27,22 @@ import org.jitsi.impl.neomedia.*;
 public class RTCPGenerator
     extends AbstractFunction<RTCPCompoundPacket, RawPacket>
 {
-    public RawPacket apply(RTCPCompoundPacket input)
+    @Override
+    public RawPacket apply(RTCPCompoundPacket in)
     {
-        if (input == null)
+        if (in == null)
         {
             return null;
         }
 
         // Assemble the RTP packet.
-        int len = input.calcLength();
+        int len = in.calcLength();
 
-        // TODO we need to be able to re-use original RawPacket buffer.
-        input.assemble(len, false);
-        byte[] buf = input.data;
+        // TODO We need to be able to re-use original RawPacket buffer.
+        in.assemble(len, false);
 
-        RawPacket pktOut = new RawPacket();
+        byte[] buf = in.data;
 
-        pktOut.setBuffer(buf);
-        pktOut.setLength(buf.length);
-        pktOut.setOffset(0);
-
-        return pktOut;
+        return new RawPacket(buf, 0, len);
     }
 }
