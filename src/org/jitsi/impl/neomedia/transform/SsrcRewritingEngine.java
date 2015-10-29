@@ -1301,7 +1301,8 @@ public class SsrcRewritingEngine implements TransformEngine
                     }
 
                     // FIXME similar code can be found in the
-                    // REDFilterTransformEngine and in the REDTransformEngine.
+                    // REDFilterTransformEngine and in the REDTransformEngine and
+                    // in the SimulcastLayer.
 
                     int idx = off; //beginning of RTP payload
                     int pktCount = 0; //number of packets inside RED
