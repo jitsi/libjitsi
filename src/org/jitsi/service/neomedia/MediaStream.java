@@ -49,6 +49,12 @@ public interface MediaStream
     public static final String PNAME_REMOTE_SSRC = "remoteSSRCAvailable";
 
     /**
+     * The name of the property which indicates the receiver endpoint of this
+     * <tt>MediaStream</tt>.
+     */
+    public static final String PNAME_RECEIVER_IDENTIFIER = "receiverID";
+
+    /**
      * Adds a new association in this <tt>MediaStream</tt> of the specified RTP
      * payload type with the specified <tt>MediaFormat</tt> in order to allow it
      * to report <tt>rtpPayloadType</tt> in RTP flows sending and receiving
@@ -484,4 +490,25 @@ public interface MediaStream
      */
     public void setRTCPTerminationStrategy(
         RTCPTerminationStrategy rtcpTerminationStrategy);
+
+    /**
+     * Configures the <tt>MediaStream</tt> to rewrite SSRCs. For example,
+     * rewrite RTP streams {S1, S2, S3} to S, and FID streams {F1, F2, F3} to F.
+     *
+     * You can also define the payload types for FEC and RED, so that FEC and
+     * RED packets have their structure appropriately rewritten.
+     *
+     * @param ssrcGroup A set of primary SSRCs to rewrite.
+     * @param ssrcTargetPrimary the SSRC into which the ssrcGroup will be
+     * rewritten.
+     * @param ssrc2fec A map that maps SSRCs to their FEC payload type.
+     * @param ssrc2red A map that maps SSRCs to their RED payload type.
+     * @param rtxGroups A set of RTX SSRCs to rewrite.
+     * @param ssrcTargetRTX the SSRC into which the rtxGroups will be rewritten.
+     */
+    public void configureSSRCRewriting(
+        final Set<Integer> ssrcGroup, final Integer ssrcTargetPrimary,
+        final Map<Integer, Byte> ssrc2fec,
+        final Map<Integer, Byte> ssrc2red,
+        final Map<Integer, Integer> rtxGroups, final Integer ssrcTargetRTX);
 }

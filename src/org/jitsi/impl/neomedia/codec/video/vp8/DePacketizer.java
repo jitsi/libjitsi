@@ -28,6 +28,7 @@ import java.util.concurrent.*;
  * See {@link "http://tools.ietf.org/html/draft-ietf-payload-vp8-11"}
  *
  * @author Boris Grozev
+ * @author George Politis
  */
 public class DePacketizer
     extends AbstractCodec2
@@ -413,7 +414,7 @@ public class DePacketizer
      * A class that represents the VP8 Payload Descriptor structure defined
      * in {@link "http://tools.ietf.org/html/draft-ietf-payload-vp8-10"}
      */
-    static class VP8PayloadDescriptor
+    public static class VP8PayloadDescriptor
     {
         /**
          * I bit from the X byte of the Payload Descriptor.
@@ -526,7 +527,7 @@ public class DePacketizer
 
         }
 
-        private static boolean isValid(byte[] input, int offset)
+        public static boolean isValid(byte[] input, int offset)
         {
             return true;
         }
@@ -571,6 +572,34 @@ public class DePacketizer
         public static int getPartitionId(byte[] input, int offset)
         {
             return input[offset] & 0x07;
+        }
+    }
+
+    /**
+     * A class that represents the VP8 Payload Header structure defined
+     * in {@link "http://tools.ietf.org/html/draft-ietf-payload-vp8-10"}
+     */
+    public static class VP8PayloadHeader
+    {
+        /**
+         * S bit of the Payload Descriptor.
+         */
+        private static final byte S_BIT = (byte) 0x01;
+
+        /**
+         * Returns true if the <tt>P</tt> (inverse key frame flag) field of the
+         * VP8 Payload Header at offset <tt>offset</tt> in <tt>input</tt> is 0.
+         *
+         * @return true if the <tt>P</tt> (inverse key frame flag) field of the
+         * VP8 Payload Header at offset <tt>offset</tt> in <tt>input</tt> is 0,
+         * false otherwise.
+         */
+        public static boolean isKeyFrame(byte[] input, int offset)
+        {
+            // When set to 0 the current frame is a key frame.  When set to 1
+            // the current frame is an interframe. Defined in [RFC6386]
+
+            return (input[offset] & S_BIT) == 0;
         }
     }
 

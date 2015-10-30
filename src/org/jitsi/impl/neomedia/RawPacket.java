@@ -33,6 +33,7 @@ package org.jitsi.impl.neomedia;
  * @author Damian Minkov
  * @author Boris Grozev
  * @author Lyubomir Marinov
+ * @author George Politis
  */
 public class RawPacket
 {
@@ -640,6 +641,17 @@ public class RawPacket
         return length - getHeaderLength();
     }
 
+
+    /**
+     * Get the RTP payload offset of an RTP packet.
+     *
+     * @return the RTP payload offset of an RTP packet.
+     */
+    public int getPayloadOffset()
+    {
+        return offset + getHeaderLength();
+    }
+
     /**
      * Get RTP payload type from a RTP packet
      *
@@ -834,6 +846,18 @@ public class RawPacket
     {
         return (short) ((this.buffer[this.offset + off + 0] << 8) |
                         (this.buffer[this.offset + off + 1] & 0xff));
+    }
+
+    /**
+     * Write a short to this packet at the specified offset.
+     *
+     * @param off
+     * @param val
+     */
+    public void writeShort(int off, short val)
+    {
+        writeByte(off, (byte) (val>>8 & 0xff));
+        writeByte(off + 1, (byte) (val & 0xff));
     }
 
     /**
@@ -1114,5 +1138,25 @@ public class RawPacket
         buffer[offset + off++] = (byte)(data>>16);
         buffer[offset + off++] = (byte)(data>>8);
         buffer[offset + off] = (byte)data;
+    }
+
+    /**
+     * Gets the OSN value of an RTX packet.
+     *
+     * @return the OSN value of an RTX packet.
+     */
+    public short getOriginalSequenceNumber()
+    {
+        return readShort(getHeaderLength());
+    }
+
+    /**
+     * Sets the OSN value of an RTX packet.
+     *
+     * @param sequenceNumber the new OSN value of this RTX packet.
+     */
+    public void setOriginalSequenceNumber(short sequenceNumber)
+    {
+        writeShort(getHeaderLength(), sequenceNumber);
     }
 }

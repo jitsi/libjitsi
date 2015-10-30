@@ -303,6 +303,14 @@ public class MediaStreamImpl
     private DebugTransformEngine debugTransformEngine;
 
     /**
+     * The transformer which handles SSRC rewriting. It is always created
+     * (which is extremely lightweight) but it needs to be initialized so that
+     * it can work.
+     */
+    private final SsrcRewritingEngine ssrcRewritingEngine
+        = new SsrcRewritingEngine(this);
+
+    /**
      * The <tt>TransformEngine</tt> instance registered in the
      * <tt>RTPConnector</tt>'s transformer chain, which allows the "external"
      * transformer to be swapped.
@@ -932,6 +940,8 @@ public class MediaStreamImpl
         // termination needs to be as close to the SRTP transform engine as
         // possible.
         engineChain.add(rtcpTransformEngineWrapper);
+
+        engineChain.add(ssrcRewritingEngine);
 
         // RTCP Statistics
         if (statisticsEngine == null)
@@ -3428,6 +3438,21 @@ public class MediaStreamImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void configureSSRCRewriting(
+        final Set<Integer> ssrcGroup, final Integer ssrcTargetPrimary,
+        final Map<Integer, Byte> ssrc2fec,
+        final Map<Integer, Byte> ssrc2red,
+        final Map<Integer, Integer> rtxGroups, final Integer ssrcTargetRTX)
+    {
+        ssrcRewritingEngine.map(ssrcGroup, ssrcTargetPrimary,
+            ssrc2fec, ssrc2red,
+            rtxGroups, ssrcTargetRTX);
+    }
+
+    /**
      * Wraps a <tt>TransformerEngine</tt> (allows the wrapped instance to be
      * swapped without modifications to the <tt>RTPConnector</tt>'s transformer
      * engine chain.
@@ -3470,13 +3495,14 @@ public class MediaStreamImpl
 
         if (debugTransformEngine != null)
         {
-            PacketTransformer debugTransformer = data
-                ? debugTransformEngine.getRTPTransformer()
-                : debugTransformEngine.getRTCPTransformer();
+            PacketTransformer debugTransformer
+                = data
+                    ? debugTransformEngine.getRTPTransformer()
+                    : debugTransformEngine.getRTCPTransformer();
 
             // XXX we hard cast so that we don't have to create a new RawPacket
             // array.
-            ((SinglePacketTransformer)debugTransformer).transform(pkt);
+            ((SinglePacketTransformer) debugTransformer).transform(pkt);
         }
 
         if (encrypt)
@@ -3489,14 +3515,14 @@ public class MediaStreamImpl
                 if (srtpTransformEngine != null)
                 {
                     PacketTransformer transformer
-                            = data
+                        = data
                             ? srtpTransformEngine.getRTPTransformer()
                             : srtpTransformEngine.getRTCPTransformer();
 
                     if (transformer instanceof SinglePacketTransformer)
                     {
                         pkt
-                                = ((SinglePacketTransformer) transformer)
+                            = ((SinglePacketTransformer) transformer)
                                 .transform(pkt);
                     }
                     else
@@ -3504,10 +3530,7 @@ public class MediaStreamImpl
                         RawPacket[] pkts = new RawPacket[1];
                         pkts[0] = pkt;
                         pkts = transformer.transform(pkts);
-                        pkt
-                                = pkts != null && pkts.length > 0
-                                ? pkts[0]
-                                : null;
+                        pkt = pkts != null && pkts.length > 0 ? pkts[0] : null;
                     }
                 }
             }
@@ -3521,7 +3544,7 @@ public class MediaStreamImpl
                 try
                 {
                     RTPConnectorOutputStream outputStream
-                            = data
+                        = data
                             ? rtpConnector.getDataOutputStream(false)
                             : rtpConnector.getControlOutputStream(false);
 

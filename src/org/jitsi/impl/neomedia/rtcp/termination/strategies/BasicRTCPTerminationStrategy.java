@@ -454,7 +454,7 @@ public class BasicRTCPTerminationStrategy
      * @return an <tt>RTCPREMBPacket</tt> that provides receiver feedback to the
      * endpoint from which we receive.
      */
-    private RTCPREMBPacket makeRTCPREMBPacket()
+    protected RTCPREMBPacket makeRTCPREMBPacket()
     {
         // TODO we should only make REMBs if REMB support has been advertised.
         // Destination
@@ -486,8 +486,8 @@ public class BasicRTCPTerminationStrategy
         // sender.
         long streamSSRC = getLocalSSRC();
 
-        return new RTCPREMBPacket(
-            streamSSRC, /* mediaSSRC */ 0L, bitrate, dest);
+        return
+            new RTCPREMBPacket(streamSSRC, /* mediaSSRC */ 0L, bitrate, dest);
     }
 
     /**
