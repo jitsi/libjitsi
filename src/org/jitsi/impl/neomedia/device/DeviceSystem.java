@@ -261,6 +261,10 @@ public abstract class DeviceSystem
                     className = packageName + className;
                 }
 
+                // we can explicitly disable an audio system
+                if (Boolean.getBoolean(className + ".disabled"))
+                    continue;
+
                 // Initialize a single instance per className.
                 DeviceSystem deviceSystem = null;
 
