@@ -32,6 +32,7 @@ import javax.media.rtp.rtcp.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.protocol.*;
+import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
@@ -3415,7 +3416,7 @@ public class MediaStreamImpl
      */
     public void setExternalTransformer(TransformEngine transformEngine)
     {
-        externalTransformerWrapper.wrapped = transformEngine;
+        externalTransformerWrapper.setWrapped(transformEngine);
     }
 
     /**
@@ -3424,7 +3425,7 @@ public class MediaStreamImpl
     @Override
     public RTCPTerminationStrategy getRTCPTerminationStrategy()
     {
-        return rtcpTransformEngineWrapper.wrapped;
+        return rtcpTransformEngineWrapper.getWrapped();
     }
 
     /**
@@ -3432,9 +3433,25 @@ public class MediaStreamImpl
      */
     @Override
     public void setRTCPTerminationStrategy(
-        RTCPTerminationStrategy rtcpTerminationStrategy)
+            RTCPTerminationStrategy rtcpTerminationStrategy)
     {
-        rtcpTransformEngineWrapper.wrapped = rtcpTerminationStrategy;
+        RTCPTerminationStrategy oldValue
+            = rtcpTransformEngineWrapper.getWrapped();
+        RTCPTerminationStrategy newValue = rtcpTerminationStrategy;
+
+        if (oldValue != newValue)
+        {
+            // XXX The following (source) code was moved here from another place
+            // and there it was called before remembering the new
+            // rtcpTerminationStrategy so we've preserved the order here.
+            if (newValue instanceof MediaStreamRTCPTerminationStrategy)
+            {
+                ((MediaStreamRTCPTerminationStrategy) newValue)
+                    .initialize(this);
+            }
+
+            rtcpTransformEngineWrapper.setWrapped(newValue);
+        }
     }
 
     /**
@@ -3453,40 +3470,9 @@ public class MediaStreamImpl
     }
 
     /**
-     * Wraps a <tt>TransformerEngine</tt> (allows the wrapped instance to be
-     * swapped without modifications to the <tt>RTPConnector</tt>'s transformer
-     * engine chain.
-     */
-    private class TransformEngineWrapper<T extends TransformEngine>
-        implements TransformEngine
-    {
-        /**
-         * The wrapped instance.
-         */
-        private T wrapped;
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public PacketTransformer getRTPTransformer()
-        {
-            return wrapped == null ? null : wrapped.getRTPTransformer();
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public PacketTransformer getRTCPTransformer()
-        {
-            return wrapped == null ? null : wrapped.getRTCPTransformer();
-        }
-    }
-
-    /**
      * {@inheritDoc}
      */
+    @Override
     public void injectPacket(RawPacket pkt, boolean data, boolean encrypt)
         throws TransmissionFailedException
     {

@@ -48,8 +48,8 @@ public class MinThroughputRTCPTerminationStrategy
 
         if (remb != null)
         {
-            remb.mantissa = MIN_MANTISSA;
             remb.exp = MIN_EXP;
+            remb.mantissa = MIN_MANTISSA;
         }
         return remb;
     }

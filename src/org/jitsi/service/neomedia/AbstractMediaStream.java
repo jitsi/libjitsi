@@ -17,7 +17,7 @@ package org.jitsi.service.neomedia;
 
 import java.beans.*;
 import java.util.*;
-
+import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.service.neomedia.format.*;
 
 /**
@@ -213,6 +213,19 @@ public abstract class AbstractMediaStream
     public void setRTCPTerminationStrategy(
             RTCPTerminationStrategy rtcpTerminationStrategy)
     {
-        this.rtcpTerminationStrategy = rtcpTerminationStrategy;
+        if (this.rtcpTerminationStrategy != rtcpTerminationStrategy)
+        {
+            // XXX The following (source) code was moved here from another place
+            // and there it was called before remembering the new
+            // rtcpTerminationStrategy so we've preserved the order here.
+            if (rtcpTerminationStrategy
+                    instanceof MediaStreamRTCPTerminationStrategy)
+            {
+                ((MediaStreamRTCPTerminationStrategy) rtcpTerminationStrategy)
+                    .initialize(this);
+            }
+
+            this.rtcpTerminationStrategy = rtcpTerminationStrategy;
+        }
     }
 }
