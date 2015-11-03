@@ -38,6 +38,7 @@ import java.util.concurrent.*;
  * information that it collects and from information found in FMJ.
  *
  * @author George Politis
+ * @author Lyubomir Marinov
  */
 public class BasicRTCPTerminationStrategy
     extends MediaStreamRTCPTerminationStrategy
@@ -408,13 +409,27 @@ public class BasicRTCPTerminationStrategy
             return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
         }
 
-        Collection<ReceiveStream> receiveStreams
-            = streamRTPManager.getReceiveStreams();
+        Collection<ReceiveStream> receiveStreams;
 
-        if (receiveStreams == null || receiveStreams.size() == 0)
+        // XXX MediaStreamImpl's implementation of #getReceiveStreams() says
+        // that, unfortunately, it has been observed that sometimes there are
+        // valid ReceiveStreams in MediaStreamImpl which are not returned by
+        // FMJ's RTPManager. Since (1) MediaStreamImpl#getReceiveStreams() will
+        // include the results of StreamRTPManager#getReceiveStreams() and (2)
+        // we are going to check the results against SSRCCache, it should be
+        // relatively safe to rely on MediaStreamImpl's implementation.
+        if (stream instanceof MediaStreamImpl)
         {
-            logger.info("There are no receive streams to build report " +
-                "blocks for.");
+            receiveStreams = ((MediaStreamImpl) stream).getReceiveStreams();
+        }
+        else
+        {
+            receiveStreams = streamRTPManager.getReceiveStreams();
+        }
+        if (receiveStreams == null || receiveStreams.isEmpty())
+        {
+            logger.info(
+                    "There are no receive streams to build report blocks for.");
             return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
         }
 
@@ -425,11 +440,10 @@ public class BasicRTCPTerminationStrategy
             return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
         }
 
-        // Create the return object.
+        // Create and populate the return object.
         Collection<RTCPReportBlock> rtcpReportBlocks
             = new ArrayList<RTCPReportBlock>();
 
-        // Populate the return object.
         for (ReceiveStream receiveStream : receiveStreams)
         {
             // Dig into the guts of FMJ and get the stats for the current
@@ -443,8 +457,9 @@ public class BasicRTCPTerminationStrategy
             }
         }
 
-        return rtcpReportBlocks.toArray(
-            new RTCPReportBlock[rtcpReportBlocks.size()]);
+        return
+            rtcpReportBlocks.toArray(
+                    new RTCPReportBlock[rtcpReportBlocks.size()]);
     }
 
     /**
@@ -454,7 +469,7 @@ public class BasicRTCPTerminationStrategy
      * @return an <tt>RTCPREMBPacket</tt> that provides receiver feedback to the
      * endpoint from which we receive.
      */
-    protected RTCPREMBPacket makeRTCPREMBPacket()
+    private RTCPREMBPacket makeRTCPREMBPacket()
     {
         // TODO we should only make REMBs if REMB support has been advertised.
         // Destination
@@ -472,22 +487,46 @@ public class BasicRTCPTerminationStrategy
         for (Integer ssrc : ssrcs)
             dest[i++] = ssrc & 0xFFFFFFFFL;
 
-        // Exp & mantissa
-        long bitrate = remoteBitrateEstimator.getLatestEstimate();
-
-        if (bitrate == -1)
-            return null;
-
-        if (logger.isDebugEnabled())
-            logger.debug("Estimated bitrate: " + bitrate);
-
         // Create and return the packet.
         // We use the stream's local source ID (SSRC) as the SSRC of packet
         // sender.
         long streamSSRC = getLocalSSRC();
 
         return
-            new RTCPREMBPacket(streamSSRC, /* mediaSSRC */ 0L, bitrate, dest);
+                makeRTCPREMBPacket(
+                        remoteBitrateEstimator,
+                        streamSSRC, /* mediaSSRC */ 0L, dest);
+    }
+
+    /**
+     * Makes an <tt>RTCPREMBPacket</tt> that provides receiver feedback to the
+     * endpoint from which we receive.
+     *
+     * @param remoteBitrateEstimator
+     * @param senderSSRC
+     * @param mediaSSRC
+     * @param dest
+     * @return an <tt>RTCPREMBPacket</tt> that provides receiver feedback to the
+     * endpoint from which we receive.
+     */
+    protected RTCPREMBPacket makeRTCPREMBPacket(
+            RemoteBitrateEstimator remoteBitrateEstimator,
+            long senderSSRC, long mediaSSRC, long[] dest)
+    {
+        // Exp & mantissa
+        long bitrate = remoteBitrateEstimator.getLatestEstimate();
+
+        if (bitrate == -1)
+        {
+            return null;
+        }
+        else
+        {
+            if (logger.isDebugEnabled())
+                logger.debug("Estimated bitrate: " + bitrate);
+
+            return new RTCPREMBPacket(senderSSRC, mediaSSRC, bitrate, dest);
+        }
     }
 
     /**

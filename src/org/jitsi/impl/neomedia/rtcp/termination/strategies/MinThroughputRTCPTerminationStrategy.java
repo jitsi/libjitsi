@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * Minimizes endpoint throughput. It does that by sending REMB messages with the
@@ -42,15 +43,15 @@ public class MinThroughputRTCPTerminationStrategy
      * {@inheritDoc}
      */
     @Override
-    protected RTCPREMBPacket makeRTCPREMBPacket()
+    protected RTCPREMBPacket makeRTCPREMBPacket(
+            RemoteBitrateEstimator remoteBitrateEstimator,
+            long senderSSRC, long mediaSSRC, long[] dest)
     {
-        RTCPREMBPacket remb = super.makeRTCPREMBPacket();
-
-        if (remb != null)
-        {
-            remb.exp = MIN_EXP;
-            remb.mantissa = MIN_MANTISSA;
-        }
-        return remb;
+        return
+            new RTCPREMBPacket(
+                    senderSSRC,
+                    mediaSSRC,
+                    MIN_EXP, MIN_MANTISSA,
+                    dest);
     }
 }
