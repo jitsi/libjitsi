@@ -110,6 +110,16 @@ public class RTCPREMBPacket extends RTCPFBPacket
         super.type = PSFB;
     }
 
+    public long[] getDest()
+    {
+        return this.dest;
+    }
+
+    public void setDest(long[] dest)
+    {
+        this.dest = dest;
+    }
+
 /*
     0                   1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1

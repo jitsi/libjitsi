@@ -55,6 +55,11 @@ public class SsrcRewritingEngine implements TransformEngine
     private static final int INVALID_SEQNUM = -1;
 
     /**
+     * An int const indicating an invalid SSRC.
+     */
+    private static final int INVALID_SSRC = 0;
+
+    /**
      * An int const indicating an invalid payload type.
      */
     private static final int UNMAP_PT = -1;
@@ -444,6 +449,48 @@ public class SsrcRewritingEngine implements TransformEngine
     }
 
     /**
+     * Reverse rewrites the target SSRC into an origin SSRC based on the
+     * currently active SSRC rewriter for that target SSRC.
+     * @param targetSSRC
+     */
+    private int reverseRewriteSSRC(int ssrc)
+    {
+        // If there is an <tt>SsrcGroupRewriter</tt>, rewrite
+        // the packet, otherwise include it unaltered.
+        Tracked<SsrcGroupRewriter> trackedSsrcGroupRewriter
+            = target2rewriter.get(ssrc);
+
+        SsrcGroupRewriter ssrcGroupRewriter = null;
+        if (trackedSsrcGroupRewriter != null)
+        {
+            ssrcGroupRewriter
+                = trackedSsrcGroupRewriter.getTracked();
+        }
+        else
+        {
+            return INVALID_SSRC;
+        }
+
+        if (ssrcGroupRewriter == null)
+        {
+            return INVALID_SSRC;
+        }
+
+        SsrcGroupRewriter.SsrcRewriter activeRewriter
+            = ssrcGroupRewriter.getActiveRewriter();
+
+        if (activeRewriter == null)
+        {
+
+            logDebug("Could not find an SsrcRewriter for " +
+                    "the RTCP packet type: ");
+            return INVALID_SSRC;
+        }
+
+        return activeRewriter.getSourceSSRC();
+    }
+
+    /**
      * The <tt>PacketTransformer</tt> that rewrites <tt>RawPacket</tt>s that
      * represent RTP packets. This <tt>PacketTransformer</tt> is an entry point
      * to this class.
@@ -551,9 +598,6 @@ public class SsrcRewritingEngine implements TransformEngine
                         // We would also be able to reverse transform RTCP
                         // packets, like NACKs.
                         break;
-                    case RTCPPacket.APP:
-                        RTCPAPPPacket app = (RTCPAPPPacket) inRTCPPacket;
-                        break;
                     case RTCPFBPacket.PSFB:
                         // Get the synchronization source identifier of the
                         // media source that this piece of feedback information
@@ -561,43 +605,65 @@ public class SsrcRewritingEngine implements TransformEngine
                         RTCPFBPacket psfb = (RTCPFBPacket) inRTCPPacket;
                         int ssrc = (int) psfb.sourceSSRC;
 
-                        // If there is an <tt>SsrcGroupRewriter</tt>, rewrite
-                        // the packet, otherwise include it unaltered.
-                        SsrcGroupRewriter ssrcGroupRewriter
-                            = origin2rewriter.get(ssrc);
-
-                        if (ssrcGroupRewriter == null)
+                        if (ssrc != 0)
                         {
-                            if (psfb.fmt != RTCPREMBPacket.FMT)
+                            int reverseSSRC = reverseRewriteSSRC(ssrc);
+
+                            if (reverseSSRC == INVALID_SSRC)
                             {
+                                // We only really care if it's NOT a REMB.
                                 logDebug("Could not find an " +
-                                    "SsrcGroupRewriter for the RTCP packet " +
-                                    "type: " + inRTCPPacket.type + " with " +
-                                    "sourceSSRC: " + ssrc);
+                                        "SsrcGroupRewriter for the RTCP packet: " +
+                                        psfb.toString());
                             }
-
-                            continue;
+                            else
+                            {
+                                psfb.sourceSSRC = reverseSSRC & 0xffffffffl;
+                            }
                         }
 
-                        SsrcGroupRewriter.SsrcRewriter activeRewriter
-                            = ssrcGroupRewriter.getActiveRewriter();
-
-                        if (activeRewriter == null)
+                        switch (psfb.type)
                         {
+                            case RTCPREMBPacket.FMT:
+                                // Special handling for REMB messages.
+                                RTCPREMBPacket remb = (RTCPREMBPacket) psfb;
+                                long[] dest = remb.getDest();
+                                if (dest != null && dest.length != 0)
+                                {
+                                    for (int i = 0; i < dest.length; i++)
+                                    {
+                                        int reverseSSRC = reverseRewriteSSRC((int) dest[i]);
+                                        if (reverseSSRC == INVALID_SSRC)
+                                        {
+                                            logDebug("Could not find an " +
+                                                    "SsrcGroupRewriter for the RTCP packet: " +
+                                                    psfb.toString());
+                                        }
+                                        else
+                                        {
+                                            dest[i] = reverseSSRC & 0xffffffffl;
+                                        }
+                                    }
+                                }
 
-                            logDebug("Could not find an SsrcRewriter for " +
-                                "the RTCP packet type: ");
-                            continue;
+                                remb.setDest(dest);
+                                break;
                         }
 
-                        psfb.sourceSSRC
-                            = activeRewriter.getSourceSSRC() & 0xffffffffl;
                         outRTCPPackets.add(psfb);
 
                         break;
+                    case RTCPFBPacket.RTPFB:
+                        RTCPFBPacket psfb1 = (RTCPFBPacket) inRTCPPacket;
+                        if (psfb1.fmt != 1)
+                        {
+                            logWarn(
+                                    "Unhandled RTCP packet: " + inRTCPPacket.toString());
+                        }
+                        break;
                     default:
                         logWarn(
-                            "Unhandled RTCP packet type: " + inRTCPPacket.type);
+                            "Unhandled RTCP packet: " + inRTCPPacket.toString());
                         break;
                 }
             }
@@ -635,7 +701,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * Does the actual work of rewriting a group of SSRCs to a target SSRC. This
      * class is not thread-safe.
      */
-    class SsrcGroupRewriter
+    public class SsrcGroupRewriter
     {
         /**
          * A map of SSRCs to <tt>SsrcRewriter</tt>. Each SSRC that we rewrite in
@@ -698,6 +764,11 @@ public class SsrcRewritingEngine implements TransformEngine
         public SsrcRewriter getActiveRewriter()
         {
             return activeRewriter;
+        }
+
+        public Collection<SsrcRewriter> getRewriters()
+        {
+            return rewriters.values();
         }
 
         /**
@@ -832,7 +903,7 @@ public class SsrcRewritingEngine implements TransformEngine
          * Rewrites SSRCs and sequence numbers of a given source SSRC. This
          * class is not thread-safe.
          */
-        class SsrcRewriter
+        public class SsrcRewriter
         {
             /**
              * The origin SSRC that this <tt>SsrcRewriter</tt> rewrites. The
@@ -870,6 +941,11 @@ public class SsrcRewritingEngine implements TransformEngine
             public SsrcRewriter(int sourceSSRC)
             {
                 this.sourceSSRC = sourceSSRC;
+            }
+
+            public Collection<ExtendedSequenceNumberInterval> getExtendedSequenceNumberIntervals()
+            {
+                return intervals.values();
             }
 
             /**
@@ -1116,7 +1192,7 @@ public class SsrcRewritingEngine implements TransformEngine
              * Does the dirty job of rewriting SSRCs and sequence numbers of a
              * given extended sequence number interval of a given source SSRC.
              */
-            class ExtendedSequenceNumberInterval
+            public class ExtendedSequenceNumberInterval
             {
                 /**
                  * The extended minimum sequence number of this interval.
@@ -1154,6 +1230,21 @@ public class SsrcRewritingEngine implements TransformEngine
                     this.extendedMaxOrig = extendedBaseOrig;
                 }
 
+                public long getLastSeen()
+                {
+                    return lastSeen;
+                }
+
+                public int getExtendedMin()
+                {
+                    return extendedMinOrig;
+                }
+
+                public int getExtendedMax()
+                {
+                    return extendedMaxOrig;
+                }
+
                 /**
                  * Returns a boolean determining whether a sequence number
                  * is contained in this interval or not.
@@ -1167,14 +1258,6 @@ public class SsrcRewritingEngine implements TransformEngine
                 {
                     return extendedMinOrig >= extendedSequenceNumber
                         && extendedSequenceNumber <= extendedMaxOrig;
-                }
-
-                /**
-                 * {@inheritDoc}
-                 */
-                public String toString()
-                {
-                    return "[" + extendedMinOrig + ", " + extendedMaxOrig + "]";
                 }
 
                 /**
