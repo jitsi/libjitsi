@@ -320,7 +320,7 @@ public interface MediaStreamStats
     public double getMaxUploadJitterMs();
 
     /**
-     * Gets the average of the RTP jitter values reported by us in RTCP reports,
+     * Gets the average of the RTP jitter values reported to us in RTCP reports,
      * in milliseconds. Returns -1D if the value is unknown.
      * @return  the average of the RTP jitter values reported to us in RTCP
      * reports, in milliseconds. Returns -1D if the value is unknown.
@@ -350,10 +350,10 @@ public interface MediaStreamStats
     public long getDownloadNbPacketLost();
 
     /**
-     * Returns the number of RTP packets sent by the remote side, but not
-     * received by us.
-     * @return the number of RTP packets sent by the remote side, but not
-     * received by us.
+     * Returns the number of RTP packets sent by us, but not
+     * received by the remote side.
+     * @return the number of RTP packets sent by us, but not
+     * received by the remote side.
      */
     public long getUploadNbPacketLost();
 }
