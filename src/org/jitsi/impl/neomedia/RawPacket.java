@@ -615,9 +615,17 @@ public class RawPacket
     public int getPaddingSize()
     {
         if ((buffer[offset] & 0x20) == 0)
+        {
             return 0;
+        }
         else
-            return buffer[offset + length - 1];
+        {
+            // The last octet of the padding contains a count of how many
+            // padding octets should be ignored, including itself.
+
+            // XXX It's an 8-bit unsigned number.
+            return 0xFF & buffer[offset + length - 1];
+        }
     }
 
     /**
@@ -628,6 +636,9 @@ public class RawPacket
      */
     public byte[] getPayload()
     {
+        // FIXME The payload includes the padding at the end. Do we really want
+        // it though? We are currently keeping the implementation as it is for
+        // compatibility with existing code.
         return readRegion(getHeaderLength(), getPayloadLength());
     }
 
@@ -638,9 +649,11 @@ public class RawPacket
      */
     public int getPayloadLength()
     {
+        // FIXME The payload includes the padding at the end. Do we really want
+        // it though? We are currently keeping the implementation as it is for
+        // compatibility with existing code.
         return length - getHeaderLength();
     }
-
 
     /**
      * Get the RTP payload offset of an RTP packet.
