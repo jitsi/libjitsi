@@ -308,7 +308,7 @@ public class MediaStreamImpl
      * (which is extremely lightweight) but it needs to be initialized so that
      * it can work.
      */
-    final SsrcRewritingEngine ssrcRewritingEngine
+    private final SsrcRewritingEngine ssrcRewritingEngine
         = new SsrcRewritingEngine(this);
 
     /**
