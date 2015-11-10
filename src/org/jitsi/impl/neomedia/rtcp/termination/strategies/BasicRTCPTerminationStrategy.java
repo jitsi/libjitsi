@@ -194,7 +194,7 @@ public class BasicRTCPTerminationStrategy
 
             // Update our RTCP stats map (timestamps). This operation is
             // read-only.
-            remoteClockEstimator.apply(inPacket);
+            remoteClockEstimator.update(inPacket);
 
             cnameRegistry.update(inPacket);
 
@@ -450,6 +450,12 @@ public class BasicRTCPTerminationStrategy
             // receiveStream.
             SSRCInfo info = cache.cache.get((int) receiveStream.getSSRC());
 
+            if (info == null)
+            {
+                logger.warn("We have a ReceiveStream but not an SSRCInfo for " +
+                    "that ReceiveStream.");
+                continue;
+            }
             if (!info.ours && info.sender)
             {
                 RTCPReportBlock rtcpReportBlock = info.makeReceiverReport(time);
@@ -666,6 +672,12 @@ public class BasicRTCPTerminationStrategy
         /**
          * Removes receiver and sender feedback from RTCP packets.
          *
+         * TODO We need to be selective when gatewaying/sending receiver
+         * feedback and only forward RTCP packets that are targeted to the
+         * owning MediaStream. We can determine this by looking at the SSRCs
+         * that the owning MediaStream receives. For example, we don't want
+         * to send PLIs or FIRs to endpoints that are not concerned.
+         *
          * @param inPacket the <tt>RTCPCompoundPacket</tt> to filter.
          * @return the filtered <tt>RawPacket</tt>.
          */
@@ -875,118 +887,6 @@ public class BasicRTCPTerminationStrategy
     }
 
     /**
-     * The <tt>RTPStatsEntry</tt> class contains information about an outgoing
-     * SSRC.
-     */
-    class RTPStatsEntry
-    {
-        /**
-         * The SSRC of the stream that this instance tracks.
-         */
-        private final int ssrc;
-
-        /**
-         * The total number of _payload_ octets (i.e., not including header or
-         * padding) transmitted in RTP data packets by the sender since
-         * starting transmission up until the time this SR packet was
-         * generated. This should be treated as an unsigned int.
-         */
-        private final int bytesSent;
-
-        /**
-         * The total number of RTP data packets transmitted by the sender
-         * (including re-transmissions) since starting transmission up until
-         * the time this SR packet was generated. Re-transmissions using an RTX
-         * stream are tracked in the RTX SSRC. This should be treated as an
-         * unsigned int.
-         */
-        private final int packetsSent;
-
-        /**
-         *
-         * @return
-         */
-        public int getSsrc()
-        {
-            return ssrc;
-        }
-
-        /**
-         *
-         * @return
-         */
-        public int getBytesSent()
-        {
-            return bytesSent;
-        }
-
-        /**
-         *
-         * @return
-         */
-        public int getPacketsSent()
-        {
-            return packetsSent;
-        }
-
-        /**
-         * Ctor.
-         *
-         * @param ssrc
-         * @param bytesSent
-         */
-        RTPStatsEntry(int ssrc, int bytesSent, int packetsSent)
-        {
-            this.ssrc = ssrc;
-            this.bytesSent = bytesSent;
-            this.packetsSent = packetsSent;
-        }
-    }
-
-    /**
-     * The <tt>RtpStatsMap</tt> gathers stats from RTP packets that the
-     * <tt>RTCPReportBuilder</tt> uses to build its reports.
-     */
-    class RTPStatsMap
-            extends ConcurrentHashMap<Integer, RTPStatsEntry>
-    {
-        /**
-         * Updates this <tt>RTPStatsMap</tt> with information it gets from the
-         * <tt>RawPacket</tt>.
-         *
-         * @param pkt the <tt>RawPacket</tt> that is being transmitted.
-         */
-        public void apply(RawPacket pkt)
-        {
-            int ssrc = pkt.getSSRC();
-            if (this.containsKey(ssrc))
-            {
-                RTPStatsEntry oldRtpStatsEntry = this.get(ssrc);
-
-                // Replace whatever was in there before. A feature of the two's
-                // complement encoding (which is used by Java integers) is that
-                // the bitwise results for add, subtract, and multiply are the
-                // same if both inputs are interpreted as signed values or both
-                // inputs are interpreted as unsigned values. (Other encodings
-                // like one's complement and signed magnitude don't have this
-                // properly.)
-                this.put(ssrc, new RTPStatsEntry(
-                    ssrc, oldRtpStatsEntry.getBytesSent() + pkt.getLength()
-                    - pkt.getHeaderLength() - pkt.getPaddingSize(),
-                    oldRtpStatsEntry.getPacketsSent() + 1));
-            }
-            else
-            {
-                // Add a new <tt>RTPStatsEntry</tt> in this map.
-                this.put(ssrc, new RTPStatsEntry(
-                    ssrc, pkt.getLength()
-                    - pkt.getHeaderLength() - pkt.getPaddingSize(),
-                    1));
-            }
-        }
-    }
-
-    /**
      * A class that can be used to estimate the remote time at a given local
      * time.
      */
@@ -1014,7 +914,7 @@ public class BasicRTCPTerminationStrategy
          *
          * @param pkt
          */
-        public void apply(RTCPCompoundPacket pkt)
+        public void update(RTCPCompoundPacket pkt)
         {
             if (pkt == null || pkt.packets == null || pkt.packets.length == 0)
             {
