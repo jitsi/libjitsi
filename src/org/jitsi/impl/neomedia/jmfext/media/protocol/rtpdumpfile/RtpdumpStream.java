@@ -153,12 +153,12 @@ public class RtpdumpStream
 
         if (lastRtpTimestamp == -1)
         {
-            lastRtpTimestamp = 0xffffffffL & rtpPacket.getTimestamp();
+            lastRtpTimestamp = rtpPacket.getTimestamp();
             return;
         }
 
         long previous= lastRtpTimestamp;
-        lastRtpTimestamp = 0xffffffffL & rtpPacket.getTimestamp();
+        lastRtpTimestamp = rtpPacket.getTimestamp();
 
         long rtpDiff = lastRtpTimestamp - previous;
 

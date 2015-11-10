@@ -734,7 +734,7 @@ public class RawPacket
      */
     public long getTimestamp()
     {
-        return readInt(4);
+        return readInt(4) & 0xffffffffl;
     }
 
     /**
