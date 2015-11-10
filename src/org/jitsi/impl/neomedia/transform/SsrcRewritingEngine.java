@@ -727,7 +727,7 @@ public class SsrcRewritingEngine implements TransformEngine
          */
         private int currentExtendedSeqnumBase;
 
-        /*
+        /**
          * Holds the max RTP timestamp that we've sent (to the endpoint).
          *
          * Ideally, what we should do is fully rewrite the timestamps, unless we
