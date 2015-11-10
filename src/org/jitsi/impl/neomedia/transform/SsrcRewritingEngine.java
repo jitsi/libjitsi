@@ -26,6 +26,7 @@ import java.util.concurrent.*;
 import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.util.*;
 import org.jitsi.util.function.*;
+import org.jitsi.impl.neomedia.codec.video.vp8.*;
 
 /**
  * Rewrites source SSRCs {A, B, C, ...} to target SSRC A'. Note that this also
@@ -572,7 +573,7 @@ public class SsrcRewritingEngine implements TransformEngine
             // and the same clock rate, so we don't need to do any modifications
             // to the RTP/RTCP timestamps. BUT .. if this assumption stops being
             // true, everything will probably stop working. You have been
-            // warned.
+            // warned TAG(timestamp-uplifting).
 
             for (RTCPPacket inRTCPPacket : inPacket.packets)
             {
@@ -589,6 +590,8 @@ public class SsrcRewritingEngine implements TransformEngine
                     case RTCPPacket.RR:
                     case RTCPPacket.SR:
                     case RTCPPacket.SDES:
+                        // FIXME Is it a good thing to eat up thos (no!)? How
+                        // is FMJ supposed to know what's going on?
                     case RTCPPacket.BYE:
                         // RTCP termination takes care of all these, so we
                         // don't include them in the outPacket..
@@ -723,6 +726,31 @@ public class SsrcRewritingEngine implements TransformEngine
          * sequence number cycles.
          */
         private int currentExtendedSeqnumBase;
+
+        /*
+         * Holds the max RTP timestamp that we've sent (to the endpoint).
+         *
+         * Ideally, what we should do is fully rewrite the timestamps, unless we
+         * can take advantage of some knowledge of the system. We have observed
+         * that in the Chromium simulcast implementation the initial timestamp
+         * value is the same for all the simulcast streams. Since they also
+         * share the same NTP clock, we can conclude that the RTP timestamps
+         * advance at the same rate. This means that we don't have to rewrite
+         * the RTP timestamps TAG(timestamp-uplifting).
+         *
+         * A small problem occurs when a stream switch happens: When a stream
+         * switches we request a keyframe for the stream we want to switch into.
+         * The problem is that the frames are sampled at different times, so
+         * we might end up with a key frame that is one sampling cycle behind
+         * what we were already streaming. We hack around this by implementing
+         * "RTP timestamp uplifting".
+         *
+         * When a switch occurs, we store the maximum timestamp that we've sent
+         * to an endpoint. If we observe new packets (NOT retransmissions) with
+         * timestamp older than what the endpoint has already seen, we overwrite
+         * the timestamp with maxTimestamp + 1.
+         */
+        private long maxTimestamp;
 
         /**
          * The current <tt>SsrcRewriter</tt> that we use to rewrite source
@@ -1004,7 +1032,22 @@ public class SsrcRewritingEngine implements TransformEngine
                     // more packets to the stream, increase the sequence number
                     // interval range.
                     currentExtendedSequenceNumberInterval.extendedMaxOrig = origExtendedSequenceNumber;
+                    // the timestamp needs to be greater or equal to the
+                    // maxTimestamp for the current extended sequence number
+                    // interval.
+                    currentExtendedSequenceNumberInterval.maxTimestamp = pkt.getTimestamp();
                     currentExtendedSequenceNumberInterval.lastSeen = System.currentTimeMillis();
+                }
+
+                if (logger.isDebugEnabled())
+                {
+                    // Please let me know when RTP timestamp uplifting happens,
+                    // will ya?
+                    if (pkt.getTimestamp() < maxTimestamp)
+                    {
+                        logDebug("RTP timestamp uplifting.");
+                        pkt.setTimestamp(maxTimestamp + 1);
+                    }
                 }
 
                 return currentExtendedSequenceNumberInterval.rewriteRTP(pkt);
@@ -1023,6 +1066,9 @@ public class SsrcRewritingEngine implements TransformEngine
                 {
                     intervals.put(currentExtendedSequenceNumberInterval.extendedMaxOrig,
                         currentExtendedSequenceNumberInterval);
+                    // Store the max timestamp so that we can consult it when
+                    // we rewrite the next packets of the next stream.
+                    maxTimestamp = currentExtendedSequenceNumberInterval.maxTimestamp;
                     currentExtendedSequenceNumberInterval = null;
 
                     // TODO We don't need to keep track of more than 2 cycles,
@@ -1214,6 +1260,12 @@ public class SsrcRewritingEngine implements TransformEngine
                  * The time this interval has been closed.
                  */
                 private long lastSeen;
+
+                /**
+                 * Holds the max RTP timestamp that we've sent (to the endpoint)
+                 * in this interval.
+                 */
+                private long maxTimestamp;
 
                 /**
                  * Ctor.
