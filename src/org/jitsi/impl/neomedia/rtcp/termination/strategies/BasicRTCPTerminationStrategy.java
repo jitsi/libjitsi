@@ -63,17 +63,10 @@ public class BasicRTCPTerminationStrategy
     private static final int MIN_RTCP_REPORT_BLOCKS = 0;
 
     /**
-     * A reusable array that can be used to hold up to
-     * <tt>MAX_RTCP_REPORT_BLOCKS</tt> <tt>RTCPReportBlock</tt>s. It is assumed
-     * that a single thread is accessing this field at a given time.
+     * A reusable array that holds {@link #MIN_RTCP_REPORT_BLOCKS}
+     * <tt>RTCPReportBlock</tt>s.
      */
-    private final RTCPReportBlock[] MAX_RTCP_REPORT_BLOCKS_ARRAY
-        = new RTCPReportBlock[MAX_RTCP_REPORT_BLOCKS];
-
-    /**
-     * A reusable array that holds 0 <tt>RTCPReportBlock</tt>s.
-     */
-    private static final RTCPReportBlock[] MIN_RTCP_REPORTS_BLOCKS_ARRAY
+    private static final RTCPReportBlock[] MIN_RTCP_REPORT_BLOCKS_ARRAY
         = new RTCPReportBlock[MIN_RTCP_REPORT_BLOCKS];
 
     /**
@@ -271,51 +264,50 @@ public class BasicRTCPTerminationStrategy
         // reason, we can just guess 1200 or 1500 bytes per message.
         long time = System.currentTimeMillis();
 
-        Collection<RTCPPacket> packets = new ArrayList<RTCPPacket>();
+        Collection<RTCPPacket> rtcps = new ArrayList<RTCPPacket>();
 
         // First, we build the RRs.
-        Collection<RTCPRRPacket> rrPackets = makeRTCPRRPackets(time);
-        if (rrPackets != null && rrPackets.size() != 0)
+        Collection<RTCPRRPacket> rrs = makeRRs(time);
+        if (rrs != null && !rrs.isEmpty())
         {
-            packets.addAll(rrPackets);
+            rtcps.addAll(rrs);
         }
 
         // Next, we build the SRs.
-        Collection<RTCPSRPacket> srPackets = makeRTCPSRPackets(time);
-        if (srPackets != null && srPackets.size() != 0)
+        Collection<RTCPSRPacket> srs = makeSRs(time);
+        if (srs != null && !srs.isEmpty())
         {
-            packets.addAll(srPackets);
+            rtcps.addAll(srs);
         }
 
         // Bail out if we have nothing to report.
-        if (packets.size() == 0)
+        if (rtcps.isEmpty())
         {
             return null;
         }
 
         // Next, we build the REMB.
-        RTCPREMBPacket rembPacket = makeRTCPREMBPacket();
-        if (rembPacket != null)
+        RTCPREMBPacket remb = makeREMB();
+        if (remb != null)
         {
-            packets.add(rembPacket);
+            rtcps.add(remb);
         }
 
         // Finally, we add an SDES packet.
-        RTCPSDESPacket sdesPacket = makeSDESPacket();
-        if (sdesPacket != null)
+        RTCPSDESPacket sdes = makeSDES();
+        if (sdes != null)
         {
-            packets.add(sdesPacket);
+            rtcps.add(sdes);
         }
 
         // Prepare the <tt>RTCPCompoundPacket</tt> to return.
-        RTCPPacket rtcpPackets[]
-            = packets.toArray(new RTCPPacket[packets.size()]);
-
-        RTCPCompoundPacket cp = new RTCPCompoundPacket(rtcpPackets);
+        RTCPCompoundPacket compound
+            = new RTCPCompoundPacket(
+                    rtcps.toArray(new RTCPPacket[rtcps.size()]));
 
         // Build the <tt>RTCPCompoundPacket</tt> and return the
         // <tt>RawPacket</tt> to inject to the <tt>MediaStream</tt>.
-        return generator.apply(cp);
+        return generator.apply(compound);
     }
 
     /**
@@ -336,19 +328,19 @@ public class BasicRTCPTerminationStrategy
      * @return A <tt>Collection</tt> of <tt>RTCPRRPacket</tt>s to inject to the
      * <tt>MediaStream</tt>.
      */
-    private Collection<RTCPRRPacket> makeRTCPRRPackets(long time)
+    private Collection<RTCPRRPacket> makeRRs(long time)
     {
-        RTCPReportBlock[] reportBlocks = makeRTCPReportBlocks(time);
+        RTCPReportBlock[] reportBlocks = makeReportBlocks(time);
         if (reportBlocks == null || reportBlocks.length == 0)
         {
             return null;
         }
 
-        Collection<RTCPRRPacket> rrPackets = new ArrayList<RTCPRRPacket>();
+        Collection<RTCPRRPacket> rrs = new ArrayList<RTCPRRPacket>();
 
         // We use the stream's local source ID (SSRC) as the SSRC of packet
         // sender.
-        long streamSSRC = getLocalSSRC();
+        int streamSSRC = (int) getLocalSSRC();
 
         // Since a maximum of 31 reception report blocks will fit in an SR
         // or RR packet, additional RR packets SHOULD be stacked after the
@@ -358,30 +350,31 @@ public class BasicRTCPTerminationStrategy
         if (reportBlocks.length > MAX_RTCP_REPORT_BLOCKS)
         {
             for (int offset = 0;
-                 offset < reportBlocks.length;
-                 offset += MAX_RTCP_REPORT_BLOCKS)
+                    offset < reportBlocks.length;
+                    offset += MAX_RTCP_REPORT_BLOCKS)
             {
-                RTCPReportBlock[] blocks
-                    = (reportBlocks.length - offset < MAX_RTCP_REPORT_BLOCKS)
-                    ? new RTCPReportBlock[reportBlocks.length - offset]
-                    : MAX_RTCP_REPORT_BLOCKS_ARRAY;
+                int blockCount
+                    = Math.min(
+                            reportBlocks.length - offset,
+                            MAX_RTCP_REPORT_BLOCKS);
+                RTCPReportBlock[] blocks = new RTCPReportBlock[blockCount];
 
                 System.arraycopy(
-                    reportBlocks, offset, blocks, 0, blocks.length);
+                        reportBlocks, offset,
+                        blocks, 0,
+                        blocks.length);
 
-                RTCPRRPacket rr
-                    = new RTCPRRPacket((int) streamSSRC, blocks);
-                rrPackets.add(rr);
+                RTCPRRPacket rr = new RTCPRRPacket(streamSSRC, blocks);
+                rrs.add(rr);
             }
         }
         else
         {
-            RTCPRRPacket rr
-                = new RTCPRRPacket((int) streamSSRC, reportBlocks);
-            rrPackets.add(rr);
+            RTCPRRPacket rr = new RTCPRRPacket(streamSSRC, reportBlocks);
+            rrs.add(rr);
         }
 
-        return rrPackets;
+        return rrs;
     }
 
     /**
@@ -392,21 +385,21 @@ public class BasicRTCPTerminationStrategy
      * @param time
      * @return
      */
-    private RTCPReportBlock[] makeRTCPReportBlocks(long time)
+    private RTCPReportBlock[] makeReportBlocks(long time)
     {
         MediaStream stream = getStream();
         // State validation.
         if (stream == null)
         {
             logger.warn("stream is null.");
-            return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
+            return MIN_RTCP_REPORT_BLOCKS_ARRAY;
         }
 
         StreamRTPManager streamRTPManager = stream.getStreamRTPManager();
         if (streamRTPManager == null)
         {
             logger.warn("streamRTPManager is null.");
-            return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
+            return MIN_RTCP_REPORT_BLOCKS_ARRAY;
         }
 
         Collection<ReceiveStream> receiveStreams;
@@ -430,18 +423,18 @@ public class BasicRTCPTerminationStrategy
         {
             logger.info(
                     "There are no receive streams to build report blocks for.");
-            return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
+            return MIN_RTCP_REPORT_BLOCKS_ARRAY;
         }
 
         SSRCCache cache = streamRTPManager.getSSRCCache();
         if (cache == null)
         {
             logger.info("cache is null.");
-            return MIN_RTCP_REPORTS_BLOCKS_ARRAY;
+            return MIN_RTCP_REPORT_BLOCKS_ARRAY;
         }
 
         // Create and populate the return object.
-        Collection<RTCPReportBlock> rtcpReportBlocks
+        Collection<RTCPReportBlock> reportBlocks
             = new ArrayList<RTCPReportBlock>();
 
         for (ReceiveStream receiveStream : receiveStreams)
@@ -458,14 +451,12 @@ public class BasicRTCPTerminationStrategy
             }
             if (!info.ours && info.sender)
             {
-                RTCPReportBlock rtcpReportBlock = info.makeReceiverReport(time);
-                rtcpReportBlocks.add(rtcpReportBlock);
+                RTCPReportBlock reportBlock = info.makeReceiverReport(time);
+                reportBlocks.add(reportBlock);
             }
         }
 
-        return
-            rtcpReportBlocks.toArray(
-                    new RTCPReportBlock[rtcpReportBlocks.size()]);
+        return reportBlocks.toArray(new RTCPReportBlock[reportBlocks.size()]);
     }
 
     /**
@@ -475,7 +466,7 @@ public class BasicRTCPTerminationStrategy
      * @return an <tt>RTCPREMBPacket</tt> that provides receiver feedback to the
      * endpoint from which we receive.
      */
-    private RTCPREMBPacket makeRTCPREMBPacket()
+    private RTCPREMBPacket makeREMB()
     {
         // TODO we should only make REMBs if REMB support has been advertised.
         // Destination
@@ -499,9 +490,9 @@ public class BasicRTCPTerminationStrategy
         long streamSSRC = getLocalSSRC();
 
         return
-                makeRTCPREMBPacket(
-                        remoteBitrateEstimator,
-                        streamSSRC, /* mediaSSRC */ 0L, dest);
+            makeREMB(
+                    remoteBitrateEstimator,
+                    streamSSRC, /* mediaSSRC */ 0L, dest);
     }
 
     /**
@@ -515,7 +506,7 @@ public class BasicRTCPTerminationStrategy
      * @return an <tt>RTCPREMBPacket</tt> that provides receiver feedback to the
      * endpoint from which we receive.
      */
-    protected RTCPREMBPacket makeRTCPREMBPacket(
+    protected RTCPREMBPacket makeREMB(
             RemoteBitrateEstimator remoteBitrateEstimator,
             long senderSSRC, long mediaSSRC, long[] dest)
     {
@@ -541,9 +532,9 @@ public class BasicRTCPTerminationStrategy
      * @return a <tt>List</tt> of <tt>RTCPSRPacket</tt> for all the RTP streams
      * that we're sending.
      */
-    private Collection<RTCPSRPacket> makeRTCPSRPackets(long time)
+    private Collection<RTCPSRPacket> makeSRs(long time)
     {
-        Collection<RTCPSRPacket> srPackets = new ArrayList<RTCPSRPacket>();
+        Collection<RTCPSRPacket> srs = new ArrayList<RTCPSRPacket>();
 
         for (RTPStatsEntry rtpStatsEntry : rtpStatsMap.values())
         {
@@ -555,27 +546,27 @@ public class BasicRTCPTerminationStrategy
                 continue;
             }
 
-            RTCPSRPacket srPacket
-                = new RTCPSRPacket(ssrc, MIN_RTCP_REPORTS_BLOCKS_ARRAY);
+            RTCPSRPacket sr
+                = new RTCPSRPacket(ssrc, MIN_RTCP_REPORT_BLOCKS_ARRAY);
 
             // Set the NTP timestamp for this SR.
             long estimatedRemoteTime = estimate.getRemoteTime();
             long secs = estimatedRemoteTime / 1000L;
             double fraction = (estimatedRemoteTime - secs * 1000L) / 1000D;
-            srPacket.ntptimestamplsw = (int) (fraction * 4294967296D);
-            srPacket.ntptimestampmsw = secs;
+            sr.ntptimestamplsw = (int) (fraction * 4294967296D);
+            sr.ntptimestampmsw = secs;
 
             // Set the RTP timestamp.
-            srPacket.rtptimestamp = estimate.getRtpTimestamp();
+            sr.rtptimestamp = estimate.getRtpTimestamp();
 
             // Fill-in packet and octet send count.
-            srPacket.packetcount = rtpStatsEntry.getPacketsSent();
-            srPacket.octetcount = rtpStatsEntry.getBytesSent();
+            sr.packetcount = rtpStatsEntry.getPacketsSent();
+            sr.octetcount = rtpStatsEntry.getBytesSent();
 
-            srPackets.add(srPacket);
+            srs.add(sr);
         }
 
-        return srPackets;
+        return srs;
     }
 
     /**
@@ -585,7 +576,7 @@ public class BasicRTCPTerminationStrategy
      * @return a <tt>List</tt> of <tt>RTCPSDES</tt> packets for all the RTP
      * streams that we're sending.
      */
-    private RTCPSDESPacket makeSDESPacket()
+    private RTCPSDESPacket makeSDES()
     {
         Collection<RTCPSDES> sdesChunks = new ArrayList<RTCPSDES>();
 
@@ -690,8 +681,8 @@ public class BasicRTCPTerminationStrategy
                 return null;
             }
 
-            ArrayList<RTCPPacket> outPackets = new ArrayList<RTCPPacket>(
-                inPacket.packets.length);
+            ArrayList<RTCPPacket> outPackets
+                = new ArrayList<RTCPPacket>(inPacket.packets.length);
 
             for (RTCPPacket p : inPacket.packets)
             {
@@ -725,7 +716,7 @@ public class BasicRTCPTerminationStrategy
                 }
             }
 
-            if (outPackets.size() == 0)
+            if (outPackets.isEmpty())
             {
                 return null;
             }
@@ -733,21 +724,20 @@ public class BasicRTCPTerminationStrategy
             // We have feedback messages to send. Pack them in a compound
             // RR and send them. TODO Use RFC5506 Reduced-Size RTCP, if the
             // receiver supports it.
-            Collection<RTCPRRPacket> rrPackets
-                = makeRTCPRRPackets(System.currentTimeMillis());
+            Collection<RTCPRRPacket> rrs = makeRRs(System.currentTimeMillis());
 
-            if (rrPackets != null && rrPackets.size() != 0)
+            if (rrs != null && !rrs.isEmpty())
             {
-                outPackets.addAll(0, rrPackets);
+                outPackets.addAll(0, rrs);
             }
             else
             {
                 logger.warn("We might be sending invalid RTCPs.");
             }
 
-            RTCPPacket[] pkts
-                = outPackets.toArray(new RTCPPacket[outPackets.size()]);
-            RTCPCompoundPacket outPacket = new RTCPCompoundPacket(pkts);
+            RTCPCompoundPacket outPacket
+                = new RTCPCompoundPacket(
+                        outPackets.toArray(new RTCPPacket[outPackets.size()]));
 
             return generator.apply(outPacket);
         }
@@ -905,7 +895,7 @@ public class BasicRTCPTerminationStrategy
         /**
          * A map holding the received remote clocks.
          */
-        private Map<Integer, ReceivedRemoteClock> receivedClocks
+        private final Map<Integer, ReceivedRemoteClock> receivedClocks
             = new ConcurrentHashMap<Integer, ReceivedRemoteClock>();
 
         /**

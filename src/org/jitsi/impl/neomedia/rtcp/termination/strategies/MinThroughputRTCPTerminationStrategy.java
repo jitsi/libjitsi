@@ -43,7 +43,7 @@ public class MinThroughputRTCPTerminationStrategy
      * {@inheritDoc}
      */
     @Override
-    protected RTCPREMBPacket makeRTCPREMBPacket(
+    protected RTCPREMBPacket makeREMB(
             RemoteBitrateEstimator remoteBitrateEstimator,
             long senderSSRC, long mediaSSRC, long[] dest)
     {
