@@ -311,15 +311,20 @@ public class BasicRTCPTerminationStrategy
     {
         Collection<RTCPPacket> rtcps = new ArrayList<RTCPPacket>();
 
-        // RRs
-        if (rrs != null && !rrs.isEmpty())
-        {
-            rtcps.addAll(rrs);
-        }
         // SRs
         if (srs != null && !srs.isEmpty())
         {
             rtcps.addAll(srs);
+
+            // SRs can carry the report blocks of the RRs and thus reduce the
+            // compound's size.
+            if (rrs != null && !rrs.isEmpty())
+                moveReportBlocks(rrs, srs);
+        }
+        // RRs
+        if (rrs != null && !rrs.isEmpty())
+        {
+            rtcps.addAll(rrs);
         }
 
         // RTCP packets other than SR, RR, and SDES.
@@ -337,6 +342,95 @@ public class BasicRTCPTerminationStrategy
 
         return
             new RTCPCompoundPacket(rtcps.toArray(new RTCPPacket[rtcps.size()]));
+    }
+
+    /**
+     * Moves report blocks from specific RRs into specific SRs.
+     *
+     * @param rrs the {@code List} of RRs to move report blocks from. If an RR
+     * remains with no report blocks (after a possible move), it is removed from
+     * the {@code List}.
+     * @param srs the {@code List} of SRs to move report blocks to
+     */
+    private void moveReportBlocks(
+            List<RTCPRRPacket> rrs,
+            List<RTCPSRPacket> srs)
+    {
+        for (RTCPSRPacket sr : srs)
+        {
+            if (rrs.isEmpty())
+            {
+                // There are no (more) RRs to replace with SRs.
+                break;
+            }
+
+            int srReportBlockCapacity
+                = MAX_RTCP_REPORT_BLOCKS - sr.reports.length;
+
+            if (srReportBlockCapacity <= 0)
+            {
+                // The current SR does not have the capacity to carry the report
+                // blocks of RRs.
+                continue;
+            }
+
+            for (Iterator<RTCPRRPacket> rrI = rrs.iterator(); rrI.hasNext();)
+            {
+                RTCPRRPacket rr = rrI.next();
+                int reportBlocksToMove
+                    = Math.min(srReportBlockCapacity, rr.reports.length);
+
+                if (reportBlocksToMove > 0)
+                {
+                    if (srReportBlockCapacity == MAX_RTCP_REPORT_BLOCKS
+                            && reportBlocksToMove == rr.reports.length)
+                    {
+                        // Since the SR appears to have the capacity to carry
+                        // MAX_RTCP_REPORT_BLOCKS number of report blocks, then
+                        // we assume its reports array is empty.
+                        RTCPReportBlock[] srReportBlocks = sr.reports;
+
+                        sr.reports = rr.reports;
+                        rr.reports = srReportBlocks;
+                    }
+                    else
+                    {
+                        // Copy report blocks from the RR to the SR.
+                        RTCPReportBlock[] srReportBlocks
+                            = new RTCPReportBlock[
+                                    sr.reports.length + reportBlocksToMove];
+
+                        System.arraycopy(
+                                sr.reports, 0,
+                                srReportBlocks, 0,
+                                sr.reports.length);
+                        System.arraycopy(
+                                rr.reports, 0,
+                                srReportBlocks, sr.reports.length,
+                                reportBlocksToMove);
+                        sr.reports = srReportBlocks;
+
+                        // Remove the copied report blocks from the RR.
+                        int rrReportBlockCount
+                            = rr.reports.length - reportBlocksToMove;
+                        RTCPReportBlock[] rrReportBlocks
+                            = new RTCPReportBlock[rrReportBlockCount];
+
+                        System.arraycopy(
+                                rr.reports, reportBlocksToMove,
+                                rrReportBlocks, 0,
+                                rrReportBlockCount);
+                        rr.reports = rrReportBlocks;
+                    }
+                }
+                if (rr.reports.length == 0)
+                {
+                    // The report blocks of the current RR will be carried by
+                    // the current SR so the current RR is no longer necessary.
+                    rrI.remove();
+                }
+            }
+        }
     }
 
     /**
