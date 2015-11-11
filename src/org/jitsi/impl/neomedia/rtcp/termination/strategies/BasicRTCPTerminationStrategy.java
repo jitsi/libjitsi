@@ -264,50 +264,79 @@ public class BasicRTCPTerminationStrategy
         // reason, we can just guess 1200 or 1500 bytes per message.
         long time = System.currentTimeMillis();
 
+        // RRs
+        List<RTCPRRPacket> rrs = makeRRs(time);
+        // SRs
+        List<RTCPSRPacket> srs = makeSRs(time);
+
+        // Bail out (early) if we have nothing to report.
+        if ((rrs == null || rrs.isEmpty()) && (srs == null || srs.isEmpty()))
+        {
+            return null;
+        }
+
+        // REMB
+        RTCPREMBPacket remb = makeREMB();
+
+        // SDES
+        RTCPSDESPacket sdes = makeSDES();
+
+        // Prepare the RTCPCompoundPacket to return.
+        RTCPCompoundPacket compound = compound(rrs, srs, sdes, remb);
+
+        // Build the RTCPCompoundPacket and return the RawPacket to inject into
+        // the MediaStream.
+        return generator.apply(compound);
+    }
+
+    /**
+     * Constructs a new {@code RTCPCompoundPacket}s out of specific SRs, RRs,
+     * SDES, and other RTCP packets.
+     *
+     * @param rrs
+     * @param srs
+     * @param sdes the {@code RTCPSDESPacket} to include in the new
+     * {@code RTCPCompoundPacket}. An SDES packet containing a CNAME item MUST
+     * be included in each compound RTCP packet.
+     * @param others other {@code RTCPPacket}s to be included in the new
+     * {@code RTCPCompoundPacket}
+     * @return a new {@code RTCPCompoundPacket} consisting of the specified
+     * {@code srs}, {@code rrs}, {@code sdes}, and {@code others}
+     */
+    private RTCPCompoundPacket compound(
+            List<RTCPRRPacket> rrs,
+            List<RTCPSRPacket> srs,
+            RTCPSDESPacket sdes,
+            RTCPPacket... others)
+    {
         Collection<RTCPPacket> rtcps = new ArrayList<RTCPPacket>();
 
-        // First, we build the RRs.
-        Collection<RTCPRRPacket> rrs = makeRRs(time);
+        // RRs
         if (rrs != null && !rrs.isEmpty())
         {
             rtcps.addAll(rrs);
         }
-
-        // Next, we build the SRs.
-        Collection<RTCPSRPacket> srs = makeSRs(time);
+        // SRs
         if (srs != null && !srs.isEmpty())
         {
             rtcps.addAll(srs);
         }
 
-        // Bail out if we have nothing to report.
-        if (rtcps.isEmpty())
+        // RTCP packets other than SR, RR, and SDES.
+        if (others.length > 0)
         {
-            return null;
+            for (RTCPPacket other : others)
+            {
+                if (other != null)
+                    rtcps.add(other);
+            }
         }
 
-        // Next, we build the REMB.
-        RTCPREMBPacket remb = makeREMB();
-        if (remb != null)
-        {
-            rtcps.add(remb);
-        }
+        // SDES
+        rtcps.add(sdes);
 
-        // Finally, we add an SDES packet.
-        RTCPSDESPacket sdes = makeSDES();
-        if (sdes != null)
-        {
-            rtcps.add(sdes);
-        }
-
-        // Prepare the <tt>RTCPCompoundPacket</tt> to return.
-        RTCPCompoundPacket compound
-            = new RTCPCompoundPacket(
-                    rtcps.toArray(new RTCPPacket[rtcps.size()]));
-
-        // Build the <tt>RTCPCompoundPacket</tt> and return the
-        // <tt>RawPacket</tt> to inject to the <tt>MediaStream</tt>.
-        return generator.apply(compound);
+        return
+            new RTCPCompoundPacket(rtcps.toArray(new RTCPPacket[rtcps.size()]));
     }
 
     /**
@@ -325,10 +354,10 @@ public class BasicRTCPTerminationStrategy
      *
      * @param time
      *
-     * @return A <tt>Collection</tt> of <tt>RTCPRRPacket</tt>s to inject to the
+     * @return A <tt>List</tt> of <tt>RTCPRRPacket</tt>s to inject into the
      * <tt>MediaStream</tt>.
      */
-    private Collection<RTCPRRPacket> makeRRs(long time)
+    private List<RTCPRRPacket> makeRRs(long time)
     {
         RTCPReportBlock[] reportBlocks = makeReportBlocks(time);
         if (reportBlocks == null || reportBlocks.length == 0)
@@ -336,7 +365,7 @@ public class BasicRTCPTerminationStrategy
             return null;
         }
 
-        Collection<RTCPRRPacket> rrs = new ArrayList<RTCPRRPacket>();
+        List<RTCPRRPacket> rrs = new ArrayList<RTCPRRPacket>();
 
         // We use the stream's local source ID (SSRC) as the SSRC of packet
         // sender.
@@ -532,9 +561,9 @@ public class BasicRTCPTerminationStrategy
      * @return a <tt>List</tt> of <tt>RTCPSRPacket</tt> for all the RTP streams
      * that we're sending.
      */
-    private Collection<RTCPSRPacket> makeSRs(long time)
+    private List<RTCPSRPacket> makeSRs(long time)
     {
-        Collection<RTCPSRPacket> srs = new ArrayList<RTCPSRPacket>();
+        List<RTCPSRPacket> srs = new ArrayList<RTCPSRPacket>();
 
         for (RTPStatsEntry rtpStatsEntry : rtpStatsMap.values())
         {
@@ -625,16 +654,16 @@ public class BasicRTCPTerminationStrategy
         {
             RTCPSDES sdes = new RTCPSDES();
             sdes.ssrc = entry.getKey();
-            sdes.items = new RTCPSDESItem[]
+            sdes.items
+                = new RTCPSDESItem[]
                 {
                     new RTCPSDESItem(RTCPSDESItem.CNAME, entry.getValue())
                 };
         }
 
-        RTCPSDES[] sps = sdesChunks.toArray(new RTCPSDES[sdesChunks.size()]);
-        RTCPSDESPacket sp = new RTCPSDESPacket(sps);
-
-        return sp;
+        return
+            new RTCPSDESPacket(
+                    sdesChunks.toArray(new RTCPSDES[sdesChunks.size()]));
     }
 
     /**
