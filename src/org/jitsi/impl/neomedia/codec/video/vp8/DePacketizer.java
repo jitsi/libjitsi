@@ -411,6 +411,34 @@ public class DePacketizer
     }
 
     /**
+     */
+    public static boolean isKeyFrame(byte[] buff, int off, int len)
+    {
+        if (buff == null || buff.length == 0 || buff.length < off + len)
+        {
+            return false;
+        }
+
+        // Check if this is the start of a VP8 partition in the payload
+        // descriptor.
+        if (!DePacketizer.VP8PayloadDescriptor.isValid(buff, off))
+        {
+            return false;
+        }
+
+        if (!DePacketizer.VP8PayloadDescriptor.isStartOfFrame(buff, off))
+        {
+            return false;
+        }
+
+        int szVP8PayloadDescriptor = DePacketizer
+            .VP8PayloadDescriptor.getSize(buff, off);
+
+        return DePacketizer.VP8PayloadHeader.isKeyFrame(
+                buff, off + szVP8PayloadDescriptor);
+    }
+
+    /**
      * A class that represents the VP8 Payload Descriptor structure defined
      * in {@link "http://tools.ietf.org/html/draft-ietf-payload-vp8-10"}
      */

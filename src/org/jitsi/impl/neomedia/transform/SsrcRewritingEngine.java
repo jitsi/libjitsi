@@ -26,6 +26,7 @@ import java.util.concurrent.*;
 import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.util.*;
 import org.jitsi.util.function.*;
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.vp8.*;
 
 /**
@@ -864,6 +865,43 @@ public class SsrcRewritingEngine implements TransformEngine
                 // Pause the active rewriter (closes its current interval and
                 // puts it in the interval tree).
                 activeRewriter.pause();
+                if (logger.isDebugEnabled())
+                {
+                    boolean isKeyFrame = false;
+                    byte redPT = ssrc2red.get(sourceSSRC);
+                    if (redPT == pkt.getPayloadType())
+                    {
+                        REDBlockIterator.REDBlock block
+                            = REDBlockIterator.getPrimaryBlock(pkt);
+
+                        if (block != null)
+                        {
+                            // FIXME What if we're not using VP8?
+                            isKeyFrame = DePacketizer.isKeyFrame(
+                                        pkt.getBuffer(),
+                                        block.getBlockOffset(),
+                                        block.getBlockLength());
+                        }
+                        else
+                        {
+                            isKeyFrame = false;
+                        }
+                    }
+                    else
+                    {
+                        // FIXME What if we're not using VP8?
+                        isKeyFrame = DePacketizer.isKeyFrame(
+                                    pkt.getBuffer(),
+                                    pkt.getPayloadOffset(),
+                                    pkt.getPayloadLength());
+                    }
+
+                    if (!isKeyFrame)
+                    {
+                        logWarn("We're switching NOT on a key frame. Bad " +
+                                "Stuff (tm) will happen to you!");
+                    }
+                }
 
                 // Because {#currentExtendedSeqnumBase} is an extended sequence
                 // number, if we keep increasing it, it will eventually result
