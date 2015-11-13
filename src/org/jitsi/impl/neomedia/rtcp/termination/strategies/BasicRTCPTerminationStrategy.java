@@ -163,7 +163,7 @@ public class BasicRTCPTerminationStrategy
      * <tt>BasicRTCPTerminationStrategy</tt>.
      */
     private final PacketTransformer rtcpTransformer
-        = new SinglePacketTransformer()
+        = new SinglePacketTransformerAdapter()
     {
         /**
          * {@inheritDoc}
@@ -200,16 +200,6 @@ public class BasicRTCPTerminationStrategy
             // Remove SRs and RRs from the RTCP packet.
             pkt = feedbackGateway.gateway(inPacket);
 
-            return pkt;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket reverseTransform(RawPacket pkt)
-        {
-            // Let everything pass through.
             return pkt;
         }
     };

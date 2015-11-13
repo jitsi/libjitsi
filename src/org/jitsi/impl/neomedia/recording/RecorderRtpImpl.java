@@ -1602,36 +1602,24 @@ public class RecorderRtpImpl
             implements TransformEngine
         {
             SinglePacketTransformer rtpTransformer
-                    = new SinglePacketTransformer()
-            {
-                @Override
-                public RawPacket transform(RawPacket pkt)
-                {
-                    return pkt;
-                }
+                    = new SinglePacketTransformerAdapter()
+                    {
+                        @Override
+                        public RawPacket reverseTransform(RawPacket pkt)
+                        {
+                            RecorderRtpImpl.this.handleRtpPacket(pkt);
+                            return pkt;
+                        }
 
-                @Override
-                public RawPacket reverseTransform(RawPacket pkt)
-                {
-                    RecorderRtpImpl.this.handleRtpPacket(pkt);
-                    return pkt;
-                }
-
-                @Override
-                public void close()
-                {
-                }
-            };
+                        @Override
+                        public void close()
+                        {
+                        }
+                    };
 
             SinglePacketTransformer rtcpTransformer
-                    = new SinglePacketTransformer()
+                    = new SinglePacketTransformerAdapter()
             {
-                @Override
-                public RawPacket transform(RawPacket pkt)
-                {
-                    return pkt;
-                }
-
                 @Override
                 public RawPacket reverseTransform(RawPacket pkt)
                 {

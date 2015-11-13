@@ -27,7 +27,7 @@ import org.jitsi.impl.neomedia.*;
  * @author Boris Grozev
  */
 public class AbsSendTimeEngine
-    extends SinglePacketTransformer
+    extends SinglePacketTransformerAdapter
     implements TransformEngine
 {
     /**
@@ -53,17 +53,6 @@ public class AbsSendTimeEngine
         {
             replaceAbsSendTime(pkt);
         }
-        return pkt;
-    }
-
-    /**
-     * Implements {@link SinglePacketTransformer#transform(RawPacket)}.
-     *
-     * This transformer does not perform transformation on incoming packets.
-     */
-    @Override
-    public RawPacket reverseTransform(RawPacket pkt)
-    {
         return pkt;
     }
 

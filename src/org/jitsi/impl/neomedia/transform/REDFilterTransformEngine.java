@@ -26,8 +26,8 @@ import org.jitsi.impl.neomedia.codec.*;
  * @author George Politis
  */
 public class REDFilterTransformEngine
-        extends SinglePacketTransformer
-        implements TransformEngine
+    extends SinglePacketTransformerAdapter
+    implements TransformEngine
 {
     /**
      * The <tt>Logger</tt> used by the <tt>REDTransformEngine</tt> class and
@@ -141,14 +141,4 @@ public class REDFilterTransformEngine
 
         return pkt;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public RawPacket reverseTransform(RawPacket pkt)
-    {
-        return pkt;
-    }
-
 }

@@ -247,6 +247,7 @@ public class DtmfTransformEngine
      * otherwise since we will be handling the packet ourselves and their's
      * no point in feeding it to the application.
      */
+    @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
         byte currentDtmfPayload
@@ -280,6 +281,7 @@ public class DtmfTransformEngine
      * @return <tt>pkt</tt> with a DTMF packet if this engine is in a DTMF
      * transmission mode or returns it unchanged otherwise.
      */
+    @Override
     public RawPacket transform(RawPacket pkt)
     {
         if (currentTone.isEmpty()

@@ -33,7 +33,7 @@ import java.util.*;
  * @author Damian Minkov
  */
 public class PayloadTypeTransformEngine
-    extends SinglePacketTransformer
+    extends SinglePacketTransformerAdapter
     implements TransformEngine
 {
     /**
@@ -61,6 +61,7 @@ public class PayloadTypeTransformEngine
      * @return the updated <tt>RawPacket</tt> instance containing the changed
      * payload type.
      */
+    @Override
     public RawPacket transform(RawPacket pkt)
     {
         if (mappingOverridesCopy == null
@@ -72,18 +73,6 @@ public class PayloadTypeTransformEngine
         if(newPT != null)
             pkt.setPayloadType(newPT);
 
-        return pkt;
-    }
-
-    /**
-     * Do nothing just passes the incoming packet.
-     *
-     * @param pkt the RTP <tt>RawPacket</tt> that we will pass through.
-     *
-     * @return the same <tt>RawPacket</tt> that is passing through.
-     */
-    public RawPacket reverseTransform(RawPacket pkt)
-    {
         return pkt;
     }
 

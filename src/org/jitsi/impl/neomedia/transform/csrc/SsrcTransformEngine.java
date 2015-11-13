@@ -38,7 +38,7 @@ import org.jitsi.service.neomedia.*;
  * @author Lyubomir Marinov
  */
 public class SsrcTransformEngine
-    extends SinglePacketTransformer
+    extends SinglePacketTransformerAdapter
     implements TransformEngine
 {
     /**
@@ -277,18 +277,5 @@ public class SsrcTransformEngine
     {
         this.ssrcAudioLevelExtID = extID;
         this.ssrcAudioLevelDirection = dir;
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * Returns the specified <tt>pkt</tt> as is without modifications because
-     * <tt>SsrcTransformEngine</tt> supports only reading SSRC audio levels,
-     * not writing them.
-     */
-    @Override
-    public RawPacket transform(RawPacket pkt)
-    {
-        return pkt;
     }
 }

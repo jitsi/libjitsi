@@ -15,19 +15,17 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
-import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.rtcp.*;
-import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
-
 import java.util.*;
 import java.util.concurrent.*;
-
 import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.util.*;
 import org.jitsi.util.function.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.vp8.*;
+import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Rewrites source SSRCs {A, B, C, ...} to target SSRC A'. Note that this also
@@ -89,7 +87,7 @@ public class SsrcRewritingEngine implements TransformEngine
 
     /**
      * The <tt>Random</tt> that generates initial sequence numbers. Instances of
-     * java.util.Random are threadsafe since Java 1.7.
+     * {@code java.util.Random} are thread-safe since Java 1.7.
      */
     private static final Random random = new Random();
 
@@ -135,7 +133,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * SSRCs a target SSRC is rewriting. The purpose of this is to BYE target
      * SSRCs that no longer have source SSRCs.
      */
-    private Map<Integer, Tracked<SsrcGroupRewriter>> target2rewriter;
+    private Map<Integer, RefCount<SsrcGroupRewriter>> target2rewriter;
 
     /**
      * Maps RTX SSRCs to primary SSRCs.
@@ -223,7 +221,7 @@ public class SsrcRewritingEngine implements TransformEngine
         assertInitialized();
 
         // Take care of the primary SSRCs.
-        if (ssrcGroup != null && ssrcGroup.size() != 0)
+        if (ssrcGroup != null && !ssrcGroup.isEmpty())
         {
             for (Integer ssrcOrigPrimary : ssrcGroup)
             {
@@ -232,7 +230,7 @@ public class SsrcRewritingEngine implements TransformEngine
         }
 
         // Take care of the RTX SSRCs.
-        if (rtxGroups != null && rtxGroups.size() != 0)
+        if (rtxGroups != null && !rtxGroups.isEmpty())
         {
             if (ssrcTargetRTX != null && ssrcTargetRTX != UNMAP_SSRC)
             {
@@ -250,7 +248,7 @@ public class SsrcRewritingEngine implements TransformEngine
         }
 
         // Take care of FEC PTs.
-        if (ssrc2fec != null && ssrc2fec.size() != 0)
+        if (ssrc2fec != null && !ssrc2fec.isEmpty())
         {
             for (Map.Entry<Integer, Byte> entry : ssrc2fec.entrySet())
             {
@@ -266,7 +264,7 @@ public class SsrcRewritingEngine implements TransformEngine
         }
 
         // Take care of RED PTs.
-        if (ssrc2red != null && ssrc2red.size() != 0)
+        if (ssrc2red != null && !ssrc2red.isEmpty())
         {
             for (Map.Entry<Integer, Byte> entry : ssrc2red.entrySet())
             {
@@ -284,17 +282,18 @@ public class SsrcRewritingEngine implements TransformEngine
         // BYE target SSRCs that no longer have source/original SSRCs.
         // TODO we need a way to garbage collect target SSRCs that should have
         // been unmapped.
-        Iterator<Map.Entry<Integer, Tracked<SsrcGroupRewriter>>> iterator
+        Iterator<Map.Entry<Integer, RefCount<SsrcGroupRewriter>>> iterator
             = target2rewriter.entrySet().iterator();
 
         while (iterator.hasNext())
         {
-            Map.Entry<Integer, Tracked<SsrcGroupRewriter>> entry
+            Map.Entry<Integer, RefCount<SsrcGroupRewriter>> entry
                 = iterator.next();
+            RefCount<SsrcGroupRewriter> refCount = entry.getValue();
 
-            if (entry.getValue().getCounter() < 1)
+            if (refCount.get() < 1)
             {
-                entry.getValue().getTracked().close();
+                refCount.getReferent().close();
                 iterator.remove();
             }
         }
@@ -308,14 +307,13 @@ public class SsrcRewritingEngine implements TransformEngine
      */
     private void logDebug(String msg)
     {
-        if (!logger.isDebugEnabled())
+        if (logger.isDebugEnabled())
         {
-            return;
+            logger.debug(
+                    mediaStream.getProperty(
+                            MediaStream.PNAME_RECEIVER_IDENTIFIER)
+                        + ": " + msg);
         }
-
-        logger.debug(
-            mediaStream.getProperty(MediaStream.PNAME_RECEIVER_IDENTIFIER)
-                + ": " + msg);
     }
 
     /**
@@ -326,14 +324,13 @@ public class SsrcRewritingEngine implements TransformEngine
      */
     private void logWarn(String msg)
     {
-        if (!logger.isWarnEnabled())
+        if (logger.isWarnEnabled())
         {
-            return;
+            logger.warn(
+                    mediaStream.getProperty(
+                            MediaStream.PNAME_RECEIVER_IDENTIFIER)
+                        + ": " + msg);
         }
-
-        logger.warn(
-            mediaStream.getProperty(MediaStream.PNAME_RECEIVER_IDENTIFIER)
-                + ": " + msg);
     }
 
      /**
@@ -346,8 +343,8 @@ public class SsrcRewritingEngine implements TransformEngine
     private void logError(String msg, Throwable t)
     {
         logger.error(
-            mediaStream.getProperty(MediaStream.PNAME_RECEIVER_IDENTIFIER)
-                + ": " + msg, t);
+                mediaStream.getProperty(MediaStream.PNAME_RECEIVER_IDENTIFIER)
+                    + ": " + msg, t);
     }
 
      /**
@@ -360,12 +357,11 @@ public class SsrcRewritingEngine implements TransformEngine
     {
         if (logger.isInfoEnabled())
         {
-            return;
+            logger.info(
+                    mediaStream.getProperty(
+                            MediaStream.PNAME_RECEIVER_IDENTIFIER)
+                        + ": " + msg);
         }
-
-        logger.info(
-            mediaStream.getProperty(MediaStream.PNAME_RECEIVER_IDENTIFIER)
-                + ": " + msg);
     }
 
     /**
@@ -381,7 +377,7 @@ public class SsrcRewritingEngine implements TransformEngine
         origin2rewriter
             = new ConcurrentHashMap<Integer, SsrcGroupRewriter>();
         target2rewriter
-            = new HashMap<Integer, Tracked<SsrcGroupRewriter>>();
+            = new HashMap<Integer, RefCount<SsrcGroupRewriter>>();
 
         rtx2primary = new ConcurrentHashMap<Integer, Integer>();
 
@@ -412,17 +408,17 @@ public class SsrcRewritingEngine implements TransformEngine
             if (!target2rewriter.containsKey(ssrcTarget))
             {
                 target2rewriter.put(ssrcTarget,
-                    new Tracked<SsrcGroupRewriter>(
+                    new RefCount<SsrcGroupRewriter>(
                         new SsrcGroupRewriter(ssrcTarget)));
             }
 
-            Tracked<SsrcGroupRewriter> trackedSsrcGroupRewriter
+            RefCount<SsrcGroupRewriter> trackedSsrcGroupRewriter
                 = target2rewriter.get(ssrcTarget);
 
             // Link the original SSRC to the appropriate
             // <tt>SsrcGroupRewriter</tt>
             SsrcGroupRewriter oldSsrcGroupRewriter = origin2rewriter.put(
-                ssrcOrig, trackedSsrcGroupRewriter.getTracked());
+                ssrcOrig, trackedSsrcGroupRewriter.getReferent());
 
             if (oldSsrcGroupRewriter == null)
             {
@@ -442,7 +438,7 @@ public class SsrcRewritingEngine implements TransformEngine
 
             if (ssrcGroupRewriter != null)
             {
-                Tracked<SsrcGroupRewriter> trackedSsrcGroupRewriter =
+                RefCount<SsrcGroupRewriter> trackedSsrcGroupRewriter =
                     target2rewriter.get(ssrcGroupRewriter.getSSRCTarget());
 
                 trackedSsrcGroupRewriter.decrease();
@@ -459,14 +455,14 @@ public class SsrcRewritingEngine implements TransformEngine
     {
         // If there is an <tt>SsrcGroupRewriter</tt>, rewrite
         // the packet, otherwise include it unaltered.
-        Tracked<SsrcGroupRewriter> trackedSsrcGroupRewriter
+        RefCount<SsrcGroupRewriter> trackedSsrcGroupRewriter
             = target2rewriter.get(ssrc);
 
-        SsrcGroupRewriter ssrcGroupRewriter = null;
+        SsrcGroupRewriter ssrcGroupRewriter;
         if (trackedSsrcGroupRewriter != null)
         {
             ssrcGroupRewriter
-                = trackedSsrcGroupRewriter.getTracked();
+                = trackedSsrcGroupRewriter.getReferent();
         }
         else
         {
@@ -497,7 +493,8 @@ public class SsrcRewritingEngine implements TransformEngine
      * represent RTP packets. This <tt>PacketTransformer</tt> is an entry point
      * to this class.
      */
-    class MyRTPSinglePacketTransformer extends SinglePacketTransformer
+    class MyRTPSinglePacketTransformer
+        extends SinglePacketTransformerAdapter
     {
         @Override
         public RawPacket transform(RawPacket pkt)
@@ -518,13 +515,6 @@ public class SsrcRewritingEngine implements TransformEngine
             return (ssrcGroupRewriter == null)
                 ? pkt : ssrcGroupRewriter.rewriteRTP(pkt);
         }
-
-        @Override
-        public RawPacket reverseTransform(RawPacket pkt)
-        {
-            // Just pass through, nothing to do here.
-            return pkt;
-        }
     };
 
     /**
@@ -532,7 +522,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * represent RTCP packets.
      */
     class MyRTCPSinglePacketTransformer
-           extends SinglePacketTransformer
+        extends SinglePacketTransformerAdapter
     {
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
@@ -588,91 +578,91 @@ public class SsrcRewritingEngine implements TransformEngine
                 // name for this class.
                 switch (inRTCPPacket.type)
                 {
-                    case RTCPPacket.RR:
-                    case RTCPPacket.SR:
-                    case RTCPPacket.SDES:
-                        // FIXME Is it a good thing to eat up thos (no!)? How
-                        // is FMJ supposed to know what's going on?
-                    case RTCPPacket.BYE:
-                        // RTCP termination takes care of all these, so we
-                        // don't include them in the outPacket..
+                case RTCPPacket.RR:
+                case RTCPPacket.SR:
+                case RTCPPacket.SDES:
+                    // FIXME Is it a good thing to eat up thos (no!)? How
+                    // is FMJ supposed to know what's going on?
+                case RTCPPacket.BYE:
+                    // RTCP termination takes care of all these, so we
+                    // don't include them in the outPacket..
 
-                        // XXX Well, ideally we would put the correct SR
-                        // information, by reusing code from RTCP termination.
-                        // We would also be able to reverse transform RTCP
-                        // packets, like NACKs.
-                        break;
-                    case RTCPFBPacket.PSFB:
-                        // Get the synchronization source identifier of the
-                        // media source that this piece of feedback information
-                        // is related to.
-                        RTCPFBPacket psfb = (RTCPFBPacket) inRTCPPacket;
-                        int ssrc = (int) psfb.sourceSSRC;
+                    // XXX Well, ideally we would put the correct SR
+                    // information, by reusing code from RTCP termination.
+                    // We would also be able to reverse transform RTCP
+                    // packets, like NACKs.
+                    break;
+                case RTCPFBPacket.PSFB:
+                    // Get the synchronization source identifier of the
+                    // media source that this piece of feedback information
+                    // is related to.
+                    RTCPFBPacket psfb = (RTCPFBPacket) inRTCPPacket;
+                    int ssrc = (int) psfb.sourceSSRC;
 
-                        if (ssrc != 0)
+                    if (ssrc != 0)
+                    {
+                        int reverseSSRC = reverseRewriteSSRC(ssrc);
+
+                        if (reverseSSRC == INVALID_SSRC)
                         {
-                            int reverseSSRC = reverseRewriteSSRC(ssrc);
-
-                            if (reverseSSRC == INVALID_SSRC)
-                            {
-                                // We only really care if it's NOT a REMB.
-                                logDebug("Could not find an " +
-                                        "SsrcGroupRewriter for the RTCP packet: " +
-                                        psfb.toString());
-                            }
-                            else
-                            {
-                                psfb.sourceSSRC = reverseSSRC & 0xffffffffl;
-                            }
+                            // We only really care if it's NOT a REMB.
+                            logDebug("Could not find an " +
+                                    "SsrcGroupRewriter for the RTCP packet: " +
+                                    psfb.toString());
                         }
-
-                        switch (psfb.type)
+                        else
                         {
-                            case RTCPREMBPacket.FMT:
-                                // Special handling for REMB messages.
-                                RTCPREMBPacket remb = (RTCPREMBPacket) psfb;
-                                long[] dest = remb.getDest();
-                                if (dest != null && dest.length != 0)
+                            psfb.sourceSSRC = reverseSSRC & 0xffffffffl;
+                        }
+                    }
+
+                    switch (psfb.type)
+                    {
+                    case RTCPREMBPacket.FMT:
+                        // Special handling for REMB messages.
+                        RTCPREMBPacket remb = (RTCPREMBPacket) psfb;
+                        long[] dest = remb.getDest();
+                        if (dest != null && dest.length != 0)
+                        {
+                            for (int i = 0; i < dest.length; i++)
+                            {
+                                int reverseSSRC = reverseRewriteSSRC((int) dest[i]);
+                                if (reverseSSRC == INVALID_SSRC)
                                 {
-                                    for (int i = 0; i < dest.length; i++)
-                                    {
-                                        int reverseSSRC = reverseRewriteSSRC((int) dest[i]);
-                                        if (reverseSSRC == INVALID_SSRC)
-                                        {
-                                            logDebug("Could not find an " +
-                                                    "SsrcGroupRewriter for the RTCP packet: " +
-                                                    psfb.toString());
-                                        }
-                                        else
-                                        {
-                                            dest[i] = reverseSSRC & 0xffffffffl;
-                                        }
-                                    }
+                                    logDebug("Could not find an " +
+                                            "SsrcGroupRewriter for the RTCP packet: " +
+                                            psfb.toString());
                                 }
-
-                                remb.setDest(dest);
-                                break;
+                                else
+                                {
+                                    dest[i] = reverseSSRC & 0xffffffffl;
+                                }
+                            }
                         }
 
-                        outRTCPPackets.add(psfb);
+                        remb.setDest(dest);
+                        break;
+                    }
 
-                        break;
-                    case RTCPFBPacket.RTPFB:
-                        RTCPFBPacket psfb1 = (RTCPFBPacket) inRTCPPacket;
-                        if (psfb1.fmt != 1)
-                        {
-                            logWarn(
-                                    "Unhandled RTCP packet: " + inRTCPPacket.toString());
-                        }
-                        break;
-                    default:
+                    outRTCPPackets.add(psfb);
+
+                    break;
+                case RTCPFBPacket.RTPFB:
+                    RTCPFBPacket psfb1 = (RTCPFBPacket) inRTCPPacket;
+                    if (psfb1.fmt != 1)
+                    {
                         logWarn(
-                            "Unhandled RTCP packet: " + inRTCPPacket.toString());
-                        break;
+                                "Unhandled RTCP packet: " + inRTCPPacket.toString());
+                    }
+                    break;
+                default:
+                    logWarn(
+                        "Unhandled RTCP packet: " + inRTCPPacket.toString());
+                    break;
                 }
             }
 
-            if (outRTCPPackets.size() != 0)
+            if (!outRTCPPackets.isEmpty())
             {
                 RTCPPacket rtcpPackets[] = outRTCPPackets.toArray(
                     new RTCPPacket[outRTCPPackets.size()]);
@@ -687,18 +677,11 @@ public class SsrcRewritingEngine implements TransformEngine
             }
         }
 
-        @Override
-        public RawPacket transform(RawPacket pkt)
-        {
-            // Just pass through, nothing to do here. We rely on RTCP
-            // termination and NACK termination so that we don't have to
-            // do any reverse rewriting (for now). This has the disadvantage
-            // of.. requiring RTCP termination even in the simple case of
-            // 1-1 calls but then again, in this case we don't need simulcast
-            // (but we do need SSRC collision detection and conflict
-            // resolution).
-            return pkt;
-        }
+        // We rely on RTCP termination and NACK termination so that we don't
+        // have to do any reverse rewriting (for now). This has the disadvantage
+        // of requiring RTCP termination even in the simple case of 1-1 calls
+        // but then again, in this case we don't need simulcast (but we do need
+        // SSRC collision detection and conflict resolution).
     };
 
     /**
@@ -867,7 +850,7 @@ public class SsrcRewritingEngine implements TransformEngine
                 activeRewriter.pause();
                 if (logger.isDebugEnabled())
                 {
-                    boolean isKeyFrame = false;
+                    boolean isKeyFrame;
                     byte redPT = ssrc2red.get(sourceSSRC);
                     if (redPT == pkt.getPayloadType())
                     {
@@ -984,7 +967,7 @@ public class SsrcRewritingEngine implements TransformEngine
              * easily find in which sequence number interval it belongs, if it
              * does.
              *
-             * TODO we should not keep more intervals than what's enought to
+             * TODO we should not keep more intervals than what's enough to
              * cover the last 1000 (arbitrary value) sequence numbers (and even
              * that's way too much).
              */
@@ -1567,45 +1550,6 @@ public class SsrcRewritingEngine implements TransformEngine
                     return true;
                 }
             }
-        }
-    }
-
-    /**
-     * A helper class that can be used to track references to an object. This
-     * class is not thread-safe.
-     *
-     * TODO find a more meaningful name, like TrackedReference, for example.
-     */
-    static class Tracked<T>
-    {
-        private final T tracked;
-
-        private int counter;
-
-        public Tracked(T tracked)
-        {
-            this.tracked = tracked;
-            this.counter = 0;
-        }
-
-        public void increase()
-        {
-            counter++;
-        }
-
-        public void decrease()
-        {
-            counter--;
-        }
-
-        public int getCounter()
-        {
-            return this.counter;
-        }
-
-        public T getTracked()
-        {
-            return this.tracked;
         }
     }
 }
