@@ -1289,4 +1289,13 @@ public class VideoMediaStreamImpl
             }
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected AbsSendTimeEngine createAbsSendTimeEngine()
+    {
+        return new AbsSendTimeEngine();
+    }
 }

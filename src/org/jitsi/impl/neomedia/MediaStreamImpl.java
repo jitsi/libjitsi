@@ -329,6 +329,12 @@ public class MediaStreamImpl
             = new TransformEngineWrapper<RTCPTerminationStrategy>();
 
     /**
+     * The transformer which replaces the timestamp in an abs-send-time RTP
+     * header extension.
+     */
+    private AbsSendTimeEngine absSendTimeEngine;
+
+    /**
      * The chain used to by the RTPConnector to transform packets.
      */
     private TransformEngine transformEngineChain;
@@ -617,6 +623,16 @@ public class MediaStreamImpl
             else
                 activeRTPExtensions.remove(extensionID);
         }
+
+
+        if (RTPExtension.ABS_SEND_TIME_URN.equals(
+                rtpExtension.getURI().toString()))
+        {
+            if (absSendTimeEngine != null)
+            {
+                absSendTimeEngine.setExtensionID(active ? extensionID : -1);
+            }
+        }
     }
 
     /**
@@ -896,6 +912,15 @@ public class MediaStreamImpl
     }
 
     /**
+     * Creates the {@link AbsSendTimeEngine} for this {@code MediaStream}.
+     * @return the created {@link AbsSendTimeEngine}.
+     */
+    protected AbsSendTimeEngine createAbsSendTimeEngine()
+    {
+        return null;
+    }
+
+    /**
      * Creates a chain of transform engines for use with this stream. Note
      * that this is the only place where the <tt>TransformEngineChain</tt> is
      * and should be manipulated to avoid problems with the order of the
@@ -948,6 +973,12 @@ public class MediaStreamImpl
         if (statisticsEngine == null)
             statisticsEngine = new StatisticsEngine(this);
         engineChain.add(statisticsEngine);
+
+        absSendTimeEngine = createAbsSendTimeEngine();
+        if (absSendTimeEngine != null)
+        {
+            engineChain.add(absSendTimeEngine);
+        }
 
         // Debug
         debugTransformEngine
