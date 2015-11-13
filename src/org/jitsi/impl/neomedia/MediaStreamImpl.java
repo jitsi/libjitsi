@@ -961,13 +961,13 @@ public class MediaStreamImpl
         if (redTransformEngine != null)
             engineChain.add(redTransformEngine);
 
+        engineChain.add(ssrcRewritingEngine);
+
         // RTCPTerminationTransformEngine passes received RTCP to
         // RTCPTerminationStrategy for inspection and modification. The RTCP
         // termination needs to be as close to the SRTP transform engine as
         // possible.
         engineChain.add(rtcpTransformEngineWrapper);
-
-        engineChain.add(ssrcRewritingEngine);
 
         // RTCP Statistics
         if (statisticsEngine == null)
