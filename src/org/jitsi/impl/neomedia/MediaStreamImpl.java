@@ -335,6 +335,12 @@ public class MediaStreamImpl
     private AbsSendTimeEngine absSendTimeEngine;
 
     /**
+     * The transformer which caches outgoing RTP packets for this
+     * {@link MediaStream}.
+     */
+    private CachingTransformer cachingTransformer;
+
+    /**
      * The chain used to by the RTPConnector to transform packets.
      */
     private TransformEngine transformEngineChain;
@@ -921,6 +927,15 @@ public class MediaStreamImpl
     }
 
     /**
+     * Creates the {@link CachingTransformer} for this {@code MediaStream}.
+     * @return the created {@link CachingTransformer}.
+     */
+    protected CachingTransformer createCachingTransformer()
+    {
+        return null;
+    }
+
+    /**
      * Creates a chain of transform engines for use with this stream. Note
      * that this is the only place where the <tt>TransformEngineChain</tt> is
      * and should be manipulated to avoid problems with the order of the
@@ -978,6 +993,12 @@ public class MediaStreamImpl
         if (absSendTimeEngine != null)
         {
             engineChain.add(absSendTimeEngine);
+        }
+
+        cachingTransformer = createCachingTransformer();
+        if (cachingTransformer != null)
+        {
+            engineChain.add(cachingTransformer);
         }
 
         // Debug
@@ -3584,5 +3605,14 @@ public class MediaStreamImpl
                 }
             }
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RawPacketCache getPacketCache()
+    {
+        return cachingTransformer;
     }
 }

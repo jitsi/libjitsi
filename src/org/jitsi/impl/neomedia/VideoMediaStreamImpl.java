@@ -1298,4 +1298,13 @@ public class VideoMediaStreamImpl
     {
         return new AbsSendTimeEngine();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected CachingTransformer createCachingTransformer()
+    {
+        return new CachingTransformer();
+    }
 }
