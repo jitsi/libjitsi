@@ -328,20 +328,16 @@ public class BasicRTCPTerminationStrategy
             RTCPSDESPacket sdes,
             RTCPPacket... others)
     {
-        // SRs
-        if (srs != null && !srs.isEmpty())
+        // SRs are capable of carrying the report blocks of the RRs and thus of
+        // reducing the compound packets's size.
+        if (srs != null && !srs.isEmpty() && rrs != null && !rrs.isEmpty())
         {
-            // SRs may carry the report blocks of the RRs and thus reduce the
-            // compound's size.
-            if (rrs != null && !rrs.isEmpty())
-                moveReportBlocks(rrs, srs);
+            moveReportBlocks(rrs, srs);
         }
 
         List<RTCPCompoundPacket> compounds
             = new ArrayList<RTCPCompoundPacket>();
         RTCPCompoundPacket prevCompound = null;
-        int prevCompoundLen = 0;
-        RTCPSDESPacket prevSDESPkt = null;
 
         do
         {
@@ -392,7 +388,6 @@ public class BasicRTCPTerminationStrategy
 
             // SDES with CNAME for the SSRC of the SR or RR.
             RTCPSDESItem cnameItem = findCNAMEItem(sdes, ssrc);
-            RTCPSDESPacket sdesPkt = null;
 
             if (cnameItem != null)
             {
@@ -400,111 +395,134 @@ public class BasicRTCPTerminationStrategy
 
                 sdesOfReport.items = new RTCPSDESItem[] { cnameItem };
                 sdesOfReport.ssrc = ssrc;
-                sdesPkt = new RTCPSDESPacket(new RTCPSDES[] { sdesOfReport });
-                rtcps.add(sdesPkt);
+                rtcps.add(new RTCPSDESPacket(new RTCPSDES[] { sdesOfReport }));
             }
 
             RTCPCompoundPacket compound
                 = new RTCPCompoundPacket(
                         rtcps.toArray(new RTCPPacket[rtcps.size()]));
-            int compoundLen = compound.calcLength();
 
             // Try to merge the current compound packet into the previous
             // compound packet.
-            if (prevCompound != null)
-            {
-                int len = prevCompoundLen + compoundLen;
-                boolean mergeSDES = false;
-
-                if (prevSDESPkt != null && sdesPkt != null)
-                {
-                    // The SDES packet of the previous compound packet can be
-                    // merged with the SDES packet of the current compound
-                    // packet.
-                    len -= 4;
-                    mergeSDES = true;
-                }
-                if (len <= MTU)
-                {
-                    int prevCompoundPktCount = prevCompound.packets.length;
-                    int compoundPktCount = compound.packets.length;
-
-                    if (prevSDESPkt != null)
-                    {
-                        // We'll count the SDES packet of the previous compound
-                        // packet separately.
-                        --prevCompoundPktCount;
-                    }
-
-                    // Merge the SDES of the current compound packet into
-                    // the SDES of the previous compound packet.
-                    if (mergeSDES)
-                    {
-                        RTCPSDES[] newPrevChunks
-                            = new RTCPSDES[
-                                    prevSDESPkt.sdes.length
-                                        + sdesPkt.sdes.length];
-
-                        System.arraycopy(
-                                prevSDESPkt.sdes, 0,
-                                newPrevChunks, 0,
-                                prevSDESPkt.sdes.length);
-                        System.arraycopy(
-                                sdesPkt.sdes, 0,
-                                newPrevChunks, prevSDESPkt.sdes.length,
-                                sdesPkt.sdes.length);
-                        prevSDESPkt.sdes = newPrevChunks;
-
-                        // We've merged the SDES packet of the current compound
-                        // packet into the SDES packet of the previous compound
-                        // packet.
-                        --compoundPktCount;
-                    }
-
-                    // Merge the current compound packet into the previous
-                    // compound packet.
-                    int newPrevCompoundPktCount
-                        = prevCompoundPktCount + compoundPktCount;
-
-                    if (prevSDESPkt != null)
-                        ++newPrevCompoundPktCount;
-
-                    RTCPPacket[] newPrevCompoundPkts
-                        = new RTCPPacket[newPrevCompoundPktCount];
-
-                    System.arraycopy(
-                            prevCompound.packets, 0,
-                            newPrevCompoundPkts, 0,
-                            prevCompoundPktCount);
-                    System.arraycopy(
-                            compound.packets, 0,
-                            newPrevCompoundPkts, prevCompoundPktCount,
-                            compoundPktCount);
-                    // Keep SDES at the end.
-                    if (prevSDESPkt != null)
-                    {
-                        newPrevCompoundPkts[newPrevCompoundPkts.length - 1]
-                            = prevSDESPkt;
-                    }
-                    prevCompound.packets = newPrevCompoundPkts;
-
-                    // The current compound packet has been merged into the
-                    // prevous compound packet.
-                    prevCompoundLen = prevCompound.calcLength();
-                    compound = null;
-                }
-            }
-            if (compound != null)
+            if (prevCompound == null || !tryMerge(prevCompound, compound))
             {
                 compounds.add(compound);
                 prevCompound = compound;
-                prevCompoundLen = compoundLen;
-                prevSDESPkt = sdesPkt;
             }
         }
         while (true);
 
         return compounds;
+    }
+
+    /**
+     * Merges {@code src} into {@code dst} if the resulting compound packet's
+     * size does not exceed {@link #MTU}.
+     *
+     * @param dst the {@code RTCPCompoundPacket} to merge {@code src} into
+     * @param src the {@code RTCPCompoundPacket} to merge into {@code dst}
+     * @return {@code true} if {@code src} was merged into {@code dst};
+     * otherwise, {@code false}
+     */
+    private boolean tryMerge(RTCPCompoundPacket dst, RTCPCompoundPacket src)
+    {
+        // The SDES of src may be merged into the SDES of dst (if any) in order
+        // to reduce the resulting compound packet's size.
+
+        // XXX For the sake of performance, we assume that SDES is the last
+        // packet in the compound packets.
+        RTCPSDESPacket dstSDES = null;
+        RTCPSDESPacket srcSDES = null;
+        boolean mergeSDES = false;
+
+        // dstSDES
+        if (dst.packets.length != 0)
+        {
+            RTCPPacket last;
+
+            last = dst.packets[dst.packets.length - 1];
+            if (last instanceof RTCPSDESPacket)
+            {
+                dstSDES = (RTCPSDESPacket) last;
+                // srcSDES
+                if (src.packets.length != 0)
+                {
+                    last = src.packets[src.packets.length - 1];
+                    if (last instanceof RTCPSDESPacket)
+                    {
+                        srcSDES = (RTCPSDESPacket) last;
+                        // mergeSDES
+                        mergeSDES = true;
+                    }
+                }
+            }
+        }
+
+        int newDstLen = dst.calcLength() + src.calcLength();
+
+        if (mergeSDES)
+        {
+            // The SDES of src will be merged into the SDES of dst in order to
+            // reduce the resulting compound packet's size.
+            newDstLen -= 4;
+        }
+
+        if (newDstLen > MTU)
+        {
+            // Cannot merge src into dst because the resulting compound packet's
+            // size would exceeed the MTU.
+            return false;
+        }
+
+        int dstPktCount = dst.packets.length;
+        int srcPktCount = src.packets.length;
+
+        if (dstSDES != null)
+        {
+            // We'll take the SDES of dst into account separately.
+            --dstPktCount;
+        }
+
+        // Merge the SDES of src into the SDES of dst.
+        if (mergeSDES)
+        {
+            RTCPSDES[] newDstChunks
+                = new RTCPSDES[dstSDES.sdes.length + srcSDES.sdes.length];
+
+            System.arraycopy(
+                    dstSDES.sdes, 0,
+                    newDstChunks, 0,
+                    dstSDES.sdes.length);
+            System.arraycopy(
+                    srcSDES.sdes, 0,
+                    newDstChunks, dstSDES.sdes.length,
+                    srcSDES.sdes.length);
+            dstSDES.sdes = newDstChunks;
+
+            // We've merged the SDES of src into the SDES of dst.
+            --srcPktCount;
+        }
+
+        // Merge the non-SDES packets of src into dst.
+        int newDstPktCount = dstPktCount + srcPktCount;
+
+        if (dstSDES != null)
+        {
+            ++newDstPktCount;
+        }
+
+        RTCPPacket[] newDstPkts = new RTCPPacket[newDstPktCount];
+
+        System.arraycopy(dst.packets, 0, newDstPkts, 0, dstPktCount);
+        System.arraycopy(src.packets, 0, newDstPkts, dstPktCount, srcPktCount);
+        // Keep SDES at the end.
+        if (dstSDES != null)
+        {
+            newDstPkts[newDstPkts.length - 1] = dstSDES;
+        }
+        dst.packets = newDstPkts;
+
+        return true;
     }
 
     /**
@@ -520,15 +538,11 @@ public class BasicRTCPTerminationStrategy
      */
     private RTCPSDESItem findCNAMEItem(RTCPSDESPacket sdes, int ssrc)
     {
-        RTCPSDES[] chunks = sdes.sdes;
-
-        for (RTCPSDES chunk : chunks)
+        for (RTCPSDES chunk : sdes.sdes)
         {
             if (chunk.ssrc == ssrc)
             {
-                RTCPSDESItem[] items = chunk.items;
-
-                for (RTCPSDESItem item : items)
+                for (RTCPSDESItem item : chunk.items)
                 {
                     if (item.type == RTCPSDESItem.CNAME)
                         return item;
