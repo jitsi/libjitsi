@@ -385,7 +385,7 @@ public class DtlsControlImpl
                 new RSAKeyGenerationParameters(
                         new BigInteger("10001", 16),
                         createSecureRandom(),
-                        1024,
+                        2048,
                         80));
         return generator.generateKeyPair();
     }
