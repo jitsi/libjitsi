@@ -248,36 +248,10 @@ public class SsrcRewritingEngine implements TransformEngine
         }
 
         // Take care of FEC PTs.
-        if (ssrc2fec != null && !ssrc2fec.isEmpty())
-        {
-            for (Map.Entry<Integer, Byte> entry : ssrc2fec.entrySet())
-            {
-                if (entry.getValue() == UNMAP_PT)
-                {
-                    this.ssrc2fec.remove(entry.getKey());
-                }
-                else
-                {
-                    this.ssrc2fec.put(entry.getKey(), entry.getValue());
-                }
-            }
-        }
+        putAll(ssrc2fec, this.ssrc2fec);
 
         // Take care of RED PTs.
-        if (ssrc2red != null && !ssrc2red.isEmpty())
-        {
-            for (Map.Entry<Integer, Byte> entry : ssrc2red.entrySet())
-            {
-                if (entry.getValue() == UNMAP_PT)
-                {
-                    this.ssrc2red.remove(entry.getKey());
-                }
-                else
-                {
-                    this.ssrc2red.put(entry.getKey(), entry.getValue());
-                }
-            }
-        }
+        putAll(ssrc2red, this.ssrc2red);
 
         // BYE target SSRCs that no longer have source/original SSRCs.
         // TODO we need a way to garbage collect target SSRCs that should have
@@ -295,6 +269,36 @@ public class SsrcRewritingEngine implements TransformEngine
             {
                 refCount.getReferent().close();
                 iterator.remove();
+            }
+        }
+    }
+
+    /**
+     * Copies all of the entries/mappings from {@code src} into {@code dst} in a
+     * payload type-aware fashion i.e. values in {@code src} equal to
+     * {@link #UNMAP_PT} are removed from {@code dst}.
+     *
+     * @param src the {@code Map} of synchronization source identifiers (SSRCs)
+     * to payload types to copy from
+     * @param dst the {@code Map} of SSRCs to payload types to copy into
+     */
+    private void putAll(Map<Integer, Byte> src, Map<Integer, Byte> dst)
+    {
+        if (src != null && !src.isEmpty())
+        {
+            for (Map.Entry<Integer, Byte> entry : src.entrySet())
+            {
+                Integer ssrc = entry.getKey();
+                Byte pt = entry.getValue();
+
+                if (pt == UNMAP_PT)
+                {
+                    dst.remove(ssrc);
+                }
+                else
+                {
+                    dst.put(ssrc, pt);
+                }
             }
         }
     }
