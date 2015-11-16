@@ -931,10 +931,9 @@ public class StatisticsEngine
     }
 
     /**
-     * //xxx
-     * Transfers RTCP sender report feedback as new information about the upload
-     * stream for the <tt>MediaStreamStats</tt>. Returns the packet as we are
-     * listening just for sending packages.
+     * Parses incoming RTCP packets and notifies the {@link MediaStreamStats} of
+     * this instance about the reception of packets with known types (currently
+     * these are RR, SR, XR, REMB, NACK).
      *
      * @param pkt the packet to reverse-transform
      * @return the packet which is the result of the reverse-transform
