@@ -356,4 +356,16 @@ public interface MediaStreamStats
      * received by the remote side.
      */
     public long getUploadNbPacketLost();
+
+    /**
+     * Adds a listener which will be notified when NACK packets are received.
+     * @param listener the listener.
+     */
+    public void addNackListener(NACKListener listener);
+
+    /**
+     * Adds a listener which will be notified when REMB packets are received.
+     * @param listener the listener.
+     */
+    public void addRembListener(REMBListener listener);
 }

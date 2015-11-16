@@ -1027,7 +1027,7 @@ public class StatisticsEngine
             RTCPPacket[] in, List<RTCPPacket> out)
     {
         boolean removed = false;
-        MediaStreamStats streamStats = mediaStream.getMediaStreamStats();
+        MediaStreamStatsImpl streamStats = mediaStream.getMediaStreamStats();
 
         for (RTCPPacket rtcp : in)
         {
@@ -1046,7 +1046,7 @@ public class StatisticsEngine
             else if (rtcp instanceof NACKPacket)
             {
                 NACKPacket nack = (NACKPacket) rtcp;
-                //streamStats.nackReceived(nack);
+                streamStats.nackReceived(nack);
 
                 // TODO: Do we always want to drop these?
                 removed = true;
@@ -1054,7 +1054,7 @@ public class StatisticsEngine
             else if (rtcp instanceof RTCPREMBPacket)
             {
                 RTCPREMBPacket remb = (RTCPREMBPacket) rtcp;
-                //streamStats.rembReceived(remb);
+                streamStats.rembReceived(remb);
 
                 out.add(rtcp);
             }
