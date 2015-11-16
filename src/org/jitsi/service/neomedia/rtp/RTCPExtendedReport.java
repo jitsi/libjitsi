@@ -908,11 +908,11 @@ public class RTCPExtendedReport
      * <tt>DataInputStream</tt>.
      *
      * @param datainputstream the binary representation from which the new
-     * instance is to be initialized
+     * instance is to be initialized.
      * @throws IOException if an input/output error occurs while
      * deserializing/reading the new instance from <tt>datainputstream</tt> or
      * the binary representation does not parse into an
-     * <tt>RTCPExtendedReport</tt> instance
+     * <tt>RTCPExtendedReport</tt> instance.
      */
     public RTCPExtendedReport(DataInputStream datainputstream)
         throws IOException
@@ -922,21 +922,68 @@ public class RTCPExtendedReport
         // V=2, P, reserved
         int b0 = datainputstream.readUnsignedByte();
 
-        // V=2
-        if ((b0 & 0xc0) != 128)
-            throw new IOException("Invalid RTCP version (V).");
-
         // PT=XR=207
         int pt = datainputstream.readUnsignedByte();
-
-        if (pt != XR)
-            throw new IOException("Invalid RTCP packet type (PT).");
 
         // length
         int length = datainputstream.readUnsignedShort();
 
         if (length < 1)
             throw new IOException("Invalid RTCP length.");
+
+        parse(b0, pt, length, datainputstream);
+    }
+
+    /**
+     * Initializes a new <tt>RTCPExtendedReport</tt> instance by
+     * deserializing/reading a binary representation of part of the packet from
+     * a <tt>DataInputStream</tt>, and taking the values found in the
+     * first 4 bytes of the binary representation as arguments.
+     *
+     * @param b0 the first byte of the binary representation.
+     * @param pt the value of the {@code packet type} field.
+     * @param length the value of the {@code length} field.
+     * @param datainputstream the binary representation from which the new
+     * instance is to be initialized, excluding the first 4 bytes.
+     * @throws IOException if an input/output error occurs while
+     * deserializing/reading the new instance from <tt>datainputstream</tt> or
+     * the binary representation does not parse into an
+     * <tt>RTCPExtendedReport</tt> instance.
+     */
+    public RTCPExtendedReport(int b0, int pt, int length,
+                              DataInputStream datainputstream)
+            throws IOException
+    {
+        this();
+
+        parse(b0, pt, length, datainputstream);
+    }
+
+    /**
+     * Initializes a new <tt>RTCPExtendedReport</tt> instance by
+     * deserializing/reading a binary representation of part of the packet from
+     * a <tt>DataInputStream</tt>, and taking the values normally found in the
+     * first 4 bytes of the binary representation as arguments.
+     *
+     * @param b0 the first byte of the binary representation.
+     * @param pt the value of the {@code packet type} field.
+     * @param length the value of the {@code length} field.
+     * @param datainputstream the binary representation from which the new
+     * instance is to be initialized, excluding the first 4 bytes.
+     * @throws IOException if an input/output error occurs while
+     * deserializing/reading the new instance from <tt>datainputstream</tt> or
+     * the binary representation does not parse into an
+     * <tt>RTCPExtendedReport</tt> instance.
+     */
+    private void parse(int b0, int pt, int length, DataInputStream datainputstream)
+            throws IOException
+    {
+        // V=2
+        if ((b0 & 0xc0) != 128)
+            throw new IOException("Invalid RTCP version (V).");
+
+        if (pt != XR)
+            throw new IOException("Invalid RTCP packet type (PT).");
 
         // SSRC
         setSSRC(datainputstream.readInt());
