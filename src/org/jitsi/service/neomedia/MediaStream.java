@@ -518,4 +518,10 @@ public interface MediaStream
      * @return the {@link RawPacketCache} for this {@link MediaStream}.
      */
     public RawPacketCache getPacketCache();
+
+    /**
+     * Creates an instance of {@link BandwidthEstimator} for this
+     * {@link MediaStream} if one doesn't already exist. Returns the instance.
+     */
+    public BandwidthEstimator getBandwidthEstimator();
 }
