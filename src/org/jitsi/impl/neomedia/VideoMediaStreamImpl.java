@@ -32,6 +32,8 @@ import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.QualityControl;
 import org.jitsi.service.neomedia.control.*;
@@ -1306,5 +1308,40 @@ public class VideoMediaStreamImpl
     protected CachingTransformer createCachingTransformer()
     {
         return new CachingTransformer();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected RetransmissionRequester createRetransmissionRequester()
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        if (cfg != null && cfg.getBoolean(REQUEST_RETRANSMISSIONS_PNAME, false))
+        {
+            if (rtpTranslator != null)
+            {
+                // The local SSRC from the RTPTranslator and the one from
+                // MediaStreamImpl differ. In all current use-cases
+                // (jitsi-videobridge) we need the one from the RTPTranslator.
+                // TAG(cat4-local-ssrc-hurricane)
+                long senderSSRC
+                    = ((RTPTranslatorImpl) rtpTranslator).getLocalSSRC(null);
+                if (senderSSRC == -1)
+                {
+                    logger.warn("Will not request retransmissions: cannot find "
+                                        + "local SSRC.");
+                }
+                else
+                {
+                    return new RetransmissionRequester(this, senderSSRC);
+                }
+            }
+            else
+            {
+                logger.warn("Will not request retransmissions: RTPTranslator "
+                                    + "is not in use.");
+            }
+        }
+        return null;
     }
 }

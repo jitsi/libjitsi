@@ -252,7 +252,7 @@ public class MediaStreamImpl
      * The <tt>RTPTranslator</tt>, if any, which forwards RTP and RTCP traffic
      * between this and other <tt>MediaStream</tt>s.
      */
-    private RTPTranslator rtpTranslator;
+    protected RTPTranslator rtpTranslator;
 
     /**
      * The indicator which determines whether {@link #createSendStreams()} has
@@ -344,6 +344,13 @@ public class MediaStreamImpl
      * The chain used to by the RTPConnector to transform packets.
      */
     private TransformEngine transformEngineChain;
+
+    /**
+     * The {@code RetransmissionRequester} instance for this
+     * {@code MediaStream} which will request missing packets by sending
+     * RTCP NACKs.
+     */
+    private RetransmissionRequester retransmissionRequester;
 
     /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
@@ -936,6 +943,15 @@ public class MediaStreamImpl
     }
 
     /**
+     * Creates the {@link RetransmissionRequester} for this {@code MediaStream}.
+     * @return the created {@link RetransmissionRequester}.
+     */
+    protected RetransmissionRequester createRetransmissionRequester()
+    {
+        return null;
+    }
+
+    /**
      * Creates a chain of transform engines for use with this stream. Note
      * that this is the only place where the <tt>TransformEngineChain</tt> is
      * and should be manipulated to avoid problems with the order of the
@@ -988,6 +1004,12 @@ public class MediaStreamImpl
         if (statisticsEngine == null)
             statisticsEngine = new StatisticsEngine(this);
         engineChain.add(statisticsEngine);
+
+        retransmissionRequester = createRetransmissionRequester();
+        if (retransmissionRequester != null)
+        {
+            engineChain.add(retransmissionRequester);
+        }
 
         absSendTimeEngine = createAbsSendTimeEngine();
         if (absSendTimeEngine != null)
