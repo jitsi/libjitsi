@@ -16,7 +16,6 @@
 package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
 import java.util.*;
-import java.util.concurrent.*;
 import javax.media.rtp.*;
 import javax.media.rtp.rtcp.*;
 import net.sf.fmj.media.rtp.*;
@@ -73,7 +72,7 @@ public class BasicRTCPTerminationStrategy
      * The maximum transmission unit (MTU) to be assumed by
      * {@code BasicRTCPTerminationStrategy}.
      */
-    private static int MTU = 1024 + 256;
+    private static final int MTU = 1024 + 256;
 
     /**
      * The RTP stats map that holds RTP statistics about all the streams that
@@ -289,7 +288,7 @@ public class BasicRTCPTerminationStrategy
         }
         else
         {
-            rawPkts = new ArrayList<RawPacket>(compounds.size());
+            rawPkts = new ArrayList<>(compounds.size());
             for (RTCPCompoundPacket compound : compounds)
             {
                 rawPkts.add(generator.apply(compound));
@@ -325,8 +324,7 @@ public class BasicRTCPTerminationStrategy
             moveReportBlocks(rrs, srs);
         }
 
-        List<RTCPCompoundPacket> compounds
-            = new ArrayList<RTCPCompoundPacket>();
+        List<RTCPCompoundPacket> compounds = new ArrayList<>();
         RTCPCompoundPacket prevCompound = null;
 
         do
@@ -354,7 +352,7 @@ public class BasicRTCPTerminationStrategy
                 break;
             }
             
-            List<RTCPPacket> rtcps = new ArrayList<RTCPPacket>();
+            List<RTCPPacket> rtcps = new ArrayList<>();
 
             rtcps.add(report);
 
@@ -645,7 +643,6 @@ public class BasicRTCPTerminationStrategy
      * Makes <tt>RTCPRRPacket</tt>s using information in FMJ.
      *
      * @param time
-     *
      * @return A <tt>List</tt> of <tt>RTCPRRPacket</tt>s to inject into the
      * <tt>MediaStream</tt>.
      */
@@ -657,7 +654,7 @@ public class BasicRTCPTerminationStrategy
             return null;
         }
 
-        List<RTCPRRPacket> rrs = new ArrayList<RTCPRRPacket>();
+        List<RTCPRRPacket> rrs = new ArrayList<>();
 
         // We use the stream's local source ID (SSRC) as the SSRC of packet
         // sender.
@@ -755,8 +752,7 @@ public class BasicRTCPTerminationStrategy
         }
 
         // Create and populate the return object.
-        Collection<RTCPReportBlock> reportBlocks
-            = new ArrayList<RTCPReportBlock>();
+        Collection<RTCPReportBlock> reportBlocks = new ArrayList<>();
 
         for (ReceiveStream receiveStream : receiveStreams)
         {
@@ -855,7 +851,7 @@ public class BasicRTCPTerminationStrategy
      */
     private List<RTCPSRPacket> makeSRs(long time)
     {
-        List<RTCPSRPacket> srs = new ArrayList<RTCPSRPacket>();
+        List<RTCPSRPacket> srs = new ArrayList<>();
 
         for (RTPStatsEntry rtpStatsEntry : rtpStatsMap.values())
         {
@@ -902,7 +898,7 @@ public class BasicRTCPTerminationStrategy
         // Create an SDES for our own SSRC.
         SSRCInfo ourinfo
             = getStream().getStreamRTPManager().getSSRCCache().ourssrc;
-        Collection<RTCPSDESItem> ownItems = new ArrayList<RTCPSDESItem>();
+        Collection<RTCPSDESItem> ownItems = new ArrayList<>();
 
         // CNAME
         ownItems.add(
@@ -955,7 +951,7 @@ public class BasicRTCPTerminationStrategy
         ownSDES.items = ownItems.toArray(new RTCPSDESItem[ownItems.size()]);
         ownSDES.ssrc = (int) getLocalSSRC();
         
-        Collection<RTCPSDES> chunks = new ArrayList<RTCPSDES>();
+        Collection<RTCPSDES> chunks = new ArrayList<>();
 
         chunks.add(ownSDES);
 
@@ -1020,37 +1016,36 @@ public class BasicRTCPTerminationStrategy
             }
 
             ArrayList<RTCPPacket> outPackets
-                = new ArrayList<RTCPPacket>(inPacket.packets.length);
+                = new ArrayList<>(inPacket.packets.length);
 
             for (RTCPPacket p : inPacket.packets)
             {
                 switch (p.type)
                 {
-                    case RTCPPacket.RR:
-                    case RTCPPacket.SR:
-                    case RTCPPacket.SDES:
-                        // We generate our own RR/SR/SDES packets. We only want
-                        // to forward NACKs/PLIs/etc.
-                        break;
-                    case RTCPFBPacket.PSFB:
-                        RTCPFBPacket psfb = (RTCPFBPacket) p;
-                        switch (psfb.fmt)
-                        {
-                            case RTCPREMBPacket.FMT:
-                                // We generate its own REMB packets.
-                                break;
-                            default:
-                                // We let through everything else, like NACK
-                                // packets.
-                                outPackets.add(psfb);
-                                break;
-                        }
-                        break;
-                    default:
-                        // We let through everything else, like BYE and APP
-                        // packets.
-                        outPackets.add(p);
-                        break;
+                case RTCPPacket.RR:
+                case RTCPPacket.SR:
+                case RTCPPacket.SDES:
+                    // We generate our own RR/SR/SDES packets. We only want to
+                    // forward NACKs/PLIs/etc.
+                    break;
+                case RTCPFBPacket.PSFB:
+                    RTCPFBPacket psfb = (RTCPFBPacket) p;
+                    switch (psfb.fmt)
+                    {
+                        case RTCPREMBPacket.FMT:
+                            // We generate its own REMB packets.
+                            break;
+                        default:
+                            // We let through everything else, like NACK
+                            // packets.
+                            outPackets.add(psfb);
+                            break;
+                    }
+                    break;
+                default:
+                    // We let through everything else, like BYE and APP packets.
+                    outPackets.add(p);
+                    break;
                 }
             }
 
@@ -1059,9 +1054,9 @@ public class BasicRTCPTerminationStrategy
                 return null;
             }
 
-            // We have feedback messages to send. Pack them in a compound
-            // RR and send them. TODO Use RFC5506 Reduced-Size RTCP, if the
-            // receiver supports it.
+            // We have feedback messages to send. Pack them in a compound RR and
+            // send them. TODO Use RFC5506 Reduced-Size RTCP, if the receiver
+            // supports it.
             Collection<RTCPRRPacket> rrs = makeRRs(System.currentTimeMillis());
 
             if (rrs != null && !rrs.isEmpty())
@@ -1078,336 +1073,6 @@ public class BasicRTCPTerminationStrategy
                         outPackets.toArray(new RTCPPacket[outPackets.size()]));
 
             return generator.apply(outPacket);
-        }
-    }
-
-    /**
-     * Holds the NTP timestamp and the associated RTP timestamp for a given
-     * RTP stream.
-     */
-    class RemoteClock
-    {
-        /**
-         * Ctor.
-         *
-         * @param remoteTime
-         * @param rtpTimestamp
-         */
-        public RemoteClock(long remoteTime, int rtpTimestamp)
-        {
-            this.remoteTime = remoteTime;
-            this.rtpTimestamp = rtpTimestamp;
-        }
-
-        /**
-         * The last NTP timestamp that we received for {@link this.ssrc}
-         * expressed in millis. Should be treated a signed long.
-         */
-        private final long remoteTime;
-
-        /**
-         * The RTP timestamp associated to {@link this.ntpTimestamp}. The RTP
-         * timestamp is an unsigned int.
-         */
-        private final int rtpTimestamp;
-
-        /**
-         *
-         * @return
-         */
-        public int getRtpTimestamp()
-        {
-            return rtpTimestamp;
-        }
-
-        /**
-         *
-         * @return
-         */
-        public long getRemoteTime()
-        {
-            return remoteTime;
-        }
-    }
-
-    /**
-     *
-     */
-    class ReceivedRemoteClock
-    {
-        /**
-         * The SSRC.
-         */
-        private final int ssrc;
-
-        /**
-         * The <tt>RemoteClock</tt> which was received at
-         * {@link this.receivedTime} for this RTP stream.
-         */
-        private final RemoteClock remoteClock;
-
-        /**
-         * The local time in millis when we received the RTCP report with the
-         * RTP/NTP timestamps. It's a signed long.
-         */
-        private final long receivedTime;
-
-        /**
-         * The clock rate for {@link.ssrc}. We need to have received at least
-         * two SRs in order to be able to calculate this. Unsigned short.
-         */
-        private final int frequencyHz;
-
-        /**
-         * Ctor.
-         *
-         * @param ssrc
-         * @param remoteTime
-         * @param rtpTimestamp
-         * @param frequencyHz
-         */
-        ReceivedRemoteClock(int ssrc,
-                            long remoteTime,
-                            int rtpTimestamp,
-                            int frequencyHz)
-        {
-            this.ssrc = ssrc;
-            this.remoteClock = new RemoteClock(remoteTime, rtpTimestamp);
-            this.frequencyHz = frequencyHz;
-            this.receivedTime = System.currentTimeMillis();
-        }
-
-        /**
-         *
-         * @return
-         */
-        public RemoteClock getRemoteClock()
-        {
-            return remoteClock;
-        }
-
-        /**
-         *
-         * @return
-         */
-        public long getReceivedTime()
-        {
-            return receivedTime;
-        }
-
-        /**
-         *
-         * @return
-         */
-        public int getSsrc()
-        {
-            return ssrc;
-        }
-
-        /**
-         *
-         * @return
-         */
-        public int getFrequencyHz()
-        {
-            return frequencyHz;
-        }
-    }
-
-    /**
-     * A class that can be used to estimate the remote time at a given local
-     * time.
-     */
-    class RemoteClockEstimator
-    {
-        /**
-         * base: 7-Feb-2036 @ 06:28:16 UTC
-         */
-        private static final long msb0baseTime = 2085978496000L;
-
-        /**
-         * base: 1-Jan-1900 @ 01:00:00 UTC
-         */
-        private static final long msb1baseTime = -2208988800000L;
-
-        /**
-         * A map holding the received remote clocks.
-         */
-        private final Map<Integer, ReceivedRemoteClock> receivedClocks
-            = new ConcurrentHashMap<Integer, ReceivedRemoteClock>();
-
-        /**
-         * Inspect an <tt>RTCPCompoundPacket</tt> and build-up the state for
-         * future estimations.
-         *
-         * @param pkt
-         */
-        public void update(RTCPCompoundPacket pkt)
-        {
-            if (pkt == null || pkt.packets == null || pkt.packets.length == 0)
-            {
-                return;
-            }
-
-            for (RTCPPacket rtcpPacket : pkt.packets)
-            {
-                switch (rtcpPacket.type)
-                {
-                    case RTCPPacket.SR:
-                        RTCPSRPacket srPacket = (RTCPSRPacket) rtcpPacket;
-
-                        // The media sender SSRC.
-                        int ssrc = srPacket.ssrc;
-
-                        // Convert 64-bit NTP timestamp to Java standard time.
-                        // Note that java time (milliseconds) by definition has
-                        // less precision then NTP time (picoseconds) so
-                        // converting NTP timestamp to java time and back to NTP
-                        // timestamp loses precision. For example, Tue, Dec 17
-                        // 2002 09:07:24.810 EST is represented by a single
-                        // Java-based time value of f22cd1fc8a, but its NTP
-                        // equivalent are all values ranging from
-                        // c1a9ae1c.cf5c28f5 to c1a9ae1c.cf9db22c.
-
-                        // Use round-off on fractional part to preserve going to
-                        // lower precision
-                        long fraction = Math.round(
-                            1000D * srPacket.ntptimestamplsw / 0x100000000L);
-                        /*
-                         * If the most significant bit (MSB) on the seconds
-                         * field is set we use a different time base. The
-                         * following text is a quote from RFC-2030 (SNTP v4):
-                         *
-                         * If bit 0 is set, the UTC time is in the range
-                         * 1968-2036 and UTC time is reckoned from 0h 0m 0s UTC
-                         * on 1 January 1900. If bit 0 is not set, the time is
-                         * in the range 2036-2104 and UTC time is reckoned from
-                         * 6h 28m 16s UTC on 7 February 2036.
-                         */
-                        long msb = srPacket.ntptimestampmsw & 0x80000000L;
-                        long remoteTime = (msb == 0)
-                            // use base: 7-Feb-2036 @ 06:28:16 UTC
-                            ? msb0baseTime
-                                + (srPacket.ntptimestampmsw * 1000) + fraction
-                            // use base: 1-Jan-1900 @ 01:00:00 UTC
-                            : msb1baseTime
-                                + (srPacket.ntptimestampmsw * 1000) + fraction;
-
-                        // Estimate the clock rate of the sender.
-                        int frequencyHz = -1;
-                        if (receivedClocks.containsKey(ssrc))
-                        {
-                            // Calculate the clock rate.
-                            ReceivedRemoteClock oldStats
-                                = receivedClocks.get(ssrc);
-                            RemoteClock oldRemoteClock
-                                = oldStats.getRemoteClock();
-                            frequencyHz = Math.round((float)
-                                (((int) srPacket.rtptimestamp
-                                    - oldRemoteClock.getRtpTimestamp())
-                                        & 0xffffffffl)
-                                / (remoteTime
-                                    - oldRemoteClock.getRemoteTime()));
-                        }
-
-                        // Replace whatever was in there before.
-                        receivedClocks.put(ssrc, new ReceivedRemoteClock(ssrc,
-                            remoteTime, (int) srPacket.rtptimestamp,
-                            frequencyHz));
-                        break;
-                    case RTCPPacket.SDES:
-                        break;
-                }
-            }
-        }
-
-        /**
-         * Estimate the <tt>RemoteClock</tt> of a given RTP stream (identified
-         * by its SSRC) at a given time.
-         *
-         * @param ssrc the SSRC of the RTP stream whose <tt>RemoteClock</tt> we
-         * want to estimate.
-         * @param time the local time that will be mapped to a remote time.
-         * @return An estimation of the <tt>RemoteClock</tt> at time "time".
-         */
-        public RemoteClock estimate(int ssrc, long time)
-        {
-            ReceivedRemoteClock receivedRemoteClock = receivedClocks.get(ssrc);
-            if (receivedRemoteClock == null
-                || receivedRemoteClock.getFrequencyHz() == -1)
-            {
-                // We can't continue if we don't have NTP and RTP timestamps
-                // and/or the original sender frequency, so move to the next
-                // one.
-                return null;
-            }
-
-            long delayMillis = time - receivedRemoteClock.getReceivedTime();
-
-            // Estimate the remote wall clock.
-            long remoteTime
-                = receivedRemoteClock.getRemoteClock().getRemoteTime();
-            long estimatedRemoteTime = remoteTime + delayMillis;
-
-            // Drift the RTP timestamp.
-            int rtpTimestamp
-                = receivedRemoteClock.getRemoteClock().getRtpTimestamp()
-                + ((int) delayMillis) * (receivedRemoteClock.getFrequencyHz()
-                    / 1000);
-            return new RemoteClock(estimatedRemoteTime, rtpTimestamp);
-        }
-    }
-
-    /**
-     * Keeps track of the CNAMEs of the RTP streams that we've seen.
-     */
-    class CNAMERegistry
-        extends ConcurrentHashMap<Integer, byte[]>
-    {
-        /**
-         * @param inPacket
-         */
-        public void update(RTCPCompoundPacket inPacket)
-        {
-            // Update CNAMEs.
-            if (inPacket == null || inPacket.packets == null
-                || inPacket.packets.length == 0)
-            {
-                return;
-            }
-
-            for (RTCPPacket p : inPacket.packets)
-            {
-                switch (p.type)
-                {
-                    case RTCPPacket.SDES:
-                        RTCPSDESPacket sdesPacket = (RTCPSDESPacket) p;
-                        if (sdesPacket.sdes == null
-                            || sdesPacket.sdes.length == 0)
-                        {
-                            continue;
-                        }
-
-                        for (RTCPSDES chunk : sdesPacket.sdes)
-                        {
-                            if (chunk.items == null || chunk.items.length == 0)
-                            {
-                                continue;
-                            }
-
-                            for (RTCPSDESItem sdesItm : chunk.items)
-                            {
-                                if (sdesItm.type != RTCPSDESItem.CNAME)
-                                {
-                                    continue;
-                                }
-
-                                this.put(chunk.ssrc, sdesItm.data);
-                            }
-                        }
-                        break;
-                }
-            }
         }
     }
 
@@ -1435,19 +1100,19 @@ public class BasicRTCPTerminationStrategy
             }
 
             // Make the RTCP reports for the assoc. MediaStream.
-            List<RawPacket> rawPkts = report();
+            List<RawPacket> pkts = report();
 
-            if (rawPkts == null || rawPkts.isEmpty())
+            if (pkts == null || pkts.isEmpty())
             {
                 // Nothing was generated.
                 return;
             }
 
-            for (RawPacket rawPkt : rawPkts)
+            for (RawPacket pkt : pkts)
             {
                 try
                 {
-                    getStream().injectPacket(rawPkt, false, true);
+                    getStream().injectPacket(pkt, false, true);
 
                     // TODO update transmission stats.
                     /*if (ssrcInfo instanceof SendSSRCInfo)
@@ -1455,7 +1120,7 @@ public class BasicRTCPTerminationStrategy
                         ((SendSSRCInfo) ssrcInfo).stats.total_rtcp++;
                         cache.sm.transstats.rtcp_sent++;
                     }
-                    cache.updateavgrtcpsize(rawPacket.getLength());
+                    cache.updateavgrtcpsize(pkt.getLength());
                     if (cache.initial)
                         cache.initial = false;
                     if (!cache.rtcpsent)
