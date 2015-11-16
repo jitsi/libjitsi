@@ -203,13 +203,15 @@ public class SsrcRewritingEngine implements TransformEngine
     }
 
     /**
-     * Configures the <tt>SsrcRewritingEngine</tt> to rewrite an SSRC group
-     * to the target SSRC. This method is thread-safe. Only one thread writes
-     * to the maps at a time, but many can read.
+     * Configures the {@code SsrcRewritingEngine} to rewrite an SSRC group to
+     * the target SSRC. The method is thread-safe. Only one thread writes to the
+     * maps at a time, but many can read.
      *
      * @param ssrcGroup the SSRC group to rewrite to the target SSRC.
+     * @param ssrcTargetPrimary the target SSRC or {@code 0} to unmap.
+     * @param ssrc2fec
+     * @param ssrc2red
      * @param rtxGroups maps RTX SSRCs to SSRCs.
-     * @param ssrcTargetPrimary the target SSRC or 0 to unmap.
      * @param ssrcTargetRTX the target RTX SSRC.
      */
     public synchronized void map(
@@ -256,19 +258,16 @@ public class SsrcRewritingEngine implements TransformEngine
         // BYE target SSRCs that no longer have source/original SSRCs.
         // TODO we need a way to garbage collect target SSRCs that should have
         // been unmapped.
-        Iterator<Map.Entry<Integer, RefCount<SsrcGroupRewriter>>> iterator
-            = target2rewriter.entrySet().iterator();
-
-        while (iterator.hasNext())
+        for (Iterator<RefCount<SsrcGroupRewriter>> i
+                    = target2rewriter.values().iterator();
+                i.hasNext();)
         {
-            Map.Entry<Integer, RefCount<SsrcGroupRewriter>> entry
-                = iterator.next();
-            RefCount<SsrcGroupRewriter> refCount = entry.getValue();
+            RefCount<SsrcGroupRewriter> refCount = i.next();
 
             if (refCount.get() < 1)
             {
                 refCount.getReferent().close();
-                iterator.remove();
+                i.remove();
             }
         }
     }
@@ -286,10 +285,10 @@ public class SsrcRewritingEngine implements TransformEngine
     {
         if (src != null && !src.isEmpty())
         {
-            for (Map.Entry<Integer, Byte> entry : src.entrySet())
+            for (Map.Entry<Integer, Byte> e : src.entrySet())
             {
-                Integer ssrc = entry.getKey();
-                Byte pt = entry.getValue();
+                Integer ssrc = e.getKey();
+                Byte pt = e.getValue();
 
                 if (pt == UNMAP_PT)
                 {
@@ -506,13 +505,14 @@ public class SsrcRewritingEngine implements TransformEngine
             // Use the SSRC of the RTP packet to find which
             // <tt>SsrcGroupRewriter</tt> to use.
             int ssrc = pkt.getSSRC();
-            SsrcGroupRewriter ssrcGroupRewriter
-                = origin2rewriter.get(ssrc);
+            SsrcGroupRewriter ssrcGroupRewriter = origin2rewriter.get(ssrc);
 
             // If there is an <tt>SsrcGroupRewriter</tt>, rewrite the
             // packet, otherwise return it unaltered.
-            return (ssrcGroupRewriter == null)
-                ? pkt : ssrcGroupRewriter.rewriteRTP(pkt);
+            return
+                (ssrcGroupRewriter == null)
+                    ? pkt
+                    : ssrcGroupRewriter.rewriteRTP(pkt);
         }
     };
 
@@ -534,28 +534,33 @@ public class SsrcRewritingEngine implements TransformEngine
             // We want to rewrite each individual RTCP packet in an RTCP
             // compound packet. Furthermore, we want to do that with the
             // appropriate rewriter.
-            RTCPCompoundPacket inPacket;
+            RTCPPacket[] inPkts;
+
             try
             {
-                inPacket = (RTCPCompoundPacket) parser.parse(
-                    pkt.getBuffer(),
-                    pkt.getOffset(),
-                    pkt.getLength());
+                RTCPCompoundPacket compound
+                    = (RTCPCompoundPacket)
+                        parser.parse(
+                                pkt.getBuffer(),
+                                pkt.getOffset(),
+                                pkt.getLength());
+
+                inPkts = (compound == null) ? null : compound.packets;
             }
             catch (BadFormatException e)
             {
-                logError("Failed to rewrite an RTCP packet. " +
-                    "Dropping packet.", e);
+                logError(
+                        "Failed to rewrite an RTCP packet. Dropping packet.",
+                        e);
                 return null;
             }
 
-            if (inPacket == null || inPacket.packets == null
-                || inPacket.packets.length == 0)
+            if (inPkts == null || inPkts.length == 0)
             {
                 return pkt;
             }
 
-            Collection<RTCPPacket> outRTCPPackets = new ArrayList<>();
+            Collection<RTCPPacket> outPkts = new ArrayList<>();
 
             // XXX It turns out that all the simulcast layers share the same
             // RTP timestamp starting offset. They also share the same NTP clock
@@ -564,7 +569,7 @@ public class SsrcRewritingEngine implements TransformEngine
             // true, everything will probably stop working. You have been
             // warned TAG(timestamp-uplifting).
 
-            for (RTCPPacket inRTCPPacket : inPacket.packets)
+            for (RTCPPacket inPkt : inPkts)
             {
                 // Use the SSRC of the RTCP packet to find which
                 // <tt>SsrcGroupRewriter</tt> to use.
@@ -574,7 +579,7 @@ public class SsrcRewritingEngine implements TransformEngine
                 // new RawPacket's each time we want to use those methods.
                 // For example, PacketBufferUtils sounds like an appropriate
                 // name for this class.
-                switch (inRTCPPacket.type)
+                switch (inPkt.type)
                 {
                 case RTCPPacket.RR:
                 case RTCPPacket.SR:
@@ -594,7 +599,7 @@ public class SsrcRewritingEngine implements TransformEngine
                     // Get the synchronization source identifier of the
                     // media source that this piece of feedback information
                     // is related to.
-                    RTCPFBPacket psfb = (RTCPFBPacket) inRTCPPacket;
+                    RTCPFBPacket psfb = (RTCPFBPacket) inPkt;
                     int ssrc = (int) psfb.sourceSSRC;
 
                     if (ssrc != 0)
@@ -604,9 +609,9 @@ public class SsrcRewritingEngine implements TransformEngine
                         if (reverseSSRC == INVALID_SSRC)
                         {
                             // We only really care if it's NOT a REMB.
-                            logDebug("Could not find an " +
-                                    "SsrcGroupRewriter for the RTCP packet: " +
-                                    psfb.toString());
+                            logDebug(
+                                    "Could not find an SsrcGroupRewriter for"
+                                        + " the RTCP packet: " + psfb);
                         }
                         else
                         {
@@ -624,12 +629,14 @@ public class SsrcRewritingEngine implements TransformEngine
                         {
                             for (int i = 0; i < dest.length; i++)
                             {
-                                int reverseSSRC = reverseRewriteSSRC((int) dest[i]);
+                                int reverseSSRC
+                                    = reverseRewriteSSRC((int) dest[i]);
                                 if (reverseSSRC == INVALID_SSRC)
                                 {
-                                    logDebug("Could not find an " +
-                                            "SsrcGroupRewriter for the RTCP packet: " +
-                                            psfb.toString());
+                                    logDebug(
+                                            "Could not find an"
+                                                + " SsrcGroupRewriter for the"
+                                                + " RTCP packet: " + psfb);
                                 }
                                 else
                                 {
@@ -642,32 +649,29 @@ public class SsrcRewritingEngine implements TransformEngine
                         break;
                     }
 
-                    outRTCPPackets.add(psfb);
+                    outPkts.add(psfb);
 
                     break;
                 case RTCPFBPacket.RTPFB:
-                    RTCPFBPacket psfb1 = (RTCPFBPacket) inRTCPPacket;
-                    if (psfb1.fmt != 1)
+                    RTCPFBPacket fb = (RTCPFBPacket) inPkt;
+                    if (fb.fmt != 1)
                     {
-                        logWarn(
-                                "Unhandled RTCP packet: " + inRTCPPacket.toString());
+                        logWarn("Unhandled RTCP packet: " + inPkt);
                     }
                     break;
                 default:
-                    logWarn(
-                        "Unhandled RTCP packet: " + inRTCPPacket.toString());
+                    logWarn("Unhandled RTCP packet: " + inPkt);
                     break;
                 }
             }
 
-            if (!outRTCPPackets.isEmpty())
+            if (!outPkts.isEmpty())
             {
-                RTCPPacket rtcpPackets[] = outRTCPPackets.toArray(
-                    new RTCPPacket[outRTCPPackets.size()]);
-
-                RTCPCompoundPacket cp = new RTCPCompoundPacket(rtcpPackets);
-
-                return generator.apply(cp);
+                return
+                    generator.apply(
+                            new RTCPCompoundPacket(
+                                    outPkts.toArray(
+                                            new RTCPPacket[outPkts.size()])));
             }
             else
             {
