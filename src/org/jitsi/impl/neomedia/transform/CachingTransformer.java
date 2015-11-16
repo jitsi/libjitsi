@@ -154,21 +154,13 @@ public class CachingTransformer
      * The thread which monitors {@link #getCache(long, boolean)} for instances
      * which should be expired.
      */
-    private final CleanerThread cleanerThread = new CleanerThread();
+    private CleanerThread cleanerThread;
 
     /**
      * Whether caching packets is enabled or disabled. Note that the default
      * value is {@code false}.
      */
     private boolean enabled = false;
-
-    /**
-     * Initializes a new <tt>CachingTransformer</tt> instance.
-     */
-    public CachingTransformer()
-    {
-        cleanerThread.start();
-    }
 
     /**
      * {@inheritDoc}
@@ -303,6 +295,12 @@ public class CachingTransformer
     public void setEnabled(boolean enabled)
     {
         this.enabled = enabled;
+
+        if (enabled && cleanerThread == null)
+        {
+            cleanerThread = new CleanerThread();
+            cleanerThread.start();
+        }
     }
 
     /**
