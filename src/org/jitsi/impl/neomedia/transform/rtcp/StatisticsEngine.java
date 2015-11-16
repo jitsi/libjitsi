@@ -23,10 +23,12 @@ import javax.media.rtp.*;
 
 import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.RTPHeader; //disambiguation
+import net.sf.fmj.media.rtp.util.*;
 import net.sf.fmj.utility.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
@@ -35,6 +37,7 @@ import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
+import org.jitsi.util.function.*;
 
 /**
  * Implements a <tt>TransformEngine</tt> monitors the incoming and outgoing RTCP
@@ -113,102 +116,6 @@ public class StatisticsEngine
     }
 
     /**
-     * Removes any RTP Control Protocol Extended Report (RTCP XR) packets from
-     * <tt>pkt</tt>.
-     *
-     * @param pkt the <tt>RawPacket</tt> from which any RTCP XR packets are to
-     * be removed
-     * @return a list of <tt>RTCPExtendedReport</tt> packets removed from
-     * <tt>pkt</tt> or <tt>null</tt> or an empty list if no RTCP XR packets were
-     * removed from <tt>pkt</tt>
-     */
-    private static List<RTCPExtendedReport> removeRTCPExtendedReports(
-            RawPacket pkt)
-    {
-        int off = pkt.getOffset();
-        List<RTCPExtendedReport> rtcpXRs = null;
-
-        // TODO(gp) maybe move the parsing into <tt>RTCPPacketParserEx</tt>
-        do
-        {
-            /*
-             * XXX RawPacket may shrink if an RTCP XR packet is removed. Such an
-             * operation may (or may not) modify either of the buffer, offset,
-             * and length properties of RawPacket. Ensure that the buf and end
-             * values are in accord with pkt.
-             */
-            int end = pkt.getOffset() + pkt.getLength();
-
-            if (off >= end)
-                break;
-
-            byte[] buf = pkt.getBuffer();
-            int rtcpPktLen = getLengthIfRTCP(buf, off, end - off);
-
-            if (rtcpPktLen <= 0) // Not an RTCP packet.
-                break;
-
-            int pt = 0xff & buf[off + 1];
-
-            if (pt == RTCPExtendedReport.XR) // An RTCP XR packet.
-            {
-                RTCPExtendedReport rtcpXR;
-
-                try
-                {
-                    rtcpXR = new RTCPExtendedReport(buf, off, rtcpPktLen);
-                }
-                catch (IOException ioe)
-                {
-                    // It looked like an RTCP XR packet but didn't parse.
-                    rtcpXR = null;
-                }
-                if (rtcpXR == null)
-                {
-                    // It looked like an RTCP XR packet but didn't parse.
-                    off += rtcpPktLen;
-                }
-                else
-                {
-                    // Remove the RTCP XR packet.
-                    int tailOff = off + rtcpPktLen;
-                    int tailLen = end - tailOff;
-
-                    if (tailLen > 0)
-                        System.arraycopy(buf, tailOff, buf, off, tailLen);
-
-                    /*
-                     * XXX RawPacket may be shrunk if an RTCP XR packet is
-                     * removed. Such an operation may (or may not) modify either
-                     * of the buffer, offset, and length properties of
-                     * RawPacket. Ensure that the off value is in accord with
-                     * pkt.
-                     */
-                    int oldOff = pkt.getOffset();
-
-                    pkt.shrink(rtcpPktLen);
-
-                    int newOff = pkt.getOffset();
-
-                    off = off - oldOff + newOff;
-
-                    // Return the (removed) RTCP XR packet.
-                    if (rtcpXRs == null)
-                        rtcpXRs = new LinkedList<RTCPExtendedReport>();
-                    rtcpXRs.add(rtcpXR);
-                }
-            }
-            else
-            {
-                // Not an RTCP XR packet.
-                off += rtcpPktLen;
-            }
-        }
-        while (true);
-        return rtcpXRs;
-    }
-
-    /**
      * Number of lost packets reported.
      */
     private long lost = 0;
@@ -256,6 +163,18 @@ public class StatisticsEngine
      * The number of RTP packets sent though this instance.
      */
     private long rtpPacketsReceived = 0;
+
+    /**
+     * The {@link RTCPPacketParserEx} which this instance will use to parse
+     * RTCP packets.
+     */
+    private final RTCPPacketParserEx parser = new RTCPPacketParserEx();
+
+    /**
+     * The <tt>Function</tt> that generates <tt>RawPacket</tt>s from
+     * <tt>RTCPCompoundPacket</tt>s.
+     */
+    private RTCPGenerator generator = new RTCPGenerator();
 
     /**
      * The <tt>PacketTransformer</tt> instance to use for RTP. It only counts
@@ -500,7 +419,7 @@ public class StatisticsEngine
                     if (rtcpXR != null)
                     {
                         if (rtcpXRs == null)
-                            rtcpXRs = new LinkedList<RTCPExtendedReport>();
+                            rtcpXRs = new LinkedList<>();
                         rtcpXRs.add(rtcpXR);
                     }
                 }
@@ -966,6 +885,34 @@ public class StatisticsEngine
 
     /**
      * Initializes a new SR or RR <tt>RTCPReport</tt> instance from a specific
+     * byte array.
+     *
+     * @param type the type of the RTCP packet (RR or SR).
+     * @param buf the byte array from which the RR or SR instance will be
+     * initialized.
+     * @param off the offset into <tt>buf</tt>.
+     * @param len the length of the data in <tt>buf</tt>.
+     * @return a new SR or RR <tt>RTCPReport</tt> instance initialized from the
+     * specified byte array.
+     * @throws IOException if an I/O error occurs while parsing the specified
+     * <tt>pkt</tt> into a new SR or RR <tt>RTCPReport</tt> instance.
+     */
+    private RTCPReport parseRTCPReport(int type, byte[] buf, int off, int len)
+        throws IOException
+    {
+        switch (type)
+        {
+        case RTCPPacket.RR:
+            return new RTCPReceiverReport(buf, off, len);
+        case RTCPPacket.SR:
+            return new RTCPSenderReport(buf, off, len);
+        default:
+            return null;
+        }
+    }
+
+    /**
+     * Initializes a new SR or RR <tt>RTCPReport</tt> instance from a specific
      * <tt>RawPacket</tt>.
      *
      * @param pkt the <tt>RawPacket</tt> to parse into a new SR or RR
@@ -976,28 +923,15 @@ public class StatisticsEngine
      * <tt>pkt</tt> into a new SR or RR <tt>RTCPReport</tt> instance
      */
     private RTCPReport parseRTCPReport(RawPacket pkt)
-        throws IOException
+            throws IOException
     {
-        switch (pkt.getRTCPPacketType())
-        {
-        case RTCPPacket.RR:
-            return
-                new RTCPReceiverReport(
-                        pkt.getBuffer(),
-                        pkt.getOffset(),
-                        pkt.getLength());
-        case RTCPPacket.SR:
-            return
-                new RTCPSenderReport(
-                        pkt.getBuffer(),
-                        pkt.getOffset(),
-                        pkt.getLength());
-        default:
-            return null;
-        }
+        return parseRTCPReport(
+                pkt.getRTCPPacketType(), pkt.getBuffer(),
+                pkt.getOffset(), pkt.getLength());
     }
 
     /**
+     * //xxx
      * Transfers RTCP sender report feedback as new information about the upload
      * stream for the <tt>MediaStreamStats</tt>. Returns the packet as we are
      * listening just for sending packages.
@@ -1011,56 +945,146 @@ public class StatisticsEngine
         // SRTP may send non-RTCP packets.
         if (isRTCP(pkt))
         {
-            /*
-             * Remove any RTP Control Protocol Extended Report (RTCP XR) packets
-             * because neither FMJ, nor RTCPSenderReport/RTCPReceiverReport
-             * understands them.
-             */
-            List<RTCPExtendedReport> xrs = removeRTCPExtendedReports(pkt);
+            RTCPCompoundPacket compound = null;
+            Exception ex = null;
+            List<RTCPPacket> out;
+            boolean modified = false;
 
-            // The pkt may have contained RTCP XR packets only.
-            if (isRTCP(pkt))
+            try
             {
-                try
+                compound
+                    = (RTCPCompoundPacket) parser.parse(
+                            pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+            }
+            catch (BadFormatException bfe)
+            {
+                ex = bfe;
+            }
+
+            if (compound == null || compound.packets == null
+                    || compound.packets.length == 0)
+            {
+                logger.info("Failed to analyze an incoming RTCP packet for"
+                                    + " the purposes of statistics.", ex);
+                return pkt;
+            }
+
+            out = new LinkedList<>();
+            try
+            {
+                modified = updateReceivedMediaStreamStats(compound.packets, out);
+            }
+            catch (Throwable t)
+            {
+                if (t instanceof InterruptedException)
                 {
-                    updateReceivedMediaStreamStats(pkt);
+                    Thread.currentThread().interrupt();
                 }
-                catch(Throwable t)
+                else if (t instanceof ThreadDeath)
                 {
-                    if (t instanceof InterruptedException)
-                    {
-                        Thread.currentThread().interrupt();
-                    }
-                    else if (t instanceof ThreadDeath)
-                    {
-                        throw (ThreadDeath) t;
-                    }
-                    else
-                    {
-                        logger.error(
-                                "Failed to analyze an incoming RTCP packet for"
+                    throw (ThreadDeath) t;
+                }
+                else
+                {
+                    logger.error(
+                            "Failed to analyze an incoming RTCP packet for"
                                     + " the purposes of statistics.",
-                                t);
-                    }
+                            t);
                 }
+            }
+
+            if (!modified)
+            {
+                // no change was introduced
+                return pkt;
+            }
+            else if (out.isEmpty())
+            {
+                //all RTCP packets were consumed
+                return null;
             }
             else
             {
-                // The pkt contained RTCP XR packets only.
-                pkt = null;
-            }
-
-            // RTCP XR
-            if (xrs != null)
-            {
-                RTCPReports rtcpReports
-                    = mediaStream.getMediaStreamStats().getRTCPReports();
-
-                for (RTCPExtendedReport xr : xrs)
-                    rtcpReports.rtcpExtendedReportReceived(xr);
+                RTCPCompoundPacket outPacket
+                        = new RTCPCompoundPacket(out.toArray(
+                        new RTCPPacket[out.size()]));
+                pkt = generator.apply(outPacket);
             }
         }
+
         return pkt;
+    }
+
+    /**
+     * Processes the {@link RTCPPacket}s from {@code in} as received RTCP
+     * packets and updates the {@link MediaStreamStats}. Adds to {@code out} the
+     * ones which were not consumed and should be output from this instance.
+     * @param in the input packets
+     * @param out the list to which non-consumed packets will be added.
+     * @return {@code true} iff some packets were consumed.
+     */
+    private boolean updateReceivedMediaStreamStats(
+            RTCPPacket[] in, List<RTCPPacket> out)
+    {
+        boolean removed = false;
+        MediaStreamStats streamStats = mediaStream.getMediaStreamStats();
+
+        for (RTCPPacket rtcp : in)
+        {
+            if (rtcp instanceof RTCPExtendedReport)
+            {
+                RTCPReports rtcpReports = streamStats.getRTCPReports();
+
+                rtcpReports.rtcpExtendedReportReceived(
+                        (RTCPExtendedReport) rtcp);
+
+                // Remove any RTP Control Protocol Extended Report (RTCP XR)
+                // packets because neither FMJ, nor
+                // RTCPSenderReport/RTCPReceiverReport understands them.
+                removed = true;
+            }
+            else if (rtcp instanceof NACKPacket)
+            {
+                NACKPacket nack = (NACKPacket) rtcp;
+                //streamStats.nackReceived(nack);
+
+                // TODO: Do we always want to drop these?
+                removed = true;
+            }
+            else if (rtcp instanceof RTCPREMBPacket)
+            {
+                RTCPREMBPacket remb = (RTCPREMBPacket) rtcp;
+                //streamStats.rembReceived(remb);
+
+                out.add(rtcp);
+            }
+            else if (rtcp.type == RTCPPacket.RR
+                    || rtcp.type == RTCPPacket.SR)
+            {
+                RTCPReport report;
+                try
+                {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    rtcp.assemble(new DataOutputStream(baos));
+                    byte[] buf = baos.toByteArray();
+                    report = parseRTCPReport(rtcp.type, buf, 0, buf.length);
+                }
+                catch (IOException ioe)
+                {
+                    logger.error("Failed to assemble an RTCP report: " + ioe);
+                    report = null;
+                }
+
+                if (report != null)
+                {
+                    streamStats.getRTCPReports().rtcpReportReceived(report);
+                }
+
+                out.add(rtcp);
+            }
+        }
+
+        return removed;
     }
 
     /**
@@ -1142,24 +1166,6 @@ public class StatisticsEngine
             }
         }
         return pkt;
-    }
-
-    /**
-     * Transfers RTCP sender/receiver report feedback as new information about
-     * the upload stream for the <tt>MediaStreamStats</tt>.
-     *
-     * @param pkt the received RTCP packet
-     */
-    private void updateReceivedMediaStreamStats(RawPacket pkt)
-        throws Exception
-    {
-        RTCPReport r = parseRTCPReport(pkt);
-
-        if (r != null)
-        {
-            mediaStream.getMediaStreamStats().getRTCPReports()
-                .rtcpReportReceived(r);
-        }
     }
 
     /**
