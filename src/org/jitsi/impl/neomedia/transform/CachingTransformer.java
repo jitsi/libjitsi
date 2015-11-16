@@ -210,9 +210,12 @@ public class CachingTransformer
             caches.clear();
         }
 
-        synchronized (cleanerThread)
+        if (cleanerThread != null)
         {
-            cleanerThread.notifyAll();
+            synchronized (cleanerThread)
+            {
+                cleanerThread.notifyAll();
+            }
         }
     }
 
