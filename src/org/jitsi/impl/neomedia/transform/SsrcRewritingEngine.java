@@ -378,16 +378,11 @@ public class SsrcRewritingEngine implements TransformEngine
             return;
         }
 
-        origin2rewriter
-            = new ConcurrentHashMap<Integer, SsrcGroupRewriter>();
-        target2rewriter
-            = new HashMap<Integer, RefCount<SsrcGroupRewriter>>();
-
-        rtx2primary = new ConcurrentHashMap<Integer, Integer>();
-
-        ssrc2red = new ConcurrentHashMap<Integer, Byte>();
-
-        ssrc2fec = new ConcurrentHashMap<Integer, Byte>();
+        origin2rewriter = new ConcurrentHashMap<>();
+        target2rewriter = new HashMap<>();
+        rtx2primary = new ConcurrentHashMap<>();
+        ssrc2red = new ConcurrentHashMap<>();
+        ssrc2fec = new ConcurrentHashMap<>();
 
         initialized = true;
     }
@@ -411,9 +406,9 @@ public class SsrcRewritingEngine implements TransformEngine
             // Create an <tt>SsrcGroupRewriter</tt> for the target SSRC.
             if (!target2rewriter.containsKey(ssrcTarget))
             {
-                target2rewriter.put(ssrcTarget,
-                    new RefCount<SsrcGroupRewriter>(
-                        new SsrcGroupRewriter(ssrcTarget)));
+                target2rewriter.put(
+                        ssrcTarget,
+                        new RefCount<>(new SsrcGroupRewriter(ssrcTarget)));
             }
 
             RefCount<SsrcGroupRewriter> trackedSsrcGroupRewriter
@@ -560,8 +555,7 @@ public class SsrcRewritingEngine implements TransformEngine
                 return pkt;
             }
 
-            Collection<RTCPPacket> outRTCPPackets
-                = new ArrayList<RTCPPacket>();
+            Collection<RTCPPacket> outRTCPPackets = new ArrayList<>();
 
             // XXX It turns out that all the simulcast layers share the same
             // RTP timestamp starting offset. They also share the same NTP clock
@@ -698,8 +692,7 @@ public class SsrcRewritingEngine implements TransformEngine
          * A map of SSRCs to <tt>SsrcRewriter</tt>. Each SSRC that we rewrite in
          * this group rewriter has its own rewriter.
          */
-        private final Map<Integer, SsrcRewriter> rewriters
-            = new HashMap<Integer, SsrcRewriter>();
+        private final Map<Integer, SsrcRewriter> rewriters = new HashMap<>();
 
         /**
          * The target SSRC that the rewritten RTP packets will have. This is
@@ -976,7 +969,8 @@ public class SsrcRewritingEngine implements TransformEngine
              * that's way too much).
              */
             private final NavigableMap<Integer, ExtendedSequenceNumberInterval>
-                intervals = new TreeMap<Integer, ExtendedSequenceNumberInterval>();
+                intervals
+                    = new TreeMap<>();
 
             /**
              * This is the current sequence number interval for this origin
