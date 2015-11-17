@@ -953,9 +953,7 @@ public class MediaStreamImpl
         debugTransformEngine
             = DebugTransformEngine.createDebugTransformEngine(this);
         if (debugTransformEngine != null)
-        {
             engineChain.add(debugTransformEngine);
-        }
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
@@ -3481,14 +3479,14 @@ public class MediaStreamImpl
 
         if (debugTransformEngine != null)
         {
-            PacketTransformer debugTransformer
+            SinglePacketTransformer debugTransformer
                 = data
                     ? debugTransformEngine.getRTPTransformer()
                     : debugTransformEngine.getRTCPTransformer();
 
             // XXX we hard cast so that we don't have to create a new RawPacket
             // array.
-            ((SinglePacketTransformer) debugTransformer).transform(pkt);
+            debugTransformer.transform(pkt);
         }
 
         if (encrypt)

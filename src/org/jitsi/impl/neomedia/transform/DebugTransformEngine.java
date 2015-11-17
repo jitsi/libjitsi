@@ -46,6 +46,7 @@ import java.net.*;
  * </pre>
  *
  * @author George Politis
+ * @author Lyubomir Marinov
  */
 public class DebugTransformEngine implements TransformEngine
 {
@@ -55,16 +56,16 @@ public class DebugTransformEngine implements TransformEngine
     private final MediaStreamImpl mediaStream;
 
     /**
-     * The <tt>PacketTransformer</tt> that logs RTP packets.
-     */
-    private final PacketTransformer rtpTransformer
-        = new MyRTPPacketTransformer();
-
-    /**
      * The <tt>PacketTransformer</tt> that logs RTCP packets.
      */
-    private final PacketTransformer rtcpTransformer
+    private final SinglePacketTransformer rtcpTransformer
         = new MyRTCPPacketTransformer();
+
+    /**
+     * The <tt>PacketTransformer</tt> that logs RTP packets.
+     */
+    private final SinglePacketTransformer rtpTransformer
+        = new MyRTPPacketTransformer();
 
     /**
      * Ctor.
@@ -91,8 +92,9 @@ public class DebugTransformEngine implements TransformEngine
         PacketLoggingService packetLogging
             = LibJitsiImpl.getPacketLoggingService();
 
-        if (packetLogging != null && packetLogging.isLoggingEnabled(
-                    PacketLoggingService.ProtocolName.ARBITRARY))
+        if (packetLogging != null
+                && packetLogging.isLoggingEnabled(
+                        PacketLoggingService.ProtocolName.ARBITRARY))
         {
             return new DebugTransformEngine(mediaStream);
         }
@@ -100,19 +102,82 @@ public class DebugTransformEngine implements TransformEngine
         {
             return null;
         }
-
     }
 
     @Override
-    public PacketTransformer getRTPTransformer()
+    public SinglePacketTransformer getRTCPTransformer()
     {
-        return this.rtpTransformer;
+        return rtcpTransformer;
     }
 
     @Override
-    public PacketTransformer getRTCPTransformer()
+    public SinglePacketTransformer getRTPTransformer()
     {
-        return this.rtcpTransformer;
+        return rtpTransformer;
+    }
+
+    /**
+     * Logs a specific {@code RawPacket} via the {@code PacketLoggingService}.
+     *
+     * @param pkt the {@code RawPacket} to log
+     * @param data {@code true} if {@code pkt} represents a data/RTP packet or
+     * {@code false} if {@code pkt} represents a control/RTCP packet
+     * @param sender {@code true} if {@code pkt} has originated from the local
+     * peer and is to be sent to the remote peer or {@code false} if {@code pkt}
+     * has originated from the remote peer and has been received by the local
+     * peer
+     * @return {@code pkt}
+     */
+    private RawPacket transform(RawPacket pkt, boolean data, boolean sender)
+    {
+        PacketLoggingService pktLogging
+            = LibJitsiImpl.getPacketLoggingService();
+
+        if (pktLogging != null)
+        {
+            InetSocketAddress src;
+            InetSocketAddress dst;
+
+            // When the caller is a sender:
+            if (data)
+            {
+                src = mediaStream.getLocalDataAddress();
+                dst = mediaStream.getTarget().getDataAddress();
+            }
+            else
+            {
+                src = mediaStream.getLocalControlAddress();
+                dst = mediaStream.getTarget().getControlAddress();
+            }
+
+            // When the caller is a receiver, the situation is the exact
+            // opposite of when the caller is a sender.
+            if (!sender)
+            {
+                InetSocketAddress swap = src;
+
+                src = dst;
+                dst = swap;
+            }
+
+            pktLogging.logPacket(
+                    PacketLoggingService.ProtocolName.ARBITRARY,
+                    (src != null)
+                        ? src.getAddress().getAddress()
+                        : new byte[] { 0, 0, 0, 0 },
+                    (src != null) ? src.getPort() : 1,
+                    (dst != null)
+                        ? dst.getAddress().getAddress()
+                        : new byte[] { 0, 0, 0, 0 },
+                    (dst != null) ? dst.getPort() : 1,
+                    PacketLoggingService.TransportName.UDP,
+                    sender,
+                    pkt.getBuffer().clone(),
+                    pkt.getOffset(),
+                    pkt.getLength());
+        }
+
+        return pkt;
     }
 
     /**
@@ -125,77 +190,21 @@ public class DebugTransformEngine implements TransformEngine
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
-            PacketLoggingService packetLogging
-                = LibJitsiImpl.getPacketLoggingService();
-
-            if (packetLogging != null)
-            {
-                InetSocketAddress sourceAddress
-                    = mediaStream.getTarget().getDataAddress();
-
-                InetSocketAddress destinationAddress
-                    = mediaStream.getLocalDataAddress();
-
-                packetLogging.logPacket(
-                    PacketLoggingService.ProtocolName.ARBITRARY,
-                    (sourceAddress != null)
-                        ? sourceAddress.getAddress().getAddress()
-                        : new byte[]{0, 0, 0, 0},
-                    (sourceAddress != null)
-                        ? sourceAddress.getPort()
-                        : 1,
-                    (destinationAddress != null)
-                        ? destinationAddress.getAddress().getAddress()
-                        : new byte[]{0, 0, 0, 0},
-                    (destinationAddress != null)
-                        ? destinationAddress.getPort()
-                        : 1,
-                    PacketLoggingService.TransportName.UDP,
-                    false,
-                    pkt.getBuffer().clone(),
-                    pkt.getOffset(),
-                    pkt.getLength());
-            }
-
-            return pkt;
+            return
+                DebugTransformEngine.this.transform(
+                        pkt,
+                        /* data */ true,
+                        /* sender */ false);
         }
 
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-            PacketLoggingService packetLogging
-                = LibJitsiImpl.getPacketLoggingService();
-
-            if (packetLogging != null)
-            {
-                InetSocketAddress sourceAddress
-                    = mediaStream.getLocalDataAddress();
-
-                InetSocketAddress destinationAddress
-                    = mediaStream.getTarget().getDataAddress();
-
-                packetLogging.logPacket(
-                    PacketLoggingService.ProtocolName.ARBITRARY,
-                    (sourceAddress != null)
-                        ? sourceAddress.getAddress().getAddress()
-                        : new byte[]{0, 0, 0, 0},
-                    (sourceAddress != null)
-                        ? sourceAddress.getPort()
-                        : 1,
-                    (destinationAddress != null)
-                        ? destinationAddress.getAddress().getAddress()
-                        : new byte[]{0, 0, 0, 0},
-                    (destinationAddress != null)
-                        ? destinationAddress.getPort()
-                        : 1,
-                    PacketLoggingService.TransportName.UDP,
-                    true,
-                    pkt.getBuffer().clone(),
-                    pkt.getOffset(),
-                    pkt.getLength());
-            }
-
-            return pkt;
+            return
+                DebugTransformEngine.this.transform(
+                        pkt,
+                        /* data */ true,
+                        /* sender */ true);
         }
     }
 
@@ -209,77 +218,21 @@ public class DebugTransformEngine implements TransformEngine
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
-            PacketLoggingService packetLogging
-                = LibJitsiImpl.getPacketLoggingService();
-
-            if (packetLogging != null)
-            {
-                InetSocketAddress sourceAddress
-                    = mediaStream.getTarget().getControlAddress();
-
-                InetSocketAddress destinationAddress
-                    = mediaStream.getLocalControlAddress();
-
-                packetLogging.logPacket(
-                    PacketLoggingService.ProtocolName.ARBITRARY,
-                    (sourceAddress != null)
-                        ? sourceAddress.getAddress().getAddress()
-                        : new byte[]{0, 0, 0, 0},
-                    (sourceAddress != null)
-                        ? sourceAddress.getPort()
-                        : 1,
-                    (destinationAddress != null)
-                        ? destinationAddress.getAddress().getAddress()
-                        : new byte[]{0, 0, 0, 0},
-                    (destinationAddress != null)
-                        ? destinationAddress.getPort()
-                        : 1,
-                    PacketLoggingService.TransportName.UDP,
-                    false,
-                    pkt.getBuffer().clone(),
-                    pkt.getOffset(),
-                    pkt.getLength());
-            }
-
-            return pkt;
+            return
+                DebugTransformEngine.this.transform(
+                        pkt,
+                        /* data */ false,
+                        /* sender */ false);
         }
 
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-            PacketLoggingService packetLogging
-                = LibJitsiImpl.getPacketLoggingService();
-
-            if (packetLogging != null)
-            {
-                InetSocketAddress sourceAddress
-                    = mediaStream.getLocalControlAddress();
-
-                InetSocketAddress destinationAddress
-                    = mediaStream.getTarget().getControlAddress();
-
-                packetLogging.logPacket(
-                    PacketLoggingService.ProtocolName.ARBITRARY,
-                    (sourceAddress != null)
-                        ? sourceAddress.getAddress().getAddress()
-                        : new byte[]{0, 0, 0, 0},
-                    (sourceAddress != null)
-                        ? sourceAddress.getPort()
-                        : 1,
-                    (destinationAddress != null)
-                        ? destinationAddress.getAddress().getAddress()
-                        : new byte[]{0, 0, 0, 0},
-                    (destinationAddress != null)
-                        ? destinationAddress.getPort()
-                        : 1,
-                    PacketLoggingService.TransportName.UDP,
-                    true,
-                    pkt.getBuffer().clone(),
-                    pkt.getOffset(),
-                    pkt.getLength());
-            }
-
-            return pkt;
+            return
+                DebugTransformEngine.this.transform(
+                        pkt,
+                        /* data */ false,
+                        /* sender */ true);
         }
     }
 }
