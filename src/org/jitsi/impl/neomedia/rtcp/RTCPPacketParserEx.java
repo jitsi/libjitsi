@@ -22,10 +22,15 @@ import net.sf.fmj.media.rtp.util.*;
 
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.event.*;
+import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 
 /**
- * Created by gp on 6/25/14.
+ * Extends {@link RTCPPacketParser} to allow the parsing of additional RTCP
+ * packet types such as REMB, NACK and XR.
+ *
+ * @author George Politis
+ * @author Boris Grozev
  */
 public class RTCPPacketParserEx
     extends net.sf.fmj.media.rtp.RTCPPacketParser
@@ -58,7 +63,7 @@ public class RTCPPacketParserEx
             DataInputStream in)
         throws BadFormatException, IOException
     {
-        if (type ==  RTCPFBPacket.RTPFB || type ==  RTCPFBPacket.PSFB)
+        if (type == RTCPFBPacket.RTPFB || type == RTCPFBPacket.PSFB)
         {
 /*
     0                   1                   2                   3
@@ -146,6 +151,10 @@ public class RTCPPacketParserEx
                                     sourceSSRC);
                 }
             }
+        }
+        else if (type == RTCPExtendedReport.XR)
+        {
+            return new RTCPExtendedReport(firstbyte, type, length, in);
         }
         else
             return null;

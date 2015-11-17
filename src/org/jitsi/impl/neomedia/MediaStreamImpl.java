@@ -252,7 +252,7 @@ public class MediaStreamImpl
      * The <tt>RTPTranslator</tt>, if any, which forwards RTP and RTCP traffic
      * between this and other <tt>MediaStream</tt>s.
      */
-    private RTPTranslator rtpTranslator;
+    protected RTPTranslator rtpTranslator;
 
     /**
      * The indicator which determines whether {@link #createSendStreams()} has
@@ -329,9 +329,28 @@ public class MediaStreamImpl
             = new TransformEngineWrapper<RTCPTerminationStrategy>();
 
     /**
+     * The transformer which replaces the timestamp in an abs-send-time RTP
+     * header extension.
+     */
+    private AbsSendTimeEngine absSendTimeEngine;
+
+    /**
+     * The transformer which caches outgoing RTP packets for this
+     * {@link MediaStream}.
+     */
+    private CachingTransformer cachingTransformer;
+
+    /**
      * The chain used to by the RTPConnector to transform packets.
      */
     private TransformEngine transformEngineChain;
+
+    /**
+     * The {@code RetransmissionRequester} instance for this
+     * {@code MediaStream} which will request missing packets by sending
+     * RTCP NACKs.
+     */
+    private RetransmissionRequester retransmissionRequester;
 
     /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
@@ -617,6 +636,16 @@ public class MediaStreamImpl
             else
                 activeRTPExtensions.remove(extensionID);
         }
+
+
+        if (RTPExtension.ABS_SEND_TIME_URN.equals(
+                rtpExtension.getURI().toString()))
+        {
+            if (absSendTimeEngine != null)
+            {
+                absSendTimeEngine.setExtensionID(active ? extensionID : -1);
+            }
+        }
     }
 
     /**
@@ -896,6 +925,33 @@ public class MediaStreamImpl
     }
 
     /**
+     * Creates the {@link AbsSendTimeEngine} for this {@code MediaStream}.
+     * @return the created {@link AbsSendTimeEngine}.
+     */
+    protected AbsSendTimeEngine createAbsSendTimeEngine()
+    {
+        return null;
+    }
+
+    /**
+     * Creates the {@link CachingTransformer} for this {@code MediaStream}.
+     * @return the created {@link CachingTransformer}.
+     */
+    protected CachingTransformer createCachingTransformer()
+    {
+        return null;
+    }
+
+    /**
+     * Creates the {@link RetransmissionRequester} for this {@code MediaStream}.
+     * @return the created {@link RetransmissionRequester}.
+     */
+    protected RetransmissionRequester createRetransmissionRequester()
+    {
+        return null;
+    }
+
+    /**
      * Creates a chain of transform engines for use with this stream. Note
      * that this is the only place where the <tt>TransformEngineChain</tt> is
      * and should be manipulated to avoid problems with the order of the
@@ -936,18 +992,36 @@ public class MediaStreamImpl
         if (redTransformEngine != null)
             engineChain.add(redTransformEngine);
 
+        engineChain.add(ssrcRewritingEngine);
+
         // RTCPTerminationTransformEngine passes received RTCP to
         // RTCPTerminationStrategy for inspection and modification. The RTCP
         // termination needs to be as close to the SRTP transform engine as
         // possible.
         engineChain.add(rtcpTransformEngineWrapper);
 
-        engineChain.add(ssrcRewritingEngine);
-
         // RTCP Statistics
         if (statisticsEngine == null)
             statisticsEngine = new StatisticsEngine(this);
         engineChain.add(statisticsEngine);
+
+        retransmissionRequester = createRetransmissionRequester();
+        if (retransmissionRequester != null)
+        {
+            engineChain.add(retransmissionRequester);
+        }
+
+        absSendTimeEngine = createAbsSendTimeEngine();
+        if (absSendTimeEngine != null)
+        {
+            engineChain.add(absSendTimeEngine);
+        }
+
+        cachingTransformer = createCachingTransformer();
+        if (cachingTransformer != null)
+        {
+            engineChain.add(cachingTransformer);
+        }
 
         // Debug
         debugTransformEngine
@@ -3551,5 +3625,14 @@ public class MediaStreamImpl
                 }
             }
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RawPacketCache getPacketCache()
+    {
+        return cachingTransformer;
     }
 }

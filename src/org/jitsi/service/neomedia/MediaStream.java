@@ -511,4 +511,11 @@ public interface MediaStream
         final Map<Integer, Byte> ssrc2fec,
         final Map<Integer, Byte> ssrc2red,
         final Map<Integer, Integer> rtxGroups, final Integer ssrcTargetRTX);
+
+    /**
+     * Gets the {@link RawPacketCache} which (optionally) caches outgoing
+     * packets for this {@link MediaStream}, if it exists.
+     * @return the {@link RawPacketCache} for this {@link MediaStream}.
+     */
+    public RawPacketCache getPacketCache();
 }

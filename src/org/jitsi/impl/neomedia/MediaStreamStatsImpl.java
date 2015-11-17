@@ -29,6 +29,7 @@ import javax.media.rtp.*;
 import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
@@ -301,6 +302,16 @@ public class MediaStreamStatsImpl
      * The number of remote RTP jitter reports received.
      */
     private int remoteJitterCount = 0;
+
+    /**
+     * The list of listeners to be notified when NACK packets are received.
+     */
+    private final List<NACKListener> nackListeners = new LinkedList<>();
+
+    /**
+     * The list of listeners to be notified when REMB packets are received.
+     */
+    private final List<REMBListener> rembListeners = new LinkedList<>();
 
     /**
      * Creates a new instance of stats concerning a MediaStream.
@@ -1379,5 +1390,65 @@ public class MediaStreamStatsImpl
         nbByte[streamDirectionIndex] = newNbByte;
 
         updateNbFec();
+    }
+
+    /**
+     * Notifies this instance that an RTCP REMB packet was received.
+     * @param remb the packet.
+     */
+    public void rembReceived(RTCPREMBPacket remb)
+    {
+        if (remb != null)
+        {
+            for (REMBListener listener : rembListeners)
+            {
+                listener.rembReceived(remb.getBitrate());
+            }
+        }
+    }
+
+    /**
+     * Notifies this instance that an RTCP NACK packet was received.
+     * @param nack the packet.
+     */
+    public void nackReceived(NACKPacket nack)
+    {
+        if (nack != null)
+        {
+            for (NACKListener listener : nackListeners)
+            {
+                listener.nackReceived(nack);
+            }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addNackListener(NACKListener listener)
+    {
+        if (listener != null)
+        {
+            synchronized (nackListeners)
+            {
+                nackListeners.add(listener);
+            }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addRembListener(REMBListener listener)
+    {
+        if (listener != null)
+        {
+            synchronized (rembListeners)
+            {
+                rembListeners.add(listener);
+            }
+        }
     }
 }
