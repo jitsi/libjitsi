@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation;
 
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 import java.util.*;
 
