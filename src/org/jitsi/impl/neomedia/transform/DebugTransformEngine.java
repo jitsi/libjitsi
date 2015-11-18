@@ -18,6 +18,8 @@ package org.jitsi.impl.neomedia.transform;
 import org.jitsi.impl.libjitsi.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.packetlogging.*;
+import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 import java.net.*;
 
@@ -50,6 +52,13 @@ import java.net.*;
  */
 public class DebugTransformEngine implements TransformEngine
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>DebugTransformEngine</tt> class and
+     * its instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(DebugTransformEngine.class);
+
     /**
      * The <tt>MediaStream</tt> that owns this instance.
      */
@@ -130,52 +139,118 @@ public class DebugTransformEngine implements TransformEngine
      */
     private RawPacket transform(RawPacket pkt, boolean data, boolean sender)
     {
+        if (pkt == null)
+        {
+            return pkt;
+        }
+
+        if (mediaStream == null)
+        {
+            logger.debug("Not logging a packet because the mediaStream is " +
+                    "null");
+            return pkt;
+        }
+
         PacketLoggingService pktLogging
             = LibJitsiImpl.getPacketLoggingService();
 
-        if (pktLogging != null)
+        if (pktLogging == null)
         {
-            InetSocketAddress src;
-            InetSocketAddress dst;
-
-            // When the caller is a sender:
-            if (data)
-            {
-                src = mediaStream.getLocalDataAddress();
-                dst = mediaStream.getTarget().getDataAddress();
-            }
-            else
-            {
-                src = mediaStream.getLocalControlAddress();
-                dst = mediaStream.getTarget().getControlAddress();
-            }
-
-            // When the caller is a receiver, the situation is the exact
-            // opposite of when the caller is a sender.
-            if (!sender)
-            {
-                InetSocketAddress swap = src;
-
-                src = dst;
-                dst = swap;
-            }
-
-            pktLogging.logPacket(
-                    PacketLoggingService.ProtocolName.ARBITRARY,
-                    (src != null)
-                        ? src.getAddress().getAddress()
-                        : new byte[] { 0, 0, 0, 0 },
-                    (src != null) ? src.getPort() : 1,
-                    (dst != null)
-                        ? dst.getAddress().getAddress()
-                        : new byte[] { 0, 0, 0, 0 },
-                    (dst != null) ? dst.getPort() : 1,
-                    PacketLoggingService.TransportName.UDP,
-                    sender,
-                    pkt.getBuffer().clone(),
-                    pkt.getOffset(),
-                    pkt.getLength());
+            logger.debug("Not logging a packet because the packet logging " +
+                    "service is null.");
+            return pkt;
         }
+
+        InetSocketAddress src;
+        InetSocketAddress dst;
+
+        // When the caller is a sender:
+        if (data)
+        {
+            InetSocketAddress localDataAddress
+                = mediaStream.getLocalDataAddress();
+            if (localDataAddress == null)
+            {
+                logger.debug("Not logging a packet because the local data " +
+                        "address is null");
+                return pkt;
+            }
+
+            MediaStreamTarget target = mediaStream.getTarget();
+            if (target == null)
+            {
+                logger.debug("Not logging a packet because the media stream " +
+                        "target is null.");
+                return pkt;
+            }
+
+            InetSocketAddress targetDataAddress = target.getDataAddress();
+            if (targetDataAddress == null)
+            {
+                logger.debug("Not logging a packet because the media stream " +
+                        "target address is null.");
+                return pkt;
+            }
+
+            src = localDataAddress;
+            dst = targetDataAddress;
+        }
+        else
+        {
+            InetSocketAddress localControlAddress
+                = mediaStream.getLocalControlAddress();
+            if (localControlAddress == null)
+            {
+                logger.debug("Not logging a packet because the local data " +
+                        "address is null");
+                return pkt;
+            }
+
+            MediaStreamTarget target = mediaStream.getTarget();
+            if (target == null)
+            {
+                logger.debug("Not logging a packet because the media stream " +
+                        "target is null.");
+                return pkt;
+            }
+
+            InetSocketAddress targetControlAddress = target.getControlAddress();
+            if (targetControlAddress == null)
+            {
+                logger.debug("Not logging a packet because the media stream " +
+                        "target address is null.");
+                return pkt;
+            }
+
+            src = localControlAddress;
+            dst = targetControlAddress;
+        }
+
+        // When the caller is a receiver, the situation is the exact
+        // opposite of when the caller is a sender.
+        if (!sender)
+        {
+            InetSocketAddress swap = src;
+
+            src = dst;
+            dst = swap;
+        }
+
+        pktLogging.logPacket(
+                PacketLoggingService.ProtocolName.ARBITRARY,
+                (src != null)
+                ? src.getAddress().getAddress()
+                : new byte[] { 0, 0, 0, 0 },
+                (src != null) ? src.getPort() : 1,
+                (dst != null)
+                ? dst.getAddress().getAddress()
+                : new byte[] { 0, 0, 0, 0 },
+                (dst != null) ? dst.getPort() : 1,
+                PacketLoggingService.TransportName.UDP,
+                sender,
+                pkt.getBuffer().clone(),
+                pkt.getOffset(),
+                pkt.getLength());
 
         return pkt;
     }
