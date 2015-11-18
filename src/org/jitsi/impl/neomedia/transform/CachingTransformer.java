@@ -16,7 +16,7 @@
 package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 
 import java.util.*;
@@ -223,7 +223,7 @@ public class CachingTransformer
      * {@inheritDoc}
      *
      * Implements
-     * {@link org.jitsi.service.neomedia.RawPacketCache#get(long, int)}.
+     * {@link org.jitsi.service.neomedia.rtp.RawPacketCache#get(long, int)}.
      */
     public RawPacket get(long ssrc, int seq)
     {

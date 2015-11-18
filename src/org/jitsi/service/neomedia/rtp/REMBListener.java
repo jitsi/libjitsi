@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.service.neomedia;
-
-import org.jitsi.impl.neomedia.rtcp.*;
+package org.jitsi.service.neomedia.rtp;
 
 /**
- * A simple interface for handling RTCP NACK packets.
+ * A simple interface for handling the bitrate value contained in RTCP REMB
+ * packets.
  * @author Boris Grozev
  */
-public interface NACKListener
+public interface REMBListener
 {
     /**
-     * Handles an RTCP NACK packet.
-     * @param nackPacket the packet.
+     * Handles the bitrate contained in an RTCP REMB packet.
+     * @param bitrateBps the bitrate contained in the REMB packet, in bits per
+     * second.
      */
-    public void nackReceived(NACKPacket nackPacket);
+    public void rembReceived(long bitrateBps);
 }
