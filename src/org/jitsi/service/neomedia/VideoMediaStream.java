@@ -150,4 +150,10 @@ public interface VideoMediaStream
      * quality control
      */
     public void updateQualityControl(Map<String, String> advancedParams);
+
+    /**
+     * Creates an instance of {@link BandwidthEstimator} for this
+     * {@link MediaStream} if one doesn't already exist. Returns the instance.
+     */
+    public BandwidthEstimator getOrCreateBandwidthEstimator();
 }

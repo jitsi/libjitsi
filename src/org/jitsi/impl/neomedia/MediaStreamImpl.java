@@ -34,7 +34,6 @@ import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.impl.neomedia.rtp.*;
-import org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
@@ -353,12 +352,6 @@ public class MediaStreamImpl
      * RTCP NACKs.
      */
     private RetransmissionRequester retransmissionRequester;
-
-    /**
-     * The {@code BandwidthEstimator} which estimates the available bandwidth
-     * from this endpoint to the remote peer.
-     */
-    private BandwidthEstimatorImpl bandwidthEstimator;
 
     /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
@@ -3644,19 +3637,5 @@ public class MediaStreamImpl
     public RawPacketCache getPacketCache()
     {
         return cachingTransformer;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public BandwidthEstimator getBandwidthEstimator()
-    {
-        if (bandwidthEstimator == null)
-        {
-            bandwidthEstimator = new BandwidthEstimatorImpl(this);
-            logger.info("Creating a BandwidthEstimator for stream " + this);
-        }
-        return bandwidthEstimator;
     }
 }

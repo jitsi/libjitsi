@@ -24,7 +24,6 @@ import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
-import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * The <tt>MediaStream</tt> class represents a (generally) bidirectional RTP
@@ -519,10 +518,4 @@ public interface MediaStream
      * @return the {@link RawPacketCache} for this {@link MediaStream}.
      */
     public RawPacketCache getPacketCache();
-
-    /**
-     * Creates an instance of {@link BandwidthEstimator} for this
-     * {@link MediaStream} if one doesn't already exist. Returns the instance.
-     */
-    public BandwidthEstimator getBandwidthEstimator();
 }
