@@ -32,11 +32,13 @@ import org.jitsi.impl.neomedia.*;
  */
 public class TransformTCPOutputStream
     extends RTPConnectorTCPOutputStream
+    implements TransformOutputStream
 {
     /**
-     * The <tt>PacketTransformer</tt> used to transform RTP/RTCP packets.
+     * The {@code TransformOutputStream} which aids this instance in
+     * implementing the interface in question.
      */
-    private PacketTransformer transformer;
+    private final TransformOutputStreamImpl _impl;
 
     /**
      * Initializes a new <tt>TransformOutputStream</tt> which is to send packet
@@ -47,65 +49,42 @@ public class TransformTCPOutputStream
     public TransformTCPOutputStream(Socket socket)
     {
         super(socket);
+
+        _impl = new TransformOutputStreamImpl(this);
     }
 
     /**
-     * Creates a new array of <tt>RawPacket</tt> from a specific <tt>byte[]</tt>
-     * buffer in order to have this instance send its packet data through its
-     * {@link #write(byte[], int, int)} method. Transforms the array of packets
-     * using a <tt>PacketTransformer</tt>.
-     *
-     * @param buffer the packet data to be sent to the targets of this instance.
-     * The contents of {@code buffer} starting at {@code offset} with the
-     * specified {@code length} is copied into the buffer of the returned
-     * {@code RawPacket}.
-     * @param offset the offset of the packet data in <tt>buffer</tt>
-     * @param length the length of the packet data in <tt>buffer</tt>
-     * @return an array of <tt>RawPacket</tt> containing the packet data of the
-     * specified <tt>byte[]</tt> buffer or possibly its modification;
+     * {@inheritDoc}
      */
     @Override
-    protected RawPacket[] createRawPacket(byte[] buffer, int offset, int length)
-    {
-        RawPacket[] pkts = super.createRawPacket(buffer, offset, length);
-        PacketTransformer transformer = getTransformer();
-
-        if (transformer != null)
-        {
-            pkts = transformer.transform(pkts);
-
-            /*
-             * This is for the case when the ZRTP engine stops the media stream
-             * allowing only ZRTP packets.
-             */
-            // XXX: Do we need to throw here if all elements of pkts are null?
-            // They should be ignored in write().
-            // TODO Comment in order to use the GoClear feature.
-            if ((pkts == null) && (targets.size() > 0))
-                throw new NullPointerException("pkts");
-        }
-        return pkts;
-    }
-
-    /**
-     * Gets the <tt>PacketTransformer</tt> which is used to transform packets.
-     *
-     * @return the <tt>PacketTransformer</tt> which is used to transform packets
-     */
     public PacketTransformer getTransformer()
     {
-        return transformer;
+        return _impl.getTransformer();
     }
 
     /**
-     * Sets the <tt>PacketTransformer</tt> which is to be used to transform
-     * packets.
+     * {@inheritDoc}
      *
-     * @param transformer the <tt>PacketTransformer</tt> which is to be used to
-     * transform packets
+     * Transforms the array of {@code RawPacket}s returned by the super
+     * {@link #packetize(byte[],int,int,Object) implementation using the
+     * associated {@code PacketTransformer}.
      */
+    @Override
+    protected RawPacket[] packetize(
+            byte[] buf, int off, int len,
+            Object context)
+    {
+        RawPacket[] pkts = super.packetize(buf, off, len, context);
+
+        return _impl.transform(pkts, context);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void setTransformer(PacketTransformer transformer)
     {
-        this.transformer = transformer;
+        _impl.setTransformer(transformer);
     }
 }

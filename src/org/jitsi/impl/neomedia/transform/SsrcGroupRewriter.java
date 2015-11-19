@@ -15,10 +15,15 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
+import java.io.*;
 import java.util.*;
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.vp8.*;
+import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 
@@ -120,11 +125,67 @@ class SsrcGroupRewriter
      */
     public void close()
     {
-        // TODO this means we need to BYE the targetSSRC. we need to include
-        // sender and receiver reports in the compound packet. This needs to
-        // blend-in nicely with RTCP termination. This actually needs to go
-        // through the RTCP transmitter so that it can update the RTCP
-        // transmission stats.
+        // According to RFC 3550, a participant who never sent an RTP or RTCP
+        // packet MUST NOT send a BYE packet when they leave the group.
+        if (getActiveRewriter() != null)
+        {
+            MediaStream mediaStream = getMediaStream();
+
+            if (mediaStream != null)
+            {
+                int ssrcTarget = getSSRCTarget();
+
+                // A BYE is to be sent in a compound RTCP packet and the latter
+                // is to start with either an SR or an RR. We do not have enough
+                // information here to build either an SR or an RR with report
+                // blocks. Additionally, the report blocks have to carry
+                // information in agreement with RTCP termination. On top of
+                // these, the compound RTCP packet has to go through the RTCP
+                // transmitter so that it updates the RTCP transmission stats.
+                // We can leave the last two to the RTCP termination strategy in
+                // place so we'll just construct an RR with no report blocks so
+                // that we can form a seemingly legal compound RTCP packet.
+                RTCPRRPacket rr
+                    = new RTCPRRPacket(
+                            ssrcTarget,
+                            BasicRTCPTerminationStrategy
+                                .MIN_RTCP_REPORT_BLOCKS_ARRAY);
+                RTCPBYEPacket bye
+                    = new RTCPBYEPacket(
+                            new int[] { ssrcTarget },
+                            /* reason */ null);
+                RTCPCompoundPacket compound
+                    = new RTCPCompoundPacket(new RTCPPacket[] { rr, bye });
+
+                // Turn the RTCPCompoundPacket into a RawPacket and inject it
+                // into the associated MediaStream.
+                RawPacket raw;
+
+                try
+                {
+                    raw = RTCPPacketParserEx.toRawPacket(compound);
+                }
+                catch (IOException ioe)
+                {
+                    raw = null;
+                    // TODO error handling
+                }
+                if (raw != null)
+                {
+                    try
+                    {
+                        mediaStream.injectPacket(
+                                raw,
+                                /* data */ false,
+                                /* after */ null);
+                    }
+                    catch (TransmissionFailedException tfe)
+                    {
+                        // TODO error handling
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -142,7 +203,7 @@ class SsrcGroupRewriter
      */
     public int getSSRCTarget()
     {
-        return this.ssrcTarget;
+        return ssrcTarget;
     }
 
     /**
@@ -348,5 +409,15 @@ class SsrcGroupRewriter
     void logWarn(String msg)
     {
         ssrcRewritingEngine.logWarn(msg);
+    }
+
+    /**
+     * Gets the {@code MediaStream} associated with this instance.
+     *
+     * @return the {@code MediaStream} associated with this instance
+     */
+    public MediaStream getMediaStream()
+    {
+        return ssrcRewritingEngine.getMediaStream();
     }
 }

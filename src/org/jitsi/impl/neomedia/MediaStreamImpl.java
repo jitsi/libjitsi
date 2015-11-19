@@ -3546,85 +3546,37 @@ public class MediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    public void injectPacket(RawPacket pkt, boolean data, boolean encrypt)
+    public void injectPacket(RawPacket pkt, boolean data, TransformEngine after)
         throws TransmissionFailedException
     {
-        if (pkt == null)
-            return;
-
-        if (debugTransformEngine != null)
+        try
         {
-            SinglePacketTransformer debugTransformer
-                = data
-                    ? debugTransformEngine.getRTPTransformer()
-                    : debugTransformEngine.getRTCPTransformer();
-
-            // XXX we hard cast so that we don't have to create a new RawPacket
-            // array.
-            debugTransformer.transform(pkt);
-        }
-
-        if (encrypt)
-        {
-            SrtpControl srtpControl = getSrtpControl();
-            if (srtpControl != null)
+            if (pkt == null)
             {
-                TransformEngine srtpTransformEngine
-                        = srtpControl.getTransformEngine();
-                if (srtpTransformEngine != null)
-                {
-                    PacketTransformer transformer
-                        = data
-                            ? srtpTransformEngine.getRTPTransformer()
-                            : srtpTransformEngine.getRTCPTransformer();
-
-                    if (transformer instanceof SinglePacketTransformer)
-                    {
-                        pkt
-                            = ((SinglePacketTransformer) transformer)
-                                .transform(pkt);
-                    }
-                    else
-                    {
-                        RawPacket[] pkts = new RawPacket[1];
-                        pkts[0] = pkt;
-                        pkts = transformer.transform(pkts);
-                        pkt = pkts != null && pkts.length > 0 ? pkts[0] : null;
-                    }
-                }
+                // It's a waste of time to invoke the method with a null pkt so
+                // disallow it.
+                throw new NullPointerException("pkt");
             }
-        }
 
-        if (pkt != null)
-        {
             AbstractRTPConnector rtpConnector = getRTPConnector();
-            if (rtpConnector != null)
-            {
-                try
-                {
-                    RTPConnectorOutputStream outputStream
-                        = data
-                            ? rtpConnector.getDataOutputStream(false)
-                            : rtpConnector.getControlOutputStream(false);
 
-                    // Make a copy because the stream's send(RawPacket) method
-                    // will claim the packet it is given and use it for its own
-                    // purposes.
-                    RawPacket pktCopy
-                        = new RawPacket(pkt.getBuffer().clone(),
-                                        pkt.getOffset(),
-                                        pkt.getLength());
-                    outputStream.send(pktCopy);
-                }
-                catch (IOException ioe)
-                {
-                    throw new TransmissionFailedException(ioe);
-                }
-                catch (NullPointerException npe)
-                {
-                    throw new TransmissionFailedException(npe);
-                }
-            }
+            if (rtpConnector == null)
+                throw new IllegalStateException("rtpConnector");
+
+            RTPConnectorOutputStream outputStream
+                = data
+                    ? rtpConnector.getDataOutputStream(false)
+                    : rtpConnector.getControlOutputStream(false);
+
+            outputStream.write(
+                    pkt.getBuffer(),
+                    pkt.getOffset(),
+                    pkt.getLength(),
+                    /* context */ after);
+        }
+        catch (IllegalStateException | IOException | NullPointerException e)
+        {
+            throw new TransmissionFailedException(e);
         }
     }
 

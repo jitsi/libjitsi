@@ -228,33 +228,37 @@ public class RetransmissionRequester
             for (Map.Entry<Long, Set<Integer>> entry : packetsToRequest.entrySet())
             {
                 long sourceSsrc = entry.getKey();
-                NACKPacket nack  = new NACKPacket(
-                        senderSsrc, sourceSsrc, entry.getValue());
+                NACKPacket nack
+                    = new NACKPacket(senderSsrc, sourceSsrc, entry.getValue());
+                RawPacket pkt;
 
-                RawPacket pkt = null;
                 try
                 {
                     pkt = nack.toRawPacket();
                 }
                 catch (IOException ioe)
                 {
+                    pkt = null;
                     logger.warn("Failed to create a NACK packet: " + ioe);
                 }
 
                 if (pkt != null)
-                try
-                {
-                    if (logger.isDebugEnabled())
+                    try
                     {
-                        logger.debug("Sending a NACK: " + nack);
+                        if (logger.isDebugEnabled())
+                        {
+                            logger.debug("Sending a NACK: " + nack);
+                        }
+                        stream.injectPacket(
+                                pkt,
+                                /* data */ false,
+                                /* after */ null);
                     }
-                    stream.injectPacket(pkt, false, true);
-                }
-                catch (TransmissionFailedException ex)
-                {
-                    logger.warn("Failed to inject packet in MediaStream: "
-                        + ex);
-                }
+                    catch (TransmissionFailedException e)
+                    {
+                        logger.warn(
+                                "Failed to inject packet in MediaStream: " + e);
+                    }
             }
         }
 

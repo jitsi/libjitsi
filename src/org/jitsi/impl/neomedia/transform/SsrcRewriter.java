@@ -268,7 +268,7 @@ class SsrcRewriter
      */
     public MediaStream getMediaStream()
     {
-        return getSsrcRewritingEngine().getMediaStream();
+        return ssrcGroupRewriter.getMediaStream();
     }
 
     /**

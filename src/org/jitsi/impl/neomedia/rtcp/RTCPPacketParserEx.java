@@ -16,10 +16,9 @@
 package org.jitsi.impl.neomedia.rtcp;
 
 import java.io.*;
-
 import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.util.*;
-
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.neomedia.rtp.*;
@@ -31,6 +30,7 @@ import org.jitsi.util.*;
  *
  * @author George Politis
  * @author Boris Grozev
+ * @author Lyubomir Marinov
  */
 public class RTCPPacketParserEx
     extends net.sf.fmj.media.rtp.RTCPPacketParser
@@ -41,6 +41,32 @@ public class RTCPPacketParserEx
      */
     private static final Logger logger
         = Logger.getLogger(RTCPPacketParserEx.class);
+
+    /**
+     * Initializes a new {@code RawPacket} instance from a specific
+     * {@code RTCPPacket}.
+     *
+     * @param rtcp the {@code RTCPPacket} to represent as a {@code RawPacket}
+     * @return a new {@code RawPacket} instance which represents the specified
+     * {@code rtcp}
+     * @throws IOException if an input/output error occurs during the
+     * serialization/writing of the binary representation of the specified
+     * {@code rtcp}
+     */
+    public static RawPacket toRawPacket(RTCPPacket rtcp)
+        throws IOException
+    {
+        ByteArrayOutputStream byteArrayOutputStream
+            = new ByteArrayOutputStream();
+        DataOutputStream dataOutputStream
+            = new DataOutputStream(byteArrayOutputStream);
+
+        rtcp.assemble(dataOutputStream);
+
+        byte[] buf = byteArrayOutputStream.toByteArray();
+
+        return new RawPacket(buf, 0, buf.length);
+    }
 
     public RTCPPacket parse(byte[] data, int offset, int length)
         throws BadFormatException

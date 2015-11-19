@@ -65,7 +65,7 @@ public class BasicRTCPTerminationStrategy
      * A reusable array that holds {@link #MIN_RTCP_REPORT_BLOCKS}
      * <tt>RTCPReportBlock</tt>s.
      */
-    private static final RTCPReportBlock[] MIN_RTCP_REPORT_BLOCKS_ARRAY
+    public static final RTCPReportBlock[] MIN_RTCP_REPORT_BLOCKS_ARRAY
         = new RTCPReportBlock[MIN_RTCP_REPORT_BLOCKS];
 
     /**
@@ -1113,7 +1113,10 @@ public class BasicRTCPTerminationStrategy
             {
                 try
                 {
-                    getStream().injectPacket(pkt, false, true);
+                    getStream().injectPacket(
+                            pkt,
+                            /* data */ false,
+                            BasicRTCPTerminationStrategy.this);
 
                     // TODO update transmission stats.
                     /*if (ssrcInfo instanceof SendSSRCInfo)
