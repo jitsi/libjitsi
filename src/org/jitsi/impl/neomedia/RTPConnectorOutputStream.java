@@ -155,7 +155,10 @@ public abstract class RTPConnectorOutputStream
      * Allows extenders to intercept the array and possibly filter and/or
      * modify it.
      *
-     * @param buffer the packet data to be sent to the targets of this instance
+     * @param buffer the packet data to be sent to the targets of this instance.
+     * The contents of {@code buffer} starting at {@code offset} with the
+     * specified {@code length} is copied into the buffer of the returned
+     * {@code RawPacket}.
      * @param offset the offset of the packet data in <tt>buffer</tt>
      * @param length the length of the packet data in <tt>buffer</tt>
      * @return an array with a single <tt>RawPacket</tt> containing the packet
