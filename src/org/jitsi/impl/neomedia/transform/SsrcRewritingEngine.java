@@ -53,16 +53,30 @@ public class SsrcRewritingEngine implements TransformEngine
 
     /**
      * An int const indicating an invalid SSRC.
+     *
+     * FIXME 0 is actually a valid SSRC. That's one essential reason why we need
+     * SSRCs to be represented by Longs and not Ints.
      */
     private static final int INVALID_SSRC = 0;
 
     /**
+     * An int const indicating an unused SSRC. The usage of value 0 is also done
+     * in RFCs.
+     */
+    private static final int UNUSED_SSRC = 0;
+
+    /**
      * An int const indicating an invalid payload type.
+     *
+     * FIXME We could live with a short here.
      */
     private static final int UNMAP_PT = -1;
 
     /**
      * An int const indicating an invalid SSRC.
+     *
+     * FIXME 0 is actually a perfectly valid SSRC. That's one essential reason
+     * why we need SSRCs to be represented by Longs and not Ints.
      */
     private static final int UNMAP_SSRC = 0;
 
@@ -112,6 +126,10 @@ public class SsrcRewritingEngine implements TransformEngine
 
     /**
      * Maps RTX SSRCs to primary SSRCs.
+     *
+     * FIXME On the other hand it seems wasteful to maintain this mapping here,
+     * in the outbound direction. We should have an efficient way to find a
+     * <tt>MediaStream</tt> by its RTX SSRC and extract the primary SSRC.
      */
     Map<Integer, Integer> rtx2primary;
 
@@ -119,6 +137,10 @@ public class SsrcRewritingEngine implements TransformEngine
      * Maps SSRCs to RED payload type. The RED payload type is typically going
      * to be 116 but having it as a constant seems like an open invitation for
      * headaches.
+     *
+     * FIXME On the other hand it seems wasteful to maintain this mapping here,
+     * in the outbound direction. We should have an efficient way to find a
+     * <tt>MediaStream</tt> by its SSRC and extract the RED PT.
      */
     Map<Integer, Byte> ssrc2red;
 
@@ -126,6 +148,10 @@ public class SsrcRewritingEngine implements TransformEngine
      * Maps SSRCs to FEC payload type. The FEC payload type is typically going
      * to be 117 but having it as a constant seems like an open invitation for
      * headaches.
+     *
+     * FIXME On the other hand it seems wasteful to maintain this mapping here,
+     * in the outbound direction. We should have an efficient way to find a
+     * <tt>MediaStream</tt> by its SSRC and extract the FEC PT.
      */
     Map<Integer, Byte> ssrc2fec;
 
@@ -182,6 +208,8 @@ public class SsrcRewritingEngine implements TransformEngine
      * the target SSRC. The method is thread-safe. Only one thread writes to the
      * maps at a time, but many can read.
      *
+     * FIXME split this method in two for clarity: map and unmap.
+     *
      * @param ssrcGroup the SSRC group to rewrite to the target SSRC.
      * @param ssrcTargetPrimary the target SSRC or {@code 0} to unmap.
      * @param ssrc2fec
@@ -195,9 +223,14 @@ public class SsrcRewritingEngine implements TransformEngine
         final Map<Integer, Byte> ssrc2red,
         final Map<Integer, Integer> rtxGroups, final Integer ssrcTargetRTX)
     {
-        assertInitialized();
+        if (!assertInitialized())
+        {
+            logWarn("Failed to map/unmap because the SSRC rewriting engine is" +
+                    "not initialized.");
+            return;
+        }
 
-        // Take care of the primary SSRCs.
+        // Map the primary SSRCs.
         if (ssrcGroup != null && !ssrcGroup.isEmpty())
         {
             for (Integer ssrcOrigPrimary : ssrcGroup)
@@ -206,7 +239,7 @@ public class SsrcRewritingEngine implements TransformEngine
             }
         }
 
-        // Take care of the RTX SSRCs.
+        // Map/unmap the RTX SSRCs to primary SSRCs.
         if (rtxGroups != null && !rtxGroups.isEmpty())
         {
             if (ssrcTargetRTX != null && ssrcTargetRTX != UNMAP_SSRC)
@@ -345,11 +378,18 @@ public class SsrcRewritingEngine implements TransformEngine
     /**
      * Initializes some expensive ConcurrentHashMaps for this engine instance.
      */
-    private synchronized void assertInitialized()
+    private synchronized boolean assertInitialized()
     {
+        if (mediaStream == null)
+        {
+            logger.warn("This instance is not properly initialized because " +
+                    "the stream is null.");
+            return false;
+        }
+
         if (initialized)
         {
-            return;
+            return true;
         }
 
         origin2rewriter = new ConcurrentHashMap<>();
@@ -359,6 +399,8 @@ public class SsrcRewritingEngine implements TransformEngine
         ssrc2fec = new ConcurrentHashMap<>();
 
         initialized = true;
+
+        return true;
     }
 
     /**
@@ -375,10 +417,16 @@ public class SsrcRewritingEngine implements TransformEngine
             return;
         }
 
+        if (logger.isDebugEnabled())
+        {
+            logDebug("Configuring the SSRC rewriting engine to rewrite: "
+                    + (ssrcOrig & 0xffffffffl) + " to " + (ssrcTarget & 0xffffffffl));
+        }
+
         if (ssrcTarget != null && ssrcTarget != UNMAP_SSRC)
         {
             RefCount<SsrcGroupRewriter> refCount
-                = target2rewriter.get(ssrcTarget);;
+                = target2rewriter.get(ssrcTarget);
 
             if (refCount == null)
             {
@@ -421,7 +469,8 @@ public class SsrcRewritingEngine implements TransformEngine
     /**
      * Reverse rewrites the target SSRC into an origin SSRC based on the
      * currently active SSRC rewriter for that target SSRC.
-     * @param targetSSRC
+     *
+     * @param ssrc the target SSRC to rewrite into a source SSRC.
      */
     private int reverseRewriteSSRC(int ssrc)
     {
@@ -466,8 +515,15 @@ public class SsrcRewritingEngine implements TransformEngine
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-            if (!initialized || pkt == null)
+            if (pkt == null)
             {
+                return pkt;
+            }
+
+            if (!initialized)
+            {
+                logWarn("Failed to transform an RTP packet because the SSRC " +
+                        "rewriting engine is not properly initialized.");
                 return pkt;
             }
 
@@ -478,10 +534,15 @@ public class SsrcRewritingEngine implements TransformEngine
 
             // If there is an <tt>SsrcGroupRewriter</tt>, rewrite the
             // packet, otherwise return it unaltered.
-            return
-                (ssrcGroupRewriter == null)
-                    ? pkt
-                    : ssrcGroupRewriter.rewriteRTP(pkt);
+            if (ssrcGroupRewriter == null)
+            {
+                logWarn("I DONT have a rewriter for: " + (ssrc & 0xffffffffl));
+                return pkt;
+            }
+            else
+            {
+                return ssrcGroupRewriter.rewriteRTP(pkt);
+            }
         }
     }
 
@@ -495,8 +556,16 @@ public class SsrcRewritingEngine implements TransformEngine
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
-            if (!initialized || pkt == null)
+            if (pkt == null)
             {
+                return pkt;
+            }
+
+            if (!initialized)
+            {
+                logWarn("Failed to reverse transform an RTP packet because " +
+                        "the SSRC rewriting engine is not properly " +
+                        "initialized.");
                 return pkt;
             }
 
@@ -526,6 +595,8 @@ public class SsrcRewritingEngine implements TransformEngine
 
             if (inPkts == null || inPkts.length == 0)
             {
+                logWarn("Weird, it seems we just received an empty RTCP " +
+                        "packet.");
                 return pkt;
             }
 
@@ -553,8 +624,9 @@ public class SsrcRewritingEngine implements TransformEngine
                 case RTCPPacket.RR:
                 case RTCPPacket.SR:
                 case RTCPPacket.SDES:
-                    // FIXME Is it a good thing to eat up thos (no!)? How
-                    // is FMJ supposed to know what's going on?
+                    // FIXME Is it a good thing to eat up those (NO!)? How
+                    // is FMJ supposed to know what's going on? Maybe we should
+                    // only remove report blocks.
                 case RTCPPacket.BYE:
                     // RTCP termination takes care of all these, so we
                     // don't include them in the outPacket..
@@ -571,7 +643,7 @@ public class SsrcRewritingEngine implements TransformEngine
                     RTCPFBPacket psfb = (RTCPFBPacket) inPkt;
                     int ssrc = (int) psfb.sourceSSRC;
 
-                    if (ssrc != 0)
+                    if (ssrc != UNUSED_SSRC)
                     {
                         int reverseSSRC = reverseRewriteSSRC(ssrc);
 
@@ -623,9 +695,13 @@ public class SsrcRewritingEngine implements TransformEngine
                     break;
                 case RTCPFBPacket.RTPFB:
                     RTCPFBPacket fb = (RTCPFBPacket) inPkt;
-                    if (fb.fmt != 1)
+                    if (fb.fmt != NACKPacket.FMT)
                     {
                         logWarn("Unhandled RTCP packet: " + inPkt);
+                    }
+                    else
+                    {
+                        // NACK termination is taking care of NACKs.
                     }
                     break;
                 default:
