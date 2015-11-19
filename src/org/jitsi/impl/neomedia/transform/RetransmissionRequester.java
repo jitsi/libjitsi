@@ -139,6 +139,10 @@ public class RetransmissionRequester
             requester = requesters.get(ssrc);
             if (requester == null)
             {
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("Creating new Requester for SSRC " + ssrc);
+                }
                 requester = new Requester(ssrc);
                 requesters.put(ssrc, requester);
             }
@@ -240,6 +244,10 @@ public class RetransmissionRequester
                 if (pkt != null)
                 try
                 {
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("Sending a NACK: " + nack);
+                    }
                     stream.injectPacket(pkt, false, true);
                 }
                 catch (TransmissionFailedException ex)

@@ -228,7 +228,7 @@ public class CachingTransformer
     {
         Cache cache = getCache(ssrc & 0xffffffffL, false);
 
-        RawPacket pkt =  cache != null ? cache.get(seq) : null;
+        RawPacket pkt = cache != null ? cache.get(seq) : null;
 
         if (pkt != null)
             totalHits.incrementAndGet();
@@ -285,6 +285,11 @@ public class CachingTransformer
 
         if (cache != null)
         {
+            if (logger.isTraceEnabled())
+            {
+                logger.trace("Caching a packet. SSRC=" + pkt.getSSRCAsLong()
+                    + " seq=" + pkt.getSequenceNumber());
+            }
             cache.insert(pkt);
             totalPacketsAdded.incrementAndGet();
         }
@@ -305,6 +310,12 @@ public class CachingTransformer
         else
         {
             recurringProcessibleExecutor.deRegisterRecurringProcessible(this);
+        }
+
+        if (logger.isDebugEnabled())
+        {
+            logger.debug((enabled ? "Enabling" : "Disabling")
+                                 + " CachingTransformer " + hashCode());
         }
     }
 
@@ -379,6 +390,11 @@ public class CachingTransformer
     {
         synchronized (caches)
         {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Cleaning CachingTransformer " + hashCode());
+            }
+
             Iterator<Map.Entry<Long,Cache>> iter
                     = caches.entrySet().iterator();
             while (iter.hasNext())
@@ -387,8 +403,11 @@ public class CachingTransformer
                 Cache cache = entry.getValue();
                 if (cache.lastInsertTime + SSRC_TIMEOUT_MILLIS < now)
                 {
-                    logger.debug("Removing cache for SSRC "
-                                         + entry.getKey());
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("Removing cache for SSRC " + entry
+                                .getKey());
+                    }
                     cache.empty();
                     iter.remove();
                 }
