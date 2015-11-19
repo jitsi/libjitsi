@@ -37,6 +37,9 @@ class ExtendedSequenceNumberInterval
      */
     private final int extendedBaseTarget;
 
+    /**
+     * The owner of this instance.
+     */
     public final SsrcRewriter ssrcRewriter;
 
     /**

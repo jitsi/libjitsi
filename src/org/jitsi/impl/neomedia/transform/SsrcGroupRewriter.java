@@ -19,6 +19,7 @@ import java.util.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.vp8.*;
+import org.jitsi.util.*;
 
 
 /**
@@ -27,6 +28,13 @@ import org.jitsi.impl.neomedia.codec.video.vp8.*;
  */
 class SsrcGroupRewriter
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>SsrcGroupRewriter</tt> class and
+     * its instances to print debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(SsrcGroupRewriter.class);
+
     /**
      * The <tt>Random</tt> that generates initial sequence numbers. Instances of
      * {@code java.util.Random} are thread-safe since Java 1.7.
@@ -39,6 +47,9 @@ class SsrcGroupRewriter
      */
     private final Map<Integer, SsrcRewriter> rewriters = new HashMap<>();
 
+    /**
+     * The owner of this instance.
+     */
     public final SsrcRewritingEngine ssrcRewritingEngine;
 
     /**
@@ -90,9 +101,8 @@ class SsrcGroupRewriter
     /**
      * Ctor.
      *
-     * @param SsrcRewritingEngine
-     * @param ssrcTarget the target SSRC for this
-     * <tt>SsrcGroupRewriter</tt>.
+     * @param SsrcRewritingEngine the owner of this instance.
+     * @param ssrcTarget the target SSRC for this <tt>SsrcGroupRewriter</tt>.
      */
     public SsrcGroupRewriter(
             SsrcRewritingEngine ssrcRewritingEngine,
@@ -127,11 +137,6 @@ class SsrcGroupRewriter
         return activeRewriter;
     }
 
-    public Collection<SsrcRewriter> getRewriters()
-    {
-        return rewriters.values();
-    }
-
     /**
      * Gets the target SSRC that the rewritten RTP packets will have.
      */
@@ -141,9 +146,12 @@ class SsrcGroupRewriter
     }
 
     /**
+     * Determines whether a switch took place and if so it switches the active
+     * rewriter appropriately. It then rewrites the <tt>RawPacket</tt> that is
+     * passed in as a parameter using the active rewriter.
      *
-     * @param pkt
-     * @return
+     * @param pkt the packet to rewrite
+     * @return the rewritten <tt>RawPacket</tt>
      */
     public RawPacket rewriteRTP(final RawPacket pkt)
     {
@@ -154,8 +162,14 @@ class SsrcGroupRewriter
 
         this.maybeSwitchActiveRewriter(pkt);
 
-        return (activeRewriter == null)
-            ? pkt : activeRewriter.rewriteRTP(pkt);
+        if (activeRewriter == null)
+        {
+            logWarn("Can't rewrite the RTP packet because there's no active " +
+                    "rewriter.");
+            return pkt;
+        }
+
+        return activeRewriter.rewriteRTP(pkt);
     }
 
     /**
@@ -172,6 +186,8 @@ class SsrcGroupRewriter
         // threads to access this block all at the same time.
         if (!rewriters.containsKey(sourceSSRC))
         {
+            logDebug("Creating an SSRC rewriter to rewrite " + (sourceSSRC
+                        & 0xffffffffl) + " into " + (ssrcTarget & 0xffffffffl));
             rewriters.put(sourceSSRC, new SsrcRewriter(this, sourceSSRC));
         }
 
@@ -194,41 +210,21 @@ class SsrcGroupRewriter
             int currentIntervalLength
                 = currentInterval == null ? 0 : currentInterval.length();
 
+            if (currentIntervalLength < 1)
+            {
+                logDebug("Pausing an interval of length 0. This doesn't look " +
+                        "right");
+            }
+
             // Pause the active rewriter (closes its current interval and
             // puts it in the interval tree).
             activeRewriter.pause();
-            if (SsrcRewritingEngine.logger.isDebugEnabled())
+
+            if (logger.isDebugEnabled())
             {
-                boolean isKeyFrame;
-                byte redPT = ssrcRewritingEngine.ssrc2red.get(sourceSSRC);
-                if (redPT == pkt.getPayloadType())
-                {
-                    REDBlockIterator.REDBlock block
-                        = REDBlockIterator.getPrimaryBlock(pkt);
-
-                    if (block != null)
-                    {
-                        // FIXME What if we're not using VP8?
-                        isKeyFrame = DePacketizer.isKeyFrame(
-                                    pkt.getBuffer(),
-                                    block.getBlockOffset(),
-                                    block.getBlockLength());
-                    }
-                    else
-                    {
-                        isKeyFrame = false;
-                    }
-                }
-                else
-                {
-                    // FIXME What if we're not using VP8?
-                    isKeyFrame = DePacketizer.isKeyFrame(
-                                pkt.getBuffer(),
-                                pkt.getPayloadOffset(),
-                                pkt.getPayloadLength());
-                }
-
-                if (!isKeyFrame)
+                // We're only supposed to switch on key frames. Here we check
+                // if that's the case.
+                if (!isKeyFrame(pkt))
                 {
                     logWarn("We're switching NOT on a key frame. Bad " +
                             "Stuff (tm) will happen to you!");
@@ -258,6 +254,45 @@ class SsrcGroupRewriter
     }
 
     /**
+     * Utility method that determines whether or not a packet is a key frame.
+     * This is used only for debugging purposes.
+     */
+    private boolean isKeyFrame(RawPacket pkt)
+    {
+        final int sourceSSRC = pkt.getSSRC();
+        boolean isKeyFrame;
+        byte redPT = ssrcRewritingEngine.ssrc2red.get(sourceSSRC);
+        if (redPT == pkt.getPayloadType())
+        {
+            REDBlockIterator.REDBlock block
+                = REDBlockIterator.getPrimaryBlock(pkt);
+
+            if (block != null)
+            {
+                // FIXME What if we're not using VP8?
+                isKeyFrame = DePacketizer.isKeyFrame(
+                        pkt.getBuffer(),
+                        block.getBlockOffset(),
+                        block.getBlockLength());
+            }
+            else
+            {
+                isKeyFrame = false;
+            }
+        }
+        else
+        {
+            // FIXME What if we're not using VP8?
+            isKeyFrame = DePacketizer.isKeyFrame(
+                    pkt.getBuffer(),
+                    pkt.getPayloadOffset(),
+                    pkt.getPayloadLength());
+        }
+
+        return isKeyFrame;
+    }
+
+    /**
      * This method can be used when rewriting FEC and RTX packets.
      *
      * @param ssrcOrigin the SSRC of the packet whose sequence number we are
@@ -273,6 +308,8 @@ class SsrcGroupRewriter
         SsrcRewriter rewriter = rewriters.get(ssrcOrigin);
         if (rewriter == null)
         {
+            logWarn("An SSRC rewriter was not found for SSRC : " + (ssrcOrigin
+                        & 0xffffffffl));
             return SsrcRewritingEngine.INVALID_SEQNUM;
         }
 
@@ -284,12 +321,13 @@ class SsrcGroupRewriter
 
         if (retransmissionInterval == null)
         {
+            logWarn("Could not find a retransmission interval.");
             return SsrcRewritingEngine.INVALID_SEQNUM;
         }
         else
         {
-            int targetExtendedSequenceNumber = retransmissionInterval.rewriteExtendedSequenceNumber(
-                origExtendedSequenceNumber);
+            int targetExtendedSequenceNumber = retransmissionInterval
+                .rewriteExtendedSequenceNumber(origExtendedSequenceNumber);
 
             // Take only the bits that contain the sequence number (the low
             // 16 bits).
