@@ -124,7 +124,7 @@ class SsrcRewriter
             {
                 logDebug(
                         "Retransmitting packet with SEQNUM " + (seqnum & 0xffff)
-                            + " of SSRC " + (pkt.getSSRC() & 0xffffffffl)
+                            + " of SSRC " + pkt.getSSRCAsLong()
                             + " from the current interval.");
             }
 

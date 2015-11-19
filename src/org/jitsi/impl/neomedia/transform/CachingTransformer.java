@@ -281,7 +281,7 @@ public class CachingTransformer
         if (!enabled)
             return;
 
-        Cache cache = getCache(pkt.getSSRC() & 0xffffffffL, true);
+        Cache cache = getCache(pkt.getSSRCAsLong(), true);
 
         if (cache != null)
         {

@@ -115,7 +115,7 @@ public class PacketBuffer
             RawPacket pkt = pkts[i];
             if (willBuffer(pkt))
             {
-                Buffer buffer = getBuffer(pkt.getSSRC() & 0xffffffffL);
+                Buffer buffer = getBuffer(pkt.getSSRCAsLong());
                 pkts[i] = buffer.insert(pkt);
             }
 

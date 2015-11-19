@@ -132,7 +132,7 @@ public class RetransmissionRequester
     @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
-        long ssrc = pkt.getSSRC() & 0xffffffffL;
+        long ssrc = pkt.getSSRCAsLong();
         Requester requester;
         synchronized (requesters)
         {

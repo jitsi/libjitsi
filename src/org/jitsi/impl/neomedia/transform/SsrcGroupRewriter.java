@@ -197,7 +197,7 @@ class SsrcGroupRewriter
             // Got a packet with a different SSRC from the one that the
             // current SsrcRewriter handles. Pause the current SsrcRewriter
             // and switch to the correct one.
-            logDebug("Now rewriting " + (pkt.getSSRC() & 0xffffffffl)
+            logDebug("Now rewriting " + pkt.getSSRCAsLong()
                 + " to " + (ssrcTarget & 0xffffffffl) + " (was rewriting "
                 + (activeRewriter.getSourceSSRC() & 0xffffffffl) + ").");
 
@@ -240,7 +240,7 @@ class SsrcGroupRewriter
 
         if (activeRewriter == null)
         {
-            logDebug("Now rewriting " + (pkt.getSSRC() & 0xffffffffl)
+            logDebug("Now rewriting " + pkt.getSSRCAsLong()
                 + " to " + (ssrcTarget & 0xffffffffl));
             // We haven't initialized yet.
             activeRewriter = rewriters.get(sourceSSRC);
