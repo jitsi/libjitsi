@@ -38,7 +38,7 @@ public interface VideoMediaStream
      * should request retransmissions for lost RTP packets using RTCP NACK.
      */
     String REQUEST_RETRANSMISSIONS_PNAME
-            = VideoMediaStream.class.getName() + "REQUEST_RETRANSMISSIONS";
+            = VideoMediaStream.class.getName() + ".REQUEST_RETRANSMISSIONS";
     /**
      * Adds a specific <tt>VideoListener</tt> to this <tt>VideoMediaStream</tt>
      * in order to receive notifications when visual/video <tt>Component</tt>s
