@@ -16,7 +16,9 @@
 package org.jitsi.impl.neomedia.transform;
 
 import java.util.*;
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Rewrites SSRCs and sequence numbers of a given source SSRC. This
@@ -239,6 +241,31 @@ class SsrcRewriter
      */
     int extendOriginalSequenceNumber(short ssOrigSeqnum)
     {
+        int newValue = extendOriginalSequenceNumberNew(ssOrigSeqnum);
+
+        if (SsrcRewritingEngine.logger.isDebugEnabled())
+        {
+            int oldValue = extendOriginalSequenceNumberOld(ssOrigSeqnum);
+
+            if (oldValue != newValue)
+            {
+                logDebug(
+                        "The old implementation of extendOriginalSequenceNumber"
+                            + " says " + oldValue + " but the new one says "
+                            + newValue + "!");
+            }
+        }
+
+        return newValue;
+    }
+
+    /**
+     *
+     * @param ssOrigSeqnum
+     * @return
+     */
+    private int extendOriginalSequenceNumberOld(short ssOrigSeqnum)
+    {
         // XXX we're using hungarian notation here to distinguish between signed
         // short, unsigned short etc.
 
@@ -351,6 +378,50 @@ class SsrcRewriter
         }
 
         return usOrigSeqnum + cycles;
+    }
+
+    /**
+     *
+     * @param ssOrigSeqnum
+     * @return
+     */
+    private int extendOriginalSequenceNumberNew(short ssOrigSeqnum)
+    {
+        SSRCCache ssrcCache
+            = getMediaStream().getStreamRTPManager().getSSRCCache();
+        int usOrigSeqnum = ssOrigSeqnum & 0x0000ffff;
+
+        if (ssrcCache != null)
+        {
+            // XXX We make sure in BasicRTCPTerminationStrategy that the
+            // SSRCCache exists so we do the same here.
+
+            SSRCInfo sourceSSRCInfo = ssrcCache.cache.get(getSourceSSRC());
+
+            if (sourceSSRCInfo != null)
+                return sourceSSRCInfo.extendSequenceNumber(usOrigSeqnum);
+        }
+        return usOrigSeqnum;
+    }
+
+    /**
+     * Gets the {@code MediaStream} associated with this instance.
+     *
+     * @return the {@code MediaStream} associated with this instance
+     */
+    public MediaStream getMediaStream()
+    {
+        return getSsrcRewritingEngine().getMediaStream();
+    }
+
+    /**
+     * Gets the {@code SsrcRewritingEngine} associated with this instance.
+     *
+     * @return the {@code SsrcRewritingEngine} associated with this instance
+     */
+    public SsrcRewritingEngine getSsrcRewritingEngine()
+    {
+        return ssrcGroupRewriter.ssrcRewritingEngine;
     }
 
     private void logDebug(String msg)

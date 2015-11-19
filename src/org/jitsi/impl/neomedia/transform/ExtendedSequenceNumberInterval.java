@@ -23,6 +23,7 @@ import org.jitsi.impl.neomedia.*;
  * given extended sequence number interval of a given source SSRC.
  *
  * @author George Politis
+ * @author Lyubomir Marinov
  */
 class ExtendedSequenceNumberInterval
 {
@@ -336,11 +337,25 @@ class ExtendedSequenceNumberInterval
         return true;
     }
 
+    /**
+     * Gets the {@code SsrcGroupRewriter} which has initialized this instance
+     * and is its owner.
+     *
+     * @return the {@code SsrcGroupRewriter} which has initialized this instance
+     * and is its owner
+     */
     public SsrcGroupRewriter getSsrcGroupRewriter()
     {
         return ssrcRewriter.ssrcGroupRewriter;
     }
 
+    /**
+     * Gets the {@code SsrcRewritingEngine} associated with this instance i.e.
+     * which owns the {@code SsrcGroupRewriter} which in turn owns this
+     * instance.
+     *
+     * @return the {@code SsrcRewritingEngine} associated with this instance
+     */
     public SsrcRewritingEngine getSsrcRewritingEngine()
     {
         return getSsrcGroupRewriter().ssrcRewritingEngine;

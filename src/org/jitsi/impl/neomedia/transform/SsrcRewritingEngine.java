@@ -35,6 +35,7 @@ import org.jitsi.util.*;
  * UNMAP_SSRC and also because it's like this everywhere else in libjitsi.
  *
  * @author George Politis
+ * @author Lyubomir Marinov
  */
 public class SsrcRewritingEngine implements TransformEngine
 {
@@ -504,6 +505,18 @@ public class SsrcRewritingEngine implements TransformEngine
         }
 
         return activeRewriter.getSourceSSRC();
+    }
+
+    /**
+     * Gets the {@code MediaStream} which has initialized this instance and is
+     * its owner.
+     *
+     * @return the {@code MediaStream} which has initialized this instance and
+     * is its owner
+     */
+    public MediaStream getMediaStream()
+    {
+        return mediaStream;
     }
 
     /**
