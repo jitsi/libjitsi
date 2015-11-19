@@ -563,7 +563,7 @@ public class SsrcRewritingEngine implements TransformEngine
 
             if (!initialized)
             {
-                logWarn("Failed to reverse transform an RTP packet because " +
+                logWarn("Failed to reverse transform an RTCP packet because " +
                         "the SSRC rewriting engine is not properly " +
                         "initialized.");
                 return pkt;
