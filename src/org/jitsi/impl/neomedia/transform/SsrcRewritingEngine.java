@@ -183,6 +183,7 @@ public class SsrcRewritingEngine implements TransformEngine
     public SsrcRewritingEngine(MediaStream mediaStream)
     {
         this.mediaStream = mediaStream;
+        logDebug("Created a new SSRC rewriting engine.");
     }
 
     /**
@@ -382,7 +383,7 @@ public class SsrcRewritingEngine implements TransformEngine
     {
         if (mediaStream == null)
         {
-            logger.warn("This instance is not properly initialized because " +
+            logWarn("This instance is not properly initialized because " +
                     "the stream is null.");
             return false;
         }
@@ -392,6 +393,7 @@ public class SsrcRewritingEngine implements TransformEngine
             return true;
         }
 
+        logDebug("Initilizing the SSRC rewriting engine.");
         origin2rewriter = new ConcurrentHashMap<>();
         target2rewriter = new HashMap<>();
         rtx2primary = new ConcurrentHashMap<>();
@@ -522,8 +524,6 @@ public class SsrcRewritingEngine implements TransformEngine
 
             if (!initialized)
             {
-                logWarn("Failed to transform an RTP packet because the SSRC " +
-                        "rewriting engine is not properly initialized.");
                 return pkt;
             }
 
@@ -563,9 +563,6 @@ public class SsrcRewritingEngine implements TransformEngine
 
             if (!initialized)
             {
-                logWarn("Failed to reverse transform an RTCP packet because " +
-                        "the SSRC rewriting engine is not properly " +
-                        "initialized.");
                 return pkt;
             }
 
