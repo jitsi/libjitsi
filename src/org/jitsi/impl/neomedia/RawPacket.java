@@ -1099,8 +1099,8 @@ public class RawPacket
       */
     public void setSequenceNumber(int seq)
     {
-            writeByte(2, (byte) (seq>>8 & 0xff));
-            writeByte(3, (byte) (seq & 0xff));
+        writeByte(2, (byte) (seq>>8 & 0xff));
+        writeByte(3, (byte) (seq & 0xff));
     }
 
     /**

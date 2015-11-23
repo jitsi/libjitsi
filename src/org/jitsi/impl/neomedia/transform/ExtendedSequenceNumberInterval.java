@@ -126,19 +126,20 @@ class ExtendedSequenceNumberInterval
     public RawPacket rewriteRTP(RawPacket pkt)
     {
         // Rewrite the SSRC.
-        int ssrcTarget = getSsrcGroupRewriter().getSSRCTarget();
+        SsrcGroupRewriter ssrcGroupRewriter = getSsrcGroupRewriter();
+        int ssrcTarget = ssrcGroupRewriter.getSSRCTarget();
 
         pkt.setSSRC(ssrcTarget);
 
         // Rewrite the sequence number of the RTP packet.
-        short ssSeqnum = (short) pkt.getSequenceNumber();
-        int extendedSequenceNumber
-            = ssrcRewriter.extendOriginalSequenceNumber(ssSeqnum);
-        int rewriteSeqnum = rewriteExtendedSequenceNumber(extendedSequenceNumber);
+        short seqnum = (short) pkt.getSequenceNumber();
+        int extendedSeqnum = ssrcRewriter.extendOriginalSequenceNumber(seqnum);
+        int rewriteSeqnum = rewriteExtendedSequenceNumber(extendedSeqnum);
         // This will disregard the high 16 bits.
         pkt.setSequenceNumber(rewriteSeqnum);
 
-        SsrcRewritingEngine ssrcRewritingEngine = getSsrcRewritingEngine();
+        SsrcRewritingEngine ssrcRewritingEngine
+            = ssrcGroupRewriter.ssrcRewritingEngine;
         Map<Integer, Integer> rtx2primary = ssrcRewritingEngine.rtx2primary;
         int sourceSSRC = ssrcRewriter.getSourceSSRC();
         Integer primarySSRC = rtx2primary.get(sourceSSRC);
@@ -155,9 +156,9 @@ class ExtendedSequenceNumberInterval
         if (ssrc2red.get(sourceSSRC) == pt)
         {
             byte[] buf = pkt.getBuffer();
-            int off = pkt.getPayloadOffset() + ((isRTX) ? 2 : 0);
-            int len = pkt.getPayloadLength() - ((isRTX) ? 2 : 0);
-            this.rewriteRED(primarySSRC, buf, off, len);
+            int off = pkt.getPayloadOffset() + (isRTX ? 2 : 0);
+            int len = pkt.getPayloadLength() - (isRTX ? 2 : 0);
+            rewriteRED(primarySSRC, buf, off, len);
         }
 
         // Take care of FEC.
@@ -165,18 +166,18 @@ class ExtendedSequenceNumberInterval
         if (ssrc2fec.get(sourceSSRC) == pt)
         {
             byte[] buf = pkt.getBuffer();
-            int off = pkt.getPayloadOffset() + ((isRTX) ? 2 : 0);
-            int len = pkt.getPayloadLength() - ((isRTX) ? 2 : 0);
+            int off = pkt.getPayloadOffset() + (isRTX ? 2 : 0);
+            int len = pkt.getPayloadLength() - (isRTX ? 2 : 0);
             // For the twisted case where we re-transmit a FEC
             // packet in an RTX packet..
-            if (!this.rewriteFEC(primarySSRC, buf, off, len))
+            if (!rewriteFEC(primarySSRC, buf, off, len))
             {
                 return null;
             }
         }
 
         // Take care of RTX and return the packet.
-        return (!isRTX || this.rewriteRTX(pkt)) ? pkt : null;
+        return (!isRTX || rewriteRTX(pkt)) ? pkt : null;
     }
 
     /**
@@ -227,19 +228,20 @@ class ExtendedSequenceNumberInterval
      * @param buf
      * @param off
      * @param len
+     * @return {@code true} if the RED was successfully rewritten;
+     * {@code false}, otherwise
      */
-    private void rewriteRED(int primarySSRC, byte[] buf, int off, int len)
+    private boolean rewriteRED(int primarySSRC, byte[] buf, int off, int len)
     {
         if (buf == null || buf.length == 0)
         {
             logWarn("The buffer is empty.");
-            return;
+            return false;
         }
-
         if (buf.length < off + len)
         {
             logWarn("The buffer is invalid.");
-            return;
+            return false;
         }
 
         // FIXME similar code can be found in the
@@ -272,27 +274,28 @@ class ExtendedSequenceNumberInterval
 
             if (ssrc2fec.get(sourceSSRC) == blockPT)
             {
-                // TODO include only the FEC blocks that were
-                // successfully rewritten.
+                // TODO include only the FEC blocks that were successfully
+                // rewritten.
                 rewriteFEC(primarySSRC, buf, payloadOffset, blockLen);
             }
 
             idx += 4; // next RED header
             payloadOffset += blockLen;
         }
+
+        return true;
     }
 
     /**
      * Rewrites the SN base in the FEC Header.
      *
-     * TODO do we need to change any other fields? Look at the
-     * FECSender.
+     * TODO do we need to change any other fields? Look at the FECSender.
      *
      * @param buf
      * @param off
      * @param len
-     * @return true if the FEC was successfully rewritten, false
-     * otherwise
+     * @return {@code true} if the FEC was successfully rewritten;
+     * {@code false}, otherwise
      */
     private boolean rewriteFEC(int sourceSSRC, byte[] buf, int off, int len)
     {
@@ -301,7 +304,6 @@ class ExtendedSequenceNumberInterval
             logWarn("The buffer is empty.");
             return false;
         }
-
         if (buf.length < off + len)
         {
             logWarn("The buffer is invalid.");
@@ -324,11 +326,11 @@ class ExtendedSequenceNumberInterval
         int snRewritenBase
             = rewriter.rewriteSequenceNumber(sourceSSRC, snBase);
 
-
         if (snRewritenBase == SsrcRewritingEngine.INVALID_SEQNUM)
         {
-            logInfo("We could not find a sequence number " +
-                "interval for a FEC packet.");
+            logInfo(
+                    "We could not find a sequence number interval for a FEC"
+                        + " packet.");
             return false;
         }
 
