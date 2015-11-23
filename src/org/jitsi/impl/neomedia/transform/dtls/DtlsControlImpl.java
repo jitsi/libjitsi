@@ -89,6 +89,53 @@ public class DtlsControlImpl
         "org.jitsi.impl.neomedia.transform.dtls.SIGNATURE_ALGORITHM";
 
     /**
+     * The name of the property to specify RSA Key length.
+     */
+    public static final String RSA_KEY_SIZE_PNAME = 
+        "org.jitsi.impl.neomedia.transform.dtls.RSA_KEY_SIZE";
+
+    /**
+     * The default RSA key size when configuration properties are not found.
+     */
+    public static final int DEFAULT_RSA_KEY_SIZE = 1024;
+
+    /**
+     * The RSA key size to use. 
+     * The default value is {@code DEFAULT_RSA_KEY_SIZE} but may be overridden
+     * by the {@code ConfigurationService} and/or {@code System} property
+     * {@code RSA_KEY_SIZE_PNAME}.
+     */ 
+    public static final int RSA_KEY_SIZE;
+
+    /**
+     * The name of the property to specify RSA key size certainty.
+     * https://docs.oracle.com/javase/7/docs/api/java/math/BigInteger.html
+     */
+    public static final String RSA_KEY_SIZE_CERTAINTY_PNAME = 
+        "org.jitsi.impl.neomedia.transform.dtls.RSA_KEY_SIZE_CERTAINTY";
+
+    /**
+     * The RSA key size certainty to use. 
+     * The default value is {@code DEFAULT_RSA_KEY_SIZE_CERTAINTY} but may be 
+     * overridden by the {@code ConfigurationService} and/or {@code System} 
+     * property {@code RSA_KEY_SIZE_CERTAINTY_PNAME}. 
+     * For more on certainty, look at the three parameter constructor here:
+     * https://docs.oracle.com/javase/7/docs/api/java/math/BigInteger.html
+     */ 
+    public static final int RSA_KEY_SIZE_CERTAINTY;
+
+    /**
+     * The default RSA key size certainty when config properties are not found.
+     */
+    public static final int DEFAULT_RSA_KEY_SIZE_CERTAINTY = 80;
+
+    /**
+     * The public exponent to always use for RSA key generation.
+     */
+    public static final BigInteger RSA_KEY_PUBLIC_EXPONENT 
+        = new BigInteger("10001", 16);
+
+    /**
      * The <tt>SRTPProtectionProfile</tt>s supported by
      * <tt>DtlsControlImpl</tt>.
      */
@@ -119,8 +166,11 @@ public class DtlsControlImpl
     static
     {
         // VERIFY_AND_VALIDATE_CERTIFICATE
+        // RSA_KEY_SIZE, RSA_KEY_SIZE_CERTAINTY
         ConfigurationService cfg = LibJitsi.getConfigurationService();
         boolean verifyAndValidateCertificate = true;
+        int rsaKeySize = DEFAULT_RSA_KEY_SIZE;
+        int rsaKeySizeCertainty = DEFAULT_RSA_KEY_SIZE_CERTAINTY;
 
         if (cfg == null)
         {
@@ -129,6 +179,16 @@ public class DtlsControlImpl
 
             if (s != null)
                 verifyAndValidateCertificate = Boolean.parseBoolean(s);
+            
+            String s1 = System.getProperty(RSA_KEY_SIZE_PNAME);
+
+            if (s1 != null)
+		rsaKeySize = Integer.parseInt(s1);
+
+            String s2 = System.getProperty(RSA_KEY_SIZE_CERTAINTY_PNAME);
+
+            if (s2 != null)
+                rsaKeySizeCertainty = Integer.parseInt(s2);
         }
         else
         {
@@ -136,8 +196,18 @@ public class DtlsControlImpl
                 = cfg.getBoolean(
                         VERIFY_AND_VALIDATE_CERTIFICATE_PNAME,
                         verifyAndValidateCertificate);
+
+            rsaKeySize = cfg.getInt(RSA_KEY_SIZE_PNAME, rsaKeySize);
+
+            rsaKeySizeCertainty 
+                = cfg.getInt(
+                        RSA_KEY_SIZE_CERTAINTY_PNAME,
+                        rsaKeySizeCertainty);
+                                             
         }
         VERIFY_AND_VALIDATE_CERTIFICATE = verifyAndValidateCertificate;
+        RSA_KEY_SIZE = rsaKeySize;
+        RSA_KEY_SIZE_CERTAINTY = rsaKeySizeCertainty;
 
         // HASH_FUNCTION_UPGRADES
         HASH_FUNCTION_UPGRADES.put(
@@ -377,16 +447,20 @@ public class DtlsControlImpl
      *
      * @return a new pair of private and public keys
      */
-    private static AsymmetricCipherKeyPair generateKeyPair()
+    private static AsymmetricCipherKeyPair generateKeyPair(
+                                                   BigInteger publicExponent,
+                                                   SecureRandom secureRandom,
+                                                   int rsaKeySize,
+                                                   int rsaKeyCertainty)
     {
         RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
 
         generator.init(
                 new RSAKeyGenerationParameters(
-                        new BigInteger("10001", 16),
-                        createSecureRandom(),
-                        1024,
-                        80));
+                        publicExponent,
+                        secureRandom,
+                        rsaKeySize,
+                        rsaKeyCertainty));
         return generator.generateKeyPair();
     }
 
@@ -581,7 +655,11 @@ public class DtlsControlImpl
 
         this.disableSRTP = disableSRTP;
 
-        keyPair = generateKeyPair();
+        keyPair = generateKeyPair(
+                          RSA_KEY_PUBLIC_EXPONENT,
+                          createSecureRandom(),
+                          RSA_KEY_SIZE,
+                          RSA_KEY_SIZE_CERTAINTY);
 
         org.bouncycastle.asn1.x509.Certificate x509Certificate
             = generateX509Certificate(generateCN(), keyPair);
