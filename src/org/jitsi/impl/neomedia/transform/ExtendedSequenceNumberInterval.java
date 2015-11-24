@@ -125,11 +125,16 @@ class ExtendedSequenceNumberInterval
      *
      * @param pkt the {@code RawPacket} which represents the RTP packet to be
      * rewritten
+     * @param retransmission {@code true} if {@code pkt} is the retransmission
+     * of an RTP packet; otherwise, {@code false}
      */
-    public RawPacket rewriteRTP(RawPacket pkt)
+    public RawPacket rewriteRTP(RawPacket pkt, boolean retransmission)
     {
-        // timestamp
-        rewriteTimestamp(pkt);
+        if (!retransmission)
+        {
+            // timestamp
+            rewriteTimestamp(pkt);
+        }
 
         // SSRC
         SsrcGroupRewriter ssrcGroupRewriter = getSsrcGroupRewriter();

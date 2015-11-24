@@ -120,7 +120,10 @@ class SsrcRewriter
                             + " from the current interval.");
             }
 
-            return retransmissionInterval.rewriteRTP(pkt);
+            return
+                retransmissionInterval.rewriteRTP(
+                        pkt,
+                        /* retransmission */ true);
         }
 
         // this is not a retransmission.
@@ -148,7 +151,10 @@ class SsrcRewriter
         currentExtendedSequenceNumberInterval.lastSeen
             = System.currentTimeMillis();
 
-        return currentExtendedSequenceNumberInterval.rewriteRTP(pkt);
+        return
+            currentExtendedSequenceNumberInterval.rewriteRTP(
+                    pkt,
+                    /* retransmission */ false);
     }
 
     /**
