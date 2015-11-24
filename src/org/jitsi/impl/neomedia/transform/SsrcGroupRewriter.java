@@ -358,27 +358,27 @@ class SsrcGroupRewriter
      *
      * @param ssrcOrigin the SSRC of the packet whose sequence number we are
      * rewriting.
-     * @param sequenceNumber the 16 bits sequence number that we want to
+     * @param seqnum the 16 bits sequence number that we want to
      * rewrite.
      *
      * @return an integer that's either {#INVALID_SEQNUM} or a 16 bits
      * sequence number.
      */
-    int rewriteSequenceNumber(int ssrcOrigin, short sequenceNumber)
+    int rewriteSequenceNumber(int ssrcOrigin, short seqnum)
     {
         SsrcRewriter rewriter = rewriters.get(ssrcOrigin);
         if (rewriter == null)
         {
-            logWarn("An SSRC rewriter was not found for SSRC : " + (ssrcOrigin
-                        & 0xffffffffl));
+            logWarn(
+                    "An SSRC rewriter was not found for SSRC : "
+                        + (ssrcOrigin & 0xffffffffl));
             return SsrcRewritingEngine.INVALID_SEQNUM;
         }
 
-        int origExtendedSequenceNumber
-            = rewriter.extendOriginalSequenceNumber(sequenceNumber);
-
+        int origExtendedSeqnum
+            = rewriter.extendOriginalSequenceNumber(seqnum);
         ExtendedSequenceNumberInterval retransmissionInterval
-            = rewriter.findRetransmissionInterval(origExtendedSequenceNumber);
+            = rewriter.findRetransmissionInterval(origExtendedSeqnum);
 
         if (retransmissionInterval == null)
         {
@@ -387,12 +387,13 @@ class SsrcGroupRewriter
         }
         else
         {
-            int targetExtendedSequenceNumber = retransmissionInterval
-                .rewriteExtendedSequenceNumber(origExtendedSequenceNumber);
+            int targetExtendedSeqnum
+                = retransmissionInterval.rewriteExtendedSequenceNumber(
+                        origExtendedSeqnum);
 
             // Take only the bits that contain the sequence number (the low
             // 16 bits).
-            return targetExtendedSequenceNumber & 0x0000ffff;
+            return targetExtendedSeqnum & 0x0000ffff;
         }
     }
 

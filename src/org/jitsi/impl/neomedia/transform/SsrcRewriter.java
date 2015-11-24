@@ -69,7 +69,8 @@ class SsrcRewriter
         this.sourceSSRC = sourceSSRC;
     }
 
-    public Collection<ExtendedSequenceNumberInterval> getExtendedSequenceNumberIntervals()
+    public Collection<ExtendedSequenceNumberInterval>
+        getExtendedSequenceNumberIntervals()
     {
         return intervals.values();
     }
@@ -93,8 +94,11 @@ class SsrcRewriter
     }
 
     /**
+     * Rewrites (the SSRC, sequence number, timestamp, etc. of) a specific RTP
+     * packet.
      *
-     * @param pkt
+     * @param pkt the {@code RawPacket} which represents the RTP packet to be
+     * rewritten
      */
     public RawPacket rewriteRTP(RawPacket pkt)
     {
@@ -105,11 +109,10 @@ class SsrcRewriter
         // an appropriate interval.
         ExtendedSequenceNumberInterval retransmissionInterval
             = findRetransmissionInterval(extendedSeqnum);
-        boolean debug = SsrcRewritingEngine.logger.isDebugEnabled();
 
         if (retransmissionInterval != null)
         {
-            if (debug)
+            if (SsrcRewritingEngine.logger.isDebugEnabled())
             {
                 logDebug(
                         "Retransmitting packet with SEQNUM " + (seqnum & 0xffff)
@@ -121,7 +124,6 @@ class SsrcRewriter
         }
 
         // this is not a retransmission.
-        long timestamp = pkt.getTimestamp();
 
         if (currentExtendedSequenceNumberInterval == null)
         {
@@ -140,48 +142,18 @@ class SsrcRewriter
                 = extendedSeqnum;
             // the timestamp needs to be greater or equal to the maxTimestamp
             // for the current extended sequence number interval.
-            currentExtendedSequenceNumberInterval.maxTimestamp = timestamp;
+            currentExtendedSequenceNumberInterval.maxTimestamp
+                = pkt.getTimestamp();
         }
         currentExtendedSequenceNumberInterval.lastSeen
             = System.currentTimeMillis();
-
-        // Please let me know when RTP timestamp uplifting happens, will ya?
-        // FIXME This needs to be done in the same place where the rest of
-        // rewriting takes place, i.e. in ExtendedSeq.Num.Interval.
-        //
-        // FIXME^2 Also, this doesn't cope well with packet losses,
-        // retransmissions etc. It was mostly a proof of concept. We need a
-        // more robust implementation.
-        //
-        // The goal of this method code fragment is to uplift the RTP timestamp
-        // of a key frame (when a switch takes place) so that a receiver
-        // doesn't drop it.
-        //
-        // So a more correct approach would be to "watch for" key frames (when
-        // a switch happens); when a key frame is detected capture and uplift
-        // its timestamp, uplift only this timestamp. The uplifting should not
-        // take place if the timestamps have advanced "a lot" (i.e. > 6000).
-
-        long maxTimestamp = ssrcGroupRewriter.maxTimestamp;
-
-        if (timestamp < maxTimestamp)
-        {
-            if (debug)
-            {
-                logDebug("RTP timestamp uplifting.");
-            }
-            pkt.setTimestamp(maxTimestamp + 1);
-        }
 
         return currentExtendedSequenceNumberInterval.rewriteRTP(pkt);
     }
 
     /**
-     * Moves the current sequence number interval, in the
-     * {@link #intervals} tree. It is not to be updated anymore.
-     *
-     * @return the extended length of the sequence number interval that
-     * got paused.
+     * Moves the current sequence number interval in the {@link #intervals}
+     * tree. It is not to be updated anymore.
      */
     public void pause()
     {
@@ -207,31 +179,35 @@ class SsrcRewriter
     }
 
     /**
-     * @param origExtendedSeqnumOrig the original extended sequence
-     * number.
      *
+     * @param origExtendedSeqnum the original extended sequence number.
      * @return
      */
     public ExtendedSequenceNumberInterval findRetransmissionInterval(
-        int origExtendedSeqnumOrig)
+            int origExtendedSeqnum)
     {
         // first check in the current sequence number interval.
         if (currentExtendedSequenceNumberInterval != null
-            && currentExtendedSequenceNumberInterval.contains(
-            origExtendedSeqnumOrig))
+                && currentExtendedSequenceNumberInterval.contains(
+                        origExtendedSeqnum))
         {
             return currentExtendedSequenceNumberInterval;
         }
 
         // not there, try to find the sequence number in a previous
         // interval.
-        Map.Entry<Integer, ExtendedSequenceNumberInterval> candidateInterval
-            = intervals.ceilingEntry(origExtendedSeqnumOrig);
+        Map.Entry<Integer, ExtendedSequenceNumberInterval> candidateEntry
+            = intervals.ceilingEntry(origExtendedSeqnum);
 
-        if (candidateInterval != null
-            && candidateInterval.getValue().contains(origExtendedSeqnumOrig))
+        if (candidateEntry != null)
         {
-            return candidateInterval.getValue();
+            ExtendedSequenceNumberInterval candidateInterval
+                = candidateEntry.getValue();
+
+            if (candidateInterval.contains(origExtendedSeqnum))
+            {
+                return candidateInterval;
+            }
         }
 
         return null;
@@ -281,7 +257,7 @@ class SsrcRewriter
         return ssrcGroupRewriter.ssrcRewritingEngine;
     }
 
-    private void logDebug(String msg)
+    void logDebug(String msg)
     {
         ssrcGroupRewriter.logDebug(msg);
     }

@@ -94,48 +94,54 @@ class ExtendedSequenceNumberInterval
     }
 
     /**
-     * Returns a boolean determining whether a sequence number
-     * is contained in this interval or not.
+     * Determines whether a sequence number is contained in this interval.
      *
-     * @param extendedSequenceNumber the sequence number to
-     * determine whether it belongs in the interval or not.
-     * @return true if the sequence number is contained in the
-     * interval, otherwise false.
+     * @param extendedSeqnum the sequence number to determine whether it belongs
+     * to this interval.
+     * @return {@code true} if {@code extendedSeqnum} is contained in this
+     * interval; otherwise, {@code false}.
      */
-    public boolean contains(int extendedSequenceNumber)
+    public boolean contains(int extendedSeqnum)
     {
-        return extendedMinOrig >= extendedSequenceNumber
-            && extendedSequenceNumber <= extendedMaxOrig;
+        return
+            extendedMinOrig <= extendedSeqnum
+                && extendedSeqnum <= extendedMaxOrig;
     }
 
     /**
      *
-     * @param extendedSequenceNumber
+     * @param extendedSeqnum
      * @return
      */
-    public int rewriteExtendedSequenceNumber(
-        int extendedSequenceNumber)
+    public int rewriteExtendedSequenceNumber(int extendedSeqnum)
     {
-        int diff = extendedSequenceNumber - extendedMinOrig;
+        int diff = extendedSeqnum - extendedMinOrig;
         return extendedBaseTarget + diff;
     }
 
     /**
-     * @param pkt
+     * Rewrites (the SSRC, sequence number, timestamp, etc. of) a specific RTP
+     * packet.
+     *
+     * @param pkt the {@code RawPacket} which represents the RTP packet to be
+     * rewritten
      */
     public RawPacket rewriteRTP(RawPacket pkt)
     {
-        // Rewrite the SSRC.
+        // timestamp
+        rewriteTimestamp(pkt);
+
+        // SSRC
         SsrcGroupRewriter ssrcGroupRewriter = getSsrcGroupRewriter();
         int ssrcTarget = ssrcGroupRewriter.getSSRCTarget();
 
         pkt.setSSRC(ssrcTarget);
 
-        // Rewrite the sequence number of the RTP packet.
+        // Sequence number
         short seqnum = (short) pkt.getSequenceNumber();
         int extendedSeqnum = ssrcRewriter.extendOriginalSequenceNumber(seqnum);
         int rewriteSeqnum = rewriteExtendedSequenceNumber(extendedSeqnum);
-        // This will disregard the high 16 bits.
+
         pkt.setSequenceNumber(rewriteSeqnum);
 
         SsrcRewritingEngine ssrcRewritingEngine
@@ -143,31 +149,32 @@ class ExtendedSequenceNumberInterval
         Map<Integer, Integer> rtx2primary = ssrcRewritingEngine.rtx2primary;
         int sourceSSRC = ssrcRewriter.getSourceSSRC();
         Integer primarySSRC = rtx2primary.get(sourceSSRC);
+
         if (primarySSRC == null)
-        {
             primarySSRC = sourceSSRC;
-        }
 
-        boolean isRTX = rtx2primary.containsKey(sourceSSRC);
-
-        // Take care of RED.
-        Map<Integer, Byte> ssrc2red = ssrcRewritingEngine.ssrc2red;
         byte pt = pkt.getPayloadType();
-        if (ssrc2red.get(sourceSSRC) == pt)
+        boolean rtx = rtx2primary.containsKey(sourceSSRC);
+
+        // RED
+        if (ssrcRewritingEngine.ssrc2red.get(sourceSSRC) == pt)
         {
             byte[] buf = pkt.getBuffer();
-            int off = pkt.getPayloadOffset() + (isRTX ? 2 : 0);
-            int len = pkt.getPayloadLength() - (isRTX ? 2 : 0);
+            int osnLen = rtx ? 2 : 0;
+            int off = pkt.getPayloadOffset() + osnLen;
+            int len = pkt.getPayloadLength() - osnLen;
+
             rewriteRED(primarySSRC, buf, off, len);
         }
 
-        // Take care of FEC.
-        Map<Integer, Byte> ssrc2fec = ssrcRewritingEngine.ssrc2fec;
-        if (ssrc2fec.get(sourceSSRC) == pt)
+        // FEC
+        if (ssrcRewritingEngine.ssrc2fec.get(sourceSSRC) == pt)
         {
             byte[] buf = pkt.getBuffer();
-            int off = pkt.getPayloadOffset() + (isRTX ? 2 : 0);
-            int len = pkt.getPayloadLength() - (isRTX ? 2 : 0);
+            int osnLen = rtx ? 2 : 0;
+            int off = pkt.getPayloadOffset() + osnLen;
+            int len = pkt.getPayloadLength() - osnLen;
+
             // For the twisted case where we re-transmit a FEC
             // packet in an RTX packet..
             if (!rewriteFEC(primarySSRC, buf, off, len))
@@ -176,8 +183,44 @@ class ExtendedSequenceNumberInterval
             }
         }
 
-        // Take care of RTX and return the packet.
-        return (!isRTX || rewriteRTX(pkt)) ? pkt : null;
+        // RTX
+        return (!rtx || rewriteRTX(pkt)) ? pkt : null;
+    }
+
+    /**
+     * Rewrites the RTP timestamp of a specific RTP packet.
+     *
+     * @param pkt the {@code RawPacket} which represents the RTP packet to
+     * rewrite the RTP timestamp of
+     */
+    private void rewriteTimestamp(RawPacket pkt)
+    {
+        // Please let me know when RTP timestamp uplifting happens, will ya?
+        // FIXME This needs to be done in the same place where the rest of
+        // rewriting takes place, i.e. in ExtendedSeq.Num.Interval.
+        //
+        // FIXME^2 Also, this doesn't cope well with packet losses,
+        // retransmissions etc. It was mostly a proof of concept. We need a
+        // more robust implementation.
+        //
+        // The goal of this method code fragment is to uplift the RTP timestamp
+        // of a key frame (when a switch takes place) so that a receiver
+        // doesn't drop it.
+        //
+        // So a more correct approach would be to "watch for" key frames (when
+        // a switch happens); when a key frame is detected capture and uplift
+        // its timestamp, uplift only this timestamp. The uplifting should not
+        // take place if the timestamps have advanced "a lot" (i.e. > 6000).
+
+        long timestamp = pkt.getTimestamp();
+        SsrcGroupRewriter ssrcGroupRewriter = getSsrcGroupRewriter();
+        long maxTimestamp = ssrcGroupRewriter.maxTimestamp;
+
+        if (timestamp < maxTimestamp)
+        {
+            logDebug("RTP timestamp uplifting.");
+            pkt.setTimestamp(maxTimestamp + 1);
+        }
     }
 
     /**
@@ -185,7 +228,7 @@ class ExtendedSequenceNumberInterval
      * @param pkt
      * @return
      */
-    public boolean rewriteRTX(RawPacket pkt)
+    private boolean rewriteRTX(RawPacket pkt)
     {
         // This is an RTX packet. Replace RTX OSN field or drop.
         SsrcRewritingEngine ssrcRewritingEngine = getSsrcRewritingEngine();
@@ -211,9 +254,9 @@ class ExtendedSequenceNumberInterval
     }
 
     /**
-     * Calculates and returns the length of this interval. Note that
-     * all 32 bits are used to represent the interval length because
-     * an interval can span multiple cycles.
+     * Calculates and returns the length of this interval. Note that all 32 bits
+     * are used to represent the interval length because an interval can span
+     * multiple cycles.
      *
      * @return the length of this interval.
      */
@@ -262,11 +305,11 @@ class ExtendedSequenceNumberInterval
             idx += 4;
         }
 
-        idx = off; //back to beginning of RTP payload
+        idx = off; //back to the beginning of the RTP payload
 
         Map<Integer, Byte> ssrc2fec = getSsrcRewritingEngine().ssrc2fec;
         int sourceSSRC = ssrcRewriter.getSourceSSRC();
-        int payloadOffset = idx + pktCount * 4 + 1 /* RED headers */;
+        int payloadOff = idx + pktCount * 4 + 1 /* RED headers */;
         for (int i = 0; i <= pktCount; i++)
         {
             byte blockPT = (byte) (buf[idx] & 0x7f);
@@ -276,11 +319,11 @@ class ExtendedSequenceNumberInterval
             {
                 // TODO include only the FEC blocks that were successfully
                 // rewritten.
-                rewriteFEC(primarySSRC, buf, payloadOffset, blockLen);
+                rewriteFEC(primarySSRC, buf, payloadOff, blockLen);
             }
 
             idx += 4; // next RED header
-            payloadOffset += blockLen;
+            payloadOff += blockLen;
         }
 
         return true;
@@ -361,6 +404,11 @@ class ExtendedSequenceNumberInterval
     public SsrcRewritingEngine getSsrcRewritingEngine()
     {
         return getSsrcGroupRewriter().ssrcRewritingEngine;
+    }
+
+    private void logDebug(String msg)
+    {
+        ssrcRewriter.logDebug(msg);
     }
 
     private void logInfo(String msg)
