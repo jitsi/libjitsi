@@ -90,7 +90,7 @@ public class MediaStreamImpl
      */
     public static String toString(DataSource dataSource)
     {
-        StringBuffer str = new StringBuffer();
+        StringBuilder str = new StringBuilder();
 
         str.append(dataSource.getClass().getSimpleName());
         str.append(" with hashCode ");
@@ -111,7 +111,7 @@ public class MediaStreamImpl
      * have been assigned for the lifetime of this <tt>MediaStream</tt>.
      */
     private final Map<Byte, RTPExtension> activeRTPExtensions
-        = new Hashtable<Byte, RTPExtension>();
+        = new Hashtable<>();
 
     /**
      * The engine that we are using in order to add CSRC lists in conference
@@ -157,7 +157,7 @@ public class MediaStreamImpl
      * <tt>MediaFormat</tt>s.
      */
     private final Map<Byte, MediaFormat> dynamicRTPPayloadTypes
-        = new HashMap<Byte, MediaFormat>();
+        = new HashMap<>();
 
     /**
      * The list of CSRC IDs contributing to the media that this
@@ -172,8 +172,8 @@ public class MediaStreamImpl
      * {@link this.rtpManager}, given that it offers this information with its
      * getLocalSSRC() method? TAG(cat4-local-ssrc-hurricane)
      */
-    private long localSourceID = Math.abs(new Random().nextLong())
-            % Integer.MAX_VALUE;
+    private long localSourceID
+        = Math.abs(new Random().nextLong()) % Integer.MAX_VALUE;
 
     /**
      * The MediaStreamStatsImpl object used to compute the statistics about
@@ -208,8 +208,7 @@ public class MediaStreamImpl
      * <tt>MediaDevice</tt>. The (read and write) accesses to the field are to
      * be synchronized using {@link #receiveStreamsLock}.
      */
-    private final List<ReceiveStream> receiveStreams
-        = new LinkedList<ReceiveStream>();
+    private final List<ReceiveStream> receiveStreams = new LinkedList<>();
 
     /**
      * The <tt>ReadWriteLock</tt> which synchronizes the (read and write)
@@ -228,7 +227,7 @@ public class MediaStreamImpl
      * RtpChannel.receiveSSRCs. TAG(cat4-remote-ssrc-hurricane)
      *
      */
-    private final Vector<Long> remoteSourceIDs = new Vector<Long>(1, 1);
+    private final Vector<Long> remoteSourceIDs = new Vector<>(1, 1);
 
     /**
      * The <tt>RTPConnector</tt> through which this instance sends and receives
@@ -327,7 +326,7 @@ public class MediaStreamImpl
      */
     private final TransformEngineWrapper<RTCPTerminationStrategy>
         rtcpTransformEngineWrapper
-            = new TransformEngineWrapper<RTCPTerminationStrategy>();
+            = new TransformEngineWrapper<>();
 
     /**
      * The transformer which replaces the timestamp in an abs-send-time RTP
@@ -816,7 +815,7 @@ public class MediaStreamImpl
         StreamRTPManager rtpManager = getRTPManager();
         MediaDeviceSession deviceSession = getDeviceSession();
         DataSource dataSource
-                = deviceSession == null
+            = deviceSession == null
                 ? null
                 : deviceSession.getOutputDataSource();
         int streamCount;
@@ -964,7 +963,7 @@ public class MediaStreamImpl
      */
     private TransformEngineChain createTransformEngineChain()
     {
-        List<TransformEngine> engineChain = new ArrayList<TransformEngine>(9);
+        List<TransformEngine> engineChain = new ArrayList<>(9);
 
         // CSRCs and CSRC audio levels
         if (csrcEngine == null)
@@ -1291,11 +1290,12 @@ public class MediaStreamImpl
      * @return a map containing all currently active <tt>RTPExtension</tt>s in
      * use by this stream.
      */
+    @Override
     public Map<Byte, RTPExtension> getActiveRTPExtensions()
     {
         synchronized (activeRTPExtensions)
         {
-            return new HashMap<Byte, RTPExtension>(activeRTPExtensions);
+            return new HashMap<>(activeRTPExtensions);
         }
     }
 
@@ -1421,7 +1421,7 @@ public class MediaStreamImpl
     {
         synchronized (dynamicRTPPayloadTypes)
         {
-            return new HashMap<Byte, MediaFormat>(dynamicRTPPayloadTypes);
+            return new HashMap<>(dynamicRTPPayloadTypes);
         }
     }
 
@@ -1625,7 +1625,7 @@ public class MediaStreamImpl
      */
     public Collection<ReceiveStream> getReceiveStreams()
     {
-        Set<ReceiveStream> receiveStreams = new HashSet<ReceiveStream>();
+        Set<ReceiveStream> receiveStreams = new HashSet<>();
 
         // This instance maintains a list of the ReceiveStreams.
         Lock readLock = receiveStreamsLock.readLock();
@@ -3238,8 +3238,7 @@ public class MediaStreamImpl
 //            if(!zrtpRestarted)
 //                restartZrtpControl();
 
-            List<ReceiveStream> receiveStreamsToRemove
-                = new ArrayList<ReceiveStream>();
+            List<ReceiveStream> receiveStreamsToRemove = new ArrayList<>();
 
             if (evReceiveStream != null)
             {
@@ -3368,7 +3367,7 @@ public class MediaStreamImpl
                     && (getDirection() != MediaDirection.INACTIVE))
             {
                 Set<PacketLossAwareEncoder> plaes = null;
-                MediaDeviceSession deviceSession= getDeviceSession();
+                MediaDeviceSession deviceSession = getDeviceSession();
                 if (deviceSession != null)
                     plaes = deviceSession.getEncoderControls(
                             PacketLossAwareEncoder.class);
@@ -3567,6 +3566,31 @@ public class MediaStreamImpl
                 = data
                     ? rtpConnector.getDataOutputStream(false)
                     : rtpConnector.getControlOutputStream(false);
+
+            // We utilize TransformEngineWrapper so it is possible to have after
+            // wrapped. Unless we wrap after, pkt will go through the whole
+            // TransformEngine chain (which is obviously not the idea of the
+            // caller).
+            if (after != null)
+            {
+                TransformEngineWrapper wrapper;
+
+                // externalTransformerWrapper
+                wrapper = externalTransformerWrapper;
+                if (wrapper != null && after.equals(wrapper.getWrapped()))
+                {
+                    after = wrapper;
+                }
+                else
+                {
+                    // rtcpTransformEngineWrapper
+                    wrapper = rtcpTransformEngineWrapper;
+                    if (wrapper != null && after.equals(wrapper.getWrapped()))
+                    {
+                        after = wrapper;
+                    }
+                }
+            }
 
             outputStream.write(
                     pkt.getBuffer(),

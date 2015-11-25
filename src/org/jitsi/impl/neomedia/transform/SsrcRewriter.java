@@ -154,10 +154,6 @@ class SsrcRewriter
             // range.
             currentExtendedSequenceNumberInterval.extendedMaxOrig
                 = extendedSeqnum;
-            // the timestamp needs to be greater or equal to the maxTimestamp
-            // for the current extended sequence number interval.
-            currentExtendedSequenceNumberInterval.maxTimestamp
-                = pkt.getTimestamp();
         }
         currentExtendedSequenceNumberInterval.lastSeen
             = System.currentTimeMillis();
@@ -181,8 +177,8 @@ class SsrcRewriter
                     currentExtendedSequenceNumberInterval);
             // Store the max timestamp so that we can consult it when we rewrite
             // the next packets of the next stream.
-            ssrcGroupRewriter.maxTimestamp
-                = currentExtendedSequenceNumberInterval.maxTimestamp;
+            ssrcGroupRewriter.setMaxTimestamp(
+                    currentExtendedSequenceNumberInterval.maxTimestamp);
             currentExtendedSequenceNumberInterval = null;
 
             // TODO We don't need to keep track of more than 2 cycles, so we

@@ -19,8 +19,6 @@ import java.io.*;
 import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.codec.*;
-import org.jitsi.impl.neomedia.codec.video.vp8.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.service.neomedia.*;
@@ -31,6 +29,9 @@ import org.jitsi.util.*;
 /**
  * Does the actual work of rewriting a group of SSRCs to a target SSRC. This
  * class is not thread-safe.
+ *
+ * @author George Politis
+ * @author Lyubomir Marinov
  */
 class SsrcGroupRewriter
 {
@@ -95,7 +96,7 @@ class SsrcGroupRewriter
      * timestamp older than what the endpoint has already seen, we overwrite
      * the timestamp with maxTimestamp + 1.
      */
-    long maxTimestamp;
+    private long maxTimestamp;
 
     /**
      * The current <tt>SsrcRewriter</tt> that we use to rewrite source
@@ -414,5 +415,26 @@ class SsrcGroupRewriter
     public MediaStream getMediaStream()
     {
         return ssrcRewritingEngine.getMediaStream();
+    }
+
+    /**
+     * Gets the maximum RTP timestamp that we've sent to the remote endpoint.
+     *
+     * @return the maximum RTP timestamp that we've sent to the remote endpoint
+     */
+    public long getMaxTimestamp()
+    {
+        return maxTimestamp;
+    }
+
+    /**
+     * Sets the maximum RTP timestamp that we've sent to the remote endpoint.
+     *
+     * @param maxTimestamp the maximum RTP timestamp that we've sent to the
+     * remote endpoint
+     */
+    public void setMaxTimestamp(long maxTimestamp)
+    {
+        this.maxTimestamp = maxTimestamp;
     }
 }
