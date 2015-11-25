@@ -24,6 +24,7 @@ import org.jitsi.impl.neomedia.codec.video.vp8.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.util.*;
 
 
@@ -314,43 +315,12 @@ class SsrcGroupRewriter
         }
     }
 
-    /**
-     * Utility method that determines whether or not a packet is a key frame.
-     * This is used only for debugging purposes.
-     */
     private boolean isKeyFrame(RawPacket pkt)
     {
         final int sourceSSRC = pkt.getSSRC();
-        boolean isKeyFrame;
         byte redPT = ssrcRewritingEngine.ssrc2red.get(sourceSSRC);
-        if (redPT == pkt.getPayloadType())
-        {
-            REDBlockIterator.REDBlock block
-                = REDBlockIterator.getPrimaryBlock(pkt);
-
-            if (block != null)
-            {
-                // FIXME What if we're not using VP8?
-                isKeyFrame = DePacketizer.isKeyFrame(
-                        pkt.getBuffer(),
-                        block.getBlockOffset(),
-                        block.getBlockLength());
-            }
-            else
-            {
-                isKeyFrame = false;
-            }
-        }
-        else
-        {
-            // FIXME What if we're not using VP8?
-            isKeyFrame = DePacketizer.isKeyFrame(
-                    pkt.getBuffer(),
-                    pkt.getPayloadOffset(),
-                    pkt.getPayloadLength());
-        }
-
-        return isKeyFrame;
+        byte vp8PT = 0x64;
+        return Utils.isKeyFrame(pkt, redPT, vp8PT);
     }
 
     /**
