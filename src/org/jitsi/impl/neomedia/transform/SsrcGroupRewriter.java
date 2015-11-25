@@ -338,13 +338,18 @@ class SsrcGroupRewriter
     }
 
     /**
-     * Determines whether a packet is a key frame.
+     * Determines whether a specific packet is a key frame.
+     *
+     * @param pkt the {@code RawPacket} to be determined whether it is a key
+     * frame
+     * @return {@code true} if {@pkt} is a key frame; otherwise, {@code false}
      */
-    private boolean isKeyFrame(RawPacket pkt)
+    boolean isKeyFrame(RawPacket pkt)
     {
-        final int sourceSSRC = pkt.getSSRC();
+        int sourceSSRC = pkt.getSSRC();
         byte redPT = ssrcRewritingEngine.ssrc2red.get(sourceSSRC);
         byte vp8PT = 0x64;
+
         return Utils.isKeyFrame(pkt, redPT, vp8PT);
     }
 
@@ -435,6 +440,9 @@ class SsrcGroupRewriter
      */
     public void setMaxTimestamp(long maxTimestamp)
     {
-        this.maxTimestamp = maxTimestamp;
+        if (this.maxTimestamp < maxTimestamp)
+        {
+            this.maxTimestamp = maxTimestamp;
+        }
     }
 }

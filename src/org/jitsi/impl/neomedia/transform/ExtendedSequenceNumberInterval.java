@@ -68,23 +68,32 @@ class ExtendedSequenceNumberInterval
      */
     long maxTimestamp;
 
+    private final long timestampOrig;
+
+    private final long timestampTarget;
+
     /**
      * Ctor.
      *
      * @param ssrcRewriter
      * @param extendedBaseOrig
      * @param extendedBaseTarget
+     * @param timestampOrig
+     * @param timestampTarget
      */
     public ExtendedSequenceNumberInterval(
             SsrcRewriter ssrcRewriter,
-            int extendedBaseOrig,
-            int extendedBaseTarget)
+            int extendedBaseOrig, int extendedBaseTarget,
+            long timestampOrig, long timestampTarget)
     {
         this.ssrcRewriter = ssrcRewriter;
         this.extendedBaseTarget = extendedBaseTarget;
 
         this.extendedMinOrig = extendedBaseOrig;
         this.extendedMaxOrig = extendedBaseOrig;
+
+        this.timestampOrig = timestampOrig;
+        this.timestampTarget = timestampTarget;
     }
 
     public long getLastSeen()
@@ -134,10 +143,8 @@ class ExtendedSequenceNumberInterval
      *
      * @param pkt the {@code RawPacket} which represents the RTP packet to be
      * rewritten
-     * @param retransmission {@code true} if {@code pkt} is the retransmission
-     * of an RTP packet; otherwise, {@code false}
      */
-    public RawPacket rewriteRTP(RawPacket pkt, boolean retransmission)
+    public RawPacket rewriteRTP(RawPacket pkt)
     {
         // SSRC
         SsrcGroupRewriter ssrcGroupRewriter = getSsrcGroupRewriter();
@@ -200,7 +207,7 @@ class ExtendedSequenceNumberInterval
         // XXX Since we may be rewriting the RTP timestamp and, consequently, we
         // may be remembering timestamp-related state, it sounds better to do
         // these after FEC and RTX have not discarded pkt.
-        rewriteTimestamp(pkt, retransmission);
+        rewriteTimestamp(pkt);
 
         return pkt;
     }
@@ -210,46 +217,23 @@ class ExtendedSequenceNumberInterval
      *
      * @param pkt the {@code RawPacket} which represents the RTP packet to
      * rewrite the RTP timestamp of
-     * @param retransmission {@code true} if {@code pkt} is the retransmission
-     * of an RTP packet; otherwise, {@code false}
      */
-    private void rewriteTimestamp(RawPacket pkt, boolean retransmission)
+    private void rewriteTimestamp(RawPacket pkt)
     {
-        if (retransmission)
-            return;
-
         long timestamp = pkt.getTimestamp();
 
+        // Rewrite timestampOrig into timestampTarget.
+        if (timestamp == timestampOrig)
+        {
+            timestamp = timestampTarget;
+            pkt.setTimestamp(timestamp);
+        }
+
+        // Update the maximum RTP timestamp that we've sent to the endpoint (in
+        // this interval).
         if (maxTimestamp < timestamp)
         {
             maxTimestamp = timestamp;
-        }
-
-        // Please let me know when RTP timestamp uplifting happens, will ya?
-        // FIXME This needs to be done in the same place where the rest of
-        // rewriting takes place, i.e. in ExtendedSeq.Num.Interval.
-        //
-        // FIXME^2 Also, this doesn't cope well with packet losses,
-        // retransmissions etc. It was mostly a proof of concept. We need a
-        // more robust implementation.
-        //
-        // The goal of this method code fragment is to uplift the RTP timestamp
-        // of a key frame (when a switch takes place) so that a receiver
-        // doesn't drop it.
-        //
-        // So a more correct approach would be to "watch for" key frames (when
-        // a switch happens); when a key frame is detected capture and uplift
-        // its timestamp, uplift only this timestamp. The uplifting should not
-        // take place if the timestamps have advanced "a lot" (i.e. > 6000).
-
-        SsrcGroupRewriter ssrcGroupRewriter = getSsrcGroupRewriter();
-        long ssrcGroupRewriterMaxTimestamp
-            = ssrcGroupRewriter.getMaxTimestamp();
-
-        if (timestamp < ssrcGroupRewriterMaxTimestamp)
-        {
-            logDebug("RTP timestamp uplifting pkt " + pkt.getSequenceNumber());
-            pkt.setTimestamp(ssrcGroupRewriterMaxTimestamp + 1);
         }
     }
 

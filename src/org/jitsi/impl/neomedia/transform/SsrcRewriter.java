@@ -24,6 +24,9 @@ import org.jitsi.util.*;
 /**
  * Rewrites SSRCs and sequence numbers of a given source SSRC. This
  * class is not thread-safe.
+ *
+ * @author George Politis
+ * @author Lyubomir Marinov
  */
 class SsrcRewriter
 {
@@ -122,8 +125,7 @@ class SsrcRewriter
 
         if (retransmissionInterval != null)
         {
-            RawPacket rpkt = retransmissionInterval.rewriteRTP(
-                    pkt, /* retransmission */ true);
+            RawPacket rpkt = retransmissionInterval.rewriteRTP(pkt);
 
             if (logger.isDebugEnabled())
             {
@@ -142,11 +144,39 @@ class SsrcRewriter
         if (currentExtendedSequenceNumberInterval == null)
         {
             // the stream has resumed.
+
+            // Uplift the timestamp of a key frame if we've already sent a
+            // larger timestamp to the remote endpoint.
+            //
+            // George Politis: The uplifting should not take place if the
+            // timestamps have advanced "a lot" (i.e. > 6000).
+            // Lyubomir Marinov: During a test session I observed a constant
+            // delta of 15509, actually. So I'm not sure about 6000.
+            long maxTimestamp = ssrcGroupRewriter.getMaxTimestamp();
+            long timestamp = pkt.getTimestamp();
+            long delta = maxTimestamp - timestamp;
+            long timestampTarget = timestamp;
+
+            if (0 < delta && ssrcGroupRewriter.isKeyFrame(pkt))
+            {
+                timestampTarget = maxTimestamp + 1;
+                if (SsrcRewritingEngine.logger.isDebugEnabled())
+                {
+                    logDebug(
+                            "Uplifting RTP timestamp " + timestamp
+                                + " with SEQNUM " + pkt.getSequenceNumber()
+                                + " because of delta " + delta + " to "
+                                + timestampTarget);
+                }
+            }
+
             currentExtendedSequenceNumberInterval
                 = new ExtendedSequenceNumberInterval(
                         this,
                         extendedSeqnum,
-                        ssrcGroupRewriter.currentExtendedSeqnumBase);
+                        ssrcGroupRewriter.currentExtendedSeqnumBase,
+                        timestamp,
+                        timestampTarget);
         }
         else
         {
@@ -158,10 +188,7 @@ class SsrcRewriter
         currentExtendedSequenceNumberInterval.lastSeen
             = System.currentTimeMillis();
 
-        return
-            currentExtendedSequenceNumberInterval.rewriteRTP(
-                    pkt,
-                    /* retransmission */ false);
+        return currentExtendedSequenceNumberInterval.rewriteRTP(pkt);
     }
 
     /**
