@@ -414,7 +414,7 @@ public class DePacketizer
      */
     public static boolean isKeyFrame(byte[] buff, int off, int len)
     {
-        if (buff == null || buff.length == 0 || buff.length < off + len)
+        if (buff == null || len < 1 || buff.length < off + len)
         {
             return false;
         }
