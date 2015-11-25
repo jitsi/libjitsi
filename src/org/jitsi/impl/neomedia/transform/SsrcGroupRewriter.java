@@ -265,16 +265,16 @@ class SsrcGroupRewriter
         if (activeRewriter != null
                 && activeRewriter.getSourceSSRC() != sourceSSRC)
         {
-            // Got a packet with a different SSRC from the one that the current
-            // SsrcRewriter handles. Pause the current SsrcRewriter and switch
-            // to the correct one.
+            // Got a packet with a different SSRC from the one that the
+            // current SsrcRewriter handles. Pause the current SsrcRewriter
+            // and switch to the correct one.
             if (debug)
             {
-                logDebug(
-                        "Now rewriting " + pkt.getSSRCAsLong() + " to "
-                            + (ssrcTarget & 0xffffffffl) + " (was rewriting "
-                            + (activeRewriter.getSourceSSRC() & 0xffffffffl)
-                            + ").");
+                logDebug("Now rewriting " + pkt.getSSRCAsLong() + "/"
+                        + pkt.getSequenceNumber() + " to "
+                        + (ssrcTarget & 0xffffffffl) + " (was rewriting "
+                        + (activeRewriter.getSourceSSRC() & 0xffffffffl)
+                        + ").");
             }
 
             // We don't have to worry about sequence number intervals that

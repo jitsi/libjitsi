@@ -19,6 +19,7 @@ import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Rewrites SSRCs and sequence numbers of a given source SSRC. This
@@ -27,11 +28,20 @@ import org.jitsi.service.neomedia.*;
 class SsrcRewriter
 {
     /**
+     * The <tt>Logger</tt> used by the <tt>SsrcRewritingEngine</tt> class and
+     * its instances to print debug information.
+     */
+    private static final Logger logger = Logger.getLogger(SsrcRewriter.class);
+
+    /**
      * The origin SSRC that this <tt>SsrcRewriter</tt> rewrites. The
      * target SSRC is managed by the parent <tt>SsrcGroupRewriter</tt>.
      */
     private final int sourceSSRC;
 
+    /**
+     * The owner of this instance.
+     */
     public final SsrcGroupRewriter ssrcGroupRewriter;
 
     /**
@@ -112,18 +122,19 @@ class SsrcRewriter
 
         if (retransmissionInterval != null)
         {
-            if (SsrcRewritingEngine.logger.isDebugEnabled())
+            RawPacket rpkt = retransmissionInterval.rewriteRTP(
+                    pkt, /* retransmission */ true);
+
+            if (logger.isDebugEnabled())
             {
                 logDebug(
                         "Retransmitting packet with SEQNUM " + (seqnum & 0xffff)
                             + " of SSRC " + pkt.getSSRCAsLong()
-                            + " from the current interval.");
+                            + " retran SSRC: " + rpkt.getSSRCAsLong()
+                            + " retran SEQNUM: " + rpkt.getSequenceNumber());
             }
 
-            return
-                retransmissionInterval.rewriteRTP(
-                        pkt,
-                        /* retransmission */ true);
+            return rpkt;
         }
 
         // this is not a retransmission.
