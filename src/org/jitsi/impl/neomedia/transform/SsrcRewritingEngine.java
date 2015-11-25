@@ -549,7 +549,8 @@ public class SsrcRewritingEngine implements TransformEngine
             // packet, otherwise return it unaltered.
             if (ssrcGroupRewriter == null)
             {
-                logWarn("I DONT have a rewriter for: " + (ssrc & 0xffffffffl));
+                // We don't have a rewriter for this packet. Let's not freak
+                // out about it, it's most probably a DTLS packet.
                 return pkt;
             }
             else
