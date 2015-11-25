@@ -199,7 +199,8 @@ public class NACKPacket
                 + "; media sources: " + sourceSSRC
                 + "; NACK entries: " + (fci == null ? "none" : (fci.length / 4))
                 + "; lost packets: "
-                + (lostPackets == null ? "none" : lostPackets.size());
+                + (lostPackets == null ? "none" :
+                        Arrays.toString(lostPackets.toArray()));
     }
 
     /**
