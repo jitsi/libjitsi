@@ -222,74 +222,90 @@ class SsrcGroupRewriter
             return pkt;
         }
 
-        this.maybeSwitchActiveRewriter(pkt);
+        maybeSwitchActiveRewriter(pkt);
 
         if (activeRewriter == null)
         {
-            logWarn("Can't rewrite the RTP packet because there's no active " +
-                    "rewriter.");
+            logWarn(
+                    "Can't rewrite the RTP packet because there's no active"
+                        + " rewriter.");
             return pkt;
         }
-
-        return activeRewriter.rewriteRTP(pkt);
+        else
+        {
+            return activeRewriter.rewriteRTP(pkt);
+        }
     }
 
     /**
-     * Maybe switches the {@link this.activeRewriter}.
+     * Maybe switches the {@link #activeRewriter}.
      *
-     * @param pkt the received packet that will determine the active
-     * rewriter.
+     * @param pkt the received packet that will determine the
+     * {@code activeRewriter}.
      */
     private void maybeSwitchActiveRewriter(final RawPacket pkt)
     {
         final int sourceSSRC = pkt.getSSRC();
+        boolean debug = logger.isDebugEnabled();
 
         // This "if" block is not thread-safe but we don't expect multiple
         // threads to access this block all at the same time.
         if (!rewriters.containsKey(sourceSSRC))
         {
-            logDebug("Creating an SSRC rewriter to rewrite " + (sourceSSRC
-                        & 0xffffffffl) + " into " + (ssrcTarget & 0xffffffffl));
+            if (debug)
+            {
+                logDebug(
+                        "Creating an SSRC rewriter to rewrite "
+                            + pkt.getSSRCAsLong() + " to "
+                            + (ssrcTarget & 0xffffffffl));
+            }
             rewriters.put(sourceSSRC, new SsrcRewriter(this, sourceSSRC));
         }
 
         if (activeRewriter != null
-            && activeRewriter.getSourceSSRC() != sourceSSRC)
+                && activeRewriter.getSourceSSRC() != sourceSSRC)
         {
-            // Got a packet with a different SSRC from the one that the
-            // current SsrcRewriter handles. Pause the current SsrcRewriter
-            // and switch to the correct one.
-            logDebug("Now rewriting " + pkt.getSSRCAsLong()
-                + " to " + (ssrcTarget & 0xffffffffl) + " (was rewriting "
-                + (activeRewriter.getSourceSSRC() & 0xffffffffl) + ").");
+            // Got a packet with a different SSRC from the one that the current
+            // SsrcRewriter handles. Pause the current SsrcRewriter and switch
+            // to the correct one.
+            if (debug)
+            {
+                logDebug(
+                        "Now rewriting " + pkt.getSSRCAsLong() + " to "
+                            + (ssrcTarget & 0xffffffffl) + " (was rewriting "
+                            + (activeRewriter.getSourceSSRC() & 0xffffffffl)
+                            + ").");
+            }
 
             // We don't have to worry about sequence number intervals that
             // span multiple sequence number cycles because the extended
             // sequence number interval length is 32 bits.
             ExtendedSequenceNumberInterval currentInterval
                 = activeRewriter.getCurrentExtendedSequenceNumberInterval();
-
             int currentIntervalLength
                 = currentInterval == null ? 0 : currentInterval.length();
 
-            if (currentIntervalLength < 1)
+            if (debug && currentIntervalLength < 1)
             {
-                logDebug("Pausing an interval of length 0. This doesn't look " +
-                        "right");
+                logDebug(
+                        "Pausing an interval of length 0. This doesn't look"
+                            + " right.");
             }
 
             // Pause the active rewriter (closes its current interval and
             // puts it in the interval tree).
             activeRewriter.pause();
 
-            if (logger.isDebugEnabled())
+            // FIXME We're using logWarn under the condition of debug bellow.
+            if (debug)
             {
                 // We're only supposed to switch on key frames. Here we check
                 // if that's the case.
                 if (!isKeyFrame(pkt))
                 {
-                    logWarn("We're switching NOT on a key frame. Bad " +
-                            "Stuff (tm) will happen to you!");
+                    logWarn(
+                            "We're switching NOT on a key frame. Bad Stuff (tm)"
+                                + " will happen to you!");
                 }
             }
 
@@ -302,19 +318,27 @@ class SsrcGroupRewriter
 
         if (activeRewriter == null)
         {
-            logDebug("Now rewriting " + pkt.getSSRCAsLong()
-                + " to " + (ssrcTarget & 0xffffffffl));
+            if (debug)
+            {
+                logDebug(
+                        "Now rewriting " + pkt.getSSRCAsLong() + " to "
+                            + (ssrcTarget & 0xffffffffl));
+            }
             // We haven't initialized yet.
             activeRewriter = rewriters.get(sourceSSRC);
         }
 
         if (activeRewriter == null)
         {
-            logWarn("Don't know about this SSRC. This will never " +
-                "happen or somebody is messing with us.");
+            logWarn(
+                    "Don't know about SSRC " + pkt.getSSRCAsLong()
+                        + "! Somebody is messing with us!");
         }
     }
 
+    /**
+     * Determines whether a packet is a key frame.
+     */
     private boolean isKeyFrame(RawPacket pkt)
     {
         final int sourceSSRC = pkt.getSSRC();

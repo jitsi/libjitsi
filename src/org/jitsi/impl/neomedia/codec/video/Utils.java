@@ -35,16 +35,16 @@ public class Utils
         boolean isKeyFrame;
         if (redPT == pkt.getPayloadType())
         {
-            REDBlockIterator.REDBlock block
-                = REDBlockIterator.getPrimaryBlock(pkt);
+            REDBlock block = REDBlockIterator.getPrimaryBlock(pkt);
 
             if (block != null && vp8PT == block.getPayloadType())
             {
                 // FIXME What if we're not using VP8?
-                isKeyFrame = DePacketizer.isKeyFrame(
-                        pkt.getBuffer(),
-                        block.getBlockOffset(),
-                        block.getBlockLength());
+                isKeyFrame
+                    = DePacketizer.isKeyFrame(
+                            pkt.getBuffer(),
+                            block.getOffset(),
+                            block.getLength());
             }
             else
             {
@@ -54,15 +54,17 @@ public class Utils
         else if (vp8PT == pkt.getPayloadType())
         {
             // XXX There's RawPacket#getPayloadLength() but the implementation
-            // includes pkt.paddingSize at the time of this writing and we do not
-            // know whether that's going to stay that way.
+            // includes pkt.paddingSize at the time of this writing and we do
+            // not know whether that's going to stay that way.
 
             // FIXME What if we're not using VP8?
-            isKeyFrame = DePacketizer.isKeyFrame(
-                    pkt.getBuffer(),
-                    pkt.getPayloadOffset(),
-                    pkt.getLength()
-                    - pkt.getHeaderLength() - pkt.getPaddingSize());
+            isKeyFrame
+                = DePacketizer.isKeyFrame(
+                        pkt.getBuffer(),
+                        pkt.getPayloadOffset(),
+                        pkt.getLength()
+                            - pkt.getHeaderLength()
+                            - pkt.getPaddingSize());
         }
         else
         {

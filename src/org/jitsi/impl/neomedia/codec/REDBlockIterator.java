@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.jitsi.impl.neomedia.codec;
 
 import java.util.*;
@@ -26,7 +25,7 @@ import org.jitsi.impl.neomedia.*;
  * @author George Politis
  */
 public class REDBlockIterator
-    implements Iterator<REDBlockIterator.REDBlock>
+    implements Iterator<REDBlock>
 {
     /**
      * The <tt>Logger</tt> used by the <tt>SsrcRewritingEngine</tt> class and
@@ -57,6 +56,9 @@ public class REDBlockIterator
 
     /**
      * Gets the primary block of a RED packet.
+     *
+     * @param pkt
+     * @return
      */
     public static REDBlock getPrimaryBlock(RawPacket pkt)
     {
@@ -119,8 +121,12 @@ public class REDBlockIterator
     }
 
     /**
-     * Returns true if this RED packet contains multiple blocks, false
-     * otherwise.
+     * Returns {@code true} if a specific RED packet contains multiple blocks;
+     * {@code false}, otherwise.
+     *
+     * @param pkt
+     * @return {@code true if {@pkt} contains multiple RED blocks; otherwise,
+     * {@code false}
      */
     public static boolean isMultiBlock(RawPacket pkt)
     {
@@ -265,62 +271,6 @@ public class REDBlockIterator
         {
             offNextBlockPayload
                 = offNextBlockHeader + (cntRemainingBlocks - 1) * 4 + 1;
-        }
-    }
-
-    /**
-     * A class that represents a RED block.
-     */
-    public static class REDBlock
-    {
-        /**
-         * Ctor.
-         */
-        public REDBlock(int offset, int len, byte pt)
-        {
-            this.pt = pt;
-            this.offset = offset;
-            this.len = len;
-        }
-
-        /**
-         * The payload type of this RED block.
-         */
-        private byte pt;
-
-        /**
-         * The offset in the buffer where this RED block start.
-         */
-        private int offset;
-
-        /**
-         * The length in the buffer of this RED block.
-         */
-        private int len;
-
-        /**
-         * Gets the payload type of this RED block.
-         */
-        public byte getPayloadType()
-        {
-            return this.pt;
-        }
-
-        /**
-         * Gets the length of this RED block.
-         */
-        public int getBlockLength()
-        {
-            return this.len;
-        }
-
-
-        /**
-         * Gets the offset in the buffer where this RED block starts.
-         */
-        public int getBlockOffset()
-        {
-            return this.offset;
         }
     }
 }

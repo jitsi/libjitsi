@@ -524,7 +524,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * represent RTP packets. This <tt>PacketTransformer</tt> is an entry point
      * to this class.
      */
-    class MyRTPSinglePacketTransformer
+    private class MyRTPSinglePacketTransformer
         extends SinglePacketTransformerAdapter
     {
         @Override
@@ -540,13 +540,13 @@ public class SsrcRewritingEngine implements TransformEngine
                 return pkt;
             }
 
-            // Use the SSRC of the RTP packet to find which
-            // <tt>SsrcGroupRewriter</tt> to use.
+            // Use the SSRC of the RTP packet to find which SsrcGroupRewriter to
+            // use.
             int ssrc = pkt.getSSRC();
             SsrcGroupRewriter ssrcGroupRewriter = origin2rewriter.get(ssrc);
 
-            // If there is an <tt>SsrcGroupRewriter</tt>, rewrite the
-            // packet, otherwise return it unaltered.
+            // If there is an SsrcGroupRewriter, rewrite the packet; otherwise,
+            // return it unaltered.
             if (ssrcGroupRewriter == null)
             {
                 // We don't have a rewriter for this packet. Let's not freak
@@ -564,7 +564,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * The <tt>PacketTransformer</tt> that rewrites <tt>RawPacket</tt>s that
      * represent RTCP packets.
      */
-    class MyRTCPSinglePacketTransformer
+    private class MyRTCPSinglePacketTransformer
         extends SinglePacketTransformerAdapter
     {
         @Override
