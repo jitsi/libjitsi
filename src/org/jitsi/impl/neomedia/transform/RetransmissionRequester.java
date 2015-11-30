@@ -262,9 +262,10 @@ public class RetransmissionRequester
                                 "Failed to inject packet in MediaStream: " + e);
                     }
             }
+
+            packetsToRequest.clear();
         }
 
-        packetsToRequest.clear();
     }
 
 
