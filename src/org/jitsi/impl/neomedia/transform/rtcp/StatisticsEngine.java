@@ -1005,8 +1005,8 @@ public class StatisticsEngine
             else
             {
                 RTCPCompoundPacket outPacket
-                        = new RTCPCompoundPacket(out.toArray(
-                        new RTCPPacket[out.size()]));
+                    = new RTCPCompoundPacket(
+                            out.toArray(new RTCPPacket[out.size()]));
                 pkt = generator.apply(outPacket);
             }
         }
