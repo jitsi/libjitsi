@@ -3577,7 +3577,7 @@ public class MediaStreamImpl
 
                 // externalTransformerWrapper
                 wrapper = externalTransformerWrapper;
-                if (wrapper != null && after.equals(wrapper.getWrapped()))
+                if (wrapper != null && wrapper.contains(after))
                 {
                     after = wrapper;
                 }
@@ -3585,7 +3585,7 @@ public class MediaStreamImpl
                 {
                     // rtcpTransformEngineWrapper
                     wrapper = rtcpTransformEngineWrapper;
-                    if (wrapper != null && after.equals(wrapper.getWrapped()))
+                    if (wrapper != null && wrapper.contains(after))
                     {
                         after = wrapper;
                     }

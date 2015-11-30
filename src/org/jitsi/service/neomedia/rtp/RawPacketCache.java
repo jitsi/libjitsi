@@ -42,6 +42,9 @@ public interface RawPacketCache
 
     /**
      * Enables/disables the caching of packets.
+     *
+     * @param enabled {@code true} if the caching of packets is to be enabled or
+     * {@code false} if the caching of packets is to be disabled
      */
     public void setEnabled(boolean enabled);
 }

@@ -21,6 +21,7 @@ package org.jitsi.impl.neomedia.transform;
  * chain.
  *
  * @author George Politis
+ * @author Lyubomir Marinov
  */
 public class TransformEngineWrapper<T extends TransformEngine>
     implements TransformEngine
@@ -29,6 +30,42 @@ public class TransformEngineWrapper<T extends TransformEngine>
      * The wrapped instance.
      */
     private T wrapped;
+
+    /**
+     * Determines whether this {@code TransformEngineWrapper} contains a
+     * specific {@code TransformEngine}.
+     *
+     * @param t the {@code TransofmrEngine} to check whether it is contained in
+     * this {@code TransformEngineWrapper}
+     * @return {@code true} if {@code t} equals {@link #wrapped} or {@code t} is
+     * contained in the {@code chain} of {@code wrapped} (if {@code wrapped} is
+     * a {@code TransformEngineChain}); otherwise, {@code false}
+     */
+    public boolean contains(T t)
+    {
+        T wrapped = getWrapped();
+
+        if (t.equals(wrapped))
+        {
+            return true;
+        }
+        else if (wrapped instanceof TransformEngineChain)
+        {
+            TransformEngine[] chain
+                = ((TransformEngineChain) wrapped).getEngineChain();
+
+            if (chain != null && chain.length != 0)
+            {
+                for (TransformEngine c : chain)
+                {
+                    if (t.equals(c))
+                        return true;
+                }
+            }
+        }
+
+        return false;
+    }
 
     /**
      * {@inheritDoc}
