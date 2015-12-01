@@ -160,7 +160,7 @@ class SsrcRewriter
             if (0 < delta && ssrcGroupRewriter.isKeyFrame(pkt))
             {
                 timestampTarget = maxTimestamp + 1;
-                if (SsrcRewritingEngine.logger.isDebugEnabled())
+                if (logger.isDebugEnabled())
                 {
                     logDebug(
                             "Uplifting RTP timestamp " + timestamp

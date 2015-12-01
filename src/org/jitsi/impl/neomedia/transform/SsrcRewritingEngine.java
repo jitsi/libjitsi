@@ -43,7 +43,8 @@ public class SsrcRewritingEngine implements TransformEngine
      * The <tt>Logger</tt> used by the <tt>SsrcRewritingEngine</tt> class and
      * its instances to print debug information.
      */
-    static final Logger logger = Logger.getLogger(SsrcRewritingEngine.class);
+    private static final Logger logger
+        = Logger.getLogger(SsrcRewritingEngine.class);
 
     /**
      * An int const indicating an invalid seqnum. One reason why we use integers
@@ -599,9 +600,9 @@ public class SsrcRewritingEngine implements TransformEngine
             catch (BadFormatException e)
             {
                 logError(
-                        "Failed to rewrite an RTCP packet. Dropping packet.",
+                        "Failed to rewrite an RTCP packet. Passing through.",
                         e);
-                return null;
+                return pkt;
             }
 
             if (inPkts == null || inPkts.length == 0)
@@ -708,7 +709,8 @@ public class SsrcRewritingEngine implements TransformEngine
                     RTCPFBPacket fb = (RTCPFBPacket) inPkt;
                     if (fb.fmt != NACKPacket.FMT)
                     {
-                        logWarn("Unhandled RTCP packet: " + inPkt);
+                        logWarn("Unhandled RTCP RTPFB packet (not a NACK): "
+                                + inPkt);
                     }
                     else
                     {
@@ -716,7 +718,7 @@ public class SsrcRewritingEngine implements TransformEngine
                     }
                     break;
                 default:
-                    logWarn("Unhandled RTCP packet: " + inPkt);
+                    logWarn("Unhandled RTCP (non RTPFB PSFB) packet: " + inPkt);
                     break;
                 }
             }
