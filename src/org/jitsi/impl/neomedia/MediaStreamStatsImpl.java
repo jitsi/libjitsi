@@ -1398,9 +1398,12 @@ public class MediaStreamStatsImpl
      */
     public void rembReceived(RTCPREMBPacket remb)
     {
-        for (REMBListener listener : rembListeners)
+        if (remb != null)
         {
-            listener.rembReceived(remb.getBitrate());
+            for (REMBListener listener : rembListeners)
+            {
+                listener.rembReceived(remb.getBitrate());
+            }
         }
     }
 
@@ -1410,9 +1413,12 @@ public class MediaStreamStatsImpl
      */
     public void nackReceived(NACKPacket nack)
     {
-        for (NACKListener listener : nackListeners)
+        if (nack != null)
         {
-            listener.nackReceived(nack);
+            for (NACKListener listener : nackListeners)
+            {
+                listener.nackReceived(nack);
+            }
         }
     }
 
@@ -1422,9 +1428,12 @@ public class MediaStreamStatsImpl
     @Override
     public void addNackListener(NACKListener listener)
     {
-        synchronized (nackListeners)
+        if (listener != null)
         {
-            nackListeners.add(listener);
+            synchronized (nackListeners)
+            {
+                nackListeners.add(listener);
+            }
         }
     }
 
@@ -1434,9 +1443,12 @@ public class MediaStreamStatsImpl
     @Override
     public void addRembListener(REMBListener listener)
     {
-        synchronized (rembListeners)
+        if (listener != null)
         {
-            rembListeners.add(listener);
+            synchronized (rembListeners)
+            {
+                rembListeners.add(listener);
+            }
         }
     }
 }

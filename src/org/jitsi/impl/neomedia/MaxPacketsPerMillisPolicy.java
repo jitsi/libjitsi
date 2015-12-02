@@ -96,7 +96,7 @@ public abstract class MaxPacketsPerMillisPolicy
      * <tt>DatagramSocket</tt> of this <tt>OutputDataSource</tt>.
      */
     private final ArrayBlockingQueue<RawPacket> packetQueue
-        = new ArrayBlockingQueue<RawPacket>(PACKET_QUEUE_CAPACITY);
+        = new ArrayBlockingQueue<>(PACKET_QUEUE_CAPACITY);
 
     /**
      * The number of RTP packets already sent during the current
@@ -257,7 +257,7 @@ public abstract class MaxPacketsPerMillisPolicy
      * <tt>maxPackets</tt> are to be sent by this <tt>OutputDataStream</tt>
      * through its <tt>DatagramSocket</tt>
      */
-    public void setMaxPacketsPerMillis(int maxPackets, long perMillis)
+    public final void setMaxPacketsPerMillis(int maxPackets, long perMillis)
     {
         if (maxPackets < 1)
         {
@@ -301,7 +301,9 @@ public abstract class MaxPacketsPerMillisPolicy
                     packetQueue.offer(packet);
                 }
                 else
+                {
                     packetQueue.put(packet);
+                }
                 break;
             }
             catch (InterruptedException iex)
@@ -313,6 +315,7 @@ public abstract class MaxPacketsPerMillisPolicy
 
     /**
      * Sets the <tt>dropPacketsWhenFull</tt> flag.
+     *
      * @param dropPacketsWhenFull the value to set.
      */
     public void setDropPacketsWhenFull(boolean dropPacketsWhenFull)

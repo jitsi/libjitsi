@@ -17,6 +17,7 @@ package org.jitsi.service.neomedia;
 
 import java.beans.*;
 import java.util.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.service.neomedia.format.*;
 
@@ -165,6 +166,20 @@ public abstract class AbstractMediaStream
             MediaFormat format,
             Map<String,String> attrs)
     {
+    }
+
+    /**
+     * Sends a given RTP or RTCP packet to the remote peer/side.
+     *
+     * @param pkt the packet to send.
+     * @param data {@code true} to send an RTP packet or {@code false} to send
+     * an RTCP packet.
+     * @throws TransmissionFailedException if the transmission failed.
+     */
+    public void injectPacket(RawPacket pkt, boolean data)
+        throws TransmissionFailedException
+    {
+        injectPacket(pkt, data, /* after */ null);
     }
 
     /**

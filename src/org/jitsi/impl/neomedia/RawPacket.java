@@ -728,6 +728,15 @@ public class RawPacket
     }
 
     /**
+     * Returns a {@code long} representation of the SSRC of this RTP packet.
+     * @return a {@code long} representation of the SSRC of this RTP packet.
+     */
+    public long getSSRCAsLong()
+    {
+        return getSSRC() & 0xffffffffL;
+    }
+
+    /**
      * Returns the timestamp for this RTP <tt>RawPacket</tt>.
      *
      * @return the timestamp for this RTP <tt>RawPacket</tt>.
@@ -1090,8 +1099,8 @@ public class RawPacket
       */
     public void setSequenceNumber(int seq)
     {
-            writeByte(2, (byte) (seq>>8 & 0xff));
-            writeByte(3, (byte) (seq & 0xff));
+        writeByte(2, (byte) (seq>>8 & 0xff));
+        writeByte(3, (byte) (seq & 0xff));
     }
 
     /**

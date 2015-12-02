@@ -256,7 +256,7 @@ public class SsrcTransformEngine
             {
                 long[] levels = new long[2];
 
-                levels[0] = 0xFFFFFFFFL & pkt.getSSRC();
+                levels[0] = pkt.getSSRCAsLong();
                 levels[1] = 127 - level;
                 csrcAudioLevelDispatcher.addLevels(levels, pkt.getTimestamp());
             }

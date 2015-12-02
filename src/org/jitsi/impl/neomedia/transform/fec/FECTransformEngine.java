@@ -273,7 +273,7 @@ public class FECTransformEngine
             {
                 if (p != null)
                 {
-                    ret = 0xffffffffL & p.getSSRC();
+                    ret = p.getSSRCAsLong();
                     break;
                 }
             }

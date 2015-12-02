@@ -24,6 +24,7 @@ import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * The <tt>MediaStream</tt> class represents a (generally) bidirectional RTP
@@ -460,15 +461,23 @@ public interface MediaStream
     public void setExternalTransformer(TransformEngine transformEngine);
 
     /**
-     * Sends a given RTP or RTCP packet to the remote side, bypassing the
-     * transformations normally performed by the <tt>MediaStream</tt>.
+     * Sends a given RTP or RTCP packet to the remote peer/side.
+     *
      * @param pkt the packet to send.
-     * @param data <tt>true</tt> to send an RTP packet, or false to send an
-     * <tt>RTCP</tt> packet.
-     * @param encrypt <tt>true</tt> to encrypt/sign the packet with SRTP/SRTCP.
+     * @param data {@code true} to send an RTP packet or {@code false} to send
+     * an RTCP packet.
+     * @param after the {@code TransformEngine} in the {@code TransformEngine}
+     * chain of this {@code MediaStream} after which the injection is to begin.
+     * If the specified {@code after} is not in the {@code TransformEngine}
+     * chain of this {@code MediaStream}, {@code pkt} will be injected at the
+     * beginning of the {@code TransformEngine} chain of this
+     * {@code MediaStream}. Generally, the value of {@code after} should be
+     * {@code null} unless the injection is being performed by a
+     * {@code TransformEngine} itself (while executing {@code transform} or
+     * {@code reverseTransform} of a {@code PacketTransformer} of its own even).
      * @throws TransmissionFailedException if the transmission failed.
      */
-    public void injectPacket(RawPacket pkt, boolean data, boolean encrypt)
+    public void injectPacket(RawPacket pkt, boolean data, TransformEngine after)
         throws TransmissionFailedException;
 
     /**

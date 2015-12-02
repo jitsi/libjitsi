@@ -1345,6 +1345,11 @@ public class VideoMediaStreamImpl
                 }
                 else
                 {
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("Creating a RetransmissionRequester for "
+                            + "VideoMediaStream " + this);
+                    }
                     return new RetransmissionRequester(this, senderSSRC);
                 }
             }

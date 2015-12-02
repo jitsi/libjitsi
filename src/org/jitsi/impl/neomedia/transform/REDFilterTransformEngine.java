@@ -34,7 +34,7 @@ public class REDFilterTransformEngine
      * its instances to print debug information.
      */
     private static final Logger logger
-            = Logger.getLogger(REDFilterTransformEngine.class);
+        = Logger.getLogger(REDFilterTransformEngine.class);
 
     /**
      * A boolean flag determining whether or not this transformer should strip
@@ -120,7 +120,7 @@ public class REDFilterTransformEngine
             return pkt;
         }
 
-        REDBlockIterator.REDBlock pb = REDBlockIterator.getPrimaryBlock(pkt);
+        REDBlock pb = REDBlockIterator.getPrimaryBlock(pkt);
 
         if (pb == null)
         {
@@ -134,10 +134,9 @@ public class REDFilterTransformEngine
         int len = pkt.getLength();
         // Shift the RTP header right.
         pkt.setPayloadType(pb.getPayloadType());
-        System.arraycopy(
-                buf, off, buf, pb.getBlockOffset() - hdrLen, hdrLen);
-        pkt.setOffset(pb.getBlockOffset() - hdrLen);
-        pkt.setLength(len - (pb.getBlockOffset() - hdrLen - off));
+        System.arraycopy(buf, off, buf, pb.getOffset() - hdrLen, hdrLen);
+        pkt.setOffset(pb.getOffset() - hdrLen);
+        pkt.setLength(len - (pb.getOffset() - hdrLen - off));
 
         return pkt;
     }

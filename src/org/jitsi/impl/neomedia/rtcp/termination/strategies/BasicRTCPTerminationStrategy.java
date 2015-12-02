@@ -65,7 +65,7 @@ public class BasicRTCPTerminationStrategy
      * A reusable array that holds {@link #MIN_RTCP_REPORT_BLOCKS}
      * <tt>RTCPReportBlock</tt>s.
      */
-    private static final RTCPReportBlock[] MIN_RTCP_REPORT_BLOCKS_ARRAY
+    public static final RTCPReportBlock[] MIN_RTCP_REPORT_BLOCKS_ARRAY
         = new RTCPReportBlock[MIN_RTCP_REPORT_BLOCKS];
 
     /**
@@ -175,31 +175,32 @@ public class BasicRTCPTerminationStrategy
                 return pkt;
             }
 
-            RTCPCompoundPacket inPacket;
+            RTCPCompoundPacket compound;
+
             try
             {
-                inPacket = (RTCPCompoundPacket) parser.parse(
-                    pkt.getBuffer(),
-                    pkt.getOffset(),
-                    pkt.getLength());
+                compound
+                    = (RTCPCompoundPacket)
+                        parser.parse(
+                                pkt.getBuffer(),
+                                pkt.getOffset(),
+                                pkt.getLength());
             }
             catch (BadFormatException e)
             {
-                logger.warn("Failed to terminate an RTCP packet. " +
-                    "Dropping packet.");
+                logger.warn(
+                        "Failed to terminate an RTCP packet. Dropping packet.");
                 return null;
             }
 
             // Update our RTCP stats map (timestamps). This operation is
             // read-only.
-            remoteClockEstimator.update(inPacket);
+            remoteClockEstimator.update(compound);
 
-            cnameRegistry.update(inPacket);
+            cnameRegistry.update(compound);
 
             // Remove SRs and RRs from the RTCP packet.
-            pkt = feedbackGateway.gateway(inPacket);
-
-            return pkt;
+            return feedbackGateway.gateway(compound);
         }
     };
 
@@ -1015,7 +1016,7 @@ public class BasicRTCPTerminationStrategy
                 return null;
             }
 
-            ArrayList<RTCPPacket> outPackets
+            List<RTCPPacket> outPackets
                 = new ArrayList<>(inPacket.packets.length);
 
             for (RTCPPacket p : inPacket.packets)
@@ -1112,7 +1113,10 @@ public class BasicRTCPTerminationStrategy
             {
                 try
                 {
-                    getStream().injectPacket(pkt, false, true);
+                    getStream().injectPacket(
+                            pkt,
+                            /* data */ false,
+                            BasicRTCPTerminationStrategy.this);
 
                     // TODO update transmission stats.
                     /*if (ssrcInfo instanceof SendSSRCInfo)

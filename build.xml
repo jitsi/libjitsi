@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="libjitsi">
+<project name="libjitsi" xmlns:maven-artifact="antlib:org.apache.maven.artifact.ant">
 
   <property file="local.properties" />
   <property name="dest" value="classes" />
@@ -15,15 +15,16 @@
   <property name="native.libs" value="lib/native"/>
   <property environment="system"/>
      
-  <path id="compile.class.path">
-    <fileset dir="lib" includes="*.jar" />
-  </path>
+  <maven-artifact:dependencies pathId="compile.class.path" useScope="compile">
+    <pom file="pom.xml" />
+  </maven-artifact:dependencies>
+  <maven-artifact:dependencies pathId="mvn.test.class.path" useScope="test">
+    <pom file="pom.xml" />
+  </maven-artifact:dependencies>
   <path id="test.class.path">
-    <path refid="compile.class.path" />
+    <path refid="mvn.test.class.path" />
     <pathelement location="${dest}" />
     <pathelement location="${dest.test}" />
-    <pathelement location="${JUnit.home}/junit-4.11.jar"/>
-    <pathelement location="${JUnit.home}/hamcrest-core-1.3.jar"/>
   </path>
 
   <condition property="build.label"
@@ -248,6 +249,19 @@
         <test name="org.jitsi.sctp4j.SctpTestSuite"
               todir="${junit.reports}"/>
       </junit>
+  </target>
+
+  <target name="copy-runtime-dependencies-from-maven">
+    <delete failonerror="false" includeemptydirs="true">
+      <fileset file="lib/*.jar" />
+    </delete>
+    <maven-artifact:dependencies filesetId="runtime.fileset" useScope="runtime">
+      <pom file="pom.xml" />
+    </maven-artifact:dependencies>
+    <copy todir="lib">
+      <fileset refid="runtime.fileset" />
+      <mapper type="flatten" />
+    </copy>
   </target>
 
 </project>

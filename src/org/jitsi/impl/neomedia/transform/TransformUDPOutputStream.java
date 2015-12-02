@@ -32,11 +32,13 @@ import org.jitsi.impl.neomedia.*;
  */
 public class TransformUDPOutputStream
     extends RTPConnectorUDPOutputStream
+    implements TransformOutputStream
 {
     /**
-     * The <tt>PacketTransformer</tt> used to transform RTP/RTCP packets.
+     * The {@code TransformOutputStream} which aids this instance in
+     * implementing the interface in question.
      */
-    private PacketTransformer transformer;
+    private final TransformOutputStreamImpl _impl;
 
     /**
      * Initializes a new <tt>TransformOutputStream</tt> which is to send packet
@@ -47,62 +49,42 @@ public class TransformUDPOutputStream
     public TransformUDPOutputStream(DatagramSocket socket)
     {
         super(socket);
+
+        _impl = new TransformOutputStreamImpl(this);
     }
 
     /**
-     * Creates a new array of <tt>RawPacket</tt> from a specific <tt>byte[]</tt>
-     * buffer in order to have this instance send its packet data through its
-     * {@link #write(byte[], int, int)} method. Transforms the array of packets
-     * using a <tt>PacketTransformer</tt>.
-     *
-     * @param buffer the packet data to be sent to the targets of this instance
-     * @param offset the offset of the packet data in <tt>buffer</tt>
-     * @param length the length of the packet data in <tt>buffer</tt>
-     * @return a new <tt>RawPacket</tt> containing the packet data of the
-     * specified <tt>byte[]</tt> buffer or possibly its modification;
-     * <tt>null</tt> to ignore the packet data of the specified <tt>byte[]</tt>
-     * buffer and not send it to the targets of this instance through its
-     * {@link #write(byte[], int, int)} method
-     * @see RTPConnectorOutputStream#createRawPacket(byte[], int, int)
+     * {@inheritDoc}
      */
     @Override
-    protected RawPacket[] createRawPacket(byte[] buffer, int offset, int length)
-    {
-        RawPacket[] pkts = super.createRawPacket(buffer, offset, length);
-        PacketTransformer transformer = getTransformer();
-
-        if (transformer != null)
-        {
-            pkts = transformer.transform(pkts);
-
-            /*
-             * XXX Allow transformer to abort the writing of buffer by not
-             * throwing a NullPointerException if pkt becomes null after
-             * transform.
-             */
-        }
-        return pkts;
-    }
-
-    /**
-     * Gets the <tt>PacketTransformer</tt> which is used to transform packets.
-     *
-     * @return the <tt>PacketTransformer</tt> which is used to transform packets
-     */
     public PacketTransformer getTransformer()
     {
-        return transformer;
+        return _impl.getTransformer();
     }
 
     /**
-     * Sets the <tt>PacketTransformer</tt> which is to be used to transform
-     * packets.
+     * {@inheritDoc}
      *
-     * @param transformer the <tt>PacketTransformer</tt> which is to be used to
-     * transform packets
+     * Transforms the array of {@code RawPacket}s returned by the super
+     * {@link #packetize(byte[],int,int,Object) implementation using the
+     * associated {@code PacketTransformer}.
      */
+    @Override
+    protected RawPacket[] packetize(
+            byte[] buf, int off, int len,
+            Object context)
+    {
+        RawPacket[] pkts = super.packetize(buf, off, len, context);
+
+        return _impl.transform(pkts, context);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void setTransformer(PacketTransformer transformer)
     {
-        this.transformer = transformer;
+        _impl.setTransformer(transformer);
     }
 }

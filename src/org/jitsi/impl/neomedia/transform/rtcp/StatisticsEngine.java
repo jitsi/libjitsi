@@ -1005,8 +1005,8 @@ public class StatisticsEngine
             else
             {
                 RTCPCompoundPacket outPacket
-                        = new RTCPCompoundPacket(out.toArray(
-                        new RTCPPacket[out.size()]));
+                    = new RTCPCompoundPacket(
+                            out.toArray(new RTCPPacket[out.size()]));
                 pkt = generator.apply(outPacket);
             }
         }
@@ -1047,7 +1047,10 @@ public class StatisticsEngine
                 NACKPacket nack = (NACKPacket) rtcp;
                 streamStats.nackReceived(nack);
 
-                // TODO: Do we always want to drop these?
+                // Note that we drop NACK packets here, and leave it as a
+                // responsibility of the user application to handle them, if
+                // necessary (i.e. forward the NACK packet somewhere, or
+                // retransmit RTP packets).
                 removed = true;
             }
             else if (rtcp instanceof RTCPREMBPacket)
@@ -1057,8 +1060,7 @@ public class StatisticsEngine
 
                 out.add(rtcp);
             }
-            else if (rtcp.type == RTCPPacket.RR
-                    || rtcp.type == RTCPPacket.SR)
+            else if (rtcp.type == RTCPPacket.RR || rtcp.type == RTCPPacket.SR)
             {
                 RTCPReport report;
                 try

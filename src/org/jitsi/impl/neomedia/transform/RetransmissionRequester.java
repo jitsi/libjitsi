@@ -15,13 +15,13 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
+import java.io.*;
+import java.util.*;
+
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
-
-import java.io.*;
-import java.util.*;
 
 /**
  * Detects lost RTP packets for a particular <tt>RtpChannel</tt> and requests
@@ -30,7 +30,7 @@ import java.util.*;
  * @author Boris Grozev
  */
 public class RetransmissionRequester
-    extends SinglePacketTransformer
+    extends SinglePacketTransformerAdapter
     implements TransformEngine
 {
     /**
@@ -66,6 +66,7 @@ public class RetransmissionRequester
     private static int diff(int a, int b)
     {
         int diff = a - b;
+
         if (diff < -(1<<15))
             diff += 1<<16;
         else if (diff > 1<<15)
@@ -111,28 +112,18 @@ public class RetransmissionRequester
         this.stream = stream;
         this.senderSsrc = senderSsrc;
 
-        thread = new Thread(){
-            @Override
-            public void run()
+        thread
+            = new Thread()
             {
-                runInRequesterThread();
-            }
-        };
+                @Override
+                public void run()
+                {
+                    runInRequesterThread();
+                }
+            };
         thread.setDaemon(true);
         thread.setName(RetransmissionRequester.class.getName());
-
         thread.start();
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * Implements {@link SinglePacketTransformer#transform(RawPacket)}.
-     */
-    @Override
-    public RawPacket transform(RawPacket pkt)
-    {
-        return pkt;
     }
 
     /**
@@ -143,13 +134,17 @@ public class RetransmissionRequester
     @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
-        long ssrc = pkt.getSSRC() & 0xffffffffL;
+        long ssrc = pkt.getSSRCAsLong();
         Requester requester;
         synchronized (requesters)
         {
             requester = requesters.get(ssrc);
             if (requester == null)
             {
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("Creating new Requester for SSRC " + ssrc);
+                }
                 requester = new Requester(ssrc);
                 requesters.put(ssrc, requester);
             }
@@ -235,33 +230,42 @@ public class RetransmissionRequester
             for (Map.Entry<Long, Set<Integer>> entry : packetsToRequest.entrySet())
             {
                 long sourceSsrc = entry.getKey();
-                NACKPacket nack  = new NACKPacket(
-                        senderSsrc, sourceSsrc, entry.getValue());
+                NACKPacket nack
+                    = new NACKPacket(senderSsrc, sourceSsrc, entry.getValue());
+                RawPacket pkt;
 
-                RawPacket pkt = null;
                 try
                 {
                     pkt = nack.toRawPacket();
                 }
                 catch (IOException ioe)
                 {
+                    pkt = null;
                     logger.warn("Failed to create a NACK packet: " + ioe);
                 }
 
                 if (pkt != null)
-                try
-                {
-                    stream.injectPacket(pkt, false, true);
-                }
-                catch (TransmissionFailedException ex)
-                {
-                    logger.warn("Failed to inject packet in MediaStream: "
-                        + ex);
-                }
+                    try
+                    {
+                        if (logger.isDebugEnabled())
+                        {
+                            logger.debug("Sending a NACK: " + nack);
+                        }
+                        stream.injectPacket(
+                                pkt,
+                                /* data */ false,
+                                /* after */ null);
+                    }
+                    catch (TransmissionFailedException e)
+                    {
+                        logger.warn(
+                                "Failed to inject packet in MediaStream: " + e);
+                    }
             }
+
+            packetsToRequest.clear();
         }
 
-        packetsToRequest.clear();
     }
 
 
@@ -399,8 +403,7 @@ public class RetransmissionRequester
 
             for (Iterator<Map.Entry<Integer,Request>> iter
                         = requests.entrySet().iterator();
-                 iter.hasNext();
-                    )
+                    iter.hasNext();)
             {
                 Request request = iter.next().getValue();
 
@@ -414,19 +417,17 @@ public class RetransmissionRequester
                     request.firstRequestSentAt = now;
                 else if (request.timesRequested == MAX_REQUESTS)
                 {
-                    logger.info("Sending the last NACK for SSRC=" + ssrc
-                                 + " seq=" + request.seq + ". "
-                                 + "Time since the first request: "
-                                 + (now - request.firstRequestSentAt));
+                    logger.info(
+                            "Sending the last NACK for SSRC=" + ssrc + " seq="
+                                + request.seq + ". "
+                                + "Time since the first request: "
+                                + (now - request.firstRequestSentAt));
                     iter.remove();
                 }
 
             }
 
-            nextRequestAt =
-                    (requests.size() > 0)
-                    ? now + RE_REQUEST_AFTER
-                    : -1;
+            nextRequestAt = (requests.size() > 0) ? now + RE_REQUEST_AFTER : -1;
 
             return missingPackets;
         }
@@ -435,31 +436,31 @@ public class RetransmissionRequester
     /**
      * Represents a request for the retransmission of a specific RTP packet.
      */
-    private class Request
+    private static class Request
     {
         /**
          * The RTP sequence number.
          */
-        private int seq;
+        final int seq;
 
         /**
          * The system time at the moment a retransmission request for this
          * packet was first sent.
          */
-        private long firstRequestSentAt = -1;
+        long firstRequestSentAt = -1;
 
         /**
          * The number of times that a retransmission request for this packet
          * has been sent.
          */
-        private int timesRequested = 0;
+        int timesRequested = 0;
 
         /**
          * Initializes a new <tt>Request</tt> instance with the given RTP
          * sequence number.
          * @param seq the RTP sequence number.
          */
-        private Request(int seq)
+        Request(int seq)
         {
             this.seq = seq;
         }

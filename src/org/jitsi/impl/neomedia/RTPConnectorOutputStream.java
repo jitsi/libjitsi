@@ -66,7 +66,7 @@ public abstract class RTPConnectorOutputStream
     /**
      * Whether this <tt>RTPConnectorOutputStream</tt> is enabled or disabled.
      * While the stream is disabled, it suppresses actually sending any packets
-     * via {@link #send(RawPacket)}.
+     * via {@link #write(byte[],int,int)}.
      */
     private boolean enabled = true;
 
@@ -94,20 +94,19 @@ public abstract class RTPConnectorOutputStream
      * Always contains arrays full with <tt>null</tt>
      */
     private final LinkedBlockingQueue<RawPacket[]> rawPacketArrayPool
-        = new LinkedBlockingQueue<RawPacket[]>();
+        = new LinkedBlockingQueue<>();
 
     /**
      * The pool of <tt>RawPacket</tt> instances which reduces the number of
      * allocations performed by {@link #createRawPacket(byte[], int, int)}.
      */
     private final LinkedBlockingQueue<RawPacket> rawPacketPool
-        = new LinkedBlockingQueue<RawPacket>();
+        = new LinkedBlockingQueue<>();
 
     /**
      * Stream targets' IP addresses and ports.
      */
-    protected final List<InetSocketAddress> targets
-        = new LinkedList<InetSocketAddress>();
+    protected final List<InetSocketAddress> targets = new LinkedList<>();
 
     /**
      * Initializes a new <tt>RTPConnectorOutputStream</tt> which is to send
@@ -155,13 +154,20 @@ public abstract class RTPConnectorOutputStream
      * Allows extenders to intercept the array and possibly filter and/or
      * modify it.
      *
-     * @param buffer the packet data to be sent to the targets of this instance
-     * @param offset the offset of the packet data in <tt>buffer</tt>
-     * @param length the length of the packet data in <tt>buffer</tt>
+     * @param buf the packet data to be sent to the targets of this instance.
+     * The contents of {@code buf} starting at {@code off} with the specified
+     * {@code len} is copied into the buffer of the returned {@code RawPacket}.
+     * @param off the offset of the packet data in <tt>buf</tt>
+     * @param len the length of the packet data in <tt>buf</tt>
+     * @param context the {@code Object} provided to
+     * {@link #write(byte[], int, int, java.lang.Object)}. The implementation of
+     * {@code RTPConnectorOutputStream} ignores the {@code context}.
      * @return an array with a single <tt>RawPacket</tt> containing the packet
      * data of the specified <tt>byte[]</tt> buffer.
      */
-    protected RawPacket[] createRawPacket(byte[] buffer, int offset, int length)
+    protected RawPacket[] packetize(
+            byte[] buf, int off, int len,
+            Object context)
     {
         // get an array (full with null-s) from the pool or create a new one
         RawPacket[] pkts = rawPacketArrayPool.poll();
@@ -173,28 +179,30 @@ public abstract class RTPConnectorOutputStream
 
         if (pkt == null)
         {
-            pktBuffer = new byte[length];
+            pktBuffer = new byte[len];
             pkt = new RawPacket();
         }
         else
+        {
             pktBuffer = pkt.getBuffer();
+        }
 
-        if (pktBuffer.length < length)
+        if (pktBuffer.length < len)
         {
             /*
              * XXX It may be argued that if the buffer length is insufficient
              * once, it will be insufficient more than once. That is why we
              * recreate it without returning a packet to the pool.
              */
-            pktBuffer = new byte[length];
+            pktBuffer = new byte[len];
         }
 
         pkt.setBuffer(pktBuffer);
         pkt.setFlags(0);
-        pkt.setLength(length);
+        pkt.setLength(len);
         pkt.setOffset(0);
 
-        System.arraycopy(buffer, offset, pktBuffer, 0, length);
+        System.arraycopy(buf, off, pktBuffer, 0, len);
 
         pkts[0] = pkt;
         return pkts;
@@ -208,8 +216,8 @@ public abstract class RTPConnectorOutputStream
      * @param target the remote address associated with the <tt>packet</tt>
      */
     protected abstract void doLogPacket(
-        RawPacket packet,
-        InetSocketAddress target);
+            RawPacket packet,
+            InetSocketAddress target);
 
     /**
      * Returns the number of bytes sent trough this stream
@@ -345,10 +353,13 @@ public abstract class RTPConnectorOutputStream
      */
     public void setEnabled(boolean enabled)
     {
-        if (logger.isDebugEnabled())
-            logger.debug("setEnabled: " + enabled);
+        if (this.enabled != enabled)
+        {
+            if (logger.isDebugEnabled())
+                logger.debug("setEnabled: " + enabled);
 
-        this.enabled = enabled;
+            this.enabled = enabled;
+        }
     }
 
     /**
@@ -405,32 +416,75 @@ public abstract class RTPConnectorOutputStream
     /**
      * Implements {@link OutputDataStream#write(byte[], int, int)}.
      *
-     * @param buffer the <tt>byte[]</tt> that we'd like to copy the content
-     * of the packet to.
-     * @param offset the position where we are supposed to start writing in
-     * <tt>buffer</tt>.
-     * @param length the number of <tt>byte</tt>s available for writing in
-     * <tt>inBuffer</tt>.
-     *
-     * @return the number of bytes read
+     * @param buf the {@code byte[]} to write into this {@code OutputDataStream}
+     * @param off the offset in {@code buf} at which the {@code byte}s to be
+     * written into this {@code OutputDataStream} start
+     * @param len the number of {@code byte}s in {@code buf} starting at
+     * {@code off} to be written into this {@code OutputDataStream}
+     * @return the number of {@code byte}s read from {@code buf} starting at
+     * {@code off} and not exceeding {@code len} and written into this
+     * {@code OutputDataStream}
      */
-    public int write(byte[] buffer, int offset, int length)
+    @Override
+    public int write(byte[] buf, int off, int len)
     {
-        // While calling write without targets can be carried out without a
-        // problem, such a situation may be a symptom of a problem. For example,
-        // it was discovered during testing that RTCP was seemingly-endlessly
-        // sent after hanging up a call.
-        if (logger.isDebugEnabled() && targets.isEmpty())
-            logger.debug("Write called without targets!", new Throwable());
+        return write(buf, off, len, /* context */ null);
+    }
 
-        // No need to handle the buffer at all if we are disabled apart from
-        // simulating a successful operation.
-        if (!enabled)
-            return length;
+    /**
+     * Implements {@link OutputDataStream#write(byte[], int, int)}. Allows
+     * extenders to provide a context {@code Object} to invoked overrideable
+     * methods such as {@link #packetize(byte[],int,int,Object)}.
+     *
+     * @param buf the {@code byte[]} to write into this {@code OutputDataStream}
+     * @param off the offset in {@code buf} at which the {@code byte}s to be
+     * written into this {@code OutputDataStream} start
+     * @param len the number of {@code byte}s in {@code buf} starting at
+     * {@code off} to be written into this {@code OutputDataStream}
+     * @param context the {@code Object} to provide to invoked overridable
+     * methods such as {@link #packetize(byte[],int,int,Object)}
+     * @return the number of {@code byte}s read from {@code buf} starting at
+     * {@code off} and not exceeding {@code len} and written into this
+     * {@code OutputDataStream}
+     */
+    protected int write(byte[] buf, int off, int len, Object context)
+    {
+        if (enabled)
+        {
+            // While calling write without targets can be carried out without a
+            // problem, such a situation may be a symptom of a problem. For
+            // example, it was discovered during testing that RTCP was
+            // seemingly-endlessly sent after hanging up a call.
+            if (logger.isDebugEnabled() && targets.isEmpty())
+                logger.debug("Write called without targets!", new Throwable());
 
-        // get the array of RawPackets we need to send
-        RawPacket[] pkts = createRawPacket(buffer, offset, length);
-        boolean fail = false;
+            // Get the array of RawPackets we need to send.
+            RawPacket[] pkts = packetize(buf, off, len, context);
+
+            return write(pkts) ? len : -1;
+        }
+        else
+        {
+            // No need to handle the buffer at all if we are disabled apart from
+            // simulating a successful operation.
+            return len;
+        }
+    }
+
+    /**
+     * Writes an array of {@code RawPacket}s into this {@code OutputDataStream}.
+     *
+     * @param pkts the array of {@code RawPacket}s to write into this
+     * {@code OutputDataStream}
+     * @return {@code true} if all {@code pkts} were written into this
+     * {@code OutputDataStream}; otherwise, {@code false}
+     */
+    private boolean write(RawPacket[] pkts)
+    {
+        boolean success = true;
+
+        if (pkts == null)
+            return success;
 
         for(int i = 0; i < pkts.length; i++)
         {
@@ -442,11 +496,7 @@ public abstract class RTPConnectorOutputStream
             // canceled.
             if (pkt != null)
             {
-                if (fail)
-                {
-                    rawPacketPool.offer(pkt);
-                }
-                else
+                if (success)
                 {
                     if (maxPacketsPerMillisPolicy == null)
                     {
@@ -455,7 +505,7 @@ public abstract class RTPConnectorOutputStream
                             // Skip sending the remaining RawPackets but return
                             // them to the pool and clear pkts. The current pkt
                             // was returned to the pool.
-                            fail = true;
+                            success = false;
                         }
                     }
                     else
@@ -463,11 +513,15 @@ public abstract class RTPConnectorOutputStream
                         maxPacketsPerMillisPolicy.write(pkt);
                     }
                 }
+                else
+                {
+                    rawPacketPool.offer(pkt);
+                }
             }
         }
 
         rawPacketArrayPool.offer(pkts);
 
-        return fail ? -1 : length;
+        return success;
     }
 }

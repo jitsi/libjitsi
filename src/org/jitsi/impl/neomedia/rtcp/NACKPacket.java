@@ -17,7 +17,6 @@ package org.jitsi.impl.neomedia.rtcp;
 
 import java.io.*;
 import java.util.*;
-
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.util.*;
@@ -200,7 +199,8 @@ public class NACKPacket
                 + "; media sources: " + sourceSSRC
                 + "; NACK entries: " + (fci == null ? "none" : (fci.length / 4))
                 + "; lost packets: "
-                + (lostPackets == null ? "none" : lostPackets.size());
+                + (lostPackets == null ? "none" :
+                        Arrays.toString(lostPackets.toArray()));
     }
 
     /**
@@ -211,14 +211,7 @@ public class NACKPacket
     public RawPacket toRawPacket()
         throws IOException
     {
-        ByteArrayOutputStream byteArrayOutputStream
-            = new ByteArrayOutputStream();
-        DataOutputStream dataOutputStream
-            = new DataOutputStream(byteArrayOutputStream);
-        assemble(dataOutputStream);
-
-        byte[] buf = byteArrayOutputStream.toByteArray();
-        return new RawPacket(buf, 0, buf.length);
+        return RTCPPacketParserEx.toRawPacket(this);
     }
 }
 

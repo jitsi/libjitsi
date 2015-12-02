@@ -16,7 +16,8 @@
 package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.util.*;
 
 import java.util.*;
@@ -28,8 +29,10 @@ import java.util.concurrent.atomic.*;
  * @author Boris Grozev
  */
 public class CachingTransformer
-    extends SinglePacketTransformer
-    implements RawPacketCache, TransformEngine
+    extends SinglePacketTransformerAdapter
+    implements RawPacketCache,
+               TransformEngine,
+               RecurringProcessible
 {
     /**
      * The <tt>Logger</tt> used by the <tt>CachingTransformer</tt> class and
@@ -37,6 +40,19 @@ public class CachingTransformer
      */
     private static final Logger logger
             = Logger.getLogger(CachingTransformer.class);
+
+    /**
+     * The <tt>RecurringProcessibleExecutor</tt> to be utilized by the
+     * <tt>CachingTransformer</tt> class and its instances.
+     */
+    private static final RecurringProcessibleExecutor
+        recurringProcessibleExecutor = new RecurringProcessibleExecutor();
+
+    /**
+     * The period of time between calls to {@link #process} will be requested
+     * if this {@link CachingTransformer} is enabled.
+     */
+    private static final int PROCESS_INTERVAL_MS = 10000;
 
     /**
      * Packets added to the cache more than <tt>SIZE_MILLIS</tt> ago might be
@@ -151,16 +167,15 @@ public class CachingTransformer
     private final Map<Long, Cache> caches = new HashMap<>();
 
     /**
-     * The thread which monitors {@link #getCache(long, boolean)} for instances
-     * which should be expired.
-     */
-    private CleanerThread cleanerThread;
-
-    /**
      * Whether caching packets is enabled or disabled. Note that the default
      * value is {@code false}.
      */
     private boolean enabled = false;
+
+    /**
+     * The last time {@link #process()} was called.
+     */
+    private long lastUpdateTime = -1;
 
     /**
      * {@inheritDoc}
@@ -174,16 +189,6 @@ public class CachingTransformer
         {
             cachePacket(pkt);
         }
-        return pkt;
-    }
-
-    /**
-     * {@inheritDoc}
-     * Transforms an incoming packet.
-     */
-    @Override
-    public RawPacket reverseTransform(RawPacket pkt)
-    {
         return pkt;
     }
 
@@ -210,26 +215,20 @@ public class CachingTransformer
             caches.clear();
         }
 
-        if (cleanerThread != null)
-        {
-            synchronized (cleanerThread)
-            {
-                cleanerThread.notifyAll();
-            }
-        }
+        recurringProcessibleExecutor.deRegisterRecurringProcessible(this);
     }
 
     /**
      * {@inheritDoc}
      *
      * Implements
-     * {@link org.jitsi.service.neomedia.RawPacketCache#get(long, int)}.
+     * {@link org.jitsi.service.neomedia.rtp.RawPacketCache#get(long, int)}.
      */
     public RawPacket get(long ssrc, int seq)
     {
         Cache cache = getCache(ssrc & 0xffffffffL, false);
 
-        RawPacket pkt =  cache != null ? cache.get(seq) : null;
+        RawPacket pkt = cache != null ? cache.get(seq) : null;
 
         if (pkt != null)
             totalHits.incrementAndGet();
@@ -282,10 +281,15 @@ public class CachingTransformer
         if (!enabled)
             return;
 
-        Cache cache = getCache(pkt.getSSRC() & 0xffffffffL, true);
+        Cache cache = getCache(pkt.getSSRCAsLong(), true);
 
         if (cache != null)
         {
+            if (logger.isTraceEnabled())
+            {
+                logger.trace("Caching a packet. SSRC=" + pkt.getSSRCAsLong()
+                    + " seq=" + pkt.getSequenceNumber());
+            }
             cache.insert(pkt);
             totalPacketsAdded.incrementAndGet();
         }
@@ -299,10 +303,19 @@ public class CachingTransformer
     {
         this.enabled = enabled;
 
-        if (enabled && cleanerThread == null)
+        if (enabled)
         {
-            cleanerThread = new CleanerThread();
-            cleanerThread.start();
+            recurringProcessibleExecutor.registerRecurringProcessible(this);
+        }
+        else
+        {
+            recurringProcessibleExecutor.deRegisterRecurringProcessible(this);
+        }
+
+        if (logger.isDebugEnabled())
+        {
+            logger.debug((enabled ? "Enabling" : "Disabling")
+                                 + " CachingTransformer " + hashCode());
         }
     }
 
@@ -343,6 +356,63 @@ public class CachingTransformer
     public PacketTransformer getRTCPTransformer()
     {
         return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getTimeUntilNextProcess()
+    {
+        return
+                (lastUpdateTime < 0L)
+                        ? 0L
+                        : lastUpdateTime + PROCESS_INTERVAL_MS
+                        - System.currentTimeMillis();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long process()
+    {
+        lastUpdateTime = System.currentTimeMillis();
+        clean(lastUpdateTime);
+        return 0;
+    }
+
+    /**
+     * Checks for {@link Cache} instances which have not received new packets
+     * for a period longer than {@link #SSRC_TIMEOUT_MILLIS} and removes them.
+     */
+    private void clean(long now)
+    {
+        synchronized (caches)
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Cleaning CachingTransformer " + hashCode());
+            }
+
+            Iterator<Map.Entry<Long,Cache>> iter
+                    = caches.entrySet().iterator();
+            while (iter.hasNext())
+            {
+                Map.Entry<Long,Cache> entry = iter.next();
+                Cache cache = entry.getValue();
+                if (cache.lastInsertTime + SSRC_TIMEOUT_MILLIS < now)
+                {
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("Removing cache for SSRC " + entry
+                                .getKey());
+                    }
+                    cache.empty();
+                    iter.remove();
+                }
+            }
+        }
     }
 
     /**
@@ -550,58 +620,4 @@ public class CachingTransformer
         }
     }
 
-    /**
-     * A <tt>Thread</tt> which periodically checks for <tt>Cache</tt> instances
-     * which have not received new packets for a period longer than the timeout,
-     * and removes them.
-     */
-    private class CleanerThread
-        extends Thread
-    {
-        private CleanerThread()
-        {
-            setDaemon(true);
-            setName(CleanerThread.class.getCanonicalName());
-        }
-
-        @Override
-        public void run()
-        {
-            while (!closed)
-            {
-                synchronized (caches)
-                {
-                    long now = System.currentTimeMillis();
-                    Iterator<Map.Entry<Long,Cache>> iter
-                            = caches.entrySet().iterator();
-                    while (iter.hasNext())
-                    {
-                        Map.Entry<Long,Cache> entry = iter.next();
-                        Cache cache = entry.getValue();
-                        if (cache.lastInsertTime + SSRC_TIMEOUT_MILLIS < now)
-                        {
-                            logger.debug("Removing cache for SSRC "
-                                                 + entry.getKey());
-                            cache.empty();
-                            iter.remove();
-                        }
-                    }
-                }
-
-                try
-                {
-                    synchronized (this)
-                    {
-                        wait(10000);
-                    }
-                }
-                catch (InterruptedException ie)
-                {
-                    Thread.currentThread().interrupt();
-                }
-            }
-
-            logger.debug("CleanerThread done.");
-        }
-    }
 }

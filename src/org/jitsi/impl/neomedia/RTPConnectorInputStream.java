@@ -859,10 +859,13 @@ public abstract class RTPConnectorInputStream<T>
      */
     public void setEnabled(boolean enabled)
     {
-        if (logger.isDebugEnabled())
-            logger.debug("setEnabled: " + enabled);
+        if (this.enabled != enabled)
+        {
+            if (logger.isDebugEnabled())
+                logger.debug("setEnabled: " + enabled);
 
-        this.enabled = enabled;
+            this.enabled = enabled;
+        }
     }
 
     /**
