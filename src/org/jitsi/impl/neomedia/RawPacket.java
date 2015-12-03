@@ -604,7 +604,7 @@ public class RawPacket
      */
     public int getVersion()
     {
-        return (buffer[offset] & 0xC0) >> 6;
+        return (buffer[offset] & 0xC0) >>> 6;
     }
 
     /**
