@@ -531,7 +531,7 @@ public class SsrcRewritingEngine implements TransformEngine
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-            if (pkt == null)
+            if (pkt == null || pkt.getVersion() != RTPHeader.VERSION)
             {
                 return pkt;
             }
@@ -571,7 +571,7 @@ public class SsrcRewritingEngine implements TransformEngine
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
-            if (pkt == null)
+            if (pkt == null || pkt.getVersion() != RTCPHeader.VERSION)
             {
                 return pkt;
             }
