@@ -316,8 +316,9 @@ public class MediaStreamImpl
      * <tt>RTPConnector</tt>'s transformer chain, which allows the "external"
      * transformer to be swapped.
      */
-    private final TransformEngineWrapper externalTransformerWrapper
-        = new TransformEngineWrapper();
+    private final TransformEngineWrapper<TransformEngine>
+        externalTransformerWrapper
+            = new TransformEngineWrapper<>();
 
     /**
      * The <tt>TransformEngine</tt> instance registered in the

@@ -17,7 +17,6 @@ package org.jitsi.impl.neomedia.transform;
 
 import java.util.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.util.*;
 
 /**
  * Does the dirty job of rewriting SSRCs and sequence numbers of a
@@ -28,14 +27,6 @@ import org.jitsi.util.*;
  */
 class ExtendedSequenceNumberInterval
 {
-    /**
-     * The <tt>Logger</tt> used by the <tt>SsrcGroupRewriter</tt> class and
-     * its instances to print debug information.
-     */
-    private static final Logger logger
-        = Logger.getLogger(ExtendedSequenceNumberInterval.class);
-
-
     /**
      * The extended minimum sequence number of this interval.
      */

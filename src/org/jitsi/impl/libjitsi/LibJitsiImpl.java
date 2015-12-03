@@ -115,6 +115,7 @@ public class LibJitsiImpl
          * @return the OSGi service {@code Object} associated with
          * {@link #_lock}
          */
+        @SuppressWarnings("unchecked")
         public <T> T getService(String className, Class<T> clazz)
         {
             T t;
