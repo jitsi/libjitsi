@@ -24,6 +24,25 @@ import org.jitsi.impl.neomedia.*;
 public class SinglePacketTransformerAdapter
     extends SinglePacketTransformer
 {
+    /**
+     * Ctor.
+     */
+    public SinglePacketTransformerAdapter()
+    {
+        super();
+    }
+
+    /**
+     * Ctor.
+     *
+     * @param packetPredicate the <tt>PacketPredicate</tt> to use to match
+     * packets to (reverse) transform.
+     */
+    public SinglePacketTransformerAdapter(PacketPredicate packetPredicate)
+    {
+        super(packetPredicate);
+    }
+
     @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {

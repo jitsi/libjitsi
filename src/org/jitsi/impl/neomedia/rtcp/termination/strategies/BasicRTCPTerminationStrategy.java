@@ -130,7 +130,7 @@ public class BasicRTCPTerminationStrategy
      * <tt>BasicRTCPTerminationStrategy</tt>.
      */
     private final PacketTransformer rtpTransformer
-        = new SinglePacketTransformer()
+        = new SinglePacketTransformer(RTPPacketPredicate.instance)
     {
         /**
          * {@inheritDoc}
@@ -162,7 +162,7 @@ public class BasicRTCPTerminationStrategy
      * <tt>BasicRTCPTerminationStrategy</tt>.
      */
     private final PacketTransformer rtcpTransformer
-        = new SinglePacketTransformerAdapter()
+        = new SinglePacketTransformerAdapter(RTCPPacketPredicate.instance)
     {
         /**
          * {@inheritDoc}
@@ -170,11 +170,6 @@ public class BasicRTCPTerminationStrategy
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-            if (pkt == null)
-            {
-                return pkt;
-            }
-
             RTCPCompoundPacket compound;
 
             try
@@ -352,7 +347,7 @@ public class BasicRTCPTerminationStrategy
             {
                 break;
             }
-            
+
             List<RTCPPacket> rtcps = new ArrayList<>();
 
             rtcps.add(report);

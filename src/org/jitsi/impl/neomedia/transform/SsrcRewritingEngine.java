@@ -528,10 +528,15 @@ public class SsrcRewritingEngine implements TransformEngine
     private class MyRTPSinglePacketTransformer
         extends SinglePacketTransformerAdapter
     {
+        public MyRTPSinglePacketTransformer()
+        {
+            super(RTPPacketPredicate.instance);
+        }
+
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-            if (pkt == null || pkt.getVersion() != RTPHeader.VERSION)
+            if (pkt == null)
             {
                 return pkt;
             }
@@ -568,14 +573,14 @@ public class SsrcRewritingEngine implements TransformEngine
     private class MyRTCPSinglePacketTransformer
         extends SinglePacketTransformerAdapter
     {
+        public MyRTCPSinglePacketTransformer()
+        {
+            super(RTCPPacketPredicate.instance);
+        }
+
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
-            if (pkt == null || pkt.getVersion() != RTCPHeader.VERSION)
-            {
-                return pkt;
-            }
-
             if (!initialized)
             {
                 return pkt;

@@ -55,6 +55,7 @@ public class REDFilterTransformEngine
      */
     public REDFilterTransformEngine(byte redPayloadType)
     {
+        super(RTPPacketPredicate.instance);
         this.redPayloadType = redPayloadType;
     }
 
