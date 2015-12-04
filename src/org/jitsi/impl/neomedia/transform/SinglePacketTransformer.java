@@ -65,7 +65,11 @@ public abstract class SinglePacketTransformer
      * Ctor.
      *
      * XXX At some point ideally we would get rid of this ctor and all the
-     * inheritors will use the parametrized ctor.
+     * inheritors will use the parametrized ctor. Also, we might want to move
+     * this check inside the <tt>TransformEngineChain</tt> so that we only make
+     * the check once per packet: The RTCP transformer is only supposed to
+     * (reverse) transform RTCP packets and the RTP transformer is only
+     * supposed to modify RTP packets.
      */
     public SinglePacketTransformer()
     {

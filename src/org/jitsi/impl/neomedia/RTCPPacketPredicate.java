@@ -42,6 +42,7 @@ public class RTCPPacketPredicate
 
     public boolean test(RawPacket pkt)
     {
+        // TODO this needs to be smarter.
         boolean result = pkt != null && pkt.getVersion() == RTCPHeader.VERSION;
 
         if (!result)

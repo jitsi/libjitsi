@@ -24,8 +24,8 @@ import net.sf.fmj.media.rtp.*;
  * The idea is to have <tt>PacketTransformer</tt> implementations strictly
  * associated with a <tt>PacketPredicate</tt> so that they only process packets
  * that they're supposed to process. For example, transformers that transform
- * RTP packets should not transform RTCP packets, if, by mistake, they happen to
- * be passed RTCP packets.
+ * RTP packets should not transform RTCP packets, if, by mistake, they happen
+ * to be passed RTCP packets.
  *
  * @author George Politis
  */
