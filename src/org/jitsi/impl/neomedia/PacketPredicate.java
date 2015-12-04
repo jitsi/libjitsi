@@ -16,8 +16,6 @@
 
 package org.jitsi.impl.neomedia;
 
-import net.sf.fmj.media.rtp.*;
-
 /**
  * Represents a predicate (boolean-valued function) of a <tt>RawPacket</tt>.
  *
