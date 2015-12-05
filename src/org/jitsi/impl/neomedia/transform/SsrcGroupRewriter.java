@@ -382,7 +382,8 @@ class SsrcGroupRewriter
 
         if (retransmissionInterval == null)
         {
-            logWarn("Could not find a retransmission interval.");
+            logWarn("Could not find a retransmission interval for seqnum " +
+                    (seqnum & 0x0000ffff) + " from " + (ssrcOrigin & 0xffffffffl));
             return SsrcRewritingEngine.INVALID_SEQNUM;
         }
         else

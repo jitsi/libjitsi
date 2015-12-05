@@ -13,24 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.jitsi.impl.neomedia;
+package org.jitsi.util.function;
 
 /**
- * Represents a predicate (boolean-valued function) of a <tt>RawPacket</tt>.
- *
- * The idea is to have <tt>PacketTransformer</tt> implementations strictly
- * associated with a <tt>PacketPredicate</tt> so that they only process packets
- * that they're supposed to process. For example, transformers that transform
- * RTP packets should not transform RTCP packets, if, by mistake, they happen
- * to be passed RTCP packets.
+ * Represents a predicate of one argument. This is a poor man's backport of the
+ * <tt>Predicate</tt> interface found in Java 1.8.
  *
  * @author George Politis
  */
-public interface PacketPredicate
+
+public interface Predicate<T>
 {
-    /**
-     * Evaluates the predicate on the given <tt>RawPacket</tt>.
-     */
-    boolean test(RawPacket pkt);
+    boolean test(T t);
 }

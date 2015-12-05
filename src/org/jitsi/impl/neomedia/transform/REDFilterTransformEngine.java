@@ -121,7 +121,8 @@ public class REDFilterTransformEngine
             return pkt;
         }
 
-        REDBlock pb = REDBlockIterator.getPrimaryBlock(pkt);
+        REDBlock pb = REDBlockIterator.getPrimaryBlock(
+                pkt.getBuffer(), pkt.getPayloadOffset(), pkt.getPayloadLength());
 
         if (pb == null)
         {

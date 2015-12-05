@@ -32,10 +32,12 @@ public class Utils
      */
     public static boolean isKeyFrame(RawPacket pkt, byte redPT, byte vp8PT)
     {
+        // XXX this will not work correctly when RTX gets enabled!
         boolean isKeyFrame;
         if (redPT == pkt.getPayloadType())
         {
-            REDBlock block = REDBlockIterator.getPrimaryBlock(pkt);
+            REDBlock block = REDBlockIterator.getPrimaryBlock(pkt.getBuffer(),
+                    pkt.getPayloadOffset(), pkt.getPayloadLength());
 
             if (block != null && vp8PT == block.getPayloadType())
             {

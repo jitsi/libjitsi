@@ -17,7 +17,7 @@ package org.jitsi.impl.neomedia.codec;
 
 import java.util.*;
 import org.jitsi.util.*;
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.util.function.*;
 
 /**
  * An <tt>Iterator</tt> that iterates RED blocks (primary and non-primary).
@@ -35,49 +35,99 @@ public class REDBlockIterator
         = Logger.getLogger(REDBlockIterator.class);
 
     /**
-     * The <tt>RawPacket</tt> that this instance is dissecting.
+     * The byte buffer that holds the RED payload that this instance is
+     * dissecting.
      */
-    private final RawPacket rawPacket;
+    private final byte[] buffer;
 
     /**
-     * The number of RED blocks inside the {#rawPacket}.
+     * The offset in the buffer where the RED payload begin.
+     */
+    private final int offset;
+
+    /**
+     * The length of the RED payload in the buffer.
+     */
+    private final int length;
+
+    /**
+     * The number of RED blocks inside the RED payload.
      */
     private int cntRemainingBlocks = -1;
 
     /**
-     * The offset of the next RED block header inside the {#rawPacket} buffer.
+     * The offset of the next RED block header inside the RED payload.
      */
     private int offNextBlockHeader = -1;
 
     /**
-     * The offset of the next RED block payload inside the {#rawPacket} buffer.
+     * The offset of the next RED block payload inside the RED payload.
      */
     private int offNextBlockPayload = -1;
 
     /**
-     * Gets the primary block of a RED packet.
+     * Matches a RED block in the RED payload.
      *
-     * @param pkt
-     * @return
+     * @param predicate the predicate that is used to match the RED block.
+     * @param buffer the byte buffer that contains the RED payload.
+     * @param offset the offset in the buffer where the RED payload begins.
+     * @param length the length of the RED payload.
+     * @return the first RED block that matches the given predicate, null
+     * otherwise.
      */
-    public static REDBlock getPrimaryBlock(RawPacket pkt)
+    public static REDBlock matchFirst(
+            Predicate<REDBlock>  predicate,
+            byte[] buffer, int offset, int length)
     {
-        if (pkt == null)
+        if (isMultiBlock(buffer, offset, length))
         {
+            REDBlockIterator it = new REDBlockIterator(buffer, offset, length);
+            while (it.hasNext())
+            {
+                REDBlock b = it.next();
+                if (b != null && predicate.test(b))
+                {
+                    return b;
+                }
+            }
+
             return null;
         }
+        else
+        {
+            REDBlock b = getPrimaryBlock(buffer, offset, length);
+            if (b != null && predicate.test(b))
+            {
+                return b;
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
 
+    /**
+     * Gets the first RED block in the RED payload.
+     *
+     * @param buffer the byte buffer that contains the RED payload.
+     * @param offset the offset in the buffer where the RED payload begins.
+     * @param length the length of the RED payload.
+     * @return the primary RED block if it exists, null otherwise.
+     */
+    public static REDBlock getPrimaryBlock(
+            byte[] buffer, int offset, int length)
+    {
         // Chrome is typically sending RED packets with a single block carrying
         // either VP8 or FEC. This is unusual, and probably wrong as it messes
         // up the sequence numbers and packet loss computations but it's just
         // the way it is. Here we detect this situation and avoid looping
         // through the blocks if there is a single block.
-        if (isMultiBlock(pkt))
+        if (isMultiBlock(buffer, offset, length))
         {
-            logger.debug("Dissecting multiblock RED.");
-
             REDBlock block = null;
-            REDBlockIterator redBlockIterator = new REDBlockIterator(pkt);
+            REDBlockIterator redBlockIterator
+                = new REDBlockIterator(buffer, offset, length);
             while (redBlockIterator.hasNext())
             {
                 block = redBlockIterator.next();
@@ -92,25 +142,20 @@ public class REDBlockIterator
         }
         else
         {
-            logger.debug("Dissecting uniblock RED.");
-
-            byte[] buff = pkt.getBuffer();
-            int off = pkt.getPayloadOffset();
-            int len = pkt.getPayloadLength();
-
-            if (buff == null || off < 0 || len < 0 || buff.length < off + len)
+            if (buffer == null || offset < 0 || length < 0
+                    || buffer.length < offset + length)
             {
                 logger.warn("Prevented an array out of bounds exception: " +
-                        "buffer length: " + buff.length + ", offset: " + off +
-                        ", len: " + len);
+                        "buffer length: " + buffer.length + ", offset: "
+                        + offset + ", len: " + length);
                 return null;
             }
 
-            byte blockPT = (byte) (buff[off] & 0x7f);
-            int blockOff = off + 1; // + 1 for the primary block header.
-            int blockLen = len - blockOff;
+            byte blockPT = (byte) (buffer[offset] & 0x7f);
+            int blockOff = offset + 1; // + 1 for the primary block header.
+            int blockLen = length - blockOff;
 
-            if (buff.length < blockOff + blockLen)
+            if (buffer.length < blockOff + blockLen)
             {
                 logger.warn("Primary block doesn't fit in RED packet.");
                 return null;
@@ -124,42 +169,41 @@ public class REDBlockIterator
      * Returns {@code true} if a specific RED packet contains multiple blocks;
      * {@code false}, otherwise.
      *
-     * @param pkt
+     * @param buffer the byte buffer that contains the RED payload.
+     * @param offset the offset in the buffer where the RED payload begins.
+     * @param length the length of the RED payload.
      * @return {@code true if {@pkt} contains multiple RED blocks; otherwise,
      * {@code false}
      */
-    public static boolean isMultiBlock(RawPacket pkt)
+    public static boolean isMultiBlock(byte[] buffer, int offset, int length)
     {
-        if (pkt == null)
-        {
-            return false;
-        }
-
-        byte[] buff = pkt.getBuffer();
-        if (buff == null || buff.length == 0)
+        if (buffer == null || buffer.length == 0)
         {
             logger.warn("The buffer appears to be empty.");
             return false;
         }
 
-        int off = pkt.getPayloadOffset();
-        if (off < 0 || buff.length <= off)
+        if (offset < 0 || buffer.length <= offset)
         {
             logger.warn("Prevented array out of bounds exception.");
             return false;
         }
 
-        return (buff[off] & 0x80) != 0;
+        return (buffer[offset] & 0x80) != 0;
     }
 
     /**
      * Ctor.
      *
-     * @param rawPacket The <tt>RawPacket</tt> that represents the RED packet.
+     * @param buffer the byte buffer that contains the RED payload.
+     * @param offset the offset in the buffer where the RED payload begins.
+     * @param length the length of the RED payload.
      */
-    public REDBlockIterator(RawPacket rawPacket)
+    public REDBlockIterator(byte[] buffer, int offset, int length)
     {
-        this.rawPacket = rawPacket;
+        this.buffer = buffer;
+        this.offset = offset;
+        this.length = length;
         this.initialize();
     }
 
@@ -179,19 +223,18 @@ public class REDBlockIterator
 
         cntRemainingBlocks--;
 
-        byte[] buff = rawPacket.getBuffer();
-        if (buff == null || buff.length <= offNextBlockHeader)
+        if (buffer == null || buffer.length <= offNextBlockHeader)
         {
             logger.warn("Prevented an array out of bounds exception.");
             return null;
         }
 
-        byte blockPT = (byte) (buff[offNextBlockHeader] & 0x7f);
+        byte blockPT = (byte) (buffer[offNextBlockHeader] & 0x7f);
 
         int blockLen;
         if (hasNext())
         {
-            if (buff.length < offNextBlockHeader + 4)
+            if (buffer.length < offNextBlockHeader + 4)
             {
                 logger.warn("Prevented an array out of bounds exception.");
                 return null;
@@ -202,8 +245,8 @@ public class REDBlockIterator
             //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             //|F|   block PT  |  timestamp offset         |   block length    |
             //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-            blockLen = (buff[offNextBlockHeader + 2] & 0x03) << 8
-                | (buff[offNextBlockHeader + 3]);
+            blockLen = (buffer[offNextBlockHeader + 2] & 0x03) << 8
+                | (buffer[offNextBlockHeader + 3]);
             offNextBlockHeader += 4; // next RED header
             offNextBlockPayload += blockLen;
         }
@@ -213,7 +256,7 @@ public class REDBlockIterator
             //+-+-+-+-+-+-+-+-+
             //|0|   Block PT  |
             //+-+-+-+-+-+-+-+-+
-            blockLen = rawPacket.getLength() - (offNextBlockPayload + 1);
+            blockLen = length - (offNextBlockPayload + 1);
             offNextBlockHeader = -1;
             offNextBlockPayload = -1;
         }
@@ -232,14 +275,13 @@ public class REDBlockIterator
      */
     private void initialize()
     {
-        byte[] buff = rawPacket.getBuffer();
-        if (buff == null || buff.length == 0)
+        if (buffer == null || buffer.length == 0)
         {
             return;
         }
 
         //beginning of RTP payload
-        offNextBlockHeader = rawPacket.getPayloadOffset();
+        offNextBlockHeader = offset;
 
         // Number of packets inside RED.
         cntRemainingBlocks = 0;
@@ -249,7 +291,7 @@ public class REDBlockIterator
         //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         //|F|   block PT  |  timestamp offset         |   block length    |
         //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-        while ((buff[offNextBlockHeader] & 0x80) != 0)
+        while ((buffer[offNextBlockHeader] & 0x80) != 0)
         {
             cntRemainingBlocks++;
             offNextBlockHeader += 4;
@@ -259,13 +301,13 @@ public class REDBlockIterator
         //+-+-+-+-+-+-+-+-+
         //|0|   Block PT  |
         //+-+-+-+-+-+-+-+-+
-        if (buff.length >= offNextBlockHeader + 8)
+        if (buffer.length >= offNextBlockHeader + 8)
         {
             cntRemainingBlocks++;
         }
 
-        offNextBlockHeader
-            = rawPacket.getPayloadOffset(); //back to beginning of RTP payload
+        //back to beginning of RTP payload
+        offNextBlockHeader = offset;
 
         if (cntRemainingBlocks > 0)
         {

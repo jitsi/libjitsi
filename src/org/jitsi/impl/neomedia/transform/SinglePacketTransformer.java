@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.util.function.*;
 
 /**
  * Extends the <tt>PacketTransformer</tt> interface with methods which allow
@@ -48,8 +49,13 @@ public abstract class SinglePacketTransformer
         = Logger.getLogger(SinglePacketTransformer.class);
 
     /**
+     * The idea is to have <tt>PacketTransformer</tt> implementations strictly
+     * associated with a <tt>Predicate</tt> so that they only process packets
+     * that they're supposed to process. For example, transformers that
+     * transform RTP packets should not transform RTCP packets, if, by mistake,
+     * they happen to be passed RTCP packets.
      */
-    private final PacketPredicate packetPredicate;
+    private final Predicate<RawPacket> packetPredicate;
 
     /**
      * The number of exceptions caught in {@link #reverseTransform(RawPacket)}.
@@ -82,7 +88,7 @@ public abstract class SinglePacketTransformer
      * @param packetPredicate the <tt>PacketPredicate</tt> to use to match
      * packets to (reverse) transform.
      */
-    public SinglePacketTransformer(PacketPredicate packetPredicate)
+    public SinglePacketTransformer(Predicate<RawPacket> packetPredicate)
     {
         this.packetPredicate = packetPredicate;
     }

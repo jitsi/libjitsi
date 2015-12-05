@@ -19,6 +19,7 @@ package org.jitsi.impl.neomedia;
 
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.util.*;
+import org.jitsi.util.function.*;
 
 /**
  * Represents a predicate (boolean-valued function) of a <tt>RawPacket</tt>.
@@ -26,7 +27,7 @@ import org.jitsi.util.*;
  * @author George Politis
  */
 public class RTCPPacketPredicate
-    implements PacketPredicate
+    implements Predicate<RawPacket>
 {
     /**
      * The <tt>Logger</tt> used by the <tt>RTCPPacketPredicate</tt> class.
