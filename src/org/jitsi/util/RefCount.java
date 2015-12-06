@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.transform;
+package org.jitsi.util;
 
 /**
  * A helper class that can be used to track references to an object. This
@@ -22,7 +22,7 @@ package org.jitsi.impl.neomedia.transform;
  * @author George Politis
  * @author Lyubomir Marinov
  */
-class RefCount<T>
+public class RefCount<T>
 {
     private final T referent;
 

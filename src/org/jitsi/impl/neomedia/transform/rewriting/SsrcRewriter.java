@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.transform;
+package org.jitsi.impl.neomedia.transform.rewriting;
 
 import java.util.*;
 import net.sf.fmj.media.rtp.*;
