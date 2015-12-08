@@ -46,7 +46,7 @@ public class RTPTranslatorImpl
      * The <tt>Logger</tt> used by the <tt>RTPTranslatorImpl</tt> class and its
      * instances for logging output.
      */
-    private static final Logger logger
+    private static final Logger LOGGER
         = Logger.getLogger(RTPTranslatorImpl.class);
 
     public static long getPayloadLengthAndOffsetIfRTP(
@@ -167,7 +167,7 @@ public class RTPTranslatorImpl
                         {
                             int ssrc = readInt(buffer, off);
 
-                            logger.trace(
+                            LOGGER.trace(
                                     obj.getClass().getName() + '.' + methodName
                                         + ": RTCP BYE SSRC/CSRC "
                                         + Long.toString(ssrc & 0xffffffffl));
@@ -253,15 +253,14 @@ public class RTPTranslatorImpl
      * The <tt>SendStream</tt>s created by the <tt>RTPManager</tt> and the
      * <tt>StreamRTPManager</tt>-specific views to them.
      */
-    private final List<SendStreamDesc> sendStreams
-        = new LinkedList<SendStreamDesc>();
+    private final List<SendStreamDesc> sendStreams = new LinkedList<>();
 
     /**
      * The list of <tt>StreamRTPManager</tt>s i.e. <tt>MediaStream</tt>s which
      * this instance forwards RTP and RTCP traffic between.
      */
     private final List<StreamRTPManagerDesc> streamRTPManagers
-        = new ArrayList<StreamRTPManagerDesc>();
+        = new ArrayList<>();
 
     /**
      * Initializes a new <tt>RTPTranslatorImpl</tt> instance.
@@ -424,7 +423,7 @@ public class RTPTranslatorImpl
                 // Refer to MediaStreamImpl#stopSendStreams(
                 // Iterable<SendStream>, boolean) for an explanation about the
                 // swallowing of the exception.
-                logger.error("Failed to close send stream", npe);
+                LOGGER.error("Failed to close send stream", npe);
             }
             sendStreams.remove(sendStreamDesc);
         }
@@ -602,7 +601,7 @@ public class RTPTranslatorImpl
                 format = streamRTPManagerDesc.getFormat(pt);
             }
         }
-        else if (logger.isTraceEnabled())
+        else if (LOGGER.isTraceEnabled())
         {
             logRTCP(this, "read", buffer, offset, length);
         }
@@ -657,7 +656,7 @@ public class RTPTranslatorImpl
             {
                 // RTPManager.dispose() often throws at least a
                 // NullPointerException in relation to some RTP BYE.
-                logger.error("Failed to dispose of RTPManager", t);
+                LOGGER.error("Failed to dispose of RTPManager", t);
             }
         }
 
@@ -864,8 +863,7 @@ public class RTPTranslatorImpl
 
             if (managerReceiveStreams != null)
             {
-                receiveStreams
-                    = new Vector<ReceiveStream>(managerReceiveStreams.size());
+                receiveStreams = new Vector<>(managerReceiveStreams.size());
                 for (Object s : managerReceiveStreams)
                 {
                     ReceiveStream receiveStream = (ReceiveStream) s;
@@ -924,7 +922,7 @@ public class RTPTranslatorImpl
 
         if (managerSendStreams != null)
         {
-            sendStreams = new Vector<SendStream>(managerSendStreams.size());
+            sendStreams = new Vector<>(managerSendStreams.size());
             for (SendStreamDesc sendStreamDesc : this.sendStreams)
             {
                 if (managerSendStreams.contains(sendStreamDesc.sendStream))
@@ -988,13 +986,12 @@ public class RTPTranslatorImpl
     @Override
     public List<StreamRTPManager> getStreamRTPManagers()
     {
-        List<StreamRTPManager> ret
-                = new ArrayList<StreamRTPManager>(streamRTPManagers.size());
+        List<StreamRTPManager> ret = new ArrayList<>(streamRTPManagers.size());
+
         for (StreamRTPManagerDesc streamRTPManagerDesc : streamRTPManagers)
         {
             ret.add(streamRTPManagerDesc.streamRTPManager);
         }
-
         return ret;
     }
 
@@ -1004,9 +1001,10 @@ public class RTPTranslatorImpl
     {
         Lock w = this.lock.writeLock();
         Lock r = this.lock.readLock();
+        Lock lock; // the lock which is to eventually be unlocked
 
         w.lock();
-        boolean write = true;
+        lock = w;
         try
         {
             if (this.connector == null)
@@ -1019,10 +1017,10 @@ public class RTPTranslatorImpl
                 = getStreamRTPManagerDesc(streamRTPManager, true);
 
             // We got the connector and the streamRTPManagerDesc. We can now
-            // downgrade the lock on the translator.
+            // downgrade the lock on this translator.
             r.lock();
             w.unlock();
-            write = false;
+            lock = r;
 
             // We're managing access to the streamRTPManagerDesc.
             synchronized (streamRTPManagerDesc)
@@ -1030,8 +1028,8 @@ public class RTPTranslatorImpl
                 RTPConnectorDesc connectorDesc
                     = streamRTPManagerDesc.connectorDesc;
 
-                if ((connectorDesc == null)
-                        || (connectorDesc.connector != connector))
+                if (connectorDesc == null
+                        || connectorDesc.connector != connector)
                 {
                     if (connectorDesc != null)
                     {
@@ -1042,18 +1040,21 @@ public class RTPTranslatorImpl
                     streamRTPManagerDesc.connectorDesc
                         = connectorDesc
                         = (connector == null)
-                        ? null
-                        : new RTPConnectorDesc(streamRTPManagerDesc, connector);
+                            ? null
+                            : new RTPConnectorDesc(
+                                    streamRTPManagerDesc,
+                                    connector);
                 }
-
                 if (connectorDesc != null)
+                {
                     // The connector is thread-safe.
                     this.connector.addConnector(connectorDesc);
+                }
             }
         }
         finally
         {
-            (write ? w : r).unlock();
+            lock.unlock();
         }
     }
 
@@ -1202,6 +1203,7 @@ public class RTPTranslatorImpl
      * of the event this <tt>ReceiveStreamListener</tt> is being notified about
      * @see ReceiveStreamListener#update(ReceiveStreamEvent)
      */
+    @Override
     public void update(ReceiveStreamEvent event)
     {
         /*
@@ -1284,9 +1286,7 @@ public class RTPTranslatorImpl
         return
             (connector == null)
                 ? false
-                : connector.writeControlPayload(
-                    controlPayload,
-                    destination);
+                : connector.writeControlPayload(controlPayload, destination);
     }
 
     /**
@@ -1296,6 +1296,7 @@ public class RTPTranslatorImpl
      * @return the underlying <tt>SSRCCache</tt> that holds statistics
      * information about each SSRC that we receive.
      */
+    @Override
     public SSRCCache getSSRCCache()
     {
         return ((RTPSessionMgr) manager).getSSRCCache();
