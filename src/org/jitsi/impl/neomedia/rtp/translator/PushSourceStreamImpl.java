@@ -41,7 +41,7 @@ class PushSourceStreamImpl
      * The <tt>Logger</tt> used by the <tt>PushSourceStreamImpl</tt> class and
      * its instances for logging output.
      */
-    private static final Logger logger
+    private static final Logger LOGGER
         = Logger.getLogger(PushSourceStreamImpl.class);
 
     /**
@@ -59,7 +59,7 @@ class PushSourceStreamImpl
      * {@link #read(byte[], int, int)} read a <tt>SourcePacket</tt> from
      * {@link #readQ} after a <tt>SourcePacket</tt> was written there.
      */
-    private boolean read = false;
+    private boolean _read = false;
 
     /**
      * The <tt>Queue</tt> of <tt>SourcePacket</tt>s to be read out of this
@@ -77,19 +77,18 @@ class PushSourceStreamImpl
      * allocations and garbage collection.
      */
     private final Queue<SourcePacket> sourcePacketPool
-        = new LinkedBlockingQueue<SourcePacket>();
+        = new LinkedBlockingQueue<>();
 
-    private final List<PushSourceStreamDesc> streams
-        = new LinkedList<PushSourceStreamDesc>();
+    private final List<PushSourceStreamDesc> streams = new LinkedList<>();
 
     /**
      * The <tt>Thread</tt> which invokes
      * {@link SourceTransferHandler#transferData(PushSourceStream)} on
-     * {@link #transferHandler}. 
+     * {@link #_transferHandler}. 
      */
     private Thread transferDataThread;
 
-    private SourceTransferHandler transferHandler;
+    private SourceTransferHandler _transferHandler;
 
     public PushSourceStreamImpl(RTPConnectorImpl connector, boolean data)
     {
@@ -97,7 +96,7 @@ class PushSourceStreamImpl
         this.data = data;
 
         readQCapacity = MaxPacketsPerMillisPolicy.PACKET_QUEUE_CAPACITY;
-        readQ = new ArrayBlockingQueue<SourcePacket>(readQCapacity);
+        readQ = new ArrayBlockingQueue<>(readQCapacity);
 
         transferDataThread = new Thread(this, getClass().getName());
         transferDataThread.setDaemon(true);
@@ -223,7 +222,7 @@ class PushSourceStreamImpl
             }
 
             readQ.remove();
-            read = true;
+            _read = true;
             readQ.notifyAll();
         }
 
@@ -275,7 +274,7 @@ class PushSourceStreamImpl
     /**
      * Runs in {@link #transferDataThread} and invokes
      * {@link SourceTransferHandler#transferData(PushSourceStream)} on
-     * {@link #transferHandler}.
+     * {@link #_transferHandler}.
      */
     @Override
     public void run()
@@ -284,8 +283,7 @@ class PushSourceStreamImpl
         {
             while (!closed)
             {
-                SourceTransferHandler transferHandler
-                    = this.transferHandler;
+                SourceTransferHandler transferHandler = _transferHandler;
 
                 synchronized (readQ)
                 {
@@ -314,7 +312,7 @@ class PushSourceStreamImpl
                     }
                     else
                     {
-                        logger.warn(
+                        LOGGER.warn(
                                 "An RTP packet may have not been fully"
                                     + " handled.",
                                 t);
@@ -329,12 +327,13 @@ class PushSourceStreamImpl
         }
     }
 
+    @Override
     public synchronized void setTransferHandler(
             SourceTransferHandler transferHandler)
     {
-        if (this.transferHandler != transferHandler)
+        if (_transferHandler != transferHandler)
         {
-            this.transferHandler = transferHandler;
+            _transferHandler = transferHandler;
             for (PushSourceStreamDesc streamDesc : streams)
                 streamDesc.stream.setTransferHandler(this);
         }
@@ -380,14 +379,13 @@ class PushSourceStreamImpl
         SourcePacket pkt = sourcePacketPool.poll();
         byte[] buf;
 
-        if ((pkt == null) || ((buf = pkt.getBuffer()).length < len))
+        if (pkt == null || (buf = pkt.getBuffer()).length < len)
         {
             buf = new byte[len];
             pkt = new SourcePacket(buf, 0, 0);
         }
         else
         {
-            buf = pkt.getBuffer();
             len = buf.length;
             pkt.setFlags(0);
             pkt.setLength(0);
@@ -426,7 +424,7 @@ class PushSourceStreamImpl
         }
         catch (IOException ioe)
         {
-            logger.error("Failed to read from an RTP stream!", ioe);
+            LOGGER.error("Failed to read from an RTP stream!", ioe);
         }
         finally
         {
@@ -444,7 +442,7 @@ class PushSourceStreamImpl
                     if (readQSize < 1)
                         yield = false;
                     else if (readQSize < readQCapacity)
-                        yield = (this.read == false);
+                        yield = (_read == false);
                     else
                         yield = true;
                     if (yield)
@@ -458,7 +456,7 @@ class PushSourceStreamImpl
                     if (readQ.size() >= readQCapacity)
                     {
                         readQ.remove();
-                        logger.warn(
+                        LOGGER.warn(
                                 "Discarded an RTP packet because the read"
                                     + " queue is full.");
                     }
@@ -478,37 +476,6 @@ class PushSourceStreamImpl
                 pkt.streamDesc = null;
                 sourcePacketPool.offer(pkt);
             }
-        }
-    }
-
-    private static class SourcePacket
-        extends Buffer
-    {
-        private byte[] buffer;
-
-        public PushSourceStreamDesc streamDesc;
-
-        public SourcePacket(byte[] buf, int off, int len)
-        {
-            setData(buf);
-            setOffset(off);
-            setLength(len);
-        }
-
-        public byte[] getBuffer()
-        {
-            return buffer;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void setData(Object data)
-        {
-            super.setData(data);
-
-            buffer = (byte[]) data;
         }
     }
 }

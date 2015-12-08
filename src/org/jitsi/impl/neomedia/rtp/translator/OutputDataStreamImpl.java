@@ -24,7 +24,6 @@ import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.RTPHeader;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -44,7 +43,7 @@ class OutputDataStreamImpl
      * The <tt>Logger</tt> used by the <tt>OutputDataStreamImpl</tt> class and
      * its instances for logging output.
      */
-    private static final Logger logger
+    private static final Logger LOGGER
         = Logger.getLogger(OutputDataStreamImpl.class);
 
     /**
@@ -53,7 +52,7 @@ class OutputDataStreamImpl
      * from received RTP packets prior to relaying them. The default value is
      * <tt>false</tt>.
      */
-    private static final String REMOVE_RTP_HEADER_EXTENSIONS_PROPERTY_NAME
+    private static final String REMOVE_RTP_HEADER_EXTENSIONS_PNAME
         = RTPTranslatorImpl.class.getName() + ".removeRTPHeaderExtensions";
 
     private static final int WRITE_QUEUE_CAPACITY
@@ -63,17 +62,21 @@ class OutputDataStreamImpl
 
     private final RTPConnectorImpl connector;
 
-    private final boolean data;
+    /**
+     * The indicator which determines whether RTP data ({@code true}) is written
+     * into this {@code OutputDataStreamImpl} or RTP control i.e. RTCP
+     * ({@code false}).
+     */
+    private final boolean _data;
 
     /**
      * The indicator which determines whether the RTP header extension(s)
      * are to be removed from received RTP packets prior to relaying them.
      * The default value is <tt>false</tt>.
      */
-    private final boolean removeRTPHeaderExtensions;
+    private final boolean _removeRTPHeaderExtensions;
 
-    private final List<OutputDataStreamDesc> streams
-        = new ArrayList<OutputDataStreamDesc>();
+    private final List<OutputDataStreamDesc> streams = new ArrayList<>();
 
     private final RTPTranslatorBuffer[] writeQueue
         = new RTPTranslatorBuffer[WRITE_QUEUE_CAPACITY];
@@ -87,20 +90,13 @@ class OutputDataStreamImpl
     public OutputDataStreamImpl(RTPConnectorImpl connector, boolean data)
     {
         this.connector = connector;
-        this.data = data;
+        _data = data;
 
-        // removeRTPHeaderExtensions
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-        boolean removeRTPHeaderExtensions = false;
-
-        if (cfg != null)
-        {
-            removeRTPHeaderExtensions
-                = cfg.getBoolean(
-                        REMOVE_RTP_HEADER_EXTENSIONS_PROPERTY_NAME,
-                        removeRTPHeaderExtensions);
-        }
-        this.removeRTPHeaderExtensions = removeRTPHeaderExtensions;
+        _removeRTPHeaderExtensions
+            = ConfigUtils.getBoolean(
+                    LibJitsi.getConfigurationService(),
+                    REMOVE_RTP_HEADER_EXTENSIONS_PNAME,
+                    false);
     }
 
     public synchronized void addStream(
@@ -142,7 +138,7 @@ class OutputDataStreamImpl
         if (translator == null)
             return 0;
 
-        boolean removeRTPHeaderExtensions = this.removeRTPHeaderExtensions;
+        boolean removeRTPHeaderExtensions = _removeRTPHeaderExtensions;
         int written = 0;
 
         for (int streamIndex = 0, streamCount = streams.size();
@@ -158,15 +154,13 @@ class OutputDataStreamImpl
 
             boolean write;
 
-            if (data)
+            if (_data)
             {
-                /*
-                 * TODO The removal of the RTP header extensions is an
-                 * experiment inspired by
-                 * https://code.google.com/p/webrtc/issues/detail?id=1095
-                 * "Chrom WebRTC VP8 RTP packet retransmission does not
-                 * follow RFC 4588"
-                 */
+                // TODO The removal of the RTP header extensions is an
+                // experiment inspired by
+                // https://code.google.com/p/webrtc/issues/detail?id=1095
+                // "Chrom WebRTC VP8 RTP packet retransmission does not
+                // follow RFC 4588"
                 if (removeRTPHeaderExtensions)
                 {
                     removeRTPHeaderExtensions = false;
@@ -193,16 +187,14 @@ class OutputDataStreamImpl
             if (!write)
                 continue;
 
-            /*
-             * Allow the RTPTranslatorImpl a final chance to filter out the
-             * packet on a source-destination basis.
-             */
+            // Allow the RTPTranslatorImpl a final chance to filter out the
+            // packet on a source-destination basis.
             write
                 = translator.willWrite(
                         /* source */ exclusion,
                         buffer, offset, length,
                         /* destination */ streamRTPManagerDesc,
-                        data);
+                        _data);
             if (!write)
                 continue;
 
@@ -367,7 +359,7 @@ class OutputDataStreamImpl
         }
         catch (Throwable t)
         {
-            logger.error("Failed to translate RTP packet", t);
+            LOGGER.error("Failed to translate RTP packet", t);
             if (t instanceof ThreadDeath)
                 throw (ThreadDeath) t;
         }
@@ -415,10 +407,8 @@ class OutputDataStreamImpl
     {
         boolean write = true;
 
-        /*
-         * Do the bytes in the specified buffer resemble (a header of) an
-         * RTCP packet?
-         */
+        // Do the bytes in the specified buffer resemble (a header of) an RTCP
+        // packet?
         if (length >= 12 /* FB */)
         {
             byte b0 = buffer[offset];
@@ -452,9 +442,9 @@ class OutputDataStreamImpl
                             }
                             else
                             {
-                                // FIR messages don't have a valid
-                                // 'media source' field, use the SSRC from
-                                // the first FCI entry instead
+                                // FIR messages don't have a valid 'media
+                                // source' field, use the SSRC from the first
+                                // FCI entry instead
                                 ssrcOfMediaSource
                                     = RTPTranslatorImpl.readInt(
                                             buffer,
@@ -470,7 +460,7 @@ class OutputDataStreamImpl
                         if (destination.containsReceiveSSRC(
                                 ssrcOfMediaSource))
                         {
-                            if (logger.isTraceEnabled())
+                            if (LOGGER.isTraceEnabled())
                             {
                                 int ssrcOfPacketSender
                                     = RTPTranslatorImpl.readInt(
@@ -489,7 +479,7 @@ class OutputDataStreamImpl
                                                 ssrcOfMediaSource
                                                     & 0xffffffffl);
 
-                                logger.trace(message);
+                                LOGGER.trace(message);
                             }
                         }
                         else
@@ -501,7 +491,7 @@ class OutputDataStreamImpl
             }
         }
 
-        if (write && logger.isTraceEnabled())
+        if (write && LOGGER.isTraceEnabled())
             RTPTranslatorImpl.logRTCP(this, "doWrite", buffer, offset, length);
         return write;
     }
@@ -592,7 +582,7 @@ class OutputDataStreamImpl
             if (writeQueueHead >= writeQueue.length)
                 writeQueueHead = 0;
             writeQueueLength--;
-            logger.warn("Will not translate RTP packet.");
+            LOGGER.warn("Will not translate RTP packet.");
         }
 
         RTPTranslatorBuffer write
@@ -650,16 +640,5 @@ class OutputDataStreamImpl
             }
         }
         return false;
-    }
-
-    private static class RTPTranslatorBuffer
-    {
-        public byte[] data;
-
-        public StreamRTPManagerDesc exclusion;
-
-        public Format format;
-
-        public int length;
     }
 }
