@@ -57,6 +57,9 @@ class RTPConnectorImpl
 
     public synchronized void addConnector(RTPConnectorDesc connector)
     {
+        // XXX Could we use a read/write lock instead of a synchronized here?
+        // We acquire a write lock and as soon as add the connector to the
+        // connectors we downgrade to a read lock.
         if (!connectors.contains(connector))
         {
             connectors.add(connector);

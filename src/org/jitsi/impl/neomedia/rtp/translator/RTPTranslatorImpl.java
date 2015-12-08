@@ -296,6 +296,9 @@ public class RTPTranslatorImpl
         {
 
         manager.addFormat(format, payloadType);
+        // XXX Here we could probably downgrade to a read lock, or even
+        // completely release, the lock after we get the StreamRTPManagerDesc,
+        // but does it worth it?
         getStreamRTPManagerDesc(streamRTPManager, true).addFormat(
                 format,
                 payloadType);
@@ -336,6 +339,8 @@ public class RTPTranslatorImpl
         try
         {
 
+        // XXX Here we could probably downgrade to a read lock, or even
+        // completely release, the lock after we get the StreamRTPManagerDesc.
         getStreamRTPManagerDesc(streamRTPManager, true)
             .addReceiveStreamListener(listener);
 
@@ -396,6 +401,9 @@ public class RTPTranslatorImpl
      */
     void closeSendStream(SendStreamDesc sendStreamDesc)
     {
+        // XXX Here we could potentially start with a read lock and upgrade to
+        // a write lock, if the sendStreamDesc is in the sendStreams collection,
+        // but does it worth it?
         Lock lock = this.lock.writeLock();
 
         lock.lock();
@@ -462,6 +470,9 @@ public class RTPTranslatorImpl
         throws IOException,
                UnsupportedFormatException
     {
+        // XXX Here we could potentially start with a read lock and upgrade to
+        // a write lock, if the sendStreamDesc is not in sendStreams collection,
+        // but does it worth it?
         Lock lock = this.lock.writeLock();
         SendStream ret;
 
@@ -665,6 +676,10 @@ public class RTPTranslatorImpl
      */
     public void dispose(StreamRTPManager streamRTPManager)
     {
+        // XXX Here we could potentially start with a read lock and upgrade to
+        // a write lock, if the streamRTPManager is in the streamRTPManagers
+        // collection. Not sure about the up/down grading performance hit
+        // though.
         Lock lock = this.lock.writeLock();
 
         lock.lock();
@@ -987,39 +1002,58 @@ public class RTPTranslatorImpl
             StreamRTPManager streamRTPManager,
             RTPConnector connector)
     {
-        Lock lock = this.lock.writeLock();
+        Lock w = this.lock.writeLock();
+        Lock r = this.lock.readLock();
 
-        lock.lock();
+        w.lock();
+        boolean write = true;
         try
         {
+            if (this.connector == null)
+            {
+                this.connector = new RTPConnectorImpl(this);
+                manager.initialize(this.connector);
+            }
 
-        if (this.connector == null)
-        {
-            this.connector = new RTPConnectorImpl(this);
-            manager.initialize(this.connector);
-        }
+            StreamRTPManagerDesc streamRTPManagerDesc
+                = getStreamRTPManagerDesc(streamRTPManager, true);
 
-        StreamRTPManagerDesc streamRTPManagerDesc
-            = getStreamRTPManagerDesc(streamRTPManager, true);
-        RTPConnectorDesc connectorDesc = streamRTPManagerDesc.connectorDesc;
+            // We got the connector and the streamRTPManagerDesc. We can now
+            // downgrade the lock on the translator.
+            r.lock();
+            w.unlock();
+            write = false;
 
-        if ((connectorDesc == null) || (connectorDesc.connector != connector))
-        {
-            if (connectorDesc != null)
-                this.connector.removeConnector(connectorDesc);
-            streamRTPManagerDesc.connectorDesc
-                = connectorDesc
-                    = (connector == null)
+            // We're managing access to the streamRTPManagerDesc.
+            synchronized (streamRTPManagerDesc)
+            {
+                RTPConnectorDesc connectorDesc
+                    = streamRTPManagerDesc.connectorDesc;
+
+                if ((connectorDesc == null)
+                        || (connectorDesc.connector != connector))
+                {
+                    if (connectorDesc != null)
+                    {
+                        // The connector is thread-safe.
+                        this.connector.removeConnector(connectorDesc);
+                    }
+
+                    streamRTPManagerDesc.connectorDesc
+                        = connectorDesc
+                        = (connector == null)
                         ? null
                         : new RTPConnectorDesc(streamRTPManagerDesc, connector);
-            if (connectorDesc != null)
-                this.connector.addConnector(connectorDesc);
-        }
+                }
 
+                if (connectorDesc != null)
+                    // The connector is thread-safe.
+                    this.connector.addConnector(connectorDesc);
+            }
         }
         finally
         {
-            lock.unlock();
+            (write ? w : r).unlock();
         }
     }
 
