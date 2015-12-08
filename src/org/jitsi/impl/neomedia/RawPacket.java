@@ -449,6 +449,19 @@ public class RawPacket
      */
     public int getCsrcCount()
     {
+        return getCsrcCount(buffer, offset, length);
+    }
+
+    /**
+     * Returns the number of CSRC identifiers currently included in this packet.
+     *
+     * @param buffer
+     * @param offset
+     * @param length
+     * @return the CSRC count for this <tt>RawPacket</tt>.
+     */
+    public static int getCsrcCount(byte[] buffer, int offset, int length)
+    {
         return (buffer[offset] & 0x0f);
     }
 
@@ -460,6 +473,21 @@ public class RawPacket
      * and <tt>false</tt> otherwise.
      */
     public boolean getExtensionBit()
+    {
+        return getExtensionBit(buffer, offset, length);
+    }
+
+    /**
+     * Returns <tt>true</tt> if the extension bit of this packet has been set
+     * and <tt>false</tt> otherwise.
+     *
+     * @param buffer
+     * @param offset
+     * @param length
+     * @return  <tt>true</tt> if the extension bit of this packet has been set
+     * and <tt>false</tt> otherwise.
+     */
+    public static boolean getExtensionBit(byte[] buffer, int offset, int length)
     {
         return (buffer[offset] & 0x10) == 0x10;
     }
@@ -502,12 +530,26 @@ public class RawPacket
      */
     public int getExtensionLength()
     {
-        if (!getExtensionBit())
+        return getExtensionLength(buffer, offset, length);
+    }
+
+    /**
+     * Returns the length of the extensions currently added to this packet.
+     *
+     * @param buffer
+     * @param offset
+     * @param length
+     * @return the length of the extensions currently added to this packet.
+     */
+    public static int getExtensionLength(byte[] buffer, int offset, int length)
+    {
+        if (!getExtensionBit(buffer, offset, length))
             return 0;
 
         // The extension length comes after the RTP header, the CSRC list, and
         // two bytes in the extension header called "defined by profile".
-        int extLenIndex = offset + FIXED_HEADER_SIZE + getCsrcCount() * 4 + 2;
+        int extLenIndex = offset + FIXED_HEADER_SIZE
+            + getCsrcCount(buffer, offset, length) * 4 + 2;
 
         return
             ((buffer[extLenIndex] << 8) | (buffer[extLenIndex + 1] & 0xFF)) * 4;
@@ -546,10 +588,27 @@ public class RawPacket
      */
     public int getHeaderLength()
     {
-        int headerLength = FIXED_HEADER_SIZE + 4 * getCsrcCount();
+        return getHeaderLength(buffer, offset, length);
+    }
 
-        if (getExtensionBit())
-            headerLength += EXT_HEADER_SIZE + getExtensionLength();
+    /**
+     * Get RTP header length from a RTP packet
+     *
+     * @param buffer
+     * @param offset
+     * @param length
+     * @return RTP header length from source RTP packet
+     */
+    public static int getHeaderLength(byte[] buffer, int offset, int length)
+    {
+        int headerLength
+            = FIXED_HEADER_SIZE + 4 * getCsrcCount(buffer, offset, length);
+
+        if (getExtensionBit(buffer, offset, length))
+        {
+            headerLength += EXT_HEADER_SIZE
+                + getExtensionLength(buffer, offset, length);
+        }
 
         return headerLength;
     }
@@ -604,7 +663,7 @@ public class RawPacket
      */
     public int getVersion()
     {
-        return (buffer[offset] & 0xC0) >> 6;
+        return (buffer[offset] & 0xC0) >>> 6;
     }
 
     /**
@@ -649,10 +708,24 @@ public class RawPacket
      */
     public int getPayloadLength()
     {
+        return getPayloadLength(buffer, offset, length);
+    }
+
+    /**
+     * Get RTP payload length from a RTP packet
+     *
+     * @param buffer
+     * @param offset
+     * @param length
+     *
+     * @return RTP payload length from source RTP packet
+     */
+    public static int getPayloadLength(byte[] buffer, int offset, int length)
+    {
         // FIXME The payload includes the padding at the end. Do we really want
         // it though? We are currently keeping the implementation as it is for
         // compatibility with existing code.
-        return length - getHeaderLength();
+        return length - getHeaderLength(buffer, offset, length);
     }
 
     /**
@@ -662,7 +735,21 @@ public class RawPacket
      */
     public int getPayloadOffset()
     {
-        return offset + getHeaderLength();
+        return getPayloadOffset(buffer, offset, length);
+    }
+
+    /**
+     * Get the RTP payload offset of an RTP packet.
+     *
+     * @param buffer
+     * @param offset
+     * @param length
+     *
+     * @return the RTP payload offset of an RTP packet.
+     */
+    public static int getPayloadOffset(byte[] buffer, int offset, int length)
+    {
+        return offset + getHeaderLength(buffer, offset, length);
     }
 
     /**
@@ -702,7 +789,21 @@ public class RawPacket
      */
     public int getSequenceNumber()
     {
-        return readUnsignedShortAsInt(2);
+        return getSequenceNumber(buffer, offset, length);
+    }
+
+    /**
+     * Get RTP sequence number from a RTP packet
+     *
+     * @param buffer
+     * @param offset
+     * @param length
+     *
+     * @return RTP sequence num from source packet
+     */
+    public static int getSequenceNumber(byte[] buffer, int offset, int length)
+    {
+        return readUnsignedShortAsInt(buffer, offset + 2, length);
     }
 
     /**
@@ -724,7 +825,20 @@ public class RawPacket
      */
     public int getSSRC()
     {
-        return readInt(8);
+        return getSSRC(buffer, offset, length);
+    }
+
+    /**
+     * Get RTP SSRC from a RTP packet
+     *
+     * @param buffer
+     * @param offset
+     * @param length
+     * @return RTP SSRC from source RTP packet
+     */
+    public static int getSSRC(byte[] buffer, int offset, int length)
+    {
+        return readInt(buffer, offset + 8, length);
     }
 
     /**
@@ -733,7 +847,20 @@ public class RawPacket
      */
     public long getSSRCAsLong()
     {
-        return getSSRC() & 0xffffffffL;
+        return getSSRCAsLong(buffer, offset, length);
+    }
+
+    /**
+     * Returns a {@code long} representation of the SSRC of this RTP packet.
+     *
+     * @param buffer
+     * @param offset
+     * @param length
+     * @return a {@code long} representation of the SSRC of this RTP packet.
+     */
+    public static long getSSRCAsLong(byte[] buffer, int offset, int length)
+    {
+        return getSSRC(buffer, offset, length) & 0xffffffffL;
     }
 
     /**
@@ -810,12 +937,24 @@ public class RawPacket
      */
     public int readInt(int off)
     {
-        off += offset;
+        return readInt(buffer, offset + off, length);
+    }
+
+    /**
+     * Read a integer from this packet at specified offset
+     *
+     * @param buffer
+     * @param offset start offset of the integer to be read
+     * @param length
+     * @return the integer to be read
+     */
+    public static int readInt(byte[] buffer, int offset, int length)
+    {
         return
-            ((buffer[off++] & 0xFF) << 24)
-                | ((buffer[off++] & 0xFF) << 16)
-                | ((buffer[off++] & 0xFF) << 8)
-                | (buffer[off] & 0xFF);
+            ((buffer[offset++] & 0xFF) << 24)
+                | ((buffer[offset++] & 0xFF) << 16)
+                | ((buffer[offset++] & 0xFF) << 8)
+                | (buffer[offset] & 0xFF);
     }
 
     /**
@@ -916,11 +1055,26 @@ public class RawPacket
      */
     public int readUnsignedShortAsInt(int off)
     {
-        int b1 = (0x000000FF & (this.buffer[this.offset + off + 0]));
-        int b2 = (0x000000FF & (this.buffer[this.offset + off + 1]));
+        return readUnsignedShortAsInt(buffer, offset + off, length);
+    }
+
+    /**
+     * Read an unsigned short at specified offset as a int
+     *
+     * @param buffer
+     * @param offset start offset of the unsigned short
+     * @param length
+     * @return the int value of the unsigned short at offset
+     */
+    public static int readUnsignedShortAsInt(
+            byte[] buffer, int offset, int length)
+    {
+        int b1 = (0x000000FF & (buffer[offset + 0]));
+        int b2 = (0x000000FF & (buffer[offset + 1]));
         int val = b1 << 8 | b2;
         return val;
     }
+
 
     /**
      * Removes the extension from the packet and its header.

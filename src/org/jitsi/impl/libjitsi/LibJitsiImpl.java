@@ -16,6 +16,7 @@
 package org.jitsi.impl.libjitsi;
 
 import java.util.*;
+import java.util.concurrent.locks.*;
 
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
@@ -33,24 +34,21 @@ public class LibJitsiImpl
      * The <tt>Logger</tt> used by the <tt>LibJitsiImpl</tt> class and its
      * instances.
      */
-    private static final Logger logger = Logger.getLogger(LibJitsiImpl.class);
+    private static final Logger LOGGER = Logger.getLogger(LibJitsiImpl.class);
 
     /**
      * The service instances associated with this implementation of the
      * <tt>libjitsi</tt> library mapped by their respective type/class names.
      */
-    private final Map<String, Object> services
-        = new HashMap<String, Object>();
+    private final Map<String, ServiceLock> services = new HashMap<>();
 
     /**
      * Initializes a new <tt>LibJitsiImpl</tt> instance.
      */
     public LibJitsiImpl()
     {
-        /*
-         * The AudioNotifierService implementation uses a non-standard package
-         * location so work around it.
-         */
+        // The AudioNotifierService implementation uses a non-standard package
+        // location so work around it.
         String key
             = "org.jitsi.service.audionotifier.AudioNotifierService";
         String value = System.getProperty(key);
@@ -75,116 +73,153 @@ public class LibJitsiImpl
     @Override
     protected <T> T getService(Class<T> serviceClass)
     {
-        String serviceClassName = serviceClass.getName();
+        String className = serviceClass.getName();
+        ServiceLock lock;
 
         synchronized (services)
         {
-            if (services.containsKey(serviceClassName))
+            lock = services.get(className);
+            if (lock == null)
             {
-                @SuppressWarnings("unchecked")
-                T service = (T) services.get(serviceClassName);
-
-                return service;
-            }
-            else
-            {
-                /*
-                 * Do not allow concurrent and/or repeating requests to create
-                 * an instance of the specified serviceClass.
-                 */
-                services.put(serviceClassName, null);
+                // Do not allow concurrent and/or repeating requests to create
+                // an instance of the specified serviceClass.
+                lock = new ServiceLock();
+                services.put(className, lock);
             }
         }
 
-        /*
-         * Allow the service implementation class names to be specified as
-         * System properties akin to standard Java class factory names.
+        return lock.getService(className, serviceClass);
+    }
+
+    /**
+     * Associates an OSGi service {@code Object} and its initialization with a
+     * {@code Lock} in order to prevent concurrent, repeating, and/or recursive
+     * initializations of one and the same OSGi service {@code Class}.
+     */
+    private static class ServiceLock
+    {
+        /**
+         * The {@code Lock} associated with {@link #_service}.
          */
-        String serviceImplClassName = System.getProperty(serviceClassName);
-        boolean suppressClassNotFoundException = false;
+        private final ReentrantLock _lock = new ReentrantLock();
 
-        if ((serviceImplClassName == null)
-                || (serviceImplClassName.length() == 0))
-        {
-            serviceImplClassName
-                = serviceClassName
-                    .replace(".service.", ".impl.")
-                        .concat("Impl");
-            /*
-             * Nobody has explicitly mentioned serviceImplClassName, we have
-             * just made it up. If it turns out that it cannot be found, do not
-             * log the resulting ClassNotFountException in order to not stress
-             * the developers and/or the users. 
-             */
-            suppressClassNotFoundException = true;
-        }
+        /**
+         * The OSGi service {@code Object} associated with {@link #_lock}.
+         */
+        private Object _service;
 
-        Class<?> serviceImplClass = null;
-        Throwable exception = null;
+        /**
+         * Gets the OSGi service {@code Object} associated with {@link #_lock}.
+         *
+         * @param clazz the runtime type of the returned value
+         * @return the OSGi service {@code Object} associated with
+         * {@link #_lock}
+         */
+        @SuppressWarnings("unchecked")
+        public <T> T getService(String className, Class<T> clazz)
+        {
+            T t;
+            // Do not allow repeating/recursive requests to create multiple
+            // instances of the specified clazz.
+            boolean initializeService = !_lock.isHeldByCurrentThread();
 
-        try
-        {
-            serviceImplClass = Class.forName(serviceImplClassName);
-        }
-        catch (ClassNotFoundException cnfe)
-        {
-            if (!suppressClassNotFoundException)
-                exception = cnfe;
-        }
-        catch (ExceptionInInitializerError eiie)
-        {
-            exception = eiie;
-        }
-        catch (LinkageError le)
-        {
-            exception = le;
-        }
-
-        T service = null;
-
-        if ((serviceImplClass != null)
-                && serviceClass.isAssignableFrom(serviceImplClass))
-        {
+            _lock.lock();
             try
             {
-                @SuppressWarnings("unchecked")
-                T t = (T) serviceImplClass.newInstance();
-
-                service = t;
+                t = (T) _service;
+                if (t == null && initializeService)
+                    _service = t = initializeService(className, clazz);
             }
-            catch (Throwable t)
+            finally
             {
-                if (t instanceof ThreadDeath)
-                {
-                    throw (ThreadDeath) t;
-                }
-                else
-                {
-                    exception = t;
-                    if (t instanceof InterruptedException)
-                        Thread.currentThread().interrupt();
-                }
+                _lock.unlock();
             }
+            return t;
         }
 
-        if (exception == null)
+        /**
+         * Initializes a new instance of a specific OSGi service {@code Class}.
+         *
+         * @param <T>
+         * @param className the {@code name} of {@code clazz} which has already
+         * been retrieved from {@code clazz}
+         * @param clazz the {@code Class} of the OSGi service instance to be
+         * initialized
+         * @return a new instance of the specified OSGi service {@code clazz}
+         */
+        private static <T> T initializeService(String className, Class<T> clazz)
         {
-            if (service != null)
+            // Allow the service implementation class names to be specified as
+            // System properties akin to standard Java class factory names.
+            String implClassName = System.getProperty(className);
+            boolean suppressClassNotFoundException = false;
+
+            if (implClassName == null || implClassName.length() == 0)
             {
-                synchronized (services)
+                implClassName
+                    = className.replace(".service.", ".impl.").concat("Impl");
+                // Nobody has explicitly mentioned implClassName, we have just
+                // made it up. If it turns out that it cannot be found, do not
+                // log the resulting ClassNotFountException in order to not
+                // stress the developers and/or the users.
+                suppressClassNotFoundException = true;
+            }
+
+            Class<?> implClass = null;
+            Throwable exception = null;
+
+            try
+            {
+                implClass = Class.forName(implClassName);
+            }
+            catch (ClassNotFoundException cnfe)
+            {
+                if (!suppressClassNotFoundException)
+                    exception = cnfe;
+            }
+            catch (ExceptionInInitializerError eiie)
+            {
+                exception = eiie;
+            }
+            catch (LinkageError le)
+            {
+                exception = le;
+            }
+
+            T service = null;
+
+            if (implClass != null && clazz.isAssignableFrom(implClass))
+            {
+                try
                 {
-                    services.put(serviceClassName, service);
+                    @SuppressWarnings("unchecked")
+                    T t = (T) implClass.newInstance();
+
+                    service = t;
+                }
+                catch (Throwable t)
+                {
+                    if (t instanceof ThreadDeath)
+                    {
+                        throw (ThreadDeath) t;
+                    }
+                    else
+                    {
+                        exception = t;
+                        if (t instanceof InterruptedException)
+                            Thread.currentThread().interrupt();
+                    }
                 }
             }
-        }
-        else if (logger.isInfoEnabled())
-        {
-            logger.info(
-                    "Failed to initialize service implementation "
-                        + serviceImplClassName
-                        + ". Will continue without it.", exception);
-        }
 
-        return service;
+            if (exception != null && LOGGER.isInfoEnabled())
+            {
+                LOGGER.info("Failed to initialize service implementation "
+                            + implClassName + ".",
+                        exception);
+            }
+
+            return service;
+        }
     }
 }

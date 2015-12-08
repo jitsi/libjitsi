@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.transform;
+package org.jitsi.impl.neomedia.transform.rewriting;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -21,6 +21,7 @@ import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.util.*;
 import org.jitsi.util.function.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -528,6 +529,11 @@ public class SsrcRewritingEngine implements TransformEngine
     private class MyRTPSinglePacketTransformer
         extends SinglePacketTransformerAdapter
     {
+        public MyRTPSinglePacketTransformer()
+        {
+            super(RTPPacketPredicate.instance);
+        }
+
         @Override
         public RawPacket transform(RawPacket pkt)
         {
@@ -568,14 +574,14 @@ public class SsrcRewritingEngine implements TransformEngine
     private class MyRTCPSinglePacketTransformer
         extends SinglePacketTransformerAdapter
     {
+        public MyRTCPSinglePacketTransformer()
+        {
+            super(RTCPPacketPredicate.instance);
+        }
+
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
-            if (pkt == null)
-            {
-                return pkt;
-            }
-
             if (!initialized)
             {
                 return pkt;

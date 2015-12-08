@@ -109,6 +109,7 @@ public class RetransmissionRequester
      */
     public RetransmissionRequester(MediaStream stream, long senderSsrc)
     {
+        super(RTPPacketPredicate.instance);
         this.stream = stream;
         this.senderSsrc = senderSsrc;
 

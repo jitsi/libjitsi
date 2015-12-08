@@ -13,28 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.rtcp.termination.strategies;
-
-import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.service.neomedia.*;
+package org.jitsi.util.function;
 
 /**
- * Forwards whatever it receives from the network but it doesn't generate
- * anything. This strategy will be useful for conferences of up to 2
- * participants.
+ * Represents a predicate of one argument. This is a poor man's backport of the
+ * <tt>Predicate</tt> interface found in Java 1.8.
  *
  * @author George Politis
  */
-public class SilentBridgeRTCPTerminationStrategy
-    implements RTCPTerminationStrategy
-{
-    public PacketTransformer getRTPTransformer()
-    {
-        return null;
-    }
 
-    public PacketTransformer getRTCPTransformer()
-    {
-        return null;
-    }
+public interface Predicate<T>
+{
+    boolean test(T t);
 }

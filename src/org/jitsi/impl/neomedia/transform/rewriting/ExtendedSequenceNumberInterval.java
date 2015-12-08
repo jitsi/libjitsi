@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.transform;
+package org.jitsi.impl.neomedia.transform.rewriting;
 
 import java.util.*;
+import org.jitsi.util.function.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.impl.neomedia.codec.*;
 
 /**
  * Does the dirty job of rewriting SSRCs and sequence numbers of a
@@ -28,14 +29,6 @@ import org.jitsi.util.*;
  */
 class ExtendedSequenceNumberInterval
 {
-    /**
-     * The <tt>Logger</tt> used by the <tt>SsrcGroupRewriter</tt> class and
-     * its instances to print debug information.
-     */
-    private static final Logger logger
-        = Logger.getLogger(ExtendedSequenceNumberInterval.class);
-
-
     /**
      * The extended minimum sequence number of this interval.
      */
@@ -51,6 +44,20 @@ class ExtendedSequenceNumberInterval
      * The owner of this instance.
      */
     public final SsrcRewriter ssrcRewriter;
+
+    /**
+     * The predicate used to match FEC <tt>REDBlock</tt>s.
+     */
+    private final Predicate<REDBlock> fecPredicate = new Predicate<REDBlock>()
+    {
+        public boolean test(REDBlock redBlock)
+        {
+            Map<Integer, Byte> ssrc2fec = getSsrcRewritingEngine().ssrc2fec;
+            int sourceSSRC = ssrcRewriter.getSourceSSRC();
+            return redBlock != null
+                && ssrc2fec.get(sourceSSRC) == redBlock.getPayloadType();
+        }
+    };
 
     /**
      * The extended maximum sequence number of this interval.
@@ -295,49 +302,22 @@ class ExtendedSequenceNumberInterval
             logWarn("The buffer is empty.");
             return false;
         }
+
         if (buf.length < off + len)
         {
             logWarn("The buffer is invalid.");
             return false;
         }
 
-        // FIXME similar code can be found in the
-        // REDFilterTransformEngine and in the REDTransformEngine and
-        // in the SimulcastLayer.
-
-        int idx = off; //beginning of RTP payload
-        int pktCount = 0; //number of packets inside RED
-
-        // 0                   1                   2                   3
-        // 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-        //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-        //|F|   block PT  |  timestamp offset         |   block length    |
-        //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-        while ((buf[idx] & 0x80) != 0)
+        // XXX we assume that at most one FEC packet is inside RED.
+        REDBlock b = REDBlockIterator.matchFirst(fecPredicate, buf, off, len);
+        if (b != null)
         {
-            pktCount++;
-            idx += 4;
-        }
-
-        idx = off; //back to the beginning of the RTP payload
-
-        Map<Integer, Byte> ssrc2fec = getSsrcRewritingEngine().ssrc2fec;
-        int sourceSSRC = ssrcRewriter.getSourceSSRC();
-        int payloadOff = idx + pktCount * 4 + 1 /* RED headers */;
-        for (int i = 0; i <= pktCount; i++)
-        {
-            byte blockPT = (byte) (buf[idx] & 0x7f);
-            int blockLen = (buf[idx + 2] & 0x03) << 8 | (buf[idx + 3]);
-
-            if (ssrc2fec.get(sourceSSRC) == blockPT)
+            if (!rewriteFEC(primarySSRC, buf, b.getOffset(), b.getLength()))
             {
-                // TODO include only the FEC blocks that were successfully
+                // TODO remove the FEC blocks that were not successfully
                 // rewritten.
-                rewriteFEC(primarySSRC, buf, payloadOff, blockLen);
             }
-
-            idx += 4; // next RED header
-            payloadOff += blockLen;
         }
 
         return true;

@@ -55,6 +55,7 @@ public class REDFilterTransformEngine
      */
     public REDFilterTransformEngine(byte redPayloadType)
     {
+        super(RTPPacketPredicate.instance);
         this.redPayloadType = redPayloadType;
     }
 
@@ -120,7 +121,8 @@ public class REDFilterTransformEngine
             return pkt;
         }
 
-        REDBlock pb = REDBlockIterator.getPrimaryBlock(pkt);
+        REDBlock pb = REDBlockIterator.getPrimaryBlock(
+                pkt.getBuffer(), pkt.getPayloadOffset(), pkt.getPayloadLength());
 
         if (pb == null)
         {

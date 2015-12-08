@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.util.function.*;
 
 /**
  * Extends the <tt>PacketTransformer</tt> interface with methods which allow
@@ -27,6 +28,7 @@ import org.jitsi.util.*;
  * more than one packet).
  *
  * @author Boris Grozev
+ * @author George Politis
  */
 public abstract class SinglePacketTransformer
     implements PacketTransformer
@@ -47,6 +49,15 @@ public abstract class SinglePacketTransformer
         = Logger.getLogger(SinglePacketTransformer.class);
 
     /**
+     * The idea is to have <tt>PacketTransformer</tt> implementations strictly
+     * associated with a <tt>Predicate</tt> so that they only process packets
+     * that they're supposed to process. For example, transformers that
+     * transform RTP packets should not transform RTCP packets, if, by mistake,
+     * they happen to be passed RTCP packets.
+     */
+    private final Predicate<RawPacket> packetPredicate;
+
+    /**
      * The number of exceptions caught in {@link #reverseTransform(RawPacket)}.
      */
     private long exceptionsInReverseTransform;
@@ -55,6 +66,32 @@ public abstract class SinglePacketTransformer
      * The number of exceptions caught in {@link #transform(RawPacket)}.
      */
     private long exceptionsInTransform;
+
+    /**
+     * Ctor.
+     *
+     * XXX At some point ideally we would get rid of this ctor and all the
+     * inheritors will use the parametrized ctor. Also, we might want to move
+     * this check inside the <tt>TransformEngineChain</tt> so that we only make
+     * the check once per packet: The RTCP transformer is only supposed to
+     * (reverse) transform RTCP packets and the RTP transformer is only
+     * supposed to modify RTP packets.
+     */
+    public SinglePacketTransformer()
+    {
+        this.packetPredicate = null;
+    }
+
+    /**
+     * Ctor.
+     *
+     * @param packetPredicate the <tt>PacketPredicate</tt> to use to match
+     * packets to (reverse) transform.
+     */
+    public SinglePacketTransformer(Predicate<RawPacket> packetPredicate)
+    {
+        this.packetPredicate = packetPredicate;
+    }
 
     /**
      * Transforms a specific packet.
@@ -87,29 +124,36 @@ public abstract class SinglePacketTransformer
             {
                 RawPacket pkt = pkts[i];
 
-                if (pkt != null)
+                if (pkt == null)
                 {
-                    try
+                    continue;
+                }
+
+                if (packetPredicate != null && !packetPredicate.test(pkt))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    pkts[i] = transform(pkt);
+                }
+                catch (Throwable t)
+                {
+                    exceptionsInTransform++;
+                    if (((exceptionsInTransform % EXCEPTIONS_TO_LOG) == 0)
+                            || (exceptionsInTransform == 1))
                     {
-                        pkts[i] = transform(pkt);
+                        logger.error(
+                                "Failed to transform RawPacket(s)!",
+                                t);
                     }
-                    catch (Throwable t)
-                    {
-                        exceptionsInTransform++;
-                        if (((exceptionsInTransform % EXCEPTIONS_TO_LOG) == 0)
-                                || (exceptionsInTransform == 1))
-                        {
-                            logger.error(
-                                    "Failed to transform RawPacket(s)!",
-                                    t);
-                        }
-                        if (t instanceof Error)
-                            throw (Error) t;
-                        else if (t instanceof RuntimeException)
-                            throw (RuntimeException) t;
-                        else
-                            throw new RuntimeException(t);
-                    }
+                    if (t instanceof Error)
+                        throw (Error) t;
+                    else if (t instanceof RuntimeException)
+                        throw (RuntimeException) t;
+                    else
+                        throw new RuntimeException(t);
                 }
             }
         }

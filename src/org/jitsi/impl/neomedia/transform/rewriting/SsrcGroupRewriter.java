@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.transform;
+package org.jitsi.impl.neomedia.transform.rewriting;
 
 import java.io.*;
 import java.util.*;
@@ -382,7 +382,8 @@ class SsrcGroupRewriter
 
         if (retransmissionInterval == null)
         {
-            logWarn("Could not find a retransmission interval.");
+            logWarn("Could not find a retransmission interval for seqnum " +
+                    (seqnum & 0x0000ffff) + " from " + (ssrcOrigin & 0xffffffffl));
             return SsrcRewritingEngine.INVALID_SEQNUM;
         }
         else
