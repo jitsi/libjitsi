@@ -20,8 +20,8 @@ import javax.media.format.*;
 
 import net.sf.fmj.media.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.util.*;
 
 /**
  *

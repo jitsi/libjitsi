@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.ilbc;
 
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Implements an iLBC decoder.

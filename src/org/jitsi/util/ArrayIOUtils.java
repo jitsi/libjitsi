@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia;
+package org.jitsi.util;
 
 /**
  * Implements functionality aiding the reading and writing in little endian of

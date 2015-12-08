@@ -16,7 +16,6 @@
 package org.jitsi.impl.neomedia;
 
 import java.io.*;
-import java.lang.reflect.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -61,45 +60,6 @@ public abstract class RTPConnectorInputStream<T>
      * receiving packets from the network.
      */
     public static final int PACKET_RECEIVE_BUFFER_LENGTH = 4 * 1024;
-
-    /**
-     * Adds a specific element to a specific array with a specific component
-     * type if the array does not contain the element yet.
-     * 
-     * @param array the array to add <tt>element</tt> to
-     * @param componentType the component type of <tt>array</tt>
-     * @param element the element to add to <tt>array</tt>
-     * @return an array with the specified <tt>componentType</tt> and
-     * containing <tt>element</tt>. If <tt>array</tt> contained <tt>element</tt>
-     * already, returns <tt>array</tt>.
-     */
-    @SuppressWarnings("unchecked")
-    private static <T> T[] add(T[] array, Class<T> componentType, T element)
-    {
-        if (element == null)
-            throw new NullPointerException("element");
-
-        if (array == null)
-        {
-            array = (T[]) Array.newInstance(componentType, 1);
-        }
-        else
-        {
-            for (int i = 0; i < array.length; i++)
-            {
-                if (element.equals(array[i]))
-                    return array;
-            }
-
-            T[] newArray
-                = (T[]) Array.newInstance(componentType, array.length + 1);
-
-            System.arraycopy(array, 0, newArray, 0, array.length);
-            array = newArray;
-        }
-        array[array.length - 1] = element;
-        return array;
-    }
 
     /**
      * Sets a specific priority on a specific <tt>Thread</tt>.
@@ -391,7 +351,7 @@ public abstract class RTPConnectorInputStream<T>
             DatagramPacketFilter datagramPacketFilter)
     {
         datagramPacketFilters
-            = add(
+            = ArrayUtils.add(
                     datagramPacketFilters,
                     DatagramPacketFilter.class,
                     datagramPacketFilter);
@@ -410,7 +370,7 @@ public abstract class RTPConnectorInputStream<T>
             DatagramPacketListener datagramPacketListener)
     {
         datagramPacketListeners
-            = add(
+            = ArrayUtils.add(
                     datagramPacketListeners,
                     DatagramPacketListener.class,
                     datagramPacketListener);

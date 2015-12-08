@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.audiolevel;
 
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Implements the calculation of audio level as defined by RFC 6465 &quot;A
