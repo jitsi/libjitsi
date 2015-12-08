@@ -2014,7 +2014,7 @@ public class MediaStreamImpl
     {
         try
         {
-            if(!logger.isInfoEnabled())
+            if(!logger.isDebugEnabled())
                 return;
 
             //print flow statistics.
@@ -2043,7 +2043,7 @@ public class MediaStreamImpl
                 .append("RTCP sent: ").append(s.getRTCPSent()).append(eol)
                 .append("transmit failed: ").append(s.getTransmitFailed());
 
-            logger.info(buff);
+            logger.debug(buff);
 
             GlobalReceptionStats rs = rtpManager.getGlobalReceptionStats();
             MediaFormat format = getFormat();
@@ -2089,7 +2089,7 @@ public class MediaStreamImpl
                     .append(eol)
                 .append("unknown types: ").append(rs.getUnknownTypes());
 
-            logger.info(buff);
+            logger.debug(buff);
         }
         catch(Throwable t)
         {
