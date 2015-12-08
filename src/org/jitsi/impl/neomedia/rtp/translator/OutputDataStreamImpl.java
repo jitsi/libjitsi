@@ -55,7 +55,7 @@ class OutputDataStreamImpl
     private static final String REMOVE_RTP_HEADER_EXTENSIONS_PNAME
         = RTPTranslatorImpl.class.getName() + ".removeRTPHeaderExtensions";
 
-    private static final int WRITE_QUEUE_CAPACITY
+    private static final int WRITE_Q_CAPACITY
         = MaxPacketsPerMillisPolicy.PACKET_QUEUE_CAPACITY;
 
     private boolean closed;
@@ -78,12 +78,12 @@ class OutputDataStreamImpl
 
     private final List<OutputDataStreamDesc> streams = new ArrayList<>();
 
-    private final RTPTranslatorBuffer[] writeQueue
-        = new RTPTranslatorBuffer[WRITE_QUEUE_CAPACITY];
+    private final RTPTranslatorBuffer[] writeQ
+        = new RTPTranslatorBuffer[WRITE_Q_CAPACITY];
 
-    private int writeQueueHead;
+    private int writeQHead;
 
-    private int writeQueueLength;
+    private int writeQLength;
 
     private Thread writeThread;
 
@@ -301,10 +301,9 @@ class OutputDataStreamImpl
 
                 synchronized (this)
                 {
-                    if (closed
-                            || !Thread.currentThread().equals(writeThread))
+                    if (closed || !Thread.currentThread().equals(writeThread))
                         break;
-                    if (writeQueueLength < 1)
+                    if (writeQLength < 1)
                     {
                         boolean interrupted = false;
 
@@ -321,9 +320,9 @@ class OutputDataStreamImpl
                         continue;
                     }
 
-                    writeIndex = writeQueueHead;
+                    writeIndex = writeQHead;
 
-                    RTPTranslatorBuffer write = writeQueue[writeIndex];
+                    RTPTranslatorBuffer write = writeQ[writeIndex];
 
                     buffer = write.data;
                     write.data = null;
@@ -334,10 +333,10 @@ class OutputDataStreamImpl
                     length = write.length;
                     write.length = 0;
 
-                    writeQueueHead++;
-                    if (writeQueueHead >= writeQueue.length)
-                        writeQueueHead = 0;
-                    writeQueueLength--;
+                    writeQHead++;
+                    if (writeQHead >= writeQ.length)
+                        writeQHead = 0;
+                    writeQLength--;
                 }
 
                 try
@@ -348,7 +347,7 @@ class OutputDataStreamImpl
                 {
                     synchronized (this)
                     {
-                        RTPTranslatorBuffer write = writeQueue[writeIndex];
+                        RTPTranslatorBuffer write = writeQ[writeIndex];
 
                         if ((write != null) && (write.data == null))
                             write.data = buffer;
@@ -369,9 +368,7 @@ class OutputDataStreamImpl
             {
                 if (Thread.currentThread().equals(writeThread))
                     writeThread = null;
-                if (!closed
-                        && (writeThread == null)
-                        && (writeQueueLength > 0))
+                if (!closed && (writeThread == null) && (writeQLength > 0))
                     createWriteThread();
             }
         }
@@ -570,26 +567,24 @@ class OutputDataStreamImpl
 
         int writeIndex;
 
-        if (writeQueueLength < writeQueue.length)
+        if (writeQLength < writeQ.length)
         {
-            writeIndex
-                = (writeQueueHead + writeQueueLength) % writeQueue.length;
+            writeIndex = (writeQHead + writeQLength) % writeQ.length;
         }
         else
         {
-            writeIndex = writeQueueHead;
-            writeQueueHead++;
-            if (writeQueueHead >= writeQueue.length)
-                writeQueueHead = 0;
-            writeQueueLength--;
+            writeIndex = writeQHead;
+            writeQHead++;
+            if (writeQHead >= writeQ.length)
+                writeQHead = 0;
+            writeQLength--;
             LOGGER.warn("Will not translate RTP packet.");
         }
 
-        RTPTranslatorBuffer write
-            = writeQueue[writeIndex];
+        RTPTranslatorBuffer write = writeQ[writeIndex];
 
         if (write == null)
-            writeQueue[writeIndex] = write = new RTPTranslatorBuffer();
+            writeQ[writeIndex] = write = new RTPTranslatorBuffer();
 
         byte[] data = write.data;
 
@@ -601,7 +596,7 @@ class OutputDataStreamImpl
         write.format = format;
         write.length = length;
 
-        writeQueueLength++;
+        writeQLength++;
 
         if (writeThread == null)
             createWriteThread();
