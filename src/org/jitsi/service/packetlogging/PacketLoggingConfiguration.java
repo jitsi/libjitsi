@@ -16,7 +16,7 @@
 package org.jitsi.service.packetlogging;
 
 /**
- * Stores the configuration used by Packet Logging Service.
+ * Stores the configuration used by {@code PacketLoggingService}.
  *
  * @author Damian Minkov
  */
@@ -58,6 +58,10 @@ public class PacketLoggingConfiguration
 
     /**
      * Configuration property for enabling/disabling arbitrary packet logging.
+     * The default value is {@code false} because the arbitrary packet logging
+     * was designed for the purposes of debugging, it dramatically increases the
+     * number of logged packets and, thus, noticeably impacts the performance of
+     * the library.
      */
     public final static String PACKET_LOGGING_ARBITRARY_ENABLED_PROPERTY_NAME
         = "net.java.sip.communicator.packetlogging." +
@@ -76,34 +80,38 @@ public class PacketLoggingConfiguration
         = "net.java.sip.communicator.packetlogging.PACKET_LOGGING_FILE_SIZE";
 
     /**
-     * Is Packet Logging Service enabled.
+     * Is {@code PacketLoggingService} enabled.
      */
     private boolean globalLoggingEnabled = true;
 
     /**
-     * Is Packet Logging Service enabled for sip protocol.
+     * Is {@code PacketLoggingService} enabled for sip protocol.
      */
     private boolean sipLoggingEnabled = true;
 
     /**
-     * Is Packet Logging Service enabled for jabber protocol.
+     * Is {@code PacketLoggingService} enabled for jabber protocol.
      */
     private boolean jabberLoggingEnabled = true;
 
     /**
-     * Is Packet Logging Service enabled for rtp.
+     * Is {@code PacketLoggingService} enabled for rtp.
      */
     private boolean rtpLoggingEnabled = true;
 
     /**
-     * Is Packet Logging Service enabled for ice4j.
+     * Is {@code PacketLoggingService} enabled for ice4j.
      */
     private boolean ice4jLoggingEnabled = true;
 
     /**
-     * Is Packet Logging Service enabled for arbitrary packets.
+     * Is {@code PacketLoggingService} enabled for arbitrary packets. The
+     * arbitrary packet logging was designed for the purposes of debugging. Its
+     * use in production environments is discouraged because it dramatically
+     * increases the number of logged packets and, thus, noticeably impacts the
+     * performance of the library.
      */
-    private boolean arbitraryLoggingEnabled = true;
+    private boolean arbitraryLoggingEnabled = false;
 
     /**
      * The limit for the file size.
@@ -122,7 +130,7 @@ public class PacketLoggingConfiguration
      */
     public boolean isGlobalLoggingEnabled()
     {
-        return this.globalLoggingEnabled;
+        return globalLoggingEnabled;
     }
 
     /**
@@ -132,7 +140,7 @@ public class PacketLoggingConfiguration
      */
     public boolean isSipLoggingEnabled()
     {
-        return this.sipLoggingEnabled;
+        return sipLoggingEnabled;
     }
 
     /**
@@ -142,7 +150,7 @@ public class PacketLoggingConfiguration
      */
     public boolean isJabberLoggingEnabled()
     {
-        return this.jabberLoggingEnabled;
+        return jabberLoggingEnabled;
     }
 
     /**
@@ -152,7 +160,7 @@ public class PacketLoggingConfiguration
      */
     public boolean isRTPLoggingEnabled()
     {
-        return this.rtpLoggingEnabled;
+        return rtpLoggingEnabled;
     }
 
     /**
@@ -162,18 +170,18 @@ public class PacketLoggingConfiguration
      */
     public boolean isIce4JLoggingEnabled()
     {
-        return this.ice4jLoggingEnabled;
+        return ice4jLoggingEnabled;
     }
 
     /**
-     * Checks whether packet logging is enabled in the configuration
-     * for arbitrary packets.
-     * @return <tt>true</tt> if packet logging is enabled for arbitrary
-     * packets.
+     * Checks whether packet logging is enabled in this configuration for
+     * arbitrary packets.
+     *
+     * @return <tt>true</tt> if packet logging is enabled for arbitrary packets.
      */
     public boolean isArbitraryLoggingEnabled()
     {
-        return this.arbitraryLoggingEnabled;
+        return arbitraryLoggingEnabled;
     }
 
     /**
@@ -182,7 +190,7 @@ public class PacketLoggingConfiguration
      */
     public long getLimit()
     {
-        return this.limit;
+        return limit;
     }
 
     /**
@@ -191,7 +199,7 @@ public class PacketLoggingConfiguration
      */
     public int getLogfileCount()
     {
-        return this.logfileCount;
+        return logfileCount;
     }
 
     /**
@@ -203,14 +211,14 @@ public class PacketLoggingConfiguration
         if(!enabled)
         {
             // as we are globally off, set it and to services
-            this.sipLoggingEnabled = false;
-            this.jabberLoggingEnabled = false;
-            this.rtpLoggingEnabled = false;
-            this.ice4jLoggingEnabled = false;
-            this.arbitraryLoggingEnabled = false;
+            arbitraryLoggingEnabled = false;
+            ice4jLoggingEnabled = false;
+            jabberLoggingEnabled = false;
+            rtpLoggingEnabled = false;
+            sipLoggingEnabled = false;
         }
 
-        this.globalLoggingEnabled = enabled;
+        globalLoggingEnabled = enabled;
     }
 
     /**
@@ -219,7 +227,7 @@ public class PacketLoggingConfiguration
      */
     public void setSipLoggingEnabled(boolean enabled)
     {
-        this.sipLoggingEnabled = enabled;
+        sipLoggingEnabled = enabled;
     }
 
     /**
@@ -228,7 +236,7 @@ public class PacketLoggingConfiguration
      */
     public void setJabberLoggingEnabled(boolean enabled)
     {
-        this.jabberLoggingEnabled = enabled;
+        jabberLoggingEnabled = enabled;
     }
 
     /**
@@ -237,7 +245,7 @@ public class PacketLoggingConfiguration
      */
     public void setRTPLoggingEnabled(boolean enabled)
     {
-        this.rtpLoggingEnabled = true;
+        rtpLoggingEnabled = enabled;
     }
 
     /**
@@ -246,7 +254,7 @@ public class PacketLoggingConfiguration
      */
     public void setIce4JLoggingEnabled(boolean enabled)
     {
-        this.ice4jLoggingEnabled = true;
+        ice4jLoggingEnabled = enabled;
     }
 
     /**
@@ -255,7 +263,7 @@ public class PacketLoggingConfiguration
      */
     public void setArbitraryLoggingEnabled(boolean enabled)
     {
-        this.arbitraryLoggingEnabled = true;
+        arbitraryLoggingEnabled = enabled;
     }
 
     /**
@@ -275,5 +283,4 @@ public class PacketLoggingConfiguration
     {
         this.logfileCount = logfileCount;
     }
-
 }
