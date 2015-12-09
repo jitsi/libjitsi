@@ -78,17 +78,20 @@ public interface PacketLoggingService
     }
 
     /**
-     * Checks is logging globally enabled for the service.
-     * @return is logging enabled.
+     * Determines whether packet logging is globally enabled for this service.
+     *
+     * @return {@code true} if packet logging is globally enabled for this
+     * service; otherwise, {@code false}
      */
     public boolean isLoggingEnabled();
 
     /**
-     * Checks is logging globally enabled for and is it currently
-     * available fo the given protocol.
-     *.
-     * @param protocol that is checked.
-     * @return is logging enabled.
+     * Determines whether packet logging for a specific protocol is enabled for
+     * this service.
+     *
+     * @param protocol the packet logging protocol to check
+     * @return {@code true} if packet logging for {@code protocol} is enabled
+     * for this service; otherwise, {@code false}
      */
     public boolean isLoggingEnabled(ProtocolName protocol);
 

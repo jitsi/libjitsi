@@ -15,8 +15,8 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
-import org.jitsi.impl.libjitsi.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -98,11 +98,10 @@ public class DebugTransformEngine implements TransformEngine
     public static DebugTransformEngine createDebugTransformEngine(
             MediaStreamImpl mediaStream)
     {
-        PacketLoggingService packetLogging
-            = LibJitsiImpl.getPacketLoggingService();
+        PacketLoggingService pktLogging = LibJitsi.getPacketLoggingService();
 
-        if (packetLogging != null
-                && packetLogging.isLoggingEnabled(
+        if (pktLogging != null
+                && pktLogging.isLoggingEnabled(
                         PacketLoggingService.ProtocolName.ARBITRARY))
         {
             return new DebugTransformEngine(mediaStream);
@@ -146,18 +145,18 @@ public class DebugTransformEngine implements TransformEngine
 
         if (mediaStream == null)
         {
-            logger.debug("Not logging a packet because the mediaStream is " +
-                    "null");
+            logger.debug(
+                    "Not logging a packet because the mediaStream is null");
             return pkt;
         }
 
-        PacketLoggingService pktLogging
-            = LibJitsiImpl.getPacketLoggingService();
+        PacketLoggingService pktLogging = LibJitsi.getPacketLoggingService();
 
         if (pktLogging == null)
         {
-            logger.debug("Not logging a packet because the packet logging " +
-                    "service is null.");
+            logger.debug(
+                    "Not logging a packet because the PacketLoggingService is"
+                        + " null.");
             return pkt;
         }
 
