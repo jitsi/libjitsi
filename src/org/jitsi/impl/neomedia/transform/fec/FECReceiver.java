@@ -90,36 +90,40 @@ class FECReceiver
     /**
      * The number of media packets to keep.
      */
-    private static int MEDIA_BUFF_SIZE = 64;
+    private static final int MEDIA_BUF_SIZE;
 
     /**
      * The maximum number of ulpfec packets to keep.
      */
-    private static int FEC_BUFF_SIZE = 32;
+    private static final int FEC_BUF_SIZE;
 
     /**
      * The name of the <tt>ConfigurationService</tt> property which specifies
      * the value of {@link #MEDIA_BUFF_SIZE}.
      */
-    private static final String MEDIA_BUFF_SIZE_PNAME
+    private static final String MEDIA_BUF_SIZE_PNAME
             = FECReceiver.class.getName() + ".MEDIA_BUFF_SIZE";
 
     /**
      * The name of the <tt>ConfigurationService</tt> property which specifies
      * the value of {@link #FEC_BUFF_SIZE}.
      */
-    private static final String FEC_BUFF_SIZE_PNAME
+    private static final String FEC_BUF_SIZE_PNAME
             = FECReceiver.class.getName() + ".FEC_BUFF_SIZE";
 
     static
     {
         ConfigurationService cfg = LibJitsi.getConfigurationService();
+        int fecBufSize = 32;
+        int mediaBufSize = 64;
 
         if (cfg != null)
         {
-            FEC_BUFF_SIZE = cfg.getInt(FEC_BUFF_SIZE_PNAME, FEC_BUFF_SIZE);
-            MEDIA_BUFF_SIZE = cfg.getInt(MEDIA_BUFF_SIZE_PNAME, MEDIA_BUFF_SIZE);
+            fecBufSize = cfg.getInt(FEC_BUF_SIZE_PNAME, fecBufSize);
+            mediaBufSize = cfg.getInt(MEDIA_BUF_SIZE_PNAME, mediaBufSize);
         }
+        FEC_BUF_SIZE = fecBufSize;
+        MEDIA_BUF_SIZE = mediaBufSize;
     }
 
     /**
@@ -345,7 +349,7 @@ class FECReceiver
      */
     private void saveFec(RawPacket p)
     {
-        if (fecPackets.size() >= FEC_BUFF_SIZE)
+        if (fecPackets.size() >= FEC_BUF_SIZE)
             fecPackets.remove(fecPackets.firstKey());
 
         fecPackets.put(p.getSequenceNumber(), p);
@@ -360,7 +364,7 @@ class FECReceiver
     private void saveMedia(RawPacket p)
     {
         RawPacket newMedia;
-        if (mediaPackets.size() < MEDIA_BUFF_SIZE)
+        if (mediaPackets.size() < MEDIA_BUF_SIZE)
         {
             newMedia = new RawPacket();
             newMedia.setBuffer(new byte[FECTransformEngine.INITIAL_BUFFER_SIZE]);

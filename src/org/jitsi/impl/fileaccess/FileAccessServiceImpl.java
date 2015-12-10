@@ -79,6 +79,7 @@ public class FileAccessServiceImpl implements FileAccessService
      * @throws IOException
      *             If the file cannot be created
      */
+    @Override
     public File getTemporaryFile()
         throws IOException
     {
@@ -105,6 +106,7 @@ public class FileAccessServiceImpl implements FileAccessService
      * @return the created temporary directory
      * @throws IOException if the temporary directory cannot not be created
      */
+    @Override
     public File getTemporaryDirectory() throws IOException
     {
         File file = getTemporaryFile();
@@ -126,6 +128,7 @@ public class FileAccessServiceImpl implements FileAccessService
      * Please use {@link #getPrivatePersistentFile(String, FileCategory)}.
      */
     @Deprecated
+    @Override
     public File getPrivatePersistentFile(String fileName)
         throws Exception
     {
@@ -150,6 +153,7 @@ public class FileAccessServiceImpl implements FileAccessService
      * @return The file
      * @throws Exception if we faile to create the file.
      */
+    @Override
     public File getPrivatePersistentFile(String fileName, FileCategory category)
         throws Exception
     {
@@ -178,6 +182,7 @@ public class FileAccessServiceImpl implements FileAccessService
      * Please use {@link #getPrivatePersistentDirectory(String, FileCategory)}
      */
     @Deprecated
+    @Override
     public File getPrivatePersistentDirectory(String dirName)
         throws Exception
     {
@@ -205,6 +210,7 @@ public class FileAccessServiceImpl implements FileAccessService
      *             Thrown if there is no suitable location for the persistent
      *             directory.
      */
+    @Override
     public File getPrivatePersistentDirectory(String dirName,
         FileCategory category) throws Exception
     {
@@ -360,6 +366,7 @@ public class FileAccessServiceImpl implements FileAccessService
      * @return the default download directory
      * @throws IOException if it I/O error occurred
      */
+    @Override
     public File getDefaultDownloadDirectory()
         throws IOException
     {
@@ -442,7 +449,7 @@ public class FileAccessServiceImpl implements FileAccessService
     {
         if(OSUtils.IS_WINDOWS)
         {
-            OPT = new HashMap<String, Object>();
+            OPT = new HashMap<>();
             OPT.put(Library.OPTION_TYPE_MAPPER, W32APITypeMapper.UNICODE);
             OPT.put(
                     Library.OPTION_FUNCTION_MAPPER,
@@ -518,6 +525,7 @@ public class FileAccessServiceImpl implements FileAccessService
      *
      * @return A new failsafe transaction related to the given file.
      */
+    @Override
     public FailSafeTransaction createFailSafeTransaction(File file)
     {
         return (file == null) ? null : new FailSafeTransactionImpl(file);
@@ -541,7 +549,7 @@ public class FileAccessServiceImpl implements FileAccessService
             = cfg != null
                 ? cfg.getScHomeDirLocation()
                 : getSystemProperty(
-                    ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
+                        ConfigurationService.PNAME_SC_HOME_DIR_LOCATION);
         if (profileDirLocation == null)
         {
             throw new IllegalStateException(
@@ -549,9 +557,9 @@ public class FileAccessServiceImpl implements FileAccessService
         }
 
         scHomeDirName
-                = cfg != null
-                    ? cfg.getScHomeDirName()
-                    : getSystemProperty(
+            = cfg != null
+                ? cfg.getScHomeDirName()
+                : getSystemProperty(
                         ConfigurationService.PNAME_SC_HOME_DIR_NAME);
         if (scHomeDirName == null)
         {

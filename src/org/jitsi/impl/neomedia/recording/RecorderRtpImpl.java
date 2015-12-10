@@ -192,13 +192,15 @@ public class RecorderRtpImpl
     {
         this.translator = (RTPTranslatorImpl) translator;
 
-
         boolean performActiveSpeakerDetection = false;
         ConfigurationService cfg = LibJitsi.getConfigurationService();
+
         if (cfg != null)
         {
-            performActiveSpeakerDetection = cfg.getBoolean(PERFORM_ASD_PNAME,
-                                                           false);
+            performActiveSpeakerDetection
+                = cfg.getBoolean(
+                        PERFORM_ASD_PNAME,
+                        performActiveSpeakerDetection);
         }
         this.performActiveSpeakerDetection = performActiveSpeakerDetection;
     }

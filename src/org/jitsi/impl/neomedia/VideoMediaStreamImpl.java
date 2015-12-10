@@ -1313,6 +1313,7 @@ public class VideoMediaStreamImpl
     /**
      * {@inheritDoc}
      */
+    @Override
     protected RetransmissionRequester createRetransmissionRequester()
     {
         ConfigurationService cfg = LibJitsi.getConfigurationService();

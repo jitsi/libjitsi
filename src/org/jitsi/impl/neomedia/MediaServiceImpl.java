@@ -894,6 +894,7 @@ public class MediaServiceImpl
      * @return a {@link Map} binding some formats to a preferred dynamic RTP
      * payload type number.
      */
+    @Override
     public Map<MediaFormat, Byte> getDynamicPayloadTypePreferences()
     {
         if(dynamicPayloadTypePreferences == null)
@@ -1035,6 +1036,7 @@ public class MediaServiceImpl
      * @param preferredHeight the height we prefer for the component
      * @return the preview component.
      */
+    @Override
     public Object getVideoPreviewComponent(
             MediaDevice device,
             int preferredWidth, int preferredHeight)
@@ -1659,7 +1661,7 @@ public class MediaServiceImpl
         ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         return
-            ((cfg == null) || !cfg.getBoolean(propertyName, false))
+            (cfg == null || !cfg.getBoolean(propertyName, false))
                 && !Boolean.getBoolean(propertyName);
     }
 

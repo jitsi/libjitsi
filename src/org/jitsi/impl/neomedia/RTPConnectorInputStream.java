@@ -158,6 +158,13 @@ public abstract class RTPConnectorInputStream<T>
     private RawPacket pkt;
 
     /**
+     * The {@code PacketLoggingService} instance (to be) utilized by this
+     * instance. Cached for the sake of performance because fetching OSGi
+     * services is not inexpensive.
+     */
+    private PacketLoggingService pktLogging;
+
+    /**
      * The <tt>Object</tt> which synchronizes the access to {@link #pkt}.
      */
     private final Object pktSyncRoot = new Object();
@@ -242,14 +249,16 @@ public abstract class RTPConnectorInputStream<T>
                         numberOfPackets++;
                         if (RTPConnectorOutputStream.logPacket(numberOfPackets))
                         {
-                            PacketLoggingService packetLogging
-                                = LibJitsi.getPacketLoggingService();
+                            PacketLoggingService pktLogging
+                                = getPacketLoggingService();
 
-                            if ((packetLogging != null)
-                                    && packetLogging.isLoggingEnabled(
+                            if (pktLogging != null
+                                    && pktLogging.isLoggingEnabled(
                                             PacketLoggingService.ProtocolName
                                                     .RTP))
+                            {
                                 doLogPacket(p);
+                            }
                         }
 
                         return true;
@@ -570,6 +579,7 @@ public abstract class RTPConnectorInputStream<T>
      *
      * @return <tt>2 * 1024</tt>, no matter what.
      */
+    @Override
     public int getMinimumTransferSize()
     {
         return 2 * 1024; // twice the MTU size, just to be safe.
@@ -582,6 +592,19 @@ public abstract class RTPConnectorInputStream<T>
     public long getNumberOfReceivedBytes()
     {
         return numberOfReceivedBytes;
+    }
+
+    /**
+     * Gets the {@code PacketLoggingService} (to be) utilized by this instance.
+     *
+     * @return the {@code PacketLoggingService} (to be) utilized by this
+     * instance
+     */
+    protected PacketLoggingService getPacketLoggingService()
+    {
+        if (pktLogging == null)
+            pktLogging = LibJitsi.getPacketLoggingService();
+        return pktLogging;
     }
 
     private synchronized void maybeStartReceiveThread()

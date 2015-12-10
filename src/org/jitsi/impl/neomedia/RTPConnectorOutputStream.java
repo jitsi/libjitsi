@@ -89,6 +89,13 @@ public abstract class RTPConnectorOutputStream
     private long numberOfPackets = 0;
 
     /**
+     * The {@code PacketLoggingService} instance (to be) utilized by this
+     * instance. Cached for the sake of performance because fetching OSGi
+     * services is not inexpensive.
+     */
+    private PacketLoggingService pktLogging;
+
+    /**
      * The pool of <tt>RawPacket[]</tt> instances which reduces the number of
      * allocations performed by {@link #createRawPacket(byte[], int, int)}.
      * Always contains arrays full with <tt>null</tt>
@@ -229,6 +236,19 @@ public abstract class RTPConnectorOutputStream
     }
 
     /**
+     * Gets the {@code PacketLoggingService} (to be) utilized by this instance.
+     *
+     * @return the {@code PacketLoggingService} (to be) utilized by this
+     * instance
+     */
+    protected PacketLoggingService getPacketLoggingService()
+    {
+        if (pktLogging == null)
+            pktLogging = LibJitsi.getPacketLoggingService();
+        return pktLogging;
+    }
+
+    /**
      * Returns whether or not this <tt>RTPConnectorOutputStream</tt> has a valid
      * socket.
      *
@@ -307,13 +327,14 @@ public abstract class RTPConnectorOutputStream
 
                 if(logPacket(numberOfPackets))
                 {
-                    PacketLoggingService packetLogging
-                        = LibJitsi.getPacketLoggingService();
+                    PacketLoggingService pktLogging = getPacketLoggingService();
 
-                    if ((packetLogging != null)
-                            && packetLogging.isLoggingEnabled(
+                    if (pktLogging != null
+                            && pktLogging.isLoggingEnabled(
                                     PacketLoggingService.ProtocolName.RTP))
+                    {
                         doLogPacket(packet, target);
+                    }
                 }
             }
             catch (IOException ioe)

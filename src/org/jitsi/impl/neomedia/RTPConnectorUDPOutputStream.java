@@ -86,10 +86,11 @@ public class RTPConnectorUDPOutputStream
         if(socket instanceof MultiplexingDatagramSocket)
             return;
 
-        PacketLoggingService packetLogging = LibJitsi.getPacketLoggingService();
+        PacketLoggingService pktLogging = getPacketLoggingService();
 
-        if (packetLogging != null)
-            packetLogging.logPacket(
+        if (pktLogging != null)
+        {
+            pktLogging.logPacket(
                     PacketLoggingService.ProtocolName.RTP,
                     socket.getLocalAddress().getAddress(),
                     socket.getLocalPort(),
@@ -100,6 +101,7 @@ public class RTPConnectorUDPOutputStream
                     packet.getBuffer(),
                     packet.getOffset(),
                     packet.getLength());
+        }
     }
 
     /**

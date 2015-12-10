@@ -65,6 +65,13 @@ public class DebugTransformEngine implements TransformEngine
     private final MediaStreamImpl mediaStream;
 
     /**
+     * The {@code PacketLoggingService} (to be) used by this instance. Cached
+     * for the sake of performance because fetching OSGi services is not
+     * inexpensive.
+     */
+    private final PacketLoggingService _pktLogging;
+
+    /**
      * The <tt>PacketTransformer</tt> that logs RTCP packets.
      */
     private final SinglePacketTransformer rtcpTransformer
@@ -80,10 +87,15 @@ public class DebugTransformEngine implements TransformEngine
      * Ctor.
      *
      * @param mediaStream the <tt>MediaStream</tt> that owns this instance.
+     * @param pktLogging the {@code PacketLoggingService} to be used by the new
+     * instance
      */
-    public DebugTransformEngine(MediaStreamImpl mediaStream)
+    public DebugTransformEngine(
+            MediaStreamImpl mediaStream,
+            PacketLoggingService pktLogging)
     {
         this.mediaStream = mediaStream;
+        _pktLogging = pktLogging;
     }
 
     /**
@@ -104,7 +116,7 @@ public class DebugTransformEngine implements TransformEngine
                 && pktLogging.isLoggingEnabled(
                         PacketLoggingService.ProtocolName.ARBITRARY))
         {
-            return new DebugTransformEngine(mediaStream);
+            return new DebugTransformEngine(mediaStream, pktLogging);
         }
         else
         {
@@ -150,7 +162,7 @@ public class DebugTransformEngine implements TransformEngine
             return pkt;
         }
 
-        PacketLoggingService pktLogging = LibJitsi.getPacketLoggingService();
+        PacketLoggingService pktLogging = _pktLogging;
 
         if (pktLogging == null)
         {

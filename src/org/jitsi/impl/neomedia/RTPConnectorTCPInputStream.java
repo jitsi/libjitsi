@@ -20,7 +20,6 @@ import java.net.*;
 
 import org.ice4j.socket.*;
 import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.util.*;
 
@@ -65,10 +64,11 @@ public class RTPConnectorTCPInputStream
         if(socket instanceof MultiplexingSocket)
             return;
 
-        PacketLoggingService packetLogging = LibJitsi.getPacketLoggingService();
+        PacketLoggingService pktLogging = getPacketLoggingService();
 
-        if (packetLogging != null)
-            packetLogging.logPacket(
+        if (pktLogging != null)
+        {
+            pktLogging.logPacket(
                     PacketLoggingService.ProtocolName.RTP,
                     (p.getAddress() != null)
                             ? p.getAddress().getAddress()
@@ -81,6 +81,7 @@ public class RTPConnectorTCPInputStream
                     p.getData(),
                     p.getOffset(),
                     p.getLength());
+        }
     }
 
     /**

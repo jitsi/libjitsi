@@ -33,14 +33,13 @@ public class EncodingConfigurationConfigImpl
     /**
      * Holds the prefix that will be used to store properties
      */
-    private String propPrefix;
+    private final String propPrefix;
 
     /**
      * The <tt>ConfigurationService</tt> instance that will be used to
      * store properties
      */
-    private ConfigurationService configurationService
-            = LibJitsi.getConfigurationService();
+    private final ConfigurationService cfg = LibJitsi.getConfigurationService();
 
     /**
      * Constructor. Loads the configuration from <tt>prefix</tt>
@@ -58,11 +57,10 @@ public class EncodingConfigurationConfigImpl
      */
     private void loadConfig()
     {
-        Map<String, String> properties = new HashMap<String, String>();
+        Map<String, String> properties = new HashMap<>();
 
-        for (String pName :
-               configurationService.getPropertyNamesByPrefix(propPrefix, false))
-            properties.put(pName, configurationService.getString(pName));
+        for (String pName : cfg.getPropertyNamesByPrefix(propPrefix, false))
+            properties.put(pName, cfg.getString(pName));
 
         loadProperties(properties);
     }
@@ -83,8 +81,9 @@ public class EncodingConfigurationConfigImpl
     public void setPriority(MediaFormat encoding, int priority)
     {
         super.setPriority(encoding, priority);
-        configurationService.setProperty(
-                propPrefix+"."+getEncodingPreferenceKey(encoding),
+
+        cfg.setProperty(
+                propPrefix + "." + getEncodingPreferenceKey(encoding),
                 priority);
     }
 }

@@ -19,7 +19,6 @@ import java.io.*;
 import java.net.*;
 
 import org.ice4j.socket.*;
-import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 
 /**
@@ -87,10 +86,11 @@ public class RTPConnectorTCPOutputStream
         if(socket instanceof MultiplexingSocket)
             return;
 
-        PacketLoggingService packetLogging = LibJitsi.getPacketLoggingService();
+        PacketLoggingService pktLogging = getPacketLoggingService();
 
-        if (packetLogging != null)
-            packetLogging.logPacket(
+        if (pktLogging != null)
+        {
+            pktLogging.logPacket(
                     PacketLoggingService.ProtocolName.RTP,
                     socket.getLocalAddress().getAddress(),
                     socket.getLocalPort(),
@@ -101,6 +101,7 @@ public class RTPConnectorTCPOutputStream
                     packet.getBuffer(),
                     packet.getOffset(),
                     packet.getLength());
+        }
     }
 
     /**

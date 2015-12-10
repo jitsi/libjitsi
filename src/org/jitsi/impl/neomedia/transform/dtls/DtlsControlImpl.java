@@ -35,8 +35,8 @@ import org.bouncycastle.crypto.util.*;
 import org.bouncycastle.operator.*;
 import org.bouncycastle.operator.bc.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.service.configuration.ConfigurationService;
-import org.jitsi.service.libjitsi.LibJitsi;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.version.*;
 import org.jitsi.util.*;
@@ -410,14 +410,15 @@ public class DtlsControlImpl
         String signatureAlgorithm = "SHA1withRSA";
         // get property override from the config service if it exists
         ConfigurationService cfg = LibJitsi.getConfigurationService();
+
         if (cfg != null)
         {
-            signatureAlgorithm = cfg.getString(PROP_SIGNATURE_ALGORITHM, 
-                "SHA1withRSA");
+            signatureAlgorithm
+                = cfg.getString(PROP_SIGNATURE_ALGORITHM, "SHA1withRSA");
         }        
         if (logger.isDebugEnabled())
         {
-        	logger.debug("Signature algorithm: " + signatureAlgorithm);
+            logger.debug("Signature algorithm: " + signatureAlgorithm);
         }
         try
         {

@@ -198,7 +198,7 @@ public class ActiveSpeakerDetectorImpl
         else
         {
             List<String> implClassNameList
-                = new ArrayList<String>(1 + IMPL_CLASS_NAMES.length);
+                = new ArrayList<>(1 + IMPL_CLASS_NAMES.length);
 
             implClassNameList.add(normalizeClassName(implClassName));
             for (String anImplClassName : IMPL_CLASS_NAMES)
