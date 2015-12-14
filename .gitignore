@@ -8,3 +8,4 @@ libjitsi.jar
 *.class
 .classpath
 .project
+libjitsi.iml
