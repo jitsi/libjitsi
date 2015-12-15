@@ -16,6 +16,8 @@
 package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.configuration.ConfigurationService;
+import org.jitsi.service.libjitsi.LibJitsi;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.util.*;
@@ -49,6 +51,30 @@ public class CachingTransformer
         recurringProcessibleExecutor = new RecurringProcessibleExecutor();
 
     /**
+     * The <tt>ConfigurationService</tt> used to load caching configuration.
+     */
+    private static final ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+    /**
+     * Configuration property for number of streams to cache
+     */
+    public final static String NACK_CACHE_SIZE_STREAMS
+            = "net.java.sip.communicator.nack.CACHE_SIZE_STREAMS";
+
+    /**
+     * Configuration property number of packets to cache.
+     */
+    public final static String NACK_CACHE_SIZE_PACKETS
+            = "net.java.sip.communicator.nack.CACHE_SIZE_PACKETS";
+
+    /**
+     * Configuration property for nack cache size in milliseconds.
+     */
+    public final static String NACK_CACHE_SIZE_MILLIS
+            = "net.java.sip.communicator.nack.CACHE_SIZE_MILLIS";
+
+
+    /**
      * The period of time between calls to {@link #process} will be requested
      * if this {@link CachingTransformer} is enabled.
      */
@@ -58,7 +84,7 @@ public class CachingTransformer
      * Packets added to the cache more than <tt>SIZE_MILLIS</tt> ago might be
      * cleared from the cache.
      */
-    private static int SIZE_MILLIS = 500;
+    private static int SIZE_MILLIS = cfg.getInt(NACK_CACHE_SIZE_MILLIS, 500);
 
     /**
      * Assumed rate of the RTP clock.
@@ -74,12 +100,12 @@ public class CachingTransformer
     /**
      * The maximum number of different SSRCs for which a cache will be created.
      */
-    private static int MAX_SSRC_COUNT = 50;
+    private static int MAX_SSRC_COUNT = cfg.getInt(NACK_CACHE_SIZE_STREAMS, 50);
 
     /**
      * The maximum number of packets cached for each SSRC.
      */
-    private static int MAX_SIZE_PACKETS = 200;
+    private static int MAX_SIZE_PACKETS = cfg.getInt(NACK_CACHE_SIZE_PACKETS, 200);
 
     /**
      * The size of {@link #pool}.
