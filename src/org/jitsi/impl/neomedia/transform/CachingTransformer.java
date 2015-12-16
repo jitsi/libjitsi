@@ -53,7 +53,7 @@ public class CachingTransformer
     /**
      * The <tt>ConfigurationService</tt> used to load caching configuration.
      */
-    private static final ConfigurationService cfg = LibJitsi.getConfigurationService();
+    private final static ConfigurationService cfg = LibJitsi.getConfigurationService();
 
     /**
      * Configuration property for number of streams to cache
