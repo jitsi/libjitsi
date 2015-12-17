@@ -50,22 +50,29 @@ public class AbstractRTPPacketPredicate
     {
         // XXX inspired by RtpChannelDatagramFilter.accept().
         boolean result;
-        if (pkt.getLength() >= 4)
+        if (pkt != null)
         {
-            byte[] buff = pkt.getBuffer();
-            int off = pkt.getOffset();
-
-            if (pkt.getVersion() == 2) // RTP/RTCP version field
+            if (pkt.getLength() >= 4)
             {
-                int pt = buff[off + 1] & 0xff;
+                byte[] buff = pkt.getBuffer();
+                int off = pkt.getOffset();
 
-                if (200 <= pt && pt <= 211)
+                if (pkt.getVersion() == 2) // RTP/RTCP version field
                 {
-                    result = rtcp;
+                    int pt = buff[off + 1] & 0xff;
+
+                    if (200 <= pt && pt <= 211)
+                    {
+                        result = rtcp;
+                    }
+                    else
+                    {
+                        result = !rtcp;
+                    }
                 }
                 else
                 {
-                    result = !rtcp;
+                    result = false;
                 }
             }
             else
@@ -77,7 +84,6 @@ public class AbstractRTPPacketPredicate
         {
             result = false;
         }
-
         if (!result)
         {
             logger.debug("Caught a non-RTCP/RTP packet.");
