@@ -64,6 +64,9 @@ public class BasicRTCPTerminationStrategy
     /**
      * A reusable array that holds {@link #MIN_RTCP_REPORT_BLOCKS}
      * <tt>RTCPReportBlock</tt>s.
+     *
+     * FIXME this should be somewhere else, probably inside the
+     * RTCPReportBlock class.
      */
     public static final RTCPReportBlock[] MIN_RTCP_REPORT_BLOCKS_ARRAY
         = new RTCPReportBlock[MIN_RTCP_REPORT_BLOCKS];

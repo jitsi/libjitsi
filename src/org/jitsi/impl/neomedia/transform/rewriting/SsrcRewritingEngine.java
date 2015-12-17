@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.util.*;
+import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.util.function.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
@@ -227,6 +228,7 @@ public class SsrcRewritingEngine implements TransformEngine
         final Map<Integer, Byte> ssrc2red,
         final Map<Integer, Integer> rtxGroups, final Integer ssrcTargetRTX)
     {
+        // FIXME maps, again. What's wrong with simple arrays?
         if (!assertInitialized())
         {
             logWarn("Failed to map/unmap because the SSRC rewriting engine is" +
@@ -640,19 +642,20 @@ public class SsrcRewritingEngine implements TransformEngine
                 switch (inPkt.type)
                 {
                 case RTCPPacket.RR:
+                    break;
                 case RTCPPacket.SR:
+                    RTCPSRPacket sr = (RTCPSRPacket) inPkt;
+                    sr.reports = BasicRTCPTerminationStrategy
+                        .MIN_RTCP_REPORT_BLOCKS_ARRAY;
+                    outPkts.add(sr);
+                    break;
                 case RTCPPacket.SDES:
-                    // FIXME Is it a good thing to eat up those (NO!)? How
-                    // is FMJ supposed to know what's going on? Maybe we should
-                    // only remove report blocks.
                 case RTCPPacket.BYE:
-                    // RTCP termination takes care of all these, so we
-                    // don't include them in the outPacket..
-
                     // XXX Well, ideally we would put the correct SR
                     // information, by reusing code from RTCP termination.
                     // We would also be able to reverse transform RTCP
                     // packets, like NACKs.
+                    outPkts.add(inPkt);
                     break;
                 case RTCPFBPacket.PSFB:
                     // Get the synchronization source identifier of the
