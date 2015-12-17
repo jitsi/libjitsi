@@ -16,8 +16,8 @@
 package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.service.configuration.ConfigurationService;
-import org.jitsi.service.libjitsi.LibJitsi;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.util.*;
@@ -59,20 +59,19 @@ public class CachingTransformer
      * Configuration property for number of streams to cache
      */
     public final static String NACK_CACHE_SIZE_STREAMS
-            = "net.java.sip.communicator.nack.CACHE_SIZE_STREAMS";
+            = "org.jitsi.impl.neomedia.transform.CachingTransformer.CACHE_SIZE_STREAMS";
 
     /**
      * Configuration property number of packets to cache.
      */
     public final static String NACK_CACHE_SIZE_PACKETS
-            = "net.java.sip.communicator.nack.CACHE_SIZE_PACKETS";
+            = "org.jitsi.impl.neomedia.transform.CachingTransformer.CACHE_SIZE_PACKETS";
 
     /**
      * Configuration property for nack cache size in milliseconds.
      */
     public final static String NACK_CACHE_SIZE_MILLIS
-            = "net.java.sip.communicator.nack.CACHE_SIZE_MILLIS";
-
+            = "org.jitsi.impl.neomedia.transform.CachingTransformer.CACHE_SIZE_MILLIS";
 
     /**
      * The period of time between calls to {@link #process} will be requested
