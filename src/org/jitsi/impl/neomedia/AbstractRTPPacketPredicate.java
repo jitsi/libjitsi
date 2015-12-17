@@ -16,7 +16,7 @@ public class AbstractRTPPacketPredicate
         = Logger.getLogger(RTPPacketPredicate.class);
 
     /**
-     * True
+     * True if this prediacte should test for RTCP, false for RTP.
      */
     private final boolean rtcp;
 
