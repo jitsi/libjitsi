@@ -16,38 +16,23 @@
 
 package org.jitsi.impl.neomedia;
 
-import net.sf.fmj.media.rtp.*;
-import org.jitsi.util.*;
-import org.jitsi.util.function.*;
-
 /**
  * Represents a predicate (boolean-valued function) of a <tt>RawPacket</tt>.
  *
  * @author George Politis
  */
 public class RTPPacketPredicate
-    implements Predicate<RawPacket>
+    extends AbstractRTPPacketPredicate
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>RTPPacketPredicate</tt> class.
+     * Ctor.
      */
-    private static final Logger logger
-        = Logger.getLogger(RTPPacketPredicate.class);
-
+    public RTPPacketPredicate()
+    {
+        super(false);
+    }
     /**
      * The singleton instance of this class.
      */
     public static final RTPPacketPredicate instance = new RTPPacketPredicate();
-
-    public boolean test(RawPacket pkt)
-    {
-        boolean result = pkt != null && pkt.getVersion() == RTPHeader.VERSION;
-
-        if (!result)
-        {
-            logger.debug("Caught a non-RTP packet.");
-        }
-
-        return result;
-    }
 }
