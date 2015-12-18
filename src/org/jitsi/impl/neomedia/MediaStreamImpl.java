@@ -480,7 +480,7 @@ public class MediaStreamImpl
 
             if (rtpManager != null)
             {
-                // we do not add RED and FEC payload types to the RTP Manager,
+                // We do not add RED and FEC payload types to the RTP Manager
                 // because RED and FEC packets will be handled before they get
                 // to the RTP Manager.
                 rtpManager.addFormat(
@@ -1835,11 +1835,9 @@ public class MediaStreamImpl
 
             rtpManager.initialize(rtpConnector);
 
-            /*
-             * JMF initializes the local SSRC upon #initialize(RTPConnector) so
-             * now's the time to ask. As JMF stores the SSRC as a 32-bit signed
-             * integer value, convert it to unsigned.
-             */
+            // JMF initializes the local SSRC upon #initialize(RTPConnector) so
+            // now's the time to ask. As JMF stores the SSRC as a 32-bit signed
+            // integer value, convert it to unsigned.
             long localSSRC = rtpManager.getLocalSSRC();
 
             setLocalSourceID(

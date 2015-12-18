@@ -38,8 +38,7 @@ class StreamRTPManagerDesc
 
     public RTPConnectorDesc connectorDesc;
 
-    private final Map<Integer, Format> formats
-        = new HashMap<Integer, Format>();
+    private final Map<Integer, Format> formats = new HashMap<>();
 
     /**
      * The list of synchronization source (SSRC) identifiers received by
@@ -55,7 +54,7 @@ class StreamRTPManagerDesc
     private int[] receiveSSRCs = EMPTY_INT_ARRAY;
 
     private final List<ReceiveStreamListener> receiveStreamListeners
-        = new LinkedList<ReceiveStreamListener>();
+        = new LinkedList<>();
 
     public final StreamRTPManager streamRTPManager;
 

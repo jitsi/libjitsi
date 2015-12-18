@@ -41,7 +41,7 @@ class OutputDataStreamDesc
      * describe an endpoint <tt>OutputDataStream</tt> for an
      * <tt>RTPTranslatorImpl</tt>.
      *
-     * @param connectorDesc the endpoint <tt>RTPConnector</tt> which own the
+     * @param connectorDesc the endpoint <tt>RTPConnector</tt> which owns the
      * specified <tt>stream</tt>
      * @param stream the endpoint <tt>OutputDataStream</tt> to be described by
      * the new instance for an <tt>RTPTranslatorImpl</tt>
