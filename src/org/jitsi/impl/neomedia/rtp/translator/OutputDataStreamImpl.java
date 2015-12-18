@@ -76,7 +76,20 @@ class OutputDataStreamImpl
      */
     private final boolean _removeRTPHeaderExtensions;
 
-    private final List<OutputDataStreamDesc> streams = new ArrayList<>();
+    /**
+     * The {@code List} of {@code OutputDataStream}s into which this
+     * {@code OutputDataStream} copies written data/packets. Implemented as a
+     * copy-on-write storage in order to reduce synchronized blocks and deadlock
+     * risks. I do NOT want to use {@code CopyOnWriteArrayList} because I want
+     * to (1) avoid {@code Iterator}s and (2) reduce synchronization. The access
+     * to {@link #_streams} is synchronized by {@link #_streamsSyncRoot}.
+     */
+    private List<OutputDataStreamDesc> _streams = Collections.emptyList();
+
+    /**
+     * The {@code Object} which synchronizes the access to {@link #_streams}.
+     */
+    private final Object _streamsSyncRoot = new Object();
 
     private final RTPTranslatorBuffer[] writeQ
         = new RTPTranslatorBuffer[WRITE_Q_CAPACITY];
@@ -99,19 +112,40 @@ class OutputDataStreamImpl
                     false);
     }
 
-    public synchronized void addStream(
+    /**
+     * Adds a new {@code OutputDataStream} to the list of
+     * {@code OutputDataStream}s into which this {@code OutputDataStream} copies
+     * written data/packets. If this instance contains the specified
+     * {@code stream} already, does nothing.
+     *
+     * @param connectorDesc the endpoint {@code RTPConnector} which owns
+     * {@code stream}
+     * @param stream the {@code OutputDataStream} to add to this instance
+     */
+    public void addStream(
             RTPConnectorDesc connectorDesc,
             OutputDataStream stream)
     {
-        for (OutputDataStreamDesc streamDesc : streams)
+        synchronized (_streamsSyncRoot)
         {
-            if ((streamDesc.connectorDesc == connectorDesc)
-                    && (streamDesc.stream == stream))
+            // Prevent repetitions.
+            for (OutputDataStreamDesc streamDesc : _streams)
             {
-                return;
+                if (streamDesc.connectorDesc == connectorDesc
+                        && streamDesc.stream == stream)
+                {
+                    return;
+                }
             }
+
+            // Add. Copy on write.
+            List<OutputDataStreamDesc> newStreams
+                = new ArrayList<>(_streams.size() * 3 / 2 + 1);
+
+            newStreams.addAll(_streams);
+            newStreams.add(new OutputDataStreamDesc(connectorDesc, stream));
+            _streams = newStreams;
         }
-        streams.add(new OutputDataStreamDesc(connectorDesc, stream));
     }
 
     public synchronized void close()
@@ -128,8 +162,8 @@ class OutputDataStreamImpl
         writeThread.start();
     }
 
-    private synchronized int doWrite(
-            byte[] buffer, int offset, int length,
+    private int doWrite(
+            byte[] buf, int off, int len,
             Format format,
             StreamRTPManagerDesc exclusion)
     {
@@ -138,18 +172,21 @@ class OutputDataStreamImpl
         if (translator == null)
             return 0;
 
+        // XXX The field _streams is explicitly implemented as a copy-on-write
+        // storage in order to avoid synchronization and, especially, here where
+        // I'm to invoke writes on multiple other OutputDataStreams.
+        List<OutputDataStreamDesc> streams = _streams;
         boolean removeRTPHeaderExtensions = _removeRTPHeaderExtensions;
         int written = 0;
 
-        for (int streamIndex = 0, streamCount = streams.size();
-                streamIndex < streamCount;
-                streamIndex++)
+        // XXX I do NOT want to use an Iterator.
+        for (int i = 0, end = streams.size(); i < end; ++i)
         {
-            OutputDataStreamDesc streamDesc = streams.get(streamIndex);
-            StreamRTPManagerDesc streamRTPManagerDesc
-                = streamDesc.connectorDesc.streamRTPManagerDesc;
+            OutputDataStreamDesc s = streams.get(i);
+            StreamRTPManagerDesc streamRTPManager
+                = s.connectorDesc.streamRTPManagerDesc;
 
-            if (streamRTPManagerDesc == exclusion)
+            if (streamRTPManager == exclusion)
                 continue;
 
             boolean write;
@@ -164,14 +201,13 @@ class OutputDataStreamImpl
                 if (removeRTPHeaderExtensions)
                 {
                     removeRTPHeaderExtensions = false;
-                    length
-                        = removeRTPHeaderExtensions(buffer, offset, length);
+                    len = removeRTPHeaderExtensions(buf, off, len);
                 }
 
                 write
                     = willWriteData(
-                            streamRTPManagerDesc,
-                            buffer, offset, length,
+                            streamRTPManager,
+                            buf, off, len,
                             format,
                             exclusion);
             }
@@ -179,8 +215,8 @@ class OutputDataStreamImpl
             {
                 write
                     = willWriteControl(
-                            streamRTPManagerDesc,
-                            buffer, offset, length,
+                            streamRTPManager,
+                            buf, off, len,
                             format,
                             exclusion);
             }
@@ -192,17 +228,16 @@ class OutputDataStreamImpl
             write
                 = translator.willWrite(
                         /* source */ exclusion,
-                        buffer, offset, length,
-                        /* destination */ streamRTPManagerDesc,
+                        buf, off, len,
+                        /* destination */ streamRTPManager,
                         _data);
             if (!write)
                 continue;
 
-            int streamWritten
-                = streamDesc.stream.write(buffer, offset, length);
+            int w = s.stream.write(buf, off, len);
 
-            if (written < streamWritten)
-                written = streamWritten;
+            if (written < w)
+                written = w;
         }
         return written;
     }
@@ -225,12 +260,10 @@ class OutputDataStreamImpl
      * <tt>off</tt> comprising the actual data after the possible removal of
      * the RTP header extension(s)
      */
-    private int removeRTPHeaderExtensions(byte[] buf, int off, int len)
+    private static int removeRTPHeaderExtensions(byte[] buf, int off, int len)
     {
-        /*
-         * Do the bytes in the specified buffer resemble (a header of) an
-         * RTP packet?
-         */
+        // Do the bytes in the specified buffer resemble (the header of) an
+        // RTP packet?
         if (len >= RTPHeader.SIZE)
         {
             byte b0 = buf[off];
@@ -273,16 +306,30 @@ class OutputDataStreamImpl
         return len;
     }
 
-    public synchronized void removeStreams(RTPConnectorDesc connectorDesc)
+    /**
+     * Removes the {@code OutputDataStream}s owned by a specific
+     * {@code RTPConnector} from the list of {@code OutputDataStream}s into
+     * which this {@code OutputDataStream} copies written data/packets.
+     *
+     * @param connectorDesc the {@code RTPConnector} that is the owner of the
+     * {@code OutputDataStream}s to remove from this instance.
+     */
+    public void removeStreams(RTPConnectorDesc connectorDesc)
     {
-        Iterator<OutputDataStreamDesc> streamIter = streams.iterator();
-
-        while (streamIter.hasNext())
+        synchronized (_streamsSyncRoot)
         {
-            OutputDataStreamDesc streamDesc = streamIter.next();
+            // Copy on write. Well, we aren't sure yet whether a write is going
+            // to happen but it's the caller's fault if they ask this instance
+            // to remove an RTPConnector which this instance doesn't contain.
+            List<OutputDataStreamDesc> newStreams = new ArrayList<>(_streams);
 
-            if (streamDesc.connectorDesc == connectorDesc)
-                streamIter.remove();
+            for (Iterator<OutputDataStreamDesc> i = newStreams.iterator();
+                    i.hasNext();)
+            {
+                if (i.next().connectorDesc == connectorDesc)
+                    i.remove();
+            }
+            _streams = newStreams;
         }
     }
 
@@ -349,7 +396,7 @@ class OutputDataStreamImpl
                     {
                         RTPTranslatorBuffer write = writeQ[writeIndex];
 
-                        if ((write != null) && (write.data == null))
+                        if (write != null && write.data == null)
                             write.data = buffer;
                     }
                 }
@@ -368,7 +415,7 @@ class OutputDataStreamImpl
             {
                 if (Thread.currentThread().equals(writeThread))
                     writeThread = null;
-                if (!closed && (writeThread == null) && (writeQLength > 0))
+                if (!closed && writeThread == null && writeQLength > 0)
                     createWriteThread();
             }
         }
@@ -404,7 +451,7 @@ class OutputDataStreamImpl
     {
         boolean write = true;
 
-        // Do the bytes in the specified buffer resemble (a header of) an RTCP
+        // Do the bytes in the specified buffer resemble (the header of) an RTCP
         // packet?
         if (length >= 12 /* FB */)
         {
@@ -500,12 +547,12 @@ class OutputDataStreamImpl
      *
      * @param destination the <tt>StreamRTPManagerDesc</tt> which is the
      * destination of the write
-     * @param buffer the data to be written into <tt>destination</tt>
-     * @param offset the offset in <tt>buffer</tt> at which the data to be
-     * written into <tt>destination</tt> starts 
-     * @param length the number of <tt>byte</tt>s in <tt>buffer</tt>
-     * beginning at <tt>offset</tt> which constitute the data to the written
-     * into <tt>destination</tt>
+     * @param buf the data to be written into <tt>destination</tt>
+     * @param off the offset in <tt>buf</tt> at which the data to be written
+     * into <tt>destination</tt> starts
+     * @param len the number of <tt>byte</tt>s in <tt>buf</tt> beginning at
+     * <tt>off</tt> which constitute the data to the written into
+     * <tt>destination</tt>
      * @param format the FMJ <tt>Format</tt> of the data to be written into
      * <tt>destination</tt>
      * @param exclusion the <tt>StreamRTPManagerDesc</tt> which is exclude
@@ -517,34 +564,32 @@ class OutputDataStreamImpl
      */
     private boolean willWriteData(
             StreamRTPManagerDesc destination,
-            byte[] buffer, int offset, int length,
+            byte[] buf, int off, int len,
             Format format,
             StreamRTPManagerDesc exclusion)
     {
-        /*
-         * Only write data packets to OutputDataStreams for which the
-         * associated MediaStream allows sending.
-         */
+        // Only write data packets to OutputDataStreams for which the
+        // associated MediaStream allows sending.
         if (!destination.streamRTPManager.getMediaStream().getDirection()
                 .allowsSending())
         {
             return false;
         }
 
-        if ((format != null) && (length > 0))
+        if (format != null && len > 0)
         {
-            Integer payloadType = destination.getPayloadType(format);
+            Integer pt = destination.getPayloadType(format);
 
-            if ((payloadType == null) && (exclusion != null))
-                payloadType = exclusion.getPayloadType(format);
-            if (payloadType != null)
+            if (pt == null && exclusion != null)
             {
-                int payloadTypeByteIndex = offset + 1;
+                pt = exclusion.getPayloadType(format);
+            }
+            if (pt != null)
+            {
+                int ptByteIndex = off + 1;
 
-                buffer[payloadTypeByteIndex]
-                    = (byte)
-                        ((buffer[payloadTypeByteIndex] & 0x80)
-                            | (payloadType & 0x7f));
+                buf[ptByteIndex]
+                    = (byte) ((buf[ptByteIndex] & 0x80) | (pt & 0x7f));
             }
         }
 
@@ -552,13 +597,15 @@ class OutputDataStreamImpl
     }
 
     @Override
-    public int write(byte[] buffer, int offset, int length)
+    public int write(byte[] buf, int off, int len)
     {
-        return doWrite(buffer, offset, length, null, null);
+        // FIXME It's unclear at the time of this writing why the method doWrite
+        // is being invoked here and not the overloaded method write.
+        return doWrite(buf, off, len, /* format */ null, /* exclusion */ null);
     }
 
     public synchronized void write(
-            byte[] buffer, int offset, int length,
+            byte[] buf, int off, int len,
             Format format,
             StreamRTPManagerDesc exclusion)
     {
@@ -588,13 +635,13 @@ class OutputDataStreamImpl
 
         byte[] data = write.data;
 
-        if ((data == null) || (data.length < length))
-            write.data = data = new byte[length];
-        System.arraycopy(buffer, offset, data, 0, length);
+        if (data == null || data.length < len)
+            write.data = data = new byte[len];
+        System.arraycopy(buf, off, data, 0, len);
 
         write.exclusion = exclusion;
         write.format = format;
-        write.length = length;
+        write.length = len;
 
         writeQLength++;
 
@@ -613,24 +660,22 @@ class OutputDataStreamImpl
      * @return <tt>true</tt> if the <tt>controlPayload</tt> was written
      * into the <tt>destination</tt>; otherwise, <tt>false</tt>
      */
-    synchronized boolean writeControlPayload(
-            Payload controlPayload,
-            MediaStream destination)
+    boolean writeControlPayload(Payload controlPayload, MediaStream destination)
     {
-        for (int streamIndex = 0, streamCount = streams.size();
-                streamIndex < streamCount;
-                streamIndex++)
+        // XXX The field _streams is explicitly implemented as a copy-on-write
+        // storage in order to avoid synchronization.
+        List<OutputDataStreamDesc> streams = _streams;
+
+        // XXX I do NOT want to use an Iterator.
+        for (int i = 0, end = streams.size(); i < end; ++i)
         {
-            OutputDataStreamDesc streamDesc = streams.get(streamIndex);
+            OutputDataStreamDesc s = streams.get(i);
 
             if (destination
-                    == streamDesc
-                        .connectorDesc
-                            .streamRTPManagerDesc
-                                .streamRTPManager
-                                    .getMediaStream())
+                    == s.connectorDesc.streamRTPManagerDesc.streamRTPManager
+                            .getMediaStream())
             {
-                controlPayload.writeTo(streamDesc.stream);
+                controlPayload.writeTo(s.stream);
                 return true;
             }
         }

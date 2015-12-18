@@ -119,53 +119,50 @@ public class RTPTranslatorImpl
     }
 
     /**
-     * Logs information about an RTCP packet using {@link #logger} for debugging
+     * Logs information about an RTCP packet using {@link #LOGGER} for debugging
      * purposes.
      *
      * @param obj the object which is the source of the log request
      * @param methodName the name of the method on <tt>obj</tt> which is the
      * source of the log request
-     * @param buffer the <tt>byte</tt>s which (possibly) represent an RTCP
+     * @param buf the <tt>byte</tt>s which (possibly) represent an RTCP
      * packet to be logged for debugging purposes
-     * @param offset the position within <tt>buffer</tt> at which the valid data
+     * @param off the position within <tt>buf</tt> at which the valid data
      * begins
-     * @param length the number of bytes in <tt>buffer</tt> which constitute the
-     * valid data
+     * @param len the number of bytes in <tt>buf</tt> which constitute the valid
+     * data
      */
     static void logRTCP(
             Object obj, String methodName,
-            byte[] buffer, int offset, int length)
+            byte[] buf, int off, int len)
     {
-        /*
-         * Do the bytes in the specified buffer resemble (a header of) an RTCP
-         * packet?
-         */
-        if (length >= 8 /* BYE */)
+        // Do the bytes in the specified buffer resemble (a header of) an RTCP
+        // packet?
+        if (len >= 8 /* BYE */)
         {
-            byte b0 = buffer[offset];
+            byte b0 = buf[off];
             int v = (b0 & 0xc0) >>> 6;
 
             if (v == RTCPHeader.VERSION)
             {
-                byte b1 = buffer[offset + 1];
+                byte b1 = buf[off + 1];
                 int pt = b1 & 0xff;
 
                 if (pt == 203 /* BYE */)
                 {
                     // Verify the length field.
-                    int rtcpLength
-                        = (readUnsignedShort(buffer, offset + 2) + 1) * 4;
+                    int rtcpLength = (readUnsignedShort(buf, off + 2) + 1) * 4;
 
-                    if (rtcpLength <= length)
+                    if (rtcpLength <= len)
                     {
                         int sc = b0 & 0x1f;
-                        int off = offset + 4;
+                        int o = off + 4;
 
-                        for (int i = 0, end = offset + length;
-                                (i < sc) && (off + 4 <= end);
-                                i++, off += 4)
+                        for (int i = 0, end = off + len;
+                                i < sc && o + 4 <= end;
+                                ++i, o += 4)
                         {
-                            int ssrc = readInt(buffer, off);
+                            int ssrc = readInt(buf, o);
 
                             LOGGER.trace(
                                     obj.getClass().getName() + '.' + methodName
@@ -233,7 +230,7 @@ public class RTPTranslatorImpl
      * <tt>synchronized</tt> blocks in order to reduce the number of exclusive
      * locks and, therefore, the risks of superfluous waiting.
      */
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final ReadWriteLock _lock = new ReentrantReadWriteLock();
 
     /**
      * The <tt>RTPManager</tt> which implements the actual RTP management of
@@ -288,25 +285,29 @@ public class RTPTranslatorImpl
             StreamRTPManager streamRTPManager,
             Format format, int payloadType)
     {
-        Lock lock = this.lock.writeLock();
+        Lock lock = _lock.writeLock();
+        StreamRTPManagerDesc desc;
 
         lock.lock();
         try
         {
 
+        // XXX RTPManager.addFormat is NOT thread-safe. It appears we have
+        // decided to provide thread-safety at least on our side. Which may be
+        // insufficient in all use cases but it still sounds reasonable in our
+        // current use cases.
         manager.addFormat(format, payloadType);
-        // XXX Here we could probably downgrade to a read lock, or even
-        // completely release, the lock after we get the StreamRTPManagerDesc,
-        // but does it worth it?
-        getStreamRTPManagerDesc(streamRTPManager, true).addFormat(
-                format,
-                payloadType);
+
+        desc = getStreamRTPManagerDesc(streamRTPManager, true);
 
         }
         finally
         {
             lock.unlock();
         }
+
+        // StreamRTPManager.addFormat is thread-safe.
+        desc.addFormat(format,payloadType);
     }
 
     /**
@@ -332,22 +333,8 @@ public class RTPTranslatorImpl
             StreamRTPManager streamRTPManager,
             ReceiveStreamListener listener)
     {
-        Lock lock = this.lock.writeLock();
-
-        lock.lock();
-        try
-        {
-
-        // XXX Here we could probably downgrade to a read lock, or even
-        // completely release, the lock after we get the StreamRTPManagerDesc.
         getStreamRTPManagerDesc(streamRTPManager, true)
             .addReceiveStreamListener(listener);
-
-        }
-        finally
-        {
-            lock.unlock();
-        }
     }
 
     /**
@@ -403,7 +390,7 @@ public class RTPTranslatorImpl
         // XXX Here we could potentially start with a read lock and upgrade to
         // a write lock, if the sendStreamDesc is in the sendStreams collection,
         // but does it worth it?
-        Lock lock = this.lock.writeLock();
+        Lock lock = _lock.writeLock();
 
         lock.lock();
         try
@@ -472,7 +459,7 @@ public class RTPTranslatorImpl
         // XXX Here we could potentially start with a read lock and upgrade to
         // a write lock, if the sendStreamDesc is not in sendStreams collection,
         // but does it worth it?
-        Lock lock = this.lock.writeLock();
+        Lock lock = _lock.writeLock();
         SendStream ret;
 
         lock.lock();
@@ -523,32 +510,32 @@ public class RTPTranslatorImpl
      *
      * @param streamDesc a <tt>PushSourceStreamDesc</tt> which identifies the
      * peer from which an RTP or RTCP packet has been received
-     * @param buffer the buffer which contains the bytes of the received RTP or
+     * @param buf the buffer which contains the bytes of the received RTP or
      * RTCP packet
-     * @param offset the zero-based index in <tt>buffer</tt> at which the bytes
-     * of the received RTP or RTCP packet begin
-     * @param length the number of bytes in <tt>buffer</tt> beginning at
-     * <tt>offset</tt> which represent the received RTP or RTCP packet
+     * @param off the zero-based index in <tt>buf</tt> at which the bytes of the
+     * received RTP or RTCP packet begin
+     * @param len the number of bytes in <tt>buf</tt> beginning at <tt>off</tt>
+     * which represent the received RTP or RTCP packet
      * @param flags <tt>Buffer.FLAG_XXX</tt>
-     * @return the number of bytes in <tt>buffer</tt> beginning at
-     * <tt>offset</tt> which represent the received RTP or RTCP packet
+     * @return the number of bytes in <tt>buf</tt> beginning at <tt>off</tt>
+     * which represent the received RTP or RTCP packet
      * @throws IOException if an I/O error occurs while the method processes the
      * specified RTP or RTCP packet
      */
     int didRead(
             PushSourceStreamDesc streamDesc,
-            byte[] buffer, int offset, int length,
+            byte[] buf, int off, int len,
             int flags)
         throws IOException
     {
-        Lock lock = this.lock.readLock();
+        Lock lock = _lock.readLock();
 
         lock.lock();
         try
         {
 
         boolean data = streamDesc.data;
-        StreamRTPManagerDesc streamRTPManagerDesc
+        StreamRTPManagerDesc streamRTPManager
             = streamDesc.connectorDesc.streamRTPManagerDesc;
         Format format = null;
 
@@ -556,14 +543,14 @@ public class RTPTranslatorImpl
         {
             // Ignore RTP packets coming from peers whose MediaStream's
             // direction does not allow receiving.
-            if (!streamRTPManagerDesc.streamRTPManager.getMediaStream()
+            if (!streamRTPManager.streamRTPManager.getMediaStream()
                     .getDirection().allowsReceiving())
             {
                 // FIXME We are ignoring RTP packets received from peers who we
                 // do not want to receive from ONLY in the sense that we are not
                 // translating/forwarding them to the other peers. Do not we
                 // want to not receive them locally as well?
-                return length;
+                return len;
             }
 
             // We flag an RTP packet with Buffer.FLAG_SILENCE when we want to
@@ -571,24 +558,23 @@ public class RTPTranslatorImpl
             // decryption as a result of the flag, it is unwise to
             // translate/forward it.
             if ((flags & Buffer.FLAG_SILENCE) == Buffer.FLAG_SILENCE)
-                return length;
+                return len;
 
             // Do the bytes in the specified buffer resemble (a header of) an
             // RTP packet?
-            if ((length >= RTPHeader.SIZE)
-                    && (/* v */ ((buffer[offset] & 0xc0) >>> 6)
-                            == RTPHeader.VERSION))
+            if ((len >= RTPHeader.SIZE)
+                    && (/* v */ ((buf[off] & 0xc0) >>> 6) == RTPHeader.VERSION))
             {
-                int ssrc = readInt(buffer, offset + 8);
+                int ssrc = readInt(buf, off + 8);
 
-                if (!streamRTPManagerDesc.containsReceiveSSRC(ssrc))
+                if (!streamRTPManager.containsReceiveSSRC(ssrc))
                 {
                     if (findStreamRTPManagerDescByReceiveSSRC(
                                 ssrc,
-                                streamRTPManagerDesc)
+                                streamRTPManager)
                             == null)
                     {
-                        streamRTPManagerDesc.addReceiveSSRC(ssrc);
+                        streamRTPManager.addReceiveSSRC(ssrc);
                     }
                     else
                     {
@@ -596,14 +582,14 @@ public class RTPTranslatorImpl
                     }
                 }
 
-                int pt = buffer[offset + 1] & 0x7f;
+                int pt = buf[off + 1] & 0x7f;
 
-                format = streamRTPManagerDesc.getFormat(pt);
+                format = streamRTPManager.getFormat(pt);
             }
         }
         else if (LOGGER.isTraceEnabled())
         {
-            logRTCP(this, "read", buffer, offset, length);
+            logRTCP(this, "read", buf, off, len);
         }
 
         OutputDataStreamImpl outputStream
@@ -613,10 +599,7 @@ public class RTPTranslatorImpl
 
         if (outputStream != null)
         {
-            outputStream.write(
-                    buffer, offset, length,
-                    format,
-                    streamRTPManagerDesc);
+            outputStream.write(buf, off, len, format, streamRTPManager);
         }
 
         }
@@ -625,7 +608,7 @@ public class RTPTranslatorImpl
             lock.unlock();
         }
 
-        return length;
+        return len;
     }
 
     /**
@@ -635,7 +618,7 @@ public class RTPTranslatorImpl
     @Override
     public void dispose()
     {
-        Lock lock = this.lock.writeLock();
+        Lock lock = _lock.writeLock();
 
         lock.lock();
         try
@@ -679,7 +662,7 @@ public class RTPTranslatorImpl
         // a write lock, if the streamRTPManager is in the streamRTPManagers
         // collection. Not sure about the up/down grading performance hit
         // though.
-        Lock lock = this.lock.writeLock();
+        Lock lock = _lock.writeLock();
 
         lock.lock();
         try
@@ -734,7 +717,7 @@ public class RTPTranslatorImpl
             int receiveSSRC,
             StreamRTPManagerDesc exclusion)
     {
-        Lock lock = this.lock.readLock();
+        Lock lock = _lock.readLock();
         StreamRTPManagerDesc ret = null;
 
         lock.lock();
@@ -847,7 +830,7 @@ public class RTPTranslatorImpl
     public Vector<ReceiveStream> getReceiveStreams(
             StreamRTPManager streamRTPManager)
     {
-        Lock lock = this.lock.readLock();
+        Lock lock = _lock.readLock();
         Vector<ReceiveStream> receiveStreams = null;
 
         lock.lock();
@@ -911,7 +894,7 @@ public class RTPTranslatorImpl
     public Vector<SendStream> getSendStreams(
             StreamRTPManager streamRTPManager)
     {
-        Lock lock = this.lock.readLock();
+        Lock lock = _lock.readLock();
         Vector<SendStream> sendStreams = null;
 
         lock.lock();
@@ -949,7 +932,7 @@ public class RTPTranslatorImpl
             StreamRTPManager streamRTPManager,
             boolean create)
     {
-        Lock lock = create ? this.lock.writeLock() : this.lock.readLock();
+        Lock lock = create ? _lock.writeLock() : _lock.readLock();
         StreamRTPManagerDesc ret = null;
 
         lock.lock();
@@ -965,7 +948,7 @@ public class RTPTranslatorImpl
             }
         }
 
-        if ((ret == null) && create)
+        if (ret == null && create)
         {
             ret = new StreamRTPManagerDesc(streamRTPManager);
             streamRTPManagers.add(ret);
@@ -999,8 +982,8 @@ public class RTPTranslatorImpl
             StreamRTPManager streamRTPManager,
             RTPConnector connector)
     {
-        Lock w = this.lock.writeLock();
-        Lock r = this.lock.readLock();
+        Lock w = _lock.writeLock();
+        Lock r = _lock.readLock();
         Lock lock; // the lock which is to eventually be unlocked
 
         w.lock();
@@ -1080,23 +1063,11 @@ public class RTPTranslatorImpl
             StreamRTPManager streamRTPManager,
             ReceiveStreamListener listener)
     {
-        Lock lock = this.lock.readLock();
-
-        lock.lock();
-        try
-        {
-
-        StreamRTPManagerDesc streamRTPManagerDesc
+        StreamRTPManagerDesc desc
             = getStreamRTPManagerDesc(streamRTPManager, false);
 
-        if (streamRTPManagerDesc != null)
-            streamRTPManagerDesc.removeReceiveStreamListener(listener);
-
-        }
-        finally
-        {
-            lock.unlock();
-        }
+        if (desc != null)
+            desc.removeReceiveStreamListener(listener);
     }
 
     /**
