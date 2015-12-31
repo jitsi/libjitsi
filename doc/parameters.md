@@ -18,7 +18,7 @@ The prefix of the property names the values of which specify the dynamic payload
 
 # ActiveSpeakerDetector
 
-##### org.jitsi.impl.neomedia.ActiveSpeakerDetectorImpl.implClassName
+##### org.jitsi.impl.neomedia.ActiveSpeakerDetectorImpl.implClassName=*String*
 
 Specifies the class name of the algorithm implementation for the detection/identification of the active/dominant speaker in a multipoint conference to be used by ActiveSpeakerDetectorImpl. The default value is null. If the specified value is null or the initialization of an instance of the specified class fails, ActiveSpeakerDetectorImpl falls back to a list of well-known algorithm implementations.
 
