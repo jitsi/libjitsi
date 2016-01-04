@@ -30,6 +30,7 @@ import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
+import org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.configuration.*;
@@ -455,6 +456,12 @@ public class VideoMediaStreamImpl
         = new VideoNotifierSupport(this, true);
 
     /**
+     * The {@code BandwidthEstimator} which estimates the available bandwidth
+     * from this endpoint to the remote peer.
+     */
+    private BandwidthEstimatorImpl bandwidthEstimator;
+
+    /**
      * Initializes a new <tt>VideoMediaStreamImpl</tt> instance which will use
      * the specified <tt>MediaDevice</tt> for both capture and playback of video
      * exchanged via the specified <tt>StreamConnector</tt>.
@@ -540,6 +547,11 @@ public class VideoMediaStreamImpl
             {
                 recurringProcessibleExecutor.deRegisterRecurringProcessible(
                         (RecurringProcessible) remoteBitrateEstimator);
+            }
+            if (bandwidthEstimator != null)
+            {
+                recurringProcessibleExecutor.deRegisterRecurringProcessible(
+                        bandwidthEstimator);
             }
         }
     }
@@ -1349,5 +1361,21 @@ public class VideoMediaStreamImpl
             }
         }
         return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public BandwidthEstimator getOrCreateBandwidthEstimator()
+    {
+        if (bandwidthEstimator == null)
+        {
+            bandwidthEstimator = new BandwidthEstimatorImpl(this);
+            recurringProcessibleExecutor.registerRecurringProcessible(
+                    bandwidthEstimator);
+            logger.info("Creating a BandwidthEstimator for stream " + this);
+        }
+        return bandwidthEstimator;
     }
 }
