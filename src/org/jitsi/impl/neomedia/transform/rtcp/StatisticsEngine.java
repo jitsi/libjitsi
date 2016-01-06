@@ -181,7 +181,7 @@ public class StatisticsEngine
      * packets.
      */
     private final PacketTransformer rtpTransformer
-            = new SinglePacketTransformer()
+            = new SinglePacketTransformer(RTPPacketPredicate.instance)
     {
         @Override
         public RawPacket transform(RawPacket pkt)
@@ -206,6 +206,9 @@ public class StatisticsEngine
      */
     public StatisticsEngine(MediaStreamImpl stream)
     {
+        // XXX think about removing the isRTCP method now that we have the
+        // RTCPPacketPredicate in place.
+        super(RTCPPacketPredicate.instance);
         this.mediaStream = stream;
 
         mediaType = this.mediaStream.getMediaType();
