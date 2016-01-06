@@ -356,7 +356,7 @@ class ExtendedSequenceNumberInterval
         // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         // |        length recovery        |
         // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-        short snBase = (short) (buf[off + 2] << 8 | buf[off + 3]);
+        short snBase = (short) ((buf[off + 2] & 0xff) << 8 | (buf[off + 3] & 0xff));
 
         SsrcGroupRewriter rewriter
             = getSsrcRewritingEngine().origin2rewriter.get(sourceSSRC);
