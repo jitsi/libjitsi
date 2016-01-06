@@ -90,7 +90,8 @@ public class StatisticsEngine
 
             if (v == RTCPHeader.VERSION)
             {
-                int words = (buf[off + 2] << 8) + (buf[off + 3] << 0);
+                int words = ((buf[off + 2] & 0xff) << 8) |
+                            ((buf[off + 3] & 0xff));
                 int bytes = (words + 1) * 4;
 
                 if (bytes <= len)
