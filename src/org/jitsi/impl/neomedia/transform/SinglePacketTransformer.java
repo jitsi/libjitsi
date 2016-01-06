@@ -124,36 +124,30 @@ public abstract class SinglePacketTransformer
             {
                 RawPacket pkt = pkts[i];
 
-                if (pkt == null)
+                if (pkt != null &&
+                    (packetPredicate == null || packetPredicate.test(pkt)))
                 {
-                    continue;
-                }
-
-                if (packetPredicate != null && !packetPredicate.test(pkt))
-                {
-                    continue;
-                }
-
-                try
-                {
-                    pkts[i] = transform(pkt);
-                }
-                catch (Throwable t)
-                {
-                    exceptionsInTransform++;
-                    if (((exceptionsInTransform % EXCEPTIONS_TO_LOG) == 0)
-                            || (exceptionsInTransform == 1))
+                    try
                     {
-                        logger.error(
-                                "Failed to transform RawPacket(s)!",
-                                t);
+                        pkts[i] = transform(pkt);
                     }
-                    if (t instanceof Error)
-                        throw (Error) t;
-                    else if (t instanceof RuntimeException)
-                        throw (RuntimeException) t;
-                    else
-                        throw new RuntimeException(t);
+                    catch (Throwable t)
+                    {
+                        exceptionsInTransform++;
+                        if (((exceptionsInTransform % EXCEPTIONS_TO_LOG) == 0)
+                                || (exceptionsInTransform == 1))
+                        {
+                            logger.error(
+                                    "Failed to transform RawPacket(s)!",
+                                    t);
+                        }
+                        if (t instanceof Error)
+                            throw (Error) t;
+                        else if (t instanceof RuntimeException)
+                            throw (RuntimeException) t;
+                        else
+                            throw new RuntimeException(t);
+                    }
                 }
             }
         }
@@ -175,7 +169,8 @@ public abstract class SinglePacketTransformer
             {
                 RawPacket pkt = pkts[i];
 
-                if (pkt != null)
+                if (pkt != null &&
+                    (packetPredicate == null || packetPredicate.test(pkt)))
                 {
                     try
                     {

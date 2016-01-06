@@ -187,16 +187,16 @@ public class StatisticsEngine
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-            if (pkt != null && pkt.getVersion() == RTPHeader.VERSION)
-                StatisticsEngine.this.rtpPacketsSent++;
+            StatisticsEngine.this.rtpPacketsSent++;
+
             return pkt;
         }
 
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
-            if (pkt != null && pkt.getVersion() == RTPHeader.VERSION)
-                StatisticsEngine.this.rtpPacketsReceived++;
+            StatisticsEngine.this.rtpPacketsReceived++;
+
             return pkt;
         }
     };

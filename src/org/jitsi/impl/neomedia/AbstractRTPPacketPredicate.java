@@ -31,20 +31,23 @@ public class AbstractRTPPacketPredicate
         = Logger.getLogger(RTPPacketPredicate.class);
 
     /**
-     * True if this prediacte should test for RTCP, false for RTP.
+     * True if this predicate should test for RTCP, false for RTP.
      */
     private final boolean rtcp;
 
     /**
      * Ctor.
      *
-     * @param rtcp true if this prediacte should test for RTCP, false for RTP.
+     * @param rtcp true if this predicate should test for RTCP, false for RTP.
      */
     public AbstractRTPPacketPredicate(boolean rtcp)
     {
         this.rtcp = rtcp;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean test(RawPacket pkt)
     {
