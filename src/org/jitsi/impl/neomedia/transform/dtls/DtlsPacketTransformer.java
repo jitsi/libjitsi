@@ -734,7 +734,7 @@ public class DtlsPacketTransformer
             short alertLevel,
             short alertDescription,
             String message,
-            Exception cause)
+            Throwable cause)
     {
         if (AlertLevel.warning == alertLevel
                 && AlertDescription.close_notify == alertDescription)

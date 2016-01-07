@@ -388,7 +388,7 @@ public class TlsServerImpl
             short alertLevel,
             short alertDescription,
             String message,
-            Exception cause)
+            Throwable cause)
     {
         packetTransformer.notifyAlertRaised(
                 this,
