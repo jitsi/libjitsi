@@ -22,7 +22,6 @@ import javax.media.control.*;
 import javax.media.rtp.*;
 
 import net.sf.fmj.media.rtp.*;
-import net.sf.fmj.media.rtp.RTPHeader; //disambiguation
 import net.sf.fmj.media.rtp.util.*;
 import net.sf.fmj.utility.*;
 

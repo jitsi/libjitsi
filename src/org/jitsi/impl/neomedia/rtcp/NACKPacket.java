@@ -19,7 +19,6 @@ import java.io.*;
 import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.util.*;
 
 /**
  * A class which represents an RTCP Generic NACK feedback message, as defined
@@ -54,13 +53,6 @@ import org.jitsi.util.*;
 public class NACKPacket
     extends RTCPFBPacket
 {
-    /**
-     * The <tt>Logger</tt> used by the <tt>NACKPacket</tt> class and its
-     * instances for logging output.
-     */
-    private static final Logger logger
-            = Logger.getLogger(NACKPacket.class);
-
     /**
      * The value of the "fmt" field for a NACK packet.
      */

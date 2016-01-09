@@ -24,7 +24,6 @@ import javax.media.control.*;
 import javax.media.format.*;
 import javax.media.protocol.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.util.*;

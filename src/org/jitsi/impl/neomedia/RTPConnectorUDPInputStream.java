@@ -20,7 +20,6 @@ import java.net.*;
 
 import org.ice4j.socket.*;
 import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 
 /**
