@@ -157,11 +157,9 @@ public class DtlsPacketTransformer
                 }
                 break;
             default:
-                /*
-                 * Unless a new ContentType has been defined by the Bouncy
-                 * Castle Crypto APIs, the specified buf does not represent a
-                 * DTLS record.
-                 */
+                // Unless a new ContentType has been defined by the Bouncy
+                // Castle Crypto APIs, the specified buf does not represent a
+                // DTLS record.
                 break;
             }
         }
@@ -220,9 +218,9 @@ public class DtlsPacketTransformer
     private DtlsControl.Setup setup;
 
     /**
-     * The <tt>SRTPTransformer</tt> to be used by this instance.
+     * The {@code SRTPTransformer} (to be) used by this instance.
      */
-    private SinglePacketTransformer srtpTransformer;
+    private SinglePacketTransformer _srtpTransformer;
 
     /**
      * The indicator which determines whether the <tt>TlsPeer</tt> employed by
@@ -259,11 +257,9 @@ public class DtlsPacketTransformer
     @Override
     public synchronized void close()
     {
-        /*
-         * SrtpControl.start(MediaType) starts its associated TransformEngine.
-         * We will use that mediaType to signal the normal stop then as well
-         * i.e. we will call setMediaType(null) first.
-         */
+        // SrtpControl.start(MediaType) starts its associated TransformEngine.
+        // We will use that mediaType to signal the normal stop then as well
+        // i.e. we will call setMediaType(null) first.
         setMediaType(null);
         setConnector(null);
     }
@@ -282,11 +278,9 @@ public class DtlsPacketTransformer
             }
             catch (IOException ioe)
             {
-                /*
-                 * DatagramTransportImpl has no reason to fail because it is
-                 * merely an adapter of #connector and this PacketTransformer to
-                 * the terms of the Bouncy Castle Crypto API.
-                 */
+                // DatagramTransportImpl has no reason to fail because it is
+                // merely an adapter of #connector and this PacketTransformer to
+                // the terms of the Bouncy Castle Crypto API.
                 logger.error(
                         "Failed to (properly) close "
                             + datagramTransport.getClass(),
@@ -310,7 +304,7 @@ public class DtlsPacketTransformer
             int i,
             DatagramTransport datagramTransport)
     {
-        if ((i < 0) || (i > CONNECT_TRIES))
+        if (i < 0 || i > CONNECT_TRIES)
         {
             return false;
         }
@@ -320,7 +314,7 @@ public class DtlsPacketTransformer
 
             synchronized (this)
             {
-                if ((i > 0) && (i < CONNECT_TRIES - 1))
+                if (i > 0 && i < CONNECT_TRIES - 1)
                 {
                     boolean interrupted = false;
 
@@ -383,12 +377,10 @@ public class DtlsPacketTransformer
             String msg,
             int i)
     {
-        /*
-         * SrtpControl.start(MediaType) starts its associated TransformEngine.
-         * We will use that mediaType to signal the normal stop then as well
-         * i.e. we will ignore exception after the procedure to stop this
-         * PacketTransformer has begun.
-         */
+        // SrtpControl.start(MediaType) starts its associated TransformEngine.
+        // We will use that mediaType to signal the normal stop then as well
+        // i.e. we will ignore exception after the procedure to stop this
+        // PacketTransformer has begun.
         if (mediaType == null)
             return false;
 
@@ -400,10 +392,10 @@ public class DtlsPacketTransformer
             if (alertDescription == AlertDescription.unexpected_message)
             {
                 msg += " Received fatal unexpected message.";
-                if ((i == 0)
+                if (i == 0
                         || !Thread.currentThread().equals(connectThread)
-                        || (connector == null)
-                        || (mediaType == null))
+                        || connector == null
+                        || mediaType == null)
                 {
                     msg
                         += " Giving up after " + (CONNECT_TRIES - i)
@@ -428,38 +420,41 @@ public class DtlsPacketTransformer
     }
 
     /**
-     * Tries to initialize {@link #srtpTransformer} by using the
+     * Tries to initialize {@link #_srtpTransformer} by using the
      * <tt>DtlsPacketTransformer</tt> for RTP.
      *
-     * @return the (possibly updated) value of {@link #srtpTransformer}.
+     * @return the (possibly updated) value of {@link #_srtpTransformer}.
      */
     private SinglePacketTransformer initializeSRTCPTransformerFromRtp()
     {
-        if (srtpTransformer != null)
-            return srtpTransformer; //already initialized
-
-        DtlsPacketTransformer rtpDtlsPacketTransformer
+        DtlsPacketTransformer rtpTransformer
             = (DtlsPacketTransformer) getTransformEngine().getRTPTransformer();
 
-        PacketTransformer rtpSrtpTransformer
-            = rtpDtlsPacketTransformer.srtpTransformer;
-
-        if (rtpSrtpTransformer != null
-                && rtpSrtpTransformer instanceof SRTPTransformer)
+        // Prevent recursion (that is pretty much impossible to ever happen).
+        if (rtpTransformer != this)
         {
-            synchronized (this)
+            PacketTransformer srtpTransformer
+                = rtpTransformer.waitInitializeAndGetSRTPTransformer();
+
+            if (srtpTransformer != null
+                    && srtpTransformer instanceof SRTPTransformer)
             {
-                if (srtpTransformer == null) //previous check was not synchronized
+                synchronized (this)
                 {
-                    DtlsPacketTransformer.this.srtpTransformer
-                        = new SRTCPTransformer(
-                            (SRTPTransformer) rtpSrtpTransformer);
+                    if (_srtpTransformer == null)
+                    {
+                        _srtpTransformer
+                            = new SRTCPTransformer(
+                                    (SRTPTransformer) srtpTransformer);
+                        // For the sake of completeness, we notify whenever we
+                        // assign to _srtpTransformer.
+                        notifyAll();
+                    }
                 }
-                return srtpTransformer;
             }
         }
 
-        return srtpTransformer;
+        return _srtpTransformer;
     }
 
     /**
@@ -656,8 +651,8 @@ public class DtlsPacketTransformer
             String message,
             Exception cause)
     {
-        if ((AlertLevel.warning == alertLevel)
-                && (AlertDescription.close_notify == alertDescription))
+        if (AlertLevel.warning == alertLevel
+                && AlertDescription.close_notify == alertDescription)
         {
             tlsPeerHasRaisedCloseNotifyWarning = true;
         }
@@ -704,11 +699,9 @@ public class DtlsPacketTransformer
 
                 if (dtlsTransport == null)
                 {
-                    /*
-                     * The specified pkt looks like a DTLS record and it has
-                     * been consumed for the purposes of the secure channel
-                     * represented by this PacketTransformer.
-                     */
+                    // The specified pkt looks like a DTLS record and it has
+                    // been consumed for the purposes of the secure channel
+                    // represented by this PacketTransformer.
                     pkt = null;
                 }
                 else
@@ -753,14 +746,12 @@ public class DtlsPacketTransformer
                     catch (IOException ioe)
                     {
                         pkt = null;
-                        /*
-                         * SrtpControl.start(MediaType) starts its associated
-                         * TransformEngine. We will use that mediaType to signal
-                         * the normal stop then as well i.e. we will ignore
-                         * exception after the procedure to stop this
-                         * PacketTransformer has begun.
-                         */
-                        if ((mediaType != null)
+                        // SrtpControl.start(MediaType) starts its associated
+                        // TransformEngine. We will use that mediaType to signal
+                        // the normal stop then as well i.e. we will ignore
+                        // exception after the procedure to stop this
+                        // PacketTransformer has begun.
+                        if (mediaType != null
                                 && !tlsPeerHasRaisedCloseNotifyWarning)
                         {
                             logger.error(
@@ -772,11 +763,10 @@ public class DtlsPacketTransformer
             }
             else
             {
-                /*
-                 * The specified pkt looks like a DTLS record but it is
-                 * unexpected in the current state of the secure channel
-                 * represented by this PacketTransformer.
-                 */
+                // The specified pkt looks like a DTLS record but it is
+                // unexpected in the current state of the secure channel
+                // represented by this PacketTransformer. This PacketTransformer
+                // has not been started (successfully) or has been closed.
                 pkt = null;
             }
         }
@@ -787,25 +777,18 @@ public class DtlsPacketTransformer
         }
         else
         {
-            /*
-             * XXX If DTLS-SRTP has not been initialized yet or has failed to
-             * initialize, it is our explicit policy to let the received packet
-             * pass through and rely on the SrtpListener to notify the user that
-             * the session is not secured.
-             */
-            SinglePacketTransformer srtpTransformer = this.srtpTransformer;
-
-            if (srtpTransformer == null
-                    && rtcpmux
-                    && Component.RTCP == componentID)
-            {
-                srtpTransformer = initializeSRTCPTransformerFromRtp();
-            }
+            // DTLS-SRTP has not been initialized yet or has failed to
+            // initialize.
+            SinglePacketTransformer srtpTransformer
+                = waitInitializeAndGetSRTPTransformer();
 
             if (srtpTransformer != null)
                 pkt = srtpTransformer.reverseTransform(pkt);
             else if (DROP_UNENCRYPTED_PKTS)
                 pkt = null;
+            // XXX Else, it is our explicit policy to let the received packet
+            // pass through and rely on the SrtpListener to notify the user that
+            // the session is not secured.
         }
         return pkt;
     }
@@ -823,9 +806,11 @@ public class DtlsPacketTransformer
             DatagramTransport datagramTransport)
     {
         DTLSTransport dtlsTransport = null;
+        final boolean srtp = !transformEngine.isSrtpDisabled();
         int srtpProtectionProfile = 0;
         TlsContext tlsContext = null;
 
+        // DTLS client
         if (dtlsProtocol instanceof DTLSClientProtocol)
         {
             DTLSClientProtocol dtlsClientProtocol
@@ -846,26 +831,23 @@ public class DtlsPacketTransformer
                 }
                 catch (IOException ioe)
                 {
-                    if (handleRunInConnectThreadException(
+                    if (!handleRunInConnectThreadException(
                             ioe,
                             "Failed to connect this DTLS client to a DTLS"
                                 + " server!",
                             i))
                     {
-                        continue;
-                    }
-                    else
-                    {
                         break;
                     }
                 }
             }
-            if (dtlsTransport != null && !transformEngine.isSrtpDisabled())
+            if (dtlsTransport != null && srtp)
             {
                 srtpProtectionProfile = tlsClient.getChosenProtectionProfile();
                 tlsContext = tlsClient.getContext();
             }
         }
+        // DTLS server
         else if (dtlsProtocol instanceof DTLSServerProtocol)
         {
             DTLSServerProtocol dtlsServerProtocol
@@ -886,30 +868,29 @@ public class DtlsPacketTransformer
                 }
                 catch (IOException ioe)
                 {
-                    if (handleRunInConnectThreadException(
+                    if (!handleRunInConnectThreadException(
                             ioe,
                             "Failed to accept a connection from a DTLS client!",
                             i))
-                    {
-                        continue;
-                    }
-                    else
                     {
                         break;
                     }
                 }
             }
-            if (dtlsTransport != null && !transformEngine.isSrtpDisabled())
+            if (dtlsTransport != null && srtp)
             {
                 srtpProtectionProfile = tlsServer.getChosenProtectionProfile();
                 tlsContext = tlsServer.getContext();
             }
         }
         else
+        {
+            // It MUST be either a DTLS client or a DTLS server.
             throw new IllegalStateException("dtlsProtocol");
+        }
 
         SinglePacketTransformer srtpTransformer
-            = (dtlsTransport == null || transformEngine.isSrtpDisabled())
+            = (dtlsTransport == null || !srtp)
                 ? null
                 : initializeSRTPTransformer(srtpProtectionProfile, tlsContext);
         boolean closeSRTPTransformer;
@@ -920,13 +901,12 @@ public class DtlsPacketTransformer
                     && datagramTransport.equals(this.datagramTransport))
             {
                 this.dtlsTransport = dtlsTransport;
-                this.srtpTransformer = srtpTransformer;
+                _srtpTransformer = srtpTransformer;
                 notifyAll();
             }
-            closeSRTPTransformer
-                = (this.srtpTransformer != srtpTransformer);
+            closeSRTPTransformer = (_srtpTransformer != srtpTransformer);
         }
-        if (closeSRTPTransformer && (srtpTransformer != null))
+        if (closeSRTPTransformer && srtpTransformer != null)
             srtpTransformer.close();
     }
 
@@ -941,7 +921,7 @@ public class DtlsPacketTransformer
     public void sendApplicationData(byte[] buf, int off, int len)
     {
         DTLSTransport dtlsTransport = this.dtlsTransport;
-        Exception exception = null;
+        Throwable throwable = null;
 
         if (dtlsTransport != null)
         {
@@ -951,28 +931,24 @@ public class DtlsPacketTransformer
             }
             catch (IOException ioe)
             {
-                exception = ioe;
+                throwable = ioe;
             }
         }
         else
         {
-            exception = new NullPointerException("dtlsTransport");
+            throwable = new NullPointerException("dtlsTransport");
         }
-
-        if (exception != null)
+        if (throwable != null)
         {
-            /*
-             * SrtpControl.start(MediaType) starts its associated
-             * TransformEngine. We will use that mediaType to signal the
-             * normal stop then as well i.e. we will ignore exception
-             * after the procedure to stop this PacketTransformer has
-             * begun.
-             */
-            if ((mediaType != null) && !tlsPeerHasRaisedCloseNotifyWarning)
+            // SrtpControl.start(MediaType) starts its associated
+            // TransformEngine. We will use that mediaType to signal the normal
+            // stop then as well i.e. we will ignore exception after the
+            // procedure to stop this PacketTransformer has begun.
+            if (mediaType != null && !tlsPeerHasRaisedCloseNotifyWarning)
             {
                 logger.error(
                         "Failed to send application data over DTLS transport: ",
-                        exception);
+                        throwable);
             }
         }
     }
@@ -1050,7 +1026,7 @@ public class DtlsPacketTransformer
     {
         if (this.datagramTransport != null)
         {
-            if ((this.connectThread == null) && (dtlsTransport == null))
+            if (this.connectThread == null && dtlsTransport == null)
             {
                 logger.warn(
                         getClass().getName()
@@ -1062,11 +1038,9 @@ public class DtlsPacketTransformer
 
         if (rtcpmux && Component.RTCP == componentID)
         {
-            /*
-             * In the case of rtcp-mux, the RTCP transformer does not create
-             * a DTLS session. The SRTP context (srtpTransformer) will be
-             * initialized on demand using initializeSRTCPTransformerFromRtp()
-             */
+            // In the case of rtcp-mux, the RTCP transformer does not create
+            // a DTLS session. The SRTP context (_srtpTransformer) will be
+            // initialized on demand using initializeSRTCPTransformerFromRtp().
             return;
         }
 
@@ -1158,10 +1132,8 @@ public class DtlsPacketTransformer
             connectThread = null;
         try
         {
-            /*
-             * The dtlsTransport and srtpTransformer SHOULD be closed, of
-             * course. The datagramTransport MUST be closed.
-             */
+            // The dtlsTransport and _srtpTransformer SHOULD be closed, of
+            // course. The datagramTransport MUST be closed.
             if (dtlsTransport != null)
             {
                 try
@@ -1177,10 +1149,10 @@ public class DtlsPacketTransformer
                 }
                 dtlsTransport = null;
             }
-            if (srtpTransformer != null)
+            if (_srtpTransformer != null)
             {
-                srtpTransformer.close();
-                srtpTransformer = null;
+                _srtpTransformer.close();
+                _srtpTransformer = null;
             }
         }
         finally
@@ -1206,74 +1178,106 @@ public class DtlsPacketTransformer
         int off = pkt.getOffset();
         int len = pkt.getLength();
 
-        /*
-         * If the specified pkt represents a DTLS record, then it should pass
-         * through this PacketTransformer (e.g. it has been sent through
-         * DatagramTransportImpl).
-         */
+        // If the specified pkt represents a DTLS record, then it should pass
+        // through this PacketTransformer (e.g. it has been sent through
+        // DatagramTransportImpl).
         if (isDtlsRecord(buf, off, len))
             return pkt;
 
-        /* SRTP mode */
+        // SRTP
         if (!transformEngine.isSrtpDisabled())
         {
-            /*
-             * XXX If DTLS-SRTP has not been initialized yet or has failed to
-             * initialize, it is our explicit policy to let the received packet
-             * pass through and rely on the SrtpListener to notify the user that
-             * the session is not secured.
-             */
-            SinglePacketTransformer srtpTransformer = this.srtpTransformer;
-
-            if (srtpTransformer == null
-                    && rtcpmux
-                    && Component.RTCP == componentID)
-            {
-                srtpTransformer = initializeSRTCPTransformerFromRtp();
-            }
+            // DTLS-SRTP has not been initialized yet or has failed to
+            // initialize.
+            SinglePacketTransformer srtpTransformer
+                = waitInitializeAndGetSRTPTransformer();
 
             if (srtpTransformer != null)
                 pkt = srtpTransformer.transform(pkt);
             else if (DROP_UNENCRYPTED_PKTS)
                 pkt = null;
+            // XXX Else, it is our explicit policy to let the received packet
+            // pass through and rely on the SrtpListener to notify the user that
+            // the session is not secured.
         }
-        /* Pure DTLS mode */
+        // Pure/non-SRTP DTLS
         else
         {
-            /*
-             * The specified pkt will pass through this PacketTransformer only
-             * if it gets transformed into a DTLS record.
-             */
+            // The specified pkt will pass through this PacketTransformer only
+            // if it gets transformed into a DTLS record.
             pkt = null;
 
-            DTLSTransport dtlsTransport = this.dtlsTransport;
-
-            if (dtlsTransport != null)
-            {
-                try
-                {
-                    dtlsTransport.send(buf, off, len);
-                }
-                catch (IOException ioe)
-                {
-                    /*
-                     * SrtpControl.start(MediaType) starts its associated
-                     * TransformEngine. We will use that mediaType to signal the
-                     * normal stop then as well i.e. we will ignore exception
-                     * after the procedure to stop this PacketTransformer has
-                     * begun.
-                     */
-                    if ((mediaType != null)
-                            && !tlsPeerHasRaisedCloseNotifyWarning)
-                    {
-                        logger.error(
-                                "Failed to send application data over DTLS"
-                                    + " transport!",
-                                ioe);
-                    }
-                }
-            }
+            sendApplicationData(buf, off, len);
         }
         return pkt;
+    }
+
+    /**
+     * Gets the {@code SRTPTransformer} used by this instance. If
+     * {@link #_srtpTransformer} does not exist (yet) and the state of this
+     * instance indicates that its initialization is in progess, then blocks
+     * until {@code _srtpTransformer} is initialized and returns it.
+     *
+     * @return the {@code SRTPTransformer} used by this instance
+     */
+    private SinglePacketTransformer waitInitializeAndGetSRTPTransformer()
+    {
+        SinglePacketTransformer srtpTransformer = _srtpTransformer;
+
+        if (srtpTransformer != null)
+            return srtpTransformer;
+
+        if (rtcpmux && Component.RTCP == componentID)
+            return initializeSRTCPTransformerFromRtp();
+
+        // XXX It is our explicit policy to rely on the SrtpListener to notify
+        // the user that the session is not secure. Unfortunately, (1) the
+        // SrtpListener is not supported by this DTLS SrtpControl implementation
+        // and (2) encrypted packets may arrive soon enough to be let through
+        // while _srtpTransformer is still initializing. Consequently, we will
+        // block and wait for _srtpTransformer to initialize.
+        boolean interrupted = false;
+
+        try
+        {
+            synchronized (this)
+            {
+                do
+                {
+                    srtpTransformer = _srtpTransformer;
+                    if (srtpTransformer != null)
+                        break; // _srtpTransformer is initialized
+
+                    if (connectThread == null)
+                    {
+                        // Though _srtpTransformer is NOT initialized, there is
+                        // no point in waiting because there is no one to
+                        // initialize it.
+                        break;
+                    }
+
+                    try
+                    {
+                        // It does not really matter (enough) how much we wait
+                        // here because we wait in a loop.
+                        long timeout = CONNECT_TRIES * CONNECT_RETRY_INTERVAL;
+
+                        wait(timeout);
+                    }
+                    catch (InterruptedException ie)
+                    {
+                        interrupted = true;
+                    }
+                }
+                while (true);
+            }
+        }
+        finally
+        {
+            if (interrupted)
+                Thread.currentThread().interrupt();
+        }
+
+        return srtpTransformer;
     }
 }
