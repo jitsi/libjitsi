@@ -178,7 +178,9 @@ public class RetransmissionRequester
         while (true)
         {
             if (closed)
+            {
                 break;
+            }
 
             synchronized (thread)
             {
@@ -188,12 +190,16 @@ public class RetransmissionRequester
                 synchronized (requesters)
                 {
                     for (Requester requester : requesters.values())
+                    {
                         if (requester.nextRequestAt != -1)
+                        {
                             if (nextRequestAt == -1
                                     || nextRequestAt > requester.nextRequestAt)
                             {
                                 nextRequestAt = requester.nextRequestAt;
                             }
+                        }
+                    }
                 }
 
                 long now = System.currentTimeMillis();
@@ -202,9 +208,14 @@ public class RetransmissionRequester
                     try
                     {
                         if (nextRequestAt == -1)
-                            thread.wait();
+                        {
+                            thread.wait(200);
+                            continue;
+                        }
                         else
+                        {
                             thread.wait(nextRequestAt - now);
+                        }
                     }
                     catch (InterruptedException ie)
                     {
