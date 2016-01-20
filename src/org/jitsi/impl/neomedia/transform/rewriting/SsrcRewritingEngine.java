@@ -187,7 +187,7 @@ public class SsrcRewritingEngine implements TransformEngine
     public SsrcRewritingEngine(MediaStream mediaStream)
     {
         this.mediaStream = mediaStream;
-        logDebug("Created a new SSRC rewriting engine.");
+        logger.debug("Created a new SSRC rewriting engine.");
     }
 
     /**
@@ -231,7 +231,7 @@ public class SsrcRewritingEngine implements TransformEngine
         // FIXME maps, again. What's wrong with simple arrays?
         if (!assertInitialized())
         {
-            logWarn("Failed to map/unmap because the SSRC rewriting engine is" +
+            logger.warn("Failed to map/unmap because the SSRC rewriting engine is" +
                     "not initialized.");
             return;
         }
@@ -317,78 +317,13 @@ public class SsrcRewritingEngine implements TransformEngine
     }
 
     /**
-     * Utility method that prepends the receiver identifier to the printed
-     * debug message.
-     *
-     * @param msg the debug message to print.
-     */
-    void logDebug(String msg)
-    {
-        if (logger.isDebugEnabled())
-        {
-            logger.debug(
-                    mediaStream.getProperty(
-                            MediaStream.PNAME_RECEIVER_IDENTIFIER)
-                        + ": " + msg);
-        }
-    }
-
-    /**
-     * Utility method that prepends the receiver identifier to the printed
-     * warn message.
-     *
-     * @param msg the warning message to print.
-     */
-    void logWarn(String msg)
-    {
-        if (logger.isWarnEnabled())
-        {
-            logger.warn(
-                    mediaStream.getProperty(
-                            MediaStream.PNAME_RECEIVER_IDENTIFIER)
-                        + ": " + msg);
-        }
-    }
-
-     /**
-      * Utility method that prepends the receiver identifier to the printed
-      * error message.
-      *
-      * @param msg the error message to print.
-      * @param t the throwable that caused the error.
-     */
-    private void logError(String msg, Throwable t)
-    {
-        logger.error(
-                mediaStream.getProperty(MediaStream.PNAME_RECEIVER_IDENTIFIER)
-                    + ": " + msg, t);
-    }
-
-     /**
-      * Utility method that prepends the receiver identifier to the printed
-      * info message.
-      *
-      *  @param msg the info message to print.
-      */
-    void logInfo(String msg)
-    {
-        if (logger.isInfoEnabled())
-        {
-            logger.info(
-                    mediaStream.getProperty(
-                            MediaStream.PNAME_RECEIVER_IDENTIFIER)
-                        + ": " + msg);
-        }
-    }
-
-    /**
      * Initializes some expensive ConcurrentHashMaps for this engine instance.
      */
     private synchronized boolean assertInitialized()
     {
         if (mediaStream == null)
         {
-            logWarn("This instance is not properly initialized because " +
+            logger.warn("This instance is not properly initialized because " +
                     "the stream is null.");
             return false;
         }
@@ -398,7 +333,7 @@ public class SsrcRewritingEngine implements TransformEngine
             return true;
         }
 
-        logDebug("Initilizing the SSRC rewriting engine.");
+        logger.debug("Initilizing the SSRC rewriting engine.");
         origin2rewriter = new ConcurrentHashMap<>();
         target2rewriter = new HashMap<>();
         rtx2primary = new ConcurrentHashMap<>();
@@ -426,7 +361,7 @@ public class SsrcRewritingEngine implements TransformEngine
 
         if (logger.isDebugEnabled())
         {
-            logDebug("Configuring the SSRC rewriting engine to rewrite: "
+            logger.debug("Configuring the SSRC rewriting engine to rewrite: "
                     + (ssrcOrig & 0xffffffffl) + " to " + (ssrcTarget & 0xffffffffl));
         }
 
@@ -503,7 +438,7 @@ public class SsrcRewritingEngine implements TransformEngine
 
         if (activeRewriter == null)
         {
-            logDebug(
+            logger.debug(
                     "Could not find an SsrcRewriter for the RTCP packet type: ");
             return INVALID_SSRC;
         }
@@ -607,7 +542,7 @@ public class SsrcRewritingEngine implements TransformEngine
             }
             catch (BadFormatException e)
             {
-                logError(
+                logger.error(
                         "Failed to rewrite an RTCP packet. Passing through.",
                         e);
                 return pkt;
@@ -615,7 +550,7 @@ public class SsrcRewritingEngine implements TransformEngine
 
             if (inPkts == null || inPkts.length == 0)
             {
-                logWarn("Weird, it seems we just received an empty RTCP " +
+                logger.warn("Weird, it seems we just received an empty RTCP " +
                         "packet.");
                 return pkt;
             }
@@ -671,7 +606,7 @@ public class SsrcRewritingEngine implements TransformEngine
                         if (reverseSSRC == INVALID_SSRC)
                         {
                             // We only really care if it's NOT a REMB.
-                            logDebug(
+                            logger.debug(
                                     "Could not find an SsrcGroupRewriter for"
                                         + " the RTCP packet: " + psfb);
                         }
@@ -695,7 +630,7 @@ public class SsrcRewritingEngine implements TransformEngine
                                     = reverseRewriteSSRC((int) dest[i]);
                                 if (reverseSSRC == INVALID_SSRC)
                                 {
-                                    logDebug(
+                                    logger.debug(
                                             "Could not find an"
                                                 + " SsrcGroupRewriter for the"
                                                 + " RTCP packet: " + psfb);
@@ -718,7 +653,7 @@ public class SsrcRewritingEngine implements TransformEngine
                     RTCPFBPacket fb = (RTCPFBPacket) inPkt;
                     if (fb.fmt != NACKPacket.FMT)
                     {
-                        logWarn("Unhandled RTCP RTPFB packet (not a NACK): "
+                        logger.warn("Unhandled RTCP RTPFB packet (not a NACK): "
                                 + inPkt);
                     }
                     else
@@ -727,7 +662,7 @@ public class SsrcRewritingEngine implements TransformEngine
                     }
                     break;
                 default:
-                    logWarn("Unhandled RTCP (non RTPFB PSFB) packet: " + inPkt);
+                    logger.warn("Unhandled RTCP (non RTPFB PSFB) packet: " + inPkt);
                     break;
                 }
             }

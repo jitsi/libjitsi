@@ -16,6 +16,8 @@
 package org.jitsi.impl.neomedia.transform.rewriting;
 
 import java.util.*;
+
+import org.jitsi.util.*;
 import org.jitsi.util.function.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
@@ -29,6 +31,13 @@ import org.jitsi.impl.neomedia.codec.*;
  */
 class ExtendedSequenceNumberInterval
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>ExtendedSequenceNumberInterval</tt>
+     * class and its instances to print debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(ExtendedSequenceNumberInterval.class);
+
     /**
      * The extended minimum sequence number of this interval.
      */
@@ -299,13 +308,13 @@ class ExtendedSequenceNumberInterval
     {
         if (buf == null || buf.length == 0)
         {
-            logWarn("The buffer is empty.");
+            logger.warn("The buffer is empty.");
             return false;
         }
 
         if (buf.length < off + len)
         {
-            logWarn("The buffer is invalid.");
+            logger.warn("The buffer is invalid.");
             return false;
         }
 
@@ -338,12 +347,12 @@ class ExtendedSequenceNumberInterval
     {
         if (buf == null || buf.length == 0)
         {
-            logWarn("The buffer is empty.");
+            logger.warn("The buffer is empty.");
             return false;
         }
         if (buf.length < off + len)
         {
-            logWarn("The buffer is invalid.");
+            logger.warn("The buffer is invalid.");
             return false;
         }
 
@@ -365,7 +374,7 @@ class ExtendedSequenceNumberInterval
 
         if (snRewritenBase == SsrcRewritingEngine.INVALID_SEQNUM)
         {
-            logInfo(
+            logger.info(
                     "We could not find a sequence number interval for a FEC"
                         + " packet.");
             return false;
@@ -398,20 +407,5 @@ class ExtendedSequenceNumberInterval
     public SsrcRewritingEngine getSsrcRewritingEngine()
     {
         return getSsrcGroupRewriter().ssrcRewritingEngine;
-    }
-
-    private void logDebug(String msg)
-    {
-        ssrcRewriter.logDebug(msg);
-    }
-
-    private void logInfo(String msg)
-    {
-        ssrcRewriter.logInfo(msg);
-    }
-
-    private void logWarn(String msg)
-    {
-        ssrcRewriter.logWarn(msg);
     }
 }

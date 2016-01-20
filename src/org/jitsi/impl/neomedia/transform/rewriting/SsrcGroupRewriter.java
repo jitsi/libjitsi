@@ -108,7 +108,7 @@ class SsrcGroupRewriter
     /**
      * Ctor.
      *
-     * @param SsrcRewritingEngine the owner of this instance.
+     * @param ssrcRewritingEngine the owner of this instance.
      * @param ssrcTarget the target SSRC for this <tt>SsrcGroupRewriter</tt>.
      */
     public SsrcGroupRewriter(
@@ -227,7 +227,7 @@ class SsrcGroupRewriter
 
         if (activeRewriter == null)
         {
-            logWarn(
+            logger.warn(
                     "Can't rewrite the RTP packet because there's no active"
                         + " rewriter.");
             return pkt;
@@ -255,7 +255,7 @@ class SsrcGroupRewriter
         {
             if (debug)
             {
-                logDebug(
+                logger.debug(
                         "Creating an SSRC rewriter to rewrite "
                             + pkt.getSSRCAsLong() + " to "
                             + (ssrcTarget & 0xffffffffl));
@@ -271,7 +271,7 @@ class SsrcGroupRewriter
             // and switch to the correct one.
             if (debug)
             {
-                logDebug("Now rewriting " + pkt.getSSRCAsLong() + "/"
+                logger.debug("Now rewriting " + pkt.getSSRCAsLong() + "/"
                         + pkt.getSequenceNumber() + " to "
                         + (ssrcTarget & 0xffffffffl) + " (was rewriting "
                         + (activeRewriter.getSourceSSRC() & 0xffffffffl)
@@ -288,7 +288,7 @@ class SsrcGroupRewriter
 
             if (debug && currentIntervalLength < 1)
             {
-                logDebug(
+                logger.debug(
                         "Pausing an interval of length 0. This doesn't look"
                             + " right.");
             }
@@ -297,14 +297,14 @@ class SsrcGroupRewriter
             // puts it in the interval tree).
             activeRewriter.pause();
 
-            // FIXME We're using logWarn under the condition of debug bellow.
+            // FIXME We're using logger.warn under the condition of debug bellow.
             if (debug)
             {
                 // We're only supposed to switch on key frames. Here we check
                 // if that's the case.
                 if (!isKeyFrame(pkt))
                 {
-                    logWarn(
+                    logger.warn(
                             "We're switching NOT on a key frame. Bad Stuff (tm)"
                                 + " will happen to you!");
                 }
@@ -321,7 +321,7 @@ class SsrcGroupRewriter
         {
             if (debug)
             {
-                logDebug(
+                logger.debug(
                         "Now rewriting " + pkt.getSSRCAsLong() + " to "
                             + (ssrcTarget & 0xffffffffl));
             }
@@ -331,7 +331,7 @@ class SsrcGroupRewriter
 
         if (activeRewriter == null)
         {
-            logWarn(
+            logger.warn(
                     "Don't know about SSRC " + pkt.getSSRCAsLong()
                         + "! Somebody is messing with us!");
         }
@@ -369,7 +369,7 @@ class SsrcGroupRewriter
         SsrcRewriter rewriter = rewriters.get(ssrcOrigin);
         if (rewriter == null)
         {
-            logWarn(
+            logger.warn(
                     "An SSRC rewriter was not found for SSRC : "
                         + (ssrcOrigin & 0xffffffffl));
             return SsrcRewritingEngine.INVALID_SEQNUM;
@@ -382,7 +382,7 @@ class SsrcGroupRewriter
 
         if (retransmissionInterval == null)
         {
-            logWarn("Could not find a retransmission interval for seqnum " +
+            logger.warn("Could not find a retransmission interval for seqnum " +
                     (seqnum & 0x0000ffff) + " from " + (ssrcOrigin & 0xffffffffl));
             return SsrcRewritingEngine.INVALID_SEQNUM;
         }
@@ -396,21 +396,6 @@ class SsrcGroupRewriter
             // 16 bits).
             return targetExtendedSeqnum & 0x0000ffff;
         }
-    }
-
-    void logDebug(String msg)
-    {
-        ssrcRewritingEngine.logDebug(msg);
-    }
-
-    void logInfo(String msg)
-    {
-        ssrcRewritingEngine.logInfo(msg);
-    }
-
-    void logWarn(String msg)
-    {
-        ssrcRewritingEngine.logWarn(msg);
     }
 
     /**

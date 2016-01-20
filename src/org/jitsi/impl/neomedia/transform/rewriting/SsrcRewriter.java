@@ -82,12 +82,6 @@ class SsrcRewriter
         this.sourceSSRC = sourceSSRC;
     }
 
-    public Collection<ExtendedSequenceNumberInterval>
-        getExtendedSequenceNumberIntervals()
-    {
-        return intervals.values();
-    }
-
     /**
      *
      * @return
@@ -129,7 +123,7 @@ class SsrcRewriter
 
             if (logger.isDebugEnabled())
             {
-                logDebug(
+                logger.debug(
                         "Retransmitting packet with SEQNUM " + (seqnum & 0xffff)
                             + " of SSRC " + pkt.getSSRCAsLong()
                             + " retran SSRC: " + rpkt.getSSRCAsLong()
@@ -162,7 +156,7 @@ class SsrcRewriter
                 timestampTarget = maxTimestamp + 1;
                 if (logger.isDebugEnabled())
                 {
-                    logDebug(
+                    logger.debug(
                             "Uplifting RTP timestamp " + timestamp
                                 + " with SEQNUM " + pkt.getSequenceNumber()
                                 + " because of delta " + delta + " to "
@@ -214,7 +208,7 @@ class SsrcRewriter
         else
         {
             // this stream is already paused.
-            logInfo("The stream is already paused.");
+            logger.info("The stream is already paused.");
         }
     }
 
@@ -295,20 +289,5 @@ class SsrcRewriter
     public SsrcRewritingEngine getSsrcRewritingEngine()
     {
         return ssrcGroupRewriter.ssrcRewritingEngine;
-    }
-
-    void logDebug(String msg)
-    {
-        ssrcGroupRewriter.logDebug(msg);
-    }
-
-    void logInfo(String msg)
-    {
-        ssrcGroupRewriter.logInfo(msg);
-    }
-
-    void logWarn(String msg)
-    {
-        ssrcGroupRewriter.logWarn(msg);
     }
 }

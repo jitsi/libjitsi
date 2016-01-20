@@ -50,12 +50,6 @@ public interface MediaStream
     public static final String PNAME_REMOTE_SSRC = "remoteSSRCAvailable";
 
     /**
-     * The name of the property which indicates the receiver endpoint of this
-     * <tt>MediaStream</tt>.
-     */
-    public static final String PNAME_RECEIVER_IDENTIFIER = "receiverID";
-
-    /**
      * Adds a new association in this <tt>MediaStream</tt> of the specified RTP
      * payload type with the specified <tt>MediaFormat</tt> in order to allow it
      * to report <tt>rtpPayloadType</tt> in RTP flows sending and receiving
