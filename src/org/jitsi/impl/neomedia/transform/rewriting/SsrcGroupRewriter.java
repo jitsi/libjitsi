@@ -43,12 +43,6 @@ class SsrcGroupRewriter
         = Logger.getLogger(SsrcGroupRewriter.class);
 
     /**
-     * The <tt>Random</tt> that generates initial sequence numbers. Instances of
-     * {@code java.util.Random} are thread-safe since Java 1.7.
-     */
-    private static final Random RANDOM = new Random();
-
-    /**
      * A map of SSRCs to <tt>SsrcRewriter</tt>. Each SSRC that we rewrite in
      * this group rewriter has its own rewriter.
      */
@@ -113,12 +107,13 @@ class SsrcGroupRewriter
      */
     public SsrcGroupRewriter(
             SsrcRewritingEngine ssrcRewritingEngine,
-            Integer ssrcTarget)
+            Integer ssrcTarget,
+            int seqnumBase)
     {
         this.ssrcRewritingEngine = ssrcRewritingEngine;
         this.ssrcTarget = ssrcTarget;
 
-        this.currentExtendedSeqnumBase = RANDOM.nextInt(0x10000);
+        this.currentExtendedSeqnumBase = seqnumBase;
     }
 
     /**

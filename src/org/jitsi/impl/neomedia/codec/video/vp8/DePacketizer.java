@@ -53,6 +53,10 @@ public class DePacketizer
      *
      * E.g. it works for: [0, 2^15-1] and ([50000, 2^16) u [0, 10000])
      * Doesn't work for: [0, 2^15] and ([0, 2^15-1] u {2^16-1}) and [0, 2^16)
+     *
+     * NOTE: An identical implementation for Integers can be found in the class
+     * SeqNumComparator. Sequence numbers are 16 bits and unsigned, so an
+     * Integer should be sufficient to hold that.
      */
     private static final Comparator<? super Long> seqNumComparator
             = new Comparator<Long>() {
