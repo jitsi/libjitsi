@@ -33,13 +33,13 @@ class ReceivedRemoteClock
     private final RemoteClock remoteClock;
 
     /**
-     * The local time in milliseconds when we received the RTCP report with the
-     * RTP/NTP timestamps. It's a signed long.
+     * The local time (in milliseconds since the epoch) when we received the
+     * RTCP report with the RTP/NTP timestamps. It's a signed long.
      */
     private final long receivedTime;
 
     /**
-     * The clock rate for {@link.ssrc}. We need to have received at least two
+     * The clock rate for {@link #ssrc}. We need to have received at least two
      * SRs in order to be able to calculate this. Unsigned short.
      */
     private final int frequencyHz;
@@ -48,9 +48,10 @@ class ReceivedRemoteClock
      * Ctor.
      *
      * @param ssrc
-     * @param remoteTime
-     * @param rtpTimestamp
-     * @param frequencyHz
+     * @param remoteTime the remote time in milliseconds since the epoch
+     * @param rtpTimestamp the RTP timestamp corresponding to
+     * <tt>remoteTime</tt>.
+     * @param frequencyHz the RTP clock rate.
      */
     ReceivedRemoteClock(int ssrc,
                         long remoteTime,

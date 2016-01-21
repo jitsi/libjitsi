@@ -30,6 +30,7 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
@@ -337,27 +338,113 @@ public class MediaStreamStatsImpl
      *
      * @return The RTT in milliseconds, or -1 if the RTT is not computable.
      */
-    private long computeRTTInMs(RTCPFeedback feedback)
+    private int computeRTTInMs(RTCPFeedback feedback)
     {
         long now = System.currentTimeMillis();
         long lsr = feedback.getLSR();
         long dlsr = feedback.getDLSR();
-        int rtt = RecvSSRCInfo.getRoundTripDelay(now, lsr, dlsr);
+        int rtt = -1;
 
-        /*
-         * If the RTT is greater than a minute, it may signal a bug in the
-         * computation. Log such occurrences in order to debug them.
-         */
-        if ((rtt >= 65536) && logger.isInfoEnabled())
+        // The RTCPFeedback may represents a Sender Report without any report
+        // blocks (and so without LSR and DLSR)
+        if (lsr > 0 && dlsr > 0)
+        {
+            // If we perform RTCP termination, the NTP timestamps we include in
+            // outgoing SRs are based on the actual sender's clock. We need to
+            // take this into account in order to compute the correct RTT.
+            now = maybeEstimateRemoteClock(feedback.getSSRC(), now);
+
+            rtt = getRoundTripDelay(now, lsr, dlsr);
+        }
+
+        // Values over 3s are suspicious and likely indicate a bug.
+        if (rtt < 0 || rtt >= 3000)
         {
             logger.info(
                     "Stream: " + mediaStreamImpl.getName()
-                        + ", RTT computation may be wrong (" + rtt
-                        + ">= 65536 milliseconds): now " + now + ", lsr " + lsr
-                        + ", dlsr " + dlsr);
+                    + ", RTT computation may be wrong (" + rtt + "): now "
+                    + now + ", lsr " + lsr + ", dlsr " + dlsr);
+
+            rtt = -1;
         }
 
         return rtt;
+    }
+
+    /**
+     * Gets the round trip (delay) time between RTP interfaces, expressed in
+     * milliseconds.
+     *
+     * @param timeMs the <tt>System</tt> time in milliseconds since the epoch.
+     * @param lsr the LSR (last SR) time reported in SR (Sender Report) in NTP
+     * Short Format (Q16.16).
+     * @param dlsr the DLSR (delay since last SR) reported in SR in NTP Short
+     * Format (Q16.16).
+     * @return the round trip (delay) time between RTP interfaces, expressed in
+     * milliseconds, or -1 if it can not be calculated.
+     */
+    public static int getRoundTripDelay(long timeMs, long lsr, long dlsr)
+    {
+        int roundTripDelay = -1;
+
+        if (lsr > 0)
+        {
+            long ntpTime = TimeUtils.toNtpTime(timeMs);
+            ntpTime = TimeUtils.toNtpShortFormat(ntpTime);
+
+            long ntprtd = ntpTime - lsr - dlsr;
+
+            if (ntprtd > 0)
+            {
+                long delayLong = TimeUtils.ntpShortToMs(ntprtd);
+                if (delayLong < Integer.MAX_VALUE)
+                {
+                    roundTripDelay = (int) delayLong;
+                }
+            }
+        }
+
+        return roundTripDelay;
+    }
+
+    /**
+     * Estimates the time on the clock of a remote RTP endpoint (identified by
+     * <tt>ssrc</tt>) corresponding to the local time <tt>localTimeMs</tt>, if
+     * RTCP termination is enabled and the translation can be performed.
+     * Otherwise, does not perform any estimation/translation and return the
+     * input time.
+     *
+     * @param ssrc the SSRC which identifies the remote RTP endpoint.
+     * @param localTimeMs the local in milliseconds since the epoch.
+     * @return an estimation of the time of the RTP endpoint with SSRC
+     * <tt>ssrc</tt> at local time <tt>localTime</tt>, in milliseconds since
+     * the epoch.
+     */
+    private long maybeEstimateRemoteClock(long ssrc, long localTimeMs)
+    {
+        long remoteTimeMs = localTimeMs;
+
+        RTCPTerminationStrategy rtcpTermination
+            = mediaStreamImpl.getRTCPTerminationStrategy();
+        if (rtcpTermination instanceof BasicRTCPTerminationStrategy)
+        {
+            BasicRTCPTerminationStrategy brts
+                = (BasicRTCPTerminationStrategy) rtcpTermination;
+
+            RemoteClockEstimator remoteClockEstimator
+                = brts.getRemoteClockEstimator();
+            if (remoteClockEstimator != null)
+            {
+                RemoteClock remoteClock
+                    = remoteClockEstimator.estimate((int) ssrc, localTimeMs);
+                if (remoteClock != null)
+                {
+                    remoteTimeMs = remoteClock.getRemoteTime();
+                }
+            }
+        }
+
+        return remoteTimeMs;
     }
 
     /**
@@ -1296,7 +1383,13 @@ public class MediaStreamStatsImpl
         uploadFeedbackNbPackets = uploadNewNbRecv;
 
         // Computes RTT.
-        setRttMs(computeRTTInMs(feedback));
+        int rtt = computeRTTInMs(feedback);
+        // If a new RTT could not be computed based on this feedback, keep the
+        // old one.
+        if (rtt >= 0)
+        {
+            setRttMs(rtt);
+        }
     }
 
     /**

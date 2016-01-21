@@ -21,17 +21,16 @@ package org.jitsi.impl.neomedia.rtcp.termination.strategies;
  *
  * @author George Politis
  */
-class RemoteClock
+public class RemoteClock
 {
     /**
-     * The last NTP timestamp that we received for {@link this.ssrc} expressed
-     * in milliseconds. Should be treated a signed long.
+     * The remote time corresponding the the RTP timestamp {@link #rtpTimestamp}
+     * expressed as milliseconds since the epoch.
      */
     private final long remoteTime;
 
     /**
-     * The RTP timestamp associated to {@link this.ntpTimestamp}. The RTP
-     * timestamp is an unsigned int.
+     * The RTP timestamp associated to {@link #remoteTime}.
      */
     private final int rtpTimestamp;
 
