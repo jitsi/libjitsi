@@ -597,12 +597,12 @@ public class StatisticsEngine
         }
 
         // round trip delay
-        if (receiveStream instanceof RecvSSRCInfo)
+        int rtt = (int) mediaStream.getMediaStreamStats().getRttMs();
+        if (rtt >= 0)
         {
-            voipMetrics.setRoundTripDelay(
-                    ((RecvSSRCInfo) receiveStream).getRoundTripDelay(
-                            senderSSRC));
+            voipMetrics.setRoundTripDelay(rtt);
         }
+
         // end system delay
         /*
          * Defined as the sum of the total sample accumulation and encoding
