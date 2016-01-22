@@ -355,18 +355,20 @@ public class MediaStreamStatsImpl
             now = maybeEstimateRemoteClock(feedback.getSSRC(), now);
 
             rtt = getRoundTripDelay(now, lsr, dlsr);
+
+            // Values over 3s are suspicious and likely indicate a bug.
+            if (rtt < 0 || rtt >= 3000)
+            {
+                logger.info(
+                        "Stream: " + mediaStreamImpl.getName()
+                                + ", RTT computation may be wrong (" + rtt
+                                + "): now " + now + ", lsr " + lsr + ", dlsr "
+                                + dlsr);
+
+                rtt = -1;
+            }
         }
 
-        // Values over 3s are suspicious and likely indicate a bug.
-        if (rtt < 0 || rtt >= 3000)
-        {
-            logger.info(
-                    "Stream: " + mediaStreamImpl.getName()
-                    + ", RTT computation may be wrong (" + rtt + "): now "
-                    + now + ", lsr " + lsr + ", dlsr " + dlsr);
-
-            rtt = -1;
-        }
 
         return rtt;
     }
