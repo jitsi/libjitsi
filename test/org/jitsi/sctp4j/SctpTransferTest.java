@@ -39,7 +39,14 @@ public class SctpTransferTest
 
     private final Object transferLock = new Object();
 
+    /** @GuardedBy("transferLock") */
     private byte[] receivedData = null;
+
+    /** @GuardedBy("transferLock") */
+    private boolean dataReady = false;
+
+    /** Set random generator seed for consistent tests. */
+    private static final Random rand = new Random(12345);
 
     @Before
     public void setUp()
@@ -63,7 +70,7 @@ public class SctpTransferTest
     public static byte[] createRandomData(int size)
     {
         byte[] dummy = new byte[size];
-        new Random().nextBytes(dummy);
+        getRandom().nextBytes(dummy);
         return dummy;
     }
 
@@ -91,7 +98,7 @@ public class SctpTransferTest
         {
             try
             {
-                testTransferPart(peerA, peerB, toSendA, 5000);
+                testTransferPart(peerA, peerB, toSendA);
             }
             catch (Exception e)
             {
@@ -101,7 +108,7 @@ public class SctpTransferTest
     }
 
     private void testTransferPart(SctpSocket sender, SctpSocket receiver,
-                                  byte[] testData, long timeout)
+                                  byte[] testData)
         throws Exception
     {
         receiver.setDataCallback(new SctpDataCallback()
@@ -114,6 +121,7 @@ public class SctpTransferTest
                 synchronized (transferLock)
                 {
                     receivedData = data;
+                    dataReady = true;
                     transferLock.notifyAll();
                 }
             }
@@ -123,9 +131,14 @@ public class SctpTransferTest
 
         synchronized (transferLock)
         {
-            transferLock.wait(timeout);
-
+            while (!dataReady)
+                transferLock.wait();
             assertArrayEquals(testData, receivedData);
+	    dataReady = false;
         }
+    }
+
+    private static Random getRandom() {
+        return rand;
     }
 }
