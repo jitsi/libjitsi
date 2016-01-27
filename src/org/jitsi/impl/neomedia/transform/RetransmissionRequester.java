@@ -257,6 +257,7 @@ public class RetransmissionRequester
                 }
 
                 if (pkt != null)
+                {
                     try
                     {
                         if (logger.isDebugEnabled())
@@ -273,6 +274,7 @@ public class RetransmissionRequester
                         logger.warn(
                                 "Failed to inject packet in MediaStream: " + e);
                     }
+                }
             }
 
             packetsToRequest.clear();
@@ -426,7 +428,9 @@ public class RetransmissionRequester
                 request.timesRequested++;
 
                 if (request.timesRequested == 1)
+                {
                     request.firstRequestSentAt = now;
+                }
                 else if (request.timesRequested == MAX_REQUESTS)
                 {
                     logger.info(
