@@ -78,13 +78,13 @@ public abstract class RTPConnectorOutputStream
     protected MaxPacketsPerMillisPolicy maxPacketsPerMillisPolicy;
 
     /**
-     * Number of bytes sent through this stream.
+     * Number of bytes sent through this stream to any of its targets.
      */
     private long numberOfBytesSent = 0;
 
     /**
-     * Used for debugging. As we don't log every packet
-     * we must count them and decide which to log.
+     * Number of packets sent through this stream, not taking into account the
+     * number of its targets.
      */
     private long numberOfPackets = 0;
 
@@ -302,7 +302,7 @@ public abstract class RTPConnectorOutputStream
      * @param packet the RTP packet to be sent through the
      * <tt>DatagramSocket</tt> of this <tt>OutputDataSource</tt>
      * @return <tt>true</tt> if the specified <tt>packet</tt> was successfully
-     * sent; otherwise, <tt>false</tt>
+     * sent to all targets; otherwise, <tt>false</tt>.
      */
     private boolean send(RawPacket packet)
     {
@@ -321,7 +321,7 @@ public abstract class RTPConnectorOutputStream
 
                 numberOfBytesSent += (long)packet.getLength();
 
-                if(logPacket(numberOfPackets))
+                if (logPacket(numberOfPackets))
                 {
                     PacketLoggingService pktLogging = getPacketLoggingService();
 
@@ -336,7 +336,8 @@ public abstract class RTPConnectorOutputStream
             catch (IOException ioe)
             {
                 rawPacketPool.offer(packet);
-                // TODO error handling
+                logger.warn(
+                    "Failed to send a packet to target " + target + ":" + ioe);
                 return false;
             }
         }
@@ -450,7 +451,7 @@ public abstract class RTPConnectorOutputStream
 
     /**
      * Implements {@link OutputDataStream#write(byte[], int, int)}. Allows
-     * extenders to provide a context {@code Object} to invoked overrideable
+     * extenders to provide a context {@code Object} to invoked overridable
      * methods such as {@link #packetize(byte[],int,int,Object)}.
      *
      * @param buf the {@code byte[]} to write into this {@code OutputDataStream}
@@ -471,7 +472,7 @@ public abstract class RTPConnectorOutputStream
             // While calling write without targets can be carried out without a
             // problem, such a situation may be a symptom of a problem. For
             // example, it was discovered during testing that RTCP was
-            // seemingly-endlessly sent after hanging up a call.
+            // seemingly endlessly sent after hanging up a call.
             if (logger.isDebugEnabled() && targets.isEmpty())
                 logger.debug("Write called without targets!", new Throwable());
 
@@ -503,7 +504,7 @@ public abstract class RTPConnectorOutputStream
         if (pkts == null)
             return success;
 
-        for(int i = 0; i < pkts.length; i++)
+        for (int i = 0; i < pkts.length; i++)
         {
             RawPacket pkt = pkts[i];
 
@@ -521,7 +522,7 @@ public abstract class RTPConnectorOutputStream
                         {
                             // Skip sending the remaining RawPackets but return
                             // them to the pool and clear pkts. The current pkt
-                            // was returned to the pool.
+                            // was returned to the pool by send().
                             success = false;
                         }
                     }

@@ -20,7 +20,7 @@ import java.net.*;
 import org.jitsi.impl.neomedia.*;
 
 /**
- * Extends <tt>RTPConnectorOutputStream</tt> with transform logic for TCP.
+ * Extends <tt>RTPConnectorTCPOutputStream</tt> with transform logic.
  *
  * In this implementation, TCP socket is used to send the data out. When a
  * normal RTP/RTCP packet is passed down from RTPManager, we first transform
@@ -41,8 +41,8 @@ public class TransformTCPOutputStream
     private final TransformOutputStreamImpl _impl;
 
     /**
-     * Initializes a new <tt>TransformOutputStream</tt> which is to send packet
-     * data out through a specific TCP socket.
+     * Initializes a new <tt>TransformTCPOutputStream</tt> which is to send
+     * packet data out through a specific TCP socket.
      *
      * @param socket the TCP socket used to send packet data out
      */
@@ -66,7 +66,7 @@ public class TransformTCPOutputStream
      * {@inheritDoc}
      *
      * Transforms the array of {@code RawPacket}s returned by the super
-     * {@link #packetize(byte[],int,int,Object) implementation using the
+     * {@link #packetize(byte[],int,int,Object)} implementation using the
      * associated {@code PacketTransformer}.
      */
     @Override

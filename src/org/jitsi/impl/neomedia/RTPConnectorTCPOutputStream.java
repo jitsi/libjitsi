@@ -81,9 +81,9 @@ public class RTPConnectorTCPOutputStream
     @Override
     protected void doLogPacket(RawPacket packet, InetSocketAddress target)
     {
-        // Do not log the packet if this one has been processed (and already
+        // Do not log the packet if it has been processed (and already
         // logged) by the ice4j stack.
-        if(socket instanceof MultiplexingSocket)
+        if (socket instanceof MultiplexingSocket)
             return;
 
         PacketLoggingService pktLogging = getPacketLoggingService();

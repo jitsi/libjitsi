@@ -80,9 +80,9 @@ public class RTPConnectorUDPOutputStream
         if (socket == null || packet == null || target == null)
             return;
 
-        // Do not log the packet if this one has been processed (and already
+        // Do not log the packet if it has been processed (and already
         // logged) by the ice4j stack.
-        if(socket instanceof MultiplexingDatagramSocket)
+        if (socket instanceof MultiplexingDatagramSocket)
             return;
 
         PacketLoggingService pktLogging = getPacketLoggingService();
@@ -107,7 +107,7 @@ public class RTPConnectorUDPOutputStream
      * Returns whether or not this <tt>RTPConnectorOutputStream</tt> has a valid
      * socket.
      *
-     * @returns true if this <tt>RTPConnectorOutputStream</tt> has a valid
+     * @return true if this <tt>RTPConnectorOutputStream</tt> has a valid
      * socket, false otherwise
      */
     @Override
