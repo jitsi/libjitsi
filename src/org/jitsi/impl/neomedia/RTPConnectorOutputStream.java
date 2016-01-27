@@ -299,16 +299,12 @@ public abstract class RTPConnectorOutputStream
      * <tt>RTPConnectorOutputStream</tt>. They should not be used by the
      * user afterwards.
      *
-     * Note: this method has been exposed as package-private in order to
-     * facilitate the injection of packets by a <tt>MediaStream</tt>. It should
-     * be used with caution due to the above warning!
-     *
      * @param packet the RTP packet to be sent through the
      * <tt>DatagramSocket</tt> of this <tt>OutputDataSource</tt>
      * @return <tt>true</tt> if the specified <tt>packet</tt> was successfully
      * sent; otherwise, <tt>false</tt>
      */
-    boolean send(RawPacket packet)
+    private boolean send(RawPacket packet)
     {
         if(!isSocketValid())
         {

@@ -19,8 +19,8 @@ import javax.media.rtp.*;
 
 /**
  * Defines the public application programming interface (API) of an
- * {@code OutputDataStream} which applies transformations via a
- * {@code PacketTranformer} to the data written into it.
+ * {@link OutputDataStream} which applies transformations via a
+ * {@link PacketTransformer} to the data written into it.
  *
  * @author Lyubomir Marinov
  */
