@@ -533,11 +533,7 @@ public class JNIEncoder
         if (logger.isDebugEnabled())
             logger.debug("Setting format parameters: " + fmtps);
 
-        /*
-         * TODO Use the default value for maxaveragebitrate as defined at
-         * http://tools.ietf.org/html/draft-spittka-payload-rtp-opus-02#section-6.1
-         */
-        int maxaveragebitrate = 40000;
+        int maxaveragebitrate = -1;
 
         try
         {
@@ -550,9 +546,14 @@ public class JNIEncoder
         {
             // Ignore and fall back to the default value.
         }
-        Opus.encoder_set_bitrate(
-                encoder,
-                (maxaveragebitrate < bitrate) ? maxaveragebitrate : bitrate);
+
+        if (maxaveragebitrate > 0)
+        {
+            Opus.encoder_set_bitrate(
+                    encoder,
+                    (maxaveragebitrate < bitrate) ? maxaveragebitrate : bitrate);
+
+        }
 
         // DTX is off unless specified.
         boolean useDtx = this.useDtx && "1".equals(fmtps.get("usedtx"));
