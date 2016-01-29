@@ -235,6 +235,8 @@ public class DtlsPacketTransformer
      */
     private final DtlsTransformEngine transformEngine;
 
+    private boolean started = false;
+
     /**
      * Initializes a new <tt>DtlsPacketTransformer</tt> instance.
      *
@@ -964,12 +966,16 @@ public class DtlsPacketTransformer
     {
         if (this.connector != connector)
         {
+            AbstractRTPConnector oldValue = this.connector;
             this.connector = connector;
 
             DatagramTransportImpl datagramTransport = this.datagramTransport;
 
             if (datagramTransport != null)
                 datagramTransport.setConnector(connector);
+
+            if (connector != null)
+                maybeStart();
         }
     }
 
@@ -991,7 +997,15 @@ public class DtlsPacketTransformer
             if (oldValue != null)
                 stop();
             if (this.mediaType != null)
-                start();
+                maybeStart();
+        }
+    }
+
+    private synchronized void maybeStart()
+    {
+        if (this.mediaType != null && this.connector != null && !started)
+        {
+            start();
         }
     }
 
@@ -1045,6 +1059,8 @@ public class DtlsPacketTransformer
         }
 
         AbstractRTPConnector connector = this.connector;
+
+        this.started = true;
 
         if (connector == null)
             throw new NullPointerException("connector");
@@ -1128,6 +1144,7 @@ public class DtlsPacketTransformer
      */
     private synchronized void stop()
     {
+        started = false;
         if (connectThread != null)
             connectThread = null;
         try
