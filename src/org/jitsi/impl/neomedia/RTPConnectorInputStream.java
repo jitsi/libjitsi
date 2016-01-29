@@ -80,13 +80,9 @@ public abstract class RTPConnectorInputStream<T>
             {
                 thread.setPriority(priority);
             }
-            catch (IllegalArgumentException iae)
+            catch (IllegalArgumentException | SecurityException iae)
             {
                 throwable = iae;
-            }
-            catch (SecurityException se)
-            {
-                throwable = se;
             }
             if (throwable != null)
             {
@@ -476,8 +472,8 @@ public abstract class RTPConnectorInputStream<T>
     protected abstract void doLogPacket(DatagramPacket packet);
 
     /**
-     * Provides a dummy implementation to {@link
-     * RTPConnectorInputStream#endOfStream()} that always returns
+     * Provides a dummy implementation of {@link
+     * PushSourceStream#endOfStream()} that always returns
      * <tt>false</tt>.
      *
      * @return <tt>false</tt>, no matter what.
@@ -488,8 +484,8 @@ public abstract class RTPConnectorInputStream<T>
     }
 
     /**
-     * Provides a dummy implementation to {@link
-     * RTPConnectorInputStream#getContentDescriptor()} that always returns
+     * Provides a dummy implementation of {@link
+     * PushSourceStream#getContentDescriptor()} that always returns
      * <tt>null</tt>.
      *
      * @return <tt>null</tt>, no matter what.
@@ -500,8 +496,8 @@ public abstract class RTPConnectorInputStream<T>
     }
 
     /**
-     * Provides a dummy implementation to {@link
-     * RTPConnectorInputStream#getContentLength()} that always returns
+     * Provides a dummy implementation of {@link
+     * PushSourceStream#getContentLength()} that always returns
      * <tt>LENGTH_UNKNOWN</tt>.
      *
      * @return <tt>LENGTH_UNKNOWN</tt>, no matter what.
@@ -512,8 +508,8 @@ public abstract class RTPConnectorInputStream<T>
     }
 
     /**
-     * Provides a dummy implementation of
-     * {@link RTPConnectorInputStream#getControl(String)} that always returns
+     * Provides a dummy implementation of {@link
+     * PushSourceStream#getControl(String)} that always returns
      * <tt>null</tt>.
      *
      * @param controlType ignored.
@@ -533,8 +529,8 @@ public abstract class RTPConnectorInputStream<T>
     }
 
     /**
-     * Provides a dummy implementation of
-     * {@link RTPConnectorInputStream#getControls()} that always returns
+     * Provides a dummy implementation of {@link
+     * PushSourceStream#getControls()} that always returns
      * <tt>EMPTY_CONTROLS</tt>.
      *
      * @return <tt>EMPTY_CONTROLS</tt>, no matter what.
@@ -573,8 +569,8 @@ public abstract class RTPConnectorInputStream<T>
     }
 
     /**
-     * Provides a dummy implementation to {@link
-     * RTPConnectorInputStream#getMinimumTransferSize()} that always returns
+     * Provides a dummy implementation of {@link
+     * PushSourceStream#getMinimumTransferSize()} that always returns
      * <tt>2 * 1024</tt>.
      *
      * @return <tt>2 * 1024</tt>, no matter what.

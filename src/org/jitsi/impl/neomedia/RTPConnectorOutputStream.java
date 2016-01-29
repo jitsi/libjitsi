@@ -105,7 +105,7 @@ public abstract class RTPConnectorOutputStream
 
     /**
      * The pool of <tt>RawPacket</tt> instances which reduces the number of
-     * allocations performed by {@link #createRawPacket(byte[], int, int)}.
+     * allocations performed by {@link #packetize(byte[], int, int, Object)}.
      */
     private final LinkedBlockingQueue<RawPacket> rawPacketPool
         = new LinkedBlockingQueue<>();

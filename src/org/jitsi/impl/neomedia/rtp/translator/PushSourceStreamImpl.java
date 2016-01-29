@@ -41,7 +41,7 @@ class PushSourceStreamImpl
      * The <tt>Logger</tt> used by the <tt>PushSourceStreamImpl</tt> class and
      * its instances for logging output.
      */
-    private static final Logger LOGGER
+    private static final Logger logger
         = Logger.getLogger(PushSourceStreamImpl.class);
 
     /**
@@ -312,9 +312,9 @@ class PushSourceStreamImpl
                     }
                     else
                     {
-                        LOGGER.warn(
+                        logger.warn(
                                 "An RTP packet may have not been fully"
-                                    + " handled.",
+                                        + " handled.",
                                 t);
                     }
                 }
@@ -424,7 +424,7 @@ class PushSourceStreamImpl
         }
         catch (IOException ioe)
         {
-            LOGGER.error("Failed to read from an RTP stream!", ioe);
+            logger.error("Failed to read from an RTP stream!", ioe);
         }
         finally
         {
@@ -456,7 +456,7 @@ class PushSourceStreamImpl
                     if (readQ.size() >= readQCapacity)
                     {
                         readQ.remove();
-                        LOGGER.warn(
+                        logger.warn(
                                 "Discarded an RTP packet because the read"
                                     + " queue is full.");
                     }
