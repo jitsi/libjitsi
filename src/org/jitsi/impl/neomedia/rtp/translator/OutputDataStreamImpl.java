@@ -56,7 +56,7 @@ class OutputDataStreamImpl
         = RTPTranslatorImpl.class.getName() + ".removeRTPHeaderExtensions";
 
     private static final int WRITE_Q_CAPACITY
-        = MaxPacketsPerMillisPolicy.PACKET_QUEUE_CAPACITY;
+        = RTPConnectorOutputStream.PACKET_QUEUE_CAPACITY;
 
     private boolean closed;
 
@@ -97,6 +97,12 @@ class OutputDataStreamImpl
     private int writeQHead;
 
     private int writeQLength;
+
+    /**
+     * The number of packets dropped because a packet was inserted while
+     * {@link #writeQ} was full.
+     */
+    private int numDroppedPackets = 0;
 
     private Thread writeThread;
 
@@ -625,7 +631,14 @@ class OutputDataStreamImpl
             if (writeQHead >= writeQ.length)
                 writeQHead = 0;
             writeQLength--;
-            logger.warn("Will not translate RTP packet.");
+
+            numDroppedPackets++;
+            if (RTPConnectorOutputStream.logDroppedPacket(numDroppedPackets))
+            {
+                logger.warn(
+                        "Dropped " + numDroppedPackets + " packets "
+                                + "hashCode=" + hashCode() + "): ");
+            }
         }
 
         RTPTranslatorBuffer write = writeQ[writeIndex];

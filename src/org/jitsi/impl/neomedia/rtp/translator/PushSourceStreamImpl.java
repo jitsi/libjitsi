@@ -73,6 +73,12 @@ class PushSourceStreamImpl
     private final int readQCapacity;
 
     /**
+     * The number of packets dropped because a packet was inserted while
+     * {@link #readQ} was full.
+     */
+    private int numDroppedPackets = 0;
+
+    /**
      * The pool of <tt>SourcePacket</tt> instances to reduce their
      * allocations and garbage collection.
      */
@@ -95,7 +101,7 @@ class PushSourceStreamImpl
         this.connector = connector;
         this.data = data;
 
-        readQCapacity = MaxPacketsPerMillisPolicy.PACKET_QUEUE_CAPACITY;
+        readQCapacity = RTPConnectorOutputStream.PACKET_QUEUE_CAPACITY;
         readQ = new ArrayBlockingQueue<>(readQCapacity);
 
         transferDataThread = new Thread(this, getClass().getName());
@@ -456,9 +462,14 @@ class PushSourceStreamImpl
                     if (readQ.size() >= readQCapacity)
                     {
                         readQ.remove();
-                        logger.warn(
-                                "Discarded an RTP packet because the read"
-                                    + " queue is full.");
+                        numDroppedPackets++;
+                        if (RTPConnectorOutputStream.logDroppedPacket(
+                                numDroppedPackets))
+                        {
+                            logger.warn(
+                                    "Dropped " + numDroppedPackets + " packets "
+                                            + "hashCode=" + hashCode() + "): ");
+                        }
                     }
 
                     if (readQ.offer(pkt))

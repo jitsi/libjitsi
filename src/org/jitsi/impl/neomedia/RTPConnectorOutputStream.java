@@ -22,6 +22,7 @@ import java.util.concurrent.*;
 
 import javax.media.rtp.*;
 
+import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.util.*;
@@ -41,6 +42,73 @@ public abstract class RTPConnectorOutputStream
      */
     private static final Logger logger
         = Logger.getLogger(RTPConnectorOutputStream.class);
+
+    /**
+     * The maximum number of packets to be sent to be kept in the queue of
+     * {@link RTPConnectorOutputStream}. When the maximum is reached, the next
+     * attempt to write a new packet in the queue will result in the first
+     * packet in the queue being dropped.
+     * Defined in order to prevent <tt>OutOfMemoryError</tt>s which may arise if
+     * the capacity of the queue is unlimited.
+     */
+    public static final int PACKET_QUEUE_CAPACITY;
+
+    /**
+     * The name of the <tt>ConfigurationService</tt> and/or <tt>System</tt>
+     * integer property which specifies the value of
+     * {@link #PACKET_QUEUE_CAPACITY}.
+     */
+    private static final String PACKET_QUEUE_CAPACITY_PNAME
+        = RTPConnectorOutputStream.class.getName() + ".PACKET_QUEUE_CAPACITY";
+
+    static
+    {
+        // Read the value of PACKET_QUEUE_CAPACITY from the ConfigurationService
+        // and/or System property PACKET_QUEUE_CAPACITY_PNAME.
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        int defaultCapacity = 256;
+        int configuredCapacity;
+
+        // Backward-compatibility with the old property name.
+        String oldPropertyName
+            = "org.jitsi.impl.neomedia.MaxPacketsPerMillisPolicy"
+                + ".PACKET_QUEUE_CAPACITY";
+
+        if (cfg == null)
+        {
+            configuredCapacity
+                = Integer.getInteger(PACKET_QUEUE_CAPACITY_PNAME, -1);
+            if (configuredCapacity == -1)
+            {
+                configuredCapacity = Integer.getInteger(oldPropertyName, -1);
+            }
+        }
+        else
+        {
+            configuredCapacity = cfg.getInt(PACKET_QUEUE_CAPACITY_PNAME, -1);
+            if (configuredCapacity == -1)
+            {
+                configuredCapacity = cfg.getInt(oldPropertyName, -1);
+            }
+        }
+
+        PACKET_QUEUE_CAPACITY
+            = configuredCapacity >= 0 ? configuredCapacity : defaultCapacity;
+    }
+
+    /**
+     * Returns true if a warning should be logged after a queue has dropped
+     * {@code numDroppedPackets} packets.
+     * @param numDroppedPackets the number of dropped packets.
+     * @return {@code true} if a warning should be logged.
+     */
+    public static boolean logDroppedPacket(int numDroppedPackets)
+    {
+        return
+                numDroppedPackets == 1 ||
+                (numDroppedPackets <= 1000 && numDroppedPackets % 100 == 0) ||
+                numDroppedPackets % 1000 == 0;
+    }
 
     /**
      * Determines whether a <tt>RawPacket</tt> which has a specific number in
@@ -97,7 +165,7 @@ public abstract class RTPConnectorOutputStream
 
     /**
      * The pool of <tt>RawPacket[]</tt> instances which reduces the number of
-     * allocations performed by {@link #createRawPacket(byte[], int, int)}.
+     * allocations performed by {@link #packetize(byte[], int, int, Object)}.
      * Always contains arrays full with <tt>null</tt>
      */
     private final LinkedBlockingQueue<RawPacket[]> rawPacketArrayPool

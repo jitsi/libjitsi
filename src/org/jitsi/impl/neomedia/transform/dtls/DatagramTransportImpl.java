@@ -110,8 +110,8 @@ public class DatagramTransportImpl
             throw new IllegalArgumentException("componentID");
         }
 
-        receiveQCapacity = MaxPacketsPerMillisPolicy.PACKET_QUEUE_CAPACITY;
-        receiveQ = new ArrayBlockingQueue<RawPacket>(receiveQCapacity);
+        receiveQCapacity = RTPConnectorOutputStream.PACKET_QUEUE_CAPACITY;
+        receiveQ = new ArrayBlockingQueue<>(receiveQCapacity);
     }
 
     private AbstractRTPConnector assertNotClosed(
