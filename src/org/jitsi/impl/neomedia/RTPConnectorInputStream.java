@@ -172,18 +172,10 @@ public abstract class RTPConnectorInputStream<T>
     private final PushBufferStream pushBufferStream;
 
     /**
-     * The pool of <tt>RawPacket[]</tt> instances to reduce their allocations
-     * and garbage collection. Contains arrays full of <tt>null</tt>.
-     */
-    private final Queue<RawPacket[]> rawPacketArrayPool
-        = new LinkedBlockingQueue<RawPacket[]>();
-
-    /**
      * The pool of <tt>RawPacket</tt> instances to reduce their allocations and
      * garbage collection.
      */
-    private final Queue<RawPacket> rawPacketPool
-        = new LinkedBlockingQueue<RawPacket>();
+    private final Queue<RawPacket> rawPacketPool = new LinkedBlockingQueue<>();
 
     /**
      * The background/daemon <tt>Thread</tt> which invokes
@@ -432,9 +424,7 @@ public abstract class RTPConnectorInputStream<T>
      */
     protected RawPacket[] createRawPacket(DatagramPacket datagramPacket)
     {
-        RawPacket[] pkts = rawPacketArrayPool.poll();
-        if (pkts == null)
-            pkts = new RawPacket[1];
+        RawPacket[] pkts = new RawPacket[1];
 
         RawPacket pkt = rawPacketPool.poll();
         if (pkt == null)
@@ -817,15 +807,8 @@ public abstract class RTPConnectorInputStream<T>
             {
                 RawPacket[] pkts = createRawPacket(p);
 
-                try
-                {
-                    updateDatagramPacketListeners(p);
-                    transferData(pkts);
-                }
-                finally
-                {
-                    rawPacketArrayPool.offer(pkts);
-                }
+                updateDatagramPacketListeners(p);
+                transferData(pkts);
             }
         }
     }

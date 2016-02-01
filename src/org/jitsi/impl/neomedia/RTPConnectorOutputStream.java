@@ -164,14 +164,6 @@ public abstract class RTPConnectorOutputStream
     private PacketLoggingService pktLogging;
 
     /**
-     * The pool of <tt>RawPacket[]</tt> instances which reduces the number of
-     * allocations performed by {@link #packetize(byte[], int, int, Object)}.
-     * Always contains arrays full with <tt>null</tt>
-     */
-    private final LinkedBlockingQueue<RawPacket[]> rawPacketArrayPool
-        = new LinkedBlockingQueue<>();
-
-    /**
      * The pool of <tt>RawPacket</tt> instances which reduces the number of
      * allocations performed by {@link #packetize(byte[], int, int, Object)}.
      */
@@ -244,10 +236,7 @@ public abstract class RTPConnectorOutputStream
             byte[] buf, int off, int len,
             Object context)
     {
-        // get an array (full with null-s) from the pool or create a new one
-        RawPacket[] pkts = rawPacketArrayPool.poll();
-        if (pkts == null)
-            pkts = new RawPacket[1];
+        RawPacket[] pkts = new RawPacket[1];
 
         RawPacket pkt = rawPacketPool.poll();
         byte[] pktBuffer;
@@ -605,8 +594,6 @@ public abstract class RTPConnectorOutputStream
                 }
             }
         }
-
-        rawPacketArrayPool.offer(pkts);
 
         return success;
     }
