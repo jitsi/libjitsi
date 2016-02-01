@@ -56,6 +56,11 @@ public class BasicRTCPTerminationStrategy
     private static final int MAX_RTCP_REPORT_BLOCKS = 31;
 
     /**
+     * The maximuc number of SDES chunks that an SDES packet can have.
+     */
+    private static final int MAX_SDES_CHUNKS = 31;
+
+    /**
      * The minimum number of RTCP report blocks that an RR or an SR can
      * contain.
      */
@@ -273,7 +278,7 @@ public class BasicRTCPTerminationStrategy
         RTCPREMBPacket remb = makeREMB();
 
         // SDES
-        RTCPSDESPacket sdes = makeSDES();
+        List<RTCPSDESPacket> sdes = makeSDES();
 
         // Build the RTCPCompoundPackets to return.
         List<RTCPCompoundPacket> compounds = compound(rrs, srs, sdes, remb);
@@ -313,7 +318,7 @@ public class BasicRTCPTerminationStrategy
     private List<RTCPCompoundPacket> compound(
             List<RTCPRRPacket> rrs,
             List<RTCPSRPacket> srs,
-            RTCPSDESPacket sdes,
+            List<RTCPSDESPacket> sdess,
             RTCPPacket... others)
     {
         // SRs are capable of carrying the report blocks of the RRs and thus of
@@ -373,16 +378,23 @@ public class BasicRTCPTerminationStrategy
                 }
             }
 
-            // SDES with CNAME for the SSRC of the SR or RR.
-            RTCPSDESItem cnameItem = findCNAMEItem(sdes, ssrc);
-
-            if (cnameItem != null)
+            if (sdess != null && sdess.size() != 0)
             {
-                RTCPSDES sdesOfReport = new RTCPSDES();
+                for (RTCPSDESPacket sdes : sdess)
+                {
+                    // SDES with CNAME for the SSRC of the SR or RR.
+                    RTCPSDESItem cnameItem = findCNAMEItem(sdes, ssrc);
 
-                sdesOfReport.items = new RTCPSDESItem[] { cnameItem };
-                sdesOfReport.ssrc = ssrc;
-                rtcps.add(new RTCPSDESPacket(new RTCPSDES[] { sdesOfReport }));
+                    if (cnameItem != null)
+                    {
+                        RTCPSDES sdesOfReport = new RTCPSDES();
+
+                        sdesOfReport.items = new RTCPSDESItem[] { cnameItem };
+                        sdesOfReport.ssrc = ssrc;
+                        rtcps.add(new RTCPSDESPacket(new RTCPSDES[] { sdesOfReport }));
+                        break;
+                    }
+                }
             }
 
             RTCPCompoundPacket compound
@@ -891,7 +903,7 @@ public class BasicRTCPTerminationStrategy
      * @return a <tt>List</tt> of <tt>RTCPSDES</tt> packets for all the RTP
      * streams that we're sending.
      */
-    private RTCPSDESPacket makeSDES()
+    private List<RTCPSDESPacket> makeSDES()
     {
         // Create an SDES for our own SSRC.
         SSRCInfo ourinfo
@@ -948,13 +960,25 @@ public class BasicRTCPTerminationStrategy
 
         ownSDES.items = ownItems.toArray(new RTCPSDESItem[ownItems.size()]);
         ownSDES.ssrc = (int) getLocalSSRC();
-        
+
         Collection<RTCPSDES> chunks = new ArrayList<>();
 
         chunks.add(ownSDES);
 
-        for (Map.Entry<Integer, byte[]> entry : cnameRegistry.entrySet())
+        Set<Map.Entry<Integer, byte[]>> entries = cnameRegistry.entrySet();
+        List<RTCPSDESPacket> sdesPackets = new ArrayList<>(
+            (int) Math.ceil((double) entries.size() / MAX_SDES_CHUNKS));
+
+        for (Map.Entry<Integer, byte[]> entry : entries)
         {
+            if (chunks.size() >= MAX_SDES_CHUNKS)
+            {
+                // RTCP SDES packets can have a maximum of 31 SDES chunks.
+                sdesPackets.add(new RTCPSDESPacket(
+                        chunks.toArray(new RTCPSDES[chunks.size()])));
+                chunks = new ArrayList<>();
+            }
+
             RTCPSDES sdes = new RTCPSDES();
 
             sdes.items
@@ -966,7 +990,14 @@ public class BasicRTCPTerminationStrategy
             chunks.add(sdes);
         }
 
-        return new RTCPSDESPacket(chunks.toArray(new RTCPSDES[chunks.size()]));
+        if (chunks.size() > 0)
+        {
+            // Add the remaining chunks in a new SDES packet.
+            sdesPackets.add(new RTCPSDESPacket(
+                    chunks.toArray(new RTCPSDES[chunks.size()])));
+        }
+
+        return sdesPackets;
     }
 
     /**
