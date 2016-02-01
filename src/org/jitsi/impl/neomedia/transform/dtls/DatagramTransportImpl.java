@@ -174,7 +174,7 @@ public class DatagramTransportImpl
         flush();
 
         AbstractRTPConnector connector = assertNotClosed(false);
-        OutputDataStream outputStream;
+        RTPConnectorOutputStream outputStream;
 
         switch (componentID)
         {
@@ -192,7 +192,10 @@ public class DatagramTransportImpl
             throw ise;
         }
 
-        outputStream.write(buf, off, len);
+        // Write synchronously in order to avoid our packet getting stuck in the
+        // write queue (in case it is blocked waiting for DTLS to finish, for
+        // example).
+        outputStream.syncWrite(buf, off, len);
     }
 
     private void flush()

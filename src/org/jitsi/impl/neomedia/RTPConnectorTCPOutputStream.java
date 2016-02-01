@@ -42,13 +42,6 @@ public class RTPConnectorTCPOutputStream
     public RTPConnectorTCPOutputStream(Socket socket)
     {
         this.socket = socket;
-
-        // The transmission of data over a TCP socket is generally slower in
-        // comparison to UDP. Moreover, we have observed that writes will block
-        // for prolonged periods of time. In order to reduce the effects of
-        // these on the threads which invoke the writes, perform the very
-        // writing on a background thread.
-        setMaxPacketsPerMillis(Integer.MAX_VALUE, 1);
     }
 
     /**
@@ -115,22 +108,5 @@ public class RTPConnectorTCPOutputStream
     protected boolean isSocketValid()
     {
         return (socket != null);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setMaxPacketsPerMillis(int maxPackets, long perMillis)
-    {
-        super.setMaxPacketsPerMillis(maxPackets, perMillis);
-
-        if (maxPacketsPerMillisPolicy != null)
-        {
-            // If we are sending more data than the TCP socket can handle, we
-            // prefer to drop packets (as happens with UDP) instead of blocking
-            // the sending thread.
-            maxPacketsPerMillisPolicy.setDropPacketsWhenFull(true);
-        }
     }
 }
