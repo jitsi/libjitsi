@@ -20,12 +20,26 @@ import java.util.*;
 import net.sf.fmj.media.rtp.util.*;
 
 /**
- * webrtc/webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h
+ * webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.cc
+ * webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h
  *
  * @author Lyubomir Marinov
  */
 public interface RemoteBitrateEstimator
 {
+    /**
+     * webrtc/modules/remote_bitrate_estimator/include/bwe_defines.h
+     */
+    int kBitrateWindowMs = 1000;
+
+    int kDefaultMinBitrateBps = 30000;
+
+    int kProcessIntervalMs = 500;
+
+    int kStreamTimeOutMs = 2000;
+
+    int kTimestampGroupLengthMs = 5;
+
     /**
      * Returns the estimated payload bitrate in bits per second if a valid
      * estimate exists; otherwise, <tt>-1</tt>.
@@ -46,12 +60,14 @@ public interface RemoteBitrateEstimator
      * @param payloadSize the packet size excluding headers
      * @param ssrc
      * @param rtpTimestamp
+     * @param wasPaced
      */
     void incomingPacket(
             long arrivalTimeMs,
             int payloadSize,
             int ssrc,
-            long rtpTimestamp);
+            long rtpTimestamp,
+            boolean wasPaced);
 
     /**
      * Called for each incoming packet. Updates the incoming payload bitrate
@@ -61,8 +77,13 @@ public interface RemoteBitrateEstimator
      * @param arrivalTimeMs can be of an arbitrary time base
      * @param payloadSize the packet size excluding headers
      * @param header
+     * @param wasPaced
      */
-    void incomingPacket(long arrivalTimeMs, int payloadSize, RTPPacket header);
+    void incomingPacket(
+            long arrivalTimeMs,
+            int payloadSize,
+            RTPPacket header,
+            boolean wasPaced);
 
     /**
      * Removes all data for <tt>ssrc</tt>.
@@ -70,4 +91,6 @@ public interface RemoteBitrateEstimator
      * @param ssrc
      */
     void removeStream(int ssrc);
+
+    void setMinBitrate(int minBitrateBps);
 }

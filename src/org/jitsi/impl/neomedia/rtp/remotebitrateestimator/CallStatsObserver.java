@@ -16,11 +16,11 @@
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 /**
- * webrtc/webrtc/modules/interface/module_common_types.h
+ * webrtc/modules/include/module_common_types.h
  *
  * @author Lyubomir Marinov
  */
 public interface CallStatsObserver
 {
-    void onRttUpdate(long rttMs);
+    void onRttUpdate(long avgRttMs, long maxRttMs);
 }

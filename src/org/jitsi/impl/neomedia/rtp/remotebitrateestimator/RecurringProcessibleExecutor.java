@@ -21,9 +21,9 @@ import java.util.concurrent.*;
 import org.jitsi.util.*;
 
 /**
- * webrtc/webrtc/modules/utility/interface/process_thread.h
- * webrtc/webrtc/modules/utility/source/process_thread_impl.cc
- * webrtc/webrtc/modules/utility/source/process_thread_impl.h
+ * webrtc/modules/utility/interface/process_thread.h
+ * webrtc/modules/utility/source/process_thread_impl.cc
+ * webrtc/modules/utility/source/process_thread_impl.h
  *
  * @author Lyubomir Marinov
  */
@@ -38,7 +38,7 @@ public class RecurringProcessibleExecutor
         = Logger.getLogger(RecurringProcessibleExecutor.class);
 
     private final List<RecurringProcessible> recurringProcessibles
-        = new LinkedList<RecurringProcessible>();
+        = new LinkedList<>();
 
     private Thread thread;
 

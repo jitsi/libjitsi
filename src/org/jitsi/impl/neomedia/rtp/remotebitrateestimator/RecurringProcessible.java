@@ -16,7 +16,7 @@
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 /**
- * webrtc/webrtc/modules/interface/module.h
+ * webrtc/modules/interface/module.h
  *
  * @author Lyubomir Marinov
  */

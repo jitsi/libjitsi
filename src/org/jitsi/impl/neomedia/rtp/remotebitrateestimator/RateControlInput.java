@@ -16,11 +16,11 @@
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 /**
- * webrtc/webrtc/modules/remote_bitrate_estimator/include/bwe_defines.h
+ * webrtc/modules/remote_bitrate_estimator/include/bwe_defines.h
  *
  * @author Lyubomir Marinov
  */
-public class RateControlInput
+class RateControlInput
 {
     public BandwidthUsage bwState;
 

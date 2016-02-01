@@ -1258,7 +1258,9 @@ public class MediaStreamStatsImpl
                     if (remoteBitrateEstimator instanceof CallStatsObserver)
                     {
                         ((CallStatsObserver) remoteBitrateEstimator)
-                            .onRttUpdate(rttMs);
+                            .onRttUpdate(
+                                    /* avgRttMs */ rttMs,
+                                    /* maxRttMs*/ rttMs);
                     }
                 }
             }

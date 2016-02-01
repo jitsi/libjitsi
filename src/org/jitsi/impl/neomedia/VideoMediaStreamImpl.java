@@ -436,8 +436,7 @@ public class VideoMediaStreamImpl
                                     ssrcs,
                                     bitrate);
                     }
-                },
-                /* minBitrateBps*/ 0L);
+                });
 
     /**
      * The facility which aids this instance in managing a list of
@@ -691,7 +690,8 @@ public class VideoMediaStreamImpl
                             arrivalTimeMs,
                             payloadLen,
                             ssrc,
-                            timestamp);
+                            timestamp,
+                            /* wasPaced */ false);
                 }
             }
         }

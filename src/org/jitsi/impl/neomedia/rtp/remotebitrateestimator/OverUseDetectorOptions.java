@@ -19,11 +19,11 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
  * Bandwidth over-use detector options.  These are used to drive experimentation
  * with bandwidth estimation parameters.
  *
- * webrtc/webrtc/common_types.h
+ * webrtc/common_types.h
  *
  * @author Lyubomir Marinov
  */
-public class OverUseDetectorOptions
+class OverUseDetectorOptions
 {
     public double initialAvgNoise = 0.0D;
 
