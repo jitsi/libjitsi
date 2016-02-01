@@ -147,7 +147,7 @@ void perc_var(
         }
         else {
             gamma1[k] = GAMMA1_1;
-            gamma2[k] = GAMMA2_1;;
+            gamma2[k] = GAMMA2_1;
         }
     }
 }

@@ -551,7 +551,7 @@ public class ControlCodecFLP {
             }
             else if( psEnc.sCmn.fs_kHz == 12 )
             {
-                LBRRRate_thres_bps = INBAND_FEC_MIN_RATE_BPS - 6000;;
+                LBRRRate_thres_bps = INBAND_FEC_MIN_RATE_BPS - 6000;
             }
             else if( psEnc.sCmn.fs_kHz == 16 )
             {

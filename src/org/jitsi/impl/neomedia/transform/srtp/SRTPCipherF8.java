@@ -167,7 +167,7 @@ public class SRTPCipherF8
         f8ctx.S[12] ^= f8ctx.J >> 24;
         f8ctx.S[13] ^= f8ctx.J >> 16;
         f8ctx.S[14] ^= f8ctx.J >> 8;
-        f8ctx.S[15] ^= f8ctx.J >> 0;
+        f8ctx.S[15] ^= f8ctx.J;
         f8ctx.J++;
 
         /*

@@ -174,7 +174,7 @@ public class RecorderEvent
         if (o != null)
         {
             if (o instanceof Boolean)
-                disableOtherVideosOnTop = (boolean) disableOtherVideosOnTop;
+                disableOtherVideosOnTop = (Boolean) o;
             else if (o instanceof String)
                 disableOtherVideosOnTop = Boolean.valueOf((String) o);
         }

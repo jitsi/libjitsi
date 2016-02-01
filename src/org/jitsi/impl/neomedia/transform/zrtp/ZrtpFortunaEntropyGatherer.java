@@ -130,9 +130,8 @@ public class ZrtpFortunaEntropyGatherer
      */
     public boolean setEntropy()
     {
-        boolean retValue = false;
         GatherAudio gatherer = new GatherAudio();
-        retValue = gatherer.prepareAudioEntropy();
+        boolean retValue = gatherer.prepareAudioEntropy();
         if (retValue)
             gatherer.start();
         return retValue;

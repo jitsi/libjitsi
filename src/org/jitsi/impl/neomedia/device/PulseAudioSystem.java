@@ -298,8 +298,7 @@ public class PulseAudioSystem
             int channels,
             String mediaName,
             String mediaRole)
-        throws IllegalStateException,
-               RuntimeException
+        throws RuntimeException
     {
         long context = getContext();
 
@@ -751,14 +750,12 @@ public class PulseAudioSystem
      * <tt>PA_CONTEXT_FAILED</tt>, or <tt>PA_CONTEXT_TERMINATED</tt>.
      *
      * @param context the PulseAudio context to wait for
-     * @param stateToWaitForm the PulseAudio state of the specified
+     * @param stateToWaitFor the PulseAudio state of the specified
      * <tt>context</tt> to wait for
      * @return the state of the specified <tt>context</tt> which caused the
      * method to return
      */
-    private int waitForContextState(
-            long context,
-            int stateToWaitFor)
+    private int waitForContextState(long context, int stateToWaitFor)
     {
         int state;
 
@@ -782,14 +779,12 @@ public class PulseAudioSystem
      * <tt>PA_STREAM_FAILED</tt>, or <tt>PA_STREAM_TERMINATED</tt>.
      *
      * @param stream the PulseAudio stream to wait for
-     * @param stateToWaitForm the PulseAudio state of the specified
+     * @param stateToWaitFor the PulseAudio state of the specified
      * <tt>stream</tt> to wait for
      * @return the state of the specified <tt>stream</tt> which caused the
      * method to return
      */
-    public int waitForStreamState(
-            long stream,
-            int stateToWaitFor)
+    public int waitForStreamState(long stream, int stateToWaitFor)
     {
         int state;
 

@@ -150,7 +150,7 @@ public class DePacketizer
         }
 
         boolean pBit = ((in[inOffset] & 0x04) > 0);
-        boolean vBit = ((in[inOffset] & 0x02) > 0);;
+        boolean vBit = ((in[inOffset] & 0x02) > 0);
         int plen = ((in[inOffset] & 0x01) << 5) +
             ((in[inOffset + 1] & 0xF8) >> 3);
         int dataLength = inLength - plen - (vBit ? 1 : 0) - (pBit ? 0 : 2);

@@ -23,7 +23,6 @@ import javax.xml.parsers.*;
 import org.jitsi.impl.configuration.*;
 import org.jitsi.util.*;
 import org.jitsi.util.xml.*;
-import org.jitsi.util.xml.XMLUtils;
 import org.w3c.dom.*;
 import org.xml.sax.*;
 

@@ -72,7 +72,7 @@ public class DtmfTransformEngine
          * stopped we have already sent a retransmission of the final packet.
          */
         END_SEQUENCE_INITIATED
-    };
+    }
 
     /**
      * Array of all supported tones.

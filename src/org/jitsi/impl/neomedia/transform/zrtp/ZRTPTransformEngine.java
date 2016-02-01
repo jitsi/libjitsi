@@ -712,7 +712,7 @@ public class ZRTPTransformEngine
      */
     public void setOwnSSRC(long ssrc)
     {
-        ownSSRC = (int)(ssrc & 0xffffffff);
+        ownSSRC = (int) ssrc;
     }
 
     /**
@@ -856,7 +856,7 @@ public class ZRTPTransformEngine
             ZrtpSrtpSecrets secrets,
             EnableSecurity part)
     {
-        SRTPPolicy srtpPolicy = null;
+        SRTPPolicy srtpPolicy;
         int cipher = 0, authn = 0, authKeyLen = 0;
 
         if (secrets.getAuthAlgorithm() == ZrtpConstants.SupportedAuthAlgos.HS)

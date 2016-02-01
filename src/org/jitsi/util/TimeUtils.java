@@ -175,5 +175,4 @@ public class TimeUtils
     {
         return ntpTime & 0xFFFFFFFFL;
     }
-
 }
