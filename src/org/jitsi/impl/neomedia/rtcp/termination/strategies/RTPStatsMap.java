@@ -24,9 +24,10 @@ import java.util.concurrent.*;
  * <tt>RTCPReportBuilder</tt> uses to build its reports.
  *
  * @author George Politis
+ * @author Lyubomir Marinov
  */
 public class RTPStatsMap
-        extends ConcurrentHashMap<Integer, RTPStatsEntry>
+    extends ConcurrentHashMap<Integer, RTPStatsEntry>
 {
     /**
      * Updates this <tt>RTPStatsMap</tt> with information it gets from the
@@ -37,29 +38,24 @@ public class RTPStatsMap
     public void apply(RawPacket pkt)
     {
         int ssrc = pkt.getSSRC();
-        if (this.containsKey(ssrc))
-        {
-            RTPStatsEntry oldRtpStatsEntry = this.get(ssrc);
+        int bytesSent
+            = pkt.getLength() - pkt.getHeaderLength() - pkt.getPaddingSize();
+        int packetsSent = 1;
 
-            // Replace whatever was in there before. A feature of the two's
-            // complement encoding (which is used by Java integers) is that
-            // the bitwise results for add, subtract, and multiply are the
-            // same if both inputs are interpreted as signed values or both
-            // inputs are interpreted as unsigned values. (Other encodings
-            // like one's complement and signed magnitude don't have this
-            // properly.)
-            this.put(ssrc, new RTPStatsEntry(
-                ssrc, oldRtpStatsEntry.getBytesSent() + pkt.getLength()
-                - pkt.getHeaderLength() - pkt.getPaddingSize(),
-                oldRtpStatsEntry.getPacketsSent() + 1));
-        }
-        else
+        RTPStatsEntry oldRtpStatsEntry = get(ssrc);
+
+        if (oldRtpStatsEntry != null)
         {
-            // Add a new <tt>RTPStatsEntry</tt> in this map.
-            this.put(ssrc, new RTPStatsEntry(
-                ssrc, pkt.getLength()
-                - pkt.getHeaderLength() - pkt.getPaddingSize(),
-                1));
+            // Replace whatever was in there before. A feature of the two's
+            // complement encoding (which is used by Java integers) is that the
+            // bitwise results for add, subtract, and multiply are the same if
+            // both inputs are interpreted as signed values or both inputs are
+            // interpreted as unsigned values. (Other encodings like one's
+            // complement and signed magnitude don't have this properly.)
+            bytesSent += oldRtpStatsEntry.getBytesSent();
+            packetsSent += oldRtpStatsEntry.getPacketsSent();
         }
+
+        put(ssrc, new RTPStatsEntry(ssrc, bytesSent, packetsSent));
     }
 }

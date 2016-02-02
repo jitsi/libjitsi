@@ -32,43 +32,38 @@ class CNAMERegistry
     public void update(RTCPCompoundPacket inPacket)
     {
         // Update CNAMEs.
+        RTCPPacket[] rtcps;
+
         if (inPacket == null
-                || inPacket.packets == null
-                || inPacket.packets.length == 0)
+                || (rtcps = inPacket.packets) == null
+                || rtcps.length == 0)
         {
             return;
         }
 
-        for (RTCPPacket p : inPacket.packets)
+        for (RTCPPacket rtcp : rtcps)
         {
-            switch (p.type)
+            if (RTCPPacket.SDES != rtcp.type)
+                continue;
+
+            RTCPSDESPacket sdes = (RTCPSDESPacket) rtcp;
+            RTCPSDES[] chunks = sdes.sdes;
+
+            if (chunks == null || chunks.length == 0)
+                continue;
+
+            for (RTCPSDES chunk : chunks)
             {
-            case RTCPPacket.SDES:
-                RTCPSDESPacket sdes = (RTCPSDESPacket) p;
+                RTCPSDESItem[] items = chunk.items;
 
-                if (sdes.sdes == null || sdes.sdes.length == 0)
-                {
+                if (items == null || items.length == 0)
                     continue;
-                }
 
-                for (RTCPSDES chunk : sdes.sdes)
+                for (RTCPSDESItem item : items)
                 {
-                    if (chunk.items == null || chunk.items.length == 0)
-                    {
-                        continue;
-                    }
-
-                    for (RTCPSDESItem item : chunk.items)
-                    {
-                        if (item.type != RTCPSDESItem.CNAME)
-                        {
-                            continue;
-                        }
-
-                        this.put(chunk.ssrc, item.data);
-                    }
+                    if (RTCPSDESItem.CNAME == item.type)
+                        put(chunk.ssrc, item.data);
                 }
-                break;
             }
         }
     }
