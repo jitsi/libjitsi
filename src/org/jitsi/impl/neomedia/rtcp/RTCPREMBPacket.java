@@ -212,11 +212,13 @@ public class RTCPREMBPacket extends RTCPFBPacket
         // SSRC feedback (32 bits)  Consists of one or more SSRC entries which
         // this feedback message applies to.
         if (dest != null && dest.length != 0)
-            for (int i = 0; i < dest.length; i++)
+        {
+            for (long d : dest)
             {
-                RTCPFeedbackMessagePacket.writeSSRC(dest[i], buf, off);
+                RTCPFeedbackMessagePacket.writeSSRC(d, buf, off);
                 off += 4;
             }
+        }
 
         dataoutputstream.write(buf, 0, len);
     }

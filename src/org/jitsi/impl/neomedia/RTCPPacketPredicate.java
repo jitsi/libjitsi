@@ -1,4 +1,3 @@
-
 /*
  * Copyright @ 2015 Atlassian Pty Ltd
  *
@@ -14,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.jitsi.impl.neomedia;
 
 /**
@@ -26,16 +24,16 @@ public class RTCPPacketPredicate
     extends AbstractRTPPacketPredicate
 {
     /**
+     * The singleton instance of this class.
+     */
+    public static final RTCPPacketPredicate INSTANCE
+        = new RTCPPacketPredicate();
+
+    /**
      * Ctor.
      */
     public RTCPPacketPredicate()
     {
         super(true);
     }
-
-    /**
-     * The singleton instance of this class.
-     */
-    public static final RTCPPacketPredicate instance
-        = new RTCPPacketPredicate();
 }

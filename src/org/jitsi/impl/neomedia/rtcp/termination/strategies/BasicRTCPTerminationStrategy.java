@@ -138,7 +138,7 @@ public class BasicRTCPTerminationStrategy
      * <tt>BasicRTCPTerminationStrategy</tt>.
      */
     private final PacketTransformer rtpTransformer
-        = new SinglePacketTransformer(RTPPacketPredicate.instance)
+        = new SinglePacketTransformer(RTPPacketPredicate.INSTANCE)
     {
         /**
          * {@inheritDoc}
@@ -170,7 +170,7 @@ public class BasicRTCPTerminationStrategy
      * <tt>BasicRTCPTerminationStrategy</tt>.
      */
     private final PacketTransformer rtcpTransformer
-        = new SinglePacketTransformerAdapter(RTCPPacketPredicate.instance)
+        = new SinglePacketTransformerAdapter(RTCPPacketPredicate.INSTANCE)
     {
         /**
          * {@inheritDoc}
@@ -307,7 +307,7 @@ public class BasicRTCPTerminationStrategy
      *
      * @param rrs
      * @param srs
-     * @param sdes the {@code RTCPSDESPacket} to include in the new
+     * @param sdess the {@code RTCPSDESPacket} to include in the new
      * {@code RTCPCompoundPacket}. An SDES packet containing a CNAME item MUST
      * be included in each compound RTCP packet.
      * @param others other {@code RTCPPacket}s to be included in the new
@@ -841,15 +841,18 @@ public class BasicRTCPTerminationStrategy
         // Exp & mantissa
         long bitrate = remoteBitrateEstimator.getLatestEstimate();
 
+        if (logger.isDebugEnabled())
+        {
+            logger.debug(
+                    "Estimated bitrate (bps): " + bitrate + ", dest: "
+                        + Arrays.toString(dest));
+        }
         if (bitrate == -1)
         {
             return null;
         }
         else
         {
-            if (logger.isDebugEnabled())
-                logger.debug("Estimated bitrate: " + bitrate);
-
             return new RTCPREMBPacket(senderSSRC, mediaSSRC, bitrate, dest);
         }
     }
@@ -1046,19 +1049,21 @@ public class BasicRTCPTerminationStrategy
          */
         public RawPacket gateway(RTCPCompoundPacket inPacket)
         {
+            RTCPPacket[] inPackets;
+
             if (inPacket == null
-                || inPacket.packets == null || inPacket.packets.length == 0)
+                    || (inPackets = inPacket.packets) == null
+                    || inPackets.length == 0)
             {
                 logger.info("Ignoring empty RTCP packet.");
                 return null;
             }
 
-            List<RTCPPacket> outPackets
-                = new ArrayList<>(inPacket.packets.length);
+            List<RTCPPacket> outPackets = new ArrayList<>(inPackets.length);
 
-            for (RTCPPacket p : inPacket.packets)
+            for (RTCPPacket rtcp : inPackets)
             {
-                switch (p.type)
+                switch (rtcp.type)
                 {
                 case RTCPPacket.RR:
                 case RTCPPacket.SR:
@@ -1067,22 +1072,21 @@ public class BasicRTCPTerminationStrategy
                     // forward NACKs/PLIs/etc.
                     break;
                 case RTCPFBPacket.PSFB:
-                    RTCPFBPacket psfb = (RTCPFBPacket) p;
+                    RTCPFBPacket psfb = (RTCPFBPacket) rtcp;
                     switch (psfb.fmt)
                     {
-                        case RTCPREMBPacket.FMT:
-                            // We generate its own REMB packets.
-                            break;
-                        default:
-                            // We let through everything else, like NACK
-                            // packets.
-                            outPackets.add(psfb);
-                            break;
+                    case RTCPREMBPacket.FMT:
+                        // We generate its own REMB packets.
+                        break;
+                    default:
+                        // We let through everything else, like NACK packets.
+                        outPackets.add(psfb);
+                        break;
                     }
                     break;
                 default:
                     // We let through everything else, like BYE and APP packets.
-                    outPackets.add(p);
+                    outPackets.add(rtcp);
                     break;
                 }
             }

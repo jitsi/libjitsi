@@ -25,10 +25,11 @@ public class AbstractRTPPacketPredicate
     implements Predicate<RawPacket>
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>RTCPPacketPredicate</tt> class.
+     * The <tt>Logger</tt> used by the <tt>AbstractRTPPacketPredicate</tt>
+     * class.
      */
     private static final Logger logger
-        = Logger.getLogger(RTPPacketPredicate.class);
+        = Logger.getLogger(AbstractRTPPacketPredicate.class);
 
     /**
      * True if this predicate should test for RTCP, false for RTP.
@@ -53,15 +54,15 @@ public class AbstractRTPPacketPredicate
     {
         // XXX inspired by RtpChannelDatagramFilter.accept().
         boolean result;
+
         if (pkt != null)
         {
             if (pkt.getLength() >= 4)
             {
-                byte[] buff = pkt.getBuffer();
-                int off = pkt.getOffset();
-
                 if (pkt.getVersion() == 2) // RTP/RTCP version field
                 {
+                    byte[] buff = pkt.getBuffer();
+                    int off = pkt.getOffset();
                     int pt = buff[off + 1] & 0xff;
 
                     if (200 <= pt && pt <= 211)

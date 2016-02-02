@@ -46,7 +46,7 @@ public class REDFilterTransformEngine
      * The RED payload type. This, of course, should be dynamic but in the
      * context of this transformer this doesn't matter.
      */
-    private byte redPayloadType = -1;
+    private final byte redPayloadType;
 
     /**
      * Initializes a new <tt>REDFilterTransformEngine</tt> with the given
@@ -55,7 +55,8 @@ public class REDFilterTransformEngine
      */
     public REDFilterTransformEngine(byte redPayloadType)
     {
-        super(RTPPacketPredicate.instance);
+        super(RTPPacketPredicate.INSTANCE);
+
         this.redPayloadType = redPayloadType;
     }
 

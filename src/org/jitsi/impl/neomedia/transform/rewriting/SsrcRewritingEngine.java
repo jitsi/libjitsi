@@ -372,8 +372,10 @@ public class SsrcRewritingEngine implements TransformEngine
 
         if (logger.isDebugEnabled())
         {
-            logger.debug("Configuring the SSRC rewriting engine to rewrite: "
-                    + (ssrcOrig & 0xffffffffl) + " to " + (ssrcTarget & 0xffffffffl));
+            logger.debug(
+                    "Configuring the SSRC rewriting engine to rewrite: "
+                            + (ssrcOrig & 0xffffffffL) + " to "
+                            + (ssrcTarget & 0xffffffffL));
         }
 
         if (ssrcTarget != null && ssrcTarget != UNMAP_SSRC)
@@ -479,7 +481,7 @@ public class SsrcRewritingEngine implements TransformEngine
     {
         public MyRTPSinglePacketTransformer()
         {
-            super(RTPPacketPredicate.instance);
+            super(RTPPacketPredicate.INSTANCE);
         }
 
         @Override
@@ -525,7 +527,7 @@ public class SsrcRewritingEngine implements TransformEngine
     {
         public MyRTCPSinglePacketTransformer()
         {
-            super(RTCPPacketPredicate.instance);
+            super(RTCPPacketPredicate.INSTANCE);
         }
 
         @Override
@@ -562,8 +564,8 @@ public class SsrcRewritingEngine implements TransformEngine
 
             if (inPkts == null || inPkts.length == 0)
             {
-                logger.warn("Weird, it seems we just received an empty RTCP " +
-                        "packet.");
+                logger.warn(
+                        "Weird! It seems we received an empty RTCP packet!");
                 return pkt;
             }
 
@@ -592,8 +594,9 @@ public class SsrcRewritingEngine implements TransformEngine
                     break;
                 case RTCPPacket.SR:
                     RTCPSRPacket sr = (RTCPSRPacket) inPkt;
-                    sr.reports = BasicRTCPTerminationStrategy
-                        .MIN_RTCP_REPORT_BLOCKS_ARRAY;
+                    sr.reports
+                        = BasicRTCPTerminationStrategy
+                            .MIN_RTCP_REPORT_BLOCKS_ARRAY;
                     outPkts.add(sr);
                     break;
                 case RTCPPacket.SDES:
@@ -624,16 +627,17 @@ public class SsrcRewritingEngine implements TransformEngine
                         }
                         else
                         {
-                            psfb.sourceSSRC = reverseSSRC & 0xffffffffl;
+                            psfb.sourceSSRC = reverseSSRC & 0xffffffffL;
                         }
                     }
 
-                    switch (psfb.type)
+                    switch (psfb.fmt)
                     {
                     case RTCPREMBPacket.FMT:
                         // Special handling for REMB messages.
                         RTCPREMBPacket remb = (RTCPREMBPacket) psfb;
                         long[] dest = remb.getDest();
+
                         if (dest != null && dest.length != 0)
                         {
                             for (int i = 0; i < dest.length; i++)
@@ -649,12 +653,19 @@ public class SsrcRewritingEngine implements TransformEngine
                                 }
                                 else
                                 {
-                                    dest[i] = reverseSSRC & 0xffffffffl;
+                                    dest[i] = reverseSSRC & 0xffffffffL;
                                 }
                             }
                         }
-
                         remb.setDest(dest);
+
+                        if (logger.isTraceEnabled())
+                        {
+                            logger.trace(
+                                    "Received estimated bitrate (bps): "
+                                        + remb.getBitrate() + ", dest: "
+                                        + Arrays.toString(dest));
+                        }
                         break;
                     }
 
@@ -665,8 +676,9 @@ public class SsrcRewritingEngine implements TransformEngine
                     RTCPFBPacket fb = (RTCPFBPacket) inPkt;
                     if (fb.fmt != NACKPacket.FMT)
                     {
-                        logger.warn("Unhandled RTCP RTPFB packet (not a NACK): "
-                                + inPkt);
+                        logger.warn(
+                                "Unhandled RTCP RTPFB packet (not a NACK): "
+                                    + inPkt);
                     }
                     else
                     {
@@ -674,7 +686,8 @@ public class SsrcRewritingEngine implements TransformEngine
                     }
                     break;
                 default:
-                    logger.warn("Unhandled RTCP (non RTPFB PSFB) packet: " + inPkt);
+                    logger.warn(
+                            "Unhandled RTCP (non RTPFB PSFB) packet: " + inPkt);
                     break;
                 }
             }
@@ -708,18 +721,18 @@ public class SsrcRewritingEngine implements TransformEngine
      * for this class, but getting the information from FMJ needs some testing
      * first. This is a temporary fix.
      */
-    static class SeqnumBaseKeeper
+    private static class SeqnumBaseKeeper
     {
         /**
          * The <tt>Map</tt> that holds the latest and greatest sequence number
          * for a given SSRC.
          */
-        private Map<Integer, Integer> map = new HashMap<Integer, Integer>();
+        private final Map<Integer, Integer> map = new HashMap<>();
 
         /**
          * The <tt>Comparator</tt> used to compare sequence numbers.
          */
-        private static SeqNumComparator seqNumComparator
+        private static final SeqNumComparator seqNumComparator
             = new SeqNumComparator();
 
         /**
@@ -763,7 +776,8 @@ public class SsrcRewritingEngine implements TransformEngine
                 seqnum = RANDOM.nextInt(0x10000);
             }
 
-            return new SsrcGroupRewriter(ssrcRewritingEngine, ssrcTarget, seqnum);
+            return
+                new SsrcGroupRewriter(ssrcRewritingEngine, ssrcTarget, seqnum);
         }
     }
 }

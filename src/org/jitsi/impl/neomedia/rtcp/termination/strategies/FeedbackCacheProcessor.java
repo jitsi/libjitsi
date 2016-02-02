@@ -25,8 +25,7 @@ import java.util.*;
 */
 public class FeedbackCacheProcessor
 {
-    public FeedbackCacheProcessor(
-            FeedbackCache feedbackCache)
+    public FeedbackCacheProcessor(FeedbackCache feedbackCache)
     {
         this.feedbackCache = feedbackCache;
     }
@@ -99,7 +98,7 @@ public class FeedbackCacheProcessor
                                                 getReverseFeedbackMapMap()
     {
         Map<Integer, Map<Integer, FeedbackData>> reverseFeedbackMapMap
-                = new HashMap<Integer, Map<Integer, FeedbackData>>();
+                = new HashMap<>();
 
         if (feedbackCache != null && feedbackCache.size() != 0)
         {
@@ -128,11 +127,11 @@ public class FeedbackCacheProcessor
                         feedback.rr.lsr = b.getLSR();
                         feedback.rr.seqnum = b.getXtndSeqNum();
 
-                        Integer dest = Integer.valueOf((int) b.getSSRC());
+                        Integer dest = (int) b.getSSRC();
 
                         // <dest, feedback>
                         Map<Integer, FeedbackData> reverseFeedbackMap
-                                = new HashMap<Integer, FeedbackData>();
+                            = new HashMap<>();
 
                         reverseFeedbackMapMap.put(dest, reverseFeedbackMap);
                         reverseFeedbackMap.put(sender, feedback);
@@ -146,22 +145,18 @@ public class FeedbackCacheProcessor
                 {
                     for (long destl : item.remb.dest)
                     {
-                        Integer dest = Integer.valueOf((int) destl);
+                        Integer dest = (int) destl;
                         // <dest, feedback>
                         Map<Integer, FeedbackData> reverseFeedbackMap;
                         if (reverseFeedbackMapMap.containsKey(dest))
                         {
                             reverseFeedbackMap
-                                    = reverseFeedbackMapMap.get(dest);
+                                = reverseFeedbackMapMap.get(dest);
                         }
                         else
                         {
-                            reverseFeedbackMap
-                                    = new HashMap<Integer, FeedbackData>();
-
-                            reverseFeedbackMapMap.put(dest,
-                                    reverseFeedbackMap);
-
+                            reverseFeedbackMap = new HashMap<>();
+                            reverseFeedbackMapMap.put(dest, reverseFeedbackMap);
                         }
 
                         FeedbackData feedback;
@@ -228,8 +223,7 @@ public class FeedbackCacheProcessor
             return null;
 
         // let's build the <dest, feedback> map
-        Map<Integer, FeedbackData> reverseFeedbackMap
-                = new HashMap<Integer, FeedbackData>();
+        Map<Integer, FeedbackData> reverseFeedbackMap = new HashMap<>();
 
         // iterate over the destinations
         for (Map.Entry<Integer, Map<Integer, FeedbackData>> entry
@@ -238,7 +232,7 @@ public class FeedbackCacheProcessor
             Integer dest = entry.getKey();
 
             // <score, feedback>
-            NavigableMap<Double, FeedbackData> scoresMap = new TreeMap<Double, FeedbackData>();
+            NavigableMap<Double, FeedbackData> scoresMap = new TreeMap<>();
 
             // rank feedbacks
 
@@ -262,8 +256,7 @@ public class FeedbackCacheProcessor
                     = (int) Math.ceil((p / 100.0) * scoresMap.size()) - 1;
 
             FeedbackData feedback
-                    = new ArrayList<FeedbackData>(scoresMap.values())
-                            .get(idxNearestBest);
+                    = new ArrayList<>(scoresMap.values()).get(idxNearestBest);
 
             reverseFeedbackMap.put(dest, feedback);
         }
@@ -284,15 +277,14 @@ public class FeedbackCacheProcessor
     public RTCPPacket[] makeReports(int localSSRC)
     {
         Map<Integer, FeedbackData> reverseFeedback
-                = getReverseFeedbackMap();
+            = getReverseFeedbackMap();
 
         if (reverseFeedback == null || reverseFeedback.size() == 0)
             return null;
 
         List<RTCPReportBlock> reportBlocks
-                = new ArrayList<RTCPReportBlock>(reverseFeedback.size());
-        List<RTCPREMBPacket> rembs
-                = new ArrayList<RTCPREMBPacket>(reverseFeedback.size());
+            = new ArrayList<>(reverseFeedback.size());
+        List<RTCPREMBPacket> rembs = new ArrayList<>(reverseFeedback.size());
 
         for (Map.Entry<Integer, FeedbackData> entry
                 : reverseFeedback.entrySet())

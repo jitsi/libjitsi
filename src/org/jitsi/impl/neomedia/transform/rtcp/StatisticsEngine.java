@@ -89,8 +89,8 @@ public class StatisticsEngine
 
             if (v == RTCPHeader.VERSION)
             {
-                int words = ((buf[off + 2] & 0xff) << 8) |
-                            ((buf[off + 3] & 0xff));
+                int words
+                    = ((buf[off + 2] & 0xff) << 8) | (buf[off + 3] & 0xff);
                 int bytes = (words + 1) * 4;
 
                 if (bytes <= len)
@@ -181,13 +181,12 @@ public class StatisticsEngine
      * packets.
      */
     private final PacketTransformer rtpTransformer
-            = new SinglePacketTransformer(RTPPacketPredicate.instance)
+            = new SinglePacketTransformer(RTPPacketPredicate.INSTANCE)
     {
         @Override
         public RawPacket transform(RawPacket pkt)
         {
             StatisticsEngine.this.rtpPacketsSent++;
-
             return pkt;
         }
 
@@ -195,7 +194,6 @@ public class StatisticsEngine
         public RawPacket reverseTransform(RawPacket pkt)
         {
             StatisticsEngine.this.rtpPacketsReceived++;
-
             return pkt;
         }
     };
@@ -208,7 +206,8 @@ public class StatisticsEngine
     {
         // XXX think about removing the isRTCP method now that we have the
         // RTCPPacketPredicate in place.
-        super(RTCPPacketPredicate.instance);
+        super(RTCPPacketPredicate.INSTANCE);
+
         this.mediaStream = stream;
 
         mediaType = this.mediaStream.getMediaType();
@@ -227,11 +226,9 @@ public class StatisticsEngine
             RawPacket pkt,
             RTCPExtendedReport extendedReport)
     {
-        /*
-         * Find an offset within pkt at which the specified RTCP XR packet is to
-         * be added. According to RFC 3550, it should not follow an RTCP BYE
-         * packet with matching SSRC.
-         */
+        // Find an offset within pkt at which the specified RTCP XR packet is to
+        // be added. According to RFC 3550, it should not follow an RTCP BYE
+        // packet with matching SSRC.
         byte[] buf = pkt.getBuffer();
         int off = pkt.getOffset();
         int end = off + pkt.getLength();
@@ -252,11 +249,9 @@ public class StatisticsEngine
 
                 if ((sc < 0) || (rtcpPktLen < ((1 + sc) * 4)))
                 {
-                    /*
-                     * If the packet is not really an RTCP BYE, then we should
-                     * better add the RTCP XR before a chunk of bytes that we do
-                     * not fully understand.
-                     */
+                    // If the packet is not really an RTCP BYE, then we should
+                    // better add the RTCP XR before a chunk of bytes that we do
+                    // not fully understand.
                     before = true;
                 }
                 else
@@ -353,10 +348,8 @@ public class StatisticsEngine
             RawPacket pkt,
             String sdpParams)
     {
-        /*
-         * Create an RTCP XR packet for each RTCP SR or RR packet. Afterwards,
-         * add the newly created RTCP XR packets into pkt.
-         */
+        // Create an RTCP XR packet for each RTCP SR or RR packet. Afterwards,
+        // add the newly created RTCP XR packets into pkt.
         byte[] buf = pkt.getBuffer();
         int off = pkt.getOffset();
         List<RTCPExtendedReport> rtcpXRs = null;
@@ -376,10 +369,8 @@ public class StatisticsEngine
 
                 if (rc >= 0)
                 {
-                    /*
-                     * Does the packet still look like an RTCP packet of the
-                     * advertised packet type (PT)? 
-                     */
+                    // Does the packet still look like an RTCP packet of the
+                    // advertised packet type (PT)?
                     int minRTCPPktLen = (2 + rc * 6) * 4;
                     int receptionReportBlockOff = off + 2 * 4;
 
@@ -395,12 +386,10 @@ public class StatisticsEngine
                     }
 
                     int senderSSRC = RTPTranslatorImpl.readInt(buf, off + 4);
-                    /*
-                     * Collect the SSRCs of the RTP data packet sources being
-                     * reported upon by the RTCP RR/SR packet because they may
-                     * be of concern to the RTCP XR packet (e.g. VoIP Metrics
-                     * Report Block).
-                     */
+                    // Collect the SSRCs of the RTP data packet sources being
+                    // reported upon by the RTCP RR/SR packet because they may
+                    // be of concern to the RTCP XR packet (e.g. VoIP Metrics
+                    // Report Block).
                     int[] sourceSSRCs = new int[rc];
 
                     for (int i = 0; i < rc; i++)
@@ -496,10 +485,8 @@ public class StatisticsEngine
             }
             else
             {
-                /*
-                 * An RTCP XR packet with zero report blocks is fine, generally,
-                 * but we see no reason to send such a packet.
-                 */
+                // An RTCP XR packet with zero report blocks is fine, generally,
+                // but we see no reason to send such a packet.
                 xr = null;
             }
         }
@@ -572,11 +559,9 @@ public class StatisticsEngine
                 if ((lostPacketCount > 0)
                         && (lostPacketCount <= expectedPacketCount))
                 {
-                    /*
-                     * RFC 3611 mentions that the total number of packets lost
-                     * takes into account "the effects of applying any error
-                     * protection such as FEC".
-                     */
+                    // RFC 3611 mentions that the total number of packets lost
+                    // takes into account "the effects of applying any error
+                    // protection such as FEC".
                     long fecDecodedPacketCount
                         = getFECDecodedPacketCount(receiveStream);
 
@@ -742,11 +727,9 @@ public class StatisticsEngine
                 voipMetrics.setJitterBufferAdaptive(
                         RTCPExtendedReport.VoIPMetricsReportBlock
                             .NON_ADAPTIVE_JITTER_BUFFER_ADAPTIVE);
-                /*
-                 * Jitter buffer absolute maximum delay (JB abs max) MUST be set
-                 * to jitter buffer maximum delay (JB maximum) for fixed jitter
-                 * buffer implementations.
-                 */
+                // Jitter buffer absolute maximum delay (JB abs max) MUST be set
+                // to jitter buffer maximum delay (JB maximum) for fixed jitter
+                // buffer implementations.
                 voipMetrics.setJitterBufferAbsoluteMaximumDelay(maximumDelay);
             }
 
@@ -846,7 +829,8 @@ public class StatisticsEngine
      */
     public double getAvgInterArrivalJitter()
     {
-        return numberOfRTCPReports == 0
+        return
+            numberOfRTCPReports == 0
                 ? 0
                 : ((double) jitterSum) / numberOfRTCPReports;
     }
@@ -928,9 +912,10 @@ public class StatisticsEngine
     private RTCPReport parseRTCPReport(RawPacket pkt)
             throws IOException
     {
-        return parseRTCPReport(
-                pkt.getRTCPPacketType(), pkt.getBuffer(),
-                pkt.getOffset(), pkt.getLength());
+        return
+            parseRTCPReport(
+                    pkt.getRTCPPacketType(),
+                    pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
     }
 
     /**
@@ -947,37 +932,47 @@ public class StatisticsEngine
         // SRTP may send non-RTCP packets.
         if (isRTCP(pkt))
         {
-            RTCPCompoundPacket compound = null;
-            Exception ex = null;
-            List<RTCPPacket> out;
-            boolean modified = false;
+            RTCPCompoundPacket compound;
+            Exception ex;
 
             try
             {
                 compound
-                    = (RTCPCompoundPacket) parser.parse(
-                            pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+                    = (RTCPCompoundPacket)
+                        parser.parse(
+                                pkt.getBuffer(),
+                                pkt.getOffset(),
+                                pkt.getLength());
+                ex = null;
             }
             catch (BadFormatException bfe)
             {
+                compound = null;
                 ex = bfe;
             }
 
-            if (compound == null || compound.packets == null
+            if (compound == null
+                    || compound.packets == null
                     || compound.packets.length == 0)
             {
-                logger.info("Failed to analyze an incoming RTCP packet for"
-                                    + " the purposes of statistics.", ex);
+                logger.info(
+                        "Failed to analyze an incoming RTCP packet for the"
+                            + " purposes of statistics.",
+                        ex);
                 return pkt;
             }
 
-            out = new LinkedList<>();
+            List<RTCPPacket> out = new LinkedList<>();
+            boolean modified;
+
             try
             {
-                modified = updateReceivedMediaStreamStats(compound.packets, out);
+                modified
+                    = updateReceivedMediaStreamStats(compound.packets, out);
             }
             catch (Throwable t)
             {
+                modified = false;
                 if (t instanceof InterruptedException)
                 {
                     Thread.currentThread().interrupt();
@@ -989,27 +984,26 @@ public class StatisticsEngine
                 else
                 {
                     logger.error(
-                            "Failed to analyze an incoming RTCP packet for"
-                                    + " the purposes of statistics.",
+                            "Failed to analyze an incoming RTCP packet for the"
+                                + " purposes of statistics.",
                             t);
                 }
             }
 
             if (!modified)
             {
-                // no change was introduced
-                return pkt;
+                return pkt; // no change was introduced
             }
             else if (out.isEmpty())
             {
-                //all RTCP packets were consumed
-                return null;
+                return null; // all RTCP packets were consumed
             }
             else
             {
                 RTCPCompoundPacket outPacket
                     = new RTCPCompoundPacket(
                             out.toArray(new RTCPPacket[out.size()]));
+
                 pkt = generator.apply(outPacket);
             }
         }
@@ -1026,7 +1020,8 @@ public class StatisticsEngine
      * @return {@code true} iff some packets were consumed.
      */
     private boolean updateReceivedMediaStreamStats(
-            RTCPPacket[] in, List<RTCPPacket> out)
+            RTCPPacket[] in,
+            List<RTCPPacket> out)
     {
         boolean removed = false;
         MediaStreamStatsImpl streamStats = mediaStream.getMediaStreamStats();
@@ -1035,9 +1030,7 @@ public class StatisticsEngine
         {
             if (rtcp instanceof RTCPExtendedReport)
             {
-                RTCPReports rtcpReports = streamStats.getRTCPReports();
-
-                rtcpReports.rtcpExtendedReportReceived(
+                streamStats.getRTCPReports().rtcpExtendedReportReceived(
                         (RTCPExtendedReport) rtcp);
 
                 // Remove any RTP Control Protocol Extended Report (RTCP XR)
@@ -1048,6 +1041,7 @@ public class StatisticsEngine
             else if (rtcp instanceof NACKPacket)
             {
                 NACKPacket nack = (NACKPacket) rtcp;
+
                 streamStats.nackReceived(nack);
 
                 // Note that we drop NACK packets here, and leave it as a
@@ -1059,18 +1053,29 @@ public class StatisticsEngine
             else if (rtcp instanceof RTCPREMBPacket)
             {
                 RTCPREMBPacket remb = (RTCPREMBPacket) rtcp;
-                streamStats.rembReceived(remb);
 
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace(
+                            "Received estimated bitrate (bps): "
+                                + remb.getBitrate() + ", dest: "
+                                + Arrays.toString(remb.getDest()));
+                }
+                streamStats.rembReceived(remb);
                 out.add(rtcp);
             }
             else if (rtcp.type == RTCPPacket.RR || rtcp.type == RTCPPacket.SR)
             {
                 RTCPReport report;
+
                 try
                 {
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
                     rtcp.assemble(new DataOutputStream(baos));
+
                     byte[] buf = baos.toByteArray();
+
                     report = parseRTCPReport(rtcp.type, buf, 0, buf.length);
                 }
                 catch (IOException ioe)
@@ -1078,7 +1083,6 @@ public class StatisticsEngine
                     logger.error("Failed to assemble an RTCP report: " + ioe);
                     report = null;
                 }
-
                 if (report != null)
                 {
                     streamStats.getRTCPReports().rtcpReportReceived(report);
@@ -1130,19 +1134,15 @@ public class StatisticsEngine
             }
 
             // RTCP XR
-            /*
-             * We support RTCP XR VoIP Metrics Report Block only at the time of
-             * this writing. While the methods addRTCPExtendedReports(RawPacket)
-             * and createVoIPMetricsReportBlock(int) are aware of the fact, it
-             * does not make sense to even go there for the sake of performance.
-             */
+            // We support RTCP XR VoIP Metrics Report Block only at the time of
+            // this writing. While the methods addRTCPExtendedReports(RawPacket)
+            // and createVoIPMetricsReportBlock(int) are aware of the fact, it
+            // does not make sense to even go there for the sake of performance.
             if (MediaType.AUDIO.equals(mediaType))
             {
-                /*
-                 * We will send RTCP XR only if the SDP attribute rtcp-xr is
-                 * present and we will send only XR blocks indicated by SDP
-                 * parameters.
-                 */
+                // We will send RTCP XR only if the SDP attribute rtcp-xr is
+                // present and we will send only XR blocks indicated by SDP
+                // parameters.
                 Object o
                     = mediaStream.getProperty(RTCPExtendedReport.SDP_ATTRIBUTE);
 

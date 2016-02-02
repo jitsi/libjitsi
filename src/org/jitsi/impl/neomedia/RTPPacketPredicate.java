@@ -25,14 +25,15 @@ public class RTPPacketPredicate
     extends AbstractRTPPacketPredicate
 {
     /**
+     * The singleton instance of this class.
+     */
+    public static final RTPPacketPredicate INSTANCE = new RTPPacketPredicate();
+
+    /**
      * Ctor.
      */
     public RTPPacketPredicate()
     {
         super(false);
     }
-    /**
-     * The singleton instance of this class.
-     */
-    public static final RTPPacketPredicate instance = new RTPPacketPredicate();
 }
