@@ -43,7 +43,7 @@ class OutputDataStreamImpl
      * The <tt>Logger</tt> used by the <tt>OutputDataStreamImpl</tt> class and
      * its instances for logging output.
      */
-    private static final Logger LOGGER
+    private static final Logger logger
         = Logger.getLogger(OutputDataStreamImpl.class);
 
     /**
@@ -56,7 +56,7 @@ class OutputDataStreamImpl
         = RTPTranslatorImpl.class.getName() + ".removeRTPHeaderExtensions";
 
     private static final int WRITE_Q_CAPACITY
-        = MaxPacketsPerMillisPolicy.PACKET_QUEUE_CAPACITY;
+        = RTPConnectorOutputStream.PACKET_QUEUE_CAPACITY;
 
     private boolean closed;
 
@@ -97,6 +97,12 @@ class OutputDataStreamImpl
     private int writeQHead;
 
     private int writeQLength;
+
+    /**
+     * The number of packets dropped because a packet was inserted while
+     * {@link #writeQ} was full.
+     */
+    private int numDroppedPackets = 0;
 
     private Thread writeThread;
 
@@ -405,7 +411,7 @@ class OutputDataStreamImpl
         }
         catch (Throwable t)
         {
-            LOGGER.error("Failed to translate RTP packet", t);
+            logger.error("Failed to translate RTP packet", t);
             if (t instanceof ThreadDeath)
                 throw (ThreadDeath) t;
         }
@@ -504,7 +510,7 @@ class OutputDataStreamImpl
                         if (destination.containsReceiveSSRC(
                                 ssrcOfMediaSource))
                         {
-                            if (LOGGER.isTraceEnabled())
+                            if (logger.isTraceEnabled())
                             {
                                 int ssrcOfPacketSender
                                     = RTPTranslatorImpl.readInt(
@@ -523,7 +529,7 @@ class OutputDataStreamImpl
                                                 ssrcOfMediaSource
                                                     & 0xffffffffl);
 
-                                LOGGER.trace(message);
+                                logger.trace(message);
                             }
                         }
                         else
@@ -535,7 +541,7 @@ class OutputDataStreamImpl
             }
         }
 
-        if (write && LOGGER.isTraceEnabled())
+        if (write && logger.isTraceEnabled())
             RTPTranslatorImpl.logRTCP(this, "doWrite", buffer, offset, length);
         return write;
     }
@@ -625,7 +631,14 @@ class OutputDataStreamImpl
             if (writeQHead >= writeQ.length)
                 writeQHead = 0;
             writeQLength--;
-            LOGGER.warn("Will not translate RTP packet.");
+
+            numDroppedPackets++;
+            if (RTPConnectorOutputStream.logDroppedPacket(numDroppedPackets))
+            {
+                logger.warn(
+                        "Dropped " + numDroppedPackets + " packets "
+                                + "hashCode=" + hashCode() + "): ");
+            }
         }
 
         RTPTranslatorBuffer write = writeQ[writeIndex];

@@ -19,9 +19,12 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.*;
 
 import javax.media.rtp.*;
 
+import net.sf.fmj.media.util.*;
+import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.util.*;
@@ -41,6 +44,103 @@ public abstract class RTPConnectorOutputStream
      */
     private static final Logger logger
         = Logger.getLogger(RTPConnectorOutputStream.class);
+
+    /**
+     * The maximum number of packets to be sent to be kept in the queue of
+     * {@link RTPConnectorOutputStream}. When the maximum is reached, the next
+     * attempt to write a new packet in the queue will result in the first
+     * packet in the queue being dropped.
+     * Defined in order to prevent <tt>OutOfMemoryError</tt>s which may arise if
+     * the capacity of the queue is unlimited.
+     */
+    public static final int PACKET_QUEUE_CAPACITY;
+
+    /**
+     * The flag which controls whether this {@link RTPConnectorOutputStream}
+     * should create its own thread which will perform the packetization
+     * (and potential transformation) and sending of packets to the targets.
+     *
+     * If {@code true}, calls to {@link #write(byte[], int, int)} will only
+     * add the given bytes to {@link #queue}. Otherwise, packetization (via
+     * {@link #packetize(byte[], int, int, Object)}) and output (via {@link
+     * #sendToTarget(RawPacket, InetSocketAddress)} will be performed by the
+     * calling thread. Note that these are potentially blocking operations.
+     *
+     * Note: if pacing is to be
+     */
+    private static boolean USE_SEND_THREAD = true;
+
+    /**
+     * The name of the property which controls the value of {@link
+     * #USE_SEND_THREAD}.
+     */
+    private static String USE_SEND_THREAD_PNAME
+            = RTPConnectorOutputStream.class.getName() + ".USE_SEND_THREAD";
+
+    /**
+     * The name of the <tt>ConfigurationService</tt> and/or <tt>System</tt>
+     * integer property which specifies the value of
+     * {@link #PACKET_QUEUE_CAPACITY}.
+     */
+    private static final String PACKET_QUEUE_CAPACITY_PNAME
+        = RTPConnectorOutputStream.class.getName() + ".PACKET_QUEUE_CAPACITY";
+
+    static
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        // Set USE_SEND_THREAD
+        if (cfg != null)
+        {
+            USE_SEND_THREAD
+                    = cfg.getBoolean(USE_SEND_THREAD_PNAME, USE_SEND_THREAD);
+        }
+
+
+        // Set PACKET_QUEUE_CAPACITY
+        int defaultCapacity = 256;
+        int configuredCapacity;
+
+        // Backward-compatibility with the old property name.
+        String oldPropertyName
+            = "org.jitsi.impl.neomedia.MaxPacketsPerMillisPolicy"
+                + ".PACKET_QUEUE_CAPACITY";
+
+        if (cfg == null)
+        {
+            configuredCapacity
+                = Integer.getInteger(PACKET_QUEUE_CAPACITY_PNAME, -1);
+            if (configuredCapacity == -1)
+            {
+                configuredCapacity = Integer.getInteger(oldPropertyName, -1);
+            }
+        }
+        else
+        {
+            configuredCapacity = cfg.getInt(PACKET_QUEUE_CAPACITY_PNAME, -1);
+            if (configuredCapacity == -1)
+            {
+                configuredCapacity = cfg.getInt(oldPropertyName, -1);
+            }
+        }
+
+        PACKET_QUEUE_CAPACITY
+            = configuredCapacity >= 0 ? configuredCapacity : defaultCapacity;
+    }
+
+    /**
+     * Returns true if a warning should be logged after a queue has dropped
+     * {@code numDroppedPackets} packets.
+     * @param numDroppedPackets the number of dropped packets.
+     * @return {@code true} if a warning should be logged.
+     */
+    public static boolean logDroppedPacket(int numDroppedPackets)
+    {
+        return
+                numDroppedPackets == 1 ||
+                (numDroppedPackets <= 1000 && numDroppedPackets % 100 == 0) ||
+                numDroppedPackets % 1000 == 0;
+    }
 
     /**
      * Determines whether a <tt>RawPacket</tt> which has a specific number in
@@ -71,22 +171,21 @@ public abstract class RTPConnectorOutputStream
     private boolean enabled = true;
 
     /**
-     * The functionality which allows this <tt>OutputDataStream</tt> to control
-     * how many RTP packets it sends through its <tt>DatagramSocket</tt> per a
-     * specific number of milliseconds.
-     */
-    protected MaxPacketsPerMillisPolicy maxPacketsPerMillisPolicy;
-
-    /**
-     * Number of bytes sent through this stream.
+     * Number of bytes sent through this stream to any of its targets.
      */
     private long numberOfBytesSent = 0;
 
     /**
-     * Used for debugging. As we don't log every packet
-     * we must count them and decide which to log.
+     * Number of packets sent through this stream, not taking into account the
+     * number of its targets.
      */
     private long numberOfPackets = 0;
+
+    /**
+     * The number of packets dropped because a packet was inserted while
+     * {@link #queue} was full.
+     */
+    private int numDroppedPackets = 0;
 
     /**
      * The {@code PacketLoggingService} instance (to be) utilized by this
@@ -96,16 +195,8 @@ public abstract class RTPConnectorOutputStream
     private PacketLoggingService pktLogging;
 
     /**
-     * The pool of <tt>RawPacket[]</tt> instances which reduces the number of
-     * allocations performed by {@link #createRawPacket(byte[], int, int)}.
-     * Always contains arrays full with <tt>null</tt>
-     */
-    private final LinkedBlockingQueue<RawPacket[]> rawPacketArrayPool
-        = new LinkedBlockingQueue<>();
-
-    /**
      * The pool of <tt>RawPacket</tt> instances which reduces the number of
-     * allocations performed by {@link #createRawPacket(byte[], int, int)}.
+     * allocations performed by {@link #packetize(byte[], int, int, Object)}.
      */
     private final LinkedBlockingQueue<RawPacket> rawPacketPool
         = new LinkedBlockingQueue<>();
@@ -116,11 +207,30 @@ public abstract class RTPConnectorOutputStream
     protected final List<InetSocketAddress> targets = new LinkedList<>();
 
     /**
+     * The {@link Queue} which will hold packets to be processed, if using a
+     * separate thread for sending is enabled.
+     */
+    private final Queue queue;
+
+    /**
+     * Whether this {@link RTPConnectorOutputStream} is closed.
+     */
+    private boolean closed = false;
+
+    /**
      * Initializes a new <tt>RTPConnectorOutputStream</tt> which is to send
      * packet data out through a specific socket.
      */
     public RTPConnectorOutputStream()
     {
+        if (USE_SEND_THREAD)
+        {
+            queue = new Queue();
+        }
+        else
+        {
+            queue = null;
+        }
     }
 
     /**
@@ -143,12 +253,12 @@ public abstract class RTPConnectorOutputStream
      */
     public void close()
     {
-        if (maxPacketsPerMillisPolicy != null)
+        if (!closed)
         {
-            maxPacketsPerMillisPolicy.close();
-            maxPacketsPerMillisPolicy = null;
+            closed = true;
+
+            removeTargets();
         }
-        removeTargets();
     }
 
     /**
@@ -176,10 +286,7 @@ public abstract class RTPConnectorOutputStream
             byte[] buf, int off, int len,
             Object context)
     {
-        // get an array (full with null-s) from the pool or create a new one
-        RawPacket[] pkts = rawPacketArrayPool.poll();
-        if (pkts == null)
-            pkts = new RawPacket[1];
+        RawPacket[] pkts = new RawPacket[1];
 
         RawPacket pkt = rawPacketPool.poll();
         byte[] pktBuffer;
@@ -299,16 +406,12 @@ public abstract class RTPConnectorOutputStream
      * <tt>RTPConnectorOutputStream</tt>. They should not be used by the
      * user afterwards.
      *
-     * Note: this method has been exposed as package-private in order to
-     * facilitate the injection of packets by a <tt>MediaStream</tt>. It should
-     * be used with caution due to the above warning!
-     *
      * @param packet the RTP packet to be sent through the
      * <tt>DatagramSocket</tt> of this <tt>OutputDataSource</tt>
      * @return <tt>true</tt> if the specified <tt>packet</tt> was successfully
-     * sent; otherwise, <tt>false</tt>
+     * sent to all targets; otherwise, <tt>false</tt>.
      */
-    boolean send(RawPacket packet)
+    private boolean send(RawPacket packet)
     {
         if(!isSocketValid())
         {
@@ -325,7 +428,7 @@ public abstract class RTPConnectorOutputStream
 
                 numberOfBytesSent += (long)packet.getLength();
 
-                if(logPacket(numberOfPackets))
+                if (logPacket(numberOfPackets))
                 {
                     PacketLoggingService pktLogging = getPacketLoggingService();
 
@@ -340,7 +443,8 @@ public abstract class RTPConnectorOutputStream
             catch (IOException ioe)
             {
                 rawPacketPool.offer(packet);
-                // TODO error handling
+                logger.warn(
+                    "Failed to send a packet to target " + target + ":" + ioe);
                 return false;
             }
         }
@@ -395,34 +499,18 @@ public abstract class RTPConnectorOutputStream
      * are to be sent by this <tt>OutputDataStream</tt> through its
      * <tt>DatagramSocket</tt>
      */
-    public void setMaxPacketsPerMillis(int maxPackets, long perMillis)
+    public boolean setMaxPacketsPerMillis(int maxPackets, long perMillis)
     {
-        if (maxPacketsPerMillisPolicy == null)
+        if (queue != null)
         {
-            if (maxPackets > 0)
-            {
-                if (perMillis < 1)
-                    throw new IllegalArgumentException("perMillis");
-
-                maxPacketsPerMillisPolicy
-                    = new MaxPacketsPerMillisPolicy(maxPackets, perMillis)
-                    {
-                        /**
-                         * {@inheritDoc}
-                         */
-                        @Override
-                        protected void send(RawPacket packet)
-                        {
-                            RTPConnectorOutputStream.this.send(packet);
-                        }
-                    };
-            }
+            queue.setMaxPacketsPerMillis(maxPackets, perMillis);
         }
         else
         {
-            maxPacketsPerMillisPolicy
-                .setMaxPacketsPerMillis(maxPackets, perMillis);
+            logger.error("Cannot enable pacing: send thread disabled.");
         }
+
+        return queue != null;
     }
 
     /**
@@ -453,8 +541,51 @@ public abstract class RTPConnectorOutputStream
     }
 
     /**
+     * Writes a byte[] to this {@link RTPConnectorOutputStream} synchronously (
+     * even when {@link #USE_SEND_THREAD} is enabled).
+     *
+     * @param buf
+     * @param off
+     * @param len
+     * @return the number of bytes written.
+     */
+    public int syncWrite(byte[] buf, int off, int len)
+    {
+        return syncWrite(buf, off, len, null);
+    }
+
+    /**
+     * Writes a byte[] to this {@link RTPConnectorOutputStream} synchronously (
+     * even when {@link #USE_SEND_THREAD} is enabled).
+     *
+     * @param buf
+     * @param off
+     * @param len
+     * @return the number of bytes written.
+     */
+    private int syncWrite(byte[] buf, int off, int len, Object context)
+    {
+        int result = -1;
+        RawPacket[] pkts = packetize(buf, off, len, context);
+
+        if (pkts != null)
+        {
+            if (write(pkts))
+            {
+                result = len;
+            }
+        }
+        else
+        {
+            result = len; // there was nothing to send
+        }
+
+        return result;
+    }
+
+    /**
      * Implements {@link OutputDataStream#write(byte[], int, int)}. Allows
-     * extenders to provide a context {@code Object} to invoked overrideable
+     * extenders to provide a context {@code Object} to invoked overridable
      * methods such as {@link #packetize(byte[],int,int,Object)}.
      *
      * @param buf the {@code byte[]} to write into this {@code OutputDataStream}
@@ -475,63 +606,54 @@ public abstract class RTPConnectorOutputStream
             // While calling write without targets can be carried out without a
             // problem, such a situation may be a symptom of a problem. For
             // example, it was discovered during testing that RTCP was
-            // seemingly-endlessly sent after hanging up a call.
+            // seemingly endlessly sent after hanging up a call.
             if (logger.isDebugEnabled() && targets.isEmpty())
                 logger.debug("Write called without targets!", new Throwable());
 
-            // Get the array of RawPackets we need to send.
-            RawPacket[] pkts = packetize(buf, off, len, context);
+            if (queue != null)
+            {
+                queue.write(buf, off, len, context);
+            }
+            else
+            {
+                syncWrite(buf, off, len, context);
+            }
+        }
 
-            return write(pkts) ? len : -1;
-        }
-        else
-        {
-            // No need to handle the buffer at all if we are disabled apart from
-            // simulating a successful operation.
-            return len;
-        }
+        return len;
     }
 
     /**
-     * Writes an array of {@code RawPacket}s into this {@code OutputDataStream}.
+     * Sends an array of {@link RawPacket}s to this
+     * {@link RTPConnectorOutputStream}'s targets.
      *
-     * @param pkts the array of {@code RawPacket}s to write into this
-     * {@code OutputDataStream}
+     * @param pkts the array of {@link RawPacket}s to send.
      * @return {@code true} if all {@code pkts} were written into this
      * {@code OutputDataStream}; otherwise, {@code false}
      */
     private boolean write(RawPacket[] pkts)
     {
+        if (closed)
+            return false;
+        if (pkts == null)
+            return true;
+
         boolean success = true;
 
-        if (pkts == null)
-            return success;
-
-        for(int i = 0; i < pkts.length; i++)
+        for (RawPacket pkt : pkts)
         {
-            RawPacket pkt = pkts[i];
-
-            pkts[i] = null; // Clear the array before returning to the pool.
-
             // If we got extended, the delivery of the packet may have been
             // canceled.
             if (pkt != null)
             {
                 if (success)
                 {
-                    if (maxPacketsPerMillisPolicy == null)
+                    if (!send(pkt))
                     {
-                        if (!send(pkt))
-                        {
-                            // Skip sending the remaining RawPackets but return
-                            // them to the pool and clear pkts. The current pkt
-                            // was returned to the pool.
-                            success = false;
-                        }
-                    }
-                    else
-                    {
-                        maxPacketsPerMillisPolicy.write(pkt);
+                        // Skip sending the remaining RawPackets but return
+                        // them to the pool and clear pkts. The current pkt
+                        // was returned to the pool by send().
+                        success = false;
                     }
                 }
                 else
@@ -541,8 +663,238 @@ public abstract class RTPConnectorOutputStream
             }
         }
 
-        rawPacketArrayPool.offer(pkts);
-
         return success;
+    }
+
+    private class Queue
+    {
+        /**
+         * The {@link java.util.Queue} which holds {@link Buffer}s to be
+         * processed by {@link #sendThread}.
+         */
+        final ArrayBlockingQueue<Buffer> queue
+            = new ArrayBlockingQueue<>(PACKET_QUEUE_CAPACITY);
+
+        /**
+         * A pool of {@link
+         * org.jitsi.impl.neomedia.RTPConnectorOutputStream.Queue.Buffer}
+         * instances.
+         */
+        final ArrayBlockingQueue<Buffer> pool
+            = new ArrayBlockingQueue<>(15);
+
+        /**
+         * The maximum number of {@link Buffer}s to be processed by {@link
+         * #sendThread} per {@link #perNanos} nanoseconds.
+         */
+        int maxBuffers = -1;
+
+        /**
+         * The time interval in nanoseconds during which no more than {@link
+         * #maxBuffers} {@link Buffer}s are to be processed by {@link
+         * #sendThread}.
+         */
+        long perNanos = -1;
+
+        /**
+         * The number of {@link Buffer}s already processed during the current
+         * <tt>perNanos</tt> interval.
+         */
+        long buffersProcessedInCurrentInterval = 0;
+
+        /**
+         * The time stamp in nanoseconds of the start of the current
+         * <tt>perNanos</tt> interval.
+         */
+        long intervalStartTimeNanos = 0;
+
+        /**
+         * The {@link Thread} which is to read {@link Buffer}s from this
+         * {@link Queue} and send them to this {@link
+         * RTPConnectorOutputStream}'s targets.
+         */
+        final Thread sendThread;
+
+        /**
+         * Initializes a new {@link Queue} instance and starts its send thread.
+         */
+        private Queue()
+        {
+            sendThread
+                = new Thread()
+            {
+                @Override
+                public void run()
+                {
+                    runInSendThread();
+                }
+            };
+            sendThread.setDaemon(true);
+            sendThread.setName(Queue.class.getName() + ".sendThread");
+
+            RTPConnectorInputStream.setThreadPriority(
+                    sendThread,
+                    MediaThread.getNetworkPriority());
+
+            sendThread.start();
+        }
+
+        /**
+         * Adds the given buffer (and its context) to this queue.
+         * @param buf
+         * @param off
+         * @param len
+         * @param context
+         */
+        private void write(byte[] buf, int off, int len, Object context)
+        {
+            if (closed)
+                return;
+
+            Buffer buffer = getBuffer(len);
+            System.arraycopy(buf, off, buffer.buf, 0, len);
+            buffer.len = len;
+            buffer.context = context;
+
+            if (queue.size() >= PACKET_QUEUE_CAPACITY)
+            {
+                // Drop from the head of the queue.
+                Buffer b = queue.poll();
+                if (b != null)
+                {
+                    pool.offer(b);
+                    numDroppedPackets++;
+                    if (logDroppedPacket(numDroppedPackets))
+                    {
+                        logger.warn(
+                                "Packets dropped (hashCode=" + hashCode() + "): "
+                                        + numDroppedPackets);
+                    }
+                }
+            }
+            queue.offer(buffer);
+        }
+
+        /**
+         * Reads {@link Buffer}s from {@link #queue}, "packetizes" them through
+         * {@link RTPConnectorOutputStream#packetize(byte[], int, int, Object)}
+         * and sends the resulting packets to this
+         * {@link RTPConnectorOutputStream}'s targets.
+         *
+         * If a pacing policy is configured, makes sure that it is respected.
+         * Note that this pacing is done on the basis of the number of
+         * {@link Buffer}s read from the queue, which technically could be
+         * different than the number of {@link RawPacket}s sent. This is done
+         * in order to keep the implementation simpler, and because in the
+         * majority of the cases (and in all current cases where pacing is
+         * enabled) the numbers do match.
+         */
+        private void runInSendThread()
+        {
+            if (!Thread.currentThread().equals(sendThread))
+            {
+                logger.warn(
+                        "runInSendThread executing in the wrong thread: "
+                                + Thread.currentThread().getName(),
+                        new Throwable());
+                return;
+            }
+
+            try
+            {
+                while (!closed)
+                {
+                    Buffer buffer;
+                    try
+                    {
+                        buffer = queue.poll(500, TimeUnit.MILLISECONDS);
+                    }
+                    catch (InterruptedException iex)
+                    {
+                        continue;
+                    }
+
+                    // The current thread has potentially waited.
+                    if (closed)
+                        break;
+
+                    if (buffer == null)
+                        continue;
+
+                    // We will sooner or later process the Buffer. Since this
+                    // may take a non-negligible amount of time, do it before
+                    // taking pacing into account.
+                    RawPacket[] pkts
+                            = packetize(
+                            buffer.buf, 0, buffer.len,
+                            buffer.context);
+                    pool.offer(buffer);
+
+                    if (perNanos > 0 && maxBuffers > 0)
+                    {
+                        long time = System.nanoTime();
+                        long nanosRemainingTime = time - intervalStartTimeNanos;
+
+                        if (nanosRemainingTime >= perNanos)
+                        {
+                            intervalStartTimeNanos = time;
+                            buffersProcessedInCurrentInterval = 0;
+                        }
+                        else if (buffersProcessedInCurrentInterval >= maxBuffers)
+                        {
+                            LockSupport.parkNanos(nanosRemainingTime);
+                        }
+                    }
+
+                    RTPConnectorOutputStream.this.write(pkts);
+                    buffersProcessedInCurrentInterval++;
+                }
+            }
+            finally
+            {
+                queue.clear();
+            }
+        }
+
+        public void setMaxPacketsPerMillis(int maxPackets, long perMillis)
+        {
+            if (maxPackets < 1)
+            {
+                // This doesn't make sense. Disable pacing.
+                this.maxBuffers = -1;
+                this.perNanos = -1;
+            }
+            else
+            {
+                if (perMillis < 1)
+                    throw new IllegalArgumentException("perMillis");
+
+                this.maxBuffers = maxPackets;
+                this.perNanos = perMillis * 1000000;
+            }
+        }
+
+        /**
+         * @return a free {@link Buffer} instance with a byte array with a
+         * length of at least {@code len}.
+         */
+        private Buffer getBuffer(int len)
+        {
+            Buffer buffer = pool.poll();
+            if (buffer == null)
+                buffer = new Buffer();
+            if (buffer.buf == null || buffer.buf.length < len)
+                buffer.buf = new byte[len];
+
+            return buffer;
+        }
+
+        private class Buffer
+        {
+            byte[] buf;
+            int len;
+            Object context;
+            private Buffer() {}
+        }
     }
 }

@@ -41,7 +41,7 @@ class PushSourceStreamImpl
      * The <tt>Logger</tt> used by the <tt>PushSourceStreamImpl</tt> class and
      * its instances for logging output.
      */
-    private static final Logger LOGGER
+    private static final Logger logger
         = Logger.getLogger(PushSourceStreamImpl.class);
 
     /**
@@ -73,6 +73,12 @@ class PushSourceStreamImpl
     private final int readQCapacity;
 
     /**
+     * The number of packets dropped because a packet was inserted while
+     * {@link #readQ} was full.
+     */
+    private int numDroppedPackets = 0;
+
+    /**
      * The pool of <tt>SourcePacket</tt> instances to reduce their
      * allocations and garbage collection.
      */
@@ -95,7 +101,7 @@ class PushSourceStreamImpl
         this.connector = connector;
         this.data = data;
 
-        readQCapacity = MaxPacketsPerMillisPolicy.PACKET_QUEUE_CAPACITY;
+        readQCapacity = RTPConnectorOutputStream.PACKET_QUEUE_CAPACITY;
         readQ = new ArrayBlockingQueue<>(readQCapacity);
 
         transferDataThread = new Thread(this, getClass().getName());
@@ -312,9 +318,9 @@ class PushSourceStreamImpl
                     }
                     else
                     {
-                        LOGGER.warn(
+                        logger.warn(
                                 "An RTP packet may have not been fully"
-                                    + " handled.",
+                                        + " handled.",
                                 t);
                     }
                 }
@@ -424,7 +430,7 @@ class PushSourceStreamImpl
         }
         catch (IOException ioe)
         {
-            LOGGER.error("Failed to read from an RTP stream!", ioe);
+            logger.error("Failed to read from an RTP stream!", ioe);
         }
         finally
         {
@@ -456,9 +462,14 @@ class PushSourceStreamImpl
                     if (readQ.size() >= readQCapacity)
                     {
                         readQ.remove();
-                        LOGGER.warn(
-                                "Discarded an RTP packet because the read"
-                                    + " queue is full.");
+                        numDroppedPackets++;
+                        if (RTPConnectorOutputStream.logDroppedPacket(
+                                numDroppedPackets))
+                        {
+                            logger.warn(
+                                    "Dropped " + numDroppedPackets + " packets "
+                                            + "hashCode=" + hashCode() + "): ");
+                        }
                     }
 
                     if (readQ.offer(pkt))

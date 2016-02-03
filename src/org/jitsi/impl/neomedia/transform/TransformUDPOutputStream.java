@@ -20,7 +20,7 @@ import java.net.*;
 import org.jitsi.impl.neomedia.*;
 
 /**
- * Extends <tt>RTPConnectorOutputStream</tt> with transform logic for UDP.
+ * Extends <tt>RTPConnectorUDPOutputStream</tt> with transform logic.
  *
  * In this implementation, UDP socket is used to send the data out. When a
  * normal RTP/RTCP packet is passed down from RTPManager, we first transform
@@ -66,7 +66,7 @@ public class TransformUDPOutputStream
      * {@inheritDoc}
      *
      * Transforms the array of {@code RawPacket}s returned by the super
-     * {@link #packetize(byte[],int,int,Object) implementation using the
+     * {@link #packetize(byte[],int,int,Object)} implementation using the
      * associated {@code PacketTransformer}.
      */
     @Override
