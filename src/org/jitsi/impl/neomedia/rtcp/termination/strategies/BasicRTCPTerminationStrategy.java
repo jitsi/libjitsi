@@ -845,7 +845,8 @@ public class BasicRTCPTerminationStrategy
         {
             logger.debug(
                     "Estimated bitrate (bps): " + bitrate + ", dest: "
-                        + Arrays.toString(dest));
+                        + Arrays.toString(dest) + ", time (ms): "
+                        + System.currentTimeMillis());
         }
         if (bitrate == -1)
         {

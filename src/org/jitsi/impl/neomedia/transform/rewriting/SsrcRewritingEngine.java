@@ -664,7 +664,9 @@ public class SsrcRewritingEngine implements TransformEngine
                             logger.trace(
                                     "Received estimated bitrate (bps): "
                                         + remb.getBitrate() + ", dest: "
-                                        + Arrays.toString(dest));
+                                        + Arrays.toString(dest)
+                                        + ", time (ms): "
+                                        + System.currentTimeMillis());
                         }
                         break;
                     }
