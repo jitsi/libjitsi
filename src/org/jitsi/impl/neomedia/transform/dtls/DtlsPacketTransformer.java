@@ -671,108 +671,9 @@ public class DtlsPacketTransformer
         int len = pkt.getLength();
 
         if (isDtlsRecord(buf, off, len))
-        {
-            if (rtcpmux && Component.RTCP == componentID)
-            {
-                // This should never happen.
-                logger.warn(
-                        "Dropping a DTLS record, because it was received on the"
-                            + " RTCP channel while rtcpmux is in use.");
-                return null;
-            }
+            return reverseTransformDtls(pkt, buf, off, len);
 
-            boolean receive;
-
-            synchronized (this)
-            {
-                if (datagramTransport == null)
-                {
-                    receive = false;
-                }
-                else
-                {
-                    datagramTransport.queueReceive(buf, off, len);
-                    receive = true;
-                }
-            }
-            if (receive)
-            {
-                DTLSTransport dtlsTransport = this.dtlsTransport;
-
-                if (dtlsTransport == null)
-                {
-                    // The specified pkt looks like a DTLS record and it has
-                    // been consumed for the purposes of the secure channel
-                    // represented by this PacketTransformer.
-                    pkt = null;
-                }
-                else
-                {
-                    try
-                    {
-                        int receiveLimit = dtlsTransport.getReceiveLimit();
-                        int delta = receiveLimit - len;
-
-                        if (delta > 0)
-                        {
-                            pkt.grow(delta);
-                            buf = pkt.getBuffer();
-                            off = pkt.getOffset();
-                            len = pkt.getLength();
-                        }
-                        else if (delta < 0)
-                        {
-                            pkt.shrink(-delta);
-                            buf = pkt.getBuffer();
-                            off = pkt.getOffset();
-                            len = pkt.getLength();
-                        }
-
-                        int received
-                            = dtlsTransport.receive(
-                                buf, off, len,
-                                DTLS_TRANSPORT_RECEIVE_WAITMILLIS);
-
-                        if (received <= 0)
-                        {
-                            // No application data was decoded.
-                            pkt = null;
-                        }
-                        else
-                        {
-                            delta = len - received;
-                            if (delta > 0)
-                                pkt.shrink(delta);
-                        }
-                    }
-                    catch (IOException ioe)
-                    {
-                        pkt = null;
-                        // SrtpControl.start(MediaType) starts its associated
-                        // TransformEngine. We will use that mediaType to signal
-                        // the normal stop then as well i.e. we will ignore
-                        // exception after the procedure to stop this
-                        // PacketTransformer has begun.
-                        if (mediaType != null
-                                && !tlsPeerHasRaisedCloseNotifyWarning)
-                        {
-                            logger.error(
-                                    "Failed to decode a DTLS record!",
-                                    ioe);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // The specified pkt looks like a DTLS record but it is
-                // unexpected in the current state of the secure channel
-                // represented by this PacketTransformer. This PacketTransformer
-                // has not been started (successfully) or has been closed.
-                pkt = null;
-            }
-        }
-        else if (transformEngine.isSrtpDisabled())
+        if (transformEngine.isSrtpDisabled())
         {
             // In pure DTLS mode only DTLS records pass through.
             pkt = null;
@@ -791,6 +692,126 @@ public class DtlsPacketTransformer
             // XXX Else, it is our explicit policy to let the received packet
             // pass through and rely on the SrtpListener to notify the user that
             // the session is not secured.
+        }
+        return pkt;
+    }
+
+    /**
+     * Processes a DTLS {@code RawPacket} received from the remote peer.
+     *
+     * @param pkt the DTLS {@code RawPacket} received from the remote peer to
+     * process
+     * @param buf the {@code buffer} of {@code pkt}. Provided explicitly because
+     * it has been retrieved already.
+     * @param off the offset in {@code buf} at which the DTLS packet begins.
+     * Provided explicitly because it has been retrieved already.
+     * @param len the length in {@code byte}s of the DTLS packet in {@code buf}.
+     * Provided explicitly because it has been retrieved already.
+     * @return the processed DTLS {@code RawPacket} received from the remote
+     * peer. If {@code pkt} was completely consumed for the purposes of setting
+     * the DTLS session with the remote peer up, returns {@code null}. However,
+     * {@code null} may be returned if the processing of {@code pkt} failed.
+     */
+    private RawPacket reverseTransformDtls(
+            RawPacket pkt,
+            byte[] buf, int off, int len)
+    {
+        if (rtcpmux && Component.RTCP == componentID)
+        {
+            // This should never happen.
+            logger.warn(
+                    "Dropping a DTLS record, because it was received on the"
+                        + " RTCP channel while rtcpmux is in use.");
+            return null;
+        }
+
+        boolean receive;
+
+        synchronized (this)
+        {
+            if (datagramTransport == null)
+            {
+                receive = false;
+            }
+            else
+            {
+                datagramTransport.queueReceive(buf, off, len);
+                receive = true;
+            }
+        }
+        if (receive)
+        {
+            DTLSTransport dtlsTransport = this.dtlsTransport;
+
+            if (dtlsTransport == null)
+            {
+                // The specified pkt looks like a DTLS record and it has been
+                // consumed for the purposes of the secure channel represented
+                // by this PacketTransformer.
+                pkt = null;
+            }
+            else
+            {
+                try
+                {
+                    int receiveLimit = dtlsTransport.getReceiveLimit();
+                    int delta = receiveLimit - len;
+
+                    if (delta > 0)
+                    {
+                        pkt.grow(delta);
+                        buf = pkt.getBuffer();
+                        off = pkt.getOffset();
+                        len = pkt.getLength();
+                    }
+                    else if (delta < 0)
+                    {
+                        pkt.shrink(-delta);
+                        buf = pkt.getBuffer();
+                        off = pkt.getOffset();
+                        len = pkt.getLength();
+                    }
+
+                    int received
+                        = dtlsTransport.receive(
+                                buf, off, len,
+                                DTLS_TRANSPORT_RECEIVE_WAITMILLIS);
+
+                    if (received <= 0)
+                    {
+                        // No application data was decoded.
+                        pkt = null;
+                    }
+                    else
+                    {
+                        delta = len - received;
+                        if (delta > 0)
+                            pkt.shrink(delta);
+                    }
+                }
+                catch (IOException ioe)
+                {
+                    pkt = null;
+                    // SrtpControl.start(MediaType) starts its associated
+                    // TransformEngine. We will use that mediaType to signal the
+                    // normal stop then as well i.e. we will ignore exception
+                    // after the procedure to stop this PacketTransformer
+                    // has begun.
+                    if (mediaType != null
+                            && !tlsPeerHasRaisedCloseNotifyWarning)
+                    {
+                        logger.error("Failed to decode a DTLS record!", ioe);
+                    }
+                }
+            }
+        }
+        else
+        {
+            // The specified pkt looks like a DTLS record but it is unexpected
+            // in the current state of the secure channel represented by this
+            // PacketTransformer. This PacketTransformer has not been started
+            // (successfully) or has been closed.
+            pkt = null;
         }
         return pkt;
     }
@@ -1232,7 +1253,7 @@ public class DtlsPacketTransformer
     /**
      * Gets the {@code SRTPTransformer} used by this instance. If
      * {@link #_srtpTransformer} does not exist (yet) and the state of this
-     * instance indicates that its initialization is in progess, then blocks
+     * instance indicates that its initialization is in progress, then blocks
      * until {@code _srtpTransformer} is initialized and returns it.
      *
      * @return the {@code SRTPTransformer} used by this instance
