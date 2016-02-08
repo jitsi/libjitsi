@@ -68,14 +68,14 @@ public abstract class RTPConnectorOutputStream
      *
      * Note: if pacing is to be
      */
-    private static boolean USE_SEND_THREAD = true;
+    private static final boolean USE_SEND_THREAD;
 
     /**
      * The name of the property which controls the value of {@link
      * #USE_SEND_THREAD}.
      */
-    private static String USE_SEND_THREAD_PNAME
-            = RTPConnectorOutputStream.class.getName() + ".USE_SEND_THREAD";
+    private static final String USE_SEND_THREAD_PNAME
+        = RTPConnectorOutputStream.class.getName() + ".USE_SEND_THREAD";
 
     /**
      * The name of the <tt>ConfigurationService</tt> and/or <tt>System</tt>
@@ -90,42 +90,25 @@ public abstract class RTPConnectorOutputStream
         ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         // Set USE_SEND_THREAD
-        if (cfg != null)
-        {
-            USE_SEND_THREAD
-                    = cfg.getBoolean(USE_SEND_THREAD_PNAME, USE_SEND_THREAD);
-        }
-
+        USE_SEND_THREAD
+            = ConfigUtils.getBoolean(cfg, USE_SEND_THREAD_PNAME, true);
 
         // Set PACKET_QUEUE_CAPACITY
-        int defaultCapacity = 256;
-        int configuredCapacity;
+        int packetQueueCapacity
+            = ConfigUtils.getInt(cfg, PACKET_QUEUE_CAPACITY_PNAME, -1);
 
-        // Backward-compatibility with the old property name.
-        String oldPropertyName
-            = "org.jitsi.impl.neomedia.MaxPacketsPerMillisPolicy"
-                + ".PACKET_QUEUE_CAPACITY";
+        if (packetQueueCapacity == -1)
+        {
+            // Backward-compatibility with the old property name.
+            String oldPropertyName
+                = "org.jitsi.impl.neomedia.MaxPacketsPerMillisPolicy"
+                    + ".PACKET_QUEUE_CAPACITY";
 
-        if (cfg == null)
-        {
-            configuredCapacity
-                = Integer.getInteger(PACKET_QUEUE_CAPACITY_PNAME, -1);
-            if (configuredCapacity == -1)
-            {
-                configuredCapacity = Integer.getInteger(oldPropertyName, -1);
-            }
-        }
-        else
-        {
-            configuredCapacity = cfg.getInt(PACKET_QUEUE_CAPACITY_PNAME, -1);
-            if (configuredCapacity == -1)
-            {
-                configuredCapacity = cfg.getInt(oldPropertyName, -1);
-            }
+            packetQueueCapacity = ConfigUtils.getInt(cfg, oldPropertyName, -1);
         }
 
         PACKET_QUEUE_CAPACITY
-            = configuredCapacity >= 0 ? configuredCapacity : defaultCapacity;
+            = packetQueueCapacity >= 0 ? packetQueueCapacity : 256;
     }
 
     /**
