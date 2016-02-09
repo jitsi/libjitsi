@@ -37,6 +37,13 @@ import org.jitsi.util.*;
 public class DtlsPacketTransformer
     extends SinglePacketTransformer
 {
+    /**
+     * The interval in milliseconds between successive tries to await successful
+     * connections in
+     * {@link #runInConnectThread(DTLSProtocol, TlsPeer, DatagramTransport)}.
+     *
+     * @see #CONNECT_TRIES
+     */
     private static final long CONNECT_RETRY_INTERVAL = 500;
 
     /**
@@ -46,6 +53,8 @@ public class DtlsPacketTransformer
      * {@link DTLSClientProtocol#connect(TlsClient, DatagramTransport)} and
      * {@link DTLSServerProtocol#accept(TlsServer, DatagramTransport)} in
      * anticipation of a successful connection.
+     *
+     * @see #CONNECT_RETRY_INTERVAL
      */
     private static final int CONNECT_TRIES = 3;
 
@@ -423,7 +432,9 @@ public class DtlsPacketTransformer
 
     /**
      * Tries to initialize {@link #_srtpTransformer} by using the
-     * <tt>DtlsPacketTransformer</tt> for RTP.
+     * {@code DtlsPacketTransformer} for RTP. (The method invocations should be
+     * on the {@code DtlsPacketTransformer} for RTCP as the method name
+     * suggests.)
      *
      * @return the (possibly updated) value of {@link #_srtpTransformer}.
      */
@@ -673,12 +684,12 @@ public class DtlsPacketTransformer
         if (isDtlsRecord(buf, off, len))
             return reverseTransformDtls(pkt, buf, off, len);
 
-        if (transformEngine.isSrtpDisabled())
+        /* Pure/non-SRTP DTLS */ if (transformEngine.isSrtpDisabled())
         {
-            // In pure DTLS mode only DTLS records pass through.
+            // In pure/non-SRTP DTLS (mode) only DTLS records pass through.
             pkt = null;
         }
-        else
+        /* SRTP */ else
         {
             // DTLS-SRTP has not been initialized yet or has failed to
             // initialize.
@@ -1222,8 +1233,15 @@ public class DtlsPacketTransformer
         if (isDtlsRecord(buf, off, len))
             return pkt;
 
-        // SRTP
-        if (!transformEngine.isSrtpDisabled())
+        /* Pure/non-SRTP DTLS */ if (transformEngine.isSrtpDisabled())
+        {
+            // The specified pkt will pass through this PacketTransformer only
+            // if it gets transformed into a DTLS record.
+            pkt = null;
+
+            sendApplicationData(buf, off, len);
+        }
+        /* SRTP */ else
         {
             // DTLS-SRTP has not been initialized yet or has failed to
             // initialize.
@@ -1237,15 +1255,6 @@ public class DtlsPacketTransformer
             // XXX Else, it is our explicit policy to let the received packet
             // pass through and rely on the SrtpListener to notify the user that
             // the session is not secured.
-        }
-        // Pure/non-SRTP DTLS
-        else
-        {
-            // The specified pkt will pass through this PacketTransformer only
-            // if it gets transformed into a DTLS record.
-            pkt = null;
-
-            sendApplicationData(buf, off, len);
         }
         return pkt;
     }
