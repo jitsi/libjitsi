@@ -39,8 +39,6 @@ public class OpenSSLHMAC
 
     private static native long EVP_sha1();
 
-    private static native void HMAC_CTX_cleanup(long ctx);
-
     private static native long HMAC_CTX_create();
 
     private static native void HMAC_CTX_destroy(long ctx);
