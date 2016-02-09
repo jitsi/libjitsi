@@ -34,10 +34,6 @@ public class OpenSSLBlockCipher
 
     public static final int AES_128_ECB = 2;
 
-    private static long EVP_aes_128_ctr;
-
-    private static long EVP_aes_128_ecb;
-
     /**
      * The indicator which determines whether
      * <tt>System.loadLibrary(String)</tt> is to be invoked in order to load the
@@ -45,11 +41,7 @@ public class OpenSSLBlockCipher
      */
     private static boolean loadLibrary = true;
 
-    private static native long EVP_aes_128_ecb();
-
     private static native int EVP_CIPHER_block_size(long e);
-
-    private static native boolean EVP_CIPHER_CTX_cleanup(long a);
 
     private static native long EVP_CIPHER_CTX_create();
 
@@ -100,17 +92,9 @@ public class OpenSSLBlockCipher
     private long ctx;
 
     /**
-     * The value of the <tt>forEncryption</tt> argument in the last invocation
-     * of {@link #init(boolean, CipherParameters)}. If <tt>null</tt>, then the
-     * method <tt>init</tt> has not been invoked yet.
+     * Indicate if init() has been called
      */
-    private Boolean forEncryption;
-
-    /**
-     * The key provided in the form of a {@link KeyParameter} in the last
-     * invocation of {@link #init(boolean, CipherParameters)}.
-     */
-    private byte[] key;
+    private boolean initDone = false;
 
     /**
      * The OpenSSL Crypto type of the cipher implemented by this instance.
@@ -131,8 +115,14 @@ public class OpenSSLBlockCipher
         switch (algorithm)
         {
         case AES_128_CTR:
+            algorithmName = "AES-128-CTR";
+            // CTR mode real block size is 1, but here blockSize specify
+            // how much data we process each time
+            blockSize = 16;
+            break;
         case AES_128_ECB:
-            this.algorithmName = "AES";
+            algorithmName = "AES-128-ECB";
+            blockSize = 16;
             break;
         default:
             throw new IllegalArgumentException("algorithm " + algorithm);
@@ -148,8 +138,6 @@ public class OpenSSLBlockCipher
                     JNIUtils.loadLibrary(
                             "jnopenssl",
                             OpenSSLBlockCipher.class.getClassLoader());
-                    EVP_aes_128_ctr = EVP_get_cipherbyname("AES-128-CTR");
-                    EVP_aes_128_ecb = EVP_aes_128_ecb();
                 }
                 finally
                 {
@@ -158,69 +146,13 @@ public class OpenSSLBlockCipher
             }
         }
 
-        long type;
+        type = EVP_get_cipherbyname(algorithmName);
+        if (type == 0)
+            throw new RuntimeException("EVP_get_cipherbyname("+algorithmName+")");
 
-        switch (algorithm)
-        {
-        case AES_128_CTR:
-            long EVP_aes_128_ctr = OpenSSLBlockCipher.EVP_aes_128_ctr;
-
-            if (EVP_aes_128_ctr == 0)
-                throw new IllegalStateException("EVP_aes_128_ctr");
-            else
-                type = EVP_aes_128_ctr;
-            break;
-        case AES_128_ECB:
-            long EVP_aes_128_ecb = OpenSSLBlockCipher.EVP_aes_128_ecb;
-
-            if (EVP_aes_128_ecb == 0)
-                throw new IllegalStateException("EVP_aes_128_ecb");
-            else
-                type = EVP_aes_128_ecb;
-            break;
-        default:
-            // It must have been checked prior to loading the OpenSSL (Crypto)
-            // library but the compiler needs it to be convinced that we are not
-            // attempting to use an uninitialized variable.
-            throw new IllegalArgumentException("algorithm " + algorithm);
-        }
-        this.type = type;
-
-        long ctx = EVP_CIPHER_CTX_create();
-
+        ctx = EVP_CIPHER_CTX_create();
         if (ctx == 0)
-        {
             throw new RuntimeException("EVP_CIPHER_CTX_create");
-        }
-        else
-        {
-            boolean ok = false;
-
-            this.ctx = ctx;
-            try
-            {
-                reset();
-
-                int blockSize = EVP_CIPHER_block_size(type);
-
-                // The AES we need has a block size of 16 and OpenSSL (Crypto)
-                // claims it has a block size of 1.
-                if (algorithm == AES_128_CTR && blockSize == 1)
-                    blockSize = 16;
-                this.blockSize = blockSize;
-
-                ok = true;
-            }
-            finally
-            {
-                if (!ok)
-                {
-                    if (this.ctx == ctx)
-                        this.ctx = 0;
-                    EVP_CIPHER_CTX_destroy(ctx);
-                }
-            }
-        }
     }
 
     /**
@@ -235,12 +167,10 @@ public class OpenSSLBlockCipher
             // Well, the destroying in the finalizer should exist as a backup
             // anyway. There is no way to explicitly invoke the destroying at
             // the time of this writing but it is a start.
-            long ctx = this.ctx;
-
             if (ctx != 0)
             {
-                this.ctx = 0;
                 EVP_CIPHER_CTX_destroy(ctx);
+                ctx = 0;
             }
         }
         finally
@@ -279,10 +209,21 @@ public class OpenSSLBlockCipher
                 ? ((KeyParameter) params).getKey()
                 : null;
 
-        this.forEncryption = Boolean.valueOf(forEncryption);
-        this.key = key;
+        if (key == null)
+            throw new IllegalStateException("key == null");
 
-        reset();
+        if (!EVP_CipherInit_ex(
+                ctx,
+                type,
+                0L /* impl */,
+                key,
+                null /* iv */,
+                (forEncryption ? 1 : 0))) {
+            throw new RuntimeException("EVP_CipherInit_ex() init failed");
+        }
+        EVP_CIPHER_CTX_set_padding(ctx, false);
+
+        initDone = true;
     }
 
     /**
@@ -292,26 +233,18 @@ public class OpenSSLBlockCipher
     public int processBlock(byte[] in, int inOff, byte[] out, int outOff)
         throws DataLengthException, IllegalStateException
     {
-        long ctx = this.ctx;
+        if (!initDone)
+            throw new IllegalStateException("init not done");
 
-        if (ctx == 0)
-        {
-            throw new IllegalStateException("ctx");
-        }
+        int i = EVP_CipherUpdate(
+                    ctx,
+                    out, outOff, blockSize,
+                    in, inOff, blockSize);
+
+        if (i < 0)
+            throw new RuntimeException("EVP_CipherUpdate");
         else
-        {
-            int blockSize = getBlockSize();
-            int i
-                = EVP_CipherUpdate(
-                        ctx,
-                        out, outOff, blockSize,
-                        in, inOff, blockSize);
-
-            if (i < 0)
-                throw new RuntimeException("EVP_CipherUpdate");
-            else
-                return i;
-        }
+            return i;
     }
 
     /**
@@ -323,26 +256,18 @@ public class OpenSSLBlockCipher
             ByteBuffer out, int outOff)
         throws DataLengthException, IllegalStateException
     {
-        long ctx = this.ctx;
+        if (!initDone)
+            throw new IllegalStateException("init not done");
 
-        if (ctx == 0)
-        {
-            throw new IllegalStateException("ctx");
-        }
+        int i = EVP_CipherUpdate(
+                    ctx,
+                    out, outOff, blockSize,
+                    in, inOff, blockSize);
+
+        if (i < 0)
+            throw new RuntimeException("EVP_CipherUpdate");
         else
-        {
-            int blockSize = getBlockSize();
-            int i
-                = EVP_CipherUpdate(
-                        ctx,
-                        out, outOff, blockSize,
-                        in, inOff, blockSize);
-
-            if (i < 0)
-                throw new RuntimeException("EVP_CipherUpdate");
-            else
-                return i;
-        }
+            return i;
     }
 
     /**
@@ -351,40 +276,10 @@ public class OpenSSLBlockCipher
     @Override
     public void reset()
     {
-        long ctx = this.ctx;
+        if (!initDone)
+            throw new IllegalStateException("init not done");
 
-        if (ctx == 0)
-        {
-            throw new IllegalStateException("ctx");
-        }
-        else
-        {
-            EVP_CIPHER_CTX_cleanup(ctx);
-
-            // As the javadoc on the interface declaration of the method reset
-            // defines. resetting this cipher leaves it in the same state as it
-            // was after the last init (if there was one).
-            Boolean forEncryption = this.forEncryption;
-
-            if (EVP_CipherInit_ex(
-                    ctx,
-                    type,
-                    /* impl */ 0L,
-                    key,
-                    /* iv */ null,
-                    (forEncryption == null)
-                        ? -1
-                        : (forEncryption.booleanValue() ? 1 : 0)))
-            {
-                // The manual page of EVP_CIPHER_CTX_set_padding documents it to
-                // always return 1 i.e. true.
-                EVP_CIPHER_CTX_set_padding(ctx, false);
-            }
-            else
-            {
-                throw new RuntimeException(
-                        "EVP_CipherInit_ex(" + getAlgorithmName() + ")");
-            }
-        }
+        if (!EVP_CipherInit_ex(ctx, 0L, 0L, null, null, -1))
+            throw new RuntimeException("EVP_CipherInit_ex() reset failed");
     }
 }

@@ -22,18 +22,6 @@
 
 /*
  * Class:     org_jitsi_impl_neomedia_transform_srtp_OpenSSLBlockCipher
- * Method:    EVP_aes_128_ecb
- * Signature: ()J
- */
-JNIEXPORT jlong JNICALL
-Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLBlockCipher_EVP_1aes_1128_1ecb
-    (JNIEnv *env, jclass clazz)
-{
-    return (jlong) (intptr_t) EVP_aes_128_ecb();
-}
-
-/*
- * Class:     org_jitsi_impl_neomedia_transform_srtp_OpenSSLBlockCipher
  * Method:    EVP_CIPHER_block_size
  * Signature: (J)I
  */
@@ -42,18 +30,6 @@ Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLBlockCipher_EVP_1CIPHER_1bloc
     (JNIEnv *env, jclass clazz, jlong e)
 {
     return EVP_CIPHER_block_size((const EVP_CIPHER *) (intptr_t) e);
-}
-
-/*
- * Class:     org_jitsi_impl_neomedia_transform_srtp_OpenSSLBlockCipher
- * Method:    EVP_CIPHER_CTX_cleanup
- * Signature: (J)Z
- */
-JNIEXPORT jboolean JNICALL
-Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLBlockCipher_EVP_1CIPHER_1CTX_1cleanup
-    (JNIEnv *env, jclass clazz, jlong a)
-{
-    return EVP_CIPHER_CTX_cleanup((EVP_CIPHER_CTX *) (intptr_t) a);
 }
 
 /*
