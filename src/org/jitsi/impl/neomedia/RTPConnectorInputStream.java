@@ -439,10 +439,8 @@ public abstract class RTPConnectorInputStream<T>
         }
 
         System.arraycopy(
-                datagramPacket.getData(),
-                datagramPacket.getOffset(),
-                buffer,
-                0,
+                datagramPacket.getData(), datagramPacket.getOffset(),
+                buffer, 0,
                 length);
 
         pkt.setBuffer(buffer);
@@ -906,7 +904,7 @@ public abstract class RTPConnectorInputStream<T>
                         poolRawPacket(oldPkt);
                     }
 
-                    if ((transferHandler != null) && !closed)
+                    if (transferHandler != null && !closed)
                     {
                         try
                         {

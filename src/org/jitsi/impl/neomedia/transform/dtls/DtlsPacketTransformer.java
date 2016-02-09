@@ -146,14 +146,14 @@ public class DtlsPacketTransformer
                 int minor = buf[off + 2] & 0xff;
                 ProtocolVersion version = null;
 
-                if ((major == ProtocolVersion.DTLSv10.getMajorVersion())
-                        && (minor == ProtocolVersion.DTLSv10.getMinorVersion()))
+                if (major == ProtocolVersion.DTLSv10.getMajorVersion()
+                        && minor == ProtocolVersion.DTLSv10.getMinorVersion())
                 {
                     version = ProtocolVersion.DTLSv10;
                 }
-                if ((version == null)
-                        && (major == ProtocolVersion.DTLSv12.getMajorVersion())
-                        && (minor == ProtocolVersion.DTLSv12.getMinorVersion()))
+                if (version == null
+                        && major == ProtocolVersion.DTLSv12.getMajorVersion()
+                        && minor == ProtocolVersion.DTLSv12.getMinorVersion())
                 {
                     version = ProtocolVersion.DTLSv12;
                 }

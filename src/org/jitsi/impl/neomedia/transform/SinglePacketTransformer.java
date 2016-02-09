@@ -49,15 +49,6 @@ public abstract class SinglePacketTransformer
         = Logger.getLogger(SinglePacketTransformer.class);
 
     /**
-     * The idea is to have <tt>PacketTransformer</tt> implementations strictly
-     * associated with a <tt>Predicate</tt> so that they only process packets
-     * that they're supposed to process. For example, transformers that
-     * transform RTP packets should not transform RTCP packets, if, by mistake,
-     * they happen to be passed RTCP packets.
-     */
-    private final Predicate<RawPacket> packetPredicate;
-
-    /**
      * The number of exceptions caught in {@link #reverseTransform(RawPacket)}.
      */
     private long exceptionsInReverseTransform;
@@ -66,6 +57,15 @@ public abstract class SinglePacketTransformer
      * The number of exceptions caught in {@link #transform(RawPacket)}.
      */
     private long exceptionsInTransform;
+
+    /**
+     * The idea is to have <tt>PacketTransformer</tt> implementations strictly
+     * associated with a <tt>Predicate</tt> so that they only process packets
+     * that they're supposed to process. For example, transformers that
+     * transform RTP packets should not transform RTCP packets, if, by mistake,
+     * they happen to be passed RTCP packets.
+     */
+    private final Predicate<RawPacket> packetPredicate;
 
     /**
      * Ctor.
@@ -79,7 +79,7 @@ public abstract class SinglePacketTransformer
      */
     public SinglePacketTransformer()
     {
-        this.packetPredicate = null;
+        this(null);
     }
 
     /**
@@ -94,12 +94,15 @@ public abstract class SinglePacketTransformer
     }
 
     /**
-     * Transforms a specific packet.
+     * {@inheritDoc}
      *
-     * @param pkt the packet to be transformed.
-     * @return the transformed packet.
+     * The (default) implementation of {@code SinglePacketTransformer} does
+     * nothing.
      */
-    public abstract RawPacket transform(RawPacket pkt);
+    @Override
+    public void close()
+    {
+    }
 
     /**
      * Reverse-transforms a specific packet.
@@ -112,53 +115,8 @@ public abstract class SinglePacketTransformer
     /**
      * {@inheritDoc}
      *
-     * Transforms an array of packets by calling <tt>transform(RawPacket)</tt>
-     * on each one.
-     */
-    @Override
-    public RawPacket[] transform(RawPacket[] pkts)
-    {
-        if (pkts != null)
-        {
-            for (int i = 0; i < pkts.length; i++)
-            {
-                RawPacket pkt = pkts[i];
-
-                if (pkt != null &&
-                    (packetPredicate == null || packetPredicate.test(pkt)))
-                {
-                    try
-                    {
-                        pkts[i] = transform(pkt);
-                    }
-                    catch (Throwable t)
-                    {
-                        exceptionsInTransform++;
-                        if (((exceptionsInTransform % EXCEPTIONS_TO_LOG) == 0)
-                                || (exceptionsInTransform == 1))
-                        {
-                            logger.error(
-                                    "Failed to transform RawPacket(s)!",
-                                    t);
-                        }
-                        if (t instanceof Error)
-                            throw (Error) t;
-                        else if (t instanceof RuntimeException)
-                            throw (RuntimeException) t;
-                        else
-                            throw new RuntimeException(t);
-                    }
-                }
-            }
-        }
-
-        return pkts;
-    }
-
-    /**
-     * {@inheritDoc}
      * Reverse-transforms an array of packets by calling
-     * <tt>reverseTransform(RawPacket)</tt> on each one.
+     * {@link #reverseTransform(RawPacket)} on each one.
      */
     @Override
     public RawPacket[] reverseTransform(RawPacket[] pkts)
@@ -169,8 +127,9 @@ public abstract class SinglePacketTransformer
             {
                 RawPacket pkt = pkts[i];
 
-                if (pkt != null &&
-                    (packetPredicate == null || packetPredicate.test(pkt)))
+                if (pkt != null
+                        && (packetPredicate == null
+                            || packetPredicate.test(pkt)))
                 {
                     try
                     {
@@ -179,9 +138,9 @@ public abstract class SinglePacketTransformer
                     catch (Throwable t)
                     {
                         exceptionsInReverseTransform++;
-                        if (((exceptionsInReverseTransform % EXCEPTIONS_TO_LOG)
-                                    == 0)
-                                || (exceptionsInReverseTransform == 1))
+                        if ((exceptionsInReverseTransform % EXCEPTIONS_TO_LOG)
+                                    == 0
+                                || exceptionsInReverseTransform == 1)
                         {
                             logger.error(
                                     "Failed to reverse-transform RawPacket(s)!",
@@ -202,10 +161,57 @@ public abstract class SinglePacketTransformer
     }
 
     /**
+     * Transforms a specific packet.
+     *
+     * @param pkt the packet to be transformed.
+     * @return the transformed packet.
+     */
+    public abstract RawPacket transform(RawPacket pkt);
+
+    /**
      * {@inheritDoc}
+     *
+     * Transforms an array of packets by calling {@link #transform(RawPacket)}
+     * on each one.
      */
     @Override
-    public void close()
+    public RawPacket[] transform(RawPacket[] pkts)
     {
+        if (pkts != null)
+        {
+            for (int i = 0; i < pkts.length; i++)
+            {
+                RawPacket pkt = pkts[i];
+
+                if (pkt != null
+                        && (packetPredicate == null
+                            || packetPredicate.test(pkt)))
+                {
+                    try
+                    {
+                        pkts[i] = transform(pkt);
+                    }
+                    catch (Throwable t)
+                    {
+                        exceptionsInTransform++;
+                        if ((exceptionsInTransform % EXCEPTIONS_TO_LOG) == 0
+                                || exceptionsInTransform == 1)
+                        {
+                            logger.error(
+                                    "Failed to transform RawPacket(s)!",
+                                    t);
+                        }
+                        if (t instanceof Error)
+                            throw (Error) t;
+                        else if (t instanceof RuntimeException)
+                            throw (RuntimeException) t;
+                        else
+                            throw new RuntimeException(t);
+                    }
+                }
+            }
+        }
+
+        return pkts;
     }
 }
