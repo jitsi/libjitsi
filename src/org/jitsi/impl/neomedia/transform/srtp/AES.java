@@ -176,20 +176,7 @@ public class AES
         long minTime = Long.MAX_VALUE;
         BlockCipherFactory minFactory = null;
 
-        // Log information for the purposes of debugging.
-        final boolean loggerIsTraceEnabled;
-        StringBuilder trace; 
-
-        if (logger.isTraceEnabled())
-        {
-            loggerIsTraceEnabled = true;
-            trace = new StringBuilder();
-        }
-        else
-        {
-            loggerIsTraceEnabled = false;
-            trace = null;
-        }
+        StringBuilder benchres = new StringBuilder();
 
         for (int f = 0; f < factories.length; ++f)
         {
@@ -233,16 +220,10 @@ public class AES
                         minFactory = factory;
                     }
 
-                    // Log information for the purposes of debugging.
-                    if (loggerIsTraceEnabled)
-                    {
-                        if (trace.length() != 0)
-                        {
-                            trace.append(", ");
-                        }
-                        trace.append(getSimpleClassName(factory)).append(' ')
-                            .append(time);
-                    }
+                    if (benchres.length() != 0)
+                        benchres.append(", ");
+
+                    benchres.append(getSimpleClassName(factory)).append(' ').append(time);
                 }
             }
             catch (Throwable t)
@@ -254,14 +235,7 @@ public class AES
             }
         }
 
-        // Log information for the purposes of debugging.
-        if (loggerIsTraceEnabled && trace.length() != 0)
-        {
-            logger.trace(
-                    "AES benchmark"
-                        + " (of execution times expressed in nanoseconds): "
-                        + trace);
-        }
+        logger.info("AES benchmark (of execution times expressed in nanoseconds): "+ benchres);
 
         return minFactory;
     }
@@ -321,16 +295,11 @@ public class AES
                     if (AES.factory != factory)
                     {
                         AES.factory = factory;
-                        if (logger.isDebugEnabled())
-                        {
-                            // Simplify the name of the BlockCipherFactory class
-                            // to be employed for the purposes of brevity and
-                            // ease.
-                            logger.debug(
-                                    "Will employ AES implemented by "
-                                            + getSimpleClassName(factory)
-                                            + ".");
-                        }
+                        // Simplify the name of the BlockCipherFactory class
+                        // to be employed for the purposes of brevity and
+                        // ease.
+                        logger.info("Will employ AES implemented by "
+                                + getSimpleClassName(factory) + ".");
                     }
                 }
             }
