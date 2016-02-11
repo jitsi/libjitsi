@@ -55,7 +55,7 @@ public class RTCPReports
      * of their respective originator (SSRC defined by RFC 3611).
      */
     private final Map<Integer,RTCPExtendedReport> receivedExtendedReports
-        = new HashMap<Integer,RTCPExtendedReport>();
+        = new HashMap<>();
 
     /**
      * The RTCP sender report (SR) and/or receiver report (RR) blocks received
@@ -63,8 +63,7 @@ public class RTCPReports
      * synchronization source identifiers of their respective source (SSRC of
      * source defined by RFC 3550).
      */
-    private final Map<Integer,RTCPFeedback> receivedFeedbacks
-        = new HashMap<Integer,RTCPFeedback>();
+    private final Map<Integer,RTCPFeedback> receivedFeedbacks = new HashMap<>();
 
     /**
      * The RTCP sender reports (SR) and/or receiver reports (RR) received by the
@@ -72,8 +71,7 @@ public class RTCPReports
      * synchronization source identifiers of their respective originator (SSRC
      * of sender defined by RFC 3550).
      */
-    private final Map<Integer,RTCPReport> receivedReports
-        = new HashMap<Integer,RTCPReport>();
+    private final Map<Integer,RTCPReport> receivedReports = new HashMap<>();
 
     /**
      * The RTCP extended report (XR) VoIP Metrics blocks received by the local
@@ -83,7 +81,7 @@ public class RTCPReports
      */
     private final Map<Integer,RTCPExtendedReport.VoIPMetricsReportBlock>
         receivedVoIPMetrics
-            = new HashMap<Integer,RTCPExtendedReport.VoIPMetricsReportBlock>();
+            = new HashMap<>();
 
     /**
      * The RTCP extended reports (XR) sent by the local endpoint represented by
@@ -91,7 +89,7 @@ public class RTCPReports
      * their respective originator (SSRC defined by RFC 3611).
      */
     private final Map<Integer,RTCPExtendedReport> sentExtendedReports
-        = new HashMap<Integer,RTCPExtendedReport>();
+        = new HashMap<>();
 
     /**
      * The RTCP sender report (SR) and/or receiver report (RR) blocks sent by
@@ -99,8 +97,7 @@ public class RTCPReports
      * synchronization source identifiers of their respective source (SSRC
      * of source defined by RFC 3550).
      */
-    private final Map<Integer,RTCPFeedback> sentFeedbacks
-        = new HashMap<Integer,RTCPFeedback>();
+    private final Map<Integer,RTCPFeedback> sentFeedbacks = new HashMap<>();
 
     /**
      * The RTCP sender reports (SR) and/or receiver reports (RR) sent by the
@@ -108,8 +105,7 @@ public class RTCPReports
      * synchronization source identifiers of their respective originator (SSRC
      * of sender defined by RFC 3550).
      */
-    private final Map<Integer,RTCPReport> sentReports
-        = new HashMap<Integer,RTCPReport>();
+    private final Map<Integer,RTCPReport> sentReports = new HashMap<>();
 
     /**
      * The RTCP extended report (XR) VoIP Metrics blocks sent by the local
@@ -119,7 +115,7 @@ public class RTCPReports
      */
     private final Map<Integer,RTCPExtendedReport.VoIPMetricsReportBlock>
         sentVoIPMetrics
-            = new HashMap<Integer,RTCPExtendedReport.VoIPMetricsReportBlock>();
+            = new HashMap<>();
 
     /**
      * Adds a new <tt>RTCPReportListener</tt> to be notified by this instance
@@ -139,7 +135,7 @@ public class RTCPReports
             if (!listeners.contains(listener))
             {
                 List<RTCPReportListener> newListeners
-                    = new ArrayList<RTCPReportListener>(listeners.size() + 1);
+                    = new ArrayList<>(listeners.size() + 1);
 
                 newListeners.addAll(listeners);
                 newListeners.add(listener);
@@ -160,7 +156,7 @@ public class RTCPReports
     {
         synchronized (receivedExtendedReports)
         {
-            return receivedExtendedReports.get(Integer.valueOf(ssrc));
+            return receivedExtendedReports.get(ssrc);
         }
     }
 
@@ -192,7 +188,7 @@ public class RTCPReports
     {
         synchronized (receivedReports)
         {
-            return receivedFeedbacks.get(Integer.valueOf(sourceSSRC));
+            return receivedFeedbacks.get(sourceSSRC);
         }
     }
 
@@ -226,7 +222,7 @@ public class RTCPReports
     {
         synchronized (receivedReports)
         {
-            return receivedReports.get(Integer.valueOf(senderSSRC));
+            return receivedReports.get(senderSSRC);
         }
     }
 
@@ -284,7 +280,7 @@ public class RTCPReports
     {
         synchronized (receivedExtendedReports)
         {
-            return receivedVoIPMetrics.get(Integer.valueOf(sourceSSRC));
+            return receivedVoIPMetrics.get(sourceSSRC);
         }
     }
 
@@ -310,7 +306,7 @@ public class RTCPReports
     {
         synchronized (sentExtendedReports)
         {
-            return sentExtendedReports.get(Integer.valueOf(ssrc));
+            return sentExtendedReports.get(ssrc);
         }
     }
 
@@ -342,7 +338,7 @@ public class RTCPReports
     {
         synchronized (sentReports)
         {
-            return sentFeedbacks.get(Integer.valueOf(sourceSSRC));
+            return sentFeedbacks.get(sourceSSRC);
         }
     }
 
@@ -375,7 +371,7 @@ public class RTCPReports
     {
         synchronized (sentReports)
         {
-            return sentReports.get(Integer.valueOf(senderSSRC));
+            return sentReports.get(senderSSRC);
         }
     }
 
@@ -433,7 +429,7 @@ public class RTCPReports
     {
         synchronized (sentExtendedReports)
         {
-            return sentVoIPMetrics.get(Integer.valueOf(sourceSSRC));
+            return sentVoIPMetrics.get(sourceSSRC);
         }
     }
 
@@ -461,7 +457,7 @@ public class RTCPReports
                 else
                 {
                     List<RTCPReportListener> newListeners
-                        = new ArrayList<RTCPReportListener>(listeners);
+                        = new ArrayList<>(listeners);
 
                     newListeners.remove(index);
 
@@ -492,7 +488,7 @@ public class RTCPReports
         {
             Object oldValue
                 = receivedExtendedReports.put(
-                        Integer.valueOf((int) extendedReport.getSSRC()),
+                        extendedReport.getSSRC(),
                         extendedReport);
 
             if (extendedReport.equals(oldValue))
@@ -520,7 +516,7 @@ public class RTCPReports
                                 reportBlock;
 
                         receivedVoIPMetrics.put(
-                                Integer.valueOf(voipMetrics.getSourceSSRC()),
+                                voipMetrics.getSourceSSRC(),
                                 voipMetrics);
                     }
                 }
@@ -559,7 +555,7 @@ public class RTCPReports
         {
             Object oldValue
                 = sentExtendedReports.put(
-                        Integer.valueOf((int) extendedReport.getSSRC()),
+                        extendedReport.getSSRC(),
                         extendedReport);
 
             if (extendedReport.equals(oldValue))
@@ -587,7 +583,7 @@ public class RTCPReports
                                 reportBlock;
 
                         sentVoIPMetrics.put(
-                                Integer.valueOf(voipMetrics.getSourceSSRC()),
+                                voipMetrics.getSourceSSRC(),
                                 voipMetrics);
                     }
                 }
@@ -625,9 +621,7 @@ public class RTCPReports
         synchronized (receivedReports)
         {
             Object oldValue
-                = receivedReports.put(
-                        Integer.valueOf((int) report.getSSRC()),
-                        report);
+                = receivedReports.put((int) report.getSSRC(), report);
 
             if (report.equals(oldValue))
             {
@@ -646,7 +640,7 @@ public class RTCPReports
                     for (RTCPFeedback feedback : feedbacks)
                     {
                         receivedFeedbacks.put(
-                                Integer.valueOf((int) feedback.getSSRC()),
+                                (int) feedback.getSSRC(),
                                 feedback);
                     }
                 }
@@ -681,9 +675,7 @@ public class RTCPReports
         synchronized (sentReports)
         {
             Object oldValue
-                = sentReports.put(
-                        Integer.valueOf((int) report.getSSRC()),
-                        report);
+                = sentReports.put((int) report.getSSRC(), report);
 
             if (report.equals(oldValue))
             {
@@ -702,7 +694,7 @@ public class RTCPReports
                     for (RTCPFeedback feedback : feedbacks)
                     {
                         sentFeedbacks.put(
-                                Integer.valueOf((int) feedback.getSSRC()),
+                                (int) feedback.getSSRC(),
                                 feedback);
                     }
                 }
