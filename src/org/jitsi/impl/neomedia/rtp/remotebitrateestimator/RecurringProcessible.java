@@ -26,14 +26,15 @@ public interface RecurringProcessible
      * Returns the number of milliseconds until this instance wants a worker
      * thread to call {@link #process()}.
      *
-     * @return
+     * @return the number of milliseconds until this instance wants a worker
+     * thread to call {@link #process()}
      */
     long getTimeUntilNextProcess();
 
     /**
      * Process any pending tasks such as timeouts.
      *
-     * @return
+     * @return ignored (and unknown) at the time of this writing
      */
     long process();
 }
