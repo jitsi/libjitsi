@@ -1028,44 +1028,28 @@ public class StatisticsEngine
 
         for (RTCPPacket rtcp : in)
         {
-            if (rtcp instanceof RTCPExtendedReport)
+            switch (rtcp.type)
             {
-                streamStats.getRTCPReports().rtcpExtendedReportReceived(
-                        (RTCPExtendedReport) rtcp);
-
-                // Remove any RTP Control Protocol Extended Report (RTCP XR)
-                // packets because neither FMJ, nor
-                // RTCPSenderReport/RTCPReceiverReport understands them.
-                removed = true;
-            }
-            else if (rtcp instanceof NACKPacket)
-            {
-                NACKPacket nack = (NACKPacket) rtcp;
-
-                streamStats.nackReceived(nack);
-
-                // Note that we drop NACK packets here, and leave it as a
-                // responsibility of the user application to handle them, if
-                // necessary (i.e. forward the NACK packet somewhere, or
-                // retransmit RTP packets).
-                removed = true;
-            }
-            else if (rtcp instanceof RTCPREMBPacket)
-            {
-                RTCPREMBPacket remb = (RTCPREMBPacket) rtcp;
-
-                if (logger.isTraceEnabled())
+            case RTCPFBPacket.PSFB:
+                if (rtcp instanceof RTCPREMBPacket)
                 {
-                    logger.trace(
-                            "Received estimated bitrate (bps): "
-                                + remb.getBitrate() + ", dest: "
-                                + Arrays.toString(remb.getDest()));
+                    RTCPREMBPacket remb = (RTCPREMBPacket) rtcp;
+
+                    if (logger.isTraceEnabled())
+                    {
+                        logger.trace(
+                                "Received estimated bitrate (bps): "
+                                        + remb.getBitrate() + ", dest: "
+                                        + Arrays.toString(remb.getDest()));
+                    }
+                    streamStats.rembReceived(remb);
+                    out.add(rtcp);
                 }
-                streamStats.rembReceived(remb);
-                out.add(rtcp);
-            }
-            else if (rtcp.type == RTCPPacket.RR || rtcp.type == RTCPPacket.SR)
-            {
+                break;
+
+            case RTCPPacket.RR:
+            case RTCPPacket.SR:
+                {
                 RTCPReport report;
 
                 try
@@ -1089,6 +1073,40 @@ public class StatisticsEngine
                 }
 
                 out.add(rtcp);
+                }
+                break;
+
+            case RTCPFBPacket.RTPFB:
+                if (rtcp instanceof NACKPacket)
+                {
+                    NACKPacket nack = (NACKPacket) rtcp;
+
+                    streamStats.nackReceived(nack);
+
+                    // Note that we drop NACK packets here, and leave it as a
+                    // responsibility of the user application to handle them, if
+                    // necessary (i.e. forward the NACK packet somewhere, or
+                    // retransmit RTP packets).
+                    removed = true;
+                }
+                break;
+
+            case RTCPExtendedReport.XR:
+                if (rtcp instanceof RTCPExtendedReport)
+                {
+                    streamStats.getRTCPReports().rtcpExtendedReportReceived(
+                            (RTCPExtendedReport) rtcp);
+
+                    // Remove any RTP Control Protocol Extended Report (RTCP XR)
+                    // packets because neither FMJ, nor
+                    // RTCPSenderReport/RTCPReceiverReport understands them.
+                    removed = true;
+                }
+                break;
+
+            default:
+                // These types of RTCP packets are of no interest at present.
+                break;
             }
         }
 
