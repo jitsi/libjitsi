@@ -643,6 +643,24 @@ public class RTCPReports
                                 (int) feedback.getSSRC(),
                                 feedback);
                     }
+
+                    if (!feedbacks.isEmpty() && logger.isTraceEnabled())
+                    {
+                        StringBuilder s = new StringBuilder();
+
+                        s.append("Received RTCP RR blocks from SSRC ")
+                            .append(report.getSSRC() & 0xFFFFFFFFL)
+                            .append(" at time (ms) ")
+                            .append(report.getSystemTimeStamp())
+                            .append(" for SSRC(s):");
+                        for (RTCPFeedback feedback : feedbacks)
+                        {
+                            s.append(' ')
+                                .append(feedback.getSSRC() & 0xFFFFFFFFL)
+                                .append(',');
+                        }
+                        logger.trace(s);
+                    }
                 }
 
                 fire = true;
