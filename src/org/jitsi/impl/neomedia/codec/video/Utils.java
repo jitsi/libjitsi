@@ -30,11 +30,11 @@ public class Utils
     /**
      * Utility method that determines whether or not a packet is a key frame.
      */
-    public static boolean isKeyFrame(RawPacket pkt, byte redPT, byte vp8PT)
+    public static boolean isKeyFrame(RawPacket pkt, Byte redPT, byte vp8PT)
     {
         // XXX this will not work correctly when RTX gets enabled!
         boolean isKeyFrame;
-        if (redPT == pkt.getPayloadType())
+        if (redPT != null && redPT == pkt.getPayloadType())
         {
             REDBlock block = REDBlockIterator.getPrimaryBlock(pkt.getBuffer(),
                     pkt.getPayloadOffset(), pkt.getPayloadLength());
