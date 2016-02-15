@@ -188,7 +188,8 @@ class ExtendedSequenceNumberInterval
         boolean rtx = rtx2primary.containsKey(sourceSSRC);
 
         // RED
-        if (ssrcRewritingEngine.ssrc2red.get(sourceSSRC) == pt)
+        Byte red = ssrcRewritingEngine.ssrc2red.get(sourceSSRC);
+        if (red != null && red == pt)
         {
             byte[] buf = pkt.getBuffer();
             int osnLen = rtx ? 2 : 0;
@@ -199,7 +200,8 @@ class ExtendedSequenceNumberInterval
         }
 
         // FEC
-        if (ssrcRewritingEngine.ssrc2fec.get(sourceSSRC) == pt)
+        Byte fec = ssrcRewritingEngine.ssrc2fec.get(sourceSSRC);
+        if (fec != null && fec == pt)
         {
             byte[] buf = pkt.getBuffer();
             int osnLen = rtx ? 2 : 0;
