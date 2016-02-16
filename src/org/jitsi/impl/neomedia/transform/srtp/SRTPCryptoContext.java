@@ -440,8 +440,6 @@ public class SRTPCryptoContext
         Arrays.fill(masterSalt, (byte) 0);
 
         // As last step: initialize cipher with derived encryption key.
-        if (cipherF8 != null)
-            SRTPCipherF8.deriveForIV(cipherF8, encKey, saltKey);
         cipher.init(true, new KeyParameter(encKey));
         Arrays.fill(encKey, (byte) 0);
     }
@@ -525,36 +523,6 @@ public class SRTPCryptoContext
     }
 
     /**
-     * Performs F8 Mode AES encryption/decryption
-     *
-     * @param pkt the RTP packet to be encrypted/decrypted
-     */
-    public void processPacketAESF8(RawPacket pkt)
-    {
-        // 11 bytes of the RTP header are the 11 bytes of the iv
-        // the first byte of the RTP header is not used.
-        System.arraycopy(pkt.getBuffer(), pkt.getOffset(), ivStore, 0, 12);
-        ivStore[0] = 0;
-
-        // set the ROC in network order into IV
-        int roc = guessedROC;
-
-        ivStore[12] = (byte) (roc >> 24);
-        ivStore[13] = (byte) (roc >> 16);
-        ivStore[14] = (byte) (roc >> 8);
-        ivStore[15] = (byte) roc;
-
-        int payloadOffset = pkt.getHeaderLength();
-        int payloadLength = pkt.getPayloadLength();
-
-        SRTPCipherF8.process(
-                cipher,
-                pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
-                ivStore,
-                cipherF8);
-    }
-
-    /**
      * Transforms an SRTP packet into an RTP packet. The method is called when
      * an SRTP packet is received. Operations done by the this operation
      * include: authentication check, packet replay check and decryption. Both
@@ -617,12 +585,8 @@ public class SRTPCryptoContext
                     case SRTPPolicy.TWOFISH_ENCRYPTION:
                         processPacketAESCM(pkt);
                         break;
-
-                    // Decrypt the packet using F8 Mode encryption.
-                    case SRTPPolicy.AESF8_ENCRYPTION:
-                    case SRTPPolicy.TWOFISHF8_ENCRYPTION:
-                        processPacketAESF8(pkt);
-                        break;
+                    default:
+                        throw new IllegalArgumentException("Invalid SRTPPolicy EncType");
                     }
                 }
 
@@ -644,8 +608,7 @@ public class SRTPCryptoContext
     /**
      * Transforms an RTP packet into an SRTP packet. The method is called when a
      * normal RTP packet ready to be sent. Operations done by the transformation
-     * may include: encryption, using either Counter Mode encryption, or F8 Mode
-     * encryption, adding authentication tag, currently HMC SHA1 method. Both
+     * may include: encryption and authentication (currently HMAC SHA1). Both
      * encryption and authentication functionality can be turned off as long as
      * the SRTPPolicy used in this SRTPCryptoContext is requires no encryption
      * and no authentication. Then the packet will be sent out untouched.
@@ -683,12 +646,8 @@ public class SRTPCryptoContext
         case SRTPPolicy.TWOFISH_ENCRYPTION:
             processPacketAESCM(pkt);
             break;
-
-        // Encrypt the packet using F8 Mode encryption.
-        case SRTPPolicy.AESF8_ENCRYPTION:
-        case SRTPPolicy.TWOFISHF8_ENCRYPTION:   
-            processPacketAESF8(pkt);
-            break;
+        default:
+            throw new IllegalArgumentException("Invalid SRTPPolicy EncType");
         }
 
         /* Authenticate the packet. */

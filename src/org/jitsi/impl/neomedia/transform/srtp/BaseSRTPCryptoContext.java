@@ -88,11 +88,6 @@ class BaseSRTPCryptoContext
     protected final SRTPCipherCTR cipherCtr = new SRTPCipherCTR();
 
     /**
-     * Used inside F8 mode only
-     */
-    protected final BlockCipher cipherF8;
-
-    /**
      * Derived session encryption key
      */
     protected final byte[] encKey;
@@ -164,7 +159,6 @@ class BaseSRTPCryptoContext
 
         authKey = null;
         cipher = null;
-        cipherF8 = null;
         encKey = null;
         mac = null;
         masterKey = null;
@@ -194,44 +188,28 @@ class BaseSRTPCryptoContext
         masterSalt = new byte[saltKeyLength];
         System.arraycopy(masterS, 0, masterSalt, 0, saltKeyLength);
 
-        BlockCipher cipher = null;
-        BlockCipher cipherF8 = null;
-        byte[] encKey = null;
-        byte[] saltKey = null;
-
         switch (policy.getEncType())
         {
-        case SRTPPolicy.NULL_ENCRYPTION:
-            break;
-
-        case SRTPPolicy.AESF8_ENCRYPTION:
-            cipherF8 = AES.createBlockCipher();
-            //$FALL-THROUGH$
-
         case SRTPPolicy.AESCM_ENCRYPTION:
             cipher = AES.createBlockCipher();
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
             break;
 
-        case SRTPPolicy.TWOFISHF8_ENCRYPTION:
-            cipherF8 = new TwofishEngine();
-            //$FALL-THROUGH$
-
         case SRTPPolicy.TWOFISH_ENCRYPTION:
             cipher = new TwofishEngine();
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
             break;
-        }
-        this.cipher = cipher;
-        this.cipherF8 = cipherF8;
-        this.encKey = encKey;
-        this.saltKey = saltKey;
 
-        byte[] authKey;
-        Mac mac;
-        byte[] tagStore;
+        case SRTPPolicy.NULL_ENCRYPTION:
+            cipher = null;
+            encKey = null;
+            saltKey = null;
+            break;
+        default:
+            throw new IllegalArgumentException("Invalid SRTPPolicy EncType");
+        }
 
         switch (policy.getAuthType())
         {
@@ -248,15 +226,13 @@ class BaseSRTPCryptoContext
             break;
 
         case SRTPPolicy.NULL_AUTHENTICATION:
-        default:
             authKey = null;
             mac = null;
             tagStore = null;
             break;
+        default:
+            throw new IllegalArgumentException("Invalid SRTPPolicy AuthType");
         }
-        this.authKey = authKey;
-        this.mac = mac;
-        this.tagStore = tagStore;
     }
 
     /**

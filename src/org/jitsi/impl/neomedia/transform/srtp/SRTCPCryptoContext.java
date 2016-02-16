@@ -190,6 +190,8 @@ public class SRTCPCryptoContext
                                 ParametersForSkein.Skein512,
                                 tagStore.length * 8));
                 break;
+            default:
+                throw new IllegalArgumentException("Invalid SRTPPolicy AuthType");
             }
 
             Arrays.fill(authKey, (byte) 0);
@@ -204,8 +206,6 @@ public class SRTCPCryptoContext
         Arrays.fill(masterSalt, (byte) 0);
 
         // As last step: initialize cipher with derived encryption key.
-        if (cipherF8 != null)
-            SRTPCipherF8.deriveForIV(cipherF8, encKey, saltKey);
         cipher.init(true, new KeyParameter(encKey));
         Arrays.fill(encKey, (byte) 0);
     }
@@ -257,44 +257,6 @@ public class SRTCPCryptoContext
                 cipher,
                 pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
                 ivStore);
-    }
-
-    /**
-     * Performs F8 Mode AES encryption/decryption
-     *
-     * @param pkt the RTP packet to be encrypted/decrypted
-     */
-    public void processPacketAESF8(RawPacket pkt, int index)
-    {
-        // 4 bytes of the iv are zero
-        // the first byte of the RTP header is not used.
-        ivStore[0] = 0;
-        ivStore[1] = 0;
-        ivStore[2] = 0;
-        ivStore[3] = 0;
-
-        // Need the encryption flag
-        index = index | 0x80000000;
-
-        // set the index and the encrypt flag in network order into IV
-        ivStore[4] = (byte) (index >> 24);
-        ivStore[5] = (byte) (index >> 16);
-        ivStore[6] = (byte) (index >> 8);
-        ivStore[7] = (byte) index;
-
-        // The fixed header follows and fills the rest of the IV
-        System.arraycopy(pkt.getBuffer(), pkt.getOffset(), ivStore, 8, 8);
-
-        // Encrypted part excludes fixed header (8 bytes), index (4 bytes), and
-        // authentication tag (variable according to policy)
-        int payloadOffset = 8;
-        int payloadLength = pkt.getLength() - (4 + policy.getAuthTagLength());
-
-        SRTPCipherF8.process(
-                cipher,
-                pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
-                ivStore,
-                cipherF8);
     }
 
     /**
@@ -354,18 +316,14 @@ public class SRTCPCryptoContext
 
         if (decrypt)
         {
-            /* Decrypt the packet using Counter Mode encryption */
-            if (policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION
-                    || policy.getEncType() == SRTPPolicy.TWOFISH_ENCRYPTION)
+            switch(policy.getEncType())
             {
+            case SRTPPolicy.AESCM_ENCRYPTION:
+            case SRTPPolicy.TWOFISH_ENCRYPTION:
                 processPacketAESCM(pkt, index);
-            }
-
-            /* Decrypt the packet using F8 Mode encryption */
-            else if (policy.getEncType() == SRTPPolicy.AESF8_ENCRYPTION
-                    || policy.getEncType() == SRTPPolicy.TWOFISHF8_ENCRYPTION)
-            {
-                processPacketAESF8(pkt, index);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid SRTPPolicy EncType");
             }
         }
         update(index);
@@ -377,8 +335,7 @@ public class SRTCPCryptoContext
     /**
      * Transform a RTP packet into a SRTP packet. The method is called when a
      * normal RTP packet ready to be sent. Operations done by the transformation
-     * may include: encryption, using either Counter Mode encryption, or F8 Mode
-     * encryption, adding authentication tag, currently HMC SHA1 method. Both
+     * may include: encryption and authentication (currently HMAC SHA1). Both
      * encryption and authentication functionality can be turned off as long as
      * the SRTPPolicy used in this SRTPCryptoContext is requires no encryption
      * and no authentication. Then the packet will be sent out untouched.
@@ -391,21 +348,17 @@ public class SRTCPCryptoContext
     synchronized public void transformPacket(RawPacket pkt)
     {
         boolean encrypt = false;
-        /* Encrypt the packet using Counter Mode encryption */
-        if (policy.getEncType() == SRTPPolicy.AESCM_ENCRYPTION ||
-                policy.getEncType() == SRTPPolicy.TWOFISH_ENCRYPTION)
+        switch(policy.getEncType())
         {
+        case SRTPPolicy.AESCM_ENCRYPTION:
+        case SRTPPolicy.TWOFISH_ENCRYPTION:
             processPacketAESCM(pkt, sentIndex);
             encrypt = true;
+            break;
+        default:
+            throw new IllegalArgumentException("Invalid SRTPPolicy EncType");
         }
 
-        /* Encrypt the packet using F8 Mode encryption */
-        else if (policy.getEncType() == SRTPPolicy.AESF8_ENCRYPTION ||
-                policy.getEncType() == SRTPPolicy.TWOFISHF8_ENCRYPTION)
-        {
-            processPacketAESF8(pkt, sentIndex);
-            encrypt = true;
-        }
         int index = 0;
         if (encrypt)
             index = sentIndex | 0x80000000;
