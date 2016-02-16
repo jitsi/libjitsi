@@ -98,9 +98,15 @@ public class SRTPCipherCTR
         // later processing.
         byte[] cipherStream;
 
-        if (len > streamBuf.length)
+        // round requested len modulo BLKLEN,
+        // this avoid a copy in tmpCipherBlock
+        int roundlen = len;
+        if ((len % BLKLEN) != 0)
+            roundlen += BLKLEN - (len % BLKLEN);
+
+        if (roundlen > streamBuf.length)
         {
-            cipherStream = new byte[len];
+            cipherStream = new byte[roundlen];
             if (cipherStream.length <= MAX_BUFFER_LENGTH)
                 streamBuf = cipherStream;
         }
@@ -109,7 +115,7 @@ public class SRTPCipherCTR
             cipherStream = streamBuf;
         }
 
-        getCipherStream(cipher, cipherStream, len, iv);
+        getCipherStream(cipher, cipherStream, roundlen, iv);
         for (int i = 0; i < len; i++)
             data[i + off] ^= cipherStream[i];
     }
