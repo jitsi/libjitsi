@@ -49,7 +49,6 @@ public class SRTPCipherCTR
     private static final int BLKLEN = 16;
     private static final int MAX_BUFFER_LENGTH = 10 * 1024;
 
-    private final byte[] cipherInBlock = new byte[BLKLEN];
     private byte[] streamBuf = new byte[1024];
     private final byte[] tmpCipherBlock = new byte[BLKLEN];
 
@@ -70,25 +69,20 @@ public class SRTPCipherCTR
             byte[] out, int length,
             byte[] iv)
     {
-        System.arraycopy(iv, 0, cipherInBlock, 0, 14);
-
-        int ctr, ctrEnd;
-
-        for (ctr = 0, ctrEnd = length / BLKLEN; ctr < ctrEnd; ctr++)
+        iv[14] = iv[15] = 0;
+        for (int ctr = 0, ctrEnd = length / BLKLEN; ctr < ctrEnd; ctr++)
         {
-            // compute the cipher stream
-            cipherInBlock[14] = (byte) ((ctr & 0xFF00) >> 8);
-            cipherInBlock[15] = (byte) (ctr & 0x00FF);
-
-            aesCipher.processBlock(cipherInBlock, 0, out, ctr * BLKLEN);
+            aesCipher.processBlock(iv, 0, out, ctr * BLKLEN);
+            if(++iv[15] == 0) ++iv[14];
         }
 
-        // Treat the last bytes:
-        cipherInBlock[14] = (byte) ((ctr & 0xFF00) >> 8);
-        cipherInBlock[15] = (byte) ((ctr & 0x00FF));
-
-        aesCipher.processBlock(cipherInBlock, 0, tmpCipherBlock, 0);
-        System.arraycopy(tmpCipherBlock, 0, out, ctr * BLKLEN, length % BLKLEN);
+        //process last block if length not modulo BLKLEN
+        if ((length % BLKLEN) != 0) {
+            aesCipher.processBlock(iv, 0, tmpCipherBlock, 0);
+            int off = (length / BLKLEN) * BLKLEN;
+            for (int i = off; i < length; i++)
+                out[i] = tmpCipherBlock[i-off];
+        }
     }
 
     public void process(
