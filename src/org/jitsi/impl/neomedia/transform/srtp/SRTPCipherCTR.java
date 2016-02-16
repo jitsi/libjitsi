@@ -72,7 +72,7 @@ public class SRTPCipherCTR
      * @param length length of the cipher stream to produce, in bytes
      * @param iv initialization vector used to generate this cipher stream
      */
-    public void getCipherStream(
+    private void getCipherStream(
             byte[] out, int length,
             byte[] iv)
     {

@@ -398,17 +398,15 @@ public class SRTPCryptoContext
         cipherCtr.init(masterKey);
         Arrays.fill(masterKey, (byte) 0);
 
-        cipherCtr.getCipherStream(
-                encKey, policy.getEncKeyLength(),
-                ivStore);
+        Arrays.fill(encKey, (byte) 0);
+        cipherCtr.process(encKey, 0, policy.getEncKeyLength(), ivStore);
 
         // compute the session authentication key
         if (authKey != null)
         {
             computeIv(0x01, index);
-            cipherCtr.getCipherStream(
-                    authKey, policy.getAuthKeyLength(),
-                    ivStore);
+            Arrays.fill(authKey, (byte) 0);
+            cipherCtr.process(authKey, 0, policy.getAuthKeyLength(), ivStore);
 
             switch (policy.getAuthType())
             {
@@ -431,9 +429,8 @@ public class SRTPCryptoContext
 
         // compute the session salt
         computeIv(0x02, index);
-        cipherCtr.getCipherStream(
-                saltKey, policy.getSaltKeyLength(),
-                ivStore);
+        Arrays.fill(saltKey, (byte) 0);
+        cipherCtr.process(saltKey, 0, policy.getSaltKeyLength(), ivStore);
         Arrays.fill(masterSalt, (byte) 0);
 
         // As last step: initialize cipher with derived encryption key.
