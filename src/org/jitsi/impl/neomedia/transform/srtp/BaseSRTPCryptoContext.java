@@ -78,14 +78,9 @@ class BaseSRTPCryptoContext
     protected final byte[] authKey;
 
     /**
-     * The symmetric cipher engines we need here
-     */
-    protected final BlockCipher cipher;
-
-    /**
      * implements the counter cipher mode for RTP according to RFC 3711
      */
-    protected final SRTPCipherCTR cipherCtr = new SRTPCipherCTR();
+    protected final SRTPCipherCTR cipherCtr;
 
     /**
      * Derived session encryption key
@@ -158,7 +153,7 @@ class BaseSRTPCryptoContext
         this.ssrc = ssrc;
 
         authKey = null;
-        cipher = null;
+        cipherCtr = null;
         encKey = null;
         mac = null;
         masterKey = null;
@@ -191,19 +186,19 @@ class BaseSRTPCryptoContext
         switch (policy.getEncType())
         {
         case SRTPPolicy.AESCM_ENCRYPTION:
-            cipher = AES.createBlockCipher();
+            cipherCtr = new SRTPCipherCTR(AES.createBlockCipher());
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
             break;
 
         case SRTPPolicy.TWOFISH_ENCRYPTION:
-            cipher = new TwofishEngine();
+            cipherCtr = new SRTPCipherCTR(new TwofishEngine());
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
             break;
 
         case SRTPPolicy.NULL_ENCRYPTION:
-            cipher = null;
+            cipherCtr = null;
             encKey = null;
             saltKey = null;
             break;

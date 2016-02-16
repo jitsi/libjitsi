@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.transform.srtp;
 
 import org.bouncycastle.crypto.*;
+import org.bouncycastle.crypto.params.*;
 
 /**
  * SRTPCipherCTR implements SRTP Counter Mode AES Encryption (AES-CM).
@@ -51,9 +52,16 @@ public class SRTPCipherCTR
 
     private byte[] streamBuf = new byte[1024];
     private final byte[] tmpCipherBlock = new byte[BLKLEN];
+    private final BlockCipher cipher;
 
-    public SRTPCipherCTR()
+    public SRTPCipherCTR(BlockCipher cipher)
     {
+        this.cipher = cipher;
+    }
+
+    public void init(byte[] key)
+    {
+        cipher.init(true, new KeyParameter(key));
     }
 
     /**
@@ -65,20 +73,19 @@ public class SRTPCipherCTR
      * @param iv initialization vector used to generate this cipher stream
      */
     public void getCipherStream(
-            BlockCipher aesCipher,
             byte[] out, int length,
             byte[] iv)
     {
         iv[14] = iv[15] = 0;
         for (int ctr = 0, ctrEnd = length / BLKLEN; ctr < ctrEnd; ctr++)
         {
-            aesCipher.processBlock(iv, 0, out, ctr * BLKLEN);
+            cipher.processBlock(iv, 0, out, ctr * BLKLEN);
             if(++iv[15] == 0) ++iv[14];
         }
 
         //process last block if length not modulo BLKLEN
         if ((length % BLKLEN) != 0) {
-            aesCipher.processBlock(iv, 0, tmpCipherBlock, 0);
+            cipher.processBlock(iv, 0, tmpCipherBlock, 0);
             int off = (length / BLKLEN) * BLKLEN;
             for (int i = off; i < length; i++)
                 out[i] = tmpCipherBlock[i-off];
@@ -86,7 +93,6 @@ public class SRTPCipherCTR
     }
 
     public void process(
-            BlockCipher cipher,
             byte[] data, int off, int len,
             byte[] iv)
     {
@@ -115,7 +121,7 @@ public class SRTPCipherCTR
             cipherStream = streamBuf;
         }
 
-        getCipherStream(cipher, cipherStream, roundlen, iv);
+        getCipherStream(cipherStream, roundlen, iv);
         for (int i = 0; i < len; i++)
             data[i + off] ^= cipherStream[i];
     }
