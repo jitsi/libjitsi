@@ -183,15 +183,13 @@ class BaseSRTPCryptoContext
         masterSalt = new byte[saltKeyLength];
         System.arraycopy(masterS, 0, masterSalt, 0, saltKeyLength);
 
-        SRTPCipherCTR cipherCtr;
         switch (policy.getEncType())
         {
         case SRTPPolicy.AESCM_ENCRYPTION:
-            try {
+            if (OpenSSLWrapperLoader.isLoaded())
                 cipherCtr = new SRTPCipherCTROpenSSL();
-            } catch(Throwable t) {
+            else
                 cipherCtr = new SRTPCipherCTRJava(AES.createBlockCipher());
-            }
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
             break;
@@ -210,7 +208,6 @@ class BaseSRTPCryptoContext
         default:
             throw new IllegalArgumentException("Invalid SRTPPolicy EncType");
         }
-        this.cipherCtr = cipherCtr;
 
         switch (policy.getAuthType())
         {

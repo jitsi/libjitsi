@@ -29,25 +29,9 @@ public class SRTPCipherCTROpenSSL implements SRTPCipherCTR
 
     private long ctx;
 
-    static {
-        try
-        {
-            JNIUtils.loadLibrary(
-                "jnopenssl",
-                SRTPCipherCTROpenSSL.class.getClassLoader());
-            logger.info("jnopenssl.so successfully loaded");
-            libraryLoaded = true;
-        }
-        catch(Throwable t)
-        {
-            logger.info("Unable to load jnopenssl.so: "+t.toString());
-            libraryLoaded = false;
-        }
-    }
-
     public SRTPCipherCTROpenSSL()
     {
-        if (!libraryLoaded)
+        if (!OpenSSLWrapperLoader.isLoaded())
             throw new RuntimeException("OpenSSL wrapper not loaded");
 
         ctx = CIPHER_CTX_create();
