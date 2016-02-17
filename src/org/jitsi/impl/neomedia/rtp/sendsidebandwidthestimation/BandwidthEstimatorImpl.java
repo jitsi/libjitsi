@@ -36,7 +36,7 @@ public class BandwidthEstimatorImpl
 {
     private static final int PROCESS_INTERVAL_MS = 25;
     private final static int minBitrate = 30000;
-    private final static int maxBitrate = 2000000;
+    private final static int maxBitrate = 20 * 1000 * 1000;
 
     /**
      * call.cc
