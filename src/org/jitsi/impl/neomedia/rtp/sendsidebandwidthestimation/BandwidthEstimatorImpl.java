@@ -34,14 +34,26 @@ public class BandwidthEstimatorImpl
     extends RTCPReportAdapter
     implements BandwidthEstimator, RecurringProcessible
 {
+    /**
+     * The interval at which {@link #process()} should be called, in
+     * milliseconds.
+     */
     private static final int PROCESS_INTERVAL_MS = 25;
-    private final static int minBitrate = 30000;
-    private final static int maxBitrate = 20 * 1000 * 1000;
 
     /**
-     * call.cc
+     * The minimum value to be output by this estimator, in bits per second.
      */
-    private static final int kDefaultStartBitrateBps = 300000;
+    private final static int MIN_BITRATE_BPS = 30000;
+
+    /**
+     * The maximum value to be output by this estimator, in bits per second.
+     */
+    private final static int MAX_BITRATE_BPS = 20 * 1000 * 1000;
+
+    /**
+     * The initial value of the estimation, in bits per secod.
+     */
+    private static final int START_BITRATE_BPS = 300000;
 
     /**
      * bitrate_controller_impl.h
@@ -70,8 +82,9 @@ public class BandwidthEstimatorImpl
     {
         mediaStream = stream;
         sendSideBandwidthEstimation
-            = new SendSideBandwidthEstimation(stream, kDefaultStartBitrateBps);
-        sendSideBandwidthEstimation.setMinMaxBitrate(minBitrate, maxBitrate);
+            = new SendSideBandwidthEstimation(stream, START_BITRATE_BPS);
+        sendSideBandwidthEstimation.setMinMaxBitrate(
+                MIN_BITRATE_BPS, MAX_BITRATE_BPS);
 
         // Hook us up to receive Report Blocks and REMBs.
         MediaStreamStats stats = stream.getMediaStreamStats();
