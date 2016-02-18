@@ -164,12 +164,12 @@ public class BandwidthEstimatorImpl
         }
     }
 
-
     @Override
     public void addListener(Listener listener)
     {
         sendSideBandwidthEstimation.addListener(listener);
     }
+
     @Override
     public void removeListener(Listener listener)
     {

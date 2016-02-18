@@ -124,7 +124,7 @@ class SendSideBandwidthEstimation
     private Deque<Pair<Long>> min_bitrate_history_ = new LinkedList<>();
 
     private final List<BandwidthEstimator.Listener> listeners
-            = new LinkedList<>();
+        = new LinkedList<>();
 
     //TODO: get RTT from here
     private final MediaStream mediaStream;
@@ -321,10 +321,6 @@ class SendSideBandwidthEstimation
         }
     }
 
-
-
-
-
     /**
      * Sets the value of {@link #bitrate_}.
      * @param newValue the value to set
@@ -361,7 +357,7 @@ class SendSideBandwidthEstimation
      * {@inheritDoc}
      */
     @Override
-    public synchronized void rembReceived(long bitrateBps)
+    public void rembReceived(long bitrateBps)
     {
         updateReceiverEstimate(bitrateBps);
     }
