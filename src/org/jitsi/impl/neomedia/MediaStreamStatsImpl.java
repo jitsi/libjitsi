@@ -588,7 +588,7 @@ public class MediaStreamStatsImpl
      */
     private Set<JitterBufferControl> getJitterBufferControls()
     {
-        Set<JitterBufferControl> set = new HashSet<JitterBufferControl>();
+        Set<JitterBufferControl> set = new HashSet<>();
 
         if (mediaStreamImpl.isStarted())
         {
