@@ -116,8 +116,10 @@ public class RemoteClockEstimator
     public RemoteClock estimate(int ssrc, long time)
     {
         ReceivedRemoteClock receivedRemoteClock = receivedClocks.get(ssrc);
+        int frequencyHz;
+
         if (receivedRemoteClock == null
-                || receivedRemoteClock.getFrequencyHz() == -1)
+                || (frequencyHz = receivedRemoteClock.getFrequencyHz()) == -1)
         {
             // We can't continue if we don't have NTP and RTP timestamps and/or
             // the original sender frequency, so move to the next one.
@@ -133,8 +135,7 @@ public class RemoteClockEstimator
         // Drift the RTP timestamp.
         int rtpTimestamp
             = receivedRemoteClock.getRemoteClock().getRtpTimestamp()
-                + ((int) delayMillis) * (receivedRemoteClock.getFrequencyHz()
-                    / 1000);
+                + ((int) delayMillis) * (frequencyHz / 1000);
         return new RemoteClock(estimatedRemoteTime, rtpTimestamp);
     }
 }
