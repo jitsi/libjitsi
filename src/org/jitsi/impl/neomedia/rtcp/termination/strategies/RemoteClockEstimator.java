@@ -25,6 +25,7 @@ import org.jitsi.util.*;
  *
  * @author George Politis
  * @author Boris Grozev
+ * @author Lyubomir Marinov
  */
 public class RemoteClockEstimator
 {
@@ -38,58 +39,69 @@ public class RemoteClockEstimator
      * Inspect an <tt>RTCPCompoundPacket</tt> and build up the state for future
      * estimations.
      *
-     * @param pkt
+     * @param compound
      */
-    public void update(RTCPCompoundPacket pkt)
+    public void update(RTCPCompoundPacket compound)
     {
-        if (pkt == null || pkt.packets == null || pkt.packets.length == 0)
+        RTCPPacket[] rtcps;
+
+        if (compound == null
+                || (rtcps = compound.packets) == null
+                || rtcps.length == 0)
         {
             return;
         }
 
-        for (RTCPPacket rtcpPacket : pkt.packets)
+        for (RTCPPacket rtcp : rtcps)
         {
-            switch (rtcpPacket.type)
+            switch (rtcp.type)
             {
             case RTCPPacket.SR:
-                RTCPSRPacket sr = (RTCPSRPacket) rtcpPacket;
-
-                // The media sender SSRC.
-                int ssrc = sr.ssrc;
-
-                long ntpTime
-                    = TimeUtils.constuctNtp(
-                        sr.ntptimestampmsw, sr.ntptimestamplsw);
-                long remoteTime = TimeUtils.getTime(ntpTime);
-
-                // Estimate the clock rate of the sender.
-                int frequencyHz = -1;
-                if (receivedClocks.containsKey(ssrc))
-                {
-                    // Calculate the clock rate.
-                    ReceivedRemoteClock oldStats
-                        = receivedClocks.get(ssrc);
-                    RemoteClock oldRemoteClock
-                        = oldStats.getRemoteClock();
-                    frequencyHz = Math.round((float)
-                        (((int) sr.rtptimestamp
-                            - oldRemoteClock.getRtpTimestamp())
-                                & 0xffffffffl)
-                        / (remoteTime
-                            - oldRemoteClock.getRemoteTime()));
-                }
-
-                // Replace whatever was in there before.
-                receivedClocks.put(
-                        ssrc,
-                        new ReceivedRemoteClock(
-                                ssrc, remoteTime,
-                                (int) sr.rtptimestamp, frequencyHz));
-                break;
-            case RTCPPacket.SDES:
+                update((RTCPSRPacket) rtcp);
                 break;
             }
         }
+    }
+
+    /**
+     * Inspects an {@code RTCPSRPacket} and builds up the state for future
+     * estimations.
+     *
+     * @param sr
+     */
+    private void update(RTCPSRPacket sr)
+    {
+        int ssrc = sr.ssrc; // The media sender SSRC.
+        long ntpTime
+            = TimeUtils.constuctNtp(sr.ntptimestampmsw, sr.ntptimestamplsw);
+        long remoteTime = TimeUtils.getTime(ntpTime);
+
+        // Estimate the clock rate of the sender.
+        int frequencyHz = -1;
+
+        if (receivedClocks.containsKey(ssrc))
+        {
+            // Calculate the clock rate.
+            RemoteClock oldRemoteClock
+                = receivedClocks.get(ssrc).getRemoteClock();
+            int rtpTimestampDiff
+                = (int) sr.rtptimestamp - oldRemoteClock.getRtpTimestamp();
+            long remoteTimeDiff = remoteTime - oldRemoteClock.getRemoteTime();
+
+            frequencyHz
+                = Math.round(
+                        (float)
+                            (rtpTimestampDiff & 0xffffffffL) / remoteTimeDiff);
+        }
+
+        // Replace whatever was in there before.
+        receivedClocks.put(
+                ssrc,
+                new ReceivedRemoteClock(
+                        ssrc,
+                        remoteTime,
+                        (int) sr.rtptimestamp,
+                        frequencyHz));
     }
 
     /**
