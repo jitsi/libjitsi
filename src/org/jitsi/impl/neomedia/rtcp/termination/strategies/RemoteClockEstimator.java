@@ -21,8 +21,7 @@ import net.sf.fmj.media.rtp.*;
 import org.jitsi.util.*;
 
 /**
- * A class that can be used to estimate the remote time at a given local
- * time.
+ * A class that can be used to estimate the remote time at a given local time.
  *
  * @author George Politis
  * @author Boris Grozev
@@ -36,8 +35,8 @@ public class RemoteClockEstimator
         = new ConcurrentHashMap<>();
 
     /**
-     * Inspect an <tt>RTCPCompoundPacket</tt> and build-up the state for
-     * future estimations.
+     * Inspect an <tt>RTCPCompoundPacket</tt> and build up the state for future
+     * estimations.
      *
      * @param pkt
      */
@@ -94,13 +93,13 @@ public class RemoteClockEstimator
     }
 
     /**
-     * Estimate the <tt>RemoteClock</tt> of a given RTP stream (identified
-     * by its SSRC) at a given time.
+     * Estimate the <tt>RemoteClock</tt> of a given RTP stream (identified by
+     * its SSRC) at a given time.
      *
-     * @param ssrc the SSRC of the RTP stream whose <tt>RemoteClock</tt> we
-     * want to estimate.
+     * @param ssrc the SSRC of the RTP stream whose <tt>RemoteClock</tt> we want
+     * to estimate.
      * @param time the local time that will be mapped to a remote time.
-     * @return An estimation of the <tt>RemoteClock</tt> at time "time".
+     * @return An estimation of the <tt>RemoteClock</tt> at time <tt>time</tt>.
      */
     public RemoteClock estimate(int ssrc, long time)
     {

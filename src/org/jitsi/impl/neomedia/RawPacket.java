@@ -56,7 +56,7 @@ public class RawPacket
      * The bitmap/flag mask that specifies the set of boolean attributes enabled
      * for this <tt>RawPacket</tt>. The value is the logical sum of all of the
      * set flags. The possible flags are defined by the <tt>FLAG_XXX</tt>
-     * constants of FMJ's {@link Buffer} class.
+     * constants of FMJ's {@link javax.media.Buffer} class.
      */
     private int flags;
 

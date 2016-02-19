@@ -419,7 +419,7 @@ public class MediaStreamStatsImpl
      * @param ssrc the SSRC which identifies the remote RTP endpoint.
      * @param localTimeMs the local in milliseconds since the epoch.
      * @return an estimation of the time of the RTP endpoint with SSRC
-     * <tt>ssrc</tt> at local time <tt>localTime</tt>, in milliseconds since
+     * <tt>ssrc</tt> at local time <tt>localTimeMs</tt>, in milliseconds since
      * the epoch.
      */
     private long maybeEstimateRemoteClock(long ssrc, long localTimeMs)
