@@ -342,7 +342,7 @@ class SsrcGroupRewriter
     boolean isKeyFrame(RawPacket pkt)
     {
         int sourceSSRC = pkt.getSSRC();
-        byte redPT = ssrcRewritingEngine.ssrc2red.get(sourceSSRC);
+        Byte redPT = ssrcRewritingEngine.ssrc2red.get(sourceSSRC);
         byte vp8PT = 0x64;
 
         return Utils.isKeyFrame(pkt, redPT, vp8PT);
