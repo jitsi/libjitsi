@@ -30,9 +30,10 @@ import org.jitsi.util.*;
 public class RemoteClockEstimator
 {
     /**
-     * A map holding the received remote clocks.
+     * A {@code Map} of the (received) {@code RemoteClock}s by synchronization
+     * source identifier (SSRC).
      */
-    private final Map<Integer, ReceivedRemoteClock> receivedClocks
+    private final Map<Integer, RemoteClock> remoteClocks
         = new ConcurrentHashMap<>();
 
     /**
@@ -74,32 +75,32 @@ public class RemoteClockEstimator
         int ssrc = sr.ssrc; // The media sender SSRC.
         long ntpTime
             = TimeUtils.constuctNtp(sr.ntptimestampmsw, sr.ntptimestamplsw);
-        long remoteTime = TimeUtils.getTime(ntpTime);
+        long systemTimeMs = TimeUtils.getTime(ntpTime);
 
         // Estimate the clock rate of the sender.
+        RemoteClock oldClock = remoteClocks.get(ssrc);
         int frequencyHz = -1;
 
-        if (receivedClocks.containsKey(ssrc))
+        if (oldClock != null)
         {
             // Calculate the clock rate.
-            RemoteClock oldRemoteClock
-                = receivedClocks.get(ssrc).getRemoteClock();
+            Timestamp oldTs = oldClock.getRemoteTimestamp();
             int rtpTimestampDiff
-                = (int) sr.rtptimestamp - oldRemoteClock.getRtpTimestamp();
-            long remoteTimeDiff = remoteTime - oldRemoteClock.getRemoteTime();
+                = (int) sr.rtptimestamp - oldTs.getRtpTimestamp();
+            long systemTimeMsDiff = systemTimeMs - oldTs.getSystemTimeMs();
 
             frequencyHz
                 = Math.round(
-                        (float)
-                            (rtpTimestampDiff & 0xffffffffL) / remoteTimeDiff);
+                        (float) (rtpTimestampDiff & 0xffffffffL)
+                            / systemTimeMsDiff);
         }
 
         // Replace whatever was in there before.
-        receivedClocks.put(
+        remoteClocks.put(
                 ssrc,
-                new ReceivedRemoteClock(
+                new RemoteClock(
                         ssrc,
-                        remoteTime,
+                        systemTimeMs,
                         (int) sr.rtptimestamp,
                         frequencyHz));
     }
@@ -113,29 +114,30 @@ public class RemoteClockEstimator
      * @param time the local time that will be mapped to a remote time.
      * @return An estimation of the <tt>RemoteClock</tt> at time <tt>time</tt>.
      */
-    public RemoteClock estimate(int ssrc, long time)
+    public Timestamp estimate(int ssrc, long time)
     {
-        ReceivedRemoteClock receivedRemoteClock = receivedClocks.get(ssrc);
+        RemoteClock remoteClock = remoteClocks.get(ssrc);
         int frequencyHz;
 
-        if (receivedRemoteClock == null
-                || (frequencyHz = receivedRemoteClock.getFrequencyHz()) == -1)
+        if (remoteClock == null
+                || (frequencyHz = remoteClock.getFrequencyHz()) == -1)
         {
             // We can't continue if we don't have NTP and RTP timestamps and/or
             // the original sender frequency, so move to the next one.
             return null;
         }
 
-        long delayMillis = time - receivedRemoteClock.getReceivedTime();
+        long delayMs = time - remoteClock.getLocalReceiptTimeMs();
 
         // Estimate the remote wall clock.
-        long remoteTime = receivedRemoteClock.getRemoteClock().getRemoteTime();
-        long estimatedRemoteTime = remoteTime + delayMillis;
+        Timestamp remoteTs = remoteClock.getRemoteTimestamp();
+        long remoteTime = remoteTs.getSystemTimeMs();
+        long estimatedRemoteTime = remoteTime + delayMs;
 
         // Drift the RTP timestamp.
         int rtpTimestamp
-            = receivedRemoteClock.getRemoteClock().getRtpTimestamp()
-                + ((int) delayMillis) * (frequencyHz / 1000);
-        return new RemoteClock(estimatedRemoteTime, rtpTimestamp);
+            = remoteTs.getRtpTimestamp()
+                + ((int) delayMs) * (frequencyHz / 1000);
+        return new Timestamp(estimatedRemoteTime, rtpTimestamp);
     }
 }

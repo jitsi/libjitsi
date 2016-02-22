@@ -871,10 +871,10 @@ public class BasicRTCPTerminationStrategy
         for (RTPStatsEntry rtpStatsEntry : rtpStatsMap.values())
         {
             int ssrc = rtpStatsEntry.getSsrc();
-            RemoteClock estimate = remoteClockEstimator.estimate(ssrc, time);
-            if (estimate == null)
+            Timestamp remoteTs = remoteClockEstimator.estimate(ssrc, time);
+            if (remoteTs == null)
             {
-                // We're not going to go far without an estimate..
+                // We're not going to go far without an estimate.
                 continue;
             }
 
@@ -882,13 +882,13 @@ public class BasicRTCPTerminationStrategy
                 = new RTCPSRPacket(ssrc, MIN_RTCP_REPORT_BLOCKS_ARRAY);
 
             // Set the NTP timestamp for this SR.
-            long estimatedRemoteTime = estimate.getRemoteTime();
-            long ntpTime = TimeUtils.toNtpTime(estimatedRemoteTime);
-            sr.ntptimestampmsw = TimeUtils.getMsw(ntpTime);
-            sr.ntptimestamplsw = TimeUtils.getLsw(ntpTime);
+            long remoteSystemTimeMs = remoteTs.getSystemTimeMs();
+            long remoteNtpTime = TimeUtils.toNtpTime(remoteSystemTimeMs);
+            sr.ntptimestampmsw = TimeUtils.getMsw(remoteNtpTime);
+            sr.ntptimestamplsw = TimeUtils.getLsw(remoteNtpTime);
 
             // Set the RTP timestamp.
-            sr.rtptimestamp = estimate.getRtpTimestamp();
+            sr.rtptimestamp = remoteTs.getRtpTimestamp();
 
             // Fill-in packet and octet send count.
             sr.packetcount = rtpStatsEntry.getPacketsSent();

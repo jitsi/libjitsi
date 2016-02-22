@@ -16,51 +16,95 @@
 package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
 /**
- * Holds the NTP timestamp and the associated RTP timestamp for a given RTP
- * stream.
  *
  * @author George Politis
  */
-public class RemoteClock
+class RemoteClock
 {
     /**
-     * The remote time corresponding the the RTP timestamp {@link #rtpTimestamp}
-     * expressed as milliseconds since the epoch.
+     * The SSRC.
      */
-    private final long remoteTime;
+    private final int ssrc;
 
     /**
-     * The RTP timestamp associated to {@link #remoteTime}.
+     * The remote <tt>Timestamp</tt> which was received at
+     * {@link #localReceiptTimeMs} for this RTP stream.
      */
-    private final int rtpTimestamp;
+    private final Timestamp remoteTimestamp;
+
+    /**
+     * The local time (in milliseconds since the epoch) at which we received the
+     * RTCP report with the RTP/NTP timestamps. It's a signed long.
+     */
+    private final long localReceiptTimeMs;
+
+    /**
+     * The clock rate for {@link #ssrc}. We need to have received at least two
+     * SRs in order to be able to calculate this. Unsigned short.
+     */
+    private final int frequencyHz;
 
     /**
      * Ctor.
      *
-     * @param remoteTime
-     * @param rtpTimestamp
+     * @param ssrc
+     * @param remoteTime the remote (system/wallclock) time in milliseconds
+     * since the epoch
+     * @param rtpTimestamp the RTP timestamp corresponding to
+     * <tt>remoteTime</tt>.
+     * @param frequencyHz the RTP clock rate.
      */
-    public RemoteClock(long remoteTime, int rtpTimestamp)
+    RemoteClock(int ssrc,
+                        long remoteTime,
+                        int rtpTimestamp,
+                        int frequencyHz)
     {
-        this.remoteTime = remoteTime;
-        this.rtpTimestamp = rtpTimestamp;
+        this.ssrc = ssrc;
+        this.remoteTimestamp = new Timestamp(remoteTime, rtpTimestamp);
+        this.frequencyHz = frequencyHz;
+        this.localReceiptTimeMs = System.currentTimeMillis();
+    }
+
+    /**
+     * Gets the remote {@code Timestamp} (i.e. RTP timestamp and system time in
+     * milliseconds) which was received at {@link #localReceiptTimeMs} for this
+     * RTP stream.
+     *
+     * @return the remote {@code Timestamp} which was received at
+     * {@code localReceiptTimeMs} for this RTP stream
+     */
+    public Timestamp getRemoteTimestamp()
+    {
+        return remoteTimestamp;
+    }
+
+    /**
+     * Gets the local time (in milliseconds since the epoch) at which we
+     * received the RTCP report with the RTP/NTP timestamps.
+     *
+     * @return the local time (in milliseconds since the epoch) at which we
+     * received the RTCP report with the RTP/NTP timestamps
+     */
+    public long getLocalReceiptTimeMs()
+    {
+        return localReceiptTimeMs;
     }
 
     /**
      *
      * @return
      */
-    public int getRtpTimestamp()
+    public int getSsrc()
     {
-        return rtpTimestamp;
+        return ssrc;
     }
 
     /**
      *
      * @return
      */
-    public long getRemoteTime()
+    public int getFrequencyHz()
     {
-        return remoteTime;
+        return frequencyHz;
     }
 }

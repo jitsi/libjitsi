@@ -432,16 +432,15 @@ public class MediaStreamStatsImpl
         {
             BasicRTCPTerminationStrategy brts
                 = (BasicRTCPTerminationStrategy) rtcpTermination;
-
             RemoteClockEstimator remoteClockEstimator
                 = brts.getRemoteClockEstimator();
             if (remoteClockEstimator != null)
             {
-                RemoteClock remoteClock
+                Timestamp remoteTs
                     = remoteClockEstimator.estimate((int) ssrc, localTimeMs);
-                if (remoteClock != null)
+                if (remoteTs != null)
                 {
-                    remoteTimeMs = remoteClock.getRemoteTime();
+                    remoteTimeMs = remoteTs.getSystemTimeMs();
                 }
             }
         }
