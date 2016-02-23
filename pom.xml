@@ -50,7 +50,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>fmj</artifactId>
-      <version>1.0-20160208.062023-16</version>
+      <version>1.0-20160225.164040-18</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

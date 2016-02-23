@@ -25,12 +25,12 @@ import javax.media.control.*;
 import javax.media.format.*;
 import javax.media.protocol.*;
 import javax.media.rtp.*;
+import javax.media.rtp.rtcp.*;
 
 import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtcp.*;
-import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
@@ -212,6 +212,9 @@ public class MediaStreamStatsImpl
      */
     private long nbPacketsLostUpload = 0;
 
+    private final RemoteClockEstimator remoteClockEstimator =
+            new RemoteClockEstimator();
+
     /**
      * The <tt>RTCPReportListener</tt> which listens to {@link #rtcpReports}
      * about the sending and the receiving of RTCP sender/receiver reports and
@@ -229,13 +232,7 @@ public class MediaStreamStatsImpl
             @Override
             public void rtcpReportReceived(RTCPReport report)
             {
-                List<?> feedbackReports = report.getFeedbackReports();
-
-                if (!feedbackReports.isEmpty())
-                {
-                    updateNewReceivedFeedback(
-                            (RTCPFeedback) feedbackReports.get(0));
-                }
+                MediaStreamStatsImpl.this.rtcpReportReceived(report);
             }
 
             /**
@@ -426,22 +423,14 @@ public class MediaStreamStatsImpl
     {
         long remoteTimeMs = localTimeMs;
 
-        RTCPTerminationStrategy rtcpTermination
-            = mediaStreamImpl.getRTCPTerminationStrategy();
-        if (rtcpTermination instanceof BasicRTCPTerminationStrategy)
+        RemoteClock remoteClock
+            = RemoteClock.findRemoteClock(mediaStreamImpl, (int) ssrc);
+        if (remoteClock != null)
         {
-            BasicRTCPTerminationStrategy brts
-                = (BasicRTCPTerminationStrategy) rtcpTermination;
-            RemoteClockEstimator remoteClockEstimator
-                = brts.getRemoteClockEstimator();
-            if (remoteClockEstimator != null)
+            Timestamp remoteTs = remoteClock.estimate(localTimeMs);
+            if (remoteTs != null)
             {
-                Timestamp remoteTs
-                    = remoteClockEstimator.estimate((int) ssrc, localTimeMs);
-                if (remoteTs != null)
-                {
-                    remoteTimeMs = remoteTs.getSystemTimeMs();
-                }
+                remoteTimeMs = remoteTs.getSystemTimeMs();
             }
         }
 
@@ -1102,6 +1091,16 @@ public class MediaStreamStatsImpl
     }
 
     /**
+     * Gets the {@link RemoteClockEstimator} of this instance.
+     *
+     * @return the {@code RemoteClockEstimator} of this instance.
+     */
+    public RemoteClockEstimator getRemoteClockEstimator()
+    {
+        return remoteClockEstimator;
+    }
+
+    /**
      * Returns the remote IP address of the MediaStream.
      *
      * @return the remote IP address of the stream.
@@ -1544,6 +1543,35 @@ public class MediaStreamStatsImpl
             synchronized (rembListeners)
             {
                 rembListeners.add(listener);
+            }
+        }
+    }
+
+    /**
+     * Notifies this instance that a specific RTCP RR or SR report was received
+     * by {@link #rtcpReports}.
+     *
+     * @param report the received RTCP RR or SR report
+     */
+    private void rtcpReportReceived(RTCPReport report)
+    {
+        try
+        {
+            if (report instanceof SenderReport)
+            {
+                // Estimate the remote (wall)clock.
+                getRemoteClockEstimator().update((SenderReport) report);
+            }
+        }
+        finally
+        {
+            // reception report blocks
+            List<?> feedbackReports = report.getFeedbackReports();
+
+            if (!feedbackReports.isEmpty())
+            {
+                updateNewReceivedFeedback(
+                        (RTCPFeedback) feedbackReports.get(0));
             }
         }
     }

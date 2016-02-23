@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.rtcp.termination.strategies;
+package org.jitsi.impl.neomedia.rtcp;
 
 /**
  * Represents a timestamp in multiple formats such as RTP timestamp, system time
@@ -58,6 +58,18 @@ public class Timestamp
     public int getRtpTimestamp()
     {
         return rtpTimestamp;
+    }
+
+    /**
+     * Gets the RTP timestamp associated with {@link #systemTimeMs} as a
+     * {@code long} value.
+     *
+     * @returnthe RTP timestamp associated with {@code systemTimeMs} as a
+     * {@code long} value
+     */
+    public long getRtpTimestampAsLong()
+    {
+        return getRtpTimestamp() & 0xffffffffL;
     }
 
     /**

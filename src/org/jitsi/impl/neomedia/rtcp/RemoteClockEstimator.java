@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.rtcp.termination.strategies;
+package org.jitsi.impl.neomedia.rtcp;
 
 import java.util.*;
 import java.util.concurrent.*;
+import javax.media.rtp.rtcp.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.util.*;
 
@@ -70,11 +71,34 @@ public class RemoteClockEstimator
      *
      * @param sr
      */
-    private void update(RTCPSRPacket sr)
+    public void update(RTCPSRPacket sr)
     {
-        int ssrc = sr.ssrc; // The media sender SSRC.
-        long ntpTime
-            = TimeUtils.constuctNtp(sr.ntptimestampmsw, sr.ntptimestamplsw);
+        update(
+                sr.ssrc,
+                sr.ntptimestampmsw, sr.ntptimestamplsw,
+                sr.rtptimestamp);
+    }
+
+    /**
+     * Inspects a {@code SenderReport} and builds up the state for future
+     * estimations.
+     *
+     * @param sr
+     */
+    public void update(SenderReport sr)
+    {
+        update(
+                (int) sr.getSSRC(),
+                sr.getNTPTimeStampMSW(), sr.getNTPTimeStampLSW(),
+                sr.getRTPTimeStamp());
+    }
+
+    private void update(
+            int ssrc,
+            long ntptimestampmsw, long ntptimestamplsw,
+            long rtptimestamp)
+    {
+        long ntpTime = TimeUtils.constuctNtp(ntptimestampmsw, ntptimestamplsw);
         long systemTimeMs = TimeUtils.getTime(ntpTime);
 
         // Estimate the clock rate of the sender.
@@ -85,8 +109,7 @@ public class RemoteClockEstimator
         {
             // Calculate the clock rate.
             Timestamp oldTs = oldClock.getRemoteTimestamp();
-            int rtpTimestampDiff
-                = (int) sr.rtptimestamp - oldTs.getRtpTimestamp();
+            int rtpTimestampDiff = (int) rtptimestamp - oldTs.getRtpTimestamp();
             long systemTimeMsDiff = systemTimeMs - oldTs.getSystemTimeMs();
 
             frequencyHz
@@ -101,43 +124,40 @@ public class RemoteClockEstimator
                 new RemoteClock(
                         ssrc,
                         systemTimeMs,
-                        (int) sr.rtptimestamp,
+                        (int) rtptimestamp,
                         frequencyHz));
     }
 
     /**
-     * Estimate the <tt>RemoteClock</tt> of a given RTP stream (identified by
-     * its SSRC) at a given time.
+     * Gets the {@link RemoteClock} of the RTP stream identifier by a specific
+     * SSRC.
      *
-     * @param ssrc the SSRC of the RTP stream whose <tt>RemoteClock</tt> we want
-     * to estimate.
-     * @param time the local time that will be mapped to a remote time.
-     * @return An estimation of the <tt>RemoteClock</tt> at time <tt>time</tt>.
+     * @param ssrc the SSRC of the RTP stream whose {@code RemoteClock} is to be
+     * returned
+     * @return the {@code RemoteClock} of the RTP stream identified by
+     * {@code ssrc} or {@code null}
      */
-    public Timestamp estimate(int ssrc, long time)
+    public RemoteClock getRemoteClock(int ssrc)
     {
-        RemoteClock remoteClock = remoteClocks.get(ssrc);
-        int frequencyHz;
+        return remoteClocks.get(ssrc);
+    }
 
-        if (remoteClock == null
-                || (frequencyHz = remoteClock.getFrequencyHz()) == -1)
-        {
-            // We can't continue if we don't have NTP and RTP timestamps and/or
-            // the original sender frequency, so move to the next one.
-            return null;
-        }
+    /**
+     * Estimate the remote {@code Timestamp} of a given RTP stream (identified
+     * by its SSRC) at a given local time (in milliseconds).
+     *
+     * @param ssrc the SSRC of the RTP stream whose remote {@code Timestamp} we
+     * want to estimate.
+     * @param localTimeMs the local time (in milliseconds) that will be mapped
+     * to a remote time.
+     * @return an estimation of the remote {@code Timestamp} of {@code ssrc} at
+     * time {@code localTimeMs}.
+     */
+    public Timestamp estimate(int ssrc, long localTimeMs)
+    {
+        RemoteClock remoteClock = getRemoteClock(ssrc);
 
-        long delayMs = time - remoteClock.getLocalReceiptTimeMs();
-
-        // Estimate the remote wall clock.
-        Timestamp remoteTs = remoteClock.getRemoteTimestamp();
-        long remoteTime = remoteTs.getSystemTimeMs();
-        long estimatedRemoteTime = remoteTime + delayMs;
-
-        // Drift the RTP timestamp.
-        int rtpTimestamp
-            = remoteTs.getRtpTimestamp()
-                + ((int) delayMs) * (frequencyHz / 1000);
-        return new Timestamp(estimatedRemoteTime, rtpTimestamp);
+        // We can't continue if we don't have NTP and RTP timestamps.
+        return (remoteClock == null) ? null : remoteClock.estimate(localTimeMs);
     }
 }
