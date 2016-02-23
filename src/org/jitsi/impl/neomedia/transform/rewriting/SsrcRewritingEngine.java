@@ -734,7 +734,7 @@ public class SsrcRewritingEngine implements TransformEngine
         /**
          * The <tt>Comparator</tt> used to compare sequence numbers.
          */
-        private static final SeqNumComparator seqNumComparator
+        private static final SeqNumComparator SEQ_NUM_COMPARATOR
             = new SeqNumComparator();
 
         /**
@@ -743,17 +743,14 @@ public class SsrcRewritingEngine implements TransformEngine
          */
         public synchronized void update(RawPacket pkt)
         {
-            int ssrc = pkt.getSSRC();
-            int seqnum = pkt.getSequenceNumber();
-            if (map.containsKey(ssrc))
-            {
-                int oldSeqnum = map.get(ssrc);
-                if (seqNumComparator.compare(seqnum, oldSeqnum) == 1)
-                {
-                    map.put(ssrc, seqnum);
-                }
-            }
-            else
+            // XXX Autobox early and, most importantly, once because we'll need
+            // the boxed values only.
+            Integer ssrc = pkt.getSSRC();
+            Integer seqnum = pkt.getSequenceNumber();
+
+            Integer oldSeqnum = map.get(ssrc);
+            if (oldSeqnum == null
+                    || SEQ_NUM_COMPARATOR.compare(seqnum, oldSeqnum) == 1)
             {
                 map.put(ssrc, seqnum);
             }
