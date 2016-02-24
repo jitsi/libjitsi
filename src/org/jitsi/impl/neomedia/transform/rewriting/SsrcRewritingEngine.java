@@ -62,12 +62,9 @@ public class SsrcRewritingEngine implements TransformEngine
     static final int INVALID_SEQNUM = -1;
 
     /**
-     * An int const indicating an invalid SSRC.
-     *
-     * FIXME 0 is actually a valid SSRC. That's one essential reason why we need
-     * SSRCs to be represented by Longs and not Ints.
+     * The {@code long} constant indicating an invalid SSRC.
      */
-    private static final int INVALID_SSRC = 0;
+    static final long INVALID_SSRC = -1L;
 
     /**
      * An int const indicating an unused SSRC. The usage of value 0 is also done
@@ -425,9 +422,10 @@ public class SsrcRewritingEngine implements TransformEngine
      * Reverse rewrites the target SSRC into an origin SSRC based on the
      * currently active SSRC rewriter for that target SSRC.
      *
-     * @param ssrc the target SSRC to rewrite into a source SSRC.
+     * @param ssrc the target SSRC to rewrite into a source SSRC or
+     * {@link #INVALID_SSRC}.
      */
-    private int reverseRewriteSSRC(int ssrc)
+    private long reverseRewriteSSRC(int ssrc)
     {
         // If there is an <tt>SsrcGroupRewriter</tt>, rewrite
         // the packet, otherwise include it unaltered.
@@ -456,7 +454,7 @@ public class SsrcRewritingEngine implements TransformEngine
             return INVALID_SSRC;
         }
 
-        return activeRewriter.getSourceSSRC();
+        return activeRewriter.getSourceSSRC() & 0xffffffffL;
     }
 
     /**
@@ -616,7 +614,7 @@ public class SsrcRewritingEngine implements TransformEngine
 
                     if (ssrc != UNUSED_SSRC)
                     {
-                        int reverseSSRC = reverseRewriteSSRC(ssrc);
+                        long reverseSSRC = reverseRewriteSSRC(ssrc);
 
                         if (reverseSSRC == INVALID_SSRC)
                         {
@@ -627,7 +625,7 @@ public class SsrcRewritingEngine implements TransformEngine
                         }
                         else
                         {
-                            psfb.sourceSSRC = reverseSSRC & 0xffffffffL;
+                            psfb.sourceSSRC = reverseSSRC;
                         }
                     }
 
@@ -642,7 +640,7 @@ public class SsrcRewritingEngine implements TransformEngine
                         {
                             for (int i = 0; i < dest.length; i++)
                             {
-                                int reverseSSRC
+                                long reverseSSRC
                                     = reverseRewriteSSRC((int) dest[i]);
                                 if (reverseSSRC == INVALID_SSRC)
                                 {
@@ -653,7 +651,7 @@ public class SsrcRewritingEngine implements TransformEngine
                                 }
                                 else
                                 {
-                                    dest[i] = reverseSSRC & 0xffffffffL;
+                                    dest[i] = reverseSSRC;
                                 }
                             }
                         }
