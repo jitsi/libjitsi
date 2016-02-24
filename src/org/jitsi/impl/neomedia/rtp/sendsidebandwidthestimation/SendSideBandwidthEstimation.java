@@ -39,7 +39,7 @@ class SendSideBandwidthEstimation
     /**
      * send_side_bandwidth_estimation.cc
      */
-    private static final int kBweDecreaseIntervalMs = 300;
+    private static final long kBweDecreaseIntervalMs = 300;
 
     /**
      * send_side_bandwidth_estimation.cc
@@ -366,10 +366,10 @@ class SendSideBandwidthEstimation
      * Returns the last calculated RTT to the endpoint.
      * @return the last calculated RTT to the endpoint.
      */
-    private synchronized int getRtt()
+    private synchronized long getRtt()
     {
-        //FIXME: the RTT from MediaStreamStats is wrong (always 2^16).
-        return 100;
+        long rtt = mediaStream.getMediaStreamStats().getRttMs();
+        return (rtt > 0 && rtt < 1000) ? rtt : 1000;
     }
 
     /**
