@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation;
 
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.util.*;
 
 import java.util.*;
 
@@ -39,7 +40,7 @@ class SendSideBandwidthEstimation
     /**
      * send_side_bandwidth_estimation.cc
      */
-    private static final int kBweDecreaseIntervalMs = 300;
+    private static final long kBweDecreaseIntervalMs = 300;
 
     /**
      * send_side_bandwidth_estimation.cc
@@ -60,6 +61,13 @@ class SendSideBandwidthEstimation
      * send_side_bandwidth_estimation.cc
      */
     private static final int kLimitNumPackets = 20;
+
+    /**
+     * The <tt>Logger</tt> used by the {@link SendSideBandwidthEstimation} class
+     * and its instances for logging output.
+     */
+    private static final Logger logger
+            = Logger.getLogger(SendSideBandwidthEstimation.class);
 
     /**
      * send_side_bandwidth_estimation.h
@@ -366,10 +374,17 @@ class SendSideBandwidthEstimation
      * Returns the last calculated RTT to the endpoint.
      * @return the last calculated RTT to the endpoint.
      */
-    private synchronized int getRtt()
+    private synchronized long getRtt()
     {
-        //FIXME: the RTT from MediaStreamStats is wrong (always 2^16).
-        return 100;
+        long rtt = mediaStream.getMediaStreamStats().getRttMs();
+        if (rtt < 0 || rtt > 1000)
+        {
+            logger.warn("RTT not calculated, or has a suspiciously high value ("
+                + rtt + "). Using the default of 100ms.");
+            rtt = 100;
+        }
+
+        return rtt;
     }
 
     /**
