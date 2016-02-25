@@ -640,6 +640,33 @@ public class MediaStreamImpl
                 activeRTPExtensions.remove(extensionID);
         }
 
+        enableRTPExtension(extensionID, rtpExtension);
+    }
+
+    /**
+     * Enables all RTP extensions configured for this {@link MediaStream}.
+     */
+    private void enableRTPExtensions()
+    {
+        synchronized (activeRTPExtensions)
+        {
+            for (Map.Entry<Byte, RTPExtension> entry
+                    : activeRTPExtensions.entrySet())
+            {
+                enableRTPExtension(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+    /**
+     * Enables the use of a specific RTP extension.
+     * @param extensionID the ID.
+     * @param rtpExtension the extension.
+     */
+    private void enableRTPExtension(byte extensionID, RTPExtension rtpExtension)
+    {
+        boolean active
+            = !MediaDirection.INACTIVE.equals(rtpExtension.getDirection());
 
         if (RTPExtension.ABS_SEND_TIME_URN.equals(
                 rtpExtension.getURI().toString()))
@@ -1042,6 +1069,11 @@ public class MediaStreamImpl
         SsrcTransformEngine ssrcEngine = createSsrcTransformEngine();
         if (ssrcEngine != null)
             engineChain.add(ssrcEngine);
+
+        // RTP extensions may be implemented in some of the engines just
+        // created (e.g. abs-send-time). So take into account their
+        // configuration.
+        enableRTPExtensions();
 
         return
             new TransformEngineChain(
