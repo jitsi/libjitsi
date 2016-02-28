@@ -702,6 +702,20 @@ public class RTPTranslatorImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public StreamRTPManager findStreamRTPManagerByReceiveSSRC(int receiveSSRC)
+    {
+        StreamRTPManagerDesc desc
+            = findStreamRTPManagerDescByReceiveSSRC(
+                    receiveSSRC,
+                    /* exclusion */ null);
+
+        return (desc == null) ? null : desc.streamRTPManager;
+    }
+
+    /**
      * Finds the first <tt>StreamRTPManager</tt> which is related to a specific
      * receive/remote SSRC.
      * 
@@ -712,8 +726,7 @@ public class RTPTranslatorImpl
      * @return the first <tt>StreamRTPManager</tt> which is related to the
      * specified <tt>receiveSSRC</tt>
      */
-    private StreamRTPManagerDesc
-        findStreamRTPManagerDescByReceiveSSRC(
+    private StreamRTPManagerDesc findStreamRTPManagerDescByReceiveSSRC(
             int receiveSSRC,
             StreamRTPManagerDesc exclusion)
     {
