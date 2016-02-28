@@ -93,6 +93,11 @@ public class SsrcRewritingEngine implements TransformEngine
     private final MediaStream mediaStream;
 
     /**
+     * The view of {@link #mediaStream} as a {@code MediaStreamImpl} instance.
+     */
+    private final MediaStreamImpl _mediaStreamImpl;
+
+    /**
      * Generates <tt>RawPacket</tt>s from <tt>RTCPCompoundPacket</tt>s.
      */
     private final RTCPGenerator generator = new RTCPGenerator();
@@ -195,6 +200,12 @@ public class SsrcRewritingEngine implements TransformEngine
     public SsrcRewritingEngine(MediaStream mediaStream)
     {
         this.mediaStream = mediaStream;
+
+        _mediaStreamImpl
+            = (mediaStream instanceof MediaStreamImpl)
+                ? (MediaStreamImpl) mediaStream
+                : null;
+
         logger.debug("Created a new SSRC rewriting engine.");
     }
 
@@ -427,20 +438,13 @@ public class SsrcRewritingEngine implements TransformEngine
      */
     private long reverseRewriteSSRC(int ssrc)
     {
-        // If there is an <tt>SsrcGroupRewriter</tt>, rewrite
-        // the packet, otherwise include it unaltered.
+        // If there is an SsrcGroupRewriter, rewrite the packet; otherwise,
+        // include it unaltered.
         RefCount<SsrcGroupRewriter> refCount = target2rewriter.get(ssrc);
         SsrcGroupRewriter ssrcGroupRewriter;
 
-        if (refCount != null)
-        {
-            ssrcGroupRewriter = refCount.getReferent();
-        }
-        else
-        {
-            return INVALID_SSRC;
-        }
-        if (ssrcGroupRewriter == null)
+        if (refCount == null
+                || (ssrcGroupRewriter = refCount.getReferent()) == null)
         {
             return INVALID_SSRC;
         }
@@ -449,8 +453,12 @@ public class SsrcRewritingEngine implements TransformEngine
 
         if (activeRewriter == null)
         {
-            logger.debug(
-                    "Could not find an SsrcRewriter for the RTCP packet type: ");
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(
+                        "Could not find an SsrcRewriter for SSRC: "
+                            + (ssrc & 0xffffffffL));
+            }
             return INVALID_SSRC;
         }
 
@@ -467,6 +475,18 @@ public class SsrcRewritingEngine implements TransformEngine
     public MediaStream getMediaStream()
     {
         return mediaStream;
+    }
+
+    /**
+     * Gets the {@code MediaStreamImpl} which has initialized this instance and
+     * is its owner.
+     *
+     * @return the {@code MediaStreamImpl} which has initialized this instance
+     * and is its owner
+     */
+    public MediaStreamImpl getMediaStreamImpl()
+    {
+        return _mediaStreamImpl;
     }
 
     /**

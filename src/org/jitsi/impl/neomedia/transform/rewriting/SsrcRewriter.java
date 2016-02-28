@@ -18,6 +18,7 @@ package org.jitsi.impl.neomedia.transform.rewriting;
 import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -71,6 +72,17 @@ class SsrcRewriter
     private ExtendedSequenceNumberInterval currentExtendedSequenceNumberInterval;
 
     /**
+     * The RTP timestamp into which {@link #_lastSrcTimestamp} was rewritten.
+     */
+    private long _lastDstTimestamp = -1L;
+
+    /**
+     * The last known/remembered RTP timestamp which was rewritten (into
+     * {@link #_lastDstTimestamp}).
+     */
+    private long _lastSrcTimestamp = -1L;
+
+    /**
      * Ctor.
      *
      * @param ssrcGroupRewriter
@@ -119,7 +131,10 @@ class SsrcRewriter
 
         if (retransmissionInterval != null)
         {
-            RawPacket rpkt = retransmissionInterval.rewriteRTP(pkt);
+            RawPacket rpkt
+                = retransmissionInterval.rewriteRTP(
+                        pkt,
+                        /* retransmission */ true);
 
             if (logger.isDebugEnabled())
             {
@@ -138,39 +153,11 @@ class SsrcRewriter
         if (currentExtendedSequenceNumberInterval == null)
         {
             // the stream has resumed.
-
-            // Uplift the timestamp of a key frame if we've already sent a
-            // larger timestamp to the remote endpoint.
-            //
-            // George Politis: The uplifting should not take place if the
-            // timestamps have advanced "a lot" (i.e. > 6000).
-            // Lyubomir Marinov: During a test session I observed a constant
-            // delta of 15509, actually. So I'm not sure about 6000.
-            long maxTimestamp = ssrcGroupRewriter.getMaxTimestamp();
-            long timestamp = pkt.getTimestamp();
-            long delta = maxTimestamp - timestamp;
-            long timestampTarget = timestamp;
-
-            if (0 < delta && ssrcGroupRewriter.isKeyFrame(pkt))
-            {
-                timestampTarget = maxTimestamp + 1;
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug(
-                            "Uplifting RTP timestamp " + timestamp
-                                + " with SEQNUM " + pkt.getSequenceNumber()
-                                + " because of delta " + delta + " to "
-                                + timestampTarget);
-                }
-            }
-
             currentExtendedSequenceNumberInterval
                 = new ExtendedSequenceNumberInterval(
                         this,
                         extendedSeqnum,
-                        ssrcGroupRewriter.currentExtendedSeqnumBase,
-                        timestamp,
-                        timestampTarget);
+                        ssrcGroupRewriter.currentExtendedSeqnumBase);
         }
         else
         {
@@ -182,7 +169,185 @@ class SsrcRewriter
         currentExtendedSequenceNumberInterval.lastSeen
             = System.currentTimeMillis();
 
-        return currentExtendedSequenceNumberInterval.rewriteRTP(pkt);
+        return
+            currentExtendedSequenceNumberInterval.rewriteRTP(
+                    pkt,
+                    /* retransmission */ false);
+    }
+
+    /**
+     * Rewrites the RTP timestamp of a specific RTP packet.
+     *
+     * @param caller the {@code ExtendedSequenceNumberInterval} which requests
+     * the rewrite
+     * @param p the {@code RawPacket} which represents the RTP packet to rewrite
+     * the RTP timestamp of
+     * @param retransmission {@code true} if the rewrite of {@code p} is for the
+     * purposes of a retransmission (i.e. a {@code RawPacket} representing the
+     * same information as {@code pkt} was possibly rewritten and sent before);
+     * otherwise, {@code false}
+     */
+    void rewriteTimestamp(
+            ExtendedSequenceNumberInterval caller,
+            RawPacket p,
+            boolean retransmission)
+    {
+        // Provide rudimentary optimization and, more importantly, protection in
+        // the case of RawPackets from the same frame/sampling instance.
+
+        if (retransmission)
+        {
+            // Retransmission is expected to occur much less often than
+            // non-retransmission and the most simple of optimizations and
+            // protections implemented here does not simultaneously accommodate
+            // the two cases.
+
+            rewriteTimestamp(p, retransmission);
+        }
+        else
+        {
+            // Simply cache the last rewritten RTP timestamp and reuse it in
+            // subsequent rewrites.
+
+            long oldValue = p.getTimestamp();
+
+            if (oldValue == _lastSrcTimestamp)
+            {
+                p.setTimestamp(_lastDstTimestamp);
+            }
+            else
+            {
+                rewriteTimestamp(p, retransmission);
+
+                long newValue = p.getTimestamp();
+
+                if (newValue != oldValue)
+                {
+                    _lastSrcTimestamp = oldValue;
+                    _lastDstTimestamp = newValue;
+                }
+            }
+        }
+    }
+
+    /**
+     * Rewrites the RTP timestamp of a specific RTP packet.
+     *
+     * @param p the {@code RawPacket} which represents the RTP packet to rewrite
+     * the RTP timestamp of
+     * @param retransmission {@code true} if the rewrite of {@code p} is for the
+     * purposes of a retransmission (i.e. a {@code RawPacket} representing the
+     * same information as {@code pkt} was possibly rewritten and sent before);
+     * otherwise, {@code false}
+     */
+    private void rewriteTimestamp(RawPacket p, boolean retransmission)
+    {
+        SsrcGroupRewriter ssrcGroupRewriter = this.ssrcGroupRewriter;
+        long timestampSsrcAsLong = ssrcGroupRewriter.getTimestampSsrc();
+        int sourceSsrc = getSourceSSRC();
+
+        if (timestampSsrcAsLong == SsrcRewritingEngine.INVALID_SSRC)
+        {
+            // The first pkt to require RTP timestamp rewriting determines the
+            // SSRC which will NOT undergo RTP timestamp rewriting. Unless
+            // SsrcGroupRewriter decides to force the SSRC for RTP timestamp
+            // rewriting, of course.
+            ssrcGroupRewriter.setTimestampSsrc(sourceSsrc);
+        }
+        else
+        {
+            int timestampSsrc = (int) timestampSsrcAsLong;
+
+            if (sourceSsrc != timestampSsrc)
+            {
+                // Rewrite the RTP timestamp of pkt in accord with the wallclock
+                // of timestampSsrc.
+                rewriteTimestamp(p, sourceSsrc, timestampSsrc);
+            }
+        }
+    }
+
+    /**
+     * Rewrites the RTP timestamp of a specific RTP packet.
+     *
+     * @param p the {@code RawPacket} which represents the RTP packet to rewrite
+     * the RTP timestamp of
+     * @param sourceSsrc the SSRC of the source from which {@code p} originated
+     * @param timestampSsrc the SSRC of the RTP stream which identifies the RTP
+     * timestamp base into which the RTP timestamp of {@code p} is to be
+     * rewritten
+     */
+    private void rewriteTimestamp(
+            RawPacket p,
+            int sourceSsrc, int timestampSsrc)
+    {
+        // TODO The only RTP timestamp rewriting supported at the time of this
+        // writing depends on the availability of remote wallclocks.
+
+        // Convert the SSRCs to RemoteClocks.
+        int[] ssrcs = { sourceSsrc, timestampSsrc };
+        RemoteClock[] clocks
+            = RemoteClock.findRemoteClocks(getMediaStream(), ssrcs);
+
+        // Require all/the two RemoteClocks to carry out the RTP timestamp
+        // rewriting.
+        for (int i = 0; i < ssrcs.length; ++i)
+        {
+            if (clocks[i] == null)
+            {
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug(
+                            "No remote wallclock available for SSRC "
+                                + (ssrcs[i] & 0xffffffffL) + "!.");
+                }
+                return;
+            }
+        }
+
+        rewriteTimestamp(p, clocks[0], clocks[1]);
+    }
+
+    /**
+     * Rewrites the RTP timestamp of a specific RTP packet.
+     *
+     * @param p the {@code RawPacket} which represents the RTP packet to rewrite
+     * the RTP timestamp of
+     * @param srcClock the {@code RemoteClock} of the source from which
+     * {@code p} originated
+     * @param dstClock the {@code RemoteClock} which identifies the RTP
+     * timestamp base into which the RTP timestamp of {@code p} is to be
+     * rewritten
+     */
+    private void rewriteTimestamp(
+            RawPacket p,
+            RemoteClock srcClock, RemoteClock dstClock)
+    {
+        // XXX Presume that srcClock and dstClock represent the same wallclock
+        // (in terms of system time in milliseconds/NTP time). Technically, this
+        // presumption may be wrong. Practically, we are unlikely (at the time
+        // of this writing) to hit a case in which this presumption is wrong.
+
+        // Convert the RTP timestamp of p to system time in milliseconds using
+        // srcClock.
+        long srcRtpTimestamp = p.getTimestamp();
+        Timestamp srcTs
+            = srcClock.rtpTimestamp2remoteSystemTimeMs(srcRtpTimestamp);
+
+        if (srcTs == null)
+            return;
+
+        // Convert the system time in milliseconds to an RTP timestamp using
+        // dstClock.
+        Timestamp dstTs
+            = dstClock.remoteSystemTimeMs2rtpTimestamp(srcTs.getSystemTimeMs());
+
+        if (dstTs == null)
+            return;
+
+        long dstRtpTimestamp = dstTs.getRtpTimestampAsLong();
+
+        p.setTimestamp(dstRtpTimestamp);
     }
 
     /**
@@ -196,10 +361,6 @@ class SsrcRewriter
             intervals.put(
                     currentExtendedSequenceNumberInterval.extendedMaxOrig,
                     currentExtendedSequenceNumberInterval);
-            // Store the max timestamp so that we can consult it when we rewrite
-            // the next packets of the next stream.
-            ssrcGroupRewriter.setMaxTimestamp(
-                    currentExtendedSequenceNumberInterval.maxTimestamp);
             currentExtendedSequenceNumberInterval = null;
 
             // TODO We don't need to keep track of more than 2 cycles, so we
@@ -279,6 +440,16 @@ class SsrcRewriter
     public MediaStream getMediaStream()
     {
         return ssrcGroupRewriter.getMediaStream();
+    }
+
+    /**
+     * Gets the {@code MediaStreamImpl} associated with this instance.
+     *
+     * @return the {@code MediaStreamImpl} associated with this instance
+     */
+    public MediaStreamImpl getMediaStreamImpl()
+    {
+        return ssrcGroupRewriter.getMediaStreamImpl();
     }
 
     /**
