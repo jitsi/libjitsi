@@ -2758,17 +2758,22 @@ public class MediaStreamImpl
     }
 
     /**
-     * Sets the <tt>RTPTranslator</tt> which is to forward RTP and RTCP traffic
-     * between this and other <tt>MediaStream</tt>s.
-     *
-     * @param rtpTranslator the <tt>RTPTranslator</tt> which is to forward RTP
-     * and RTCP traffic between this and other <tt>MediaStream</tt>s
+     * {@inheritDoc}
      */
     @Override
     public void setRTPTranslator(RTPTranslator rtpTranslator)
     {
         if (this.rtpTranslator != rtpTranslator)
             this.rtpTranslator = rtpTranslator;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RTPTranslator getRTPTranslator()
+    {
+        return rtpTranslator;
     }
 
     /**

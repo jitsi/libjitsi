@@ -410,6 +410,15 @@ public interface MediaStream
     public void setRTPTranslator(RTPTranslator rtpTranslator);
 
     /**
+     * Gets the {@link RTPTranslator} which forwards RTP and RTCP traffic
+     * between this and other {@code MediaStream}s.
+     *
+     * @return the {@link RTPTranslator} which forwards RTP and RTCP traffic
+     * between this and other {@code MediaStream}s or {@code null}
+     */
+    public RTPTranslator getRTPTranslator();
+
+    /**
      * Sets the <tt>SSRCFactory</tt> which is to generate new synchronization
      * source (SSRC) identifiers.
      * 
