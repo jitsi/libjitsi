@@ -19,6 +19,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import javax.media.rtp.rtcp.*;
 import net.sf.fmj.media.rtp.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -31,11 +32,40 @@ import org.jitsi.util.*;
 public class RemoteClockEstimator
 {
     /**
+     * The {@link MediaType} of the SSRCs tracked by this instance. If
+     * non-{@code null}, may provide hints to this instance such as video
+     * defaulting to a clock frequency/rate of 90kHz.
+     */
+    private final MediaType _mediaType;
+
+    /**
      * A {@code Map} of the (received) {@code RemoteClock}s by synchronization
      * source identifier (SSRC).
      */
     private final Map<Integer, RemoteClock> remoteClocks
         = new ConcurrentHashMap<>();
+
+    /**
+     * Initializes a new {@code RemoteClockEstimator} without a
+     * {@code MediaType}.
+     */
+    public RemoteClockEstimator()
+    {
+        this(null);
+    }
+
+    /**
+     * Initializes a new {@code RemoteClockEstimator} with a specific
+     * {@code MediaType}.
+     *
+     * @param mediaType the {@code MediaType} to initialize the new instance
+     * with. It may be used by the implementation as a hint to the default clock
+     * frequency/rate.
+     */
+    public RemoteClockEstimator(MediaType mediaType)
+    {
+        _mediaType = mediaType;
+    }
 
     /**
      * Inspect an <tt>RTCPCompoundPacket</tt> and build up the state for future
@@ -93,29 +123,54 @@ public class RemoteClockEstimator
                 sr.getRTPTimeStamp());
     }
 
+    /**
+     * Adds a {@code RemoteClock} for an RTP stream identified by a specific
+     * SSRC.
+     *
+     * @param ssrc the SSRC of the RTP stream whose {@code RemoteClock} is to be
+     * added
+     * @param ntptimestampmsw
+     * @param ntptimestamplsw
+     * @param rtptimestamp
+     */
     private void update(
             int ssrc,
             long ntptimestampmsw, long ntptimestamplsw,
             long rtptimestamp)
     {
-        long ntpTime = TimeUtils.constuctNtp(ntptimestampmsw, ntptimestamplsw);
-        long systemTimeMs = TimeUtils.getTime(ntpTime);
+        long systemTimeMs
+            = TimeUtils.getTime(
+                    TimeUtils.constuctNtp(ntptimestampmsw, ntptimestamplsw));
 
-        // Estimate the clock rate of the sender.
-        RemoteClock oldClock = remoteClocks.get(ssrc);
-        int frequencyHz = -1;
+        // Estimate the clock frequency/rate of the sender.
+        int frequencyHz;
 
-        if (oldClock != null)
+        if (MediaType.VIDEO.equals(_mediaType))
         {
-            // Calculate the clock rate.
-            Timestamp oldTs = oldClock.getRemoteTimestamp();
-            int rtpTimestampDiff = (int) rtptimestamp - oldTs.getRtpTimestamp();
-            long systemTimeMsDiff = systemTimeMs - oldTs.getSystemTimeMs();
+            // XXX Don't calculate the clock frequency/rate for video because it
+            // is easier and less error prone (e.g. there is no need to deal
+            // with rounding).
+            frequencyHz = 90 * 1000;
+        }
+        else
+        {
+            RemoteClock oldClock = remoteClocks.get(ssrc);
 
-            frequencyHz
-                = Math.round(
-                        (float) (rtpTimestampDiff & 0xffffffffL)
-                            / systemTimeMsDiff);
+            if (oldClock != null)
+            {
+                // Calculate the clock frequency/rate.
+                Timestamp oldTs = oldClock.getRemoteTimestamp();
+                long rtpTimestampDiff
+                    = rtptimestamp - oldTs.getRtpTimestampAsLong();
+                long systemTimeMsDiff = systemTimeMs - oldTs.getSystemTimeMs();
+
+                frequencyHz
+                    = Math.round((float) rtpTimestampDiff / systemTimeMsDiff);
+            }
+            else
+            {
+                frequencyHz = -1;
+            }
         }
 
         // Replace whatever was in there before.

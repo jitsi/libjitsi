@@ -212,8 +212,12 @@ public class MediaStreamStatsImpl
      */
     private long nbPacketsLostUpload = 0;
 
-    private final RemoteClockEstimator remoteClockEstimator =
-            new RemoteClockEstimator();
+    /**
+     * The {@code RemoteClockEstimator} which tracks the remote (wall)clocks and
+     * RTP timestamps of the RTP streams received by the associated
+     * {@link #mediaStreamImpl}.
+     */
+    private final RemoteClockEstimator _remoteClockEstimator;
 
     /**
      * The <tt>RTCPReportListener</tt> which listens to {@link #rtcpReports}
@@ -320,9 +324,11 @@ public class MediaStreamStatsImpl
     {
         this.mediaStreamImpl = mediaStreamImpl;
 
-        getRTCPReports().addRTCPReportListener(rtcpReportListener);
-
+        _remoteClockEstimator
+            = new RemoteClockEstimator(mediaStreamImpl.getMediaType());
         updateTimeMs = System.currentTimeMillis();
+
+        getRTCPReports().addRTCPReportListener(rtcpReportListener);
     }
 
     /**
@@ -1097,7 +1103,7 @@ public class MediaStreamStatsImpl
      */
     public RemoteClockEstimator getRemoteClockEstimator()
     {
-        return remoteClockEstimator;
+        return _remoteClockEstimator;
     }
 
     /**
