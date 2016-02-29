@@ -56,6 +56,11 @@ public abstract class RTPConnectorOutputStream
     public static final int PACKET_QUEUE_CAPACITY;
 
     /**
+     * The maximum size of the queues used as pools for unused objects.
+     */
+    public static final int POOL_CAPACITY;
+
+    /**
      * The flag which controls whether this {@link RTPConnectorOutputStream}
      * should create its own thread which will perform the packetization
      * (and potential transformation) and sending of packets to the targets.
@@ -85,6 +90,13 @@ public abstract class RTPConnectorOutputStream
     private static final String PACKET_QUEUE_CAPACITY_PNAME
         = RTPConnectorOutputStream.class.getName() + ".PACKET_QUEUE_CAPACITY";
 
+    /**
+     * The name of the property which specifies the value of {@link
+     * #POOL_CAPACITY}.
+     */
+    private static final String POOL_CAPACITY_PNAME
+            = RTPConnectorOutputStream.class.getName() + ".POOL_CAPACITY";
+
     static
     {
         ConfigurationService cfg = LibJitsi.getConfigurationService();
@@ -92,6 +104,8 @@ public abstract class RTPConnectorOutputStream
         // Set USE_SEND_THREAD
         USE_SEND_THREAD
             = ConfigUtils.getBoolean(cfg, USE_SEND_THREAD_PNAME, true);
+
+        POOL_CAPACITY = ConfigUtils.getInt(cfg, POOL_CAPACITY_PNAME, 100);
 
         // Set PACKET_QUEUE_CAPACITY
         int packetQueueCapacity
@@ -182,7 +196,7 @@ public abstract class RTPConnectorOutputStream
      * allocations performed by {@link #packetize(byte[], int, int, Object)}.
      */
     private final LinkedBlockingQueue<RawPacket> rawPacketPool
-        = new LinkedBlockingQueue<>();
+        = new LinkedBlockingQueue<>(POOL_CAPACITY);
 
     /**
      * Stream targets' IP addresses and ports.

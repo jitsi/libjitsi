@@ -83,7 +83,7 @@ class PushSourceStreamImpl
      * allocations and garbage collection.
      */
     private final Queue<SourcePacket> sourcePacketPool
-        = new LinkedBlockingQueue<>();
+        = new LinkedBlockingQueue<>(RTPConnectorOutputStream.POOL_CAPACITY);
 
     private final List<PushSourceStreamDesc> streams = new LinkedList<>();
 

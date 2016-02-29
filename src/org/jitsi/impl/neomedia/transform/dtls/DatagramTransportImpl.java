@@ -59,7 +59,7 @@ public class DatagramTransportImpl
      * and garbage collection.
      */
     private final Queue<RawPacket> rawPacketPool
-        = new LinkedBlockingQueue<RawPacket>();
+        = new LinkedBlockingQueue<>(RTPConnectorOutputStream.POOL_CAPACITY);
 
     /**
      * The queue of <tt>RawPacket</tt>s which have been received from the
