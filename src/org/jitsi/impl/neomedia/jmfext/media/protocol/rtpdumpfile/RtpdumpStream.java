@@ -147,6 +147,13 @@ public class RtpdumpStream
         }
         buffer.setTimeStamp(timestamp);
 
-        rawPacketScheduler.schedule(rtpPacket);
+        try
+        {
+            rawPacketScheduler.schedule(rtpPacket);
+        }
+        catch (InterruptedException e)
+        {
+
+        }
     }
 }

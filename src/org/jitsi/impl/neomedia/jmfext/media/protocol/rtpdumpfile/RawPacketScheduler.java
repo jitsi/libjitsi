@@ -56,6 +56,7 @@ public class RawPacketScheduler
      * @param rtpPacket the <tt>RTPPacket</tt> to schedule.
      */
     public void schedule(RawPacket rtpPacket)
+        throws InterruptedException
     {
         if (!RTPPacketPredicate.INSTANCE.test(rtpPacket))
         {
@@ -76,16 +77,9 @@ public class RawPacketScheduler
         long nanos = (rtpDiff * 1000 * 1000 * 1000) / clockRate;
         if (nanos > 0)
         {
-            try
-            {
-                Thread.sleep(
-                        nanos / 1000000,
-                        (int) (nanos % 1000000));
-            }
-            catch (InterruptedException e)
-            {
-                e.printStackTrace();
-            }
+            Thread.sleep(
+                    nanos / 1000000,
+                    (int) (nanos % 1000000));
         }
     }
 }
