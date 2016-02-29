@@ -175,7 +175,8 @@ public abstract class RTPConnectorInputStream<T>
      * The pool of <tt>RawPacket</tt> instances to reduce their allocations and
      * garbage collection.
      */
-    private final Queue<RawPacket> rawPacketPool = new LinkedBlockingQueue<>();
+    private final Queue<RawPacket> rawPacketPool
+            = new LinkedBlockingQueue<>(RTPConnectorOutputStream.POOL_CAPACITY);
 
     /**
      * The background/daemon <tt>Thread</tt> which invokes
