@@ -175,4 +175,19 @@ public class TimeUtils
     {
         return ntpTime & 0xFFFFFFFFL;
     }
+
+    /**
+     * Returns the difference between two RTP timestamps.
+     * @return the difference between two RTP timestamps.
+     */
+    public static long rtpDiff(long a, long b)
+    {
+        long diff = a - b;
+        if (diff < -(1L<<31))
+            diff+= 1L<<32;
+        else if (diff > 1L<<31)
+            diff-= 1L<<32;
+
+        return diff;
+    }
 }
