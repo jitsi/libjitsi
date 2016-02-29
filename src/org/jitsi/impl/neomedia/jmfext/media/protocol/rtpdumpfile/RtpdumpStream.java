@@ -43,16 +43,10 @@ public class RtpdumpStream
             = Logger.getLogger(RtpdumpStream.class);
 
     /**
-     * The RTP clock rate, used to interpret the RTP timestamps read from the
-     * file.
+     * The <tt>RawPacketScheduler</tt> responsible for throttling our RTP packet
+     * reading.
      */
-    private final long CLOCK_RATE;
-
-    /**
-     * The timestamp of the last rtp packet (the timestamp change only when
-     * a marked packet has been sent).
-     */
-    private long lastRtpTimestamp = -1;
+    private final RawPacketScheduler rawPacketScheduler;
 
     /**
      * Boolean indicating if the last call to <tt>doRead</tt> return a marked
@@ -89,21 +83,23 @@ public class RtpdumpStream
          * RtpdumpMediaDevice#createRtpdumpMediaDevice.
          */
         Format format = getFormat();
+        long clockRate;
         if (format instanceof AudioFormat)
         {
-            CLOCK_RATE = (long) ((AudioFormat) format).getSampleRate();
+            clockRate = (long) ((AudioFormat) format).getSampleRate();
         }
         else if (format instanceof VideoFormat)
         {
-            CLOCK_RATE = (long) ((VideoFormat) format).getFrameRate();
+            clockRate = (long) ((VideoFormat) format).getFrameRate();
         }
         else
         {
             logger.warn("Unknown format. Creating RtpdumpStream with clock" +
                                 "rate 1 000 000 000.");
-            CLOCK_RATE = 1000 * 1000 * 1000;
+            clockRate = 1000 * 1000 * 1000;
         }
 
+        this.rawPacketScheduler =  new RawPacketScheduler(clockRate);
         String rtpdumpFilePath = dataSource.getLocator().getRemainder();
         this.rtpFileReader = new RtpdumpFileReader(rtpdumpFilePath);
     }
@@ -151,35 +147,13 @@ public class RtpdumpStream
         }
         buffer.setTimeStamp(timestamp);
 
-        if (lastRtpTimestamp == -1)
+        try
         {
-            lastRtpTimestamp = rtpPacket.getTimestamp();
-            return;
+            rawPacketScheduler.schedule(rtpPacket);
         }
-
-        long previous= lastRtpTimestamp;
-        lastRtpTimestamp = rtpPacket.getTimestamp();
-
-        long rtpDiff = lastRtpTimestamp - previous;
-
-        // rtpDiff < 0 can happen when the timestamps wrap at 2^32, or when
-        // the rtpdump file loops. In the latter case, we don't want to sleep.
-        //if (rtpDiff < 0)
-        //    rtpDiff += 1L << 32; //rtp timestamps wrap at 2^32
-
-        long nanos = (rtpDiff * 1000 * 1000 * 1000) / CLOCK_RATE;
-        if (nanos > 0)
+        catch (InterruptedException e)
         {
-            try
-            {
-                Thread.sleep(
-                               nanos / 1000000,
-                        (int) (nanos % 1000000));
-            }
-            catch (InterruptedException e)
-            {
-                e.printStackTrace();
-            }
+
         }
     }
 }

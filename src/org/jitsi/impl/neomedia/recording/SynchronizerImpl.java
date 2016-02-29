@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.recording;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.recording.*;
+import org.jitsi.util.*;
 
 import java.util.*;
 
@@ -202,7 +203,7 @@ public class SynchronizerImpl
         long local0;
 
         double diff1S = ntp1 - ntp2;
-        double diff2S = ((double)rtpDiff(rtp0, rtp1)) / clockRate;
+        double diff2S = ((double)TimeUtils.rtpDiff(rtp0, rtp1)) / clockRate;
 
         long diffMs = Math.round((diff1S + diff2S) * 1000);
 
@@ -434,21 +435,6 @@ public class SynchronizerImpl
             return false;
 
         return true;
-    }
-
-    /**
-     * Returns the difference between two RTP timestamps.
-     * @return the difference between two RTP timestamps.
-     */
-    private long rtpDiff(long a, long b)
-    {
-        long diff = a - b;
-        if (diff < -(1L<<31))
-            diff+= 1L<<32;
-        else if (diff > 1L<<31)
-            diff-= 1L<<32;
-
-        return diff;
     }
 
     /**
