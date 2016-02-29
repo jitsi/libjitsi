@@ -20,7 +20,7 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.util.TimeUtils;
 
 /**
- * Suggests a throttle method that puts the current thread to sleep for X milis,
+ * Suggests a schedule method that puts the current thread to sleep for X milis,
  * where X is such that RTP timestamps and a given clock are respected.
  *
  * @author George Politis
@@ -53,9 +53,9 @@ public class RawPacketScheduler
      * puts the current thread to sleep for X milis, where X is such that RTP
      * timestamps and a given clock are respected.
      *
-     * @param rtpPacket the <tt>RTPPacket</tt> to throttle.
+     * @param rtpPacket the <tt>RTPPacket</tt> to schedule.
      */
-    public void throttle(RawPacket rtpPacket)
+    public void schedule(RawPacket rtpPacket)
     {
         if (!RTPPacketPredicate.INSTANCE.test(rtpPacket))
         {

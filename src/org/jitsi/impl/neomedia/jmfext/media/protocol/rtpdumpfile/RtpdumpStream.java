@@ -147,6 +147,6 @@ public class RtpdumpStream
         }
         buffer.setTimeStamp(timestamp);
 
-        rawPacketScheduler.throttle(rtpPacket);
+        rawPacketScheduler.schedule(rtpPacket);
     }
 }
