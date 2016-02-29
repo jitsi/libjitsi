@@ -16,8 +16,7 @@
 
 package org.jitsi.impl.neomedia.jmfext.media.protocol.rtpdumpfile;
 
-import org.jitsi.impl.neomedia.RTPPacketPredicate;
-import org.jitsi.impl.neomedia.RawPacket;
+import org.jitsi.impl.neomedia.*;
 
 /**
  * Suggests a throttle method that puts the current thread to sleep for X milis,
