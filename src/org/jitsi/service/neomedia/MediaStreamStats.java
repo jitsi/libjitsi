@@ -368,4 +368,14 @@ public interface MediaStreamStats
      * @param listener the listener.
      */
     public void addRembListener(REMBListener listener);
+
+    /**
+     * Gets the rate at which we are currently sending data to the remote
+     * endpoint in bits per second. This is almost the same as {@link
+     * #getUploadRateKiloBitPerSec()}. The duplication is necessary, because
+     * of implementation details.
+     * @return the rate at which we are currently sending data to the remote
+     * endpoint, in bits per second.
+     */
+    public long getSendingBitrate();
 }
