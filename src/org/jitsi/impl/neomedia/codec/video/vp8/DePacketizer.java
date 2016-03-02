@@ -264,13 +264,13 @@ public class DePacketizer
                 logger.debug("inBuffer is empty");
             }
             outBuffer.setDiscard(true);
-            return 0;
+            return BUFFER_PROCESSED_OK;
         }
         //TODO  handle VP8PayloadDescriptor returning invalid.
         int inPayloadLength = inLength - inPdSize;
         if (logger.isTraceEnabled())
         {
-            logger.trace("outBuffer length " + inPayloadLength + " inLength " +
+            logger.trace("inPayload length " + inPayloadLength + " inLength " +
                 inLength);
         }
 
