@@ -353,7 +353,18 @@ public class RetransmissionRequester
                 // An older packet, possibly already requested.
                 // We don't update nextRequestAt here. The reading thread might
                 // wake up unnecessarily and do some extra work, but that's OK.
-                requests.remove(seq);
+                Request r = requests.remove(seq);
+                if (r != null && logger.isDebugEnabled())
+                {
+                    long delta
+                        = System.currentTimeMillis() - r.firstRequestSentAt;
+                    if (delta < 10)
+                    {
+                        logger.debug(hashCode()
+                                     + " received a missing packet only "
+                                     + delta + "ms after it was requested.");
+                    }
+                }
             }
             else if (diff == 1)
             {
