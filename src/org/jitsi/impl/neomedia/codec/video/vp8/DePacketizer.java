@@ -256,7 +256,23 @@ public class DePacketizer
                 = VP8PayloadDescriptor.isStartOfFrame(inData, inOffset);
         int inLength = inBuffer.getLength();
         int inPdSize = VP8PayloadDescriptor.getSize(inData, inOffset);
+        // handle when inbuffer is empty.
+        if (inLength < 1) 
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("inBuffer is empty");
+            }
+            outBuffer.setDiscard(true);
+            return 0;
+        }
+        //TODO  handle VP8PayloadDescriptor returning invalid.
         int inPayloadLength = inLength - inPdSize;
+        if (logger.isTraceEnabled())
+        {
+            logger.trace("outBuffer length " + inPayloadLength + " inLength " +
+                inLength);
+        }
 
         if (empty
                 && lastSentSeq != -1
@@ -384,13 +400,21 @@ public class DePacketizer
             for (Map.Entry<Long, Container> entry : data.entrySet())
             {
                 b = entry.getValue();
-                System.arraycopy(
-                        b.buf,
-                        0,
-                        outData,
-                        ptr,
-                        b.len);
-                ptr += b.len;
+                try
+                {
+                    System.arraycopy(
+                            b.buf,
+                            0,
+                            outData,
+                            ptr,
+                            b.len);
+                    ptr += b.len;
+                }
+                catch (Exception e) 
+                {
+                    // ensure frameLength 0 on copy failure
+                    frameLength = 0;
+                }
             }
 
             outBuffer.setOffset(0);
