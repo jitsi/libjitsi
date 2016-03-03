@@ -16,6 +16,7 @@
 package org.jitsi.sctp4j;
 
 import java.io.*;
+import java.util.*;
 
 /**
  * The link that loses some packets and produces IOExceptions from time to time.
@@ -28,6 +29,9 @@ public class TestLink
     private final double lossRate;
 
     private final double errorRate;
+
+    /** Set random seed for consistent tests */
+    private static final Random rand = new Random(1234567);
 
     public TestLink(SctpSocket a, SctpSocket b,
                     double lossRate, double errorRate)
@@ -43,7 +47,7 @@ public class TestLink
     public void onConnOut(SctpSocket s, byte[] packet)
         throws IOException
     {
-        double r = Math.random();
+        double r = getRandomDouble();
 
         if(r < (errorRate + lossRate))
         {
@@ -59,5 +63,9 @@ public class TestLink
         }
         // Eventually pass the data
         super.onConnOut(s, packet);
+    }
+
+    private static double getRandomDouble() {
+        return rand.nextDouble();
     }
 }
