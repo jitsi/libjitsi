@@ -9,26 +9,10 @@ extern "C" {
 #endif
 /*
  * Class:     org_jitsi_impl_neomedia_transform_srtp_OpenSSLBlockCipher
- * Method:    EVP_aes_128_ecb
- * Signature: ()J
- */
-JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLBlockCipher_EVP_1aes_1128_1ecb
-  (JNIEnv *, jclass);
-
-/*
- * Class:     org_jitsi_impl_neomedia_transform_srtp_OpenSSLBlockCipher
  * Method:    EVP_CIPHER_block_size
  * Signature: (J)I
  */
 JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLBlockCipher_EVP_1CIPHER_1block_1size
-  (JNIEnv *, jclass, jlong);
-
-/*
- * Class:     org_jitsi_impl_neomedia_transform_srtp_OpenSSLBlockCipher
- * Method:    EVP_CIPHER_CTX_cleanup
- * Signature: (J)Z
- */
-JNIEXPORT jboolean JNICALL Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLBlockCipher_EVP_1CIPHER_1CTX_1cleanup
   (JNIEnv *, jclass, jlong);
 
 /*

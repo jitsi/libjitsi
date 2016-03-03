@@ -28,8 +28,6 @@ import org.jitsi.util.*;
 public class OpenSSLHMAC
     implements Mac
 {
-    private static long EVP_sha1;
-
     /**
      * The indicator which determines whether
      * <tt>System.loadLibrary(String)</tt> is to be invoked in order to load the
@@ -40,8 +38,6 @@ public class OpenSSLHMAC
     private static native int EVP_MD_size(long md);
 
     private static native long EVP_sha1();
-
-    private static native void HMAC_CTX_cleanup(long ctx);
 
     private static native long HMAC_CTX_create();
 
@@ -119,7 +115,6 @@ public class OpenSSLHMAC
                     JNIUtils.loadLibrary(
                             "jnopenssl",
                             OpenSSLHMAC.class.getClassLoader());
-                    EVP_sha1 = EVP_sha1();
                 }
                 finally
                 {
@@ -128,56 +123,17 @@ public class OpenSSLHMAC
             }
         }
 
-        long md;
+        md = EVP_sha1();
+        if (md == 0)
+            throw new IllegalStateException("EVP_sha1 == 0");
 
-        if (digestAlgorithm == OpenSSLDigest.SHA1)
-        {
-            long EVP_sha1 = OpenSSLHMAC.EVP_sha1;
+        macSize = EVP_MD_size(md);
+        if (macSize == 0)
+            throw new IllegalStateException("EVP_MD_size == 0");
 
-            if (EVP_sha1 == 0)
-                throw new IllegalStateException("EVP_sha1");
-            else
-                md = EVP_sha1;
-        }
-        else
-        {
-            // It must have been checked prior to loading the OpenSSL (Crypto)
-            // library but the compiler needs it to be convinced that we are not
-            // attempting to use an uninitialized variable.
-            throw new IllegalArgumentException(
-                    "digestAlgorithm " + digestAlgorithm);
-        }
-        this.md = md;
-
-        long ctx = HMAC_CTX_create();
-
+        ctx = HMAC_CTX_create();
         if (ctx == 0)
-        {
-            throw new RuntimeException("HMAC_CTX_create");
-        }
-        else
-        {
-            boolean ok = false;
-
-            this.ctx = ctx;
-            try
-            {
-                reset();
-
-                macSize = EVP_MD_size(md);
-
-                ok = true;
-            }
-            finally
-            {
-                if (!ok)
-                {
-                    if (this.ctx == ctx)
-                        this.ctx = 0;
-                    HMAC_CTX_destroy(ctx);
-                }
-            }
-        }
+            throw new RuntimeException("HMAC_CTX_create == 0");
     }
 
     /**
@@ -276,14 +232,17 @@ public class OpenSSLHMAC
     public void init(CipherParameters params)
         throws IllegalArgumentException
     {
-        byte[] key
-            = (params instanceof KeyParameter)
+        key = (params instanceof KeyParameter)
                 ? ((KeyParameter) params).getKey()
                 : null;
 
-        this.key = key;
+        if (key == null)
+            throw new IllegalStateException("key == null");
+        if (ctx == 0)
+            throw new IllegalStateException("ctx == 0");
 
-        reset();
+        if (!HMAC_Init_ex(ctx, key, key.length, md, 0))
+            throw new RuntimeException("HMAC_Init_ex() init failed");
     }
 
     /**
@@ -292,29 +251,14 @@ public class OpenSSLHMAC
     @Override
     public void reset()
     {
-        long ctx = this.ctx;
-
+        if (key == null)
+            throw new IllegalStateException("key == null");
         if (ctx == 0)
-        {
-            throw new IllegalStateException("ctx");
-        }
-        else
-        {
-            HMAC_CTX_cleanup(ctx);
+            throw new IllegalStateException("ctx == 0");
 
-            // As the javadoc on the interface declaration of the method reset
-            // defines. resetting this cipher leaves it in the same state as it
-            // was after the last init (if there was one).
-            if (!HMAC_Init_ex(
-                    ctx,
-                    key, (key == null) ? 0 : key.length,
-                    md,
-                    /* impl */ 0))
-            {
-                throw new RuntimeException(
-                        "HMAC_Init_ex(" + getAlgorithmName() + ")");
-            }
-        }
+        // just reset the ctx (keep same key and md)
+        if (!HMAC_Init_ex(ctx, null, 0, 0, 0))
+            throw new RuntimeException("HMAC_Init_ex() reset failed");
     }
 
     /**

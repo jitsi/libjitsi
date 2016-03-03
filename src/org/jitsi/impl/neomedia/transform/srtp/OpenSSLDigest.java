@@ -27,8 +27,6 @@ import org.jitsi.util.*;
 public class OpenSSLDigest
     implements ExtendedDigest
 {
-    private static long EVP_sha1;
-
     /**
      * The indicator which determines whether
      * <tt>System.loadLibrary(String)</tt> is to be invoked in order to load the
@@ -117,7 +115,6 @@ public class OpenSSLDigest
                     JNIUtils.loadLibrary(
                             "jnopenssl",
                             OpenSSLDigest.class.getClassLoader());
-                    EVP_sha1 = EVP_sha1();
                 }
                 finally
                 {
@@ -126,59 +123,21 @@ public class OpenSSLDigest
             }
         }
 
-        long type;
+        type = EVP_sha1();
+        if (type == 0)
+            throw new IllegalStateException("EVP_sha1");
 
-        if (algorithm == SHA1)
-        {
-            long EVP_sha1 = OpenSSLDigest.EVP_sha1;
-
-            if (EVP_sha1 == 0)
-                throw new IllegalStateException("EVP_sha1");
-            else
-                type = EVP_sha1;
-        }
-        else
-        {
-            // It must have been checked prior to loading the OpenSSL (Crypto)
-            // library but the compiler needs it to be convinced that we are not
-            // attempting to use an uninitialized variable.
-            throw new IllegalArgumentException("algorithm " + algorithm);
-        }
-        this.type = type;
-
-        long ctx = EVP_MD_CTX_create();
-
+        ctx = EVP_MD_CTX_create();
         if (ctx == 0)
-        {
             throw new RuntimeException("EVP_MD_CTX_create");
-        }
-        else
-        {
-            boolean ok = false;
 
-            this.ctx = ctx;
-            try
-            {
-                reset();
+        reset();
 
-                // The byteLength and digestSize are actually properties of the
-                // (OpenSSL Crypto) type so it is really safe to query them
-                // once in light of the fact that the type is final.
-                byteLength = EVP_MD_CTX_block_size(ctx);
-                digestSize = EVP_MD_CTX_size(ctx);
-
-                ok = true;
-            }
-            finally
-            {
-                if (!ok)
-                {
-                    if (this.ctx == ctx)
-                        this.ctx = 0;
-                    EVP_MD_CTX_destroy(ctx);
-                }
-            }
-        }
+        // The byteLength and digestSize are actually properties of the
+        // (OpenSSL Crypto) type so it is really safe to query them
+        // once in light of the fact that the type is final.
+        byteLength = EVP_MD_CTX_block_size(ctx);
+        digestSize = EVP_MD_CTX_size(ctx);
     }
 
     /**
@@ -275,17 +234,12 @@ public class OpenSSLDigest
     @Override
     public void reset()
     {
-        long ctx = this.ctx;
-
         if (ctx == 0)
-        {
             throw new IllegalStateException("ctx");
-        }
-        else if (!EVP_DigestInit_ex(ctx, type, /* impl */ 0L))
-        {
+
+        if (!EVP_DigestInit_ex(ctx, type, /* impl */ 0L))
             throw new RuntimeException(
                     "EVP_DigestInit_ex(" + getAlgorithmName() + ")");
-        }
     }
 
     /**
