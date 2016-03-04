@@ -29,6 +29,16 @@ import java.util.*;
 public interface RTPTranslator
 {
     /**
+     * Finds the {@code StreamRTPManager} which receives a specific SSRC.
+     *
+     * @param receiveSSRC the SSRC of the RTP stream received by the
+     * {@code StreamRTPManager} to be returned
+     * @return the {@code StreamRTPManager} which receives {@code receiveSSRC}
+     * of {@code null}
+     */
+    public StreamRTPManager findStreamRTPManagerByReceiveSSRC(int receiveSSRC);
+
+    /**
      * Returns a list of <tt>StreamRTPManager</tt>s currently attached to
      * this <tt>RTPTranslator</tt>. This is
      * admittedly wrong, to expose the bare <tt>SSRCCache</tt> to the use of

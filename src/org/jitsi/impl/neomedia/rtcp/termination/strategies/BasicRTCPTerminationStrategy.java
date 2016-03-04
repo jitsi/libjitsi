@@ -90,14 +90,6 @@ public class BasicRTCPTerminationStrategy
     private final RTPStatsMap rtpStatsMap = new RTPStatsMap();
 
     /**
-     * The RTCP stats map that holds RTCP statistics about all the streams that
-     * this <tt>BasicRTCPTerminationStrategy</tt> (as a
-     * <tt>TransformEngine</tt>) has observed.
-     */
-    private final RemoteClockEstimator remoteClockEstimator =
-        new RemoteClockEstimator();
-
-    /**
      * The <tt>CNameRegistry</tt> holds the CNAMEs that this RTCP termination,
      * seen as a TransformEngine, has seen.
      */
@@ -195,10 +187,6 @@ public class BasicRTCPTerminationStrategy
                         "Failed to terminate an RTCP packet. Dropping packet.");
                 return null;
             }
-
-            // Update our RTCP stats map (timestamps). This operation is
-            // read-only.
-            remoteClockEstimator.update(compound);
 
             cnameRegistry.update(compound);
 
@@ -866,15 +854,20 @@ public class BasicRTCPTerminationStrategy
      */
     private List<RTCPSRPacket> makeSRs(long time)
     {
+        MediaStreamImpl mediaStream = getMediaStreamImpl();
         List<RTCPSRPacket> srs = new ArrayList<>();
 
         for (RTPStatsEntry rtpStatsEntry : rtpStatsMap.values())
         {
             int ssrc = rtpStatsEntry.getSsrc();
-            RemoteClock estimate = remoteClockEstimator.estimate(ssrc, time);
-            if (estimate == null)
+            RemoteClock remoteClock
+                = RemoteClock.findRemoteClock(mediaStream, ssrc);
+            Timestamp remoteTs;
+
+            if (remoteClock == null
+                    || (remoteTs = remoteClock.estimate(time)) == null)
             {
-                // We're not going to go far without an estimate..
+                // We're not going to go far without an estimate.
                 continue;
             }
 
@@ -882,13 +875,13 @@ public class BasicRTCPTerminationStrategy
                 = new RTCPSRPacket(ssrc, MIN_RTCP_REPORT_BLOCKS_ARRAY);
 
             // Set the NTP timestamp for this SR.
-            long estimatedRemoteTime = estimate.getRemoteTime();
-            long ntpTime = TimeUtils.toNtpTime(estimatedRemoteTime);
-            sr.ntptimestampmsw = TimeUtils.getMsw(ntpTime);
-            sr.ntptimestamplsw = TimeUtils.getLsw(ntpTime);
+            long remoteSystemTimeMs = remoteTs.getSystemTimeMs();
+            long remoteNtpTime = TimeUtils.toNtpTime(remoteSystemTimeMs);
+            sr.ntptimestampmsw = TimeUtils.getMsw(remoteNtpTime);
+            sr.ntptimestamplsw = TimeUtils.getLsw(remoteNtpTime);
 
             // Set the RTP timestamp.
-            sr.rtptimestamp = estimate.getRtpTimestamp();
+            sr.rtptimestamp = remoteTs.getRtpTimestamp();
 
             // Fill-in packet and octet send count.
             sr.packetcount = rtpStatsEntry.getPacketsSent();
@@ -1003,15 +996,6 @@ public class BasicRTCPTerminationStrategy
 
         return sdesPackets;
     }
-
-    /**
-     * @return the {@link RemoteClockEstimator} of this instance.
-     */
-    public RemoteClockEstimator getRemoteClockEstimator()
-    {
-        return remoteClockEstimator;
-    }
-
 
     /**
      * The garbage collector runs at each reporting interval and cleans up

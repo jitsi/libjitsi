@@ -62,12 +62,9 @@ public class SsrcRewritingEngine implements TransformEngine
     static final int INVALID_SEQNUM = -1;
 
     /**
-     * An int const indicating an invalid SSRC.
-     *
-     * FIXME 0 is actually a valid SSRC. That's one essential reason why we need
-     * SSRCs to be represented by Longs and not Ints.
+     * The {@code long} constant indicating an invalid SSRC.
      */
-    private static final int INVALID_SSRC = 0;
+    static final long INVALID_SSRC = -1L;
 
     /**
      * An int const indicating an unused SSRC. The usage of value 0 is also done
@@ -94,6 +91,11 @@ public class SsrcRewritingEngine implements TransformEngine
      * The owner of this instance.
      */
     private final MediaStream mediaStream;
+
+    /**
+     * The view of {@link #mediaStream} as a {@code MediaStreamImpl} instance.
+     */
+    private final MediaStreamImpl _mediaStreamImpl;
 
     /**
      * Generates <tt>RawPacket</tt>s from <tt>RTCPCompoundPacket</tt>s.
@@ -198,6 +200,12 @@ public class SsrcRewritingEngine implements TransformEngine
     public SsrcRewritingEngine(MediaStream mediaStream)
     {
         this.mediaStream = mediaStream;
+
+        _mediaStreamImpl
+            = (mediaStream instanceof MediaStreamImpl)
+                ? (MediaStreamImpl) mediaStream
+                : null;
+
         logger.debug("Created a new SSRC rewriting engine.");
     }
 
@@ -425,24 +433,18 @@ public class SsrcRewritingEngine implements TransformEngine
      * Reverse rewrites the target SSRC into an origin SSRC based on the
      * currently active SSRC rewriter for that target SSRC.
      *
-     * @param ssrc the target SSRC to rewrite into a source SSRC.
+     * @param ssrc the target SSRC to rewrite into a source SSRC or
+     * {@link #INVALID_SSRC}.
      */
-    private int reverseRewriteSSRC(int ssrc)
+    private long reverseRewriteSSRC(int ssrc)
     {
-        // If there is an <tt>SsrcGroupRewriter</tt>, rewrite
-        // the packet, otherwise include it unaltered.
+        // If there is an SsrcGroupRewriter, rewrite the packet; otherwise,
+        // include it unaltered.
         RefCount<SsrcGroupRewriter> refCount = target2rewriter.get(ssrc);
         SsrcGroupRewriter ssrcGroupRewriter;
 
-        if (refCount != null)
-        {
-            ssrcGroupRewriter = refCount.getReferent();
-        }
-        else
-        {
-            return INVALID_SSRC;
-        }
-        if (ssrcGroupRewriter == null)
+        if (refCount == null
+                || (ssrcGroupRewriter = refCount.getReferent()) == null)
         {
             return INVALID_SSRC;
         }
@@ -451,12 +453,16 @@ public class SsrcRewritingEngine implements TransformEngine
 
         if (activeRewriter == null)
         {
-            logger.debug(
-                    "Could not find an SsrcRewriter for the RTCP packet type: ");
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(
+                        "Could not find an SsrcRewriter for SSRC: "
+                            + (ssrc & 0xffffffffL));
+            }
             return INVALID_SSRC;
         }
 
-        return activeRewriter.getSourceSSRC();
+        return activeRewriter.getSourceSSRC() & 0xffffffffL;
     }
 
     /**
@@ -469,6 +475,18 @@ public class SsrcRewritingEngine implements TransformEngine
     public MediaStream getMediaStream()
     {
         return mediaStream;
+    }
+
+    /**
+     * Gets the {@code MediaStreamImpl} which has initialized this instance and
+     * is its owner.
+     *
+     * @return the {@code MediaStreamImpl} which has initialized this instance
+     * and is its owner
+     */
+    public MediaStreamImpl getMediaStreamImpl()
+    {
+        return _mediaStreamImpl;
     }
 
     /**
@@ -616,7 +634,7 @@ public class SsrcRewritingEngine implements TransformEngine
 
                     if (ssrc != UNUSED_SSRC)
                     {
-                        int reverseSSRC = reverseRewriteSSRC(ssrc);
+                        long reverseSSRC = reverseRewriteSSRC(ssrc);
 
                         if (reverseSSRC == INVALID_SSRC)
                         {
@@ -627,7 +645,7 @@ public class SsrcRewritingEngine implements TransformEngine
                         }
                         else
                         {
-                            psfb.sourceSSRC = reverseSSRC & 0xffffffffL;
+                            psfb.sourceSSRC = reverseSSRC;
                         }
                     }
 
@@ -642,7 +660,7 @@ public class SsrcRewritingEngine implements TransformEngine
                         {
                             for (int i = 0; i < dest.length; i++)
                             {
-                                int reverseSSRC
+                                long reverseSSRC
                                     = reverseRewriteSSRC((int) dest[i]);
                                 if (reverseSSRC == INVALID_SSRC)
                                 {
@@ -653,7 +671,7 @@ public class SsrcRewritingEngine implements TransformEngine
                                 }
                                 else
                                 {
-                                    dest[i] = reverseSSRC & 0xffffffffL;
+                                    dest[i] = reverseSSRC;
                                 }
                             }
                         }
@@ -734,7 +752,7 @@ public class SsrcRewritingEngine implements TransformEngine
         /**
          * The <tt>Comparator</tt> used to compare sequence numbers.
          */
-        private static final SeqNumComparator seqNumComparator
+        private static final SeqNumComparator SEQ_NUM_COMPARATOR
             = new SeqNumComparator();
 
         /**
@@ -743,17 +761,14 @@ public class SsrcRewritingEngine implements TransformEngine
          */
         public synchronized void update(RawPacket pkt)
         {
-            int ssrc = pkt.getSSRC();
-            int seqnum = pkt.getSequenceNumber();
-            if (map.containsKey(ssrc))
-            {
-                int oldSeqnum = map.get(ssrc);
-                if (seqNumComparator.compare(seqnum, oldSeqnum) == 1)
-                {
-                    map.put(ssrc, seqnum);
-                }
-            }
-            else
+            // XXX Autobox early and, most importantly, once because we'll need
+            // the boxed values only.
+            Integer ssrc = pkt.getSSRC();
+            Integer seqnum = pkt.getSequenceNumber();
+
+            Integer oldSeqnum = map.get(ssrc);
+            if (oldSeqnum == null
+                    || SEQ_NUM_COMPARATOR.compare(seqnum, oldSeqnum) == 1)
             {
                 map.put(ssrc, seqnum);
             }

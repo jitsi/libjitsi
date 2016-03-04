@@ -17,10 +17,10 @@ package org.jitsi.impl.neomedia.transform.rewriting;
 
 import java.util.*;
 
-import org.jitsi.util.*;
-import org.jitsi.util.function.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.util.*;
+import org.jitsi.util.function.*;
 
 /**
  * Does the dirty job of rewriting SSRCs and sequence numbers of a
@@ -79,52 +79,21 @@ class ExtendedSequenceNumberInterval
     long lastSeen;
 
     /**
-     * Holds the max RTP timestamp that we've sent (to the endpoint)
-     * in this interval.
-     */
-    long maxTimestamp;
-
-    private final long timestampOrig;
-
-    private final long timestampTarget;
-
-    /**
      * Ctor.
      *
      * @param ssrcRewriter
      * @param extendedBaseOrig
      * @param extendedBaseTarget
-     * @param timestampOrig
-     * @param timestampTarget
      */
     public ExtendedSequenceNumberInterval(
             SsrcRewriter ssrcRewriter,
-            int extendedBaseOrig, int extendedBaseTarget,
-            long timestampOrig, long timestampTarget)
+            int extendedBaseOrig, int extendedBaseTarget)
     {
         this.ssrcRewriter = ssrcRewriter;
         this.extendedBaseTarget = extendedBaseTarget;
 
         this.extendedMinOrig = extendedBaseOrig;
         this.extendedMaxOrig = extendedBaseOrig;
-
-        this.timestampOrig = timestampOrig;
-        this.timestampTarget = timestampTarget;
-    }
-
-    public long getLastSeen()
-    {
-        return lastSeen;
-    }
-
-    public int getExtendedMin()
-    {
-        return extendedMinOrig;
-    }
-
-    public int getExtendedMax()
-    {
-        return extendedMaxOrig;
     }
 
     /**
@@ -159,8 +128,12 @@ class ExtendedSequenceNumberInterval
      *
      * @param pkt the {@code RawPacket} which represents the RTP packet to be
      * rewritten
+     * @param retransmission {@code true} if the rewrite of {@code pkt} is for
+     * the purposes of a retransmission (i.e. a {@code RawPacket} representing
+     * the same information as {@code pkt} was possibly rewritten and sent
+     * before); otherwise, {@code false}
      */
-    public RawPacket rewriteRTP(RawPacket pkt)
+    public RawPacket rewriteRTP(RawPacket pkt, boolean retransmission)
     {
         // SSRC
         SsrcGroupRewriter ssrcGroupRewriter = getSsrcGroupRewriter();
@@ -225,7 +198,7 @@ class ExtendedSequenceNumberInterval
         // XXX Since we may be rewriting the RTP timestamp and, consequently, we
         // may be remembering timestamp-related state, it sounds better to do
         // these after FEC and RTX have not discarded pkt.
-        rewriteTimestamp(pkt);
+        rewriteTimestamp(pkt, retransmission);
 
         return pkt;
     }
@@ -233,26 +206,19 @@ class ExtendedSequenceNumberInterval
     /**
      * Rewrites the RTP timestamp of a specific RTP packet.
      *
-     * @param pkt the {@code RawPacket} which represents the RTP packet to
-     * rewrite the RTP timestamp of
+     * @param p the {@code RawPacket} which represents the RTP packet to rewrite
+     * the RTP timestamp of
+     * @param retransmission {@code true} if the rewrite of {@code p} is for the
+     * purposes of a retransmission (i.e. a {@code RawPacket} representing the
+     * same information as {@code pkt} was possibly rewritten and sent before);
+     * otherwise, {@code false}
      */
-    private void rewriteTimestamp(RawPacket pkt)
+    private void rewriteTimestamp(RawPacket p, boolean retransmission)
     {
-        long timestamp = pkt.getTimestamp();
-
-        // Rewrite timestampOrig into timestampTarget.
-        if (timestamp == timestampOrig)
-        {
-            timestamp = timestampTarget;
-            pkt.setTimestamp(timestamp);
-        }
-
-        // Update the maximum RTP timestamp that we've sent to the endpoint (in
-        // this interval).
-        if (maxTimestamp < timestamp)
-        {
-            maxTimestamp = timestamp;
-        }
+        // There is nothing specific to ExtendedSequenceNumberInterval in the
+        // rewriting of the RTP timestamps at the time of this writing. Forward
+        // to the owner/parent i.e. SsrcRewriter.
+        ssrcRewriter.rewriteTimestamp(p, retransmission);
     }
 
     /**
@@ -367,7 +333,8 @@ class ExtendedSequenceNumberInterval
         // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         // |        length recovery        |
         // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-        short snBase = (short) ((buf[off + 2] & 0xff) << 8 | (buf[off + 3] & 0xff));
+        short snBase
+            = (short) ((buf[off + 2] & 0xff) << 8 | (buf[off + 3] & 0xff));
 
         SsrcGroupRewriter rewriter
             = getSsrcRewritingEngine().origin2rewriter.get(sourceSSRC);

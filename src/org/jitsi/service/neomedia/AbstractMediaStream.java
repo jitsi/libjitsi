@@ -58,6 +58,12 @@ public abstract class AbstractMediaStream
     private RTCPTerminationStrategy rtcpTerminationStrategy;
 
     /**
+     * The <tt>RTPTranslator</tt>, if any, which forwards RTP and RTCP traffic
+     * between this and other <tt>MediaStream</tt>s.
+     */
+    protected RTPTranslator rtpTranslator;
+
+    /**
      * Adds a <tt>PropertyChangelistener</tt> to this stream which is to be
      * notified upon property changes such as a SSRC ID which becomes known.
      *
@@ -242,5 +248,24 @@ public abstract class AbstractMediaStream
 
             this.rtcpTerminationStrategy = rtcpTerminationStrategy;
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setRTPTranslator(RTPTranslator rtpTranslator)
+    {
+        if (this.rtpTranslator != rtpTranslator)
+            this.rtpTranslator = rtpTranslator;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RTPTranslator getRTPTranslator()
+    {
+        return rtpTranslator;
     }
 }

@@ -19,12 +19,11 @@ import java.io.*;
 import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.util.*;
-
 
 /**
  * Does the actual work of rewriting a group of SSRCs to a target SSRC. This
@@ -41,6 +40,13 @@ class SsrcGroupRewriter
      */
     private static final Logger logger
         = Logger.getLogger(SsrcGroupRewriter.class);
+
+    /**
+     * The value of {@link Logger#isTraceEnabled()} from the time of the
+     * initialization of the class {@code SsrcGroupRewriter} cached for the
+     * purposes of performance.
+     */
+    private static final boolean TRACE;
 
     /**
      * A map of SSRCs to <tt>SsrcRewriter</tt>. Each SSRC that we rewrite in
@@ -68,36 +74,22 @@ class SsrcGroupRewriter
     int currentExtendedSeqnumBase;
 
     /**
-     * Holds the max RTP timestamp that we've sent (to the endpoint).
-     *
-     * Ideally, what we should do is fully rewrite the timestamps, unless we
-     * can take advantage of some knowledge of the system. We have observed
-     * that in the Chromium simulcast implementation the initial timestamp
-     * value is the same for all the simulcast streams. Since they also
-     * share the same NTP clock, we can conclude that the RTP timestamps
-     * advance at the same rate. This means that we don't have to rewrite
-     * the RTP timestamps TAG(timestamp-uplifting).
-     *
-     * A small problem occurs when a stream switch happens: When a stream
-     * switches we request a keyframe for the stream we want to switch into.
-     * The problem is that the frames are sampled at different times, so
-     * we might end up with a key frame that is one sampling cycle behind
-     * what we were already streaming. We hack around this by implementing
-     * "RTP timestamp uplifting".
-     *
-     * When a switch occurs, we store the maximum timestamp that we've sent
-     * to an endpoint. If we observe new packets (NOT retransmissions) with
-     * timestamp older than what the endpoint has already seen, we overwrite
-     * the timestamp with maxTimestamp + 1.
-     */
-    private long maxTimestamp;
-
-    /**
      * The current <tt>SsrcRewriter</tt> that we use to rewrite source
      * SSRCs. The active rewriter is determined by the RTP packets that
      * we get.
      */
     private SsrcRewriter activeRewriter;
+
+    /**
+     * The SSRC of the RTP stream into whose RTP timestamp other RTP streams
+     * are rewritten.
+     */
+    private long _timestampSsrc;
+
+    static
+    {
+        TRACE = logger.isTraceEnabled();
+    }
 
     /**
      * Ctor.
@@ -112,8 +104,15 @@ class SsrcGroupRewriter
     {
         this.ssrcRewritingEngine = ssrcRewritingEngine;
         this.ssrcTarget = ssrcTarget;
-
         this.currentExtendedSeqnumBase = seqnumBase;
+
+        // XXX At first it seemed like we could rewrite RTP timestamps to the
+        // first SSRC which requires RTP timestamp rewriting. However, we are
+        // sending RTCP SRs with the timestamp of ssrcTarget. Consequently, we
+        // have to rewrite the RTP timestamps to ssrcTarget. Anyway, leave the
+        // infrastructure around _timestampSsrc for the purposes of
+        // experimenting.
+        _timestampSsrc = ssrcTarget;
     }
 
     /**
@@ -208,29 +207,66 @@ class SsrcGroupRewriter
      * rewriter appropriately. It then rewrites the <tt>RawPacket</tt> that is
      * passed in as a parameter using the active rewriter.
      *
-     * @param pkt the packet to rewrite
+     * @param p the packet to rewrite
      * @return the rewritten <tt>RawPacket</tt>
      */
-    public RawPacket rewriteRTP(final RawPacket pkt)
+    public RawPacket rewriteRTP(RawPacket p)
     {
-        if (pkt == null)
+        if (p == null)
         {
-            return pkt;
+            return p;
         }
 
-        maybeSwitchActiveRewriter(pkt);
+        maybeSwitchActiveRewriter(p);
 
         if (activeRewriter == null)
         {
             logger.warn(
                     "Can't rewrite the RTP packet because there's no active"
                         + " rewriter.");
-            return pkt;
         }
         else
         {
-            return activeRewriter.rewriteRTP(pkt);
+            // For the purposes of debugging, trace the rewriting of SSRC,
+            // sequence number, and RTP timestamp.
+            long ssrc0;
+            int seqnum0;
+            long ts0;
+
+            if (TRACE)
+            {
+                ssrc0 = p.getSSRCAsLong();
+                seqnum0 = p.getSequenceNumber();
+                ts0 = p.getTimestamp();
+            }
+            else
+            {
+                // Assign values so that the compiler does not complain that the
+                // local variables may be used without being initializaed. Do
+                // not read the actual values because the reads are not trivial.
+                ssrc0 = SsrcRewritingEngine.INVALID_SSRC;
+                seqnum0 = SsrcRewritingEngine.INVALID_SEQNUM;
+                ts0 = 0;
+            }
+
+            p = activeRewriter.rewriteRTP(p);
+
+            // For the purposes of debugging, trace the rewriting of SSRC,
+            // sequence number, and RTP timestamp.
+            if (TRACE && p != null)
+            {
+                long ssrc1 = p.getSSRCAsLong();
+                int seqnum1 = p.getSequenceNumber();
+                long ts1 = p.getTimestamp();
+
+                logger.trace(
+                        "rewriteRTP SSRC, seqnum, ts from: "
+                            + ssrc0 + "," + seqnum0 + "," + ts0
+                            + " to: "
+                            + ssrc1 + "," + seqnum1 + "," + ts1);
+            }
         }
+        return p;
     }
 
     /**
@@ -253,7 +289,7 @@ class SsrcGroupRewriter
                 logger.debug(
                         "Creating an SSRC rewriter to rewrite "
                             + pkt.getSSRCAsLong() + " to "
-                            + (ssrcTarget & 0xffffffffl));
+                            + (ssrcTarget & 0xffffffffL));
             }
             rewriters.put(sourceSSRC, new SsrcRewriter(this, sourceSSRC));
         }
@@ -261,21 +297,22 @@ class SsrcGroupRewriter
         if (activeRewriter != null
                 && activeRewriter.getSourceSSRC() != sourceSSRC)
         {
-            // Got a packet with a different SSRC from the one that the
-            // current SsrcRewriter handles. Pause the current SsrcRewriter
-            // and switch to the correct one.
+            // Got a packet with a different SSRC from the one that the current
+            // SsrcRewriter handles. Pause the current SsrcRewriter and switch
+            // to the correct one.
             if (debug)
             {
-                logger.debug("Now rewriting " + pkt.getSSRCAsLong() + "/"
-                        + pkt.getSequenceNumber() + " to "
-                        + (ssrcTarget & 0xffffffffl) + " (was rewriting "
-                        + (activeRewriter.getSourceSSRC() & 0xffffffffl)
-                        + ").");
+                logger.debug(
+                        "Now rewriting " + pkt.getSSRCAsLong() + "/"
+                            + pkt.getSequenceNumber() + " to "
+                            + (ssrcTarget & 0xffffffffL) + " (was rewriting "
+                            + (activeRewriter.getSourceSSRC() & 0xffffffffL)
+                            + ").");
             }
 
-            // We don't have to worry about sequence number intervals that
-            // span multiple sequence number cycles because the extended
-            // sequence number interval length is 32 bits.
+            // We don't have to worry about sequence number intervals that span
+            // multiple sequence number cycles because the extended sequence
+            // number interval length is 32 bits.
             ExtendedSequenceNumberInterval currentInterval
                 = activeRewriter.getCurrentExtendedSequenceNumberInterval();
             int currentIntervalLength
@@ -288,15 +325,15 @@ class SsrcGroupRewriter
                             + " right.");
             }
 
-            // Pause the active rewriter (closes its current interval and
-            // puts it in the interval tree).
+            // Pause the active rewriter (closes its current interval and puts
+            // it in the interval tree).
             activeRewriter.pause();
 
             // FIXME We're using logger.warn under the condition of debug bellow.
             if (debug)
             {
-                // We're only supposed to switch on key frames. Here we check
-                // if that's the case.
+                // We're only supposed to switch on key frames. Here we check if
+                // that's the case.
                 if (!isKeyFrame(pkt))
                 {
                     logger.warn(
@@ -306,8 +343,8 @@ class SsrcGroupRewriter
             }
 
             // Because {#currentExtendedSeqnumBase} is an extended sequence
-            // number, if we keep increasing it, it will eventually result
-            // in natural wrap around of the low 16 bits.
+            // number, if we keep increasing it, it will eventually result in
+            // natural wrap around of the low 16 bits.
             currentExtendedSeqnumBase += (currentIntervalLength + 1);
             activeRewriter = rewriters.get(sourceSSRC);
         }
@@ -318,7 +355,7 @@ class SsrcGroupRewriter
             {
                 logger.debug(
                         "Now rewriting " + pkt.getSSRCAsLong() + " to "
-                            + (ssrcTarget & 0xffffffffl));
+                            + (ssrcTarget & 0xffffffffL));
             }
             // We haven't initialized yet.
             activeRewriter = rewriters.get(sourceSSRC);
@@ -377,8 +414,10 @@ class SsrcGroupRewriter
 
         if (retransmissionInterval == null)
         {
-            logger.warn("Could not find a retransmission interval for seqnum " +
-                    (seqnum & 0x0000ffff) + " from " + (ssrcOrigin & 0xffffffffl));
+            logger.warn(
+                    "Could not find a retransmission interval for seqnum "
+                        + (seqnum & 0x0000ffff) + " from "
+                        + (ssrcOrigin & 0xffffffffL));
             return SsrcRewritingEngine.INVALID_SEQNUM;
         }
         else
@@ -404,26 +443,48 @@ class SsrcGroupRewriter
     }
 
     /**
-     * Gets the maximum RTP timestamp that we've sent to the remote endpoint.
+     * Gets the {@code MediaStreamImpl} associated with this instance.
      *
-     * @return the maximum RTP timestamp that we've sent to the remote endpoint
+     * @return the {@code MediaStreamImpl} associated with this instance
      */
-    public long getMaxTimestamp()
+    public MediaStreamImpl getMediaStreamImpl()
     {
-        return maxTimestamp;
+        return ssrcRewritingEngine.getMediaStreamImpl();
     }
 
     /**
-     * Sets the maximum RTP timestamp that we've sent to the remote endpoint.
+     * Gets the SSRC of the RTP stream into whose RTP timestamp other RTP
+     * streams are rewritten.
      *
-     * @param maxTimestamp the maximum RTP timestamp that we've sent to the
-     * remote endpoint
+     * @return the SSRC of the RTP stream into whose RTP timestamp other RTP
+     * streams are rewritten
      */
-    public void setMaxTimestamp(long maxTimestamp)
+    long getTimestampSsrc()
     {
-        if (this.maxTimestamp < maxTimestamp)
-        {
-            this.maxTimestamp = maxTimestamp;
-        }
+        return _timestampSsrc;
+    }
+
+    /**
+     * Sets the SSRC of the RTP stream into whose RTP timestamp other RTP
+     * streams are to be rewritten.
+     *
+     * @param timestampSsrc the SSRC of the RTP stream into whose RTP timestamp
+     * other RTP streams are to be rewritten
+     */
+    void setTimestampSsrc(int timestampSsrc)
+    {
+        setTimestampSsrc(timestampSsrc & 0xffffffffL);
+    }
+
+    /**
+     * Sets the SSRC of the RTP stream into whose RTP timestamp other RTP
+     * streams are to be rewritten.
+     *
+     * @param timestampSsrc the SSRC of the RTP stream into whose RTP timestamp
+     * other RTP streams are to be rewritten
+     */
+    void setTimestampSsrc(long timestampSsrc)
+    {
+        _timestampSsrc = timestampSsrc;
     }
 }
