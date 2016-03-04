@@ -214,6 +214,11 @@ public class JNIEncoder
     private boolean useFec;
 
     /**
+     * Whether to use VBR, obtained from configuration.
+     */
+    private boolean useVbr;
+
+    /**
      * Initializes a new <tt>JNIEncoder</tt> instance.
      */
     public JNIEncoder()
@@ -304,6 +309,9 @@ public class JNIEncoder
         useDtx = cfg.getBoolean(Constants.PROP_OPUS_DTX, true);
         Opus.encoder_set_dtx(encoder, useDtx ? 1 : 0);
 
+        useVbr = cfg.getBoolean(Constants.PROP_OPUS_VBR, true);
+        Opus.encoder_set_vbr(encoder, useVbr ? 1 : 0);
+
         if(logger.isDebugEnabled())
         {
             String bw;
@@ -318,9 +326,10 @@ public class JNIEncoder
             }
             logger.debug(
                     "Encoder settings: audio bandwidth " + bw + ", bitrate "
-                        + Opus.encoder_get_bitrate(encoder) + ", DTX "
-                        + Opus.encoder_get_dtx(encoder) + ", FEC "
-                        + Opus.encoder_get_inband_fec(encoder));
+                            + Opus.encoder_get_bitrate(encoder) + ", DTX "
+                            + Opus.encoder_get_dtx(encoder) + ", FEC "
+                            + Opus.encoder_get_inband_fec(encoder) + ", VBR "
+                            + Opus.encoder_get_vbr(encoder));
         }
     }
 

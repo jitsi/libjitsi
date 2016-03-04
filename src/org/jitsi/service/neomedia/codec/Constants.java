@@ -163,6 +163,14 @@ public class Constants
             + ".MIN_EXPECTED_PACKET_LOSS";
 
     /**
+     * The name of the property used to control whether VBR is enabled for the
+     * Opus encoder
+     */
+    public static final String PROP_OPUS_VBR
+            = "net.java.sip.communicator.impl.neomedia.codec.audio.opus.encoder"
+            + ".VBR";
+
+    /**
      * The name of the property used to control whether FEC support is
      * advertised for SILK
      */
