@@ -250,12 +250,6 @@ public class MediaStreamImpl
     private StreamRTPManager rtpManager;
 
     /**
-     * The <tt>RTPTranslator</tt>, if any, which forwards RTP and RTCP traffic
-     * between this and other <tt>MediaStream</tt>s.
-     */
-    protected RTPTranslator rtpTranslator;
-
-    /**
      * The indicator which determines whether {@link #createSendStreams()} has
      * been executed for {@link #rtpManager}. If <tt>true</tt>, the
      * <tt>SendStream</tt>s have to be recreated when the <tt>MediaDevice</tt>,
@@ -2755,25 +2749,6 @@ public class MediaStreamImpl
             if (deviceSession != null)
                 deviceSession.setMute(this.mute);
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setRTPTranslator(RTPTranslator rtpTranslator)
-    {
-        if (this.rtpTranslator != rtpTranslator)
-            this.rtpTranslator = rtpTranslator;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public RTPTranslator getRTPTranslator()
-    {
-        return rtpTranslator;
     }
 
     /**
