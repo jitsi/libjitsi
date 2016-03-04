@@ -19,7 +19,6 @@ import java.util.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
-import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jitsi.util.function.*;
 
@@ -95,21 +94,6 @@ class ExtendedSequenceNumberInterval
 
         this.extendedMinOrig = extendedBaseOrig;
         this.extendedMaxOrig = extendedBaseOrig;
-    }
-
-    public long getLastSeen()
-    {
-        return lastSeen;
-    }
-
-    public int getExtendedMin()
-    {
-        return extendedMinOrig;
-    }
-
-    public int getExtendedMax()
-    {
-        return extendedMaxOrig;
     }
 
     /**
@@ -234,7 +218,7 @@ class ExtendedSequenceNumberInterval
         // There is nothing specific to ExtendedSequenceNumberInterval in the
         // rewriting of the RTP timestamps at the time of this writing. Forward
         // to the owner/parent i.e. SsrcRewriter.
-        ssrcRewriter.rewriteTimestamp(this, p, retransmission);
+        ssrcRewriter.rewriteTimestamp(p, retransmission);
     }
 
     /**
@@ -368,26 +352,6 @@ class ExtendedSequenceNumberInterval
         buf[off + 2] = (byte) (snRewritenBase & 0xff00 >> 8);
         buf[off + 3] = (byte) (snRewritenBase & 0x00ff);
         return true;
-    }
-
-    /**
-     * Gets the {@code MediaStream} associated with this instance.
-     *
-     * @return the {@code MediaStream} associated with this instance
-     */
-    public MediaStream getMediaStream()
-    {
-        return ssrcRewriter.getMediaStream();
-    }
-
-    /**
-     * Gets the {@code MediaStreamImpl} associated with this instance.
-     *
-     * @return the {@code MediaStreamImpl} associated with this instance
-     */
-    public MediaStreamImpl getMediaStreamImpl()
-    {
-        return ssrcRewriter.getMediaStreamImpl();
     }
 
     /**

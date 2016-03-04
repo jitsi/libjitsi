@@ -178,8 +178,6 @@ class SsrcRewriter
     /**
      * Rewrites the RTP timestamp of a specific RTP packet.
      *
-     * @param caller the {@code ExtendedSequenceNumberInterval} which requests
-     * the rewrite
      * @param p the {@code RawPacket} which represents the RTP packet to rewrite
      * the RTP timestamp of
      * @param retransmission {@code true} if the rewrite of {@code p} is for the
@@ -188,7 +186,6 @@ class SsrcRewriter
      * otherwise, {@code false}
      */
     void rewriteTimestamp(
-            ExtendedSequenceNumberInterval caller,
             RawPacket p,
             boolean retransmission)
     {
@@ -202,7 +199,7 @@ class SsrcRewriter
             // protections implemented here does not simultaneously accommodate
             // the two cases.
 
-            rewriteTimestamp(p, retransmission);
+            rewriteTimestamp(p);
         }
         else
         {
@@ -217,7 +214,7 @@ class SsrcRewriter
             }
             else
             {
-                rewriteTimestamp(p, retransmission);
+                rewriteTimestamp(p);
 
                 long newValue = p.getTimestamp();
 
@@ -235,12 +232,8 @@ class SsrcRewriter
      *
      * @param p the {@code RawPacket} which represents the RTP packet to rewrite
      * the RTP timestamp of
-     * @param retransmission {@code true} if the rewrite of {@code p} is for the
-     * purposes of a retransmission (i.e. a {@code RawPacket} representing the
-     * same information as {@code pkt} was possibly rewritten and sent before);
-     * otherwise, {@code false}
      */
-    private void rewriteTimestamp(RawPacket p, boolean retransmission)
+    private void rewriteTimestamp(RawPacket p)
     {
         SsrcGroupRewriter ssrcGroupRewriter = this.ssrcGroupRewriter;
         long timestampSsrcAsLong = ssrcGroupRewriter.getTimestampSsrc();
@@ -450,15 +443,5 @@ class SsrcRewriter
     public MediaStreamImpl getMediaStreamImpl()
     {
         return ssrcGroupRewriter.getMediaStreamImpl();
-    }
-
-    /**
-     * Gets the {@code SsrcRewritingEngine} associated with this instance.
-     *
-     * @return the {@code SsrcRewritingEngine} associated with this instance
-     */
-    public SsrcRewritingEngine getSsrcRewritingEngine()
-    {
-        return ssrcGroupRewriter.ssrcRewritingEngine;
     }
 }
