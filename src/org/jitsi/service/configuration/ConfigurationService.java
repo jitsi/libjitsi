@@ -301,6 +301,21 @@ public interface ConfigurationService
     public int getInt(String propertyName, int defaultValue);
 
     /**
+     * Gets the value of a specific property as a double. If the specified
+     * property name is associated with a value in this
+     * <tt>ConfigurationService</tt>, the string representation of the value is
+     * parsed into a double according to the rules of {@link
+     * Double#parseInt(String)}. If there is no value, or parsing of the value
+     * fails, <tt>defaultValue</tt> is returned.
+     *
+     * @param propertyName the name of the property.
+     * @param defaultValue the default value to be returned.
+     * @return the value of the property with the specified name in this
+     * <tt>ConfigurationService</tt> as a double, or <tt>defaultValue</tt>.
+     */
+    public double getDouble(String propertyName, double defaultValue);
+
+    /**
      * Gets the value of a specific property as a signed decimal long integer.
      * If the specified property name is associated with a value in this
      * <tt>ConfigurationService</tt>, the string representation of the value is

@@ -1463,6 +1463,30 @@ public class ConfigurationServiceImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public double getDouble(String propertyName, double defaultValue)
+    {
+        String stringValue = getString(propertyName);
+        double doubleValue = defaultValue;
+
+        if ((stringValue != null) && (stringValue.length() > 0))
+        {
+            try
+            {
+                doubleValue = Double.parseDouble(stringValue);
+            }
+            catch (NumberFormatException ex)
+            {
+                logger.error(propertyName + " does not appear to be a double. "
+                             + "Defaulting to " + defaultValue + ".", ex);
+            }
+        }
+        return doubleValue;
+    }
+
+    /**
      * Gets the value of a specific property as a signed decimal long integer.
      * If the specified property name is associated with a value in this
      * <tt>ConfigurationService</tt>, the string representation of the value is
