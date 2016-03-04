@@ -144,7 +144,7 @@ public class ConfigurationServiceImpl
     public ConfigurationServiceImpl()
     {
         /*
-         * XXX We explicitly delay the query for the FileAcessService
+         * XXX We explicitly delay the query for the FileAccessService
          * implementation because FileAccessServiceImpl looks for properties set
          * by methods of ConfigurationServiceImpl and we want to make sure that
          * we have given the chance to this ConfigurationServiceImpl to set
@@ -165,18 +165,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Sets the property with the specified name to the specified value. Calling
-     * this method would first trigger a PropertyChangeEvent that will
-     * be dispatched to all VetoableChangeListeners. In case no complaints
-     * (PropertyVetoException) have been received, the property will be actually
-     * changed and a PropertyChangeEvent will be dispatched.
-     * <p>
-     * @param propertyName the name of the property
-     * @param property the object that we'd like to be come the new value of the
-     * property.
-     *
-     * @throws ConfigPropertyVetoException in case someone is not happy with the
-     * change.
+     * {@inheritDoc}
      */
     @Override
     public void setProperty(String propertyName, Object property)
@@ -186,22 +175,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Sets the property with the specified name to the specified. Calling
-     * this method would first trigger a PropertyChangeEvent that will
-     * be dispatched to all VetoableChangeListeners. In case no complaints
-     * (PropertyVetoException) have been received, the property will be actually
-     * changed and a PropertyChangeEvent will be dispatched. This method also
-     * allows the caller to specify whether or not the specified property is a
-     * system one.
-     * <p>
-     * @param propertyName the name of the property to change.
-     * @param property the new value of the specified property.
-     * @param isSystem specifies whether or not the property being is a System
-     * property and should be resolved against the system property set. If the
-     * property has previously been specified as system then this value is
-     * internally forced to true.
-     * @throws ConfigPropertyVetoException in case someone is not happy with the
-     * change.
+     * {@inheritDoc}
      */
     @Override
     public void setProperty(String propertyName,
@@ -240,15 +214,8 @@ public class ConfigurationServiceImpl
                 propertyName, oldValue, property);
     }
 
-    /*
-     * Implements ConfigurationService#setProperties(Map). Optimizes the setting
-     * of properties by performing a single saving of the property store to the
-     * configuration file which is known to be slow because it involves
-     * converting the whole store to a string representation and writing a file
-     * to the disk.
-     *
-     * @throws ConfigPropertyVetoException in case someone is not happy with the
-     * change.
+    /**
+     * {@inheritDoc}
      */
     @Override
     public void setProperties(Map<String, Object> properties)
@@ -301,17 +268,14 @@ public class ConfigurationServiceImpl
      * Performs the actual setting of a property with a specific name to a
      * specific new value without asking <code>VetoableChangeListener</code>,
      * storing into the configuration file and notifying
-     * <code>PrpoertyChangeListener</code>s.
+     * {@link PropertyChangeListener}s.
      *
-     * @param propertyName
-     *            the name of the property which is to be set to a specific
-     *            value
-     * @param property
-     *            the value to be assigned to the property with the specified
-     *            name
-     * @param isSystem
-     *            <tt>true</tt> if the property with the specified name is to be
-     *            set as a system property; <tt>false</tt>, otherwise
+     * @param propertyName the name of the property which is to be set to a
+     * specific value.
+     * @param property the value to be assigned to the property with the
+     * specified name
+     * @param isSystem <tt>true</tt> if the property with the specified name is
+     * to be set as a system property; <tt>false</tt>, otherwise
      */
     private void doSetProperty(
         String propertyName, Object property, boolean isSystem)
@@ -353,14 +317,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Removes the property with the specified name. Calling
-     * this method would first trigger a PropertyChangeEvent that will
-     * be dispatched to all VetoableChangeListeners. In case no complaints
-     * (PropertyVetoException) have been received, the property will be actually
-     * changed and a PropertyChangeEvent will be dispatched.
-     * All properties with prefix propertyName will also be removed.
-     * <p>
-     * @param propertyName the name of the property to change.
+     * {@inheritDoc}
      */
     @Override
     public void removeProperty(String propertyName)
@@ -419,11 +376,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Returns the value of the property with the specified name or null if no
-     * such property exists.
-     *
-     * @param propertyName the name of the property that is being queried.
-     * @return the value of the property with the specified name.
+     * {@inheritDoc}
      */
     @Override
     public Object getProperty(String propertyName)
@@ -442,10 +395,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Returns a <tt>java.util.List</tt> of <tt>String</tt>s containing all
-     * property names.
-     *
-     * @return a <tt>java.util.List</tt>containing all property names
+     * {@inheritDoc}
      */
     @Override
     public List<String> getAllPropertyNames()
@@ -456,37 +406,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Returns a <tt>java.util.List</tt> of <tt>String</tt>s containing the
-     * all property names that have the specified prefix. Depending on the value
-     * of the <tt>exactPrefixMatch</tt> parameter the method will (when false)
-     * or will not (when exactPrefixMatch is true) include property names that
-     * have prefixes longer than the specified <tt>prefix</tt> param.
-     * <p>
-     * Example:
-     * <p>
-     * Imagine a configuration service instance containing 2 properties only:<br>
-     * <code>
-     * net.java.sip.communicator.PROP1=value1<br>
-     * net.java.sip.communicator.service.protocol.PROP1=value2
-     * </code>
-     * <p>
-     * A call to this method with a prefix="net.java.sip.communicator" and
-     * exactPrefixMatch=true would only return the first property -
-     * net.java.sip.communicator.PROP1, whereas the same call with
-     * exactPrefixMatch=false would return both properties as the second prefix
-     * includes the requested prefix string.
-     * <p>
-     * In addition to stored properties this method will also search the default
-     * mutable and immutable properties.
-     *
-     * @param prefix a String containing the prefix (the non dotted non-caps
-     * part of a property name) that we're looking for.
-     * @param exactPrefixMatch a boolean indicating whether the returned
-     * property names should all have a prefix that is an exact match of the
-     * the <tt>prefix</tt> param or whether properties with prefixes that
-     * contain it but are longer than it are also accepted.
-     * @return a <tt>java.util.List</tt>containing all property name String-s
-     * matching the specified conditions.
+     * {@inheritDoc}
      */
     @Override
     public List<String> getPropertyNamesByPrefix(String prefix,
@@ -582,27 +502,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Returns a <tt>List</tt> of <tt>String</tt>s containing the property names
-     * that have the specified suffix. A suffix is considered to be everything
-     * after the last dot in the property name.
-     * <p>
-     * For example, imagine a configuration service instance containing two
-     * properties only:
-     * </p>
-     * <code>
-     * net.java.sip.communicator.PROP1=value1
-     * net.java.sip.communicator.service.protocol.PROP1=value2
-     * </code>
-     * <p>
-     * A call to this method with <tt>suffix</tt> equal to "PROP1" will return
-     * both properties, whereas the call with <tt>suffix</tt> equal to
-     * "communicator.PROP1" or "PROP2" will return an empty <tt>List</tt>. Thus,
-     * if the <tt>suffix</tt> argument contains a dot, nothing will be found.
-     * </p>
-     *
-     * @param suffix the suffix for the property names to be returned
-     * @return a <tt>List</tt> of <tt>String</tt>s containing the property names
-     * which contain the specified <tt>suffix</tt>
+     * {@inheritDoc}
      */
     @Override
     public List<String> getPropertyNamesBySuffix(String suffix)
@@ -620,9 +520,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Adds a PropertyChangeListener to the listener list.
-     *
-     * @param listener the PropertyChangeListener to be added
+     * {@inheritDoc}
      */
     @Override
     public void addPropertyChangeListener(PropertyChangeListener listener)
@@ -631,9 +529,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Removes a PropertyChangeListener from the listener list.
-     *
-     * @param listener the PropertyChangeListener to be removed
+     * {@inheritDoc}
      */
     @Override
     public void removePropertyChangeListener(PropertyChangeListener listener)
@@ -642,11 +538,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Adds a PropertyChangeListener to the listener list for a specific
-     * property.
-     *
-     * @param propertyName one of the property names listed above
-     * @param listener the PropertyChangeListener to be added
+     * {@inheritDoc}
      */
     @Override
     public void addPropertyChangeListener(String propertyName,
@@ -657,11 +549,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Removes a PropertyChangeListener from the listener list for a specific
-     * property.
-     *
-     * @param propertyName a valid property name
-     * @param listener the PropertyChangeListener to be removed
+     * {@inheritDoc}
      */
     @Override
     public void removePropertyChangeListener(String propertyName,
@@ -672,9 +560,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Adds a VetoableChangeListener to the listener list.
-     *
-     * @param listener the VetoableChangeListener to be added
+     * {@inheritDoc}
      */
     @Override
     public void addVetoableChangeListener(ConfigVetoableChangeListener listener)
@@ -683,9 +569,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Removes a VetoableChangeListener from the listener list.
-     *
-     * @param listener the VetoableChangeListener to be removed
+     * {@inheritDoc}
      */
     @Override
     public void removeVetoableChangeListener(ConfigVetoableChangeListener listener)
@@ -694,11 +578,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Adds a VetoableChangeListener to the listener list for a specific
-     * property.
-     *
-     * @param propertyName one of the property names listed above
-     * @param listener the VetoableChangeListener to be added
+     * {@inheritDoc}
      */
     @Override
     public void addVetoableChangeListener(String propertyName,
@@ -708,11 +588,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Removes a VetoableChangeListener from the listener list for a specific
-     * property.
-     *
-     * @param propertyName a valid property name
-     * @param listener the VetoableChangeListener to be removed
+     * {@inheritDoc}
      */
     @Override
     public void removeVetoableChangeListener(String propertyName,
@@ -722,8 +598,8 @@ public class ConfigurationServiceImpl
             listener);
     }
 
-    /*
-     * Implements ConfigurationService#reloadConfiguration().
+    /**
+     * {@inheritDoc}
      */
     @Override
     public void reloadConfiguration()
@@ -766,8 +642,8 @@ public class ConfigurationServiceImpl
         }
     }
 
-    /*
-     * Implements ConfigurationService#storeConfiguration().
+    /**
+     * {@inheritDoc}
      */
     @Override
     public synchronized void storeConfiguration()
@@ -780,16 +656,14 @@ public class ConfigurationServiceImpl
      * Stores local properties in the specified configuration file.
      *
      * @param file a reference to the configuration file where properties should
-     *            be stored.
+     * be stored.
      * @throws IOException if there was a problem writing to the specified file.
      */
     private void storeConfiguration(File file)
         throws IOException
     {
-        /*
-         * If the configuration file is forcibly considered read-only, do not
-         * write it.
-         */
+         // If the configuration file is forcibly considered read-only, do not
+         // write it.
         String readOnly
             = System.getProperty(PNAME_CONFIGURATION_FILE_IS_READ_ONLY);
 
@@ -845,11 +719,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Use with caution! Returns the name of the configuration file currently
-     * used. Placed in HomeDirLocation/HomeDirName
-     * {@link #getScHomeDirLocation()}
-     * {@link #getScHomeDirName()}
-     * @return  the name of the configuration file currently used.
+     * {@inheritDoc}
      */
     @Override
     public String getConfigurationFilename()
@@ -1053,13 +923,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Returns the location of the directory where SIP Communicator is to store
-     * user specific data such as configuration files, message and call history
-     * as well as is bundle repository.
-     *
-     * @return the location of the directory where SIP Communicator is to store
-     * user specific data such as configuration files, message and call history
-     * as well as is bundle repository.
+     * {@inheritDoc}
      */
     @Override
     public String getScHomeDirLocation()
@@ -1096,13 +960,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Returns the name of the directory where SIP Communicator is to store user
-     * specific data such as configuration files, message and call history
-     * as well as is bundle repository.
-     *
-     * @return the name of the directory where SIP Communicator is to store
-     * user specific data such as configuration files, message and call history
-     * as well as is bundle repository.
+     * {@inheritDoc}
      */
     @Override
     public String getScHomeDirName()
@@ -1344,13 +1202,13 @@ public class ConfigurationServiceImpl
 
     /**
      * Returns the String value of the specified property (minus all
-     * encompasssing whitespaces)and null in case no property value was mapped
+     * encompassing whitespaces) and null in case no property value was mapped
      * against the specified propertyName, or in case the returned property
      * string had zero length or contained whitespaces only.
      *
      * @param propertyName the name of the property that is being queried.
      * @return the result of calling the property's toString method and null in
-     * case there was no vlaue mapped against the specified
+     * case there was no value mapped against the specified.
      * <tt>propertyName</tt>, or the returned string had zero length or
      * contained whitespaces only.
      */
@@ -1369,19 +1227,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Returns the String value of the specified property and null in case no
-     * property value was mapped against the specified propertyName, or in
-     * case the returned property string had zero length or contained
-     * whitespaces only.
-     *
-     * @param propertyName the name of the property that is being queried.
-     * @param defaultValue the value to be returned if the specified property
-     * name is not associated with a value in this
-     * <code>ConfigurationService</code>
-     * @return the result of calling the property's toString method and
-     * <code>defaultValue</code> in case there was no value mapped against
-     * the specified <tt>propertyName</tt>, or the returned string had zero
-     * length or contained whitespaces only.
+     * {@inheritDoc}
      */
     @Override
     public String getString(String propertyName, String defaultValue)
@@ -1391,7 +1237,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Implements ConfigurationService#getBoolean(String, boolean).
+     * {@inheritDoc}
      */
     @Override
     public boolean getBoolean(String propertyName, boolean defaultValue)
@@ -1420,25 +1266,7 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Gets the value of a specific property as a signed decimal integer. If the
-     * specified property name is associated with a value in this
-     * <tt>ConfigurationService</tt>, the string representation of the value is
-     * parsed into a signed decimal integer according to the rules of
-     * {@link Integer#parseInt(String)} . If parsing the value as a signed
-     * decimal integer fails or there is no value associated with the specified
-     * property name, <tt>defaultValue</tt> is returned.
-     *
-     * @param propertyName the name of the property to get the value of as a
-     * signed decimal integer
-     * @param defaultValue the value to be returned if parsing the value of the
-     * specified property name as a signed decimal integer fails or there is no
-     * value associated with the specified property name in this
-     * <tt>ConfigurationService</tt>
-     * @return the value of the property with the specified name in this
-     * <tt>ConfigurationService</tt> as a signed decimal integer;
-     * <tt>defaultValue</tt> if parsing the value of the specified property name
-     * fails or no value is associated in this <tt>ConfigurationService</tt>
-     * with the specified property name
+     * {@inheritDoc}
      */
     @Override
     public int getInt(String propertyName, int defaultValue)
@@ -1463,25 +1291,31 @@ public class ConfigurationServiceImpl
     }
 
     /**
-     * Gets the value of a specific property as a signed decimal long integer.
-     * If the specified property name is associated with a value in this
-     * <tt>ConfigurationService</tt>, the string representation of the value is
-     * parsed into a signed decimal long integer according to the rules of
-     * {@link Long#parseLong(String)} . If parsing the value as a signed
-     * decimal long integer fails or there is no value associated with the
-     * specified property name, <tt>defaultValue</tt> is returned.
-     *
-     * @param propertyName the name of the property to get the value of as a
-     * signed decimal long integer
-     * @param defaultValue the value to be returned if parsing the value of the
-     * specified property name as a signed decimal long integer fails or there
-     * is no value associated with the specified property name in this
-     * <tt>ConfigurationService</tt>
-     * @return the value of the property with the specified name in this
-     * <tt>ConfigurationService</tt> as a signed decimal long integer;
-     * <tt>defaultValue</tt> if parsing the value of the specified property name
-     * fails or no value is associated in this <tt>ConfigurationService</tt>
-     * with the specified property name
+     * {@inheritDoc}
+     */
+    @Override
+    public double getDouble(String propertyName, double defaultValue)
+    {
+        String stringValue = getString(propertyName);
+        double doubleValue = defaultValue;
+
+        if ((stringValue != null) && (stringValue.length() > 0))
+        {
+            try
+            {
+                doubleValue = Double.parseDouble(stringValue);
+            }
+            catch (NumberFormatException ex)
+            {
+                logger.error(propertyName + " does not appear to be a double. "
+                             + "Defaulting to " + defaultValue + ".", ex);
+            }
+        }
+        return doubleValue;
+    }
+
+    /**
+     * {@inheritDoc}
      */
     @Override
     public long getLong(String propertyName, long defaultValue)
@@ -1499,7 +1333,7 @@ public class ConfigurationServiceImpl
             {
                 logger.error(
                     propertyName
-                        + " does not appear to be a longinteger. "
+                        + " does not appear to be a long integer. "
                         + "Defaulting to " + defaultValue + ".",
                 ex);
             }

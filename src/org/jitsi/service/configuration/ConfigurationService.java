@@ -84,14 +84,14 @@ public interface ConfigurationService
      * <p>
      * @param propertyName the name of the property to change.
      * @param property the new value of the specified property.
-     * @throws ConfigPropertyVetoException in case the changed has been refused by
-     * at least one propertychange listener.
+     * @throws ConfigPropertyVetoException in case the changed has been refused
+     * by at least one propertychange listener.
      */
     public void setProperty(String propertyName, Object property);
         // throws PropertyVetoException;
 
     /**
-     * Sets the property with the specified name to the specified. Calling
+     * Sets the property with the specified name to the specified value. Calling
      * this method would first trigger a PropertyChangeEvent that will
      * be dispatched to all VetoableChangeListeners. In case no complaints
      * (PropertyVetoException) have been received, the property will be actually
@@ -101,9 +101,9 @@ public interface ConfigurationService
      * <p>
      * @param propertyName the name of the property to change.
      * @param property the new value of the specified property.
-     * @param isSystem specifies whether or not the property being is a System
-     *                 property and should be resolved against the system
-     *                 property set
+     * @param isSystem specifies whether or not the property being set is a
+     * System property and should be resolved against the system property set.
+     *
      * @throws ConfigPropertyVetoException in case the changed has been refused by
      * at least one propertychange listener.
      */
@@ -117,20 +117,18 @@ public interface ConfigurationService
      * meaning that first <code>VetoableChangeListener</code>s are asked to
      * approve the modifications of the specified properties to the specified
      * values, then the modifications are performed if no complaints have been
-     * raised in the form of <code>PropetyVetoException</code> and finally
+     * raised in the form of <code>PropertyVetoException</code> and finally
      * <code>PropertyChangeListener</code>s are notified about the changes of
      * each of the specified properties. The batch operations allows the
      * <code>ConfigurationService</code> implementations to optimize, for
      * example, the saving of the configuration which in this case can be
      * performed only once for the setting of multiple properties.
      *
-     * @param properties
-     *            a <code>Map</code> of property names to their new values to be
-     *            set
-     * @throws ConfigPropertyVetoException
-     *             if a change in at least one of the properties has been
-     *             refused by at least one of the
-     *             <code>VetoableChangeListener</code>s
+     * @param properties a {@link Map} of property names to their new values to
+     * be set.
+     * @throws ConfigPropertyVetoException if a change in at least one of the
+     * properties has been refused by at least one of the {@link
+     * VetoableChangeListener}s.
      */
     public void setProperties(Map<String, Object> properties);
         // throws PropertyVetoException;
@@ -159,19 +157,18 @@ public interface ConfigurationService
         // throws PropertyVetoException;
 
     /**
-     * Returns a <tt>java.util.List</tt> of <tt>String</tt>s containing all
+     * Returns a {@link List} of <tt>String</tt>s containing all
      * property names.
      *
-     * @return a <tt>java.util.List</tt>containing all property names
+     * @return a {@link List} containing all property names.
      */
     public List<String> getAllPropertyNames();
 
     /**
-     * Returns a <tt>java.util.List</tt> of <tt>String</tt>s containing the
-     * all property names that have the specified prefix. Depending on the value
-     * of the <tt>exactPrefixMatch</tt> parameter the method will (when false)
-     * or will not (when exactPrefixMatch is true) include property names that
-     * have prefixes longer than the specified <tt>prefix</tt> param.
+     * Returns a {@link List} of <tt>String</tt>s containing all property names
+     * that have the specified prefix. The return value will include property
+     * names that have prefixes longer than specified, unless the
+     * <tt>exactPrefixMatch</tt> parameter is <tt>true</tt>.
      * <p>
      * Example:
      * <p>
@@ -301,6 +298,21 @@ public interface ConfigurationService
     public int getInt(String propertyName, int defaultValue);
 
     /**
+     * Gets the value of a specific property as a double. If the specified
+     * property name is associated with a value in this
+     * <tt>ConfigurationService</tt>, the string representation of the value is
+     * parsed into a double according to the rules of {@link
+     * Double#parseDouble(String)}. If there is no value, or parsing of the
+     * value fails, <tt>defaultValue</tt> is returned.
+     *
+     * @param propertyName the name of the property.
+     * @param defaultValue the default value to be returned.
+     * @return the value of the property with the specified name in this
+     * <tt>ConfigurationService</tt> as a double, or <tt>defaultValue</tt>.
+     */
+    public double getDouble(String propertyName, double defaultValue);
+
+    /**
      * Gets the value of a specific property as a signed decimal long integer.
      * If the specified property name is associated with a value in this
      * <tt>ConfigurationService</tt>, the string representation of the value is
@@ -324,17 +336,17 @@ public interface ConfigurationService
     public long getLong(String propertyName, long defaultValue);
 
     /**
-     * Adds a PropertyChangeListener to the listener list. The listener is
-     * registered for all properties in the current configuration.
+     * Adds a {@link PropertyChangeListener} to the listener list. The listener
+     * is registered for all properties in the current configuration.
      * <p>
-     * @param listener the PropertyChangeListener to be added
+     * @param listener the {@link PropertyChangeListener} to be added
      */
     public void addPropertyChangeListener(PropertyChangeListener listener);
 
     /**
-     * Removes a PropertyChangeListener from the listener list.
+     * Removes a {@link PropertyChangeListener} from the listener list.
      * <p>
-     * @param listener the PropertyChangeListener to be removed
+     * @param listener the {@link PropertyChangeListener} to be removed
      */
     public void removePropertyChangeListener(PropertyChangeListener listener);
 
@@ -354,7 +366,7 @@ public interface ConfigurationService
      * Removes a PropertyChangeListener from the listener list for a specific
      * property. This method should be used to remove PropertyChangeListeners
      * that were registered for a specific property. The method has no effect
-     * when called for a listener that was not registered for that specifiec
+     * when called for a listener that was not registered for that specific
      * property.
      * <p>
      *
@@ -407,7 +419,7 @@ public interface ConfigurationService
      * name of the configuration file is queried from the system property
      * net.java.sip.communicator.PROPERTIES_FILE_NAME, and is set to
      * sip-communicator.xml in case the property does not contain a valid file
-     * name. The location might be one of three possibile, checked in the
+     * name. The location might be one of three possible, checked in the
      * following order: <br>
      * 1. The current directory. <br>
      * 2. The sip-communicator directory in the user.home
@@ -424,11 +436,10 @@ public interface ConfigurationService
 
     /**
      * Deletes the current configuration and reloads it from the configuration
-     * file.  The
-     * name of the configuration file is queried from the system property
-     * net.java.sip.communicator.PROPERTIES_FILE_NAME, and is set to
+     * file. The name of the configuration file is queried from the system
+     * property net.java.sip.communicator.PROPERTIES_FILE_NAME, and is set to
      * sip-communicator.xml in case the property does not contain a valid file
-     * name. The location might be one of three possibile, checked in the
+     * name. The location might be one of three possible, checked in the
      * following order: <br>
      * 1. The current directory. <br>
      * 2. The sip-communicator directory in the user.home
@@ -437,7 +448,7 @@ public interface ConfigurationService
      * <p>
      * In the last case the file is copied to the sip-communicator configuration
      * directory right after being extracted from the classpath location.
-     * @throws IOException in case reading the configuration failes
+     * @throws IOException in case reading the configuration fails.
      */
     public void reloadConfiguration()
         throws IOException;
