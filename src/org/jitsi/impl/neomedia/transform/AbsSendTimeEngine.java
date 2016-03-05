@@ -41,14 +41,20 @@ public class AbsSendTimeEngine
     private int extensionID = -1;
 
     /**
+     * Initializes a new {@link AbsSendTimeEngine} instance.
+     */
+    public AbsSendTimeEngine()
+    {
+        super(RTPPacketPredicate.INSTANCE);
+    }
+
+    /**
      * Implements {@link SinglePacketTransformer#reverseTransform(RawPacket)}.
      */
     @Override
     public RawPacket transform(RawPacket pkt)
     {
         if (extensionID != -1
-              && pkt != null
-              && pkt.getVersion() == RTPHeader.VERSION
               && pkt.getExtensionBit())
         {
             replaceAbsSendTime(pkt);
