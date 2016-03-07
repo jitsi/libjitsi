@@ -204,7 +204,7 @@ class BaseSRTPCryptoContext
             //$FALL-THROUGH$
 
         case SRTPPolicy.AESCM_ENCRYPTION:
-            cipherCtr = new SRTPCipherCTR(AES.createBlockCipher());
+            cipherCtr = new SRTPCipherCTRJava(AES.createBlockCipher());
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
             break;
@@ -214,7 +214,7 @@ class BaseSRTPCryptoContext
             //$FALL-THROUGH$
 
         case SRTPPolicy.TWOFISH_ENCRYPTION:
-            cipherCtr = new SRTPCipherCTR(new TwofishEngine());
+            cipherCtr = new SRTPCipherCTRJava(new TwofishEngine());
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
             break;
