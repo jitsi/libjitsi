@@ -107,8 +107,7 @@ public class CryptoBenchmark
                 new BlockCipherAdapter(
                         Cipher.getInstance("AES_128/ECB/NoPadding", sunPKCS11)),
                 new BlockCipherAdapter(
-                        Cipher.getInstance("AES_128/ECB/NoPadding", sunJCE)),
-                new OpenSSLBlockCipher(OpenSSLBlockCipher.AES_128_ECB)
+                        Cipher.getInstance("AES_128/ECB/NoPadding", sunJCE))
             };
 
         for (BlockCipher cipher : ciphers)

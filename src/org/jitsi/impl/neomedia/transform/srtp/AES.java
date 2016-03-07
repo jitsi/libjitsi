@@ -89,7 +89,6 @@ public class AES
     private static final Class<?>[] FACTORY_CLASSES
         = {
             BouncyCastleBlockCipherFactory.class,
-            OpenSSLBlockCipherFactory.class,
             SunJCEBlockCipherFactory.class,
             SunPKCS11BlockCipherFactory.class,
         };
@@ -642,25 +641,6 @@ public class AES
             throws Exception
         {
             return new AESFastEngine();
-        }
-    }
-
-    /**
-     * Implements <tt>BlockCipherFactory</tt> using OpenSSL.
-     *
-     * @author Lyubomir Marinov
-     */
-    public static class OpenSSLBlockCipherFactory
-        implements BlockCipherFactory
-    {
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public BlockCipher createBlockCipher()
-            throws Exception
-        {
-            return new OpenSSLBlockCipher(OpenSSLBlockCipher.AES_128_ECB);
         }
     }
 
