@@ -90,6 +90,11 @@ public class OpenSSLHMAC
     private final long md;
 
     /**
+     * The algorithm of the SHA-1 cryptographic hash function/digest.
+     */
+    public static final int SHA1 = 1;
+
+    /**
      * Initializes a new <tt>OpenSSLHMAC</tt> instance with a specific digest
      * algorithm.
      *
@@ -99,7 +104,7 @@ public class OpenSSLHMAC
      */
     public OpenSSLHMAC(int digestAlgorithm)
     {
-        if (digestAlgorithm == OpenSSLDigest.SHA1)
+        if (digestAlgorithm == OpenSSLHMAC.SHA1)
         {
             algorithmName = "SHA-1/HMAC";
         }
@@ -110,7 +115,7 @@ public class OpenSSLHMAC
         }
 
         // Load the OpenSSL (Crypto) library if necessary.
-        synchronized (OpenSSLDigest.class)
+        synchronized (OpenSSLHMAC.class)
         {
             if (loadLibrary)
             {
@@ -130,7 +135,7 @@ public class OpenSSLHMAC
 
         long md;
 
-        if (digestAlgorithm == OpenSSLDigest.SHA1)
+        if (digestAlgorithm == OpenSSLHMAC.SHA1)
         {
             long EVP_sha1 = OpenSSLHMAC.EVP_sha1;
 

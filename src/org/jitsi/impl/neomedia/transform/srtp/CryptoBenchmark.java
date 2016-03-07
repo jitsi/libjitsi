@@ -60,7 +60,6 @@ public class CryptoBenchmark
         Digest[] digests
             = {
                 new SHA1Digest(),
-                new OpenSSLDigest(OpenSSLDigest.SHA1)
             };
         MessageDigest[] messageDigests
             = {
@@ -134,8 +133,7 @@ public class CryptoBenchmark
         Mac[] macs
             = {
                 new HMac(new SHA1Digest()),
-                new HMac(new OpenSSLDigest(OpenSSLDigest.SHA1)),
-                new OpenSSLHMAC(OpenSSLDigest.SHA1)
+                new OpenSSLHMAC(OpenSSLHMAC.SHA1)
             };
 
         Random random = new Random(System.currentTimeMillis());

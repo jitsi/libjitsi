@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.transform.srtp;
 
 import org.bouncycastle.crypto.*;
+import org.bouncycastle.crypto.digests.*;
 import org.bouncycastle.crypto.macs.*;
 import org.jitsi.util.*;
 
@@ -55,7 +56,7 @@ public class HMACSHA1
         {
             try
             {
-                return new OpenSSLHMAC(OpenSSLDigest.SHA1);
+                return new OpenSSLHMAC(OpenSSLHMAC.SHA1);
             }
             catch (Throwable t)
             {
@@ -82,6 +83,6 @@ public class HMACSHA1
         }
 
         // Fallback to BouncyCastle.
-        return new HMac(SHA1.createDigest());
+        return new HMac(new SHA1Digest());
     }
 }
