@@ -15,8 +15,8 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
-import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Implements a <tt>TransformEngine</tt> which replaces the timestamps in
@@ -34,6 +34,13 @@ public class AbsSendTimeEngine
      * One billion.
      */
     private static final int b = 1000 * 1000 * 1000;
+
+    /**
+     * The <tt>Logger</tt> used by the {@link AbsSendTimeEngine} class and its
+     * instances.
+     */
+    private static final Logger logger
+            = Logger.getLogger(AbstractRTPPacketPredicate.class);
 
     /**
      * The ID of the abs-send-time RTP header extension.
@@ -54,10 +61,15 @@ public class AbsSendTimeEngine
     @Override
     public RawPacket transform(RawPacket pkt)
     {
-        if (extensionID != -1
-              && pkt.getExtensionBit())
+        if (extensionID != -1)
         {
-            replaceAbsSendTime(pkt);
+            // If the packet already has as extension with this ID, replace its
+            // value.
+            if (!replaceExtension(pkt))
+            {
+                // If it doesn't, add a new extension.
+                addExtension(pkt);
+            }
         }
         return pkt;
     }
@@ -86,11 +98,16 @@ public class AbsSendTimeEngine
     /**
      * Tries to find an RTP header extensions with an ID of {@link #extensionID}
      * in <tt>pkt</tt> and tries to replace its timestamp with one
-     * generated locally (based on {@link System#nanoTime()}.
+     * generated locally (based on {@link System#nanoTime()}).
      * @param pkt the packet to work on.
+     * @return true if and only if an RTP extension with an ID of {@link
+     * #extensionID} was found in the packet, and its value was replaced.
      */
-    private void replaceAbsSendTime(RawPacket pkt)
+    private boolean replaceExtension(RawPacket pkt)
     {
+        if (!pkt.getExtensionBit())
+            return false;
+
         byte[] buf = pkt.getBuffer();
         int extensionOffset = pkt.getOffset();
 
@@ -99,40 +116,78 @@ public class AbsSendTimeEngine
         // Skip the list of CSRCs.
         extensionOffset += pkt.getCsrcCount() * 4;
 
-        // Skip the 16-bit "defined by profile" field (RFC3550).
-        extensionOffset += 2;
-
-        if (extensionOffset + 1 < buf.length) //we can read 'length'
+        // We need at least 4 bytes for the "defined by profile" and "length"
+        // fields.
+        if (buf.length < extensionOffset + 4)
         {
-            int lengthInWords
-                    = buf[extensionOffset] << 8
-                      | buf[extensionOffset + 1];
-            // Length in bytes of the header extensions
-            int lengthInBytes = 4 * (1 + lengthInWords);
-            extensionOffset += 2;
+            return false;
+        }
 
-            int innerOffset = 0;
-            while (extensionOffset < buf.length && innerOffset < lengthInBytes)
+        // We only understand the RFC5285 one-byte header format recognized
+        // by the 0xBEDE value in the 'defined by profile' field.
+        if (buf[extensionOffset++] != (byte) 0xBE)
+        {
+            return false;
+        }
+        if (buf[extensionOffset++] != (byte) 0xDE)
+        {
+            return false;
+        }
+
+        int lengthInWords
+                = buf[extensionOffset++] << 8 | buf[extensionOffset++];
+
+        // Length in bytes of the header extensions
+        int lengthInBytes = 4 * (1 + lengthInWords);
+
+        int innerOffset = 0;
+        while (extensionOffset < buf.length && innerOffset < lengthInBytes)
+        {
+            int id = (buf[extensionOffset] & 0xf0) >> 4;
+            int len = buf[extensionOffset] & 0x0f;
+            if (id == extensionID)
             {
-                int id = (buf[extensionOffset] & 0xf0) >> 4;
-                int len = buf[extensionOffset] & 0x0f;
-                if (id == extensionID)
+                if (len == 2 && extensionOffset + 3 < buf.length)
                 {
-                    if (len == 2 && extensionOffset + 3 < buf.length)
-                    {
-                        setTimestamp(buf, extensionOffset + 1);
-                    }
-                    return;
+                    setTimestamp(buf, extensionOffset + 1);
+                    return true;
                 }
                 else
                 {
-                    // 1 byte for id/len, one more byte by the definition of
-                    // len, see RFC5285
-                    innerOffset += 1 + len + 1;
-                    extensionOffset += 1 + len + 1;
+                    logger.warn("An existing extension with ID " + id
+                                + " was found, but it doesn't look like "
+                                + "abs-send-time: len=" + len);
+                    // Suppress the addition of another header extension.
+                    return true;
                 }
             }
+            else
+            {
+                // 1 byte for id/len, one more byte by the definition of
+                // len, see RFC5285
+                innerOffset += 1 + len + 1;
+                extensionOffset += 1 + len + 1;
+            }
         }
+
+        return false;
+    }
+
+    /**
+     * Adds an abs-send-time RTP header extension with an ID of {@link
+     * #extensionID} and value derived from the current system time to the
+     * packet {@code pkt}.
+     * @param pkt the packet to add an extension to.
+     */
+    private void addExtension(RawPacket pkt)
+    {
+        // one byte for ID and length (see RFC5285) and three bytes for a
+        // timestamp (see
+        byte[] extensionBytes = new byte[4];
+        extensionBytes[0] = (byte) ((extensionID << 4) | 2);
+        setTimestamp(extensionBytes, 1);
+
+        pkt.addExtension(extensionBytes, extensionBytes.length);
     }
 
     /**
