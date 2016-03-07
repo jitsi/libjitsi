@@ -92,6 +92,11 @@ public class SRTPCipherF8
      */
     public void init(byte[] k_e, byte[] k_s)
     {
+        if (k_e.length != BLKLEN)
+            throw new IllegalArgumentException("k_e.length != BLKLEN");
+        if (k_s.length > k_e.length)
+            throw new IllegalArgumentException("k_s.length > k_e.length");
+
         encKey = Arrays.copyOf(k_e, k_e.length);
 
         /*
@@ -108,6 +113,19 @@ public class SRTPCipherF8
 
     public void process(byte[] data, int off, int len, byte[] iv)
     {
+        if (iv.length != BLKLEN)
+            throw new IllegalArgumentException("iv.length != BLKLEN");
+        if (off < 0)
+            throw new IllegalArgumentException("off < 0");
+        if (len < 0)
+            throw new IllegalArgumentException("len < 0");
+        if (off + len > data.length)
+            throw new IllegalArgumentException("off + len > data.length");
+        /*
+         * RFC 3711 says we should not encrypt more than 2^32 blocks which is
+         * way more than java array max size, so no checks needed here
+         */
+
         F8Context f8ctx = new F8Context();
 
         /*
