@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "Digest.h"
+#include "HMAC.h"
 
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
