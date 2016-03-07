@@ -48,10 +48,7 @@ import org.bouncycastle.crypto.params.*;
 public class SRTPCipherCTR
 {
     private static final int BLKLEN = 16;
-    private static final int MAX_BUFFER_LENGTH = 10 * 1024;
 
-    private final byte[] cipherInBlock = new byte[BLKLEN];
-    private byte[] streamBuf = new byte[1024];
     private final byte[] tmpCipherBlock = new byte[BLKLEN];
     private final BlockCipher cipher;
 
@@ -66,63 +63,52 @@ public class SRTPCipherCTR
     }
 
     /**
-     * Computes the cipher stream for AES CM mode. See section 4.1.1 in RFC3711
-     * for detailed description.
+     * Process (encrypt/decrypt) data from offset for len bytes
+     * iv is modified by this function but you MUST never reuse
+     * an IV so it's ok
      *
-     * @param out byte array holding the output cipher stream
-     * @param length length of the cipher stream to produce, in bytes
-     * @param iv initialization vector used to generate this cipher stream
+     * @param data byte array to be processed
+     * @param off the offset
+     * @param len the length
+     * @param iv initial value of the counter (this value is modified)
+     *           iv.length == BLKLEN
      */
-    private void getCipherStream(
-            byte[] out, int length,
-            byte[] iv)
+    public void process(byte[] data, int off, int len, byte[] iv)
     {
-        System.arraycopy(iv, 0, cipherInBlock, 0, 14);
-
-        int ctr, ctrEnd;
-
-        for (ctr = 0, ctrEnd = length / BLKLEN; ctr < ctrEnd; ctr++)
+        int l = len, o = off;
+        while (l >= BLKLEN)
         {
-            // compute the cipher stream
-            cipherInBlock[14] = (byte) ((ctr & 0xFF00) >> 8);
-            cipherInBlock[15] = (byte) (ctr & 0x00FF);
-
-            cipher.processBlock(cipherInBlock, 0, out, ctr * BLKLEN);
+            cipher.processBlock(iv, 0, tmpCipherBlock, 0);
+            //incr counter
+            if(++iv[15] == 0) ++iv[14];
+            //unroll XOR loop to force java to optimise it
+            data[o+0]  ^= tmpCipherBlock[0];
+            data[o+1]  ^= tmpCipherBlock[1];
+            data[o+2]  ^= tmpCipherBlock[2];
+            data[o+3]  ^= tmpCipherBlock[3];
+            data[o+4]  ^= tmpCipherBlock[4];
+            data[o+5]  ^= tmpCipherBlock[5];
+            data[o+6]  ^= tmpCipherBlock[6];
+            data[o+7]  ^= tmpCipherBlock[7];
+            data[o+8]  ^= tmpCipherBlock[8];
+            data[o+9]  ^= tmpCipherBlock[9];
+            data[o+10] ^= tmpCipherBlock[10];
+            data[o+11] ^= tmpCipherBlock[11];
+            data[o+12] ^= tmpCipherBlock[12];
+            data[o+13] ^= tmpCipherBlock[13];
+            data[o+14] ^= tmpCipherBlock[14];
+            data[o+15] ^= tmpCipherBlock[15];
+            l -= BLKLEN;
+            o += BLKLEN;
         }
 
-        // Treat the last bytes:
-        cipherInBlock[14] = (byte) ((ctr & 0xFF00) >> 8);
-        cipherInBlock[15] = (byte) ((ctr & 0x00FF));
-
-        cipher.processBlock(cipherInBlock, 0, tmpCipherBlock, 0);
-        System.arraycopy(tmpCipherBlock, 0, out, ctr * BLKLEN, length % BLKLEN);
-    }
-
-    public void process(
-            byte[] data, int off, int len,
-            byte[] iv)
-    {
-        if (off + len > data.length)
-            return;
-
-        // If data fits in inter buffer, use it. Otherwise, allocate bigger
-        // buffer and store it (up to a defined maximum size) to use it for
-        // later processing.
-        byte[] cipherStream;
-
-        if (len > streamBuf.length)
+        if (l > 0)
         {
-            cipherStream = new byte[len];
-            if (cipherStream.length <= MAX_BUFFER_LENGTH)
-                streamBuf = cipherStream;
+            cipher.processBlock(iv, 0, tmpCipherBlock, 0);
+            //incr counter
+            if(++iv[15] == 0) ++iv[14];
+            for (int i = 0; i < l; i++)
+                data[o+i] ^= tmpCipherBlock[i];
         }
-        else
-        {
-            cipherStream = streamBuf;
-        }
-
-        getCipherStream(cipherStream, len, iv);
-        for (int i = 0; i < len; i++)
-            data[i + off] ^= cipherStream[i];
     }
 }
