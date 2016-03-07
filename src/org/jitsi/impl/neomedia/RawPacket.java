@@ -109,27 +109,33 @@ public class RawPacket
      */
     public void addExtension(byte[] extBuff, int newExtensionLen)
     {
-        int newBuffLen = length + offset + newExtensionLen;
         int bufferOffset = offset;
-        int newBufferOffset = offset;
-        int lengthToCopy = FIXED_HEADER_SIZE + getCsrcCount()*4;
+        int newBufferOffset = 0;
         boolean extensionBit = getExtensionBit();
-        //if there was no extension previously, we also need to consider adding
-        //the extension header.
+        int payloadOffset = getPayloadOffset();
+        int payloadLength = getPayloadLength();
+        int existingExtensionLength = getExtensionLength();
+        int extraBytes = newExtensionLen + (extensionBit ? 0 : EXT_HEADER_SIZE);
+        int newPayloadOffset = payloadOffset - offset + extraBytes;
+        int newBuffLen = length + extraBytes;
+        int lengthToCopy = FIXED_HEADER_SIZE + getCsrcCount()*4;
+
         if (extensionBit)
         {
             // without copying the extension length value, will set it later
             lengthToCopy += EXT_HEADER_SIZE - 2;
         }
-        else
-            newBuffLen += EXT_HEADER_SIZE;
 
-        byte[] newBuffer = new byte[ newBuffLen ];
+        // Warning: newBuffer may be the same byte[] as buffer. This must be
+        // taken into account while copying or writing to newBuffer below.
+        byte[] newBuffer = buffer;
+        if (newBuffer.length < newBuffLen)
+        {
+            newBuffer = new byte[newBuffLen];
+        }
 
-        /*
-         * Copy header, CSRC list and the leading two bytes of the extension
-         * header if any.
-         */
+        // Copy the header, CSRC list and the leading two bytes of the
+        // extension header if any.
         System.arraycopy(buffer, bufferOffset,
             newBuffer, newBufferOffset, lengthToCopy);
         //raise the extension bit.
@@ -137,11 +143,17 @@ public class RawPacket
         bufferOffset += lengthToCopy;
         newBufferOffset += lengthToCopy;
 
+        // Copy the payload first, because parts of it may end up being
+        // overwritten if this.buffer is reused.
+        System.arraycopy(buffer, payloadOffset,
+                         newBuffer, newPayloadOffset,
+                         payloadLength);
+
         // Set the extension header or modify the existing one.
-        int totalExtensionLen = newExtensionLen + getExtensionLength();
+        int totalExtensionLen = newExtensionLen + existingExtensionLength;
 
         //if there were no extensions previously, we need to add the hdr now
-        if(extensionBit)
+        if (extensionBit)
         {
             // We've copied "defined by profile" already. Consequently, we have
             // to skip the length only.
@@ -155,7 +167,7 @@ public class RawPacket
            //  0                   1                   2                   3
            //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-           // |       0xBE    |    0xDE       |           length=3            |
+           // |       0xBE    |    0xDE       |           length              |
            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
            newBuffer[newBufferOffset++] = (byte)0xBE;
            newBuffer[newBufferOffset++] = (byte)0xDE;
@@ -168,7 +180,7 @@ public class RawPacket
         // Copy the existing extension content if any.
         if (extensionBit)
         {
-            lengthToCopy = getExtensionLength();
+            lengthToCopy = existingExtensionLength;
             System.arraycopy(buffer, bufferOffset,
                 newBuffer, newBufferOffset, lengthToCopy);
             bufferOffset += lengthToCopy;
@@ -178,19 +190,10 @@ public class RawPacket
         //copy the extension content from the new extension.
         System.arraycopy(extBuff, 0,
             newBuffer, newBufferOffset, newExtensionLen);
-        newBufferOffset += newExtensionLen;
-
-        //now copy the payload
-        int payloadLength = getPayloadLength();
-
-        System.arraycopy(
-                buffer, bufferOffset,
-                newBuffer, newBufferOffset,
-                payloadLength);
-        newBufferOffset += payloadLength;
 
         buffer = newBuffer;
-        this.length = newBufferOffset - offset;
+        this.length = this.length + extraBytes;
+        this.offset = 0;
     }
 
     /**
