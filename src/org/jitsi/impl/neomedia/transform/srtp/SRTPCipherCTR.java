@@ -59,6 +59,9 @@ public class SRTPCipherCTR
 
     public void init(byte[] key)
     {
+        if (key.length != BLKLEN)
+            throw new IllegalArgumentException("key.length != BLKLEN");
+
         cipher.init(true, new KeyParameter(key));
     }
 
@@ -75,6 +78,21 @@ public class SRTPCipherCTR
      */
     public void process(byte[] data, int off, int len, byte[] iv)
     {
+        if (iv.length != BLKLEN)
+            throw new IllegalArgumentException("iv.length != BLKLEN");
+        if (off < 0)
+            throw new IllegalArgumentException("off < 0");
+        if (len < 0)
+            throw new IllegalArgumentException("len < 0");
+        if (off + len > data.length)
+            throw new IllegalArgumentException("off + len > data.length");
+        /*
+         * we increment only the last 16 bits of the iv, so we can encrypt
+         * a maximum of 2^16 blocks, ie 1048576 bytes
+         */
+        if (data.length > 1048576)
+            throw new IllegalArgumentException("data.length > 1048576");
+
         int l = len, o = off;
         while (l >= BLKLEN)
         {
