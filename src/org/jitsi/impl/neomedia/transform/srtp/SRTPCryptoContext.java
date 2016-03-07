@@ -441,7 +441,7 @@ public class SRTPCryptoContext
 
         // As last step: initialize cipher with derived encryption key.
         if (cipherF8 != null)
-            SRTPCipherF8.deriveForIV(cipherF8, encKey, saltKey);
+            cipherF8.init(encKey, saltKey);
         cipher.init(true, new KeyParameter(encKey));
         Arrays.fill(encKey, (byte) 0);
     }
@@ -547,11 +547,9 @@ public class SRTPCryptoContext
         int payloadOffset = pkt.getHeaderLength();
         int payloadLength = pkt.getPayloadLength();
 
-        SRTPCipherF8.process(
-                cipher,
+        cipherF8.process(
                 pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
-                ivStore,
-                cipherF8);
+                ivStore);
     }
 
     /**

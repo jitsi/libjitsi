@@ -88,9 +88,9 @@ class BaseSRTPCryptoContext
     protected final SRTPCipherCTR cipherCtr = new SRTPCipherCTR();
 
     /**
-     * Used inside F8 mode only
+     * F8 mode cipher
      */
-    protected final BlockCipher cipherF8;
+    protected final SRTPCipherF8 cipherF8;
 
     /**
      * Derived session encryption key
@@ -195,7 +195,7 @@ class BaseSRTPCryptoContext
         System.arraycopy(masterS, 0, masterSalt, 0, saltKeyLength);
 
         BlockCipher cipher = null;
-        BlockCipher cipherF8 = null;
+        SRTPCipherF8 cipherF8 = null;
         byte[] encKey = null;
         byte[] saltKey = null;
 
@@ -205,7 +205,7 @@ class BaseSRTPCryptoContext
             break;
 
         case SRTPPolicy.AESF8_ENCRYPTION:
-            cipherF8 = AES.createBlockCipher();
+            cipherF8 = new SRTPCipherF8(AES.createBlockCipher());
             //$FALL-THROUGH$
 
         case SRTPPolicy.AESCM_ENCRYPTION:
@@ -215,7 +215,7 @@ class BaseSRTPCryptoContext
             break;
 
         case SRTPPolicy.TWOFISHF8_ENCRYPTION:
-            cipherF8 = new TwofishEngine();
+            cipherF8 = new SRTPCipherF8(new TwofishEngine());
             //$FALL-THROUGH$
 
         case SRTPPolicy.TWOFISH_ENCRYPTION:
