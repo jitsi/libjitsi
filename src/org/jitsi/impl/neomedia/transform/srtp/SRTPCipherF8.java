@@ -134,14 +134,14 @@ public class SRTPCipherF8
 
         while (inLen >= BLKLEN)
         {
-            processBlock(f8ctx, data, off, data, off, BLKLEN);
+            processBlock(f8ctx, data, off, BLKLEN);
             inLen -= BLKLEN;
             off += BLKLEN;
         }
 
         if (inLen > 0)
         {
-            processBlock(f8ctx, data, off, data, off, inLen);
+            processBlock(f8ctx, data, off, inLen);
         }
     }
 
@@ -151,19 +151,14 @@ public class SRTPCipherF8
      *
      * @param f8ctx
      *            F8 encryption context
-     * @param in
+     * @param inOut
      *            byte array holding the data to be processed
-     * @param inOff
-     *            start offset of the data to be processed inside in array
-     * @param out
-     *            byte array that will hold the processed data
-     * @param outOff
-     *            start offset of output data in out
+     * @param off
+     *            start offset of the data to be processed inside inOut array
      * @param len
-     *            length of the input data
+     *            length of the data to be processed inside inOut array from off
      */
-    private void processBlock(F8Context f8ctx,
-            byte[] in, int inOff, byte[] out, int outOff, int len)
+    private void processBlock(F8Context f8ctx, byte[] inOut, int off, int len)
     {
         /*
          * XOR the previous key stream with IV'
@@ -192,6 +187,6 @@ public class SRTPCipherF8
          * the cipher text.
          */
         for (int i = 0; i < len; i++)
-            out[outOff + i] = (byte) (in[inOff + i] ^ f8ctx.S[i]);
+            inOut[off + i] ^= f8ctx.S[i];
     }
 }
