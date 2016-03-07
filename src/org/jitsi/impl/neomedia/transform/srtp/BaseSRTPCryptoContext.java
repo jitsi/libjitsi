@@ -204,7 +204,14 @@ class BaseSRTPCryptoContext
             //$FALL-THROUGH$
 
         case SRTPPolicy.AESCM_ENCRYPTION:
-            cipherCtr = new SRTPCipherCTRJava(AES.createBlockCipher());
+            if (OpenSSLWrapperLoader.isLoaded())
+            {
+                cipherCtr = new SRTPCipherCTROpenSSL();
+            }
+            else
+            {
+                cipherCtr = new SRTPCipherCTRJava(AES.createBlockCipher());
+            }
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
             break;
