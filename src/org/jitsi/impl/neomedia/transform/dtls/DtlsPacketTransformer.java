@@ -1246,18 +1246,17 @@ public class DtlsPacketTransformer
             throw new NullPointerException("connector");
 
         DtlsControl.Setup setup = getProperties().getSetup();
-        SecureRandom secureRandom = DtlsControlImpl.createSecureRandom();
         final DTLSProtocol dtlsProtocolObj;
         final TlsPeer tlsPeer;
 
         if (DtlsControl.Setup.ACTIVE.equals(setup))
         {
-            dtlsProtocolObj = new DTLSClientProtocol(secureRandom);
+            dtlsProtocolObj = new DTLSClientProtocol(new SecureRandom());
             tlsPeer = new TlsClientImpl(this);
         }
         else
         {
-            dtlsProtocolObj = new DTLSServerProtocol(secureRandom);
+            dtlsProtocolObj = new DTLSServerProtocol(new SecureRandom());
             tlsPeer = new TlsServerImpl(this);
         }
         tlsPeerHasRaisedCloseNotifyWarning = false;
