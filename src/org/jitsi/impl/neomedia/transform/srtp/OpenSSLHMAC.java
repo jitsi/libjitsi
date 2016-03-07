@@ -17,7 +17,6 @@ package org.jitsi.impl.neomedia.transform.srtp;
 
 import org.bouncycastle.crypto.*;
 import org.bouncycastle.crypto.params.*;
-import org.jitsi.util.*;
 
 /**
  * Implements the interface <tt>org.bouncycastle.crypto.Mac</tt> using the
@@ -28,13 +27,6 @@ import org.jitsi.util.*;
 public class OpenSSLHMAC
     implements Mac
 {
-    /**
-     * The indicator which determines whether
-     * <tt>System.loadLibrary(String)</tt> is to be invoked in order to load the
-     * OpenSSL (Crypto) library.
-     */
-    private static boolean loadLibrary = true;
-
     private static native int EVP_MD_size(long md);
 
     private static native long EVP_sha1();
@@ -100,27 +92,12 @@ public class OpenSSLHMAC
      */
     public OpenSSLHMAC(int digestAlgorithm)
     {
+        if (!OpenSSLWrapperLoader.isLoaded())
+            throw new RuntimeException("OpenSSL wrapper not loaded");
+
         if (digestAlgorithm != OpenSSLHMAC.SHA1)
             throw new IllegalArgumentException(
                     "digestAlgorithm " + digestAlgorithm);
-
-        // Load the OpenSSL (Crypto) library if necessary.
-        synchronized (OpenSSLHMAC.class)
-        {
-            if (loadLibrary)
-            {
-                try
-                {
-                    JNIUtils.loadLibrary(
-                            "jnopenssl",
-                            OpenSSLHMAC.class.getClassLoader());
-                }
-                finally
-                {
-                    loadLibrary = false;
-                }
-            }
-        }
 
         md = EVP_sha1();
         if (md == 0)
