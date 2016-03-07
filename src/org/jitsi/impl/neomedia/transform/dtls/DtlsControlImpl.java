@@ -116,6 +116,16 @@ public class DtlsControlImpl
     private static final String VERIFY_AND_VALIDATE_CERTIFICATE_PNAME
         = DtlsControlImpl.class.getName() + ".verifyAndValidateCertificate";
 
+    /**
+     * A private and public keys cached for 24h
+     */
+    private static AsymmetricCipherKeyPair _keyPairCache;
+
+    /**
+     * _keyPairCache generation timestamp
+     */
+    private static long _keyPairCacheTimestamp;
+
     static
     {
         // VERIFY_AND_VALIDATE_CERTIFICATE
@@ -373,21 +383,28 @@ public class DtlsControlImpl
     }
 
     /**
-     * Generates a new pair of private and public keys.
+     * Return a pair of RSA private and public keys.
+     * We cache it for 24H
      *
-     * @return a new pair of private and public keys
+     * @return a pair of private and public keys
      */
     private static AsymmetricCipherKeyPair generateKeyPair()
     {
-        RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
+        synchronized (DtlsControlImpl.class)
+        {
+            if (_keyPairCache == null || _keyPairCacheTimestamp
+                + ONE_DAY < System.currentTimeMillis())
+            {
+                RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
 
-        generator.init(
-                new RSAKeyGenerationParameters(
-                        new BigInteger("10001", 16),
-                        createSecureRandom(),
-                        1024,
-                        80));
-        return generator.generateKeyPair();
+                generator.init(
+                    new RSAKeyGenerationParameters(new BigInteger("10001", 16),
+                        createSecureRandom(), 1024, 80));
+                _keyPairCache = generator.generateKeyPair();
+                _keyPairCacheTimestamp = System.currentTimeMillis();
+            }
+            return _keyPairCache;
+        }
     }
 
     /**
