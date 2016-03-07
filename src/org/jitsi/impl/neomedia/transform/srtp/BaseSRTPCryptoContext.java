@@ -78,14 +78,9 @@ class BaseSRTPCryptoContext
     protected final byte[] authKey;
 
     /**
-     * The symmetric cipher engines we need here
-     */
-    protected final BlockCipher cipher;
-
-    /**
      * implements the counter cipher mode for RTP according to RFC 3711
      */
-    protected final SRTPCipherCTR cipherCtr = new SRTPCipherCTR();
+    protected final SRTPCipherCTR cipherCtr;
 
     /**
      * F8 mode cipher
@@ -163,7 +158,7 @@ class BaseSRTPCryptoContext
         this.ssrc = ssrc;
 
         authKey = null;
-        cipher = null;
+        cipherCtr = null;
         cipherF8 = null;
         encKey = null;
         mac = null;
@@ -194,7 +189,7 @@ class BaseSRTPCryptoContext
         masterSalt = new byte[saltKeyLength];
         System.arraycopy(masterS, 0, masterSalt, 0, saltKeyLength);
 
-        BlockCipher cipher = null;
+        SRTPCipherCTR cipherCtr = null;
         SRTPCipherF8 cipherF8 = null;
         byte[] encKey = null;
         byte[] saltKey = null;
@@ -209,7 +204,7 @@ class BaseSRTPCryptoContext
             //$FALL-THROUGH$
 
         case SRTPPolicy.AESCM_ENCRYPTION:
-            cipher = AES.createBlockCipher();
+            cipherCtr = new SRTPCipherCTR(AES.createBlockCipher());
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
             break;
@@ -219,12 +214,12 @@ class BaseSRTPCryptoContext
             //$FALL-THROUGH$
 
         case SRTPPolicy.TWOFISH_ENCRYPTION:
-            cipher = new TwofishEngine();
+            cipherCtr = new SRTPCipherCTR(new TwofishEngine());
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
             break;
         }
-        this.cipher = cipher;
+        this.cipherCtr = cipherCtr;
         this.cipherF8 = cipherF8;
         this.encKey = encKey;
         this.saltKey = saltKey;

@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.transform.srtp;
 
 import org.bouncycastle.crypto.*;
+import org.bouncycastle.crypto.params.*;
 
 /**
  * SRTPCipherCTR implements SRTP Counter Mode AES Encryption (AES-CM).
@@ -52,9 +53,16 @@ public class SRTPCipherCTR
     private final byte[] cipherInBlock = new byte[BLKLEN];
     private byte[] streamBuf = new byte[1024];
     private final byte[] tmpCipherBlock = new byte[BLKLEN];
+    private final BlockCipher cipher;
 
-    public SRTPCipherCTR()
+    public SRTPCipherCTR(BlockCipher cipher)
     {
+        this.cipher = cipher;
+    }
+
+    public void init(byte[] key)
+    {
+        cipher.init(true, new KeyParameter(key));
     }
 
     /**
@@ -65,8 +73,7 @@ public class SRTPCipherCTR
      * @param length length of the cipher stream to produce, in bytes
      * @param iv initialization vector used to generate this cipher stream
      */
-    public void getCipherStream(
-            BlockCipher aesCipher,
+    private void getCipherStream(
             byte[] out, int length,
             byte[] iv)
     {
@@ -80,19 +87,18 @@ public class SRTPCipherCTR
             cipherInBlock[14] = (byte) ((ctr & 0xFF00) >> 8);
             cipherInBlock[15] = (byte) (ctr & 0x00FF);
 
-            aesCipher.processBlock(cipherInBlock, 0, out, ctr * BLKLEN);
+            cipher.processBlock(cipherInBlock, 0, out, ctr * BLKLEN);
         }
 
         // Treat the last bytes:
         cipherInBlock[14] = (byte) ((ctr & 0xFF00) >> 8);
         cipherInBlock[15] = (byte) ((ctr & 0x00FF));
 
-        aesCipher.processBlock(cipherInBlock, 0, tmpCipherBlock, 0);
+        cipher.processBlock(cipherInBlock, 0, tmpCipherBlock, 0);
         System.arraycopy(tmpCipherBlock, 0, out, ctr * BLKLEN, length % BLKLEN);
     }
 
     public void process(
-            BlockCipher cipher,
             byte[] data, int off, int len,
             byte[] iv)
     {
@@ -115,7 +121,7 @@ public class SRTPCipherCTR
             cipherStream = streamBuf;
         }
 
-        getCipherStream(cipher, cipherStream, len, iv);
+        getCipherStream(cipherStream, len, iv);
         for (int i = 0; i < len; i++)
             data[i + off] ^= cipherStream[i];
     }

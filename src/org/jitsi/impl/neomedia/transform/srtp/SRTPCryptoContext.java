@@ -395,22 +395,18 @@ public class SRTPCryptoContext
         // compute the session encryption key
         computeIv(0x00, index);
 
-        cipher.init(true, new KeyParameter(masterKey));
+        cipherCtr.init(masterKey);
         Arrays.fill(masterKey, (byte) 0);
 
-        cipherCtr.getCipherStream(
-                cipher,
-                encKey, policy.getEncKeyLength(),
-                ivStore);
+        Arrays.fill(encKey, (byte) 0);
+        cipherCtr.process(encKey, 0, policy.getEncKeyLength(), ivStore);
 
         // compute the session authentication key
         if (authKey != null)
         {
             computeIv(0x01, index);
-            cipherCtr.getCipherStream(
-                    cipher,
-                    authKey, policy.getAuthKeyLength(),
-                    ivStore);
+            Arrays.fill(authKey, (byte) 0);
+            cipherCtr.process(authKey, 0, policy.getAuthKeyLength(), ivStore);
 
             switch (policy.getAuthType())
             {
@@ -433,16 +429,14 @@ public class SRTPCryptoContext
 
         // compute the session salt
         computeIv(0x02, index);
-        cipherCtr.getCipherStream(
-                cipher,
-                saltKey, policy.getSaltKeyLength(),
-                ivStore);
+        Arrays.fill(saltKey, (byte) 0);
+        cipherCtr.process(saltKey, 0, policy.getSaltKeyLength(), ivStore);
         Arrays.fill(masterSalt, (byte) 0);
 
         // As last step: initialize cipher with derived encryption key.
         if (cipherF8 != null)
             cipherF8.init(encKey, saltKey);
-        cipher.init(true, new KeyParameter(encKey));
+        cipherCtr.init(encKey);
         Arrays.fill(encKey, (byte) 0);
     }
 
@@ -519,7 +513,6 @@ public class SRTPCryptoContext
         int payloadLength = pkt.getPayloadLength();
 
         cipherCtr.process(
-                cipher,
                 pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
                 ivStore);
     }
