@@ -1308,15 +1308,6 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    protected AbsSendTimeEngine createAbsSendTimeEngine()
-    {
-        return new AbsSendTimeEngine();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     protected CachingTransformer createCachingTransformer()
     {
         return new CachingTransformer();
