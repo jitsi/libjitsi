@@ -15,8 +15,6 @@
  */
 package org.jitsi.impl.neomedia.transform.dtls;
 
-import gnu.java.zrtp.utils.*;
-
 import java.io.*;
 import java.math.*;
 import java.security.*;
@@ -247,48 +245,6 @@ public class DtlsControlImpl
     }
 
     /**
-     * Initializes a new <tt>SecureRandom</tt> instance. Implements a
-     * <tt>SecureRandom</tt> factory to be employed by classes related to
-     * <tt>DtlsControlImpl</tt>.
-     *
-     * @return a new <tt>SecureRandom</tt> instance
-     */
-    @SuppressWarnings("serial")
-    static SecureRandom createSecureRandom()
-    {
-        return
-            new SecureRandom()
-            {
-                /**
-                 * {@inheritDoc}
-                 *
-                 * Employs <tt>ZrtpFortuna</tt> as is common in neomedia. Most
-                 * importantly though, works around a possible hang on Linux
-                 * when reading from <tt>/dev/random</tt>.
-                 */
-                @Override
-                public byte[] generateSeed(int numBytes)
-                {
-                    byte[] seed = new byte[numBytes];
-
-                    ZrtpFortuna.getInstance().nextBytes(seed);
-                    return seed;
-                }
-
-                /**
-                 * {@inheritDoc}
-                 *
-                 * Employs <tt>ZrtpFortuna</tt> as is common in neomedia.
-                 */
-                @Override
-                public void nextBytes(byte[] bytes)
-                {
-                    ZrtpFortuna.getInstance().nextBytes(bytes);
-                }
-            };
-    }
-
-    /**
      * Determines the hash function i.e. the digest algorithm of the signature
      * algorithm of a specific certificate.
      *
@@ -408,7 +364,7 @@ public class DtlsControlImpl
         generator.init(
                 new RSAKeyGenerationParameters(
                         new BigInteger("10001", 16),
-                        createSecureRandom(),
+                        new SecureRandom(),
                         1024,
                         80));
         return generator.generateKeyPair();
