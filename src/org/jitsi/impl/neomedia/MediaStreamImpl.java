@@ -334,8 +334,7 @@ public class MediaStreamImpl
      * The transformer which caches outgoing RTP packets for this
      * {@link MediaStream}.
      */
-    private final CachingTransformer cachingTransformer
-            = createCachingTransformer();
+    private CachingTransformer cachingTransformer = createCachingTransformer();
 
     /**
      * The chain used to by the RTPConnector to transform packets.
@@ -697,6 +696,12 @@ public class MediaStreamImpl
         if (csrcEngine != null)
         {
             csrcEngine = null;
+        }
+
+        if (cachingTransformer != null)
+        {
+            cachingTransformer.close();
+            cachingTransformer = null;
         }
 
         if (transformEngineChain != null)
