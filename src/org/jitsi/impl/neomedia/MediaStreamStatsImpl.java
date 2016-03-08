@@ -1609,13 +1609,14 @@ public class MediaStreamStatsImpl
             try
             {
                 RTPConnectorOutputStream rtpStream
-                        = rtpConnector.getDataOutputStream(false);
+                    = rtpConnector.getDataOutputStream(false);
                 RTPConnectorOutputStream rtcpStream
-                        = rtpConnector.getControlOutputStream(false);
+                    = rtpConnector.getControlOutputStream(false);
 
                 if (rtpStream != null && rtcpStream != null)
                 {
                     long now = System.currentTimeMillis();
+
                     sbr = rtpStream.getOutputBitrate(now);
                     sbr += rtcpStream.getOutputBitrate(now);
                 }

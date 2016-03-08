@@ -238,9 +238,10 @@ public abstract class RTPConnectorOutputStream
     private boolean closed = false;
 
     /**
-     * The instance used to calculate the sending bitrate of this output stream.
+     * The {@code RateStatistics} instance used to calculate the sending bitrate
+     * of this output stream.
      */
-    private RateStatistics rateStatistics
+    private final RateStatistics rateStatistics
         = new RateStatistics(AVERAGE_BITRATE_WINDOW_MS);
 
     /**
