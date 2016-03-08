@@ -361,7 +361,7 @@ public interface MediaStreamStats
      * Adds a listener which will be notified when NACK packets are received.
      * @param listener the listener.
      */
-    public void addNackListener(NACKListener listener);
+    public void addNackListener(RTCPListener listener);
 
     /**
      * Adds a listener which will be notified when REMB packets are received.

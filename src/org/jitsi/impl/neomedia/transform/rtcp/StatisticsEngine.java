@@ -1045,6 +1045,16 @@ public class StatisticsEngine
                     streamStats.rembReceived(remb);
                     out.add(rtcp);
                 }
+                else if (rtcp instanceof FIRPacket)
+                {
+                    FIRPacket fir = (FIRPacket) rtcp;
+                    streamStats.firReceived(fir);
+                }
+                else if (rtcp instanceof PLIPacket)
+                {
+                    PLIPacket pli = (PLIPacket) rtcp;
+                    streamStats.pliReceived(pli);
+                }
                 break;
 
             case RTCPPacket.RR:
@@ -1090,7 +1100,6 @@ public class StatisticsEngine
                     removed = true;
                 }
                 break;
-
             case RTCPExtendedReport.XR:
                 if (rtcp instanceof RTCPExtendedReport)
                 {

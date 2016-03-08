@@ -308,7 +308,7 @@ public class MediaStreamStatsImpl
     /**
      * The list of listeners to be notified when NACK packets are received.
      */
-    private final List<NACKListener> nackListeners = new LinkedList<>();
+    private final List<RTCPListener> RTCPListeners = new LinkedList<>();
 
     /**
      * The list of listeners to be notified when REMB packets are received.
@@ -1516,9 +1516,39 @@ public class MediaStreamStatsImpl
     {
         if (nack != null)
         {
-            for (NACKListener listener : nackListeners)
+            for (RTCPListener listener : RTCPListeners)
             {
                 listener.nackReceived(nack);
+            }
+        }
+    }
+
+    /**
+     * Notifies this instance that an RTCP FIR packet was received.
+     * @param fir the packet.
+     */
+    public void firReceived(FIRPacket fir)
+    {
+        if (fir != null)
+        {
+            for (RTCPListener listener : RTCPListeners)
+            {
+                listener.firReceived(fir);
+            }
+        }
+    }
+
+    /**
+     * Notifies this instance that an RTCP PLI packet was received.
+     * @param pli the packet.
+     */
+    public void pliReceived(PLIPacket pli)
+    {
+        if (pli != null)
+        {
+            for (RTCPListener listener : RTCPListeners)
+            {
+                listener.pliReceived(pli);
             }
         }
     }
@@ -1527,13 +1557,13 @@ public class MediaStreamStatsImpl
      * {@inheritDoc}
      */
     @Override
-    public void addNackListener(NACKListener listener)
+    public void addNackListener(RTCPListener listener)
     {
         if (listener != null)
         {
-            synchronized (nackListeners)
+            synchronized (RTCPListeners)
             {
-                nackListeners.add(listener);
+                RTCPListeners.add(listener);
             }
         }
     }
