@@ -71,8 +71,8 @@ public class CsrcTransformEngine
      * Creates an engine instance that will be adding CSRC lists to the
      * specified <tt>stream</tt>.
      *
-     * @param stream that <tt>MediaStream</tt> whose RTP packets we are going
-     * to be adding CSRC lists. to
+     * @param mediaStream that <tt>MediaStream</tt> whose RTP packets we are
+     * going to be adding CSRC lists. to
      */
     public CsrcTransformEngine(MediaStreamImpl mediaStream)
     {

@@ -954,7 +954,7 @@ public class MediaStreamImpl
      */
     protected AbsSendTimeEngine createAbsSendTimeEngine()
     {
-        return null;
+        return new AbsSendTimeEngine();
     }
 
     /**
