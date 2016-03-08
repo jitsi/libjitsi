@@ -1610,15 +1610,18 @@ public class MediaStreamStatsImpl
             {
                 RTPConnectorOutputStream rtpStream
                     = rtpConnector.getDataOutputStream(false);
-                RTPConnectorOutputStream rtcpStream
-                    = rtpConnector.getControlOutputStream(false);
 
-                if (rtpStream != null && rtcpStream != null)
+                if (rtpStream != null)
                 {
                     long now = System.currentTimeMillis();
-
                     sbr = rtpStream.getOutputBitrate(now);
-                    sbr += rtcpStream.getOutputBitrate(now);
+
+                    RTPConnectorOutputStream rtcpStream
+                        = rtpConnector.getControlOutputStream(false);
+                    if (rtcpStream != null)
+                    {
+                        sbr += rtcpStream.getOutputBitrate(now);
+                    }
                 }
             }
             catch (IOException ioe)
