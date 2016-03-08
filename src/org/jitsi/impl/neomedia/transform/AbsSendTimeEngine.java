@@ -40,7 +40,7 @@ public class AbsSendTimeEngine
      * instances.
      */
     private static final Logger logger
-            = Logger.getLogger(AbstractRTPPacketPredicate.class);
+        = Logger.getLogger(AbstractRTPPacketPredicate.class);
 
     /**
      * The ID of the abs-send-time RTP header extension.
