@@ -165,6 +165,22 @@ public class RTCPPacketParserEx
                         remb.dest[i] = in.readInt() & 0xffffffffL;
 
                     return remb;
+                case FIRPacket.FMT:
+                    return FIRPacket.parse(base,
+                        firstbyte,
+                        type,
+                        length,
+                        in,
+                        senderSSRC,
+                        sourceSSRC);
+                case PLIPacket.FMT:
+                    return PLIPacket.parse(base,
+                        firstbyte,
+                        type,
+                        length,
+                        in,
+                        senderSSRC,
+                        sourceSSRC);
                 default:
                     return
                         parseRTCPFBPacket(

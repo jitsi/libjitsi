@@ -60,6 +60,16 @@ public class RTCPFBPacket
      */
     public long sourceSSRC;
 
+
+    public static void writeSsrc(DataOutputStream dataOutputStream, long ssrc)
+        throws IOException
+    {
+        dataOutputStream.writeByte((byte) (ssrc >> 24));
+        dataOutputStream.writeByte((byte) ((ssrc >> 16) & 0xFF));
+        dataOutputStream.writeByte((byte) ((ssrc >> 8) & 0xFF));
+        dataOutputStream.writeByte((byte) (ssrc & 0xFF));
+    }
+
     public RTCPFBPacket(int fmt, int type, long senderSSRC, long sourceSSRC)
     {
         super.type = type;
