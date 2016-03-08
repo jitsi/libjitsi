@@ -50,7 +50,17 @@ public class RateStatistics
     private final float scale;
 
     /**
-     *
+     * Initializes a new {@link RateStatistics} instance with a default scale
+     * if 8000 (i.e. if the input is in bytes, the result will be in bits per
+     * second).
+     * @param windowSizeMs window size in ms for the rate estimation
+     */
+    public RateStatistics(int windowSizeMs)
+    {
+        this(windowSizeMs, 8000F);
+    }
+
+    /**
      * @param windowSizeMs window size in ms for the rate estimation
      * @param scale coefficient to convert counts/ms to desired units. For
      * example, if counts represents bytes, use <tt>8*1000</tt> to go to bits/s.

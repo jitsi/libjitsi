@@ -24,6 +24,7 @@ import java.util.concurrent.locks.*;
 import javax.media.rtp.*;
 
 import net.sf.fmj.media.util.*;
+import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
@@ -61,6 +62,11 @@ public abstract class RTPConnectorOutputStream
     public static final int POOL_CAPACITY;
 
     /**
+     * The size of the window over which average bitrate will be calculated.
+     */
+    private static final int AVERAGE_BITRATE_WINDOW_MS;
+
+    /**
      * The flag which controls whether this {@link RTPConnectorOutputStream}
      * should create its own thread which will perform the packetization
      * (and potential transformation) and sending of packets to the targets.
@@ -95,7 +101,15 @@ public abstract class RTPConnectorOutputStream
      * #POOL_CAPACITY}.
      */
     private static final String POOL_CAPACITY_PNAME
-            = RTPConnectorOutputStream.class.getName() + ".POOL_CAPACITY";
+        = RTPConnectorOutputStream.class.getName() + ".POOL_CAPACITY";
+
+    /**
+     * The name of the property which specifies the value of {@link
+     * #AVERAGE_BITRATE_WINDOW_MS}.
+     */
+    private static final String AVERAGE_BITRATE_WINDOW_MS_PNAME
+        = RTPConnectorOutputStream.class.getName()
+            + ".AVERAGE_BITRATE_WINDOW_MS";
 
     static
     {
@@ -106,6 +120,9 @@ public abstract class RTPConnectorOutputStream
             = ConfigUtils.getBoolean(cfg, USE_SEND_THREAD_PNAME, true);
 
         POOL_CAPACITY = ConfigUtils.getInt(cfg, POOL_CAPACITY_PNAME, 100);
+
+        AVERAGE_BITRATE_WINDOW_MS
+            = ConfigUtils.getInt(cfg, AVERAGE_BITRATE_WINDOW_MS_PNAME, 5000);
 
         // Set PACKET_QUEUE_CAPACITY
         int packetQueueCapacity
@@ -123,6 +140,12 @@ public abstract class RTPConnectorOutputStream
 
         PACKET_QUEUE_CAPACITY
             = packetQueueCapacity >= 0 ? packetQueueCapacity : 256;
+
+        logger.debug("Initialized configuration. "
+                         + "Send thread: " + USE_SEND_THREAD
+                         + ". Pool capacity: " + POOL_CAPACITY
+                         + ". Queue capacity: " + PACKET_QUEUE_CAPACITY
+                         + ". Avg bitrate window: " + AVERAGE_BITRATE_WINDOW_MS);
     }
 
     /**
@@ -213,6 +236,13 @@ public abstract class RTPConnectorOutputStream
      * Whether this {@link RTPConnectorOutputStream} is closed.
      */
     private boolean closed = false;
+
+    /**
+     * The {@code RateStatistics} instance used to calculate the sending bitrate
+     * of this output stream.
+     */
+    private final RateStatistics rateStatistics
+        = new RateStatistics(AVERAGE_BITRATE_WINDOW_MS);
 
     /**
      * Initializes a new <tt>RTPConnectorOutputStream</tt> which is to send
@@ -636,6 +666,7 @@ public abstract class RTPConnectorOutputStream
             return true;
 
         boolean success = true;
+        long now = System.currentTimeMillis();
 
         for (RawPacket pkt : pkts)
         {
@@ -645,6 +676,7 @@ public abstract class RTPConnectorOutputStream
             {
                 if (success)
                 {
+                    rateStatistics.update(pkt.getLength(), now);
                     if (!send(pkt))
                     {
                         // Skip sending the remaining RawPackets but return
@@ -661,6 +693,23 @@ public abstract class RTPConnectorOutputStream
         }
 
         return success;
+    }
+
+    /**
+     * @return the current output bitrate in bits per second.
+     */
+    public long getOutputBitrate()
+    {
+        return getOutputBitrate(System.currentTimeMillis());
+    }
+
+    /**
+     * @return the current output bitrate in bits per second.
+     * @param now the current time.
+     */
+    public long getOutputBitrate(long now)
+    {
+        return rateStatistics.getRate(now);
     }
 
     private class Queue

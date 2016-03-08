@@ -1581,4 +1581,52 @@ public class MediaStreamStatsImpl
             }
         }
     }
+
+    /**
+     * {@inheritDoc}
+     *
+     * This method is different from {@link #getUploadRateKiloBitPerSec()} in
+     * that:
+     * 1. It is not necessary for {@link #updateStats()} to be called
+     * periodically by the user of libjitsi in order for it to return correct
+     * values.
+     * 2. The returned value is based on the average bitrate over a fixed
+     * window, as opposed to an EWMA.
+     * 3. The measurement is performed after the {@link MediaStream}'s
+     * transformations, notably after simulcast layers are dropped (i.e. closer
+     * to the network interface).
+     *
+     * The return value includes RTP payload and RTP headers, as well as RTCP.
+     */
+    @Override
+    public long getSendingBitrate()
+    {
+        long sbr = -1;
+        AbstractRTPConnector rtpConnector = mediaStreamImpl.getRTPConnector();
+
+        if (rtpConnector != null)
+        {
+            try
+            {
+                RTPConnectorOutputStream rtpStream
+                    = rtpConnector.getDataOutputStream(false);
+                RTPConnectorOutputStream rtcpStream
+                    = rtpConnector.getControlOutputStream(false);
+
+                if (rtpStream != null && rtcpStream != null)
+                {
+                    long now = System.currentTimeMillis();
+
+                    sbr = rtpStream.getOutputBitrate(now);
+                    sbr += rtcpStream.getOutputBitrate(now);
+                }
+            }
+            catch (IOException ioe)
+            {
+                logger.warn("Failed to get sending bitrate: ", ioe);
+            }
+        }
+
+        return sbr;
+    }
 }
