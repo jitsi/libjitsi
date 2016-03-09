@@ -141,11 +141,15 @@ public abstract class RTPConnectorOutputStream
         PACKET_QUEUE_CAPACITY
             = packetQueueCapacity >= 0 ? packetQueueCapacity : 256;
 
-        logger.debug("Initialized configuration. "
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Initialized configuration. "
                          + "Send thread: " + USE_SEND_THREAD
                          + ". Pool capacity: " + POOL_CAPACITY
                          + ". Queue capacity: " + PACKET_QUEUE_CAPACITY
                          + ". Avg bitrate window: " + AVERAGE_BITRATE_WINDOW_MS);
+
+        }
     }
 
     /**
@@ -676,13 +680,16 @@ public abstract class RTPConnectorOutputStream
             {
                 if (success)
                 {
-                    rateStatistics.update(pkt.getLength(), now);
                     if (!send(pkt))
                     {
                         // Skip sending the remaining RawPackets but return
                         // them to the pool and clear pkts. The current pkt
                         // was returned to the pool by send().
                         success = false;
+                    }
+                    else
+                    {
+                        rateStatistics.update(pkt.getLength(), now);
                     }
                 }
                 else
