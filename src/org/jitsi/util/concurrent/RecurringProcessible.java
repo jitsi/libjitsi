@@ -13,9 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
+package org.jitsi.util.concurrent;
 
 /**
+ * Represents an asynchronous processible task which determines the intervals
+ * (the lengths of which may vary) at which it is to be invoked.
+ *
  * webrtc/modules/interface/module.h
  *
  * @author Lyubomir Marinov
@@ -24,7 +27,8 @@ public interface RecurringProcessible
 {
     /**
      * Returns the number of milliseconds until this instance wants a worker
-     * thread to call {@link #process()}.
+     * thread to call {@link #process()}. The method is called on the same
+     * worker thread as Process will be called on.
      *
      * @return the number of milliseconds until this instance wants a worker
      * thread to call {@link #process()}
@@ -32,7 +36,7 @@ public interface RecurringProcessible
     long getTimeUntilNextProcess();
 
     /**
-     * Process any pending tasks such as timeouts.
+     * Process any pending tasks such as timeouts. Called on a worker thread.
      *
      * @return ignored (and unknown) at the time of this writing
      */

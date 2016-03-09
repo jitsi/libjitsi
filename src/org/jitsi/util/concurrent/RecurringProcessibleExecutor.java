@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
+package org.jitsi.util.concurrent;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -21,6 +21,11 @@ import java.util.concurrent.*;
 import org.jitsi.util.*;
 
 /**
+ * Implements a single-threaded {@link Executor} of
+ * {@link RecurringProcessible}s i.e. asynchronous tasks which determine by
+ * themselves the intervals (the lengths of which may vary) at which they are to
+ * be invoked.
+ *
  * webrtc/modules/utility/interface/process_thread.h
  * webrtc/modules/utility/source/process_thread_impl.cc
  * webrtc/modules/utility/source/process_thread_impl.h
@@ -37,11 +42,31 @@ public class RecurringProcessibleExecutor
     private static final Logger logger
         = Logger.getLogger(RecurringProcessibleExecutor.class);
 
+    /**
+     * The {@code RecurringProcessible}s registered with this instance which are
+     * to be invoked in {@link #thread}.
+     */
     private final List<RecurringProcessible> recurringProcessibles
         = new LinkedList<>();
 
+    /**
+     * The (background) {@code Thread} which invokes
+     * {@link RecurringProcessible#process()} on {@link #recurringProcessibles}
+     * (in accord with their respective
+     * {@link RecurringProcessible#getTimeUntilNextProcess()}).
+     */
     private Thread thread;
 
+    /**
+     * De-registers a {@code RecurringProcessible} from this {@code Executor} so
+     * that its {@link RecurringProcessible#process()} is no longer invoked (by
+     * this instance).
+     *
+     * @param recurringProcessible the {@code RecurringProcessible} to
+     * de-register from this instance
+     * @return {@code true} if the list of {@code RecurringProcessible}s of this
+     * instance changed because of the method call; otherwise, {@code false}
+     */
     public boolean deRegisterRecurringProcessible(
             RecurringProcessible recurringProcessible)
     {
@@ -88,6 +113,16 @@ public class RecurringProcessibleExecutor
         }
     }
 
+    /**
+     * Executes an iteration of the loop implemented by {@link #runInThread()}.
+     * Invokes {@link RecurringProcessible#process()} on all
+     * {@link #recurringProcessibles} which are at or after the time at which
+     * they want the method in question called.
+     *
+     * @return {@code true} to continue with the next iteration of the loop
+     * implemented by {@link #runInThread()} or {@code false} to break (out of)
+     * the loop
+     */
     private boolean process()
     {
         // Wait for the recurringProcessible that should be called next, but
@@ -172,6 +207,16 @@ public class RecurringProcessibleExecutor
         return true;
     }
 
+    /**
+     * Registers a {@code RecurringProcessible} with this {@code Executor} so
+     * that its {@link RecurringProcessible#process()} is invoked (by this
+     * instance).
+     *
+     * @param recurringProcessible the {@code RecurringProcessible} to register
+     * with this instance
+     * @return {@code true} if the list of {@code RecurringProcessible}s of this
+     * instance changed because of the method call; otherwise, {@code false}
+     */
     public boolean registerRecurringProcessible(
             RecurringProcessible recurringProcessible)
     {

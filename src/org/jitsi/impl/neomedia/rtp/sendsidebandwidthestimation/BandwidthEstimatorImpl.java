@@ -16,9 +16,9 @@
 package org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation;
 
 import net.sf.fmj.media.rtp.*;
-import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.util.concurrent.*;
 
 import java.util.*;
 
