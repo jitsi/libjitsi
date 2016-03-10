@@ -1199,6 +1199,7 @@ public class MediaStreamImpl
     {
         InetSocketAddress newDataAddr;
         InetSocketAddress newControlAddr;
+        AbstractRTPConnector connector = rtpConnector;
 
         if (target == null)
         {
@@ -1221,7 +1222,7 @@ public class MediaStreamImpl
          * (execution) time (between removeTargets and addTarget) without a
          * target.
          */
-        if (rtpConnectorTarget != null)
+        if (rtpConnectorTarget != null && connector != null)
         {
             InetSocketAddress oldDataAddr = rtpConnectorTarget.getDataAddress();
             boolean removeTargets
@@ -1242,15 +1243,17 @@ public class MediaStreamImpl
 
             if (removeTargets)
             {
-                rtpConnector.removeTargets();
+                connector.removeTargets();
                 rtpConnectorTarget = null;
             }
         }
 
         boolean targetIsSet;
 
-        if (target == null)
+        if (target == null || newDataAddr == null || connector == null)
+        {
             targetIsSet = true;
+        }
         else
         {
             try
@@ -1269,7 +1272,7 @@ public class MediaStreamImpl
                     controlPort = newControlAddr.getPort();
                 }
 
-                rtpConnector.addTarget(
+                connector.addTarget(
                         new SessionAddress(
                                 newDataAddr.getAddress(), newDataAddr.getPort(),
                                 controlInetAddr, controlPort));
@@ -2284,8 +2287,6 @@ public class MediaStreamImpl
             AbstractRTPConnector oldValue,
             AbstractRTPConnector newValue)
     {
-        srtpControl.setConnector(newValue);
-
         if (newValue != null)
         {
             /*
@@ -2311,6 +2312,8 @@ public class MediaStreamImpl
             // Trigger the re-configuration of RTP header extensions
             addRTPExtension((byte)0, null);
         }
+
+        srtpControl.setConnector(newValue);
 
         /*
          * TODO The following is a very ugly way to expose the RTPConnector
