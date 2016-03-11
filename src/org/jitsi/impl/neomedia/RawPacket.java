@@ -408,8 +408,8 @@ public class RawPacket
 
 
     /**
-     * Returns the CSRC level at the specified index or <tt>0</tt> if there was
-     * no level at that index.
+     * Returns the CSRC level at the specified index or <tt>defaultValue</tt>
+     * if there was no level at that index.
      *
      * @param csrcExtID the ID of the extension that's transporting csrc audio
      * levels in the session that this <tt>RawPacket</tt> belongs to.
@@ -423,25 +423,39 @@ public class RawPacket
     {
         byte level = defaultValue;
 
-        if (getExtensionBit() && getExtensionLength() != 0)
+        try
         {
-            int levelsStart = findExtension(csrcExtID);
-
-            if (levelsStart != -1)
+            if (getExtensionBit() && getExtensionLength() != 0)
             {
-                int levelsCount = getLengthForExtension(levelsStart);
+                int levelsStart = findExtension(csrcExtID);
 
-                if (levelsCount < index)
+                if (levelsStart != -1)
                 {
-                    //apparently the remote side sent more CSRCs than levels.
-                    // ... yeah remote sides do that now and then ...
-                }
-                else
-                {
-                    level = (byte) (0x7F & buffer[levelsStart + index]);
+                    int levelsCount = getLengthForExtension(levelsStart);
+
+                    if (levelsCount < index)
+                    {
+                        //apparently the remote side sent more CSRCs than levels.
+
+                        // ... yeah remote sides do that now and then ...
+                    }
+                    else
+                    {
+                        level = (byte) (0x7F & buffer[levelsStart + index]);
+                    }
                 }
             }
         }
+        catch (ArrayIndexOutOfBoundsException e)
+        {
+            // While ideally we should check the bounds everywhere and not
+            // attempt to access the packet's buffer at invalid indexes, there
+            // are too many places where it could inadvertently happen. It's
+            // safer to return the default value than to risk killing a thread
+            // which may not expect this.
+            level = defaultValue;
+        }
+
         return level;
     }
 
