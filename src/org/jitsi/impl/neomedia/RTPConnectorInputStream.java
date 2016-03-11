@@ -801,13 +801,24 @@ public abstract class RTPConnectorInputStream<T>
 
             numberOfReceivedBytes += (long) p.getLength();
 
-            // Do the DatagramPacketFilters accept the received DatagramPacket?
-            if (accept(p))
+            try
             {
-                RawPacket[] pkts = createRawPacket(p);
+                // Do the DatagramPacketFilters accept the received DatagramPacket?
 
-                updateDatagramPacketListeners(p);
-                transferData(pkts);
+                if (accept(p))
+                {
+                    RawPacket[] pkts = createRawPacket(p);
+
+                    updateDatagramPacketListeners(p);
+                    transferData(pkts);
+                }
+            }
+            catch (Exception e)
+            {
+                // The receive thread should not die as a result of a failure in
+                // the packetization (converting to RawPacket[] and transforming)
+                // or a failure in any of the DatagramPacketFilters.
+                logger.error("Failed to receive a packet: ", e);
             }
         }
     }
