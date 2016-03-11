@@ -465,7 +465,10 @@ public class RawPacket
      */
     public static int getCsrcCount(byte[] buffer, int offset, int length)
     {
-        return (buffer[offset] & 0x0f);
+        int cc = buffer[offset] & 0x0f;
+        if (FIXED_HEADER_SIZE + cc * 4 > length)
+            cc = 0;
+        return cc;
     }
 
     /**
@@ -554,8 +557,20 @@ public class RawPacket
         int extLenIndex = offset + FIXED_HEADER_SIZE
             + getCsrcCount(buffer, offset, length) * 4 + 2;
 
-        return
-            ((buffer[extLenIndex] << 8) | (buffer[extLenIndex + 1] & 0xFF)) * 4;
+        int len
+            = ((buffer[extLenIndex] << 8) | (buffer[extLenIndex + 1] & 0xFF))
+                * 4;
+
+        if (len < 0 || len > (length - FIXED_HEADER_SIZE - EXT_HEADER_SIZE -
+            getCsrcCount(buffer, offset, length)*4))
+        {
+            // This is not a valid length. Together with the rest of the
+            // header it exceeds the packet length. So be safe and assume
+            // that there is no extension.
+            len = 0;
+        }
+
+        return len;
     }
 
     /**
@@ -607,10 +622,21 @@ public class RawPacket
         int headerLength
             = FIXED_HEADER_SIZE + 4 * getCsrcCount(buffer, offset, length);
 
+        // Make sure that the header length doesn't exceed the packet length.
+        if (headerLength > length)
+        {
+            headerLength = length;
+        }
+
         if (getExtensionBit(buffer, offset, length))
         {
-            headerLength += EXT_HEADER_SIZE
-                + getExtensionLength(buffer, offset, length);
+            // Make sure that the header length doesn't exceed the packet
+            // length.
+            if (headerLength + EXT_HEADER_SIZE <= length)
+            {
+                headerLength += EXT_HEADER_SIZE
+                    + getExtensionLength(buffer, offset, length);
+            }
         }
 
         return headerLength;
