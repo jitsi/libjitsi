@@ -476,7 +476,7 @@ public abstract class RTPConnectorOutputStream
             catch (IOException ioe)
             {
                 rawPacketPool.offer(packet);
-                logger.warn(
+                logger.error(
                     "Failed to send a packet to target " + target + ":" + ioe);
                 return false;
             }
@@ -906,14 +906,31 @@ public abstract class RTPConnectorOutputStream
                         queueStats.remove(System.currentTimeMillis());
                     }
 
-                    // We will sooner or later process the Buffer. Since this
-                    // may take a non-negligible amount of time, do it before
-                    // taking pacing into account.
-                    RawPacket[] pkts
+                    RawPacket[] pkts;
+                    try
+                    {
+                        // We will sooner or later process the Buffer. Since this
+
+                        // may take a non-negligible amount of time, do it
+                        // before
+                        // taking pacing into account.
+                        pkts
                             = packetize(
-                            buffer.buf, 0, buffer.len,
-                            buffer.context);
-                    pool.offer(buffer);
+                                buffer.buf, 0, buffer.len,
+                                buffer.context);
+                    }
+                    catch (Exception e)
+                    {
+                        // The sending thread must not die because of a failure
+                        // in the conversion to RawPacket[] or any of the
+                        // transformations (because of e.g. parsing errors).
+                        logger.error("Failed to handle an outgoing packet: ", e);
+                        continue;
+                    }
+                    finally
+                    {
+                        pool.offer(buffer);
+                    }
 
                     if (perNanos > 0 && maxBuffers > 0)
                     {
@@ -931,8 +948,18 @@ public abstract class RTPConnectorOutputStream
                         }
                     }
 
-                    RTPConnectorOutputStream.this.write(pkts);
+                    try
+                    {
+                        RTPConnectorOutputStream.this.write(pkts);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.error("Failed to send a packet: ", e);
+                        continue;
+                    }
+
                     buffersProcessedInCurrentInterval++;
+
                 }
             }
             finally
