@@ -117,12 +117,13 @@ public class DtlsControlImpl
         = DtlsControlImpl.class.getName() + ".verifyAndValidateCertificate";
 
     /**
-     * A private and public keys cached for 24h
+     * A private and public keys cached for 24 hours.
      */
     private static AsymmetricCipherKeyPair _keyPairCache;
 
     /**
-     * _keyPairCache generation timestamp
+     * {@link #_keyPairCache} generation timestamp (in milliseconds of system
+     * time).
      */
     private static long _keyPairCacheTimestamp;
 
@@ -383,28 +384,28 @@ public class DtlsControlImpl
     }
 
     /**
-     * Return a pair of RSA private and public keys.
-     * We cache it for 24H
+     * Return a pair of RSA private and public keys. We cache it for 24 hours.
      *
      * @return a pair of private and public keys
      */
-    private static AsymmetricCipherKeyPair generateKeyPair()
+    private static synchronized AsymmetricCipherKeyPair generateKeyPair()
     {
-        synchronized (DtlsControlImpl.class)
+        if (_keyPairCache == null
+                || _keyPairCacheTimestamp + ONE_DAY
+                    < System.currentTimeMillis())
         {
-            if (_keyPairCache == null || _keyPairCacheTimestamp
-                + ONE_DAY < System.currentTimeMillis())
-            {
-                RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
+            RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
 
-                generator.init(
-                    new RSAKeyGenerationParameters(new BigInteger("10001", 16),
-                        createSecureRandom(), 1024, 80));
-                _keyPairCache = generator.generateKeyPair();
-                _keyPairCacheTimestamp = System.currentTimeMillis();
-            }
-            return _keyPairCache;
+            generator.init(
+                    new RSAKeyGenerationParameters(
+                            new BigInteger("10001", 16),
+                            createSecureRandom(),
+                            1024,
+                            80));
+            _keyPairCache = generator.generateKeyPair();
+            _keyPairCacheTimestamp = System.currentTimeMillis();
         }
+        return _keyPairCache;
     }
 
     /**
