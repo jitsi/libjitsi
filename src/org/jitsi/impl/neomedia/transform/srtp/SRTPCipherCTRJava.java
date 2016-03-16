@@ -19,31 +19,11 @@ import org.bouncycastle.crypto.*;
 import org.bouncycastle.crypto.params.*;
 
 /**
- * SRTPCipherCTR implements SRTP Counter Mode AES Encryption (AES-CM).
- * Counter Mode AES Encryption algorithm is defined in RFC3711, section 4.1.1.
+ * @see SRTPCipherCTR
+ * SRTPCipherCTR implementation using Java and a <tt>BlockCipher</tt>.
  *
- * Other than Null Cipher, RFC3711 defined two two encryption algorithms:
- * Counter Mode AES Encryption and F8 Mode AES encryption. Both encryption
- * algorithms are capable to encrypt / decrypt arbitrary length data, and the
- * size of packet data is not required to be a multiple of the AES block
- * size (128bit). So, no padding is needed.
- *
- * Please note: these two encryption algorithms are specially defined by SRTP.
- * They are not common AES encryption modes, so you will not be able to find a
- * replacement implementation in common cryptographic libraries.
- *
- * As defined by RFC3711: Counter Mode Encryption is mandatory..
- *
- *                        mandatory to impl     optional      default
- * -------------------------------------------------------------------------
- *   encryption           AES-CM, NULL          AES-f8        AES-CM
- *   message integrity    HMAC-SHA1                -          HMAC-SHA1
- *   key derivation       (PRF) AES-CM             -          AES-CM
- *
- * We use AESCipher to handle basic AES encryption / decryption.
- *
- * @author Werner Dittmann (Werner.Dittmann@t-online.de)
- * @author Bing SU (nova.su@gmail.com)
+ * You can use any <tt>BlockCipher</tt> with <tt>BLKLEN</tt> bytes key and
+ * block size like TwofishEngine instead of AES.
  */
 public class SRTPCipherCTRJava extends SRTPCipherCTR
 {
