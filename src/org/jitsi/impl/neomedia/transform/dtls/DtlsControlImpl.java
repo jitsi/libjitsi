@@ -117,15 +117,29 @@ public class DtlsControlImpl
         = DtlsControlImpl.class.getName() + ".verifyAndValidateCertificate";
 
     /**
-     * A private and public keys cached for 24 hours.
+     * {@link #keyPair} cache
      */
-    private static AsymmetricCipherKeyPair _keyPairCache;
+    private static AsymmetricCipherKeyPair cacheKeyPair;
 
     /**
-     * {@link #_keyPairCache} generation timestamp (in milliseconds of system
-     * time).
+     * {@link #certificate} cache
      */
-    private static long _keyPairCacheTimestamp;
+    private static org.bouncycastle.crypto.tls.Certificate cacheCertificate;
+
+    /**
+     * {@link #localFingerprintHashFunction} cache
+     */
+    private static String cacheLocalFingerprintHashFunction;
+
+    /**
+     * {@link #localFingerprint} cache
+     */
+    private static String cacheLocalFingerprint;
+
+    /**
+     *  cache generation timestamp (in milliseconds of system time).
+     */
+    private static long cacheTimestamp;
 
     static
     {
@@ -384,28 +398,20 @@ public class DtlsControlImpl
     }
 
     /**
-     * Return a pair of RSA private and public keys. We cache it for 24 hours.
+     * Return a pair of RSA private and public keys.
      *
      * @return a pair of private and public keys
      */
-    private static synchronized AsymmetricCipherKeyPair generateKeyPair()
+    private static AsymmetricCipherKeyPair generateKeyPair()
     {
-        if (_keyPairCache == null
-                || _keyPairCacheTimestamp + ONE_DAY
-                    < System.currentTimeMillis())
-        {
-            RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
-
-            generator.init(
-                    new RSAKeyGenerationParameters(
-                            new BigInteger("10001", 16),
-                            createSecureRandom(),
-                            1024,
-                            80));
-            _keyPairCache = generator.generateKeyPair();
-            _keyPairCacheTimestamp = System.currentTimeMillis();
-        }
-        return _keyPairCache;
+        RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
+        generator.init(
+                new RSAKeyGenerationParameters(
+                        new BigInteger("10001", 16),
+                        createSecureRandom(),
+                        1024,
+                        80));
+        return generator.generateKeyPair();
     }
 
     /**
@@ -482,6 +488,31 @@ public class DtlsControlImpl
                     throw new RuntimeException(t);
             }
         }
+    }
+
+    /**
+     * generate a new KeyPair and Certificate
+     */
+    private static void refreshKeyCertCache()
+    {
+        cacheKeyPair = generateKeyPair();
+
+        org.bouncycastle.asn1.x509.Certificate x509Certificate =
+            generateX509Certificate(generateCN(), cacheKeyPair);
+
+        cacheCertificate =
+            new org.bouncycastle.crypto.tls.Certificate(
+                new org.bouncycastle.asn1.x509.Certificate[]
+                    {
+                        x509Certificate
+                    });
+        cacheLocalFingerprintHashFunction = findHashFunction(x509Certificate);
+        cacheLocalFingerprint =
+            computeFingerprint(
+                x509Certificate,
+                cacheLocalFingerprintHashFunction);
+
+        cacheTimestamp = System.currentTimeMillis();
     }
 
     /**
@@ -600,22 +631,16 @@ public class DtlsControlImpl
 
         this.disableSRTP = disableSRTP;
 
-        keyPair = generateKeyPair();
+        synchronized (DtlsControlImpl.class)
+        {
+            if (cacheTimestamp + ONE_DAY < System.currentTimeMillis())
+                refreshKeyCertCache();
 
-        org.bouncycastle.asn1.x509.Certificate x509Certificate
-            = generateX509Certificate(generateCN(), keyPair);
-
-        certificate
-            = new org.bouncycastle.crypto.tls.Certificate(
-                    new org.bouncycastle.asn1.x509.Certificate[]
-                            {
-                                x509Certificate
-                            });
-        localFingerprintHashFunction = findHashFunction(x509Certificate);
-        localFingerprint
-            = computeFingerprint(
-                    x509Certificate,
-                    localFingerprintHashFunction);
+            keyPair = cacheKeyPair;
+            certificate = cacheCertificate;
+            localFingerprintHashFunction = cacheLocalFingerprintHashFunction;
+            localFingerprint = cacheLocalFingerprint;
+        }
     }
 
     /**
