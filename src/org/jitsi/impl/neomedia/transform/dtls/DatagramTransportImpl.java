@@ -19,8 +19,6 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-import javax.media.rtp.*;
-
 import org.bouncycastle.crypto.tls.*;
 import org.ice4j.ice.*;
 import org.jitsi.impl.neomedia.*;
