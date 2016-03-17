@@ -15,8 +15,6 @@
  */
 package org.jitsi.impl.neomedia.transform.dtls;
 
-import gnu.java.zrtp.utils.*;
-
 import java.io.*;
 import java.math.*;
 import java.security.*;
@@ -117,15 +115,29 @@ public class DtlsControlImpl
         = DtlsControlImpl.class.getName() + ".verifyAndValidateCertificate";
 
     /**
-     * A private and public keys cached for 24 hours.
+     * {@link #keyPair} cache
      */
-    private static AsymmetricCipherKeyPair _keyPairCache;
+    private static AsymmetricCipherKeyPair _cache_keyPair;
 
     /**
-     * {@link #_keyPairCache} generation timestamp (in milliseconds of system
-     * time).
+     * {@link #certificate} cache
      */
-    private static long _keyPairCacheTimestamp;
+    private static org.bouncycastle.crypto.tls.Certificate _cache_certificate;
+
+    /**
+     * {@link #localFingerprintHashFunction} cache
+     */
+    private static String _cache_localFingerprintHashFunction;
+
+    /**
+     * {@link #localFingerprint} cache
+     */
+    private static String _cache_localFingerprint;
+
+    /**
+     *  cache generation timestamp (in milliseconds of system time).
+     */
+    private static long _cache_timestamp;
 
     static
     {
@@ -230,48 +242,6 @@ public class DtlsControlImpl
                     throw new RuntimeException(t);
             }
         }
-    }
-
-    /**
-     * Initializes a new <tt>SecureRandom</tt> instance. Implements a
-     * <tt>SecureRandom</tt> factory to be employed by classes related to
-     * <tt>DtlsControlImpl</tt>.
-     *
-     * @return a new <tt>SecureRandom</tt> instance
-     */
-    @SuppressWarnings("serial")
-    static SecureRandom createSecureRandom()
-    {
-        return
-            new SecureRandom()
-            {
-                /**
-                 * {@inheritDoc}
-                 *
-                 * Employs <tt>ZrtpFortuna</tt> as is common in neomedia. Most
-                 * importantly though, works around a possible hang on Linux
-                 * when reading from <tt>/dev/random</tt>.
-                 */
-                @Override
-                public byte[] generateSeed(int numBytes)
-                {
-                    byte[] seed = new byte[numBytes];
-
-                    ZrtpFortuna.getInstance().nextBytes(seed);
-                    return seed;
-                }
-
-                /**
-                 * {@inheritDoc}
-                 *
-                 * Employs <tt>ZrtpFortuna</tt> as is common in neomedia.
-                 */
-                @Override
-                public void nextBytes(byte[] bytes)
-                {
-                    ZrtpFortuna.getInstance().nextBytes(bytes);
-                }
-            };
     }
 
     /**
@@ -384,28 +354,20 @@ public class DtlsControlImpl
     }
 
     /**
-     * Return a pair of RSA private and public keys. We cache it for 24 hours.
+     * Return a pair of RSA private and public keys.
      *
      * @return a pair of private and public keys
      */
-    private static synchronized AsymmetricCipherKeyPair generateKeyPair()
+    private static AsymmetricCipherKeyPair generateKeyPair()
     {
-        if (_keyPairCache == null
-                || _keyPairCacheTimestamp + ONE_DAY
-                    < System.currentTimeMillis())
-        {
-            RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
-
-            generator.init(
-                    new RSAKeyGenerationParameters(
-                            new BigInteger("10001", 16),
-                            createSecureRandom(),
-                            1024,
-                            80));
-            _keyPairCache = generator.generateKeyPair();
-            _keyPairCacheTimestamp = System.currentTimeMillis();
-        }
-        return _keyPairCache;
+        RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
+        generator.init(
+                new RSAKeyGenerationParameters(
+                        new BigInteger("10001", 16),
+                        new SecureRandom(),
+                        1024,
+                        80));
+        return generator.generateKeyPair();
     }
 
     /**
@@ -482,6 +444,31 @@ public class DtlsControlImpl
                     throw new RuntimeException(t);
             }
         }
+    }
+
+    /**
+     * generate a new KeyPair and Certificate
+     */
+    private static void refreshKeyCertCache()
+    {
+        _cache_keyPair = generateKeyPair();
+
+        org.bouncycastle.asn1.x509.Certificate x509Certificate =
+            generateX509Certificate(generateCN(), _cache_keyPair);
+
+        _cache_certificate =
+            new org.bouncycastle.crypto.tls.Certificate(
+                new org.bouncycastle.asn1.x509.Certificate[]
+                    {
+                        x509Certificate
+                    });
+        _cache_localFingerprintHashFunction = findHashFunction(x509Certificate);
+        _cache_localFingerprint =
+            computeFingerprint(
+                x509Certificate,
+                _cache_localFingerprintHashFunction);
+
+        _cache_timestamp = System.currentTimeMillis();
     }
 
     /**
@@ -600,22 +587,16 @@ public class DtlsControlImpl
 
         this.disableSRTP = disableSRTP;
 
-        keyPair = generateKeyPair();
+        synchronized (DtlsControlImpl.class)
+        {
+            if (_cache_timestamp + ONE_DAY < System.currentTimeMillis())
+                refreshKeyCertCache();
 
-        org.bouncycastle.asn1.x509.Certificate x509Certificate
-            = generateX509Certificate(generateCN(), keyPair);
-
-        certificate
-            = new org.bouncycastle.crypto.tls.Certificate(
-                    new org.bouncycastle.asn1.x509.Certificate[]
-                            {
-                                x509Certificate
-                            });
-        localFingerprintHashFunction = findHashFunction(x509Certificate);
-        localFingerprint
-            = computeFingerprint(
-                    x509Certificate,
-                    localFingerprintHashFunction);
+            keyPair = _cache_keyPair;
+            certificate = _cache_certificate;
+            localFingerprintHashFunction = _cache_localFingerprintHashFunction;
+            localFingerprint = _cache_localFingerprint;
+        }
     }
 
     /**

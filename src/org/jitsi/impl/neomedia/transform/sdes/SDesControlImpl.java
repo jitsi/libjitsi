@@ -15,8 +15,7 @@
  */
 package org.jitsi.impl.neomedia.transform.sdes;
 
-import gnu.java.zrtp.utils.*;
-
+import java.security.*;
 import java.util.*;
 
 import org.jitsi.impl.neomedia.*;
@@ -74,17 +73,7 @@ public class SDesControlImpl
         }
 
         sdesFactory = new SrtpSDesFactory();
-        sdesFactory.setRandomGenerator(
-                new Random()
-                {
-                    private static final long serialVersionUID = 0L;
-
-                    @Override
-                    public void nextBytes(byte[] bytes)
-                    {
-                        ZrtpFortuna.getInstance().getFortuna().nextBytes(bytes);
-                    }
-                });
+        sdesFactory.setRandomGenerator(new SecureRandom());
     }
 
     public SrtpCryptoAttribute getInAttribute()
