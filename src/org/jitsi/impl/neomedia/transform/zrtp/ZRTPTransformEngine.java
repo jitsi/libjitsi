@@ -16,10 +16,10 @@
 package org.jitsi.impl.neomedia.transform.zrtp;
 
 import gnu.java.zrtp.*;
-import gnu.java.zrtp.utils.*;
 import gnu.java.zrtp.zidfile.*;
 
 import java.io.*;
+import java.security.*;
 import java.util.*;
 
 import org.jitsi.impl.neomedia.*;
@@ -421,7 +421,7 @@ public class ZRTPTransformEngine
      */
     public ZRTPTransformEngine()
     {
-        ZrtpFortuna secRand = ZrtpFortuna.getInstance();
+        SecureRandom secRand = new SecureRandom();
         byte[] random = new byte[2];
         secRand.nextBytes(random);
 
