@@ -248,28 +248,14 @@ public class DtlsControlImpl
                 /**
                  * {@inheritDoc}
                  *
-                 * Employs <tt>ZrtpFortuna</tt> as is common in neomedia. Most
-                 * importantly though, works around a possible hang on Linux
-                 * when reading from <tt>/dev/random</tt>.
+                 * force usage of non blocking pool (/dev/urandom)
                  */
                 @Override
                 public byte[] generateSeed(int numBytes)
                 {
                     byte[] seed = new byte[numBytes];
-
-                    ZrtpFortuna.getInstance().nextBytes(seed);
+                    this.nextBytes(seed);
                     return seed;
-                }
-
-                /**
-                 * {@inheritDoc}
-                 *
-                 * Employs <tt>ZrtpFortuna</tt> as is common in neomedia.
-                 */
-                @Override
-                public void nextBytes(byte[] bytes)
-                {
-                    ZrtpFortuna.getInstance().nextBytes(bytes);
                 }
             };
     }
