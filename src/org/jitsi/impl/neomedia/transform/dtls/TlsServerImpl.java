@@ -104,36 +104,28 @@ public class TlsServerImpl
      * {@inheritDoc}
      *
      * Overrides the super implementation to explicitly specify cipher suites
-     * which we know to be supported by Bouncy Castle. At the time of this
-     * writing, we know that Bouncy Castle implements Client Key Exchange only
-     * with <tt>TLS_ECDHE_WITH_XXX</tt> and <tt>TLS_RSA_WITH_XXX</tt>.
+     * which we know to be supported by Bouncy Castle and provide Perfect
+     * Forward Secrecy.
      */
     @Override
     protected int[] getCipherSuites()
     {
-        return
-            new int[]
-                    {
+        return new int[]
+        {
 /* core/src/main/java/org/bouncycastle/crypto/tls/DefaultTlsServer.java */
-                        CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-                        CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-                        CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
-                        CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-                        CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-                        CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-                        CipherSuite.TLS_RSA_WITH_AES_256_GCM_SHA384,
-                        CipherSuite.TLS_RSA_WITH_AES_128_GCM_SHA256,
-                        CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA256,
-                        CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA256,
-                        CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA,
-                        CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA,
-/* core/src/test/java/org/bouncycastle/crypto/tls/test/MockDTLSServer.java */
-                        CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-                        CipherSuite.TLS_ECDHE_RSA_WITH_ESTREAM_SALSA20_SHA1,
-                        CipherSuite.TLS_ECDHE_RSA_WITH_SALSA20_SHA1,
-                        CipherSuite.TLS_RSA_WITH_ESTREAM_SALSA20_SHA1,
-                        CipherSuite.TLS_RSA_WITH_SALSA20_SHA1
-                    };
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+            CipherSuite.TLS_DHE_RSA_WITH_AES_256_GCM_SHA384,
+            CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,
+            CipherSuite.TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
+            CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+            CipherSuite.TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+            CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+        };
     }
 
     /**
