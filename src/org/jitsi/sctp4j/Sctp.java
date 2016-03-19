@@ -17,6 +17,7 @@ package org.jitsi.sctp4j;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 import org.jitsi.util.*;
 
@@ -54,8 +55,15 @@ public class Sctp
     /**
      * List of instantiated <tt>SctpSockets</tt> mapped by native pointer.
      */
-    private static final Map<Long,SctpSocket> sockets
-        = new HashMap<Long,SctpSocket>();
+    private static final Map<Long,SctpSocket> sockets = new HashMap<>();
+
+    /**
+     * The pool of <tt>Thread</tt>s used to handle messages messages coming
+     * from the {@code usrsctp} stack via the
+     * {@link #onSctpOutboundPacket(long, byte[], int, int)} callback.
+     */
+    private static final ExecutorService threadPool
+        = ExecutorUtils.newCachedThreadPool(true, Sctp.class.getName());
 
     static
     {
@@ -88,7 +96,7 @@ public class Sctp
     {
         usrsctp_close(ptr);
     
-        sockets.remove(Long.valueOf(ptr));
+        sockets.remove(ptr);
     }
 
     /**
@@ -110,7 +118,7 @@ public class Sctp
         else
         {
             socket = new SctpSocket(ptr, localPort);
-            sockets.put(Long.valueOf(ptr), socket);
+            sockets.put(ptr, socket);
         }
         return socket;
     }
@@ -215,13 +223,14 @@ public class Sctp
      * @param context
      * @param flags
      */
+    @SuppressWarnings("unused")
     public static void onSctpInboundPacket(
             long socketAddr, byte[] data, int sid, int ssn, int tsn, long ppid,
             int context, int flags)
     {
-        SctpSocket socket = sockets.get(Long.valueOf(socketAddr));
+        SctpSocket socket = sockets.get((socketAddr));
 
-        if(socket == null)
+        if (socket == null)
         {
             logger.error("No SctpSocket found for ptr: " + socketAddr);
         }
@@ -233,30 +242,42 @@ public class Sctp
     }
 
     /**
-     * Method fired by native counterpart when SCTP stack wants to send
-     * network packet.
+     * The callback used by the {@code usrsctp} stack to send data.
+     *
      * @param socketAddr native socket pointer
      * @param data buffer holding packet data
      * @param tos type of service???
      * @param set_df use IP don't fragment option
      * @return 0 if the packet has been successfully sent or -1 otherwise.
      */
+    @SuppressWarnings("unused")
     public static int onSctpOutboundPacket(
-            long socketAddr, byte[] data, int tos, int set_df)
+            final long socketAddr, final byte[] data,
+            final int tos, final int set_df)
     {
         // FIXME handle tos and set_df
 
-        SctpSocket socket = sockets.get(Long.valueOf(socketAddr));
+        final SctpSocket socket = sockets.get(socketAddr);
         int ret;
 
-        if(socket == null)
+        if (socket == null)
         {
             ret = -1;
             logger.error("No SctpSocket found for ptr: " + socketAddr);
         }
         else
         {
-            ret = socket.onSctpOut(data, tos, set_df);
+            threadPool.execute(new Runnable(){
+                @Override
+                public void run()
+                {
+                    socket.onSctpOut(data, tos, set_df);
+                }
+            });
+
+            // The usrstcp stack does not assume a reliable transport, so doing
+            // a best-effort and returning success here is OK.
+            ret = 0;
         }
         return ret;
     }
@@ -306,7 +327,7 @@ public class Sctp
      * FIXME add offset and length buffer parameters.
      * @param ptr native socket pointer.
      * @param data the data to send.
-     * @param offset the position of the data inside the buffer
+     * @param off the position of the data inside the buffer
      * @param len data length.
      * @param ordered should we care about message order ?
      * @param sid SCTP stream identifier
