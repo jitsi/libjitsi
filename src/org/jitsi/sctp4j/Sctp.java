@@ -17,6 +17,7 @@ package org.jitsi.sctp4j;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 import org.jitsi.util.*;
 
@@ -55,6 +56,14 @@ public class Sctp
      * List of instantiated <tt>SctpSockets</tt> mapped by native pointer.
      */
     private static final Map<Long,SctpSocket> sockets = new HashMap<>();
+
+    /**
+     * The pool of <tt>Thread</tt>s used to handle messages messages coming
+     * from the {@code usrsctp} stack via the
+     * {@link #onSctpOutboundPacket(long, byte[], int, int)} callback.
+     */
+    private static final ExecutorService threadPool
+        = ExecutorUtils.newCachedThreadPool(true, Sctp.class.getName());
 
     static
     {
@@ -243,7 +252,8 @@ public class Sctp
      */
     @SuppressWarnings("unused")
     public static int onSctpOutboundPacket(
-            long socketAddr, byte[] data, int tos, int set_df)
+            final long socketAddr, final byte[] data,
+            final int tos, final int set_df)
     {
         // FIXME handle tos and set_df
 
@@ -257,7 +267,17 @@ public class Sctp
         }
         else
         {
-            ret = socket.onSctpOut(data, tos, set_df);
+            threadPool.execute(new Runnable(){
+                @Override
+                public void run()
+                {
+                    socket.onSctpOut(data, tos, set_df);
+                }
+            });
+
+            // The usrstcp stack does not assume a reliable transport, so doing
+            // a best-effort and returning success here is OK.
+            ret = 0;
         }
         return ret;
     }
