@@ -27,44 +27,50 @@ public class MonotonicAtomicLong extends AtomicLong
 {
     /**
      * Updates the value of this {@link AtomicLong} if it is bigger than the
-     * current value, and returns the new value.
+     * current value, and returns the actual new value.
      *
      * Implemented this way (without {@link #updateAndGet}) for compatibility
      * with java 1.7.
      *
-     * @param newValue the value to try to set.
-     * @return the new value.
+     * @param newValue the new value to try to set.
+     * @return the actual new value whuch may be greater than or equal to
+     * {@code newValue}.
      */
     public long increase(final long newValue)
     {
         long prev, next;
+
         do
         {
             prev = get();
             next = Math.max(newValue, prev);
-        } while (!compareAndSet(prev, next));
+        }
+        while (!compareAndSet(prev, next));
 
         return next;
     }
 
     /**
      * Updates the value of this {@link AtomicLong} if it is smaller than the
-     * current value, and returns the new value.
+     * current value, and returns the actual new value.
      *
      * Implemented this way (without {@link #updateAndGet}) for compatibility
      * with java 1.7.
      *
      * @param newValue the value to try to set.
-     * @return the new value.
+     * @return the actual new value which may be less than or equal to
+     * {@code newValue}.
      */
     public long decrease(final long newValue)
     {
         long prev, next;
+
         do
         {
             prev = get();
             next = Math.min(newValue, prev);
-        } while (!compareAndSet(prev, next));
+        }
+        while (!compareAndSet(prev, next));
 
         return next;
     }
