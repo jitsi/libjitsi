@@ -181,7 +181,7 @@ Java_org_jitsi_sctp4j_Sctp_usrsctp_1init
     (JNIEnv *env, jclass clazz, jint port)
 {
     /*
-     * First argument is udp_encapsulation_port which is not releveant to our
+     * First argument is udp_encapsulation_port which is not relevant to our
      * AF_CONN use of SCTP.
      */
     usrsctp_init((uint16_t) port, onSctpOutboundPacket, debugSctpPrintf);
@@ -328,7 +328,7 @@ Java_org_jitsi_sctp4j_Sctp_usrsctp_1socket
     }
 
     // This ensures that the usrsctp close call deletes the association. This
-    // prevents usrsctp from calling OnSctpOutboundPacket with references to
+    // prevents usrsctp from calling onSctpOutboundPacket with references to
     // this class as the address.
     linger_opt.l_onoff = 1;
     linger_opt.l_linger = 0;
@@ -502,8 +502,8 @@ callOnSctpInboundPacket
                             (jint) flags);
                     /*
                      * XXX It is very important to clear any exception that is
-                     * (possibly) currently being through. Otherwise, subsequent
-                     * JNI inocations may crash the process.
+                     * (possibly) currently being thrown. Otherwise, subsequent
+                     * JNI invocations may crash the process.
                      */
                     (*env)->ExceptionClear(env);
                     (*env)->DeleteLocalRef(env, data_);
@@ -569,8 +569,8 @@ callOnSctpOutboundPacket
                                 (jint) set_df);
                     /*
                      * XXX It is very important to clear any exception that is
-                     * (possibly) currently being through. Otherwise, subsequent
-                     * JNI inocations may crash the process.
+                     * (possibly) currently being thrown. Otherwise, subsequent
+                     * JNI invocations may crash the process.
                      */
                     (*env)->ExceptionClear(env);
                     (*env)->DeleteLocalRef(env, data_);
