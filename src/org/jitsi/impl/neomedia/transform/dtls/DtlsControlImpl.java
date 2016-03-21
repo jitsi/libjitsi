@@ -35,7 +35,6 @@ import org.bouncycastle.crypto.util.*;
 import org.bouncycastle.operator.*;
 import org.bouncycastle.operator.bc.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.version.*;
@@ -57,7 +56,7 @@ public class DtlsControlImpl
      * lower case.
      */
     private static final Map<String,String[]> HASH_FUNCTION_UPGRADES
-        = new HashMap<String,String[]>();
+        = new HashMap<>();
 
     /**
      * The table which maps half-<tt>byte</tt>s to their hex characters.
@@ -125,25 +124,11 @@ public class DtlsControlImpl
     static
     {
         // VERIFY_AND_VALIDATE_CERTIFICATE
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-        boolean verifyAndValidateCertificate = true;
-
-        if (cfg == null)
-        {
-            String s
-                = System.getProperty(VERIFY_AND_VALIDATE_CERTIFICATE_PNAME);
-
-            if (s != null)
-                verifyAndValidateCertificate = Boolean.parseBoolean(s);
-        }
-        else
-        {
-            verifyAndValidateCertificate
-                = cfg.getBoolean(
-                        VERIFY_AND_VALIDATE_CERTIFICATE_PNAME,
-                        verifyAndValidateCertificate);
-        }
-        VERIFY_AND_VALIDATE_CERTIFICATE = verifyAndValidateCertificate;
+        VERIFY_AND_VALIDATE_CERTIFICATE
+            = ConfigUtils.getBoolean(
+                    LibJitsi.getConfigurationService(),
+                    VERIFY_AND_VALIDATE_CERTIFICATE_PNAME,
+                    true);
 
         // HASH_FUNCTION_UPGRADES
         HASH_FUNCTION_UPGRADES.put(
@@ -161,18 +146,14 @@ public class DtlsControlImpl
      */
     static int chooseSRTPProtectionProfile(int... theirs)
     {
-        int[] ours = SRTP_PROTECTION_PROFILES;
-
         if (theirs != null)
         {
-            for (int t = 0; t < theirs.length; t++)
+            int[] ours = SRTP_PROTECTION_PROFILES;
+
+            for (int their : theirs)
             {
-                int their = theirs[t];
-
-                for (int o = 0; o < ours.length; o++)
+                for (int our : ours)
                 {
-                    int our = ours[o];
-
                     if (their == our)
                         return their;
                 }
@@ -192,7 +173,7 @@ public class DtlsControlImpl
      * @return the fingerprint of the specified <tt>certificate</tt> computed
      * using the specified <tt>hashFunction</tt>
      */
-    private static final String computeFingerprint(
+    private static String computeFingerprint(
             org.bouncycastle.asn1.x509.Certificate certificate,
             String hashFunction)
     {
@@ -444,20 +425,18 @@ public class DtlsControlImpl
                 X500Name subject,
                 AsymmetricCipherKeyPair keyPair)
     {
-        // get property for certificate creation and default to sha1
-        String signatureAlgorithm = "SHA1withRSA";
-        // get property override from the config service if it exists
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        // The signature algorithm of the generated certificate defaults to
+        // SHA1. However, allow the overriding of the default via the
+        // ConfigurationService.
+        String signatureAlgorithm
+            = ConfigUtils.getString(
+                    LibJitsi.getConfigurationService(),
+                    PROP_SIGNATURE_ALGORITHM,
+                    "SHA1withRSA");
 
-        if (cfg != null)
-        {
-            signatureAlgorithm
-                = cfg.getString(PROP_SIGNATURE_ALGORITHM, "SHA1withRSA");
-        }        
         if (logger.isDebugEnabled())
-        {
             logger.debug("Signature algorithm: " + signatureAlgorithm);
-        }
+
         try
         {
             long now = System.currentTimeMillis();
@@ -582,7 +561,7 @@ public class DtlsControlImpl
      * The instances currently registered as users of this <tt>SrtpControl</tt>
      * (through {@link #registerUser(Object)}).
      */
-    private final Set<Object> users = new HashSet<Object>();
+    private final Set<Object> users = new HashSet<>();
 
     /**
      * Initializes a new <tt>DtlsControlImpl</tt> instance.
@@ -790,8 +769,7 @@ public class DtlsControlImpl
         {
             // Make sure that the hash functions (which are keys of the field
             // remoteFingerprints) are written in lower case.
-            Map<String,String> rfs
-                = new HashMap<String,String>(remoteFingerprints.size());
+            Map<String,String> rfs = new HashMap<>(remoteFingerprints.size());
 
             for (Map.Entry<String,String> e : remoteFingerprints.entrySet())
             {
@@ -895,6 +873,7 @@ public class DtlsControlImpl
             {
                 throw new IllegalStateException("disposed");
             }
+
             Map<String,String> remoteFingerprints = this.remoteFingerprints;
 
             if (remoteFingerprints == null)
