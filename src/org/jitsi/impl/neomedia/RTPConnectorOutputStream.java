@@ -451,6 +451,8 @@ public abstract class RTPConnectorOutputStream
         }
 
         numberOfPackets++;
+        if(targets.isEmpty())
+            logger.warn("targets list empty, not sending packet");
         for (InetSocketAddress target : targets)
         {
             try
