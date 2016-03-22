@@ -24,7 +24,7 @@ import java.util.concurrent.locks.*;
 import javax.media.rtp.*;
 
 import net.sf.fmj.media.util.*;
-import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
+import org.ice4j.util.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
@@ -768,11 +768,19 @@ public abstract class RTPConnectorOutputStream
          */
         final Thread sendThread;
 
+        QueueStatistics queueStats = null;
+
         /**
          * Initializes a new {@link Queue} instance and starts its send thread.
          */
         private Queue()
         {
+            if (logger.isTraceEnabled())
+            {
+                queueStats = new QueueStatistics(
+                    getClass().getSimpleName() + "-" + hashCode());
+            }
+
             sendThread
                 = new Thread()
             {
@@ -809,12 +817,17 @@ public abstract class RTPConnectorOutputStream
             buffer.len = len;
             buffer.context = context;
 
+            long now = System.currentTimeMillis();
             if (queue.size() >= PACKET_QUEUE_CAPACITY)
             {
                 // Drop from the head of the queue.
                 Buffer b = queue.poll();
                 if (b != null)
                 {
+                    if (queueStats != null)
+                    {
+                        queueStats.remove(now);
+                    }
                     pool.offer(b);
                     numDroppedPackets++;
                     if (logDroppedPacket(numDroppedPackets))
@@ -825,7 +838,11 @@ public abstract class RTPConnectorOutputStream
                     }
                 }
             }
-            queue.offer(buffer);
+
+            if (queue.offer(buffer) && queueStats != null)
+            {
+                queueStats.add(now);
+            }
         }
 
         /**
@@ -869,10 +886,19 @@ public abstract class RTPConnectorOutputStream
 
                     // The current thread has potentially waited.
                     if (closed)
+                    {
                         break;
+                    }
 
                     if (buffer == null)
+                    {
                         continue;
+                    }
+
+                    if (queueStats != null)
+                    {
+                        queueStats.remove(System.currentTimeMillis());
+                    }
 
                     // We will sooner or later process the Buffer. Since this
                     // may take a non-negligible amount of time, do it before

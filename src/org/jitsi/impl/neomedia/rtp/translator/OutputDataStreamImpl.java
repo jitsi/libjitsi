@@ -23,6 +23,7 @@ import javax.media.rtp.*;
 import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.RTPHeader;
 
+import org.ice4j.util.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -98,6 +99,8 @@ class OutputDataStreamImpl
 
     private int writeQLength;
 
+    private final QueueStatistics writeQStats;
+
     /**
      * The number of packets dropped because a packet was inserted while
      * {@link #writeQ} was full.
@@ -116,6 +119,17 @@ class OutputDataStreamImpl
                     LibJitsi.getConfigurationService(),
                     REMOVE_RTP_HEADER_EXTENSIONS_PNAME,
                     false);
+
+        if (logger.isTraceEnabled())
+        {
+            writeQStats
+                = new QueueStatistics(
+                    getClass().getSimpleName() + "-" + hashCode());
+        }
+        else
+        {
+            writeQStats = null;
+        }
     }
 
     /**
@@ -390,6 +404,10 @@ class OutputDataStreamImpl
                     if (writeQHead >= writeQ.length)
                         writeQHead = 0;
                     writeQLength--;
+                    if (writeQStats != null)
+                    {
+                        writeQStats.remove(System.currentTimeMillis());
+                    }
                 }
 
                 try
@@ -631,6 +649,10 @@ class OutputDataStreamImpl
             if (writeQHead >= writeQ.length)
                 writeQHead = 0;
             writeQLength--;
+            if (writeQStats != null)
+            {
+                writeQStats.remove(System.currentTimeMillis());
+            }
 
             numDroppedPackets++;
             if (RTPConnectorOutputStream.logDroppedPacket(numDroppedPackets))
@@ -657,6 +679,10 @@ class OutputDataStreamImpl
         write.length = len;
 
         writeQLength++;
+        if (writeQStats != null)
+        {
+            writeQStats.add(System.currentTimeMillis());
+        }
 
         if (writeThread == null)
             createWriteThread();
