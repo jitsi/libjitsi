@@ -127,8 +127,8 @@ public class TlsClientImpl
     {
         Hashtable clientExtensions = super.getClientExtensions();
 
-        if (!getDtlsControl().isSrtpDisabled() &&
-            TlsSRTPUtils.getUseSRTPExtension(clientExtensions) == null)
+        if (!isSrtpDisabled()
+                && TlsSRTPUtils.getUseSRTPExtension(clientExtensions) == null)
         {
             if (clientExtensions == null)
                 clientExtensions = new Hashtable();
@@ -188,6 +188,11 @@ public class TlsClientImpl
         return ProtocolVersion.DTLSv10;
     }
 
+    private Properties getProperties()
+    {
+        return packetTransformer.getProperties();
+    }
+
     /**
      * {@inheritDoc}
      *
@@ -201,6 +206,18 @@ public class TlsClientImpl
     {
         // TODO Auto-generated method stub
         super.init(context);
+    }
+
+    /**
+     * Determines whether this {@code TlsClientImpl} is to operate in pure DTLS
+     * mode without SRTP extensions or in DTLS/SRTP mode.
+     *
+     * @return {@code true} for pure DTLS without SRTP extensions or
+     * {@code false} for DTLS/SRTP
+     */
+    private boolean isSrtpDisabled()
+    {
+        return getProperties().isSrtpDisabled();
     }
 
     /**
@@ -231,7 +248,7 @@ public class TlsClientImpl
     public void processServerExtensions(Hashtable serverExtensions)
         throws IOException
     {
-        if (getDtlsControl().isSrtpDisabled())
+        if (isSrtpDisabled())
         {
             super.processServerExtensions(serverExtensions);
             return;
