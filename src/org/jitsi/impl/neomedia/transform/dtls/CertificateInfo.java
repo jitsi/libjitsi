@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.transform.dtls;
 
 import org.bouncycastle.crypto.*;
+import org.bouncycastle.crypto.tls.*;
 
 /**
  * Bundles information such as key pair, hash function, fingerprint, etc. about
@@ -30,12 +31,12 @@ class CertificateInfo
      * The certificate with which the local endpoint represented by this
      * instance authenticates its ends of DTLS sessions.
      */
-    public final org.bouncycastle.crypto.tls.Certificate certificate;
+    private final Certificate certificate;
 
     /**
      * The private and public keys of {@link #certificate}.
      */
-    public final AsymmetricCipherKeyPair keyPair;
+    private final AsymmetricCipherKeyPair keyPair;
 
     /**
      * The fingerprint of {@link #certificate}.
@@ -55,9 +56,20 @@ class CertificateInfo
      */
     public final long timestamp;
 
+    /**
+     * Initializes a new {@code CertificateInfo} instance.
+     *
+     * @param keyPair the private and public keys of {@code certificate}
+     * @param certificate the certificate with which the local endpoint
+     * represented by the new instance is to authenticates its ends of DTLS
+     * sessions
+     * @param localFingerprintHashFunction
+     * @param localFingerprint
+     * @param timestamp
+     */
     public CertificateInfo(
             AsymmetricCipherKeyPair keyPair,
-            org.bouncycastle.crypto.tls.Certificate certificate,
+            Certificate certificate,
             String localFingerprintHashFunction,
             String localFingerprint,
             long timestamp)
@@ -67,5 +79,27 @@ class CertificateInfo
         this.localFingerprintHashFunction = localFingerprintHashFunction;
         this.localFingerprint = localFingerprint;
         this.timestamp = timestamp;
+    }
+
+    /**
+     * Gets the certificate with which the local endpoint represented by this
+     * instance authenticates its ends of DTLS sessions.
+     *
+     * @return the certificate with which the local endpoint represented by this
+     * instance authenticates its ends of DTLS sessions.
+     */
+    public Certificate getCertificate()
+    {
+        return certificate;
+    }
+
+    /**
+     * Gets the private and public keys of {@link #certificate}.
+     *
+     * @return the private and public keys of {@link #certificate}.
+     */
+    public AsymmetricCipherKeyPair getKeyPair()
+    {
+        return keyPair;
     }
 }
