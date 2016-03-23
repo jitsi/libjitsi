@@ -27,13 +27,13 @@ public class RawPacketQueue extends PacketQueue<RawPacket>
 {
     /**
      * Initializes a new {@link RawPacketQueue}. See
-     * {@link PacketQueue#PacketQueue(int, boolean, boolean, boolean, String, PacketHandler)}
+     * {@link PacketQueue#PacketQueue(int, boolean, boolean, String, PacketHandler)}
      */
-    public RawPacketQueue(int capacity, boolean enableCache, boolean copy,
+    public RawPacketQueue(int capacity, boolean copy,
                           boolean enableStatistics, String id,
                           PacketHandler<RawPacket> handler)
     {
-        super(capacity, enableCache, copy, enableStatistics, id, handler);
+        super(capacity, copy, enableStatistics, id, handler);
     }
 
     /**
