@@ -17,6 +17,8 @@ package org.jitsi.service.neomedia;
 
 import org.jitsi.service.neomedia.event.*;
 
+import java.util.*;
+
 /**
  * Provides an abstract, base implementation of {@link SrtpControl} to
  * facilitate implementers.
@@ -37,6 +39,12 @@ public abstract class AbstractSrtpControl<T extends SrtpControl.TransformEngine>
     protected T transformEngine;
 
     /**
+     * The {@code Object}s currently registered as users of this
+     * {@code SrtpControl} (through {@link #registerUser(Object)}).
+     */
+    private final Set<Object> users = new HashSet<>();
+
+    /**
      * Initializes a new <tt>AbstractSrtpControl</tt> instance with a specific
      * <tt>SrtpControlType</tt>.
      *
@@ -53,16 +61,16 @@ public abstract class AbstractSrtpControl<T extends SrtpControl.TransformEngine>
     /**
      * {@inheritDoc}
      *
-     * The implementation of <tt>AbstractSrtpControl</tt> cleans up its
-     * associated <tt>TransformEngine</tt> (if any).
+     * Invokes {@link #doCleanup()} if there are no more users (advertised via
+     * {@link #registerUser(Object)}) of this {@code SrtpControl}.
      */
     @Override
     public void cleanup(Object user)
     {
-        if (transformEngine != null)
+        synchronized (users)
         {
-            transformEngine.cleanup();
-            transformEngine = null;
+            if (users.remove(user) && users.isEmpty())
+                doCleanup();
         }
     }
 
@@ -74,6 +82,18 @@ public abstract class AbstractSrtpControl<T extends SrtpControl.TransformEngine>
      * used by this <tt>SrtpControl</tt> instance
      */
     protected abstract T createTransformEngine();
+
+    /**
+     * Prepares this {@code SrtpControl} for garbage collection.
+     */
+    protected void doCleanup()
+    {
+        if (transformEngine != null)
+        {
+            transformEngine.cleanup();
+            transformEngine = null;
+        }
+    }
 
     /**
      * {@inheritDoc}
@@ -134,5 +154,9 @@ public abstract class AbstractSrtpControl<T extends SrtpControl.TransformEngine>
      */
     public void registerUser(Object user)
     {
+        synchronized (users)
+        {
+            users.add(user);
+        }
     }
 }
