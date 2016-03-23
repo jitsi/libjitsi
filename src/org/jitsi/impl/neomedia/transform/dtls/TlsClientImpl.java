@@ -320,17 +320,16 @@ public class TlsClientImpl
         {
             if (clientCredentials == null)
             {
-                DtlsControlImpl dtlsControl = getDtlsControl();
+                CertificateInfo certificateInfo
+                    = getDtlsControl().getCertificateInfo();
 
-                /*
-                 * FIXME The signature and hash algorithms should be retrieved
-                 * from the certificate.
-                 */
+                // FIXME The signature and hash algorithms should be retrieved
+                // from the certificate.
                 clientCredentials
                     = new DefaultTlsSignerCredentials(
                             context,
-                            dtlsControl.getCertificate(),
-                            dtlsControl.getKeyPair().getPrivate(),
+                            certificateInfo.getCertificate(),
+                            certificateInfo.getKeyPair().getPrivate(),
                             new SignatureAndHashAlgorithm(
                                     HashAlgorithm.sha1,
                                     SignatureAlgorithm.rsa));

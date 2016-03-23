@@ -656,25 +656,41 @@ public class DtlsControlImpl
 
     /**
      * Gets the certificate with which the local endpoint represented by this
-     * instance authenticates its ends of DTLS sessions.
+     * instance authenticates its ends of DTLS sessions. Equivalent to
+     * {@code getCertificateInfo().getCertificate()}.
      *
      * @return the certificate with which the local endpoint represented by this
      * instance authenticates its ends of DTLS sessions.
      */
     org.bouncycastle.crypto.tls.Certificate getCertificate()
     {
-        return certificateInfo.certificate;
+        return getCertificateInfo().getCertificate();
+    }
+
+    /**
+     * Gets the certificate, hash function, fingerprint, etc. with which the
+     * local endpoint represented by this instance authenticates its ends of
+     * DTLS sessions.
+     *
+     * @return the certificate, hash function, fingerprint, etc. with which the
+     * local endpoint represented by this instance authenticates its ends of
+     * DTLS sessions
+     */
+    CertificateInfo getCertificateInfo()
+    {
+        return certificateInfo;
     }
 
     /**
      * The private and public keys of the <tt>certificate</tt> of this instance.
+     * Equivalent to {@code getCertificateInfo().getKeyPair()}.
      *
      * @return the private and public keys of the <tt>certificate</tt> of this
      * instance
      */
     AsymmetricCipherKeyPair getKeyPair()
     {
-        return certificateInfo.keyPair;
+        return getCertificateInfo().getKeyPair();
     }
 
     /**
@@ -683,7 +699,7 @@ public class DtlsControlImpl
     @Override
     public String getLocalFingerprint()
     {
-        return certificateInfo.localFingerprint;
+        return getCertificateInfo().localFingerprint;
     }
 
     /**
@@ -692,7 +708,7 @@ public class DtlsControlImpl
     @Override
     public String getLocalFingerprintHashFunction()
     {
-        return certificateInfo.localFingerprintHashFunction;
+        return getCertificateInfo().localFingerprintHashFunction;
     }
 
     /**
