@@ -415,6 +415,14 @@ public class DePacketizer
     }
 
     /**
+     * Returns true if the buffer contains a VP8 key frame at offset
+     * <tt>offset</tt>.
+     *
+     * @param buff the byte buffer to check
+     * @param off the offset in the byte buffer where the actuall data starts
+     * @param len the length of the data in the byte buffer
+     * @return true if the buffer contains a VP8 key frame at offset
+     * <tt>offset</tt>.
      */
     public static boolean isKeyFrame(byte[] buff, int off, int len)
     {
