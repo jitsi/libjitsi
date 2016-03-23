@@ -255,15 +255,17 @@ class SsrcGroupRewriter
             // sequence number, and RTP timestamp.
             if (TRACE && p != null)
             {
+                boolean isKeyframe = isKeyFrame(p);
                 long ssrc1 = p.getSSRCAsLong();
                 int seqnum1 = p.getSequenceNumber();
                 long ts1 = p.getTimestamp();
 
                 logger.trace(
-                        "rewriteRTP SSRC, seqnum, ts from: "
-                            + ssrc0 + "," + seqnum0 + "," + ts0
-                            + " to: "
-                            + ssrc1 + "," + seqnum1 + "," + ts1);
+                    "rewriteRTP SSRC, seqnum, ts from: "
+                        + ssrc0 + "," + seqnum0 + "," + ts0
+                        + " to: "
+                        + ssrc1 + "," + seqnum1 + "," + ts1
+                        + ", isKeyframe: " + isKeyframe);
             }
         }
         return p;
@@ -279,6 +281,7 @@ class SsrcGroupRewriter
     {
         final int sourceSSRC = pkt.getSSRC();
         boolean debug = logger.isDebugEnabled();
+        boolean warn = logger.isWarnEnabled();
 
         // This "if" block is not thread-safe but we don't expect multiple
         // threads to access this block all at the same time.
@@ -329,8 +332,7 @@ class SsrcGroupRewriter
             // it in the interval tree).
             activeRewriter.pause();
 
-            // FIXME We're using logger.warn under the condition of debug bellow.
-            if (debug)
+            if (warn)
             {
                 // We're only supposed to switch on key frames. Here we check if
                 // that's the case.
