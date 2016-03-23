@@ -48,7 +48,10 @@ public interface SrtpControl
 
     /**
      * Cleans up this <tt>SrtpControl</tt> and its <tt>TransformEngine</tt>.
-     * @param user the instance which requests the clean up.
+     *
+     * @param user the {@Object} which requests the clean-up and is supposedly
+     * currently using this {@code SrtpControl} (i.e. has already used
+     * {@link #registerUser(Object)}).
      */
     public void cleanup(Object user);
 
@@ -133,7 +136,9 @@ public interface SrtpControl
     /**
      * Registers <tt>user</tt> as an instance which is currently using this
      * <tt>SrtpControl</tt>.
-     * @param user
+     *
+     * @param user the {@code Object} which is currently using this
+     * {@code SrtpControl}
      */
     public void registerUser(Object user);
 }
