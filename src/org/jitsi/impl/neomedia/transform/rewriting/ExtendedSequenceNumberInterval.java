@@ -425,7 +425,7 @@ class ExtendedSequenceNumberInterval
             logger.warn("The buffer is empty.");
             return false;
         }
-        if (buf.length < off + len)
+        if (buf.length < off + len || len < 4)
         {
             logger.warn("The buffer is invalid.");
             return false;
