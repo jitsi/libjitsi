@@ -49,6 +49,20 @@ class SsrcGroupRewriter
     private static final boolean TRACE;
 
     /**
+     * The value of {@link Logger#isDebugEnabled()} from the time of the
+     * initialization of the class {@code SsrcGroupRewriter} cached for the
+     * purposes of performance.
+     */
+    private static final boolean DEBUG;
+
+    /**
+     * The value of {@link Logger#isWarnEnabled()} from the time of the
+     * initialization of the class {@code SsrcGroupRewriter} cached for the
+     * purposes of performance.
+     */
+    private static final boolean WARN;
+
+    /**
      * A map of SSRCs to <tt>SsrcRewriter</tt>. Each SSRC that we rewrite in
      * this group rewriter has its own rewriter.
      */
@@ -74,6 +88,22 @@ class SsrcGroupRewriter
     int currentExtendedSeqnumBase;
 
     /**
+     * Holds the max RTP timestamp that we've sent out.
+     * <p>
+     * When there's a stream switch, we request a keyframe for the stream we
+     * want to switch into (this is done elsewhere). The problem is that the
+     * frames are sampled at different times, so we might end up with a key
+     * frame that is one sampling cycle behind what we were already streaming.
+     * We hack around this by implementing "RTP timestamp uplifting".
+     * <p>
+     * When a switch occurs, we store the maximum timestamp that we've sent
+     * to an endpoint. If we observe new packets (NOT retransmissions) with
+     * timestamp older than what the endpoint has already seen, we overwrite
+     * the timestamp with maxTimestamp + 1.
+     */
+    public long maxTimestamp;
+
+    /**
      * The current <tt>SsrcRewriter</tt> that we use to rewrite source
      * SSRCs. The active rewriter is determined by the RTP packets that
      * we get.
@@ -86,9 +116,14 @@ class SsrcGroupRewriter
      */
     private long _timestampSsrc;
 
+    /**
+     * Static init.
+     */
     static
     {
         TRACE = logger.isTraceEnabled();
+        DEBUG = logger.isDebugEnabled();
+        WARN = logger.isWarnEnabled();
     }
 
     /**
@@ -255,15 +290,17 @@ class SsrcGroupRewriter
             // sequence number, and RTP timestamp.
             if (TRACE && p != null)
             {
+                boolean isKeyframe = isKeyFrame(p);
                 long ssrc1 = p.getSSRCAsLong();
                 int seqnum1 = p.getSequenceNumber();
                 long ts1 = p.getTimestamp();
 
                 logger.trace(
-                        "rewriteRTP SSRC, seqnum, ts from: "
-                            + ssrc0 + "," + seqnum0 + "," + ts0
-                            + " to: "
-                            + ssrc1 + "," + seqnum1 + "," + ts1);
+                    "rewriteRTP SSRC, seqnum, ts from: "
+                        + ssrc0 + "," + seqnum0 + "," + ts0
+                        + " to: "
+                        + ssrc1 + "," + seqnum1 + "," + ts1
+                        + ", isKeyframe: " + isKeyframe);
             }
         }
         return p;
@@ -278,13 +315,12 @@ class SsrcGroupRewriter
     private void maybeSwitchActiveRewriter(final RawPacket pkt)
     {
         final int sourceSSRC = pkt.getSSRC();
-        boolean debug = logger.isDebugEnabled();
 
         // This "if" block is not thread-safe but we don't expect multiple
         // threads to access this block all at the same time.
         if (!rewriters.containsKey(sourceSSRC))
         {
-            if (debug)
+            if (DEBUG)
             {
                 logger.debug(
                         "Creating an SSRC rewriter to rewrite "
@@ -300,7 +336,7 @@ class SsrcGroupRewriter
             // Got a packet with a different SSRC from the one that the current
             // SsrcRewriter handles. Pause the current SsrcRewriter and switch
             // to the correct one.
-            if (debug)
+            if (DEBUG)
             {
                 logger.debug(
                         "Now rewriting " + pkt.getSSRCAsLong() + "/"
@@ -318,7 +354,7 @@ class SsrcGroupRewriter
             int currentIntervalLength
                 = currentInterval == null ? 0 : currentInterval.length();
 
-            if (debug && currentIntervalLength < 1)
+            if (DEBUG && currentIntervalLength < 1)
             {
                 logger.debug(
                         "Pausing an interval of length 0. This doesn't look"
@@ -329,8 +365,7 @@ class SsrcGroupRewriter
             // it in the interval tree).
             activeRewriter.pause();
 
-            // FIXME We're using logger.warn under the condition of debug bellow.
-            if (debug)
+            if (WARN)
             {
                 // We're only supposed to switch on key frames. Here we check if
                 // that's the case.
@@ -351,7 +386,7 @@ class SsrcGroupRewriter
 
         if (activeRewriter == null)
         {
-            if (debug)
+            if (DEBUG)
             {
                 logger.debug(
                         "Now rewriting " + pkt.getSSRCAsLong() + " to "
