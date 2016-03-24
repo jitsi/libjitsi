@@ -38,6 +38,13 @@ class SsrcRewriter
     private static final Logger logger = Logger.getLogger(SsrcRewriter.class);
 
     /**
+     * The value of {@link Logger#isDebugEnabled()} from the time of the
+     * initialization of the class {@code SsrcRewriter} cached for the purposes
+     * of performance.
+     */
+    private static final boolean DEBUG;
+
+    /**
      * The origin SSRC that this <tt>SsrcRewriter</tt> rewrites. The
      * target SSRC is managed by the parent <tt>SsrcGroupRewriter</tt>.
      */
@@ -81,6 +88,14 @@ class SsrcRewriter
      * {@link #_lastDstTimestamp}).
      */
     private long _lastSrcTimestamp = -1L;
+
+    /**
+     * Static init.
+     */
+    static
+    {
+        DEBUG = logger.isDebugEnabled();
+    }
 
     /**
      * Ctor.
@@ -136,7 +151,7 @@ class SsrcRewriter
                         pkt,
                         /* retransmission */ true);
 
-            if (logger.isDebugEnabled())
+            if (DEBUG)
             {
                 logger.debug(
                         "Retransmitting packet with SEQNUM " + (seqnum & 0xffff)
@@ -157,7 +172,8 @@ class SsrcRewriter
                 = new ExtendedSequenceNumberInterval(
                         this,
                         extendedSeqnum,
-                        ssrcGroupRewriter.currentExtendedSeqnumBase);
+                        ssrcGroupRewriter.currentExtendedSeqnumBase,
+                        ssrcGroupRewriter.maxTimestamp + 1);
         }
         else
         {
@@ -288,7 +304,7 @@ class SsrcRewriter
         {
             if (clocks[i] == null)
             {
-                if (logger.isDebugEnabled())
+                if (DEBUG)
                 {
                     logger.debug(
                             "No remote wallclock available for SSRC "
@@ -354,6 +370,12 @@ class SsrcRewriter
             intervals.put(
                     currentExtendedSequenceNumberInterval.extendedMaxOrig,
                     currentExtendedSequenceNumberInterval);
+
+            // Store the max timestamp so that we can consult it when
+            // we rewrite the next packets of the next stream.
+            ssrcGroupRewriter.maxTimestamp
+                = currentExtendedSequenceNumberInterval.maxTimestamp;
+
             currentExtendedSequenceNumberInterval = null;
 
             // TODO We don't need to keep track of more than 2 cycles, so we
