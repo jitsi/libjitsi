@@ -23,8 +23,9 @@ import org.jitsi.util.*;
 import org.jitsi.util.function.*;
 
 /**
- * Does the dirty job of rewriting SSRCs and sequence numbers of a
- * given extended sequence number interval of a given source SSRC.
+ * Does the dirty job of rewriting SSRCs and sequence numbers of a given
+ * extended sequence number interval of a given source SSRC. This class is not
+ * thread safe.
  *
  * @author George Politis
  * @author Lyubomir Marinov
@@ -37,6 +38,20 @@ class ExtendedSequenceNumberInterval
      */
     private static final Logger logger
         = Logger.getLogger(ExtendedSequenceNumberInterval.class);
+
+    /**
+     * The value of {@link Logger#isDebugEnabled()} from the time of the
+     * initialization of the class {@code ExtendedSequenceNumberInterval} cached
+     * for the purposes of performance.
+     */
+    private static final boolean DEBUG;
+
+    /**
+     * The value of {@link Logger#isWarnEnabled()} from the time of the
+     * initialization of the class {@code ExtendedSequenceNumberInterval} cached
+     * for the purposes of performance.
+     */
+    private static final boolean WARN;
 
     /**
      * The extended minimum sequence number of this interval.
@@ -54,6 +69,14 @@ class ExtendedSequenceNumberInterval
      */
     public final SsrcRewriter ssrcRewriter;
 
+    /**
+     * Static init.
+     */
+    static
+    {
+        DEBUG = logger.isDebugEnabled();
+        WARN = logger.isWarnEnabled();
+    }
     /**
      * The predicate used to match FEC <tt>REDBlock</tt>s.
      */
@@ -79,21 +102,50 @@ class ExtendedSequenceNumberInterval
     long lastSeen;
 
     /**
+     * Holds the max RTP timestamp that we've sent (to the endpoint)
+     * in this interval.
+     */
+    public long maxTimestamp;
+
+    /**
+     * Defines the minimum timestamp for this extended sequence number interval
+     * (inclusive).
+     *
+     * When there's a stream switch, we request a keyframe for the stream we
+     * want to switch into (this is done elsewhere). The {@link SsrcRewriter}
+     * rewrites the timestamps of the "mixed" streams so that they all have the
+     * same timestamp offset. The problem still remains tho, frames can be
+     * sampled at different times, so we might end up with a key frame that is
+     * one sampling cycle behind what we were already streaming. We hack around
+     * this by implementing "RTP timestamp uplifting".
+     *
+     * RTP timestamp uplifting happens here, in this class. If, after timestamp
+     * rewriting, we get a packet with a timestamp smaller than minTimestamp,
+     * we overwrite it with minTimestamp. We don't expect to receive more than
+     * one frame that needs to be uplifted.
+     */
+    private final long minTimestamp;
+
+    /**
      * Ctor.
      *
      * @param ssrcRewriter
      * @param extendedBaseOrig
      * @param extendedBaseTarget
+     * @param minTimestamp
      */
     public ExtendedSequenceNumberInterval(
             SsrcRewriter ssrcRewriter,
-            int extendedBaseOrig, int extendedBaseTarget)
+            int extendedBaseOrig, int extendedBaseTarget,
+            long minTimestamp)
     {
         this.ssrcRewriter = ssrcRewriter;
         this.extendedBaseTarget = extendedBaseTarget;
 
         this.extendedMinOrig = extendedBaseOrig;
         this.extendedMaxOrig = extendedBaseOrig;
+
+        this.minTimestamp = minTimestamp;
     }
 
     /**
@@ -219,6 +271,61 @@ class ExtendedSequenceNumberInterval
         // rewriting of the RTP timestamps at the time of this writing. Forward
         // to the owner/parent i.e. SsrcRewriter.
         ssrcRewriter.rewriteTimestamp(p, retransmission);
+
+        // Uplift the timestamp of a frame if we've already sent a larger
+        // timestamp to the remote endpoint.
+        //
+        // XXX(gp): The uplifting should not take place if the
+        // timestamps have advanced "a lot" (i.e. > 3000).
+
+        long timestamp = p.getTimestamp();
+        long delta = timestamp - minTimestamp;
+
+        if (delta < 0) /* minTimestamp is inclusive */
+        {
+            if (DEBUG)
+            {
+                logger.debug(
+                    "Uplifting RTP timestamp " + timestamp
+                        + " with SEQNUM " + p.getSequenceNumber()
+                        + " from SSRC " + p.getSSRCAsLong()
+                        + " because of delta " + delta + " to "
+                        + minTimestamp);
+            }
+
+            if (delta < -3000)
+            {
+                // Bail-out. This is not supposed to happen because it means
+                // that more than one frame has to be uplifted, which means that
+                // we might be mis-rewriting the timestamps (since we're
+                // switching on neighboring frames and neighboring frames are
+                // sampled at similar instances).
+
+                if (WARN)
+                {
+
+                    logger.warn(
+                        "BAILING OUT to uplift RTP timestamp " + timestamp
+                            + " with SEQNUM " + p.getSequenceNumber()
+                            + " from SSRC " + p.getSSRCAsLong()
+                            + " because of " + delta + " (delta > 3000) to "
+                            + minTimestamp);
+                }
+
+                return;
+            }
+
+            p.setTimestamp(minTimestamp);
+        }
+        else
+        {
+            // FIXME If the delta is >>> 3000 it could mean problems as well.
+        }
+
+        if (maxTimestamp < timestamp)
+        {
+            maxTimestamp = timestamp;
+        }
     }
 
     /**
