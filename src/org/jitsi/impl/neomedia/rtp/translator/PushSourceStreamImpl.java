@@ -22,6 +22,7 @@ import java.util.concurrent.*;
 import javax.media.*;
 import javax.media.protocol.*;
 
+import org.ice4j.util.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.util.*;
 
@@ -72,6 +73,8 @@ class PushSourceStreamImpl
      */
     private final int readQCapacity;
 
+    private final QueueStatistics readQStats;
+
     /**
      * The number of packets dropped because a packet was inserted while
      * {@link #readQ} was full.
@@ -103,6 +106,16 @@ class PushSourceStreamImpl
 
         readQCapacity = RTPConnectorOutputStream.PACKET_QUEUE_CAPACITY;
         readQ = new ArrayBlockingQueue<>(readQCapacity);
+        if (logger.isTraceEnabled())
+        {
+            readQStats
+                = new QueueStatistics(
+                        getClass().getSimpleName() + "-" + hashCode());
+        }
+        else
+        {
+            readQStats = null;
+        }
 
         transferDataThread = new Thread(this, getClass().getName());
         transferDataThread.setDaemon(true);
@@ -228,6 +241,10 @@ class PushSourceStreamImpl
             }
 
             readQ.remove();
+            if (readQStats != null)
+            {
+                readQStats.remove(System.currentTimeMillis());
+            }
             _read = true;
             readQ.notifyAll();
         }
@@ -459,9 +476,14 @@ class PushSourceStreamImpl
 
                 synchronized (readQ)
                 {
+                    long now = System.currentTimeMillis();
                     if (readQ.size() >= readQCapacity)
                     {
                         readQ.remove();
+                        if (readQStats != null)
+                        {
+                            readQStats.remove(now);
+                        }
                         numDroppedPackets++;
                         if (RTPConnectorOutputStream.logDroppedPacket(
                                 numDroppedPackets))
@@ -474,6 +496,10 @@ class PushSourceStreamImpl
 
                     if (readQ.offer(pkt))
                     {
+                        if (readQStats != null)
+                        {
+                            readQStats.add(now);
+                        }
                         // TODO It appears that it is better to not yield based
                         // on whether the read method has read after the last
                         // write.
