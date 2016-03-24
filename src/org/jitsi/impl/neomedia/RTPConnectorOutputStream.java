@@ -768,6 +768,10 @@ public abstract class RTPConnectorOutputStream
          */
         final Thread sendThread;
 
+        /**
+         * The instance optionally used to gather and print statistics about
+         * this queue.
+         */
         QueueStatistics queueStats = null;
 
         /**
