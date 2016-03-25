@@ -139,7 +139,7 @@ public abstract class RTPConnectorOutputStream
         }
 
         PACKET_QUEUE_CAPACITY
-            = packetQueueCapacity >= 0 ? packetQueueCapacity : 256;
+            = packetQueueCapacity >= 0 ? packetQueueCapacity : 1024;
 
         if (logger.isDebugEnabled())
         {
