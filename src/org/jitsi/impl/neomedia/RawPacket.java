@@ -408,8 +408,8 @@ public class RawPacket
 
 
     /**
-     * Returns the CSRC level at the specified index or <tt>0</tt> if there was
-     * no level at that index.
+     * Returns the CSRC level at the specified index or <tt>defaultValue</tt>
+     * if there was no level at that index.
      *
      * @param csrcExtID the ID of the extension that's transporting csrc audio
      * levels in the session that this <tt>RawPacket</tt> belongs to.
@@ -423,25 +423,39 @@ public class RawPacket
     {
         byte level = defaultValue;
 
-        if (getExtensionBit() && getExtensionLength() != 0)
+        try
         {
-            int levelsStart = findExtension(csrcExtID);
-
-            if (levelsStart != -1)
+            if (getExtensionBit() && getExtensionLength() != 0)
             {
-                int levelsCount = getLengthForExtension(levelsStart);
+                int levelsStart = findExtension(csrcExtID);
 
-                if (levelsCount < index)
+                if (levelsStart != -1)
                 {
-                    //apparently the remote side sent more CSRCs than levels.
-                    // ... yeah remote sides do that now and then ...
-                }
-                else
-                {
-                    level = (byte) (0x7F & buffer[levelsStart + index]);
+                    int levelsCount = getLengthForExtension(levelsStart);
+
+                    if (levelsCount < index)
+                    {
+                        //apparently the remote side sent more CSRCs than levels.
+
+                        // ... yeah remote sides do that now and then ...
+                    }
+                    else
+                    {
+                        level = (byte) (0x7F & buffer[levelsStart + index]);
+                    }
                 }
             }
         }
+        catch (ArrayIndexOutOfBoundsException e)
+        {
+            // While ideally we should check the bounds everywhere and not
+            // attempt to access the packet's buffer at invalid indexes, there
+            // are too many places where it could inadvertently happen. It's
+            // safer to return the default value than to risk killing a thread
+            // which may not expect this.
+            level = defaultValue;
+        }
+
         return level;
     }
 
@@ -465,7 +479,10 @@ public class RawPacket
      */
     public static int getCsrcCount(byte[] buffer, int offset, int length)
     {
-        return (buffer[offset] & 0x0f);
+        int cc = buffer[offset] & 0x0f;
+        if (FIXED_HEADER_SIZE + cc * 4 > length)
+            cc = 0;
+        return cc;
     }
 
     /**
@@ -554,8 +571,20 @@ public class RawPacket
         int extLenIndex = offset + FIXED_HEADER_SIZE
             + getCsrcCount(buffer, offset, length) * 4 + 2;
 
-        return
-            ((buffer[extLenIndex] << 8) | (buffer[extLenIndex + 1] & 0xFF)) * 4;
+        int len
+            = ((buffer[extLenIndex] << 8) | (buffer[extLenIndex + 1] & 0xFF))
+                * 4;
+
+        if (len < 0 || len > (length - FIXED_HEADER_SIZE - EXT_HEADER_SIZE -
+            getCsrcCount(buffer, offset, length)*4))
+        {
+            // This is not a valid length. Together with the rest of the
+            // header it exceeds the packet length. So be safe and assume
+            // that there is no extension.
+            len = 0;
+        }
+
+        return len;
     }
 
     /**
@@ -607,10 +636,21 @@ public class RawPacket
         int headerLength
             = FIXED_HEADER_SIZE + 4 * getCsrcCount(buffer, offset, length);
 
+        // Make sure that the header length doesn't exceed the packet length.
+        if (headerLength > length)
+        {
+            headerLength = length;
+        }
+
         if (getExtensionBit(buffer, offset, length))
         {
-            headerLength += EXT_HEADER_SIZE
-                + getExtensionLength(buffer, offset, length);
+            // Make sure that the header length doesn't exceed the packet
+            // length.
+            if (headerLength + EXT_HEADER_SIZE <= length)
+            {
+                headerLength += EXT_HEADER_SIZE
+                    + getExtensionLength(buffer, offset, length);
+            }
         }
 
         return headerLength;
