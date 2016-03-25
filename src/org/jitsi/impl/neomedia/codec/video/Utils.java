@@ -19,6 +19,7 @@ package org.jitsi.impl.neomedia.codec.video;
 import org.jitsi.impl.neomedia.codec.video.vp8.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * This class contains utility methods for video codecs.
@@ -27,6 +28,11 @@ import org.jitsi.impl.neomedia.*;
  */
 public class Utils
 {
+    /**
+     * The {@link Logger} used by the {@link Utils} class for logging output.
+     */
+    private static final Logger logger = Logger.getLogger(Utils.class);
+
     /**
      * Utility method that determines whether or not a packet is a key frame.
      */
@@ -78,6 +84,7 @@ public class Utils
             // are too many places where it could inadvertently happen. It's
             // safer to return a default value of 'false' from this utility
             // method than to risk killing a thread which doesn't expect this.
+            logger.warn("Caught an exception while checking for keyframe:", e);
             isKeyFrame = false;
         }
 
