@@ -482,7 +482,15 @@ public class DatagramTransportImpl
             switch (type)
             {
             case ContentType.handshake:
-                short msg_type = TlsUtils.readUint8(buf, off + 11);
+                short msg_type
+                    = TlsUtils.readUint8(
+                            buf,
+                            off
+                                + 1 /* type */
+                                + 2 /* version */
+                                + 2 /* epoch */
+                                + 6 /* sequence_number */
+                                + 2 /* length */);
 
                 switch (msg_type)
                 {
