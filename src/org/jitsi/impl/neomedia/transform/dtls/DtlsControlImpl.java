@@ -657,6 +657,22 @@ public class DtlsControlImpl
     }
 
     /**
+     * Gets the value of the {@code setup} SDP attribute defined by RFC 4145
+     * &quot;TCP-Based Media Transport in the Session Description Protocol
+     * (SDP)&quot; which determines whether this instance acts as a DTLS client
+     * or a DTLS server.
+     *
+     * @return the value of the {@code setup} SDP attribute defined by RFC 4145
+     * &quot;TCP-Based Media Transport in the Session Description Protocol
+     * (SDP)&quot; which determines whether this instance acts as a DTLS client
+     * or a DTLS server
+     */
+    public DtlsControl.Setup getSetup()
+    {
+        return getProperties().getSetup();
+    }
+
+    /**
      * {@inheritDoc}
      *
      * The implementation of <tt>DtlsControlImpl</tt> always returns
