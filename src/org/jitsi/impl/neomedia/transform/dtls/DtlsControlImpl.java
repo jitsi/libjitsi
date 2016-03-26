@@ -532,6 +532,11 @@ public class DtlsControlImpl
      */
     private Map<String,String> remoteFingerprints;
 
+    /**
+     * The properties of {@code DtlsControlImpl} and their values which this
+     * instance shares with {@link DtlsTransformEngine} and
+     * {@link DtlsPacketTransformer}.
+     */
     private final Properties properties;
 
     /**
@@ -581,7 +586,8 @@ public class DtlsControlImpl
 
     /**
      * Initializes a new <tt>DtlsTransformEngine</tt> instance to be associated
-     * with and used by this <tt>DtlsControlImpl</tt> instance.
+     * with and used by this <tt>DtlsControlImpl</tt> instance. The method is
+     * implemented as a factory.
      *
      * @return a new <tt>DtlsTransformEngine</tt> instance to be associated with
      * and used by this <tt>DtlsControlImpl</tt> instance
@@ -641,6 +647,15 @@ public class DtlsControlImpl
         return getCertificateInfo().localFingerprintHashFunction;
     }
 
+    /**
+     * Gets the properties of {@code DtlsControlImpl} and their values which
+     * this instance shares with {@link DtlsTransformEngine} and
+     * {@link DtlsPacketTransformer}.
+     *
+     * @return the properties of {@code DtlsControlImpl} and their values which
+     * this instance shares with {@code DtlsTransformEngine} and
+     * {@code DtlsPacketTransformer}
+     */
     Properties getProperties()
     {
         return properties;

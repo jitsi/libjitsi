@@ -82,11 +82,28 @@ class Properties
         this.srtpDisabled = srtpDisabled;
     }
 
+    /**
+     * Gets the value of the property with a specific name.
+     *
+     * @param name the name of the property to get the value of
+     * @return the value of the property with the specified {@code name}
+     */
     public Object get(String name)
     {
         return properties.get(name);
     }
 
+    /**
+     * Gets the value of the <tt>setup</tt> SDP attribute defined by RFC 4145
+     * &quot;TCP-Based Media Transport in the Session Description Protocol
+     * (SDP)&quot; which determines whether this instance acts as a DTLS client
+     * or a DTLS server.
+     *
+     * @return the value of the <tt>setup</tt> SDP attribute defined by RFC 4145
+     * &quot;TCP-Based Media Transport in the Session Description Protocol
+     * (SDP)&quot; which determines whether this instance acts as a DTLS client
+     * or a DTLS server.
+     */
     public DtlsControl.Setup getSetup()
     {
         return (DtlsControl.Setup) get(SETUP_PNAME);
@@ -103,6 +120,13 @@ class Properties
         return srtpDisabled;
     }
 
+    /**
+     * Sets the value of the property with a specific name.
+     *
+     * @param name the name of the property to set the value of
+     * @param value the value to set on the property with the specified
+     * {@code name}
+     */
     public void put(String name, Object value)
     {
         Object oldValue = properties.put(name, value);

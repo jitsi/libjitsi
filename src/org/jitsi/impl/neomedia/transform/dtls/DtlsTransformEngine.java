@@ -78,14 +78,15 @@ public class DtlsTransformEngine
 
     /**
      * Initializes a new <tt>DtlsPacketTransformer</tt> instance which is to
-     * work on control/RTCP or data/RTP packets.
+     * work on control/RTCP or data/RTP packets. The method is implemented as a
+     * factory.
      *
      * @param componentID the ID of the component for which the new instance is
      * to work
      * @return a new <tt>DtlsPacketTransformer</tt> instance which is to work on
      * control/RTCP or data/RTP packets (in accord with <tt>data</tt>)
      */
-    private DtlsPacketTransformer createPacketTransformer(int componentID)
+    protected DtlsPacketTransformer createPacketTransformer(int componentID)
     {
         return new DtlsPacketTransformer(this, componentID);
     }
@@ -123,6 +124,15 @@ public class DtlsTransformEngine
         return packetTransformer;
     }
 
+    /**
+     * Gets the properties of {@code DtlsControlImpl} and their values which
+     * {@link #dtlsControl} shares with this instance and
+     * {@link DtlsPacketTransformer}.
+     *
+     * @return the properties of {@code DtlsControlImpl} and their values which
+     * {@code dtlsControl} shares with this instance and
+     * {@code DtlsPacketTransformer}
+     */
     Properties getProperties()
     {
         return getDtlsControl().getProperties();

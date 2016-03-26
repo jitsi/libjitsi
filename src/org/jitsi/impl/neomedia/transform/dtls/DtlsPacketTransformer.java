@@ -381,6 +381,13 @@ public class DtlsPacketTransformer
         return getTransformEngine().getDtlsControl();
     }
 
+    /**
+     * Gets the properties of {@link DtlsControlImpl} and their values which
+     * the associated {@code DtlsControlImpl} shares with this instance.
+     *
+     * @return the properties of {@code DtlsControlImpl} and their values which
+     * the associated {@code DtlsControlImpl} shares with this instance
+     */
     Properties getProperties()
     {
         return getTransformEngine().getProperties();
@@ -1138,6 +1145,7 @@ public class DtlsPacketTransformer
         if (this.connector != connector)
         {
             AbstractRTPConnector oldValue = this.connector;
+
             this.connector = connector;
 
             DatagramTransportImpl datagramTransport = this.datagramTransport;
