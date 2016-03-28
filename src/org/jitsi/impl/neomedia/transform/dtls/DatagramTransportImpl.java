@@ -509,8 +509,12 @@ public class DatagramTransportImpl
                 case HandshakeType.hello_request:
                 case HandshakeType.hello_verify_request:
                 case HandshakeType.server_hello_done:
+                    endOfFlight = true;
+                    break;
                 default:
                     endOfFlight = true;
+                    logger.warn(
+                            "Unknown DTLS handshake message type: " + msg_type);
                     break;
                 }
                 // Do fall through!
