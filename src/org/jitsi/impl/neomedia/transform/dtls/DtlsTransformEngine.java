@@ -30,11 +30,6 @@ public class DtlsTransformEngine
     implements SrtpControl.TransformEngine
 {
     /**
-     * The <tt>RTPConnector</tt> which uses this <tt>TransformEngine</tt>.
-     */
-    private AbstractRTPConnector connector;
-
-    /**
      * The indicator which determines whether
      * {@link SrtpControl.TransformEngine#cleanup()} has been invoked on this
      * instance to prepare it for garbage collection.
@@ -47,34 +42,11 @@ public class DtlsTransformEngine
     private final DtlsControlImpl dtlsControl;
 
     /**
-     * The <tt>MediaType</tt> of the stream which this instance works for/is
-     * associated with.
-     */
-    private MediaType mediaType;
-
-    /**
      * The <tt>PacketTransformer</tt>s of this <tt>TransformEngine</tt> for
      * data/RTP and control/RTCP packets.
      */
     private final DtlsPacketTransformer[] packetTransformers
         = new DtlsPacketTransformer[2];
-
-    /**
-     * Whether rtcp-mux is in use.
-     *
-     * When enabled, the <tt>DtlsPacketTransformer</tt> will, instead of
-     * establishing a DTLS session, wait for the transformer for RTP to
-     * establish one, and reuse it to initialize its SRTP transformer.
-     */
-    private boolean rtcpmux = false;
-
-    /**
-     * The value of the <tt>setup</tt> SDP attribute defined by RFC 4145
-     * &quot;TCP-Based Media Transport in the Session Description Protocol
-     * (SDP)&quot; which determines whether this instance acts as a DTLS client
-     * or a DTLS server.
-     */
-    private DtlsControl.Setup setup;
 
     /**
      * Initializes a new <tt>DtlsTransformEngine</tt> instance.
@@ -92,13 +64,6 @@ public class DtlsTransformEngine
     {
         disposed = true;
 
-        /*
-         * SrtpControl.start(MediaType) starts its associated TransformEngine.
-         * We will use that mediaType to signal the normal stop then as well
-         * i.e. we will call setMediaType(null) first.
-         */
-        setMediaType(null);
-
         for (int i = 0; i < packetTransformers.length; i++)
         {
             DtlsPacketTransformer packetTransformer = packetTransformers[i];
@@ -109,29 +74,21 @@ public class DtlsTransformEngine
                 packetTransformers[i] = null;
             }
         }
-
-        setConnector(null);
     }
 
     /**
      * Initializes a new <tt>DtlsPacketTransformer</tt> instance which is to
-     * work on control/RTCP or data/RTP packets.
+     * work on control/RTCP or data/RTP packets. The method is implemented as a
+     * factory.
      *
      * @param componentID the ID of the component for which the new instance is
      * to work
      * @return a new <tt>DtlsPacketTransformer</tt> instance which is to work on
      * control/RTCP or data/RTP packets (in accord with <tt>data</tt>)
      */
-    private DtlsPacketTransformer createPacketTransformer(int componentID)
+    protected DtlsPacketTransformer createPacketTransformer(int componentID)
     {
-        DtlsPacketTransformer packetTransformer
-            = new DtlsPacketTransformer(this, componentID);
-
-        packetTransformer.setConnector(connector);
-        packetTransformer.setSetup(setup);
-        packetTransformer.setRtcpmux(rtcpmux);
-        packetTransformer.setMediaType(mediaType);
-        return packetTransformer;
+        return new DtlsPacketTransformer(this, componentID);
     }
 
     /**
@@ -168,6 +125,20 @@ public class DtlsTransformEngine
     }
 
     /**
+     * Gets the properties of {@code DtlsControlImpl} and their values which
+     * {@link #dtlsControl} shares with this instance and
+     * {@link DtlsPacketTransformer}.
+     *
+     * @return the properties of {@code DtlsControlImpl} and their values which
+     * {@code dtlsControl} shares with this instance and
+     * {@code DtlsPacketTransformer}
+     */
+    Properties getProperties()
+    {
+        return getDtlsControl().getProperties();
+    }
+
+    /**
      * {@inheritDoc}
      */
     public PacketTransformer getRTCPTransformer()
@@ -181,109 +152,5 @@ public class DtlsTransformEngine
     public PacketTransformer getRTPTransformer()
     {
         return getPacketTransformer(Component.RTP);
-    }
-
-    /**
-     * Indicates if SRTP extensions should be disabled which means we are
-     * currently working in pure DTLS mode.
-     * @return <tt>true</tt> if SRTP extensions should be disabled.
-     */
-    boolean isSrtpDisabled()
-    {
-        return dtlsControl.isSrtpDisabled();
-    }
-
-    /**
-     * Sets the <tt>RTPConnector</tt> which is to use or uses this
-     * <tt>TransformEngine</tt>.
-     *
-     * @param connector the <tt>RTPConnector</tt> which is to use or uses this
-     * <tt>TransformEngine</tt>
-     */
-    void setConnector(AbstractRTPConnector connector)
-    {
-        if (this.connector != connector)
-        {
-            this.connector = connector;
-
-            for (DtlsPacketTransformer packetTransformer : packetTransformers)
-            {
-                if (packetTransformer != null)
-                    packetTransformer.setConnector(this.connector);
-            }
-        }
-    }
-
-    /**
-     * Sets the <tt>MediaType</tt> of the stream which this instance is to work
-     * for/be associated with.
-     *
-     * @param mediaType the <tt>MediaType</tt> of the stream which this instance
-     * is to work for/be associated with
-     */
-    private void setMediaType(MediaType mediaType)
-    {
-        if (this.mediaType != mediaType)
-        {
-            this.mediaType = mediaType;
-
-            for (DtlsPacketTransformer packetTransformer : packetTransformers)
-            {
-                if (packetTransformer != null)
-                    packetTransformer.setMediaType(this.mediaType);
-            }
-        }
-    }
-
-    /**
-     * Enables/disables rtcp-mux.
-     * @param rtcpmux whether to enable or disable.
-     */
-    void setRtcpmux(boolean rtcpmux)
-    {
-        if (this.rtcpmux != rtcpmux)
-        {
-            this.rtcpmux = rtcpmux;
-
-            for (DtlsPacketTransformer packetTransformer : packetTransformers)
-            {
-                if (packetTransformer != null)
-                    packetTransformer.setRtcpmux(rtcpmux);
-            }
-        }
-    }
-
-    /**
-     * Sets the DTLS protocol according to which this
-     * <tt>DtlsTransformEngine</tt> is to act either as a DTLS server or a DTLS
-     * client.
-     *
-     * @param setup the value of the <tt>setup</tt> SDP attribute to set on this
-     * instance in order to determine whether this instance is to act as a DTLS
-     * client or a DTLS server
-     */
-    void setSetup(DtlsControl.Setup setup)
-    {
-        if (this.setup != setup)
-        {
-            this.setup = setup;
-
-            for (DtlsPacketTransformer packetTransformer : packetTransformers)
-            {
-                if (packetTransformer != null)
-                    packetTransformer.setSetup(this.setup);
-            }
-        }
-    }
-
-    /**
-     * Starts this instance in the sense that it becomes fully operational.
-     *
-     * @param mediaType the <tt>MediaType</tt> of the stream which this instance
-     * is to work for/be associated with
-     */
-    void start(MediaType mediaType)
-    {
-        setMediaType(mediaType);
     }
 }

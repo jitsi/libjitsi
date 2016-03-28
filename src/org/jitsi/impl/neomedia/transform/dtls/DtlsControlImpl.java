@@ -35,7 +35,6 @@ import org.bouncycastle.crypto.util.*;
 import org.bouncycastle.operator.*;
 import org.bouncycastle.operator.bc.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.version.*;
@@ -57,7 +56,7 @@ public class DtlsControlImpl
      * lower case.
      */
     private static final Map<String,String[]> HASH_FUNCTION_UPGRADES
-        = new HashMap<String,String[]>();
+        = new HashMap<>();
 
     /**
      * The table which maps half-<tt>byte</tt>s to their hex characters.
@@ -125,25 +124,11 @@ public class DtlsControlImpl
     static
     {
         // VERIFY_AND_VALIDATE_CERTIFICATE
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-        boolean verifyAndValidateCertificate = true;
-
-        if (cfg == null)
-        {
-            String s
-                = System.getProperty(VERIFY_AND_VALIDATE_CERTIFICATE_PNAME);
-
-            if (s != null)
-                verifyAndValidateCertificate = Boolean.parseBoolean(s);
-        }
-        else
-        {
-            verifyAndValidateCertificate
-                = cfg.getBoolean(
-                        VERIFY_AND_VALIDATE_CERTIFICATE_PNAME,
-                        verifyAndValidateCertificate);
-        }
-        VERIFY_AND_VALIDATE_CERTIFICATE = verifyAndValidateCertificate;
+        VERIFY_AND_VALIDATE_CERTIFICATE
+            = ConfigUtils.getBoolean(
+                    LibJitsi.getConfigurationService(),
+                    VERIFY_AND_VALIDATE_CERTIFICATE_PNAME,
+                    true);
 
         // HASH_FUNCTION_UPGRADES
         HASH_FUNCTION_UPGRADES.put(
@@ -161,18 +146,14 @@ public class DtlsControlImpl
      */
     static int chooseSRTPProtectionProfile(int... theirs)
     {
-        int[] ours = SRTP_PROTECTION_PROFILES;
-
         if (theirs != null)
         {
-            for (int t = 0; t < theirs.length; t++)
+            int[] ours = SRTP_PROTECTION_PROFILES;
+
+            for (int their : theirs)
             {
-                int their = theirs[t];
-
-                for (int o = 0; o < ours.length; o++)
+                for (int our : ours)
                 {
-                    int our = ours[o];
-
                     if (their == our)
                         return their;
                 }
@@ -192,7 +173,7 @@ public class DtlsControlImpl
      * @return the fingerprint of the specified <tt>certificate</tt> computed
      * using the specified <tt>hashFunction</tt>
      */
-    private static final String computeFingerprint(
+    private static String computeFingerprint(
             org.bouncycastle.asn1.x509.Certificate certificate,
             String hashFunction)
     {
@@ -444,20 +425,18 @@ public class DtlsControlImpl
                 X500Name subject,
                 AsymmetricCipherKeyPair keyPair)
     {
-        // get property for certificate creation and default to sha1
-        String signatureAlgorithm = "SHA1withRSA";
-        // get property override from the config service if it exists
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        // The signature algorithm of the generated certificate defaults to
+        // SHA1. However, allow the overriding of the default via the
+        // ConfigurationService.
+        String signatureAlgorithm
+            = ConfigUtils.getString(
+                    LibJitsi.getConfigurationService(),
+                    PROP_SIGNATURE_ALGORITHM,
+                    "SHA1withRSA");
 
-        if (cfg != null)
-        {
-            signatureAlgorithm
-                = cfg.getString(PROP_SIGNATURE_ALGORITHM, "SHA1withRSA");
-        }        
         if (logger.isDebugEnabled())
-        {
             logger.debug("Signature algorithm: " + signatureAlgorithm);
-        }
+
         try
         {
             long now = System.currentTimeMillis();
@@ -543,18 +522,6 @@ public class DtlsControlImpl
     private final CertificateInfo certificateInfo;
 
     /**
-     * The <tt>RTPConnector</tt> which uses the <tt>TransformEngine</tt> of this
-     * <tt>SrtpControl</tt>.
-     */
-    private AbstractRTPConnector connector;
-
-    /**
-     * Indicates whether this <tt>DtlsControl</tt> will work in DTLS/SRTP or
-     * DTLS mode.
-     */
-    private final boolean disableSRTP;
-
-    /**
      * The indicator which determines whether this instance has been disposed
      * i.e. prepared for garbage collection by {@link #doCleanup()}.
      */
@@ -566,23 +533,11 @@ public class DtlsControlImpl
     private Map<String,String> remoteFingerprints;
 
     /**
-     * Whether rtcp-mux is in use.
+     * The properties of {@code DtlsControlImpl} and their values which this
+     * instance shares with {@link DtlsTransformEngine} and
+     * {@link DtlsPacketTransformer}.
      */
-    private boolean rtcpmux = false;
-
-    /**
-     * The value of the <tt>setup</tt> SDP attribute defined by RFC 4145
-     * &quot;TCP-Based Media Transport in the Session Description Protocol
-     * (SDP)&quot; which determines whether this instance acts as a DTLS client
-     * or a DTLS server.
-     */
-    private Setup setup;
-
-    /**
-     * The instances currently registered as users of this <tt>SrtpControl</tt>
-     * (through {@link #registerUser(Object)}).
-     */
-    private final Set<Object> users = new HashSet<Object>();
+    private final Properties properties;
 
     /**
      * Initializes a new <tt>DtlsControlImpl</tt> instance.
@@ -590,19 +545,18 @@ public class DtlsControlImpl
     public DtlsControlImpl()
     {
         // By default we work in DTLS/SRTP mode.
-        this(false);
+        this(/* srtpDisabled */ false);
     }
 
     /**
      * Initializes a new <tt>DtlsControlImpl</tt> instance.
-     * @param disableSRTP <tt>true</tt> if pure DTLS mode without SRTP
-     *                    extensions should be used.
+     *
+     * @param srtpDisabled <tt>true</tt> if pure DTLS mode without SRTP
+     * extensions is to be used; otherwise, <tt>false</tt>
      */
-    public DtlsControlImpl(boolean disableSRTP)
+    public DtlsControlImpl(boolean srtpDisabled)
     {
         super(SrtpControlType.DTLS_SRTP);
-
-        this.disableSRTP = disableSRTP;
 
         CertificateInfo certificateInfo;
 
@@ -626,24 +580,14 @@ public class DtlsControlImpl
             }
         }
         this.certificateInfo = certificateInfo;
-    }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void cleanup(Object user)
-    {
-        synchronized (users)
-        {
-            if (users.remove(user) && users.isEmpty())
-                doCleanup();
-        }
+        properties = new Properties(srtpDisabled);
     }
 
     /**
      * Initializes a new <tt>DtlsTransformEngine</tt> instance to be associated
-     * with and used by this <tt>DtlsControlImpl</tt> instance.
+     * with and used by this <tt>DtlsControlImpl</tt> instance. The method is
+     * implemented as a factory.
      *
      * @return a new <tt>DtlsTransformEngine</tt> instance to be associated with
      * and used by this <tt>DtlsControlImpl</tt> instance
@@ -651,20 +595,16 @@ public class DtlsControlImpl
     @Override
     protected DtlsTransformEngine createTransformEngine()
     {
-        DtlsTransformEngine transformEngine = new DtlsTransformEngine(this);
-
-        transformEngine.setConnector(connector);
-        transformEngine.setSetup(setup);
-        transformEngine.setRtcpmux(rtcpmux);
-        return transformEngine;
+        return new DtlsTransformEngine(this);
     }
 
     /**
-     * Prepares this <tt>DtlsControlImpl</tt> for garbage collection.
+     * {@inheritDoc}
      */
-    private void doCleanup()
+    @Override
+    protected void doCleanup()
     {
-        super.cleanup(null);
+        super.doCleanup();
 
         setConnector(null);
 
@@ -676,26 +616,17 @@ public class DtlsControlImpl
     }
 
     /**
-     * Gets the certificate with which the local endpoint represented by this
-     * instance authenticates its ends of DTLS sessions.
+     * Gets the certificate, hash function, fingerprint, etc. with which the
+     * local endpoint represented by this instance authenticates its ends of
+     * DTLS sessions.
      *
-     * @return the certificate with which the local endpoint represented by this
-     * instance authenticates its ends of DTLS sessions.
+     * @return the certificate, hash function, fingerprint, etc. with which the
+     * local endpoint represented by this instance authenticates its ends of
+     * DTLS sessions
      */
-    org.bouncycastle.crypto.tls.Certificate getCertificate()
+    CertificateInfo getCertificateInfo()
     {
-        return certificateInfo.certificate;
-    }
-
-    /**
-     * The private and public keys of the <tt>certificate</tt> of this instance.
-     *
-     * @return the private and public keys of the <tt>certificate</tt> of this
-     * instance
-     */
-    AsymmetricCipherKeyPair getKeyPair()
-    {
-        return certificateInfo.keyPair;
+        return certificateInfo;
     }
 
     /**
@@ -704,7 +635,7 @@ public class DtlsControlImpl
     @Override
     public String getLocalFingerprint()
     {
-        return certificateInfo.localFingerprint;
+        return getCertificateInfo().localFingerprint;
     }
 
     /**
@@ -713,7 +644,21 @@ public class DtlsControlImpl
     @Override
     public String getLocalFingerprintHashFunction()
     {
-        return certificateInfo.localFingerprintHashFunction;
+        return getCertificateInfo().localFingerprintHashFunction;
+    }
+
+    /**
+     * Gets the properties of {@code DtlsControlImpl} and their values which
+     * this instance shares with {@link DtlsTransformEngine} and
+     * {@link DtlsPacketTransformer}.
+     *
+     * @return the properties of {@code DtlsControlImpl} and their values which
+     * this instance shares with {@code DtlsTransformEngine} and
+     * {@code DtlsPacketTransformer}
+     */
+    Properties getProperties()
+    {
+        return properties;
     }
 
     /**
@@ -727,25 +672,19 @@ public class DtlsControlImpl
     }
 
     /**
-     * Indicates if SRTP extensions are disabled which means we're working in
-     * pure DTLS mode.
-     * @return <tt>true</tt> if SRTP extensions must be disabled.
+     * Gets the value of the {@code setup} SDP attribute defined by RFC 4145
+     * &quot;TCP-Based Media Transport in the Session Description Protocol
+     * (SDP)&quot; which determines whether this instance acts as a DTLS client
+     * or a DTLS server.
+     *
+     * @return the value of the {@code setup} SDP attribute defined by RFC 4145
+     * &quot;TCP-Based Media Transport in the Session Description Protocol
+     * (SDP)&quot; which determines whether this instance acts as a DTLS client
+     * or a DTLS server
      */
-    boolean isSrtpDisabled()
+    public DtlsControl.Setup getSetup()
     {
-        return disableSRTP;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void registerUser(Object user)
-    {
-        synchronized (users)
-        {
-            users.add(user);
-        }
+        return getProperties().getSetup();
     }
 
     /**
@@ -766,15 +705,7 @@ public class DtlsControlImpl
     @Override
     public void setConnector(AbstractRTPConnector connector)
     {
-        if (this.connector != connector)
-        {
-            this.connector = connector;
-
-            DtlsTransformEngine transformEngine = this.transformEngine;
-
-            if (transformEngine != null)
-                transformEngine.setConnector(this.connector);
-        }
+        properties.put(Properties.CONNECTOR_PNAME, connector);
     }
 
     /**
@@ -786,33 +717,27 @@ public class DtlsControlImpl
         if (remoteFingerprints == null)
             throw new NullPointerException("remoteFingerprints");
 
-        synchronized (this)
+        // Make sure that the hash functions (which are keys of the field
+        // remoteFingerprints) are written in lower case.
+        Map<String,String> rfs = new HashMap<>(remoteFingerprints.size());
+
+        for (Map.Entry<String,String> e : remoteFingerprints.entrySet())
         {
-            // Make sure that the hash functions (which are keys of the field
-            // remoteFingerprints) are written in lower case.
-            Map<String,String> rfs
-                = new HashMap<String,String>(remoteFingerprints.size());
+            String k = e.getKey();
 
-            for (Map.Entry<String,String> e : remoteFingerprints.entrySet())
+            // It makes no sense to provide a fingerprint without a hash
+            // function.
+            if (k != null)
             {
-                String k = e.getKey();
+                String v = e.getValue();
 
-                // It makes no sense to provide a fingerprint without a hash
-                // function.
-                if (k != null)
-                {
-                    String v = e.getValue();
-
-                    // It makes no sense to provide a hash function without a
-                    // fingerprint.
-                    if (v != null)
-                        rfs.put(k.toLowerCase(), v);
-                }
+                // It makes no sense to provide a hash function without a
+                // fingerprint.
+                if (v != null)
+                    rfs.put(k.toLowerCase(), v);
             }
-            this.remoteFingerprints = rfs;
-
-            notifyAll();
         }
+        this.remoteFingerprints = rfs;
     }
 
     /**
@@ -821,15 +746,7 @@ public class DtlsControlImpl
     @Override
     public void setRtcpmux(boolean rtcpmux)
     {
-        if (this.rtcpmux != rtcpmux)
-        {
-            this.rtcpmux = rtcpmux;
-
-            DtlsTransformEngine transformEngine = this.transformEngine;
-
-            if (transformEngine != null)
-                transformEngine.setRtcpmux(rtcpmux);
-        }
+        properties.put(Properties.RTCPMUX_PNAME, rtcpmux);
     }
 
     /**
@@ -838,15 +755,7 @@ public class DtlsControlImpl
     @Override
     public void setSetup(Setup setup)
     {
-        if (this.setup != setup)
-        {
-            this.setup = setup;
-
-            DtlsTransformEngine transformEngine = this.transformEngine;
-
-            if (transformEngine != null)
-                transformEngine.setSetup(this.setup);
-        }
+        properties.put(Properties.SETUP_PNAME, setup);
     }
 
     /**
@@ -855,10 +764,7 @@ public class DtlsControlImpl
     @Override
     public void start(MediaType mediaType)
     {
-        DtlsTransformEngine transformEngine = getTransformEngine();
-
-        if (transformEngine != null)
-            transformEngine.start(mediaType);
+        properties.put(Properties.MEDIA_TYPE_PNAME, mediaType);
     }
 
     /**
@@ -895,6 +801,7 @@ public class DtlsControlImpl
             {
                 throw new IllegalStateException("disposed");
             }
+
             Map<String,String> remoteFingerprints = this.remoteFingerprints;
 
             if (remoteFingerprints == null)

@@ -15,6 +15,7 @@
  */
 package org.jitsi.impl.neomedia.transform.dtls;
 
+import java.beans.*;
 import java.io.*;
 import java.security.*;
 import java.util.*;
@@ -28,6 +29,7 @@ import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.util.event.*;
 
 /**
  * Implements {@link PacketTransformer} for DTLS-SRTP. It's capable of working
@@ -205,6 +207,17 @@ public class DtlsPacketTransformer
      */
     private MediaType mediaType;
 
+    private final PropertyChangeListener propertyChangeListener
+        = new WeakReferencePropertyChangeListener(
+                new PropertyChangeListener()
+                {
+                    @Override
+                    public void propertyChange(PropertyChangeEvent ev)
+                    {
+                        DtlsPacketTransformer.this.propertyChange(ev);
+                    }
+                });
+
     /**
      * The {@code Queue} of SRTP {@code RawPacket}s which were received from the
      * remote while {@link #_srtpTransformer} was unavailable i.e. {@code null}.
@@ -219,15 +232,7 @@ public class DtlsPacketTransformer
      * a DTLS session on its own, but rather wait for the RTP transformer to
      * do so, and reuse it to initialize the SRTP transformer.
      */
-    private boolean rtcpmux = false;
-
-    /**
-     * The value of the <tt>setup</tt> SDP attribute defined by RFC 4145
-     * &quot;TCP-Based Media Transport in the Session Description Protocol
-     * (SDP)&quot; which determines whether this instance acts as a DTLS client
-     * or a DTLS server.
-     */
-    private DtlsControl.Setup setup;
+    private boolean rtcpmux;
 
     /**
      * The {@code SRTPTransformer} (to be) used by this instance.
@@ -269,6 +274,11 @@ public class DtlsPacketTransformer
     {
         this.transformEngine = transformEngine;
         this.componentID = componentID;
+
+        // Track the DTLS properties which control the conditional behaviors of
+        // DtlsPacketTransformer.
+        getProperties().addPropertyChangeListener(propertyChangeListener);
+        propertyChange(/* propertyName */ (String) null);
     }
 
     /**
@@ -277,6 +287,8 @@ public class DtlsPacketTransformer
     @Override
     public synchronized void close()
     {
+        getProperties().removePropertyChangeListener(propertyChangeListener);
+
         // SrtpControl.start(MediaType) starts its associated TransformEngine.
         // We will use that mediaType to signal the normal stop then as well
         // i.e. we will call setMediaType(null) first.
@@ -367,6 +379,18 @@ public class DtlsPacketTransformer
     DtlsControlImpl getDtlsControl()
     {
         return getTransformEngine().getDtlsControl();
+    }
+
+    /**
+     * Gets the properties of {@link DtlsControlImpl} and their values which
+     * the associated {@code DtlsControlImpl} shares with this instance.
+     *
+     * @return the properties of {@code DtlsControlImpl} and their values which
+     * the associated {@code DtlsControlImpl} shares with this instance
+     */
+    Properties getProperties()
+    {
+        return getTransformEngine().getProperties();
     }
 
     /**
@@ -708,6 +732,18 @@ public class DtlsPacketTransformer
         return srtpTransformer;
     }
 
+    /**
+     * Determines whether this {@code DtlsPacketTransformer} is to operate in
+     * pure DTLS mode without SRTP extensions or in DTLS/SRTP mode.
+     *
+     * @return {@code true} for pure DTLS without SRTP extensions or
+     * {@code false} for DTLS/SRTP
+     */
+    private boolean isSrtpDisabled()
+    {
+        return getProperties().isSrtpDisabled();
+    }
+
     private synchronized void maybeStart()
     {
         if (this.mediaType != null && this.connector != null && !started)
@@ -740,6 +776,38 @@ public class DtlsPacketTransformer
                 && AlertDescription.close_notify == alertDescription)
         {
             tlsPeerHasRaisedCloseNotifyWarning = true;
+        }
+    }
+
+    private void propertyChange(PropertyChangeEvent ev)
+    {
+        propertyChange(ev.getPropertyName());
+    }
+
+    private void propertyChange(String propertyName)
+    {
+        // This DtlsPacketTransformer calls the method with null at construction
+        // time to initialize the respective states.
+        if (propertyName == null)
+        {
+            propertyChange(Properties.RTCPMUX_PNAME);
+            propertyChange(Properties.MEDIA_TYPE_PNAME);
+            propertyChange(Properties.CONNECTOR_PNAME);
+        }
+        else if (Properties.CONNECTOR_PNAME.equals(propertyName))
+        {
+            setConnector(
+                    (AbstractRTPConnector) getProperties().get(propertyName));
+        }
+        else if (Properties.MEDIA_TYPE_PNAME.equals(propertyName))
+        {
+            setMediaType((MediaType) getProperties().get(propertyName));
+        }
+        else if (Properties.RTCPMUX_PNAME.equals(propertyName))
+        {
+            Object newValue = getProperties().get(propertyName);
+
+            setRtcpmux((newValue == null) ? false : (Boolean) newValue);
         }
     }
 
@@ -918,7 +986,7 @@ public class DtlsPacketTransformer
             DatagramTransport datagramTransport)
     {
         DTLSTransport dtlsTransport = null;
-        final boolean srtp = !transformEngine.isSrtpDisabled();
+        final boolean srtp = !isSrtpDisabled();
         int srtpProtectionProfile = 0;
         TlsContext tlsContext = null;
 
@@ -1072,11 +1140,12 @@ public class DtlsPacketTransformer
      * @param connector the <tt>RTPConnector</tt> which is to use or uses this
      * <tt>PacketTransformer</tt>
      */
-    void setConnector(AbstractRTPConnector connector)
+    private void setConnector(AbstractRTPConnector connector)
     {
         if (this.connector != connector)
         {
             AbstractRTPConnector oldValue = this.connector;
+
             this.connector = connector;
 
             DatagramTransportImpl datagramTransport = this.datagramTransport;
@@ -1096,7 +1165,7 @@ public class DtlsPacketTransformer
      * @param mediaType the <tt>MediaType</tt> of the stream which this instance
      * is to work for/be associated with
      */
-    synchronized void setMediaType(MediaType mediaType)
+    private synchronized void setMediaType(MediaType mediaType)
     {
         if (this.mediaType != mediaType)
         {
@@ -1113,26 +1182,13 @@ public class DtlsPacketTransformer
 
     /**
      * Enables/disables rtcp-mux.
-     * @param rtcpmux whether to enable or disable.
+     *
+     * @param rtcpmux {@code true} to enable rtcp-mux or {@code false} to
+     * disable it.
      */
     void setRtcpmux(boolean rtcpmux)
     {
         this.rtcpmux = rtcpmux;
-    }
-
-    /**
-     * Sets the DTLS protocol according to which this
-     * <tt>DtlsPacketTransformer</tt> is to act either as a DTLS server or a
-     * DTLS client.
-     *
-     * @param setup the value of the <tt>setup</tt> SDP attribute to set on this
-     * instance in order to determine whether this instance is to act as a DTLS
-     * client or a DTLS server
-     */
-    void setSetup(DtlsControl.Setup setup)
-    {
-        if (this.setup != setup)
-            this.setup = setup;
     }
 
     /**
@@ -1167,7 +1223,7 @@ public class DtlsPacketTransformer
         if (connector == null)
             throw new NullPointerException("connector");
 
-        DtlsControl.Setup setup = this.setup;
+        DtlsControl.Setup setup = getProperties().getSetup();
         SecureRandom secureRandom = DtlsControlImpl.createSecureRandom();
         final DTLSProtocol dtlsProtocolObj;
         final TlsPeer tlsPeer;
@@ -1402,7 +1458,7 @@ public class DtlsPacketTransformer
             boolean transform,
             List<RawPacket> outPkts)
     {
-        /* Pure/non-SRTP DTLS */ if (transformEngine.isSrtpDisabled())
+        /* Pure/non-SRTP DTLS */ if (isSrtpDisabled())
         {
             // (1) In the incoming/reverseTransform direction, only DTLS records
             // pass through.

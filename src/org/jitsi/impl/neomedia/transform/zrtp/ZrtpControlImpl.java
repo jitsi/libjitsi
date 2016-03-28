@@ -65,12 +65,12 @@ public class ZrtpControlImpl
     }
 
     /**
-     * Cleans up the current zrtp control and its engine.
+     * {@inheritDoc}
      */
     @Override
-    public void cleanup(Object user)
+    public void doCleanup()
     {
-        super.cleanup(user);
+        super.doCleanup();
 
         zrtpConnector = null;
     }
@@ -257,9 +257,9 @@ public class ZrtpControlImpl
     }
 
     /**
-     * Returns false, ZRTP exchanges is keys over the media path.
+     * Returns {@code false}, ZRTP exchanges its keys over the media path.
      *
-     * @return false
+     * @return {@code false}
      */
     public boolean requiresSecureSignalingTransport()
     {

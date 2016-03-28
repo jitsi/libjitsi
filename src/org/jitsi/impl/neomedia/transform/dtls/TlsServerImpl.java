@@ -183,6 +183,11 @@ public class TlsServerImpl
         return ProtocolVersion.DTLSv10;
     }
 
+    private Properties getProperties()
+    {
+        return packetTransformer.getProperties();
+    }
+
     /**
      * {@inheritDoc}
      *
@@ -197,13 +202,14 @@ public class TlsServerImpl
     {
         if (rsaEncryptionCredentials == null)
         {
-            DtlsControlImpl dtlsControl = getDtlsControl();
+            CertificateInfo certificateInfo
+                = getDtlsControl().getCertificateInfo();
 
             rsaEncryptionCredentials
                 = new DefaultTlsEncryptionCredentials(
                         context,
-                        dtlsControl.getCertificate(),
-                        dtlsControl.getKeyPair().getPrivate());
+                        certificateInfo.getCertificate(),
+                        certificateInfo.getKeyPair().getPrivate());
         }
         return rsaEncryptionCredentials;
     }
@@ -222,17 +228,16 @@ public class TlsServerImpl
     {
         if (rsaSignerCredentials == null)
         {
-            DtlsControlImpl dtlsControl = getDtlsControl();
+            CertificateInfo certificateInfo
+                = getDtlsControl().getCertificateInfo();
 
-            /*
-             * FIXME The signature and hash algorithms should be retrieved from
-             * the certificate.
-             */
+            // FIXME The signature and hash algorithms should be retrieved from
+            // the certificate.
             rsaSignerCredentials
                 = new DefaultTlsSignerCredentials(
                         context,
-                        dtlsControl.getCertificate(),
-                        dtlsControl.getKeyPair().getPrivate(),
+                        certificateInfo.getCertificate(),
+                        certificateInfo.getKeyPair().getPrivate(),
                         new SignatureAndHashAlgorithm(
                                 HashAlgorithm.sha1,
                                 SignatureAlgorithm.rsa));
@@ -253,7 +258,7 @@ public class TlsServerImpl
     {
         Hashtable serverExtensions = getServerExtensionsOverride();
 
-        if (getDtlsControl().isSrtpDisabled())
+        if (isSrtpDisabled())
         {
             return serverExtensions;
         }
@@ -284,12 +289,10 @@ public class TlsServerImpl
             }
             else
             {
-                /*
-                 * Upon receipt of a "use_srtp" extension containing a
-                 * "srtp_mki" field, the server MUST include a matching
-                 * "srtp_mki" value in its "use_srtp" extension to indicate that
-                 * it will make use of the MKI.
-                 */
+                // Upon receipt of a "use_srtp" extension containing a
+                // "srtp_mki" field, the server MUST include a matching
+                // "srtp_mki" value in its "use_srtp" extension to indicate that
+                // it will make use of the MKI.
                 TlsSRTPUtils.addUseSRTPExtension(
                         serverExtensions,
                         new UseSRTPData(
@@ -314,35 +317,34 @@ public class TlsServerImpl
     private Hashtable getServerExtensionsOverride()
         throws IOException
     {
-        if (this.encryptThenMACOffered && allowEncryptThenMAC())
+        if (encryptThenMACOffered && allowEncryptThenMAC())
         {
-            /*
-             * draft-ietf-tls-encrypt-then-mac-03 3. If a server receives an
-             * encrypt-then-MAC request extension from a client and then selects
-             * a stream or AEAD cipher suite, it MUST NOT send an
-             * encrypt-then-MAC response extension back to the client.
-             */
-            if (TlsUtils.isBlockCipherSuite(this.selectedCipherSuite))
+            // draft-ietf-tls-encrypt-then-mac-03 3. If a server receives an
+            // encrypt-then-MAC request extension from a client and then selects
+            // a stream or AEAD cipher suite, it MUST NOT send an
+            // encrypt-then-MAC response extension back to the client.
+            if (TlsUtils.isBlockCipherSuite(selectedCipherSuite))
             {
                 TlsExtensionsUtils.addEncryptThenMACExtension(
-                    checkServerExtensions());
+                        checkServerExtensions());
             }
         }
 
-        if (this.maxFragmentLengthOffered >= 0
-            && MaxFragmentLength.isValid(maxFragmentLengthOffered))
+        if (maxFragmentLengthOffered >= 0
+                && MaxFragmentLength.isValid(maxFragmentLengthOffered))
         {
             TlsExtensionsUtils.addMaxFragmentLengthExtension(
-                checkServerExtensions(), this.maxFragmentLengthOffered);
+                    checkServerExtensions(),
+                    maxFragmentLengthOffered);
         }
 
-        if (this.truncatedHMacOffered && allowTruncatedHMac())
+        if (truncatedHMacOffered && allowTruncatedHMac())
         {
             TlsExtensionsUtils.addTruncatedHMacExtension(
-                checkServerExtensions());
+                    checkServerExtensions());
         }
 
-        if (TlsECCUtils.isECCCipherSuite(this.selectedCipherSuite))
+        if (TlsECCUtils.isECCCipherSuite(selectedCipherSuite))
         {
             /*
              * RFC 4492 5.2. A server that selects an ECC cipher suite in
@@ -351,13 +353,17 @@ public class TlsServerImpl
              * its ServerHello message, enumerating the point formats it can
              * parse.
              */
-            this.serverECPointFormats = new short[]{
-                ECPointFormat.uncompressed,
-                ECPointFormat.ansiX962_compressed_prime,
-                ECPointFormat.ansiX962_compressed_char2, };
+            serverECPointFormats
+                = new short[]
+                {
+                    ECPointFormat.uncompressed,
+                    ECPointFormat.ansiX962_compressed_prime,
+                    ECPointFormat.ansiX962_compressed_char2,
+                };
 
             TlsECCUtils.addSupportedPointFormatsExtension(
-                checkServerExtensions(), serverECPointFormats);
+                    checkServerExtensions(),
+                    serverECPointFormats);
         }
 
         return serverExtensions;
@@ -376,6 +382,18 @@ public class TlsServerImpl
     {
         // TODO Auto-generated method stub
         super.init(context);
+    }
+
+    /**
+     * Determines whether this {@code TlsServerImpl} is to operate in pure DTLS
+     * mode without SRTP extensions or in DTLS/SRTP mode.
+     *
+     * @return {@code true} for pure DTLS without SRTP extensions or
+     * {@code false} for DTLS/SRTP
+     */
+    private boolean isSrtpDisabled()
+    {
+        return getProperties().isSrtpDisabled();
     }
 
     /**
@@ -429,7 +447,7 @@ public class TlsServerImpl
     public void processClientExtensions(Hashtable clientExtensions)
         throws IOException
     {
-        if (getDtlsControl().isSrtpDisabled())
+        if (isSrtpDisabled())
         {
             super.processClientExtensions(clientExtensions);
             return;
@@ -454,10 +472,8 @@ public class TlsServerImpl
                 = DtlsControlImpl.chooseSRTPProtectionProfile(
                         useSRTPData.getProtectionProfiles());
 
-            /*
-             * If there is no shared profile and that is not acceptable, the
-             * server SHOULD return an appropriate DTLS alert.
-             */
+            // If there is no shared profile and that is not acceptable, the
+            // server SHOULD return an appropriate DTLS alert.
             if (chosenProtectionProfile == 0)
             {
                 String msg = "No chosen SRTP protection profile!";
@@ -468,7 +484,9 @@ public class TlsServerImpl
                 throw tfa;
             }
             else
+            {
                 super.processClientExtensions(clientExtensions);
+            }
         }
     }
 }
