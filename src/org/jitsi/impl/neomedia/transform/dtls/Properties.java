@@ -129,11 +129,15 @@ class Properties
      */
     public void put(String name, Object value)
     {
-        Object oldValue = properties.put(name, value);
-        boolean equals
-            = (oldValue == null) ? (value == null) : oldValue.equals(value);
+        // XXX ConcurrentHashMap does't allow null values and we want to allow
+        // them. (It doesn't allow null keys either and we don't want to allow
+        // them.)
+        Object oldValue
+            = (value == null)
+                ? properties.remove(name)
+                : properties.put(name, value);
 
-        if (!equals)
+        if (!Objects.equals(oldValue, value))
             firePropertyChange(name, oldValue, value);
     }
 }
