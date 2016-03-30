@@ -354,9 +354,9 @@ class SsrcGroupRewriter
             int currentIntervalLength
                 = currentInterval == null ? 0 : currentInterval.length();
 
-            if (DEBUG && currentIntervalLength < 1)
+            if (WARN && currentIntervalLength < 1)
             {
-                logger.debug(
+                logger.warn(
                         "Pausing an interval of length 0. This doesn't look"
                             + " right.");
             }
@@ -372,7 +372,8 @@ class SsrcGroupRewriter
                 if (!isKeyFrame(pkt))
                 {
                     logger.warn(
-                            "We're switching NOT on a key frame. Bad Stuff (tm)"
+                            "We're switching NOT on a key frame (seq="
+                                + pkt.getSequenceNumber() + "). Bad Stuff (tm)"
                                 + " will happen to you!");
                 }
             }
