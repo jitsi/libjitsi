@@ -343,13 +343,14 @@ public class SRTCPCryptoContext
             // compute, then save authentication in tagStore
             authenticatePacketHMAC(pkt, indexEflag);
 
+            // compare authentication tags using constant time comparison
+            int nonEqual = 0;
             for (int i = 0; i < tagLength; i++)
             {
-                if ((tempStore[i] & 0xff) == (tagStore[i] & 0xff))
-                    continue;
-                else
-                    return false;
+                nonEqual |= (tempStore[i] ^ tagStore[i]);
             }
+            if (nonEqual != 0)
+                return false;
         }
 
         if (decrypt)
