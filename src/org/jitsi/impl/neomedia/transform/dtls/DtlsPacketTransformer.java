@@ -240,6 +240,12 @@ public class DtlsPacketTransformer
     private SinglePacketTransformer _srtpTransformer;
 
     /**
+     * The last time (in milliseconds since the epoch) that
+     * {@link _srtpTransformer} was set to a non null value.
+     */
+    private long _srtpTransformerLastChanged = -1;
+
+    /**
      * The indicator which determines whether the <tt>TlsPeer</tt> employed by
      * this <tt>PacketTransformer</tt> has raised an
      * <tt>AlertDescription.close_notify</tt> <tt>AlertLevel.warning</tt> i.e.
@@ -547,6 +553,7 @@ public class DtlsPacketTransformer
                         _srtpTransformer
                             = new SRTCPTransformer(
                                     (SRTPTransformer) srtpTransformer);
+                        _srtpTransformerLastChanged = System.currentTimeMillis();
                         // For the sake of completeness, we notify whenever we
                         // assign to _srtpTransformer.
                         notifyAll();
@@ -1082,6 +1089,7 @@ public class DtlsPacketTransformer
             {
                 this.dtlsTransport = dtlsTransport;
                 _srtpTransformer = srtpTransformer;
+                _srtpTransformerLastChanged = System.currentTimeMillis();
                 notifyAll();
             }
             closeSRTPTransformer = (_srtpTransformer != srtpTransformer);
@@ -1584,7 +1592,6 @@ public class DtlsPacketTransformer
                     {
                         // If a RawPacket from q causes an exception, do not attempt
                         // to process it next time.
-
                         clearQueue(q, template);
                     }
                 }
@@ -1660,6 +1667,18 @@ public class DtlsPacketTransformer
      */
     private void clearQueue(LinkedList<RawPacket> q, RawPacket template)
     {
+        if (_srtpTransformerLastChanged >= 0  &&
+                System.currentTimeMillis() - _srtpTransformerLastChanged > 3000)
+        {
+            // The purpose of these queues is to queue packets while DTLS is
+            // in the process of establishing a connection. If some of the
+            // packets were not "read" 3 seconds after DTLS finished, they
+            // can safely be dropped, and we do so to avoid looping through
+            // the queue on every subsequent packet.
+            q.clear();
+            return;
+        }
+
         for (Iterator<RawPacket> iter = q.iterator(); iter.hasNext() ;)
         {
             RawPacket qPkt = iter.next();
