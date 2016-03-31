@@ -236,8 +236,6 @@ public class SRTPCryptoContext
      */
     private boolean authenticatePacket(RawPacket pkt)
     {
-        boolean b = true;
-
         if (policy.getAuthType() != SRTPPolicy.NULL_AUTHENTICATION)
         {
             int tagLength = policy.getAuthTagLength();
@@ -253,16 +251,16 @@ public class SRTPCryptoContext
             // save computed authentication in tagStore
             authenticatePacketHMAC(pkt, guessedROC);
 
+            // compare authentication tags using constant time comparison
+            int nonEqual = 0;
             for (int i = 0; i < tagLength; i++)
             {
-                if ((tempStore[i] & 0xff) != (tagStore[i] & 0xff))
-                {
-                    b = false;
-                    break;
-                }
+                nonEqual |= (tempStore[i] ^ tagStore[i]);
             }
+            if (nonEqual != 0)
+                return false;
         }
-        return b;
+        return true;
     }
 
     /**
