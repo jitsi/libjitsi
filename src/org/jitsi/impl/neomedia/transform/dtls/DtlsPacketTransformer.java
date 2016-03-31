@@ -222,7 +222,7 @@ public class DtlsPacketTransformer
      * The {@code Queue} of SRTP {@code RawPacket}s which were received from the
      * remote while {@link #_srtpTransformer} was unavailable i.e. {@code null}.
      */
-    private final Queue<RawPacket> _reverseTransformSrtpQueue
+    private final LinkedList<RawPacket> _reverseTransformSrtpQueue
         = new LinkedList<>();
 
     /**
@@ -251,7 +251,7 @@ public class DtlsPacketTransformer
      * The {@code Queue} of SRTP {@code RawPacket}s which were to be sent to the
      * remote while {@link #_srtpTransformer} was unavailable i.e. {@code null}.
      */
-    private final Queue<RawPacket> _transformSrtpQueue = new LinkedList<>();
+    private final LinkedList<RawPacket> _transformSrtpQueue = new LinkedList<>();
 
     /**
      * The <tt>TransformEngine</tt> which has initialized this instance.
@@ -813,8 +813,8 @@ public class DtlsPacketTransformer
 
     /**
      * Queues {@code RawPacket}s to be supplied to
-     * {@link #transformSrtp(SinglePacketTransformer, Collection, boolean, List)}
-     * when {@link #_srtpTransformer} becomes available.
+     * {@link #transformSrtp(SinglePacketTransformer, Collection, boolean, List,
+     * RawPacket)} * when {@link #_srtpTransformer} becomes available.
      *
      * @param pkts the {@code RawPacket}s to queue
      * @param transform {@code true} if {@code pkts} are to be sent to the
@@ -1546,21 +1546,47 @@ public class DtlsPacketTransformer
         {
             // Process the (SRTP) packets provided to earlier (method)
             // invocations during which _srtpTransformer was unavailable.
-            Collection<RawPacket> q
+            LinkedList<RawPacket> q
                 = transform ? _transformSrtpQueue : _reverseTransformSrtpQueue;
 
-            synchronized (q)
+            // Don't obtain a lock if the queue is empty. If a thread was in the
+            // process of adding packets to it, they will be handled in a
+            // subsequent call. If the queue is empty, as it usually is, the
+            // call to transformSrtp below is unnecessary, so we can avoid the
+            // lock.
+            if (q.size() > 0)
             {
-                try
+                synchronized (q)
                 {
-                    outPkts
-                        = transformSrtp(srtpTransformer, q, transform, outPkts);
-                }
-                finally
-                {
-                    // If a RawPacket from q causes an exception, do not attempt
-                    // to process it next time.
-                    q.clear();
+                    // WARNING: this is a temporary workaround for an issue we
+                    // have observed in which a DtlsPacketTransformer is shared
+                    // between multiple MediaStream instances and the packet
+                    // queue contains packets belonging to both. We try to
+                    // recognize the packets belonging to each MediaStream by
+                    // their RTP SSRC or RTP payload type, and pull only these
+                    // packets into the output array.
+                    // We use the input packet (or rather the first input
+                    // packet) as a template, because it comes from the
+                    // MediaStream which called us.
+                    RawPacket template = null;
+                    if (inPkts != null && inPkts.length > 0)
+                    {
+                        template = inPkts[0];
+                    }
+
+                    try
+                    {
+                        outPkts
+                            = transformSrtp(
+                            srtpTransformer, q, transform, outPkts, template);
+                    }
+                    finally
+                    {
+                        // If a RawPacket from q causes an exception, do not attempt
+                        // to process it next time.
+
+                        clearQueue(q, template);
+                    }
                 }
             }
 
@@ -1573,7 +1599,8 @@ public class DtlsPacketTransformer
                             srtpTransformer,
                             Arrays.asList(inPkts),
                             transform,
-                            outPkts);
+                            outPkts,
+                            null);
             }
         }
         return outPkts;
@@ -1593,6 +1620,9 @@ public class DtlsPacketTransformer
      * the remote peer
      * @param outPkts the {@code List} of {@code RawPacket}s into which the
      * results of the processing of {@code inPkts} are to be written
+     * @param template A template to match input packets. Only input packets
+     * matching this template (checked with {@link #match(RawPacket, RawPacket)})
+     * will be processed. A null template matches all packets.
      * @return the {@code List} of {@code RawPacket}s which are the result of
      * the processing including the elements of {@code outPkts}. Practically,
      * {@code outPkts} itself.
@@ -1601,11 +1631,12 @@ public class DtlsPacketTransformer
             SinglePacketTransformer srtpTransformer,
             Collection<RawPacket> inPkts,
             boolean transform,
-            List<RawPacket> outPkts)
+            List<RawPacket> outPkts,
+            RawPacket template)
     {
         for (RawPacket inPkt : inPkts)
         {
-            if (inPkt != null)
+            if (inPkt != null && match(template, inPkt))
             {
                 RawPacket outPkt
                     = transform
@@ -1617,5 +1648,56 @@ public class DtlsPacketTransformer
             }
         }
         return outPkts;
+    }
+
+    /**
+     * Removes from {@code q} all packets matching {@code template} (checked
+     * with {@link #match(RawPacket, RawPacket)}. A null {@code template}
+     * matches all packets.
+     *
+     * @param q the queue to remove packets from.
+     * @param template the template
+     */
+    private void clearQueue(LinkedList<RawPacket> q, RawPacket template)
+    {
+        for (Iterator<RawPacket> iter = q.iterator(); iter.hasNext() ;)
+        {
+            RawPacket qPkt = iter.next();
+            if (match(template, qPkt))
+                iter.remove();
+        }
+    }
+
+    /**
+     * Checks whether {@code pkt} matches the template {@code template}. A null
+     * template matches all packets, while a null packet will only be matched by
+     * a null template. Two non-null packets match if they are both RTP or both
+     * RTCP and they have the same SSRC or the same RTP Payload Type.
+     * The goal is for a template packet from one MediaStream to match
+     * the packets for that stream, and only these packets.
+     *
+     * @param template the template.
+     * @param pkt the packet.
+     * @return {@code true} if {@code template} matches {@code pkt} (i.e. they
+     * have the same SSRC or RTP Payload Type).
+     */
+    private boolean match(RawPacket template, RawPacket pkt)
+    {
+        if (template == null)
+            return true;
+        if (pkt == null)
+            return false;
+
+        if (RTPPacketPredicate.INSTANCE.test(template))
+        {
+            return (template.getSSRC() == pkt.getSSRC())
+                || (template.getPayloadType() == pkt.getPayloadType());
+        }
+        else if (RTCPPacketPredicate.INSTANCE.test(template))
+        {
+            return template.getRTCPSSRC() == pkt.getRTCPSSRC();
+        }
+
+        return true;
     }
 }
