@@ -209,12 +209,7 @@ public class RawPacket
         }
 
         // re-allocate internal buffer if it is too small
-        if ((this.length + len) > (buffer.length - this.offset)) {
-            byte[] newBuffer = new byte[this.length + len];
-            System.arraycopy(this.buffer, this.offset, newBuffer, 0, this.length);
-            this.offset = 0;
-            this.buffer = newBuffer;
-        }
+        grow(len);
         // append data
         System.arraycopy(data, 0, this.buffer, this.length + this.offset, len);
         this.length = this.length + len;
@@ -926,7 +921,7 @@ public class RawPacket
      * @param howMuch number of bytes to grow
      */
     public void grow(int howMuch) {
-        if (howMuch == 0) {
+        if ((length + howMuch) <= (buffer.length - offset)) {
             return;
         }
         byte[] newBuffer = new byte[this.length + howMuch];
