@@ -551,13 +551,9 @@ public class DtlsPacketTransformer
                 {
                     if (_srtpTransformer == null)
                     {
-                        _srtpTransformer
-                            = new SRTCPTransformer(
-                                    (SRTPTransformer) srtpTransformer);
-                        _srtpTransformerLastChanged = System.currentTimeMillis();
-                        // For the sake of completeness, we notify whenever we
-                        // assign to _srtpTransformer.
-                        notifyAll();
+                        setSrtpTransformer(
+                                new SRTCPTransformer(
+                                        (SRTPTransformer) srtpTransformer));
                     }
                 }
             }
@@ -1089,9 +1085,7 @@ public class DtlsPacketTransformer
                     && datagramTransport.equals(this.datagramTransport))
             {
                 this.dtlsTransport = dtlsTransport;
-                _srtpTransformer = srtpTransformer;
-                _srtpTransformerLastChanged = System.currentTimeMillis();
-                notifyAll();
+                setSrtpTransformer(srtpTransformer);
             }
             closeSRTPTransformer = (_srtpTransformer != srtpTransformer);
         }
@@ -1198,6 +1192,25 @@ public class DtlsPacketTransformer
     void setRtcpmux(boolean rtcpmux)
     {
         this.rtcpmux = rtcpmux;
+    }
+
+    /**
+     * Sets {@link #_srtpTransformer} to a specific value.
+     *
+     * @param srtpTransformer the {@code SinglePacketTransformer} to set on
+     * {@code _srtpTransformer}
+     */
+    private synchronized void setSrtpTransformer(
+            SinglePacketTransformer srtpTransformer)
+    {
+        if (_srtpTransformer != srtpTransformer)
+        {
+            _srtpTransformer = srtpTransformer;
+            _srtpTransformerLastChanged = System.currentTimeMillis();
+            // For the sake of completeness, we notify whenever we assign to
+            // _srtpTransformer.
+            notifyAll();
+        }
     }
 
     /**
