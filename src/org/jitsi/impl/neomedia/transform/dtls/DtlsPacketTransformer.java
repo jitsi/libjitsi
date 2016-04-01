@@ -1586,15 +1586,13 @@ public class DtlsPacketTransformer
                     // queue contains packets belonging to both. We try to
                     // recognize the packets belonging to each MediaStream by
                     // their RTP SSRC or RTP payload type, and pull only these
-                    // packets into the output array.
-                    // We use the input packet (or rather the first input
-                    // packet) as a template, because it comes from the
-                    // MediaStream which called us.
-                    RawPacket template = null;
-                    if (inPkts != null && inPkts.length > 0)
-                    {
-                        template = inPkts[0];
-                    }
+                    // packets into the output array. We use the input packet
+                    // (or rather the first input packet) as a template, because
+                    // it comes from the MediaStream which called us.
+                    RawPacket template
+                        = (inPkts != null && inPkts.length > 0)
+                            ? inPkts[0]
+                            : null;
 
                     try
                     {
@@ -1685,8 +1683,11 @@ public class DtlsPacketTransformer
      */
     private void clearQueue(LinkedList<RawPacket> q, RawPacket template)
     {
-        if (_srtpTransformerLastChanged >= 0  &&
-                System.currentTimeMillis() - _srtpTransformerLastChanged > 3000)
+        long srtpTransformerLastChanged = _srtpTransformerLastChanged;
+
+        if (srtpTransformerLastChanged >= 0
+                && System.currentTimeMillis() - srtpTransformerLastChanged
+                    > 3000)
         {
             // The purpose of these queues is to queue packets while DTLS is in
             // the process of establishing a connection. If some of the packets
