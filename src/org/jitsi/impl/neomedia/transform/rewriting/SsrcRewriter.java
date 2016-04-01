@@ -45,6 +45,13 @@ class SsrcRewriter
     private static final boolean DEBUG;
 
     /**
+     * The value of {@link Logger#isTraceEnabled()} from the time of the
+     * initialization of the class {@code SsrcRewriter} cached for the purposes
+     * of performance.
+     */
+    private static final boolean TRACE;
+
+    /**
      * The origin SSRC that this <tt>SsrcRewriter</tt> rewrites. The
      * target SSRC is managed by the parent <tt>SsrcGroupRewriter</tt>.
      */
@@ -95,6 +102,7 @@ class SsrcRewriter
     static
     {
         DEBUG = logger.isDebugEnabled();
+        TRACE = logger.isTraceEnabled();
     }
 
     /**
@@ -215,7 +223,17 @@ class SsrcRewriter
             // protections implemented here does not simultaneously accommodate
             // the two cases.
 
+            long oldValue = p.getTimestamp(); // cache the value for use in tracing.
+
             rewriteTimestamp(p);
+
+            if (TRACE)
+            {
+                logger.trace("Fully rewriting (SSRC=" + p.getSSRCAsLong()
+                    + ", seqnum=" + p.getSequenceNumber()
+                    + ") retransmitted timestamp "
+                    + oldValue + " to " + p.getTimestamp());
+            }
         }
         else
         {
@@ -227,12 +245,30 @@ class SsrcRewriter
             if (oldValue == _lastSrcTimestamp)
             {
                 p.setTimestamp(_lastDstTimestamp);
+
+                if (TRACE)
+                {
+                    logger.trace("Rewriting (SSRC=" + p.getSSRCAsLong()
+                        + ", seqnum=" + p.getSequenceNumber()
+                        + ") timestamp using cached value "
+                        + oldValue + " to " + p.getTimestamp());
+                }
             }
             else
             {
                 rewriteTimestamp(p);
 
                 long newValue = p.getTimestamp();
+
+                if (TRACE)
+                {
+                    logger.trace("Fully rewriting (SSRC=" + p.getSSRCAsLong()
+                        + ", seqnum=" + p.getSequenceNumber()
+                        + ") timestamp " + oldValue
+                        + " to " + newValue + ". (_lastSrcTimestamp="
+                        + _lastSrcTimestamp + ", _lastDstTimestamp="
+                        + _lastDstTimestamp + ")");
+                }
 
                 _lastSrcTimestamp = oldValue;
                 _lastDstTimestamp = newValue;
