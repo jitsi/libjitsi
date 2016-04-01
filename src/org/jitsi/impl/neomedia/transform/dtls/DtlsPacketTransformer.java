@@ -222,7 +222,7 @@ public class DtlsPacketTransformer
      * The {@code Queue} of SRTP {@code RawPacket}s which were received from the
      * remote while {@link #_srtpTransformer} was unavailable i.e. {@code null}.
      */
-    private final Queue<RawPacket> _reverseTransformSrtpQueue
+    private final LinkedList<RawPacket> _reverseTransformSrtpQueue
         = new LinkedList<>();
 
     /**
@@ -240,6 +240,12 @@ public class DtlsPacketTransformer
     private SinglePacketTransformer _srtpTransformer;
 
     /**
+     * The last time (in milliseconds since the epoch) that
+     * {@link #_srtpTransformer} was set to a non-{@code null} value.
+     */
+    private long _srtpTransformerLastChanged = -1;
+
+    /**
      * The indicator which determines whether the <tt>TlsPeer</tt> employed by
      * this <tt>PacketTransformer</tt> has raised an
      * <tt>AlertDescription.close_notify</tt> <tt>AlertLevel.warning</tt> i.e.
@@ -251,7 +257,8 @@ public class DtlsPacketTransformer
      * The {@code Queue} of SRTP {@code RawPacket}s which were to be sent to the
      * remote while {@link #_srtpTransformer} was unavailable i.e. {@code null}.
      */
-    private final Queue<RawPacket> _transformSrtpQueue = new LinkedList<>();
+    private final LinkedList<RawPacket> _transformSrtpQueue
+        = new LinkedList<>();
 
     /**
      * The <tt>TransformEngine</tt> which has initialized this instance.
@@ -544,12 +551,9 @@ public class DtlsPacketTransformer
                 {
                     if (_srtpTransformer == null)
                     {
-                        _srtpTransformer
-                            = new SRTCPTransformer(
-                                    (SRTPTransformer) srtpTransformer);
-                        // For the sake of completeness, we notify whenever we
-                        // assign to _srtpTransformer.
-                        notifyAll();
+                        setSrtpTransformer(
+                                new SRTCPTransformer(
+                                        (SRTPTransformer) srtpTransformer));
                     }
                 }
             }
@@ -813,8 +817,8 @@ public class DtlsPacketTransformer
 
     /**
      * Queues {@code RawPacket}s to be supplied to
-     * {@link #transformSrtp(SinglePacketTransformer, Collection, boolean, List)}
-     * when {@link #_srtpTransformer} becomes available.
+     * {@link #transformSrtp(SinglePacketTransformer, Collection, boolean, List,
+     * RawPacket)} when {@link #_srtpTransformer} becomes available.
      *
      * @param pkts the {@code RawPacket}s to queue
      * @param transform {@code true} if {@code pkts} are to be sent to the
@@ -1081,8 +1085,7 @@ public class DtlsPacketTransformer
                     && datagramTransport.equals(this.datagramTransport))
             {
                 this.dtlsTransport = dtlsTransport;
-                _srtpTransformer = srtpTransformer;
-                notifyAll();
+                setSrtpTransformer(srtpTransformer);
             }
             closeSRTPTransformer = (_srtpTransformer != srtpTransformer);
         }
@@ -1189,6 +1192,25 @@ public class DtlsPacketTransformer
     void setRtcpmux(boolean rtcpmux)
     {
         this.rtcpmux = rtcpmux;
+    }
+
+    /**
+     * Sets {@link #_srtpTransformer} to a specific value.
+     *
+     * @param srtpTransformer the {@code SinglePacketTransformer} to set on
+     * {@code _srtpTransformer}
+     */
+    private synchronized void setSrtpTransformer(
+            SinglePacketTransformer srtpTransformer)
+    {
+        if (_srtpTransformer != srtpTransformer)
+        {
+            _srtpTransformer = srtpTransformer;
+            _srtpTransformerLastChanged = System.currentTimeMillis();
+            // For the sake of completeness, we notify whenever we assign to
+            // _srtpTransformer.
+            notifyAll();
+        }
     }
 
     /**
@@ -1546,21 +1568,48 @@ public class DtlsPacketTransformer
         {
             // Process the (SRTP) packets provided to earlier (method)
             // invocations during which _srtpTransformer was unavailable.
-            Collection<RawPacket> q
+            LinkedList<RawPacket> q
                 = transform ? _transformSrtpQueue : _reverseTransformSrtpQueue;
 
-            synchronized (q)
+            // XXX Don't obtain a lock if the queue is empty. If a thread was in
+            // the process of adding packets to it, they will be handled in a
+            // subsequent call. If the queue is empty, as it usually is, the
+            // call to transformSrtp below is unnecessary, so we can avoid the
+            // lock.
+            if (q.size() > 0)
             {
-                try
+                synchronized (q)
                 {
-                    outPkts
-                        = transformSrtp(srtpTransformer, q, transform, outPkts);
-                }
-                finally
-                {
-                    // If a RawPacket from q causes an exception, do not attempt
-                    // to process it next time.
-                    q.clear();
+                    // WARNING: this is a temporary workaround for an issue we
+                    // have observed in which a DtlsPacketTransformer is shared
+                    // between multiple MediaStream instances and the packet
+                    // queue contains packets belonging to both. We try to
+                    // recognize the packets belonging to each MediaStream by
+                    // their RTP SSRC or RTP payload type, and pull only these
+                    // packets into the output array. We use the input packet
+                    // (or rather the first input packet) as a template, because
+                    // it comes from the MediaStream which called us.
+                    RawPacket template
+                        = (inPkts != null && inPkts.length > 0)
+                            ? inPkts[0]
+                            : null;
+
+                    try
+                    {
+                        outPkts
+                            = transformSrtp(
+                                    srtpTransformer,
+                                    q,
+                                    transform,
+                                    outPkts,
+                                    template);
+                    }
+                    finally
+                    {
+                        // If a RawPacket from q causes an exception, do not
+                        // attempt to process it next time.
+                        clearQueue(q, template);
+                    }
                 }
             }
 
@@ -1573,7 +1622,8 @@ public class DtlsPacketTransformer
                             srtpTransformer,
                             Arrays.asList(inPkts),
                             transform,
-                            outPkts);
+                            outPkts,
+                            /* template */ null);
             }
         }
         return outPkts;
@@ -1593,6 +1643,9 @@ public class DtlsPacketTransformer
      * the remote peer
      * @param outPkts the {@code List} of {@code RawPacket}s into which the
      * results of the processing of {@code inPkts} are to be written
+     * @param template A template to match input packets. Only input packets
+     * matching this template (checked with {@link #match(RawPacket, RawPacket)})
+     * will be processed. A null template matches all packets.
      * @return the {@code List} of {@code RawPacket}s which are the result of
      * the processing including the elements of {@code outPkts}. Practically,
      * {@code outPkts} itself.
@@ -1601,11 +1654,12 @@ public class DtlsPacketTransformer
             SinglePacketTransformer srtpTransformer,
             Collection<RawPacket> inPkts,
             boolean transform,
-            List<RawPacket> outPkts)
+            List<RawPacket> outPkts,
+            RawPacket template)
     {
         for (RawPacket inPkt : inPkts)
         {
-            if (inPkt != null)
+            if (inPkt != null && match(template, inPkt))
             {
                 RawPacket outPkt
                     = transform
@@ -1617,5 +1671,72 @@ public class DtlsPacketTransformer
             }
         }
         return outPkts;
+    }
+
+    /**
+     * Removes from {@code q} all packets matching {@code template} (checked
+     * with {@link #match(RawPacket, RawPacket)}. A null {@code template}
+     * matches all packets.
+     *
+     * @param q the queue to remove packets from.
+     * @param template the template
+     */
+    private void clearQueue(LinkedList<RawPacket> q, RawPacket template)
+    {
+        long srtpTransformerLastChanged = _srtpTransformerLastChanged;
+
+        if (srtpTransformerLastChanged >= 0
+                && System.currentTimeMillis() - srtpTransformerLastChanged
+                    > 3000)
+        {
+            // The purpose of these queues is to queue packets while DTLS is in
+            // the process of establishing a connection. If some of the packets
+            // were not "read" 3 seconds after DTLS finished, they can safely be
+            // dropped, and we do so to avoid looping through the queue on every
+            // subsequent packet.
+            q.clear();
+            return;
+        }
+
+        for (Iterator<RawPacket> it = q.iterator(); it.hasNext();)
+        {
+            if (match(template, it.next()))
+                it.remove();
+        }
+    }
+
+    /**
+     * Checks whether {@code pkt} matches the template {@code template}. A
+     * {@code null} template matches all packets, while a {@code null} packet
+     * will only be matched by a {@code null} template. Two non-{@code null}
+     * packets match if they are both RTP or both RTCP and they have the same
+     * SSRC or the same RTP Payload Type. The goal is for a template packet from
+     * one {@code MediaStream} to match the packets for that stream, and only
+     * these packets.
+     *
+     * @param template the template.
+     * @param pkt the packet.
+     * @return {@code true} if {@code template} matches {@code pkt} (i.e. they
+     * have the same SSRC or RTP Payload Type).
+     */
+    private boolean match(RawPacket template, RawPacket pkt)
+    {
+        if (template == null)
+            return true;
+        if (pkt == null)
+            return false;
+
+        if (RTPPacketPredicate.INSTANCE.test(template))
+        {
+            return
+                template.getSSRC() == pkt.getSSRC()
+                    || template.getPayloadType() == pkt.getPayloadType();
+        }
+        else if (RTCPPacketPredicate.INSTANCE.test(template))
+        {
+            return template.getRTCPSSRC() == pkt.getRTCPSSRC();
+        }
+
+        return true;
     }
 }
