@@ -55,6 +55,27 @@ public class SsrcRewritingEngine implements TransformEngine
         = Logger.getLogger(SsrcRewritingEngine.class);
 
     /**
+     * The value of {@link Logger#isDebugEnabled()} from the time of the
+     * initialization of the class {@code SsrcRewritingEngine} cached for the
+     * purposes of performance.
+     */
+    private static final boolean DEBUG = logger.isDebugEnabled();
+
+    /**
+     * The value of {@link Logger#isWarnEnabled()} from the time of the
+     * initialization of the class {@code SsrcRewritingEngine} cached for the
+     * purposes of performance.
+     */
+    private static final boolean WARN = logger.isWarnEnabled();
+
+    /**
+     * The value of {@link Logger#isTraceEnabled()} from the time of the
+     * initialization of the class {@code SsrcRewritingEngine} cached for the
+     * purposes of performance.
+     */
+    private static final boolean TRACE = logger.isTraceEnabled();
+
+    /**
      * An int const indicating an invalid seqnum. One reason why we use integers
      * to represent sequence numbers is so that we can have this invalid
      * sequence number const.
@@ -510,9 +531,31 @@ public class SsrcRewritingEngine implements TransformEngine
                 return pkt;
             }
 
+            if (TRACE && pkt.getPayloadType() == 0x64 /* VP8 PT*/)
+            {
+                if (mediaStream instanceof VideoMediaStream)
+                {
+                    logger.trace("Saw VIDEO ssrc=" + pkt.getSSRCAsLong() +
+                        ", seqnum=" + pkt.getSequenceNumber());
+                }
+                else
+                {
+                    logger.trace("Saw AUDIO ssrc=" + pkt.getSSRCAsLong() +
+                        ", seqnum=" + pkt.getSequenceNumber());
+                }
+            }
+
             seqnumBaseKeeper.update(pkt);
             if (!initialized)
             {
+                if (TRACE && mediaStream instanceof VideoMediaStreamImpl)
+                {
+                    logger.trace("Not rewriting ssrc=" + pkt.getSSRCAsLong()
+                        + ", seq=" + pkt.getSequenceNumber()
+                        + "because the SSRC rewriting engine is not "
+                        + "initialized.");
+                }
+
                 return pkt;
             }
 
@@ -527,6 +570,12 @@ public class SsrcRewritingEngine implements TransformEngine
             {
                 // We don't have a rewriter for this packet. Let's not freak
                 // out about it, it's most probably a DTLS packet.
+                if (WARN)
+                {
+                    logger.warn("Not rewriting ssrc=" + pkt.getSSRCAsLong()
+                        + ", seq=" + pkt.getSequenceNumber()
+                        + "because we could not find an SSRC group rewriter.");
+                }
                 return pkt;
             }
             else
@@ -791,6 +840,13 @@ public class SsrcRewritingEngine implements TransformEngine
             else
             {
                 seqnum = RANDOM.nextInt(0x10000);
+            }
+
+            if (TRACE)
+            {
+                logger.trace("Creating a new SsrcGroupRewriter (ssrc="
+                    + (ssrcTarget & 0xffffffffl)
+                    + ", seqnum=" + seqnum + ").");
             }
 
             return
