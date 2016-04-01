@@ -234,11 +234,8 @@ class SsrcRewriter
 
                 long newValue = p.getTimestamp();
 
-                if (newValue != oldValue)
-                {
-                    _lastSrcTimestamp = oldValue;
-                    _lastDstTimestamp = newValue;
-                }
+                _lastSrcTimestamp = oldValue;
+                _lastDstTimestamp = newValue;
             }
         }
     }
