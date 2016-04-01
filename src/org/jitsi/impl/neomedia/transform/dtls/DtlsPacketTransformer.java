@@ -241,7 +241,7 @@ public class DtlsPacketTransformer
 
     /**
      * The last time (in milliseconds since the epoch) that
-     * {@link _srtpTransformer} was set to a non null value.
+     * {@link #_srtpTransformer} was set to a non-{@code null} value.
      */
     private long _srtpTransformerLastChanged = -1;
 
@@ -821,7 +821,7 @@ public class DtlsPacketTransformer
     /**
      * Queues {@code RawPacket}s to be supplied to
      * {@link #transformSrtp(SinglePacketTransformer, Collection, boolean, List,
-     * RawPacket)} * when {@link #_srtpTransformer} becomes available.
+     * RawPacket)} when {@link #_srtpTransformer} becomes available.
      *
      * @param pkts the {@code RawPacket}s to queue
      * @param transform {@code true} if {@code pkts} are to be sent to the
@@ -1557,8 +1557,8 @@ public class DtlsPacketTransformer
             LinkedList<RawPacket> q
                 = transform ? _transformSrtpQueue : _reverseTransformSrtpQueue;
 
-            // Don't obtain a lock if the queue is empty. If a thread was in the
-            // process of adding packets to it, they will be handled in a
+            // XXX Don't obtain a lock if the queue is empty. If a thread was in
+            // the process of adding packets to it, they will be handled in a
             // subsequent call. If the queue is empty, as it usually is, the
             // call to transformSrtp below is unnecessary, so we can avoid the
             // lock.
@@ -1590,8 +1590,8 @@ public class DtlsPacketTransformer
                     }
                     finally
                     {
-                        // If a RawPacket from q causes an exception, do not attempt
-                        // to process it next time.
+                        // If a RawPacket from q causes an exception, do not
+                        // attempt to process it next time.
                         clearQueue(q, template);
                     }
                 }
@@ -1670,11 +1670,11 @@ public class DtlsPacketTransformer
         if (_srtpTransformerLastChanged >= 0  &&
                 System.currentTimeMillis() - _srtpTransformerLastChanged > 3000)
         {
-            // The purpose of these queues is to queue packets while DTLS is
-            // in the process of establishing a connection. If some of the
-            // packets were not "read" 3 seconds after DTLS finished, they
-            // can safely be dropped, and we do so to avoid looping through
-            // the queue on every subsequent packet.
+            // The purpose of these queues is to queue packets while DTLS is in
+            // the process of establishing a connection. If some of the packets
+            // were not "read" 3 seconds after DTLS finished, they can safely be
+            // dropped, and we do so to avoid looping through the queue on every
+            // subsequent packet.
             q.clear();
             return;
         }
@@ -1688,12 +1688,13 @@ public class DtlsPacketTransformer
     }
 
     /**
-     * Checks whether {@code pkt} matches the template {@code template}. A null
-     * template matches all packets, while a null packet will only be matched by
-     * a null template. Two non-null packets match if they are both RTP or both
-     * RTCP and they have the same SSRC or the same RTP Payload Type.
-     * The goal is for a template packet from one MediaStream to match
-     * the packets for that stream, and only these packets.
+     * Checks whether {@code pkt} matches the template {@code template}. A
+     * {@code null} template matches all packets, while a {@code null} packet
+     * will only be matched by a {@code null} template. Two non-{@code null}
+     * packets match if they are both RTP or both RTCP and they have the same
+     * SSRC or the same RTP Payload Type. The goal is for a template packet from
+     * one {@code MediaStream} to match the packets for that stream, and only
+     * these packets.
      *
      * @param template the template.
      * @param pkt the packet.
