@@ -257,7 +257,8 @@ public class DtlsPacketTransformer
      * The {@code Queue} of SRTP {@code RawPacket}s which were to be sent to the
      * remote while {@link #_srtpTransformer} was unavailable i.e. {@code null}.
      */
-    private final LinkedList<RawPacket> _transformSrtpQueue = new LinkedList<>();
+    private final LinkedList<RawPacket> _transformSrtpQueue
+        = new LinkedList<>();
 
     /**
      * The <tt>TransformEngine</tt> which has initialized this instance.
@@ -1586,7 +1587,11 @@ public class DtlsPacketTransformer
                     {
                         outPkts
                             = transformSrtp(
-                            srtpTransformer, q, transform, outPkts, template);
+                                    srtpTransformer,
+                                    q,
+                                    transform,
+                                    outPkts,
+                                    template);
                     }
                     finally
                     {
@@ -1607,7 +1612,7 @@ public class DtlsPacketTransformer
                             Arrays.asList(inPkts),
                             transform,
                             outPkts,
-                            null);
+                            /* template */ null);
             }
         }
         return outPkts;
@@ -1679,11 +1684,10 @@ public class DtlsPacketTransformer
             return;
         }
 
-        for (Iterator<RawPacket> iter = q.iterator(); iter.hasNext() ;)
+        for (Iterator<RawPacket> it = q.iterator(); it.hasNext();)
         {
-            RawPacket qPkt = iter.next();
-            if (match(template, qPkt))
-                iter.remove();
+            if (match(template, it.next()))
+                it.remove();
         }
     }
 
@@ -1710,8 +1714,9 @@ public class DtlsPacketTransformer
 
         if (RTPPacketPredicate.INSTANCE.test(template))
         {
-            return (template.getSSRC() == pkt.getSSRC())
-                || (template.getPayloadType() == pkt.getPayloadType());
+            return
+                template.getSSRC() == pkt.getSSRC()
+                    || template.getPayloadType() == pkt.getPayloadType();
         }
         else if (RTCPPacketPredicate.INSTANCE.test(template))
         {
