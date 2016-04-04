@@ -208,12 +208,12 @@ public class RawPacket
             return;
         }
 
-        // re-allocate internal buffer if it is too small
+        // Ensure the internal buffer is long enough to accommodate data. (The
+        // method grow will re-allocate the internal buffer if it's too short.)
         grow(len);
-        // append data
-        System.arraycopy(data, 0, this.buffer, this.length + this.offset, len);
-        this.length = this.length + len;
-
+        // Append data.
+        System.arraycopy(data, 0, buffer, length + offset, len);
+        length += len;
     }
 
     /**
@@ -912,22 +912,28 @@ public class RawPacket
     }
 
     /**
-     * Grow the internal packet buffer.
+     * Grows the internal buffer of this {@code RawPacket}.
      *
-     * This will change the data buffer of this packet but not the
-     * length of the valid data. Use this to grow the internal buffer
-     * to avoid buffer re-allocations when appending data.
+     * This will change the data buffer of this packet but not the length of the
+     * valid data. Use this to grow the internal buffer to avoid buffer
+     * re-allocations when appending data.
      *
-     * @param howMuch number of bytes to grow
+     * @param howMuch the number of bytes by which this {@code RawPacket} is to
+     * grow
      */
     public void grow(int howMuch) {
-        if ((length + howMuch) <= (buffer.length - offset)) {
-            return;
+        if (howMuch < 0)
+            throw new IllegalArgumentException("howMuch");
+
+        int newLength = length + howMuch;
+
+        if (newLength > buffer.length - offset) {
+            byte[] newBuffer = new byte[newLength];
+
+            System.arraycopy(buffer, offset, newBuffer, 0, length);
+            offset = 0;
+            buffer = newBuffer;
         }
-        byte[] newBuffer = new byte[this.length + howMuch];
-        System.arraycopy(this.buffer, this.offset, newBuffer, 0, this.length);
-        offset = 0;
-        buffer = newBuffer;
     }
 
     /**
