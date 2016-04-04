@@ -19,6 +19,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.beans.*;
 import java.io.*;
+import java.security.*;
 import java.util.*;
 import java.util.List;
 
@@ -1531,9 +1532,17 @@ public class MediaServiceImpl
      */
     private static void postInitializeOnce(MediaServiceImpl mediaServiceImpl)
     {
-        new ZrtpFortunaEntropyGatherer(
-                mediaServiceImpl.getDeviceConfiguration())
-            .setEntropy();
+        /*
+         * Some SecureRandom() implementations like SHA1PRNG call
+         * /dev/random to seed themselves on first use.
+         * Call SecureRandom early to avoid blocking when establishing
+         * a connection for exemple.
+         */
+        logger.info("Warming up SecureRandom...");
+        SecureRandom rnd = new SecureRandom();
+        byte[] b = new byte[20];
+        rnd.nextBytes(b);
+        logger.info("Warming up SecureRandom finished.");
     }
 
     /**
