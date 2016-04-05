@@ -123,11 +123,10 @@ public class RetransmissionRequesterImpl
      * <tt>RtpChannel</tt>.
      * @param stream the {@link MediaStream} that the instance belongs to.
      */
-    public RetransmissionRequesterImpl(MediaStream stream, long senderSsrc)
+    public RetransmissionRequesterImpl(MediaStream stream)
     {
         super(RTPPacketPredicate.INSTANCE);
         this.stream = stream;
-        this.senderSsrc = senderSsrc;
 
         thread
             = new Thread()
@@ -274,7 +273,7 @@ public class RetransmissionRequesterImpl
                     {
                         if (nextRequestAt == -1)
                         {
-                            thread.wait(200);
+                            thread.wait(1000);
                             continue;
                         }
                         else
@@ -290,6 +289,8 @@ public class RetransmissionRequesterImpl
                 //else the time has already come
             }
 
+            if (!enabled || senderSsrc == -1)
+                continue;
 
             synchronized (requesters)
             {
@@ -556,5 +557,13 @@ public class RetransmissionRequesterImpl
         {
             this.seq = seq;
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void setSenderSsrc(long ssrc)
+    {
+        senderSsrc = ssrc;
     }
 }

@@ -38,4 +38,11 @@ public interface RetransmissionRequester
      * @param enable {@code true} to enable, {@code false} to disable.
      */
     public void enable(boolean enable);
+
+    /**
+     * Sets the SSRC to be used by this {@link RetransmissionRequester} as
+     * "packet sender SSRC" in outgoing NACK packets.
+     * @param ssrc the SSRC to use as "packet sender SSRC".
+     */
+    public void setSenderSsrc(long ssrc);
 }
