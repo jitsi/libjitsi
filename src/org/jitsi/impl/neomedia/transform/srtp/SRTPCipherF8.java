@@ -21,13 +21,13 @@ import org.bouncycastle.crypto.*;
 import org.bouncycastle.crypto.params.*;
 
 /**
- * SRTPCipherF8 implements SRTP F8 Mode AES Encryption (AES-f8).
+ * SRTPCipherF8 implements SRTP F8 Mode Encryption for 128 bits block cipher.
  * F8 Mode AES Encryption algorithm is defined in RFC3711, section 4.1.2.
  *
  * Other than Null Cipher, RFC3711 defined two two encryption algorithms:
  * Counter Mode AES Encryption and F8 Mode AES encryption. Both encryption
  * algorithms are capable to encrypt / decrypt arbitrary length data, and the
- * size of packet data is not required to be a multiple of the AES block
+ * size of packet data is not required to be a multiple of the cipher block
  * size (128bit). So, no padding is needed.
  *
  * Please note: these two encryption algorithms are specially defined by SRTP.
@@ -42,7 +42,6 @@ import org.bouncycastle.crypto.params.*;
  *   message integrity    HMAC-SHA1                -          HMAC-SHA1
  *   key derivation       (PRF) AES-CM             -          AES-CM
  *
- * We use AESCipher to handle basic AES encryption / decryption.
  *
  * @author Bing SU (nova.su@gmail.com)
  * @author Werner Dittmann <werner.dittmann@t-online.de>
@@ -50,7 +49,7 @@ import org.bouncycastle.crypto.params.*;
 public class SRTPCipherF8
 {
     /**
-     * AES block size, just a short name.
+     * block size, just a short name.
      */
     private final static int BLKLEN = 16;
 
@@ -65,42 +64,68 @@ public class SRTPCipherF8
         long J;
     }
 
-    public static void deriveForIV(BlockCipher f8Cipher, byte[] key, byte[] salt)
+    /**
+     * Encryption key
+     * (k_e)
+     */
+    private byte[] encKey;
+
+    /**
+     * Masked Encryption key (F8 mode specific)
+     * (k_e XOR (k_s || 0x555..5))
+     */
+    private byte[] maskedKey;
+
+    /**
+     * A 128 bits block cipher (AES or TwoFish)
+     */
+    private BlockCipher cipher;
+
+    public SRTPCipherF8(BlockCipher cipher)
     {
-        /*
-         * Get memory for the special key. This is the key to compute the
-         * derived IV (IV').
-         */
-        byte[] saltMask = new byte[key.length];
-        byte[] maskedKey = new byte[key.length];
-
-        /*
-         * First copy the salt into the mask field, then fill with 0x55 to get a
-         * full key.
-         */
-        System.arraycopy(salt, 0, saltMask, 0, salt.length);
-        for (int i = salt.length; i < saltMask.length; ++i)
-            saltMask[i] = 0x55;
-
-        /*
-         * XOR the original key with the above created mask to get the special
-         * key.
-         */
-        for (int i = 0; i < key.length; i++)
-            maskedKey[i] = (byte) (key[i] ^ saltMask[i]);
-
-        /*
-         * Prepare the f8Cipher with the special key to compute IV'
-         */
-        KeyParameter encryptionKey = new KeyParameter(maskedKey);
-        f8Cipher.init(true, encryptionKey);
-        saltMask = null;
-        maskedKey = null;
+        this.cipher = cipher;
     }
 
-    public static void process(BlockCipher cipher, byte[] data, int off, int len,
-            byte[] iv, BlockCipher f8Cipher)
+    /**
+     * @param k_e encryption key
+     * @param k_s salt key
+     */
+    public void init(byte[] k_e, byte[] k_s)
     {
+        if (k_e.length != BLKLEN)
+            throw new IllegalArgumentException("k_e.length != BLKLEN");
+        if (k_s.length > k_e.length)
+            throw new IllegalArgumentException("k_s.length > k_e.length");
+
+        encKey = Arrays.copyOf(k_e, k_e.length);
+
+        /*
+         * XOR the original key with the salt||0x55 to get
+         * the special key maskedKey.
+         */
+        maskedKey = Arrays.copyOf(k_e, k_e.length);
+        int i = 0;
+        for (; i < k_s.length; ++i)
+            maskedKey[i] ^= k_s[i];
+        for (; i < maskedKey.length; ++i)
+            maskedKey[i] ^= 0x55;
+    }
+
+    public void process(byte[] data, int off, int len, byte[] iv)
+    {
+        if (iv.length != BLKLEN)
+            throw new IllegalArgumentException("iv.length != BLKLEN");
+        if (off < 0)
+            throw new IllegalArgumentException("off < 0");
+        if (len < 0)
+            throw new IllegalArgumentException("len < 0");
+        if (off + len > data.length)
+            throw new IllegalArgumentException("off + len > data.length");
+        /*
+         * RFC 3711 says we should not encrypt more than 2^32 blocks which is
+         * way more than java array max size, so no checks needed here
+         */
+
         F8Context f8ctx = new F8Context();
 
         /*
@@ -109,27 +134,32 @@ public class SRTPCipherF8
         f8ctx.ivAccent = new byte[BLKLEN];
 
         /*
-         * Use the derived IV encryption setup to encrypt the original IV to produce IV'.
+         * Encrypt the original IV to produce IV'.
          */
-        f8Cipher.processBlock(iv, 0, f8ctx.ivAccent, 0);
+        cipher.init(true, new KeyParameter(maskedKey));
+        cipher.processBlock(iv, 0, f8ctx.ivAccent, 0);
+
+        /*
+         * re-init cipher with the "normal" key
+         */
+        cipher.init(true, new KeyParameter(encKey));
 
         f8ctx.J = 0; // initialize the counter
         f8ctx.S = new byte[BLKLEN]; // get the key stream buffer
-
         Arrays.fill(f8ctx.S, (byte) 0);
 
         int inLen = len;
 
         while (inLen >= BLKLEN)
         {
-            processBlock(cipher, f8ctx, data, off, data, off, BLKLEN);
+            processBlock(f8ctx, data, off, BLKLEN);
             inLen -= BLKLEN;
             off += BLKLEN;
         }
 
         if (inLen > 0)
         {
-            processBlock(cipher, f8ctx, data, off, data, off, inLen);
+            processBlock(f8ctx, data, off, inLen);
         }
     }
 
@@ -139,19 +169,14 @@ public class SRTPCipherF8
      *
      * @param f8ctx
      *            F8 encryption context
-     * @param in
+     * @param inOut
      *            byte array holding the data to be processed
-     * @param inOff
-     *            start offset of the data to be processed inside in array
-     * @param out
-     *            byte array that will hold the processed data
-     * @param outOff
-     *            start offset of output data in out
+     * @param off
+     *            start offset of the data to be processed inside inOut array
      * @param len
-     *            length of the input data
+     *            length of the data to be processed inside inOut array from off
      */
-    private static void processBlock(BlockCipher cipher, F8Context f8ctx,
-            byte[] in, int inOff, byte[] out, int outOff, int len)
+    private void processBlock(F8Context f8ctx, byte[] inOut, int off, int len)
     {
         /*
          * XOR the previous key stream with IV'
@@ -180,6 +205,6 @@ public class SRTPCipherF8
          * the cipher text.
          */
         for (int i = 0; i < len; i++)
-            out[outOff + i] = (byte) (in[inOff + i] ^ f8ctx.S[i]);
+            inOut[off + i] ^= f8ctx.S[i];
     }
 }

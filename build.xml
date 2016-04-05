@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="libjitsi" xmlns:maven-artifact="antlib:org.apache.maven.artifact.ant">
+  <!--
+  Requires maven-ant-tasks to maintain this project's dependencies in Maven's
+  pom.xml only and have the latter fetch them when necessary so that we don't
+  have to commit dependent binaries in this project's repository.
 
+  To install maven-ant-tasks locally, run the following once:
+  mvn dependency:get -DartifactId=maven-ant-tasks -DgroupId=org.apache.maven -Dversion=2.1.3
+
+  Then invoke Ant with the -lib command line argument pointing to the
+  directory which contains maven-ant-tasks as follows:
+  ant -lib ~/.m2/repository/org/apache/maven/maven-ant-tasks/2.1.3 [target]
+  -->
   <property file="local.properties" />
   <property name="dest" value="classes" />
   <property name="dest.test" value="test-classes" />

@@ -78,19 +78,14 @@ class BaseSRTPCryptoContext
     protected final byte[] authKey;
 
     /**
-     * The symmetric cipher engines we need here
-     */
-    protected final BlockCipher cipher;
-
-    /**
      * implements the counter cipher mode for RTP according to RFC 3711
      */
-    protected final SRTPCipherCTR cipherCtr = new SRTPCipherCTR();
+    protected final SRTPCipherCTR cipherCtr;
 
     /**
-     * Used inside F8 mode only
+     * F8 mode cipher
      */
-    protected final BlockCipher cipherF8;
+    protected final SRTPCipherF8 cipherF8;
 
     /**
      * Derived session encryption key
@@ -163,7 +158,7 @@ class BaseSRTPCryptoContext
         this.ssrc = ssrc;
 
         authKey = null;
-        cipher = null;
+        cipherCtr = null;
         cipherF8 = null;
         encKey = null;
         mac = null;
@@ -194,8 +189,8 @@ class BaseSRTPCryptoContext
         masterSalt = new byte[saltKeyLength];
         System.arraycopy(masterS, 0, masterSalt, 0, saltKeyLength);
 
-        BlockCipher cipher = null;
-        BlockCipher cipherF8 = null;
+        SRTPCipherCTR cipherCtr = null;
+        SRTPCipherF8 cipherF8 = null;
         byte[] encKey = null;
         byte[] saltKey = null;
 
@@ -205,26 +200,33 @@ class BaseSRTPCryptoContext
             break;
 
         case SRTPPolicy.AESF8_ENCRYPTION:
-            cipherF8 = AES.createBlockCipher();
+            cipherF8 = new SRTPCipherF8(AES.createBlockCipher());
             //$FALL-THROUGH$
 
         case SRTPPolicy.AESCM_ENCRYPTION:
-            cipher = AES.createBlockCipher();
+            if (OpenSSLWrapperLoader.isLoaded())
+            {
+                cipherCtr = new SRTPCipherCTROpenSSL();
+            }
+            else
+            {
+                cipherCtr = new SRTPCipherCTRJava(AES.createBlockCipher());
+            }
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
             break;
 
         case SRTPPolicy.TWOFISHF8_ENCRYPTION:
-            cipherF8 = new TwofishEngine();
+            cipherF8 = new SRTPCipherF8(new TwofishEngine());
             //$FALL-THROUGH$
 
         case SRTPPolicy.TWOFISH_ENCRYPTION:
-            cipher = new TwofishEngine();
+            cipherCtr = new SRTPCipherCTRJava(new TwofishEngine());
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
             break;
         }
-        this.cipher = cipher;
+        this.cipherCtr = cipherCtr;
         this.cipherF8 = cipherF8;
         this.encKey = encKey;
         this.saltKey = saltKey;

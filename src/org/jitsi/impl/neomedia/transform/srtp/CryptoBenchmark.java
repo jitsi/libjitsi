@@ -60,7 +60,6 @@ public class CryptoBenchmark
         Digest[] digests
             = {
                 new SHA1Digest(),
-                new OpenSSLDigest(OpenSSLDigest.SHA1)
             };
         MessageDigest[] messageDigests
             = {
@@ -108,8 +107,7 @@ public class CryptoBenchmark
                 new BlockCipherAdapter(
                         Cipher.getInstance("AES_128/ECB/NoPadding", sunPKCS11)),
                 new BlockCipherAdapter(
-                        Cipher.getInstance("AES_128/ECB/NoPadding", sunJCE)),
-                new OpenSSLBlockCipher(OpenSSLBlockCipher.AES_128_ECB)
+                        Cipher.getInstance("AES_128/ECB/NoPadding", sunJCE))
             };
 
         for (BlockCipher cipher : ciphers)
@@ -134,8 +132,7 @@ public class CryptoBenchmark
         Mac[] macs
             = {
                 new HMac(new SHA1Digest()),
-                new HMac(new OpenSSLDigest(OpenSSLDigest.SHA1)),
-                new OpenSSLHMAC(OpenSSLDigest.SHA1)
+                new OpenSSLHMAC(OpenSSLHMAC.SHA1)
             };
 
         Random random = new Random(System.currentTimeMillis());

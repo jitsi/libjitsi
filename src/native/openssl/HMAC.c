@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "Digest.h"
+#include "HMAC.h"
 
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
@@ -43,18 +43,6 @@ Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLHMAC_EVP_1sha1
     (JNIEnv *env, jclass clazz)
 {
     return (jlong) (intptr_t) EVP_sha1();
-}
-
-/*
- * Class:     org_jitsi_impl_neomedia_transform_srtp_OpenSSLHMAC
- * Method:    HMAC_CTX_cleanup
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL
-Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLHMAC_HMAC_1CTX_1cleanup
-    (JNIEnv *env, jclass clazz, jlong ctx)
-{
-    HMAC_CTX_cleanup((HMAC_CTX *) (intptr_t) ctx);
 }
 
 /*

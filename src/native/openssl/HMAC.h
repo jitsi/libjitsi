@@ -25,14 +25,6 @@ JNIEXPORT jlong JNICALL Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLHMAC_
 
 /*
  * Class:     org_jitsi_impl_neomedia_transform_srtp_OpenSSLHMAC
- * Method:    HMAC_CTX_cleanup
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLHMAC_HMAC_1CTX_1cleanup
-  (JNIEnv *, jclass, jlong);
-
-/*
- * Class:     org_jitsi_impl_neomedia_transform_srtp_OpenSSLHMAC
  * Method:    HMAC_CTX_create
  * Signature: ()J
  */
