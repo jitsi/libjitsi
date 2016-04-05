@@ -194,7 +194,7 @@ class ExtendedSequenceNumberInterval
         pkt.setSSRC(ssrcTarget);
 
         // Sequence number
-        short seqnum = (short) pkt.getSequenceNumber();
+        int seqnum = pkt.getSequenceNumber();
         int extendedSeqnum = ssrcRewriter.extendOriginalSequenceNumber(seqnum);
         int rewriteSeqnum = rewriteExtendedSequenceNumber(extendedSeqnum);
 
@@ -339,7 +339,7 @@ class ExtendedSequenceNumberInterval
         SsrcRewritingEngine ssrcRewritingEngine = getSsrcRewritingEngine();
         int sourceSSRC = ssrcRewriter.getSourceSSRC();
         int ssrcOrig = ssrcRewritingEngine.rtx2primary.get(sourceSSRC);
-        short snOrig = pkt.getOriginalSequenceNumber();
+        int snOrig = pkt.getOriginalSequenceNumber();
 
         SsrcGroupRewriter rewriterPrimary
             = ssrcRewritingEngine.origin2rewriter.get(ssrcOrig);
@@ -353,7 +353,7 @@ class ExtendedSequenceNumberInterval
         }
         else
         {
-            pkt.setOriginalSequenceNumber((short) sequenceNumber);
+            pkt.setOriginalSequenceNumber(sequenceNumber);
             return true;
         }
     }
@@ -440,8 +440,7 @@ class ExtendedSequenceNumberInterval
         // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         // |        length recovery        |
         // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-        short snBase
-            = (short) ((buf[off + 2] & 0xff) << 8 | (buf[off + 3] & 0xff));
+        int snBase = (buf[off + 2] & 0xff) << 8 | (buf[off + 3] & 0xff);
 
         SsrcGroupRewriter rewriter
             = getSsrcRewritingEngine().origin2rewriter.get(sourceSSRC);

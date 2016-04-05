@@ -144,7 +144,7 @@ class SsrcRewriter
      */
     public RawPacket rewriteRTP(RawPacket pkt)
     {
-        short seqnum = (short) pkt.getSequenceNumber();
+        int seqnum = pkt.getSequenceNumber();
         int extendedSeqnum = extendOriginalSequenceNumber(seqnum);
 
         // first, check if this is a retransmission and rewrite using
@@ -162,7 +162,7 @@ class SsrcRewriter
             if (DEBUG)
             {
                 logger.debug(
-                        "Retransmitting packet with SEQNUM " + (seqnum & 0xffff)
+                        "Retransmitting packet with SEQNUM " + seqnum
                             + " of SSRC " + pkt.getSSRCAsLong()
                             + " retran SSRC: " + rpkt.getSSRCAsLong()
                             + " retran SEQNUM: " + rpkt.getSequenceNumber());
@@ -461,11 +461,10 @@ class SsrcRewriter
      * @param ssOrigSeqnum
      * @return
      */
-    int extendOriginalSequenceNumber(short ssOrigSeqnum)
+    int extendOriginalSequenceNumber(int origSeqnum)
     {
         SSRCCache ssrcCache
             = getMediaStream().getStreamRTPManager().getSSRCCache();
-        int usOrigSeqnum = ssOrigSeqnum & 0x0000ffff;
 
         if (ssrcCache != null)
         {
@@ -475,9 +474,9 @@ class SsrcRewriter
             SSRCInfo sourceSSRCInfo = ssrcCache.cache.get(getSourceSSRC());
 
             if (sourceSSRCInfo != null)
-                return sourceSSRCInfo.extendSequenceNumber(usOrigSeqnum);
+                return sourceSSRCInfo.extendSequenceNumber(origSeqnum);
         }
-        return usOrigSeqnum;
+        return origSeqnum;
     }
 
     /**
