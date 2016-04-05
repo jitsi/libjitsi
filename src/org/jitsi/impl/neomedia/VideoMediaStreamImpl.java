@@ -1318,7 +1318,7 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    protected RetransmissionRequester createRetransmissionRequester()
+    protected RetransmissionRequesterImpl createRetransmissionRequester()
     {
         ConfigurationService cfg = LibJitsi.getConfigurationService();
         if (cfg != null && cfg.getBoolean(REQUEST_RETRANSMISSIONS_PNAME, false))
@@ -1340,10 +1340,10 @@ public class VideoMediaStreamImpl
                 {
                     if (logger.isDebugEnabled())
                     {
-                        logger.debug("Creating a RetransmissionRequester for "
+                        logger.debug("Creating a RetransmissionRequesterImpl for "
                             + "VideoMediaStream " + this);
                     }
-                    return new RetransmissionRequester(this, senderSSRC);
+                    return new RetransmissionRequesterImpl(this, senderSSRC);
                 }
             }
             else

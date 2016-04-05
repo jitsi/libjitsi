@@ -342,11 +342,12 @@ public class MediaStreamImpl
     private TransformEngine transformEngineChain;
 
     /**
-     * The {@code RetransmissionRequester} instance for this
+     * The {@code RetransmissionRequesterImpl} instance for this
      * {@code MediaStream} which will request missing packets by sending
      * RTCP NACKs.
      */
-    private RetransmissionRequester retransmissionRequester;
+    private final RetransmissionRequesterImpl retransmissionRequester
+        = createRetransmissionRequester();
 
     /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
@@ -972,10 +973,11 @@ public class MediaStreamImpl
     }
 
     /**
-     * Creates the {@link RetransmissionRequester} for this {@code MediaStream}.
-     * @return the created {@link RetransmissionRequester}.
+     * Creates the {@link RetransmissionRequesterImpl} for this
+     * {@code MediaStream}.
+     * @return the created {@link RetransmissionRequesterImpl}.
      */
-    protected RetransmissionRequester createRetransmissionRequester()
+    protected RetransmissionRequesterImpl createRetransmissionRequester()
     {
         return null;
     }
@@ -1034,7 +1036,6 @@ public class MediaStreamImpl
             statisticsEngine = new StatisticsEngine(this);
         engineChain.add(statisticsEngine);
 
-        retransmissionRequester = createRetransmissionRequester();
         if (retransmissionRequester != null)
         {
             engineChain.add(retransmissionRequester);
@@ -3631,5 +3632,13 @@ public class MediaStreamImpl
     public RawPacketCache getPacketCache()
     {
         return cachingTransformer;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public RetransmissionRequester getRetransmissionRequester()
+    {
+        return retransmissionRequester;
     }
 }

@@ -530,4 +530,9 @@ public interface MediaStream
      * @return the {@link RawPacketCache} for this {@link MediaStream}.
      */
     public RawPacketCache getPacketCache();
+
+    /**
+     * @return the {@link RetransmissionRequester} for this media stream.
+     */
+    public RetransmissionRequester getRetransmissionRequester();
 }
