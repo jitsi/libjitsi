@@ -1318,39 +1318,12 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    protected RetransmissionRequester createRetransmissionRequester()
+    protected RetransmissionRequesterImpl createRetransmissionRequester()
     {
         ConfigurationService cfg = LibJitsi.getConfigurationService();
         if (cfg != null && cfg.getBoolean(REQUEST_RETRANSMISSIONS_PNAME, false))
         {
-            if (rtpTranslator != null)
-            {
-                // The local SSRC from the RTPTranslator and the one from
-                // MediaStreamImpl differ. In all current use-cases
-                // (jitsi-videobridge) we need the one from the RTPTranslator.
-                // TAG(cat4-local-ssrc-hurricane)
-                long senderSSRC
-                    = ((RTPTranslatorImpl) rtpTranslator).getLocalSSRC(null);
-                if (senderSSRC == -1)
-                {
-                    logger.warn("Will not request retransmissions: cannot find "
-                                        + "local SSRC.");
-                }
-                else
-                {
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug("Creating a RetransmissionRequester for "
-                            + "VideoMediaStream " + this);
-                    }
-                    return new RetransmissionRequester(this, senderSSRC);
-                }
-            }
-            else
-            {
-                logger.warn("Will not request retransmissions: RTPTranslator "
-                                    + "is not in use.");
-            }
+            return new RetransmissionRequesterImpl(this);
         }
         return null;
     }

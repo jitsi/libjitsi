@@ -29,9 +29,9 @@ import org.jitsi.util.*;
  *
  * @author Boris Grozev
  */
-public class RetransmissionRequester
+public class RetransmissionRequesterImpl
     extends SinglePacketTransformerAdapter
-    implements TransformEngine
+    implements TransformEngine, RetransmissionRequester
 {
     /**
      * If more than <tt>MAX_MISSING</tt> consecutive packets are lost, we will
@@ -53,11 +53,11 @@ public class RetransmissionRequester
     private static final int RE_REQUEST_AFTER = 150;
 
     /**
-     * The <tt>Logger</tt> used by the <tt>RetransmissionRequester</tt> class
+     * The <tt>Logger</tt> used by the <tt>RetransmissionRequesterImpl</tt> class
      * and its instances to print debug information.
      */
     private static final Logger logger
-        = Logger.getLogger(RetransmissionRequester.class);
+        = Logger.getLogger(RetransmissionRequesterImpl.class);
 
     /**
      * Returns the difference between two RTP sequence numbers (modulo 2^16).
@@ -82,6 +82,22 @@ public class RetransmissionRequester
     private final Map<Long, Requester> requesters = new HashMap<>();
 
     /**
+     * Maps an SSRC of a retransmission (RTX) stream to the original stream's
+     * SSRC.
+     */
+    private Map<Long, Long> rtxSsrcs = new HashMap<>();
+
+    /**
+     * The payload type number for the RTX format.
+     */
+    private byte rtxPt = -1;
+
+    /**
+     * Whether this {@link RetransmissionRequester} is enabled or not.
+     */
+    private boolean enabled = true;
+
+    /**
      * The thread which requests retransmissions by sending RTCP NACK packets.
      */
     private final Thread thread;
@@ -98,20 +114,19 @@ public class RetransmissionRequester
 
     /**
      * The SSRC which will be used as Packet Sender SSRC in NACK packets sent
-     * by this {@code RetransmissionRequester}.
+     * by this {@code RetransmissionRequesterImpl}.
      */
     private long senderSsrc = -1;
 
     /**
-     * Initializes a new <tt>RetransmissionRequester</tt> for the given
+     * Initializes a new <tt>RetransmissionRequesterImpl</tt> for the given
      * <tt>RtpChannel</tt>.
      * @param stream the {@link MediaStream} that the instance belongs to.
      */
-    public RetransmissionRequester(MediaStream stream, long senderSsrc)
+    public RetransmissionRequesterImpl(MediaStream stream)
     {
         super(RTPPacketPredicate.INSTANCE);
         this.stream = stream;
-        this.senderSsrc = senderSsrc;
 
         thread
             = new Thread()
@@ -123,7 +138,7 @@ public class RetransmissionRequester
                 }
             };
         thread.setDaemon(true);
-        thread.setName(RetransmissionRequester.class.getName());
+        thread.setName(RetransmissionRequesterImpl.class.getName());
         thread.start();
     }
 
@@ -135,22 +150,43 @@ public class RetransmissionRequester
     @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
-        long ssrc = pkt.getSSRCAsLong();
-        Requester requester;
-        synchronized (requesters)
+        if (enabled && !closed)
         {
-            requester = requesters.get(ssrc);
-            if (requester == null)
+            Long ssrc;
+            int seq;
+
+            if (rtxPt != -1 && pkt.getPayloadType() == rtxPt)
             {
-                if (logger.isDebugEnabled())
+                ssrc = rtxSsrcs.get(pkt.getSSRCAsLong());
+                seq = pkt.getOriginalSequenceNumber();
+            }
+            else
+            {
+                ssrc = pkt.getSSRCAsLong();
+                seq = pkt.getSequenceNumber();
+            }
+
+
+            if (ssrc != null)
+            {
+                Requester requester;
+                synchronized (requesters)
                 {
-                    logger.debug("Creating new Requester for SSRC " + ssrc);
+                    requester = requesters.get(ssrc);
+                    if (requester == null)
+                    {
+                        if (logger.isDebugEnabled())
+                        {
+                            logger.debug(
+                                "Creating new Requester for SSRC " + ssrc);
+                        }
+                        requester = new Requester(ssrc);
+                        requesters.put(ssrc, requester);
+                    }
                 }
-                requester = new Requester(ssrc);
-                requesters.put(ssrc, requester);
+                requester.received(seq);
             }
         }
-        requester.received(pkt.getSequenceNumber());
 
         return pkt;
     }
@@ -162,6 +198,34 @@ public class RetransmissionRequester
     public void close()
     {
         closed = true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void configureRtx(byte pt, Map<Long, Long> ssrcs)
+    {
+        Map<Long, Long> inverted = new HashMap<>();
+        if (ssrcs != null)
+        {
+            for (Map.Entry<Long, Long> entry : ssrcs.entrySet())
+            {
+                inverted.put(entry.getValue(), entry.getKey());
+            }
+        }
+
+        rtxPt = pt;
+        rtxSsrcs = inverted;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void enable(boolean enable)
+    {
+        this.enabled = enable;
     }
 
     /**
@@ -209,7 +273,7 @@ public class RetransmissionRequester
                     {
                         if (nextRequestAt == -1)
                         {
-                            thread.wait(200);
+                            thread.wait(1000);
                             continue;
                         }
                         else
@@ -225,6 +289,8 @@ public class RetransmissionRequester
                 //else the time has already come
             }
 
+            if (!enabled || senderSsrc == -1)
+                continue;
 
             synchronized (requesters)
             {
@@ -491,5 +557,13 @@ public class RetransmissionRequester
         {
             this.seq = seq;
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void setSenderSsrc(long ssrc)
+    {
+        senderSsrc = ssrc;
     }
 }

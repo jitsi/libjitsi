@@ -1365,9 +1365,9 @@ public class RawPacket
      *
      * @return the OSN value of an RTX packet.
      */
-    public short getOriginalSequenceNumber()
+    public int getOriginalSequenceNumber()
     {
-        return readShort(getHeaderLength());
+        return readShort(getHeaderLength()) & 0xFFFF;
     }
 
     /**
@@ -1375,8 +1375,8 @@ public class RawPacket
      *
      * @param sequenceNumber the new OSN value of this RTX packet.
      */
-    public void setOriginalSequenceNumber(short sequenceNumber)
+    public void setOriginalSequenceNumber(int sequenceNumber)
     {
-        writeShort(getHeaderLength(), sequenceNumber);
+        writeShort(getHeaderLength(), (short) sequenceNumber);
     }
 }

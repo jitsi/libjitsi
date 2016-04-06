@@ -432,7 +432,7 @@ class SsrcGroupRewriter
      * @return an integer that's either {#INVALID_SEQNUM} or a 16 bits
      * sequence number.
      */
-    int rewriteSequenceNumber(int ssrcOrigin, short seqnum)
+    int rewriteSequenceNumber(int ssrcOrigin, int seqnum)
     {
         SsrcRewriter rewriter = rewriters.get(ssrcOrigin);
         if (rewriter == null)
@@ -452,7 +452,7 @@ class SsrcGroupRewriter
         {
             logger.warn(
                     "Could not find a retransmission interval for seqnum "
-                        + (seqnum & 0x0000ffff) + " from "
+                        + seqnum + " from "
                         + (ssrcOrigin & 0xffffffffL));
             return SsrcRewritingEngine.INVALID_SEQNUM;
         }
