@@ -147,9 +147,7 @@ public class AES
         ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         FACTORY_CLASS_NAME
-            = (cfg == null)
-                ? System.getProperty(FACTORY_CLASS_NAME_PNAME)
-                : cfg.getString(FACTORY_CLASS_NAME_PNAME);
+            = ConfigUtils.getString(cfg, FACTORY_CLASS_NAME_PNAME, null);
     }
 
     /**
@@ -176,7 +174,7 @@ public class AES
         long minTime = Long.MAX_VALUE;
         BlockCipherFactory minFactory = null;
 
-        StringBuilder benchres = new StringBuilder();
+        StringBuilder log = new StringBuilder();
 
         for (int f = 0; f < factories.length; ++f)
         {
@@ -220,10 +218,12 @@ public class AES
                         minFactory = factory;
                     }
 
-                    if (benchres.length() != 0)
-                        benchres.append(", ");
+                    if (log.length() != 0)
+                        log.append(", ");
 
-                    benchres.append(getSimpleClassName(factory)).append(' ').append(time);
+                    log.append(getSimpleClassName(factory))
+                        .append(' ')
+                        .append(time);
                 }
             }
             catch (Throwable t)
@@ -235,7 +235,13 @@ public class AES
             }
         }
 
-        logger.info("AES benchmark (of execution times expressed in nanoseconds): "+ benchres);
+        if (log.length() != 0)
+        {
+            logger.info(
+                    "AES benchmark"
+                        + " (of execution times expressed in nanoseconds): "
+                        + log);
+        }
 
         return minFactory;
     }
@@ -295,11 +301,11 @@ public class AES
                     if (AES.factory != factory)
                     {
                         AES.factory = factory;
-                        // Simplify the name of the BlockCipherFactory class
-                        // to be employed for the purposes of brevity and
-                        // ease.
-                        logger.info("Will employ AES implemented by "
-                                + getSimpleClassName(factory) + ".");
+                        // Simplify the name of the BlockCipherFactory class to
+                        // be employed for the purposes of brevity and ease.
+                        logger.info(
+                                "Will employ AES implemented by "
+                                    + getSimpleClassName(factory) + ".");
                     }
                 }
             }
@@ -560,7 +566,7 @@ public class AES
         Class<?> clazz = factory.getClass();
         String className = clazz.getSimpleName();
 
-        if ((className == null) || (className.length() == 0))
+        if (className == null || className.length() == 0)
             className = clazz.getName();
 
         String suffix = BLOCK_CIPHER_FACTORY_SIMPLE_CLASS_NAME;
