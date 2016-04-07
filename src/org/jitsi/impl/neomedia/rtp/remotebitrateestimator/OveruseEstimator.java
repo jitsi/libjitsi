@@ -86,7 +86,17 @@ class OveruseEstimator
 
     private double slope;
 
-    private final List<Double> tsDeltaHist = new LinkedList<>();
+    /**
+     * Store the tsDelta history into a {@code double[]} used as a circular buffer
+     * Original c++ code uses std::list<double> but in Java this translate
+     * to {@code List<Double>} which causes a lot of autoboxing
+     */
+    private final double[] tsDeltaHist = new double[kMinFramePeriodHistoryLength];
+
+    /**
+     * Index to insert next value into {@link tsDeltaHist}
+     */
+    private int tsDeltaHistInsIdx;
 
     private double varNoise;
 
@@ -99,6 +109,11 @@ class OveruseEstimator
         varNoise = options.initialVarNoise;
         E = clone(options.initialE);
         processNoise = options.initialProcessNoise.clone();
+        /**
+         * Initialize {@link tsDeltaHist} with {@code Double.MAX_VALUE}
+         * to simplify {@link updateMinFramePeriod}
+         */
+        Arrays.fill(tsDeltaHist, Double.MAX_VALUE);
     }
 
     /**
@@ -229,14 +244,24 @@ class OveruseEstimator
 
     private double updateMinFramePeriod(double tsDelta)
     {
-        double minFramePeriod = tsDelta;
+        /**
+         * Change from C++ version:
+         * We use {@link tsDeltaHist} as a circular buffer initialized
+         * with {@code Double.MAX_VALUE}, so we insert new {@link tsDelta}
+         * value at {@link tsDeltaHistInsIdx} and we search for the
+         * minimum value in {@link tsDeltaHist}
+         */
+        tsDeltaHist[tsDeltaHistInsIdx] = tsDelta;
+        tsDeltaHistInsIdx = (tsDeltaHistInsIdx + 1) % tsDeltaHist.length;
 
-        if (tsDeltaHist.size() >= kMinFramePeriodHistoryLength)
-            tsDeltaHist.remove(0);
-        for (Double d : tsDeltaHist)
-            minFramePeriod = Math.min(d, minFramePeriod);
-        tsDeltaHist.add(tsDelta);
-        return minFramePeriod;
+        double min = tsDelta;
+        for (double d : tsDeltaHist)
+        {
+            if (d < min)
+                min = d;
+        }
+
+        return min;
     }
 
     private void updateNoiseEstimate(
