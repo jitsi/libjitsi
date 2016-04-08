@@ -28,20 +28,21 @@ import org.bouncycastle.crypto.engines.*;
 import org.bouncycastle.crypto.macs.*;
 import org.bouncycastle.crypto.params.*;
 
+/**
+ *
+ * @author Lyubomir Marinov
+ */
 public class CryptoBenchmark
 {
     public static void main(String[] args)
         throws Exception
     {
         boolean benchmarkJavaxCryptoCipher = false;
-        boolean benchmarkNIOBlockCipher = false;
 
         for (String arg : args)
         {
             if ("-javax-crypto-cipher".equalsIgnoreCase(arg))
                 benchmarkJavaxCryptoCipher = true;
-            else if ("-nio-block-cipher".equalsIgnoreCase(arg))
-                benchmarkNIOBlockCipher = true;
         }
 
         Provider sunPKCS11
@@ -140,7 +141,7 @@ public class CryptoBenchmark
         ByteBuffer inNIO = ByteBuffer.allocateDirect(in.length);
         byte[] out = new byte[maxDigestSize];
         ByteBuffer outNIO = ByteBuffer.allocateDirect(out.length);
-        long time0 = 0;
+        long time0;
         int dMax = Math.max(digests.length, messageDigests.length);
         final int iEnd = 1000, jEnd = 1000;
 //        Base64.Encoder byteEncoder = Base64.getEncoder().withoutPadding();
@@ -160,10 +161,6 @@ public class CryptoBenchmark
             time0 = 0;
             for (BlockCipher blockCipher : ciphers)
             {
-                NIOBlockCipher nioBlockCipher
-                    = (blockCipher instanceof NIOBlockCipher)
-                        ? (NIOBlockCipher) blockCipher
-                        : null;
                 Cipher cipher;
                 Class<?> clazz;
 
@@ -185,26 +182,7 @@ public class CryptoBenchmark
                 long startTime, endTime;
                 int offEnd = in.length - blockSize;
 
-                if (nioBlockCipher != null && benchmarkNIOBlockCipher)
-                {
-                    inNIO.clear();
-                    outNIO.clear();
-
-                    startTime = System.nanoTime();
-                    for (int j = 0; j < jEnd; ++j)
-                    {
-                        for (int off = 0; off < offEnd;)
-                        {
-                            nioBlockCipher.processBlock(inNIO, off, outNIO, 0);
-                            off += blockSize;
-                        }
-//                        nioBlockCipher.reset();
-                    }
-                    endTime = System.nanoTime();
-
-                    outNIO.get(out);
-                }
-                else if (cipher != null && benchmarkJavaxCryptoCipher)
+                if (cipher != null && benchmarkJavaxCryptoCipher)
                 {
                     startTime = System.nanoTime();
                     for (int j = 0; j < jEnd; ++j)
@@ -301,9 +279,6 @@ public class CryptoBenchmark
 
                 if (messageDigest != null)
                 {
-                    @SuppressWarnings("unused")
-                    byte[] t = null;
-
                     startTime = System.nanoTime();
                     for (int j = 0; j < jEnd; ++j)
                     {
@@ -312,7 +287,7 @@ public class CryptoBenchmark
                             messageDigest.update(in, off, byteLength);
                             off += byteLength;
                         }
-                        t = messageDigest.digest();
+                        messageDigest.digest();
                     }
                     endTime = System.nanoTime();
 
