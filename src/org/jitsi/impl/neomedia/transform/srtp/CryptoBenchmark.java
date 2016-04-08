@@ -34,14 +34,11 @@ public class CryptoBenchmark
         throws Exception
     {
         boolean benchmarkJavaxCryptoCipher = false;
-        boolean benchmarkNIOBlockCipher = false;
 
         for (String arg : args)
         {
             if ("-javax-crypto-cipher".equalsIgnoreCase(arg))
                 benchmarkJavaxCryptoCipher = true;
-            else if ("-nio-block-cipher".equalsIgnoreCase(arg))
-                benchmarkNIOBlockCipher = true;
         }
 
         Provider sunPKCS11
@@ -160,10 +157,6 @@ public class CryptoBenchmark
             time0 = 0;
             for (BlockCipher blockCipher : ciphers)
             {
-                NIOBlockCipher nioBlockCipher
-                    = (blockCipher instanceof NIOBlockCipher)
-                        ? (NIOBlockCipher) blockCipher
-                        : null;
                 Cipher cipher;
                 Class<?> clazz;
 
@@ -185,26 +178,7 @@ public class CryptoBenchmark
                 long startTime, endTime;
                 int offEnd = in.length - blockSize;
 
-                if (nioBlockCipher != null && benchmarkNIOBlockCipher)
-                {
-                    inNIO.clear();
-                    outNIO.clear();
-
-                    startTime = System.nanoTime();
-                    for (int j = 0; j < jEnd; ++j)
-                    {
-                        for (int off = 0; off < offEnd;)
-                        {
-                            nioBlockCipher.processBlock(inNIO, off, outNIO, 0);
-                            off += blockSize;
-                        }
-//                        nioBlockCipher.reset();
-                    }
-                    endTime = System.nanoTime();
-
-                    outNIO.get(out);
-                }
-                else if (cipher != null && benchmarkJavaxCryptoCipher)
+                if (cipher != null && benchmarkJavaxCryptoCipher)
                 {
                     startTime = System.nanoTime();
                     for (int j = 0; j < jEnd; ++j)
