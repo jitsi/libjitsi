@@ -74,8 +74,6 @@
         source="1.7"
         target="1.7">
       <src path="${src}"/>
-      <exclude
-          name="org/jitsi/impl/neomedia/transform/srtp/CryptoBenchmark.java"/>
     </javac>
   </target>
   <target name="compile-test" depends="compile">
