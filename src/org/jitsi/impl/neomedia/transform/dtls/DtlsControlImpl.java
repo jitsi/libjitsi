@@ -148,32 +148,6 @@ public class DtlsControlImpl
     public static final long DEFAULT_CERT_CACHE_EXPIRE_TIME = ONE_DAY;
 
     /**
-     * The name of the property to specify DTLS certificate validity time.
-     */
-    public static final String CERT_VALIDITY_TIME_PNAME =
-        "org.jitsi.impl.neomedia.transform.dtls.CERT_VALIDITY_TIME";
-
-
-    /**
-     * The certificate validity time to use, in milliseconds.
-     * The default value is {@code DEFAULT_CERT_VALIDITY_TIME} but may be
-     * overridden by the {@code ConfigurationService} and/or {@code System}
-     * property {@code CERT_VALIDITY_TIME_PNAME}.
-     * Determines the x.509 certificate Validity end date by adding this
-     * many milliseconds to the time of certificate generation. Note that this
-     * value must be at least the value of the {@code CERT_CACHE_EXPIRE_TIME}
-     * or else the server would not generate a valid certificate for a period.
-     */
-    public static final long CERT_VALIDITY_TIME;
-
-    /**
-     * The default certificate validity time, when config properties
-     * are not found.
-     */
-    public static final long DEFAULT_CERT_VALIDITY_TIME
-        = 6 * ONE_DAY;
-
-    /**
      * The public exponent to always use for RSA key generation.
      */
     public static final BigInteger RSA_KEY_PUBLIC_EXPONENT
@@ -237,15 +211,9 @@ public class DtlsControlImpl
 
         CERT_CACHE_EXPIRE_TIME
             = ConfigUtils.getLong(
-            LibJitsi.getConfigurationService(),
-                CERT_CACHE_EXPIRE_TIME_PNAME,
+                LibJitsi.getConfigurationService(),
+                    CERT_CACHE_EXPIRE_TIME_PNAME,
                     DEFAULT_CERT_CACHE_EXPIRE_TIME);
-
-        CERT_VALIDITY_TIME
-            = ConfigUtils.getLong(
-                    LibJitsi.getConfigurationService(),
-                    CERT_VALIDITY_TIME_PNAME,
-                    DEFAULT_CERT_VALIDITY_TIME);
 
         // HASH_FUNCTION_UPGRADES
         HASH_FUNCTION_UPGRADES.put(
@@ -522,7 +490,7 @@ public class DtlsControlImpl
         {
             long now = System.currentTimeMillis();
             Date notBefore = new Date(now - ONE_DAY);
-            Date notAfter = new Date(now + CERT_VALIDITY_TIME);
+            Date notAfter = new Date(now + ONE_DAY * 6 + CERT_CACHE_EXPIRE_TIME);
             X509v3CertificateBuilder builder
                 = new X509v3CertificateBuilder(
                         /* issuer */ subject,
