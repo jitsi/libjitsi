@@ -158,6 +158,52 @@ public class ConfigUtils
     }
 
     /**
+     * Gets the value as an {@code long} of a property from either a specific
+     * {@code ConfigurationService} or {@code System}.
+     *
+     * @param cfg the {@code ConfigurationService} to get the value from or
+     * {@code null} if the property is to be retrieved from {@code System}
+     * @param property the name of the property to get
+     * @param defaultValue the value to be returned if {@code property} is not
+     * associated with a value
+     * @return the value as an {@code long} of {@code property} retrieved from
+     * either {@code cfg} or {@code System}
+     */
+    public static long getLong(
+            ConfigurationService cfg,
+            String property,
+            long defaultValue)
+    {
+        long i;
+
+        if (cfg == null)
+        {
+            String s = System.getProperty(property);
+
+            if (s == null || s.length() == 0)
+            {
+                i = defaultValue;
+            }
+            else
+            {
+                try
+                {
+                    i = Long.parseLong(s);
+                }
+                catch (NumberFormatException nfe)
+                {
+                    i = defaultValue;
+                }
+            }
+        }
+        else
+        {
+            i = cfg.getLong(property, defaultValue);
+        }
+        return i;
+    }
+
+    /**
      * Gets the value as a {@code String} of a property from either a specific
      * {@code ConfigurationService} or {@code System}.
      *

@@ -78,12 +78,106 @@ public class DtlsControlImpl
     private static final long ONE_DAY = 1000L * 60L * 60L * 24L;
 
     /**
-     * The name of the property which specifies the signature algorithm used 
-     * during certificate creation. When a certificate is created and this 
+     * The name of the property which specifies the signature algorithm used
+     * during certificate creation. When a certificate is created and this
      * property is not set, a default value of "SHA1withRSA" will be used.
      */
-    public static final String PROP_SIGNATURE_ALGORITHM = 
+    public static final String PROP_SIGNATURE_ALGORITHM =
         "org.jitsi.impl.neomedia.transform.dtls.SIGNATURE_ALGORITHM";
+
+    /**
+     * The name of the property to specify RSA Key length.
+     */
+    public static final String RSA_KEY_SIZE_PNAME =
+        "org.jitsi.impl.neomedia.transform.dtls.RSA_KEY_SIZE";
+
+    /**
+     * The default RSA key size when configuration properties are not found.
+     */
+    public static final int DEFAULT_RSA_KEY_SIZE = 1024;
+
+    /**
+     * The RSA key size to use.
+     * The default value is {@code DEFAULT_RSA_KEY_SIZE} but may be overridden
+     * by the {@code ConfigurationService} and/or {@code System} property
+     * {@code RSA_KEY_SIZE_PNAME}.
+     */
+    public static final int RSA_KEY_SIZE;
+
+    /**
+     * The name of the property to specify RSA key size certainty.
+     * https://docs.oracle.com/javase/7/docs/api/java/math/BigInteger.html
+     */
+    public static final String RSA_KEY_SIZE_CERTAINTY_PNAME =
+        "org.jitsi.impl.neomedia.transform.dtls.RSA_KEY_SIZE_CERTAINTY";
+
+    /**
+     * The RSA key size certainty to use.
+     * The default value is {@code DEFAULT_RSA_KEY_SIZE_CERTAINTY} but may be
+     * overridden by the {@code ConfigurationService} and/or {@code System}
+     * property {@code RSA_KEY_SIZE_CERTAINTY_PNAME}.
+     * For more on certainty, look at the three parameter constructor here:
+     * https://docs.oracle.com/javase/7/docs/api/java/math/BigInteger.html
+     */
+    public static final int RSA_KEY_SIZE_CERTAINTY;
+
+    /**
+     * The default RSA key size certainty when config properties are not found.
+     */
+    public static final int DEFAULT_RSA_KEY_SIZE_CERTAINTY = 80;
+
+    /**
+     * The name of the property to specify DTLS certificate cache expiration.
+     */
+    public static final String CERT_CACHE_EXPIRE_TIME_PNAME =
+        "org.jitsi.impl.neomedia.transform.dtls.CERT_CACHE_EXPIRE_TIME";
+
+
+    /**
+     * The certificate cache expiration time to use, in milliseconds.
+     * The default value is {@code DEFAULT_CERT_CACHE_EXPIRE_TIME} but may be
+     * overridden by the {@code ConfigurationService} and/or {@code System}
+     * property {@code CERT_CACHE_EXPIRE_TIME_PNAME}.
+     */
+    public static final long CERT_CACHE_EXPIRE_TIME;
+
+    /**
+     * The default certificate cache expiration time, when config properties
+     * are not found.
+     */
+    public static final long DEFAULT_CERT_CACHE_EXPIRE_TIME = ONE_DAY;
+
+    /**
+     * The name of the property to specify DTLS certificate validity time.
+     */
+    public static final String CERT_VALIDITY_TIME_PNAME =
+        "org.jitsi.impl.neomedia.transform.dtls.CERT_VALIDITY_TIME";
+
+
+    /**
+     * The certificate validity time to use, in milliseconds.
+     * The default value is {@code DEFAULT_CERT_VALIDITY_TIME} but may be
+     * overridden by the {@code ConfigurationService} and/or {@code System}
+     * property {@code CERT_VALIDITY_TIME_PNAME}.
+     * Determines the x.509 certificate Validity end date by adding this
+     * many milliseconds to the time of certificate generation. Note that this
+     * value must be at least the value of the {@code CERT_CACHE_EXPIRE_TIME}
+     * or else the server would not generate a valid certificate for a period.
+     */
+    public static final long CERT_VALIDITY_TIME;
+
+    /**
+     * The default certificate validity time, when config properties
+     * are not found.
+     */
+    public static final long DEFAULT_CERT_VALIDITY_TIME
+        = 6 * ONE_DAY;
+
+    /**
+     * The public exponent to always use for RSA key generation.
+     */
+    public static final BigInteger RSA_KEY_PUBLIC_EXPONENT
+        = new BigInteger("10001", 16);
 
     /**
      * The <tt>SRTPProtectionProfile</tt>s supported by
@@ -121,12 +215,37 @@ public class DtlsControlImpl
 
     static
     {
-        // VERIFY_AND_VALIDATE_CERTIFICATE
+        // Set configurable options using ConfigurationService.
+
         VERIFY_AND_VALIDATE_CERTIFICATE
             = ConfigUtils.getBoolean(
                     LibJitsi.getConfigurationService(),
                     VERIFY_AND_VALIDATE_CERTIFICATE_PNAME,
                     true);
+
+        RSA_KEY_SIZE
+            = ConfigUtils.getInt(
+                    LibJitsi.getConfigurationService(),
+                    RSA_KEY_SIZE_PNAME,
+                    DEFAULT_RSA_KEY_SIZE);
+
+        RSA_KEY_SIZE_CERTAINTY
+            = ConfigUtils.getInt(
+                LibJitsi.getConfigurationService(),
+                    RSA_KEY_SIZE_CERTAINTY_PNAME,
+                    DEFAULT_RSA_KEY_SIZE_CERTAINTY);
+
+        CERT_CACHE_EXPIRE_TIME
+            = ConfigUtils.getLong(
+            LibJitsi.getConfigurationService(),
+                CERT_CACHE_EXPIRE_TIME_PNAME,
+                    DEFAULT_CERT_CACHE_EXPIRE_TIME);
+
+        CERT_VALIDITY_TIME
+            = ConfigUtils.getLong(
+                    LibJitsi.getConfigurationService(),
+                    CERT_VALIDITY_TIME_PNAME,
+                    DEFAULT_CERT_VALIDITY_TIME);
 
         // HASH_FUNCTION_UPGRADES
         HASH_FUNCTION_UPGRADES.put(
@@ -167,7 +286,7 @@ public class DtlsControlImpl
      * @param certificate the certificate the fingerprint of which is to be
      * computed
      * @param hashFunction the hash function to be used in order to compute the
-     * fingerprint of the specified <tt>certificate</tt> 
+     * fingerprint of the specified <tt>certificate</tt>
      * @return the fingerprint of the specified <tt>certificate</tt> computed
      * using the specified <tt>hashFunction</tt>
      */
@@ -261,8 +380,8 @@ public class DtlsControlImpl
      * associations
      * @return a hash function written in lower case which is an
      * &quot;upgrade&quot; of the specified {@code hashFunction} and has a
-     * fingerprint associated with it in {@code fingerprints} if there is such a
-     * hash function; otherwise, {@code null}
+     * fingerprint associated with it in {@code fingerprints} if there is such
+     * a hash function; otherwise, {@code null}
      */
     private static String findHashFunctionUpgrade(
             String hashFunction,
@@ -294,17 +413,23 @@ public class DtlsControlImpl
     private static CertificateInfo generateCertificateInfo()
     {
         AsymmetricCipherKeyPair keyPair = generateKeyPair();
+
         org.bouncycastle.asn1.x509.Certificate x509Certificate
             = generateX509Certificate(generateCN(), keyPair);
+
         org.bouncycastle.crypto.tls.Certificate certificate
             = new org.bouncycastle.crypto.tls.Certificate(
                     new org.bouncycastle.asn1.x509.Certificate[]
                     {
                         x509Certificate
                     });
-        String localFingerprintHashFunction = findHashFunction(x509Certificate);
+        String localFingerprintHashFunction
+            = findHashFunction(x509Certificate);
         String localFingerprint
-            = computeFingerprint(x509Certificate, localFingerprintHashFunction);
+            = computeFingerprint(
+                    x509Certificate,
+                    localFingerprintHashFunction);
+
         long timestamp = System.currentTimeMillis();
 
         return
@@ -319,7 +444,7 @@ public class DtlsControlImpl
     /**
      * Generates a new subject for a self-signed certificate to be generated by
      * <tt>DtlsControlImpl</tt>.
-     * 
+     *
      * @return an <tt>X500Name</tt> which is to be used as the subject of a
      * self-signed certificate to be generated by <tt>DtlsControlImpl</tt>
      */
@@ -358,10 +483,10 @@ public class DtlsControlImpl
 
         generator.init(
                 new RSAKeyGenerationParameters(
-                        new BigInteger("10001", 16),
+                        RSA_KEY_PUBLIC_EXPONENT,
                         new SecureRandom(),
-                        1024,
-                        80));
+                        RSA_KEY_SIZE,
+                        RSA_KEY_SIZE_CERTAINTY));
         return generator.generateKeyPair();
     }
 
@@ -373,7 +498,7 @@ public class DtlsControlImpl
      * generated
      * @param keyPair the pair of private and public keys of the certificate to
      * be generated
-     * @return a new self-signed certificate with the specified 
+     * @return a new self-signed certificate with the specified
      * <tt>subject</tt> and <tt>keyPair</tt>
      */
     private static org.bouncycastle.asn1.x509.Certificate
@@ -397,7 +522,7 @@ public class DtlsControlImpl
         {
             long now = System.currentTimeMillis();
             Date notBefore = new Date(now - ONE_DAY);
-            Date notAfter = new Date(now + 6 * ONE_DAY);
+            Date notAfter = new Date(now + CERT_VALIDITY_TIME);
             X509v3CertificateBuilder builder
                 = new X509v3CertificateBuilder(
                         /* issuer */ subject,
@@ -445,7 +570,7 @@ public class DtlsControlImpl
      *
      * @param fingerprint an array of <tt>bytes</tt> which represents a
      * fingerprint the <tt>String</tt> representation in accord with RFC 4572
-     * of which is to be returned 
+     * of which is to be returned
      * @return the <tt>String</tt> representation in accord with RFC 4572 of the
      * specified <tt>fingerprint</tt>
      */
@@ -484,7 +609,7 @@ public class DtlsControlImpl
     private boolean disposed = false;
 
     /**
-     * The fingerprints presented by the remote endpoint via the signaling path. 
+     * The fingerprints presented by the remote endpoint via the signaling path.
      */
     private Map<String,String> remoteFingerprints;
 
@@ -518,14 +643,14 @@ public class DtlsControlImpl
 
         // The methods generateKeyPair(), generateX509Certificate(),
         // findHashFunction(), and/or computeFingerprint() may be too CPU
-        // intensive to invoke for each new DtlsControlImpl instance. That's why
-        // we've decided to reuse their return values within a certain time
+        // intensive to invoke for each new DtlsControlImpl instance. That's
+        // why we've decided to reuse their return values within a certain time
         // frame. Attempt to retrieve from the cache.
         synchronized (DtlsControlImpl.class)
         {
             certificateInfo = certificateInfoCache;
             if (certificateInfo == null
-                    || certificateInfo.timestamp + ONE_DAY
+                    || certificateInfo.timestamp + CERT_CACHE_EXPIRE_TIME
                         < System.currentTimeMillis())
             {
                 // The cache doesn't exist yet or has outlived its lifetime.
