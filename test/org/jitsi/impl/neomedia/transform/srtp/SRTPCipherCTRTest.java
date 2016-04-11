@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import javax.xml.bind.DatatypeConverter;
 import org.bouncycastle.crypto.engines.AESFastEngine;
+import org.jitsi.util.OSUtils;
 import org.junit.Test;
 
 public class SRTPCipherCTRTest
@@ -49,6 +50,11 @@ public class SRTPCipherCTRTest
     @Test
     public void testOpenSSLCTRAES()
     {
+        if (!OSUtils.IS_LINUX)
+        {
+            return;
+        }
+
         SRTPCipherCTR cipher = new SRTPCipherCTROpenSSL();
         cipher.init(TV_Key);
         byte[] data = new byte[TV_Cipher_AES_1.length];
