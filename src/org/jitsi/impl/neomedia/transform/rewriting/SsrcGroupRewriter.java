@@ -479,16 +479,6 @@ class SsrcGroupRewriter
     }
 
     /**
-     * Gets the {@code MediaStreamImpl} associated with this instance.
-     *
-     * @return the {@code MediaStreamImpl} associated with this instance
-     */
-    public MediaStreamImpl getMediaStreamImpl()
-    {
-        return ssrcRewritingEngine.getMediaStreamImpl();
-    }
-
-    /**
      * Gets the SSRC of the RTP stream into whose RTP timestamp other RTP
      * streams are rewritten.
      *

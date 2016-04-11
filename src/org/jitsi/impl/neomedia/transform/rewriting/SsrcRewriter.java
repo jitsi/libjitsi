@@ -458,7 +458,7 @@ class SsrcRewriter
 
     /**
      *
-     * @param ssOrigSeqnum
+     * @param origSeqnum
      * @return
      */
     int extendOriginalSequenceNumber(int origSeqnum)
@@ -487,15 +487,5 @@ class SsrcRewriter
     public MediaStream getMediaStream()
     {
         return ssrcGroupRewriter.getMediaStream();
-    }
-
-    /**
-     * Gets the {@code MediaStreamImpl} associated with this instance.
-     *
-     * @return the {@code MediaStreamImpl} associated with this instance
-     */
-    public MediaStreamImpl getMediaStreamImpl()
-    {
-        return ssrcGroupRewriter.getMediaStreamImpl();
     }
 }
