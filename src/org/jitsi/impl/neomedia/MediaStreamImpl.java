@@ -705,6 +705,11 @@ public class MediaStreamImpl
             cachingTransformer = null;
         }
 
+        if (retransmissionRequester != null)
+        {
+            retransmissionRequester.close();
+        }
+
         if (transformEngineChain != null)
         {
             PacketTransformer t = transformEngineChain.getRTPTransformer();
