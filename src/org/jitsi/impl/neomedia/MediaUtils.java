@@ -207,6 +207,12 @@ public class MediaUtils
         if(opusDtx)
             opusFormatParams.put("usedtx", "1");
         //opusFormatParams.put("minptime", "10");
+
+        Map<String, String> opusAdvancedParams
+                = new HashMap<String, String>();
+        String packetizationTime = Constants.PTIME;
+        opusAdvancedParams.put(packetizationTime, "20");
+
         addMediaFormats(
                 MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
                 Constants.OPUS,
@@ -214,7 +220,7 @@ public class MediaUtils
                 Constants.OPUS_RTP,
                 2,
                 opusFormatParams,
-                null,
+                opusAdvancedParams,
                 48000);
 
         // Adaptive Multi-Rate Wideband (AMR-WB)
