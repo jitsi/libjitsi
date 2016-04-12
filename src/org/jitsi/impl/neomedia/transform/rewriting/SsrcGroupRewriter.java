@@ -160,7 +160,7 @@ class SsrcGroupRewriter
         // packet MUST NOT send a BYE packet when they leave the group.
         if (getActiveRewriter() != null)
         {
-            MediaStream mediaStream = getMediaStream();
+            MediaStream mediaStream = ssrcRewritingEngine.getMediaStream();
 
             if (mediaStream != null)
             {
@@ -466,16 +466,6 @@ class SsrcGroupRewriter
             // 16 bits).
             return targetExtendedSeqnum & 0x0000ffff;
         }
-    }
-
-    /**
-     * Gets the {@code MediaStream} associated with this instance.
-     *
-     * @return the {@code MediaStream} associated with this instance
-     */
-    public MediaStream getMediaStream()
-    {
-        return ssrcRewritingEngine.getMediaStream();
     }
 
     /**

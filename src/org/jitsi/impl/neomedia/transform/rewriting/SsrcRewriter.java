@@ -85,16 +85,15 @@ class SsrcRewriter
      */
     private ExtendedSequenceNumberInterval currentExtendedSequenceNumberInterval;
 
-    /**
-     * The RTP timestamp into which {@link #_lastSrcTimestamp} was rewritten.
-     */
-    private long _lastDstTimestamp = -1L;
+    private static final int MAX_ENTRIES = 100;
 
-    /**
-     * The last known/remembered RTP timestamp which was rewritten (into
-     * {@link #_lastDstTimestamp}).
-     */
-    private long _lastSrcTimestamp = -1L;
+    private final Map<Long, Long> tsHistory = new LinkedHashMap<Long, Long>() {
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry eldest) {
+            return size() > MAX_ENTRIES;
+        }
+    };
 
     /**
      * Static init.
@@ -155,9 +154,7 @@ class SsrcRewriter
         if (retransmissionInterval != null)
         {
             RawPacket rpkt
-                = retransmissionInterval.rewriteRTP(
-                        pkt,
-                        /* retransmission */ true);
+                = retransmissionInterval.rewriteRTP(pkt);
 
             if (DEBUG)
             {
@@ -194,9 +191,7 @@ class SsrcRewriter
             = System.currentTimeMillis();
 
         return
-            currentExtendedSequenceNumberInterval.rewriteRTP(
-                    pkt,
-                    /* retransmission */ false);
+            currentExtendedSequenceNumberInterval.rewriteRTP(pkt);
     }
 
     /**
@@ -204,108 +199,67 @@ class SsrcRewriter
      *
      * @param p the {@code RawPacket} which represents the RTP packet to rewrite
      * the RTP timestamp of
-     * @param retransmission {@code true} if the rewrite of {@code p} is for the
-     * purposes of a retransmission (i.e. a {@code RawPacket} representing the
-     * same information as {@code pkt} was possibly rewritten and sent before);
-     * otherwise, {@code false}
      */
-    void rewriteTimestamp(
-            RawPacket p,
-            boolean retransmission)
+    void rewriteTimestamp(RawPacket p)
     {
         // Provide rudimentary optimization and, more importantly, protection in
         // the case of RawPackets from the same frame/sampling instance.
 
-        if (retransmission)
+        // Simply cache the last rewritten RTP timestamp and reuse it in
+        // subsequent rewrites.
+
+        long oldValue = p.getTimestamp();
+
+        if (tsHistory.containsKey(oldValue))
         {
-            // Retransmission is expected to occur much less often than
-            // non-retransmission and the most simple of optimizations and
-            // protections implemented here does not simultaneously accommodate
-            // the two cases.
-
-            long oldValue = p.getTimestamp(); // cache the value for use in tracing.
-
-            rewriteTimestamp(p);
+            long tsDest = tsHistory.get(oldValue);
+            p.setTimestamp(tsDest);
 
             if (TRACE)
             {
-                logger.trace("Fully rewriting (SSRC=" + p.getSSRCAsLong()
+                logger.trace("Rewriting (SSRC=" + p.getSSRCAsLong()
                     + ", seqnum=" + p.getSequenceNumber()
-                    + ") retransmitted timestamp "
+                    + ") timestamp using cached value "
                     + oldValue + " to " + p.getTimestamp());
             }
         }
         else
         {
-            // Simply cache the last rewritten RTP timestamp and reuse it in
-            // subsequent rewrites.
+            SsrcGroupRewriter ssrcGroupRewriter = this.ssrcGroupRewriter;
+            long timestampSsrcAsLong = ssrcGroupRewriter.getTimestampSsrc();
+            int sourceSsrc = getSourceSSRC();
 
-            long oldValue = p.getTimestamp();
-
-            if (oldValue == _lastSrcTimestamp)
+            if (timestampSsrcAsLong == SsrcRewritingEngine.INVALID_SSRC)
             {
-                p.setTimestamp(_lastDstTimestamp);
-
-                if (TRACE)
-                {
-                    logger.trace("Rewriting (SSRC=" + p.getSSRCAsLong()
-                        + ", seqnum=" + p.getSequenceNumber()
-                        + ") timestamp using cached value "
-                        + oldValue + " to " + p.getTimestamp());
-                }
+                // The first pkt to require RTP timestamp rewriting determines
+                // the SSRC which will NOT undergo RTP timestamp rewriting.
+                // Unless SsrcGroupRewriter decides to force the SSRC for RTP
+                // timestamp rewriting, of course.
+                ssrcGroupRewriter.setTimestampSsrc(sourceSsrc);
             }
             else
             {
-                rewriteTimestamp(p);
+                int timestampSsrc = (int) timestampSsrcAsLong;
 
-                long newValue = p.getTimestamp();
-
-                if (TRACE)
+                if (sourceSsrc != timestampSsrc)
                 {
-                    logger.trace("Fully rewriting (SSRC=" + p.getSSRCAsLong()
-                        + ", seqnum=" + p.getSequenceNumber()
-                        + ") timestamp " + oldValue
-                        + " to " + newValue + ". (_lastSrcTimestamp="
-                        + _lastSrcTimestamp + ", _lastDstTimestamp="
-                        + _lastDstTimestamp + ")");
+                    // Rewrite the RTP timestamp of pkt in accord with the
+                    // wallclock of timestampSsrc.
+                    rewriteTimestamp(p, sourceSsrc, timestampSsrc);
                 }
-
-                _lastSrcTimestamp = oldValue;
-                _lastDstTimestamp = newValue;
             }
-        }
-    }
 
-    /**
-     * Rewrites the RTP timestamp of a specific RTP packet.
-     *
-     * @param p the {@code RawPacket} which represents the RTP packet to rewrite
-     * the RTP timestamp of
-     */
-    private void rewriteTimestamp(RawPacket p)
-    {
-        SsrcGroupRewriter ssrcGroupRewriter = this.ssrcGroupRewriter;
-        long timestampSsrcAsLong = ssrcGroupRewriter.getTimestampSsrc();
-        int sourceSsrc = getSourceSSRC();
+            long newValue = p.getTimestamp();
 
-        if (timestampSsrcAsLong == SsrcRewritingEngine.INVALID_SSRC)
-        {
-            // The first pkt to require RTP timestamp rewriting determines the
-            // SSRC which will NOT undergo RTP timestamp rewriting. Unless
-            // SsrcGroupRewriter decides to force the SSRC for RTP timestamp
-            // rewriting, of course.
-            ssrcGroupRewriter.setTimestampSsrc(sourceSsrc);
-        }
-        else
-        {
-            int timestampSsrc = (int) timestampSsrcAsLong;
-
-            if (sourceSsrc != timestampSsrc)
+            if (TRACE)
             {
-                // Rewrite the RTP timestamp of pkt in accord with the wallclock
-                // of timestampSsrc.
-                rewriteTimestamp(p, sourceSsrc, timestampSsrc);
+                logger.trace("Fully rewriting (SSRC=" + p.getSSRCAsLong()
+                    + ", seqnum=" + p.getSequenceNumber()
+                    + ") timestamp " + oldValue
+                    + " to " + newValue);
             }
+
+            tsHistory.put(oldValue, newValue);
         }
     }
 
@@ -329,7 +283,8 @@ class SsrcRewriter
         // Convert the SSRCs to RemoteClocks.
         int[] ssrcs = { sourceSsrc, timestampSsrc };
         RemoteClock[] clocks
-            = RemoteClock.findRemoteClocks(getMediaStream(), ssrcs);
+            = RemoteClock.findRemoteClocks(ssrcGroupRewriter.ssrcRewritingEngine
+                .getMediaStream(), ssrcs);
 
         // Require all/the two RemoteClocks to carry out the RTP timestamp
         // rewriting.
@@ -464,7 +419,8 @@ class SsrcRewriter
     int extendOriginalSequenceNumber(int origSeqnum)
     {
         SSRCCache ssrcCache
-            = getMediaStream().getStreamRTPManager().getSSRCCache();
+            = ssrcGroupRewriter.ssrcRewritingEngine
+                .getMediaStream().getStreamRTPManager().getSSRCCache();
 
         if (ssrcCache != null)
         {
@@ -477,15 +433,5 @@ class SsrcRewriter
                 return sourceSSRCInfo.extendSequenceNumber(origSeqnum);
         }
         return origSeqnum;
-    }
-
-    /**
-     * Gets the {@code MediaStream} associated with this instance.
-     *
-     * @return the {@code MediaStream} associated with this instance
-     */
-    public MediaStream getMediaStream()
-    {
-        return ssrcGroupRewriter.getMediaStream();
     }
 }

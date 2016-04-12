@@ -54,6 +54,13 @@ class ExtendedSequenceNumberInterval
     private static final boolean WARN;
 
     /**
+     * The value of {@link Logger#isTraceEnabled()} from the time of the
+     * initialization of the class {@code ExtendedSequenceNumberInterval} cached
+     * for the purposes of performance.
+     */
+    private static final boolean TRACE;
+
+    /**
      * The extended minimum sequence number of this interval.
      */
     private final int extendedMinOrig;
@@ -76,6 +83,7 @@ class ExtendedSequenceNumberInterval
     {
         DEBUG = logger.isDebugEnabled();
         WARN = logger.isWarnEnabled();
+        TRACE = logger.isTraceEnabled();
     }
     /**
      * The predicate used to match FEC <tt>REDBlock</tt>s.
@@ -180,12 +188,8 @@ class ExtendedSequenceNumberInterval
      *
      * @param pkt the {@code RawPacket} which represents the RTP packet to be
      * rewritten
-     * @param retransmission {@code true} if the rewrite of {@code pkt} is for
-     * the purposes of a retransmission (i.e. a {@code RawPacket} representing
-     * the same information as {@code pkt} was possibly rewritten and sent
-     * before); otherwise, {@code false}
      */
-    public RawPacket rewriteRTP(RawPacket pkt, boolean retransmission)
+    public RawPacket rewriteRTP(RawPacket pkt)
     {
         // SSRC
         SsrcGroupRewriter ssrcGroupRewriter = getSsrcGroupRewriter();
@@ -250,7 +254,7 @@ class ExtendedSequenceNumberInterval
         // XXX Since we may be rewriting the RTP timestamp and, consequently, we
         // may be remembering timestamp-related state, it sounds better to do
         // these after FEC and RTX have not discarded pkt.
-        rewriteTimestamp(pkt, retransmission);
+        rewriteTimestamp(pkt);
 
         return pkt;
     }
@@ -260,17 +264,13 @@ class ExtendedSequenceNumberInterval
      *
      * @param p the {@code RawPacket} which represents the RTP packet to rewrite
      * the RTP timestamp of
-     * @param retransmission {@code true} if the rewrite of {@code p} is for the
-     * purposes of a retransmission (i.e. a {@code RawPacket} representing the
-     * same information as {@code pkt} was possibly rewritten and sent before);
-     * otherwise, {@code false}
      */
-    private void rewriteTimestamp(RawPacket p, boolean retransmission)
+    private void rewriteTimestamp(RawPacket p)
     {
         // There is nothing specific to ExtendedSequenceNumberInterval in the
         // rewriting of the RTP timestamps at the time of this writing. Forward
         // to the owner/parent i.e. SsrcRewriter.
-        ssrcRewriter.rewriteTimestamp(p, retransmission);
+        ssrcRewriter.rewriteTimestamp(p);
 
         // Uplift the timestamp of a frame if we've already sent a larger
         // timestamp to the remote endpoint.
@@ -453,6 +453,12 @@ class ExtendedSequenceNumberInterval
                     "We could not find a sequence number interval for a FEC"
                         + " packet.");
             return false;
+        }
+
+        if (TRACE)
+        {
+            logger.trace("Rewriting FEC packet SN base "
+                + snBase + " to " + snRewritenBase);
         }
 
         buf[off + 2] = (byte) (snRewritenBase & 0xff00 >> 8);
