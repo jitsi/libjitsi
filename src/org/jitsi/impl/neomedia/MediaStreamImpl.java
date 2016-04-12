@@ -1046,15 +1046,15 @@ public class MediaStreamImpl
             engineChain.add(retransmissionRequester);
         }
 
+        if (cachingTransformer != null)
+        {
+            engineChain.add(cachingTransformer);
+        }
+
         absSendTimeEngine = createAbsSendTimeEngine();
         if (absSendTimeEngine != null)
         {
             engineChain.add(absSendTimeEngine);
-        }
-
-        if (cachingTransformer != null)
-        {
-            engineChain.add(cachingTransformer);
         }
 
         // Debug
