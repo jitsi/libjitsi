@@ -1379,4 +1379,30 @@ public class RawPacket
     {
         writeShort(getHeaderLength(), (short) sequenceNumber);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString()
+    {
+        // Note: this will not print meaningful values unless the packet is an
+        // RTP packet.
+        StringBuilder sb
+            = new StringBuilder("RawPacket[off=").append(offset)
+            .append(", len=").append(length)
+            .append(", PT=").append(getPayloadType())
+            .append(", SSRC=").append(getSSRCAsLong())
+            .append(", seq=").append(getSequenceNumber())
+            .append(", M=").append(isPacketMarked())
+            .append(", X=").append(getExtensionBit())
+            .append(", TS=").append(getTimestamp())
+            .append(", hdrLen=").append(getHeaderLength())
+            .append(", payloadLen=").append(getPayloadLength())
+            .append(", paddingLen=").append(getPaddingSize())
+            .append(", extLen=").append(getExtensionLength())
+            .append(']');
+
+        return sb.toString();
+    }
 }
