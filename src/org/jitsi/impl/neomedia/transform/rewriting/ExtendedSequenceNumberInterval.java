@@ -171,6 +171,21 @@ class ExtendedSequenceNumberInterval
         // Sequence number
         int seqnum = pkt.getSequenceNumber();
         int extendedSeqnum = ssrcRewriter.extendOriginalSequenceNumber(seqnum);
+        if (extendedSeqnum < extendedMinOrig)
+        {
+            // This is expected to happen if we just switched simulcast streams,
+            // and we received retransmissions for packets before the switch.
+            // Drop these, because they are not supposed to be sent to the
+            // received (their sequence number has been used by packets from
+            // the previous stream).
+            if (DEBUG)
+            {
+                logger.debug(
+                    "Dropping a packet outside this interval: " + pkt);
+            }
+            return null;
+        }
+
         int rewriteSeqnum = rewriteExtendedSequenceNumber(extendedSeqnum);
 
         pkt.setSequenceNumber(rewriteSeqnum);
