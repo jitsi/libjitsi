@@ -40,7 +40,8 @@ import org.jitsi.util.*;
 public class JNIEncoder
     extends AbstractCodec2
     implements FormatParametersAwareCodec,
-               PacketLossAwareEncoder
+               PacketLossAwareEncoder,
+               AdvancedAttributesAwareCodec
 {
     /**
      * The <tt>Logger</tt> used by the <tt>JNIEncoder</tt> class and its
@@ -175,7 +176,7 @@ public class JNIEncoder
      * instance. The possible values are: 2.5, 5, 10, 20, 40 and 60. The default
      * value is 20.
      */
-    private final int frameSizeInMillis = 20;
+    private int frameSizeInMillis = 20;
 
     /**
      * The size in samples per channel of an audio frame input by this instance.
@@ -602,5 +603,44 @@ public class JNIEncoder
                     * frameSizeInSamplesPerChannel;
         }
         return setInputFormat;
+    }
+
+    /**
+     * Sets the additional attributes to <tt>attributes</tt>
+     *
+     * @param attributes The additional attributes to set
+     */
+    @Override
+    public void setAdvancedAttributes(Map<String, String> attributes)
+    {
+        try
+        {
+            String s = attributes.get(Constants.PTIME);
+
+            if ((s != null) && (s.length() != 0))
+            {
+                int ptime = Integer.parseInt(s);
+
+                //only supported values are allowed (3, 5, 10, 20, 40 and 60)
+                //https://tools.ietf.org/html/rfc7587
+                if (ptime == 3 || ptime == 5 || ptime == 10 ||
+                        ptime == 20 || ptime == 40 || ptime == 60)
+                    frameSizeInMillis = ptime;
+
+                //recalculate frameSizeInSamplesPerChannel and frameSizeInBytes
+                AudioFormat inputFormat = (AudioFormat) getInputFormat();
+                int sampleRate = (int) inputFormat.getSampleRate();
+                frameSizeInSamplesPerChannel
+                        = (sampleRate * frameSizeInMillis) / 1000;
+                frameSizeInBytes
+                        = 2 /* sizeof(opus_int16) */
+                        * channels
+                        * frameSizeInSamplesPerChannel;
+            }
+        }
+        catch (Exception e)
+        {
+            // Ignore
+        }
     }
 }

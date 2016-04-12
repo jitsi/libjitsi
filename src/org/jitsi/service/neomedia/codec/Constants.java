@@ -107,6 +107,11 @@ public class Constants
     public static final String ILBC_RTP = ILBC + _RTP;
 
     /**
+     * The ptime constant.
+     */
+    public static final String PTIME = "ptime";
+
+    /**
      * The opus constant.
      */
     public static final String OPUS = "opus";
