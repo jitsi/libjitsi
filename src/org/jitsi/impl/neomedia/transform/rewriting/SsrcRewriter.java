@@ -153,45 +153,50 @@ class SsrcRewriter
 
         if (retransmissionInterval != null)
         {
-            RawPacket rpkt
-                = retransmissionInterval.rewriteRTP(pkt);
+            long ssrc = pkt.getSSRCAsLong();
+            pkt = retransmissionInterval.rewriteRTP(pkt);
 
             if (DEBUG)
             {
                 logger.debug(
                         "Retransmitting packet with SEQNUM " + seqnum
-                            + " of SSRC " + pkt.getSSRCAsLong()
-                            + " retran SSRC: " + rpkt.getSSRCAsLong()
-                            + " retran SEQNUM: " + rpkt.getSequenceNumber());
+                            + " of SSRC " + ssrc
+                            + " retran SSRC: " + pkt.getSSRCAsLong()
+                            + " retran SEQNUM: " + pkt.getSequenceNumber());
             }
-
-            return rpkt;
-        }
-
-        // this is not a retransmission.
-
-        if (currentExtendedSequenceNumberInterval == null)
-        {
-            // the stream has resumed.
-            currentExtendedSequenceNumberInterval
-                = new ExtendedSequenceNumberInterval(
-                        this,
-                        extendedSeqnum,
-                        ssrcGroupRewriter.currentExtendedSeqnumBase,
-                        ssrcGroupRewriter.maxTimestamp + 1);
         }
         else
         {
-            // more packets to the stream, increase the sequence number interval
-            // range.
-            currentExtendedSequenceNumberInterval.extendedMaxOrig
-                = extendedSeqnum;
-        }
-        currentExtendedSequenceNumberInterval.lastSeen
-            = System.currentTimeMillis();
+            // this is not a retransmission.
 
-        return
-            currentExtendedSequenceNumberInterval.rewriteRTP(pkt);
+            if (currentExtendedSequenceNumberInterval == null)
+            {
+                // the stream has resumed.
+                currentExtendedSequenceNumberInterval
+                    = new ExtendedSequenceNumberInterval(
+                    this,
+                    extendedSeqnum,
+                    ssrcGroupRewriter.currentExtendedSeqnumBase);
+            }
+            else
+            {
+                // more packets to the stream, increase the sequence number
+                // interval range.
+                currentExtendedSequenceNumberInterval.extendedMaxOrig
+                    = extendedSeqnum;
+            }
+            currentExtendedSequenceNumberInterval.lastSeen
+                = System.currentTimeMillis();
+
+            pkt = currentExtendedSequenceNumberInterval.rewriteRTP(pkt);
+        }
+
+        if (pkt != null)
+        {
+            rewriteTimestamp(pkt);
+        }
+
+        return pkt;
     }
 
     /**
@@ -303,6 +308,7 @@ class SsrcRewriter
         }
 
         rewriteTimestamp(p, clocks[0], clocks[1]);
+        ssrcGroupRewriter.maybeUpliftTimestamp(p);
     }
 
     /**
@@ -358,11 +364,6 @@ class SsrcRewriter
             intervals.put(
                     currentExtendedSequenceNumberInterval.extendedMaxOrig,
                     currentExtendedSequenceNumberInterval);
-
-            // Store the max timestamp so that we can consult it when
-            // we rewrite the next packets of the next stream.
-            ssrcGroupRewriter.maxTimestamp
-                = currentExtendedSequenceNumberInterval.maxTimestamp;
 
             currentExtendedSequenceNumberInterval = null;
 

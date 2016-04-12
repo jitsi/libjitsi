@@ -469,6 +469,68 @@ class SsrcGroupRewriter
     }
 
     /**
+     * Uplift the timestamp of a frame if we've already sent a larger
+     * timestamp to the remote endpoint.
+     *
+     * @param p
+     */
+    public void maybeUpliftTimestamp(RawPacket p)
+    {
+        // XXX(gp): The uplifting should not take place if the
+        // timestamps have advanced "a lot" (i.e. > 3000 or 3000/90 = 33ms).
+
+        long timestamp = p.getTimestamp();
+        long minTimestamp = maxTimestamp + 1;
+        long delta = timestamp - minTimestamp;
+
+        if (delta < 0) /* minTimestamp is inclusive */
+        {
+            if (DEBUG)
+            {
+                logger.debug(
+                    "Uplifting RTP timestamp " + timestamp
+                        + " with SEQNUM " + p.getSequenceNumber()
+                        + " from SSRC " + p.getSSRCAsLong()
+                        + " because of delta " + delta + " to "
+                        + minTimestamp);
+            }
+
+            if (delta < -3000)
+            {
+                // Bail-out. This is not supposed to happen because it means
+                // that more than one frame has to be uplifted, which means that
+                // we might be mis-rewriting the timestamps (since we're
+                // switching on neighboring frames and neighboring frames are
+                // sampled at similar instances).
+
+                if (WARN)
+                {
+
+                    logger.warn(
+                        "BAILING OUT to uplift RTP timestamp " + timestamp
+                            + " with SEQNUM " + p.getSequenceNumber()
+                            + " from SSRC " + p.getSSRCAsLong()
+                            + " because of " + delta + " (delta > 3000) to "
+                            + minTimestamp);
+                }
+
+                return;
+            }
+
+            p.setTimestamp(minTimestamp);
+        }
+        else
+        {
+            // FIXME If the delta is >>> 3000 it could mean problems as well.
+        }
+
+        if (maxTimestamp < timestamp)
+        {
+            maxTimestamp = timestamp;
+        }
+    }
+
+    /**
      * Gets the SSRC of the RTP stream into whose RTP timestamp other RTP
      * streams are rewritten.
      *
