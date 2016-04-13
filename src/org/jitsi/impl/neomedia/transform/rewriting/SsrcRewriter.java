@@ -252,6 +252,8 @@ class SsrcRewriter
                     // wallclock of timestampSsrc.
                     rewriteTimestamp(p, sourceSsrc, timestampSsrc);
                 }
+
+                ssrcGroupRewriter.maybeUpliftTimestamp(p);
             }
 
             long newValue = p.getTimestamp();
@@ -308,7 +310,6 @@ class SsrcRewriter
         }
 
         rewriteTimestamp(p, clocks[0], clocks[1]);
-        ssrcGroupRewriter.maybeUpliftTimestamp(p);
     }
 
     /**
