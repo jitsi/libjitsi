@@ -52,6 +52,11 @@ class SsrcRewriter
     private static final boolean TRACE;
 
     /**
+     * The maximum number of entries in the timestamp history.
+     */
+    private static final int TS_HISTORY_MAX_ENTRIES = 100;
+
+    /**
      * The origin SSRC that this <tt>SsrcRewriter</tt> rewrites. The
      * target SSRC is managed by the parent <tt>SsrcGroupRewriter</tt>.
      */
@@ -78,22 +83,23 @@ class SsrcRewriter
             = new TreeMap<>();
 
     /**
+     * The MRU timestamp history.
+     */
+    private final Map<Long, Long> tsHistory = new LinkedHashMap<Long, Long>() {
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry eldest) {
+            return size() > TS_HISTORY_MAX_ENTRIES;
+        }
+    };
+
+    /**
      * This is the current sequence number interval for this origin
      * SSRC. We can't have it in the intervals navigable map because
      * its max isn't determined yet. If this is null, then it means that
      * this original SSRC is paused (invariant).
      */
     private ExtendedSequenceNumberInterval currentExtendedSequenceNumberInterval;
-
-    private static final int MAX_ENTRIES = 100;
-
-    private final Map<Long, Long> tsHistory = new LinkedHashMap<Long, Long>() {
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry eldest) {
-            return size() > MAX_ENTRIES;
-        }
-    };
 
     /**
      * Static init.

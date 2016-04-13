@@ -476,6 +476,15 @@ class SsrcGroupRewriter
      */
     public void maybeUpliftTimestamp(RawPacket p)
     {
+        // XXX Why do we need this? : When there's a stream switch, we request a
+        // keyframe for the stream we want to switch into (this is done
+        // elsewhere). The {@link SsrcRewriter} rewrites the timestamps of the
+        // "mixed" streams so that they all have the same timestamp offset. The
+        // problem still remains tho, frames can be sampled at different times,
+        // so we might end up with a key frame that is one sampling cycle behind
+        // what we were already streaming. We hack around this by implementing
+        // "RTP timestamp uplifting".
+
         // XXX(gp): The uplifting should not take place if the
         // timestamps have advanced "a lot" (i.e. > 3000 or 3000/90 = 33ms).
 
