@@ -114,11 +114,6 @@ public class SsrcRewritingEngine implements TransformEngine
     private final MediaStream mediaStream;
 
     /**
-     * The view of {@link #mediaStream} as a {@code MediaStreamImpl} instance.
-     */
-    private final MediaStreamImpl _mediaStreamImpl;
-
-    /**
      * Generates <tt>RawPacket</tt>s from <tt>RTCPCompoundPacket</tt>s.
      */
     private final RTCPGenerator generator = new RTCPGenerator();
@@ -221,11 +216,6 @@ public class SsrcRewritingEngine implements TransformEngine
     public SsrcRewritingEngine(MediaStream mediaStream)
     {
         this.mediaStream = mediaStream;
-
-        _mediaStreamImpl
-            = (mediaStream instanceof MediaStreamImpl)
-                ? (MediaStreamImpl) mediaStream
-                : null;
 
         logger.debug("Created a new SSRC rewriting engine.");
     }
@@ -496,18 +486,6 @@ public class SsrcRewritingEngine implements TransformEngine
     public MediaStream getMediaStream()
     {
         return mediaStream;
-    }
-
-    /**
-     * Gets the {@code MediaStreamImpl} which has initialized this instance and
-     * is its owner.
-     *
-     * @return the {@code MediaStreamImpl} which has initialized this instance
-     * and is its owner
-     */
-    public MediaStreamImpl getMediaStreamImpl()
-    {
-        return _mediaStreamImpl;
     }
 
     /**

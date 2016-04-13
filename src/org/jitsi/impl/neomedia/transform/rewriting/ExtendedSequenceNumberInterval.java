@@ -54,6 +54,13 @@ class ExtendedSequenceNumberInterval
     private static final boolean WARN;
 
     /**
+     * The value of {@link Logger#isTraceEnabled()} from the time of the
+     * initialization of the class {@code ExtendedSequenceNumberInterval} cached
+     * for the purposes of performance.
+     */
+    private static final boolean TRACE;
+
+    /**
      * The extended minimum sequence number of this interval.
      */
     private final int extendedMinOrig;
@@ -76,6 +83,7 @@ class ExtendedSequenceNumberInterval
     {
         DEBUG = logger.isDebugEnabled();
         WARN = logger.isWarnEnabled();
+        TRACE = logger.isTraceEnabled();
     }
     /**
      * The predicate used to match FEC <tt>REDBlock</tt>s.
@@ -102,50 +110,21 @@ class ExtendedSequenceNumberInterval
     long lastSeen;
 
     /**
-     * Holds the max RTP timestamp that we've sent (to the endpoint)
-     * in this interval.
-     */
-    public long maxTimestamp;
-
-    /**
-     * Defines the minimum timestamp for this extended sequence number interval
-     * (inclusive).
-     *
-     * When there's a stream switch, we request a keyframe for the stream we
-     * want to switch into (this is done elsewhere). The {@link SsrcRewriter}
-     * rewrites the timestamps of the "mixed" streams so that they all have the
-     * same timestamp offset. The problem still remains tho, frames can be
-     * sampled at different times, so we might end up with a key frame that is
-     * one sampling cycle behind what we were already streaming. We hack around
-     * this by implementing "RTP timestamp uplifting".
-     *
-     * RTP timestamp uplifting happens here, in this class. If, after timestamp
-     * rewriting, we get a packet with a timestamp smaller than minTimestamp,
-     * we overwrite it with minTimestamp. We don't expect to receive more than
-     * one frame that needs to be uplifted.
-     */
-    private final long minTimestamp;
-
-    /**
      * Ctor.
      *
      * @param ssrcRewriter
      * @param extendedBaseOrig
      * @param extendedBaseTarget
-     * @param minTimestamp
      */
     public ExtendedSequenceNumberInterval(
             SsrcRewriter ssrcRewriter,
-            int extendedBaseOrig, int extendedBaseTarget,
-            long minTimestamp)
+            int extendedBaseOrig, int extendedBaseTarget)
     {
         this.ssrcRewriter = ssrcRewriter;
         this.extendedBaseTarget = extendedBaseTarget;
 
         this.extendedMinOrig = extendedBaseOrig;
         this.extendedMaxOrig = extendedBaseOrig;
-
-        this.minTimestamp = minTimestamp;
     }
 
     /**
@@ -180,12 +159,8 @@ class ExtendedSequenceNumberInterval
      *
      * @param pkt the {@code RawPacket} which represents the RTP packet to be
      * rewritten
-     * @param retransmission {@code true} if the rewrite of {@code pkt} is for
-     * the purposes of a retransmission (i.e. a {@code RawPacket} representing
-     * the same information as {@code pkt} was possibly rewritten and sent
-     * before); otherwise, {@code false}
      */
-    public RawPacket rewriteRTP(RawPacket pkt, boolean retransmission)
+    public RawPacket rewriteRTP(RawPacket pkt)
     {
         // SSRC
         SsrcGroupRewriter ssrcGroupRewriter = getSsrcGroupRewriter();
@@ -196,6 +171,21 @@ class ExtendedSequenceNumberInterval
         // Sequence number
         int seqnum = pkt.getSequenceNumber();
         int extendedSeqnum = ssrcRewriter.extendOriginalSequenceNumber(seqnum);
+        if (extendedSeqnum < extendedMinOrig)
+        {
+            // This is expected to happen if we just switched simulcast streams,
+            // and we received retransmissions for packets before the switch.
+            // Drop these, because they are not supposed to be sent to the
+            // received (their sequence number has been used by packets from
+            // the previous stream).
+            if (DEBUG)
+            {
+                logger.debug(
+                    "Dropping a packet outside this interval: " + pkt);
+            }
+            return null;
+        }
+
         int rewriteSeqnum = rewriteExtendedSequenceNumber(extendedSeqnum);
 
         pkt.setSequenceNumber(rewriteSeqnum);
@@ -245,87 +235,7 @@ class ExtendedSequenceNumberInterval
         if (rtx && !rewriteRTX(pkt))
             return null;
 
-        // timestamp
-        //
-        // XXX Since we may be rewriting the RTP timestamp and, consequently, we
-        // may be remembering timestamp-related state, it sounds better to do
-        // these after FEC and RTX have not discarded pkt.
-        rewriteTimestamp(pkt, retransmission);
-
         return pkt;
-    }
-
-    /**
-     * Rewrites the RTP timestamp of a specific RTP packet.
-     *
-     * @param p the {@code RawPacket} which represents the RTP packet to rewrite
-     * the RTP timestamp of
-     * @param retransmission {@code true} if the rewrite of {@code p} is for the
-     * purposes of a retransmission (i.e. a {@code RawPacket} representing the
-     * same information as {@code pkt} was possibly rewritten and sent before);
-     * otherwise, {@code false}
-     */
-    private void rewriteTimestamp(RawPacket p, boolean retransmission)
-    {
-        // There is nothing specific to ExtendedSequenceNumberInterval in the
-        // rewriting of the RTP timestamps at the time of this writing. Forward
-        // to the owner/parent i.e. SsrcRewriter.
-        ssrcRewriter.rewriteTimestamp(p, retransmission);
-
-        // Uplift the timestamp of a frame if we've already sent a larger
-        // timestamp to the remote endpoint.
-        //
-        // XXX(gp): The uplifting should not take place if the
-        // timestamps have advanced "a lot" (i.e. > 3000).
-
-        long timestamp = p.getTimestamp();
-        long delta = timestamp - minTimestamp;
-
-        if (delta < 0) /* minTimestamp is inclusive */
-        {
-            if (DEBUG)
-            {
-                logger.debug(
-                    "Uplifting RTP timestamp " + timestamp
-                        + " with SEQNUM " + p.getSequenceNumber()
-                        + " from SSRC " + p.getSSRCAsLong()
-                        + " because of delta " + delta + " to "
-                        + minTimestamp);
-            }
-
-            if (delta < -3000)
-            {
-                // Bail-out. This is not supposed to happen because it means
-                // that more than one frame has to be uplifted, which means that
-                // we might be mis-rewriting the timestamps (since we're
-                // switching on neighboring frames and neighboring frames are
-                // sampled at similar instances).
-
-                if (WARN)
-                {
-
-                    logger.warn(
-                        "BAILING OUT to uplift RTP timestamp " + timestamp
-                            + " with SEQNUM " + p.getSequenceNumber()
-                            + " from SSRC " + p.getSSRCAsLong()
-                            + " because of " + delta + " (delta > 3000) to "
-                            + minTimestamp);
-                }
-
-                return;
-            }
-
-            p.setTimestamp(minTimestamp);
-        }
-        else
-        {
-            // FIXME If the delta is >>> 3000 it could mean problems as well.
-        }
-
-        if (maxTimestamp < timestamp)
-        {
-            maxTimestamp = timestamp;
-        }
     }
 
     /**
@@ -453,6 +363,12 @@ class ExtendedSequenceNumberInterval
                     "We could not find a sequence number interval for a FEC"
                         + " packet.");
             return false;
+        }
+
+        if (TRACE)
+        {
+            logger.trace("Rewriting FEC packet SN base "
+                + snBase + " to " + snRewritenBase);
         }
 
         buf[off + 2] = (byte) (snRewritenBase & 0xff00 >> 8);

@@ -60,22 +60,6 @@ public class RetransmissionRequesterImpl
         = Logger.getLogger(RetransmissionRequesterImpl.class);
 
     /**
-     * Returns the difference between two RTP sequence numbers (modulo 2^16).
-     * @return the difference between two RTP sequence numbers (modulo 2^16).
-     */
-    private static int diff(int a, int b)
-    {
-        int diff = a - b;
-
-        if (diff < -(1<<15))
-            diff += 1<<16;
-        else if (diff > 1<<15)
-            diff -= 1<<16;
-
-        return diff;
-    }
-
-    /**
      * Maps an SSRC to the <tt>Requester</tt> instance corresponding to it.
      * TODO: purge these somehow (RTCP BYE? Timeout?)
      */
@@ -413,7 +397,7 @@ public class RetransmissionRequesterImpl
                 return;
             }
 
-            int diff = diff(seq, lastReceivedSeq);
+            int diff = RTPUtils.sequenceNumberDiff(seq, lastReceivedSeq);
             if (diff <= 0)
             {
                 // An older packet, possibly already requested.

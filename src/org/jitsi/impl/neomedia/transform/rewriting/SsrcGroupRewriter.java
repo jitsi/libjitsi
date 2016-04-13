@@ -160,7 +160,7 @@ class SsrcGroupRewriter
         // packet MUST NOT send a BYE packet when they leave the group.
         if (getActiveRewriter() != null)
         {
-            MediaStream mediaStream = getMediaStream();
+            MediaStream mediaStream = ssrcRewritingEngine.getMediaStream();
 
             if (mediaStream != null)
             {
@@ -469,23 +469,74 @@ class SsrcGroupRewriter
     }
 
     /**
-     * Gets the {@code MediaStream} associated with this instance.
+     * Uplift the timestamp of a frame if we've already sent a larger
+     * timestamp to the remote endpoint.
      *
-     * @return the {@code MediaStream} associated with this instance
+     * @param p
      */
-    public MediaStream getMediaStream()
+    public void maybeUpliftTimestamp(RawPacket p)
     {
-        return ssrcRewritingEngine.getMediaStream();
-    }
+        // XXX Why do we need this? : When there's a stream switch, we request a
+        // keyframe for the stream we want to switch into (this is done
+        // elsewhere). The {@link SsrcRewriter} rewrites the timestamps of the
+        // "mixed" streams so that they all have the same timestamp offset. The
+        // problem still remains tho, frames can be sampled at different times,
+        // so we might end up with a key frame that is one sampling cycle behind
+        // what we were already streaming. We hack around this by implementing
+        // "RTP timestamp uplifting".
 
-    /**
-     * Gets the {@code MediaStreamImpl} associated with this instance.
-     *
-     * @return the {@code MediaStreamImpl} associated with this instance
-     */
-    public MediaStreamImpl getMediaStreamImpl()
-    {
-        return ssrcRewritingEngine.getMediaStreamImpl();
+        // XXX(gp): The uplifting should not take place if the
+        // timestamps have advanced "a lot" (i.e. > 3000 or 3000/90 = 33ms).
+
+        long timestamp = p.getTimestamp();
+        long minTimestamp = maxTimestamp + 1;
+        long delta = timestamp - minTimestamp;
+
+        if (delta < 0) /* minTimestamp is inclusive */
+        {
+            if (DEBUG)
+            {
+                logger.debug(
+                    "Uplifting RTP timestamp " + timestamp
+                        + " with SEQNUM " + p.getSequenceNumber()
+                        + " from SSRC " + p.getSSRCAsLong()
+                        + " because of delta " + delta + " to "
+                        + minTimestamp);
+            }
+
+            if (delta < -3000)
+            {
+                // Bail-out. This is not supposed to happen because it means
+                // that more than one frame has to be uplifted, which means that
+                // we might be mis-rewriting the timestamps (since we're
+                // switching on neighboring frames and neighboring frames are
+                // sampled at similar instances).
+
+                if (WARN)
+                {
+
+                    logger.warn(
+                        "BAILING OUT to uplift RTP timestamp " + timestamp
+                            + " with SEQNUM " + p.getSequenceNumber()
+                            + " from SSRC " + p.getSSRCAsLong()
+                            + " because of " + delta + " (delta > 3000) to "
+                            + minTimestamp);
+                }
+
+                return;
+            }
+
+            p.setTimestamp(minTimestamp);
+        }
+        else
+        {
+            // FIXME If the delta is >>> 3000 it could mean problems as well.
+        }
+
+        if (maxTimestamp < timestamp)
+        {
+            maxTimestamp = timestamp;
+        }
     }
 
     /**
