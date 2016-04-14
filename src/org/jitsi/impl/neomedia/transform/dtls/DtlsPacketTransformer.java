@@ -864,8 +864,8 @@ public class DtlsPacketTransformer
      * @param pkt the DTLS {@code RawPacket} received from the remote peer to
      * process.
      * @param outPkts a list of packets, to which application data read from
-     * the DTLS transport should be appended. If null, application data will
-     * not be read.
+     * the DTLS transport should be appended. If {@code null}, application data
+     * will not be read.
      */
     private void reverseTransformDtls(RawPacket pkt, List<RawPacket> outPkts)
     {
@@ -878,14 +878,15 @@ public class DtlsPacketTransformer
             return;
         }
 
-        // First make the input packet available for bouncycastle to read.
+        // First, make the input packet available for bouncycastle to read.
         synchronized (this)
         {
             if (datagramTransport == null)
             {
-                logger.warn("Dropping a DTLS packet. This DtlsPacketTransformer"
-                            + " has not been started successfully or has been "
-                            + "closed.");
+                logger.warn(
+                        "Dropping a DTLS packet. This DtlsPacketTransformer has"
+                            + " not been started successfully or has been"
+                            + " closed.");
             }
             else
             {
@@ -901,6 +902,7 @@ public class DtlsPacketTransformer
 
         // Next, try to read any available application data from bouncycastle.
         DTLSTransport dtlsTransport = this.dtlsTransport;
+
         if (dtlsTransport == null)
         {
             // The DTLS transport hasn't initialized yet.
@@ -915,15 +917,15 @@ public class DtlsPacketTransformer
                 try
                 {
                     int receiveLimit = dtlsTransport.getReceiveLimit();
-                    // This is at best inefficient, but it is not meant as a
-                    // long-term solution. A major refactoring is planned, which
-                    // will probably make this code obsolete.
+                    // FIXME This is at best inefficient, but it is not meant as
+                    // a long-term solution. A major refactoring is planned,
+                    // which will probably make this code obsolete.
                     byte[] buf = new byte[receiveLimit];
-                    RawPacket p = new RawPacket(buf, 0, receiveLimit);
+                    RawPacket p = new RawPacket(buf, 0, buf.length);
 
                     int received
                         = dtlsTransport.receive(
-                                buf, 0, receiveLimit,
+                                buf, 0, buf.length,
                                 DTLS_TRANSPORT_RECEIVE_WAITMILLIS);
 
                     if (received <= 0)
