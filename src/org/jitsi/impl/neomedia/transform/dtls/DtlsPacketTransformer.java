@@ -923,6 +923,8 @@ public class DtlsPacketTransformer
                         pkt.grow(delta);
                         buf = pkt.getBuffer();
                         off = pkt.getOffset();
+                        // grow() doesn't increase the packet's length field
+                        pkt.setLength(len + delta);
                         len = pkt.getLength();
                     }
                     else if (delta < 0)
