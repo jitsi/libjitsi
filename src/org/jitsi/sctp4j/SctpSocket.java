@@ -512,10 +512,14 @@ public class SctpSocket
             byte[] data, int sid, int ssn, int tsn, long ppid, int context,
             int flags)
     {
-        if(dataCallback != null)
+        if (dataCallback != null)
         {
             dataCallback.onSctpPacket(
                     data, sid, ssn, tsn, ppid, context, flags);
+        }
+        else
+        {
+            logger.warn("No dataCallback set, dropping a message from usrsctp");
         }
     }
     
