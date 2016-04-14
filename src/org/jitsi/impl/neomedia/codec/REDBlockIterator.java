@@ -246,7 +246,7 @@ public class REDBlockIterator
             //|F|   block PT  |  timestamp offset         |   block length    |
             //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             blockLen = (buffer[offNextBlockHeader + 2] & 0x03) << 8
-                | (buffer[offNextBlockHeader + 3]);
+                | (buffer[offNextBlockHeader + 3] & 0xFF);
             offNextBlockHeader += 4; // next RED header
             offNextBlockPayload += blockLen;
         }

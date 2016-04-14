@@ -125,7 +125,7 @@ public class SctpNotification
 
     public static SctpNotification parse(byte[] data)
     {
-        int type = data[0] | (data[1] << 8);
+        int type = (data[1] & 0xFF) << 8 | (data[0] & 0xFF);
         switch (type)
         {
             case SCTP_ASSOC_CHANGE:
