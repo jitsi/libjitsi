@@ -36,8 +36,13 @@ public class Utils
     /**
      * Utility method that determines whether or not a packet is a key frame.
      */
-    public static boolean isKeyFrame(RawPacket pkt, Byte redPT, byte vp8PT)
+    public static boolean isKeyFrame(RawPacket pkt, Byte redPT, Byte vp8PT)
     {
+        if (vp8PT == null)
+        {
+            return false;
+        }
+
         boolean isKeyFrame = false;
         try
         {
