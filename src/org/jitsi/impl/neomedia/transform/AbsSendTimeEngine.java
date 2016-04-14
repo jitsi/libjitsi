@@ -134,8 +134,8 @@ public class AbsSendTimeEngine
             return false;
         }
 
-        int lengthInWords
-                = buf[extensionOffset++] << 8 | buf[extensionOffset++];
+        int lengthInWords = (buf[extensionOffset++] & 0xFF) << 8
+            | (buf[extensionOffset++] & 0xFF);
 
         // Length in bytes of the header extensions
         int lengthInBytes = 4 * (1 + lengthInWords);

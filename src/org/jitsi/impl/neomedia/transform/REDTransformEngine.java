@@ -216,7 +216,7 @@ public class REDTransformEngine
         //write non-primary packets, keep pkts[0] for the primary
         for (int i = 1; i < pktCount; i++)
         {
-            int blockLen = (buf[idx + 2] & 0x03) << 8 | (buf[idx + 3]);
+            int blockLen = (buf[idx + 2] & 0x03) << 8 | (buf[idx + 3] & 0xFF);
 
             // XXX: we might need to optimize
             byte[] newBuf = new byte[hdrLen + blockLen];
