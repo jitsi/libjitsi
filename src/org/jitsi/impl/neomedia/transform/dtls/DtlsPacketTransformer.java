@@ -858,103 +858,87 @@ public class DtlsPacketTransformer
     }
 
     /**
-     * Processes a DTLS {@code RawPacket} received from the remote peer.
+     * Processes a DTLS {@code RawPacket} received from the remote peer, and
+     * reads any available application data into {@code outPkts}.
      *
      * @param pkt the DTLS {@code RawPacket} received from the remote peer to
-     * process
-     * @param buf the {@code buffer} of {@code pkt}. Provided explicitly because
-     * it has been retrieved already.
-     * @param off the offset in {@code buf} at which the DTLS packet begins.
-     * Provided explicitly because it has been retrieved already.
-     * @param len the length in {@code byte}s of the DTLS packet in {@code buf}.
-     * Provided explicitly because it has been retrieved already.
-     * @return the processed DTLS {@code RawPacket} received from the remote
-     * peer. If {@code pkt} was completely consumed for the purposes of setting
-     * the DTLS session with the remote peer up, returns {@code null}. However,
-     * {@code null} may be returned if the processing of {@code pkt} failed.
+     * process.
+     * @param outPkts a list of packets, to which application data read from
+     * the DTLS transport should be appended. If null, application data will
+     * not be read.
      */
-    private RawPacket reverseTransformDtls(
-            RawPacket pkt,
-            byte[] buf, int off, int len)
+    private void reverseTransformDtls(RawPacket pkt, List<RawPacket> outPkts)
     {
         if (rtcpmux && Component.RTCP == componentID)
         {
             // This should never happen.
             logger.warn(
-                    "Dropping a DTLS record, because it was received on the"
+                    "Dropping a DTLS packet, because it was received on the"
                         + " RTCP channel while rtcpmux is in use.");
-            return null;
+            return;
         }
 
-        boolean receive;
-
+        // First make the input packet available for bouncycastle to read.
         synchronized (this)
         {
             if (datagramTransport == null)
             {
-                receive = false;
+                logger.warn("Dropping a DTLS packet. This DtlsPacketTransformer"
+                            + " has not been started successfully or has been "
+                            + "closed.");
             }
             else
             {
-                datagramTransport.queueReceive(buf, off, len);
-                receive = true;
+                datagramTransport.queueReceive(
+                        pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
             }
         }
-        if (receive)
-        {
-            DTLSTransport dtlsTransport = this.dtlsTransport;
 
-            if (dtlsTransport == null)
-            {
-                // The specified pkt looks like a DTLS record and it has been
-                // consumed for the purposes of the secure channel represented
-                // by this PacketTransformer.
-                pkt = null;
-            }
-            else
+        if (outPkts == null)
+        {
+            return;
+        }
+
+        // Next, try to read any available application data from bouncycastle.
+        DTLSTransport dtlsTransport = this.dtlsTransport;
+        if (dtlsTransport == null)
+        {
+            // The DTLS transport hasn't initialized yet.
+        }
+        else
+        {
+            // There might be more than one packet queued in datagramTransport,
+            // if they were added prior to dtlsTransport being initialized. Read
+            // all of them.
+            do
             {
                 try
                 {
                     int receiveLimit = dtlsTransport.getReceiveLimit();
-                    int delta = receiveLimit - len;
-
-                    if (delta > 0)
-                    {
-                        pkt.grow(delta);
-                        buf = pkt.getBuffer();
-                        off = pkt.getOffset();
-                        // grow() doesn't increase the packet's length field
-                        pkt.setLength(len + delta);
-                        len = pkt.getLength();
-                    }
-                    else if (delta < 0)
-                    {
-                        pkt.shrink(-delta);
-                        buf = pkt.getBuffer();
-                        off = pkt.getOffset();
-                        len = pkt.getLength();
-                    }
+                    // This is at best inefficient, but it is not meant as a
+                    // long-term solution. A major refactoring is planned, which
+                    // will probably make this code obsolete.
+                    byte[] buf = new byte[receiveLimit];
+                    RawPacket p = new RawPacket(buf, 0, receiveLimit);
 
                     int received
                         = dtlsTransport.receive(
-                                buf, off, len,
+                                buf, 0, receiveLimit,
                                 DTLS_TRANSPORT_RECEIVE_WAITMILLIS);
 
                     if (received <= 0)
                     {
-                        // No application data was decoded.
-                        pkt = null;
+                        // No (more) application data was decoded.
+                        break;
                     }
                     else
                     {
-                        delta = len - received;
-                        if (delta > 0)
-                            pkt.shrink(delta);
+                        p.setLength(received);
+                        outPkts.add(p);
                     }
                 }
                 catch (IOException ioe)
                 {
-                    pkt = null;
                     // SrtpControl.start(MediaType) starts its associated
                     // TransformEngine. We will use that mediaType to signal the
                     // normal stop then as well i.e. we will ignore exception
@@ -967,16 +951,8 @@ public class DtlsPacketTransformer
                     }
                 }
             }
+            while (true);
         }
-        else
-        {
-            // The specified pkt looks like a DTLS record but it is unexpected
-            // in the current state of the secure channel represented by this
-            // PacketTransformer. This PacketTransformer has not been started
-            // (successfully) or has been closed.
-            pkt = null;
-        }
-        return pkt;
     }
 
     /**
@@ -1441,18 +1417,19 @@ public class DtlsPacketTransformer
                 {
                     // In the outgoing/transform direction DTLS records pass
                     // through (e.g. DatagramTransportImpl has sent them).
-                    RawPacket outPkt
-                        = transform
-                            ? inPkt
-                            : reverseTransformDtls(inPkt, buf, off, len);
+                    if (transform)
+                    {
+                        outPkts.add(inPkt);
+                    }
+                    else
+                    {
+                        reverseTransformDtls(inPkt, outPkts);
+                    }
 
                     // Whatever the outcome, inPkt has been consumed. The
                     // following is being done because there may be a subsequent
                     // iteration over inPkts later on.
                     inPkts[i] = null;
-
-                    if (outPkt != null)
-                        outPkts.add(outPkt);
                 }
             }
         }
