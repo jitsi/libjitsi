@@ -648,7 +648,7 @@ public class DominantSpeakerIdentification
                 }
             }
         }
-        if ((newDominantSSRC != null) && (newDominantSSRC != dominantSSRC))
+        if ((newDominantSSRC != null) && !newDominantSSRC.equals(dominantSSRC))
         {
             oldDominantSpeakerValue = dominantSSRC;
             dominantSSRC = newDominantSSRC;
@@ -659,7 +659,8 @@ public class DominantSpeakerIdentification
 
         // Now that we are outside the synchronized block, fire events, if any,
         // to any registered listeners.
-        if (oldDominantSpeakerValue != newDominantSpeakerValue)
+        if ((newDominantSpeakerValue != null) &&
+            !newDominantSpeakerValue.equals(oldDominantSpeakerValue))
         {
             firePropertyChange(
                     DOMINANT_SPEAKER_PROPERTY_NAME,
