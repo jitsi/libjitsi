@@ -20,6 +20,7 @@ import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.util.*;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * @author Boris Grozev
@@ -51,13 +52,13 @@ public class SynchronizerImpl
      * Maps an SSRC to the <tt>SSRCDesc</tt> structure containing information
      * about it.
      */
-    private Map<Long, SSRCDesc> ssrcs = new HashMap<Long, SSRCDesc>();
+    private ConcurrentMap<Long, SSRCDesc> ssrcs = new ConcurrentHashMap<>();
 
     /**
      * Maps an endpoint identifier to an <tt>Endpoint</tt> structure containing
      * information about the endpoint.
      */
-    private Map<String, Endpoint> endpoints = new HashMap<String, Endpoint>();
+    private ConcurrentMap<String, Endpoint> endpoints = new ConcurrentHashMap<>();
 
     /**
      * {@inheritDoc}
@@ -154,7 +155,6 @@ public class SynchronizerImpl
         {
             return -1;
         }
-
 
         // get all required times
         long clockRate; //the clock rate for the RTP clock for the given SSRC
@@ -302,17 +302,17 @@ public class SynchronizerImpl
         SSRCDesc ssrcDesc = ssrcs.get(ssrc);
         if (ssrcDesc == null)
         {
-            synchronized (ssrcs)
-            {
-                ssrcDesc = ssrcs.get(ssrc);
-                if (ssrcDesc == null)
-                {
-                    ssrcDesc = new SSRCDesc();
-                    ssrcs.put(ssrc, ssrcDesc);
-                }
-            }
+            ssrcDesc = new SSRCDesc();
+            SSRCDesc existingSsrcDesc  = ssrcs.putIfAbsent(ssrc, ssrcDesc);
+            if (existingSsrcDesc != null)
+                return existingSsrcDesc;
+            else
+                return ssrcDesc;
         }
-        return ssrcDesc;
+        else
+        {
+            return ssrcDesc;
+        }
     }
 
     /**
@@ -327,18 +327,17 @@ public class SynchronizerImpl
         Endpoint endpoint = endpoints.get(endpointId);
         if (endpoint == null)
         {
-            synchronized (endpoints)
-            {
-                endpoint = endpoints.get(endpointId);
-                if (endpoint == null)
-                {
-                    endpoint = new Endpoint();
-                    endpoints.put(endpointId, endpoint);
-                }
-            }
+            endpoint = new Endpoint();
+            Endpoint existingEndpoint = endpoints.putIfAbsent(endpointId, endpoint);
+            if (existingEndpoint != null)
+                return existingEndpoint;
+            else
+                return endpoint;
         }
-
-        return endpoint;
+        else
+        {
+            return endpoint;
+        }
     }
 
     /**
@@ -457,19 +456,13 @@ public class SynchronizerImpl
      */
     void removeMapping(long ssrc)
     {
-        if (ssrcs.containsKey(ssrc))
+        SSRCDesc ssrcDesc = ssrcs.get(ssrc);
+        if (ssrcDesc != null)
         {
-            synchronized (ssrcs)
+            synchronized (ssrcDesc)
             {
-                SSRCDesc ssrcDesc = ssrcs.get(ssrc);
-                if (ssrcDesc != null)
-                {
-                    synchronized (ssrcDesc)
-                    {
-                        ssrcDesc.ntpTime = -1.0;
-                        ssrcDesc.rtpTime = -1;
-                    }
-                }
+                ssrcDesc.ntpTime = -1.0;
+                ssrcDesc.rtpTime = -1;
             }
         }
     }
