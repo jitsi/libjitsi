@@ -78,7 +78,9 @@ public class Utils
             if (redPT != null && redPT == RawPacket.getPayloadType(buf, off, len))
             {
                 REDBlock block = REDBlockIterator
-                    .getPrimaryBlock(buf, off, len);
+                    .getPrimaryBlock(buf,
+                        RawPacket.getPayloadOffset(buf, off, len),
+                        RawPacket.getPayloadLength(buf, off, len));
 
                 if (block != null && vp8PT == block.getPayloadType())
                 {
@@ -100,7 +102,10 @@ public class Utils
 
                 // FIXME What if we're not using VP8?
                 isKeyFrame
-                    = DePacketizer.isKeyFrame(buf, off, len
+                    = DePacketizer.isKeyFrame(
+                    buf,
+                    RawPacket.getPayloadOffset(buf, off, len),
+                    len
                         - RawPacket.getHeaderLength(buf, off, len)
                         - RawPacket.getPaddingSize(buf, off, len));
             }
