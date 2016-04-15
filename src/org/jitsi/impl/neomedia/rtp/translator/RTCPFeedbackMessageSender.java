@@ -73,16 +73,15 @@ public class RTCPFeedbackMessageSender
 
     /**
      * The {@link RecurringProcessibleExecutor} which will periodically call
-     * call {@link FirRequester#process()} and trigger their retry logic.
+     * call {@link KeyframeRequester#process()} and trigger their retry logic.
      */
     private final RecurringProcessibleExecutor recurringProcessibleExecutor
         = new RecurringProcessibleExecutor();
 
-
     /**
      * The FIR requesters. One per media sender SSRC.
      */
-    private final ConcurrentMap<Integer, FirRequester> firRequesters
+    private final ConcurrentMap<Integer, KeyframeRequester> kfRequesters
         = new ConcurrentHashMap<>();
 
     /**
@@ -125,18 +124,18 @@ public class RTCPFeedbackMessageSender
     {
         // It's OK for this method to be a little "slow" (so that the
         // {@code RTCPFeedbackMessageSender#maybeStopRequesting} is lock-less).
-        FirRequester oldRequester = firRequesters.putIfAbsent(
-            mediaSenderSSRC, new FirRequester(mediaSenderSSRC));
+        KeyframeRequester oldRequester = kfRequesters.putIfAbsent(
+            mediaSenderSSRC, new KeyframeRequester(mediaSenderSSRC));
 
-        FirRequester firRequester = firRequesters.get(mediaSenderSSRC);
+        KeyframeRequester kfRequester = kfRequesters.get(mediaSenderSSRC);
 
         if (oldRequester == null)
         {
             recurringProcessibleExecutor
-                .registerRecurringProcessible(firRequester);
+                .registerRecurringProcessible(kfRequester);
         }
 
-        return firRequester.maybeRequest(true);
+        return kfRequester.maybeRequest(true);
     }
 
     /**
@@ -186,22 +185,22 @@ public class RTCPFeedbackMessageSender
         int off,
         int len)
     {
-        FirRequester firRequester = firRequesters.get(ssrc);
-        if (firRequester != null)
+        KeyframeRequester kfRequester = kfRequesters.get(ssrc);
+        if (kfRequester != null)
         {
-            firRequester.maybeStopRequesting(streamRTPManager, pt, buf, off, len);
+            kfRequester.maybeStopRequesting(streamRTPManager, pt, buf, off, len);
         }
     }
 
     /**
-     * The <tt>FirRequester</tt> is responsible for sending FIR requests to a
-     * specific media sender identified by its SSRC.
+     * The <tt>KeyframeRequester</tt> is responsible for sending FIR requests to
+     * a specific media sender identified by its SSRC.
      */
-    class FirRequester
+    class KeyframeRequester
         extends PeriodicProcessible
     {
         /**
-         * The media sender SSRC of this <tt>FirRequester</tt>
+         * The media sender SSRC of this <tt>KeyframeRequester</tt>
          */
         private final int mediaSenderSSRC;
 
@@ -220,7 +219,7 @@ public class RTCPFeedbackMessageSender
          *
          * @param mediaSenderSSRC
          */
-        public FirRequester(int mediaSenderSSRC)
+        public KeyframeRequester(int mediaSenderSSRC)
         {
             super(FIR_RETRY_INTERVAL_MS);
             this.mediaSenderSSRC = mediaSenderSSRC;
