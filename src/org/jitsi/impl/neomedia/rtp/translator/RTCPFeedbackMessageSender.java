@@ -72,6 +72,14 @@ public class RTCPFeedbackMessageSender
     private final RTPTranslatorImpl rtpTranslator;
 
     /**
+     * The {@link RecurringProcessibleExecutor} which will periodically call
+     * call {@link FirRequester#process()} and trigger their retry logic.
+     */
+    private final RecurringProcessibleExecutor recurringProcessibleExecutor
+        = new RecurringProcessibleExecutor();
+
+
+    /**
      * The FIR requesters. One per media sender SSRC.
      */
     private final ConcurrentMap<Integer, FirRequester> firRequesters
@@ -124,7 +132,7 @@ public class RTCPFeedbackMessageSender
 
         if (oldRequester == null)
         {
-            rtpTranslator.getRecurringProcessibleExecutor()
+            recurringProcessibleExecutor
                 .registerRecurringProcessible(firRequester);
         }
 

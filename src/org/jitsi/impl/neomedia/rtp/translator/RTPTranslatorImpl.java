@@ -227,12 +227,6 @@ public class RTPTranslatorImpl
     private long localSSRC = -1;
 
     /**
-     *
-     */
-    private final RecurringProcessibleExecutor recurringProcessibleExecutor
-        = new RecurringProcessibleExecutor();
-
-    /**
      * The <tt>ReadWriteLock</tt> which synchronizes the access to and/or
      * modification of the state of this instance. Replaces
      * <tt>synchronized</tt> blocks in order to reduce the number of exclusive
@@ -594,8 +588,9 @@ public class RTPTranslatorImpl
 
                 format = streamRTPManager.getFormat(pt);
 
-                // Pass the packet to the feedback message sender to update
-                // its transactions.
+                // Pass the packet to the feedback message sender to give it
+                // a chance to inspect the received packet and decide whether
+                // or not it should keep asking for a key frame or stop.
                 rtcpFeedbackMessageSender.maybeStopRequesting(
                     streamRTPManager, ssrc, pt, buf, off, len);
             }
@@ -815,15 +810,6 @@ public class RTPTranslatorImpl
             StreamRTPManager streamRTPManager)
     {
         return manager.getGlobalTransmissionStats();
-    }
-
-    /**
-     *
-     * @return
-     */
-    RecurringProcessibleExecutor getRecurringProcessibleExecutor()
-    {
-        return recurringProcessibleExecutor;
     }
 
     /**
