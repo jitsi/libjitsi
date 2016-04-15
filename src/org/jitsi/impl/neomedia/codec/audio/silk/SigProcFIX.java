@@ -141,7 +141,7 @@ public class SigProcFIX
      */
     static long SKP_SMLALBB(long a64, short b16, short c16)
     {
-        return (a64) + ((b16) * (c16));
+        return (a64) + ((long)(b16) * (long)(c16));
     }
 
     /**
