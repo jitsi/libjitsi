@@ -20,7 +20,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.codec.video.*;
+import org.jitsi.impl.neomedia.codec.video.vp8.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.event.*;
@@ -115,7 +115,7 @@ public class RTCPFeedbackMessageSender
      */
     public boolean sendFIR(int mediaSenderSSRC)
     {
-        // It's OK for this method to be a little slow" (so that the
+        // It's OK for this method to be a little "slow" (so that the
         // {@code RTCPFeedbackMessageSender#maybeStopRequesting} is lock-less).
         FirRequester oldRequester = firRequesters.putIfAbsent(
             mediaSenderSSRC, new FirRequester(mediaSenderSSRC));

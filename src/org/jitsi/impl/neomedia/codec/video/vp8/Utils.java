@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package org.jitsi.impl.neomedia.codec.video;
+package org.jitsi.impl.neomedia.codec.video.vp8;
 
-import org.jitsi.impl.neomedia.codec.video.vp8.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.util.*;
