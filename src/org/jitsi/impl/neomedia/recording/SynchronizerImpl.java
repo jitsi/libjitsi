@@ -429,7 +429,7 @@ public class SynchronizerImpl
         if (v != 2)
             return false;
 
-        int lengthInWords = (buf[off + 2] << 8) + buf[off + 3];
+        int lengthInWords = (buf[off + 2] & 0xFF) << 8 | (buf[off + 3] & 0xFF);
         int lengthInBytes = (lengthInWords + 1) * 4;
         if (len < lengthInBytes)
             return false;
