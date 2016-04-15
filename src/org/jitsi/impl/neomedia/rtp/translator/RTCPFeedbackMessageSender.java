@@ -295,8 +295,7 @@ public class RTCPFeedbackMessageSender
                 return;
             }
 
-            RawPacket pkt = new RawPacket(buf, off, len);
-            if (!Utils.isKeyFrame(pkt, redPT, vp8PT))
+            if (!Utils.isKeyFrame(buf, off, len, redPT, vp8PT))
             {
                 return;
             }

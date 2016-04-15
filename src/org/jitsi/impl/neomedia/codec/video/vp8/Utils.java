@@ -34,10 +34,39 @@ public class Utils
 
     /**
      * Utility method that determines whether or not a packet is a key frame.
+     *
+     * @param pkt The <tt>RawPacket</tt> to determine whether it is a key frame
+     * or not.
+     * @param redPT The RED payload type.
+     * @param vp8PT The VP8 payload type.
+     * @return true if the packet is a VP8 key frame, false otherwise.
      */
     public static boolean isKeyFrame(RawPacket pkt, Byte redPT, Byte vp8PT)
     {
-        if (vp8PT == null)
+        if (pkt == null)
+        {
+            return false;
+        }
+
+        return isKeyFrame(
+            pkt.getBuffer(), pkt.getOffset(), pkt.getLength(), redPT, vp8PT);
+    }
+
+    /**
+     * Utility method that determines whether or not a packet is a key frame.
+     *
+     * @param buf the buffer that holds the RTP payload.
+     * @param off the offset in the buff where the RTP payload is found.
+     * @param len then length of the RTP payload in the buffer.
+     * @param redPT The RED payload type.
+     * @param vp8PT The VP8 payload type.
+     * @return true if the packet is a VP8 key frame, false otherwise.
+     * @return true if the packet is a VP8 key frame, false otherwise.
+     */
+    public static boolean isKeyFrame(
+        byte[] buf, int off, int len, Byte redPT, Byte vp8PT)
+    {
+        if (buf == null || buf.length < off + len || vp8PT == null)
         {
             return false;
         }
@@ -46,24 +75,22 @@ public class Utils
         try
         {
             // XXX this will not work correctly when RTX gets enabled!
-            if (redPT != null && redPT == pkt.getPayloadType())
+            if (redPT != null && redPT == RawPacket.getPayloadType(buf, off, len))
             {
                 REDBlock block = REDBlockIterator
-                    .getPrimaryBlock(pkt.getBuffer(),
-                                     pkt.getPayloadOffset(),
-                                     pkt.getPayloadLength());
+                    .getPrimaryBlock(buf, off, len);
 
                 if (block != null && vp8PT == block.getPayloadType())
                 {
                     // FIXME What if we're not using VP8?
                     isKeyFrame
                         = DePacketizer.isKeyFrame(
-                        pkt.getBuffer(),
+                        buf,
                         block.getOffset(),
                         block.getLength());
                 }
             }
-            else if (vp8PT == pkt.getPayloadType())
+            else if (vp8PT == RawPacket.getPayloadType(buf, off, len))
             {
                 // XXX There's RawPacket#getPayloadLength() but the implementation
 
@@ -73,12 +100,9 @@ public class Utils
 
                 // FIXME What if we're not using VP8?
                 isKeyFrame
-                    = DePacketizer.isKeyFrame(
-                    pkt.getBuffer(),
-                    pkt.getPayloadOffset(),
-                    pkt.getLength()
-                        - pkt.getHeaderLength()
-                        - pkt.getPaddingSize());
+                    = DePacketizer.isKeyFrame(buf, off, len
+                        - RawPacket.getHeaderLength(buf, off, len)
+                        - RawPacket.getPaddingSize(buf, off, len));
             }
         }
         catch (ArrayIndexOutOfBoundsException e)

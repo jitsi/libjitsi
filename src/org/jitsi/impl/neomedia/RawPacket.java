@@ -711,7 +711,17 @@ public class RawPacket
      */
     public int getPaddingSize()
     {
-        if ((buffer[offset] & 0x20) == 0)
+        return getPaddingSize(buffer, offset, length);
+    }
+
+    /**
+     * Get RTP padding size from a RTP packet
+     *
+     * @return RTP padding size from source RTP packet
+     */
+    public static int getPaddingSize(byte[] buf, int off, int len)
+    {
+        if ((buf[off] & 0x20) == 0)
         {
             return 0;
         }
@@ -721,7 +731,7 @@ public class RawPacket
             // padding octets should be ignored, including itself.
 
             // XXX It's an 8-bit unsigned number.
-            return 0xFF & buffer[offset + length - 1];
+            return 0xFF & buf[off + len - 1];
         }
     }
 
@@ -797,7 +807,17 @@ public class RawPacket
      */
     public byte getPayloadType()
     {
-        return (byte) (buffer[offset + 1] & (byte)0x7F);
+        return getPayloadType(buffer, offset, length);
+    }
+
+    /**
+     * Get RTP payload type from a RTP packet
+     *
+     * @return RTP payload type of source RTP packet
+     */
+    public static Byte getPayloadType(byte[] buf, int off, int len)
+    {
+        return (byte) (buf[off + 1] & (byte)0x7F);
     }
 
     /**
