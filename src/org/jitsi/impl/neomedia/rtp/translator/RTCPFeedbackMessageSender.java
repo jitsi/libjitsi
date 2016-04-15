@@ -289,15 +289,15 @@ public class RTCPFeedbackMessageSender
                 return;
             }
 
+            // This lock only runs while we're waiting for a key frame. It
+            // should not slow things down significantly.
+            if (TRACE)
+            {
+                logger.trace("Stopping FIRs to ssrc=" + mediaSenderSSRC);
+            }
+
             synchronized (this)
             {
-                // This lock only runs while we're waiting for a key frame. It
-                // should not slow things down significantly.
-                if (TRACE)
-                {
-                    logger.trace("Stopping FIRs to ssrc=" + mediaSenderSSRC);
-                }
-
                 remainingRetries = 0;
             }
         }
