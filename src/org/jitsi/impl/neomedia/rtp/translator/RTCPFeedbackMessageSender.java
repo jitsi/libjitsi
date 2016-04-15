@@ -122,14 +122,20 @@ public class RTCPFeedbackMessageSender
      */
     public boolean sendFIR(int mediaSenderSSRC)
     {
-        // It's OK for this method to be a little "slow" (so that the
-        // {@code RTCPFeedbackMessageSender#maybeStopRequesting} is lock-less).
-        KeyframeRequester oldRequester = kfRequesters.putIfAbsent(
-            mediaSenderSSRC, new KeyframeRequester(mediaSenderSSRC));
+        boolean registerRecurringProcessible = false;
+        synchronized (kfRequesters)
+        {
+            if (!kfRequesters.containsKey(mediaSenderSSRC))
+            {
+                kfRequesters.put(
+                    mediaSenderSSRC, new KeyframeRequester(mediaSenderSSRC));
+                registerRecurringProcessible = true;
+            }
+        }
 
         KeyframeRequester kfRequester = kfRequesters.get(mediaSenderSSRC);
 
-        if (oldRequester == null)
+        if (registerRecurringProcessible)
         {
             recurringProcessibleExecutor
                 .registerRecurringProcessible(kfRequester);
