@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp.translator;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.*;
 
 import javax.media.*;
@@ -31,6 +32,7 @@ import net.sf.fmj.media.rtp.RTPHeader;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.util.concurrent.*;
 
 /**
  * Implements <tt>RTPTranslator</tt> which represents an RTP translator which
@@ -585,6 +587,12 @@ public class RTPTranslatorImpl
                 int pt = buf[off + 1] & 0x7f;
 
                 format = streamRTPManager.getFormat(pt);
+
+                // Pass the packet to the feedback message sender to give it
+                // a chance to inspect the received packet and decide whether
+                // or not it should keep asking for a key frame or stop.
+                rtcpFeedbackMessageSender.maybeStopRequesting(
+                    streamRTPManager, ssrc, pt, buf, off, len);
             }
         }
         else if (LOGGER.isTraceEnabled())
