@@ -37,7 +37,6 @@ import org.jitsi.util.concurrent.*;
  * @author George Politis
  */
 public class RTCPFeedbackMessageSender
-    extends PeriodicProcessible
 {
     /**
      * The <tt>Logger</tt> used by the <tt>RTCPFeedbackMessageSender</tt> class
@@ -79,12 +78,6 @@ public class RTCPFeedbackMessageSender
         = new ConcurrentHashMap<>();
 
     /**
-     * A boolean indicating if this instance has been registered with the
-     * recurringProcessibleExecutor of the <tt>rtpTranslator</tt>.
-     */
-    private AtomicBoolean registeredWithExecutor = new AtomicBoolean(false);
-
-    /**
      * Initializes a new <tt>RTCPFeedbackMessageSender</tt> instance which is to
      * send RTCP feedback message packets through a specific
      * <tt>RTPTranslatorImpl</tt>.
@@ -95,7 +88,6 @@ public class RTCPFeedbackMessageSender
      */
     public RTCPFeedbackMessageSender(RTPTranslatorImpl rtpTranslator)
     {
-        super(FIR_RETRY_INTERVAL_MS);
         this.rtpTranslator = rtpTranslator;
     }
 
@@ -123,36 +115,20 @@ public class RTCPFeedbackMessageSender
      */
     public boolean sendFIR(int mediaSenderSSRC)
     {
-        // It's OK for this method to be a little slow" (so that the didRead is
-        // lock-less).
-        firRequesters.putIfAbsent(
+        // It's OK for this method to be a little slow" (so that the
+        // {@code RTCPFeedbackMessageSender#maybeStopRequesting} is lock-less).
+        FirRequester oldRequester = firRequesters.putIfAbsent(
             mediaSenderSSRC, new FirRequester(mediaSenderSSRC));
 
         FirRequester firRequester = firRequesters.get(mediaSenderSSRC);
 
-        if (registeredWithExecutor.compareAndSet(false, true))
+        if (oldRequester == null)
         {
             rtpTranslator.getRecurringProcessibleExecutor()
-                .registerRecurringProcessible(this);
+                .registerRecurringProcessible(firRequester);
         }
 
-        return firRequester.maybeSendFIR(true);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public long process()
-    {
-        super.process();
-
-        for (FirRequester firRequester : firRequesters.values())
-        {
-            firRequester.maybeSendFIR(false);
-        }
-
-        return 0; /* unused */
+        return firRequester.maybeRequest(true);
     }
 
     /**
@@ -194,7 +170,7 @@ public class RTCPFeedbackMessageSender
      * @param len the number of bytes in <tt>buf</tt> beginning at <tt>off</tt>
      * which represent the received RTP or RTCP packet
      */
-    public void maybeStopFIR(
+    public void maybeStopRequesting(
         StreamRTPManagerDesc streamRTPManager,
         int ssrc,
         int pt,
@@ -205,7 +181,7 @@ public class RTCPFeedbackMessageSender
         FirRequester firRequester = firRequesters.get(ssrc);
         if (firRequester != null)
         {
-            firRequester.maybeStopFIR(streamRTPManager, pt, buf, off, len);
+            firRequester.maybeStopRequesting(streamRTPManager, pt, buf, off, len);
         }
     }
 
@@ -214,6 +190,7 @@ public class RTCPFeedbackMessageSender
      * specific media sender identified by its SSRC.
      */
     class FirRequester
+        extends PeriodicProcessible
     {
         /**
          * Ctor.
@@ -222,9 +199,23 @@ public class RTCPFeedbackMessageSender
          */
         public FirRequester(int mediaSenderSSRC)
         {
+            super(FIR_RETRY_INTERVAL_MS);
             this.mediaSenderSSRC = mediaSenderSSRC;
             this.sequenceNumber = new AtomicInteger(0);
             this.remainingRetries = 0;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public long process()
+        {
+            super.process();
+
+            this.maybeRequest(false);
+
+            return 0; /* unused */
         }
 
         /**
@@ -255,7 +246,7 @@ public class RTCPFeedbackMessageSender
          * @param len the number of bytes in <tt>buf</tt> beginning at
          * <tt>off</tt> which represent the received RTP or RTCP packet
          */
-        public void maybeStopFIR(
+        public void maybeStopRequesting(
             StreamRTPManagerDesc streamRTPManager,
             int pt,
             byte[] buf,
@@ -312,12 +303,15 @@ public class RTCPFeedbackMessageSender
 
         /**
          * Sends an FIR RTCP message.
+         *
+         * @param allowResetRemainingRetries true if it's allowed to reset the
+         * remaining retries, false otherwise.
          */
-        public boolean maybeSendFIR(boolean allowRestart)
+        public boolean maybeRequest(boolean allowResetRemainingRetries)
         {
             synchronized (this)
             {
-                if (allowRestart)
+                if (allowResetRemainingRetries)
                 {
                     if (remainingRetries == 0)
                     {
@@ -367,6 +361,7 @@ public class RTCPFeedbackMessageSender
 
             if (senderSSRC == -1)
             {
+                logger.warn("Not sending an FIR because the sender SSRC is -1.");
                 return false;
             }
 
@@ -375,6 +370,8 @@ public class RTCPFeedbackMessageSender
 
             if (streamRTPManager == null)
             {
+                logger.warn("Not sending an FIR because the stream RTP " +
+                    "manager is null.");
                 return false;
             }
 

@@ -596,7 +596,7 @@ public class RTPTranslatorImpl
 
                 // Pass the packet to the feedback message sender to update
                 // its transactions.
-                rtcpFeedbackMessageSender.maybeStopFIR(
+                rtcpFeedbackMessageSender.maybeStopRequesting(
                     streamRTPManager, ssrc, pt, buf, off, len);
             }
         }
