@@ -258,7 +258,8 @@ public class RTCPFeedbackMessageSender
                 return;
             }
 
-            // Reduce auto-boxing.
+            // Reduce auto-boxing (even tho the compiler or the JIT should do
+            // this automatically).
             Byte redPT = null, vp8PT = null;
 
             // XXX do we want to do this only once?
