@@ -83,9 +83,9 @@ public class AVReceive2
         this.localPortBase
             = (localPortBase == null)
                 ? -1
-                : Integer.valueOf(localPortBase).intValue();
+                : Integer.parseInt(localPortBase);
         this.remoteAddr = InetAddress.getByName(remoteHost);
-        this.remotePortBase = Integer.valueOf(remotePortBase).intValue();
+        this.remotePortBase = Integer.parseInt(remotePortBase);
     }
 
     /**

@@ -292,7 +292,7 @@ public class JavaEncoder
         {
             try
             {
-                int mode = Integer.valueOf(modeStr);
+                int mode = Integer.parseInt(modeStr);
 
                 // supports only mode 20 or 30
                 if(mode == 20 || mode == 30)

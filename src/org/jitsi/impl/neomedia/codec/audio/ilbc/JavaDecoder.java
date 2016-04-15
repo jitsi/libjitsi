@@ -137,7 +137,7 @@ public class JavaDecoder
 
             for(int i = 0 ; i < nb ; i++)
             {
-                offsets.add(new Integer(inputLength + (i * len)));
+                offsets.add((Integer)(inputLength + (i * len)));
             }
         }
         else if (this.inputLength != inputLength)

@@ -47,7 +47,7 @@ public class RecorderEventHandlerJSONImpl
         @Override
         public int compare(RecorderEvent a, RecorderEvent b)
         {
-            return ((Long)a.getInstant()).compareTo(b.getInstant());
+            return Long.compare(a.getInstant(), b.getInstant());
         }
     };
 
