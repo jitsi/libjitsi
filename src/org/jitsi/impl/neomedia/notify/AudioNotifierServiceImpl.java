@@ -415,7 +415,7 @@ public class AudioNotifierServiceImpl
         {
             if (o == this)
                 return true;
-            if (o == null)
+            if (!(o instanceof AudioKey))
                 return false;
 
             AudioKey that = (AudioKey) o;
