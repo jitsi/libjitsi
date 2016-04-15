@@ -238,11 +238,11 @@ public class RTCPFeedbackMessageSender
         @Override
         public long process()
         {
-            super.process();
+            long ret = super.process();
 
             this.maybeRequest(false);
 
-            return 0; /* unused */
+            return ret; /* unused */
         }
 
         /**
