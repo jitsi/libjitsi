@@ -73,7 +73,7 @@ public class RTCPFeedbackMessageSender
 
     /**
      * The {@link RecurringProcessibleExecutor} which will periodically call
-     * call {@link KeyframeRequester#process()} and trigger their retry logic.
+     * {@link KeyframeRequester#process()} and trigger their retry logic.
      */
     private final RecurringProcessibleExecutor recurringProcessibleExecutor
         = new RecurringProcessibleExecutor();
