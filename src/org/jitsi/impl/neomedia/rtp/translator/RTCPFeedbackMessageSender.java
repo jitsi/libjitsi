@@ -193,6 +193,21 @@ public class RTCPFeedbackMessageSender
         extends PeriodicProcessible
     {
         /**
+         * The media sender SSRC of this <tt>FirRequester</tt>
+         */
+        private final int mediaSenderSSRC;
+
+        /**
+         * The sequence number of the next FIR.
+         */
+        private final AtomicInteger sequenceNumber;
+
+        /**
+         * The number of FIR that are left to be sent before stopping.
+         */
+        private int remainingRetries;
+
+        /**
          * Ctor.
          *
          * @param mediaSenderSSRC
@@ -217,21 +232,6 @@ public class RTCPFeedbackMessageSender
 
             return 0; /* unused */
         }
-
-        /**
-         * The number of FIR that are left to be sent before stopping.
-         */
-        private int remainingRetries;
-
-        /**
-         * The media sender SSRC of this <tt>FirRequester</tt>
-         */
-        private final int mediaSenderSSRC;
-
-        /**
-         * The sequence number of the next FIR.
-         */
-        private AtomicInteger sequenceNumber;
 
         /**
          * Notifies this instance that an RTP packet has been received from a
