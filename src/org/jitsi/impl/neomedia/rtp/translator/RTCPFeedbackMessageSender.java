@@ -213,7 +213,7 @@ public class RTCPFeedbackMessageSender
         /**
          * The sequence number of the next FIR.
          */
-        private final AtomicInteger sequenceNumber;
+        private final AtomicInteger sequenceNumber = new AtomicInteger(0);
 
         /**
          * The number of FIR that are left to be sent before stopping.
@@ -229,7 +229,6 @@ public class RTCPFeedbackMessageSender
         {
             super(FIR_RETRY_INTERVAL_MS);
             this.mediaSenderSSRC = mediaSenderSSRC;
-            this.sequenceNumber = new AtomicInteger(0);
             this.remainingRetries = 0;
         }
 
