@@ -67,20 +67,17 @@ public class SynchronizerImpl
     public void setRtpClockRate(long ssrc, long clockRate)
     {
         SSRCDesc ssrcDesc = getSSRCDesc(ssrc);
-        if (ssrcDesc.clockRate == -1)
+        synchronized (ssrcDesc)
         {
-            synchronized (ssrcDesc)
+            if (ssrcDesc.clockRate == -1)
+                ssrcDesc.clockRate = clockRate;
+            else if (ssrcDesc.clockRate != clockRate)
             {
-                if (ssrcDesc.clockRate == -1)
-                    ssrcDesc.clockRate = clockRate;
-                else if (ssrcDesc.clockRate != clockRate)
-                {
-                    // this shouldn't happen...but if the clock rate really
-                    // changed for some reason, out timings are now irrelevant.
-                    ssrcDesc.clockRate = clockRate;
-                    ssrcDesc.ntpTime = -1.0;
-                    ssrcDesc.rtpTime = -1;
-                }
+                // this shouldn't happen...but if the clock rate really
+                // changed for some reason, out timings are now irrelevant.
+                ssrcDesc.clockRate = clockRate;
+                ssrcDesc.ntpTime = -1.0;
+                ssrcDesc.rtpTime = -1;
             }
         }
     }
@@ -102,19 +99,15 @@ public class SynchronizerImpl
      */
     public void mapRtpToNtp(long ssrc, long rtpTime, double ntpTime)
     {
-        SSRCDesc ssrcDesc = getSSRCDesc(ssrc);
-
         if (rtpTime != -1 && ntpTime != -1.0) // have valid values to update
         {
-            if (ssrcDesc.rtpTime == -1 || ssrcDesc.ntpTime == -1.0)
+            SSRCDesc ssrcDesc = getSSRCDesc(ssrc);
+            synchronized (ssrcDesc)
             {
-                synchronized (ssrcDesc)
+                if (ssrcDesc.rtpTime == -1 || ssrcDesc.ntpTime == -1.0)
                 {
-                    if (ssrcDesc.rtpTime == -1 || ssrcDesc.ntpTime == -1.0)
-                    {
-                        ssrcDesc.rtpTime = rtpTime;
-                        ssrcDesc.ntpTime = ntpTime;
-                    }
+                    ssrcDesc.rtpTime = rtpTime;
+                    ssrcDesc.ntpTime = ntpTime;
                 }
             }
         }
@@ -125,13 +118,15 @@ public class SynchronizerImpl
      */
     public void mapLocalToNtp(long ssrc, long localTime, double ntpTime)
     {
-        SSRCDesc ssrcDesc = getSSRCDesc(ssrc);
+        if (localTime == -1 || ntpTime == -1.0)
+            return;
 
-        if (localTime != -1 && ntpTime != -1.0 && ssrcDesc.endpointId != null)
+        SSRCDesc ssrcDesc = getSSRCDesc(ssrc);
+        synchronized (ssrcDesc)
         {
-            Endpoint endpoint = getEndpoint(ssrcDesc.endpointId);
-            if (endpoint.localTime == -1 || endpoint.ntpTime == -1.0)
+            if (ssrcDesc.endpointId != null)
             {
+                Endpoint endpoint = getEndpoint(ssrcDesc.endpointId);
                 synchronized (endpoint)
                 {
                     if (endpoint.localTime == -1 || endpoint.ntpTime == -1.0)
@@ -257,13 +252,10 @@ public class SynchronizerImpl
             for (CNAMEItem item : getCnameItems(pkt))
             {
                 SSRCDesc ssrc = getSSRCDesc(item.ssrc);
-                if (ssrc.endpointId == null)
+                synchronized (ssrc)
                 {
-                    synchronized (ssrc)
-                    {
-                        if (ssrc.endpointId == null)
-                            ssrc.endpointId = item.cname;
-                    }
+                    if (ssrc.endpointId == null)
+                        ssrc.endpointId = item.cname;
                 }
             }
         }
