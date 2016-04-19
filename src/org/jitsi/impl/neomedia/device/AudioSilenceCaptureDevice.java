@@ -34,7 +34,7 @@ import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
  * @author Lyubomir Marinov
  * @author Boris Grozev
  */
-public class AudioSilenceCaptureDevice
+class AudioSilenceCaptureDevice
     extends AbstractPushBufferCaptureDevice
 {
 
@@ -82,7 +82,7 @@ public class AudioSilenceCaptureDevice
      * are to be used only for the purpose of ticking the clock which makes
      * {@link org.jitsi.impl.neomedia.conference.AudioMixer} run.
      */
-    public AudioSilenceCaptureDevice(boolean clockOnly)
+    AudioSilenceCaptureDevice(boolean clockOnly)
     {
         this.clockOnly = clockOnly;
     }
