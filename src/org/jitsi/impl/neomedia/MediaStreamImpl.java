@@ -173,8 +173,7 @@ public class MediaStreamImpl
      * {@link this.rtpManager}, given that it offers this information with its
      * getLocalSSRC() method? TAG(cat4-local-ssrc-hurricane)
      */
-    private long localSourceID
-        = Math.abs(new Random().nextLong()) % Integer.MAX_VALUE;
+    private long localSourceID = (new Random().nextInt()) & 0x000000007FFFFFFFL;
 
     /**
      * The MediaStreamStatsImpl object used to compute the statistics about
