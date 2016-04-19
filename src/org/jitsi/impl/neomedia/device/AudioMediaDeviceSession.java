@@ -77,7 +77,7 @@ public class AudioMediaDeviceSession
      * @param device the <tt>MediaDevice</tt> the use of which by a
      * <tt>MediaStream</tt> is to be represented by the new instance
      */
-    protected AudioMediaDeviceSession(AbstractMediaDevice device)
+    public AudioMediaDeviceSession(AbstractMediaDevice device)
     {
         super(device);
     }
