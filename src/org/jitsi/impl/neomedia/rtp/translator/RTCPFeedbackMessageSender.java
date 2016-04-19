@@ -123,25 +123,28 @@ public class RTCPFeedbackMessageSender
     public boolean sendFIR(int mediaSenderSSRC)
     {
         boolean registerRecurringProcessible = false;
-        synchronized (kfRequesters)
+        KeyframeRequester keyframeRequester = kfRequesters.get(mediaSenderSSRC);
+        if (keyframeRequester == null )
         {
-            if (!kfRequesters.containsKey(mediaSenderSSRC))
+            // Avoided repeated creation of unneeded objects until get fails.
+            keyframeRequester = new KeyframeRequester(mediaSenderSSRC);
+            KeyframeRequester existingKfRequester = kfRequesters.putIfAbsent(
+                mediaSenderSSRC, keyframeRequester);
+            if (existingKfRequester != null)
             {
-                kfRequesters.put(
-                    mediaSenderSSRC, new KeyframeRequester(mediaSenderSSRC));
+                // Another thread beat this one to putting a keyframe requester.
+                keyframeRequester = existingKfRequester;
                 registerRecurringProcessible = true;
             }
         }
 
-        KeyframeRequester kfRequester = kfRequesters.get(mediaSenderSSRC);
-
         if (registerRecurringProcessible)
         {
             recurringProcessibleExecutor
-                .registerRecurringProcessible(kfRequester);
+                .registerRecurringProcessible(keyframeRequester);
         }
 
-        return kfRequester.maybeRequest(true);
+        return keyframeRequester.maybeRequest(true);
     }
 
     /**
