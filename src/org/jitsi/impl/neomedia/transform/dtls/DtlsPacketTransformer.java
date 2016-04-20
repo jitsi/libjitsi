@@ -912,9 +912,9 @@ public class DtlsPacketTransformer
             // There might be more than one packet queued in datagramTransport,
             // if they were added prior to dtlsTransport being initialized. Read
             // all of them.
-            do
+            try
             {
-                try
+                do
                 {
                     int receiveLimit = dtlsTransport.getReceiveLimit();
                     // FIXME This is at best inefficient, but it is not meant as
@@ -939,21 +939,20 @@ public class DtlsPacketTransformer
                         outPkts.add(p);
                     }
                 }
-                catch (IOException ioe)
+                while (true);
+            }
+            catch (IOException ioe)
+            {
+                // SrtpControl.start(MediaType) starts its associated
+                // TransformEngine. We will use that mediaType to signal the
+                // normal stop then as well i.e. we will ignore exception after
+                // the procedure to stop this PacketTransformer has begun.
+                if (mediaType != null
+                        && !tlsPeerHasRaisedCloseNotifyWarning)
                 {
-                    // SrtpControl.start(MediaType) starts its associated
-                    // TransformEngine. We will use that mediaType to signal the
-                    // normal stop then as well i.e. we will ignore exception
-                    // after the procedure to stop this PacketTransformer
-                    // has begun.
-                    if (mediaType != null
-                            && !tlsPeerHasRaisedCloseNotifyWarning)
-                    {
-                        logger.error("Failed to decode a DTLS record!", ioe);
-                    }
+                    logger.error("Failed to decode a DTLS record!", ioe);
                 }
             }
-            while (true);
         }
     }
 
