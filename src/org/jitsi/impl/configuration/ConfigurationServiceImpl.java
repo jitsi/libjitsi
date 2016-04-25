@@ -1474,7 +1474,19 @@ public class ConfigurationServiceImpl
 
                 Properties fileProps = new Properties();
 
-                fileProps.load(ClassLoader.getSystemResourceAsStream(fileName));
+                InputStream stream = null;
+                try
+                {
+                    stream = ClassLoader.getSystemResourceAsStream(fileName);
+                    fileProps.load(stream);
+                }
+                finally
+                {
+                    if (stream != null)
+                    {
+                        stream.close();
+                    }
+                }
 
                 // now set all of this file's properties as system properties
                 for (Map.Entry<Object, Object> entry : fileProps.entrySet())

@@ -677,7 +677,7 @@ public class ZRTPTransformEngine
         if (srtpInTransformer != null)
         {
             srtpInTransformer.close();
-            srtpOutTransformer = null;
+            srtpInTransformer = null;
         }
         if (zrtcpTransformer != null)
         {

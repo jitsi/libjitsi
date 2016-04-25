@@ -159,9 +159,9 @@ public abstract class AbstractVersion
             int n2 = 0;
 
             if(i < s1.length)
-                n1 = Integer.valueOf(s1[i]);
+                n1 = Integer.parseInt(s1[i]);
             if(i < s2.length)
-                n2 = Integer.valueOf(s2[i]);
+                n2 = Integer.parseInt(s2[i]);
 
             if(n1 == n2)
                 continue;

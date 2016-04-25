@@ -185,8 +185,6 @@ class InterArrival
                                 + "this packet for bandwidth estimation.");
                     return false;
                 }
-                if (arrivalTimeDeltaMs < 0)
-                    throw new IllegalStateException("arrivalTimeDeltaMs");
                 /* int packetSizeDelta */ deltas[2]
                     = (int)
                         (currentTimestampGroup.size - prevTimestampGroup.size);

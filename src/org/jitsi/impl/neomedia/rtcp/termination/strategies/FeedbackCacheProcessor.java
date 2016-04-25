@@ -203,7 +203,7 @@ public class FeedbackCacheProcessor
 
         if (feedback.rr != null)
         {
-            score = ((100 - feedback.rr.lost) / 100) * score;
+            score = ((100d - (double)feedback.rr.lost) / 100d) * score;
         }
 
         return score;
