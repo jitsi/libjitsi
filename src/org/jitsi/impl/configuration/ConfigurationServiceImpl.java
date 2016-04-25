@@ -1475,12 +1475,17 @@ public class ConfigurationServiceImpl
                 Properties fileProps = new Properties();
 
                 InputStream stream = null;
-                try {
+                try
+                {
                     stream = ClassLoader.getSystemResourceAsStream(fileName);
                     fileProps.load(stream);
-                } finally {
+                }
+                finally
+                {
                     if (stream != null)
+                    {
                         stream.close();
+                    }
                 }
 
                 // now set all of this file's properties as system properties
