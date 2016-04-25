@@ -81,6 +81,12 @@ public class MediaStreamImpl
         = "net.java.sip.communicator.impl.neomedia.RECEIVE_BUFFER_LENGTH";
 
     /**
+     * The {@link RtpEncodingParameters} that holds information relating to the
+     * receive RTP parameters of this {@link MediaStream}.
+     */
+    private Collection<RtpEncodingParameters> remoteEncodingParameters;
+
+    /**
      * Returns a human-readable representation of a specific <tt>DataSource</tt>
      * instance in the form of a <tt>String</tt> value.
      *
@@ -3644,5 +3650,47 @@ public class MediaStreamImpl
     public RetransmissionRequester getRetransmissionRequester()
     {
         return retransmissionRequester;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<RtpEncodingParameters> getRemoteEncodingParameters()
+    {
+        return remoteEncodingParameters;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setRemoteEncodingParameters(Collection<RtpEncodingParameters> encodings)
+    {
+        remoteEncodingParameters = encodings;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RtpEncodingParameters getRemoteEncodingParameters(long ssrc)
+    {
+        Collection<RtpEncodingParameters> remoteEncodings = this.remoteEncodingParameters;
+        if (remoteEncodings == null || remoteEncodings.isEmpty())
+        {
+            return null;
+        }
+
+        for (RtpEncodingParameters remoteEncoding : remoteEncodings)
+        {
+            if (remoteEncoding.getSsrc() == ssrc
+                || (remoteEncoding.getRtx() != null && remoteEncoding.getRtx().getSsrc() == ssrc))
+            {
+                return remoteEncoding;
+            }
+        }
+
+        return null;
     }
 }

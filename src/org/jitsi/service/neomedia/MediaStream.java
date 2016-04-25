@@ -252,6 +252,27 @@ public interface MediaStream
      */
     public List<Long> getRemoteSourceIDs();
 
+
+    /**
+     * Gets the {@link RtpEncodingParameters} that provides information relating
+     * to the receive RTP parameters of this {@link MediaStream}.
+     *
+     * @return the {@link RtpEncodingParameters} that provides information
+     * relating to the receive RTP parameters of this {@link MediaStream}.
+     */
+    public Collection<RtpEncodingParameters> getRemoteEncodingParameters();
+
+    /**
+     * Gets the {@link RtpEncodingParameters} that provides information relating to the
+     * receive RTP parameters of this {@link MediaStream}.
+     *
+     * @return the {@link RtpEncodingParameters} that provides information relating to
+     * the receive RTP parameters of this {@link MediaStream}.
+     */
+    public void setRemoteEncodingParameters(Collection<RtpEncodingParameters> encodings);
+
+    public RtpEncodingParameters getRemoteEncodingParameters(long ssrc);
+
     /**
      * Gets the {@code StreamRTPManager} which is to forward RTP and RTCP
      * traffic between this and other {@code MediaStream}s.
