@@ -390,26 +390,32 @@ public class MediaStreamStatsImpl
      */
     public static int getRoundTripDelay(long timeMs, long lsr, long dlsr)
     {
-        int roundTripDelay = -1;
+        long ntpTime = TimeUtils.toNtpTime(timeMs);
+        ntpTime = TimeUtils.toNtpShortFormat(ntpTime);
 
-        if (lsr > 0)
+        long ntprtd = ntpTime - lsr - dlsr;
+
+        long delayLong;
+        if (ntprtd >= 0)
         {
-            long ntpTime = TimeUtils.toNtpTime(timeMs);
-            ntpTime = TimeUtils.toNtpShortFormat(ntpTime);
-
-            long ntprtd = ntpTime - lsr - dlsr;
-
-            if (ntprtd > 0)
-            {
-                long delayLong = TimeUtils.ntpShortToMs(ntprtd);
-                if (delayLong < Integer.MAX_VALUE)
-                {
-                    roundTripDelay = (int) delayLong;
-                }
-            }
+            delayLong = TimeUtils.ntpShortToMs(ntprtd);
+        }
+        else
+        {
+            /*
+             * Even if ntprtd is negative we compute delayLong
+             * as it might round to zero.
+             * ntpShortToMs expect positive numbers.
+             */
+            delayLong = -TimeUtils.ntpShortToMs(-ntprtd);
         }
 
-        return roundTripDelay;
+        if (delayLong >= 0 && delayLong < Integer.MAX_VALUE)
+        {
+            return (int) delayLong;
+        }
+
+        return -1;
     }
 
     /**
