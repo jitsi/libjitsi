@@ -157,7 +157,7 @@ public class DebugTransformEngine implements TransformEngine
 
         if (mediaStream == null)
         {
-            logger.debug(
+            logger.warn(
                     "Not logging a packet because the mediaStream is null");
             return pkt;
         }
@@ -166,7 +166,7 @@ public class DebugTransformEngine implements TransformEngine
 
         if (pktLogging == null)
         {
-            logger.debug(
+            logger.warn(
                     "Not logging a packet because the PacketLoggingService is"
                         + " null.");
             return pkt;
@@ -182,7 +182,7 @@ public class DebugTransformEngine implements TransformEngine
                 = mediaStream.getLocalDataAddress();
             if (localDataAddress == null)
             {
-                logger.debug("Not logging a packet because the local data " +
+                logger.warn("Not logging a packet because the local data " +
                         "address is null");
                 return pkt;
             }
@@ -190,7 +190,7 @@ public class DebugTransformEngine implements TransformEngine
             MediaStreamTarget target = mediaStream.getTarget();
             if (target == null)
             {
-                logger.debug("Not logging a packet because the media stream " +
+                logger.warn("Not logging a packet because the media stream " +
                         "target is null.");
                 return pkt;
             }
@@ -198,7 +198,7 @@ public class DebugTransformEngine implements TransformEngine
             InetSocketAddress targetDataAddress = target.getDataAddress();
             if (targetDataAddress == null)
             {
-                logger.debug("Not logging a packet because the media stream " +
+                logger.warn("Not logging a packet because the media stream " +
                         "target address is null.");
                 return pkt;
             }
@@ -212,7 +212,7 @@ public class DebugTransformEngine implements TransformEngine
                 = mediaStream.getLocalControlAddress();
             if (localControlAddress == null)
             {
-                logger.debug("Not logging a packet because the local data " +
+                logger.warn("Not logging a packet because the local data " +
                         "address is null");
                 return pkt;
             }
@@ -220,7 +220,7 @@ public class DebugTransformEngine implements TransformEngine
             MediaStreamTarget target = mediaStream.getTarget();
             if (target == null)
             {
-                logger.debug("Not logging a packet because the media stream " +
+                logger.warn("Not logging a packet because the media stream " +
                         "target is null.");
                 return pkt;
             }
@@ -228,7 +228,7 @@ public class DebugTransformEngine implements TransformEngine
             InetSocketAddress targetControlAddress = target.getControlAddress();
             if (targetControlAddress == null)
             {
-                logger.debug("Not logging a packet because the media stream " +
+                logger.warn("Not logging a packet because the media stream " +
                         "target address is null.");
                 return pkt;
             }
