@@ -145,24 +145,39 @@ public class StatisticsEngine
 
     /**
      * The number of RTCP sender reports (SR) and/or receiver reports (RR) sent.
+     * Mapped per ssrc.
      */
-    private long numberOfRTCPReports = 0;
+    private Map<Long,Long> numberOfRTCPReportsMap = new HashMap<>();
 
     /**
      * The sum of the jitter values we have reported in RTCP reports, in RTP
      * timestamp units.
      */
-    private long jitterSum = 0;
+    private Map<Long,Long> jitterSumMap = new HashMap<>();
 
     /**
      * The number of RTP packets sent though this instance.
+     * Mapped per ssrc.
      */
-    private long rtpPacketsSent = 0;
+    private Map<Long,Long> rtpPacketsSentMap = new HashMap<>();
 
     /**
      * The number of RTP packets sent though this instance.
+     * Mapped per ssrc.
      */
-    private long rtpPacketsReceived = 0;
+    private Map<Long,Long> rtpPacketsReceivedMap = new HashMap<>();
+
+    /**
+     * The bytes of RTP packets sent though this instance.
+     * Mapped per ssrc.
+     */
+    private Map<Long,Long> rtpBytesSentMap = new HashMap<>();
+
+    /**
+     * The bytes of RTP packets sent though this instance.
+     * Mapped per ssrc.
+     */
+    private Map<Long,Long> rtpBytesReceivedMap = new HashMap<>();
 
     /**
      * The {@link RTCPPacketParserEx} which this instance will use to parse
@@ -186,14 +201,30 @@ public class StatisticsEngine
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-            StatisticsEngine.this.rtpPacketsSent++;
+            incrementSSRCCounter(
+                StatisticsEngine.this.rtpPacketsSentMap,
+                pkt.getSSRCAsLong(),
+                1);
+            incrementSSRCCounter(
+                StatisticsEngine.this.rtpBytesSentMap,
+                pkt.getSSRCAsLong(),
+                pkt.getLength());
+
             return pkt;
         }
 
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
-            StatisticsEngine.this.rtpPacketsReceived++;
+            incrementSSRCCounter(
+                StatisticsEngine.this.rtpPacketsReceivedMap,
+                pkt.getSSRCAsLong(),
+                1);
+            incrementSSRCCounter(
+                StatisticsEngine.this.rtpBytesReceivedMap,
+                pkt.getSSRCAsLong(),
+                pkt.getLength());
+
             return pkt;
         }
     };
@@ -829,6 +860,9 @@ public class StatisticsEngine
      */
     public double getAvgInterArrivalJitter()
     {
+        long numberOfRTCPReports = getCumulativeValue(numberOfRTCPReportsMap);
+        long jitterSum = getCumulativeValue(jitterSumMap);
+
         return
             numberOfRTCPReports == 0
                 ? 0
@@ -1214,7 +1248,8 @@ public class StatisticsEngine
                         = (RTCPFeedback) feedbackReports.get(0);
                 long jitter = feedback.getJitter();
 
-                numberOfRTCPReports++;
+                incrementSSRCCounter(
+                    numberOfRTCPReportsMap, feedback.getSSRC(), 1);
 
                 if ((jitter < getMinInterArrivalJitter())
                         || (getMinInterArrivalJitter() == -1))
@@ -1222,12 +1257,14 @@ public class StatisticsEngine
                 if (getMaxInterArrivalJitter() < jitter)
                     maxInterArrivalJitter = jitter;
 
-                jitterSum += jitter;
+                incrementSSRCCounter(jitterSumMap, feedback.getSSRC(), jitter);
 
                 lost = feedback.getNumLost();
 
                 if(logger.isTraceEnabled())
                 {
+                    long numberOfRTCPReports
+                        = numberOfRTCPReportsMap.get(feedback.getSSRC());
                     // As sender reports are sent on every 5 seconds, print
                     // every 4th packet, on every 20 seconds.
                     if(numberOfRTCPReports % 4 == 1)
@@ -1270,7 +1307,7 @@ public class StatisticsEngine
      */
     public long getRtpPacketsSent()
     {
-        return rtpPacketsSent;
+        return getCumulativeValue(rtpPacketsSentMap);
     }
 
     /**
@@ -1279,6 +1316,94 @@ public class StatisticsEngine
      */
     public long getRtpPacketsReceived()
     {
-        return rtpPacketsReceived;
+        return getCumulativeValue(rtpPacketsReceivedMap);
+    }
+
+    /**
+     * Gets the number of RTP packets sent for a stream with the ssrc.
+     * @return the number of RTP packets sent for a stream with the ssrc.
+     */
+    public long getRtpPacketsSent(long ssrc)
+    {
+        return rtpPacketsSentMap.get(ssrc);
+    }
+
+    /**
+     * Gets the number of RTP packets received for a stream with the ssrc.
+     * @return the number of RTP packets received for a stream with the ssrc.
+     */
+    public long getRtpPacketsReceived(long ssrc)
+    {
+        return rtpPacketsReceivedMap.get(ssrc);
+    }
+
+    /**
+     * Utility method to accumulate values stored in the map.
+     * @param map the map which values will be
+     * @return
+     */
+    private static long getCumulativeValue(Map<?,Long> map)
+    {
+        long accumulatedValues = 0;
+        for (Map.Entry<?,Long> en : map.entrySet())
+        {
+            accumulatedValues += en.getValue();
+        }
+        return accumulatedValues;
+    }
+
+    /**
+     * Utility method to increment map value with specified step. If entry is
+     * missing add it.
+     * @param map the map holding the values
+     * @param ssrc the key of the value to increment
+     * @param step increment step value
+     */
+    private static void incrementSSRCCounter(
+        Map<Long,Long> map, long ssrc, long step)
+    {
+        Long count = map.get(ssrc);
+        if(count == null)
+            map.put(ssrc, step);
+        else
+            map.put(ssrc, count + step);
+    }
+
+    /**
+     * Returns the number of bytes received for a stream with the ssrc.
+     * @param ssrc the stream ssrc
+     * @return number of bytes per stream.
+     */
+    public long getNbBytesReceived(long ssrc)
+    {
+        return rtpBytesReceivedMap.get(ssrc);
+    }
+
+    /**
+     * Returns the number of bytes sent by a stream with the ssrc.
+     * @param ssrc the stream ssrc
+     * @return number of bytes per stream.
+     */
+    public long getNbBytesSent(long ssrc)
+    {
+        return rtpBytesSentMap.get(ssrc);
+    }
+
+    /**
+     * Returns the number of bytes received for all streams.
+     * @return number of bytes for all stream.
+     */
+    public long getNbBytesReceived()
+    {
+        return getCumulativeValue(rtpBytesReceivedMap);
+    }
+
+    /**
+     * Returns the number of bytes sent by all streams.
+     * @return number of bytes for all stream.
+     */
+    public long getNbBytesSent()
+    {
+        return getCumulativeValue(rtpBytesSentMap);
     }
 }

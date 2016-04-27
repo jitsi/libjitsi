@@ -31,7 +31,6 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtcp.*;
-import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.service.neomedia.*;
@@ -66,6 +65,12 @@ public class MediaStreamStatsImpl
      */
     private static final Logger logger
         = Logger.getLogger(MediaStreamStatsImpl.class);
+
+    /**
+     * List of stats per ssrc.
+     */
+    private Map<Long,AbstractMediaStreamSSRCStats>[] mediaStreamStats =
+        new Map[] {new HashMap<>(), new HashMap<>()};
 
     /**
      * Computes an Exponentially Weighted Moving Average (EWMA). Thus, the most
@@ -832,21 +837,21 @@ public class MediaStreamStatsImpl
      */
     private long getNbBytes(StreamDirection streamDirection)
     {
-        StreamRTPManager rtpManager = mediaStreamImpl.queryRTPManager();
+        if(mediaStreamImpl.getStatisticsEngine() == null)
+            return 0;
+
         long nbBytes = 0;
 
-        if(rtpManager != null)
+        switch(streamDirection)
         {
-            switch(streamDirection)
-            {
-            case DOWNLOAD:
-                nbBytes = rtpManager.getGlobalReceptionStats().getBytesRecd();
-                break;
-            case UPLOAD:
-                nbBytes
-                    = rtpManager.getGlobalTransmissionStats().getBytesSent();
-                break;
-            }
+        case DOWNLOAD:
+            nbBytes = mediaStreamImpl
+                .getStatisticsEngine().getNbBytesReceived();
+            break;
+        case UPLOAD:
+            nbBytes
+                = mediaStreamImpl.getStatisticsEngine().getNbBytesSent();
+            break;
         }
         return nbBytes;
     }
@@ -1006,7 +1011,6 @@ public class MediaStreamStatsImpl
 
             case DOWNLOAD:
                 nbPDU = statisticsEngine.getRtpPacketsReceived();
-                break;
             }
         }
         return nbPDU;
@@ -1295,6 +1299,8 @@ public class MediaStreamStatsImpl
         // deviation of the jitter.
         jitterRTPTimestampUnits[streamDirection.ordinal()]
             = feedback.getJitter();
+        getStats(feedback.getSSRC(), streamDirection)
+            .setJitter(rtpTimeToMs(feedback.getJitter()));
     }
 
     /**
@@ -1403,6 +1409,9 @@ public class MediaStreamStatsImpl
         if (rtt >= 0)
         {
             setRttMs(rtt);
+
+            getStats(
+                feedback.getSSRC(), streamDirection).setRttMs(rtt);
         }
     }
 
@@ -1637,5 +1646,51 @@ public class MediaStreamStatsImpl
         }
 
         return sbr;
+    }
+
+    /**
+     * Returns the stat for the ssrc and direction.
+     * @param ssrc the ssrc
+     * @param streamDirection the direction.
+     * @return the object holding all the stats.
+     */
+    private AbstractMediaStreamSSRCStats getStats(
+        long ssrc, StreamDirection streamDirection)
+    {
+        AbstractMediaStreamSSRCStats stat =
+            mediaStreamStats[streamDirection.ordinal()].get(ssrc);
+        if(stat == null)
+        {
+            if (streamDirection == StreamDirection.DOWNLOAD)
+                stat = new MediaStreamReceivedSSRCStats(
+                    ssrc, mediaStreamImpl.getStatisticsEngine());
+            else
+                stat = new MediaStreamSentSSRCStats(
+                    ssrc, mediaStreamImpl.getStatisticsEngine());
+
+            mediaStreamStats[streamDirection.ordinal()].put(ssrc, stat);
+        }
+
+        return stat;
+    }
+
+    /**
+     * Returns the receive stats.
+     *
+     * @return the list holding all the stats.
+     */
+    public Collection<? extends MediaStreamSSRCStats> getReceivedStats()
+    {
+        return mediaStreamStats[StreamDirection.DOWNLOAD.ordinal()].values();
+    }
+
+    /**
+     * Returns the sent stats.
+     *
+     * @return the list holding all the stats.
+     */
+    public Collection<? extends MediaStreamSSRCStats> getSentStats()
+    {
+        return mediaStreamStats[StreamDirection.UPLOAD.ordinal()].values();
     }
 }
