@@ -15,16 +15,12 @@
  */
 package org.jitsi.impl.neomedia.rtp.translator;
 
-import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.codec.video.vp8.*;
 import org.jitsi.impl.neomedia.rtp.*;
-import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.event.*;
-import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
 import org.jitsi.util.concurrent.*;
 
@@ -190,7 +186,6 @@ public class RTCPFeedbackMessageSender
     public void maybeStopRequesting(
         StreamRTPManagerDesc streamRTPManager,
         int ssrc,
-        int pt,
         byte[] buf,
         int off,
         int len)
@@ -198,7 +193,7 @@ public class RTCPFeedbackMessageSender
         KeyframeRequester kfRequester = kfRequesters.get(ssrc);
         if (kfRequester != null)
         {
-            kfRequester.maybeStopRequesting(streamRTPManager, pt, buf, off, len);
+            kfRequester.maybeStopRequesting(streamRTPManager, buf, off, len);
         }
     }
 
@@ -264,7 +259,6 @@ public class RTCPFeedbackMessageSender
          */
         public void maybeStopRequesting(
             StreamRTPManagerDesc streamRTPManager,
-            int pt,
             byte[] buf,
             int off,
             int len)
@@ -274,32 +268,8 @@ public class RTCPFeedbackMessageSender
                 return;
             }
 
-            // Reduce auto-boxing (even tho the compiler or the JIT should do
-            // this automatically).
-            Byte redPT = null, vp8PT = null;
-
-            // XXX do we want to do this only once?
-            for (Map.Entry<Byte, MediaFormat> entry : streamRTPManager
-                .streamRTPManager.getMediaStream().getDynamicRTPPayloadTypes()
-                .entrySet())
-            {
-                String encoding = entry.getValue().getEncoding();
-                if (Constants.VP8.equals(encoding))
-                {
-                    vp8PT = entry.getKey();
-                }
-                else if (Constants.RED.equals(encoding))
-                {
-                    redPT = entry.getKey();
-                }
-            }
-
-            if (vp8PT == null || vp8PT != pt)
-            {
-                return;
-            }
-
-            if (!Utils.isKeyFrame(buf, off, len, redPT, vp8PT))
+            if(!streamRTPManager
+                .streamRTPManager.getMediaStream().isKeyFrame(buf, off, len))
             {
                 return;
             }

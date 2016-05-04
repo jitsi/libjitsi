@@ -59,6 +59,25 @@ public class DePacketizer
     public static final byte[] NAL_PREFIX = { 0, 0, 0, 1 };
 
     /**
+     * Constants used to detect H264 keyframes in rtp packet
+     */
+    private static final byte kTypeMask = 0x1F;
+    // Nalu
+    private static final byte kIdr = 5;
+    private static final byte kSei = 6;
+    private static final byte kSps = 7;
+    private static final byte kPps = 8;
+    private static final byte kStapA = 24;
+    private static final byte kFuA = 28;
+
+    // Header sizes
+    private static final int kNalHeaderSize = 1;
+    private static final int kFuAHeaderSize = 2;
+    private static final int kLengthFieldSize = 2;
+    private static final int kStapAHeaderSize = kNalHeaderSize + kLengthFieldSize;
+    private static final int kNalUSize = 2;
+
+  /**
      * The indicator which determines whether incomplete NAL units are output
      * from the H.264 <tt>DePacketizer</tt> to the decoder. It is advisable to
      * output incomplete NAL units because the FFmpeg H.264 decoder is able to
@@ -349,7 +368,6 @@ public class DePacketizer
      *
      * @throws ResourceUnavailableException if any of the resources that this
      * <tt>Codec</tt> needs to operate cannot be acquired
-     * @see AbstractCodecExt#doOpen()
      */
     @Override
     protected synchronized void doOpen()
@@ -516,6 +534,107 @@ public class DePacketizer
         setRequestKeyFrame(requestKeyFrame);
 
         return ret;
+    }
+
+    /**
+     * Returns true if the buffer contains a H264 key frame at offset
+     * <tt>offset</tt>.
+     *
+     * @param buff the byte buffer to check
+     * @param off the offset in the byte buffer where the actuall data starts
+     * @param len the length of the data in the byte buffer
+     * @return true if the buffer contains a H264 key frame at offset
+     * <tt>offset</tt>.
+     */
+    public static boolean isKeyFrame(byte[] buff, int off, int len)
+    {
+      if (buff == null || buff.length < off + Math.max(len, 1))
+      {
+          return false;
+      }
+
+      int nalType =  buff[off] & kTypeMask;
+      // Single NAL Unit Packet
+      if (nalType == kFuA)
+      {
+          // Fragmented NAL units (FU-A).
+          if (parseFuaNaluForKeyFrame(buff, off, len))
+          {
+              return true;
+          }
+      }
+      else
+      {
+          if (parseSingleNaluForKeyFrame(buff, off, len))
+          {
+              return true;
+          }
+      }
+
+      return false;
+    }
+
+    /**
+     * Checks if a a fragment of a NAL unit from a specific FU-A RTP packet
+     * payload is keyframe or not
+     */
+    private static boolean parseFuaNaluForKeyFrame(byte[] buff, int off, int len) {
+      if (len < kFuAHeaderSize)
+      {
+          return false;
+      }
+      return ((buff[off + 1] & kTypeMask) == kIdr);
+    }
+
+    /**
+     * Checks if a a fragment of a NAL unit from a specific FU-A RTP packet
+     * payload is keyframe or not
+     */
+    private static boolean parseSingleNaluForKeyFrame(byte[] buff, int off, int len)
+    {
+        int naluStart = off + kNalHeaderSize;
+        int naluLength = len - kNalHeaderSize;
+        int nalType = buff[off] & kTypeMask;
+        if (nalType == kStapA)
+        {
+            // Skip the StapA header (StapA nal type + length).
+            if (len <= kStapAHeaderSize)
+            {
+                logger.error("StapA header truncated.");
+                return false;
+            }
+            if (!verifyStapANaluLengths(buff, naluStart, naluLength)) {
+                logger.error("StapA packet with incorrect NALU packet lengths.");
+                return false;
+            }
+            nalType = buff[off + kStapAHeaderSize] & kTypeMask;
+        }
+        return (nalType == kIdr || nalType == kSps ||
+                nalType == kPps || nalType == kSei);
+    }
+
+    private static boolean verifyStapANaluLengths(byte[] data, int offset,
+        int lengthRemaining)
+    {
+        int initialLength = lengthRemaining;
+        while (lengthRemaining > 0 && offset + 1 < initialLength)
+        {
+            // Buffer doesn't contain room for additional nalu length.
+            if (lengthRemaining < kNalUSize)
+            {
+                return false;
+            }
+            int naluSize = data[offset] << 8 | data[offset+1];
+            offset += kNalUSize;
+            lengthRemaining -= kNalUSize;
+            if (naluSize > lengthRemaining)
+            {
+                return false;
+            }
+            offset += naluSize;
+            lengthRemaining -= naluSize;
+        }
+        return true;
     }
 
     /**

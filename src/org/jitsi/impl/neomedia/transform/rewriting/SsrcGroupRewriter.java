@@ -19,7 +19,6 @@ import java.io.*;
 import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.codec.video.vp8.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.service.neomedia.*;
@@ -291,7 +290,10 @@ class SsrcGroupRewriter
             // sequence number, and RTP timestamp.
             if (TRACE && p != null)
             {
-                boolean isKeyframe = isKeyFrame(p);
+                boolean isKeyframe
+                  = ssrcRewritingEngine.getMediaStream().isKeyFrame(
+                  p.getBuffer(), p.getOffset(), p.getLength());
+
                 long ssrc1 = p.getSSRCAsLong();
                 int seqnum1 = p.getSequenceNumber();
                 long ts1 = p.getTimestamp();
@@ -374,7 +376,10 @@ class SsrcGroupRewriter
             {
                 // We're only supposed to switch on key frames. Here we check if
                 // that's the case.
-                if (!isKeyFrame(pkt))
+                boolean isKeyframe
+                    = ssrcRewritingEngine.getMediaStream().isKeyFrame(
+                    pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+                if (!isKeyframe)
                 {
                     logger.warn(
                             "We're switching NOT on a key frame. seqnum="
@@ -411,22 +416,6 @@ class SsrcGroupRewriter
                         + "! Somebody is messing with us! streamHashCode="
                         + ssrcRewritingEngine.getMediaStream().hashCode());
         }
-    }
-
-    /**
-     * Determines whether a specific packet is a key frame.
-     *
-     * @param pkt the {@code RawPacket} to be determined whether it is a key
-     * frame
-     * @return {@code true} if {@pkt} is a key frame; otherwise, {@code false}
-     */
-    boolean isKeyFrame(RawPacket pkt)
-    {
-        long sourceSSRC = pkt.getSSRCAsLong();
-        Byte redPT = ssrcRewritingEngine.ssrc2red.get(sourceSSRC);
-        byte vp8PT = 0x64;
-
-        return Utils.isKeyFrame(pkt, redPT, vp8PT);
     }
 
     /**
