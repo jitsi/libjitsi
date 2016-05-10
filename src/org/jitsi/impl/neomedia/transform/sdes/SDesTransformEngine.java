@@ -171,6 +171,8 @@ public class SDesTransformEngine
         switch (cs.getEncryptionAlgorithm())
         {
             case SrtpCryptoSuite.ENCRYPTION_AES128_CM:
+            case SrtpCryptoSuite.ENCRYPTION_AES192_CM:
+            case SrtpCryptoSuite.ENCRYPTION_AES256_CM:
                 return SRTPPolicy.AESCM_ENCRYPTION;
             case SrtpCryptoSuite.ENCRYPTION_AES128_F8:
                 return SRTPPolicy.AESF8_ENCRYPTION;
