@@ -40,8 +40,8 @@ public class SRTPCipherCTRJava extends SRTPCipherCTR
      */
     public void init(byte[] key)
     {
-        if (key.length != BLKLEN)
-            throw new IllegalArgumentException("key.length != BLKLEN");
+        if (key.length != 16 && key.length != 24 && key.length != 32)
+            throw new IllegalArgumentException("Not an AES key length");
 
         cipher.init(true, new KeyParameter(key));
     }

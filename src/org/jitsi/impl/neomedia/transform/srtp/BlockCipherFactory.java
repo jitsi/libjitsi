@@ -27,11 +27,12 @@ public interface BlockCipherFactory
 {
     /**
      * Initializes a new <tt>BlockCipher</tt> instance.
+     * @param keySize AES key size (16, 24, 32 bytes)
      *
      * @return a new <tt>BlockCipher</tt> instance
      * @throws Exception if anything goes wrong while initializing a new
      * <tt>BlockCipher</tt> instance
      */
-    public BlockCipher createBlockCipher()
+    public BlockCipher createBlockCipher(int keySize)
         throws Exception;
 }

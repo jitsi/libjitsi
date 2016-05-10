@@ -121,11 +121,6 @@ public class AES
     private static final byte[] in = new byte[BLOCK_SIZE * 1024];
 
     /**
-     * The key buffer to be used for the benchmarking of {@link #factories}.
-     */
-    private static final byte[] key = new byte[BLOCK_SIZE];
-
-    /**
      * The <tt>Logger</tt> used by the <tt>AES</tt> class to print out debug
      * information.
      */
@@ -155,13 +150,16 @@ public class AES
      * and returns the fastest-performing element.
      *
      * @param factories the <tt>BlockCipherFactory</tt> instances to benchmark
+     * @param keySize AES key size (16, 24, 32 bytes)
      * @return the fastest-performing <tt>BlockCipherFactory</tt> among the
      * specified <tt>factories</tt>
      */
-    private static BlockCipherFactory benchmark(BlockCipherFactory[] factories)
+    private static BlockCipherFactory benchmark(BlockCipherFactory[] factories,
+        int keySize)
     {
         Random random = AES.random;
-        byte[] key = AES.key;
+        byte[] key = new byte[keySize];
+        random.nextBytes(key);
         byte[] in = AES.in;
 
         random.nextBytes(key);
@@ -185,7 +183,7 @@ public class AES
 
             try
             {
-                BlockCipher cipher = factory.createBlockCipher();
+                BlockCipher cipher = factory.createBlockCipher(keySize);
 
                 if (cipher == null)
                 {
@@ -249,11 +247,12 @@ public class AES
     /**
      * Initializes a new <tt>BlockCipher</tt> instance which implements Advanced
      * Encryption Standard (AES).
+     * @param keySize length of the AES key (16, 24, 32 bytes)
      *
      * @return a new <tt>BlockCipher</tt> instance which implements Advanced
      * Encryption Standard (AES)
      */
-    public static BlockCipher createBlockCipher()
+    public static BlockCipher createBlockCipher(int keySize)
     {
         BlockCipherFactory factory;
 
@@ -268,7 +267,7 @@ public class AES
             {
                 try
                 {
-                    factory = getBlockCipherFactory();
+                    factory = getBlockCipherFactory(keySize);
                 }
                 catch (Throwable t)
                 {
@@ -313,7 +312,7 @@ public class AES
 
         try
         {
-            return factory.createBlockCipher();
+            return factory.createBlockCipher(keySize);
         }
         catch (Exception ex)
         {
@@ -502,11 +501,12 @@ public class AES
      * Benchmarks the well-known <tt>BlockCipherFactory</tt> implementations and
      * returns the fastest one. 
      * </p>
+     * @param keySize AES key size (16, 24, 32 bytes)
      *
      * @return a <tt>BlockCipherFactory</tt> instance to be used by the
      * <tt>AES</tt> class to initialize <tt>BlockCipher</tt>s
      */
-    private static BlockCipherFactory getBlockCipherFactory()
+    private static BlockCipherFactory getBlockCipherFactory(int keySize)
     {
         BlockCipherFactory[] factories = AES.factories;
 
@@ -521,7 +521,7 @@ public class AES
         // Benchmark the BlockCiphers provided by the available
         // BlockCipherFactories in order to select the fastest-performing
         // BlockCipherFactory.
-        BlockCipherFactory minFactory = benchmark(factories);
+        BlockCipherFactory minFactory = benchmark(factories, keySize);
 
         // The user may have specified a specific BlockCipherFactory class
         // (name) through the FACTORY_CLASS_NAME_PNAME ConfigurationService
@@ -612,9 +612,11 @@ public class AES
          * {@inheritDoc}
          */
         @Override
-        public BlockCipher createBlockCipher()
+        public BlockCipher createBlockCipher(int keySize)
             throws Exception
         {
+            // key size can be ignored for BouncyCastle, it determines the
+            // AES algorithm to be used with the KeyParameter
             return new AESFastEngine();
         }
     }
@@ -632,7 +634,7 @@ public class AES
          */
         public SunJCEBlockCipherFactory()
         {
-            super("AES_128/ECB/NoPadding", "SunJCE");
+            super("AES_<size>/ECB/NoPadding", "SunJCE");
         }
     }
 
@@ -721,7 +723,7 @@ public class AES
         public SunPKCS11BlockCipherFactory()
             throws Exception
         {
-            super("AES_128/ECB/NoPadding", getProvider());
+            super("AES_<size>/ECB/NoPadding", getProvider());
         }
     }
 }

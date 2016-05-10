@@ -88,11 +88,13 @@ public class SecurityProviderBlockCipherFactory
      * {@inheritDoc}
      */
     @Override
-    public BlockCipher createBlockCipher()
+    public BlockCipher createBlockCipher(int keySize)
         throws Exception
     {
         return
             new BlockCipherAdapter(
-                    Cipher.getInstance(transformation, provider));
+                    Cipher.getInstance(transformation.replaceFirst(
+                        "<size>",
+                        new Integer(keySize * 8).toString()), provider));
     }
 }
