@@ -58,6 +58,28 @@ public class RecurringProcessibleExecutor
     private Thread thread;
 
     /**
+     * A string which will be added to the name of {@link #thread}.
+     */
+    private String name = "";
+
+    /**
+     * Initializes a new {@link RecurringProcessibleExecutor} instance.
+     */
+    public RecurringProcessibleExecutor()
+    {
+    }
+
+    /**
+     * Initializes a new {@link RecurringProcessibleExecutor} instance.
+     * @param name a string to be added to the name of the thread which this
+     * instance will start.
+     */
+    public RecurringProcessibleExecutor(String name)
+    {
+        this.name = name;
+    }
+
+    /**
      * De-registers a {@code RecurringProcessible} from this {@code Executor} so
      * that its {@link RecurringProcessible#process()} is no longer invoked (by
      * this instance).
@@ -298,7 +320,7 @@ public class RecurringProcessibleExecutor
                     thread.setDaemon(true);
                     thread.setName(
                             RecurringProcessibleExecutor.class.getName()
-                                + ".thread");
+                                + ".thread-" + name);
 
                     boolean started = false;
 

@@ -48,7 +48,9 @@ public class CachingTransformer
      * <tt>CachingTransformer</tt> class and its instances.
      */
     private static final RecurringProcessibleExecutor
-        recurringProcessibleExecutor = new RecurringProcessibleExecutor();
+        recurringProcessibleExecutor
+            = new RecurringProcessibleExecutor(
+                    CachingTransformer.class.getSimpleName());
 
     /**
      * The <tt>ConfigurationService</tt> used to load caching configuration.
