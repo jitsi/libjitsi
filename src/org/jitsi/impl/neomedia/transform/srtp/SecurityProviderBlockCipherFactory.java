@@ -93,8 +93,10 @@ public class SecurityProviderBlockCipherFactory
     {
         return
             new BlockCipherAdapter(
-                    Cipher.getInstance(transformation.replaceFirst(
-                        "<size>",
-                        new Integer(keySize * 8).toString()), provider));
+                    Cipher.getInstance(
+                            transformation.replaceFirst(
+                                    "<size>",
+                                    Integer.toString(keySize * 8)),
+                            provider));
     }
 }

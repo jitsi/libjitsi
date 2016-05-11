@@ -211,8 +211,9 @@ class BaseSRTPCryptoContext
             }
             else
             {
-                cipherCtr = new SRTPCipherCTRJava(
-                    AES.createBlockCipher(encKeyLength));
+                cipherCtr
+                    = new SRTPCipherCTRJava(
+                            AES.createBlockCipher(encKeyLength));
             }
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];

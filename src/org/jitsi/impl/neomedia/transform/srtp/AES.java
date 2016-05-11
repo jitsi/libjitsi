@@ -154,8 +154,9 @@ public class AES
      * @return the fastest-performing <tt>BlockCipherFactory</tt> among the
      * specified <tt>factories</tt>
      */
-    private static BlockCipherFactory benchmark(BlockCipherFactory[] factories,
-        int keySize)
+    private static BlockCipherFactory benchmark(
+            BlockCipherFactory[] factories,
+            int keySize)
     {
         Random random = AES.random;
         byte[] key = new byte[keySize];
@@ -615,8 +616,8 @@ public class AES
         public BlockCipher createBlockCipher(int keySize)
             throws Exception
         {
-            // key size can be ignored for BouncyCastle, it determines the
-            // AES algorithm to be used with the KeyParameter
+            // The value of keySize can be ignored for BouncyCastle, it
+            // determines the AES algorithm to be used with the KeyParameter.
             return new AESFastEngine();
         }
     }
