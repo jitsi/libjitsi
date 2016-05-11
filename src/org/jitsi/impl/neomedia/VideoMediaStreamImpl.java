@@ -71,7 +71,8 @@ public class VideoMediaStreamImpl
      */
     private static final RecurringProcessibleExecutor
         recurringProcessibleExecutor
-            = new RecurringProcessibleExecutor();
+            = new RecurringProcessibleExecutor(
+                    VideoMediaStreamImpl.class.getSimpleName());
 
     /**
      * The indicator which determines whether RTCP feedback Picture Loss
