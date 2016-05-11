@@ -58,15 +58,17 @@ public class RecurringProcessibleExecutor
     private Thread thread;
 
     /**
-     * A string which will be added to the name of {@link #thread}.
+     * A {@code String} which will be added to the name of {@link #thread}.
+     * Meant to facilitate debugging.
      */
-    private String name = "";
+    private final String name;
 
     /**
      * Initializes a new {@link RecurringProcessibleExecutor} instance.
      */
     public RecurringProcessibleExecutor()
     {
+        this(/* name */ "");
     }
 
     /**
