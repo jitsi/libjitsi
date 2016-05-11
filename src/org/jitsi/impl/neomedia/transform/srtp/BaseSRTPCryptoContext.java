@@ -200,17 +200,20 @@ class BaseSRTPCryptoContext
             break;
 
         case SRTPPolicy.AESF8_ENCRYPTION:
-            cipherF8 = new SRTPCipherF8(AES.createBlockCipher());
+            cipherF8 = new SRTPCipherF8(AES.createBlockCipher(encKeyLength));
             //$FALL-THROUGH$
 
         case SRTPPolicy.AESCM_ENCRYPTION:
-            if (OpenSSLWrapperLoader.isLoaded())
+            // use OpenSSL if available and AES128 is in use
+            if (OpenSSLWrapperLoader.isLoaded() && encKeyLength == 16)
             {
                 cipherCtr = new SRTPCipherCTROpenSSL();
             }
             else
             {
-                cipherCtr = new SRTPCipherCTRJava(AES.createBlockCipher());
+                cipherCtr
+                    = new SRTPCipherCTRJava(
+                            AES.createBlockCipher(encKeyLength));
             }
             encKey = new byte[encKeyLength];
             saltKey = new byte[saltKeyLength];
