@@ -16,7 +16,6 @@
 package org.jitsi.service.neomedia;
 
 import java.awt.*;
-
 import java.util.*;
 
 import org.jitsi.service.neomedia.rtp.*;
@@ -382,16 +381,16 @@ public interface MediaStreamStats
     public long getSendingBitrate();
 
     /**
-     * Returns the receive stats.
+     * Returns the received stats.
      *
-     * @return the list holding all the stats.
+     * @return a list holding all received stats.
      */
     public Collection<? extends MediaStreamSSRCStats> getReceivedStats();
 
     /**
      * Returns the sent stats.
      *
-     * @return the list holding all the stats.
+     * @return a list holding all sent stats.
      */
     public Collection<? extends MediaStreamSSRCStats> getSentStats();
 }

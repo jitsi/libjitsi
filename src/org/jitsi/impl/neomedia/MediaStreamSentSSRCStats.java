@@ -18,7 +18,8 @@ package org.jitsi.impl.neomedia;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
 
 /**
- * Media stream statistics per send ssrc implementation.
+ * Media stream statistics implementation per send SSRC.
+ *
  * @author Damian Minkov
  */
 public class MediaStreamSentSSRCStats
@@ -30,20 +31,18 @@ public class MediaStreamSentSSRCStats
     }
 
     /**
-     * The number of bytes sent by the stream.
-     * @return number of bytes.
+     * {@inheritDoc}
      */
     public long getNbBytes()
     {
-        return this.statisticsEngine.getNbBytesSent(this.ssrc);
+        return statisticsEngine.getNbBytesSent(ssrc);
     }
 
     /**
-     * The number of packets sent by the stream.
-     * @return number of packets.
+     * {@inheritDoc}
      */
     public long getNbPackets()
     {
-        return this.statisticsEngine.getRtpPacketsSent(this.ssrc);
+        return statisticsEngine.getRtpPacketsSent(ssrc);
     }
 }

@@ -147,37 +147,37 @@ public class StatisticsEngine
      * The number of RTCP sender reports (SR) and/or receiver reports (RR) sent.
      * Mapped per ssrc.
      */
-    private Map<Long,Long> numberOfRTCPReportsMap = new HashMap<>();
+    private final Map<Long,Long> numberOfRTCPReportsMap = new HashMap<>();
 
     /**
      * The sum of the jitter values we have reported in RTCP reports, in RTP
      * timestamp units.
      */
-    private Map<Long,Long> jitterSumMap = new HashMap<>();
+    private final Map<Long,Long> jitterSumMap = new HashMap<>();
 
     /**
      * The number of RTP packets sent though this instance.
      * Mapped per ssrc.
      */
-    private Map<Long,Long> rtpPacketsSentMap = new HashMap<>();
+    private final Map<Long,Long> rtpPacketsSentMap = new HashMap<>();
 
     /**
      * The number of RTP packets sent though this instance.
      * Mapped per ssrc.
      */
-    private Map<Long,Long> rtpPacketsReceivedMap = new HashMap<>();
+    private final Map<Long,Long> rtpPacketsReceivedMap = new HashMap<>();
 
     /**
      * The bytes of RTP packets sent though this instance.
      * Mapped per ssrc.
      */
-    private Map<Long,Long> rtpBytesSentMap = new HashMap<>();
+    private final Map<Long,Long> rtpBytesSentMap = new HashMap<>();
 
     /**
      * The bytes of RTP packets sent though this instance.
      * Mapped per ssrc.
      */
-    private Map<Long,Long> rtpBytesReceivedMap = new HashMap<>();
+    private final Map<Long,Long> rtpBytesReceivedMap = new HashMap<>();
 
     /**
      * The {@link RTCPPacketParserEx} which this instance will use to parse
@@ -196,38 +196,42 @@ public class StatisticsEngine
      * packets.
      */
     private final PacketTransformer rtpTransformer
-            = new SinglePacketTransformer(RTPPacketPredicate.INSTANCE)
-    {
-        @Override
-        public RawPacket transform(RawPacket pkt)
+        = new SinglePacketTransformer(RTPPacketPredicate.INSTANCE)
         {
-            incrementSSRCCounter(
-                StatisticsEngine.this.rtpPacketsSentMap,
-                pkt.getSSRCAsLong(),
-                1);
-            incrementSSRCCounter(
-                StatisticsEngine.this.rtpBytesSentMap,
-                pkt.getSSRCAsLong(),
-                pkt.getLength());
+            @Override
+            public RawPacket transform(RawPacket pkt)
+            {
+                long ssrc = pkt.getSSRCAsLong();
 
-            return pkt;
-        }
+                incrementSSRCCounter(
+                    StatisticsEngine.this.rtpPacketsSentMap,
+                    ssrc,
+                    1);
+                incrementSSRCCounter(
+                    StatisticsEngine.this.rtpBytesSentMap,
+                    ssrc,
+                    pkt.getLength());
 
-        @Override
-        public RawPacket reverseTransform(RawPacket pkt)
-        {
-            incrementSSRCCounter(
-                StatisticsEngine.this.rtpPacketsReceivedMap,
-                pkt.getSSRCAsLong(),
-                1);
-            incrementSSRCCounter(
-                StatisticsEngine.this.rtpBytesReceivedMap,
-                pkt.getSSRCAsLong(),
-                pkt.getLength());
+                return pkt;
+            }
 
-            return pkt;
-        }
-    };
+            @Override
+            public RawPacket reverseTransform(RawPacket pkt)
+            {
+                long ssrc = pkt.getSSRCAsLong();
+
+                incrementSSRCCounter(
+                    StatisticsEngine.this.rtpPacketsReceivedMap,
+                    ssrc,
+                    1);
+                incrementSSRCCounter(
+                    StatisticsEngine.this.rtpBytesReceivedMap,
+                    ssrc,
+                    pkt.getLength());
+
+                return pkt;
+            }
+        };
 
     /**
      * Creates Statistic engine.
@@ -1244,27 +1248,27 @@ public class StatisticsEngine
 
             if(!feedbackReports.isEmpty())
             {
-                RTCPFeedback feedback
-                        = (RTCPFeedback) feedbackReports.get(0);
+                RTCPFeedback feedback = (RTCPFeedback) feedbackReports.get(0);
+                long ssrc = feedback.getSSRC();
                 long jitter = feedback.getJitter();
 
-                incrementSSRCCounter(
-                    numberOfRTCPReportsMap, feedback.getSSRC(), 1);
+                incrementSSRCCounter(numberOfRTCPReportsMap, ssrc, 1);
 
-                if ((jitter < getMinInterArrivalJitter())
-                        || (getMinInterArrivalJitter() == -1))
+                if (jitter < getMinInterArrivalJitter()
+                        || getMinInterArrivalJitter() == -1)
+                {
                     minInterArrivalJitter = jitter;
+                }
                 if (getMaxInterArrivalJitter() < jitter)
                     maxInterArrivalJitter = jitter;
 
-                incrementSSRCCounter(jitterSumMap, feedback.getSSRC(), jitter);
+                incrementSSRCCounter(jitterSumMap, ssrc, jitter);
 
                 lost = feedback.getNumLost();
 
                 if(logger.isTraceEnabled())
                 {
-                    long numberOfRTCPReports
-                        = numberOfRTCPReportsMap.get(feedback.getSSRC());
+                    long numberOfRTCPReports = numberOfRTCPReportsMap.get(ssrc);
                     // As sender reports are sent on every 5 seconds, print
                     // every 4th packet, on every 20 seconds.
                     if(numberOfRTCPReports % 4 == 1)
@@ -1274,25 +1278,23 @@ public class StatisticsEngine
                             = (mediaType == null) ? "" : mediaType.toString();
 
                         buff.append("Sending a report for ")
-                                .append(mediaTypeStr)
-                            .append(" stream SSRC:").append(feedback.getSSRC())
-                            .append(" [");
+                            .append(mediaTypeStr).append(" stream SSRC:")
+                            .append(ssrc).append(" [");
                         // SR includes sender info, RR does not.
                         if (r instanceof RTCPSenderReport)
                         {
                             RTCPSenderReport sr = (RTCPSenderReport) r;
 
                             buff.append("packet count:")
-                                    .append(sr.getSenderPacketCount())
+                                .append(sr.getSenderPacketCount())
                                 .append(", bytes:")
-                                    .append(sr.getSenderByteCount())
-                                .append(", ");
+                                .append(sr.getSenderByteCount()).append(", ");
                         }
                         buff.append("interarrival jitter:").append(jitter)
                             .append(", lost packets:")
-                                .append(feedback.getNumLost())
+                            .append(feedback.getNumLost())
                             .append(", time since previous report:")
-                                .append((int) (feedback.getDLSR() / 65.536))
+                            .append((int) (feedback.getDLSR() / 65.536))
                             .append("ms]");
                         logger.trace(buff);
                     }
@@ -1338,35 +1340,39 @@ public class StatisticsEngine
     }
 
     /**
-     * Utility method to accumulate values stored in the map.
-     * @param map the map which values will be
-     * @return
+     * Computes the sum of the values of a specific {@code Map} with
+     * {@code Long} values.
+     *
+     * @param map the {@code Map} with {@code Long} values to sum up
+     * @return the sum of the values of the specified {@code map}
      */
     private static long getCumulativeValue(Map<?,Long> map)
     {
-        long accumulatedValues = 0;
-        for (Map.Entry<?,Long> en : map.entrySet())
+        long cumulativeValue = 0;
+
+        for (Long value : map.values())
         {
-            accumulatedValues += en.getValue();
+            cumulativeValue += value;
         }
-        return accumulatedValues;
+        return cumulativeValue;
     }
 
     /**
      * Utility method to increment map value with specified step. If entry is
      * missing add it.
+     *
      * @param map the map holding the values
      * @param ssrc the key of the value to increment
      * @param step increment step value
      */
     private static void incrementSSRCCounter(
-        Map<Long,Long> map, long ssrc, long step)
+            Map<Long,Long> map,
+            long ssrc,
+            long step)
     {
         Long count = map.get(ssrc);
-        if(count == null)
-            map.put(ssrc, step);
-        else
-            map.put(ssrc, count + step);
+
+        map.put(ssrc, (count == null) ? step : (count + step));
     }
 
     /**

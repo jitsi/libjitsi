@@ -16,32 +16,41 @@
 package org.jitsi.service.neomedia;
 
 /**
- * Media stream statistics per ssrc.
+ * Media stream statistics per SSRC.
+ *
  * @author Damian Minkov
  */
 public interface MediaStreamSSRCStats
 {
     /**
-     * Returns a {@code long} the SSRC of these stats.
-     * @return a {@code long} the SSRC of these stats.
+     * Returns the SSRC of these stats (as a {@code long} value).
+     *
+     * @return a {@code long} value which represents the SSRC of these stats.
      */
     public long getSSRC();
 
     /**
-     * The jitter received/sent in a RTCP feedback (in ms).
-     * @return the last jitter received/sent in a RTCP feedback.
+     * The jitter received/sent in an RTCP feedback (in milliseconds).
+     *
+     * @return the last jitter received/sent in an RTCP feedback.
      */
     public double getJitter();
 
     /**
-     * The number of bytes sent or received by the stream.
-     * @return number of bytes.
+     * The number of bytes sent or received by the associated
+     * {@code MediaStream}.
+     *
+     * @return the number of bytes sent or received by the associated
+     * {@code MediaStream}.
      */
     public long getNbBytes();
 
     /**
-     * The number of packets sent or received by the stream.
-     * @return number of packets.
+     * The number of packets sent or received by the associated
+     * {@code MediaStream}.
+     *
+     * @return the number of packets sent or received by the associated
+     * {@code MediaStream}.
      */
     public long getNbPackets();
 
@@ -49,8 +58,8 @@ public interface MediaStreamSSRCStats
      * Returns the RTT computed with the RTCP feedback (cf. RFC3550, section
      * 6.4.1, subsection "delay since last SR (DLSR): 32 bits").
      *
-     * @return The RTT computed with the RTCP feedback. Returns <tt>-1</tt> if
-     * the RTT has not been computed yet. Otherwise the RTT in ms.
+     * @return the RTT computed with the RTCP feedback. Returns <tt>-1</tt> if
+     * the RTT has not been computed yet. Otherwise, the RTT in milliseconds.
      */
     public long getRttMs();
 }

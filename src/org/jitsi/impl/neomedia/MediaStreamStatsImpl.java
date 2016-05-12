@@ -69,8 +69,8 @@ public class MediaStreamStatsImpl
     /**
      * List of stats per ssrc.
      */
-    private Map<Long,AbstractMediaStreamSSRCStats>[] mediaStreamStats =
-        new Map[] {new HashMap<>(), new HashMap<>()};
+    private final Map<Long,AbstractMediaStreamSSRCStats>[] mediaStreamStats
+        = new Map[] { new HashMap<>(), new HashMap<>() };
 
     /**
      * Computes an Exponentially Weighted Moving Average (EWMA). Thus, the most
@@ -832,26 +832,25 @@ public class MediaStreamStatsImpl
      * @param streamDirection The stream direction (DOWNLOAD or UPLOAD) of the
      * stream from which this function retrieve the number of sent/received
      * bytes.
-     *
      * @return the number of sent/received bytes for this stream.
      */
     private long getNbBytes(StreamDirection streamDirection)
     {
-        if(mediaStreamImpl.getStatisticsEngine() == null)
-            return 0;
-
+        StatisticsEngine statisticsEngine
+            = mediaStreamImpl.getStatisticsEngine();
         long nbBytes = 0;
 
-        switch(streamDirection)
+        if (statisticsEngine != null)
         {
-        case DOWNLOAD:
-            nbBytes = mediaStreamImpl
-                .getStatisticsEngine().getNbBytesReceived();
-            break;
-        case UPLOAD:
-            nbBytes
-                = mediaStreamImpl.getStatisticsEngine().getNbBytesSent();
-            break;
+            switch (streamDirection)
+            {
+            case DOWNLOAD:
+                nbBytes = statisticsEngine.getNbBytesReceived();
+                break;
+            case UPLOAD:
+                nbBytes = statisticsEngine.getNbBytesSent();
+                break;
+            }
         }
         return nbBytes;
     }
@@ -990,27 +989,26 @@ public class MediaStreamStatsImpl
      * @param streamDirection The stream direction (DOWNLOAD or UPLOAD) of the
      * stream from which this function retrieve the number of sent/received
      * packets.
-     *
      * @return the number of packets sent/received for this stream.
      */
     private long getNbPDU(StreamDirection streamDirection)
     {
+        StatisticsEngine statisticsEngine
+            = mediaStreamImpl.getStatisticsEngine();
         // We don't use the values from the RTPManager, because they are
         // incorrect when an RTPTranslator is used.
         long nbPDU = 0;
 
-        StatisticsEngine statisticsEngine
-                = mediaStreamImpl.getStatisticsEngine();
         if (statisticsEngine != null)
         {
-            switch(streamDirection)
+            switch (streamDirection)
             {
             case UPLOAD:
                 nbPDU = statisticsEngine.getRtpPacketsSent();
                 break;
-
             case DOWNLOAD:
                 nbPDU = statisticsEngine.getRtpPacketsReceived();
+                break;
             }
         }
         return nbPDU;
@@ -1392,7 +1390,9 @@ public class MediaStreamStatsImpl
         // Updates the loss rate with the RTCP sender report feedback, since
         // this is the only information source available for the upload stream.
         long uploadNewNbRecv = feedback.getXtndSeqNum();
+
         nbPacketsLostUpload = feedback.getNumLost();
+
         long newNbLost
             = nbPacketsLostUpload - nbLost[streamDirection.ordinal()];
         long nbSteps = uploadNewNbRecv - uploadFeedbackNbPackets;
@@ -1410,8 +1410,7 @@ public class MediaStreamStatsImpl
         {
             setRttMs(rtt);
 
-            getStats(
-                feedback.getSSRC(), streamDirection).setRttMs(rtt);
+            getStats(feedback.getSSRC(), streamDirection).setRttMs(rtt);
         }
     }
 
@@ -1657,27 +1656,27 @@ public class MediaStreamStatsImpl
     private AbstractMediaStreamSSRCStats getStats(
         long ssrc, StreamDirection streamDirection)
     {
-        AbstractMediaStreamSSRCStats stat =
-            mediaStreamStats[streamDirection.ordinal()].get(ssrc);
-        if(stat == null)
+        Map<Long,AbstractMediaStreamSSRCStats> stats
+            = mediaStreamStats[streamDirection.ordinal()];
+        AbstractMediaStreamSSRCStats stat = stats.get(ssrc);
+
+        if (stat == null)
         {
+            StatisticsEngine statisticsEngine
+                = mediaStreamImpl.getStatisticsEngine();
+
             if (streamDirection == StreamDirection.DOWNLOAD)
-                stat = new MediaStreamReceivedSSRCStats(
-                    ssrc, mediaStreamImpl.getStatisticsEngine());
+                stat = new MediaStreamReceivedSSRCStats(ssrc, statisticsEngine);
             else
-                stat = new MediaStreamSentSSRCStats(
-                    ssrc, mediaStreamImpl.getStatisticsEngine());
+                stat = new MediaStreamSentSSRCStats(ssrc, statisticsEngine);
 
-            mediaStreamStats[streamDirection.ordinal()].put(ssrc, stat);
+            stats.put(ssrc, stat);
         }
-
         return stat;
     }
 
     /**
-     * Returns the receive stats.
-     *
-     * @return the list holding all the stats.
+     * {@inheritDoc}
      */
     public Collection<? extends MediaStreamSSRCStats> getReceivedStats()
     {
@@ -1685,9 +1684,7 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * Returns the sent stats.
-     *
-     * @return the list holding all the stats.
+     * {@inheritDoc}
      */
     public Collection<? extends MediaStreamSSRCStats> getSentStats()
     {

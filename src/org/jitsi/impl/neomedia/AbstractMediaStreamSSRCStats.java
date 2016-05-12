@@ -19,7 +19,7 @@ import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.service.neomedia.*;
 
 /**
- * Media stream statistics per ssrc send or receive.
+ * Media stream statistics per send or receive SSRC.
  *
  * @author Damian Minkov
  */
@@ -29,29 +29,31 @@ public abstract class AbstractMediaStreamSSRCStats
     /**
      * The <tt>StatisticsEngine</tt> of this instance.
      */
-    protected StatisticsEngine statisticsEngine;
+    protected final StatisticsEngine statisticsEngine;
 
     /**
-     * The ssrc which stats are we handling.
+     * The SSRC of this piece of statistics.
      */
     protected final long ssrc;
 
     /**
-     * The last jitter received/sent in a RTCP feedback (in ms).
+     * The last jitter received/sent in an RTCP feedback (in ms).
      */
     private double jitter = 0;
 
     /**
      * The RTT computed with the RTCP feedback (cf. RFC3550, section 6.4.1,
-     * subsection "delay since last SR (DLSR): 32 bits").
-     * -1 if the RTT has not been computed yet. Otherwise the RTT in ms.
+     * subsection "delay since last SR (DLSR): 32 bits"). {@code -1} if the RTT
+     * has not been computed yet. Otherwise, the RTT in milliseconds.
      */
     private long rttMs = -1;
 
     /**
-     * Inits AbstractMediaStreamSSRCStats.
-     * @param ssrc the ssrc of the stream.
-     * @param statisticsEngine the stats engine instance to use.
+     * Initializes a new {@code AbstractMediaStreamSSRCStats} instance.
+     *
+     * @param ssrc the SSRC of the {@code MediaStream} to associate with the new
+     * instance.
+     * @param statisticsEngine the {@code StatisticsEngine} instance to use.
      */
     AbstractMediaStreamSSRCStats(long ssrc, StatisticsEngine statisticsEngine)
     {
@@ -60,8 +62,7 @@ public abstract class AbstractMediaStreamSSRCStats
     }
 
     /**
-     * Returns a {@code long} the SSRC of these stats.
-     * @return a {@code long} the SSRC of these stats.
+     * {@inheritDoc}
      */
     public long getSSRC()
     {
@@ -69,8 +70,7 @@ public abstract class AbstractMediaStreamSSRCStats
     }
 
     /**
-     * The jitter received/sent in a RTCP feedback (in ms).
-     * @return the last jitter received/sent in a RTCP feedback.
+     * {@inheritDoc}
      */
     public double getJitter()
     {
@@ -80,7 +80,8 @@ public abstract class AbstractMediaStreamSSRCStats
     /**
      * Sets the last jitter that was sent/received.
      *
-     * @param jitter the new value
+     * @param jitter the new value to set on this instance as the last
+     * sent/received jitter
      */
     public void setJitter(double jitter)
     {
@@ -88,23 +89,7 @@ public abstract class AbstractMediaStreamSSRCStats
     }
 
     /**
-     * The number of bytes sent or received by the stream.
-     * @return number of bytes.
-     */
-    public abstract long getNbBytes();
-
-    /**
-     * The number of packets sent or received by the stream.
-     * @return number of packets.
-     */
-    public abstract long getNbPackets();
-
-    /**
-     * Returns the RTT computed with the RTCP feedback (cf. RFC3550, section
-     * 6.4.1, subsection "delay since last SR (DLSR): 32 bits").
-     *
-     * @return The RTT computed with the RTCP feedback. Returns <tt>-1</tt> if
-     * the RTT has not been computed yet. Otherwise the RTT in ms.
+     * {@inheritDoc}
      */
     public long getRttMs()
     {
@@ -112,11 +97,9 @@ public abstract class AbstractMediaStreamSSRCStats
     }
 
     /**
-     * Sets a specific value on {@link #rttMs}. If there is an actual difference
-     * between the old and the new values, notifies the (known)
-     * <tt>CallStatsObserver</tt>s.
+     * Sets a specific value on {@link #rttMs}.
      *
-     * @param rttMs the value to set on <tt>MediaStreamStatsImpl.rttMs</tt>
+     * @param rttMs the new value to set on {@link #rttMs}
      */
     public void setRttMs(long rttMs)
     {
