@@ -29,6 +29,11 @@ public enum MediaType
     AUDIO("audio"),
 
     /**
+     * Represents a (chat-) MESSAGE media type.
+     */
+    MESSAGE("message"),
+
+    /**
      * Represents a VIDEO media type.
      */
     VIDEO("video"),
@@ -55,8 +60,8 @@ public enum MediaType
     }
 
     /**
-     * Returns the name of this MediaType (e.g. "audio" or "video"). The name
-     * returned by this method is meant for use by session description
+     * Returns the name of this MediaType (e.g. "audio", "message" or "video").
+     * The name returned by this method is meant for use by session description
      * mechanisms such as SIP/SDP or XMPP/Jingle.
      *
      * @return the name of this MediaType (e.g. "audio" or "video").
@@ -69,8 +74,8 @@ public enum MediaType
 
     /**
      * Returns a <tt>MediaType</tt> value corresponding to the specified
-     * <tt>mediaTypeName</tt> or in other words <tt>MediaType.AUDIO</tt> for
-     * "audio" and <tt>MediaType.VIDEO</tt> for "video".
+     * <tt>mediaTypeName</tt> or in other words <tt>AUDIO</tt>, <tt>MESSAGE</tt>
+     * or <tt>VIDEO</tt>.
      *
      * @param mediaTypeName the name that we'd like to parse.
      * @return a <tt>MediaType</tt> value corresponding to the specified
@@ -84,6 +89,9 @@ public enum MediaType
     {
         if(AUDIO.toString().equals(mediaTypeName))
             return AUDIO;
+
+        if(MESSAGE.toString().equals(mediaTypeName))
+            return MESSAGE;
 
         if(VIDEO.toString().equals(mediaTypeName))
             return VIDEO;
