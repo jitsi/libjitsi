@@ -76,7 +76,8 @@ public class RTCPFeedbackMessageSender
      * {@link KeyframeRequester#process()} and trigger their retry logic.
      */
     private final RecurringProcessibleExecutor recurringProcessibleExecutor
-        = new RecurringProcessibleExecutor();
+        = new RecurringProcessibleExecutor(
+                RTCPFeedbackMessageSender.class.getSimpleName());
 
     /**
      * The FIR requesters. One per media sender SSRC.
