@@ -132,6 +132,15 @@ private:
      * \brief Initialize list of supported size.
      */
     void initSupportedFormats();
+
+    /**
+    * \brief Set video format on a specific stream config object.
+    * \param format video format
+    * \param streamConfig the stream config to set the format on
+    * \return S_OK or S_FALSE on success or an HRESULT value describing a
+    * failure
+    */
+    HRESULT setFormat(const DSFormat& format, IAMStreamConfig* streamConfig);
     
     /**
      * \brief Name of the capture device.
