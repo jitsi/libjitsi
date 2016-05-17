@@ -149,14 +149,6 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_sa
     return length;
 }
 
-JNIEXPORT jint JNICALL Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_getBytes
-  (JNIEnv* env, jclass clazz, jlong ptr, jlong buf, jint len)
-{
-    /* copy data */
-    memcpy((void*)buf, (void*)ptr, len);
-    return len;
-}
-
 /**
  * \brief Connects to the specified capture device.
  * \param env JNI environment
