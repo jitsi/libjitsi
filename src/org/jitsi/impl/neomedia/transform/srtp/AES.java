@@ -160,7 +160,6 @@ public class AES
     {
         Random random = AES.random;
         byte[] key = new byte[keySize];
-        random.nextBytes(key);
         byte[] in = AES.in;
 
         random.nextBytes(key);
