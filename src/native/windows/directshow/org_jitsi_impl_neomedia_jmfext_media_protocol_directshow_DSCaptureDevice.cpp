@@ -126,6 +126,14 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_sa
     BYTE *src_ = (BYTE *) (intptr_t) src;
     BYTE *dst_ = (BYTE *) (intptr_t) dst;
 
+    // prevent crashing if the reported length from the callback
+    // doesn't match the expected size
+    size_t imageBytes = fmt.width * fmt.height * (thiz_->getBitPerPixel() / 8);
+    if ((size_t)length < imageBytes)
+    {
+        return 0;
+    }
+
     if (flip)
     {
         size_t height = fmt.height;

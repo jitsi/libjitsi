@@ -561,11 +561,20 @@ public class DirectShowStream
             data = byteBufferPool.getBuffer(length);
             if(data != null)
             {
-                data.setLength(
-                        DSCaptureDevice.samplecopy(
-                                source,
-                                ptr, data.getPtr(), length));
-                dataTimeStamp = System.nanoTime();
+                int copiedLength = 
+                    DSCaptureDevice.samplecopy(
+                        source,
+                        ptr, data.getPtr(), length);
+                if (copiedLength == 0)
+                {
+                    data.free();
+                    data = null;
+                }
+                else
+                {
+                    data.setLength(copiedLength);
+                    dataTimeStamp = System.nanoTime();
+                }
             }
 
             if (nextData != null)
