@@ -26,7 +26,13 @@
 
 #include "DSManager.h"
 #include "DSCaptureDevice.h"
+
+#ifdef _MSC_VER
+#include "qedit.h"
+#else
 #include <qedit.h>
+#endif
+
 #include <stdio.h>
 
 DSManager::DSManager()

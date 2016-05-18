@@ -50,7 +50,7 @@ _DeleteMediaType(AM_MEDIA_TYPE *mt)
 DSCaptureDevice::DSCaptureDevice(const WCHAR* name)
 {
     if(name)
-        m_name = wcsdup(name);
+        m_name = _wcsdup(name);
 
     m_callback = NULL;
 
@@ -109,51 +109,87 @@ const WCHAR* DSCaptureDevice::getName() const
 
 HRESULT DSCaptureDevice::setFormat(const DSFormat& format)
 {
-    HRESULT hr;
     IAMStreamConfig* streamConfig = NULL;
 
-    /* get the right interface to change capture settings */
-    hr
-        = m_captureGraphBuilder->FindInterface(
+    // change capture settings on default pin
+    HRESULT hrMain = m_captureGraphBuilder->FindInterface(
                 &PIN_CATEGORY_CAPTURE,
                 &MEDIATYPE_Video,
                 m_srcFilter,
                 IID_IAMStreamConfig,
                 (void**) &streamConfig);
-    if(SUCCEEDED(hr))
+    if (SUCCEEDED(hrMain))
     {
-        int nb = 0;
-        int size = 0;
-        AM_MEDIA_TYPE* mediaType = NULL;
-        size_t bitCount = 0;
+        hrMain = setFormat(format, streamConfig);
+        streamConfig->Release();
+    }
 
-        hr = streamConfig->GetNumberOfCapabilities(&nb, &size);
-        if (SUCCEEDED(hr) && nb)
+    // now set them on all pins for bloody stupid virtual cam software
+    // like ManyCam that adds new pin on connection and doesn't apply the
+    // chosen format there
+    IEnumPins* pEnumPins = NULL;
+    HRESULT hrPins = m_srcFilter->EnumPins(&pEnumPins);
+    if (FAILED(hrPins))
+    {
+        // we don't really care about the failure from enum pins
+        // the stream config should have already been successfully
+        // changed by the default stream config
+        return hrMain;
+    }
+
+    for (IPin* pin = NULL; pEnumPins->Next(1, &pin, NULL) == S_OK;)
+    {
+        HRESULT hr = pin->QueryInterface(IID_IAMStreamConfig, (void**)&streamConfig);
+        if (SUCCEEDED(hr))
         {
-            BYTE* scc = new BYTE[size];
+            hr = setFormat(format, streamConfig);
+            streamConfig->Release();
+            streamConfig = NULL;
+        }
 
-            if (scc)
+        pin->Release();
+    }
+
+    pEnumPins->Release();
+    return S_OK; // no interest in the individual pin's result
+}
+
+HRESULT DSCaptureDevice::setFormat(const DSFormat& format, IAMStreamConfig* streamConfig)
+{
+    int nb = 0;
+    int size = 0;
+    AM_MEDIA_TYPE* mediaType = NULL;
+    size_t bitCount = 0;
+
+    HRESULT hr = streamConfig->GetNumberOfCapabilities(&nb, &size);
+    if (SUCCEEDED(hr) && nb)
+    {
+        BYTE* scc = new BYTE[size];
+
+        if (scc)
+        {
+            DWORD pixfmt = format.pixelFormat;
+
+            for (int i = 0 ; i < nb ; i++)
             {
-                DWORD pixfmt = format.pixelFormat;
+                AM_MEDIA_TYPE* mt;
 
-                for (int i = 0 ; i < nb ; i++)
+                if (streamConfig->GetStreamCaps(i, &mt, scc) == S_OK)
                 {
-                    AM_MEDIA_TYPE* mt;
-
-                    if (streamConfig->GetStreamCaps(i, &mt, scc) == S_OK)
+                    if (mt->formattype == FORMAT_VideoInfo && mt->cbFormat >= sizeof(VIDEOINFOHEADER))
                     {
-                        VIDEOINFOHEADER* hdr = (VIDEOINFOHEADER*) mt->pbFormat;
+                        VIDEOINFOHEADER* hdr = (VIDEOINFOHEADER*)mt->pbFormat;
 
                         if (hdr
-                                && (mt->subtype.Data1 == pixfmt)
-                                && ((long) format.height
-                                        == hdr->bmiHeader.biHeight)
-                                && ((long) format.width
-                                        == hdr->bmiHeader.biWidth))
+                            && (mt->subtype.Data1 == pixfmt)
+                            && ((long)format.height
+                                == hdr->bmiHeader.biHeight)
+                            && ((long)format.width
+                                == hdr->bmiHeader.biWidth))
                         {
                             mediaType = mt;
                             if ((pixfmt == MEDIASUBTYPE_ARGB32.Data1)
-                                    || (pixfmt == MEDIASUBTYPE_RGB32.Data1))
+                                || (pixfmt == MEDIASUBTYPE_RGB32.Data1))
                                 bitCount = 32;
                             else if (pixfmt == MEDIASUBTYPE_RGB24.Data1)
                                 bitCount = 24;
@@ -162,32 +198,36 @@ HRESULT DSCaptureDevice::setFormat(const DSFormat& format)
                             break;
                         }
                         else
+                        {
                             _DeleteMediaType(mt);
+                        }
+                    }
+                    else
+                    {
+                        _DeleteMediaType(mt);
                     }
                 }
-
-                delete[] scc;
             }
-            else
-                hr = E_OUTOFMEMORY;
-        }
 
-        if (mediaType)
-        {
-            hr = streamConfig->SetFormat(mediaType);
-            if (SUCCEEDED(hr))
-            {
-                m_bitPerPixel = bitCount;
-                m_format = format;
-                m_format.mediaType = mediaType->subtype;
-            }
-            _DeleteMediaType(mediaType);
+            delete[] scc;
         }
-        else if (SUCCEEDED(hr))
-            hr = E_FAIL;
-
-        streamConfig->Release();
+        else
+            hr = E_OUTOFMEMORY;
     }
+
+    if (mediaType)
+    {
+        hr = streamConfig->SetFormat(mediaType);
+        if (SUCCEEDED(hr))
+        {
+            m_bitPerPixel = bitCount;
+            m_format = format;
+            m_format.mediaType = mediaType->subtype;
+        }
+        _DeleteMediaType(mediaType);
+    }
+    else if (SUCCEEDED(hr))
+        hr = E_FAIL;
 
     return hr;
 }
@@ -235,7 +275,7 @@ HRESULT DSCaptureDevice::initDevice(IMoniker* moniker)
     if(ret != S_OK)
         return false;
 
-    WCHAR* name = wcsdup(m_name);
+    WCHAR* name = _wcsdup(m_name);
     ret = m_filterGraph->AddFilter(m_srcFilter, name);
     free(name);
     if(ret != S_OK)
@@ -294,7 +334,7 @@ HRESULT DSCaptureDevice::initDevice(IMoniker* moniker)
          IPin* pin = NULL;
 
          ret = m_captureGraphBuilder->FindPin(
-             m_srcFilter, PINDIR_OUTPUT, &PIN_CATEGORY_CAPTURE, NULL, FALSE, 0, &pin);    
+             m_srcFilter, PINDIR_OUTPUT, &PIN_CATEGORY_CAPTURE, NULL, FALSE, 0, &pin);
 
         if(!FAILED(ret))
         {
