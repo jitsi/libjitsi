@@ -19,6 +19,7 @@ import java.beans.*;
 import java.util.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.format.*;
 
 /**
@@ -267,5 +268,14 @@ public abstract class AbstractMediaStream
     public RTPTranslator getRTPTranslator()
     {
         return rtpTranslator;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TransformEngineChain getTransformEngineChain()
+    {
+        return null;
     }
 }
