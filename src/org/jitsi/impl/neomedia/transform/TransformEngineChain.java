@@ -77,6 +77,12 @@ public class TransformEngineChain
         // Extenders must initialize this.engineChain
     }
 
+    /**
+     * Appends a {@link TransformEngine} to this chain.
+     * @param engine the engine to add.
+     * @return {@code true} if the engine was added, and {@code false} if the
+     * engine was not added because it is already a member of the chain.
+     */
     public boolean addEngine(TransformEngine engine)
     {
         if (engine == null)
@@ -92,17 +98,92 @@ public class TransformEngineChain
                     return false;
             }
 
-            int oldLength = oldValue.length;
-            TransformEngine[] newValue = new TransformEngine[oldLength + 1];
-
-            if (oldLength != 0)
-                System.arraycopy(oldValue, 0, newValue, 0, oldLength);
-            newValue[oldLength] = engine;
-
-            setEngineChain(newValue);
+            addEngine(engine, oldValue.length);
         }
 
         return true;
+    }
+
+    /**
+     * Adds a {@link TransformEngine} to this chain, at the position after the
+     * {@code after} instance.
+     * @param engine the engine to add.
+     * @param after the {@link TransformEngine} instance from this chain, after
+     * which {@code engine} should be inserted.
+     * @return {@code true} if the engine was added, and {@code false} if the
+     * engine was not added because it is already a member of the chain.
+     */
+    public boolean addEngine(TransformEngine engine, TransformEngine after)
+    {
+        if (engine == null)
+            throw new NullPointerException("engine");
+
+        synchronized (this)
+        {
+            TransformEngine[] oldValue = this.engineChain;
+
+            for (TransformEngine e : oldValue)
+            {
+                if (engine.equals(e))
+                    return false;
+            }
+
+            int position = -1;
+            if (after == null)
+            {
+                position = 0;
+            }
+            for (int i = 0; i < oldValue.length; i++)
+            {
+                if (oldValue[i] == after)
+                {
+                    position = i + 1;
+                    break;
+                }
+            }
+
+            if (position == -1)
+            {
+                return false;
+            }
+            else
+            {
+                addEngine(engine, position);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Adds a {@link TransformEngine} at a specific position in this chain.
+     * @param engine the engine to add.
+     * @param position the position at which to add the engine.
+     */
+    public void addEngine(TransformEngine engine, int position)
+    {
+        if (engine == null)
+            throw new NullPointerException("engine");
+
+        synchronized (this)
+        {
+            TransformEngine[] oldValue = this.engineChain;
+            if (position < 0 || position > oldValue.length)
+            {
+                throw new IllegalArgumentException(
+                    "position=" + position + "; len=" + oldValue.length);
+            }
+
+            TransformEngine[] newValue
+                = new TransformEngine[oldValue.length + 1];
+            System.arraycopy(oldValue, 0, newValue, 0, position);
+            System.arraycopy(
+                oldValue, position,
+                newValue, position + 1,
+                oldValue.length - position);
+            newValue[position] = engine;
+            setEngineChain(newValue);
+        }
     }
 
     /**

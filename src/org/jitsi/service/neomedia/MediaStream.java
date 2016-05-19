@@ -535,4 +535,9 @@ public interface MediaStream
      * @return the {@link RetransmissionRequester} for this media stream.
      */
     public RetransmissionRequester getRetransmissionRequester();
+
+    /**
+     * Gets the {@link TransformEngineChain} of this {@link MediaStream}.
+     */
+    public TransformEngineChain getTransformEngineChain();
 }
