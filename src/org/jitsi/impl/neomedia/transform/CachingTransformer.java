@@ -549,11 +549,11 @@ public class CachingTransformer
             // Since sequence numbers wrap at 2^16, we can't know with absolute
             // certainty which packet the request refers to. We assume that it
             // is for the latest packet (i.e. the one with the highest index).
-            RawPacket pkt = cache.get(seq + ROC * (1 << 16));
+            RawPacket pkt = cache.get(seq + (ROC << 16));
 
             // Maybe the ROC was just bumped recently.
             if (pkt == null && ROC > 0)
-                pkt = cache.get(seq + (ROC-1)*(1<<16));
+                pkt = cache.get(seq + ((ROC-1) << 16));
 
             // Since the cache only stores <tt>SIZE_MILLIS</tt> milliseconds of
             // packets, we assume that it doesn't contain packets spanning
