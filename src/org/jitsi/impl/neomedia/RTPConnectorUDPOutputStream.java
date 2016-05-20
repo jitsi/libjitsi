@@ -97,7 +97,7 @@ public class RTPConnectorUDPOutputStream
                     target.getPort(),
                     PacketLoggingService.TransportName.UDP,
                     true,
-                    packet.getBuffer(),
+                    packet.getBuffer().clone(),
                     packet.getOffset(),
                     packet.getLength());
         }
