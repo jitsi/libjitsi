@@ -490,7 +490,7 @@ class SsrcGroupRewriter
 
         long timestamp = p.getTimestamp();
         long minTimestamp = maxTimestamp + 1;
-        long delta = timestamp - minTimestamp;
+        long delta = TimeUtils.rtpDiff(timestamp, minTimestamp);
 
         if (delta < 0) /* minTimestamp is inclusive */
         {
@@ -504,7 +504,7 @@ class SsrcGroupRewriter
                         + minTimestamp);
             }
 
-            if (delta < -3000)
+            if (delta < -300000 && WARN)
             {
                 // Bail-out. This is not supposed to happen because it means
                 // that more than one frame has to be uplifted, which means that
@@ -512,18 +512,12 @@ class SsrcGroupRewriter
                 // switching on neighboring frames and neighboring frames are
                 // sampled at similar instances).
 
-                if (WARN)
-                {
-
-                    logger.warn(
-                        "BAILING OUT to uplift RTP timestamp " + timestamp
-                            + " with SEQNUM " + p.getSequenceNumber()
-                            + " from SSRC " + p.getSSRCAsLong()
-                            + " because of " + delta + " (delta > 3000) to "
-                            + minTimestamp);
-                }
-
-                return;
+                logger.warn(
+                    "Uplifting a HIGHLY suspicious RTP timestamp "
+                        + timestamp + " with SEQNUM "
+                        + p.getSequenceNumber() + " from SSRC "
+                        + p.getSSRCAsLong() + " because of delta=" + delta +
+                        " to " + minTimestamp);
             }
 
             p.setTimestamp(minTimestamp);
