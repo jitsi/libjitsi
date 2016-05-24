@@ -614,6 +614,20 @@ public class SRTPCryptoContext
                         break;
                     }
                 }
+                else
+                {
+                    // We are about to output an encrypted packet (and it will
+                    // never be decrypted), and since the number of padding
+                    // bytes is part of the encrypted portion of the packet, it
+                    // will not be possible to obtain that number. Further,
+                    // nothing specifically marks the packet as encrypted, and
+                    // reading the last byte of the payload will silently
+                    // produce a wrong result.
+                    // For this reason, we unset the padding bit, which makes
+                    // any consumers of the packet calculate the padding length
+                    // as zero.
+                    pkt.setPaddingBit(false);
+                }
 
                 // Update the rollover counter and highest sequence number if
                 // necessary.
