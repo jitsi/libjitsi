@@ -46,12 +46,6 @@ public class RTPStatsMap
 
         if (oldRtpStatsEntry != null)
         {
-            // Replace whatever was in there before. A feature of the two's
-            // complement encoding (which is used by Java integers) is that the
-            // bitwise results for add, subtract, and multiply are the same if
-            // both inputs are interpreted as signed values or both inputs are
-            // interpreted as unsigned values. (Other encodings like one's
-            // complement and signed magnitude don't have this properly.)
             bytesSent += oldRtpStatsEntry.getBytesSent();
             packetsSent += oldRtpStatsEntry.getPacketsSent();
         }
