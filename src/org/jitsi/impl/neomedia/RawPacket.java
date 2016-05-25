@@ -71,6 +71,19 @@ public class RawPacket
     }
 
     /**
+     * @return {@code true} if the padding bit of this RTP packet has been set
+     * and {@code false} otherwise.
+     */
+    public static boolean getPaddingBit(byte[] buffer, int offset, int length)
+    {
+        if (length <= 0)
+        {
+            return false;
+        }
+        return (buffer[offset] & 0x20) != 0;
+    }
+
+    /**
      * Byte array storing the content of this Packet
      */
     private byte[] buffer;
@@ -1457,4 +1470,14 @@ public class RawPacket
     {
         setPaddingBit(buffer, offset, length, padding);
     }
+
+    /**
+     * @return {@code true} if the padding bit of this RTP packet has been set
+     * and {@code false} otherwise.
+     */
+    public boolean getPaddingBit()
+    {
+        return getPaddingBit(buffer, offset, length);
+    }
+
 }
