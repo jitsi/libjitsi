@@ -101,7 +101,7 @@ class SsrcGroupRewriter
      * timestamp older than what the endpoint has already seen, we overwrite
      * the timestamp with maxTimestamp + 1.
      */
-    public long maxTimestamp;
+    public long maxTimestamp = -1;
 
     /**
      * The current <tt>SsrcRewriter</tt> that we use to rewrite source
@@ -489,7 +489,7 @@ class SsrcGroupRewriter
         // timestamps have advanced "a lot" (i.e. > 3000 or 3000/90 = 33ms).
 
         long timestamp = p.getTimestamp();
-        long minTimestamp = maxTimestamp + 1;
+        long minTimestamp = (maxTimestamp == -1) ? timestamp : maxTimestamp + 1;
         long delta = TimeUtils.rtpDiff(timestamp, minTimestamp);
 
         if (delta < 0) /* minTimestamp is inclusive */
@@ -527,7 +527,7 @@ class SsrcGroupRewriter
             // FIXME If the delta is >>> 3000 it could mean problems as well.
         }
 
-        if (maxTimestamp < timestamp)
+        if (TimeUtils.rtpDiff(maxTimestamp, timestamp) < 0)
         {
             maxTimestamp = timestamp;
         }
