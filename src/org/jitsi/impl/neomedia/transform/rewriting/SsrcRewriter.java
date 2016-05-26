@@ -19,6 +19,7 @@ import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -426,9 +427,13 @@ class SsrcRewriter
      */
     int extendOriginalSequenceNumber(int origSeqnum)
     {
-        SSRCCache ssrcCache
+        // XXX FIXME: we should not rely of FMJ for this.
+        StreamRTPManager rtpManager
             = ssrcGroupRewriter.ssrcRewritingEngine
-                .getMediaStream().getStreamRTPManager().getSSRCCache();
+                    .getMediaStream().getStreamRTPManager();
+        SSRCCache ssrcCache
+            = rtpManager == null ? null : rtpManager.getSSRCCache();
+
 
         if (ssrcCache != null)
         {
