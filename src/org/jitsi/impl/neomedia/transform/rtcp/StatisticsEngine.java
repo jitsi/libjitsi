@@ -1268,7 +1268,8 @@ public class StatisticsEngine
 
                 if(logger.isTraceEnabled())
                 {
-                    long numberOfRTCPReports = numberOfRTCPReportsMap.get(ssrc);
+                    long numberOfRTCPReports
+                        = getMapValue(numberOfRTCPReportsMap, ssrc);
                     // As sender reports are sent on every 5 seconds, print
                     // every 4th packet, on every 20 seconds.
                     if(numberOfRTCPReports % 4 == 1)
@@ -1327,7 +1328,7 @@ public class StatisticsEngine
      */
     public long getRtpPacketsSent(long ssrc)
     {
-        return rtpPacketsSentMap.get(ssrc);
+        return getMapValue(rtpPacketsSentMap, ssrc);
     }
 
     /**
@@ -1336,7 +1337,7 @@ public class StatisticsEngine
      */
     public long getRtpPacketsReceived(long ssrc)
     {
-        return rtpPacketsReceivedMap.get(ssrc);
+        return getMapValue(rtpPacketsReceivedMap, ssrc);
     }
 
     /**
@@ -1352,9 +1353,26 @@ public class StatisticsEngine
 
         for (Long value : map.values())
         {
+            if(value == null)
+                continue;
+
             cumulativeValue += value;
         }
         return cumulativeValue;
+    }
+
+    /**
+     * Utility method to return a value from a map and perform unboxing only if
+     * the result value is not null.
+     * @param map the map to get the value
+     * @param ssrc the key
+     * @return the result value or 0 if nothing is found.
+     */
+    private static long getMapValue(Map<?,Long> map, long ssrc)
+    {
+        // there can be no entry, or the value can be null
+        Long res = map.get(ssrc);
+        return res == null ? 0 : res;
     }
 
     /**
@@ -1382,7 +1400,7 @@ public class StatisticsEngine
      */
     public long getNbBytesReceived(long ssrc)
     {
-        return rtpBytesReceivedMap.get(ssrc);
+        return getMapValue(rtpBytesReceivedMap, ssrc);
     }
 
     /**
@@ -1392,7 +1410,7 @@ public class StatisticsEngine
      */
     public long getNbBytesSent(long ssrc)
     {
-        return rtpBytesSentMap.get(ssrc);
+        return getMapValue(rtpBytesSentMap, ssrc);
     }
 
     /**
