@@ -489,7 +489,13 @@ class SsrcGroupRewriter
         // timestamps have advanced "a lot" (i.e. > 3000 or 3000/90 = 33ms).
 
         long timestamp = p.getTimestamp();
-        long minTimestamp = (maxTimestamp == -1) ? timestamp : maxTimestamp + 1;
+
+        if (maxTimestamp == -1) // Initialize maxTimestamp.
+        {
+            maxTimestamp = timestamp - 1;
+        }
+
+        long minTimestamp = maxTimestamp + 1;
         long delta = TimeUtils.rtpDiff(timestamp, minTimestamp);
 
         if (delta < 0) /* minTimestamp is inclusive */
