@@ -211,7 +211,7 @@ public class MediaUtils
         Map<String, String> opusAdvancedParams
                 = new HashMap<String, String>();
         String packetizationTime = Constants.PTIME;
-        opusAdvancedParams.put(packetizationTime, "20");
+        opusFormatParams.put(packetizationTime, "20");
 
         addMediaFormats(
                 MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
