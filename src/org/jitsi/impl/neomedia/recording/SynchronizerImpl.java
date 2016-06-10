@@ -20,6 +20,7 @@ import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.util.*;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * @author Boris Grozev
@@ -51,13 +52,13 @@ public class SynchronizerImpl
      * Maps an SSRC to the <tt>SSRCDesc</tt> structure containing information
      * about it.
      */
-    private Map<Long, SSRCDesc> ssrcs = new HashMap<Long, SSRCDesc>();
+    private ConcurrentMap<Long, SSRCDesc> ssrcs = new ConcurrentHashMap<>();
 
     /**
      * Maps an endpoint identifier to an <tt>Endpoint</tt> structure containing
      * information about the endpoint.
      */
-    private Map<String, Endpoint> endpoints = new HashMap<String, Endpoint>();
+    private ConcurrentMap<String, Endpoint> endpoints = new ConcurrentHashMap<>();
 
     /**
      * {@inheritDoc}
@@ -66,20 +67,17 @@ public class SynchronizerImpl
     public void setRtpClockRate(long ssrc, long clockRate)
     {
         SSRCDesc ssrcDesc = getSSRCDesc(ssrc);
-        if (ssrcDesc.clockRate == -1)
+        synchronized (ssrcDesc)
         {
-            synchronized (ssrcDesc)
+            if (ssrcDesc.clockRate == -1)
+                ssrcDesc.clockRate = clockRate;
+            else if (ssrcDesc.clockRate != clockRate)
             {
-                if (ssrcDesc.clockRate == -1)
-                    ssrcDesc.clockRate = clockRate;
-                else if (ssrcDesc.clockRate != clockRate)
-                {
-                    // this shouldn't happen...but if the clock rate really
-                    // changed for some reason, out timings are now irrelevant.
-                    ssrcDesc.clockRate = clockRate;
-                    ssrcDesc.ntpTime = -1.0;
-                    ssrcDesc.rtpTime = -1;
-                }
+                // this shouldn't happen...but if the clock rate really
+                // changed for some reason, out timings are now irrelevant.
+                ssrcDesc.clockRate = clockRate;
+                ssrcDesc.ntpTime = -1.0;
+                ssrcDesc.rtpTime = -1;
             }
         }
     }
@@ -101,19 +99,15 @@ public class SynchronizerImpl
      */
     public void mapRtpToNtp(long ssrc, long rtpTime, double ntpTime)
     {
-        SSRCDesc ssrcDesc = getSSRCDesc(ssrc);
-
         if (rtpTime != -1 && ntpTime != -1.0) // have valid values to update
         {
-            if (ssrcDesc.rtpTime == -1 || ssrcDesc.ntpTime == -1.0)
+            SSRCDesc ssrcDesc = getSSRCDesc(ssrc);
+            synchronized (ssrcDesc)
             {
-                synchronized (ssrcDesc)
+                if (ssrcDesc.rtpTime == -1 || ssrcDesc.ntpTime == -1.0)
                 {
-                    if (ssrcDesc.rtpTime == -1 || ssrcDesc.ntpTime == -1.0)
-                    {
-                        ssrcDesc.rtpTime = rtpTime;
-                        ssrcDesc.ntpTime = ntpTime;
-                    }
+                    ssrcDesc.rtpTime = rtpTime;
+                    ssrcDesc.ntpTime = ntpTime;
                 }
             }
         }
@@ -124,13 +118,15 @@ public class SynchronizerImpl
      */
     public void mapLocalToNtp(long ssrc, long localTime, double ntpTime)
     {
-        SSRCDesc ssrcDesc = getSSRCDesc(ssrc);
+        if (localTime == -1 || ntpTime == -1.0)
+            return;
 
-        if (localTime != -1 && ntpTime != -1.0 && ssrcDesc.endpointId != null)
+        SSRCDesc ssrcDesc = getSSRCDesc(ssrc);
+        synchronized (ssrcDesc)
         {
-            Endpoint endpoint = getEndpoint(ssrcDesc.endpointId);
-            if (endpoint.localTime == -1 || endpoint.ntpTime == -1.0)
+            if (ssrcDesc.endpointId != null)
             {
+                Endpoint endpoint = getEndpoint(ssrcDesc.endpointId);
                 synchronized (endpoint)
                 {
                     if (endpoint.localTime == -1 || endpoint.ntpTime == -1.0)
@@ -154,7 +150,6 @@ public class SynchronizerImpl
         {
             return -1;
         }
-
 
         // get all required times
         long clockRate; //the clock rate for the RTP clock for the given SSRC
@@ -257,13 +252,10 @@ public class SynchronizerImpl
             for (CNAMEItem item : getCnameItems(pkt))
             {
                 SSRCDesc ssrc = getSSRCDesc(item.ssrc);
-                if (ssrc.endpointId == null)
+                synchronized (ssrc)
                 {
-                    synchronized (ssrc)
-                    {
-                        if (ssrc.endpointId == null)
-                            ssrc.endpointId = item.cname;
-                    }
+                    if (ssrc.endpointId == null)
+                        ssrc.endpointId = item.cname;
                 }
             }
         }
@@ -302,17 +294,17 @@ public class SynchronizerImpl
         SSRCDesc ssrcDesc = ssrcs.get(ssrc);
         if (ssrcDesc == null)
         {
-            synchronized (ssrcs)
-            {
-                ssrcDesc = ssrcs.get(ssrc);
-                if (ssrcDesc == null)
-                {
-                    ssrcDesc = new SSRCDesc();
-                    ssrcs.put(ssrc, ssrcDesc);
-                }
-            }
+            ssrcDesc = new SSRCDesc();
+            SSRCDesc existingSsrcDesc  = ssrcs.putIfAbsent(ssrc, ssrcDesc);
+            if (existingSsrcDesc != null)
+                return existingSsrcDesc;
+            else
+                return ssrcDesc;
         }
-        return ssrcDesc;
+        else
+        {
+            return ssrcDesc;
+        }
     }
 
     /**
@@ -327,18 +319,17 @@ public class SynchronizerImpl
         Endpoint endpoint = endpoints.get(endpointId);
         if (endpoint == null)
         {
-            synchronized (endpoints)
-            {
-                endpoint = endpoints.get(endpointId);
-                if (endpoint == null)
-                {
-                    endpoint = new Endpoint();
-                    endpoints.put(endpointId, endpoint);
-                }
-            }
+            endpoint = new Endpoint();
+            Endpoint existingEndpoint = endpoints.putIfAbsent(endpointId, endpoint);
+            if (existingEndpoint != null)
+                return existingEndpoint;
+            else
+                return endpoint;
         }
-
-        return endpoint;
+        else
+        {
+            return endpoint;
+        }
     }
 
     /**
@@ -457,19 +448,13 @@ public class SynchronizerImpl
      */
     void removeMapping(long ssrc)
     {
-        if (ssrcs.containsKey(ssrc))
+        SSRCDesc ssrcDesc = ssrcs.get(ssrc);
+        if (ssrcDesc != null)
         {
-            synchronized (ssrcs)
+            synchronized (ssrcDesc)
             {
-                SSRCDesc ssrcDesc = ssrcs.get(ssrc);
-                if (ssrcDesc != null)
-                {
-                    synchronized (ssrcDesc)
-                    {
-                        ssrcDesc.ntpTime = -1.0;
-                        ssrcDesc.rtpTime = -1;
-                    }
-                }
+                ssrcDesc.ntpTime = -1.0;
+                ssrcDesc.rtpTime = -1;
             }
         }
     }
