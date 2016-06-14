@@ -187,6 +187,8 @@ class OutputDataStreamImpl
             Format format,
             StreamRTPManagerDesc exclusion)
     {
+
+        int seqno = RawPacket.getSequenceNumber(buf, off, len);
         RTPTranslatorImpl translator = getTranslator();
 
         if (translator == null)
@@ -205,6 +207,8 @@ class OutputDataStreamImpl
             OutputDataStreamDesc s = streams.get(i);
             StreamRTPManagerDesc streamRTPManager
                 = s.connectorDesc.streamRTPManagerDesc;
+            // Reset the sequence number to the original value
+            RawPacket.setSequenceNumber(buf, off, seqno);
 
             if (streamRTPManager == exclusion)
                 continue;
