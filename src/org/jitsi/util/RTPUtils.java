@@ -36,4 +36,9 @@ public class RTPUtils
 
         return diff;
     }
+
+    public static int subtractNumber(int a, int b)
+    {
+        return (a - b) & 0xFFFF;
+    }
 }
