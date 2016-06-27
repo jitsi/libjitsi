@@ -865,6 +865,20 @@ public class RawPacket
     }
 
     /**
+     * Set sequence number for an RTP buffer
+     *
+     * @param buffer
+     * @param offset
+     * @param seq
+     *
+     */
+    public static void setSequenceNumber(byte[] buffer, int offset, int seq)
+    {
+        buffer[offset + 2] = (byte) (seq>>8 & 0xff);
+        buffer[offset + 3] = (byte) (seq & 0xff);
+    }
+
+    /**
      * Get SRTCP sequence number from a SRTCP packet
      *
      * @param authTagLen authentication tag length
@@ -1317,8 +1331,7 @@ public class RawPacket
       */
     public void setSequenceNumber(int seq)
     {
-        writeByte(2, (byte) (seq>>8 & 0xff));
-        writeByte(3, (byte) (seq & 0xff));
+        RawPacket.setSequenceNumber(buffer, offset, seq);
     }
 
     /**
