@@ -205,6 +205,12 @@ public class CachingTransformer
     private long lastUpdateTime = -1;
 
     /**
+     * The age in milliseconds of the oldest packet retrieved from any of the
+     * {@link Cache}s of this instance.
+     */
+    private MonotonicAtomicLong oldestHit = new MonotonicAtomicLong();
+
+    /**
      * {@inheritDoc}
      *
      * Transforms an outgoing packet.
@@ -235,7 +241,8 @@ public class CachingTransformer
                             + totalMisses + " misses ("
                             + (totalHits.get() + totalMisses.get())
                             + " total requests); "
-                            + totalPacketsAdded.get() + " total packets added.");
+                            + totalPacketsAdded.get() + " total packets added, "
+                            + "oldest hit " + oldestHit + "ms.");
 
         synchronized (caches)
         {
@@ -258,7 +265,10 @@ public class CachingTransformer
         RawPacket pkt = cache != null ? cache.get(seq) : null;
 
         if (pkt != null)
+        {
+            oldestHit.increase(cache.getAge(pkt));
             totalHits.incrementAndGet();
+        }
         else
             totalMisses.incrementAndGet();
 
@@ -633,6 +643,27 @@ public class CachingTransformer
             }
 
             cache.clear();
+        }
+
+        /**
+         * @return the age of {@code pkt} with respect to the latest added packet
+         * to the cache.
+         * @param pkt the packet whose age is to be returned.
+         */
+        synchronized private long getAge(RawPacket pkt)
+        {
+            if (cache.isEmpty())
+            {
+                return 0;
+            }
+
+            RawPacket head = cache.lastEntry().getValue();
+
+            long rtpDiff
+                = TimeUtils.rtpDiff(head.getTimestamp(), pkt.getTimestamp());
+
+            // Assume RTP clock rate of 90000.
+            return rtpDiff / 90;
         }
 
         /**
