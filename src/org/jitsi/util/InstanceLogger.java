@@ -84,16 +84,13 @@ public class InstanceLogger
     @Override
     boolean isLoggable(Level level)
     {
-        if (!loggingDelegate.isLoggable(level))
-            return false;
-
-        if (this.level != null
-            && (this.level == Level.OFF || this.level.intValue() < level.intValue()))
+        Level loggerLevel = getLevel();
+        if (level == null || loggerLevel == Level.OFF)
         {
             return false;
         }
 
-        return levelDelegate == null || levelDelegate.isLoggable(level);
+        return level.intValue() >= loggerLevel.intValue();
     }
 
     /**
@@ -102,7 +99,10 @@ public class InstanceLogger
     @Override
     public void log(Level level, Object msg)
     {
-        loggingDelegate.log(level, msg != null ? msg.toString() : "null");
+        if (isLoggable(level))
+        {
+            loggingDelegate.log(level, msg != null ? msg.toString() : "null");
+        }
     }
 
     /**
@@ -111,11 +111,16 @@ public class InstanceLogger
     @Override
     public void log(Level level, Object msg, Throwable thrown)
     {
-        loggingDelegate.log(level, msg != null ? msg.toString() : "null", thrown);
+        if (isLoggable(level))
+        {
+            loggingDelegate
+                .log(level, msg != null ? msg.toString() : "null", thrown);
+        }
     }
 
     /**
      * @return the higher of two logging levels.
+     * e.g.: higher(Level.FINE, Level.WARNING) -> Level.WARNING
      */
     private Level higher(Level a, Level b)
     {
