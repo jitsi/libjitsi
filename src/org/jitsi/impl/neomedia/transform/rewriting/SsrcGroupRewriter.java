@@ -527,6 +527,7 @@ class SsrcGroupRewriter
             }
 
             p.setTimestamp(minTimestamp);
+            timestamp = minTimestamp;
         }
         else
         {
