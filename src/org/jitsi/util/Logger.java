@@ -21,38 +21,17 @@ import java.util.logging.*;
  * Standard logging methods.
  *
  * @author Emil Ivov
+ * @author Boris Grozev
  */
-public class Logger
+public abstract class Logger
 {
     /**
-     * The java.util.Logger that would actually be doing the logging.
-     */
-    private final java.util.logging.Logger loggerDelegate;
-
-    /**
-     * Base constructor
-     *
-     * @param logger the implementation specific logger delegate that this
-     * Logger instance should be created around.
-     */
-    private Logger(java.util.logging.Logger logger)
-    {
-        this.loggerDelegate = logger;
-    }
-
-    /**
-     * Find or create a logger for the specified class.  If a logger has
-     * already been created for that class it is returned.  Otherwise
-     * a new logger is created.
+     * Create a logger for the specified class.
      * <p>
-     * If a new logger is created its log level will be configured
-     * based on the logging configuration and it will be configured
-     * to also send logging output to its parent's handlers.
-     * <p>
-     * @param clazz The creating class.
+     * @param clazz The class for which to create a logger.
      * <p>
      * @return a suitable Logger
-     * @throws NullPointerException if the name is null.
+     * @throws NullPointerException if the class is null.
      */
     public static Logger getLogger(Class<?> clazz)
         throws NullPointerException
@@ -61,17 +40,7 @@ public class Logger
     }
 
     /**
-     * Find or create a logger for a named subsystem.  If a logger has
-     * already been created with the given name it is returned.  Otherwise
-     * a new logger is created.
-     * <p>
-     * If a new logger is created its log level will be configured
-     * based on the logging configuration and it will be configured
-     * to also send logging output to its parent's handlers.
-     * <p>
-     * @param name A name for the logger. This should be a dot-separated name
-     * and should normally be based on the class name of the creator, such as
-     * "net.java.sip.communicator.MyFunnyClass"
+     * Create a logger for the specified name.
      * <p>
      * @return a suitable Logger
      * @throws NullPointerException if the name is null.
@@ -79,18 +48,31 @@ public class Logger
     public static Logger getLogger(String name)
         throws NullPointerException
     {
-        return new Logger(java.util.logging.Logger.getLogger(name));
+        return new LoggerImpl(java.util.logging.Logger.getLogger(name));
     }
 
+    /**
+     * Creates a new {@link Logger} instance which performs logging through
+     * {@code loggingDelegate} and uses {@code levelDelegate} to configure its
+     * level.
+     * @param loggingDelegate the {@link Logger} used for logging.
+     * @param levelDelegate the {@link Logger} used for configuring the log
+     * level.
+     */
+    public static Logger getLogger(Logger loggingDelegate, Logger levelDelegate)
+    {
+        return new InstanceLogger(loggingDelegate, levelDelegate);
+    }
 
     /**
      * Logs an entry in the calling method.
      */
     public void logEntry()
     {
-        if (loggerDelegate.isLoggable(Level.FINEST)) {
+        if (isLoggable(Level.FINEST))
+        {
             StackTraceElement caller = new Throwable().getStackTrace()[1];
-            loggerDelegate.log(Level.FINEST, "[entry] " + caller.getMethodName());
+            log(Level.FINEST, "[entry] " + caller.getMethodName());
         }
     }
 
@@ -99,9 +81,10 @@ public class Logger
      */
     public void logExit()
     {
-        if (loggerDelegate.isLoggable(Level.FINEST)) {
+        if (isLoggable(Level.FINEST))
+        {
             StackTraceElement caller = new Throwable().getStackTrace()[1];
-            loggerDelegate.log(Level.FINEST, "[exit] " + caller.getMethodName());
+            log(Level.FINEST, "[exit] " + caller.getMethodName());
         }
     }
 
@@ -113,7 +96,7 @@ public class Logger
      */
     public boolean isTraceEnabled()
     {
-        return loggerDelegate.isLoggable(Level.FINER);
+        return isLoggable(Level.FINER);
     }
 
     /**
@@ -127,7 +110,7 @@ public class Logger
      */
     public void trace(Object msg)
     {
-        loggerDelegate.finer(msg!=null?msg.toString():"null");
+        log(Level.FINER, msg);
     }
 
     /**
@@ -138,7 +121,7 @@ public class Logger
      */
     public void trace(Object msg, Throwable t)
     {
-        loggerDelegate.log(Level.FINER, msg!=null?msg.toString():"null", t);
+        log(Level.FINER, msg, t);
     }
 
     /**
@@ -149,7 +132,7 @@ public class Logger
      */
     public boolean isDebugEnabled()
     {
-        return loggerDelegate.isLoggable(Level.FINE);
+        return isLoggable(Level.FINE);
     }
 
     /**
@@ -163,7 +146,7 @@ public class Logger
      */
     public void debug(Object msg)
     {
-        loggerDelegate.fine(msg!=null?msg.toString():"null");
+        log(Level.FINE, msg);
     }
 
     /**
@@ -174,7 +157,7 @@ public class Logger
      */
     public void debug(Object msg, Throwable t)
     {
-        loggerDelegate.log(Level.FINE, msg!=null?msg.toString():"null", t);
+        log(Level.FINE, msg, t);
     }
 
     /**
@@ -185,7 +168,7 @@ public class Logger
      */
     public boolean isInfoEnabled()
     {
-        return loggerDelegate.isLoggable(Level.INFO);
+        return isLoggable(Level.INFO);
     }
 
     /**
@@ -199,7 +182,7 @@ public class Logger
      */
     public void info(Object msg)
     {
-        loggerDelegate.info(msg!=null?msg.toString():"null");
+        log(Level.INFO, msg);
     }
 
     /**
@@ -210,7 +193,7 @@ public class Logger
      */
     public void info(Object msg, Throwable t)
     {
-        loggerDelegate.log(Level.INFO, msg!=null?msg.toString():"null", t);
+        log(Level.INFO, msg, t);
     }
 
     /**
@@ -221,7 +204,7 @@ public class Logger
      */
     public boolean isWarnEnabled()
     {
-        return loggerDelegate.isLoggable(Level.WARNING);
+        return isLoggable(Level.WARNING);
     }
 
     /**
@@ -235,7 +218,7 @@ public class Logger
      */
     public void warn(Object msg)
     {
-        loggerDelegate.warning(msg!=null?msg.toString():"null");
+        log(Level.WARNING, msg);
     }
 
     /**
@@ -246,7 +229,7 @@ public class Logger
      */
     public void warn(Object msg, Throwable t)
     {
-        loggerDelegate.log(Level.WARNING, msg!=null?msg.toString():"null", t);
+        log(Level.WARNING, msg, t);
     }
 
     /**
@@ -260,7 +243,7 @@ public class Logger
      */
     public void error(Object msg)
     {
-        loggerDelegate.severe(msg!=null?msg.toString():"null");
+        log(Level.SEVERE, msg);
     }
 
     /**
@@ -271,7 +254,7 @@ public class Logger
      */
     public void error(Object msg, Throwable t)
     {
-        loggerDelegate.log(Level.SEVERE, msg!=null?msg.toString():"null", t);
+        log(Level.SEVERE, msg, t);
     }
 
     /**
@@ -285,7 +268,7 @@ public class Logger
      */
     public void fatal(Object msg)
     {
-        loggerDelegate.severe(msg!=null?msg.toString():"null");
+        error(msg);
     }
 
     /**
@@ -296,7 +279,7 @@ public class Logger
      */
     public void fatal(Object msg, Throwable t)
     {
-        loggerDelegate.log(Level.SEVERE, msg!=null?msg.toString():"null", t);
+        error(msg, t);
     }
 
     /**
@@ -364,20 +347,6 @@ public class Logger
     }
 
     /**
-     * Set logging level for all handlers to <tt>level</tt>
-     *
-     * @param level the level to set for all logger handlers
-     */
-    private void setLevel(java.util.logging.Level level)
-    {
-        Handler[] handlers = loggerDelegate.getHandlers();
-        for (Handler handler : handlers)
-            handler.setLevel(level);
-
-        loggerDelegate.setLevel(level);
-    }
-
-    /**
      * Reinitialize the logging properties and reread the logging configuration.
      * <p>
      * The same rules are used for locating the configuration properties
@@ -386,15 +355,41 @@ public class Logger
      */
     public void reset()
     {
-        try
-        {
-            FileHandler.pattern = null;
-            LogManager.getLogManager().reset();
-            LogManager.getLogManager().readConfiguration();
-        }
-        catch (Exception e)
-        {
-            loggerDelegate.log(Level.INFO, "Failed to reinit logger.", e);
-        }
     }
+
+    /**
+     * Set logging level for all handlers to <tt>level</tt>
+     *
+     * @param level the level to set for all logger handlers
+     */
+    public abstract void setLevel(java.util.logging.Level level);
+
+    /**
+     * @return the {@link Level} configured for this {@link Logger}.
+     */
+    public abstract Level getLevel();
+
+    /**
+     * Checks whether messages with a particular level should be logged
+     * according to the log level configured for this {@link Logger}.
+     * @param level the log level.
+     */
+    abstract boolean isLoggable(Level level);
+
+    /**
+     * Logs a message at a given level, if that level is loggable according to
+     * the log level configured by this instance.
+     * @param level the level at which to log the message.
+     * @param msg the message to log.
+     */
+    public abstract void log(Level level, Object msg);
+
+    /**
+     * Logs a message at a given level, if that level is loggable according to
+     * the log level configured by this instance.
+     * @param level the level at which to log the message.
+     * @param msg the message to log.
+     * @param thrown a {@link Throwable} associated with log message.
+     */
+    public abstract void log(Level level, Object msg, Throwable thrown);
 }

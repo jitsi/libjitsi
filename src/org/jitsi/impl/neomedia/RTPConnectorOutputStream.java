@@ -29,6 +29,7 @@ import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.util.*;
+import org.jitsi.util.Logger; // Disambiguation.
 
 /**
  *
