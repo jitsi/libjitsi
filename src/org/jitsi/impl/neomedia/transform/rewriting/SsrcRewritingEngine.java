@@ -530,7 +530,7 @@ public class SsrcRewritingEngine implements TransformEngine
                 {
                     logger.trace("Not rewriting ssrc=" + pkt.getSSRCAsLong()
                         + ", seq=" + pkt.getSequenceNumber()
-                        + "because the SSRC rewriting engine is not "
+                        + " because the SSRC rewriting engine is not "
                         + "initialized.");
                 }
 
@@ -552,7 +552,7 @@ public class SsrcRewritingEngine implements TransformEngine
                 {
                     logger.warn("Not rewriting ssrc=" + pkt.getSSRCAsLong()
                         + ", seq=" + pkt.getSequenceNumber()
-                        + "because we could not find an SSRC group rewriter.");
+                        + " because we could not find an SSRC group rewriter.");
                 }
                 return pkt;
             }
