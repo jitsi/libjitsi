@@ -62,7 +62,11 @@ public class LoggerImpl
     @Override
     public Level getLevel()
     {
-        return loggerDelegate.getLevel();
+        // OpenJDK's Logger implementation initializes its effective level value
+        // with Level.INFO.intValue(), but DOESN'T initialize the Level object.
+        // So, if it hasn't been explicitly set, assume INFO.
+        Level level = loggerDelegate.getLevel();
+        return level != null ? level : Level.INFO;
     }
 
     /**
