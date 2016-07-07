@@ -17,6 +17,7 @@ package org.jitsi.sctp4j;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 import org.jitsi.util.*;
 
@@ -55,7 +56,7 @@ public class Sctp
      * List of instantiated <tt>SctpSockets</tt> mapped by native pointer.
      */
     private static final Map<Long,SctpSocket> sockets
-        = new HashMap<Long,SctpSocket>();
+        = new ConcurrentHashMap<>();
 
     static
     {
@@ -306,7 +307,7 @@ public class Sctp
      * FIXME add offset and length buffer parameters.
      * @param ptr native socket pointer.
      * @param data the data to send.
-     * @param offset the position of the data inside the buffer
+     * @param off the position of the data inside the buffer
      * @param len data length.
      * @param ordered should we care about message order ?
      * @param sid SCTP stream identifier
