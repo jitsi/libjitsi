@@ -234,7 +234,9 @@ public class CachingTransformer
         if (closed)
             return;
         closed = true;
-        logger.info("Closing. Maximum size reached: "
+        if (totalPacketsAdded.get() > 0)
+        {
+            logger.info("Closing. Maximum size reached: "
                             + maxSizeInBytes + " bytes, "
                             + maxSizeInPackets + " packets; "
                             + totalHits + " hits, "
@@ -243,6 +245,7 @@ public class CachingTransformer
                             + " total requests); "
                             + totalPacketsAdded.get() + " total packets added, "
                             + "oldest hit " + oldestHit + "ms.");
+        }
 
         synchronized (caches)
         {
