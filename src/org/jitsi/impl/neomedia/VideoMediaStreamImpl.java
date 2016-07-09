@@ -96,9 +96,9 @@ public class VideoMediaStreamImpl
         Pattern pSendSingle = Pattern.compile("send \\[x=[0-9]+,y=[0-9]+\\]");
         Pattern pRecvSingle = Pattern.compile("recv \\[x=[0-9]+,y=[0-9]+\\]");
         Pattern pSendRange = Pattern.compile(
-                "send \\[x=\\[[0-9]+:[0-9]+\\],y=\\[[0-9]+:[0-9]+\\]\\]");
+                "send \\[x=\\[[0-9]+(-|:)[0-9]+\\],y=\\[[0-9]+(-|:)[0-9]+\\]\\]");
         Pattern pRecvRange = Pattern.compile(
-                "recv \\[x=\\[[0-9]+:[0-9]+\\],y=\\[[0-9]+:[0-9]+\\]\\]");
+                "recv \\[x=\\[[0-9]+(-|:)[0-9]+\\],y=\\[[0-9]+(-|:)[0-9]+\\]\\]");
         Pattern pNumeric = Pattern.compile("[0-9]+");
         Matcher mSingle = null;
         Matcher mRange = null;
