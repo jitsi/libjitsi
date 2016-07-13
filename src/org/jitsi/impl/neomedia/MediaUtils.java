@@ -610,7 +610,7 @@ public class MediaUtils
     /**
      * Creates value of an imgattr.
      *
-     * http://tools.ietf.org/html/draft-ietf-mmusic-image-attributes-04
+     * https://tools.ietf.org/html/rfc6236
      *
      * @param sendSize maximum size peer can send
      * @param maxRecvSize maximum size peer can display
@@ -632,10 +632,10 @@ public class MediaUtils
             img.append(",y=");
             img.append((int)sendSize.getHeight());
             img.append("]");*/
-            /* send [x=[min-max],y=[min-max]] */
-            img.append("send [x=[0-");
+            /* send [x=[min:max],y=[min:max]] */
+            img.append("send [x=[1:");
             img.append((int)sendSize.getWidth());
-            img.append("],y=[0-");
+            img.append("],y=[1:");
             img.append((int)sendSize.getHeight());
             img.append("]]");
             /*
@@ -644,11 +644,11 @@ public class MediaUtils
                 // range
                 img.append(" send [x=[");
                 img.append((int)minSendSize.getWidth());
-                img.append("-");
+                img.append(":");
                 img.append((int)maxSendSize.getWidth());
                 img.append("],y=[");
                 img.append((int)minSendSize.getHeight());
-                img.append("-");
+                img.append(":");
                 img.append((int)maxSendSize.getHeight());
                 img.append("]]");
             }
@@ -665,10 +665,10 @@ public class MediaUtils
         {
             // basically we can receive any size up to our screen display size
 
-            /* recv [x=[min-max],y=[min-max]] */
-            img.append(" recv [x=[0-");
+            /* recv [x=[min:max],y=[min:max]] */
+            img.append(" recv [x=[1:");
             img.append((int)maxRecvSize.getWidth());
-            img.append("],y=[0-");
+            img.append("],y=[1:");
             img.append((int)maxRecvSize.getHeight());
             img.append("]]");
         }

@@ -96,9 +96,9 @@ public class VideoMediaStreamImpl
         Pattern pSendSingle = Pattern.compile("send \\[x=[0-9]+,y=[0-9]+\\]");
         Pattern pRecvSingle = Pattern.compile("recv \\[x=[0-9]+,y=[0-9]+\\]");
         Pattern pSendRange = Pattern.compile(
-                "send \\[x=\\[[0-9]+-[0-9]+\\],y=\\[[0-9]+-[0-9]+\\]\\]");
+                "send \\[x=\\[[0-9]+(-|:)[0-9]+\\],y=\\[[0-9]+(-|:)[0-9]+\\]\\]");
         Pattern pRecvRange = Pattern.compile(
-                "recv \\[x=\\[[0-9]+-[0-9]+\\],y=\\[[0-9]+-[0-9]+\\]\\]");
+                "recv \\[x=\\[[0-9]+(-|:)[0-9]+\\],y=\\[[0-9]+(-|:)[0-9]+\\]\\]");
         Pattern pNumeric = Pattern.compile("[0-9]+");
         Matcher mSingle = null;
         Matcher mRange = null;
@@ -107,7 +107,7 @@ public class VideoMediaStreamImpl
         /* resolution (width and height) can be on four forms
          *
          * - single value [x=1920,y=1200]
-         * - range of values [x=[800-1024],y=[600-768]]
+         * - range of values [x=[800:1024],y=[600:768]]
          * - fixed range of values [x=[800,1024],y=[600,768]]
          * - range of values with step [x=[800:32:1024],y=[600:32:768]]
          *
@@ -134,7 +134,7 @@ public class VideoMediaStreamImpl
         }
         else if(mRange.find()) /* try with range */
         {
-            /* have two value for width and two for height (min-max) */
+            /* have two value for width and two for height (min:max) */
             int val[]  = new int[4];
             int i = 0;
             token = imgattr.substring(mRange.start(), mRange.end());
@@ -169,7 +169,7 @@ public class VideoMediaStreamImpl
         }
         else if(mRange.find()) /* try with range */
         {
-            /* have two value for width and two for height (min-max) */
+            /* have two value for width and two for height (min:max) */
             int val[]  = new int[4];
             int i = 0;
             token = imgattr.substring(mRange.start(), mRange.end());
