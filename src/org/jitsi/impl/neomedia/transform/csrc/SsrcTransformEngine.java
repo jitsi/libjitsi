@@ -99,6 +99,12 @@ public class SsrcTransformEngine
     private byte ssrcAudioLevelExtID = -1;
 
     /**
+     * A map of source ssrc to last accepted sequence number
+     */
+    private final Map<Long, SequenceNumberRewriter> ssrcToRewriter
+        = new HashMap<>();
+
+    /**
      * Initializes a new <tt>SsrcTransformEngine</tt> to be utilized by a
      * specific <tt>MediaStreamImpl</tt>.
      *
@@ -261,6 +267,17 @@ public class SsrcTransformEngine
                 csrcAudioLevelDispatcher.addLevels(levels, pkt.getTimestamp());
             }
         }
+
+        SequenceNumberRewriter rewriter = ssrcToRewriter.get(pkt.getSSRCAsLong());
+        if (rewriter == null)
+        {
+            rewriter = new SequenceNumberRewriter();
+            ssrcToRewriter.put(pkt.getSSRCAsLong(), rewriter);
+        }
+
+        rewriter.rewrite(
+            !dropPkt, pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+
         if (dropPkt)
         {
             droppedMutedAudioSourceInReverseTransform++;
