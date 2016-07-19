@@ -209,9 +209,10 @@ class OutputDataStreamImpl
             StreamRTPManagerDesc streamRTPManager
                 = s.connectorDesc.streamRTPManagerDesc;
             // Reset the sequence number to the original value
-            // The reset is required for sequence number rewriting logic that takes place as part of
-            // the willWriteData() call. The rtp packet gets copied as part of write() so for every
-            // stream, the sequence number needs to get reset to the original value before calling
+            // The reset is required for sequence number rewriting logic that
+            // takes place as part of the willWriteData() call. The rtp packet
+            // gets copied as part of write() so for every stream, the sequence
+            // number needs to get reset to the original value before calling
             // willWriteData()
             RawPacket.setSequenceNumber(buf, off, seqno);
 
