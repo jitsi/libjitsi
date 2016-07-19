@@ -15,7 +15,10 @@
  */
 package org.jitsi.impl.neomedia.rtp.translator;
 
+import org.jitsi.impl.neomedia.*;
+
 import javax.media.rtp.*;
+import java.util.*;
 
 /**
  * Describes an <tt>OutputDataStream</tt> associated with an endpoint to which
@@ -35,6 +38,12 @@ class OutputDataStreamDesc
      * <tt>RTPTranslatorImpl</tt> is translating.
      */
     public final OutputDataStream stream;
+
+    /**
+     * A map of source ssrc to {@link SequenceNumberRewriter}.
+     */
+    public final Map<Long, SequenceNumberRewriter> ssrcToRewriter
+        = new HashMap<>();
 
     /**
      * Initializes a new <tt>OutputDataStreamDesc</tt> instance which is to

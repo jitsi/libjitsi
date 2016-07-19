@@ -250,17 +250,34 @@ class OutputDataStreamImpl
                             format,
                             exclusion);
             }
-            if (!write)
-                continue;
 
-            // Allow the RTPTranslatorImpl a final chance to filter out the
-            // packet on a source-destination basis.
-            write
-                = translator.willWrite(
+            if (write)
+            {
+                // Allow the RTPTranslatorImpl a final chance to filter out the
+                // packet on a source-destination basis.
+                write
+                    = translator.willWrite(
                         /* source */ exclusion,
-                        buf, off, len,
+                    buf, off, len,
                         /* destination */ streamRTPManager,
-                        _data);
+                    _data);
+            }
+
+            // Hide gaps in the sequence numbers because of dropping packets.
+            Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
+
+            // XXX note that we are allowed to change the sequence number, since
+            // we save and restore the original before sending the buffer to
+            // other targets.
+            SequenceNumberRewriter rewriter = s.ssrcToRewriter.get(ssrc);
+            if (rewriter == null)
+            {
+                rewriter = new SequenceNumberRewriter();
+                s.ssrcToRewriter.put(ssrc, rewriter);
+            }
+
+            rewriter.rewrite(write, buf, off, len);
+
             if (!write)
                 continue;
 
