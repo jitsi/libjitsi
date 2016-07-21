@@ -40,12 +40,6 @@ class OutputDataStreamDesc
     public final OutputDataStream stream;
 
     /**
-     * A map of source ssrc to {@link SequenceNumberRewriter}.
-     */
-    public final Map<Long, SequenceNumberRewriter> ssrcToRewriter
-        = new HashMap<>();
-
-    /**
      * Initializes a new <tt>OutputDataStreamDesc</tt> instance which is to
      * describe an endpoint <tt>OutputDataStream</tt> for an
      * <tt>RTPTranslatorImpl</tt>.

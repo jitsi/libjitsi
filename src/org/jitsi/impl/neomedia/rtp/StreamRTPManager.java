@@ -24,6 +24,7 @@ import javax.media.protocol.*;
 import javax.media.rtp.*;
 
 import net.sf.fmj.media.rtp.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.*;
 
@@ -52,6 +53,12 @@ public class StreamRTPManager
      * with this instance to other <tt>MediaStream</tt>s.
      */
     private final RTPTranslatorImpl translator;
+
+    /**
+     * A map of source ssrc to {@link SequenceNumberRewriter}.
+     */
+    public final Map<Long, SequenceNumberRewriter> ssrcToRewriter
+        = new HashMap<>();
 
     /**
      * Initializes a new <tt>StreamRTPManager</tt> instance which is,

@@ -269,11 +269,13 @@ class OutputDataStreamImpl
             // XXX note that we are allowed to change the sequence number, since
             // we save and restore the original before sending the buffer to
             // other targets.
-            SequenceNumberRewriter rewriter = s.ssrcToRewriter.get(ssrc);
+            SequenceNumberRewriter rewriter =
+                streamRTPManager.streamRTPManager.ssrcToRewriter.get(ssrc);
             if (rewriter == null)
             {
                 rewriter = new SequenceNumberRewriter();
-                s.ssrcToRewriter.put(ssrc, rewriter);
+                streamRTPManager
+                    .streamRTPManager.ssrcToRewriter.put(ssrc, rewriter);
             }
 
             rewriter.rewrite(write, buf, off, len);
