@@ -1062,6 +1062,11 @@ public class MediaStreamImpl
         if (debugTransformEngine != null)
             engineChain.add(debugTransformEngine);
 
+        // Discard
+        DiscardTransformEngine discardEngine = new DiscardTransformEngine();
+        if (discardEngine != null)
+            engineChain.add(discardEngine);
+
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
 
