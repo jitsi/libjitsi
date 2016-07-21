@@ -36,7 +36,7 @@ public class DiscardTransformEngine
     implements TransformEngine
 {
     /**
-     * A map of source ssrc to last accepted sequence number
+     * A map of source ssrc to {@link SequenceNumberRewriter}.
      */
     private final Map<Long, SequenceNumberRewriter> ssrcToRewriter
         = new HashMap<>();

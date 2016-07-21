@@ -1063,7 +1063,7 @@ public class MediaStreamImpl
             engineChain.add(debugTransformEngine);
 
         // Discard
-        DiscardTransformEngine discardEngine = new DiscardTransformEngine();
+        DiscardTransformEngine discardEngine = createDiscardEngine();
         if (discardEngine != null)
             engineChain.add(discardEngine);
 
@@ -3664,5 +3664,14 @@ public class MediaStreamImpl
     public TransformEngineChain getTransformEngineChain()
     {
         return transformEngineChain;
+    }
+
+    /**
+     * Creates the {@link DiscardTransformEngine} for this stream. Allows
+     * extenders to override.
+     */
+    protected DiscardTransformEngine createDiscardEngine()
+    {
+        return null;
     }
 }

@@ -776,4 +776,13 @@ public class AudioMediaStreamImpl
             throw new IllegalArgumentException("dtmfMethod");
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected DiscardTransformEngine createDiscardEngine()
+    {
+        return new DiscardTransformEngine();
+    }
 }
