@@ -15,6 +15,7 @@
  */
 package org.jitsi.impl.neomedia;
 
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 
 import javax.media.*;

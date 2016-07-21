@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia;
+package org.jitsi.impl.neomedia.rtp;
 
 import org.junit.*;
-
-import java.util.logging.*;
 
 import static org.junit.Assert.*;
 

@@ -24,7 +24,6 @@ import javax.media.protocol.*;
 import javax.media.rtp.*;
 
 import net.sf.fmj.media.rtp.*;
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.*;
 
