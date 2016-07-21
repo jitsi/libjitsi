@@ -263,22 +263,25 @@ class OutputDataStreamImpl
                     _data);
             }
 
-            // Hide gaps in the sequence numbers because of dropping packets.
-            Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
-
-            // XXX note that we are allowed to change the sequence number, since
-            // we save and restore the original before sending the buffer to
-            // other targets.
-            SequenceNumberRewriter rewriter =
-                streamRTPManager.streamRTPManager.ssrcToRewriter.get(ssrc);
-            if (rewriter == null)
+            if (_data)
             {
-                rewriter = new SequenceNumberRewriter();
-                streamRTPManager
-                    .streamRTPManager.ssrcToRewriter.put(ssrc, rewriter);
-            }
+                // Hide gaps in the sequence numbers because of dropping packets.
+                Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
 
-            rewriter.rewrite(write, buf, off, len);
+                // XXX note that we are allowed to change the sequence number, since
+                // we save and restore the original before sending the buffer to
+                // other targets.
+                SequenceNumberRewriter rewriter =
+                    streamRTPManager.streamRTPManager.ssrcToRewriter.get(ssrc);
+                if (rewriter == null)
+                {
+                    rewriter = new SequenceNumberRewriter();
+                    streamRTPManager
+                        .streamRTPManager.ssrcToRewriter.put(ssrc, rewriter);
+                }
+
+                rewriter.rewrite(write, buf, off, len);
+            }
 
             if (!write)
                 continue;
