@@ -37,6 +37,9 @@ import org.jitsi.util.Logger; // Disambiguation.
  * endpoint <tt>OutputDataStream</tt>s.
  *
  * @author Lyubomir Marinov
+ * @author Maryam Daneshi
+ * @author George Politis
+ * @author Boris Grozev
  */
 class OutputDataStreamImpl
     implements OutputDataStream,
@@ -189,8 +192,9 @@ class OutputDataStreamImpl
             Format format,
             StreamRTPManagerDesc exclusion)
     {
-
-        int seqno = RawPacket.getSequenceNumber(buf, off, len);
+        // If this is RTCP (!_data), this doesn't make sense, but it doesn't
+        // hurt either.
+        int originalSequenceNumber = RawPacket.getSequenceNumber(buf, off, len);
         RTPTranslatorImpl translator = getTranslator();
 
         if (translator == null)
@@ -209,13 +213,6 @@ class OutputDataStreamImpl
             OutputDataStreamDesc s = streams.get(i);
             StreamRTPManagerDesc streamRTPManager
                 = s.connectorDesc.streamRTPManagerDesc;
-            // Reset the sequence number to the original value
-            // The reset is required for sequence number rewriting logic that
-            // takes place as part of the willWriteData() call. The rtp packet
-            // gets copied as part of write() so for every stream, the sequence
-            // number needs to get reset to the original value before calling
-            // willWriteData()
-            RawPacket.setSequenceNumber(buf, off, seqno);
 
             if (streamRTPManager == exclusion)
                 continue;
@@ -269,9 +266,8 @@ class OutputDataStreamImpl
                 // Hide gaps in the sequence numbers because of dropping packets.
                 Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
 
-                // XXX note that we are allowed to change the sequence number, since
-                // we save and restore the original before sending the buffer to
-                // other targets.
+                // Note that we reset the sequence number back to the original
+                // once we write to the stream.
                 SequenceNumberRewriter rewriter =
                     streamRTPManager.streamRTPManager.ssrcToRewriter.get(ssrc);
                 if (rewriter == null)
@@ -284,13 +280,21 @@ class OutputDataStreamImpl
                 rewriter.rewrite(write, buf, off, len);
             }
 
-            if (!write)
-                continue;
+            if (write)
+            {
+                int w = s.stream.write(buf, off, len);
 
-            int w = s.stream.write(buf, off, len);
+                if (written < w)
+                    written = w;
+            }
 
-            if (written < w)
-                written = w;
+            if (_data)
+            {
+                // Reset the sequence number in case it was rewritten by the
+                // SequenceNumberRewriter above.
+                RawPacket
+                    .setSequenceNumber(buf, off, originalSequenceNumber);
+            }
         }
         return written;
     }
