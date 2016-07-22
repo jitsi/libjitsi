@@ -261,6 +261,7 @@ class OutputDataStreamImpl
                     _data);
             }
 
+            boolean altered = false;
             if (_data)
             {
                 // Hide gaps in the sequence numbers because of dropping packets.
@@ -277,7 +278,7 @@ class OutputDataStreamImpl
                         .streamRTPManager.ssrcToRewriter.put(ssrc, rewriter);
                 }
 
-                rewriter.rewrite(write, buf, off, len);
+                altered = rewriter.rewrite(write, buf, off, len);
             }
 
             if (write)
@@ -288,7 +289,7 @@ class OutputDataStreamImpl
                     written = w;
             }
 
-            if (_data)
+            if (altered)
             {
                 // Reset the sequence number in case it was rewritten by the
                 // SequenceNumberRewriter above.

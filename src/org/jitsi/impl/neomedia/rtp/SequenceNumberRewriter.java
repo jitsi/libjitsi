@@ -46,12 +46,13 @@ public class SequenceNumberRewriter
      * @param buf the byte buffer that contains the RTP packet
      * @param off the offset in the byte buffer where the RTP packet starts
      * @param len the length of the RTP packet in the byte buffer
+     * @return true if the packet was altered, false otherwise
      */
-    public void rewrite(boolean accept, byte[] buf, int off, int len)
+    public boolean rewrite(boolean accept, byte[] buf, int off, int len)
     {
         if (buf == null || buf.length + off < len)
         {
-            return;
+            return false;
         }
 
         int sequenceNumber = RawPacket.getSequenceNumber(buf, off, len);
@@ -60,7 +61,10 @@ public class SequenceNumberRewriter
         if (sequenceNumber != newSequenceNumber)
         {
             RawPacket.setSequenceNumber(buf, off, newSequenceNumber);
+            return true;
         }
+
+        return false;
     }
 
     /**
