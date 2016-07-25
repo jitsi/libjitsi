@@ -15,7 +15,10 @@
  */
 package org.jitsi.impl.neomedia.rtp.translator;
 
+import org.jitsi.impl.neomedia.*;
+
 import javax.media.rtp.*;
+import java.util.*;
 
 /**
  * Describes an <tt>OutputDataStream</tt> associated with an endpoint to which

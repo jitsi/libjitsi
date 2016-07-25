@@ -25,6 +25,7 @@ import net.sf.fmj.media.rtp.RTPHeader;
 
 import org.ice4j.util.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -36,6 +37,9 @@ import org.jitsi.util.Logger; // Disambiguation.
  * endpoint <tt>OutputDataStream</tt>s.
  *
  * @author Lyubomir Marinov
+ * @author Maryam Daneshi
+ * @author George Politis
+ * @author Boris Grozev
  */
 class OutputDataStreamImpl
     implements OutputDataStream,
@@ -188,8 +192,9 @@ class OutputDataStreamImpl
             Format format,
             StreamRTPManagerDesc exclusion)
     {
-
-        int seqno = RawPacket.getSequenceNumber(buf, off, len);
+        // If this is RTCP (!_data), this doesn't make sense, but it doesn't
+        // hurt either.
+        int originalSequenceNumber = RawPacket.getSequenceNumber(buf, off, len);
         RTPTranslatorImpl translator = getTranslator();
 
         if (translator == null)
@@ -208,12 +213,6 @@ class OutputDataStreamImpl
             OutputDataStreamDesc s = streams.get(i);
             StreamRTPManagerDesc streamRTPManager
                 = s.connectorDesc.streamRTPManagerDesc;
-            // Reset the sequence number to the original value
-            // The reset is required for sequence number rewriting logic that takes place as part of
-            // the willWriteData() call. The rtp packet gets copied as part of write() so for every
-            // stream, the sequence number needs to get reset to the original value before calling
-            // willWriteData()
-            RawPacket.setSequenceNumber(buf, off, seqno);
 
             if (streamRTPManager == exclusion)
                 continue;
@@ -249,24 +248,54 @@ class OutputDataStreamImpl
                             format,
                             exclusion);
             }
-            if (!write)
-                continue;
 
-            // Allow the RTPTranslatorImpl a final chance to filter out the
-            // packet on a source-destination basis.
-            write
-                = translator.willWrite(
+            if (write)
+            {
+                // Allow the RTPTranslatorImpl a final chance to filter out the
+                // packet on a source-destination basis.
+                write
+                    = translator.willWrite(
                         /* source */ exclusion,
-                        buf, off, len,
+                    buf, off, len,
                         /* destination */ streamRTPManager,
-                        _data);
-            if (!write)
-                continue;
+                    _data);
+            }
 
-            int w = s.stream.write(buf, off, len);
+            boolean altered = false;
+            if (_data)
+            {
+                // Hide gaps in the sequence numbers because of dropping packets.
+                Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
 
-            if (written < w)
-                written = w;
+                // Note that we reset the sequence number back to the original
+                // once we write to the stream.
+                SequenceNumberRewriter rewriter =
+                    streamRTPManager.streamRTPManager.ssrcToRewriter.get(ssrc);
+                if (rewriter == null)
+                {
+                    rewriter = new SequenceNumberRewriter();
+                    streamRTPManager
+                        .streamRTPManager.ssrcToRewriter.put(ssrc, rewriter);
+                }
+
+                altered = rewriter.rewrite(write, buf, off, len);
+            }
+
+            if (write)
+            {
+                int w = s.stream.write(buf, off, len);
+
+                if (written < w)
+                    written = w;
+            }
+
+            if (altered)
+            {
+                // Reset the sequence number in case it was rewritten by the
+                // SequenceNumberRewriter above.
+                RawPacket
+                    .setSequenceNumber(buf, off, originalSequenceNumber);
+            }
         }
         return written;
     }

@@ -24,6 +24,7 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.impl.neomedia.transform.dtmf.*;
 import org.jitsi.service.configuration.*;
@@ -775,5 +776,14 @@ public class AudioMediaStreamImpl
         default:
             throw new IllegalArgumentException("dtmfMethod");
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected DiscardTransformEngine createDiscardEngine()
+    {
+        return new DiscardTransformEngine();
     }
 }

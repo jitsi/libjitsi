@@ -38,8 +38,10 @@ public class RTPUtils
     }
 
     /**
-     * Returns result of the subtraction of one RTP sequence number from another (modulo 2^16).
-     * @return result of the subtraction of one RTP sequence number from another (modulo 2^16).
+     * Returns result of the subtraction of one RTP sequence number from another
+     * (modulo 2^16).
+     * @return result of the subtraction of one RTP sequence number from another
+     * (modulo 2^16).
      */
     public static int subtractNumber(int a, int b)
     {

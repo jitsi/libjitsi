@@ -54,6 +54,12 @@ public class StreamRTPManager
     private final RTPTranslatorImpl translator;
 
     /**
+     * A map of source ssrc to {@link SequenceNumberRewriter}.
+     */
+    public final Map<Long, SequenceNumberRewriter> ssrcToRewriter
+        = new HashMap<>();
+
+    /**
      * Initializes a new <tt>StreamRTPManager</tt> instance which is,
      * optionally, attached to a specific <tt>RTPTranslator</tt> which is to
      * forward the RTP and RTCP flows of the associated <tt>MediaStream</tt> to

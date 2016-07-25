@@ -264,13 +264,14 @@ public class SsrcTransformEngine
         if (dropPkt)
         {
             droppedMutedAudioSourceInReverseTransform++;
-            return null;
+            pkt.setFlags(Buffer.FLAG_DISCARD | pkt.getFlags());
         }
         else
         {
             droppedMutedAudioSourceInReverseTransform = 0;
-            return pkt;
         }
+
+        return pkt;
     }
 
     public void setSsrcAudioLevelExtensionID(byte extID, MediaDirection dir)
