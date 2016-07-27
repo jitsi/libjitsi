@@ -29,14 +29,49 @@ import org.jitsi.util.*;
 public class SequenceNumberRewriter
 {
     /**
-     * The delta between what's been accepted and what's been received, mod 16.
+     * The sequence number delta between what's been accepted and what's been
+     * received, mod 16.
      */
-    int delta = 0;
+    int seqnumDelta = 0;
+
+    /**
+     * The timestamp delta between what's been accepted and what's been
+     * received, mod 32.
+     */
+    long timestampDelta = 0;
 
     /**
      * The highest sequence number that got accepted, mod 16.
      */
-    int highestSent = -1;
+    int highestSequenceNumberSent = -1;
+
+    /**
+     * The highest timestamp that got accepted, mod 32.
+     */
+    long highestTimestampSent = -1;
+
+    /**
+     * Ctor.
+     */
+    public SequenceNumberRewriter()
+    {
+    }
+
+    /**
+     * Ctor.
+     *
+     * @param highestSequenceNumberSent the highest sequence number that got accepted, mod 16.
+     * @param seqnumDelta the seqnumDelta between what's been accepted and what's been
+     * received, mod 16.
+     */
+    public SequenceNumberRewriter(int highestSequenceNumberSent, int seqnumDelta,
+                                  long highestTimestampSent, long timestampDelta)
+    {
+        this.seqnumDelta = seqnumDelta;
+        this.highestSequenceNumberSent = highestSequenceNumberSent;
+        this.highestTimestampSent = highestTimestampSent;
+        this.timestampDelta = timestampDelta;
+    }
 
     /**
      * Rewrites the sequence number of the RTP packet in the byte buffer, hiding
@@ -58,13 +93,24 @@ public class SequenceNumberRewriter
         int sequenceNumber = RawPacket.getSequenceNumber(buf, off, len);
         int newSequenceNumber = rewriteSequenceNumber(accept, sequenceNumber);
 
+        long timestamp = RawPacket.getTimestamp(buf, off, len);
+        long newTimestamp = rewriteTimestamp(accept, timestamp);
+
+        boolean modified = false;
+
         if (sequenceNumber != newSequenceNumber)
         {
             RawPacket.setSequenceNumber(buf, off, newSequenceNumber);
-            return true;
+            modified = true;
         }
 
-        return false;
+        if (timestamp != newTimestamp)
+        {
+            RawPacket.setTimestamp(buf, off, len, newTimestamp);
+            modified = true;
+        }
+
+        return modified;
     }
 
     /**
@@ -81,32 +127,74 @@ public class SequenceNumberRewriter
         {
             // overwrite the sequence number (if needed)
             int newSequenceNumber
-                = RTPUtils.subtractNumber(sequenceNumber, delta);
+                = RTPUtils.subtractNumber(sequenceNumber, seqnumDelta);
 
             // init or update the highest sent sequence number (if needed)
-            if (highestSent == -1 ||
-                RTPUtils.sequenceNumberDiff(newSequenceNumber, highestSent) > 0)
+            if (highestSequenceNumberSent == -1 ||
+                RTPUtils.sequenceNumberDiff(newSequenceNumber, highestSequenceNumberSent) > 0)
             {
-                highestSent = newSequenceNumber;
+                highestSequenceNumberSent = newSequenceNumber;
             }
 
             return newSequenceNumber;
         }
         else
         {
-            // update the delta (if needed)
-            if (highestSent != -1)
+            // update the sequence number delta (if needed)
+            if (highestSequenceNumberSent != -1)
             {
                 final int newDelta
-                    = RTPUtils.subtractNumber(sequenceNumber, highestSent);
+                    = RTPUtils.subtractNumber(sequenceNumber, highestSequenceNumberSent);
 
-                if (RTPUtils.sequenceNumberDiff(newDelta, delta) > 0)
+                if (RTPUtils.sequenceNumberDiff(newDelta, seqnumDelta) > 0)
                 {
-                    delta = newDelta;
+                    seqnumDelta = newDelta;
                 }
             }
 
             return sequenceNumber;
+        }
+    }
+
+    /**
+     * Rewrites the timestamp passed as a parameter, hiding any gaps caused by
+     * drops.
+     *
+     * @param accept true if the packet is accepted, false otherwise
+     * @param timestamp the timestamp to rewrite
+     * @return a rewritten timestamp that hides any gaps caused by drops.
+     */
+    long rewriteTimestamp(boolean accept, long timestamp)
+    {
+        if (accept)
+        {
+            // overwrite the timestamp (if needed)
+            long newTimestamp = (timestamp - timestampDelta) & 0xffffffff;
+
+            // init or update the highest sent timestamp (if needed)
+            if (highestTimestampSent == -1 ||
+                RTPUtils.timestampDiff(newTimestamp, highestTimestampSent) > 0)
+            {
+                highestTimestampSent = newTimestamp;
+            }
+
+            return newTimestamp;
+        }
+        else
+        {
+            // update the timestamp delta (if needed)
+            if (highestTimestampSent != -1)
+            {
+                final long newDelta
+                    = (timestamp - highestTimestampSent) & 0xffffffff;
+
+                if (RTPUtils.timestampDiff(newDelta, timestampDelta) > 0)
+                {
+                    timestampDelta = newDelta;
+                }
+            }
+
+            return timestamp;
         }
     }
 }

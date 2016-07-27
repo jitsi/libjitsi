@@ -195,6 +195,7 @@ class OutputDataStreamImpl
         // If this is RTCP (!_data), this doesn't make sense, but it doesn't
         // hurt either.
         int originalSequenceNumber = RawPacket.getSequenceNumber(buf, off, len);
+        long originalTimestamp = RawPacket.getTimestamp(buf, off, len);
         RTPTranslatorImpl translator = getTranslator();
 
         if (translator == null)
@@ -292,9 +293,11 @@ class OutputDataStreamImpl
             if (altered)
             {
                 // Reset the sequence number in case it was rewritten by the
-                // SequenceNumberRewriter above.
+                // {@link SequenceNumberRewriter} above.
                 RawPacket
                     .setSequenceNumber(buf, off, originalSequenceNumber);
+                RawPacket
+                    .setTimestamp(buf, off, len, originalTimestamp);
             }
         }
         return written;
