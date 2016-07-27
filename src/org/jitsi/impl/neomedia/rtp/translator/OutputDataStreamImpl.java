@@ -270,11 +270,11 @@ class OutputDataStreamImpl
 
                 // Note that we reset the sequence number back to the original
                 // once we write to the stream.
-                SequenceNumberRewriter rewriter =
+                ResumableStreamRewriter rewriter =
                     streamRTPManager.streamRTPManager.ssrcToRewriter.get(ssrc);
                 if (rewriter == null)
                 {
-                    rewriter = new SequenceNumberRewriter();
+                    rewriter = new ResumableStreamRewriter();
                     streamRTPManager
                         .streamRTPManager.ssrcToRewriter.put(ssrc, rewriter);
                 }
@@ -293,7 +293,7 @@ class OutputDataStreamImpl
             if (altered)
             {
                 // Reset the sequence number in case it was rewritten by the
-                // {@link SequenceNumberRewriter} above.
+                // {@link ResumableStreamRewriter} above.
                 RawPacket
                     .setSequenceNumber(buf, off, originalSequenceNumber);
                 RawPacket

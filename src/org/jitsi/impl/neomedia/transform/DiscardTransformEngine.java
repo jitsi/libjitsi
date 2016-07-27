@@ -36,9 +36,9 @@ public class DiscardTransformEngine
     implements TransformEngine
 {
     /**
-     * A map of source ssrc to {@link SequenceNumberRewriter}.
+     * A map of source ssrc to {@link ResumableStreamRewriter}.
      */
-    private final Map<Long, SequenceNumberRewriter> ssrcToRewriter
+    private final Map<Long, ResumableStreamRewriter> ssrcToRewriter
         = new HashMap<>();
 
     /**
@@ -55,10 +55,11 @@ public class DiscardTransformEngine
         boolean dropPkt
             = (pkt.getFlags() & Buffer.FLAG_DISCARD) == Buffer.FLAG_DISCARD;
 
-        SequenceNumberRewriter rewriter = ssrcToRewriter.get(pkt.getSSRCAsLong());
+        ResumableStreamRewriter rewriter
+            = ssrcToRewriter.get(pkt.getSSRCAsLong());
         if (rewriter == null)
         {
-            rewriter = new SequenceNumberRewriter();
+            rewriter = new ResumableStreamRewriter();
             ssrcToRewriter.put(pkt.getSSRCAsLong(), rewriter);
         }
 

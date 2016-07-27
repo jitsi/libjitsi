@@ -22,13 +22,13 @@ import static org.junit.Assert.*;
 /**
  * @author George Politis
  */
-public class SequenceNumberRewriterTest
+public class ResumableStreamRewriterTest
 {
     @Test
     public void rewriteSequenceNumber()
         throws Exception
     {
-        SequenceNumberRewriter snr = new SequenceNumberRewriter();
+        ResumableStreamRewriter snr = new ResumableStreamRewriter();
         assertEquals(0, snr.seqnumDelta);
         assertEquals(-1, snr.highestSequenceNumberSent);
 

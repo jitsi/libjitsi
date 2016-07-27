@@ -26,7 +26,7 @@ import org.jitsi.util.*;
  * @author Maryam Daneshi
  * @author George Politis
  */
-public class SequenceNumberRewriter
+public class ResumableStreamRewriter
 {
     /**
      * The sequence number delta between what's been accepted and what's been
@@ -53,19 +53,22 @@ public class SequenceNumberRewriter
     /**
      * Ctor.
      */
-    public SequenceNumberRewriter()
+    public ResumableStreamRewriter()
     {
     }
 
     /**
      * Ctor.
      *
-     * @param highestSequenceNumberSent the highest sequence number that got accepted, mod 16.
-     * @param seqnumDelta the seqnumDelta between what's been accepted and what's been
+     * @param highestSequenceNumberSent the highest sequence number that got
+     * accepted, mod 16.
+     * @param seqnumDelta the seqnumDelta between what's been accepted and
+     * what's been
      * received, mod 16.
      */
-    public SequenceNumberRewriter(int highestSequenceNumberSent, int seqnumDelta,
-                                  long highestTimestampSent, long timestampDelta)
+    public ResumableStreamRewriter(
+        int highestSequenceNumberSent, int seqnumDelta,
+        long highestTimestampSent, long timestampDelta)
     {
         this.seqnumDelta = seqnumDelta;
         this.highestSequenceNumberSent = highestSequenceNumberSent;
@@ -130,8 +133,8 @@ public class SequenceNumberRewriter
                 = RTPUtils.subtractNumber(sequenceNumber, seqnumDelta);
 
             // init or update the highest sent sequence number (if needed)
-            if (highestSequenceNumberSent == -1 ||
-                RTPUtils.sequenceNumberDiff(newSequenceNumber, highestSequenceNumberSent) > 0)
+            if (highestSequenceNumberSent == -1 || RTPUtils.sequenceNumberDiff(
+                newSequenceNumber, highestSequenceNumberSent) > 0)
             {
                 highestSequenceNumberSent = newSequenceNumber;
             }
@@ -143,8 +146,8 @@ public class SequenceNumberRewriter
             // update the sequence number delta (if needed)
             if (highestSequenceNumberSent != -1)
             {
-                final int newDelta
-                    = RTPUtils.subtractNumber(sequenceNumber, highestSequenceNumberSent);
+                final int newDelta = RTPUtils.subtractNumber(
+                    sequenceNumber, highestSequenceNumberSent);
 
                 if (RTPUtils.sequenceNumberDiff(newDelta, seqnumDelta) > 0)
                 {

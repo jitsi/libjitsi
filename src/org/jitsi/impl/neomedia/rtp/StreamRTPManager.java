@@ -54,9 +54,9 @@ public class StreamRTPManager
     private final RTPTranslatorImpl translator;
 
     /**
-     * A map of source ssrc to {@link SequenceNumberRewriter}.
+     * A map of source ssrc to {@link ResumableStreamRewriter}.
      */
-    public final Map<Long, SequenceNumberRewriter> ssrcToRewriter
+    public final Map<Long, ResumableStreamRewriter> ssrcToRewriter
         = new HashMap<>();
 
     /**
