@@ -59,16 +59,6 @@ public class SsrcTransformEngine
     private static boolean dropMutedAudioSourceInReverseTransform = false;
 
     /**
-     * The maximum number of consecutive RTP packets indicated as generated from
-     * a muted audio source to be dropped in
-     * {@link #reverseTransform(RawPacket)}. Makes sure that SRTP at the
-     *  receiving endpoint/peer sees enough sequence numbers to not get its SRTP
-     *  index out of sync with the sending endpoint/peer. 
-     */
-    private static final int MAX_DROPPED_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM
-        = 1023;
-
-    /**
      * The indicator which determines whether the method
      * {@link #readConfigurationServicePropertiesOnce()} is to read the values
      * of certain <tt>ConfigurationService</tt> properties of concern to
@@ -81,12 +71,6 @@ public class SsrcTransformEngine
      * The dispatcher that is delivering audio levels to the media steam.
      */
     private final CsrcAudioLevelDispatcher csrcAudioLevelDispatcher;
-
-    /**
-     * The number of consecutive RTP packets indicated as generated from a muted
-     * audio source and dropped in {@link #reverseTransform(RawPacket)}.
-     */
-    private int droppedMutedAudioSourceInReverseTransform;
 
     /**
      * The <tt>MediaDirection</tt> in which this RTP header extension is active.
@@ -238,9 +222,7 @@ public class SsrcTransformEngine
             {
                 if (dropMutedAudioSourceInReverseTransform)
                 {
-                    dropPkt
-                        = droppedMutedAudioSourceInReverseTransform
-                            < MAX_DROPPED_MUTED_AUDIO_SOURCE_IN_REVERSE_TRANSFORM;
+                    dropPkt = true;
                 }
                 else
                 {
@@ -263,12 +245,7 @@ public class SsrcTransformEngine
         }
         if (dropPkt)
         {
-            droppedMutedAudioSourceInReverseTransform++;
             pkt.setFlags(Buffer.FLAG_DISCARD | pkt.getFlags());
-        }
-        else
-        {
-            droppedMutedAudioSourceInReverseTransform = 0;
         }
 
         return pkt;
