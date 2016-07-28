@@ -29,6 +29,13 @@ import org.jitsi.util.*;
 public class ResumableStreamRewriter
 {
     /**
+     * The <tt>Logger</tt> used by the <tt>ResumableStreamRewriter</tt> class and
+     * its instances to print debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(ResumableStreamRewriter.class);
+
+    /**
      * The sequence number delta between what's been accepted and what's been
      * received, mod 16.
      */
@@ -74,6 +81,13 @@ public class ResumableStreamRewriter
         this.highestSequenceNumberSent = highestSequenceNumberSent;
         this.highestTimestampSent = highestTimestampSent;
         this.timestampDelta = timestampDelta;
+
+        logger.debug(
+            "Creating ResumableStreamRewriter highestSequenceNumberSent="
+                + highestSequenceNumberSent + ", seqnumDelta="
+                + seqnumDelta + ", highestTimestampSent="
+                + highestTimestampSent + ", timestampDelta="
+                + timestampDelta);
     }
 
     /**
@@ -103,12 +117,16 @@ public class ResumableStreamRewriter
 
         if (sequenceNumber != newSequenceNumber)
         {
+            Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
+            logger.debug("Rewriting ssrc=" + ssrc + " sequenceNumber=" + sequenceNumber + ", newSequenceNumber=" + newSequenceNumber);
             RawPacket.setSequenceNumber(buf, off, newSequenceNumber);
             modified = true;
         }
 
         if (timestamp != newTimestamp)
         {
+            Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
+            logger.debug("Rewriting ssrc=" + ssrc + " timestamp=" + timestamp + ", newTimestamp=" + newTimestamp);
             RawPacket.setTimestamp(buf, off, len, newTimestamp);
             modified = true;
         }
