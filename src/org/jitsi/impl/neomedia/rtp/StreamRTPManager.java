@@ -56,8 +56,46 @@ public class StreamRTPManager
     /**
      * A map of source ssrc to {@link ResumableStreamRewriter}.
      */
-    public final Map<Long, ResumableStreamRewriter> ssrcToRewriter
+    private final Map<Long, ResumableStreamRewriter> ssrcToRewriter
         = new HashMap<>();
+
+    /**
+     *
+     * @param ssrc
+     * @return
+     */
+    public ResumableStreamRewriter getOrCreateResumableStreamRewriter(Long ssrc)
+    {
+        ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
+        if (rewriter == null)
+        {
+            rewriter = new ResumableStreamRewriter();
+            ssrcToRewriter.put(ssrc, rewriter);
+        }
+
+        return rewriter;
+    }
+
+    /**
+     *
+     * @param ssrc
+     * @param rewriter
+     */
+    public void putResumableStreamRewriter(
+        Long ssrc, ResumableStreamRewriter rewriter)
+    {
+        ssrcToRewriter.put(ssrc, rewriter);
+    }
+
+    /**
+     *
+     * @param ssrc
+     * @return
+     */
+    public ResumableStreamRewriter getResumableStreamRewriter(Long ssrc)
+    {
+        return ssrcToRewriter.get(ssrc);
+    }
 
     /**
      * Initializes a new <tt>StreamRTPManager</tt> instance which is,

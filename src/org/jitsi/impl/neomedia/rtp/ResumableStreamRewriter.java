@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.rtp;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.util.*;
 
 /**
@@ -70,8 +71,11 @@ public class ResumableStreamRewriter
      * @param highestSequenceNumberSent the highest sequence number that got
      * accepted, mod 16.
      * @param seqnumDelta the seqnumDelta between what's been accepted and
-     * what's been
-     * received, mod 16.
+     * what's been received, mod 16.
+     * @param highestTimestampSent The highest timestamp that got accepted,
+     * mod 32.
+     * @param timestampDelta The timestamp delta between what's been accepted
+     * and what's been received, mod 32.
      */
     public ResumableStreamRewriter(
         int highestSequenceNumberSent, int seqnumDelta,
@@ -91,8 +95,8 @@ public class ResumableStreamRewriter
     }
 
     /**
-     * Rewrites the sequence number of the RTP packet in the byte buffer, hiding
-     * any gaps caused by drops.
+     * Rewrites the sequence number of the RTP packet in the byte buffer,
+     * hiding any gaps caused by drops.
      *
      * @param accept true if the packet is accepted, false otherwise
      * @param buf the byte buffer that contains the RTP packet
@@ -100,7 +104,7 @@ public class ResumableStreamRewriter
      * @param len the length of the RTP packet in the byte buffer
      * @return true if the packet was altered, false otherwise
      */
-    public boolean rewrite(boolean accept, byte[] buf, int off, int len)
+    public boolean rewriteRTP(boolean accept, byte[] buf, int off, int len)
     {
         if (buf == null || buf.length + off < len)
         {
@@ -133,6 +137,73 @@ public class ResumableStreamRewriter
 
         return modified;
     }
+
+    /**
+     * Restores the RTP timestamp and sequence number of the RTP packet in the
+     * buffer.
+     *
+     * @param buf the byte buffer that contains the RTP packet.
+     * @param off the offset in the byte buffer where the RTP packet starts.
+     * @param len the number of bytes in buffer which constitute the actual
+     * data.
+     * @return true if the RTP packet is modified, false otherwise.
+     */
+    public boolean restoreRTP(byte[] buf, int off, int len)
+    {
+        boolean modified = false;
+
+        if (timestampDelta != 0)
+        {
+            long ts = RawPacket.getTimestamp(buf, off, len);
+            RawPacket.setTimestamp(
+                buf, off, len, (ts + timestampDelta) & 0xffffffff);
+
+            modified = true;
+        }
+
+        if (seqnumDelta != 0)
+        {
+            int sn = RawPacket.getSequenceNumber(buf, off, len);
+            RawPacket.setSequenceNumber(
+                buf, off, (sn + seqnumDelta) & 0xffff);
+
+            modified = true;
+        }
+
+        return modified;
+    }
+
+    /**
+     * Restores the RTP timestamp of the RTCP SR packet in the buffer.
+     *
+     * @param buf the byte buffer that contains the RTCP packet.
+     * @param off the offset in the byte buffer where the RTCP packet starts.
+     * @param len the number of bytes in buffer which constitute the actual
+     * data.
+     * @return true if the SR is modified, false otherwise.
+     */
+    public boolean processRTCP(boolean rewrite, byte[] buf, int off, int len)
+    {
+        if (timestampDelta == 0)
+        {
+            return false;
+        }
+
+        long ts = RTCPSenderInfoUtils.getTimestamp(buf, off, len);
+        if (ts == -1)
+        {
+            return false;
+        }
+
+        long newTs = rewrite
+            ? (ts - timestampDelta) & 0xffffffff
+            : (ts + timestampDelta) & 0xffffffff;
+
+        int ret = RTCPSenderInfoUtils.setTimestamp(buf, off, len, newTs);
+
+        return ret > 0;
+    }
+
 
     /**
      * Rewrites the sequence number passed as a parameter, hiding any gaps
