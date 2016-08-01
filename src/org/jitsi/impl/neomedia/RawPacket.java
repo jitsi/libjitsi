@@ -27,6 +27,9 @@ package org.jitsi.impl.neomedia;
  * Besides packet info storage, RawPacket also provides some other operations
  * such as readInt() to ease the development process.
  *
+ * FIXME This class needs to be split/merged into RTPHeader, RTCPHeader,
+ * ByteBufferUtils, etc.
+ *
  * @author Werner Dittmann (Werner.Dittmann@t-online.de)
  * @author Bing SU (nova.su@gmail.com)
  * @author Emil Ivov
