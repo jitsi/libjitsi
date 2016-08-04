@@ -1438,4 +1438,42 @@ public class RawPacket
 
         return sb.toString();
     }
+
+    /**
+     * Sets the version of this RTP packet.
+     */
+    public void setVersion()
+    {
+        buffer[offset] |= (byte) 0x8F /* 1000 0000 */ ;
+        buffer[offset] &= (byte) 0xBF /* 1011 1111 */ ;
+    }
+
+    /**
+     * Sets the padding of this RTP packet equal to len.
+     *
+     * @param len how much padding is contained in this packet.
+     */
+    public void setPadding(int len)
+    {
+        if(len > 0)
+        {
+            // set padding bit.
+            buffer[offset] |= (byte) 0x20; /* 0010 000 */
+
+            // set padding length at the end of the buffer.
+            int payloadLength = getPayloadLength();
+            int maxPaddingLength = Math.min(0xff, payloadLength);
+
+            if (len > maxPaddingLength)
+            {
+                len = maxPaddingLength;
+            }
+
+            buffer[offset + len - 1] = (byte) len;
+        }
+        else
+        {
+            buffer[offset] &= (byte) 0xDF; /* 1101 1111 */
+        }
+    }
 }
