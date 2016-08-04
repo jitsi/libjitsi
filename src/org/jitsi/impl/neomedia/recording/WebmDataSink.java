@@ -15,6 +15,8 @@
  */
 package org.jitsi.impl.neomedia.recording;
 
+import org.jitsi.service.configuration.ConfigurationService;
+import org.jitsi.service.libjitsi.LibJitsi;
 import org.jitsi.service.neomedia.MediaType;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.recording.*;
@@ -125,6 +127,15 @@ public class WebmDataSink
     private int framesSinceLastKeyframeRequest = 0;
     private static int REREQUEST_KEYFRAME_INTERVAL = 100;
 
+    /**
+     * Property name to control auto requesting keyframes periodically
+     * to improve recording quality over low quality connection (e.g. proper
+     * network speed, but high packet loss)
+     */
+    private static String AUTO_REQUEST_KEYFRAME_PNAME =
+            WebmDataSink.class.getCanonicalName() + ".AUTOKEYFRAME";
+    private int autoKeyframeRequestInterval = 0;
+
 
     /**
      * Initialize a new <tt>WebmDataSink</tt> instance.
@@ -133,6 +144,12 @@ public class WebmDataSink
      */
     public WebmDataSink(String filename, DataSource dataSource)
     {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        this.autoKeyframeRequestInterval =
+                cfg.getInt(AUTO_REQUEST_KEYFRAME_PNAME, this.autoKeyframeRequestInterval);
+        if (this.autoKeyframeRequestInterval > 0 && logger.isInfoEnabled()) {
+            logger.info("Auto keyframe request is initialized for every " + this.autoKeyframeRequestInterval + " frames.");
+        }
         this.filename = filename;
         this.dataSource = dataSource;
     }
@@ -375,10 +392,16 @@ public class WebmDataSink
         if (framesSinceLastKeyframeRequest > REREQUEST_KEYFRAME_INTERVAL)
             keyframeRequested = false;
 
-        if (waitingForKeyframe && !keyframeRequested)
+        if (!keyframeRequested &&
+                // recording not started yet
+                (waitingForKeyframe ||
+                        // auto keyframe request
+                        (this.autoKeyframeRequestInterval > 0 &&
+                                framesSinceLastKeyframeRequest > this.autoKeyframeRequestInterval))
+                )
         {
             if (logger.isInfoEnabled())
-                logger.info("Requesting keyframe. "+ssrc);
+                logger.info("Requesting keyframe. " + ssrc);
             if (keyFrameControl != null)
                 keyframeRequested = keyFrameControl.requestKeyFrame(true);
             framesSinceLastKeyframeRequest = 0;
