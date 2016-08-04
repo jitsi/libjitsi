@@ -15,9 +15,9 @@
  */
 package org.jitsi.impl.neomedia.recording;
 
-import org.jitsi.service.configuration.ConfigurationService;
-import org.jitsi.service.libjitsi.LibJitsi;
-import org.jitsi.service.neomedia.MediaType;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.util.*;
@@ -129,8 +129,7 @@ public class WebmDataSink
 
     /**
      * Property name to control auto requesting keyframes periodically
-     * to improve recording quality over low quality connection (e.g. proper
-     * network speed, but high packet loss)
+     * to improve seeking speed without re-encoding the file
      */
     private static String AUTO_REQUEST_KEYFRAME_PNAME =
             WebmDataSink.class.getCanonicalName() + ".AUTOKEYFRAME";
