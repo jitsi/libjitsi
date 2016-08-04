@@ -93,15 +93,22 @@ public class RecorderRtpImpl
             RecorderRtpImpl.class.getCanonicalName() + ".PERFORM_ASD";
 
     /**
+     * The name of the property which sets a custom output audio codec.
+     * Currently only WAV is supported
+     */
+    private static String AUDIO_CODEC_PNAME =
+            RecorderRtpImpl.class.getCanonicalName() + ".AUDIO_CODEC";
+
+    /**
      * The <tt>ContentDescriptor</tt> to use when saving audio.
      */
-    private static final ContentDescriptor AUDIO_CONTENT_DESCRIPTOR
+    private static ContentDescriptor AUDIO_CONTENT_DESCRIPTOR
             = new ContentDescriptor(FileTypeDescriptor.MPEG_AUDIO);
 
     /**
      * The suffix for audio file names.
      */
-    private static final String AUDIO_FILENAME_SUFFIX = ".mp3";
+    private static String AUDIO_FILENAME_SUFFIX = ".mp3";
 
     /**
      * The suffix for video file names.
@@ -201,6 +208,14 @@ public class RecorderRtpImpl
                 = cfg.getBoolean(
                         PERFORM_ASD_PNAME,
                         performActiveSpeakerDetection);
+
+            // setting custom audio codec
+            String audioCodec = cfg.getString(AUDIO_CODEC_PNAME);
+            if ("wav".equalsIgnoreCase(audioCodec)) {
+                AUDIO_FILENAME_SUFFIX = ".wav";
+                AUDIO_CONTENT_DESCRIPTOR
+                        = new ContentDescriptor(FileTypeDescriptor.WAVE);
+            }
         }
         this.performActiveSpeakerDetection = performActiveSpeakerDetection;
     }
