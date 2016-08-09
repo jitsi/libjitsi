@@ -38,22 +38,6 @@ public class RTPUtils
     }
 
     /**
-     * Returns the difference between two RTP timestamps (modulo 2^32).
-     * @return the difference between two RTP timestamps (modulo 2^32).
-     */
-    public static long timestampDiff(long a, long b)
-    {
-        long diff = a - b;
-
-        if (diff < -(1<<31))
-            diff += 1<<32;
-        else if (diff > 1<<31)
-            diff -= 1<<32;
-
-        return diff;
-    }
-
-    /**
      * Returns result of the subtraction of one RTP sequence number from another
      * (modulo 2^16).
      * @return result of the subtraction of one RTP sequence number from another
