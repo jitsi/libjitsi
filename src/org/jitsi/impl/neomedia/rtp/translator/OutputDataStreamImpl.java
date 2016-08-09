@@ -764,7 +764,8 @@ class OutputDataStreamImpl
             Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
 
             ResumableStreamRewriter rewriter = streamRTPManager
-                .streamRTPManager.getOrCreateResumableStreamRewriter(ssrc);
+                .streamRTPManager.getResumableStreamRewriter(
+                    ssrc, true /* create */);
 
             return rewrite
                 ? rewriter.rewriteRTP(write, buf, off, len)
@@ -794,7 +795,8 @@ class OutputDataStreamImpl
                         = RTCPHeaderUtils.getSenderSSRC(buf, offset, pktLen);
 
                     ResumableStreamRewriter rewriter = streamRTPManager
-                        .streamRTPManager.getResumableStreamRewriter(ssrc);
+                        .streamRTPManager.getResumableStreamRewriter(
+                            ssrc, false);
 
                     if (rewriter != null)
                     {

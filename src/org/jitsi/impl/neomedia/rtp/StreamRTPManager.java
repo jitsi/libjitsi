@@ -60,44 +60,6 @@ public class StreamRTPManager
         = new HashMap<>();
 
     /**
-     *
-     * @param ssrc
-     * @return
-     */
-    public ResumableStreamRewriter getOrCreateResumableStreamRewriter(Long ssrc)
-    {
-        ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
-        if (rewriter == null)
-        {
-            rewriter = new ResumableStreamRewriter();
-            ssrcToRewriter.put(ssrc, rewriter);
-        }
-
-        return rewriter;
-    }
-
-    /**
-     *
-     * @param ssrc
-     * @param rewriter
-     */
-    public void putResumableStreamRewriter(
-        Long ssrc, ResumableStreamRewriter rewriter)
-    {
-        ssrcToRewriter.put(ssrc, rewriter);
-    }
-
-    /**
-     *
-     * @param ssrc
-     * @return
-     */
-    public ResumableStreamRewriter getResumableStreamRewriter(Long ssrc)
-    {
-        return ssrcToRewriter.get(ssrc);
-    }
-
-    /**
      * Initializes a new <tt>StreamRTPManager</tt> instance which is,
      * optionally, attached to a specific <tt>RTPTranslator</tt> which is to
      * forward the RTP and RTCP flows of the associated <tt>MediaStream</tt> to
@@ -173,6 +135,47 @@ public class StreamRTPManager
             manager.dispose();
         else
             translator.dispose(this);
+    }
+
+    /**
+     * Associates the specified SSRC with the specified
+     * {@link ResumableStreamRewriter} in this map.
+     *
+     * @param ssrc SSRC with which the specified rewriter is to be associated.
+     * @param rewriter rewriter to be associated with the specified SSRC.
+     */
+    public void putResumableStreamRewriter(
+        Long ssrc, ResumableStreamRewriter rewriter)
+    {
+        ssrcToRewriter.put(ssrc, rewriter);
+    }
+
+    /**
+     * Gets the {@link ResumableStreamRewriter} that is associated to the SSRC
+     * passed as a parameter. If there's no {@link ResumableStreamRewriter}
+     * associated with that SSRC and the create flag is set to true, then a new
+     * {@link ResumableStreamRewriter} will be created.
+     *
+     * @param ssrc the SSRC whose associated {@link ResumableStreamRewriter} is
+     * to be returned.
+     * @param create If there's no {@link ResumableStreamRewriter}
+     * associated with the SSRC and this flag is true then a new
+     * {@link ResumableStreamRewriter} will be created.
+     *
+     * @return the {@link ResumableStreamRewriter} that is associated to the
+     * SSRC parameter
+     */
+    public ResumableStreamRewriter getResumableStreamRewriter(Long ssrc,
+                                                              boolean create)
+    {
+        ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
+        if (rewriter == null && create)
+        {
+            rewriter = new ResumableStreamRewriter();
+            ssrcToRewriter.put(ssrc, rewriter);
+        }
+
+        return rewriter;
     }
 
     /**
