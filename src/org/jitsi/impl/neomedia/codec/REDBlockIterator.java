@@ -28,7 +28,7 @@ public class REDBlockIterator
     implements Iterator<REDBlock>
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>SsrcRewritingEngine</tt> class and
+     * The <tt>Logger</tt> used by the <tt>REDBlockIterator</tt> class and
      * its instances to print debug information.
      */
     private static final Logger logger
