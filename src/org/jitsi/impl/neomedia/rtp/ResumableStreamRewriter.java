@@ -156,7 +156,7 @@ public class ResumableStreamRewriter
         {
             long ts = RawPacket.getTimestamp(buf, off, len);
             RawPacket.setTimestamp(
-                buf, off, len, (ts + timestampDelta) & 0xffffffff);
+                buf, off, len, (ts + timestampDelta) & 0xffffffffL);
 
             modified = true;
         }
@@ -196,8 +196,8 @@ public class ResumableStreamRewriter
         }
 
         long newTs = rewrite
-            ? (ts - timestampDelta) & 0xffffffff
-            : (ts + timestampDelta) & 0xffffffff;
+            ? (ts - timestampDelta) & 0xffffffffL
+            : (ts + timestampDelta) & 0xffffffffL;
 
         int ret = RTCPSenderInfoUtils.setTimestamp(buf, off, len, newTs);
 
@@ -261,7 +261,7 @@ public class ResumableStreamRewriter
         if (accept)
         {
             // overwrite the timestamp (if needed)
-            long newTimestamp = (timestamp - timestampDelta) & 0xffffffff;
+            long newTimestamp = (timestamp - timestampDelta) & 0xffffffffL;
 
             // init or update the highest sent timestamp (if needed)
             if (highestTimestampSent == -1 ||
@@ -278,7 +278,7 @@ public class ResumableStreamRewriter
             if (highestTimestampSent != -1)
             {
                 final long newDelta
-                    = (timestamp - highestTimestampSent) & 0xffffffff;
+                    = (timestamp - highestTimestampSent) & 0xffffffffL;
 
                 if (RTPUtils.timestampDiff(newDelta, timestampDelta) > 0)
                 {
