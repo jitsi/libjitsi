@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.rtcp;
 
 import net.sf.fmj.media.rtp.*;
+import org.jitsi.impl.neomedia.*;
 
 /**
  * Utility class that contains static methods for RTCP sender info manipulation.
@@ -43,10 +44,7 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return (((buf[off + 8] & 0xff) << 24)
-            | ((buf[off + 9] & 0xff) << 16)
-            | ((buf[off + 10] & 0xff) << 8)
-            | (buf[off + 11] & 0xff)) & 0xffffffffl;
+        return RawPacket.readInt(buf, off + 8, len) & 0xffffffffl;
     }
 
     /**
@@ -61,12 +59,12 @@ public class RTCPSenderInfoUtils
      *
      * @return the number of bytes written.
      */
-    public static int setTimestamp(
+    public static boolean setTimestamp(
         byte[] buf, int off, int len, long ts)
     {
         if (buf == null || buf.length < off + Math.max(len, 12))
         {
-            return -1;
+            return false;
         }
 
         buf[off + 8] = (byte)(ts>>24);
@@ -74,7 +72,7 @@ public class RTCPSenderInfoUtils
         buf[off + 10] = (byte)(ts>>8);
         buf[off + 11] = (byte)ts;
 
-        return 12;
+        return true;
     }
 
     /**
