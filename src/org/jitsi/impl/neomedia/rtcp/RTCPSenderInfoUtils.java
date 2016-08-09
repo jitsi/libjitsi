@@ -38,7 +38,7 @@ public class RTCPSenderInfoUtils
      */
     public static long getTimestamp(byte[] buf, int off, int len)
     {
-        if (buf == null ||  Math.min(buf.length, len) < off + 12)
+        if (buf == null || buf.length < off + Math.max(len, 12))
         {
             return -1;
         }
@@ -64,7 +64,7 @@ public class RTCPSenderInfoUtils
     public static int setTimestamp(
         byte[] buf, int off, int len, long ts)
     {
-        if (buf == null ||  Math.min(buf.length, len) < off + 12)
+        if (buf == null || buf.length < off + Math.max(len, 12))
         {
             return -1;
         }
@@ -89,7 +89,7 @@ public class RTCPSenderInfoUtils
      */
     public static boolean isValid(byte[] buf, int off, int len)
     {
-        if (buf == null || Math.min(buf.length, len) < RTCPSenderInfo.SIZE)
+        if (buf == null || buf.length < off + Math.max(len, RTCPSenderInfo.SIZE))
         {
             return false;
         }
