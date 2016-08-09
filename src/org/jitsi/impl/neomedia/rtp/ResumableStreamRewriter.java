@@ -38,23 +38,23 @@ public class ResumableStreamRewriter
 
     /**
      * The sequence number delta between what's been accepted and what's been
-     * received, mod 16.
+     * received, mod 2^16.
      */
     int seqnumDelta = 0;
 
     /**
      * The timestamp delta between what's been accepted and what's been
-     * received, mod 32.
+     * received, mod 2^32.
      */
     long timestampDelta = 0;
 
     /**
-     * The highest sequence number that got accepted, mod 16.
+     * The highest sequence number that got accepted, mod 2^16.
      */
     int highestSequenceNumberSent = -1;
 
     /**
-     * The highest timestamp that got accepted, mod 32.
+     * The highest timestamp that got accepted, mod 2^32.
      */
     long highestTimestampSent = -1;
 
@@ -69,13 +69,13 @@ public class ResumableStreamRewriter
      * Ctor.
      *
      * @param highestSequenceNumberSent the highest sequence number that got
-     * accepted, mod 16.
+     * accepted, mod 2^16.
      * @param seqnumDelta the seqnumDelta between what's been accepted and
-     * what's been received, mod 16.
+     * what's been received, mod 2^16.
      * @param highestTimestampSent The highest timestamp that got accepted,
-     * mod 32.
+     * mod 2^32.
      * @param timestampDelta The timestamp delta between what's been accepted
-     * and what's been received, mod 32.
+     * and what's been received, mod 2^32.
      */
     public ResumableStreamRewriter(
         int highestSequenceNumberSent, int seqnumDelta,
