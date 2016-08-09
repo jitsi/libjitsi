@@ -781,7 +781,7 @@ class OutputDataStreamImpl
             {
                 // Check RTCP packet validity. This makes sure that pktLen > 0
                 // so this loop will eventually terminate.
-                if (RTCPHeaderUtils.isValid(buf, offset, length))
+                if (!RTCPHeaderUtils.isValid(buf, offset, length))
                 {
                     break;
                 }
