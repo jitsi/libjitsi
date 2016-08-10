@@ -19,6 +19,7 @@ import java.awt.*;
 import java.util.*;
 
 import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.service.neomedia.stats.*;
 
 /**
  * Class used to compute stats concerning a MediaStream.
@@ -32,22 +33,31 @@ public interface MediaStreamStats
     /**
      * Returns the jitter average of this download stream.
      *
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the last jitter average computed (in ms).
      */
+    @Deprecated
     public double getDownloadJitterMs();
 
     /**
      * Returns the percent loss of the download stream.
      *
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the last loss rate computed (in %).
      */
+    @Deprecated
     public double getDownloadPercentLoss();
 
     /**
      * Returns the bandwidth used by this download stream.
      *
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the last used download bandwidth computed (in Kbit/s).
      */
+    @Deprecated
     public double getDownloadRateKiloBitPerSec();
 
     /**
@@ -76,8 +86,11 @@ public interface MediaStreamStats
     /**
      * Returns the delay in milliseconds introduced by the jitter buffer.
      *
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the delay in milliseconds introduced by the jitter buffer
      */
+    @Deprecated
     public int getJitterBufferDelayMs();
 
     /**
@@ -105,16 +118,22 @@ public interface MediaStreamStats
      * Returns the number of received bytes since the beginning of the
      * session.
      *
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the number of received bytes for this stream.
      */
+    @Deprecated
     public long getNbReceivedBytes();
 
     /**
      * Returns the number of sent bytes since the beginning of the
      * session.
      *
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the number of sent bytes for this stream.
      */
+    @Deprecated
     public long getNbSentBytes();
 
     /**
@@ -172,14 +191,20 @@ public interface MediaStreamStats
     /**
      * Returns the total number of packets that are send or receive for this
      * stream since the stream is created.
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the total number of packets.
      */
+    @Deprecated
     public long getNbPackets();
 
     /**
      * Returns the number of lost packets for that stream.
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the number of lost packets.
      */
+    @Deprecated
     public long getNbPacketsLost();
 
     /**
@@ -230,30 +255,42 @@ public interface MediaStreamStats
      * Returns the RTT computed with the RTCP feedback (cf. RFC3550, section
      * 6.4.1, subsection "delay since last SR (DLSR): 32 bits").
      *
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return The RTT computed with the RTCP feedback. Returns <tt>-1</tt> if
      * the RTT has not been computed yet. Otherwise the RTT in ms.
      */
+    @Deprecated
     public long getRttMs();
 
     /**
      * Returns the jitter average of this upload stream.
      *
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the last jitter average computed (in ms).
      */
+    @Deprecated
     public double getUploadJitterMs();
 
     /**
      * Returns the percent loss of the upload stream.
      *
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the last loss rate computed (in %).
      */
+    @Deprecated
     public double getUploadPercentLoss();
 
     /**
      * Returns the bandwidth used by this download stream.
      *
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the last used upload bandwidth computed (in Kbit/s).
      */
+    @Deprecated
     public double getUploadRateKiloBitPerSec();
 
     /**
@@ -330,32 +367,44 @@ public interface MediaStreamStats
 
     /**
      * Returns the number of packets sent since the beginning of the session.
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return  the number of packets sent since the beginning of the session.
      */
+    @Deprecated
     public long getNbPacketsSent();
 
     /**
      * Returns the number of packets received since the beginning of the
      * session.
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return  the number of packets received since the beginning of the
      * session.
      */
+    @Deprecated
     public long getNbPacketsReceived();
 
     /**
      * Returns the number of RTP packets sent by the remote side, but not
      * received by us.
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the number of RTP packets sent by the remote side, but not
      * received by us.
      */
+    @Deprecated
     public long getDownloadNbPacketLost();
 
     /**
      * Returns the number of RTP packets sent by us, but not
      * received by the remote side.
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the number of RTP packets sent by us, but not
      * received by the remote side.
      */
+    @Deprecated
     public long getUploadNbPacketLost();
 
     /**
@@ -375,22 +424,11 @@ public interface MediaStreamStats
      * endpoint in bits per second. This is almost the same as {@link
      * #getUploadRateKiloBitPerSec()}. The duplication is necessary, because
      * of implementation details.
+     * @deprecated use the appropriate method from {@link MediaStreamStats2}
+     * instead.
      * @return the rate at which we are currently sending data to the remote
      * endpoint, in bits per second.
      */
+    @Deprecated
     public long getSendingBitrate();
-
-    /**
-     * Returns the received stats.
-     *
-     * @return a list holding all received stats.
-     */
-    public Collection<? extends MediaStreamSSRCStats> getReceivedStats();
-
-    /**
-     * Returns the sent stats.
-     *
-     * @return a list holding all sent stats.
-     */
-    public Collection<? extends MediaStreamSSRCStats> getSentStats();
 }

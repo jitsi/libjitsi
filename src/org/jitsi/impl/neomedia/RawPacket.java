@@ -834,6 +834,16 @@ public class RawPacket
     }
 
     /**
+     * Get RTCP SSRC from a RTCP packet
+     *
+     * @return RTP SSRC from source RTP packet in a {@code long}.
+     */
+    public long getRTCPSSRCAsLong()
+    {
+        return getRTCPSSRC() & 0xffffffffL;
+    }
+
+    /**
      * Gets the packet type of this RTCP packet.
      *
      * @return the packet type of this RTCP packet.

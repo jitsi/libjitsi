@@ -13,36 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia;
-
-import org.jitsi.impl.neomedia.transform.rtcp.*;
+package org.jitsi.service.neomedia.stats;
 
 /**
- * Media stream statistics implementation per send SSRC.
+ * Extends {@link BasicStreamStats} with methods specific for streams that we
+ * send.
  *
- * @author Damian Minkov
+ * @author Boris Grozev
  */
-public class MediaStreamSentSSRCStats
-    extends AbstractMediaStreamSSRCStats
+public interface BasicSendStreamStats
+    extends BasicStreamStats
 {
-    MediaStreamSentSSRCStats(long ssrc, StatisticsEngine statisticsEngine)
-    {
-        super(ssrc, statisticsEngine);
-    }
-
     /**
-     * {@inheritDoc}
+     * @return an estimate for the recent loss rate.
      */
-    public long getNbBytes()
-    {
-        return statisticsEngine.getNbBytesSent(ssrc);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public long getNbPackets()
-    {
-        return statisticsEngine.getRtpPacketsSent(ssrc);
-    }
+    double getLossRate();
 }

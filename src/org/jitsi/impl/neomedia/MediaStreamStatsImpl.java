@@ -32,15 +32,21 @@ import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
+import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.service.neomedia.stats.*;
 import org.jitsi.util.*;
 
 /**
  * Class used to compute stats concerning a MediaStream.
+ *
+ * Note: please do not add more code here. New code should be added to
+ * {@link MediaStreamStats2Impl} instead, where we can manage the complexity
+ * and consistency better.
  *
  * @author Vincent Lucas
  * @author Boris Grozev
@@ -53,7 +59,7 @@ public class MediaStreamStatsImpl
     /**
      * Enumeration of the direction (DOWNLOAD or UPLOAD) used for the stats.
      */
-    private enum StreamDirection
+    public enum StreamDirection
     {
         DOWNLOAD,
         UPLOAD
@@ -65,12 +71,6 @@ public class MediaStreamStatsImpl
      */
     private static final Logger logger
         = Logger.getLogger(MediaStreamStatsImpl.class);
-
-    /**
-     * List of stats per ssrc.
-     */
-    private final Map<Long,AbstractMediaStreamSSRCStats>[] mediaStreamStats
-        = new Map[] { new HashMap<>(), new HashMap<>() };
 
     /**
      * Computes an Exponentially Weighted Moving Average (EWMA). Thus, the most
@@ -780,7 +780,7 @@ public class MediaStreamStatsImpl
      * RTP jitter was received.
      * @param remoteJitter the jitter received, in RTP time units.
      */
-    void updateRemoteJitter(long remoteJitter)
+    public void updateRemoteJitter(long remoteJitter)
     {
         if((remoteJitter < minRemoteInterArrivalJitter)
                 || (minRemoteInterArrivalJitter == -1))
@@ -836,23 +836,15 @@ public class MediaStreamStatsImpl
      */
     private long getNbBytes(StreamDirection streamDirection)
     {
-        StatisticsEngine statisticsEngine
-            = mediaStreamImpl.getStatisticsEngine();
-        long nbBytes = 0;
+        return getBasicStats(streamDirection).getBytes();
+    }
 
-        if (statisticsEngine != null)
-        {
-            switch (streamDirection)
-            {
-            case DOWNLOAD:
-                nbBytes = statisticsEngine.getNbBytesReceived();
-                break;
-            case UPLOAD:
-                nbBytes = statisticsEngine.getNbBytesSent();
-                break;
-            }
-        }
-        return nbBytes;
+    private BasicStreamStats getBasicStats(StreamDirection streamDirection)
+    {
+        MediaStreamStats2Impl extended = getExtended();
+
+        return streamDirection == StreamDirection.DOWNLOAD
+            ? extended.getReceiveStats() : extended.getSendStats();
     }
 
     /**
@@ -993,25 +985,7 @@ public class MediaStreamStatsImpl
      */
     private long getNbPDU(StreamDirection streamDirection)
     {
-        StatisticsEngine statisticsEngine
-            = mediaStreamImpl.getStatisticsEngine();
-        // We don't use the values from the RTPManager, because they are
-        // incorrect when an RTPTranslator is used.
-        long nbPDU = 0;
-
-        if (statisticsEngine != null)
-        {
-            switch (streamDirection)
-            {
-            case UPLOAD:
-                nbPDU = statisticsEngine.getRtpPacketsSent();
-                break;
-            case DOWNLOAD:
-                nbPDU = statisticsEngine.getRtpPacketsReceived();
-                break;
-            }
-        }
-        return nbPDU;
+        return getBasicStats(streamDirection).getPackets();
     }
 
     @Override
@@ -1297,8 +1271,12 @@ public class MediaStreamStatsImpl
         // deviation of the jitter.
         jitterRTPTimestampUnits[streamDirection.ordinal()]
             = feedback.getJitter();
-        getStats(feedback.getSSRC(), streamDirection)
-            .setJitter(rtpTimeToMs(feedback.getJitter()));
+
+        MediaStreamStats2Impl extended = getExtended();
+        extended.updateJitter(
+            feedback.getSSRC(),
+            streamDirection,
+            rtpTimeToMs(feedback.getJitter()));
     }
 
     /**
@@ -1410,7 +1388,8 @@ public class MediaStreamStatsImpl
         {
             setRttMs(rtt);
 
-            getStats(feedback.getSSRC(), streamDirection).setRttMs(rtt);
+            MediaStreamStats2Impl extended = getExtended();
+            extended.updateRtt(feedback.getSSRC(), rtt);
         }
     }
 
@@ -1586,12 +1565,19 @@ public class MediaStreamStatsImpl
         finally
         {
             // reception report blocks
-            List<?> feedbackReports = report.getFeedbackReports();
+            List<RTCPFeedback> feedbackReports = report.getFeedbackReports();
 
             if (!feedbackReports.isEmpty())
             {
-                updateNewReceivedFeedback(
-                        (RTCPFeedback) feedbackReports.get(0));
+                updateNewReceivedFeedback(feedbackReports.get(0));
+
+                MediaStreamStats2Impl extended = getExtended();
+                for (RTCPFeedback rtcpFeedback : feedbackReports)
+                {
+                    extended.rtcpReceiverReportReceived(
+                            rtcpFeedback.getSSRC(),
+                            rtcpFeedback.getFractionLost());
+                }
             }
         }
     }
@@ -1647,47 +1633,9 @@ public class MediaStreamStatsImpl
         return sbr;
     }
 
-    /**
-     * Returns the stat for the ssrc and direction.
-     * @param ssrc the ssrc
-     * @param streamDirection the direction.
-     * @return the object holding all the stats.
-     */
-    private AbstractMediaStreamSSRCStats getStats(
-        long ssrc, StreamDirection streamDirection)
+    private MediaStreamStats2Impl getExtended()
     {
-        Map<Long,AbstractMediaStreamSSRCStats> stats
-            = mediaStreamStats[streamDirection.ordinal()];
-        AbstractMediaStreamSSRCStats stat = stats.get(ssrc);
-
-        if (stat == null)
-        {
-            StatisticsEngine statisticsEngine
-                = mediaStreamImpl.getStatisticsEngine();
-
-            if (streamDirection == StreamDirection.DOWNLOAD)
-                stat = new MediaStreamReceivedSSRCStats(ssrc, statisticsEngine);
-            else
-                stat = new MediaStreamSentSSRCStats(ssrc, statisticsEngine);
-
-            stats.put(ssrc, stat);
-        }
-        return stat;
+        return mediaStreamImpl.getMediaStreamStats();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public Collection<? extends MediaStreamSSRCStats> getReceivedStats()
-    {
-        return mediaStreamStats[StreamDirection.DOWNLOAD.ordinal()].values();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public Collection<? extends MediaStreamSSRCStats> getSentStats()
-    {
-        return mediaStreamStats[StreamDirection.UPLOAD.ordinal()].values();
-    }
 }
