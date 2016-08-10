@@ -75,7 +75,8 @@ public class PacketBuffer
     /**
      * The <tt>ConfigurationService</tt> used to load buffering configuration.
      */
-    private final static ConfigurationService cfg = LibJitsi.getConfigurationService();
+    private final static ConfigurationService cfg =
+            LibJitsi.getConfigurationService();
 
     /**
      * The payload type for VP8.

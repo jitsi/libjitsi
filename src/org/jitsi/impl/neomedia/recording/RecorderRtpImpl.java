@@ -92,17 +92,21 @@ public class RecorderRtpImpl
      * Config parameter for FMJ video jitter size
      */
     private static final String FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE_PNAME =
-            RecorderRtpImpl.class.getCanonicalName() + ".FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE";
+            RecorderRtpImpl.class.getCanonicalName() +
+                    ".FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE";
 
-    private static final int FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE = cfg.getInt(FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE_PNAME, 300);
+    private static final int FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE =
+            cfg.getInt(FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE_PNAME, 300);
 
     /**
      * Config parameter for FMJ audio jitter size
      */
     private static final String FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE_PNAME =
-            RecorderRtpImpl.class.getCanonicalName() + ".FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE_PNAME";
+            RecorderRtpImpl.class.getCanonicalName() +
+                    ".FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE_PNAME";
 
-    private static final int FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE = cfg.getInt(FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE_PNAME, 16);
+    private static final int FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE =
+            cfg.getInt(FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE_PNAME, 16);
 
     /**
      * The name of the property which controls whether the recorder should
