@@ -66,6 +66,12 @@ public class RecorderRtpImpl
     private static final Logger logger
             = Logger.getLogger(RecorderRtpImpl.class);
 
+    /**
+     * The <tt>ConfigurationService</tt> used to load recorder configuration.
+     */
+    private static final ConfigurationService cfg
+            = LibJitsi.getConfigurationService();
+
     //values hard-coded to match chrome
     //TODO: allow to set them dynamically
     private static final byte redPayloadType = 116;
@@ -82,8 +88,25 @@ public class RecorderRtpImpl
                               Format.NOT_SPECIFIED,
                               Format.NOT_SPECIFIED);
 
-    private static final int FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE = 300;
-    private static final int FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE = 16;
+    /**
+     * Config parameter for FMJ video jitter size
+     */
+    private static final String FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE_PNAME =
+            RecorderRtpImpl.class.getCanonicalName() +
+                    ".FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE";
+
+    private static final int FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE =
+            cfg.getInt(FMJ_VIDEO_JITTER_BUFFER_MIN_SIZE_PNAME, 300);
+
+    /**
+     * Config parameter for FMJ audio jitter size
+     */
+    private static final String FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE_PNAME =
+            RecorderRtpImpl.class.getCanonicalName() +
+                    ".FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE_PNAME";
+
+    private static final int FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE =
+            cfg.getInt(FMJ_AUDIO_JITTER_BUFFER_MIN_SIZE_PNAME, 16);
 
     /**
      * The name of the property which controls whether the recorder should
@@ -200,7 +223,6 @@ public class RecorderRtpImpl
         this.translator = (RTPTranslatorImpl) translator;
 
         boolean performActiveSpeakerDetection = false;
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
 
         if (cfg != null)
         {
