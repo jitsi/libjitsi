@@ -86,12 +86,15 @@ public class ResumableStreamRewriter
         this.highestTimestampSent = highestTimestampSent;
         this.timestampDelta = timestampDelta;
 
-        logger.debug(
-            "Creating ResumableStreamRewriter highestSequenceNumberSent="
-                + highestSequenceNumberSent + ", seqnumDelta="
-                + seqnumDelta + ", highestTimestampSent="
-                + highestTimestampSent + ", timestampDelta="
-                + timestampDelta);
+        if (logger.isDebugEnabled())
+        {
+            logger.debug(
+                    "Creating ResumableStreamRewriter highestSequenceNumberSent="
+                    + highestSequenceNumberSent + ", seqnumDelta="
+                    + seqnumDelta + ", highestTimestampSent="
+                    + highestTimestampSent + ", timestampDelta="
+                    + timestampDelta);
+        }
     }
 
     /**
@@ -122,7 +125,12 @@ public class ResumableStreamRewriter
         if (sequenceNumber != newSequenceNumber)
         {
             Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
-            logger.debug("Rewriting ssrc=" + ssrc + " sequenceNumber=" + sequenceNumber + ", newSequenceNumber=" + newSequenceNumber);
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Rewriting ssrc=" + ssrc
+                        + " sequenceNumber=" + sequenceNumber
+                        + ", newSequenceNumber=" + newSequenceNumber);
+            }
             RawPacket.setSequenceNumber(buf, off, newSequenceNumber);
             modified = true;
         }
@@ -130,7 +138,12 @@ public class ResumableStreamRewriter
         if (timestamp != newTimestamp)
         {
             Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
-            logger.debug("Rewriting ssrc=" + ssrc + " timestamp=" + timestamp + ", newTimestamp=" + newTimestamp);
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Rewriting ssrc=" + ssrc
+                        + " timestamp=" + timestamp
+                        + ", newTimestamp=" + newTimestamp);
+            }
             RawPacket.setTimestamp(buf, off, len, newTimestamp);
             modified = true;
         }
