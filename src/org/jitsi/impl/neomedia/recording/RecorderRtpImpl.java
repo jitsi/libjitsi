@@ -1161,15 +1161,15 @@ public class RecorderRtpImpl
     {
         if (pkt != null && pkt.getPayloadType() == vp8PayloadType)
         {
-            int ssrc = pkt.getSSRC();
-            if (!activeVideoSsrcs.contains(ssrc & 0xffffffffL))
+            long ssrc = pkt.getSSRCAsLong();
+            if (!activeVideoSsrcs.contains(ssrc))
             {
                 synchronized (activeVideoSsrcs)
                 {
-                    if (!activeVideoSsrcs.contains(ssrc & 0xffffffffL))
+                    if (!activeVideoSsrcs.contains(ssrc))
                     {
-                        activeVideoSsrcs.add(ssrc & 0xffffffffL);
-                        rtcpFeedbackSender.sendFIR(ssrc);
+                        activeVideoSsrcs.add(ssrc);
+                        rtcpFeedbackSender.sendFIR((int) ssrc);
                     }
                 }
             }

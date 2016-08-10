@@ -125,6 +125,13 @@ public class PacketBuffer
         for (int i = 0; i<pkts.length; i++)
         {
             RawPacket pkt = pkts[i];
+
+            // Drop padding packets. We assume that any packets with padding
+            // are no-payload probing packets.
+            if (pkt != null && pkt.getPaddingSize() != 0)
+                pkts[i] = null;
+            pkt = pkts[i];
+
             if (willBuffer(pkt))
             {
                 Buffer buffer = getBuffer(pkt.getSSRCAsLong());
