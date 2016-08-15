@@ -63,6 +63,7 @@ public class ResumableStreamRewriter
      */
     public ResumableStreamRewriter()
     {
+        this(-1, 0, -1, 0);
     }
 
     /**
@@ -127,7 +128,7 @@ public class ResumableStreamRewriter
             Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
             if (logger.isDebugEnabled())
             {
-                logger.debug("Rewriting ssrc=" + ssrc
+                logger.debug("Rewriting RTP ssrc=" + ssrc
                         + " sequenceNumber=" + sequenceNumber
                         + ", newSequenceNumber=" + newSequenceNumber);
             }
@@ -140,7 +141,7 @@ public class ResumableStreamRewriter
             Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
             if (logger.isDebugEnabled())
             {
-                logger.debug("Rewriting ssrc=" + ssrc
+                logger.debug("Rewriting RTP ssrc=" + ssrc
                         + " timestamp=" + timestamp
                         + ", newTimestamp=" + newTimestamp);
             }
@@ -211,6 +212,12 @@ public class ResumableStreamRewriter
         long newTs = rewrite
             ? (ts - timestampDelta) & 0xffffffffL
             : (ts + timestampDelta) & 0xffffffffL;
+
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Rewriting RTCP timestamp=" + ts
+                    + ", newTimestamp=" + newTs);
+        }
 
         boolean ret = RTCPSenderInfoUtils.setTimestamp(buf, off, len, newTs);
 
