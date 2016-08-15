@@ -109,7 +109,7 @@ public class ResumableStreamRewriter
      */
     public boolean rewriteRTP(boolean accept, byte[] buf, int off, int len)
     {
-        if (buf == null || buf.length + off < len)
+        if (buf == null || buf.length < off + len)
         {
             return false;
         }
