@@ -3575,6 +3575,7 @@ public class MediaStreamImpl
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public void injectPacket(RawPacket pkt, boolean data, TransformEngine after)
         throws TransmissionFailedException
     {

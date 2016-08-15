@@ -471,16 +471,6 @@ public class StatisticsEngine
     }
 
     /**
-     * Close the transformer and underlying transform engine.
-     *
-     * Nothing to do here.
-     */
-    @Override
-    public void close()
-    {
-    }
-
-    /**
      * Initializes a new RTP Control Protocol Extended Report (RTCP XR) packet.
      *
      * @param senderSSRC the synchronization source identifier (SSRC) of the
