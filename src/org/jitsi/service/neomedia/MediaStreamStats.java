@@ -427,18 +427,4 @@ public interface MediaStreamStats
      */
     @Deprecated
     public long getSendingBitrate();
-
-    /**
-     * Returns the received stats.
-     *
-     * @return a list holding all received stats.
-     */
-    public Collection<? extends MediaStreamSSRCStats> getReceivedStats();
-
-    /**
-     * Returns the sent stats.
-     *
-     * @return a list holding all sent stats.
-     */
-    public Collection<? extends MediaStreamSSRCStats> getSentStats();
 }
