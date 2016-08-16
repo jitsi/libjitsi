@@ -25,6 +25,7 @@ import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.service.neomedia.stats.*;
 
 /**
  * The <tt>MediaStream</tt> class represents a (generally) bidirectional RTP
@@ -187,7 +188,7 @@ public interface MediaStream
      * @return the <tt>MediaStreamStats</tt> object used to get statistics about
      * this <tt>MediaStream</tt>.
      */
-    public MediaStreamStats getMediaStreamStats();
+    public MediaStreamStats2 getMediaStreamStats();
 
     /**
      * Returns the name of this stream or <tt>null</tt> if no name has been
