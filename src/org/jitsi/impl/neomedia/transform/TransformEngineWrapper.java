@@ -35,7 +35,7 @@ public class TransformEngineWrapper<T extends TransformEngine>
      * Determines whether this {@code TransformEngineWrapper} contains a
      * specific {@code TransformEngine}.
      *
-     * @param t the {@code TransofmrEngine} to check whether it is contained in
+     * @param t the {@code TransformEngine} to check whether it is contained in
      * this {@code TransformEngineWrapper}
      * @return {@code true} if {@code t} equals {@link #wrapped} or {@code t} is
      * contained in the {@code chain} of {@code wrapped} (if {@code wrapped} is

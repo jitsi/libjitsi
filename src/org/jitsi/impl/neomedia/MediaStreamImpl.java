@@ -35,6 +35,7 @@ import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
+import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.rewriting.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
@@ -179,7 +180,7 @@ public class MediaStreamImpl
      * The MediaStreamStatsImpl object used to compute the statistics about
      * this MediaStreamImpl.
      */
-    private MediaStreamStatsImpl mediaStreamStatsImpl;
+    private MediaStreamStats2Impl mediaStreamStatsImpl;
 
     /**
      * The indicator which determines whether this <tt>MediaStream</tt> is set
@@ -411,7 +412,7 @@ public class MediaStreamImpl
         if (connector != null)
             setConnector(connector);
 
-        this.mediaStreamStatsImpl = new MediaStreamStatsImpl(this);
+        this.mediaStreamStatsImpl = new MediaStreamStats2Impl(this);
 
         if (logger.isTraceEnabled())
         {
@@ -1593,7 +1594,7 @@ public class MediaStreamImpl
      * <tt>MediaStream</tt>
      */
     @Override
-    public MediaStreamStatsImpl getMediaStreamStats()
+    public MediaStreamStats2Impl getMediaStreamStats()
     {
         return mediaStreamStatsImpl;
     }
@@ -2063,7 +2064,7 @@ public class MediaStreamImpl
             GlobalTransmissionStats s = rtpManager.getGlobalTransmissionStats();
 
             String rtpstat = StatisticsEngine.RTP_STAT_PREFIX;
-            MediaStreamStatsImpl mss = getMediaStreamStats();
+            MediaStreamStats2Impl mss = getMediaStreamStats();
             StringBuilder buff = new StringBuilder(rtpstat);
             MediaType mediaType = getMediaType();
             String mediaTypeStr
@@ -2099,7 +2100,8 @@ public class MediaStreamImpl
                     .append(eol)
                 .append("bytes received: ").append(rs.getBytesRecd())
                     .append(eol)
-                .append("packets lost: ").append(statisticsEngine.getLost())
+                .append("packets lost: ")
+                    .append(mss.getReceiveStats().getPacketsLost())
                     .append(eol)
                 .append("min interarrival jitter: ")
                     .append(statisticsEngine.getMinInterArrivalJitter())
@@ -3575,6 +3577,7 @@ public class MediaStreamImpl
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("unchecked")
     public void injectPacket(RawPacket pkt, boolean data, TransformEngine after)
         throws TransmissionFailedException
     {

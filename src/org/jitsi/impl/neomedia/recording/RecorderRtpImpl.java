@@ -1669,7 +1669,7 @@ public class RecorderRtpImpl
                         // it gets to FMJ, because we want to, for example,
                         // flush the packet buffer before that.
 
-                        long ssrc = pkt.getRTCPSSRC() & 0xffffffffl;
+                        long ssrc = pkt.getRTCPSSRCAsLong();
                         if (logger.isInfoEnabled())
                             logger.info("RTCP BYE for SSRC="+ssrc);
 

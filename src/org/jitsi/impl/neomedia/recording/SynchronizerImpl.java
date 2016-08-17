@@ -276,7 +276,7 @@ public class SynchronizerImpl
      */
     private void addSR(RawPacket pkt, long localTime)
     {
-        long ssrc = pkt.getRTCPSSRC() & 0xffffffffL;
+        long ssrc = pkt.getRTCPSSRCAsLong();
         long rtpTime = pkt.readUnsignedIntAsLong(16);
 
         long sec = pkt.readUnsignedIntAsLong(8);
