@@ -36,6 +36,14 @@ public class ResumableStreamRewriter
     private static final Logger logger
         = Logger.getLogger(ResumableStreamRewriter.class);
 
+
+    /**
+     * The value of {@link Logger#isDebugEnabled()} from the time of the
+     * initialization of the class {@code ResumableStreamRewriter} cached
+     * for the purposes of performance.
+     */
+    private static final boolean DEBUG = logger.isDebugEnabled();
+
     /**
      * The sequence number delta between what's been accepted and what's been
      * received, mod 2^16.
@@ -63,6 +71,7 @@ public class ResumableStreamRewriter
      */
     public ResumableStreamRewriter()
     {
+        this(-1, 0, -1, 0);
     }
 
     /**
@@ -86,7 +95,7 @@ public class ResumableStreamRewriter
         this.highestTimestampSent = highestTimestampSent;
         this.timestampDelta = timestampDelta;
 
-        if (logger.isDebugEnabled())
+        if (DEBUG)
         {
             logger.debug(
                     "Creating ResumableStreamRewriter highestSequenceNumberSent="
@@ -109,7 +118,7 @@ public class ResumableStreamRewriter
      */
     public boolean rewriteRTP(boolean accept, byte[] buf, int off, int len)
     {
-        if (buf == null || buf.length + off < len)
+        if (buf == null || buf.length < off + len)
         {
             return false;
         }
@@ -125,9 +134,9 @@ public class ResumableStreamRewriter
         if (sequenceNumber != newSequenceNumber)
         {
             Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
-            if (logger.isDebugEnabled())
+            if (DEBUG)
             {
-                logger.debug("Rewriting ssrc=" + ssrc
+                logger.debug("Rewriting RTP ssrc=" + ssrc
                         + " sequenceNumber=" + sequenceNumber
                         + ", newSequenceNumber=" + newSequenceNumber);
             }
@@ -138,9 +147,9 @@ public class ResumableStreamRewriter
         if (timestamp != newTimestamp)
         {
             Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
-            if (logger.isDebugEnabled())
+            if (DEBUG)
             {
-                logger.debug("Rewriting ssrc=" + ssrc
+                logger.debug("Rewriting RTP ssrc=" + ssrc
                         + " timestamp=" + timestamp
                         + ", newTimestamp=" + newTimestamp);
             }
@@ -211,6 +220,12 @@ public class ResumableStreamRewriter
         long newTs = rewrite
             ? (ts - timestampDelta) & 0xffffffffL
             : (ts + timestampDelta) & 0xffffffffL;
+
+        if (DEBUG)
+        {
+            logger.debug("Rewriting RTCP timestamp=" + ts
+                    + ", newTimestamp=" + newTs);
+        }
 
         boolean ret = RTCPSenderInfoUtils.setTimestamp(buf, off, len, newTs);
 
