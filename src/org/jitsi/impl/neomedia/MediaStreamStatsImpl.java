@@ -839,6 +839,10 @@ public class MediaStreamStatsImpl
         return getTrackStats(streamDirection).getBytes();
     }
 
+    /**
+     * @return the aggregate track stats for a given direction.
+     * @param streamDirection the direction.
+     */
     private TrackStats getTrackStats(StreamDirection streamDirection)
     {
         MediaStreamStats2Impl extended = getExtended();
@@ -1633,9 +1637,11 @@ public class MediaStreamStatsImpl
         return sbr;
     }
 
+    /**
+     * @return this instance as a {@link MediaStreamStats2Impl}.
+     */
     private MediaStreamStats2Impl getExtended()
     {
         return mediaStreamImpl.getMediaStreamStats();
     }
-
 }
