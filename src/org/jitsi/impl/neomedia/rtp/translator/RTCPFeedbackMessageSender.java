@@ -377,7 +377,7 @@ public class RTCPFeedbackMessageSender
             if (streamRTPManager == null)
             {
                 logger.warn("Not sending an FIR because the stream RTP " +
-                    "manager is null.");
+                    "manager is null (SSRC=" + mediaSenderSSRC + ").");
                 return false;
             }
 

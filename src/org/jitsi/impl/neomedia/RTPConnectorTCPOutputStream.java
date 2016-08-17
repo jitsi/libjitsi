@@ -91,7 +91,7 @@ public class RTPConnectorTCPOutputStream
                     target.getPort(),
                     PacketLoggingService.TransportName.TCP,
                     true,
-                    packet.getBuffer(),
+                    packet.getBuffer().clone(),
                     packet.getOffset(),
                     packet.getLength());
         }

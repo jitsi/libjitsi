@@ -51,6 +51,42 @@ public class RawPacket
     public static final int FIXED_HEADER_SIZE = 12;
 
     /**
+     * Sets the {@code P} (padding) bit in the header of an RTP packet in the
+     * given buffer.
+     * @param padding {@code true} to set the bit, {@code false} to unset it.
+     */
+    public static void setPaddingBit(
+            byte[] buffer, int offset, int length, boolean padding)
+    {
+        if (length <= 0)
+        {
+            return;
+        }
+
+        if (padding)
+        {
+            buffer[offset] |= 0x20;
+        }
+        else
+        {
+            buffer[offset] &= ~0x20;
+        }
+    }
+
+    /**
+     * @return {@code true} if the padding bit of this RTP packet has been set
+     * and {@code false} otherwise.
+     */
+    public static boolean getPaddingBit(byte[] buffer, int offset, int length)
+    {
+        if (length <= 0)
+        {
+            return false;
+        }
+        return (buffer[offset] & 0x20) != 0;
+    }
+
+    /**
      * Byte array storing the content of this Packet
      */
     private byte[] buffer;
@@ -1485,4 +1521,23 @@ public class RawPacket
 
         return sb.toString();
     }
+
+    /**
+     * Sets the {@code P} (padding) bit in the header of this RTP packet.
+     * @param padding {@code true} to set the bit, {@code false} to unset it.
+     */
+    public void setPaddingBit(boolean padding)
+    {
+        setPaddingBit(buffer, offset, length, padding);
+    }
+
+    /**
+     * @return {@code true} if the padding bit of this RTP packet has been set
+     * and {@code false} otherwise.
+     */
+    public boolean getPaddingBit()
+    {
+        return getPaddingBit(buffer, offset, length);
+    }
+
 }
