@@ -27,9 +27,9 @@ import java.util.concurrent.atomic.*;
  * @author Damian Minkov
  * @author Boris Grozev
  */
-public class BasicReceiveStreamStatsImpl
-    extends AbstractBasicStreamStats
-    implements BasicReceiveStreamStats
+public class ReceiveTrackStatsImpl
+    extends AbstractTrackStats
+    implements ReceiveTrackStats
 {
     /**
      * The highest received sequence number.
@@ -52,7 +52,7 @@ public class BasicReceiveStreamStatsImpl
      * @param interval the interval in milliseconds over which average bit- and
      * packet-rates will be computed.
      */
-    BasicReceiveStreamStatsImpl(int interval, long ssrc)
+    ReceiveTrackStatsImpl(int interval, long ssrc)
     {
         super(interval, ssrc);
         packetLossRate = new RateStatistics(interval, 1000F);

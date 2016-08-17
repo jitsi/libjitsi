@@ -16,21 +16,16 @@
 package org.jitsi.service.neomedia.stats;
 
 /**
- * Extends {@link BasicStreamStats} with methods specific for streams that we
+ * Extends {@link TrackStats} with methods specific for streams that we
  * send.
  *
  * @author Boris Grozev
  */
-public interface BasicReceiveStreamStats
-    extends BasicStreamStats
+public interface SendTrackStats
+    extends TrackStats
 {
     /**
-     * @return the total number of lost packets.
+     * @return an estimate for the recent loss rate.
      */
-    long getPacketsLost();
-
-    /**
-     * @return the number of packets lost in the last interval.
-     */
-    long getCurrentPacketsLost();
+    double getLossRate();
 }

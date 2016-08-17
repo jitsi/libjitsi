@@ -25,9 +25,9 @@ import org.jitsi.util.*;
  * @author Damian Minkov
  * @author Boris Grozev
  */
-public class BasicSendStreamStatsImpl
-    extends AbstractBasicStreamStats
-    implements BasicSendStreamStats
+public class SendTrackStatsImpl
+    extends AbstractTrackStats
+    implements SendTrackStats
 {
     /**
      * The highest sent sequence number.
@@ -55,7 +55,7 @@ public class BasicSendStreamStatsImpl
      * @param interval the interval in milliseconds over which average bit- and
      * packet-rates will be computed.
      */
-    BasicSendStreamStatsImpl(int interval, long ssrc)
+    SendTrackStatsImpl(int interval, long ssrc)
     {
         super(interval, ssrc);
     }

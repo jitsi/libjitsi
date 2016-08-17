@@ -26,8 +26,8 @@ import java.util.concurrent.atomic.*;
  * @author Damian Minkov
  * @author Boris Grozev
  */
-public abstract class AbstractBasicStreamStats
-    implements BasicStreamStats
+public abstract class AbstractTrackStats
+    implements TrackStats
 {
     /**
      * The last jitter (in milliseconds).
@@ -73,9 +73,9 @@ public abstract class AbstractBasicStreamStats
     private final long ssrc;
 
     /**
-     * Initializes a new {@code AbstractBasicStreamStats} instance.
+     * Initializes a new {@code AbstractTrackStats} instance.
      */
-    AbstractBasicStreamStats(int interval, long ssrc)
+    AbstractTrackStats(int interval, long ssrc)
     {
         this.interval = interval;
         this.ssrc = ssrc;

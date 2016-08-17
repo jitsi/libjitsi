@@ -21,26 +21,26 @@ public class MediaStreamStats2Impl
     /**
      * Hold per-SSRC statistics for received streams.
      */
-    private final Map<Long,BasicReceiveStreamStatsImpl> receiveSsrcStats
+    private final Map<Long,ReceiveTrackStatsImpl> receiveSsrcStats
         = new ConcurrentHashMap<>();
 
     /**
      * Hold per-SSRC statistics for sent streams.
      */
-    private final Map<Long,BasicSendStreamStatsImpl> sendSsrcStats
+    private final Map<Long,SendTrackStatsImpl> sendSsrcStats
         = new ConcurrentHashMap<>();
 
     /**
      * Global (aggregated) statistics for received streams.
      */
-    private final AggregateBasicReceiveStats receiveStats
-        = new AggregateBasicReceiveStats(INTERVAL, receiveSsrcStats);
+    private final AggregateReceiveTrackStats receiveStats
+        = new AggregateReceiveTrackStats(INTERVAL, receiveSsrcStats);
 
     /**
      * Global (aggregated) statistics for sent streams.
      */
-    private final AggregateBasicSendStats sendStats
-        = new AggregateBasicSendStats(INTERVAL, sendSsrcStats);
+    private final AggregateSendTrackStats sendStats
+        = new AggregateSendTrackStats(INTERVAL, sendSsrcStats);
 
     /**
      * Initializes a new {@link MediaStreamStats2Impl} instance.
@@ -175,7 +175,7 @@ public class MediaStreamStats2Impl
      * {@inheritDoc}
      */
     @Override
-    public BasicReceiveStreamStats getReceiveStats()
+    public ReceiveTrackStats getReceiveStats()
     {
         return receiveStats;
     }
@@ -184,7 +184,7 @@ public class MediaStreamStats2Impl
      * {@inheritDoc}
      */
     @Override
-    public BasicSendStreamStats getSendStats()
+    public SendTrackStats getSendStats()
     {
         return sendStats;
     }
@@ -193,9 +193,9 @@ public class MediaStreamStats2Impl
      * {@inheritDoc}
      */
     @Override
-    public BasicReceiveStreamStatsImpl getReceiveStats(long ssrc)
+    public ReceiveTrackStatsImpl getReceiveStats(long ssrc)
     {
-        BasicReceiveStreamStatsImpl stats = receiveSsrcStats.get(ssrc);
+        ReceiveTrackStatsImpl stats = receiveSsrcStats.get(ssrc);
         if (stats == null)
         {
             synchronized (receiveSsrcStats)
@@ -203,7 +203,7 @@ public class MediaStreamStats2Impl
                 stats = receiveSsrcStats.get(ssrc);
                 if (stats == null)
                 {
-                    stats = new BasicReceiveStreamStatsImpl(INTERVAL, ssrc);
+                    stats = new ReceiveTrackStatsImpl(INTERVAL, ssrc);
                     receiveSsrcStats.put(ssrc, stats);
                 }
             }
@@ -216,9 +216,9 @@ public class MediaStreamStats2Impl
      * {@inheritDoc}
      */
     @Override
-    public BasicSendStreamStatsImpl getSendStats(long ssrc)
+    public SendTrackStatsImpl getSendStats(long ssrc)
     {
-        BasicSendStreamStatsImpl stats = sendSsrcStats.get(ssrc);
+        SendTrackStatsImpl stats = sendSsrcStats.get(ssrc);
         if (stats == null)
         {
             synchronized (sendSsrcStats)
@@ -226,7 +226,7 @@ public class MediaStreamStats2Impl
                 stats = sendSsrcStats.get(ssrc);
                 if (stats == null)
                 {
-                    stats = new BasicSendStreamStatsImpl(INTERVAL, ssrc);
+                    stats = new SendTrackStatsImpl(INTERVAL, ssrc);
                     sendSsrcStats.put(ssrc, stats);
                 }
             }
@@ -239,7 +239,7 @@ public class MediaStreamStats2Impl
      * {@inheritDoc}
      */
     @Override
-    public Collection<? extends BasicSendStreamStats> getAllSendStats()
+    public Collection<? extends SendTrackStats> getAllSendStats()
     {
         return sendSsrcStats.values();
     }
@@ -248,33 +248,33 @@ public class MediaStreamStats2Impl
      * {@inheritDoc}
      */
     @Override
-    public Collection<? extends BasicReceiveStreamStats> getAllReceiveStats()
+    public Collection<? extends ReceiveTrackStats> getAllReceiveStats()
     {
         return receiveSsrcStats.values();
     }
 
     /**
-     * An {@link BasicStreamStats} implementation which aggregates values for
-     * a collection of {@link BasicStreamStats} instances.
+     * An {@link TrackStats} implementation which aggregates values for
+     * a collection of {@link TrackStats} instances.
      */
-    private abstract class AggregateBasicStats<T>
-        extends AbstractBasicStreamStats
+    private abstract class AggregateTrackStats<T>
+        extends AbstractTrackStats
     {
         /**
-         * The collection of {@link BasicStreamStats} for which this instance
+         * The collection of {@link TrackStats} for which this instance
          * aggregates.
          */
         protected final Map<Long, ? extends T> children;
 
         /**
-         * Initializes a new {@link AggregateBasicStats} instance.
+         * Initializes a new {@link AggregateTrackStats} instance.
          *
          * @param interval the interval in milliseconds over which average
          * values will be calculated.
          * @param children a reference to the map which holds the statistics to
          * aggregate.
          */
-        AggregateBasicStats(int interval, Map<Long, ? extends T> children)
+        AggregateTrackStats(int interval, Map<Long, ? extends T> children)
         {
             super(interval, -1);
             this.children = children;
@@ -293,15 +293,15 @@ public class MediaStreamStats2Impl
     }
 
     /**
-     * An {@link BasicSendStreamStats} implementation which aggregates values for
-     * a collection of {@link BasicSendStreamStats} instances.
+     * An {@link SendTrackStats} implementation which aggregates values for
+     * a collection of {@link SendTrackStats} instances.
      */
-    private class AggregateBasicSendStats
-        extends AggregateBasicStats<BasicSendStreamStats>
-        implements BasicSendStreamStats
+    private class AggregateSendTrackStats
+        extends AggregateTrackStats<SendTrackStats>
+        implements SendTrackStats
     {
         /**
-         * Initializes a new {@link AggregateBasicStats} instance.
+         * Initializes a new {@link AggregateTrackStats} instance.
          *
          * @param interval the interval in milliseconds over which average
          * values will
@@ -309,9 +309,9 @@ public class MediaStreamStats2Impl
          * @param children a reference to the map which holds the statistics to
          * aggregate.
          */
-        AggregateBasicSendStats(
-                int interval,
-                Map<Long, ? extends BasicSendStreamStats> children)
+        AggregateSendTrackStats(
+            int interval,
+            Map<Long, ? extends SendTrackStats> children)
         {
             super(interval, children);
         }
@@ -324,7 +324,7 @@ public class MediaStreamStats2Impl
         {
             double sum = 0;
             int count = 0;
-            for (BasicSendStreamStats child : children.values())
+            for (SendTrackStats child : children.values())
             {
                 double fractionLoss = child.getLossRate();
                 if (fractionLoss >= 0)
@@ -338,24 +338,24 @@ public class MediaStreamStats2Impl
     }
 
     /**
-     * An {@link BasicReceiveStreamStats} implementation which aggregates values
-     * for a collection of {@link BasicReceiveStreamStats} instances.
+     * An {@link ReceiveTrackStats} implementation which aggregates values
+     * for a collection of {@link ReceiveTrackStats} instances.
      */
-    private class AggregateBasicReceiveStats
-        extends AggregateBasicStats<BasicReceiveStreamStats>
-        implements BasicReceiveStreamStats
+    private class AggregateReceiveTrackStats
+        extends AggregateTrackStats<ReceiveTrackStats>
+        implements ReceiveTrackStats
     {
         /**
-         * Initializes a new {@link AggregateBasicStats} instance.
+         * Initializes a new {@link AggregateTrackStats} instance.
          *
          * @param interval the interval in milliseconds over which average
          * values will
          * be calculated.
          * @param children a reference to the map which holds the statistics to
          */
-        AggregateBasicReceiveStats(
-                int interval,
-                Map<Long, ? extends BasicReceiveStreamStats> children)
+        AggregateReceiveTrackStats(
+            int interval,
+            Map<Long, ? extends ReceiveTrackStats> children)
         {
             super(interval, children);
         }
@@ -367,7 +367,7 @@ public class MediaStreamStats2Impl
         public long getPacketsLost()
         {
             long lost = 0;
-            for (BasicReceiveStreamStats child : children.values())
+            for (ReceiveTrackStats child : children.values())
             {
                 lost += child.getPacketsLost();
             }
@@ -381,7 +381,7 @@ public class MediaStreamStats2Impl
         public long getCurrentPackets()
         {
             long packets = 0;
-            for (BasicReceiveStreamStats child : children.values())
+            for (ReceiveTrackStats child : children.values())
             {
                 packets += child.getCurrentPackets();
             }
@@ -395,7 +395,7 @@ public class MediaStreamStats2Impl
         public long getCurrentPacketsLost()
         {
             long packetsLost = 0;
-            for (BasicReceiveStreamStats child : children.values())
+            for (ReceiveTrackStats child : children.values())
             {
                 packetsLost += child.getCurrentPacketsLost();
             }

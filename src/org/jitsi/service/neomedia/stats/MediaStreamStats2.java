@@ -39,33 +39,33 @@ public interface MediaStreamStats2
      * @return the instance which keeps aggregate statistics for the associated
      * {@link MediaStream} in the receive direction.
      */
-    BasicReceiveStreamStats getReceiveStats();
+    ReceiveTrackStats getReceiveStats();
 
     /**
      * @return the instance which keeps aggregate statistics for the associated
      * {@link MediaStream} in the send direction.
      */
-    BasicSendStreamStats getSendStats();
+    SendTrackStats getSendStats();
 
     /**
      * @return the instance which keeps statistics for a particular SSRC in the
      * receive direction.
      */
-    BasicReceiveStreamStats getReceiveStats(long ssrc);
+    ReceiveTrackStats getReceiveStats(long ssrc);
 
     /**
      * @return the instance which keeps statistics for a particular SSRC in the
      * send direction.
      */
-    BasicSendStreamStats getSendStats(long ssrc);
+    SendTrackStats getSendStats(long ssrc);
 
     /**
      * @return all per-SSRC statistics for the send direction.
      */
-    Collection<? extends BasicSendStreamStats> getAllSendStats();
+    Collection<? extends SendTrackStats> getAllSendStats();
 
     /**
      * @return all per-SSRC statistics for the receive direction.
      */
-    Collection<? extends BasicReceiveStreamStats> getAllReceiveStats();
+    Collection<? extends ReceiveTrackStats> getAllReceiveStats();
 }

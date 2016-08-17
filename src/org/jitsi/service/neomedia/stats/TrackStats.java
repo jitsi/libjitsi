@@ -25,7 +25,7 @@ package org.jitsi.service.neomedia.stats;
  * @author Damian Minkov
  * @author Boris Grozev
  */
-public interface BasicStreamStats
+public interface TrackStats
 {
     /**
      * The value that indicates that no values has been set for the jitter
@@ -34,7 +34,7 @@ public interface BasicStreamStats
     double JITTER_UNSET = Double.MIN_VALUE;
 
     /**
-     * @return the SSRC associated with this {@link BasicStreamStats}.
+     * @return the SSRC associated with this {@link TrackStats}.
      */
     long getSSRC();
 

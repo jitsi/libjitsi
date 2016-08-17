@@ -836,10 +836,10 @@ public class MediaStreamStatsImpl
      */
     private long getNbBytes(StreamDirection streamDirection)
     {
-        return getBasicStats(streamDirection).getBytes();
+        return getTrackStats(streamDirection).getBytes();
     }
 
-    private BasicStreamStats getBasicStats(StreamDirection streamDirection)
+    private TrackStats getTrackStats(StreamDirection streamDirection)
     {
         MediaStreamStats2Impl extended = getExtended();
 
@@ -985,7 +985,7 @@ public class MediaStreamStatsImpl
      */
     private long getNbPDU(StreamDirection streamDirection)
     {
-        return getBasicStats(streamDirection).getPackets();
+        return getTrackStats(streamDirection).getPackets();
     }
 
     @Override
@@ -1575,8 +1575,8 @@ public class MediaStreamStatsImpl
                 for (RTCPFeedback rtcpFeedback : feedbackReports)
                 {
                     extended.rtcpReceiverReportReceived(
-                            rtcpFeedback.getSSRC(),
-                            rtcpFeedback.getFractionLost());
+                        rtcpFeedback.getSSRC(),
+                        rtcpFeedback.getFractionLost());
                 }
             }
         }
