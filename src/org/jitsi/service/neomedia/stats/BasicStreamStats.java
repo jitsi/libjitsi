@@ -27,8 +27,15 @@ package org.jitsi.service.neomedia.stats;
  */
 public interface BasicStreamStats
 {
+    /**
+     * The value that indicates that no values has been set for the jitter
+     * field.
+     */
     double JITTER_UNSET = Double.MIN_VALUE;
 
+    /**
+     * @return the SSRC associated with this {@link BasicStreamStats}.
+     */
     long getSSRC();
 
     /**
