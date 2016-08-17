@@ -97,6 +97,8 @@ public class BasicReceiveStreamStatsImpl
             // as all missing packets are requested and retransmitted.
             // Here we differentiate between packets received out of order and
             // those that were retransmitted.
+            // Note that this can be avoided if retransmissions always use the
+            // RTX format and "de-RTX-ed" packets are not fed to this instance.
             if (diff > -10)
             {
                 packetsLost.addAndGet(-1);
