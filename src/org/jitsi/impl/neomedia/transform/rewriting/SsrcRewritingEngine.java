@@ -460,14 +460,15 @@ public class SsrcRewritingEngine implements TransformEngine
             return INVALID_SSRC;
         }
 
-        SsrcRewriter activeRewriter = ssrcGroupRewriter.getActiveRewriter();
+        RTPEncodingRewriter activeRewriter
+            = ssrcGroupRewriter.getActiveRewriter();
 
         if (activeRewriter == null)
         {
             if (logger.isDebugEnabled())
             {
                 logger.debug(
-                        "Could not find an SsrcRewriter for SSRC: "
+                        "Could not find an RTPEncodingRewriter for SSRC: "
                             + (ssrc & 0xffffffffL));
             }
             return INVALID_SSRC;

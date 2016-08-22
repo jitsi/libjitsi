@@ -19,7 +19,6 @@ import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
-import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -29,25 +28,26 @@ import org.jitsi.util.*;
  * @author George Politis
  * @author Lyubomir Marinov
  */
-class SsrcRewriter
+class RTPEncodingRewriter
 {
     /**
      * The <tt>Logger</tt> used by the <tt>SsrcRewritingEngine</tt> class and
      * its instances to print debug information.
      */
-    private static final Logger logger = Logger.getLogger(SsrcRewriter.class);
+    private static final Logger logger
+        = Logger.getLogger(RTPEncodingRewriter.class);
 
     /**
      * The value of {@link Logger#isDebugEnabled()} from the time of the
-     * initialization of the class {@code SsrcRewriter} cached for the purposes
-     * of performance.
+     * initialization of the class {@code RTPEncodingRewriter} cached for the
+     * purposes of performance.
      */
     private static final boolean DEBUG;
 
     /**
      * The value of {@link Logger#isTraceEnabled()} from the time of the
-     * initialization of the class {@code SsrcRewriter} cached for the purposes
-     * of performance.
+     * initialization of the class {@code RTPEncodingRewriter} cached for the
+     * purposes of performance.
      */
     private static final boolean TRACE;
 
@@ -57,7 +57,7 @@ class SsrcRewriter
     private static final int TS_HISTORY_MAX_ENTRIES = 100;
 
     /**
-     * The origin SSRC that this <tt>SsrcRewriter</tt> rewrites. The
+     * The origin SSRC that this <tt>RTPEncodingRewriter</tt> rewrites. The
      * target SSRC is managed by the parent <tt>SsrcGroupRewriter</tt>.
      */
     private final int sourceSSRC;
@@ -116,7 +116,8 @@ class SsrcRewriter
      * @param ssrcGroupRewriter
      * @param sourceSSRC
      */
-    public SsrcRewriter(SsrcGroupRewriter ssrcGroupRewriter, int sourceSSRC)
+    public RTPEncodingRewriter(
+        SsrcGroupRewriter ssrcGroupRewriter, int sourceSSRC)
     {
         this.ssrcGroupRewriter = ssrcGroupRewriter;
         this.sourceSSRC = sourceSSRC;
@@ -133,7 +134,7 @@ class SsrcRewriter
     }
 
     /**
-     * Gets the source SSRC for this <tt>SsrcRewriter</tt>.
+     * Gets the source SSRC for this <tt>RTPEncodingRewriter</tt>.
      */
     public int getSourceSSRC()
     {

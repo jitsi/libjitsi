@@ -74,7 +74,7 @@ class ExtendedSequenceNumberInterval
     /**
      * The owner of this instance.
      */
-    public final SsrcRewriter ssrcRewriter;
+    public final RTPEncodingRewriter rtpEncodingRewriter;
 
     /**
      * Static init.
@@ -93,7 +93,7 @@ class ExtendedSequenceNumberInterval
         public boolean test(REDBlock redBlock)
         {
             Map<Integer, Byte> ssrc2fec = getSsrcRewritingEngine().ssrc2fec;
-            int sourceSSRC = ssrcRewriter.getSourceSSRC();
+            int sourceSSRC = rtpEncodingRewriter.getSourceSSRC();
             return redBlock != null
                 && ssrc2fec.get(sourceSSRC) == redBlock.getPayloadType();
         }
@@ -112,15 +112,15 @@ class ExtendedSequenceNumberInterval
     /**
      * Ctor.
      *
-     * @param ssrcRewriter
+     * @param rtpEncodingRewriter
      * @param extendedBaseOrig
      * @param extendedBaseTarget
      */
     public ExtendedSequenceNumberInterval(
-            SsrcRewriter ssrcRewriter,
+            RTPEncodingRewriter rtpEncodingRewriter,
             int extendedBaseOrig, int extendedBaseTarget)
     {
-        this.ssrcRewriter = ssrcRewriter;
+        this.rtpEncodingRewriter = rtpEncodingRewriter;
         this.extendedBaseTarget = extendedBaseTarget;
 
         this.extendedMinOrig = extendedBaseOrig;
@@ -170,7 +170,8 @@ class ExtendedSequenceNumberInterval
 
         // Sequence number
         int seqnum = pkt.getSequenceNumber();
-        int extendedSeqnum = ssrcRewriter.extendOriginalSequenceNumber(seqnum);
+        int extendedSeqnum
+            = rtpEncodingRewriter.extendOriginalSequenceNumber(seqnum);
         if (extendedSeqnum < extendedMinOrig)
         {
             // This is expected to happen if we just switched simulcast streams,
@@ -193,7 +194,7 @@ class ExtendedSequenceNumberInterval
         SsrcRewritingEngine ssrcRewritingEngine
             = ssrcGroupRewriter.ssrcRewritingEngine;
         Map<Integer, Integer> rtx2primary = ssrcRewritingEngine.rtx2primary;
-        int sourceSSRC = ssrcRewriter.getSourceSSRC();
+        int sourceSSRC = rtpEncodingRewriter.getSourceSSRC();
         Integer primarySSRC = rtx2primary.get(sourceSSRC);
 
         if (primarySSRC == null)
@@ -247,7 +248,7 @@ class ExtendedSequenceNumberInterval
     {
         // This is an RTX packet. Replace RTX OSN field or drop.
         SsrcRewritingEngine ssrcRewritingEngine = getSsrcRewritingEngine();
-        int sourceSSRC = ssrcRewriter.getSourceSSRC();
+        int sourceSSRC = rtpEncodingRewriter.getSourceSSRC();
         int ssrcOrig = ssrcRewritingEngine.rtx2primary.get(sourceSSRC);
         int snOrig = pkt.getOriginalSequenceNumber();
 
@@ -385,7 +386,7 @@ class ExtendedSequenceNumberInterval
      */
     public SsrcGroupRewriter getSsrcGroupRewriter()
     {
-        return ssrcRewriter.ssrcGroupRewriter;
+        return rtpEncodingRewriter.ssrcGroupRewriter;
     }
 
     /**
