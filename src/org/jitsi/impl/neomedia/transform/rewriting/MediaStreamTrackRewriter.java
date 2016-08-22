@@ -32,41 +32,41 @@ import org.jitsi.util.*;
  * @author George Politis
  * @author Lyubomir Marinov
  */
-class SsrcGroupRewriter
+class MediaStreamTrackRewriter
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>SsrcGroupRewriter</tt> class and
-     * its instances to print debug information.
+     * The <tt>Logger</tt> used by the <tt>MediaStreamTrackRewriter</tt> class
+     * and its instances to print debug information.
      */
     private static final Logger logger
-        = Logger.getLogger(SsrcGroupRewriter.class);
+        = Logger.getLogger(MediaStreamTrackRewriter.class);
 
     /**
      * The value of {@link Logger#isTraceEnabled()} from the time of the
-     * initialization of the class {@code SsrcGroupRewriter} cached for the
-     * purposes of performance.
+     * initialization of the class {@code MediaStreamTrackRewriter} cached for
+     * the purposes of performance.
      */
     private static final boolean TRACE;
 
     /**
      * The value of {@link Logger#isDebugEnabled()} from the time of the
-     * initialization of the class {@code SsrcGroupRewriter} cached for the
-     * purposes of performance.
+     * initialization of the class {@code MediaStreamTrackRewriter} cached for
+     * the purposes of performance.
      */
     private static final boolean DEBUG;
 
     /**
      * The value of {@link Logger#isWarnEnabled()} from the time of the
-     * initialization of the class {@code SsrcGroupRewriter} cached for the
-     * purposes of performance.
+     * initialization of the class {@code MediaStreamTrackRewriter} cached for
+     * the purposes of performance.
      */
     private static final boolean WARN;
 
     /**
-     * A map of SSRCs to <tt>SsrcRewriter</tt>. Each SSRC that we rewrite in
-     * this group rewriter has its own rewriter.
+     * A map of SSRCs to <tt>RTPEncodingRewriter</tt>. Each SSRC that we rewrite
+     * in this group rewriter has its own rewriter.
      */
-    private final Map<Integer, SsrcRewriter> rewriters = new HashMap<>();
+    private final Map<Integer, RTPEncodingRewriter> rewriters = new HashMap<>();
 
     /**
      * The owner of this instance.
@@ -75,7 +75,7 @@ class SsrcGroupRewriter
 
     /**
      * The target SSRC that the rewritten RTP packets will have. This is
-     * shared between all the "child" <tt>SsrcRewriter</tt>s.
+     * shared between all the "child" <tt>RTPEncodingRewriter</tt>s.
      */
     private final int ssrcTarget;
 
@@ -104,11 +104,11 @@ class SsrcGroupRewriter
     public long maxTimestamp = -1;
 
     /**
-     * The current <tt>SsrcRewriter</tt> that we use to rewrite source
+     * The current <tt>RTPEncodingRewriter</tt> that we use to rewrite source
      * SSRCs. The active rewriter is determined by the RTP packets that
      * we get.
      */
-    private SsrcRewriter activeRewriter;
+    private RTPEncodingRewriter activeRewriter;
 
     /**
      * The SSRC of the RTP stream into whose RTP timestamp other RTP streams
@@ -130,9 +130,10 @@ class SsrcGroupRewriter
      * Ctor.
      *
      * @param ssrcRewritingEngine the owner of this instance.
-     * @param ssrcTarget the target SSRC for this <tt>SsrcGroupRewriter</tt>.
+     * @param ssrcTarget the target SSRC for this
+     * <tt>MediaStreamTrackRewriter</tt>.
      */
-    public SsrcGroupRewriter(
+    public MediaStreamTrackRewriter(
             SsrcRewritingEngine ssrcRewritingEngine,
             Integer ssrcTarget,
             int seqnumBase)
@@ -220,11 +221,11 @@ class SsrcGroupRewriter
     }
 
     /**
-     * Gets the active <tt>SsrcRewriter</tt> of this instance.
+     * Gets the active <tt>RTPEncodingRewriter</tt> of this instance.
      *
-     * @return the active <tt>SsrcRewriter</tt> of this instance.
+     * @return the active <tt>RTPEncodingRewriter</tt> of this instance.
      */
-    public SsrcRewriter getActiveRewriter()
+    public RTPEncodingRewriter getActiveRewriter()
     {
         return activeRewriter;
     }
@@ -327,15 +328,15 @@ class SsrcGroupRewriter
                             + pkt.getSSRCAsLong() + " to "
                             + (ssrcTarget & 0xffffffffL));
             }
-            rewriters.put(sourceSSRC, new SsrcRewriter(this, sourceSSRC));
+            rewriters.put(sourceSSRC, new RTPEncodingRewriter(this, sourceSSRC));
         }
 
         if (activeRewriter != null
                 && activeRewriter.getSourceSSRC() != sourceSSRC)
         {
             // Got a packet with a different SSRC from the one that the current
-            // SsrcRewriter handles. Pause the current SsrcRewriter and switch
-            // to the correct one.
+            // RTPEncodingRewriter handles. Pause the current
+            // RTPEncodingRewriter and switch to the correct one.
             if (DEBUG)
             {
                 logger.debug(
@@ -434,7 +435,7 @@ class SsrcGroupRewriter
      */
     int rewriteSequenceNumber(int ssrcOrigin, int seqnum)
     {
-        SsrcRewriter rewriter = rewriters.get(ssrcOrigin);
+        RTPEncodingRewriter rewriter = rewriters.get(ssrcOrigin);
         if (rewriter == null)
         {
             logger.warn(
@@ -478,12 +479,12 @@ class SsrcGroupRewriter
     {
         // XXX Why do we need this? : When there's a stream switch, we request a
         // keyframe for the stream we want to switch into (this is done
-        // elsewhere). The {@link SsrcRewriter} rewrites the timestamps of the
-        // "mixed" streams so that they all have the same timestamp offset. The
-        // problem still remains tho, frames can be sampled at different times,
-        // so we might end up with a key frame that is one sampling cycle behind
-        // what we were already streaming. We hack around this by implementing
-        // "RTP timestamp uplifting".
+        // elsewhere). The {@link RTPEncodingRewriter} rewrites the timestamps
+        // of the "mixed" streams so that they all have the same timestamp
+        // offset. The problem still remains tho, frames can be sampled at
+        // different times, so we might end up with a key frame that is one
+        // sampling cycle behind what we were already streaming. We hack around
+        // this by implementing "RTP timestamp uplifting".
 
         // XXX(gp): The uplifting should not take place if the
         // timestamps have advanced "a lot" (i.e. > 3000 or 3000/90 = 33ms).

@@ -74,7 +74,7 @@ class ExtendedSequenceNumberInterval
     /**
      * The owner of this instance.
      */
-    public final SsrcRewriter ssrcRewriter;
+    public final RTPEncodingRewriter rtpEncodingRewriter;
 
     /**
      * Static init.
@@ -93,7 +93,7 @@ class ExtendedSequenceNumberInterval
         public boolean test(REDBlock redBlock)
         {
             Map<Integer, Byte> ssrc2fec = getSsrcRewritingEngine().ssrc2fec;
-            int sourceSSRC = ssrcRewriter.getSourceSSRC();
+            int sourceSSRC = rtpEncodingRewriter.getSourceSSRC();
             return redBlock != null
                 && ssrc2fec.get(sourceSSRC) == redBlock.getPayloadType();
         }
@@ -112,15 +112,15 @@ class ExtendedSequenceNumberInterval
     /**
      * Ctor.
      *
-     * @param ssrcRewriter
+     * @param rtpEncodingRewriter
      * @param extendedBaseOrig
      * @param extendedBaseTarget
      */
     public ExtendedSequenceNumberInterval(
-            SsrcRewriter ssrcRewriter,
+            RTPEncodingRewriter rtpEncodingRewriter,
             int extendedBaseOrig, int extendedBaseTarget)
     {
-        this.ssrcRewriter = ssrcRewriter;
+        this.rtpEncodingRewriter = rtpEncodingRewriter;
         this.extendedBaseTarget = extendedBaseTarget;
 
         this.extendedMinOrig = extendedBaseOrig;
@@ -163,14 +163,15 @@ class ExtendedSequenceNumberInterval
     public RawPacket rewriteRTP(RawPacket pkt)
     {
         // SSRC
-        SsrcGroupRewriter ssrcGroupRewriter = getSsrcGroupRewriter();
-        int ssrcTarget = ssrcGroupRewriter.getSSRCTarget();
+        MediaStreamTrackRewriter mstRewriter = getSsrcGroupRewriter();
+        int ssrcTarget = mstRewriter.getSSRCTarget();
 
         pkt.setSSRC(ssrcTarget);
 
         // Sequence number
         int seqnum = pkt.getSequenceNumber();
-        int extendedSeqnum = ssrcRewriter.extendOriginalSequenceNumber(seqnum);
+        int extendedSeqnum
+            = rtpEncodingRewriter.extendOriginalSequenceNumber(seqnum);
         if (extendedSeqnum < extendedMinOrig)
         {
             // This is expected to happen if we just switched simulcast streams,
@@ -191,9 +192,9 @@ class ExtendedSequenceNumberInterval
         pkt.setSequenceNumber(rewriteSeqnum);
 
         SsrcRewritingEngine ssrcRewritingEngine
-            = ssrcGroupRewriter.ssrcRewritingEngine;
+            = mstRewriter.ssrcRewritingEngine;
         Map<Integer, Integer> rtx2primary = ssrcRewritingEngine.rtx2primary;
-        int sourceSSRC = ssrcRewriter.getSourceSSRC();
+        int sourceSSRC = rtpEncodingRewriter.getSourceSSRC();
         Integer primarySSRC = rtx2primary.get(sourceSSRC);
 
         if (primarySSRC == null)
@@ -247,11 +248,11 @@ class ExtendedSequenceNumberInterval
     {
         // This is an RTX packet. Replace RTX OSN field or drop.
         SsrcRewritingEngine ssrcRewritingEngine = getSsrcRewritingEngine();
-        int sourceSSRC = ssrcRewriter.getSourceSSRC();
+        int sourceSSRC = rtpEncodingRewriter.getSourceSSRC();
         int ssrcOrig = ssrcRewritingEngine.rtx2primary.get(sourceSSRC);
         int snOrig = pkt.getOriginalSequenceNumber();
 
-        SsrcGroupRewriter rewriterPrimary
+        MediaStreamTrackRewriter rewriterPrimary
             = ssrcRewritingEngine.origin2rewriter.get(ssrcOrig);
         int sequenceNumber
             = rewriterPrimary.rewriteSequenceNumber(ssrcOrig, snOrig);
@@ -352,7 +353,7 @@ class ExtendedSequenceNumberInterval
         // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         int snBase = (buf[off + 2] & 0xff) << 8 | (buf[off + 3] & 0xff);
 
-        SsrcGroupRewriter rewriter
+        MediaStreamTrackRewriter rewriter
             = getSsrcRewritingEngine().origin2rewriter.get(sourceSSRC);
         int snRewritenBase
             = rewriter.rewriteSequenceNumber(sourceSSRC, snBase);
@@ -377,20 +378,20 @@ class ExtendedSequenceNumberInterval
     }
 
     /**
-     * Gets the {@code SsrcGroupRewriter} which has initialized this instance
+     * Gets the {@code MediaStreamTrackRewriter} which has initialized this instance
      * and is its owner.
      *
-     * @return the {@code SsrcGroupRewriter} which has initialized this instance
+     * @return the {@code MediaStreamTrackRewriter} which has initialized this instance
      * and is its owner
      */
-    public SsrcGroupRewriter getSsrcGroupRewriter()
+    public MediaStreamTrackRewriter getSsrcGroupRewriter()
     {
-        return ssrcRewriter.ssrcGroupRewriter;
+        return rtpEncodingRewriter.mstRewriter;
     }
 
     /**
      * Gets the {@code SsrcRewritingEngine} associated with this instance i.e.
-     * which owns the {@code SsrcGroupRewriter} which in turn owns this
+     * which owns the {@code MediaStreamTrackRewriter} which in turn owns this
      * instance.
      *
      * @return the {@code SsrcRewritingEngine} associated with this instance

@@ -129,10 +129,11 @@ public class SsrcRewritingEngine implements TransformEngine
     private final SeqnumBaseKeeper seqnumBaseKeeper = new SeqnumBaseKeeper();
 
     /**
-     * A <tt>Map</tt> that maps source SSRCs to <tt>SsrcGroupRewriter</tt>s. It
-     * can be used to quickly find which <tt>SsrcGroupRewriter</tt> to use for
-     * a specific RTP packet based on its SSRC. Multiple SSRCs can be mapped to
-     * the same <tt>SsrcGroupRewriter</tt>, so this is not a 1-1 map.
+     * A <tt>Map</tt> that maps source SSRCs to
+     * <tt>MediaStreamTrackRewriter</tt>s. It can be used to quickly find which
+     * <tt>MediaStreamTrackRewriter</tt> to use for a specific RTP packet based
+     * on its SSRC. Multiple SSRCs can be mapped to the same
+     * <tt>MediaStreamTrackRewriter</tt>, so this is not a 1-1 map.
      * <p/>
      * One other thing to note is that this map holds both primary and RTX
      * origin SSRCs and will hold RED/FEC SSRCs in the future as well, when
@@ -144,18 +145,19 @@ public class SsrcRewritingEngine implements TransformEngine
      * be to use RWL or synchronized blocks. Not sure about the performance
      * diff, but locks for reading sound heavy.
      */
-    Map<Integer, SsrcGroupRewriter> origin2rewriter;
+    Map<Integer, MediaStreamTrackRewriter> origin2rewriter;
 
     /**
-     * A <tt>Map</tt> that maps target SSRCs to <tt>SsrcGroupRewriter</tt>s. It
-     * can be used to quickly find an <tt>SsrcGroupRewriter</tt> by its SSRC.
-     * Each target SSRC is mapped to a different <tt>SsrcGroupRewriter</tt>, so
-     * this is a 1-1 map. We're wrapping the <tt>SsrcGroupRewriter</tt> in a
+     * A <tt>Map</tt> that maps target SSRCs to
+     * <tt>MediaStreamTrackRewriter</tt>s. It can be used to quickly find an
+     * <tt>MediaStreamTrackRewriter</tt> by its SSRC. Each target SSRC is mapped
+     * to a different <tt>MediaStreamTrackRewriter</tt>, so this is a 1-1 map.
+     * We're wrapping the <tt>MediaStreamTrackRewriter</tt> in a
      * <tt>Tracked</tt> class so the engine instance can count how many source
      * SSRCs a target SSRC is rewriting. The purpose of this is to BYE target
      * SSRCs that no longer have source SSRCs.
      */
-    private Map<Integer, RefCount<SsrcGroupRewriter>> target2rewriter;
+    private Map<Integer, RefCount<MediaStreamTrackRewriter>> target2rewriter;
 
     /**
      * Maps RTX SSRCs to primary SSRCs.
@@ -302,11 +304,11 @@ public class SsrcRewritingEngine implements TransformEngine
         // BYE target SSRCs that no longer have source/original SSRCs.
         // TODO we need a way to garbage collect target SSRCs that should have
         // been unmapped.
-        for (Iterator<RefCount<SsrcGroupRewriter>> i
-                    = target2rewriter.values().iterator();
-                i.hasNext();)
+        for (Iterator<RefCount<MediaStreamTrackRewriter>> i
+             = target2rewriter.values().iterator();
+             i.hasNext();)
         {
-            RefCount<SsrcGroupRewriter> refCount = i.next();
+            RefCount<MediaStreamTrackRewriter> refCount = i.next();
 
             if (refCount.get() < 1)
             {
@@ -399,22 +401,24 @@ public class SsrcRewritingEngine implements TransformEngine
 
         if (ssrcTarget != null && ssrcTarget != UNMAP_SSRC)
         {
-            RefCount<SsrcGroupRewriter> refCount
+            RefCount<MediaStreamTrackRewriter> refCount
                 = target2rewriter.get(ssrcTarget);
 
             if (refCount == null)
             {
-                // Create an <tt>SsrcGroupRewriter</tt> for the target SSRC.
+                // Create an <tt>MediaStreamTrackRewriter</tt> for the target
+                // SSRC.
                 refCount = new RefCount<>(
                     seqnumBaseKeeper.createSsrcGroupRewriter(this, ssrcTarget));
                 target2rewriter.put(ssrcTarget, refCount);
             }
 
-            // Link the original SSRC to the appropriate SsrcGroupRewriter.
-            SsrcGroupRewriter oldSsrcGroupRewriter
+            // Link the original SSRC to the appropriate
+            // MediaStreamTrackRewriter.
+            MediaStreamTrackRewriter oldMSTRewriter
                 = origin2rewriter.put(ssrcOrig, refCount.getReferent());
 
-            if (oldSsrcGroupRewriter == null)
+            if (oldMSTRewriter == null)
             {
                 // We put one and nothing was removed, so we must increase.
                 refCount.increase();
@@ -427,13 +431,13 @@ public class SsrcRewritingEngine implements TransformEngine
         else
         {
             // Unmap the origin SSRC and the target SSRC.
-            SsrcGroupRewriter ssrcGroupRewriter
+            MediaStreamTrackRewriter mstRewriter
                 = origin2rewriter.remove(ssrcOrig);
 
-            if (ssrcGroupRewriter != null)
+            if (mstRewriter != null)
             {
-                RefCount<SsrcGroupRewriter> refCount
-                    = target2rewriter.get(ssrcGroupRewriter.getSSRCTarget());
+                RefCount<MediaStreamTrackRewriter> refCount
+                    = target2rewriter.get(mstRewriter.getSSRCTarget());
 
                 refCount.decrease();
             }
@@ -449,25 +453,26 @@ public class SsrcRewritingEngine implements TransformEngine
      */
     private long reverseRewriteSSRC(int ssrc)
     {
-        // If there is an SsrcGroupRewriter, rewrite the packet; otherwise,
-        // include it unaltered.
-        RefCount<SsrcGroupRewriter> refCount = target2rewriter.get(ssrc);
-        SsrcGroupRewriter ssrcGroupRewriter;
+        // If there is an MediaStreamTrackRewriter, rewrite the packet;
+        // otherwise, include it unaltered.
+        RefCount<MediaStreamTrackRewriter> refCount = target2rewriter.get(ssrc);
+        MediaStreamTrackRewriter mstRewriter;
 
         if (refCount == null
-                || (ssrcGroupRewriter = refCount.getReferent()) == null)
+                || (mstRewriter = refCount.getReferent()) == null)
         {
             return INVALID_SSRC;
         }
 
-        SsrcRewriter activeRewriter = ssrcGroupRewriter.getActiveRewriter();
+        RTPEncodingRewriter activeRewriter
+            = mstRewriter.getActiveRewriter();
 
         if (activeRewriter == null)
         {
             if (logger.isDebugEnabled())
             {
                 logger.debug(
-                        "Could not find an SsrcRewriter for SSRC: "
+                        "Could not find an RTPEncodingRewriter for SSRC: "
                             + (ssrc & 0xffffffffL));
             }
             return INVALID_SSRC;
@@ -537,14 +542,14 @@ public class SsrcRewritingEngine implements TransformEngine
                 return pkt;
             }
 
-            // Use the SSRC of the RTP packet to find which SsrcGroupRewriter to
-            // use.
+            // Use the SSRC of the RTP packet to find which
+            // {@link MediaStreamTrackRewriter} to use.
             int ssrc = pkt.getSSRC();
-            SsrcGroupRewriter ssrcGroupRewriter = origin2rewriter.get(ssrc);
+            MediaStreamTrackRewriter mstRewriter = origin2rewriter.get(ssrc);
 
-            // If there is an SsrcGroupRewriter, rewrite the packet; otherwise,
-            // return it unaltered.
-            if (ssrcGroupRewriter == null)
+            // If there is an MediaStreamTrackRewriter, rewrite the packet;
+            // otherwise, return it unaltered.
+            if (mstRewriter == null)
             {
                 // We don't have a rewriter for this packet. Let's not freak
                 // out about it, it's most probably a DTLS packet.
@@ -558,7 +563,7 @@ public class SsrcRewritingEngine implements TransformEngine
             }
             else
             {
-                return ssrcGroupRewriter.rewriteRTP(pkt);
+                return mstRewriter.rewriteRTP(pkt);
             }
         }
     }
@@ -626,7 +631,7 @@ public class SsrcRewritingEngine implements TransformEngine
             for (RTCPPacket inPkt : inPkts)
             {
                 // Use the SSRC of the RTCP packet to find which
-                // <tt>SsrcGroupRewriter</tt> to use.
+                // <tt>MediaStreamTrackRewriter</tt> to use.
 
                 // XXX we could move the RawPacket methods into a utils
                 // class with static methods so that we don't have to create
@@ -667,7 +672,8 @@ public class SsrcRewritingEngine implements TransformEngine
                         {
                             // We only really care if it's NOT a REMB.
                             logger.debug(
-                                    "Could not find an SsrcGroupRewriter for"
+                                    "Could not find an" +
+                                        " MediaStreamTrackRewriter for"
                                         + " the RTCP packet: " + psfb);
                         }
                         else
@@ -693,8 +699,8 @@ public class SsrcRewritingEngine implements TransformEngine
                                 {
                                     logger.debug(
                                             "Could not find an"
-                                                + " SsrcGroupRewriter for the"
-                                                + " RTCP packet: " + psfb);
+                                                + " MediaStreamTrackRewriter " +
+                                                "for the RTCP packet: " + psfb);
                                 }
                                 else
                                 {
@@ -807,7 +813,7 @@ public class SsrcRewritingEngine implements TransformEngine
          * @param ssrcTarget
          * @return
          */
-        public synchronized SsrcGroupRewriter createSsrcGroupRewriter(
+        public synchronized MediaStreamTrackRewriter createSsrcGroupRewriter(
             SsrcRewritingEngine ssrcRewritingEngine, Integer ssrcTarget)
         {
             int seqnum;
@@ -822,13 +828,13 @@ public class SsrcRewritingEngine implements TransformEngine
 
             if (TRACE)
             {
-                logger.trace("Creating a new SsrcGroupRewriter (ssrc="
+                logger.trace("Creating a new MediaStreamTrackRewriter (ssrc="
                     + (ssrcTarget & 0xffffffffl)
                     + ", seqnum=" + seqnum + ").");
             }
 
-            return
-                new SsrcGroupRewriter(ssrcRewritingEngine, ssrcTarget, seqnum);
+            return new MediaStreamTrackRewriter(
+                ssrcRewritingEngine, ssrcTarget, seqnum);
         }
     }
 }
