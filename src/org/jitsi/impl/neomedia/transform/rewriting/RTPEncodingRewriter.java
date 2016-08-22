@@ -58,14 +58,14 @@ class RTPEncodingRewriter
 
     /**
      * The origin SSRC that this <tt>RTPEncodingRewriter</tt> rewrites. The
-     * target SSRC is managed by the parent <tt>SsrcGroupRewriter</tt>.
+     * target SSRC is managed by the parent <tt>MediaStreamTrackRewriter</tt>.
      */
     private final int sourceSSRC;
 
     /**
      * The owner of this instance.
      */
-    public final SsrcGroupRewriter ssrcGroupRewriter;
+    public final MediaStreamTrackRewriter mstRewriter;
 
     /**
      * A <tt>NavigableMap</tt> that maps <tt>Integer</tt>s representing
@@ -113,13 +113,13 @@ class RTPEncodingRewriter
     /**
      * Ctor.
      *
-     * @param ssrcGroupRewriter
+     * @param mstRewriter
      * @param sourceSSRC
      */
     public RTPEncodingRewriter(
-        SsrcGroupRewriter ssrcGroupRewriter, int sourceSSRC)
+        MediaStreamTrackRewriter mstRewriter, int sourceSSRC)
     {
-        this.ssrcGroupRewriter = ssrcGroupRewriter;
+        this.mstRewriter = mstRewriter;
         this.sourceSSRC = sourceSSRC;
     }
 
@@ -183,7 +183,7 @@ class RTPEncodingRewriter
                     = new ExtendedSequenceNumberInterval(
                     this,
                     extendedSeqnum,
-                    ssrcGroupRewriter.currentExtendedSeqnumBase);
+                    mstRewriter.currentExtendedSeqnumBase);
             }
             else
             {
@@ -237,17 +237,17 @@ class RTPEncodingRewriter
         }
         else
         {
-            SsrcGroupRewriter ssrcGroupRewriter = this.ssrcGroupRewriter;
-            long timestampSsrcAsLong = ssrcGroupRewriter.getTimestampSsrc();
+            MediaStreamTrackRewriter mstRewriter = this.mstRewriter;
+            long timestampSsrcAsLong = mstRewriter.getTimestampSsrc();
             int sourceSsrc = getSourceSSRC();
 
             if (timestampSsrcAsLong == SsrcRewritingEngine.INVALID_SSRC)
             {
                 // The first pkt to require RTP timestamp rewriting determines
                 // the SSRC which will NOT undergo RTP timestamp rewriting.
-                // Unless SsrcGroupRewriter decides to force the SSRC for RTP
-                // timestamp rewriting, of course.
-                ssrcGroupRewriter.setTimestampSsrc(sourceSsrc);
+                // Unless MediaStreamTrackRewriter decides to force the SSRC for
+                // RTP timestamp rewriting, of course.
+                mstRewriter.setTimestampSsrc(sourceSsrc);
             }
             else
             {
@@ -260,7 +260,7 @@ class RTPEncodingRewriter
                     rewriteTimestamp(p, sourceSsrc, timestampSsrc);
                 }
 
-                ssrcGroupRewriter.maybeUpliftTimestamp(p);
+                mstRewriter.maybeUpliftTimestamp(p);
             }
 
             long newValue = p.getTimestamp();
@@ -297,7 +297,7 @@ class RTPEncodingRewriter
         // Convert the SSRCs to RemoteClocks.
         int[] ssrcs = { sourceSsrc, timestampSsrc };
         RemoteClock[] clocks
-            = RemoteClock.findRemoteClocks(ssrcGroupRewriter.ssrcRewritingEngine
+            = RemoteClock.findRemoteClocks(mstRewriter.ssrcRewritingEngine
                 .getMediaStream(), ssrcs);
 
         // Require all/the two RemoteClocks to carry out the RTP timestamp
@@ -428,7 +428,7 @@ class RTPEncodingRewriter
     int extendOriginalSequenceNumber(int origSeqnum)
     {
         SSRCCache ssrcCache
-            = ssrcGroupRewriter.ssrcRewritingEngine
+            = mstRewriter.ssrcRewritingEngine
                 .getMediaStream().getStreamRTPManager().getSSRCCache();
 
         if (ssrcCache != null)

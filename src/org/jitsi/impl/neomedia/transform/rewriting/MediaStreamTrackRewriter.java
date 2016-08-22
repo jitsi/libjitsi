@@ -32,33 +32,33 @@ import org.jitsi.util.*;
  * @author George Politis
  * @author Lyubomir Marinov
  */
-class SsrcGroupRewriter
+class MediaStreamTrackRewriter
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>SsrcGroupRewriter</tt> class and
-     * its instances to print debug information.
+     * The <tt>Logger</tt> used by the <tt>MediaStreamTrackRewriter</tt> class
+     * and its instances to print debug information.
      */
     private static final Logger logger
-        = Logger.getLogger(SsrcGroupRewriter.class);
+        = Logger.getLogger(MediaStreamTrackRewriter.class);
 
     /**
      * The value of {@link Logger#isTraceEnabled()} from the time of the
-     * initialization of the class {@code SsrcGroupRewriter} cached for the
-     * purposes of performance.
+     * initialization of the class {@code MediaStreamTrackRewriter} cached for
+     * the purposes of performance.
      */
     private static final boolean TRACE;
 
     /**
      * The value of {@link Logger#isDebugEnabled()} from the time of the
-     * initialization of the class {@code SsrcGroupRewriter} cached for the
-     * purposes of performance.
+     * initialization of the class {@code MediaStreamTrackRewriter} cached for
+     * the purposes of performance.
      */
     private static final boolean DEBUG;
 
     /**
      * The value of {@link Logger#isWarnEnabled()} from the time of the
-     * initialization of the class {@code SsrcGroupRewriter} cached for the
-     * purposes of performance.
+     * initialization of the class {@code MediaStreamTrackRewriter} cached for
+     * the purposes of performance.
      */
     private static final boolean WARN;
 
@@ -130,9 +130,10 @@ class SsrcGroupRewriter
      * Ctor.
      *
      * @param ssrcRewritingEngine the owner of this instance.
-     * @param ssrcTarget the target SSRC for this <tt>SsrcGroupRewriter</tt>.
+     * @param ssrcTarget the target SSRC for this
+     * <tt>MediaStreamTrackRewriter</tt>.
      */
-    public SsrcGroupRewriter(
+    public MediaStreamTrackRewriter(
             SsrcRewritingEngine ssrcRewritingEngine,
             Integer ssrcTarget,
             int seqnumBase)
