@@ -19,7 +19,6 @@ import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
-import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -95,7 +94,7 @@ class SsrcRewriter
             = new TreeMap<>();
 
     /**
-     * The MRU timestamp history.
+     * The MRU target timestamp history.
      */
     private final Map<Long, TimestampEntry> tsHistory
         = new LinkedHashMap<Long, TimestampEntry>() {
@@ -105,6 +104,11 @@ class SsrcRewriter
             return size() > TS_HISTORY_MAX_ENTRIES;
         }
     };
+
+    /*
+     * 
+     */
+    private TimestampEntry maxSourceTsEntry;
 
     /**
      * This is the current sequence number interval for this origin
@@ -236,9 +240,10 @@ class SsrcRewriter
 
         long now = System.currentTimeMillis();
         TimestampEntry tsEntry = tsHistory.get(oldValue);
+        boolean rewritten = false;
         if (tsEntry != null && tsEntry.isFresh(now))
         {
-            long tsDest = tsEntry.ts;
+            long tsDest = tsEntry.dest;
             p.setTimestamp(tsDest);
 
             if (TRACE)
@@ -248,8 +253,80 @@ class SsrcRewriter
                     + ") timestamp using cached value "
                     + oldValue + " to " + p.getTimestamp());
             }
+
+            rewritten = true;
         }
-        else
+        else if (maxSourceTsEntry != null
+            && maxSourceTsEntry.isFresh(now))
+        {
+            long delta = TimeUtils.rtpDiff(oldValue, maxSourceTsEntry.src);
+            if (delta < 0)
+            {
+                // The current packet belongs to a frame F of an RTP stream S.
+                // Reaching this point means this is the first time we see
+                // frame F, and we've already seen F' such that F' > F (because
+                // delta < 0). This is a frame re-ordering.
+                //
+                // This case needs special treatment. We must not perform RTP
+                // timestamp uplifting and we must not rewrite to something
+                // that's bigger than dest(F').
+                //
+                // Note that we only correctly handle the case where F' = F + 1,
+                // i.e. frame re-orderings where the distance between the frames
+                // is -1. It shouldn't be difficult to handle the general case
+                // where F' = F + n, but it requires a different data structure
+                // for keeping the timestamp history (a NavigableMap that can
+                // also be used as an MRU).
+
+                int timestampSsrc = (int) ssrcGroupRewriter.getTimestampSsrc();
+
+                // First, try to rewrite the RTP timestamp of pkt in accord with
+                // the wallclock of timestampSsrc.
+                int sourceSsrc = getSourceSSRC();
+                if (sourceSsrc != timestampSsrc)
+                {
+                    // Rewrite the RTP timestamp of pkt in accord with the
+                    // wallclock of timestampSsrc.
+                    rewriteTimestamp(p, sourceSsrc, timestampSsrc);
+                }
+
+                long newValue = p.getTimestamp();
+                long delta$1 = TimeUtils.rtpDiff(
+                    maxSourceTsEntry.dest, newValue);
+
+                if (delta$1 <= 0)
+                {
+                    // It seems that rewriting using the wallclocks resulted in
+                    // a frame timestamp that is bigger than what we expect.
+                    // Downlifting.
+                    newValue = maxSourceTsEntry.dest - 1;
+                    p.setTimestamp(newValue);
+
+                    if (TRACE)
+                    {
+                        logger.trace("Downlifting re-ordered frame with "
+                            + " ssrc=" + p.getSSRCAsLong()
+                            + ", seqnum=" + p.getSequenceNumber()
+                            + ") timestamp using cached value "
+                            + oldValue + " to " + newValue);
+                    }
+                }
+                else if (TRACE)
+                {
+                    logger.trace("Rewriting re-ordered frame with "
+                        + " ssrc=" + p.getSSRCAsLong()
+                        + ", seqnum=" + p.getSequenceNumber()
+                        + ") timestamp using cached value "
+                        + oldValue + " to " + p.getTimestamp());
+                }
+
+                tsHistory.put(
+                    oldValue, new TimestampEntry(now, oldValue, newValue));
+                rewritten = true;
+            }
+        }
+
+        if (!rewritten)
         {
             SsrcGroupRewriter ssrcGroupRewriter = this.ssrcGroupRewriter;
             long timestampSsrcAsLong = ssrcGroupRewriter.getTimestampSsrc();
@@ -287,7 +364,8 @@ class SsrcRewriter
                     + " to " + newValue);
             }
 
-            tsHistory.put(oldValue, new TimestampEntry(now, newValue));
+            tsHistory.put(oldValue, new TimestampEntry(now, oldValue, newValue));
+            maxSourceTsEntry = new TimestampEntry(now, oldValue, newValue);
         }
     }
 
@@ -465,14 +543,17 @@ class SsrcRewriter
     {
         private final long added;
 
-        private final long ts;
+        private final long src;
+
+        private final long dest;
 
         /**
          * Ctor.
          */
-        public TimestampEntry(long now, long ts)
+        public TimestampEntry(long now, long src, long dest)
         {
-            this.ts = ts;
+            this.src = src;
+            this.dest = dest;
             this.added = now;
         }
 
