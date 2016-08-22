@@ -97,7 +97,8 @@ class SsrcRewriter
     /**
      * The MRU timestamp history.
      */
-    private final Map<Long, Long> tsHistory = new LinkedHashMap<Long, Long>() {
+    private final Map<Long, TimestampEntry> tsHistory
+        = new LinkedHashMap<Long, TimestampEntry>() {
 
         @Override
         protected boolean removeEldestEntry(Map.Entry eldest) {
@@ -233,9 +234,11 @@ class SsrcRewriter
 
         long oldValue = p.getTimestamp();
 
-        if (tsHistory.containsKey(oldValue))
+        long now = System.currentTimeMillis();
+        TimestampEntry tsEntry = tsHistory.get(oldValue);
+        if (tsEntry != null && tsEntry.isFresh(now))
         {
-            long tsDest = tsHistory.get(oldValue);
+            long tsDest = tsEntry.ts;
             p.setTimestamp(tsDest);
 
             if (TRACE)
@@ -284,7 +287,7 @@ class SsrcRewriter
                     + " to " + newValue);
             }
 
-            tsHistory.put(oldValue, newValue);
+            tsHistory.put(oldValue, new TimestampEntry(now, newValue));
         }
     }
 
@@ -453,5 +456,36 @@ class SsrcRewriter
                 return sourceSSRCInfo.extendSequenceNumber(origSeqnum);
         }
         return origSeqnum;
+    }
+
+    /**
+     * Holds a timestamp (long) and records the time when it was first seen.
+     */
+    class TimestampEntry
+    {
+        private final long added;
+
+        private final long ts;
+
+        /**
+         * Ctor.
+         */
+        public TimestampEntry(long now, long ts)
+        {
+            this.ts = ts;
+            this.added = now;
+        }
+
+        /**
+         * Gets a boolean indicating whether or not the timestamp is less than
+         * 10 seconds old. This is 300 frames for a 30fps video.
+         *
+         * @return true if the timestamp was added less than 10 seconds ago,
+         * false otherwise.
+         */
+        public boolean isFresh(long now)
+        {
+            return (now - added) < 10000;
+        }
     }
 }
