@@ -52,9 +52,25 @@ class SsrcRewriter
     private static final boolean TRACE;
 
     /**
-     * The maximum number of entries in the timestamp history.
+     * The maximum number of entries in the timestamp/frame history. The purpose
+     * of the timestamp history is to make sure that we always rewrite the RTP
+     * timestamp of a frame to the same value. The reason for doing this is
+     * two-fold: 
+     *
+     * 1) The clock at the sender can drift or the sender might be buggy and
+     * send RTCP SRs that indicate drift. So, if we get an SR that indicates
+     * drift in between same-frame RTP packets and if we're fully rewritting
+     * the RTP timestamps, we might end-up with RTP packets from the same frame
+     * having different timestamps.
+     *
+     * 2) Performance. We don't have to re-run the same computation over and
+     * over again.
+     *
+     * Assuming a 30fps video, 300 sounds like a reasonable value (which is
+     * equivalent to roughly 10 seconds). There should be no practical case
+     * where we get an RTP packet from a frame that does not fit in that.
      */
-    private static final int TS_HISTORY_MAX_ENTRIES = 100;
+    private static final int TS_HISTORY_MAX_ENTRIES = 300;
 
     /**
      * The origin SSRC that this <tt>SsrcRewriter</tt> rewrites. The
@@ -73,10 +89,6 @@ class SsrcRewriter
      * when we receive an RTP packet with given sequence number, we can
      * easily find in which sequence number interval it belongs, if it
      * does.
-     *
-     * TODO we should not keep more intervals than what's enough to
-     * cover the last 1000 (arbitrary value) sequence numbers (and even
-     * that's way too much).
      */
     private final NavigableMap<Integer, ExtendedSequenceNumberInterval>
         intervals
