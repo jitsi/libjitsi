@@ -258,7 +258,8 @@ class SsrcGroupRewriter
         {
             logger.warn(
                     "Can't rewrite the RTP packet because there's no active"
-                        + " rewriter.");
+                        + " rewriter." + " streamHashCode="
+                        + ssrcRewritingEngine.getMediaStream().hashCode());
         }
         else
         {
@@ -296,11 +297,12 @@ class SsrcGroupRewriter
                 long ts1 = p.getTimestamp();
 
                 logger.trace(
-                    "rewriteRTP SSRC, seqnum, ts from: "
-                        + ssrc0 + "," + seqnum0 + "," + ts0
-                        + " to: "
-                        + ssrc1 + "," + seqnum1 + "," + ts1
-                        + ", isKeyframe: " + isKeyframe);
+                    "rewriteRTP ssrc=" + ssrc0 + ", seqnum=" + seqnum0
+                        + ", ts=" + ts0
+                        + ", new_ssrc=" + ssrc1 + ", new_seqnum=" + seqnum1
+                        + ", new_ts=" + ts1 + ", isKeyframe=" + isKeyframe
+                        + ", streamHashCode="
+                        + ssrcRewritingEngine.getMediaStream().hashCode());
             }
         }
         return p;
@@ -323,9 +325,10 @@ class SsrcGroupRewriter
             if (DEBUG)
             {
                 logger.debug(
-                        "Creating an SSRC rewriter to rewrite "
-                            + pkt.getSSRCAsLong() + " to "
-                            + ssrcTarget);
+                        "Creating an SSRC rewriter. src_ssrc="
+                            + pkt.getSSRCAsLong() + ", dst_ssrc="
+                            + ssrcTarget + ", streamHashCode="
+                            + ssrcRewritingEngine.getMediaStream().hashCode());
             }
             rewriters.put(sourceSSRC, new SsrcRewriter(this, sourceSSRC));
         }
@@ -339,10 +342,12 @@ class SsrcGroupRewriter
             if (DEBUG)
             {
                 logger.debug(
-                        "Now rewriting " + pkt.getSSRCAsLong() + "/"
-                            + pkt.getSequenceNumber() + " to "
-                            + ssrcTarget + " (was rewriting "
-                            + activeRewriter.getSourceSSRC() + ").");
+                        "Now rewriting new_ssrc=" + pkt.getSSRCAsLong()
+                            + ", seqnum=" + pkt.getSequenceNumber()
+                            + ", dst_ssrc=" + ssrcTarget + ", old_ssrc="
+                            + activeRewriter.getSourceSSRC()
+                            + ", streamHashCode="
+                            + ssrcRewritingEngine.getMediaStream().hashCode());
             }
 
             // We don't have to worry about sequence number intervals that span
@@ -357,7 +362,8 @@ class SsrcGroupRewriter
             {
                 logger.warn(
                         "Pausing an interval of length 0. This doesn't look"
-                            + " right.");
+                            + " right. streamHashCode="
+                            + ssrcRewritingEngine.getMediaStream().hashCode());
             }
 
             // Pause the active rewriter (closes its current interval and puts
@@ -371,9 +377,9 @@ class SsrcGroupRewriter
                 if (!isKeyFrame(pkt))
                 {
                     logger.warn(
-                            "We're switching NOT on a key frame (seq="
-                                + pkt.getSequenceNumber() + "). Bad Stuff (tm)"
-                                + " will happen to you!");
+                            "We're switching NOT on a key frame. seqnum="
+                            + pkt.getSequenceNumber() + ", streamHashCode="
+                            + ssrcRewritingEngine.getMediaStream().hashCode());
                 }
             }
 
@@ -389,8 +395,10 @@ class SsrcGroupRewriter
             if (DEBUG)
             {
                 logger.debug(
-                        "Now rewriting " + pkt.getSSRCAsLong() + " to "
-                            + ssrcTarget);
+                        "Now rewriting new_ssrc=" + pkt.getSSRCAsLong()
+                            + ", old_ssrc="
+                            + ssrcTarget + ", streamHashCode="
+                            + ssrcRewritingEngine.getMediaStream().hashCode());
             }
             // We haven't initialized yet.
             activeRewriter = rewriters.get(sourceSSRC);
@@ -400,7 +408,8 @@ class SsrcGroupRewriter
         {
             logger.warn(
                     "Don't know about SSRC " + pkt.getSSRCAsLong()
-                        + "! Somebody is messing with us!");
+                        + "! Somebody is messing with us! streamHashCode="
+                        + ssrcRewritingEngine.getMediaStream().hashCode());
         }
     }
 
@@ -437,7 +446,9 @@ class SsrcGroupRewriter
         if (rewriter == null)
         {
             logger.warn(
-                    "An SSRC rewriter was not found for SSRC : " + ssrcOrigin);
+                    "An SSRC rewriter was not found. ssrc=" + ssrcOrigin
+                    + ", streamHashCode="
+                    + ssrcRewritingEngine.getMediaStream().hashCode());
             return SsrcRewritingEngine.INVALID_SEQNUM;
         }
 
@@ -449,9 +460,11 @@ class SsrcGroupRewriter
         if (retransmissionInterval == null)
         {
             logger.warn(
-                    "Could not find a retransmission interval for seqnum "
-                        + seqnum + " from "
-                        + ssrcOrigin);
+                    "Could not find a retransmission interval. seqnum="
+                        + seqnum + " ssrc="
+                        + ssrcOrigin + ", streamHashCode="
+                        + ssrcRewritingEngine.getMediaStream().hashCode());
+
             return SsrcRewritingEngine.INVALID_SEQNUM;
         }
         else
@@ -501,11 +514,12 @@ class SsrcGroupRewriter
             if (DEBUG)
             {
                 logger.debug(
-                    "Uplifting RTP timestamp " + timestamp
-                        + " with SEQNUM " + p.getSequenceNumber()
-                        + " from SSRC " + p.getSSRCAsLong()
-                        + " because of delta " + delta + " to "
-                        + minTimestamp);
+                    "Uplifting RTP timestamp. old_ts=" + timestamp
+                        + ", seqnum=" + p.getSequenceNumber()
+                        + ", ssrc=" + p.getSSRCAsLong()
+                        + ", delta=" + delta + ", new_ts=" + minTimestamp
+                        + ", streamHashCode=" + ssrcRewritingEngine
+                        .getMediaStream().hashCode());
             }
 
             if (delta < -300000 && WARN)
@@ -517,11 +531,13 @@ class SsrcGroupRewriter
                 // sampled at similar instances).
 
                 logger.warn(
-                    "Uplifting a HIGHLY suspicious RTP timestamp "
-                        + timestamp + " with SEQNUM "
-                        + p.getSequenceNumber() + " from SSRC "
-                        + p.getSSRCAsLong() + " because of delta=" + delta +
-                        " to " + minTimestamp);
+                    "Uplifting a HIGHLY suspicious RTP timestamp old_ts="
+                        + timestamp + ", seqnum="
+                        + p.getSequenceNumber() + ", ssrc="
+                        + p.getSSRCAsLong() + ", delta=" + delta +
+                        ", new_ts" + minTimestamp
+                        + ", streamHashCode="
+                        + ssrcRewritingEngine.getMediaStream().hashCode());
             }
 
             p.setTimestamp(minTimestamp);

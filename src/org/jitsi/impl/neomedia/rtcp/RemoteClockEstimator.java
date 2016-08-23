@@ -18,6 +18,7 @@ package org.jitsi.impl.neomedia.rtcp;
 import java.util.*;
 import java.util.concurrent.*;
 import net.sf.fmj.media.rtp.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -44,6 +45,8 @@ public class RemoteClockEstimator
      */
     private final MediaType _mediaType;
 
+    private final StreamRTPManager streamRTPManager;
+
     /**
      * A {@code Map} of the (received) {@code RemoteClock}s by synchronization
      * source identifier (SSRC).
@@ -52,25 +55,22 @@ public class RemoteClockEstimator
         = new ConcurrentHashMap<>();
 
     /**
-     * Initializes a new {@code RemoteClockEstimator} without a
-     * {@code MediaType}.
-     */
-    public RemoteClockEstimator()
-    {
-        this(null);
-    }
-
-    /**
      * Initializes a new {@code RemoteClockEstimator} with a specific
      * {@code MediaType}.
      *
-     * @param mediaType the {@code MediaType} to initialize the new instance
-     * with. It may be used by the implementation as a hint to the default clock
-     * frequency/rate.
+     * @param streamRTPManager the {@link MediaStream} that owns this instance.
      */
-    public RemoteClockEstimator(MediaType mediaType)
+    public RemoteClockEstimator(StreamRTPManager streamRTPManager)
     {
-        _mediaType = mediaType;
+        this.streamRTPManager = streamRTPManager;
+        if (streamRTPManager.getMediaStream() instanceof VideoMediaStream)
+        {
+            _mediaType = MediaType.VIDEO;
+        }
+        else
+        {
+            _mediaType = MediaType.AUDIO;
+        }
     }
 
     /**
@@ -84,18 +84,27 @@ public class RemoteClockEstimator
 
         if (ssrc == -1)
         {
+            logger.warn("Failed to update the remote clock. Failed to read " +
+                "the SSRC. streamHashCode="
+                + streamRTPManager.getMediaStream().hashCode());
             return;
         }
 
         int pktLen = RTCPHeaderUtils.getLength(buf, off, len);
         if (pktLen == -1)
         {
+            logger.warn("Failed to update the remote clock. The RTCP SR length"
+                + " is invalid. streamHashCode="
+                + streamRTPManager.getMediaStream().hashCode());
             return;
         }
 
         if (!RTCPSenderInfoUtils.isValid(
             buf, off + RTCPHeader.SIZE, len - RTCPHeader.SIZE))
         {
+            logger.warn("Failed to update the remote clock. The RTCP sender" +
+                " info section is invalid. streamHashCode="
+                + streamRTPManager.getMediaStream().hashCode());
             return;
         }
 
@@ -141,9 +150,14 @@ public class RemoteClockEstimator
         }
 
 
-        logger.debug("Updating the remote clock ssrc=" + ssrc
-            + ", systemTimeMs=" + systemTimeMs
-            + ", rtpTimestamp=" + rtptimestamp);
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Updating the remote clock ssrc=" + ssrc
+                + ", systemTimeMs=" + new Date(systemTimeMs)
+                + ", rtpTimestamp=" + rtptimestamp
+                + ", streamHashCode="
+                + streamRTPManager.getMediaStream().hashCode());
+        }
 
         // Replace whatever was in there before.
         remoteClocks.put(

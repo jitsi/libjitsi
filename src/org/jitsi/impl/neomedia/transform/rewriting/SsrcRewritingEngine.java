@@ -213,7 +213,8 @@ public class SsrcRewritingEngine implements TransformEngine
     {
         this.mediaStream = mediaStream;
 
-        logger.debug("Created a new SSRC rewriting engine.");
+        logger.debug("Created a new SSRC rewriting engine. streamHashCode="
+            + mediaStream.hashCode());
     }
 
     /**
@@ -257,8 +258,9 @@ public class SsrcRewritingEngine implements TransformEngine
         // FIXME maps, again. What's wrong with simple arrays?
         if (!assertInitialized())
         {
-            logger.warn("Failed to map/unmap because the SSRC rewriting engine is" +
-                    "not initialized.");
+            logger.warn("Failed to map/unmap because the SSRC rewriting " +
+                "engine is not initialized. streamHashCode="
+                + mediaStream.hashCode());
             return;
         }
 
@@ -359,7 +361,8 @@ public class SsrcRewritingEngine implements TransformEngine
             return true;
         }
 
-        logger.debug("Initilizing the SSRC rewriting engine.");
+        logger.debug("Initializing the SSRC rewriting engine. streamHashCode="
+            + mediaStream.hashCode());
         origin2rewriter = new ConcurrentHashMap<>();
         target2rewriter = new HashMap<>();
         rtx2primary = new ConcurrentHashMap<>();
@@ -390,7 +393,8 @@ public class SsrcRewritingEngine implements TransformEngine
             logger.debug(
                     "Configuring the SSRC rewriting engine to rewrite: "
                             + ssrcOrig + " to "
-                            + ssrcTarget);
+                            + ssrcTarget + ", streamHashCode="
+                        + mediaStream.hashCode());
         }
 
         if (ssrcTarget != null && ssrcTarget != UNMAP_SSRC)
@@ -463,7 +467,8 @@ public class SsrcRewritingEngine implements TransformEngine
             if (logger.isDebugEnabled())
             {
                 logger.debug(
-                        "Could not find an SsrcRewriter for SSRC: " + ssrc);
+                        "Could not find an SsrcRewriter for SSRC: " + ssrc
+                            + ", streamHashCode=" + mediaStream.hashCode());
             }
             return INVALID_SSRC;
         }
@@ -547,7 +552,8 @@ public class SsrcRewritingEngine implements TransformEngine
                 {
                     logger.warn("Not rewriting ssrc=" + pkt.getSSRCAsLong()
                         + ", seq=" + pkt.getSequenceNumber()
-                        + " because we could not find an SSRC group rewriter.");
+                        + " because we could not find an SSRC group rewriter."
+                        + ", streamHashCode=" + mediaStream.hashCode());
                 }
                 return pkt;
             }
@@ -597,7 +603,7 @@ public class SsrcRewritingEngine implements TransformEngine
             catch (BadFormatException e)
             {
                 logger.error(
-                        "Failed to rewrite an RTCP packet. Passing through.",
+                        "Failed to rewrite an RTCP packet. Passing through. streamHashCode=" + mediaStream.hashCode(),
                         e);
                 return pkt;
             }
@@ -605,7 +611,7 @@ public class SsrcRewritingEngine implements TransformEngine
             if (inPkts == null || inPkts.length == 0)
             {
                 logger.warn(
-                        "Weird! It seems we received an empty RTCP packet!");
+                        "Weird! It seems we received an empty RTCP packet! streamHashCode=" + mediaStream.hashCode());
                 return pkt;
             }
 
@@ -663,7 +669,7 @@ public class SsrcRewritingEngine implements TransformEngine
                             // We only really care if it's NOT a REMB.
                             logger.debug(
                                     "Could not find an SsrcGroupRewriter for"
-                                        + " the RTCP packet: " + psfb);
+                                        + " the RTCP packet: " + psfb + ", streamHashCode=" + mediaStream.hashCode());
                         }
                         else
                         {
@@ -689,7 +695,7 @@ public class SsrcRewritingEngine implements TransformEngine
                                     logger.debug(
                                             "Could not find an"
                                                 + " SsrcGroupRewriter for the"
-                                                + " RTCP packet: " + psfb);
+                                                + " RTCP packet: " + psfb + ", streamHashCode=" + mediaStream.hashCode());
                                 }
                                 else
                                 {
@@ -706,7 +712,8 @@ public class SsrcRewritingEngine implements TransformEngine
                                         + remb.getBitrate() + ", dest: "
                                         + Arrays.toString(dest)
                                         + ", time (ms): "
-                                        + System.currentTimeMillis());
+                                        + System.currentTimeMillis()
+                                        + ", streamHashCode=" + mediaStream.hashCode());
                         }
                         break;
                     }
@@ -720,7 +727,7 @@ public class SsrcRewritingEngine implements TransformEngine
                     {
                         logger.warn(
                                 "Unhandled RTCP RTPFB packet (not a NACK): "
-                                    + inPkt);
+                                    + inPkt + ", streamHashCode=" + mediaStream.hashCode());
                     }
                     else
                     {
@@ -729,7 +736,7 @@ public class SsrcRewritingEngine implements TransformEngine
                     break;
                 default:
                     logger.warn(
-                            "Unhandled RTCP (non RTPFB PSFB) packet: " + inPkt);
+                            "Unhandled RTCP (non RTPFB PSFB) packet: " + inPkt + ", streamHashCode=" + mediaStream.hashCode());
                     break;
                 }
             }
@@ -763,7 +770,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * for this class, but getting the information from FMJ needs some testing
      * first. This is a temporary fix.
      */
-    private static class SeqnumBaseKeeper
+    private class SeqnumBaseKeeper
     {
         /**
          * The <tt>Map</tt> that holds the latest and greatest sequence number
@@ -774,7 +781,7 @@ public class SsrcRewritingEngine implements TransformEngine
         /**
          * The <tt>Comparator</tt> used to compare sequence numbers.
          */
-        private static final SeqNumComparator SEQ_NUM_COMPARATOR
+        private final SeqNumComparator SEQ_NUM_COMPARATOR
             = new SeqNumComparator();
 
         /**
@@ -817,8 +824,8 @@ public class SsrcRewritingEngine implements TransformEngine
 
             if (TRACE)
             {
-                logger.trace("Creating a new SsrcGroupRewriter (ssrc="
-                    + ssrcTarget + ", seqnum=" + seqnum + ").");
+                logger.trace("Creating a new SsrcGroupRewriter ssrc="
+                    + ssrcTarget + ", seqnum=" + seqnum + ", streamHashCode=" + mediaStream.hashCode());
             }
 
             return

@@ -83,9 +83,7 @@ public class StreamRTPManager
     {
         this.stream = stream;
         this.translator = (RTPTranslatorImpl) translator;
-        this._remoteClockEstimator = new RemoteClockEstimator(
-            (this instanceof AudioMediaStream)
-                ? MediaType.AUDIO : MediaType.VIDEO);
+        this._remoteClockEstimator = new RemoteClockEstimator(this);
 
         manager = (this.translator == null) ? RTPManager.newInstance() : null;
     }

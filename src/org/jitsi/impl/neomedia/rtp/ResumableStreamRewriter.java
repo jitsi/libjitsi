@@ -31,21 +31,6 @@ import org.jitsi.util.*;
 public class ResumableStreamRewriter
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>ResumableStreamRewriter</tt> class and
-     * its instances to print debug information.
-     */
-    private static final Logger logger
-        = Logger.getLogger(ResumableStreamRewriter.class);
-
-
-    /**
-     * The value of {@link Logger#isDebugEnabled()} from the time of the
-     * initialization of the class {@code ResumableStreamRewriter} cached
-     * for the purposes of performance.
-     */
-    private static final boolean DEBUG = logger.isDebugEnabled();
-
-    /**
      * The sequence number delta between what's been accepted and what's been
      * received, mod 2^16.
      */
@@ -95,16 +80,6 @@ public class ResumableStreamRewriter
         this.highestSequenceNumberSent = highestSequenceNumberSent;
         this.highestTimestampSent = highestTimestampSent;
         this.timestampDelta = timestampDelta;
-
-        if (DEBUG)
-        {
-            logger.debug(
-                    "Creating ResumableStreamRewriter highestSequenceNumberSent="
-                    + highestSequenceNumberSent + ", seqnumDelta="
-                    + seqnumDelta + ", highestTimestampSent="
-                    + highestTimestampSent + ", timestampDelta="
-                    + timestampDelta);
-        }
     }
 
     /**
@@ -134,26 +109,12 @@ public class ResumableStreamRewriter
 
         if (sequenceNumber != newSequenceNumber)
         {
-            Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
-            if (DEBUG)
-            {
-                logger.debug("Rewriting RTP ssrc=" + ssrc
-                        + " sequenceNumber=" + sequenceNumber
-                        + ", newSequenceNumber=" + newSequenceNumber);
-            }
             RawPacket.setSequenceNumber(buf, off, newSequenceNumber);
             modified = true;
         }
 
         if (timestamp != newTimestamp)
         {
-            Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
-            if (DEBUG)
-            {
-                logger.debug("Rewriting RTP ssrc=" + ssrc
-                        + " timestamp=" + timestamp
-                        + ", newTimestamp=" + newTimestamp);
-            }
             RawPacket.setTimestamp(buf, off, len, newTimestamp);
             modified = true;
         }

@@ -19,6 +19,8 @@ import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 import javax.media.*;
 import java.util.*;
@@ -37,10 +39,31 @@ public class DiscardTransformEngine
     implements TransformEngine
 {
     /**
+     * The <tt>Logger</tt> used by the <tt>DiscardTransformEngine</tt> class and
+     * its instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(DiscardTransformEngine.class);
+
+    /**
      * A map of source ssrc to {@link ResumableStreamRewriter}.
      */
     private final Map<Long, ResumableStreamRewriter> ssrcToRewriter
         = new HashMap<>();
+
+    /**
+     *
+     */
+    private final MediaStream stream;
+
+    /**
+     *
+     * @param stream
+     */
+    public DiscardTransformEngine(MediaStream stream)
+    {
+        this.stream = stream;
+    }
 
     /**
      * The {@link PacketTransformer} for RTCP packets.
@@ -72,6 +95,14 @@ public class DiscardTransformEngine
 
             rewriter.rewriteRTP(
                 !dropPkt, pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+
+            if (logger.isDebugEnabled())
+            {
+                logger.debug((dropPkt ? "discarding " : "passing through ")
+                    + " RTP ssrc=" + pkt.getSSRCAsLong() + ", seqnum="
+                    + pkt.getSequenceNumber() + ", ts=" + pkt.getTimestamp()
+                    + ", streamHashCode=" + stream.hashCode());
+            }
 
             return dropPkt ? null : pkt;
         }

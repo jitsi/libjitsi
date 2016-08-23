@@ -181,7 +181,9 @@ class ExtendedSequenceNumberInterval
             if (DEBUG)
             {
                 logger.debug(
-                    "Dropping a packet outside this interval: " + pkt);
+                    "Dropping a packet outside this interval: " + pkt
+                        + ", streamHashCode=" + ssrcGroupRewriter
+                        .ssrcRewritingEngine.getMediaStream().hashCode());
             }
             return null;
         }
@@ -293,13 +295,17 @@ class ExtendedSequenceNumberInterval
     {
         if (buf == null || buf.length == 0)
         {
-            logger.warn("The buffer is empty.");
+            logger.warn("The buffer is empty."
+                + ", streamHashCode=" + ssrcRewriter.ssrcGroupRewriter
+                .ssrcRewritingEngine.getMediaStream().hashCode());
             return false;
         }
 
         if (buf.length < off + len)
         {
-            logger.warn("The buffer is invalid.");
+            logger.warn("The buffer is invalid."
+                + ", streamHashCode=" + ssrcRewriter.ssrcGroupRewriter
+                .ssrcRewritingEngine.getMediaStream().hashCode());
             return false;
         }
 
@@ -332,12 +338,16 @@ class ExtendedSequenceNumberInterval
     {
         if (buf == null || buf.length == 0)
         {
-            logger.warn("The buffer is empty.");
+            logger.warn("The buffer is empty."
+                + ", streamHashCode=" + ssrcRewriter.ssrcGroupRewriter
+                .ssrcRewritingEngine.getMediaStream().hashCode());
             return false;
         }
         if ((buf.length < off + len) || (len < 4))
         {
-            logger.warn("The buffer is invalid.");
+            logger.warn("The buffer is invalid."
+                + ", streamHashCode=" + ssrcRewriter.ssrcGroupRewriter
+                .ssrcRewritingEngine.getMediaStream().hashCode());
             return false;
         }
 
@@ -361,14 +371,18 @@ class ExtendedSequenceNumberInterval
         {
             logger.info(
                     "We could not find a sequence number interval for a FEC"
-                        + " packet.");
+                        + " packet." +  ", streamHashCode=" + ssrcRewriter
+                        .ssrcGroupRewriter.ssrcRewritingEngine
+                        .getMediaStream().hashCode());
             return false;
         }
 
         if (TRACE)
         {
             logger.trace("Rewriting FEC packet SN base "
-                + snBase + " to " + snRewritenBase);
+                + snBase + " to " + snRewritenBase +  ", streamHashCode="
+                + ssrcRewriter.ssrcGroupRewriter.ssrcRewritingEngine
+                .getMediaStream().hashCode());
         }
 
         buf[off + 2] = (byte) (snRewritenBase & 0xff00 >> 8);

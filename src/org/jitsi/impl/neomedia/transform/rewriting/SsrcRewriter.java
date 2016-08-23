@@ -181,11 +181,12 @@ class SsrcRewriter
 
             if (DEBUG)
             {
-                logger.debug(
-                        "Retransmitting packet with SEQNUM " + seqnum
-                            + " of SSRC " + ssrc
-                            + " retran SSRC: " + pkt.getSSRCAsLong()
-                            + " retran SEQNUM: " + pkt.getSequenceNumber());
+                logger.debug("Retransmitting packet seqnum=" + seqnum
+                        + ", ssrc=" + ssrc
+                        + ", retran_ssrc=" + pkt.getSSRCAsLong()
+                        + ", retran_seqnum=" + pkt.getSequenceNumber()
+                        + ", streamHashCode=" + ssrcGroupRewriter
+                            .ssrcRewritingEngine.getMediaStream().hashCode());
             }
         }
         else
@@ -248,10 +249,36 @@ class SsrcRewriter
 
             if (TRACE)
             {
-                logger.trace("Rewriting (SSRC=" + p.getSSRCAsLong()
+                RemoteClock srcClock = ssrcGroupRewriter.ssrcRewritingEngine
+                    .getMediaStream().getStreamRTPManager()
+                    .findRemoteClock(sourceSSRC);
+
+                RemoteClock dstClock =  ssrcGroupRewriter.ssrcRewritingEngine
+                    .getMediaStream().getStreamRTPManager()
+                    .findRemoteClock(p.getSSRCAsLong());
+
+                long srcMs = (srcClock != null)
+                    ? srcClock.rtpTimestamp2remoteSystemTimeMs(oldValue)
+                        .getSystemTimeMs()
+                    : -1;
+
+
+                long dstMs = (dstClock != null)
+                    ? dstClock.rtpTimestamp2remoteSystemTimeMs(oldValue)
+                        .getSystemTimeMs()
+                    : -1;
+
+                logger.trace("Rewriting timestamp from the cache "
+                    + "ssrc=" + p.getSSRCAsLong()
                     + ", seqnum=" + p.getSequenceNumber()
-                    + ") timestamp using cached value "
-                    + oldValue + " to " + p.getTimestamp());
+                    + ", srcTs=" + oldValue
+                    + ", srcTime=" + new Date(srcMs)
+                    + ", srcTimeMs=" + srcMs
+                    + ", newTs=" + p.getTimestamp()
+                    + ", newTime=" + new Date(dstMs)
+                    + ", newTimeMs=" + dstMs
+                    + ", streamHashCode=" + ssrcGroupRewriter
+                        .ssrcRewritingEngine.getMediaStream().hashCode());
             }
 
             rewritten = true;
@@ -313,11 +340,37 @@ class SsrcRewriter
                 }
                 else if (TRACE)
                 {
-                    logger.trace("Rewriting re-ordered frame with "
-                        + " ssrc=" + p.getSSRCAsLong()
+                    RemoteClock srcClock = ssrcGroupRewriter.ssrcRewritingEngine
+                        .getMediaStream().getStreamRTPManager()
+                        .findRemoteClock(sourceSSRC);
+
+                    RemoteClock dstClock =  ssrcGroupRewriter
+                        .ssrcRewritingEngine.getMediaStream()
+                        .getStreamRTPManager().findRemoteClock(
+                            p.getSSRCAsLong());
+
+                    long srcMs = (srcClock != null)
+                        ? srcClock.rtpTimestamp2remoteSystemTimeMs(oldValue)
+                            .getSystemTimeMs()
+                        : -1;
+
+
+                    long dstMs = (dstClock != null)
+                        ? dstClock.rtpTimestamp2remoteSystemTimeMs(oldValue)
+                            .getSystemTimeMs()
+                        : -1;
+
+                    logger.trace("Rewriting re-ordered frame "
+                        + "ssrc=" + p.getSSRCAsLong()
                         + ", seqnum=" + p.getSequenceNumber()
-                        + ") timestamp using cached value "
-                        + oldValue + " to " + p.getTimestamp());
+                        + ", srcTs=" + oldValue
+                        + ", srcTime=" + new Date(srcMs)
+                        + ", srcTimeMs=" + srcMs
+                        + ", newTs=" + p.getTimestamp()
+                        + ", newTime=" + new Date(dstMs)
+                        + ", newTimeMs=" + dstMs
+                        + ", streamHashCode=" + ssrcGroupRewriter
+                        .ssrcRewritingEngine.getMediaStream().hashCode());
                 }
 
                 tsHistory.put(
@@ -356,10 +409,34 @@ class SsrcRewriter
 
             if (TRACE)
             {
-                logger.trace("Fully rewriting (SSRC=" + p.getSSRCAsLong()
+                RemoteClock srcClock = ssrcGroupRewriter.ssrcRewritingEngine
+                    .getMediaStream().getStreamRTPManager()
+                    .findRemoteClock(sourceSSRC);
+
+                RemoteClock dstClock = ssrcGroupRewriter
+                    .ssrcRewritingEngine.getMediaStream()
+                    .getStreamRTPManager().findRemoteClock(
+                        p.getSSRCAsLong());
+
+                long srcMs = (srcClock != null)
+                    ? srcClock.rtpTimestamp2remoteSystemTimeMs(oldValue)
+                        .getSystemTimeMs()
+                    : -1;
+
+                long dstMs = (dstClock != null)
+                    ? dstClock.rtpTimestamp2remoteSystemTimeMs(oldValue)
+                        .getSystemTimeMs()
+                    : -1;
+
+                logger.trace("Fully rewriting RTP timestamp "
+                    + "ssrc=" + p.getSSRCAsLong()
                     + ", seqnum=" + p.getSequenceNumber()
-                    + ") timestamp " + oldValue
-                    + " to " + newValue);
+                    + ", timestamp=" + oldValue
+                    + ", time=" + new Date(srcMs)
+                    + ", newTimestamp=" + p.getTimestamp()
+                    + ", newTime=" + new Date(dstMs)
+                    + ", streamHashCode=" + ssrcGroupRewriter
+                    .ssrcRewritingEngine.getMediaStream().hashCode());
             }
 
             tsHistory.put(oldValue, new TimestampEntry(now, oldValue, newValue));
