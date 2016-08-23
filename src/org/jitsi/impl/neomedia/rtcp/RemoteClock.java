@@ -27,11 +27,6 @@ import org.jitsi.service.neomedia.*;
 public class RemoteClock
 {
     /**
-     * The SSRC.
-     */
-    private final int ssrc;
-
-    /**
      * The remote <tt>Timestamp</tt> which was received at
      * {@link #localReceiptTimeMs} for this RTP stream.
      */
@@ -44,24 +39,23 @@ public class RemoteClock
     private final long localReceiptTimeMs;
 
     /**
-     * The clock rate for {@link #ssrc}. We need to have received at least two
-     * SRs in order to be able to calculate this. Unsigned short.
+     * The clock rate for the ssrc that this clock pertains to. We need to have
+     * received at least two SRs in order to be able to calculate this. Unsigned
+     * short.
      */
     private final int frequencyHz;
 
     /**
      * Ctor.
      *
-     * @param ssrc
      * @param remoteTime the remote (system/wallclock) time in milliseconds
      * since the epoch
      * @param rtpTimestamp the RTP timestamp corresponding to
      * <tt>remoteTime</tt>.
      * @param frequencyHz the RTP clock rate.
      */
-    RemoteClock(int ssrc, long remoteTime, int rtpTimestamp, int frequencyHz)
+    RemoteClock(long remoteTime, int rtpTimestamp, int frequencyHz)
     {
-        this.ssrc = ssrc;
         this.remoteTimestamp = new Timestamp(remoteTime, rtpTimestamp);
         this.frequencyHz = frequencyHz;
         this.localReceiptTimeMs = System.currentTimeMillis();
@@ -175,15 +169,6 @@ public class RemoteClock
     public long getLocalReceiptTimeMs()
     {
         return localReceiptTimeMs;
-    }
-
-    /**
-     *
-     * @return
-     */
-    public int getSsrc()
-    {
-        return ssrc;
     }
 
     /**

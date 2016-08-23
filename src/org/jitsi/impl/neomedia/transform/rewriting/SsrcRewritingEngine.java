@@ -96,17 +96,13 @@ public class SsrcRewritingEngine implements TransformEngine
     /**
      * An int const indicating an invalid payload type.
      *
-     * FIXME We could live with a short here.
      */
     private static final int UNMAP_PT = -1;
 
     /**
      * An int const indicating an invalid SSRC.
-     *
-     * FIXME 0 is actually a perfectly valid SSRC. That's one essential reason
-     * why we need SSRCs to be represented by Longs and not Ints.
      */
-    private static final int UNMAP_SSRC = 0;
+    private static final long UNMAP_SSRC = -1;
 
     /**
      * The owner of this instance.
@@ -144,7 +140,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * be to use RWL or synchronized blocks. Not sure about the performance
      * diff, but locks for reading sound heavy.
      */
-    Map<Integer, SsrcGroupRewriter> origin2rewriter;
+    Map<Long, SsrcGroupRewriter> origin2rewriter;
 
     /**
      * A <tt>Map</tt> that maps target SSRCs to <tt>SsrcGroupRewriter</tt>s. It
@@ -155,7 +151,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * SSRCs a target SSRC is rewriting. The purpose of this is to BYE target
      * SSRCs that no longer have source SSRCs.
      */
-    private Map<Integer, RefCount<SsrcGroupRewriter>> target2rewriter;
+    private Map<Long, RefCount<SsrcGroupRewriter>> target2rewriter;
 
     /**
      * Maps RTX SSRCs to primary SSRCs.
@@ -164,7 +160,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * in the outbound direction. We should have an efficient way to find a
      * <tt>MediaStream</tt> by its RTX SSRC and extract the primary SSRC.
      */
-    Map<Integer, Integer> rtx2primary;
+    Map<Long, Long> rtx2primary;
 
     /**
      * Maps SSRCs to RED payload type. The RED payload type is typically going
@@ -175,7 +171,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * in the outbound direction. We should have an efficient way to find a
      * <tt>MediaStream</tt> by its SSRC and extract the RED PT.
      */
-    Map<Integer, Byte> ssrc2red;
+    Map<Long, Byte> ssrc2red;
 
     /**
      * Maps SSRCs to FEC payload type. The FEC payload type is typically going
@@ -186,7 +182,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * in the outbound direction. We should have an efficient way to find a
      * <tt>MediaStream</tt> by its SSRC and extract the FEC PT.
      */
-    Map<Integer, Byte> ssrc2fec;
+    Map<Long, Byte> ssrc2fec;
 
     /**
      * The <tt>PacketTransformer</tt> that rewrites <tt>RawPacket</tt>s that
@@ -253,10 +249,10 @@ public class SsrcRewritingEngine implements TransformEngine
      * @param ssrcTargetRTX the target RTX SSRC.
      */
     public synchronized void map(
-        final Set<Integer> ssrcGroup, final Integer ssrcTargetPrimary,
-        final Map<Integer, Byte> ssrc2fec,
-        final Map<Integer, Byte> ssrc2red,
-        final Map<Integer, Integer> rtxGroups, final Integer ssrcTargetRTX)
+        final Set<Long> ssrcGroup, final Long ssrcTargetPrimary,
+        final Map<Long, Byte> ssrc2fec,
+        final Map<Long, Byte> ssrc2red,
+        final Map<Long, Long> rtxGroups, final Long ssrcTargetRTX)
     {
         // FIXME maps, again. What's wrong with simple arrays?
         if (!assertInitialized())
@@ -269,7 +265,7 @@ public class SsrcRewritingEngine implements TransformEngine
         // Map the primary SSRCs.
         if (ssrcGroup != null && !ssrcGroup.isEmpty())
         {
-            for (Integer ssrcOrigPrimary : ssrcGroup)
+            for (Long ssrcOrigPrimary : ssrcGroup)
             {
                 map(ssrcOrigPrimary, ssrcTargetPrimary);
             }
@@ -287,7 +283,7 @@ public class SsrcRewritingEngine implements TransformEngine
                 rtx2primary.keySet().removeAll(rtxGroups.keySet());
             }
 
-            for (Integer ssrcOrigRTX : rtxGroups.keySet())
+            for (Long ssrcOrigRTX : rtxGroups.keySet())
             {
                 map(ssrcOrigRTX, ssrcTargetRTX);
             }
@@ -325,13 +321,13 @@ public class SsrcRewritingEngine implements TransformEngine
      * to payload types to copy from
      * @param dst the {@code Map} of SSRCs to payload types to copy into
      */
-    private void putAll(Map<Integer, Byte> src, Map<Integer, Byte> dst)
+    private void putAll(Map<Long, Byte> src, Map<Long, Byte> dst)
     {
         if (src != null && !src.isEmpty())
         {
-            for (Map.Entry<Integer, Byte> e : src.entrySet())
+            for (Map.Entry<Long, Byte> e : src.entrySet())
             {
-                Integer ssrc = e.getKey();
+                Long ssrc = e.getKey();
                 Byte pt = e.getValue();
 
                 if (pt == UNMAP_PT)
@@ -381,7 +377,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * @param ssrcOrig
      * @param ssrcTarget
      */
-    private synchronized void map(Integer ssrcOrig, Integer ssrcTarget)
+    private synchronized void map(Long ssrcOrig, Long ssrcTarget)
     {
         if (ssrcOrig == null)
         {
@@ -393,8 +389,8 @@ public class SsrcRewritingEngine implements TransformEngine
         {
             logger.debug(
                     "Configuring the SSRC rewriting engine to rewrite: "
-                            + (ssrcOrig & 0xffffffffL) + " to "
-                            + (ssrcTarget & 0xffffffffL));
+                            + ssrcOrig + " to "
+                            + ssrcTarget);
         }
 
         if (ssrcTarget != null && ssrcTarget != UNMAP_SSRC)
@@ -447,7 +443,7 @@ public class SsrcRewritingEngine implements TransformEngine
      * @param ssrc the target SSRC to rewrite into a source SSRC or
      * {@link #INVALID_SSRC}.
      */
-    private long reverseRewriteSSRC(int ssrc)
+    private long reverseRewriteSSRC(long ssrc)
     {
         // If there is an SsrcGroupRewriter, rewrite the packet; otherwise,
         // include it unaltered.
@@ -467,13 +463,12 @@ public class SsrcRewritingEngine implements TransformEngine
             if (logger.isDebugEnabled())
             {
                 logger.debug(
-                        "Could not find an SsrcRewriter for SSRC: "
-                            + (ssrc & 0xffffffffL));
+                        "Could not find an SsrcRewriter for SSRC: " + ssrc);
             }
             return INVALID_SSRC;
         }
 
-        return activeRewriter.getSourceSSRC() & 0xffffffffL;
+        return activeRewriter.getSourceSSRC();
     }
 
     /**
@@ -539,7 +534,7 @@ public class SsrcRewritingEngine implements TransformEngine
 
             // Use the SSRC of the RTP packet to find which SsrcGroupRewriter to
             // use.
-            int ssrc = pkt.getSSRC();
+            long ssrc = pkt.getSSRCAsLong();
             SsrcGroupRewriter ssrcGroupRewriter = origin2rewriter.get(ssrc);
 
             // If there is an SsrcGroupRewriter, rewrite the packet; otherwise,
@@ -774,7 +769,7 @@ public class SsrcRewritingEngine implements TransformEngine
          * The <tt>Map</tt> that holds the latest and greatest sequence number
          * for a given SSRC.
          */
-        private final Map<Integer, Integer> map = new HashMap<>();
+        private final Map<Long, Integer> map = new HashMap<>();
 
         /**
          * The <tt>Comparator</tt> used to compare sequence numbers.
@@ -790,7 +785,7 @@ public class SsrcRewritingEngine implements TransformEngine
         {
             // XXX Autobox early and, most importantly, once because we'll need
             // the boxed values only.
-            Integer ssrc = pkt.getSSRC();
+            Long ssrc = pkt.getSSRCAsLong();
             Integer seqnum = pkt.getSequenceNumber();
 
             Integer oldSeqnum = map.get(ssrc);
@@ -808,7 +803,7 @@ public class SsrcRewritingEngine implements TransformEngine
          * @return
          */
         public synchronized SsrcGroupRewriter createSsrcGroupRewriter(
-            SsrcRewritingEngine ssrcRewritingEngine, Integer ssrcTarget)
+            SsrcRewritingEngine ssrcRewritingEngine, Long ssrcTarget)
         {
             int seqnum;
             if (map.containsKey(ssrcTarget))
@@ -823,8 +818,7 @@ public class SsrcRewritingEngine implements TransformEngine
             if (TRACE)
             {
                 logger.trace("Creating a new SsrcGroupRewriter (ssrc="
-                    + (ssrcTarget & 0xffffffffl)
-                    + ", seqnum=" + seqnum + ").");
+                    + ssrcTarget + ", seqnum=" + seqnum + ").");
             }
 
             return

@@ -3563,10 +3563,10 @@ public class MediaStreamImpl
      */
     @Override
     public void configureSSRCRewriting(
-        final Set<Integer> ssrcGroup, final Integer ssrcTargetPrimary,
-        final Map<Integer, Byte> ssrc2fec,
-        final Map<Integer, Byte> ssrc2red,
-        final Map<Integer, Integer> rtxGroups, final Integer ssrcTargetRTX)
+        final Set<Long> ssrcGroup, final Long ssrcTargetPrimary,
+        final Map<Long, Byte> ssrc2fec,
+        final Map<Long, Byte> ssrc2red,
+        final Map<Long, Long> rtxGroups, final Long ssrcTargetRTX)
     {
         ssrcRewritingEngine.map(ssrcGroup, ssrcTargetPrimary,
             ssrc2fec, ssrc2red,

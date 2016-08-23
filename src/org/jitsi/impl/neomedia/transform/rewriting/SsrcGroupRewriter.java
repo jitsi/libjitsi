@@ -66,7 +66,7 @@ class SsrcGroupRewriter
      * A map of SSRCs to <tt>SsrcRewriter</tt>. Each SSRC that we rewrite in
      * this group rewriter has its own rewriter.
      */
-    private final Map<Integer, SsrcRewriter> rewriters = new HashMap<>();
+    private final Map<Long, SsrcRewriter> rewriters = new HashMap<>();
 
     /**
      * The owner of this instance.
@@ -77,7 +77,7 @@ class SsrcGroupRewriter
      * The target SSRC that the rewritten RTP packets will have. This is
      * shared between all the "child" <tt>SsrcRewriter</tt>s.
      */
-    private final int ssrcTarget;
+    private final long ssrcTarget;
 
     /**
      * The low 16 bits contain the base sequence number sent in RTP data
@@ -134,7 +134,7 @@ class SsrcGroupRewriter
      */
     public SsrcGroupRewriter(
             SsrcRewritingEngine ssrcRewritingEngine,
-            Integer ssrcTarget,
+            Long ssrcTarget,
             int seqnumBase)
     {
         this.ssrcRewritingEngine = ssrcRewritingEngine;
@@ -164,7 +164,7 @@ class SsrcGroupRewriter
 
             if (mediaStream != null)
             {
-                int ssrcTarget = getSSRCTarget();
+                long ssrcTarget = getSSRCTarget();
 
                 // A BYE is to be sent in a compound RTCP packet and the latter
                 // is to start with either an SR or an RR. We do not have enough
@@ -178,12 +178,12 @@ class SsrcGroupRewriter
                 // that we can form a seemingly legal compound RTCP packet.
                 RTCPRRPacket rr
                     = new RTCPRRPacket(
-                            ssrcTarget,
+                            (int) ssrcTarget,
                             BasicRTCPTerminationStrategy
                                 .MIN_RTCP_REPORT_BLOCKS_ARRAY);
                 RTCPBYEPacket bye
                     = new RTCPBYEPacket(
-                            new int[] { ssrcTarget },
+                            new int[] { (int) ssrcTarget },
                             /* reason */ null);
                 RTCPCompoundPacket compound
                     = new RTCPCompoundPacket(new RTCPPacket[] { rr, bye });
@@ -232,7 +232,7 @@ class SsrcGroupRewriter
     /**
      * Gets the target SSRC that the rewritten RTP packets will have.
      */
-    public int getSSRCTarget()
+    public long getSSRCTarget()
     {
         return ssrcTarget;
     }
@@ -314,7 +314,7 @@ class SsrcGroupRewriter
      */
     private void maybeSwitchActiveRewriter(final RawPacket pkt)
     {
-        final int sourceSSRC = pkt.getSSRC();
+        final long sourceSSRC = pkt.getSSRCAsLong();
 
         // This "if" block is not thread-safe but we don't expect multiple
         // threads to access this block all at the same time.
@@ -325,7 +325,7 @@ class SsrcGroupRewriter
                 logger.debug(
                         "Creating an SSRC rewriter to rewrite "
                             + pkt.getSSRCAsLong() + " to "
-                            + (ssrcTarget & 0xffffffffL));
+                            + ssrcTarget);
             }
             rewriters.put(sourceSSRC, new SsrcRewriter(this, sourceSSRC));
         }
@@ -341,9 +341,8 @@ class SsrcGroupRewriter
                 logger.debug(
                         "Now rewriting " + pkt.getSSRCAsLong() + "/"
                             + pkt.getSequenceNumber() + " to "
-                            + (ssrcTarget & 0xffffffffL) + " (was rewriting "
-                            + (activeRewriter.getSourceSSRC() & 0xffffffffL)
-                            + ").");
+                            + ssrcTarget + " (was rewriting "
+                            + activeRewriter.getSourceSSRC() + ").");
             }
 
             // We don't have to worry about sequence number intervals that span
@@ -391,7 +390,7 @@ class SsrcGroupRewriter
             {
                 logger.debug(
                         "Now rewriting " + pkt.getSSRCAsLong() + " to "
-                            + (ssrcTarget & 0xffffffffL));
+                            + ssrcTarget);
             }
             // We haven't initialized yet.
             activeRewriter = rewriters.get(sourceSSRC);
@@ -414,7 +413,7 @@ class SsrcGroupRewriter
      */
     boolean isKeyFrame(RawPacket pkt)
     {
-        int sourceSSRC = pkt.getSSRC();
+        long sourceSSRC = pkt.getSSRCAsLong();
         Byte redPT = ssrcRewritingEngine.ssrc2red.get(sourceSSRC);
         byte vp8PT = 0x64;
 
@@ -432,14 +431,13 @@ class SsrcGroupRewriter
      * @return an integer that's either {#INVALID_SEQNUM} or a 16 bits
      * sequence number.
      */
-    int rewriteSequenceNumber(int ssrcOrigin, int seqnum)
+    int rewriteSequenceNumber(long ssrcOrigin, int seqnum)
     {
         SsrcRewriter rewriter = rewriters.get(ssrcOrigin);
         if (rewriter == null)
         {
             logger.warn(
-                    "An SSRC rewriter was not found for SSRC : "
-                        + (ssrcOrigin & 0xffffffffl));
+                    "An SSRC rewriter was not found for SSRC : " + ssrcOrigin);
             return SsrcRewritingEngine.INVALID_SEQNUM;
         }
 
@@ -453,7 +451,7 @@ class SsrcGroupRewriter
             logger.warn(
                     "Could not find a retransmission interval for seqnum "
                         + seqnum + " from "
-                        + (ssrcOrigin & 0xffffffffL));
+                        + ssrcOrigin);
             return SsrcRewritingEngine.INVALID_SEQNUM;
         }
         else
@@ -550,18 +548,6 @@ class SsrcGroupRewriter
     long getTimestampSsrc()
     {
         return _timestampSsrc;
-    }
-
-    /**
-     * Sets the SSRC of the RTP stream into whose RTP timestamp other RTP
-     * streams are to be rewritten.
-     *
-     * @param timestampSsrc the SSRC of the RTP stream into whose RTP timestamp
-     * other RTP streams are to be rewritten
-     */
-    void setTimestampSsrc(int timestampSsrc)
-    {
-        setTimestampSsrc(timestampSsrc & 0xffffffffL);
     }
 
     /**

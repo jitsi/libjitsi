@@ -90,7 +90,7 @@ public class StreamRTPManager
         manager = (this.translator == null) ? RTPManager.newInstance() : null;
     }
 
-    public RemoteClock[] findRemoteClocks(int... ssrcs)
+    public RemoteClock[] findRemoteClocks(long... ssrcs)
     {
         RemoteClock[] clocks = new RemoteClock[ssrcs.length];
 
@@ -107,7 +107,7 @@ public class StreamRTPManager
         return clocks;
     }
 
-    public RemoteClock findRemoteClock(int ssrc)
+    public RemoteClock findRemoteClock(long ssrc)
     {
         return findRemoteClocks(ssrc)[0];
     }

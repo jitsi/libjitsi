@@ -432,7 +432,7 @@ public class MediaStreamStatsImpl
         long remoteTimeMs = localTimeMs;
 
         RemoteClock remoteClock
-            = mediaStreamImpl.getStreamRTPManager().findRemoteClock((int) ssrc);
+            = mediaStreamImpl.getStreamRTPManager().findRemoteClock(ssrc);
         if (remoteClock != null)
         {
             Timestamp remoteTs = remoteClock.estimate(localTimeMs);
