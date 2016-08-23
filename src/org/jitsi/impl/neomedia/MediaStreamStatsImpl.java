@@ -218,13 +218,6 @@ public class MediaStreamStatsImpl
     private long nbPacketsLostUpload = 0;
 
     /**
-     * The {@code RemoteClockEstimator} which tracks the remote (wall)clocks and
-     * RTP timestamps of the RTP streams received by the associated
-     * {@link #mediaStreamImpl}.
-     */
-    private final RemoteClockEstimator _remoteClockEstimator;
-
-    /**
      * The <tt>RTCPReportListener</tt> which listens to {@link #rtcpReports}
      * about the sending and the receiving of RTCP sender/receiver reports and
      * updates this <tt>MediaStreamStats</tt> with their feedback reports.
@@ -329,8 +322,6 @@ public class MediaStreamStatsImpl
     {
         this.mediaStreamImpl = mediaStreamImpl;
 
-        _remoteClockEstimator
-            = new RemoteClockEstimator(mediaStreamImpl.getMediaType());
         updateTimeMs = System.currentTimeMillis();
 
         getRTCPReports().addRTCPReportListener(rtcpReportListener);
@@ -441,7 +432,7 @@ public class MediaStreamStatsImpl
         long remoteTimeMs = localTimeMs;
 
         RemoteClock remoteClock
-            = RemoteClock.findRemoteClock(mediaStreamImpl, (int) ssrc);
+            = mediaStreamImpl.getStreamRTPManager().findRemoteClock((int) ssrc);
         if (remoteClock != null)
         {
             Timestamp remoteTs = remoteClock.estimate(localTimeMs);
@@ -1083,16 +1074,6 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * Gets the {@link RemoteClockEstimator} of this instance.
-     *
-     * @return the {@code RemoteClockEstimator} of this instance.
-     */
-    public RemoteClockEstimator getRemoteClockEstimator()
-    {
-        return _remoteClockEstimator;
-    }
-
-    /**
      * Returns the remote IP address of the MediaStream.
      *
      * @return the remote IP address of the stream.
@@ -1558,30 +1539,19 @@ public class MediaStreamStatsImpl
      */
     private void rtcpReportReceived(RTCPReport report)
     {
-        try
-        {
-            if (report instanceof SenderReport)
-            {
-                // Estimate the remote (wall)clock.
-                getRemoteClockEstimator().update((SenderReport) report);
-            }
-        }
-        finally
-        {
-            // reception report blocks
-            List<RTCPFeedback> feedbackReports = report.getFeedbackReports();
+        // reception report blocks
+        List<RTCPFeedback> feedbackReports = report.getFeedbackReports();
 
-            if (!feedbackReports.isEmpty())
-            {
-                updateNewReceivedFeedback(feedbackReports.get(0));
+        if (!feedbackReports.isEmpty())
+        {
+            updateNewReceivedFeedback(feedbackReports.get(0));
 
-                MediaStreamStats2Impl extended = getExtended();
-                for (RTCPFeedback rtcpFeedback : feedbackReports)
-                {
-                    extended.rtcpReceiverReportReceived(
-                        rtcpFeedback.getSSRC(),
-                        rtcpFeedback.getFractionLost());
-                }
+            MediaStreamStats2Impl extended = getExtended();
+            for (RTCPFeedback rtcpFeedback : feedbackReports)
+            {
+                extended.rtcpReceiverReportReceived(
+                    rtcpFeedback.getSSRC(),
+                    rtcpFeedback.getFractionLost());
             }
         }
     }

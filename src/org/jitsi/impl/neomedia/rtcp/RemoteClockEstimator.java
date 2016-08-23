@@ -17,7 +17,6 @@ package org.jitsi.impl.neomedia.rtcp;
 
 import java.util.*;
 import java.util.concurrent.*;
-import javax.media.rtp.rtcp.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -68,79 +67,35 @@ public class RemoteClockEstimator
     }
 
     /**
-     * Inspect an <tt>RTCPCompoundPacket</tt> and build up the state for future
-     * estimations.
-     *
-     * @param compound
+     * Adds a {@code RemoteClock} for an RTP stream identified by a specific
+     * SSRC.
      */
-    public void update(RTCPCompoundPacket compound)
+    public void update(byte[] buf, int off, int len)
     {
-        RTCPPacket[] rtcps;
+        int ssrc
+            = (int) RTCPHeaderUtils.getSenderSSRC(buf, off, len);
 
-        if (compound == null
-                || (rtcps = compound.packets) == null
-                || rtcps.length == 0)
+        int pktLen = RTCPHeaderUtils.getLength(buf, off, len);
+        if (pktLen == -1)
         {
             return;
         }
 
-        for (RTCPPacket rtcp : rtcps)
+        if (!RTCPSenderInfoUtils.isValid(
+            buf, off + RTCPHeader.SIZE, len - RTCPHeader.SIZE))
         {
-            switch (rtcp.type)
-            {
-            case RTCPPacket.SR:
-                update((RTCPSRPacket) rtcp);
-                break;
-            }
+            return;
         }
-    }
 
-    /**
-     * Inspects an {@code RTCPSRPacket} and builds up the state for future
-     * estimations.
-     *
-     * @param sr
-     */
-    public void update(RTCPSRPacket sr)
-    {
-        update(
-                sr.ssrc,
-                sr.ntptimestampmsw, sr.ntptimestamplsw,
-                sr.rtptimestamp);
-    }
+        long rtptimestamp = RTCPSenderInfoUtils.getTimestamp(
+            buf, off + RTCPHeader.SIZE, pktLen - RTCPHeader.SIZE);
+        long ntptimestampmsw = RTCPSenderInfoUtils.getNtpTimestampMSW(
+            buf, off + RTCPHeader.SIZE, pktLen - RTCPHeader.SIZE);
+        long ntptimestamplsw = RTCPSenderInfoUtils.getNtpTimestampLSW(
+            buf, off + RTCPHeader.SIZE, pktLen - RTCPHeader.SIZE);
 
-    /**
-     * Inspects a {@code SenderReport} and builds up the state for future
-     * estimations.
-     *
-     * @param sr
-     */
-    public void update(SenderReport sr)
-    {
-        update(
-                (int) sr.getSSRC(),
-                sr.getNTPTimeStampMSW(), sr.getNTPTimeStampLSW(),
-                sr.getRTPTimeStamp());
-    }
-
-    /**
-     * Adds a {@code RemoteClock} for an RTP stream identified by a specific
-     * SSRC.
-     *
-     * @param ssrc the SSRC of the RTP stream whose {@code RemoteClock} is to be
-     * added
-     * @param ntptimestampmsw
-     * @param ntptimestamplsw
-     * @param rtptimestamp
-     */
-    private void update(
-            int ssrc,
-            long ntptimestampmsw, long ntptimestamplsw,
-            long rtptimestamp)
-    {
-        long systemTimeMs
-            = TimeUtils.getTime(
-                    TimeUtils.constuctNtp(ntptimestampmsw, ntptimestamplsw));
+        long systemTimeMs = TimeUtils.getTime(
+            TimeUtils.constuctNtp(ntptimestampmsw, ntptimestamplsw));
 
         // Estimate the clock frequency/rate of the sender.
         int frequencyHz;

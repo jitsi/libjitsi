@@ -389,8 +389,8 @@ class SsrcRewriter
         // Convert the SSRCs to RemoteClocks.
         int[] ssrcs = { sourceSsrc, timestampSsrc };
         RemoteClock[] clocks
-            = RemoteClock.findRemoteClocks(ssrcGroupRewriter.ssrcRewritingEngine
-                .getMediaStream(), ssrcs);
+            = ssrcGroupRewriter.ssrcRewritingEngine
+            .getMediaStream().getStreamRTPManager().findRemoteClocks(ssrcs);
 
         // Require all/the two RemoteClocks to carry out the RTP timestamp
         // rewriting.

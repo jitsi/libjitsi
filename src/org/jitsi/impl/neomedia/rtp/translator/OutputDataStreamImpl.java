@@ -808,6 +808,15 @@ class OutputDataStreamImpl
                             modified = mod;
                         }
                     }
+
+                    if (rewrite)
+                    {
+                        // We want to update the remote clock only after we
+                        // rewrite the RTCP packet..
+                        streamRTPManager.streamRTPManager
+                            .getRemoteClockEstimator().update(
+                                buf, offset, pktLen);
+                    }
                 }
 
                 offset += pktLen;
