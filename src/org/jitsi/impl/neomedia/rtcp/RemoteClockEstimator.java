@@ -121,40 +121,59 @@ public class RemoteClockEstimator
         // Estimate the clock frequency/rate of the sender.
         int frequencyHz;
 
-        if (MediaType.VIDEO.equals(_mediaType))
+        RemoteClock oldClock = remoteClocks.get(ssrc);
+        if (oldClock != null)
         {
-            // XXX Don't calculate the clock frequency/rate for video because it
-            // is easier and less error prone (e.g. there is no need to deal
-            // with rounding).
-            frequencyHz = 90 * 1000;
+            // Calculate the clock frequency/rate.
+            Timestamp oldTs = oldClock.getRemoteTimestamp();
+            long rtpTimestampDiff
+                = rtptimestamp - oldTs.getRtpTimestampAsLong();
+            long systemTimeMsDiff = systemTimeMs - oldTs.getSystemTimeMs();
+
+            frequencyHz = Math.round(
+                (float) (rtpTimestampDiff * 1000)/ systemTimeMsDiff);
+
+            if (frequencyHz < 1)
+            {
+                /**
+                 * It has been observed that sometimes Chrome is sending RTCP
+                 * SRs with RTP timestamps that are not monotonically
+                 * increasing, while the NTP timestamps do increase
+                 * monotonically. This messes up our frequency calculation. Here
+                 * we detect this situation and not take into account these
+                 * data points.
+                 */
+
+                logger.warn("Not updating remote clock because the timestamp "
+                    + "point is invalid. ssrc=" + ssrc
+                    + ", systemTime=" + new Date(systemTimeMs)
+                    + ", systemTimeMs=" + systemTimeMs
+                    + ", rtpTimestamp=" + rtptimestamp
+                    + ", frequencyHz=" + frequencyHz
+                    + ", streamHashCode="
+                    + streamRTPManager.getMediaStream().hashCode());
+                return;
+            }
         }
         else
         {
-            RemoteClock oldClock = remoteClocks.get(ssrc);
-
-            if (oldClock != null)
+            if (MediaType.VIDEO.equals(_mediaType))
             {
-                // Calculate the clock frequency/rate.
-                Timestamp oldTs = oldClock.getRemoteTimestamp();
-                long rtpTimestampDiff
-                    = rtptimestamp - oldTs.getRtpTimestampAsLong();
-                long systemTimeMsDiff = systemTimeMs - oldTs.getSystemTimeMs();
-
-                frequencyHz
-                    = Math.round((float) rtpTimestampDiff / systemTimeMsDiff);
+                frequencyHz = 90 * 1000;
             }
             else
             {
-                frequencyHz = -1;
+                frequencyHz = 48 * 1000;
             }
         }
-
 
         if (logger.isDebugEnabled())
         {
             logger.debug("Updating the remote clock ssrc=" + ssrc
-                + ", systemTimeMs=" + new Date(systemTimeMs)
+                + ", systemTime=" + new Date(systemTimeMs)
+                + ", systemTimeMs=" + systemTimeMs
                 + ", rtpTimestamp=" + rtptimestamp
+                + ", frequencyHz=" + frequencyHz
                 + ", streamHashCode="
                 + streamRTPManager.getMediaStream().hashCode());
         }
