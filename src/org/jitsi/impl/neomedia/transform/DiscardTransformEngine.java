@@ -15,9 +15,7 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
-import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 
 import javax.media.*;
@@ -34,102 +32,41 @@ import java.util.*;
  * @author George Politis
  */
 public class DiscardTransformEngine
+    extends SinglePacketTransformerAdapter
     implements TransformEngine
 {
     /**
-     * A map of source ssrc to {@link ResumableStreamRewriter}.
+     * A map of source ssrc to {@link SequenceNumberRewriter}.
      */
-    private final Map<Long, ResumableStreamRewriter> ssrcToRewriter
+    private final Map<Long, SequenceNumberRewriter> ssrcToRewriter
         = new HashMap<>();
 
     /**
-     * The {@link PacketTransformer} for RTCP packets.
+     * {@inheritDoc}
      */
-    private final PacketTransformer rtpTransformer
-        = new SinglePacketTransformerAdapter()
+    @Override
+    public RawPacket reverseTransform(RawPacket pkt)
     {
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket reverseTransform(RawPacket pkt)
+        if (pkt == null)
         {
-            if (pkt == null)
-            {
-                return null;
-            }
-
-            boolean dropPkt
-                = (pkt.getFlags() & Buffer.FLAG_DISCARD) == Buffer.FLAG_DISCARD;
-
-            long ssrc = pkt.getSSRCAsLong();
-            ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
-            if (rewriter == null)
-            {
-                rewriter = new ResumableStreamRewriter();
-                ssrcToRewriter.put(ssrc, rewriter);
-            }
-
-            rewriter.rewriteRTP(
-                !dropPkt, pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
-
-            return dropPkt ? null : pkt;
+            return null;
         }
-    };
 
-    /**
-     * The {@link PacketTransformer} for RTP packets.
-     */
-    private final PacketTransformer rtcpTransformer
-        = new SinglePacketTransformerAdapter()
-    {
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket reverseTransform(RawPacket pkt)
+        boolean dropPkt
+            = (pkt.getFlags() & Buffer.FLAG_DISCARD) == Buffer.FLAG_DISCARD;
+
+        SequenceNumberRewriter rewriter = ssrcToRewriter.get(pkt.getSSRCAsLong());
+        if (rewriter == null)
         {
-            if (pkt == null)
-            {
-                return pkt;
-            }
-
-            byte[] buf = pkt.getBuffer();
-            int offset = pkt.getOffset(), length =  pkt.getLength();
-
-            while (length > 0)
-            {
-                // Check RTCP packet validity. This makes sure that pktLen > 0
-                // so this loop will eventually terminate.
-                if (!RTCPHeaderUtils.isValid(buf, offset, length))
-                {
-                    break;
-                }
-
-                int pktLen = RTCPHeaderUtils.getLength(buf, offset, length);
-
-                int pt = RTCPHeaderUtils.getPacketType(buf, offset, pktLen);
-                if (pt == RTCPPacket.SR)
-                {
-                    long ssrc
-                        = RTCPHeaderUtils.getSenderSSRC(buf, offset, pktLen);
-
-                    ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
-
-                    if (rewriter != null)
-                    {
-                        rewriter.processRTCP(
-                            true /* rewrite */, buf, offset, pktLen);
-                    }
-                }
-
-                offset += pktLen;
-                length -= pktLen;
-            }
-
-            return pkt;
+            rewriter = new SequenceNumberRewriter();
+            ssrcToRewriter.put(pkt.getSSRCAsLong(), rewriter);
         }
-    };
+
+        rewriter.rewrite(
+            !dropPkt, pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+
+        return dropPkt ? null : pkt;
+    }
 
     /**
      * {@inheritDoc}
@@ -137,7 +74,7 @@ public class DiscardTransformEngine
     @Override
     public PacketTransformer getRTPTransformer()
     {
-        return rtpTransformer;
+        return this;
     }
 
     /**
@@ -146,6 +83,7 @@ public class DiscardTransformEngine
     @Override
     public PacketTransformer getRTCPTransformer()
     {
-        return rtcpTransformer;
+        // There's nothing to be done for RTCP.
+        return null;
     }
 }

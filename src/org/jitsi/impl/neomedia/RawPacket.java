@@ -27,9 +27,6 @@ package org.jitsi.impl.neomedia;
  * Besides packet info storage, RawPacket also provides some other operations
  * such as readInt() to ease the development process.
  *
- * FIXME This class needs to be split/merged into RTPHeader, RTCPHeader,
- * ByteBufferUtils, etc.
- *
  * @author Werner Dittmann (Werner.Dittmann@t-online.de)
  * @author Bing SU (nova.su@gmail.com)
  * @author Emil Ivov
@@ -892,25 +889,6 @@ public class RawPacket
     }
 
     /**
-     * Set the RTP timestamp for an RTP buffer.
-     *
-     * @param buf the <tt>byte</tt> array that holds the RTP packet.
-     * @param off the offset in <tt>buffer</tt> at which the actual RTP data
-     * begins.
-     * @param len the number of <tt>byte</tt>s in <tt>buffer</tt> which
-     * constitute the actual RTP data.
-     * @param ts the timestamp to set in the RTP buffer.
-     */
-    public static void setTimestamp(byte[] buf, int off, int len, long ts)
-    {
-        off += 4;
-        buf[off++] = (byte)(ts>>24);
-        buf[off++] = (byte)(ts>>16);
-        buf[off++] = (byte)(ts>>8);
-        buf[off] = (byte)ts;
-    }
-
-    /**
      * Get SRTCP sequence number from a SRTCP packet
      *
      * @param authTagLen authentication tag length
@@ -974,22 +952,7 @@ public class RawPacket
      */
     public long getTimestamp()
     {
-        return getTimestamp(buffer, offset, length);
-    }
-
-    /**
-     * Gets the RTP timestamp for an RTP buffer.
-     *
-     * @param buf the <tt>byte</tt> array that holds the RTP packet.
-     * @param off the offset in <tt>buffer</tt> at which the actual RTP data
-     * begins.
-     * @param len the number of <tt>byte</tt>s in <tt>buffer</tt> which
-     * constitute the actual RTP data.
-     * @return the timestamp in the RTP buffer.
-     */
-    public static long getTimestamp(byte[] buf, int off, int len)
-    {
-        return readInt(buf, off + 4, len) & 0xffffffffl;
+        return readInt(4) & 0xffffffffl;
     }
 
     /**
@@ -1397,7 +1360,7 @@ public class RawPacket
      */
     public void setTimestamp(long timestamp)
     {
-        setTimestamp(buffer, offset, length, timestamp);
+        writeInt(4, (int)timestamp);
     }
 
     /**
