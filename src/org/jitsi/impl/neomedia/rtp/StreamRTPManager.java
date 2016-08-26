@@ -54,9 +54,9 @@ public class StreamRTPManager
     private final RTPTranslatorImpl translator;
 
     /**
-     * A map of source ssrc to {@link ResumableStreamRewriter}.
+     * A map of source ssrc to {@link SequenceNumberRewriter}.
      */
-    private final Map<Long, ResumableStreamRewriter> ssrcToRewriter
+    public final Map<Long, SequenceNumberRewriter> ssrcToRewriter
         = new HashMap<>();
 
     /**
@@ -135,47 +135,6 @@ public class StreamRTPManager
             manager.dispose();
         else
             translator.dispose(this);
-    }
-
-    /**
-     * Associates the specified SSRC with the specified
-     * {@link ResumableStreamRewriter} in this map.
-     *
-     * @param ssrc SSRC with which the specified rewriter is to be associated.
-     * @param rewriter rewriter to be associated with the specified SSRC.
-     */
-    public void putResumableStreamRewriter(
-        Long ssrc, ResumableStreamRewriter rewriter)
-    {
-        ssrcToRewriter.put(ssrc, rewriter);
-    }
-
-    /**
-     * Gets the {@link ResumableStreamRewriter} that is associated to the SSRC
-     * passed as a parameter. If there's no {@link ResumableStreamRewriter}
-     * associated with that SSRC and the create flag is set to true, then a new
-     * {@link ResumableStreamRewriter} will be created.
-     *
-     * @param ssrc the SSRC whose associated {@link ResumableStreamRewriter} is
-     * to be returned.
-     * @param create If there's no {@link ResumableStreamRewriter}
-     * associated with the SSRC and this flag is true then a new
-     * {@link ResumableStreamRewriter} will be created.
-     *
-     * @return the {@link ResumableStreamRewriter} that is associated to the
-     * SSRC parameter
-     */
-    public ResumableStreamRewriter getResumableStreamRewriter(Long ssrc,
-                                                              boolean create)
-    {
-        ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
-        if (rewriter == null && create)
-        {
-            rewriter = new ResumableStreamRewriter();
-            ssrcToRewriter.put(ssrc, rewriter);
-        }
-
-        return rewriter;
     }
 
     /**
