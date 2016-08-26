@@ -764,8 +764,7 @@ class OutputDataStreamImpl
             Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
 
             ResumableStreamRewriter rewriter = streamRTPManager
-                .streamRTPManager.getResumableStreamRewriter(
-                    ssrc, true /* create */);
+                .streamRTPManager.getResumableStreamRewriter(ssrc);
 
             if (logger.isDebugEnabled())
             {
@@ -830,9 +829,9 @@ class OutputDataStreamImpl
                     long ssrc
                         = RTCPHeaderUtils.getSenderSSRC(buf, offset, pktLen);
 
+                    // If an SR is received, then we have media.
                     ResumableStreamRewriter rewriter = streamRTPManager
-                        .streamRTPManager.getResumableStreamRewriter(
-                            ssrc, false);
+                        .streamRTPManager.getResumableStreamRewriter(ssrc);
 
                     if (rewriter != null)
                     {
