@@ -83,6 +83,73 @@ public class ResumableStreamRewriter
     }
 
     /**
+     * Sets the highest sequence number that got accepted, mod 2^16.
+     *
+     * @param highestSequenceNumberSent the highest sequence number that got
+     * accepted, mod 2^16.
+     */
+    public void setHighestSequenceNumberSent(int highestSequenceNumberSent)
+    {
+        this.highestSequenceNumberSent = highestSequenceNumberSent;
+    }
+
+    /**
+     * Sets the seqnumDelta between what's been accepted and
+     * what's been received, mod 2^16.
+     *
+     * @param val the seqnumDelta between what's been accepted and
+     * what's been received, mod 2^16.
+     */
+    public void setSeqnumDelta(int val)
+    {
+        this.seqnumDelta = val;
+    }
+
+    /**
+     * Sets the highest timestamp that got accepted, mod 2^32.
+     *
+     * @param val The highest timestamp that got accepted, mod 2^32.
+     */
+    public void setHighestTimestampSent(long val)
+    {
+        this.highestTimestampSent = val;
+    }
+
+    /**
+     * Sets the timestamp delta between what's been accepted and what's been
+     * received, mod 2^32.
+     *
+     * @param val the timestamp delta between what's been accepted and what's
+     * been received, mod 2^32.
+     */
+    public void setTimestampDelta(long val)
+    {
+        this.timestampDelta = val;
+    }
+
+    /**
+     * Gets the highest timestamp that got accepted, mod 2^32.
+     *
+     * @return the highest timestamp that got accepted, mod 2^32.
+     */
+    public long getHighestTimestampSent()
+    {
+        return highestTimestampSent;
+    }
+
+    /**
+     * Gets the timestamp delta between what's been accepted and what's been
+     * received, mod 2^32.
+     *
+     * @return the timestamp delta between what's been accepted and what's been
+     * received, mod 2^32.
+     */
+    public long getTimestampDelta()
+    {
+        return timestampDelta;
+    }
+
+    /**
      * Rewrites the sequence number of the RTP packet in the byte buffer,
      * hiding any gaps caused by drops.
      *
