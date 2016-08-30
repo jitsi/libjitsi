@@ -52,6 +52,8 @@ public class ResumableStreamRewriter
      */
     long highestTimestampSent = -1;
 
+    private int cycles = 0;
+
     /**
      * Ctor.
      */
@@ -279,6 +281,12 @@ public class ResumableStreamRewriter
             if (highestSequenceNumberSent == -1 || RTPUtils.sequenceNumberDiff(
                 newSequenceNumber, highestSequenceNumberSent) > 0)
             {
+                if (highestSequenceNumberSent != -1
+                    && newSequenceNumber - highestSequenceNumberSent < 0)
+                {
+                    cycles += 0x10000;
+                }
+
                 highestSequenceNumberSent = newSequenceNumber;
             }
 
@@ -342,5 +350,35 @@ public class ResumableStreamRewriter
 
             return timestamp;
         }
+    }
+
+    public int getSeqnumDelta()
+    {
+        return seqnumDelta;
+    }
+
+    public int getHighestSequenceNumberSent()
+    {
+        return highestSequenceNumberSent;
+    }
+
+    public int extendSequenceNumber(int seqnum) {
+        int cycles = this.cycles;
+        int maxseq = this.highestSequenceNumberSent;
+        int delta = seqnum - maxseq;
+
+        if (delta >= 0)
+        {
+            if (delta > 0x7FFF /* 2^15 - 1 =  32767 */)
+            {
+                cycles -= 0x10000 /* 2^16 = 65536 */;
+            }
+        }
+        else if (delta < -0x7FFF)
+        {
+            cycles += 0x10000;
+        }
+
+        return seqnum + cycles;
     }
 }

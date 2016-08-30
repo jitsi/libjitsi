@@ -19,6 +19,7 @@ import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.util.*;
 
 /**
@@ -594,21 +595,11 @@ class SsrcRewriter
      */
     int extendOriginalSequenceNumber(int origSeqnum)
     {
-        SSRCCache ssrcCache
-            = ssrcGroupRewriter.ssrcRewritingEngine
-                .getMediaStream().getStreamRTPManager().getSSRCCache();
+        ResumableStreamRewriter rewriter
+            = ssrcGroupRewriter.ssrcRewritingEngine.getMediaStream()
+                .getStreamRTPManager().getResumableStreamRewriter(sourceSSRC);
 
-        if (ssrcCache != null)
-        {
-            // XXX We make sure in BasicRTCPTerminationStrategy that the
-            // SSRCCache exists so we do the same here.
-
-            SSRCInfo sourceSSRCInfo = ssrcCache.cache.get((int) getSourceSSRC());
-
-            if (sourceSSRCInfo != null)
-                return sourceSSRCInfo.extendSequenceNumber(origSeqnum);
-        }
-        return origSeqnum;
+        return rewriter.extendSequenceNumber(origSeqnum);
     }
 
     /**
