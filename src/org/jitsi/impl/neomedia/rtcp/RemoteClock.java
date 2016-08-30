@@ -99,11 +99,18 @@ public class RemoteClock
     {
         int frequencyHz = getFrequencyHz();
 
-        if (frequencyHz < 1000)
+        if (false && frequencyHz < 1000)
         {
             // We can't continue if (1) we don't have the sender's clock
             // frequency/rate or (2) the sender's clock frequency/rate is bellow
             // 1kHz.
+
+            // XXX unfortunately Chrome is sending RTCP with RTP timestamps that
+            // are not proportional to the wallclock. This results in
+            // frequencies that are lower than 1000. We have even observed
+            // negative frequencies. This is clearly a bug in the webrtc code
+            // that we need to take into account here. We keep this code here
+            // as a reminder to the situation.
             return null;
         }
 
@@ -128,11 +135,18 @@ public class RemoteClock
     {
         int frequencyHz = getFrequencyHz();
 
-        if (frequencyHz < 1000)
+        if (false && frequencyHz < 1000)
         {
             // We can't continue if (1) we don't have the sender's clock
             // frequency/rate or (2) the sender's clock frequency/rate is bellow
             // 1kHz.
+
+            // XXX unfortunately Chrome is sending RTCP with RTP timestamps that
+            // are not proportional to the wallclock. This results in
+            // frequencies that are lower than 1000. We have even observed
+            // negative frequencies. This is clearly a bug in the webrtc code
+            // that we need to take into account here. We keep this code here
+            // as a reminder to the situation.
             return null;
         }
 
