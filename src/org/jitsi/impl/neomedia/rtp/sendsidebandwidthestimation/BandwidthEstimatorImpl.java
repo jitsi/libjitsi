@@ -21,6 +21,7 @@ import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.concurrent.*;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Implements part of the send-side bandwidth estimation described in
@@ -59,7 +60,7 @@ public class BandwidthEstimatorImpl
      * bitrate_controller_impl.h
      */
     private Map<Long,Long> ssrc_to_last_received_extended_high_seq_num_
-        = new HashMap<>();
+        = new ConcurrentHashMap<>();
 
     private long lastUpdateTime = -1;
 
