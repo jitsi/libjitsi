@@ -18,6 +18,7 @@ package org.jitsi.impl.configuration;
 import java.beans.*;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.regex.*;
 
 import org.jitsi.impl.configuration.xml.*;
@@ -102,7 +103,8 @@ public class ConfigurationServiceImpl
      * and attempts to do so will simply be ignored.
      * @see #defaultProperties
      */
-    private Map<String, String> immutableDefaultProperties = new HashMap<>();
+    private Map<String, String> immutableDefaultProperties
+        = new ConcurrentHashMap<>();
 
     /**
      * A set of properties deployed with the application during install time.
@@ -111,7 +113,8 @@ public class ConfigurationServiceImpl
      * <tt>setProperty()</tt> methods. Still, re-setting one of these properties
      * to <tt>null</tt> would cause for its initial value to be restored.
      */
-    private Map<String, String> defaultProperties = new HashMap<>();
+    private Map<String, String> defaultProperties
+        = new ConcurrentHashMap<>();
 
     /**
      * Our event dispatcher.
