@@ -278,4 +278,18 @@ public abstract class AbstractMediaStream
     {
         return null;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void configureSSRCRewriting(
+        Set<Long> ssrcGroup,
+        Long ssrcTargetPrimary,
+        Map<Long, Byte> ssrc2fec,
+        Map<Long, Byte> ssrc2red,
+        Map<Long, Long> rtxGroups,
+        Long ssrcTargetRTX)
+    {
+    }
 }
