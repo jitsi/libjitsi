@@ -147,7 +147,10 @@ public class StreamRTPManager
     public void putResumableStreamRewriter(
         Long ssrc, ResumableStreamRewriter rewriter)
     {
-        ssrcToRewriter.put(ssrc, rewriter);
+        synchronized(ssrcToRewriter)
+        {
+            ssrcToRewriter.put(ssrc, rewriter);
+        }
     }
 
     /**
@@ -168,14 +171,17 @@ public class StreamRTPManager
     public ResumableStreamRewriter getResumableStreamRewriter(Long ssrc,
                                                               boolean create)
     {
-        ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
-        if (rewriter == null && create)
+        synchronized (ssrcToRewriter)
         {
-            rewriter = new ResumableStreamRewriter();
-            ssrcToRewriter.put(ssrc, rewriter);
-        }
+            ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
+            if (rewriter == null && create)
+            {
+                rewriter = new ResumableStreamRewriter();
+                ssrcToRewriter.put(ssrc, rewriter);
+            }
 
-        return rewriter;
+            return rewriter;
+        }
     }
 
     /**
