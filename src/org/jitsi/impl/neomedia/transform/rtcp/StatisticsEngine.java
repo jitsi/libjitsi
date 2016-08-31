@@ -1233,19 +1233,23 @@ public class StatisticsEngine
      * Computes the sum of the values of a specific {@code Map} with
      * {@code Long} values.
      *
-     * @param map the {@code Map} with {@code Long} values to sum up
+     * @param map the {@code Map} with {@code Long} values to sum up. Note that
+     * we synchronize on this object!
      * @return the sum of the values of the specified {@code map}
      */
     private static long getCumulativeValue(Map<?,Long> map)
     {
         long cumulativeValue = 0;
 
-        for (Long value : map.values())
+        synchronized (map)
         {
-            if(value == null)
-                continue;
+            for (Long value : map.values())
+            {
+                if (value == null)
+                    continue;
 
-            cumulativeValue += value;
+                cumulativeValue += value;
+            }
         }
         return cumulativeValue;
     }
@@ -1253,22 +1257,27 @@ public class StatisticsEngine
     /**
      * Utility method to return a value from a map and perform unboxing only if
      * the result value is not null.
-     * @param map the map to get the value
+     * @param map the map to get the value. Note that we synchronize on that
+     * object!
      * @param ssrc the key
      * @return the result value or 0 if nothing is found.
      */
     private static long getMapValue(Map<?,Long> map, long ssrc)
     {
-        // there can be no entry, or the value can be null
-        Long res = map.get(ssrc);
-        return res == null ? 0 : res;
+        synchronized (map)
+        {
+            // there can be no entry, or the value can be null
+            Long res = map.get(ssrc);
+            return res == null ? 0 : res;
+        }
     }
 
     /**
      * Utility method to increment map value with specified step. If entry is
      * missing add it.
      *
-     * @param map the map holding the values
+     * @param map the map holding the values. Note that we synchronize on that
+     * object!
      * @param ssrc the key of the value to increment
      * @param step increment step value
      */
@@ -1277,9 +1286,12 @@ public class StatisticsEngine
             long ssrc,
             long step)
     {
-        Long count = map.get(ssrc);
+        synchronized(map)
+        {
+            Long count = map.get(ssrc);
 
-        map.put(ssrc, (count == null) ? step : (count + step));
+            map.put(ssrc, (count == null) ? step : (count + step));
+        }
     }
 
     private class RTPPacketTransformer
