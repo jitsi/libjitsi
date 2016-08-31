@@ -101,7 +101,7 @@ public class MediaUtils
          * Some codecs depend on JMF native libraries which are only available
          * on 32-bit Linux and 32-bit Windows.
          */
-        if(OSUtils.IS_LINUX32 || OSUtils.IS_WINDOWS32)
+        if (OSUtils.IS_LINUX32 || OSUtils.IS_WINDOWS32)
         {
             Map<String, String> g723FormatParams
                 = new HashMap<String, String>();
@@ -187,9 +187,11 @@ public class MediaUtils
 
         boolean advertiseFEC
             = cfg.getBoolean(Constants.PROP_SILK_ADVERSISE_FEC, false);
-        Map<String,String> silkFormatParams = new HashMap<String, String>();
-        if(advertiseFEC)
+        Map<String,String> silkFormatParams = new HashMap<>();
+        if (advertiseFEC)
+        {
             silkFormatParams.put("useinbandfec", "1");
+        }
         addMediaFormats(
                 MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
                 "SILK",
@@ -201,11 +203,15 @@ public class MediaUtils
 
         Map<String, String> opusFormatParams = new HashMap<String,String>();
         boolean opusFec = cfg.getBoolean(Constants.PROP_OPUS_FEC, true);
-        if(!opusFec)
+        if (!opusFec)
+        {
             opusFormatParams.put("useinbandfec", "0");
+        }
         boolean opusDtx = cfg.getBoolean(Constants.PROP_OPUS_DTX, true);
-        if(opusDtx)
+        if (opusDtx)
+        {
             opusFormatParams.put("usedtx", "1");
+        }
         //opusFormatParams.put("minptime", "10");
 
         Map<String, String> opusAdvancedParams
@@ -366,12 +372,22 @@ public class MediaUtils
 
         for (MediaFormat[] mediaFormats
                 : rtpPayloadTypeStrToMediaFormats.values())
+        {
             for (MediaFormat mediaFormat : mediaFormats)
+            {
                 if (MediaType.AUDIO.equals(mediaFormat.getMediaType()))
+                {
                     audioMediaFormats.add(mediaFormat);
+                }
+            }
+        }
         for (MediaFormat mediaFormat : rtpPayloadTypelessMediaFormats)
+        {
             if (MediaType.AUDIO.equals(mediaFormat.getMediaType()))
+            {
                 audioMediaFormats.add(mediaFormat);
+            }
+        }
 
         int maxAudioChannels = Format.NOT_SPECIFIED;
         double maxAudioSampleRate = Format.NOT_SPECIFIED;
@@ -393,11 +409,17 @@ public class MediaUtils
                 channels = 1;
 
             if (maxAudioChannels < channels)
+            {
                 maxAudioChannels = channels;
+            }
             if (maxAudioSampleRate < sampleRate)
+            {
                 maxAudioSampleRate = sampleRate;
+            }
             if (maxAudioSampleSizeInBits < sampleSizeInBits)
+            {
                 maxAudioSampleSizeInBits = sampleSizeInBits;
+            }
         }
 
         MAX_AUDIO_CHANNELS = maxAudioChannels;
@@ -485,14 +507,18 @@ public class MediaUtils
                 switch (mediaType)
                 {
                 case AUDIO:
-                    if(channels == 1)
+                    if (channels == 1)
+                    {
                         format = new AudioFormat(jmfEncoding);
+                    }
                     else
+                    {
                         format = new AudioFormat(
                                 jmfEncoding,
                                 Format.NOT_SPECIFIED,
                                 Format.NOT_SPECIFIED,
                                 channels);
+                    }
                     break;
                 case VIDEO:
                     format
@@ -512,7 +538,9 @@ public class MediaUtils
                             advancedAttributes);
 
                 if (mediaFormat != null)
+                {
                     mediaFormats.add(mediaFormat);
+                }
             }
         }
         else
@@ -547,22 +575,28 @@ public class MediaUtils
                         advancedAttributes);
 
             if (mediaFormat != null)
+            {
                 mediaFormats.add(mediaFormat);
+            }
         }
 
         if (mediaFormats.size() > 0)
         {
             if (MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN == rtpPayloadType)
+            {
                 rtpPayloadTypelessMediaFormats.addAll(mediaFormats);
+            }
             else
+            {
                 rtpPayloadTypeStrToMediaFormats.put(
-                        Byte.toString(rtpPayloadType),
-                        mediaFormats.toArray(EMPTY_MEDIA_FORMATS));
+                    Byte.toString(rtpPayloadType),
+                    mediaFormats.toArray(EMPTY_MEDIA_FORMATS));
+            }
 
             jmfEncodingToEncodings.put(
-                    ((MediaFormatImpl<? extends Format>) mediaFormats.get(0))
-                        .getJMFEncoding(),
-                    encoding);
+                ((MediaFormatImpl<? extends Format>) mediaFormats.get(0))
+                    .getJMFEncoding(),
+                encoding);
         }
     }
 
@@ -624,7 +658,7 @@ public class MediaUtils
         StringBuffer img = new StringBuffer();
 
         /* send width */
-        if(sendSize != null)
+        if (sendSize != null)
         {
             /* single value => send [x=width,y=height] */
             /*img.append("send [x=");
@@ -661,7 +695,7 @@ public class MediaUtils
         }
 
         /* receive size */
-        if(maxRecvSize != null)
+        if (maxRecvSize != null)
         {
             // basically we can receive any size up to our screen display size
 
@@ -699,11 +733,17 @@ public class MediaUtils
         double clockRate;
 
         if (format instanceof AudioFormat)
+        {
             clockRate = ((AudioFormat) format).getSampleRate();
+        }
         else if (format instanceof VideoFormat)
+        {
             clockRate = VideoMediaFormatImpl.DEFAULT_CLOCK_RATE;
+        }
         else
+        {
             clockRate = Format.NOT_SPECIFIED;
+        }
 
         byte rtpPayloadType = getRTPPayloadType(format.getEncoding(), clockRate);
 
@@ -715,7 +755,9 @@ public class MediaUtils
                     = (MediaFormatImpl<? extends Format>) mediaFormat;
 
                 if (format.matches(mediaFormatImpl.getFormat()))
+                {
                     return mediaFormat;
+                }
             }
         }
         return null;
@@ -754,9 +796,13 @@ public class MediaUtils
             Map<String, String> fmtps)
     {
         for (MediaFormat format : getMediaFormats(encoding))
+        {
             if ((format.getClockRate() == clockRate)
-                    && format.formatParametersMatch(fmtps))
+                && format.formatParametersMatch(fmtps))
+            {
                 return format;
+            }
+        }
         return null;
     }
 
@@ -813,12 +859,22 @@ public class MediaUtils
         List<MediaFormat> mediaFormats = new ArrayList<MediaFormat>();
 
         for (MediaFormat[] formats : rtpPayloadTypeStrToMediaFormats.values())
+        {
             for (MediaFormat format : formats)
+            {
                 if (format.getMediaType().equals(mediaType))
+                {
                     mediaFormats.add(format);
+                }
+            }
+        }
         for (MediaFormat format : rtpPayloadTypelessMediaFormats)
+        {
             if (format.getMediaType().equals(mediaType))
+            {
                 mediaFormats.add(format);
+            }
+        }
         return mediaFormats.toArray(EMPTY_MEDIA_FORMATS);
     }
 
@@ -839,11 +895,13 @@ public class MediaUtils
 
         for (Map.Entry<String, String> jmfEncodingToEncoding
                 : jmfEncodingToEncodings.entrySet())
+        {
             if (jmfEncodingToEncoding.getValue().equals(encoding))
             {
                 jmfEncoding = jmfEncodingToEncoding.getKey();
                 break;
             }
+        }
 
         List<MediaFormat> mediaFormats = new ArrayList<MediaFormat>();
 
@@ -851,22 +909,32 @@ public class MediaUtils
         {
             for (MediaFormat[] rtpPayloadTypeMediaFormats
                     : rtpPayloadTypeStrToMediaFormats.values())
+            {
                 for (MediaFormat rtpPayloadTypeMediaFormat
-                            : rtpPayloadTypeMediaFormats)
+                    : rtpPayloadTypeMediaFormats)
+                {
                     if (((MediaFormatImpl<? extends Format>)
-                                    rtpPayloadTypeMediaFormat)
-                                .getJMFEncoding().equals(jmfEncoding))
+                        rtpPayloadTypeMediaFormat)
+                        .getJMFEncoding().equals(jmfEncoding))
+                    {
                         mediaFormats.add(rtpPayloadTypeMediaFormat);
+                    }
+                }
+            }
 
 
             if (mediaFormats.size() < 1)
             {
                 for (MediaFormat rtpPayloadTypelessMediaFormat
                         : rtpPayloadTypelessMediaFormats)
+                {
                     if (((MediaFormatImpl<? extends Format>)
-                                    rtpPayloadTypelessMediaFormat)
-                                .getJMFEncoding().equals(jmfEncoding))
+                        rtpPayloadTypelessMediaFormat)
+                        .getJMFEncoding().equals(jmfEncoding))
+                    {
                         mediaFormats.add(rtpPayloadTypelessMediaFormat);
+                    }
+                }
             }
         }
         return mediaFormats;
@@ -891,43 +959,79 @@ public class MediaUtils
     public static byte getRTPPayloadType(String jmfEncoding, double clockRate)
     {
         if (jmfEncoding == null)
+        {
             return MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN;
+        }
         else if (jmfEncoding.equals(AudioFormat.ULAW_RTP))
+        {
             return SdpConstants.PCMU;
+        }
         else if (jmfEncoding.equals(Constants.ALAW_RTP))
+        {
             return SdpConstants.PCMA;
+        }
         else if (jmfEncoding.equals(AudioFormat.GSM_RTP))
+        {
             return SdpConstants.GSM;
+        }
         else if (jmfEncoding.equals(AudioFormat.G723_RTP))
+        {
             return SdpConstants.G723;
+        }
         else if (jmfEncoding.equals(AudioFormat.DVI_RTP)
                     && (clockRate == 8000))
+        {
             return SdpConstants.DVI4_8000;
+        }
         else if (jmfEncoding.equals(AudioFormat.DVI_RTP)
                     && (clockRate == 16000))
+        {
             return SdpConstants.DVI4_16000;
+        }
         else if (jmfEncoding.equals(AudioFormat.ALAW))
+        {
             return SdpConstants.PCMA;
+        }
         else if (jmfEncoding.equals(Constants.G722))
+        {
             return SdpConstants.G722;
+        }
         else if (jmfEncoding.equals(Constants.G722_RTP))
+        {
             return SdpConstants.G722;
+        }
         else if (jmfEncoding.equals(AudioFormat.GSM))
+        {
             return SdpConstants.GSM;
+        }
         else if (jmfEncoding.equals(AudioFormat.GSM_RTP))
+        {
             return SdpConstants.GSM;
+        }
         else if (jmfEncoding.equals(AudioFormat.G728_RTP))
+        {
             return SdpConstants.G728;
+        }
         else if (jmfEncoding.equals(AudioFormat.G729_RTP))
+        {
             return SdpConstants.G729;
+        }
         else if (jmfEncoding.equals(VideoFormat.H263_RTP))
+        {
             return SdpConstants.H263;
+        }
         else if (jmfEncoding.equals(VideoFormat.JPEG_RTP))
+        {
             return SdpConstants.JPEG;
+        }
         else if (jmfEncoding.equals(VideoFormat.H261_RTP))
+        {
             return SdpConstants.H261;
+        }
         else
+        {
             return MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN;
+        }
     }
 
     /**
