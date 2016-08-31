@@ -285,14 +285,15 @@ public class DebugTransformEngine implements TransformEngine
                 int offset = pkt.getOffset(), length = pkt.getLength();
                 byte[] buf = pkt.getBuffer();
 
-                while (length > 0)
+                // The correct thing to do here is a loop because the RTCP packet
+                // can be compound. However, in practice we haven't seen multiple
+                // SRs being bundled in the same compound packet, and we're only
+                // interested in SRs.
+
+                // Check RTCP packet validity. This makes sure that
+                // pktLen > 0 so this loop will eventually terminate.
+                if (RTCPHeaderUtils.isValid(buf, offset, length))
                 {
-                    // Check RTCP packet validity. This makes sure that
-                    // pktLen > 0 so this loop will eventually terminate.
-                    if (!RTCPHeaderUtils.isValid(buf, offset, length))
-                    {
-                        break;
-                    }
 
                     int pktLen = RTCPHeaderUtils.getLength(buf, offset, length);
 
@@ -304,16 +305,16 @@ public class DebugTransformEngine implements TransformEngine
 
                         long rtptimestamp
                             = RTCPSenderInfoUtils.getTimestamp(
-                                buf, offset + RTCPHeader.SIZE,
-                                pktLen - RTCPHeader.SIZE);
+                            buf, offset + RTCPHeader.SIZE,
+                            pktLen - RTCPHeader.SIZE);
                         long ntptimestampmsw
                             = RTCPSenderInfoUtils.getNtpTimestampMSW(
-                                buf, offset + RTCPHeader.SIZE,
-                                pktLen - RTCPHeader.SIZE);
+                            buf, offset + RTCPHeader.SIZE,
+                            pktLen - RTCPHeader.SIZE);
                         long ntptimestamplsw
                             = RTCPSenderInfoUtils.getNtpTimestampLSW(
-                                buf, offset + RTCPHeader.SIZE,
-                                pktLen - RTCPHeader.SIZE);
+                            buf, offset + RTCPHeader.SIZE,
+                            pktLen - RTCPHeader.SIZE);
 
                         long systemTimeMs = TimeUtils.getTime(
                             TimeUtils.constuctNtp(
@@ -325,7 +326,7 @@ public class DebugTransformEngine implements TransformEngine
 
                         long millis = (clock != null)
                             ? clock.rtpTimestamp2remoteSystemTimeMs(rtptimestamp)
-                                .getSystemTimeMs()
+                            .getSystemTimeMs()
                             : -1;
 
                         logger.debug((sender ? "sending" : "received")
@@ -336,9 +337,6 @@ public class DebugTransformEngine implements TransformEngine
                             + ", calculated_realtime_ms=" + millis
                             + ", streamHashCode=" + mediaStream.hashCode());
                     }
-
-                    offset += pktLen;
-                    length -= pktLen;
                 }
             }
         }

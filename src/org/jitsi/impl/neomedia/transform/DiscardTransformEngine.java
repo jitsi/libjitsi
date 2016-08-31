@@ -128,34 +128,33 @@ public class DiscardTransformEngine
             byte[] buf = pkt.getBuffer();
             int offset = pkt.getOffset(), length =  pkt.getLength();
 
-            while (length > 0)
+            // The correct thing to do here is a loop because the RTCP packet
+            // can be compound. However, in practice we haven't seen multiple
+            // SRs being bundled in the same compound packet, and we're only
+            // interested in SRs.
+
+            // Check RTCP packet validity. This makes sure that pktLen > 0
+            // so this loop will eventually terminate.
+            if (!RTCPHeaderUtils.isValid(buf, offset, length))
             {
-                // Check RTCP packet validity. This makes sure that pktLen > 0
-                // so this loop will eventually terminate.
-                if (!RTCPHeaderUtils.isValid(buf, offset, length))
+                return pkt;
+            }
+
+            int pktLen = RTCPHeaderUtils.getLength(buf, offset, length);
+
+            int pt = RTCPHeaderUtils.getPacketType(buf, offset, pktLen);
+            if (pt == RTCPPacket.SR)
+            {
+                long ssrc
+                    = RTCPHeaderUtils.getSenderSSRC(buf, offset, pktLen);
+
+                ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
+
+                if (rewriter != null)
                 {
-                    break;
+                    rewriter.processRTCP(
+                        true /* rewrite */, buf, offset, pktLen);
                 }
-
-                int pktLen = RTCPHeaderUtils.getLength(buf, offset, length);
-
-                int pt = RTCPHeaderUtils.getPacketType(buf, offset, pktLen);
-                if (pt == RTCPPacket.SR)
-                {
-                    long ssrc
-                        = RTCPHeaderUtils.getSenderSSRC(buf, offset, pktLen);
-
-                    ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
-
-                    if (rewriter != null)
-                    {
-                        rewriter.processRTCP(
-                            true /* rewrite */, buf, offset, pktLen);
-                    }
-                }
-
-                offset += pktLen;
-                length -= pktLen;
             }
 
             return pkt;
