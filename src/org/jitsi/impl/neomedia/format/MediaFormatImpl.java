@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.format;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 import javax.media.*;
 import javax.media.format.*;
@@ -255,11 +256,11 @@ public abstract class MediaFormatImpl<T extends Format>
         this.formatParameters
             = ((formatParameters == null) || formatParameters.isEmpty())
                 ? EMPTY_FORMAT_PARAMETERS
-                : new HashMap<String, String>(formatParameters);
+                : new ConcurrentHashMap<>(formatParameters);
         this.advancedAttributes
             = ((advancedAttributes == null) || advancedAttributes.isEmpty())
                 ? EMPTY_FORMAT_PARAMETERS
-                : new HashMap<String, String>(advancedAttributes);
+                : new ConcurrentHashMap<>(advancedAttributes);
     }
 
     /**
@@ -392,7 +393,7 @@ public abstract class MediaFormatImpl<T extends Format>
      */
     public Map<String, String> getAdvancedAttributes()
     {
-        return new HashMap<String, String>(advancedAttributes);
+        return new HashMap<>(advancedAttributes);
     }
 
     /**
