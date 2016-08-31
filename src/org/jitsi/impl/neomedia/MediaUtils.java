@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 import javax.media.*;
 import javax.media.format.*;
@@ -53,7 +54,7 @@ public class MediaUtils
      * defined in RFC 3551.
      */
     private static final Map<String, String> jmfEncodingToEncodings
-        = new HashMap<String, String>();
+        = new ConcurrentHashMap<>();
 
     /**
      * The maximum number of channels for audio that is available through
@@ -86,7 +87,7 @@ public class MediaUtils
      */
     private static final Map<String, MediaFormat[]>
         rtpPayloadTypeStrToMediaFormats
-            = new HashMap<String, MediaFormat[]>();
+            = new ConcurrentHashMap<>();
 
     static
     {
