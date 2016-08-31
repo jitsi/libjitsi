@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.format;
 
 import java.awt.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 import javax.media.*;
 import javax.media.format.*;
@@ -64,7 +65,7 @@ public class ParameterizedVideoFormat
         this.fmtps
             = ((fmtps == null) || fmtps.isEmpty())
                 ? MediaFormatImpl.EMPTY_FORMAT_PARAMETERS
-                : new HashMap<String, String>(fmtps);
+                : new ConcurrentHashMap<>(fmtps);
     }
 
     /**
@@ -81,7 +82,7 @@ public class ParameterizedVideoFormat
         this.fmtps
             = ((fmtps == null) || fmtps.isEmpty())
                 ? MediaFormatImpl.EMPTY_FORMAT_PARAMETERS
-                : new HashMap<String, String>(fmtps);
+                : new ConcurrentHashMap<>(fmtps);
     }
 
     /**
@@ -145,7 +146,7 @@ public class ParameterizedVideoFormat
             fmtps
                 = ((pvfFmtps == null) || pvfFmtps.isEmpty())
                     ? MediaFormatImpl.EMPTY_FORMAT_PARAMETERS
-                    : new HashMap<String, String>(pvfFmtps);
+                    : new ConcurrentHashMap<>(pvfFmtps);
         }
     }
 
@@ -212,7 +213,7 @@ public class ParameterizedVideoFormat
      */
     public Map<String, String> getFormatParameters()
     {
-        return new HashMap<String, String>(fmtps);
+        return new HashMap<>(fmtps);
     }
 
     /**
