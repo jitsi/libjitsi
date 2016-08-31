@@ -22,6 +22,7 @@ import java.io.*;
 import java.security.*;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.*;
 
 import javax.media.*;
 import javax.media.control.*;
@@ -900,7 +901,7 @@ public class MediaServiceImpl
     {
         if(dynamicPayloadTypePreferences == null)
         {
-            dynamicPayloadTypePreferences = new HashMap<MediaFormat, Byte>();
+            dynamicPayloadTypePreferences = new ConcurrentHashMap<>();
 
             /*
              * Set the dynamicPayloadTypePreferences to their default values. If
