@@ -30,7 +30,7 @@ public class RTCPSenderInfoUtils
     /**
      * Gets the RTP timestamp.
      *
-     * @param buf the byte buffer that contains the RTCP header.
+     * @param buf the byte buffer that contains the RTCP sender info.
      * @param off the offset in the byte buffer where the RTCP sender info
      * starts.
      * @param len the number of bytes in buffer which constitute the actual
@@ -39,7 +39,7 @@ public class RTCPSenderInfoUtils
      */
     public static long getTimestamp(byte[] buf, int off, int len)
     {
-        if (buf == null || buf.length < off + Math.max(len, 12))
+        if (!isValid(buf, off, len))
         {
             return -1;
         }
@@ -50,7 +50,7 @@ public class RTCPSenderInfoUtils
     /**
      * Sets the RTP timestamp.
      *
-     * @param buf the byte buffer that contains the RTCP header.
+     * @param buf the byte buffer that contains the RTCP sender info.
      * @param off the offset in the byte buffer where the RTCP sender info
      * starts.
      * @param len the number of bytes in buffer which constitute the actual
@@ -62,7 +62,7 @@ public class RTCPSenderInfoUtils
     public static boolean setTimestamp(
         byte[] buf, int off, int len, long ts)
     {
-        if (buf == null || buf.length < off + Math.max(len, 12))
+        if (!isValid(buf, off, len))
         {
             return false;
         }
@@ -77,7 +77,7 @@ public class RTCPSenderInfoUtils
 
     /**
      *
-     * @param buf the byte buffer that contains the RTCP header.
+     * @param buf the byte buffer that contains the RTCP sender info.
      * @param off the offset in the byte buffer where the RTCP sender info
      * starts.
      * @param len the number of bytes in buffer which constitute the actual
@@ -93,5 +93,45 @@ public class RTCPSenderInfoUtils
         }
 
         return true;
+    }
+
+    /**
+     * Gets the NTP timestamp MSW.
+     *
+     * @param buf the byte buffer that contains the RTCP sender info.
+     * @param off the offset in the byte buffer where the RTCP sender info
+     * starts.
+     * @param len the number of bytes in buffer which constitute the actual
+     * data.
+     * @return the RTP timestamp, or -1 in case of an error.
+     */
+    public static long getNtpTimestampMSW(byte[] buf, int off, int len)
+    {
+        if (!isValid(buf, off, len))
+        {
+            return -1;
+        }
+
+        return RawPacket.readInt(buf, off, len) & 0xffffffffl;
+    }
+
+    /**
+     * Gets the NTP timestamp LSW.
+     *
+     * @param buf the byte buffer that contains the RTCP sender info.
+     * @param off the offset in the byte buffer where the RTCP sender info
+     * starts.
+     * @param len the number of bytes in buffer which constitute the actual
+     * data.
+     * @return the RTP timestamp, or -1 in case of an error.
+     */
+    public static long getNtpTimestampLSW(byte[] buf, int off, int len)
+    {
+        if (!isValid(buf, off, len))
+        {
+            return -1;
+        }
+
+        return RawPacket.readInt(buf, off + 4, len) & 0xffffffffl;
     }
 }

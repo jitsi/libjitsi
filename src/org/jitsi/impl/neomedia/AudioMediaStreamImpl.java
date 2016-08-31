@@ -784,6 +784,6 @@ public class AudioMediaStreamImpl
     @Override
     protected DiscardTransformEngine createDiscardEngine()
     {
-        return new DiscardTransformEngine();
+        return new DiscardTransformEngine(this);
     }
 }

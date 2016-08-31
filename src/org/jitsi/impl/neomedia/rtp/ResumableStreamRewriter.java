@@ -15,6 +15,7 @@
  */
 package org.jitsi.impl.neomedia.rtp;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.util.*;
@@ -29,21 +30,6 @@ import org.jitsi.util.*;
  */
 public class ResumableStreamRewriter
 {
-    /**
-     * The <tt>Logger</tt> used by the <tt>ResumableStreamRewriter</tt> class and
-     * its instances to print debug information.
-     */
-    private static final Logger logger
-        = Logger.getLogger(ResumableStreamRewriter.class);
-
-
-    /**
-     * The value of {@link Logger#isDebugEnabled()} from the time of the
-     * initialization of the class {@code ResumableStreamRewriter} cached
-     * for the purposes of performance.
-     */
-    private static final boolean DEBUG = logger.isDebugEnabled();
-
     /**
      * The sequence number delta between what's been accepted and what's been
      * received, mod 2^16.
@@ -65,6 +51,13 @@ public class ResumableStreamRewriter
      * The highest timestamp that got accepted, mod 2^32.
      */
     long highestTimestampSent = -1;
+
+    /**
+     * Keeps the 16 most significant bits of the extended sequence numbers. It
+     * increases 0x10000 every time a wrap-around is detected in the sequence
+     * numbers. This can be used to extend a given sequence number to 32 bits.
+     */
+    private int cycles = 0;
 
     /**
      * Ctor.
@@ -94,16 +87,73 @@ public class ResumableStreamRewriter
         this.highestSequenceNumberSent = highestSequenceNumberSent;
         this.highestTimestampSent = highestTimestampSent;
         this.timestampDelta = timestampDelta;
+    }
 
-        if (DEBUG)
-        {
-            logger.debug(
-                    "Creating ResumableStreamRewriter highestSequenceNumberSent="
-                    + highestSequenceNumberSent + ", seqnumDelta="
-                    + seqnumDelta + ", highestTimestampSent="
-                    + highestTimestampSent + ", timestampDelta="
-                    + timestampDelta);
-        }
+    /**
+     * Sets the highest sequence number that got accepted, mod 2^16.
+     *
+     * @param highestSequenceNumberSent the highest sequence number that got
+     * accepted, mod 2^16.
+     */
+    public void setHighestSequenceNumberSent(int highestSequenceNumberSent)
+    {
+        this.highestSequenceNumberSent = highestSequenceNumberSent;
+    }
+
+    /**
+     * Sets the seqnumDelta between what's been accepted and
+     * what's been received, mod 2^16.
+     *
+     * @param val the seqnumDelta between what's been accepted and
+     * what's been received, mod 2^16.
+     */
+    public void setSeqnumDelta(int val)
+    {
+        this.seqnumDelta = val;
+    }
+
+    /**
+     * Sets the highest timestamp that got accepted, mod 2^32.
+     *
+     * @param val The highest timestamp that got accepted, mod 2^32.
+     */
+    public void setHighestTimestampSent(long val)
+    {
+        this.highestTimestampSent = val;
+    }
+
+    /**
+     * Sets the timestamp delta between what's been accepted and what's been
+     * received, mod 2^32.
+     *
+     * @param val the timestamp delta between what's been accepted and what's
+     * been received, mod 2^32.
+     */
+    public void setTimestampDelta(long val)
+    {
+        this.timestampDelta = val;
+    }
+
+    /**
+     * Gets the highest timestamp that got accepted, mod 2^32.
+     *
+     * @return the highest timestamp that got accepted, mod 2^32.
+     */
+    public long getHighestTimestampSent()
+    {
+        return highestTimestampSent;
+    }
+
+    /**
+     * Gets the timestamp delta between what's been accepted and what's been
+     * received, mod 2^32.
+     *
+     * @return the timestamp delta between what's been accepted and what's been
+     * received, mod 2^32.
+     */
+    public long getTimestampDelta()
+    {
+        return timestampDelta;
     }
 
     /**
@@ -133,26 +183,12 @@ public class ResumableStreamRewriter
 
         if (sequenceNumber != newSequenceNumber)
         {
-            Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
-            if (DEBUG)
-            {
-                logger.debug("Rewriting RTP ssrc=" + ssrc
-                        + " sequenceNumber=" + sequenceNumber
-                        + ", newSequenceNumber=" + newSequenceNumber);
-            }
             RawPacket.setSequenceNumber(buf, off, newSequenceNumber);
             modified = true;
         }
 
         if (timestamp != newTimestamp)
         {
-            Long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
-            if (DEBUG)
-            {
-                logger.debug("Rewriting RTP ssrc=" + ssrc
-                        + " timestamp=" + timestamp
-                        + ", newTimestamp=" + newTimestamp);
-            }
             RawPacket.setTimestamp(buf, off, len, newTimestamp);
             modified = true;
         }
@@ -211,7 +247,9 @@ public class ResumableStreamRewriter
             return false;
         }
 
-        long ts = RTCPSenderInfoUtils.getTimestamp(buf, off, len);
+        long ts = RTCPSenderInfoUtils.getTimestamp(
+            buf, off + RTCPHeader.SIZE, len - RTCPHeader.SIZE);
+
         if (ts == -1)
         {
             return false;
@@ -221,13 +259,8 @@ public class ResumableStreamRewriter
             ? (ts - timestampDelta) & 0xffffffffL
             : (ts + timestampDelta) & 0xffffffffL;
 
-        if (DEBUG)
-        {
-            logger.debug("Rewriting RTCP timestamp=" + ts
-                    + ", newTimestamp=" + newTs);
-        }
-
-        boolean ret = RTCPSenderInfoUtils.setTimestamp(buf, off, len, newTs);
+        boolean ret = RTCPSenderInfoUtils.setTimestamp(
+            buf, off + RTCPHeader.SIZE, len - RTCPHeader.SIZE, newTs);
 
         return ret;
     }
@@ -253,6 +286,12 @@ public class ResumableStreamRewriter
             if (highestSequenceNumberSent == -1 || RTPUtils.sequenceNumberDiff(
                 newSequenceNumber, highestSequenceNumberSent) > 0)
             {
+                if (highestSequenceNumberSent != -1
+                    && newSequenceNumber - highestSequenceNumberSent < 0)
+                {
+                    cycles += 0x10000;
+                }
+
                 highestSequenceNumberSent = newSequenceNumber;
             }
 
@@ -316,5 +355,35 @@ public class ResumableStreamRewriter
 
             return timestamp;
         }
+    }
+
+    public int getSeqnumDelta()
+    {
+        return seqnumDelta;
+    }
+
+    public int getHighestSequenceNumberSent()
+    {
+        return highestSequenceNumberSent;
+    }
+
+    public int extendSequenceNumber(int seqnum) {
+        int cycles = this.cycles;
+        int maxseq = this.highestSequenceNumberSent;
+        int delta = seqnum - maxseq;
+
+        if (delta >= 0)
+        {
+            if (delta > 0x7FFF /* 2^15 - 1 =  32767 */)
+            {
+                cycles -= 0x10000 /* 2^16 = 65536 */;
+            }
+        }
+        else if (delta < -0x7FFF)
+        {
+            cycles += 0x10000;
+        }
+
+        return seqnum + cycles;
     }
 }

@@ -19,6 +19,8 @@ import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 import javax.media.*;
 import java.util.*;
@@ -37,10 +39,32 @@ public class DiscardTransformEngine
     implements TransformEngine
 {
     /**
+     * The <tt>Logger</tt> used by the <tt>DiscardTransformEngine</tt> class and
+     * its instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(DiscardTransformEngine.class);
+
+    /**
      * A map of source ssrc to {@link ResumableStreamRewriter}.
      */
     private final Map<Long, ResumableStreamRewriter> ssrcToRewriter
         = new HashMap<>();
+
+    /**
+     * The {@link MediaStream} that owns this instance.
+     */
+    private final MediaStream stream;
+
+    /**
+     * Ctor.
+     *
+     * @param stream the {@link MediaStream} that owns this instance.
+     */
+    public DiscardTransformEngine(MediaStream stream)
+    {
+        this.stream = stream;
+    }
 
     /**
      * The {@link PacketTransformer} for RTCP packets.
@@ -73,6 +97,14 @@ public class DiscardTransformEngine
             rewriter.rewriteRTP(
                 !dropPkt, pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
 
+            if (logger.isDebugEnabled())
+            {
+                logger.debug((dropPkt ? "discarding " : "passing through ")
+                    + " RTP ssrc=" + pkt.getSSRCAsLong() + ", seqnum="
+                    + pkt.getSequenceNumber() + ", ts=" + pkt.getTimestamp()
+                    + ", streamHashCode=" + stream.hashCode());
+            }
+
             return dropPkt ? null : pkt;
         }
     };
@@ -97,34 +129,33 @@ public class DiscardTransformEngine
             byte[] buf = pkt.getBuffer();
             int offset = pkt.getOffset(), length =  pkt.getLength();
 
-            while (length > 0)
+            // The correct thing to do here is a loop because the RTCP packet
+            // can be compound. However, in practice we haven't seen multiple
+            // SRs being bundled in the same compound packet, and we're only
+            // interested in SRs.
+
+            // Check RTCP packet validity. This makes sure that pktLen > 0
+            // so this loop will eventually terminate.
+            if (!RTCPHeaderUtils.isValid(buf, offset, length))
             {
-                // Check RTCP packet validity. This makes sure that pktLen > 0
-                // so this loop will eventually terminate.
-                if (!RTCPHeaderUtils.isValid(buf, offset, length))
+                return pkt;
+            }
+
+            int pktLen = RTCPHeaderUtils.getLength(buf, offset, length);
+
+            int pt = RTCPHeaderUtils.getPacketType(buf, offset, pktLen);
+            if (pt == RTCPPacket.SR)
+            {
+                long ssrc
+                    = RTCPHeaderUtils.getSenderSSRC(buf, offset, pktLen);
+
+                ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
+
+                if (rewriter != null)
                 {
-                    break;
+                    rewriter.processRTCP(
+                        true /* rewrite */, buf, offset, pktLen);
                 }
-
-                int pktLen = RTCPHeaderUtils.getLength(buf, offset, length);
-
-                int pt = RTCPHeaderUtils.getPacketType(buf, offset, pktLen);
-                if (pt == RTCPPacket.SR)
-                {
-                    long ssrc
-                        = RTCPHeaderUtils.getSenderSSRC(buf, offset, pktLen);
-
-                    ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
-
-                    if (rewriter != null)
-                    {
-                        rewriter.processRTCP(
-                            true /* rewrite */, buf, offset, pktLen);
-                    }
-                }
-
-                offset += pktLen;
-                length -= pktLen;
             }
 
             return pkt;

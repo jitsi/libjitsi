@@ -27,163 +27,6 @@ import org.jitsi.service.neomedia.*;
 public class RemoteClock
 {
     /**
-     * Finds the {@code MediaStream} which receives a specific SSRC.
-     *
-     * @param caller the {@code MediaStream} which is attempting to find the
-     * {@code MediaStream} which receives {@code receiveSSRC}
-     * @param receiveSSRC the SSRC which is supposedly received by the
-     * {@code MediaStream} to be returned
-     * @return the {@code MediaStream} which receives {@code receiveSSRC} or
-     * {@code null}
-     */
-    private static MediaStream findMediaStreamByReceiveSSRC(
-            MediaStream caller,
-            int receiveSSRC)
-    {
-        // RTPTranslator knows which MediaStream receives a specific SSRC.
-
-        RTPTranslator rtpTranslator = caller.getRTPTranslator();
-        MediaStream ret = null;
-
-        if (rtpTranslator != null)
-        {
-            StreamRTPManager streamRTPManager
-                = rtpTranslator.findStreamRTPManagerByReceiveSSRC(receiveSSRC);
-
-            if (streamRTPManager != null)
-                ret = streamRTPManager.getMediaStream();
-        }
-        return ret;
-    }
-
-    /**
-     * Finds the {@code MediaStreamImpl} which receives a specific SSRC.
-     *
-     * @param caller the {@code MediaStream} which is attempting to find the
-     * {@code MediaStreamImpl} which receives {@code receiveSSRC}
-     * @param receiveSSRC the SSRC which is supposedly received by the
-     * {@code MediaStreamImpl} to be returned
-     * @return the {@code MediaStreamImpl} which receives {@code receiveSSRC} or
-     * {@code null}
-     */
-    private static MediaStreamImpl findMediaStreamImplByReceiveSSRC(
-            MediaStream caller,
-            int receiveSSRC)
-    {
-        MediaStream ret = findMediaStreamByReceiveSSRC(caller, receiveSSRC);
-
-        return (ret instanceof MediaStreamImpl) ? (MediaStreamImpl) ret : null;
-    }
-
-    /**
-     * Finds a {@code RemoteClock} describing the wallclock and RTP timestamp
-     * (base) of a received RTP stream identified by a specific SSRC.
-     *
-     * @param caller the {@code MediaStream} which is looking for the
-     * {@code RemoteClock} of {@code ssrc}
-     * @param ssrc the SSRC of a received RTP stream whose {@code RemoteClock}
-     * is to be returned
-     * @return the {@code RemoteClock} of {@code ssrc} or {@code null}
-     */
-    public static RemoteClock findRemoteClock(MediaStream caller, int ssrc)
-    {
-        return findRemoteClocks(caller, ssrc)[0];
-    }
-
-    /**
-     * Finds the {@code RemoteClock}s describing the wallclocks and RTP
-     * timestamp bases of received RTP streams identified by specific SSRCs.
-     *
-     * @param caller the {@code MediaStream} which is looking for the
-     * {@code RemoteClock}s of {@code ssrcs}
-     * @param ssrcs the SSRCs of received RTP streams whose {@code RemoteClock}s
-     * are to be returned
-     * @return an array of the {@code RemoteClock}s of {@code ssrcs}. The
-     * elements at the same indices of the returned array and {@code ssrcs}
-     * correspond to one another.
-     */
-    public static RemoteClock[] findRemoteClocks(
-            MediaStream caller,
-            int... ssrcs)
-    {
-        RemoteClock[] clocks = new RemoteClock[ssrcs.length];
-
-        // MediaStreamImpl has an associated RemoteClockEstimator so check
-        // whether the caller itself knows about (some of) the RemoteClocks that
-        // it is asking after.
-        if (caller instanceof MediaStreamImpl
-                && findRemoteClocks((MediaStreamImpl) caller, ssrcs, clocks)
-                    >= ssrcs.length)
-        {
-            return clocks;
-        }
-
-        // Additionally, ask the MediaStreamImpls which are receiving the
-        // specified SSRCs.
-        for (int ssrc : ssrcs)
-        {
-            MediaStreamImpl mediaStream
-                = findMediaStreamImplByReceiveSSRC(caller, ssrc);
-
-            if (mediaStream != null
-                    && findRemoteClocks(mediaStream, ssrcs, clocks)
-                        >= ssrcs.length)
-            {
-                return clocks;
-            }
-        }
-
-        return clocks;
-    }
-    /**
-     * Finds the {@code RemoteClock}s describing the wallclocks and RTP
-     * timestamp bases of received RTP streams identified by specific SSRCs.
-     *
-     * @param caller the {@code MediaStream} which is looking for the
-     * {@code RemoteClock}s of {@code ssrcs}
-     * @param ssrcs the SSRCs of received RTP streams whose {@code RemoteClock}s
-     * are to be returned
-     * @param clocks an array of the {@code RemoteClock}s of {@code ssrcs}. The
-     * elements at the same indices of the returned array and {@code ssrcs}
-     * correspond to one another.
-     * @return the number of elements of {@code clocks} which are not
-     * {@code null}
-     */
-    private static int findRemoteClocks(
-            MediaStreamImpl caller, int[] ssrcs,
-            RemoteClock[] clocks)
-    {
-        RemoteClockEstimator remoteClockEstimator
-            = caller.getMediaStreamStats().getRemoteClockEstimator();
-        int nonNullClockCount = 0;
-
-        for (int i = 0; i < ssrcs.length; ++i)
-        {
-            if (clocks[i] == null)
-            {
-                RemoteClock clock
-                    = remoteClockEstimator.getRemoteClock(ssrcs[i]);
-
-                if (clock != null)
-                {
-                    clocks[i] = clock;
-                    ++nonNullClockCount;
-                }
-            }
-            else
-            {
-                ++nonNullClockCount;
-            }
-        }
-        return nonNullClockCount;
-    }
-
-    /**
-     * The SSRC.
-     */
-    private final int ssrc;
-
-    /**
      * The remote <tt>Timestamp</tt> which was received at
      * {@link #localReceiptTimeMs} for this RTP stream.
      */
@@ -196,24 +39,23 @@ public class RemoteClock
     private final long localReceiptTimeMs;
 
     /**
-     * The clock rate for {@link #ssrc}. We need to have received at least two
-     * SRs in order to be able to calculate this. Unsigned short.
+     * The clock rate for the ssrc that this clock pertains to. We need to have
+     * received at least two SRs in order to be able to calculate this. Unsigned
+     * short.
      */
     private final int frequencyHz;
 
     /**
      * Ctor.
      *
-     * @param ssrc
      * @param remoteTime the remote (system/wallclock) time in milliseconds
      * since the epoch
      * @param rtpTimestamp the RTP timestamp corresponding to
      * <tt>remoteTime</tt>.
      * @param frequencyHz the RTP clock rate.
      */
-    RemoteClock(int ssrc, long remoteTime, int rtpTimestamp, int frequencyHz)
+    RemoteClock(long remoteTime, int rtpTimestamp, int frequencyHz)
     {
-        this.ssrc = ssrc;
         this.remoteTimestamp = new Timestamp(remoteTime, rtpTimestamp);
         this.frequencyHz = frequencyHz;
         this.localReceiptTimeMs = System.currentTimeMillis();
@@ -257,11 +99,18 @@ public class RemoteClock
     {
         int frequencyHz = getFrequencyHz();
 
-        if (frequencyHz < 1000)
+        if (false && frequencyHz < 1000)
         {
             // We can't continue if (1) we don't have the sender's clock
             // frequency/rate or (2) the sender's clock frequency/rate is bellow
             // 1kHz.
+
+            // XXX unfortunately Chrome is sending RTCP with RTP timestamps that
+            // are not proportional to the wallclock. This results in
+            // frequencies that are lower than 1000. We have even observed
+            // negative frequencies. This is clearly a bug in the webrtc code
+            // that we need to take into account here. We keep this code here
+            // as a reminder to the situation.
             return null;
         }
 
@@ -286,11 +135,18 @@ public class RemoteClock
     {
         int frequencyHz = getFrequencyHz();
 
-        if (frequencyHz < 1000)
+        if (false && frequencyHz < 1000)
         {
             // We can't continue if (1) we don't have the sender's clock
             // frequency/rate or (2) the sender's clock frequency/rate is bellow
             // 1kHz.
+
+            // XXX unfortunately Chrome is sending RTCP with RTP timestamps that
+            // are not proportional to the wallclock. This results in
+            // frequencies that are lower than 1000. We have even observed
+            // negative frequencies. This is clearly a bug in the webrtc code
+            // that we need to take into account here. We keep this code here
+            // as a reminder to the situation.
             return null;
         }
 
@@ -327,15 +183,6 @@ public class RemoteClock
     public long getLocalReceiptTimeMs()
     {
         return localReceiptTimeMs;
-    }
-
-    /**
-     *
-     * @return
-     */
-    public int getSsrc()
-    {
-        return ssrc;
     }
 
     /**

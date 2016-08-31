@@ -24,6 +24,7 @@ import javax.media.protocol.*;
 import javax.media.rtp.*;
 
 import net.sf.fmj.media.rtp.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.*;
 
@@ -60,6 +61,13 @@ public class StreamRTPManager
         = new HashMap<>();
 
     /**
+     * The {@code RemoteClockEstimator} which tracks the remote (wall)clocks and
+     * RTP timestamps of the RTP streams received by the associated
+     * {@link #stream}.
+     */
+    private final RemoteClockEstimator _remoteClockEstimator;
+
+    /**
      * Initializes a new <tt>StreamRTPManager</tt> instance which is,
      * optionally, attached to a specific <tt>RTPTranslator</tt> which is to
      * forward the RTP and RTCP flows of the associated <tt>MediaStream</tt> to
@@ -75,8 +83,31 @@ public class StreamRTPManager
     {
         this.stream = stream;
         this.translator = (RTPTranslatorImpl) translator;
+        this._remoteClockEstimator = new RemoteClockEstimator(this);
 
         manager = (this.translator == null) ? RTPManager.newInstance() : null;
+    }
+
+    public RemoteClock[] findRemoteClocks(long... ssrcs)
+    {
+        RemoteClock[] clocks = new RemoteClock[ssrcs.length];
+
+        for (int i = 0; i < ssrcs.length; ++i)
+        {
+            RemoteClock clock
+                = _remoteClockEstimator.getRemoteClock(ssrcs[i]);
+
+            if (clock != null)
+            {
+                clocks[i] = clock;
+            }
+        }
+        return clocks;
+    }
+
+    public RemoteClock findRemoteClock(long ssrc)
+    {
+        return findRemoteClocks(ssrc)[0];
     }
 
     public void addFormat(Format format, int payloadType)
@@ -138,19 +169,6 @@ public class StreamRTPManager
     }
 
     /**
-     * Associates the specified SSRC with the specified
-     * {@link ResumableStreamRewriter} in this map.
-     *
-     * @param ssrc SSRC with which the specified rewriter is to be associated.
-     * @param rewriter rewriter to be associated with the specified SSRC.
-     */
-    public void putResumableStreamRewriter(
-        Long ssrc, ResumableStreamRewriter rewriter)
-    {
-        ssrcToRewriter.put(ssrc, rewriter);
-    }
-
-    /**
      * Gets the {@link ResumableStreamRewriter} that is associated to the SSRC
      * passed as a parameter. If there's no {@link ResumableStreamRewriter}
      * associated with that SSRC and the create flag is set to true, then a new
@@ -158,18 +176,14 @@ public class StreamRTPManager
      *
      * @param ssrc the SSRC whose associated {@link ResumableStreamRewriter} is
      * to be returned.
-     * @param create If there's no {@link ResumableStreamRewriter}
-     * associated with the SSRC and this flag is true then a new
-     * {@link ResumableStreamRewriter} will be created.
      *
      * @return the {@link ResumableStreamRewriter} that is associated to the
      * SSRC parameter
      */
-    public ResumableStreamRewriter getResumableStreamRewriter(Long ssrc,
-                                                              boolean create)
+    public ResumableStreamRewriter getResumableStreamRewriter(Long ssrc)
     {
         ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
-        if (rewriter == null && create)
+        if (rewriter == null)
         {
             rewriter = new ResumableStreamRewriter();
             ssrcToRewriter.put(ssrc, rewriter);
@@ -382,5 +396,10 @@ public class StreamRTPManager
         return translator != null
             ? translator.getSSRCCache()
             : ((RTPSessionMgr) manager).getSSRCCache();
+    }
+
+    public RemoteClockEstimator getRemoteClockEstimator()
+    {
+        return _remoteClockEstimator;
     }
 }

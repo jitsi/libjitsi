@@ -860,14 +860,23 @@ public class BasicRTCPTerminationStrategy
         for (RTPStatsEntry rtpStatsEntry : rtpStatsMap.values())
         {
             int ssrc = rtpStatsEntry.getSsrc();
-            RemoteClock remoteClock
-                = RemoteClock.findRemoteClock(mediaStream, ssrc);
+            RemoteClock remoteClock = mediaStream.getStreamRTPManager()
+                .findRemoteClock(ssrc & 0xffffffffl);
+
+            if (remoteClock == null)
+            {
+                logger.warn("We're not going to go far without a remote clock. "
+                    + "ssrc=" + (ssrc & 0xffffffffl)
+                    + ", streamHashCode=" + mediaStream.hashCode());
+                continue;
+            }
             Timestamp remoteTs;
 
-            if (remoteClock == null
-                    || (remoteTs = remoteClock.estimate(time)) == null)
+            if ((remoteTs = remoteClock.estimate(time)) == null)
             {
-                // We're not going to go far without an estimate.
+                logger.warn("We're not going to go far without an estimate. "
+                    + "ssrc=" + (ssrc & 0xffffffffl)
+                    + ", streamHashCode=" + mediaStream.hashCode());
                 continue;
             }
 

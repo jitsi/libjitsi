@@ -38,7 +38,7 @@ public class RTCPHeaderUtils
      */
     public static int getPacketType(byte[] buf, int off, int len)
     {
-        if (buf == null || buf.length < off + Math.max(len, 2))
+        if (!isValid(buf, off, len))
         {
             return -1;
         }
@@ -57,7 +57,7 @@ public class RTCPHeaderUtils
      */
     public static long getSenderSSRC(byte[] buf, int off, int len)
     {
-        if (buf == null || buf.length < off + Math.max(len, 8))
+        if (!isValid(buf, off, len))
         {
             return -1;
         }
@@ -76,6 +76,7 @@ public class RTCPHeaderUtils
      */
     public static int getLength(byte[] buf, int off, int len)
     {
+        // XXX Do not check with isValid.
         if (buf == null || buf.length < off + Math.max(len, 4))
         {
             return -1;
@@ -98,6 +99,7 @@ public class RTCPHeaderUtils
      */
     public static int getVersion(byte[] buf, int off, int len)
     {
+        // XXX Do not check with isValid.
         if (buf == null || buf.length < off + Math.max(len, 1))
         {
             return -1;

@@ -92,8 +92,8 @@ class ExtendedSequenceNumberInterval
     {
         public boolean test(REDBlock redBlock)
         {
-            Map<Integer, Byte> ssrc2fec = getSsrcRewritingEngine().ssrc2fec;
-            int sourceSSRC = ssrcRewriter.getSourceSSRC();
+            Map<Long, Byte> ssrc2fec = getSsrcRewritingEngine().ssrc2fec;
+            long sourceSSRC = ssrcRewriter.getSourceSSRC();
             return redBlock != null
                 && ssrc2fec.get(sourceSSRC) == redBlock.getPayloadType();
         }
@@ -164,9 +164,9 @@ class ExtendedSequenceNumberInterval
     {
         // SSRC
         SsrcGroupRewriter ssrcGroupRewriter = getSsrcGroupRewriter();
-        int ssrcTarget = ssrcGroupRewriter.getSSRCTarget();
+        long ssrcTarget = ssrcGroupRewriter.getSSRCTarget();
 
-        pkt.setSSRC(ssrcTarget);
+        pkt.setSSRC((int) ssrcTarget);
 
         // Sequence number
         int seqnum = pkt.getSequenceNumber();
@@ -181,7 +181,9 @@ class ExtendedSequenceNumberInterval
             if (DEBUG)
             {
                 logger.debug(
-                    "Dropping a packet outside this interval: " + pkt);
+                    "Dropping a packet outside this interval: " + pkt
+                        + ", streamHashCode=" + ssrcGroupRewriter
+                        .ssrcRewritingEngine.getMediaStream().hashCode());
             }
             return null;
         }
@@ -192,9 +194,9 @@ class ExtendedSequenceNumberInterval
 
         SsrcRewritingEngine ssrcRewritingEngine
             = ssrcGroupRewriter.ssrcRewritingEngine;
-        Map<Integer, Integer> rtx2primary = ssrcRewritingEngine.rtx2primary;
-        int sourceSSRC = ssrcRewriter.getSourceSSRC();
-        Integer primarySSRC = rtx2primary.get(sourceSSRC);
+        Map<Long, Long> rtx2primary = ssrcRewritingEngine.rtx2primary;
+        long sourceSSRC = ssrcRewriter.getSourceSSRC();
+        Long primarySSRC = rtx2primary.get(sourceSSRC);
 
         if (primarySSRC == null)
             primarySSRC = sourceSSRC;
@@ -247,8 +249,8 @@ class ExtendedSequenceNumberInterval
     {
         // This is an RTX packet. Replace RTX OSN field or drop.
         SsrcRewritingEngine ssrcRewritingEngine = getSsrcRewritingEngine();
-        int sourceSSRC = ssrcRewriter.getSourceSSRC();
-        int ssrcOrig = ssrcRewritingEngine.rtx2primary.get(sourceSSRC);
+        long sourceSSRC = ssrcRewriter.getSourceSSRC();
+        long ssrcOrig = ssrcRewritingEngine.rtx2primary.get(sourceSSRC);
         int snOrig = pkt.getOriginalSequenceNumber();
 
         SsrcGroupRewriter rewriterPrimary
@@ -289,17 +291,21 @@ class ExtendedSequenceNumberInterval
      * @return {@code true} if the RED was successfully rewritten;
      * {@code false}, otherwise
      */
-    private boolean rewriteRED(int primarySSRC, byte[] buf, int off, int len)
+    private boolean rewriteRED(long primarySSRC, byte[] buf, int off, int len)
     {
         if (buf == null || buf.length == 0)
         {
-            logger.warn("The buffer is empty.");
+            logger.warn("The buffer is empty."
+                + ", streamHashCode=" + ssrcRewriter.ssrcGroupRewriter
+                .ssrcRewritingEngine.getMediaStream().hashCode());
             return false;
         }
 
         if (buf.length < off + len)
         {
-            logger.warn("The buffer is invalid.");
+            logger.warn("The buffer is invalid."
+                + ", streamHashCode=" + ssrcRewriter.ssrcGroupRewriter
+                .ssrcRewritingEngine.getMediaStream().hashCode());
             return false;
         }
 
@@ -328,16 +334,20 @@ class ExtendedSequenceNumberInterval
      * @return {@code true} if the FEC was successfully rewritten;
      * {@code false}, otherwise
      */
-    private boolean rewriteFEC(int sourceSSRC, byte[] buf, int off, int len)
+    private boolean rewriteFEC(long sourceSSRC, byte[] buf, int off, int len)
     {
         if (buf == null || buf.length == 0)
         {
-            logger.warn("The buffer is empty.");
+            logger.warn("The buffer is empty."
+                + ", streamHashCode=" + ssrcRewriter.ssrcGroupRewriter
+                .ssrcRewritingEngine.getMediaStream().hashCode());
             return false;
         }
         if ((buf.length < off + len) || (len < 4))
         {
-            logger.warn("The buffer is invalid.");
+            logger.warn("The buffer is invalid."
+                + ", streamHashCode=" + ssrcRewriter.ssrcGroupRewriter
+                .ssrcRewritingEngine.getMediaStream().hashCode());
             return false;
         }
 
@@ -361,14 +371,18 @@ class ExtendedSequenceNumberInterval
         {
             logger.info(
                     "We could not find a sequence number interval for a FEC"
-                        + " packet.");
+                        + " packet." +  ", streamHashCode=" + ssrcRewriter
+                        .ssrcGroupRewriter.ssrcRewritingEngine
+                        .getMediaStream().hashCode());
             return false;
         }
 
         if (TRACE)
         {
             logger.trace("Rewriting FEC packet SN base "
-                + snBase + " to " + snRewritenBase);
+                + snBase + " to " + snRewritenBase +  ", streamHashCode="
+                + ssrcRewriter.ssrcGroupRewriter.ssrcRewritingEngine
+                .getMediaStream().hashCode());
         }
 
         buf[off + 2] = (byte) (snRewritenBase & 0xff00 >> 8);

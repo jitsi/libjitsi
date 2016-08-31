@@ -17,8 +17,8 @@ package org.jitsi.impl.neomedia.rtcp;
 
 import java.util.*;
 import java.util.concurrent.*;
-import javax.media.rtp.rtcp.*;
 import net.sf.fmj.media.rtp.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -32,152 +32,156 @@ import org.jitsi.util.*;
 public class RemoteClockEstimator
 {
     /**
+     * The <tt>Logger</tt> used by the <tt>RemoteClockEstimator</tt> class and
+     * its instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(RemoteClockEstimator.class);
+
+    /**
      * The {@link MediaType} of the SSRCs tracked by this instance. If
      * non-{@code null}, may provide hints to this instance such as video
      * defaulting to a clock frequency/rate of 90kHz.
      */
     private final MediaType _mediaType;
 
+    private final StreamRTPManager streamRTPManager;
+
     /**
      * A {@code Map} of the (received) {@code RemoteClock}s by synchronization
      * source identifier (SSRC).
      */
-    private final Map<Integer, RemoteClock> remoteClocks
+    private final Map<Long, RemoteClock> remoteClocks
         = new ConcurrentHashMap<>();
-
-    /**
-     * Initializes a new {@code RemoteClockEstimator} without a
-     * {@code MediaType}.
-     */
-    public RemoteClockEstimator()
-    {
-        this(null);
-    }
 
     /**
      * Initializes a new {@code RemoteClockEstimator} with a specific
      * {@code MediaType}.
      *
-     * @param mediaType the {@code MediaType} to initialize the new instance
-     * with. It may be used by the implementation as a hint to the default clock
-     * frequency/rate.
+     * @param streamRTPManager the {@link MediaStream} that owns this instance.
      */
-    public RemoteClockEstimator(MediaType mediaType)
+    public RemoteClockEstimator(StreamRTPManager streamRTPManager)
     {
-        _mediaType = mediaType;
-    }
-
-    /**
-     * Inspect an <tt>RTCPCompoundPacket</tt> and build up the state for future
-     * estimations.
-     *
-     * @param compound
-     */
-    public void update(RTCPCompoundPacket compound)
-    {
-        RTCPPacket[] rtcps;
-
-        if (compound == null
-                || (rtcps = compound.packets) == null
-                || rtcps.length == 0)
+        this.streamRTPManager = streamRTPManager;
+        if (streamRTPManager.getMediaStream() instanceof VideoMediaStream)
         {
-            return;
+            _mediaType = MediaType.VIDEO;
         }
-
-        for (RTCPPacket rtcp : rtcps)
+        else
         {
-            switch (rtcp.type)
-            {
-            case RTCPPacket.SR:
-                update((RTCPSRPacket) rtcp);
-                break;
-            }
+            _mediaType = MediaType.AUDIO;
         }
-    }
-
-    /**
-     * Inspects an {@code RTCPSRPacket} and builds up the state for future
-     * estimations.
-     *
-     * @param sr
-     */
-    public void update(RTCPSRPacket sr)
-    {
-        update(
-                sr.ssrc,
-                sr.ntptimestampmsw, sr.ntptimestamplsw,
-                sr.rtptimestamp);
-    }
-
-    /**
-     * Inspects a {@code SenderReport} and builds up the state for future
-     * estimations.
-     *
-     * @param sr
-     */
-    public void update(SenderReport sr)
-    {
-        update(
-                (int) sr.getSSRC(),
-                sr.getNTPTimeStampMSW(), sr.getNTPTimeStampLSW(),
-                sr.getRTPTimeStamp());
     }
 
     /**
      * Adds a {@code RemoteClock} for an RTP stream identified by a specific
      * SSRC.
-     *
-     * @param ssrc the SSRC of the RTP stream whose {@code RemoteClock} is to be
-     * added
-     * @param ntptimestampmsw
-     * @param ntptimestamplsw
-     * @param rtptimestamp
      */
-    private void update(
-            int ssrc,
-            long ntptimestampmsw, long ntptimestamplsw,
-            long rtptimestamp)
+    public void update(byte[] buf, int off, int len)
     {
-        long systemTimeMs
-            = TimeUtils.getTime(
-                    TimeUtils.constuctNtp(ntptimestampmsw, ntptimestamplsw));
+        long ssrc
+            = RTCPHeaderUtils.getSenderSSRC(buf, off, len);
+
+        if (ssrc == -1)
+        {
+            logger.warn("Failed to update the remote clock. Failed to read " +
+                "the SSRC. streamHashCode="
+                + streamRTPManager.getMediaStream().hashCode());
+            return;
+        }
+
+        int pktLen = RTCPHeaderUtils.getLength(buf, off, len);
+        if (pktLen == -1)
+        {
+            logger.warn("Failed to update the remote clock. The RTCP SR length"
+                + " is invalid. streamHashCode="
+                + streamRTPManager.getMediaStream().hashCode());
+            return;
+        }
+
+        if (!RTCPSenderInfoUtils.isValid(
+            buf, off + RTCPHeader.SIZE, len - RTCPHeader.SIZE))
+        {
+            logger.warn("Failed to update the remote clock. The RTCP sender" +
+                " info section is invalid. streamHashCode="
+                + streamRTPManager.getMediaStream().hashCode());
+            return;
+        }
+
+        long rtptimestamp = RTCPSenderInfoUtils.getTimestamp(
+            buf, off + RTCPHeader.SIZE, pktLen - RTCPHeader.SIZE);
+        long ntptimestampmsw = RTCPSenderInfoUtils.getNtpTimestampMSW(
+            buf, off + RTCPHeader.SIZE, pktLen - RTCPHeader.SIZE);
+        long ntptimestamplsw = RTCPSenderInfoUtils.getNtpTimestampLSW(
+            buf, off + RTCPHeader.SIZE, pktLen - RTCPHeader.SIZE);
+
+        long systemTimeMs = TimeUtils.getTime(
+            TimeUtils.constuctNtp(ntptimestampmsw, ntptimestamplsw));
 
         // Estimate the clock frequency/rate of the sender.
         int frequencyHz;
 
-        if (MediaType.VIDEO.equals(_mediaType))
+        RemoteClock oldClock = remoteClocks.get(ssrc);
+        if (oldClock != null)
         {
-            // XXX Don't calculate the clock frequency/rate for video because it
-            // is easier and less error prone (e.g. there is no need to deal
-            // with rounding).
-            frequencyHz = 90 * 1000;
+            // Calculate the clock frequency/rate.
+            Timestamp oldTs = oldClock.getRemoteTimestamp();
+            long rtpTimestampDiff
+                = rtptimestamp - oldTs.getRtpTimestampAsLong();
+            long systemTimeMsDiff = systemTimeMs - oldTs.getSystemTimeMs();
+
+            frequencyHz = Math.round(
+                (float) (rtpTimestampDiff * 1000)/ systemTimeMsDiff);
+
+            if (frequencyHz < 1)
+            {
+                /**
+                 * It has been observed that sometimes Chrome is sending RTCP
+                 * SRs with RTP timestamps that are not monotonically
+                 * increasing, while the NTP timestamps do increase
+                 * monotonically. This messes up our frequency calculation. Here
+                 * we detect this situation and not take into account these
+                 * data points.
+                 */
+
+                logger.warn("Not updating remote clock because the timestamp "
+                    + "point is invalid. ssrc=" + ssrc
+                    + ", systemTime=" + new Date(systemTimeMs)
+                    + ", systemTimeMs=" + systemTimeMs
+                    + ", rtpTimestamp=" + rtptimestamp
+                    + ", frequencyHz=" + frequencyHz
+                    + ", streamHashCode="
+                    + streamRTPManager.getMediaStream().hashCode());
+                return;
+            }
         }
         else
         {
-            RemoteClock oldClock = remoteClocks.get(ssrc);
-
-            if (oldClock != null)
+            if (MediaType.VIDEO.equals(_mediaType))
             {
-                // Calculate the clock frequency/rate.
-                Timestamp oldTs = oldClock.getRemoteTimestamp();
-                long rtpTimestampDiff
-                    = rtptimestamp - oldTs.getRtpTimestampAsLong();
-                long systemTimeMsDiff = systemTimeMs - oldTs.getSystemTimeMs();
-
-                frequencyHz
-                    = Math.round((float) rtpTimestampDiff / systemTimeMsDiff);
+                frequencyHz = 90 * 1000;
             }
             else
             {
-                frequencyHz = -1;
+                frequencyHz = 48 * 1000;
             }
+        }
+
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Updating the remote clock ssrc=" + ssrc
+                + ", systemTime=" + new Date(systemTimeMs)
+                + ", systemTimeMs=" + systemTimeMs
+                + ", rtpTimestamp=" + rtptimestamp
+                + ", frequencyHz=" + frequencyHz
+                + ", streamHashCode="
+                + streamRTPManager.getMediaStream().hashCode());
         }
 
         // Replace whatever was in there before.
         remoteClocks.put(
                 ssrc,
                 new RemoteClock(
-                        ssrc,
                         systemTimeMs,
                         (int) rtptimestamp,
                         frequencyHz));
@@ -192,7 +196,7 @@ public class RemoteClockEstimator
      * @return the {@code RemoteClock} of the RTP stream identified by
      * {@code ssrc} or {@code null}
      */
-    public RemoteClock getRemoteClock(int ssrc)
+    public RemoteClock getRemoteClock(long ssrc)
     {
         return remoteClocks.get(ssrc);
     }
@@ -208,7 +212,7 @@ public class RemoteClockEstimator
      * @return an estimation of the remote {@code Timestamp} of {@code ssrc} at
      * time {@code localTimeMs}.
      */
-    public Timestamp estimate(int ssrc, long localTimeMs)
+    public Timestamp estimate(long ssrc, long localTimeMs)
     {
         RemoteClock remoteClock = getRemoteClock(ssrc);
 
