@@ -20,6 +20,7 @@ import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.util.*;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * @author Boris Grozev
@@ -51,13 +52,13 @@ public class SynchronizerImpl
      * Maps an SSRC to the <tt>SSRCDesc</tt> structure containing information
      * about it.
      */
-    private Map<Long, SSRCDesc> ssrcs = new HashMap<Long, SSRCDesc>();
+    private final Map<Long, SSRCDesc> ssrcs = new ConcurrentHashMap<>();
 
     /**
      * Maps an endpoint identifier to an <tt>Endpoint</tt> structure containing
      * information about the endpoint.
      */
-    private Map<String, Endpoint> endpoints = new HashMap<String, Endpoint>();
+    private final Map<String, Endpoint> endpoints = new ConcurrentHashMap<>();
 
     /**
      * {@inheritDoc}
@@ -299,20 +300,16 @@ public class SynchronizerImpl
      */
     private SSRCDesc getSSRCDesc(long ssrc)
     {
-        SSRCDesc ssrcDesc = ssrcs.get(ssrc);
-        if (ssrcDesc == null)
+        synchronized (ssrcs)
         {
-            synchronized (ssrcs)
+            SSRCDesc ssrcDesc = ssrcs.get(ssrc);
+            if (ssrcDesc == null)
             {
-                ssrcDesc = ssrcs.get(ssrc);
-                if (ssrcDesc == null)
-                {
-                    ssrcDesc = new SSRCDesc();
-                    ssrcs.put(ssrc, ssrcDesc);
-                }
+                ssrcDesc = new SSRCDesc();
+                ssrcs.put(ssrc, ssrcDesc);
             }
+            return ssrcDesc;
         }
-        return ssrcDesc;
     }
 
     /**
@@ -324,21 +321,16 @@ public class SynchronizerImpl
      */
     private Endpoint getEndpoint(String endpointId)
     {
-        Endpoint endpoint = endpoints.get(endpointId);
-        if (endpoint == null)
+        synchronized (endpoints)
         {
-            synchronized (endpoints)
+            Endpoint endpoint = endpoints.get(endpointId);
+            if (endpoint == null)
             {
-                endpoint = endpoints.get(endpointId);
-                if (endpoint == null)
-                {
-                    endpoint = new Endpoint();
-                    endpoints.put(endpointId, endpoint);
-                }
+                endpoint = new Endpoint();
+                endpoints.put(endpointId, endpoint);
             }
+            return endpoint;
         }
-
-        return endpoint;
     }
 
     /**
@@ -457,18 +449,15 @@ public class SynchronizerImpl
      */
     void removeMapping(long ssrc)
     {
-        if (ssrcs.containsKey(ssrc))
+        synchronized (ssrcs)
         {
-            synchronized (ssrcs)
+            SSRCDesc ssrcDesc = ssrcs.get(ssrc);
+            if (ssrcDesc != null)
             {
-                SSRCDesc ssrcDesc = ssrcs.get(ssrc);
-                if (ssrcDesc != null)
+                synchronized (ssrcDesc)
                 {
-                    synchronized (ssrcDesc)
-                    {
-                        ssrcDesc.ntpTime = -1.0;
-                        ssrcDesc.rtpTime = -1;
-                    }
+                    ssrcDesc.ntpTime = -1.0;
+                    ssrcDesc.rtpTime = -1;
                 }
             }
         }
