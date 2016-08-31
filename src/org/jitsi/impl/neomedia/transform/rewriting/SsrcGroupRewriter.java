@@ -17,6 +17,8 @@ package org.jitsi.impl.neomedia.transform.rewriting;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
+
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.video.vp8.*;
@@ -66,7 +68,8 @@ class SsrcGroupRewriter
      * A map of SSRCs to <tt>SsrcRewriter</tt>. Each SSRC that we rewrite in
      * this group rewriter has its own rewriter.
      */
-    private final Map<Integer, SsrcRewriter> rewriters = new HashMap<>();
+    private final Map<Integer, SsrcRewriter> rewriters
+        = new ConcurrentHashMap<>();
 
     /**
      * The owner of this instance.
