@@ -170,9 +170,23 @@ public class FECTransformEngine
     @Override
     public void close()
     {
-        for (FECReceiver fecReceiver : fecReceivers.values())
+        Collection<FECReceiver> receivers;
+        Collection<FECSender> senders;
+
+        synchronized (fecReceivers)
+        {
+            receivers = fecReceivers.values();
+            fecReceivers.clear();
+        }
+        synchronized (fecSenders)
+        {
+            senders = fecSenders.values();
+            fecSenders.clear();
+        }
+
+        for (FECReceiver fecReceiver : receivers)
             fecReceiver.close();
-        for (FECSender fecSender : fecSenders.values())
+        for (FECSender fecSender : senders)
             fecSender.close();
     }
 
