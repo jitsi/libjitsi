@@ -52,13 +52,14 @@ public class DiscardTransformEngine
         = new HashMap<>();
 
     /**
-     *
+     * The {@link MediaStream} that owns this instance.
      */
     private final MediaStream stream;
 
     /**
+     * Ctor.
      *
-     * @param stream
+     * @param stream the {@link MediaStream} that owns this instance.
      */
     public DiscardTransformEngine(MediaStream stream)
     {

@@ -107,7 +107,7 @@ class SsrcRewriter
     };
 
     /*
-     * 
+     * Keeps the last item added in the {@link tsHistory}.
      */
     private TimestampEntry maxSourceTsEntry;
 

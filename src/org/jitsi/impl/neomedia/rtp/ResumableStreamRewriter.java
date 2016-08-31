@@ -52,6 +52,11 @@ public class ResumableStreamRewriter
      */
     long highestTimestampSent = -1;
 
+    /**
+     * Keeps the 16 most significant bits of the extended sequence numbers. It
+     * increases 0x10000 every time a wrap-around is detected in the sequence
+     * numbers. This can be used to extend a given sequence number to 32 bits.
+     */
     private int cycles = 0;
 
     /**
