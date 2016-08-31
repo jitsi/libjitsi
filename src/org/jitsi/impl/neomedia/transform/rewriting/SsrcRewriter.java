@@ -440,8 +440,11 @@ class SsrcRewriter
                     .ssrcRewritingEngine.getMediaStream().hashCode());
             }
 
-            tsHistory.put(oldValue, new TimestampEntry(now, oldValue, newValue));
-            maxSourceTsEntry = new TimestampEntry(now, oldValue, newValue);
+            TimestampEntry newTsEntry
+                = new TimestampEntry(now, oldValue, newValue);
+
+            tsHistory.put(oldValue, newTsEntry);
+            maxSourceTsEntry = newTsEntry;
         }
     }
 
