@@ -367,12 +367,20 @@ public class MediaUtils
 
         for (MediaFormat[] mediaFormats
                 : rtpPayloadTypeStrToMediaFormats.values())
+        {
             for (MediaFormat mediaFormat : mediaFormats)
+            {
                 if (MediaType.AUDIO.equals(mediaFormat.getMediaType()))
+                {
                     audioMediaFormats.add(mediaFormat);
+                }
+            }
+        }
         for (MediaFormat mediaFormat : rtpPayloadTypelessMediaFormats)
+        {
             if (MediaType.AUDIO.equals(mediaFormat.getMediaType()))
                 audioMediaFormats.add(mediaFormat);
+        }
 
         int maxAudioChannels = Format.NOT_SPECIFIED;
         double maxAudioSampleRate = Format.NOT_SPECIFIED;
