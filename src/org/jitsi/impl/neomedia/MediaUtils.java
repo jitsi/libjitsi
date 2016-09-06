@@ -53,7 +53,7 @@ public class MediaUtils
      * defined in RFC 3551.
      */
     private static final Map<String, String> jmfEncodingToEncodings
-        = new HashMap<String, String>();
+        = new HashMap<>();
 
     /**
      * The maximum number of channels for audio that is available through
@@ -78,7 +78,7 @@ public class MediaUtils
      * RFC 3551 and are thus referred to as having dynamic RTP payload types.
      */
     private static final List<MediaFormat> rtpPayloadTypelessMediaFormats
-        = new ArrayList<MediaFormat>();
+        = new ArrayList<>();
 
     /**
      * The <tt>Map</tt> of RTP payload types (expressed as <tt>String</tt>s) to
@@ -86,7 +86,7 @@ public class MediaUtils
      */
     private static final Map<String, MediaFormat[]>
         rtpPayloadTypeStrToMediaFormats
-            = new HashMap<String, MediaFormat[]>();
+            = new HashMap<>();
 
     static
     {
@@ -103,8 +103,7 @@ public class MediaUtils
          */
         if (OSUtils.IS_LINUX32 || OSUtils.IS_WINDOWS32)
         {
-            Map<String, String> g723FormatParams
-                = new HashMap<String, String>();
+            Map<String, String> g723FormatParams = new HashMap<>();
             g723FormatParams.put("annexa", "no");
             g723FormatParams.put("bitrate", "6.3");
             addMediaFormats(
@@ -149,8 +148,7 @@ public class MediaUtils
             8000);
         if (EncodingConfigurationImpl.G729)
         {
-            Map<String, String> g729FormatParams
-                = new HashMap<String, String>();
+            Map<String, String> g729FormatParams = new HashMap<>();
             g729FormatParams.put("annexb", "no");
 
             addMediaFormats(
@@ -201,7 +199,7 @@ public class MediaUtils
                 null,
                 8000, 12000, 16000, 24000);
 
-        Map<String, String> opusFormatParams = new HashMap<String,String>();
+        Map<String, String> opusFormatParams = new HashMap<>();
         boolean opusFec = cfg.getBoolean(Constants.PROP_OPUS_FEC, true);
         if (!opusFec)
         {
@@ -214,8 +212,7 @@ public class MediaUtils
         }
         //opusFormatParams.put("minptime", "10");
 
-        Map<String, String> opusAdvancedParams
-                = new HashMap<String, String>();
+        Map<String, String> opusAdvancedParams = new HashMap<>();
         String packetizationTime = Constants.PTIME;
         opusAdvancedParams.put(packetizationTime, "20");
 
@@ -258,12 +255,10 @@ public class MediaUtils
          */
 
         /* H264 */
-        Map<String, String> h264FormatParams
-            = new HashMap<String, String>();
+        Map<String, String> h264FormatParams = new HashMap<>();
         String packetizationMode
             = VideoMediaFormatImpl.H264_PACKETIZATION_MODE_FMTP;
-        Map<String, String> h264AdvancedAttributes
-            = new HashMap<String, String>();
+        Map<String, String> h264AdvancedAttributes = new HashMap<>();
 
         /*
          * Disable PLI because the periodic intra-refresh feature of FFmpeg/x264
@@ -366,7 +361,7 @@ public class MediaUtils
 
         // Calculate the values of the MAX_AUDIO_* static fields of MediaUtils.
         List<MediaFormat> audioMediaFormats
-            = new ArrayList<MediaFormat>(
+            = new ArrayList<>(
                     rtpPayloadTypeStrToMediaFormats.size()
                         + rtpPayloadTypelessMediaFormats.size());
 
@@ -495,8 +490,7 @@ public class MediaUtils
             double... clockRates)
     {
         int clockRateCount = clockRates.length;
-        List<MediaFormat> mediaFormats
-            = new ArrayList<MediaFormat>(clockRateCount);
+        List<MediaFormat> mediaFormats = new ArrayList<>(clockRateCount);
 
         if (clockRateCount > 0)
         {
@@ -856,7 +850,7 @@ public class MediaUtils
      */
     public static MediaFormat[] getMediaFormats(MediaType mediaType)
     {
-        List<MediaFormat> mediaFormats = new ArrayList<MediaFormat>();
+        List<MediaFormat> mediaFormats = new ArrayList<>();
 
         for (MediaFormat[] formats : rtpPayloadTypeStrToMediaFormats.values())
         {
@@ -903,7 +897,7 @@ public class MediaUtils
             }
         }
 
-        List<MediaFormat> mediaFormats = new ArrayList<MediaFormat>();
+        List<MediaFormat> mediaFormats = new ArrayList<>();
 
         if (jmfEncoding != null)
         {
