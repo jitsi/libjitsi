@@ -87,11 +87,15 @@ public class DiscardTransformEngine
                 = (pkt.getFlags() & Buffer.FLAG_DISCARD) == Buffer.FLAG_DISCARD;
 
             long ssrc = pkt.getSSRCAsLong();
-            ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
-            if (rewriter == null)
+            ResumableStreamRewriter rewriter;
+            synchronized (ssrcToRewriter)
             {
-                rewriter = new ResumableStreamRewriter();
-                ssrcToRewriter.put(ssrc, rewriter);
+                rewriter = ssrcToRewriter.get(ssrc);
+                if (rewriter == null)
+                {
+                    rewriter = new ResumableStreamRewriter();
+                    ssrcToRewriter.put(ssrc, rewriter);
+                }
             }
 
             rewriter.rewriteRTP(
@@ -149,7 +153,11 @@ public class DiscardTransformEngine
                 long ssrc
                     = RTCPHeaderUtils.getSenderSSRC(buf, offset, pktLen);
 
-                ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
+                ResumableStreamRewriter rewriter;
+                synchronized (ssrcToRewriter)
+                {
+                    rewriter = ssrcToRewriter.get(ssrc);
+                }
 
                 if (rewriter != null)
                 {

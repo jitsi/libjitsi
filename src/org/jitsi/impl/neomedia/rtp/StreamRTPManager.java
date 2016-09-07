@@ -182,14 +182,16 @@ public class StreamRTPManager
      */
     public ResumableStreamRewriter getResumableStreamRewriter(Long ssrc)
     {
-        ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
-        if (rewriter == null)
+        synchronized (ssrcToRewriter)
         {
-            rewriter = new ResumableStreamRewriter();
-            ssrcToRewriter.put(ssrc, rewriter);
+            ResumableStreamRewriter rewriter = ssrcToRewriter.get(ssrc);
+            if (rewriter == null)
+            {
+                rewriter = new ResumableStreamRewriter();
+                ssrcToRewriter.put(ssrc, rewriter);
+            }
+            return rewriter;
         }
-
-        return rewriter;
     }
 
     /**

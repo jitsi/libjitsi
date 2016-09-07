@@ -364,7 +364,7 @@ public class SsrcRewritingEngine implements TransformEngine
         logger.debug("Initializing the SSRC rewriting engine. streamHashCode="
             + mediaStream.hashCode());
         origin2rewriter = new ConcurrentHashMap<>();
-        target2rewriter = new HashMap<>();
+        target2rewriter = new ConcurrentHashMap<>();
         rtx2primary = new ConcurrentHashMap<>();
         ssrc2red = new ConcurrentHashMap<>();
         ssrc2fec = new ConcurrentHashMap<>();
