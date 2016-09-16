@@ -592,7 +592,7 @@ public class RTPTranslatorImpl
                 // a chance to inspect the received packet and decide whether
                 // or not it should keep asking for a key frame or stop.
                 rtcpFeedbackMessageSender.maybeStopRequesting(
-                    streamRTPManager, ssrc, pt, buf, off, len);
+                    streamRTPManager, ssrc, buf, off, len);
             }
         }
         else if (LOGGER.isTraceEnabled())
