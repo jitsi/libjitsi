@@ -485,15 +485,6 @@ public interface MediaStream
         throws TransmissionFailedException;
 
     /**
-     * Utility method that determines whether or not a packet is a key frame.
-     *
-     * @param buf the buffer that holds the RTP payload.
-     * @param off the offset in the buff where the RTP payload is found.
-     * @param len then length of the RTP payload in the buffer.
-     * @return true if the packet is a key frame, false otherwise.
-     */
-    public boolean isKeyFrame(byte[] buf, int off, int len);
-    /**
      * Gets the current active <tt>RTCPTerminationStrategy</tt> which is to
      * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
      *

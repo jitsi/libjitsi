@@ -291,8 +291,8 @@ class SsrcGroupRewriter
             if (TRACE && p != null)
             {
                 boolean isKeyframe
-                  = ssrcRewritingEngine.getMediaStream().isKeyFrame(
-                  p.getBuffer(), p.getOffset(), p.getLength());
+                  = ((VideoMediaStream) ssrcRewritingEngine.getMediaStream())
+                        .isKeyFrame(p.getBuffer(), p.getOffset(), p.getLength());
 
                 long ssrc1 = p.getSSRCAsLong();
                 int seqnum1 = p.getSequenceNumber();
@@ -377,8 +377,9 @@ class SsrcGroupRewriter
                 // We're only supposed to switch on key frames. Here we check if
                 // that's the case.
                 boolean isKeyframe
-                    = ssrcRewritingEngine.getMediaStream().isKeyFrame(
-                    pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+                    = ((VideoMediaStream)ssrcRewritingEngine.getMediaStream())
+                        .isKeyFrame(
+                            pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
                 if (!isKeyframe)
                 {
                     logger.warn(
