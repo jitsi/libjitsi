@@ -16,33 +16,33 @@
 package org.jitsi.util.concurrent;
 
 /**
- * Implmenets a {@link RecurringProcessible} which has its
- * {@link RecurringProcessible#process()} invoked at a specific interval/period.
+ * Implmenets a {@link RecurringRunnable} which has its
+ * {@link RecurringRunnable#run()} invoked at a specific interval/period.
  *
  * @author Lyubomir Marinov
  */
-public abstract class PeriodicProcessible
-    implements RecurringProcessible
+public abstract class PeriodicRunnable
+    implements RecurringRunnable
 {
     /**
-     * The last time in milliseconds at which {@link #process} was invoked.
+     * The last time in milliseconds at which {@link #run} was invoked.
      */
     private long _lastProcessTime = System.currentTimeMillis();
 
     /**
-     * The interval/period in milliseconds at which {@link #process} is to be
+     * The interval/period in milliseconds at which {@link #run} is to be
      * invoked.
      */
     private final long _period;
 
     /**
-     * Initializes a new {@code PeriodicProcessible} instance which is to have
-     * its {@link #process()} invoked at a specific interval/period.
+     * Initializes a new {@code PeriodicRunnable} instance which is to have
+     * its {@link #run()} invoked at a specific interval/period.
      *
      * @param period the interval/period in milliseconds at which
-     * {@link #process()} is to be invoked
+     * {@link #run()} is to be invoked
      */
-    public PeriodicProcessible(long period)
+    public PeriodicRunnable(long period)
     {
         if (period < 1)
             throw new IllegalArgumentException("period " + period);
@@ -51,9 +51,9 @@ public abstract class PeriodicProcessible
     }
 
     /**
-     * Gets the last time in milliseconds at which {@link #process} was invoked.
+     * Gets the last time in milliseconds at which {@link #run} was invoked.
      *
-     * @return the last time in milliseconds at which {@link #process} was
+     * @return the last time in milliseconds at which {@link #run} was
      * invoked
      */
     public final long getLastProcessTime()
@@ -62,10 +62,10 @@ public abstract class PeriodicProcessible
     }
 
     /**
-     * Gets the interval/period in milliseconds at which {@link #process} is to
+     * Gets the interval/period in milliseconds at which {@link #run} is to
      * be invoked.
      *
-     * @return the interval/period in milliseconds at which {@link #process} is
+     * @return the interval/period in milliseconds at which {@link #run} is
      * to be invoked
      */
     public final long getPeriod()
@@ -77,7 +77,7 @@ public abstract class PeriodicProcessible
      * {@inheritDoc}
      */
     @Override
-    public long getTimeUntilNextProcess()
+    public long getTimeUntilNextRun()
     {
         long timeSinceLastProcess
             = Math.max(System.currentTimeMillis() - _lastProcessTime, 0);
@@ -91,10 +91,8 @@ public abstract class PeriodicProcessible
      * Updates {@link #_lastProcessTime}.
      */
     @Override
-    public long process()
+    public void run()
     {
         _lastProcessTime = System.currentTimeMillis();
-
-        return 0;
     }
 }
