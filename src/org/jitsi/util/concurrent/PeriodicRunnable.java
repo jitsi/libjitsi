@@ -16,7 +16,7 @@
 package org.jitsi.util.concurrent;
 
 /**
- * Implmenets a {@link RecurringRunnable} which has its
+ * Implements a {@link RecurringRunnable} which has its
  * {@link RecurringRunnable#run()} invoked at a specific interval/period.
  *
  * @author Lyubomir Marinov
