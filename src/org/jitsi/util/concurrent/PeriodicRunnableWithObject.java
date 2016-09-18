@@ -16,28 +16,31 @@
 package org.jitsi.util.concurrent;
 
 /**
- * Implements a {@link PeriodicProcessible} associated with an {@code Object}.
+ * Implements a {@link PeriodicRunnable} associated with an {@code Object}.
  *
  * @param <T> the type of the {@code Object} associated with the
- * {@code PeriodicProcessible}
+ * {@code PeriodicRunnable}
+ *
+ * @author Lyubomir Marinov
+ * @author George Politis
  */
-public abstract class PeriodicProcessibleWithObject<T>
-    extends PeriodicProcessible
+public abstract class PeriodicRunnableWithObject<T>
+    extends PeriodicRunnable
 {
     /**
-     * The {@code Object} associated with this {@link PeriodicProcessible}.
+     * The {@code Object} associated with this {@link PeriodicRunnable}.
      */
     public final T o;
 
     /**
-     * Initializes a new {@code PeriodicProcessibleWithObject} instance
+     * Initializes a new {@code PeriodicRunnableWithObject} instance
      * associated with a specific {@code Object}.
      *
      * @param o the {@code Object} associated with the new instance
      * @param period the interval/period in milliseconds at which
-     * {@link #process()} is to be invoked
+     * {@link #run()} is to be invoked
      */
-    protected PeriodicProcessibleWithObject(T o, long period)
+    protected PeriodicRunnableWithObject(T o, long period)
     {
         super(period);
 
@@ -48,9 +51,9 @@ public abstract class PeriodicProcessibleWithObject<T>
     }
 
     /**
-     * Invoked by {@link #process()} (1) before
-     * {@link PeriodicProcessible#_lastProcessTime} is updated and (2) removing
-     * the requirement of {@link RecurringProcessible#process()} to return a
+     * Invoked by {@link #run()} (1) before
+     * {@link PeriodicRunnable#_lastProcessTime} is updated and (2) removing
+     * the requirement of {@link RecurringRunnable#run()} to return a
      * {@code long} value with unknown/undocumented (at the time of this
      * writing) meaning.
      */
@@ -60,18 +63,15 @@ public abstract class PeriodicProcessibleWithObject<T>
      * {@inheritDoc}
      */
     @Override
-    public long process()
+    public void run()
     {
-        long ret;
-
         try
         {
             doProcess();
         }
         finally
         {
-            ret = super.process();
+            super.run();
         }
-        return ret;
     }
 }

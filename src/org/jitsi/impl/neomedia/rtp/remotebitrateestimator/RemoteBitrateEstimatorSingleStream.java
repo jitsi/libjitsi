@@ -31,7 +31,7 @@ import org.jitsi.util.concurrent.*;
  */
 public class RemoteBitrateEstimatorSingleStream
     implements CallStatsObserver,
-               RecurringProcessible,
+               RecurringRunnable,
                RemoteBitrateEstimator
 {
     static final double kTimestampToMs = 1.0 / 90.0;
@@ -271,7 +271,7 @@ public class RemoteBitrateEstimatorSingleStream
      * @return
      */
     @Override
-    public long process()
+    public void run()
     {
         if (getTimeUntilNextProcess() <= 0L)
         {
@@ -280,7 +280,6 @@ public class RemoteBitrateEstimatorSingleStream
             updateEstimate(nowMs);
             lastProcessTime = nowMs;
         }
-        return 0L;
     }
 
     /**

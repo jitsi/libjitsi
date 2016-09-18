@@ -66,12 +66,12 @@ public class VideoMediaStreamImpl
         = Logger.getLogger(VideoMediaStreamImpl.class);
 
     /**
-     * The <tt>RecurringProcessibleExecutor</tt> to be utilized by the
+     * The <tt>RecurringRunnablesExecutor</tt> to be utilized by the
      * <tt>VideoMediaStreamImpl</tt> class and its instances.
      */
-    private static final RecurringProcessibleExecutor
-        recurringProcessibleExecutor
-            = new RecurringProcessibleExecutor(
+    private static final RecurringRunnablesExecutor
+        recurringRunnablesExecutor
+            = new RecurringRunnablesExecutor(
                     VideoMediaStreamImpl.class.getSimpleName());
 
     /**
@@ -481,14 +481,14 @@ public class VideoMediaStreamImpl
         super(connector, device, srtpControl);
 
         // Register the RemoteBitrateEstimator with the
-        // RecurringProcessibleExecutor.
+        // RecurringRunnablesExecutor.
         RemoteBitrateEstimator remoteBitrateEstimator
             = getRemoteBitrateEstimator();
 
-        if (remoteBitrateEstimator instanceof RecurringProcessible)
+        if (remoteBitrateEstimator instanceof RecurringRunnable)
         {
-            recurringProcessibleExecutor.registerRecurringProcessible(
-                    (RecurringProcessible) remoteBitrateEstimator);
+            recurringRunnablesExecutor.registerRecurringRunnable(
+                    (RecurringRunnable) remoteBitrateEstimator);
         }
     }
 
@@ -540,18 +540,18 @@ public class VideoMediaStreamImpl
         finally
         {
             // Deregister the RemoteBitrateEstimator with the
-            // RecurringProcessibleExecutor.
+            // RecurringRunnablesExecutor.
             RemoteBitrateEstimator remoteBitrateEstimator
                 = getRemoteBitrateEstimator();
 
-            if (remoteBitrateEstimator instanceof RecurringProcessible)
+            if (remoteBitrateEstimator instanceof RecurringRunnable)
             {
-                recurringProcessibleExecutor.deRegisterRecurringProcessible(
-                        (RecurringProcessible) remoteBitrateEstimator);
+                recurringRunnablesExecutor.deRegisterRecurringRunnable(
+                        (RecurringRunnable) remoteBitrateEstimator);
             }
             if (bandwidthEstimator != null)
             {
-                recurringProcessibleExecutor.deRegisterRecurringProcessible(
+                recurringRunnablesExecutor.deRegisterRecurringRunnable(
                         bandwidthEstimator);
             }
         }
@@ -1338,7 +1338,7 @@ public class VideoMediaStreamImpl
         if (bandwidthEstimator == null)
         {
             bandwidthEstimator = new BandwidthEstimatorImpl(this);
-            recurringProcessibleExecutor.registerRecurringProcessible(
+            recurringRunnablesExecutor.registerRecurringRunnable(
                     bandwidthEstimator);
             logger.info("Creating a BandwidthEstimator for stream " + this);
         }
