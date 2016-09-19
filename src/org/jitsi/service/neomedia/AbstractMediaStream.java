@@ -283,13 +283,42 @@ public abstract class AbstractMediaStream
      * {@inheritDoc}
      */
     @Override
-    public void configureSSRCRewriting(
-        Set<Long> ssrcGroup,
-        Long ssrcTargetPrimary,
-        Map<Long, Byte> ssrc2fec,
-        Map<Long, Byte> ssrc2red,
-        Map<Long, Long> rtxGroups,
-        Long ssrcTargetRTX)
+    public byte getDynamicRTPPayloadType(String codec)
+    {
+        return -1;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addRemoteTrack(MediaStreamTrack mediaStreamTrack)
+    {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MediaStreamTrack getLocalTrack(long ssrc)
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MediaStreamTrack getRemoteTrack(long ssrc)
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void clearRemoteTracks()
     {
     }
 }

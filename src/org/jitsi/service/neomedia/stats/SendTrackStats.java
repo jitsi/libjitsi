@@ -28,4 +28,9 @@ public interface SendTrackStats
      * @return an estimate for the recent loss rate.
      */
     double getLossRate();
+
+    /**
+     * @return the highest sequence number that was sent out.
+     */
+    int getHighestSent();
 }
