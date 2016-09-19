@@ -52,6 +52,7 @@ import org.jitsi.util.event.*;
  *
  * @author Lyubomir Marinov
  * @author Sebastien Vincent
+ * @author George Politis
  */
 public class VideoMediaStreamImpl
     extends MediaStreamImpl
@@ -64,15 +65,6 @@ public class VideoMediaStreamImpl
      */
     private static final Logger logger
         = Logger.getLogger(VideoMediaStreamImpl.class);
-
-    /**
-     * The <tt>RecurringRunnablesExecutor</tt> to be utilized by the
-     * <tt>VideoMediaStreamImpl</tt> class and its instances.
-     */
-    private static final RecurringRunnablesExecutor
-        recurringRunnablesExecutor
-            = new RecurringRunnablesExecutor(
-                    VideoMediaStreamImpl.class.getSimpleName());
 
     /**
      * The indicator which determines whether RTCP feedback Picture Loss

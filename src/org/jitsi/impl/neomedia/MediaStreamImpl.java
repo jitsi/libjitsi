@@ -52,6 +52,7 @@ import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
+import org.jitsi.util.concurrent.*;
 
 /**
  * Implements <tt>MediaStream</tt> using JMF.
@@ -75,6 +76,14 @@ public class MediaStreamImpl
      */
     private static final Logger logger
         = Logger.getLogger(MediaStreamImpl.class);
+
+    /**
+     * The <tt>RecurringRunnablesExecutor</tt> to be utilized by the
+     * <tt>MediaStreamImpl</tt> class and its instances.
+     */
+    protected static final RecurringRunnablesExecutor
+        recurringRunnablesExecutor
+        = new RecurringRunnablesExecutor(MediaStreamImpl.class.getSimpleName());
 
     /**
      * The name of the property indicating the length of our receive buffer.
