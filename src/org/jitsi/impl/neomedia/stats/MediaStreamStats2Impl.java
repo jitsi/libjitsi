@@ -335,6 +335,15 @@ public class MediaStreamStats2Impl
             }
             return count != 0 ? sum/count : 0;
         }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int getHighestSent()
+        {
+            return -1;
+        }
     }
 
     /**

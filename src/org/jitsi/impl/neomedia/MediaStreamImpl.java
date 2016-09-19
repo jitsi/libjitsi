@@ -241,6 +241,12 @@ public class MediaStreamImpl
     private final Vector<Long> remoteSourceIDs = new Vector<>(1, 1);
 
     /**
+     * The {@code MediaStreamTracks} of this {@code MediaStream}.
+     */
+    private Map<Long, MediaStreamTrack> remoteTracks
+        = Collections.synchronizedMap(new TreeMap<Long, MediaStreamTrack>());
+
+    /**
      * The <tt>RTPConnector</tt> through which this instance sends and receives
      * RTP and RTCP traffic. The instance is a <tt>TransformConnector</tt> in
      * order to also enable packet transformations.
@@ -307,14 +313,6 @@ public class MediaStreamImpl
      * of this <tt>MediaStream</tt>.
      */
     private DebugTransformEngine debugTransformEngine;
-
-    /**
-     * The transformer which handles SSRC rewriting. It is always created
-     * (which is extremely lightweight) but it needs to be initialized so that
-     * it can work.
-     */
-    private final SsrcRewritingEngine ssrcRewritingEngine
-        = new SsrcRewritingEngine(this);
 
     /**
      * The <tt>TransformEngine</tt> instance registered in the
@@ -1005,6 +1003,16 @@ public class MediaStreamImpl
     }
 
     /**
+     * Creates the {@link SsrcRewritingEngine} for this
+     * {@code MediaStream}.
+     * @return the created {@link SsrcRewritingEngine}.
+     */
+    protected SsrcRewritingEngine getSsrcRewritingEngine()
+    {
+        return null;
+    }
+
+    /**
      * Creates a chain of transform engines for use with this stream. Note
      * that this is the only place where the <tt>TransformEngineChain</tt> is
      * and should be manipulated to avoid problems with the order of the
@@ -1045,7 +1053,10 @@ public class MediaStreamImpl
         if (redTransformEngine != null)
             engineChain.add(redTransformEngine);
 
-        engineChain.add(ssrcRewritingEngine);
+        // SSRC rewriting
+        SsrcRewritingEngine ssrcRewritingEngine = getSsrcRewritingEngine();
+        if (ssrcRewritingEngine != null)
+            engineChain.add(ssrcRewritingEngine);
 
         // RTCPTerminationTransformEngine passes received RTCP to
         // RTCPTerminationStrategy for inspection and modification. The RTCP
@@ -1842,6 +1853,15 @@ public class MediaStreamImpl
          * prevent ConcurrentModificationException.
          */
         return Collections.unmodifiableList(remoteSourceIDs);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<Long, MediaStreamTrack> getRemoteTracks()
+    {
+        return remoteTracks;
     }
 
     /**
@@ -3585,21 +3605,6 @@ public class MediaStreamImpl
 
             rtcpTransformEngineWrapper.setWrapped(newValue);
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void configureSSRCRewriting(
-        final Set<Long> ssrcGroup, final Long ssrcTargetPrimary,
-        final Map<Long, Byte> ssrc2fec,
-        final Map<Long, Byte> ssrc2red,
-        final Map<Long, Long> rtxGroups, final Long ssrcTargetRTX)
-    {
-        ssrcRewritingEngine.map(ssrcGroup, ssrcTargetPrimary,
-            ssrc2fec, ssrc2red,
-            rtxGroups, ssrcTargetRTX);
     }
 
     /**

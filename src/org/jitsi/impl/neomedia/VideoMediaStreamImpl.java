@@ -33,6 +33,7 @@ import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.impl.neomedia.transform.rewriting.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -453,6 +454,14 @@ public class VideoMediaStreamImpl
      * from this endpoint to the remote peer.
      */
     private BandwidthEstimatorImpl bandwidthEstimator;
+
+    /**
+     * The transformer which handles SSRC rewriting. It is always created
+     * (which is extremely lightweight) but it needs to be initialized so that
+     * it can work.
+     */
+    private final SsrcRewritingEngine ssrcRewritingEngine
+        = new SsrcRewritingEngine(this);
 
     /**
      * Initializes a new <tt>VideoMediaStreamImpl</tt> instance which will use
@@ -1319,6 +1328,15 @@ public class VideoMediaStreamImpl
             return new RetransmissionRequesterImpl(this);
         }
         return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected SsrcRewritingEngine getSsrcRewritingEngine()
+    {
+        return ssrcRewritingEngine;
     }
 
     /**
