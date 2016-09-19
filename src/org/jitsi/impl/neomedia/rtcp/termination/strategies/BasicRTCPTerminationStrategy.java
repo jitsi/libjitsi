@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
 import java.util.*;
+import java.util.concurrent.*;
 import javax.media.rtp.*;
 import javax.media.rtp.rtcp.*;
 import net.sf.fmj.media.rtp.*;
@@ -1186,6 +1187,55 @@ public class BasicRTCPTerminationStrategy
             }
 
             return false;
+        }
+    }
+
+    /**
+     * Keeps track of the CNAMEs of the RTP streams that we've seen.
+     */
+    static class CNAMERegistry
+        extends ConcurrentHashMap<Integer, byte[]>
+    {
+        /**
+         * @param inPacket
+         */
+        public void update(RTCPCompoundPacket inPacket)
+        {
+            // Update CNAMEs.
+            RTCPPacket[] rtcps;
+
+            if (inPacket == null
+                || (rtcps = inPacket.packets) == null
+                || rtcps.length == 0)
+            {
+                return;
+            }
+
+            for (RTCPPacket rtcp : rtcps)
+            {
+                if (RTCPPacket.SDES != rtcp.type)
+                    continue;
+
+                RTCPSDESPacket sdes = (RTCPSDESPacket) rtcp;
+                RTCPSDES[] chunks = sdes.sdes;
+
+                if (chunks == null || chunks.length == 0)
+                    continue;
+
+                for (RTCPSDES chunk : chunks)
+                {
+                    RTCPSDESItem[] items = chunk.items;
+
+                    if (items == null || items.length == 0)
+                        continue;
+
+                    for (RTCPSDESItem item : items)
+                    {
+                        if (RTCPSDESItem.CNAME == item.type)
+                            put(chunk.ssrc, item.data);
+                    }
+                }
+            }
         }
     }
 }
