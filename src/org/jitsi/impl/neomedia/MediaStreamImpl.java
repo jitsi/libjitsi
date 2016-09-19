@@ -780,6 +780,14 @@ public class MediaStreamImpl
 
         if (deviceSession != null)
             deviceSession.close();
+
+        RTCPTerminationStrategy strategy
+            = rtcpTransformEngineWrapper.getWrapped();
+        if (strategy instanceof RecurringRunnable)
+        {
+            recurringRunnablesExecutor
+                .deRegisterRecurringRunnable((RecurringRunnable) strategy);
+        }
     }
 
     /**
@@ -3555,6 +3563,12 @@ public class MediaStreamImpl
 
         if (oldValue != newValue)
         {
+            if (oldValue instanceof RecurringRunnable)
+            {
+                recurringRunnablesExecutor
+                    .deRegisterRecurringRunnable((RecurringRunnable) oldValue);
+            }
+
             // XXX The following (source) code was moved here from another place
             // and there it was called before remembering the new
             // rtcpTerminationStrategy so we've preserved the order here.
@@ -3562,6 +3576,12 @@ public class MediaStreamImpl
             {
                 ((MediaStreamRTCPTerminationStrategy) newValue)
                     .initialize(this);
+            }
+
+            if (newValue instanceof RecurringRunnable)
+            {
+                recurringRunnablesExecutor
+                    .registerRecurringRunnable((RecurringRunnable) newValue);
             }
 
             rtcpTransformEngineWrapper.setWrapped(newValue);
