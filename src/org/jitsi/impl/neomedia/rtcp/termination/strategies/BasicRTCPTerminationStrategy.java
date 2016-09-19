@@ -131,70 +131,14 @@ public class BasicRTCPTerminationStrategy
      * <tt>BasicRTCPTerminationStrategy</tt>.
      */
     private final PacketTransformer rtpTransformer
-        = new SinglePacketTransformer(RTPPacketPredicate.INSTANCE)
-    {
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket transform(RawPacket pkt)
-        {
-            // Update our RTP stats map (packets/octet sent).
-            rtpStatsMap.apply(pkt);
-            rtcpReporter.maybeReport();
-
-            return pkt;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket reverseTransform(RawPacket pkt)
-        {
-            // Let everything pass through.
-            rtcpReporter.maybeReport();
-            return pkt;
-        }
-    };
+        = new RTPPacketTransformerImpl();
 
     /**
      * The RTCP <tt>PacketTransformer</tt> of this
      * <tt>BasicRTCPTerminationStrategy</tt>.
      */
     private final PacketTransformer rtcpTransformer
-        = new SinglePacketTransformerAdapter(RTCPPacketPredicate.INSTANCE)
-    {
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket transform(RawPacket pkt)
-        {
-            RTCPCompoundPacket compound;
-
-            try
-            {
-                compound
-                    = (RTCPCompoundPacket)
-                        parser.parse(
-                                pkt.getBuffer(),
-                                pkt.getOffset(),
-                                pkt.getLength());
-            }
-            catch (BadFormatException e)
-            {
-                logger.warn(
-                        "Failed to terminate an RTCP packet. Dropping packet.");
-                return null;
-            }
-
-            cnameRegistry.update(compound);
-
-            // Remove SRs and RRs from the RTCP packet.
-            return feedbackGateway.gateway(compound);
-        }
-    };
+        = new RTCPPacketTransformerImpl();
 
     /**
      * A counter that counts the number of times we've sent "full-blown" SDES.
@@ -1236,6 +1180,80 @@ public class BasicRTCPTerminationStrategy
                     }
                 }
             }
+        }
+    }
+
+    class RTCPPacketTransformerImpl
+        extends SinglePacketTransformerAdapter
+    {
+        /**
+         * Ctor.
+         */
+        public RTCPPacketTransformerImpl()
+        {
+            super(RTCPPacketPredicate.INSTANCE);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            RTCPCompoundPacket compound;
+
+            try
+            {
+                compound = (RTCPCompoundPacket) parser.parse(
+                    pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+            }
+            catch (BadFormatException e)
+            {
+                logger.warn(
+                    "Failed to terminate an RTCP packet. Dropping packet.");
+                return null;
+            }
+
+            cnameRegistry.update(compound);
+
+            // Remove SRs and RRs from the RTCP packet.
+            return feedbackGateway.gateway(compound);
+        }
+    }
+
+    class RTPPacketTransformerImpl
+        extends SinglePacketTransformerAdapter
+    {
+        /**
+         * Ctor.
+         */
+        public RTPPacketTransformerImpl()
+        {
+            super(RTPPacketPredicate.INSTANCE);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            // Update our RTP stats map (packets/octet sent).
+            rtpStatsMap.apply(pkt);
+            rtcpReporter.maybeReport();
+
+            return pkt;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            // Let everything pass through.
+            rtcpReporter.maybeReport();
+            return pkt;
         }
     }
 }
