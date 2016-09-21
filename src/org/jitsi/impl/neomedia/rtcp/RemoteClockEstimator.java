@@ -127,7 +127,7 @@ public class RemoteClockEstimator
             // Calculate the clock frequency/rate.
             Timestamp oldTs = oldClock.getRemoteTimestamp();
             long rtpTimestampDiff
-                = rtptimestamp - oldTs.getRtpTimestampAsLong();
+                = TimeUtils.rtpDiff(rtptimestamp, oldTs.getRtpTimestampAsLong());
             long systemTimeMsDiff = systemTimeMs - oldTs.getSystemTimeMs();
 
             frequencyHz = Math.round(
