@@ -787,7 +787,7 @@ class OutputDataStreamImpl
                 ? rewriter.rewriteRTP(write, buf, off, len)
                 : rewriter.restoreRTP(buf, off, len);
 
-            if (logger.isDebugEnabled())
+            if (mod && logger.isDebugEnabled())
             {
                 logger.debug("post-" + (rewrite ? "rewrite" : "restore")
                     + " RTP ssrc=" + ssrc
