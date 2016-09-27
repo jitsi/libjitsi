@@ -20,7 +20,10 @@ import java.util.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.codec.*;
+import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
 
 /**
@@ -28,6 +31,7 @@ import org.jitsi.util.*;
  * their retransmission by sending RTCP NACK packets.
  *
  * @author Boris Grozev
+ * @author George Politis
  */
 public class RetransmissionRequesterImpl
     extends SinglePacketTransformerAdapter
@@ -64,17 +68,6 @@ public class RetransmissionRequesterImpl
      * TODO: purge these somehow (RTCP BYE? Timeout?)
      */
     private final Map<Long, Requester> requesters = new HashMap<>();
-
-    /**
-     * Maps an SSRC of a retransmission (RTX) stream to the original stream's
-     * SSRC.
-     */
-    private Map<Long, Long> rtxSsrcs = new HashMap<>();
-
-    /**
-     * The payload type number for the RTX format.
-     */
-    private byte rtxPt = -1;
 
     /**
      * Whether this {@link RetransmissionRequester} is enabled or not.
@@ -136,15 +129,29 @@ public class RetransmissionRequesterImpl
     {
         if (enabled && !closed)
         {
-            Long ssrc;
-            int seq;
+            Long ssrc = null;
+            int seq = -1;
 
-            if (rtxPt != -1 && pkt.getPayloadType() == rtxPt)
+            MediaFormat format = stream.getRemoteFormat(pkt.getPayloadType());
+            if (format != null
+                && Constants.RTX.equalsIgnoreCase(format.getEncoding()))
             {
-                ssrc = rtxSsrcs.get(pkt.getSSRCAsLong());
-                seq = pkt.getOriginalSequenceNumber();
+                long encodingSSRC = pkt.getSSRCAsLong();
+                MediaStreamTrack track
+                    = stream.getRemoteTracks().get(encodingSSRC);
+
+                if (track != null)
+                {
+                    RTPEncoding encoding = track.getEncodingBySSRC(encodingSSRC);
+                    if (encoding != null)
+                    {
+                        ssrc = encoding.getPrimarySSRC();
+                        seq = pkt.getOriginalSequenceNumber();
+                    }
+                }
             }
-            else
+
+            if (ssrc == null)
             {
                 ssrc = pkt.getSSRCAsLong();
                 seq = pkt.getSequenceNumber();
@@ -182,25 +189,6 @@ public class RetransmissionRequesterImpl
     public void close()
     {
         closed = true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void configureRtx(byte pt, Map<Long, Long> ssrcs)
-    {
-        Map<Long, Long> inverted = new HashMap<>();
-        if (ssrcs != null)
-        {
-            for (Map.Entry<Long, Long> entry : ssrcs.entrySet())
-            {
-                inverted.put(entry.getValue(), entry.getKey());
-            }
-        }
-
-        rtxPt = pt;
-        rtxSsrcs = inverted;
     }
 
     /**

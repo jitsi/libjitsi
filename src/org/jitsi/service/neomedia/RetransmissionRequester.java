@@ -24,16 +24,6 @@ import java.util.*;
 public interface RetransmissionRequester
 {
     /**
-     * Sets the RTX-related configuration for this
-     * {@link RetransmissionRequester}. Any previous configuration will be
-     * replaced.
-     * @param pt the payload type number for the RTX format.
-     * @param ssrcs maps an original stream's SSRC to the SSRC of the
-     * retransmission (RTX) stream.
-     */
-    public void configureRtx(byte pt, Map<Long, Long> ssrcs);
-
-    /**
      * Enables or disables this {@link RetransmissionRequester}.
      * @param enable {@code true} to enable, {@code false} to disable.
      */

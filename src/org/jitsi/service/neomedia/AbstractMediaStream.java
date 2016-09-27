@@ -296,4 +296,13 @@ public abstract class AbstractMediaStream
     {
         return new HashMap<>();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RtxTransformer getRtxTransformer()
+    {
+        return null;
+    }
 }

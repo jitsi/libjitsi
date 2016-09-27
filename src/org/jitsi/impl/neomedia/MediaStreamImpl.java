@@ -1037,6 +1037,11 @@ public class MediaStreamImpl
 
         engineChain.add(externalTransformerWrapper);
 
+        // RTX
+        RtxTransformer rtxTransformer = getRtxTransformer();
+        if (rtxTransformer != null)
+            engineChain.add(rtxTransformer);
+
         // here comes the override payload type transformer
         // as it changes headers of packets, need to go before encryption
         if (ptTransformEngine == null)
@@ -1524,6 +1529,18 @@ public class MediaStreamImpl
         MediaDeviceSession devSess = getDeviceSession();
 
         return (devSess == null) ? null : devSess.getFormat();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MediaFormat getRemoteFormat(byte pt)
+    {
+        synchronized (dynamicRTPPayloadTypes)
+        {
+            return dynamicRTPPayloadTypes.get(pt);
+        }
     }
 
     /**

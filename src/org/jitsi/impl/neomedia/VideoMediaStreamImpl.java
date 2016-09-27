@@ -464,6 +464,11 @@ public class VideoMediaStreamImpl
         = new SsrcRewritingEngine(this);
 
     /**
+     * The transformer that handles RTX.
+     */
+    private final RtxTransformer rtxTransformer = new RtxTransformer(this);
+
+    /**
      * Initializes a new <tt>VideoMediaStreamImpl</tt> instance which will use
      * the specified <tt>MediaDevice</tt> for both capture and playback of video
      * exchanged via the specified <tt>StreamConnector</tt>.
@@ -1337,6 +1342,15 @@ public class VideoMediaStreamImpl
     protected SsrcRewritingEngine getSsrcRewritingEngine()
     {
         return ssrcRewritingEngine;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RtxTransformer getRtxTransformer()
+    {
+        return rtxTransformer;
     }
 
     /**
