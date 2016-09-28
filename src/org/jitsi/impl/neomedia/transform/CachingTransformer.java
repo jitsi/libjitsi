@@ -44,12 +44,12 @@ public class CachingTransformer
             = Logger.getLogger(CachingTransformer.class);
 
     /**
-     * The <tt>RecurringRunnablesExecutor</tt> to be utilized by the
+     * The <tt>RecurringRunnableExecutor</tt> to be utilized by the
      * <tt>CachingTransformer</tt> class and its instances.
      */
-    private static final RecurringRunnablesExecutor
-        recurringRunnablesExecutor
-            = new RecurringRunnablesExecutor(
+    private static final RecurringRunnableExecutor
+        recurringRunnableExecutor
+            = new RecurringRunnableExecutor(
                     CachingTransformer.class.getSimpleName());
 
     /**
@@ -252,7 +252,7 @@ public class CachingTransformer
             caches.clear();
         }
 
-        recurringRunnablesExecutor.deRegisterRecurringRunnable(this);
+        recurringRunnableExecutor.deRegisterRecurringRunnable(this);
     }
 
     /**
@@ -345,11 +345,11 @@ public class CachingTransformer
 
         if (enabled)
         {
-            recurringRunnablesExecutor.registerRecurringRunnable(this);
+            recurringRunnableExecutor.registerRecurringRunnable(this);
         }
         else
         {
-            recurringRunnablesExecutor.deRegisterRecurringRunnable(this);
+            recurringRunnableExecutor.deRegisterRecurringRunnable(this);
         }
 
         if (logger.isDebugEnabled())

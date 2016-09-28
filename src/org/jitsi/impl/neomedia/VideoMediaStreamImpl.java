@@ -482,13 +482,13 @@ public class VideoMediaStreamImpl
         super(connector, device, srtpControl);
 
         // Register the RemoteBitrateEstimator with the
-        // RecurringRunnablesExecutor.
+        // RecurringRunnableExecutor.
         RemoteBitrateEstimator remoteBitrateEstimator
             = getRemoteBitrateEstimator();
 
         if (remoteBitrateEstimator instanceof RecurringRunnable)
         {
-            recurringRunnablesExecutor.registerRecurringRunnable(
+            recurringRunnableExecutor.registerRecurringRunnable(
                     (RecurringRunnable) remoteBitrateEstimator);
         }
     }
@@ -541,18 +541,18 @@ public class VideoMediaStreamImpl
         finally
         {
             // Deregister the RemoteBitrateEstimator with the
-            // RecurringRunnablesExecutor.
+            // RecurringRunnableExecutor.
             RemoteBitrateEstimator remoteBitrateEstimator
                 = getRemoteBitrateEstimator();
 
             if (remoteBitrateEstimator instanceof RecurringRunnable)
             {
-                recurringRunnablesExecutor.deRegisterRecurringRunnable(
+                recurringRunnableExecutor.deRegisterRecurringRunnable(
                         (RecurringRunnable) remoteBitrateEstimator);
             }
             if (bandwidthEstimator != null)
             {
-                recurringRunnablesExecutor.deRegisterRecurringRunnable(
+                recurringRunnableExecutor.deRegisterRecurringRunnable(
                         bandwidthEstimator);
             }
         }
@@ -1348,7 +1348,7 @@ public class VideoMediaStreamImpl
         if (bandwidthEstimator == null)
         {
             bandwidthEstimator = new BandwidthEstimatorImpl(this);
-            recurringRunnablesExecutor.registerRecurringRunnable(
+            recurringRunnableExecutor.registerRecurringRunnable(
                     bandwidthEstimator);
             logger.info("Creating a BandwidthEstimator for stream " + this);
         }

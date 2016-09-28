@@ -68,11 +68,11 @@ public class RTCPFeedbackMessageSender
     private final RTPTranslatorImpl rtpTranslator;
 
     /**
-     * The {@link RecurringRunnablesExecutor} which will periodically call
+     * The {@link RecurringRunnableExecutor} which will periodically call
      * {@link KeyframeRequester#run()} and trigger their retry logic.
      */
-    private final RecurringRunnablesExecutor recurringRunnablesExecutor
-        = new RecurringRunnablesExecutor(
+    private final RecurringRunnableExecutor recurringRunnableExecutor
+        = new RecurringRunnableExecutor(
                 RTCPFeedbackMessageSender.class.getSimpleName());
 
     /**
@@ -137,7 +137,7 @@ public class RTCPFeedbackMessageSender
 
         if (registerRecurringRunnable)
         {
-            recurringRunnablesExecutor
+            recurringRunnableExecutor
                 .registerRecurringRunnable(keyframeRequester);
         }
 

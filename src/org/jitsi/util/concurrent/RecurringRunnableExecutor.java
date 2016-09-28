@@ -33,15 +33,15 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  * @author George Politis
  */
-public class RecurringRunnablesExecutor
+public class RecurringRunnableExecutor
     implements Executor
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>RecurringRunnablesExecutor</tt>
+     * The <tt>Logger</tt> used by the <tt>RecurringRunnableExecutor</tt>
      * class and its instances to print debug information.
      */
     private static final Logger logger
-        = Logger.getLogger(RecurringRunnablesExecutor.class);
+        = Logger.getLogger(RecurringRunnableExecutor.class);
 
     /**
      * The {@code RecurringRunnable}s registered with this instance which are
@@ -65,19 +65,19 @@ public class RecurringRunnablesExecutor
     private final String name;
 
     /**
-     * Initializes a new {@link RecurringRunnablesExecutor} instance.
+     * Initializes a new {@link RecurringRunnableExecutor} instance.
      */
-    public RecurringRunnablesExecutor()
+    public RecurringRunnableExecutor()
     {
         this(/* name */ "");
     }
 
     /**
-     * Initializes a new {@link RecurringRunnablesExecutor} instance.
+     * Initializes a new {@link RecurringRunnableExecutor} instance.
      * @param name a string to be added to the name of the thread which this
      * instance will start.
      */
-    public RecurringRunnablesExecutor(String name)
+    public RecurringRunnableExecutor(String name)
     {
         this.name = name;
     }
@@ -315,14 +315,14 @@ public class RecurringRunnablesExecutor
                                     @Override
                                     public void run()
                                     {
-                                        RecurringRunnablesExecutor.this
+                                        RecurringRunnableExecutor.this
                                             .runInThread();
                                     }
                                 };
 
                     thread.setDaemon(true);
                     thread.setName(
-                            RecurringRunnablesExecutor.class.getName()
+                            RecurringRunnableExecutor.class.getName()
                                 + ".thread-" + name);
 
                     boolean started = false;

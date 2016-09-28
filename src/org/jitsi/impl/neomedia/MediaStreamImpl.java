@@ -78,12 +78,12 @@ public class MediaStreamImpl
         = Logger.getLogger(MediaStreamImpl.class);
 
     /**
-     * The <tt>RecurringRunnablesExecutor</tt> to be utilized by the
+     * The <tt>RecurringRunnableExecutor</tt> to be utilized by the
      * <tt>MediaStreamImpl</tt> class and its instances.
      */
-    protected static final RecurringRunnablesExecutor
-        recurringRunnablesExecutor
-        = new RecurringRunnablesExecutor(MediaStreamImpl.class.getSimpleName());
+    protected static final RecurringRunnableExecutor
+        recurringRunnableExecutor
+        = new RecurringRunnableExecutor(MediaStreamImpl.class.getSimpleName());
 
     /**
      * The name of the property indicating the length of our receive buffer.
@@ -783,7 +783,7 @@ public class MediaStreamImpl
             = rtcpTransformEngineWrapper.getWrapped();
         if (strategy instanceof RecurringRunnable)
         {
-            recurringRunnablesExecutor
+            recurringRunnableExecutor
                 .deRegisterRecurringRunnable((RecurringRunnable) strategy);
         }
     }
@@ -3644,7 +3644,7 @@ public class MediaStreamImpl
         {
             if (oldValue instanceof RecurringRunnable)
             {
-                recurringRunnablesExecutor
+                recurringRunnableExecutor
                     .deRegisterRecurringRunnable((RecurringRunnable) oldValue);
             }
 
@@ -3659,7 +3659,7 @@ public class MediaStreamImpl
 
             if (newValue instanceof RecurringRunnable)
             {
-                recurringRunnablesExecutor
+                recurringRunnableExecutor
                     .registerRecurringRunnable((RecurringRunnable) newValue);
             }
 
