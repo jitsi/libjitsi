@@ -956,7 +956,7 @@ public class BasicRTCPTerminationStrategy
      * the data structures of this RTCP termination strategy based on the
      * SSRCs that the owner <tt>MediaStream</tt> is still sending.
      */
-    class GarbageCollector
+    private class GarbageCollector
     {
         public void cleanup()
         {
@@ -964,7 +964,7 @@ public class BasicRTCPTerminationStrategy
             // TAG(cat4-remote-ssrc-hurricane) first. The idea is to remove
             // from our data structures everything that is not listed in as
             // a remote SSRC.
-        }
+    }
     }
 
     /**
@@ -972,7 +972,7 @@ public class BasicRTCPTerminationStrategy
      * means dropping SRs, RR report blocks and REMBs. It needs to pass through
      * PLIs, FIRs, NACKs, etc.
      */
-    class FeedbackGateway
+    private class FeedbackGateway
     {
         /**
          * Removes receiver and sender feedback from RTCP packets.
@@ -1060,7 +1060,7 @@ public class BasicRTCPTerminationStrategy
     /**
      * Takes care of calling the report() method every RTCP_INTERVAL_VIDEO_MS.
      */
-    class RTCPReporter
+    private class RTCPReporter
     {
         /**
          * For video we use 500ms interval.
@@ -1137,7 +1137,7 @@ public class BasicRTCPTerminationStrategy
     /**
      * Keeps track of the CNAMEs of the RTP streams that we've seen.
      */
-    static class CNAMERegistry
+    private static class CNAMERegistry
         extends ConcurrentHashMap<Integer, byte[]>
     {
         /**
@@ -1183,7 +1183,7 @@ public class BasicRTCPTerminationStrategy
         }
     }
 
-    class RTCPPacketTransformerImpl
+    private class RTCPPacketTransformerImpl
         extends SinglePacketTransformerAdapter
     {
         /**
@@ -1221,7 +1221,7 @@ public class BasicRTCPTerminationStrategy
         }
     }
 
-    class RTPPacketTransformerImpl
+    private class RTPPacketTransformerImpl
         extends SinglePacketTransformerAdapter
     {
         /**
