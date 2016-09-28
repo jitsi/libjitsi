@@ -1099,8 +1099,7 @@ public class BasicRTCPTerminationStrategy
         @Override
         public void run()
         {
-            long now = System.currentTimeMillis();
-            lastUpdateTimeMs = now;
+            lastUpdateTimeMs = System.currentTimeMillis();
 
             // Make the RTCP reports for the assoc. MediaStream.
             List<RawPacket> pkts = report();
