@@ -82,8 +82,8 @@ public class MediaStreamImpl
      * <tt>MediaStreamImpl</tt> class and its instances.
      */
     protected static final RecurringRunnableExecutor
-        recurringRunnableExecutor
-        = new RecurringRunnableExecutor(MediaStreamImpl.class.getSimpleName());
+        recurringRunnableExecutor = new RecurringRunnableExecutor(
+            MediaStreamImpl.class.getSimpleName());
 
     /**
      * The name of the property indicating the length of our receive buffer.

@@ -984,7 +984,7 @@ public class BasicRTCPTerminationStrategy
             // TAG(cat4-remote-ssrc-hurricane) first. The idea is to remove
             // from our data structures everything that is not listed in as
             // a remote SSRC.
-    }
+        }
     }
 
     /**
@@ -1223,12 +1223,8 @@ public class BasicRTCPTerminationStrategy
 
             try
             {
-                compound
-                    = (RTCPCompoundPacket)
-                    parser.parse(
-                        pkt.getBuffer(),
-                        pkt.getOffset(),
-                        pkt.getLength());
+                compound = (RTCPCompoundPacket) parser.parse(
+                    pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
             }
             catch (BadFormatException e)
             {
