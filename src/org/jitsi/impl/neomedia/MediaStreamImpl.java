@@ -1885,8 +1885,7 @@ public class MediaStreamImpl
         }
 
         Set<Long> ssrcs = mediaStreamTrack.getEncodingsBySSRC().keySet();
-
-        if (ssrcs == null || ssrcs.size() == 0)
+        if (ssrcs.isEmpty())
         {
             return;
         }
