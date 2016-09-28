@@ -779,8 +779,7 @@ public class MediaStreamImpl
         if (deviceSession != null)
             deviceSession.close();
 
-        RTCPTerminationStrategy strategy
-            = rtcpTransformEngineWrapper.getWrapped();
+        RTCPTerminationStrategy strategy = getRTCPTerminationStrategy();
         if (strategy instanceof RecurringRunnable)
         {
             recurringRunnableExecutor
