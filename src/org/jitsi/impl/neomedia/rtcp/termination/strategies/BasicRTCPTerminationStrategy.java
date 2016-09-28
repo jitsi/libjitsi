@@ -1201,7 +1201,7 @@ public class BasicRTCPTerminationStrategy
         }
     }
 
-    class RTCPPacketTransformerImpl
+    private class RTCPPacketTransformerImpl
         extends SinglePacketTransformerAdapter
     {
         /**
@@ -1239,7 +1239,7 @@ public class BasicRTCPTerminationStrategy
         }
     }
 
-    class RTPPacketTransformerImpl
+    private class RTPPacketTransformerImpl
         extends SinglePacketTransformerAdapter
     {
         /**
