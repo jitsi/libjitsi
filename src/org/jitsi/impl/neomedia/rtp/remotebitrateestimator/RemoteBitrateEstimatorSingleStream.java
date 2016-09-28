@@ -132,7 +132,7 @@ public class RemoteBitrateEstimatorSingleStream
      * {@inheritDoc}
      */
     @Override
-    public long getTimeUntilNextProcess()
+    public long getTimeUntilNextRun()
     {
         if (lastProcessTime < 0L)
             return 0L;
@@ -273,7 +273,7 @@ public class RemoteBitrateEstimatorSingleStream
     @Override
     public void run()
     {
-        if (getTimeUntilNextProcess() <= 0L)
+        if (getTimeUntilNextRun() <= 0L)
         {
             long nowMs = System.currentTimeMillis();
 

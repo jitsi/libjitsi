@@ -402,7 +402,7 @@ public class CachingTransformer
      * {@inheritDoc}
      */
     @Override
-    public long getTimeUntilNextProcess()
+    public long getTimeUntilNextRun()
     {
         return
                 (lastUpdateTime < 0L)

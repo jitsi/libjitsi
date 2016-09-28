@@ -77,7 +77,7 @@ public abstract class PeriodicRunnable
      * {@inheritDoc}
      */
     @Override
-    public long getTimeUntilNextProcess()
+    public long getTimeUntilNextRun()
     {
         long timeSinceLastProcess
             = Math.max(System.currentTimeMillis() - _lastProcessTime, 0);

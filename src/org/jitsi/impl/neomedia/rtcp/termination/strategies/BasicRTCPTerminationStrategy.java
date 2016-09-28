@@ -957,9 +957,9 @@ public class BasicRTCPTerminationStrategy
      * {@inheritDoc}
      */
     @Override
-    public long getTimeUntilNextProcess()
+    public long getTimeUntilNextRun()
     {
-        return rtcpReporter.getTimeUntilNextProcess();
+        return rtcpReporter.getTimeUntilNextRun();
     }
 
     /**
@@ -1146,7 +1146,7 @@ public class BasicRTCPTerminationStrategy
          * {@inheritDoc}
          */
         @Override
-        public long getTimeUntilNextProcess()
+        public long getTimeUntilNextRun()
         {
             return (lastUpdateTimeMs + RTCP_INTERVAL_VIDEO_MS)
                 - System.currentTimeMillis();

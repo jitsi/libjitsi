@@ -57,7 +57,7 @@ public abstract class PeriodicRunnableWithObject<T>
      * {@code long} value with unknown/undocumented (at the time of this
      * writing) meaning.
      */
-    protected abstract void doProcess();
+    protected abstract void doRun();
 
     /**
      * {@inheritDoc}
@@ -67,7 +67,7 @@ public abstract class PeriodicRunnableWithObject<T>
     {
         try
         {
-            doProcess();
+            doRun();
         }
         finally
         {

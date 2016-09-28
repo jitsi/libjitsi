@@ -54,7 +54,7 @@ public class RecurringRunnableExecutor
      * The (background) {@code Thread} which invokes
      * {@link RecurringRunnable#run()} on {@link #recurringRunnables}
      * (in accord with their respective
-     * {@link RecurringRunnable#getTimeUntilNextProcess()}).
+     * {@link RecurringRunnable#getTimeUntilNextRun()}).
      */
     private Thread thread;
 
@@ -148,7 +148,7 @@ public class RecurringRunnableExecutor
      * implemented by {@link #runInThread()} or {@code false} to break (out of)
      * the loop
      */
-    private boolean process()
+    private boolean run()
     {
         // Wait for the recurringRunnable that should be called next, but
         // don't block thread longer than 100 ms.
@@ -165,7 +165,7 @@ public class RecurringRunnableExecutor
                     : recurringRunnables)
             {
                 long timeToNext
-                    = recurringRunnable.getTimeUntilNextProcess();
+                    = recurringRunnable.getTimeUntilNextRun();
 
                 if (minTimeToNext > timeToNext)
                     minTimeToNext = timeToNext;
@@ -198,7 +198,7 @@ public class RecurringRunnableExecutor
                     : recurringRunnables)
             {
                 long timeToNext
-                    = recurringRunnable.getTimeUntilNextProcess();
+                    = recurringRunnable.getTimeUntilNextRun();
 
                 if (timeToNext < 1L)
                 {
@@ -280,7 +280,7 @@ public class RecurringRunnableExecutor
     {
         try
         {
-            while (process());
+            while (run());
         }
         finally
         {

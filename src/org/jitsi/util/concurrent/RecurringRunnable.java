@@ -35,5 +35,5 @@ public interface RecurringRunnable
      * @return the number of milliseconds until this instance wants a worker
      * thread to call {@link #run()}
      */
-    long getTimeUntilNextProcess();
+    long getTimeUntilNextRun();
 }
