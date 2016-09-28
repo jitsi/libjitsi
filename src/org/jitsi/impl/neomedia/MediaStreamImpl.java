@@ -1053,6 +1053,7 @@ public class MediaStreamImpl
         if (redTransformEngine != null)
             engineChain.add(redTransformEngine);
 
+        // SSRC rewriting
         SsrcRewritingEngine ssrcRewritingEngine = getSsrcRewritingEngine();
         if (ssrcRewritingEngine != null)
             engineChain.add(ssrcRewritingEngine);
