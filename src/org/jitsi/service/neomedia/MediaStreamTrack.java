@@ -25,7 +25,20 @@ public class MediaStreamTrack
     /**
      * The RTP encodings of this track, keyed by their SSRC.
      */
-    private final Map<Long, RTPEncoding> encodingsBySSRC = new TreeMap<>();
+    private final Map<Long, RTPEncoding> encodingsBySSRC
+        = new TreeMap<Long, RTPEncoding>()
+    {
+        @Override
+        public RTPEncoding put(Long key, RTPEncoding value)
+        {
+            if (key == null || key == -1)
+            {
+                return null;
+            }
+
+            return put(key, value);
+        }
+    };
 
     /**
      * The RTP encodings of this track, keyed by their order.
@@ -75,23 +88,11 @@ public class MediaStreamTrack
     public synchronized void addEncoding(
         long primarySSRC, long rtxSSRC, long fecSSRC, int order)
     {
-        RTPEncoding encoding = new RTPEncoding(this, primarySSRC, rtxSSRC, fecSSRC);
-
-        if (encoding.getPrimarySSRC() != -1)
-        {
-            encodingsBySSRC.put(encoding.getPrimarySSRC(), encoding);
-        }
-
-        if (encoding.getRTXSSRC() != -1)
-        {
-            encodingsBySSRC.put(encoding.getRTXSSRC(), encoding);
-        }
-
-        if (encoding.getFECSSRC() != -1)
-        {
-            encodingsBySSRC.put(encoding.getFECSSRC(), encoding);
-        }
-
+        RTPEncoding encoding
+            = new RTPEncoding(this, primarySSRC, rtxSSRC, fecSSRC);
+        encodingsBySSRC.put(encoding.getPrimarySSRC(), encoding);
+        encodingsBySSRC.put(encoding.getRTXSSRC(), encoding);
+        encodingsBySSRC.put(encoding.getFECSSRC(), encoding);
         encodingsByOrder.put(order, encoding);
     }
 
