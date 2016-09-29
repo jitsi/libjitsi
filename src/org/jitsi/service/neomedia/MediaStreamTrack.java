@@ -36,7 +36,7 @@ public class MediaStreamTrack
                 return null;
             }
 
-            return put(key, value);
+            return super.put(key, value);
         }
     };
 
