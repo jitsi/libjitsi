@@ -68,16 +68,6 @@ public class MediaStreamTrack
     }
 
     /**
-     * Gets the RTPEncodings keyed on their SSRC.
-     *
-     * @return the RTPEncodings keyed on their SSRC.
-     */
-    public synchronized Map<Long, RTPEncoding> getEncodingsBySSRC()
-    {
-        return new TreeMap<>(encodingsBySSRC);
-    }
-
-    /**
      * Adds an RTP encoding to the list of encodings of this track.
      *
      * @param primarySSRC the primary SSRC of the RTP encoding
