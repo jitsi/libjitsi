@@ -18,6 +18,7 @@ package org.jitsi.impl.neomedia.transform.rewriting;
 import java.util.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -129,8 +130,20 @@ public class SsrcRewritingEngine
         Rewriter rewriter = rewritersBySSRC.get(encodingSSRC);
         if (rewriter == null)
         {
+            MediaStreamTrack track = null;
+
             // Find the RTPEncoding that corresponds to this SSRC.
-            MediaStreamTrack track = stream.getLocalTrack(encodingSSRC);
+            StreamRTPManager receiveRTPManager = stream.getRTPTranslator()
+                .findStreamRTPManagerByReceiveSSRC((int) encodingSSRC);
+            if (receiveRTPManager != null)
+            {
+                MediaStream receiveStream = receiveRTPManager.getMediaStream();
+                if (receiveStream != null)
+                {
+                    track = receiveStream.getRemoteTracks().get(encodingSSRC);
+                }
+            }
+
             if (track == null)
             {
                 // Maybe signaling hasn't propagated yet.

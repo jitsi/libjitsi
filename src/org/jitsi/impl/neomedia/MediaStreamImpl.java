@@ -241,10 +241,10 @@ public class MediaStreamImpl
     private final Vector<Long> remoteSourceIDs = new Vector<>(1, 1);
 
     /**
-     * The remote <tt>MediaStreamTrack</tt>s of the remote peer.
+     * The {@code MediaStreamTracks} of this {@code MediaStream}.
      */
-    private final Map<Long, MediaStreamTrack> remoteTracksBySSRC
-        = new TreeMap<>();
+    private Map<Long, MediaStreamTrack> remoteTracks
+        = Collections.synchronizedMap(new TreeMap<Long, MediaStreamTrack>());
 
     /**
      * The <tt>RTPConnector</tt> through which this instance sends and receives
@@ -1615,24 +1615,6 @@ public class MediaStreamImpl
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public MediaStreamTrack getLocalTrack(long ssrc)
-    {
-        if (rtpTranslator == null)
-        {
-            return null;
-        }
-
-        StreamRTPManager streamRTPManager
-            = rtpTranslator.findStreamRTPManagerByReceiveSSRC((int) ssrc);
-
-        return streamRTPManager == null
-            ? null : streamRTPManager.getMediaStream().getRemoteTrack(ssrc);
-    }
-
-    /**
      * Returns the statistical information gathered about this
      * <tt>MediaStream</tt>.
      *
@@ -1874,53 +1856,12 @@ public class MediaStreamImpl
     }
 
     /**
-     * @{inheritDoc}
-     */
-    @Override
-    public void addRemoteTrack(MediaStreamTrack mediaStreamTrack)
-    {
-        if (mediaStreamTrack == null)
-        {
-            return;
-        }
-
-        Set<Long> ssrcs = mediaStreamTrack.getEncodingsBySSRC().keySet();
-        if (ssrcs.isEmpty())
-        {
-            return;
-        }
-
-        synchronized (remoteTracksBySSRC)
-        {
-            for (Long ssrc : ssrcs)
-            {
-                remoteTracksBySSRC.put(ssrc, mediaStreamTrack);
-            }
-        }
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
-    public MediaStreamTrack getRemoteTrack(long ssrc)
+    public Map<Long, MediaStreamTrack> getRemoteTracks()
     {
-        synchronized (remoteTracksBySSRC)
-        {
-            return remoteTracksBySSRC.get(ssrc);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void clearRemoteTracks()
-    {
-        synchronized (remoteTracksBySSRC)
-        {
-            remoteTracksBySSRC.clear();
-        }
+        return remoteTracks;
     }
 
     /**

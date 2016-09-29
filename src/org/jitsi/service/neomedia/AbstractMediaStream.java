@@ -292,33 +292,8 @@ public abstract class AbstractMediaStream
      * {@inheritDoc}
      */
     @Override
-    public void addRemoteTrack(MediaStreamTrack mediaStreamTrack)
+    public Map<Long, MediaStreamTrack> getRemoteTracks()
     {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public MediaStreamTrack getLocalTrack(long ssrc)
-    {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public MediaStreamTrack getRemoteTrack(long ssrc)
-    {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void clearRemoteTracks()
-    {
+        return new HashMap<>();
     }
 }

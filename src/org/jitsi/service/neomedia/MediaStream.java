@@ -197,17 +197,6 @@ public interface MediaStream
     public long getLocalSourceID();
 
     /**
-     * Gets the local {@code MediaStreamTrack} that matches the given SSRC.
-     *
-     * @param ssrc the SSRC to match the {@code MediaStreamTrack} against. It
-     * can be the primary SSRC or the RTX SSRC.
-     *
-     * @return the local {@code MediaStreamTrack} that matches the given SSRC,
-     * or null if there's no matching {@code MediaStreamTrack}.
-     */
-    public MediaStreamTrack getLocalTrack(long ssrc);
-
-    /**
      * Returns a <tt>MediaStreamStats</tt> object used to get statistics about
      * this <tt>MediaStream</tt>.
      *
@@ -280,26 +269,16 @@ public interface MediaStream
     public List<Long> getRemoteSourceIDs();
 
     /**
-     * Adds the remote {@code MediaStreamTrack}s to this {@code MediaStream}.
-     */
-    public void addRemoteTrack(MediaStreamTrack mediaStreamTrack);
-
-    /**
-     * Gets the remote {@code MediaStreamTrack} that matches the given SSRC.
+     * Returns a synchronized {@code Map<Long, MediaStreamTrack>} that maps the
+     * {@code MediaStreamTrack}s of the remote peer, as they're signaled by the
+     * remote peer, by the SSRCs of their {@code RTPEncoding}s. The signaling
+     * layer manages this map.
      *
-     * @param ssrc the SSRC to match the {@code MediaStreamTrack} against. It
-     * can be the primary SSRC or the RTX SSRC.
-     *
-     * @return the remote {@code MediaStreamTrack} that matches the given SSRC,
-     * or null if there's no matching {@code MediaStreamTrack}.
+     * @return a synchronized {@code Map<Long, MediaStreamTrack>} that maps the
+     * {@code MediaStreamTrack}s of the remote peer, as they're signaled by the
+     * remote peer, by the SSRCs of their {@code RTPEncoding}s.
      */
-    public MediaStreamTrack getRemoteTrack(long ssrc);
-
-    /**
-     * Clears the remote {@code MediaStreamTrack}s associated with this
-     * {@code MediaStream}.
-     */
-    public void clearRemoteTracks();
+    public Map<Long, MediaStreamTrack> getRemoteTracks();
 
     /**
      * Gets the {@code StreamRTPManager} which is to forward RTP and RTCP
