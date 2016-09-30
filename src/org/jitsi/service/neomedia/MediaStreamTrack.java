@@ -46,9 +46,13 @@ public class MediaStreamTrack
     private final Map<Integer, RTPEncoding> encodingsByOrder = new TreeMap<>();
 
     /**
+     * Gets the {@code RTPEncoding} that matches the ssrc passed in as a
+     * parameter.
      *
-     * @param ssrc
-     * @return
+     * @param ssrc the SSRC of the {@code RTPEncoding} to match.
+     *
+     * @return the {@code RTPEncoding} that matches the ssrc passed in as
+     * a parameter, or null if there is no matching {@code RTPEncoding}.
      */
     public synchronized RTPEncoding getEncodingBySSRC(long ssrc)
     {
