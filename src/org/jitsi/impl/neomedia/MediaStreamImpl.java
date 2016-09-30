@@ -1059,6 +1059,27 @@ public class MediaStreamImpl
         if (ssrcRewritingEngine != null)
             engineChain.add(ssrcRewritingEngine);
 
+        // RTX
+        RtxTransformer rtxTransformer = getRtxTransformer();
+        if (rtxTransformer != null)
+            engineChain.add(rtxTransformer);
+
+        if (cachingTransformer != null)
+        {
+            engineChain.add(cachingTransformer);
+        }
+
+        absSendTimeEngine = createAbsSendTimeEngine();
+        if (absSendTimeEngine != null)
+        {
+            engineChain.add(absSendTimeEngine);
+        }
+
+        // Discard
+        DiscardTransformEngine discardEngine = createDiscardEngine();
+        if (discardEngine != null)
+            engineChain.add(discardEngine);
+
         // RTCPTerminationTransformEngine passes received RTCP to
         // RTCPTerminationStrategy for inspection and modification. The RTCP
         // termination needs to be as close to the SRTP transform engine as
@@ -1075,27 +1096,11 @@ public class MediaStreamImpl
             engineChain.add(retransmissionRequester);
         }
 
-        if (cachingTransformer != null)
-        {
-            engineChain.add(cachingTransformer);
-        }
-
-        absSendTimeEngine = createAbsSendTimeEngine();
-        if (absSendTimeEngine != null)
-        {
-            engineChain.add(absSendTimeEngine);
-        }
-
         // Debug
         debugTransformEngine
             = DebugTransformEngine.createDebugTransformEngine(this);
         if (debugTransformEngine != null)
             engineChain.add(debugTransformEngine);
-
-        // Discard
-        DiscardTransformEngine discardEngine = createDiscardEngine();
-        if (discardEngine != null)
-            engineChain.add(discardEngine);
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
@@ -1525,6 +1530,18 @@ public class MediaStreamImpl
         MediaDeviceSession devSess = getDeviceSession();
 
         return (devSess == null) ? null : devSess.getFormat();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MediaFormat getRemoteFormat(byte pt)
+    {
+        synchronized (dynamicRTPPayloadTypes)
+        {
+            return dynamicRTPPayloadTypes.get(pt);
+        }
     }
 
     /**

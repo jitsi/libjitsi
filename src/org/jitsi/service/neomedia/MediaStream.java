@@ -186,6 +186,13 @@ public interface MediaStream
     public MediaFormat getFormat();
 
     /**
+     *
+     * @param pt
+     * @return
+     */
+    public MediaFormat getRemoteFormat(byte pt);
+
+    /**
      * Returns the synchronization source (SSRC) identifier of the local
      * participant or <tt>-1</tt> if that identifier is not yet known at this
      * point.
@@ -551,6 +558,12 @@ public interface MediaStream
      * @return the {@link RetransmissionRequester} for this media stream.
      */
     public RetransmissionRequester getRetransmissionRequester();
+
+    /**
+     *
+     * @return
+     */
+    public RtxTransformer getRtxTransformer();
 
     /**
      * Gets the {@link TransformEngineChain} of this {@link MediaStream}.
