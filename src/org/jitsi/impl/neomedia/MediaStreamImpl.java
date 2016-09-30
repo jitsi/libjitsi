@@ -1063,22 +1063,6 @@ public class MediaStreamImpl
         if (ssrcRewritingEngine != null)
             engineChain.add(ssrcRewritingEngine);
 
-        // RTCPTerminationTransformEngine passes received RTCP to
-        // RTCPTerminationStrategy for inspection and modification. The RTCP
-        // termination needs to be as close to the SRTP transform engine as
-        // possible.
-        engineChain.add(rtcpTransformEngineWrapper);
-
-        // RTCP Statistics
-        if (statisticsEngine == null)
-            statisticsEngine = new StatisticsEngine(this);
-        engineChain.add(statisticsEngine);
-
-        if (retransmissionRequester != null)
-        {
-            engineChain.add(retransmissionRequester);
-        }
-
         if (cachingTransformer != null)
         {
             engineChain.add(cachingTransformer);
@@ -1094,6 +1078,22 @@ public class MediaStreamImpl
         DiscardTransformEngine discardEngine = createDiscardEngine();
         if (discardEngine != null)
             engineChain.add(discardEngine);
+
+        // RTCPTerminationTransformEngine passes received RTCP to
+        // RTCPTerminationStrategy for inspection and modification. The RTCP
+        // termination needs to be as close to the SRTP transform engine as
+        // possible.
+        engineChain.add(rtcpTransformEngineWrapper);
+
+        // RTCP Statistics
+        if (statisticsEngine == null)
+            statisticsEngine = new StatisticsEngine(this);
+        engineChain.add(statisticsEngine);
+
+        if (retransmissionRequester != null)
+        {
+            engineChain.add(retransmissionRequester);
+        }
 
         // Debug
         debugTransformEngine
