@@ -138,15 +138,6 @@ public class SendTrackStatsImpl
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getHighestSent()
-    {
-        return highestSeq;
-    }
-
-    /**
      * Notifies this instance that an RTCP packet with a given length in bytes
      * was sent (or is about to be sent).
      * @param length

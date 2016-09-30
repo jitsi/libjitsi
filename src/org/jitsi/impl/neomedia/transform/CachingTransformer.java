@@ -34,7 +34,7 @@ public class CachingTransformer
     extends SinglePacketTransformerAdapter
     implements RawPacketCache,
                TransformEngine,
-               RecurringRunnable
+               RecurringProcessible
 {
     /**
      * The <tt>Logger</tt> used by the <tt>CachingTransformer</tt> class and
@@ -44,12 +44,12 @@ public class CachingTransformer
             = Logger.getLogger(CachingTransformer.class);
 
     /**
-     * The <tt>RecurringRunnableExecutor</tt> to be utilized by the
+     * The <tt>RecurringProcessibleExecutor</tt> to be utilized by the
      * <tt>CachingTransformer</tt> class and its instances.
      */
-    private static final RecurringRunnableExecutor
-        recurringRunnableExecutor
-            = new RecurringRunnableExecutor(
+    private static final RecurringProcessibleExecutor
+        recurringProcessibleExecutor
+            = new RecurringProcessibleExecutor(
                     CachingTransformer.class.getSimpleName());
 
     /**
@@ -76,7 +76,7 @@ public class CachingTransformer
             = "org.jitsi.impl.neomedia.transform.CachingTransformer.CACHE_SIZE_MILLIS";
 
     /**
-     * The period of time between calls to {@link #run} will be requested
+     * The period of time between calls to {@link #process} will be requested
      * if this {@link CachingTransformer} is enabled.
      */
     private static final int PROCESS_INTERVAL_MS = 10000;
@@ -200,7 +200,7 @@ public class CachingTransformer
     private boolean enabled = false;
 
     /**
-     * The last time {@link #run()} was called.
+     * The last time {@link #process()} was called.
      */
     private long lastUpdateTime = -1;
 
@@ -252,7 +252,7 @@ public class CachingTransformer
             caches.clear();
         }
 
-        recurringRunnableExecutor.deRegisterRecurringRunnable(this);
+        recurringProcessibleExecutor.deRegisterRecurringProcessible(this);
     }
 
     /**
@@ -345,11 +345,11 @@ public class CachingTransformer
 
         if (enabled)
         {
-            recurringRunnableExecutor.registerRecurringRunnable(this);
+            recurringProcessibleExecutor.registerRecurringProcessible(this);
         }
         else
         {
-            recurringRunnableExecutor.deRegisterRecurringRunnable(this);
+            recurringProcessibleExecutor.deRegisterRecurringProcessible(this);
         }
 
         if (logger.isDebugEnabled())
@@ -402,7 +402,7 @@ public class CachingTransformer
      * {@inheritDoc}
      */
     @Override
-    public long getTimeUntilNextRun()
+    public long getTimeUntilNextProcess()
     {
         return
                 (lastUpdateTime < 0L)
@@ -415,10 +415,11 @@ public class CachingTransformer
      * {@inheritDoc}
      */
     @Override
-    public void run()
+    public long process()
     {
         lastUpdateTime = System.currentTimeMillis();
         clean(lastUpdateTime);
+        return 0;
     }
 
     /**

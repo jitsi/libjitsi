@@ -68,11 +68,11 @@ public class RTCPFeedbackMessageSender
     private final RTPTranslatorImpl rtpTranslator;
 
     /**
-     * The {@link RecurringRunnableExecutor} which will periodically call
-     * {@link KeyframeRequester#run()} and trigger their retry logic.
+     * The {@link RecurringProcessibleExecutor} which will periodically call
+     * {@link KeyframeRequester#process()} and trigger their retry logic.
      */
-    private final RecurringRunnableExecutor recurringRunnableExecutor
-        = new RecurringRunnableExecutor(
+    private final RecurringProcessibleExecutor recurringProcessibleExecutor
+        = new RecurringProcessibleExecutor(
                 RTCPFeedbackMessageSender.class.getSimpleName());
 
     /**
@@ -119,7 +119,7 @@ public class RTCPFeedbackMessageSender
      */
     public boolean sendFIR(int mediaSenderSSRC)
     {
-        boolean registerRecurringRunnable = false;
+        boolean registerRecurringProcessible = false;
         KeyframeRequester keyframeRequester = kfRequesters.get(mediaSenderSSRC);
         if (keyframeRequester == null )
         {
@@ -131,14 +131,14 @@ public class RTCPFeedbackMessageSender
             {
                 // Another thread beat this one to putting a keyframe requester.
                 keyframeRequester = existingKfRequester;
-                registerRecurringRunnable = true;
+                registerRecurringProcessible = true;
             }
         }
 
-        if (registerRecurringRunnable)
+        if (registerRecurringProcessible)
         {
-            recurringRunnableExecutor.registerRecurringRunnable(
-                    keyframeRequester);
+            recurringProcessibleExecutor
+                .registerRecurringProcessible(keyframeRequester);
         }
 
         return keyframeRequester.maybeRequest(true);
@@ -202,7 +202,7 @@ public class RTCPFeedbackMessageSender
      * a specific media sender identified by its SSRC.
      */
     class KeyframeRequester
-        extends PeriodicRunnable
+        extends PeriodicProcessible
     {
         /**
          * The media sender SSRC of this <tt>KeyframeRequester</tt>
@@ -235,11 +235,13 @@ public class RTCPFeedbackMessageSender
          * {@inheritDoc}
          */
         @Override
-        public void run()
+        public long process()
         {
-            super.run();
+            long ret = super.process();
 
             this.maybeRequest(false);
+
+            return ret; /* unused */
         }
 
         /**

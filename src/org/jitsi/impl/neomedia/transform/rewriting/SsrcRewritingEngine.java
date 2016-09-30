@@ -16,56 +16,36 @@
 package org.jitsi.impl.neomedia.transform.rewriting;
 
 import java.util.*;
+import java.util.concurrent.*;
+import net.sf.fmj.media.rtp.*;
+import net.sf.fmj.media.rtp.util.*;
+import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
+import org.jitsi.util.function.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.rtcp.*;
-import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
- * It merges multiple {@code RTPEncoding}s of a {@code MediaStreamTrack} into a
- * single RTP encoding. This class is not thread-safe. If multiple threads
- * access the engine concurrently, it must be synchronized externally.
+ * Rewrites source SSRCs {A, B, C, ...} to target SSRC A'. Note that this also
+ * includes sequence number rewriting and RTCP SSRC and sequence number
+ * rewriting, RTX and FEC/RED rewriting. It is also responsible of "BYEing" the
+ * SSRCs it rewrites to. This class is not thread-safe unless otherwise stated.
+ *
+ * TODO we should be using Longs for SSRCs, because want a special value for
+ * UNMAP_SSRC and also because it's like this everywhere else in libjitsi.
  *
  * @author George Politis
  * @author Lyubomir Marinov
  */
-public class SsrcRewritingEngine
-    extends SinglePacketTransformerAdapter
-    implements TransformEngine
+public class SsrcRewritingEngine implements TransformEngine
 {
     /**
-     * The maximum number of entries in the timestamp/frame history. The purpose
-     * of the timestamp history is to make sure that we always rewrite the RTP
-     * timestamp of a frame to the same value. The reason for doing this is
-     * two-fold:
-     *
-     * 1) The clock at the sender can drift or the sender might be buggy and
-     * send RTCP SRs that indicate drift. So, if we get an SR that indicates
-     * drift in between same-frame RTP packets and if we're fully rewritting
-     * the RTP timestamps, we might end-up with RTP packets from the same frame
-     * having different timestamps.
-     *
-     * 2) Performance. We don't have to re-run the same computation over and
-     * over again.
-     *
-     * Assuming a 30fps video, 300 sounds like a reasonable value (which is
-     * equivalent to roughly 10 seconds). There should be no practical case
-     * where we get an RTP packet from a frame that does not fit in that.
+     * The <tt>Random</tt> that generates initial sequence numbers. Instances of
+     * {@code java.util.Random} are thread-safe since Java 1.7.
      */
-    private static final int TS_HISTORY_MAX_ENTRIES = 300;
-
-    /**
-     * 10 seconds old. This is 300 frames for a 30fps video.
-     */
-    private static final int TS_EXPIRE_MS = 10000;
-
-    /**
-     * The maximum number of sequence numbers to store in the extended sequence
-     * number intervals for a given SSRC.
-     */
-    private static final int SEQNUM_HISTORY_MAX_ENTRIES = 2000;
+    private static final Random RANDOM = new Random();
 
     /**
      * The <tt>Logger</tt> used by the <tt>SsrcRewritingEngine</tt> class and
@@ -75,26 +55,166 @@ public class SsrcRewritingEngine
         = Logger.getLogger(SsrcRewritingEngine.class);
 
     /**
-     * The owner of this instance.
+     * The value of {@link Logger#isDebugEnabled()} from the time of the
+     * initialization of the class {@code SsrcRewritingEngine} cached for the
+     * purposes of performance.
      */
-    private final MediaStream stream;
+    private static final boolean DEBUG = logger.isDebugEnabled();
 
     /**
-     * Maps primary SSRC (the primary SSRC of the primary RTP encoding) to
-     * a {@code Rewriter}.
+     * The value of {@link Logger#isWarnEnabled()} from the time of the
+     * initialization of the class {@code SsrcRewritingEngine} cached for the
+     * purposes of performance.
      */
-    private final Map<Long, Rewriter> rewritersBySSRC = new TreeMap<>();
+    private static final boolean WARN = logger.isWarnEnabled();
+
+    /**
+     * The value of {@link Logger#isTraceEnabled()} from the time of the
+     * initialization of the class {@code SsrcRewritingEngine} cached for the
+     * purposes of performance.
+     */
+    private static final boolean TRACE = logger.isTraceEnabled();
+
+    /**
+     * An int const indicating an invalid seqnum. One reason why we use integers
+     * to represent sequence numbers is so that we can have this invalid
+     * sequence number const.
+     */
+    static final int INVALID_SEQNUM = -1;
+
+    /**
+     * The {@code long} constant indicating an invalid SSRC.
+     */
+    static final long INVALID_SSRC = -1L;
+
+    /**
+     * An int const indicating an unused SSRC. The usage of value 0 is also done
+     * in RFCs.
+     */
+    private static final int UNUSED_SSRC = 0;
+
+    /**
+     * An int const indicating an invalid payload type.
+     *
+     */
+    private static final int UNMAP_PT = -1;
+
+    /**
+     * An int const indicating an invalid SSRC.
+     */
+    private static final long UNMAP_SSRC = -1;
+
+    /**
+     * The owner of this instance.
+     */
+    private final MediaStream mediaStream;
+
+    /**
+     * Generates <tt>RawPacket</tt>s from <tt>RTCPCompoundPacket</tt>s.
+     */
+    private final RTCPGenerator generator = new RTCPGenerator();
+
+    /**
+     * Parses <tt>RTCPCompoundPacket</tt>s from <tt>RawPacket</tt>s.
+     */
+    private final RTCPPacketParserEx parser = new RTCPPacketParserEx();
+
+    /**
+     * The <tt>SeqnumBaseKeeper</tt> of this instance.
+     */
+    private final SeqnumBaseKeeper seqnumBaseKeeper = new SeqnumBaseKeeper();
+
+    /**
+     * A <tt>Map</tt> that maps source SSRCs to <tt>SsrcGroupRewriter</tt>s. It
+     * can be used to quickly find which <tt>SsrcGroupRewriter</tt> to use for
+     * a specific RTP packet based on its SSRC. Multiple SSRCs can be mapped to
+     * the same <tt>SsrcGroupRewriter</tt>, so this is not a 1-1 map.
+     * <p/>
+     * One other thing to note is that this map holds both primary and RTX
+     * origin SSRCs and will hold RED/FEC SSRCs in the future as well, when
+     * Chrome and/or other browsers implement it.
+     * <p/>
+     * We protect writing to this map with a synchronized method block but we
+     * need a <tt>ConcurrentHashMap</tt> because there is potential race
+     * condition when resizing a plain HashMap. An alternative solution would
+     * be to use RWL or synchronized blocks. Not sure about the performance
+     * diff, but locks for reading sound heavy.
+     */
+    Map<Long, SsrcGroupRewriter> origin2rewriter;
+
+    /**
+     * A <tt>Map</tt> that maps target SSRCs to <tt>SsrcGroupRewriter</tt>s. It
+     * can be used to quickly find an <tt>SsrcGroupRewriter</tt> by its SSRC.
+     * Each target SSRC is mapped to a different <tt>SsrcGroupRewriter</tt>, so
+     * this is a 1-1 map. We're wrapping the <tt>SsrcGroupRewriter</tt> in a
+     * <tt>Tracked</tt> class so the engine instance can count how many source
+     * SSRCs a target SSRC is rewriting. The purpose of this is to BYE target
+     * SSRCs that no longer have source SSRCs.
+     */
+    private Map<Long, RefCount<SsrcGroupRewriter>> target2rewriter;
+
+    /**
+     * Maps RTX SSRCs to primary SSRCs.
+     *
+     * FIXME On the other hand it seems wasteful to maintain this mapping here,
+     * in the outbound direction. We should have an efficient way to find a
+     * <tt>MediaStream</tt> by its RTX SSRC and extract the primary SSRC.
+     */
+    Map<Long, Long> rtx2primary;
+
+    /**
+     * Maps SSRCs to RED payload type. The RED payload type is typically going
+     * to be 116 but having it as a constant seems like an open invitation for
+     * headaches.
+     *
+     * FIXME On the other hand it seems wasteful to maintain this mapping here,
+     * in the outbound direction. We should have an efficient way to find a
+     * <tt>MediaStream</tt> by its SSRC and extract the RED PT.
+     */
+    Map<Long, Byte> ssrc2red;
+
+    /**
+     * Maps SSRCs to FEC payload type. The FEC payload type is typically going
+     * to be 117 but having it as a constant seems like an open invitation for
+     * headaches.
+     *
+     * FIXME On the other hand it seems wasteful to maintain this mapping here,
+     * in the outbound direction. We should have an efficient way to find a
+     * <tt>MediaStream</tt> by its SSRC and extract the FEC PT.
+     */
+    Map<Long, Byte> ssrc2fec;
+
+    /**
+     * The <tt>PacketTransformer</tt> that rewrites <tt>RawPacket</tt>s that
+     * represent RTP packets. This <tt>PacketTransformer</tt> is an entry point
+     * to this class.
+     */
+    private final SinglePacketTransformer rtpTransformer
+        = new MyRTPSinglePacketTransformer();
+
+    /**
+     * The <tt>PacketTransformer</tt> that rewrites <tt>RawPacket</tt>s that
+     * represent RTCP packets.
+     */
+    private final SinglePacketTransformer rtcpTransformer
+        = new MyRTCPSinglePacketTransformer();
+
+    /**
+     * A boolean that indicates whether this transformer is enabled or not.
+     */
+    private boolean initialized = false;
 
     /**
      * Ctor.
      *
-     * @param stream The {@code MediaStream} that owns this instance.
+     * @param mediaStream the owner of this instance.
      */
-    public SsrcRewritingEngine(MediaStream stream)
+    public SsrcRewritingEngine(MediaStream mediaStream)
     {
-        super(RTPPacketPredicate.INSTANCE);
+        this.mediaStream = mediaStream;
 
-        this.stream = stream;
+        logger.debug("Created a new SSRC rewriting engine. streamHashCode="
+            + mediaStream.hashCode());
     }
 
     /**
@@ -103,7 +223,7 @@ public class SsrcRewritingEngine
     @Override
     public PacketTransformer getRTPTransformer()
     {
-        return this;
+        return rtpTransformer;
     }
 
     /**
@@ -112,620 +232,604 @@ public class SsrcRewritingEngine
     @Override
     public PacketTransformer getRTCPTransformer()
     {
-        return null; // RTCP is handled by RTCP termination.
+        return rtcpTransformer;
     }
 
     /**
-     * {@inheritDoc}
+     * Configures the {@code SsrcRewritingEngine} to rewrite an SSRC group to
+     * the target SSRC. The method is thread-safe. Only one thread writes to the
+     * maps at a time, but many can read.
+     *
+     * FIXME split this method in two for clarity: map and unmap.
+     *
+     * @param ssrcGroup the SSRC group to rewrite to the target SSRC.
+     * @param ssrcTargetPrimary the target SSRC or {@code 0} to unmap.
+     * @param ssrc2fec
+     * @param ssrc2red
+     * @param rtxGroups maps RTX SSRCs to SSRCs.
+     * @param ssrcTargetRTX the target RTX SSRC.
      */
-    @Override
-    public RawPacket transform(RawPacket pkt)
+    public synchronized void map(
+        final Set<Long> ssrcGroup, final Long ssrcTargetPrimary,
+        final Map<Long, Byte> ssrc2fec,
+        final Map<Long, Byte> ssrc2red,
+        final Map<Long, Long> rtxGroups, final Long ssrcTargetRTX)
     {
-        if (pkt == null)
+        // FIXME maps, again. What's wrong with simple arrays?
+        if (!assertInitialized())
         {
-            return pkt;
+            logger.warn("Failed to map/unmap because the SSRC rewriting " +
+                "engine is not initialized. streamHashCode="
+                + mediaStream.hashCode());
+            return;
         }
 
-        long encodingSSRC = pkt.getSSRCAsLong();
-
-        Rewriter rewriter = rewritersBySSRC.get(encodingSSRC);
-        if (rewriter == null)
+        // Map the primary SSRCs.
+        if (ssrcGroup != null && !ssrcGroup.isEmpty())
         {
-            MediaStreamTrack track = null;
-
-            // Find the RTPEncoding that corresponds to this SSRC.
-            StreamRTPManager receiveRTPManager
-                = stream.getRTPTranslator().findStreamRTPManagerByReceiveSSRC(
-                        (int) encodingSSRC);
-            if (receiveRTPManager != null)
+            for (Long ssrcOrigPrimary : ssrcGroup)
             {
-                MediaStream receiveStream = receiveRTPManager.getMediaStream();
-                if (receiveStream != null)
-                {
-                    track = receiveStream.getRemoteTracks().get(encodingSSRC);
-                }
-            }
-
-            if (track == null)
-            {
-                // Maybe signaling hasn't propagated yet.
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("track_not_found"
-                        + ",stream_hash=" + stream.hashCode()
-                        + ",encodingSSRC=" + encodingSSRC
-                        + " seqNum=" + pkt.getSequenceNumber());
-                }
-
-                return pkt;
-            }
-
-            RTPEncoding encoding = track.getEncodingBySSRC(encodingSSRC);
-            if (encoding == null
-                    || !encoding.getMediaStreamTrack().hasMultipleEncodings())
-            {
-                // Maybe signaling hasn't propagated yet, or maybe this track
-                // only has a single RTPEncoding.
-
-                // Maybe signaling hasn't propagated yet.
-                if (encoding == null && logger.isDebugEnabled())
-                {
-                    logger.debug("encoding_not_found"
-                        + ",stream_hash=" + stream.hashCode()
-                        + ",encodingSSRC=" + encodingSSRC
-                        + " seqNum=" + pkt.getSequenceNumber());
-                }
-
-                return pkt;
-            }
-
-            long trackSSRC = track.getEncodingByOrder(RTPEncoding.BASE_ORDER)
-                .getPrimarySSRC();
-
-            rewriter = rewritersBySSRC.get(trackSSRC);
-            if (rewriter == null)
-            {
-                // Maybe signaling hasn't propagated yet.
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("new_rewriter"
-                        + ",stream_hash=" + stream.hashCode()
-                        + ",encodingSSRC=" + encodingSSRC
-                        + ",trackSSRC=" + trackSSRC
-                        + " seqNum=" + pkt.getSequenceNumber());
-                }
-
-                rewriter = new Rewriter(trackSSRC);
-                rewritersBySSRC.put(trackSSRC, rewriter);
-                rewritersBySSRC.put(encodingSSRC, rewriter);
+                map(ssrcOrigPrimary, ssrcTargetPrimary);
             }
         }
 
-        long nowMs = System.currentTimeMillis();
+        // Map/unmap the RTX SSRCs to primary SSRCs.
+        if (rtxGroups != null && !rtxGroups.isEmpty())
+        {
+            if (ssrcTargetRTX != null && ssrcTargetRTX != UNMAP_SSRC)
+            {
+                rtx2primary.putAll(rtxGroups);
+            }
+            else
+            {
+                rtx2primary.keySet().removeAll(rtxGroups.keySet());
+            }
 
-        boolean res = rewriter.rewrite(pkt, nowMs);
+            for (Long ssrcOrigRTX : rtxGroups.keySet())
+            {
+                map(ssrcOrigRTX, ssrcTargetRTX);
+            }
+        }
 
-        return res ? pkt : null;
+        // Take care of FEC PTs.
+        putAll(ssrc2fec, this.ssrc2fec);
+
+        // Take care of RED PTs.
+        putAll(ssrc2red, this.ssrc2red);
+
+        // BYE target SSRCs that no longer have source/original SSRCs.
+        // TODO we need a way to garbage collect target SSRCs that should have
+        // been unmapped.
+        for (Iterator<RefCount<SsrcGroupRewriter>> i
+                    = target2rewriter.values().iterator();
+                i.hasNext();)
+        {
+            RefCount<SsrcGroupRewriter> refCount = i.next();
+
+            if (refCount.get() < 1)
+            {
+                refCount.getReferent().close();
+                i.remove();
+            }
+        }
     }
 
     /**
-     * Merges together into a single {@code RTPEncoding} packets from multiple
-     * {@code RTPEncoding}s of the same {@code MediaStreamTrack}.
+     * Copies all of the entries/mappings from {@code src} into {@code dst} in a
+     * payload type-aware fashion i.e. values in {@code src} equal to
+     * {@link #UNMAP_PT} are removed from {@code dst}.
+     *
+     * @param src the {@code Map} of synchronization source identifiers (SSRCs)
+     * to payload types to copy from
+     * @param dst the {@code Map} of SSRCs to payload types to copy into
      */
-    class Rewriter
+    private void putAll(Map<Long, Byte> src, Map<Long, Byte> dst)
     {
-        /**
-         * The primary SSRC of the primary encoding of the
-         * {@code MediaStreamTrack} that this {@code Rewriter} is rewriting.
-         */
-        private final long trackSSRC;
-
-        /**
-         * The {@code SSRCState}s that this {@code Rewriter} manages, indexed by
-         * SSRC.
-         */
-        private final Map<Long, SSRCState> ssrcStateBySSRC = new TreeMap<>();
-
-        /**
-         * The {@code ExtendedSequenceNumberInterval} that is currently used for
-         * rewriting RTP packets.
-         */
-        private ExtendedSequenceNumberInterval curInterval;
-
-        /**
-         * Ctor.
-         *
-         * @param trackSSRC the SSRC of the track that this rewriter manages.
-         */
-        public Rewriter(long trackSSRC)
+        if (src != null && !src.isEmpty())
         {
-            this.trackSSRC = trackSSRC;
+            for (Map.Entry<Long, Byte> e : src.entrySet())
+            {
+                Long ssrc = e.getKey();
+                Byte pt = e.getValue();
+
+                if (pt == UNMAP_PT)
+                {
+                    dst.remove(ssrc);
+                }
+                else
+                {
+                    dst.put(ssrc, pt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Initializes some expensive ConcurrentHashMaps for this engine instance.
+     */
+    private synchronized boolean assertInitialized()
+    {
+        if (mediaStream == null)
+        {
+            logger.warn("This instance is not properly initialized because " +
+                    "the stream is null.");
+            return false;
         }
 
-        /**
-         * Maps the given sequence number from the SSRC sequence
-         * number space of ssrcState.ssrc to the track sequence number space.
-         *
-         * @param srcSeqNum the sequence number of the sequence number space of
-         * SSRC.
-         * @param ssrcState
-         *
-         * @return the sequence number mapped to the track sequence number
-         * space.
-         */
-        private int rewriteSequenceNumber(
-            int srcSeqNum, SSRCState ssrcState)
+        if (initialized)
         {
-            // First, extend the sequence number. This is necessary because blah
-            // blah.
-            int srcExtSeqNum
-                = stream.getStreamRTPManager()
-                    .getResumableStreamRewriter(ssrcState.encodingSSRC)
-                    .extendSequenceNumber(srcSeqNum);
-
-            // Try to translate using the current interval.
-            if (curInterval != null
-                && curInterval.ssrc == ssrcState.encodingSSRC)
-            {
-                int dstExtSeqNum
-                    = curInterval.rewrite(srcExtSeqNum, true /* canExtend */);
-                if (dstExtSeqNum != -1)
-                {
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug("cur_interval"
-                            + ",stream_hash=" + stream.hashCode()
-                            + ",srcSSRC=" + ssrcState.encodingSSRC
-                            + ",dstSSRC=" + trackSSRC
-                            + " srcSeqnum=" + srcExtSeqNum
-                            + ",dstSeqnum=" + dstExtSeqNum);
-                    }
-                    return dstExtSeqNum;
-                }
-            }
-
-            // The packet is either old (in which case it should belong to
-            // a closed interval), or it's new from a different encoding
-            // than the one we are currently rewriting (in which case it's
-            // time to replace the current interval).
-
-            // Check if this is an old packet.
-            Map.Entry<Integer, ExtendedSequenceNumberInterval> ceilingEntry
-                = ssrcState.intervals.ceilingEntry(srcExtSeqNum);
-
-            if (ceilingEntry != null)
-            {
-                ExtendedSequenceNumberInterval ceiling = ceilingEntry.getValue();
-                // This is an old packet. Rewrite, if possible, drop
-                // otherwise.
-                int dstExtSeqNum = ceiling.rewrite(
-                    srcExtSeqNum, false /* canExtend */);
-                if (dstExtSeqNum == -1)
-                {
-                    logger.warn("packet_out_of_bounds"
-                        + ",stream_hash=" + stream.hashCode()
-                        + ",srcSSRC=" + ssrcState.encodingSSRC
-                        + ",dstSSRC=" + trackSSRC
-                        + " srcSeqnum=" + srcExtSeqNum
-                        + ",dstSeqnum=" + dstExtSeqNum
-                        + ",min=" + ceiling.min
-                        + ",max=" + ceiling.max);
-                }
-
-                return dstExtSeqNum;
-            }
-
-            // Find the highest sequence number that we have sent out for
-            // the track SSRC.
-            int highestSent;
-            if (curInterval != null)
-            {
-                highestSent = curInterval.rewrite(curInterval.max, false);
-            }
-            else
-            {
-                highestSent
-                    = stream.getMediaStreamStats().getSendStats(trackSSRC)
-                        .getHighestSent();
-
-                if (highestSent == -1)
-                {
-                    // Pretend we've sent the previous packet.
-                    highestSent = srcExtSeqNum - 1;
-                }
-            }
-
-            int dstExtSeqNum = highestSent + 1;
-
-            if (curInterval != null)
-            {
-                // Store the current interval.
-                SSRCState s = ssrcStateBySSRC.get(curInterval.ssrc);
-                s.intervals.put(curInterval.max, curInterval);
-
-                // Cleanup the intervals map.
-                int numOfPackets = 0;
-                Iterator<Map.Entry<Integer, ExtendedSequenceNumberInterval>>
-                    it = s.intervals.descendingMap().entrySet().iterator();
-
-                while (it.hasNext())
-                {
-                    Map.Entry<Integer, ExtendedSequenceNumberInterval>
-                        next = it.next();
-                    numOfPackets += next.getValue().length();
-
-                    if (numOfPackets > SEQNUM_HISTORY_MAX_ENTRIES)
-                    {
-                        if (logger.isDebugEnabled())
-                        {
-                            logger.debug("interval_cleanup"
-                                + " min=" + next.getValue().min
-                                + ",max=" + next.getValue().max);
-                        }
-
-                        it.remove();
-                    }
-                }
-            }
-
-            int delta = dstExtSeqNum - srcExtSeqNum;
-            curInterval
-                = new ExtendedSequenceNumberInterval(
-                        ssrcState.encodingSSRC,
-                        delta,
-                        srcExtSeqNum);
-
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("new_interval"
-                    + ",stream_hash=" + stream.hashCode()
-                    + ",srcSSRC=" + ssrcState.encodingSSRC
-                    + ",dstSSRC=" + trackSSRC
-                    + " srcSeqnum=" + srcExtSeqNum
-                    + ",dstSeqnum=" + dstExtSeqNum
-                    + ",delta=" + delta);
-            }
-
-            return dstExtSeqNum;
-        }
-
-        /**
-         * Rewrites the timestamp of a frame of an RTP encoding to a timestamp
-         * of the track SSRC.
-         *
-         * @param srcTs the RTP timestamp from the source SSRC.
-         * @param ssrcState the state of the source SSRC.
-         * @param nowMs the current time in milliseconds.
-         */
-        private long rewriteTimestamp(long srcTs, SSRCState ssrcState,
-                ExtendedSequenceNumberInterval maxInterval, long nowMs)
-        {
-            // Check if this timestamp is in the timestamp history.
-            TimestampEntry oldTsEntry = ssrcState.tsHistory.get(srcTs);
-            if (oldTsEntry != null && oldTsEntry.isFresh(nowMs))
-            {
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("rewrite_old_frame_success"
-                        + ",stream_hash=" + stream.hashCode()
-                        + ",srcSSRC=" + ssrcState.encodingSSRC
-                        + ",dstSSRC=" + trackSSRC
-                        + " srcTs=" + srcTs
-                        + ",dstTs=" + oldTsEntry.dstTs);
-                }
-
-                return oldTsEntry.dstTs;
-            }
-
-            long dstTs;
-            if (ssrcState.encodingSSRC != trackSSRC)
-            {
-                // Rewrite it in accord with the wallclock of trackSSRC.
-
-                // Convert the SSRCs to RemoteClocks.
-                long[] ssrcs = { ssrcState.encodingSSRC, trackSSRC};
-                RemoteClock[] clocks
-                    = stream.getStreamRTPManager().findRemoteClocks(ssrcs);
-
-                // Require all/the two RemoteClocks to carry out the RTP
-                // timestamp rewriting.
-                if (clocks.length != 2 || clocks[0] == null || clocks[1] == null)
-                {
-                    logger.warn("clock_not_found"
-                        + ",stream_hash=" + stream.hashCode()
-                        + ",srcSSRC=" + ssrcState.encodingSSRC
-                        + ",dstSSRC=" + trackSSRC);
-                    return -1;
-                }
-
-
-                // XXX Presume that srcClock and dstClock represent the same
-                // wallclock (in terms of system time in milliseconds/NTP time).
-                // Technically, this presumption may be wrong. Practically, we
-                // are unlikely (at the time of this writing) to hit a case in
-                // which this presumption is wrong.
-
-                // Convert the RTP timestamp of p to system time in milliseconds
-                // using srcClock.
-                Timestamp srcTimestamp = clocks[0]
-                    .rtpTimestamp2remoteSystemTimeMs(srcTs);
-
-                if (srcTimestamp == null)
-                {
-                    logger.warn("rtp_to_system_failed"
-                        + ",stream_hash=" + stream.hashCode()
-                        + ",srcSSRC=" + ssrcState.encodingSSRC
-                        + ",dstSSRC=" + trackSSRC);
-                    return -1;
-                }
-
-                // Convert the system time in milliseconds to an RTP timestamp
-                // using dstClock.
-                Timestamp dstTimestamp
-                    = clocks[1].remoteSystemTimeMs2rtpTimestamp(
-                            srcTimestamp.getSystemTimeMs());
-
-                if (dstTimestamp == null)
-                {
-                    logger.warn("system_to_rtp_failed"
-                        + ",stream_hash=" + stream.hashCode()
-                        + ",srcSSRC=" + ssrcState.encodingSSRC
-                        + ",dstSSRC=" + trackSSRC);
-                    return -1;
-                }
-
-                dstTs = dstTimestamp.getRtpTimestampAsLong();
-            }
-            else
-            {
-                dstTs = srcTs;
-            }
-
-            if (ssrcState.maxTsEntry != null
-                && ssrcState.maxTsEntry.isFresh(nowMs)
-                && TimeUtils.rtpDiff(srcTs, ssrcState.maxTsEntry.srcTs) < 0)
-            {
-                // The current packet belongs to a frame F of an RTP stream S.
-                // Reaching this point means this is the first time we see
-                // frame F, and we've already seen F' such that F' > F (because
-                // delta < 0). This is a frame re-ordering.
-                //
-                // This case needs special treatment. We must not perform RTP
-                // timestamp uplifting and we must not rewrite to something
-                // that's bigger than dest(F').
-                //
-                // Note that we only correctly handle the case where F' = F + 1,
-                // i.e. frame re-orderings where the distance between the frames
-                // is -1. It shouldn't be difficult to handle the general case
-                // where F' = F + n, but it requires a different data structure
-                // for keeping the timestamp history (a NavigableMap that can
-                // also be used as an MRU).
-
-                if (TimeUtils.rtpDiff(ssrcState.maxTsEntry.dstTs, dstTs) <= 0)
-                {
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.warn("downlifting"
-                            + ",stream_hash=" + stream.hashCode()
-                            + ",srcSSRC=" + ssrcState.encodingSSRC
-                            + ",dstSSRC=" + trackSSRC
-                            + " ts=" + dstTs
-                            + ",newTs=" + (ssrcState.maxTsEntry.dstTs - 1));
-                    }
-
-                    // It seems that rewriting using the wallclocks resulted in
-                    // a frame timestamp that is bigger than what we expect.
-                    // Downlifting.
-                    dstTs = ssrcState.maxTsEntry.dstTs - 1;
-                }
-
-                ssrcState.tsHistory.put(
-                    srcTs, new TimestampEntry(nowMs, srcTs, dstTs));
-
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("rewrite_old_frame_success"
-                        + ",stream_hash=" + stream.hashCode()
-                        + ",srcSSRC=" + ssrcState.encodingSSRC
-                        + ",dstSSRC=" + trackSSRC
-                        + " srcTs=" + srcTs
-                        + ",dstTs=" + dstTs);
-                }
-
-                return dstTs;
-            }
-
-            // XXX Why do we need this? : When there's a stream switch, we
-            // request a keyframe for the stream we want to switch into (this is
-            // done elsewhere). The {@link RTPEncodingRewriter} rewrites the
-            // timestamps of the "mixed" streams so that they all have the same
-            // timestamp offset. The problem still remains tho, frames can be
-            // sampled at different times, so we might end up with a key frame
-            // that is one sampling cycle behind what we were already streaming.
-            // We hack around this by implementing "RTP timestamp uplifting".
-
-            // XXX(gp): The uplifting should not take place if the
-            // timestamps have advanced "a lot" (i.e. > 3000 or 3000/90 = 33ms).
-
-            long maxTs = -1;
-
-            if (maxInterval != null)
-            {
-                SSRCState s = ssrcStateBySSRC.get(maxInterval.ssrc);
-                if (s != null)
-                {
-                    maxTs = s.maxTsEntry.dstTs;
-                }
-            }
-
-            if (maxTs == -1) // Initialize maxTimestamp.
-            {
-                // Pretend we've sent the previous frame.
-                maxTs = dstTs - 1;
-            }
-
-            long minTimestamp = maxTs + 1; /* minTimestamp is inclusive */
-
-            if (TimeUtils.rtpDiff(dstTs, minTimestamp) < 0)
-            {
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("uplifting"
-                        + ",stream_hash=" + stream.hashCode()
-                        + ",srcSSRC=" + ssrcState.encodingSSRC
-                        + ",dstSSRC=" + trackSSRC
-                        + " ts=" + dstTs
-                        + ",newTs=" + minTimestamp);
-                }
-
-                // The calculated dstTs is smaller than the required minimum
-                // timestamp. Replace dstTs with minTimestamp.
-                dstTs = minTimestamp;
-            }
-
-            TimestampEntry maxTsEntry = new TimestampEntry(nowMs, srcTs, dstTs);
-            ssrcState.tsHistory.put(srcTs, maxTsEntry);
-            ssrcState.maxTsEntry = maxTsEntry;
-
-            logger.debug("rewrite_new_frame_success"
-                + ",stream_hash=" + stream.hashCode()
-                + ",srcSSRC=" + ssrcState.encodingSSRC
-                + ",dstSSRC=" + trackSSRC
-                + " srcTs=" + srcTs
-                + ",dstTs=" + dstTs);
-            return dstTs;
-        }
-
-        /**
-         * Rewrites the sequence number, timestamp and SSRC of the packet in the
-         * pkt param.
-         *
-         * @param pkt
-         * @param nowMs
-         * @return
-         */
-        public boolean rewrite(RawPacket pkt, long nowMs)
-        {
-            long encodingSSRC = pkt.getSSRCAsLong();
-            SSRCState ssrcState = ssrcStateBySSRC.get(encodingSSRC);
-            if (ssrcState == null)
-            {
-                ssrcState = new SSRCState(encodingSSRC);
-                ssrcStateBySSRC.put(encodingSSRC, ssrcState);
-            }
-
-            ExtendedSequenceNumberInterval maxInterval = curInterval;
-
-            int srcSn = pkt.getSequenceNumber();
-            int dstSn = rewriteSequenceNumber(srcSn, ssrcState);
-            if (dstSn == -1)
-            {
-                return false;
-            }
-
-            long srcTs = pkt.getTimestamp();
-            long dstTs = rewriteTimestamp(srcTs, ssrcState, maxInterval, nowMs);
-            if (dstTs == -1)
-            {
-                return false;
-            }
-
-            pkt.setSequenceNumber(dstSn);
-            pkt.setTimestamp(dstTs);
-            pkt.setSSRC((int) trackSSRC);
-
             return true;
         }
+
+        logger.debug("Initializing the SSRC rewriting engine. streamHashCode="
+            + mediaStream.hashCode());
+        origin2rewriter = new ConcurrentHashMap<>();
+        target2rewriter = new ConcurrentHashMap<>();
+        rtx2primary = new ConcurrentHashMap<>();
+        ssrc2red = new ConcurrentHashMap<>();
+        ssrc2fec = new ConcurrentHashMap<>();
+
+        initialized = true;
+
+        return true;
     }
 
     /**
-     * A structure that is holding the state of an SSRC that is being rewritten.
+     * Sets up the engine so that ssrcOrig is rewritten to ssrcTarget.
+     *
+     * @param ssrcOrig
+     * @param ssrcTarget
      */
-    class SSRCState
+    private synchronized void map(Long ssrcOrig, Long ssrcTarget)
     {
-        /**
-         * Ctor.
-         *
-         * @param encodingSSRC The SSRC that this instance pertains to.
-         */
-        public SSRCState(long encodingSSRC)
+        if (ssrcOrig == null)
         {
-            this.encodingSSRC = encodingSSRC;
+            // Not so well played, caller.
+            return;
         }
 
-        /**
-         * The SSRC that this instance pertains to.
-         */
-        private final long encodingSSRC;
-
-        /**
-         * The extended sequence number intervals that have been forwarded for
-         * this SSRC.
-         */
-        private final NavigableMap<Integer, ExtendedSequenceNumberInterval>
-            intervals = new TreeMap<>();
-
-        /**
-         * The maximum {@code TimestampEntry} that has been forwarded for this
-         * SSRC.
-         */
-        public TimestampEntry maxTsEntry;
-
-        /**
-         * The MRU target timestamp history.
-         */
-        private final Map<Long, TimestampEntry> tsHistory
-            = new LinkedHashMap<Long, TimestampEntry>()
+        if (logger.isDebugEnabled())
         {
+            logger.debug(
+                    "Configuring the SSRC rewriting engine to rewrite: "
+                            + ssrcOrig + " to "
+                            + ssrcTarget + ", streamHashCode="
+                        + mediaStream.hashCode());
+        }
 
-            @Override
-            protected boolean removeEldestEntry(Map.Entry eldest)
+        if (ssrcTarget != null && ssrcTarget != UNMAP_SSRC)
+        {
+            RefCount<SsrcGroupRewriter> refCount
+                = target2rewriter.get(ssrcTarget);
+
+            if (refCount == null)
             {
-                return size() > TS_HISTORY_MAX_ENTRIES;
+                // Create an <tt>SsrcGroupRewriter</tt> for the target SSRC.
+                refCount = new RefCount<>(
+                    seqnumBaseKeeper.createSsrcGroupRewriter(this, ssrcTarget));
+                target2rewriter.put(ssrcTarget, refCount);
             }
-        };
+
+            // Link the original SSRC to the appropriate SsrcGroupRewriter.
+            SsrcGroupRewriter oldSsrcGroupRewriter
+                = origin2rewriter.put(ssrcOrig, refCount.getReferent());
+
+            if (oldSsrcGroupRewriter == null)
+            {
+                // We put one and nothing was removed, so we must increase.
+                refCount.increase();
+            }
+            else
+            {
+                // We put one but we removed one as well, so we're even.
+            }
+        }
+        else
+        {
+            // Unmap the origin SSRC and the target SSRC.
+            SsrcGroupRewriter ssrcGroupRewriter
+                = origin2rewriter.remove(ssrcOrig);
+
+            if (ssrcGroupRewriter != null)
+            {
+                RefCount<SsrcGroupRewriter> refCount
+                    = target2rewriter.get(ssrcGroupRewriter.getSSRCTarget());
+
+                refCount.decrease();
+            }
+        }
     }
 
     /**
-     * Holds a timestamp (long) and records the time when it was first seen.
+     * Reverse rewrites the target SSRC into an origin SSRC based on the
+     * currently active SSRC rewriter for that target SSRC.
+     *
+     * @param ssrc the target SSRC to rewrite into a source SSRC or
+     * {@link #INVALID_SSRC}.
      */
-    class TimestampEntry
+    private long reverseRewriteSSRC(long ssrc)
+    {
+        // If there is an SsrcGroupRewriter, rewrite the packet; otherwise,
+        // include it unaltered.
+        RefCount<SsrcGroupRewriter> refCount = target2rewriter.get(ssrc);
+        SsrcGroupRewriter ssrcGroupRewriter;
+
+        if (refCount == null
+                || (ssrcGroupRewriter = refCount.getReferent()) == null)
+        {
+            return INVALID_SSRC;
+        }
+
+        SsrcRewriter activeRewriter = ssrcGroupRewriter.getActiveRewriter();
+
+        if (activeRewriter == null)
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(
+                        "Could not find an SsrcRewriter for SSRC: " + ssrc
+                            + ", streamHashCode=" + mediaStream.hashCode());
+            }
+            return INVALID_SSRC;
+        }
+
+        return activeRewriter.getSourceSSRC();
+    }
+
+    /**
+     * Gets the {@code MediaStream} which has initialized this instance and is
+     * its owner.
+     *
+     * @return the {@code MediaStream} which has initialized this instance and
+     * is its owner
+     */
+    public MediaStream getMediaStream()
+    {
+        return mediaStream;
+    }
+
+    /**
+     * The <tt>PacketTransformer</tt> that rewrites <tt>RawPacket</tt>s that
+     * represent RTP packets. This <tt>PacketTransformer</tt> is an entry point
+     * to this class.
+     */
+    private class MyRTPSinglePacketTransformer
+        extends SinglePacketTransformerAdapter
+    {
+        public MyRTPSinglePacketTransformer()
+        {
+            super(RTPPacketPredicate.INSTANCE);
+        }
+
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            if (pkt == null)
+            {
+                return pkt;
+            }
+
+            if (TRACE && pkt.getPayloadType() == 0x64 /* VP8 PT*/)
+            {
+                if (mediaStream instanceof VideoMediaStream)
+                {
+                    logger.trace("Saw VIDEO ssrc=" + pkt.getSSRCAsLong() +
+                        ", seqnum=" + pkt.getSequenceNumber());
+                }
+                else
+                {
+                    logger.trace("Saw AUDIO ssrc=" + pkt.getSSRCAsLong() +
+                        ", seqnum=" + pkt.getSequenceNumber());
+                }
+            }
+
+            seqnumBaseKeeper.update(pkt);
+            if (!initialized)
+            {
+                if (TRACE && mediaStream instanceof VideoMediaStreamImpl)
+                {
+                    logger.trace("Not rewriting ssrc=" + pkt.getSSRCAsLong()
+                        + ", seq=" + pkt.getSequenceNumber()
+                        + " because the SSRC rewriting engine is not "
+                        + "initialized.");
+                }
+
+                return pkt;
+            }
+
+            // Use the SSRC of the RTP packet to find which SsrcGroupRewriter to
+            // use.
+            long ssrc = pkt.getSSRCAsLong();
+            SsrcGroupRewriter ssrcGroupRewriter = origin2rewriter.get(ssrc);
+
+            // If there is an SsrcGroupRewriter, rewrite the packet; otherwise,
+            // return it unaltered.
+            if (ssrcGroupRewriter == null)
+            {
+                // We don't have a rewriter for this packet. Let's not freak
+                // out about it, it's most probably a DTLS packet.
+                if (WARN)
+                {
+                    logger.warn("Not rewriting ssrc=" + pkt.getSSRCAsLong()
+                        + ", seq=" + pkt.getSequenceNumber()
+                        + " because we could not find an SSRC group rewriter."
+                        + ", streamHashCode=" + mediaStream.hashCode());
+                }
+                return pkt;
+            }
+            else
+            {
+                return ssrcGroupRewriter.rewriteRTP(pkt);
+            }
+        }
+    }
+
+    /**
+     * The <tt>PacketTransformer</tt> that rewrites <tt>RawPacket</tt>s that
+     * represent RTCP packets.
+     */
+    private class MyRTCPSinglePacketTransformer
+        extends SinglePacketTransformerAdapter
+    {
+        public MyRTCPSinglePacketTransformer()
+        {
+            super(RTCPPacketPredicate.INSTANCE);
+        }
+
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            if (!initialized)
+            {
+                return pkt;
+            }
+
+            // We want to rewrite each individual RTCP packet in an RTCP
+            // compound packet. Furthermore, we want to do that with the
+            // appropriate rewriter.
+            RTCPPacket[] inPkts;
+
+            try
+            {
+                RTCPCompoundPacket compound
+                    = (RTCPCompoundPacket)
+                        parser.parse(
+                                pkt.getBuffer(),
+                                pkt.getOffset(),
+                                pkt.getLength());
+
+                inPkts = (compound == null) ? null : compound.packets;
+            }
+            catch (BadFormatException e)
+            {
+                logger.error(
+                        "Failed to rewrite an RTCP packet. Passing through. streamHashCode=" + mediaStream.hashCode(),
+                        e);
+                return pkt;
+            }
+
+            if (inPkts == null || inPkts.length == 0)
+            {
+                logger.warn(
+                        "Weird! It seems we received an empty RTCP packet! streamHashCode=" + mediaStream.hashCode());
+                return pkt;
+            }
+
+            Collection<RTCPPacket> outPkts = new ArrayList<>();
+
+            // XXX It turns out that all the simulcast layers share the same
+            // RTP timestamp starting offset. They also share the same NTP clock
+            // and the same clock rate, so we don't need to do any modifications
+            // to the RTP/RTCP timestamps. BUT .. if this assumption stops being
+            // true, everything will probably stop working. You have been
+            // warned TAG(timestamp-uplifting).
+
+            for (RTCPPacket inPkt : inPkts)
+            {
+                // Use the SSRC of the RTCP packet to find which
+                // <tt>SsrcGroupRewriter</tt> to use.
+
+                // XXX we could move the RawPacket methods into a utils
+                // class with static methods so that we don't have to create
+                // new RawPacket's each time we want to use those methods.
+                // For example, PacketBufferUtils sounds like an appropriate
+                // name for this class.
+                switch (inPkt.type)
+                {
+                case RTCPPacket.RR:
+                    break;
+                case RTCPPacket.SR:
+                    RTCPSRPacket sr = (RTCPSRPacket) inPkt;
+                    sr.reports
+                        = BasicRTCPTerminationStrategy
+                            .MIN_RTCP_REPORT_BLOCKS_ARRAY;
+                    outPkts.add(sr);
+                    break;
+                case RTCPPacket.SDES:
+                case RTCPPacket.BYE:
+                    // XXX Well, ideally we would put the correct SR
+                    // information, by reusing code from RTCP termination.
+                    // We would also be able to reverse transform RTCP
+                    // packets, like NACKs.
+                    outPkts.add(inPkt);
+                    break;
+                case RTCPFBPacket.PSFB:
+                    // Get the synchronization source identifier of the
+                    // media source that this piece of feedback information
+                    // is related to.
+                    RTCPFBPacket psfb = (RTCPFBPacket) inPkt;
+                    int ssrc = (int) psfb.sourceSSRC;
+
+                    if (ssrc != UNUSED_SSRC)
+                    {
+                        long reverseSSRC = reverseRewriteSSRC(ssrc);
+
+                        if (reverseSSRC == INVALID_SSRC)
+                        {
+                            // We only really care if it's NOT a REMB.
+                            logger.debug(
+                                    "Could not find an SsrcGroupRewriter for"
+                                        + " the RTCP packet: " + psfb + ", streamHashCode=" + mediaStream.hashCode());
+                        }
+                        else
+                        {
+                            psfb.sourceSSRC = reverseSSRC;
+                        }
+                    }
+
+                    switch (psfb.fmt)
+                    {
+                    case RTCPREMBPacket.FMT:
+                        // Special handling for REMB messages.
+                        RTCPREMBPacket remb = (RTCPREMBPacket) psfb;
+                        long[] dest = remb.getDest();
+
+                        if (dest != null && dest.length != 0)
+                        {
+                            for (int i = 0; i < dest.length; i++)
+                            {
+                                long reverseSSRC
+                                    = reverseRewriteSSRC((int) dest[i]);
+                                if (reverseSSRC == INVALID_SSRC)
+                                {
+                                    logger.debug(
+                                            "Could not find an"
+                                                + " SsrcGroupRewriter for the"
+                                                + " RTCP packet: " + psfb + ", streamHashCode=" + mediaStream.hashCode());
+                                }
+                                else
+                                {
+                                    dest[i] = reverseSSRC;
+                                }
+                            }
+                        }
+                        remb.setDest(dest);
+
+                        if (logger.isTraceEnabled())
+                        {
+                            logger.trace(
+                                    "Received estimated bitrate (bps): "
+                                        + remb.getBitrate() + ", dest: "
+                                        + Arrays.toString(dest)
+                                        + ", time (ms): "
+                                        + System.currentTimeMillis()
+                                        + ", streamHashCode=" + mediaStream.hashCode());
+                        }
+                        break;
+                    }
+
+                    outPkts.add(psfb);
+
+                    break;
+                case RTCPFBPacket.RTPFB:
+                    RTCPFBPacket fb = (RTCPFBPacket) inPkt;
+                    if (fb.fmt != NACKPacket.FMT)
+                    {
+                        logger.warn(
+                                "Unhandled RTCP RTPFB packet (not a NACK): "
+                                    + inPkt + ", streamHashCode=" + mediaStream.hashCode());
+                    }
+                    else
+                    {
+                        // NACK termination is taking care of NACKs.
+                    }
+                    break;
+                default:
+                    logger.warn(
+                            "Unhandled RTCP (non RTPFB PSFB) packet: " + inPkt + ", streamHashCode=" + mediaStream.hashCode());
+                    break;
+                }
+            }
+
+            if (!outPkts.isEmpty())
+            {
+                return
+                    generator.apply(
+                            new RTCPCompoundPacket(
+                                    outPkts.toArray(
+                                            new RTCPPacket[outPkts.size()])));
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        // We rely on RTCP termination and NACK termination so that we don't
+        // have to do any reverse rewriting (for now). This has the disadvantage
+        // of requiring RTCP termination even in the simple case of 1-1 calls
+        // but then again, in this case we don't need simulcast (but we do need
+        // SSRC collision detection and conflict resolution).
+    }
+
+    /**
+     * This class holds the most recent outbound sequence number of the
+     * associated <tt>MediaStream</tt>.
+     *
+     * FIXME We can get this information from FMJ. There's absolutely no need
+     * for this class, but getting the information from FMJ needs some testing
+     * first. This is a temporary fix.
+     */
+    private class SeqnumBaseKeeper
     {
         /**
-         * The time (in ms) that this instance was created.
+         * The <tt>Map</tt> that holds the latest and greatest sequence number
+         * for a given SSRC.
          */
-        private final long added;
+        private final Map<Long, Integer> map = new HashMap<>();
 
         /**
-         * The source RTP timestamp that this timestamp entry represents.
+         * The <tt>Comparator</tt> used to compare sequence numbers.
          */
-        private final long srcTs;
+        private final SeqNumComparator SEQ_NUM_COMPARATOR
+            = new SeqNumComparator();
 
         /**
-         * The timestamp we rewrote the source into.
+         *
+         * @param pkt
          */
-        private final long dstTs;
-
-        /**
-         * Ctor.
-         */
-        public TimestampEntry(long now, long srcTs, long dstTs)
+        public synchronized void update(RawPacket pkt)
         {
-            this.srcTs = srcTs;
-            this.dstTs = dstTs;
-            this.added = now;
+            // XXX Autobox early and, most importantly, once because we'll need
+            // the boxed values only.
+            Long ssrc = pkt.getSSRCAsLong();
+            Integer seqnum = pkt.getSequenceNumber();
+
+            Integer oldSeqnum = map.get(ssrc);
+            if (oldSeqnum == null
+                    || SEQ_NUM_COMPARATOR.compare(seqnum, oldSeqnum) == 1)
+            {
+                map.put(ssrc, seqnum);
+            }
         }
 
         /**
-         * Gets a boolean indicating whether or not the timestamp is less
-         * than {@code TS_EXPIRE_MS}
          *
-         * @return true if the timestamp was added less than 10 seconds ago,
-         * false otherwise.
+         * @param ssrcRewritingEngine
+         * @param ssrcTarget
+         * @return
          */
-        public boolean isFresh(long now)
+        public synchronized SsrcGroupRewriter createSsrcGroupRewriter(
+            SsrcRewritingEngine ssrcRewritingEngine, Long ssrcTarget)
         {
-            return (now - added) < TS_EXPIRE_MS;
+            int seqnum;
+            if (map.containsKey(ssrcTarget))
+            {
+                seqnum = map.get(ssrcTarget) + 1;
+            }
+            else
+            {
+                seqnum = RANDOM.nextInt(0x10000);
+            }
+
+            if (TRACE)
+            {
+                logger.trace("Creating a new SsrcGroupRewriter ssrc="
+                    + ssrcTarget + ", seqnum=" + seqnum + ", streamHashCode=" + mediaStream.hashCode());
+            }
+
+            return
+                new SsrcGroupRewriter(ssrcRewritingEngine, ssrcTarget, seqnum);
         }
     }
 }

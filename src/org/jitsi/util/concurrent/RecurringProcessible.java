@@ -22,18 +22,23 @@ package org.jitsi.util.concurrent;
  * webrtc/modules/interface/module.h
  *
  * @author Lyubomir Marinov
- * @author George Politis
  */
-public interface RecurringRunnable
-    extends Runnable
+public interface RecurringProcessible
 {
     /**
      * Returns the number of milliseconds until this instance wants a worker
-     * thread to call {@link #run()}. The method is called on the same
+     * thread to call {@link #process()}. The method is called on the same
      * worker thread as Process will be called on.
      *
      * @return the number of milliseconds until this instance wants a worker
-     * thread to call {@link #run()}
+     * thread to call {@link #process()}
      */
-    long getTimeUntilNextRun();
+    long getTimeUntilNextProcess();
+
+    /**
+     * Process any pending tasks such as timeouts. Called on a worker thread.
+     *
+     * @return ignored (and unknown) at the time of this writing
+     */
+    long process();
 }

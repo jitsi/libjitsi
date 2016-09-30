@@ -16,7 +16,6 @@
 package org.jitsi.impl.neomedia.rtcp.termination.strategies;
 
 import java.util.*;
-import java.util.concurrent.*;
 import javax.media.rtp.*;
 import javax.media.rtp.rtcp.*;
 import net.sf.fmj.media.rtp.*;
@@ -28,7 +27,6 @@ import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
-import org.jitsi.util.concurrent.*;
 import org.jitsi.util.function.*;
 
 /**
@@ -43,7 +41,6 @@ import org.jitsi.util.function.*;
  */
 public class BasicRTCPTerminationStrategy
     extends MediaStreamRTCPTerminationStrategy
-    implements RecurringRunnable
 {
     /**
      * The <tt>Logger</tt> used by the <tt>BasicRTCPTerminationStrategy</tt>
@@ -133,14 +130,70 @@ public class BasicRTCPTerminationStrategy
      * <tt>BasicRTCPTerminationStrategy</tt>.
      */
     private final PacketTransformer rtpTransformer
-        = new RTPPacketTransformerImpl();
+        = new SinglePacketTransformer(RTPPacketPredicate.INSTANCE)
+    {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            // Update our RTP stats map (packets/octet sent).
+            rtpStatsMap.apply(pkt);
+            rtcpReporter.maybeReport();
+
+            return pkt;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            // Let everything pass through.
+            rtcpReporter.maybeReport();
+            return pkt;
+        }
+    };
 
     /**
      * The RTCP <tt>PacketTransformer</tt> of this
      * <tt>BasicRTCPTerminationStrategy</tt>.
      */
     private final PacketTransformer rtcpTransformer
-        = new RTCPPacketTransformerImpl();
+        = new SinglePacketTransformerAdapter(RTCPPacketPredicate.INSTANCE)
+    {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            RTCPCompoundPacket compound;
+
+            try
+            {
+                compound
+                    = (RTCPCompoundPacket)
+                        parser.parse(
+                                pkt.getBuffer(),
+                                pkt.getOffset(),
+                                pkt.getLength());
+            }
+            catch (BadFormatException e)
+            {
+                logger.warn(
+                        "Failed to terminate an RTCP packet. Dropping packet.");
+                return null;
+            }
+
+            cnameRegistry.update(compound);
+
+            // Remove SRs and RRs from the RTCP packet.
+            return feedbackGateway.gateway(compound);
+        }
+    };
 
     /**
      * A counter that counts the number of times we've sent "full-blown" SDES.
@@ -954,29 +1007,11 @@ public class BasicRTCPTerminationStrategy
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public long getTimeUntilNextRun()
-    {
-        return rtcpReporter.getTimeUntilNextRun();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void run()
-    {
-        rtcpReporter.run();
-    }
-
-    /**
      * The garbage collector runs at each reporting interval and cleans up
      * the data structures of this RTCP termination strategy based on the
      * SSRCs that the owner <tt>MediaStream</tt> is still sending.
      */
-    private class GarbageCollector
+    class GarbageCollector
     {
         public void cleanup()
         {
@@ -992,7 +1027,7 @@ public class BasicRTCPTerminationStrategy
      * means dropping SRs, RR report blocks and REMBs. It needs to pass through
      * PLIs, FIRs, NACKs, etc.
      */
-    private class FeedbackGateway
+    class FeedbackGateway
     {
         /**
          * Removes receiver and sender feedback from RTCP packets.
@@ -1080,8 +1115,7 @@ public class BasicRTCPTerminationStrategy
     /**
      * Takes care of calling the report() method every RTCP_INTERVAL_VIDEO_MS.
      */
-    private class RTCPReporter
-        implements RecurringRunnable
+    class RTCPReporter
     {
         /**
          * For video we use 500ms interval.
@@ -1089,17 +1123,17 @@ public class BasicRTCPTerminationStrategy
         private static final int RTCP_INTERVAL_VIDEO_MS = 500;
 
         /**
-         * The time that {@link #run()} was last called.
-         */
-        private long lastUpdateTimeMs;
+        */
+        private long nextTimeToSendRTCP;
 
         /**
-         * {@inheritDoc}
          */
-        @Override
-        public void run()
+        public void maybeReport()
         {
-            lastUpdateTimeMs = System.currentTimeMillis();
+            if (!timeToSendRTCPReport())
+            {
+                return;
+            }
 
             // Make the RTCP reports for the assoc. MediaStream.
             List<RawPacket> pkts = report();
@@ -1141,126 +1175,17 @@ public class BasicRTCPTerminationStrategy
             }
         }
 
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public long getTimeUntilNextRun()
+        private boolean timeToSendRTCPReport()
         {
-            return
-                (lastUpdateTimeMs + RTCP_INTERVAL_VIDEO_MS)
-                    - System.currentTimeMillis();
-        }
-    }
+            final long now = System.currentTimeMillis();
 
-    /**
-     * Keeps track of the CNAMEs of the RTP streams that we've seen.
-     */
-    private static class CNAMERegistry
-        extends ConcurrentHashMap<Integer, byte[]>
-    {
-        /**
-         * @param inPacket
-         */
-        public void update(RTCPCompoundPacket inPacket)
-        {
-            // Update CNAMEs.
-            RTCPPacket[] rtcps;
-
-            if (inPacket == null
-                || (rtcps = inPacket.packets) == null
-                || rtcps.length == 0)
+            if (now >= nextTimeToSendRTCP)
             {
-                return;
+                nextTimeToSendRTCP = now + RTCP_INTERVAL_VIDEO_MS;
+                return true;
             }
 
-            for (RTCPPacket rtcp : rtcps)
-            {
-                if (RTCPPacket.SDES != rtcp.type)
-                    continue;
-
-                RTCPSDESPacket sdes = (RTCPSDESPacket) rtcp;
-                RTCPSDES[] chunks = sdes.sdes;
-
-                if (chunks == null || chunks.length == 0)
-                    continue;
-
-                for (RTCPSDES chunk : chunks)
-                {
-                    RTCPSDESItem[] items = chunk.items;
-
-                    if (items == null || items.length == 0)
-                        continue;
-
-                    for (RTCPSDESItem item : items)
-                    {
-                        if (RTCPSDESItem.CNAME == item.type)
-                            put(chunk.ssrc, item.data);
-                    }
-                }
-            }
-        }
-    }
-
-    private class RTCPPacketTransformerImpl
-        extends SinglePacketTransformerAdapter
-    {
-        /**
-         * Ctor.
-         */
-        public RTCPPacketTransformerImpl()
-        {
-            super(RTCPPacketPredicate.INSTANCE);
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket transform(RawPacket pkt)
-        {
-            RTCPCompoundPacket compound;
-
-            try
-            {
-                compound = (RTCPCompoundPacket) parser.parse(
-                    pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
-            }
-            catch (BadFormatException e)
-            {
-                logger.warn(
-                    "Failed to terminate an RTCP packet. Dropping packet.");
-                return null;
-            }
-
-            cnameRegistry.update(compound);
-
-            // Remove SRs and RRs from the RTCP packet.
-            return feedbackGateway.gateway(compound);
-        }
-    }
-
-    private class RTPPacketTransformerImpl
-        extends SinglePacketTransformerAdapter
-    {
-        /**
-         * Ctor.
-         */
-        public RTPPacketTransformerImpl()
-        {
-            super(RTPPacketPredicate.INSTANCE);
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket transform(RawPacket pkt)
-        {
-            // Update our RTP stats map (packets/octet sent).
-            rtpStatsMap.apply(pkt);
-
-            return pkt;
+            return false;
         }
     }
 }

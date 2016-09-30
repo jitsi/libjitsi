@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.service.neomedia.stats;
+package org.jitsi.impl.neomedia.rtcp.termination.strategies;
+
+import net.sf.fmj.media.rtp.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 
 /**
- * Extends {@link TrackStats} with methods specific for streams that we
- * send.
- *
- * @author Boris Grozev
- */
-public interface SendTrackStats
-    extends TrackStats
+* @author George Politis
+*/
+class FeedbackCacheEntry
 {
-    /**
-     * @return an estimate for the recent loss rate.
-     */
-    double getLossRate();
+    long lastUpdate;
+
+    RTCPReportBlock[] reports;
+    RTCPREMBPacket remb;
 }

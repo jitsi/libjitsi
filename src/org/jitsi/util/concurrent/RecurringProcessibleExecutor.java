@@ -22,7 +22,7 @@ import org.jitsi.util.*;
 
 /**
  * Implements a single-threaded {@link Executor} of
- * {@link RecurringRunnable}s i.e. asynchronous tasks which determine by
+ * {@link RecurringProcessible}s i.e. asynchronous tasks which determine by
  * themselves the intervals (the lengths of which may vary) at which they are to
  * be invoked.
  *
@@ -31,30 +31,29 @@ import org.jitsi.util.*;
  * webrtc/modules/utility/source/process_thread_impl.h
  *
  * @author Lyubomir Marinov
- * @author George Politis
  */
-public class RecurringRunnableExecutor
+public class RecurringProcessibleExecutor
     implements Executor
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>RecurringRunnableExecutor</tt>
+     * The <tt>Logger</tt> used by the <tt>RecurringProcessibleExecutor</tt>
      * class and its instances to print debug information.
      */
     private static final Logger logger
-        = Logger.getLogger(RecurringRunnableExecutor.class);
+        = Logger.getLogger(RecurringProcessibleExecutor.class);
 
     /**
-     * The {@code RecurringRunnable}s registered with this instance which are
+     * The {@code RecurringProcessible}s registered with this instance which are
      * to be invoked in {@link #thread}.
      */
-    private final List<RecurringRunnable> recurringRunnables
+    private final List<RecurringProcessible> recurringProcessibles
         = new LinkedList<>();
 
     /**
      * The (background) {@code Thread} which invokes
-     * {@link RecurringRunnable#run()} on {@link #recurringRunnables}
+     * {@link RecurringProcessible#process()} on {@link #recurringProcessibles}
      * (in accord with their respective
-     * {@link RecurringRunnable#getTimeUntilNextRun()}).
+     * {@link RecurringProcessible#getTimeUntilNextProcess()}).
      */
     private Thread thread;
 
@@ -65,46 +64,46 @@ public class RecurringRunnableExecutor
     private final String name;
 
     /**
-     * Initializes a new {@link RecurringRunnableExecutor} instance.
+     * Initializes a new {@link RecurringProcessibleExecutor} instance.
      */
-    public RecurringRunnableExecutor()
+    public RecurringProcessibleExecutor()
     {
         this(/* name */ "");
     }
 
     /**
-     * Initializes a new {@link RecurringRunnableExecutor} instance.
+     * Initializes a new {@link RecurringProcessibleExecutor} instance.
      * @param name a string to be added to the name of the thread which this
      * instance will start.
      */
-    public RecurringRunnableExecutor(String name)
+    public RecurringProcessibleExecutor(String name)
     {
         this.name = name;
     }
 
     /**
-     * De-registers a {@code RecurringRunnable} from this {@code Executor} so
-     * that its {@link RecurringRunnable#run()} is no longer invoked (by
+     * De-registers a {@code RecurringProcessible} from this {@code Executor} so
+     * that its {@link RecurringProcessible#process()} is no longer invoked (by
      * this instance).
      *
-     * @param recurringRunnable the {@code RecurringRunnable} to
+     * @param recurringProcessible the {@code RecurringProcessible} to
      * de-register from this instance
-     * @return {@code true} if the list of {@code RecurringRunnable}s of this
+     * @return {@code true} if the list of {@code RecurringProcessible}s of this
      * instance changed because of the method call; otherwise, {@code false}
      */
-    public boolean deRegisterRecurringRunnable(
-            RecurringRunnable recurringRunnable)
+    public boolean deRegisterRecurringProcessible(
+            RecurringProcessible recurringProcessible)
     {
-        if (recurringRunnable == null)
+        if (recurringProcessible == null)
         {
             return false;
         }
         else
         {
-            synchronized (recurringRunnables)
+            synchronized (recurringProcessibles)
             {
                 boolean removed
-                    = recurringRunnables.remove(recurringRunnable);
+                    = recurringProcessibles.remove(recurringProcessible);
 
                 if (removed)
                     startOrNotifyThread();
@@ -116,7 +115,7 @@ public class RecurringRunnableExecutor
     /**
      * {@inheritDoc}
      *
-     * Accepts for execution {@link RecurringRunnable}s only.
+     * Accepts for execution {@link RecurringProcessible}s only.
      */
     @Override
     public void execute(Runnable command)
@@ -125,47 +124,47 @@ public class RecurringRunnableExecutor
         {
             throw new NullPointerException("command");
         }
-        else if (command instanceof RecurringRunnable)
+        else if (command instanceof RecurringProcessible)
         {
-            registerRecurringRunnable((RecurringRunnable) command);
+            registerRecurringProcessible((RecurringProcessible) command);
         }
         else
         {
             throw new RejectedExecutionException(
                     "The class " + command.getClass().getName()
                         + " of command does not implement "
-                        + RecurringRunnable.class.getName());
+                        + RecurringProcessible.class.getName());
         }
     }
 
     /**
      * Executes an iteration of the loop implemented by {@link #runInThread()}.
-     * Invokes {@link RecurringRunnable#run()} on all
-     * {@link #recurringRunnables} which are at or after the time at which
+     * Invokes {@link RecurringProcessible#process()} on all
+     * {@link #recurringProcessibles} which are at or after the time at which
      * they want the method in question called.
      *
      * @return {@code true} to continue with the next iteration of the loop
      * implemented by {@link #runInThread()} or {@code false} to break (out of)
      * the loop
      */
-    private boolean run()
+    private boolean process()
     {
-        // Wait for the recurringRunnable that should be called next, but
+        // Wait for the recurringProcessible that should be called next, but
         // don't block thread longer than 100 ms.
         long minTimeToNext = 100L;
 
-        synchronized (recurringRunnables)
+        synchronized (recurringProcessibles)
         {
             if (!Thread.currentThread().equals(thread)
-                    || recurringRunnables.isEmpty())
+                    || recurringProcessibles.isEmpty())
             {
                 return false;
             }
-            for (RecurringRunnable recurringRunnable
-                    : recurringRunnables)
+            for (RecurringProcessible recurringProcessible
+                    : recurringProcessibles)
             {
                 long timeToNext
-                    = recurringRunnable.getTimeUntilNextRun();
+                    = recurringProcessible.getTimeUntilNextProcess();
 
                 if (minTimeToNext > timeToNext)
                     minTimeToNext = timeToNext;
@@ -174,16 +173,16 @@ public class RecurringRunnableExecutor
 
         if (minTimeToNext > 0L)
         {
-            synchronized (recurringRunnables)
+            synchronized (recurringProcessibles)
             {
                 if (!Thread.currentThread().equals(thread)
-                        || recurringRunnables.isEmpty())
+                        || recurringProcessibles.isEmpty())
                 {
                     return false;
                 }
                 try
                 {
-                    recurringRunnables.wait(minTimeToNext);
+                    recurringProcessibles.wait(minTimeToNext);
                 }
                 catch (InterruptedException ie)
                 {
@@ -192,19 +191,19 @@ public class RecurringRunnableExecutor
                 return true;
             }
         }
-        synchronized (recurringRunnables)
+        synchronized (recurringProcessibles)
         {
-            for (RecurringRunnable recurringRunnable
-                    : recurringRunnables)
+            for (RecurringProcessible recurringProcessible
+                    : recurringProcessibles)
             {
                 long timeToNext
-                    = recurringRunnable.getTimeUntilNextRun();
+                    = recurringProcessible.getTimeUntilNextProcess();
 
                 if (timeToNext < 1L)
                 {
                     try
                     {
-                        recurringRunnable.run();
+                        recurringProcessible.process();
                     }
                     catch (Throwable t)
                     {
@@ -220,9 +219,9 @@ public class RecurringRunnableExecutor
                         {
                             logger.error(
                                     "The invocation of the method "
-                                        + recurringRunnable
+                                        + recurringProcessible
                                             .getClass().getName()
-                                        + ".run() threw an exception.",
+                                        + ".process() threw an exception.",
                                     t);
                         }
                     }
@@ -233,39 +232,39 @@ public class RecurringRunnableExecutor
     }
 
     /**
-     * Registers a {@code RecurringRunnable} with this {@code Executor} so
-     * that its {@link RecurringRunnable#run()} is invoked (by this
+     * Registers a {@code RecurringProcessible} with this {@code Executor} so
+     * that its {@link RecurringProcessible#process()} is invoked (by this
      * instance).
      *
-     * @param recurringRunnable the {@code RecurringRunnable} to register
+     * @param recurringProcessible the {@code RecurringProcessible} to register
      * with this instance
-     * @return {@code true} if the list of {@code RecurringRunnable}s of this
+     * @return {@code true} if the list of {@code RecurringProcessible}s of this
      * instance changed because of the method call; otherwise, {@code false}
      */
-    public boolean registerRecurringRunnable(
-            RecurringRunnable recurringRunnable)
+    public boolean registerRecurringProcessible(
+            RecurringProcessible recurringProcessible)
     {
-        if (recurringRunnable == null)
+        if (recurringProcessible == null)
         {
-            throw new NullPointerException("recurringRunnable");
+            throw new NullPointerException("recurringProcessible");
         }
         else
         {
-            synchronized (recurringRunnables)
+            synchronized (recurringProcessibles)
             {
-                // Only allow recurringRunnable to be registered once.
-                if (recurringRunnables.contains(recurringRunnable))
+                // Only allow recurringProcessible to be registered once.
+                if (recurringProcessibles.contains(recurringProcessible))
                 {
                     return false;
                 }
                 else
                 {
-                    recurringRunnables.add(0, recurringRunnable);
+                    recurringProcessibles.add(0, recurringProcessible);
 
-                    // Wake the thread calling run() to update the waiting
+                    // Wake the thread calling process() to update the waiting
                     // time. The waiting time for the just registered
-                    // recurringRunnable may be shorter than all other
-                    // registered recurringRunnables.
+                    // recurringProcessible may be shorter than all other
+                    // registered recurringProcessibles.
                     startOrNotifyThread();
                     return true;
                 }
@@ -280,11 +279,11 @@ public class RecurringRunnableExecutor
     {
         try
         {
-            while (run());
+            while (process());
         }
         finally
         {
-            synchronized (recurringRunnables)
+            synchronized (recurringProcessibles)
             {
                 if (Thread.currentThread().equals(thread))
                 {
@@ -303,11 +302,11 @@ public class RecurringRunnableExecutor
      */
     private void startOrNotifyThread()
     {
-        synchronized (recurringRunnables)
+        synchronized (recurringProcessibles)
         {
             if (this.thread == null)
             {
-                if (!recurringRunnables.isEmpty())
+                if (!recurringProcessibles.isEmpty())
                 {
                     Thread thread
                         = new Thread()
@@ -315,14 +314,14 @@ public class RecurringRunnableExecutor
                                     @Override
                                     public void run()
                                     {
-                                        RecurringRunnableExecutor.this
+                                        RecurringProcessibleExecutor.this
                                             .runInThread();
                                     }
                                 };
 
                     thread.setDaemon(true);
                     thread.setName(
-                            RecurringRunnableExecutor.class.getName()
+                            RecurringProcessibleExecutor.class.getName()
                                 + ".thread-" + name);
 
                     boolean started = false;
@@ -342,7 +341,7 @@ public class RecurringRunnableExecutor
             }
             else
             {
-                recurringRunnables.notifyAll();
+                recurringProcessibles.notifyAll();
             }
         }
     }

@@ -33,7 +33,6 @@ import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.impl.neomedia.transform.rewriting.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -53,7 +52,6 @@ import org.jitsi.util.event.*;
  *
  * @author Lyubomir Marinov
  * @author Sebastien Vincent
- * @author George Politis
  */
 public class VideoMediaStreamImpl
     extends MediaStreamImpl
@@ -66,6 +64,15 @@ public class VideoMediaStreamImpl
      */
     private static final Logger logger
         = Logger.getLogger(VideoMediaStreamImpl.class);
+
+    /**
+     * The <tt>RecurringProcessibleExecutor</tt> to be utilized by the
+     * <tt>VideoMediaStreamImpl</tt> class and its instances.
+     */
+    private static final RecurringProcessibleExecutor
+        recurringProcessibleExecutor
+            = new RecurringProcessibleExecutor(
+                    VideoMediaStreamImpl.class.getSimpleName());
 
     /**
      * The indicator which determines whether RTCP feedback Picture Loss
@@ -456,14 +463,6 @@ public class VideoMediaStreamImpl
     private BandwidthEstimatorImpl bandwidthEstimator;
 
     /**
-     * The transformer which handles SSRC rewriting. It is always created
-     * (which is extremely lightweight) but it needs to be initialized so that
-     * it can work.
-     */
-    private final SsrcRewritingEngine ssrcRewritingEngine
-        = new SsrcRewritingEngine(this);
-
-    /**
      * Initializes a new <tt>VideoMediaStreamImpl</tt> instance which will use
      * the specified <tt>MediaDevice</tt> for both capture and playback of video
      * exchanged via the specified <tt>StreamConnector</tt>.
@@ -482,14 +481,14 @@ public class VideoMediaStreamImpl
         super(connector, device, srtpControl);
 
         // Register the RemoteBitrateEstimator with the
-        // RecurringRunnableExecutor.
+        // RecurringProcessibleExecutor.
         RemoteBitrateEstimator remoteBitrateEstimator
             = getRemoteBitrateEstimator();
 
-        if (remoteBitrateEstimator instanceof RecurringRunnable)
+        if (remoteBitrateEstimator instanceof RecurringProcessible)
         {
-            recurringRunnableExecutor.registerRecurringRunnable(
-                    (RecurringRunnable) remoteBitrateEstimator);
+            recurringProcessibleExecutor.registerRecurringProcessible(
+                    (RecurringProcessible) remoteBitrateEstimator);
         }
     }
 
@@ -541,18 +540,18 @@ public class VideoMediaStreamImpl
         finally
         {
             // Deregister the RemoteBitrateEstimator with the
-            // RecurringRunnableExecutor.
+            // RecurringProcessibleExecutor.
             RemoteBitrateEstimator remoteBitrateEstimator
                 = getRemoteBitrateEstimator();
 
-            if (remoteBitrateEstimator instanceof RecurringRunnable)
+            if (remoteBitrateEstimator instanceof RecurringProcessible)
             {
-                recurringRunnableExecutor.deRegisterRecurringRunnable(
-                        (RecurringRunnable) remoteBitrateEstimator);
+                recurringProcessibleExecutor.deRegisterRecurringProcessible(
+                        (RecurringProcessible) remoteBitrateEstimator);
             }
             if (bandwidthEstimator != null)
             {
-                recurringRunnableExecutor.deRegisterRecurringRunnable(
+                recurringProcessibleExecutor.deRegisterRecurringProcessible(
                         bandwidthEstimator);
             }
         }
@@ -1334,21 +1333,12 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    protected SsrcRewritingEngine getSsrcRewritingEngine()
-    {
-        return ssrcRewritingEngine;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public BandwidthEstimator getOrCreateBandwidthEstimator()
     {
         if (bandwidthEstimator == null)
         {
             bandwidthEstimator = new BandwidthEstimatorImpl(this);
-            recurringRunnableExecutor.registerRecurringRunnable(
+            recurringProcessibleExecutor.registerRecurringProcessible(
                     bandwidthEstimator);
             logger.info("Creating a BandwidthEstimator for stream " + this);
         }

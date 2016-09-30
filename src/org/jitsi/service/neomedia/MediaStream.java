@@ -162,21 +162,6 @@ public interface MediaStream
     public Map<Byte, MediaFormat> getDynamicRTPPayloadTypes();
 
     /**
-     * Returns the payload type number that has been negotiated for the
-     * specified <tt>encoding</tt> or <tt>-1</tt> if no payload type has been
-     * negotiated for it. If multiple formats match the specified
-     * <tt>encoding</tt>, then this method would return the first one it
-     * encounters while iterating through the map.
-     *
-     * @param codec the encoding whose payload type we are trying to obtain.
-     *
-     * @return the payload type number that has been negotiated for the
-     * specified <tt>codec</tt> or <tt>-1</tt> if no payload type has been
-     * negotiated for it.
-     */
-    public byte getDynamicRTPPayloadType(String codec);
-
-    /**
      * Returns the <tt>MediaFormat</tt> that this stream is currently
      * transmitting in.
      *
@@ -267,18 +252,6 @@ public interface MediaStream
      * @return the synchronization source (SSRC) identifiers of the remote peer
      */
     public List<Long> getRemoteSourceIDs();
-
-    /**
-     * Returns a synchronized {@code Map<Long, MediaStreamTrack>} that maps the
-     * {@code MediaStreamTrack}s of the remote peer, as they're signaled by the
-     * remote peer, by the SSRCs of their {@code RTPEncoding}s. The signaling
-     * layer manages this map.
-     *
-     * @return a synchronized {@code Map<Long, MediaStreamTrack>} that maps the
-     * {@code MediaStreamTrack}s of the remote peer, as they're signaled by the
-     * remote peer, by the SSRCs of their {@code RTPEncoding}s.
-     */
-    public Map<Long, MediaStreamTrack> getRemoteTracks();
 
     /**
      * Gets the {@code StreamRTPManager} which is to forward RTP and RTCP
@@ -539,6 +512,27 @@ public interface MediaStream
      */
     public void setRTCPTerminationStrategy(
         RTCPTerminationStrategy rtcpTerminationStrategy);
+
+    /**
+     * Configures the <tt>MediaStream</tt> to rewrite SSRCs. For example,
+     * rewrite RTP streams {S1, S2, S3} to S, and FID streams {F1, F2, F3} to F.
+     *
+     * You can also define the payload types for FEC and RED, so that FEC and
+     * RED packets have their structure appropriately rewritten.
+     *
+     * @param ssrcGroup A set of primary SSRCs to rewrite.
+     * @param ssrcTargetPrimary the SSRC into which the ssrcGroup will be
+     * rewritten.
+     * @param ssrc2fec A map that maps SSRCs to their FEC payload type.
+     * @param ssrc2red A map that maps SSRCs to their RED payload type.
+     * @param rtxGroups A set of RTX SSRCs to rewrite.
+     * @param ssrcTargetRTX the SSRC into which the rtxGroups will be rewritten.
+     */
+    public void configureSSRCRewriting(
+        final Set<Long> ssrcGroup, final Long ssrcTargetPrimary,
+        final Map<Long, Byte> ssrc2fec,
+        final Map<Long, Byte> ssrc2red,
+        final Map<Long, Long> rtxGroups, final Long ssrcTargetRTX);
 
     /**
      * Gets the {@link RawPacketCache} which (optionally) caches outgoing

@@ -33,10 +33,10 @@ import java.util.concurrent.*;
  */
 public class BandwidthEstimatorImpl
     extends RTCPReportAdapter
-    implements BandwidthEstimator, RecurringRunnable
+    implements BandwidthEstimator, RecurringProcessible
 {
     /**
-     * The interval at which {@link #run()} should be called, in
+     * The interval at which {@link #process()} should be called, in
      * milliseconds.
      */
     private static final int PROCESS_INTERVAL_MS = 25;
@@ -181,7 +181,7 @@ public class BandwidthEstimatorImpl
      * {@inheritDoc}
      */
     @Override
-    public long getTimeUntilNextRun()
+    public long getTimeUntilNextProcess()
     {
         return
                 (lastUpdateTime < 0L)
@@ -194,12 +194,13 @@ public class BandwidthEstimatorImpl
      * {@inheritDoc}
      */
     @Override
-    public void run()
+    public long process()
     {
         synchronized (sendSideBandwidthEstimation)
         {
             lastUpdateTime = System.currentTimeMillis();
             sendSideBandwidthEstimation.updateEstimate(lastUpdateTime);
         }
+        return 0;
     }
 }

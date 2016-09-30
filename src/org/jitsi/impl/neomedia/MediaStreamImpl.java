@@ -52,7 +52,6 @@ import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
-import org.jitsi.util.concurrent.*;
 
 /**
  * Implements <tt>MediaStream</tt> using JMF.
@@ -76,15 +75,6 @@ public class MediaStreamImpl
      */
     private static final Logger logger
         = Logger.getLogger(MediaStreamImpl.class);
-
-    /**
-     * The <tt>RecurringRunnableExecutor</tt> to be utilized by the
-     * <tt>MediaStreamImpl</tt> class and its instances.
-     */
-    protected static final RecurringRunnableExecutor
-        recurringRunnableExecutor
-            = new RecurringRunnableExecutor(
-                    MediaStreamImpl.class.getSimpleName());
 
     /**
      * The name of the property indicating the length of our receive buffer.
@@ -242,12 +232,6 @@ public class MediaStreamImpl
     private final Vector<Long> remoteSourceIDs = new Vector<>(1, 1);
 
     /**
-     * The {@code MediaStreamTracks} of this {@code MediaStream}.
-     */
-    private Map<Long, MediaStreamTrack> remoteTracks
-        = Collections.synchronizedMap(new TreeMap<Long, MediaStreamTrack>());
-
-    /**
      * The <tt>RTPConnector</tt> through which this instance sends and receives
      * RTP and RTCP traffic. The instance is a <tt>TransformConnector</tt> in
      * order to also enable packet transformations.
@@ -314,6 +298,14 @@ public class MediaStreamImpl
      * of this <tt>MediaStream</tt>.
      */
     private DebugTransformEngine debugTransformEngine;
+
+    /**
+     * The transformer which handles SSRC rewriting. It is always created
+     * (which is extremely lightweight) but it needs to be initialized so that
+     * it can work.
+     */
+    private final SsrcRewritingEngine ssrcRewritingEngine
+        = new SsrcRewritingEngine(this);
 
     /**
      * The <tt>TransformEngine</tt> instance registered in the
@@ -779,13 +771,6 @@ public class MediaStreamImpl
 
         if (deviceSession != null)
             deviceSession.close();
-
-        RTCPTerminationStrategy strategy = getRTCPTerminationStrategy();
-        if (strategy instanceof RecurringRunnable)
-        {
-            recurringRunnableExecutor.deRegisterRecurringRunnable(
-                    (RecurringRunnable) strategy);
-        }
     }
 
     /**
@@ -1004,16 +989,6 @@ public class MediaStreamImpl
     }
 
     /**
-     * Creates the {@link SsrcRewritingEngine} for this
-     * {@code MediaStream}.
-     * @return the created {@link SsrcRewritingEngine}.
-     */
-    protected SsrcRewritingEngine getSsrcRewritingEngine()
-    {
-        return null;
-    }
-
-    /**
      * Creates a chain of transform engines for use with this stream. Note
      * that this is the only place where the <tt>TransformEngineChain</tt> is
      * and should be manipulated to avoid problems with the order of the
@@ -1054,10 +1029,7 @@ public class MediaStreamImpl
         if (redTransformEngine != null)
             engineChain.add(redTransformEngine);
 
-        // SSRC rewriting
-        SsrcRewritingEngine ssrcRewritingEngine = getSsrcRewritingEngine();
-        if (ssrcRewritingEngine != null)
-            engineChain.add(ssrcRewritingEngine);
+        engineChain.add(ssrcRewritingEngine);
 
         // RTCPTerminationTransformEngine passes received RTCP to
         // RTCPTerminationStrategy for inspection and modification. The RTCP
@@ -1854,15 +1826,6 @@ public class MediaStreamImpl
          * prevent ConcurrentModificationException.
          */
         return Collections.unmodifiableList(remoteSourceIDs);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Map<Long, MediaStreamTrack> getRemoteTracks()
-    {
-        return remoteTracks;
     }
 
     /**
@@ -3583,12 +3546,6 @@ public class MediaStreamImpl
 
         if (oldValue != newValue)
         {
-            if (oldValue instanceof RecurringRunnable)
-            {
-                recurringRunnableExecutor.deRegisterRecurringRunnable(
-                        (RecurringRunnable) oldValue);
-            }
-
             // XXX The following (source) code was moved here from another place
             // and there it was called before remembering the new
             // rtcpTerminationStrategy so we've preserved the order here.
@@ -3598,14 +3555,23 @@ public class MediaStreamImpl
                     .initialize(this);
             }
 
-            if (newValue instanceof RecurringRunnable)
-            {
-                recurringRunnableExecutor.registerRecurringRunnable(
-                        (RecurringRunnable) newValue);
-            }
-
             rtcpTransformEngineWrapper.setWrapped(newValue);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void configureSSRCRewriting(
+        final Set<Long> ssrcGroup, final Long ssrcTargetPrimary,
+        final Map<Long, Byte> ssrc2fec,
+        final Map<Long, Byte> ssrc2red,
+        final Map<Long, Long> rtxGroups, final Long ssrcTargetRTX)
+    {
+        ssrcRewritingEngine.map(ssrcGroup, ssrcTargetPrimary,
+            ssrc2fec, ssrc2red,
+            rtxGroups, ssrcTargetRTX);
     }
 
     /**
