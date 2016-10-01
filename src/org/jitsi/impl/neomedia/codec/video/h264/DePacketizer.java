@@ -617,7 +617,7 @@ public class DePacketizer
         int lengthRemaining)
     {
         int initialLength = lengthRemaining;
-        while (lengthRemaining > 0 && offset + 1 < initialLength)
+        while (lengthRemaining > 0 && offset + 1 < initialLength && offset > 0)
         {
             // Buffer doesn't contain room for additional nalu length.
             if (lengthRemaining < kNalUSize)
