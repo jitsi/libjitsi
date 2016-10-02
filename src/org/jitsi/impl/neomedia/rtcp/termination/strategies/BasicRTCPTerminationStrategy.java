@@ -28,6 +28,7 @@ import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
+import org.jitsi.util.concurrent.*;
 import org.jitsi.util.function.*;
 
 /**
@@ -42,6 +43,7 @@ import org.jitsi.util.function.*;
  */
 public class BasicRTCPTerminationStrategy
     extends MediaStreamRTCPTerminationStrategy
+    implements RecurringRunnable
 {
     /**
      * The <tt>Logger</tt> used by the <tt>BasicRTCPTerminationStrategy</tt>
@@ -952,6 +954,24 @@ public class BasicRTCPTerminationStrategy
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getTimeUntilNextRun()
+    {
+        return rtcpReporter.getTimeUntilNextRun();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void run()
+    {
+        rtcpReporter.run();
+    }
+
+    /**
      * The garbage collector runs at each reporting interval and cleans up
      * the data structures of this RTCP termination strategy based on the
      * SSRCs that the owner <tt>MediaStream</tt> is still sending.
@@ -1061,6 +1081,7 @@ public class BasicRTCPTerminationStrategy
      * Takes care of calling the report() method every RTCP_INTERVAL_VIDEO_MS.
      */
     private class RTCPReporter
+        implements RecurringRunnable
     {
         /**
          * For video we use 500ms interval.
@@ -1068,17 +1089,17 @@ public class BasicRTCPTerminationStrategy
         private static final int RTCP_INTERVAL_VIDEO_MS = 500;
 
         /**
-        */
-        private long nextTimeToSendRTCP;
+         * The time that {@link #run()} was last called.
+         */
+        private long lastUpdateTimeMs;
 
         /**
+         * {@inheritDoc}
          */
-        public void maybeReport()
+        @Override
+        public void run()
         {
-            if (!timeToSendRTCPReport())
-            {
-                return;
-            }
+            lastUpdateTimeMs = System.currentTimeMillis();
 
             // Make the RTCP reports for the assoc. MediaStream.
             List<RawPacket> pkts = report();
@@ -1120,17 +1141,14 @@ public class BasicRTCPTerminationStrategy
             }
         }
 
-        private boolean timeToSendRTCPReport()
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public long getTimeUntilNextRun()
         {
-            final long now = System.currentTimeMillis();
-
-            if (now >= nextTimeToSendRTCP)
-            {
-                nextTimeToSendRTCP = now + RTCP_INTERVAL_VIDEO_MS;
-                return true;
-            }
-
-            return false;
+            return (lastUpdateTimeMs + RTCP_INTERVAL_VIDEO_MS)
+                - System.currentTimeMillis();
         }
     }
 
@@ -1240,19 +1258,7 @@ public class BasicRTCPTerminationStrategy
         {
             // Update our RTP stats map (packets/octet sent).
             rtpStatsMap.apply(pkt);
-            rtcpReporter.maybeReport();
 
-            return pkt;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket reverseTransform(RawPacket pkt)
-        {
-            // Let everything pass through.
-            rtcpReporter.maybeReport();
             return pkt;
         }
     }
