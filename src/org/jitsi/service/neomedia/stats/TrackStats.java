@@ -84,4 +84,9 @@ public interface TrackStats
      */
     long getInterval();
 
+    /**
+     * @return an estimate for the recent loss rate.
+     */
+    double getLossRate();
+
 }
