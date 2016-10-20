@@ -134,7 +134,9 @@ class SendSideBandwidthEstimation
     private final List<BandwidthEstimator.Listener> listeners
         = new LinkedList<>();
 
-    //TODO: get RTT from here
+    /**
+     * The {@link MediaStream} for this {@link SendSideBandwidthEstimation}.
+     */
     private final MediaStream mediaStream;
 
     SendSideBandwidthEstimation(MediaStream stream, long startBitrate)
@@ -376,7 +378,7 @@ class SendSideBandwidthEstimation
      */
     private synchronized long getRtt()
     {
-        long rtt = mediaStream.getMediaStreamStats().getRttMs();
+        long rtt = mediaStream.getMediaStreamStats().getSendStats().getRtt();
         if (rtt < 0 || rtt > 1000)
         {
             logger.warn("RTT not calculated, or has a suspiciously high value ("

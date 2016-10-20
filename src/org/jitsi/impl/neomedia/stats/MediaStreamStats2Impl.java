@@ -410,5 +410,30 @@ public class MediaStreamStats2Impl
             }
             return packetsLost;
         }
+
+        /**
+         * {@inheritDoc}
+         *
+         * @return the loss rate in the last interval.
+         */
+        @Override
+        public double getLossRate()
+        {
+            long lost = 0;
+            long expected = 0;
+
+            for (ReceiveTrackStats child : children.values())
+            {
+                // This is not thread safe and the counters might change
+                // between the two function calls below, but the result would
+                // be just a wrong value for the packet loss rate, and likely
+                // just off by a little bit.
+                long childLost = child.getCurrentPacketsLost();
+                expected += childLost + child.getCurrentPackets();
+                lost += childLost;
+            }
+
+            return expected == 0 ? 0 : (lost / expected);
+        }
     }
 }

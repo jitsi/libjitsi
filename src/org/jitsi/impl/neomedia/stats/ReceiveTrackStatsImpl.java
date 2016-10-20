@@ -138,4 +138,21 @@ public class ReceiveTrackStatsImpl
     {
         super.packetProcessed(length, System.currentTimeMillis(), false);
     }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @return the loss rate in the last interval.
+     */
+    @Override
+    public double getLossRate()
+    {
+        // This is not thread safe and the counters might change between the
+        // two function calls below, but the result would be just a wrong
+        // value for the packet loss rate, and likely just off by a little.
+        long lost = getCurrentPacketsLost();
+        long expected = lost + getCurrentPackets();
+
+        return expected == 0 ? 0 : (lost / expected);
+    }
 }
