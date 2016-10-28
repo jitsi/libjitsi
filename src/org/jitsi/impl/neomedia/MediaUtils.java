@@ -22,14 +22,11 @@ import javax.media.format.*;
 import javax.sdp.*;
 
 import org.jitsi.impl.neomedia.codec.*;
-import org.jitsi.impl.neomedia.codec.video.h264.*;
-import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
-import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
 
@@ -253,82 +250,6 @@ public class MediaUtils
             MediaType.VIDEO,
             VideoFormat.H261_RTP);
          */
-
-        /* H264 */
-        Map<String, String> h264FormatParams = new HashMap<>();
-        String packetizationMode
-            = VideoMediaFormatImpl.H264_PACKETIZATION_MODE_FMTP;
-        Map<String, String> h264AdvancedAttributes = new HashMap<>();
-
-        /*
-         * Disable PLI because the periodic intra-refresh feature of FFmpeg/x264
-         * is used.
-         */
-        // h264AdvancedAttributes.put("rtcp-fb", "nack pli");
-
-        /*
-         * XXX The initialization of MediaServiceImpl is very complex so it is
-         * wise to not reference it at the early stage of its initialization.
-         */
-        ScreenDevice screen = ScreenDeviceImpl.getDefaultScreenDevice();
-        java.awt.Dimension res = (screen == null) ? null : screen.getSize();
-
-        h264AdvancedAttributes.put("imageattr", createImageAttr(null, res));
-
-        if ((cfg == null)
-                || cfg
-                    .getString(
-                            "net.java.sip.communicator.impl.neomedia"
-                                + ".codec.video.h264.defaultProfile",
-                            JNIEncoder.MAIN_PROFILE)
-                        .equals(JNIEncoder.MAIN_PROFILE))
-        {
-            // main profile, common features, HD capable level 3.1
-            h264FormatParams.put("profile-level-id", "4DE01f");
-        }
-        else
-        {
-            // baseline profile, common features, HD capable level 3.1
-            h264FormatParams.put("profile-level-id", "42E01f");
-        }
-
-        // By default, packetization-mode=1 is enabled.
-        if ((cfg == null)
-                || cfg.getBoolean(
-                        "net.java.sip.communicator.impl.neomedia"
-                            + ".codec.video.h264.packetization-mode-1.enabled",
-                        true))
-        {
-            // packetization-mode=1
-            h264FormatParams.put(packetizationMode, "1");
-            addMediaFormats(
-                    MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
-                    "H264",
-                    MediaType.VIDEO,
-                    Constants.H264_RTP,
-                    h264FormatParams,
-                    h264AdvancedAttributes);
-        }
-        // packetization-mode=0
-        /*
-         * XXX At the time of this writing,
-         * EncodingConfiguration#compareEncodingPreferences(MediaFormat,
-         * MediaFormat) is incomplete and considers two MediaFormats to be
-         * equal if they have an equal number of format parameters (given
-         * that the encodings and clock rates are equal, of course). Either
-         * fix the method in question or don't add a format parameter for
-         * packetization-mode 0 (which is equivalent to having
-         * packetization-mode explicitly defined as 0 anyway, according to
-         * the respective RFC).
-         */
-        h264FormatParams.remove(packetizationMode);
-        addMediaFormats(
-                MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
-                "H264",
-                MediaType.VIDEO,
-                Constants.H264_RTP,
-                h264FormatParams,
-                h264AdvancedAttributes);
 
         /* H263+
         Map<String, String> h263FormatParams

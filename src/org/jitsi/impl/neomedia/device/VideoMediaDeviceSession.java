@@ -29,13 +29,11 @@ import javax.swing.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.video.*;
-import org.jitsi.impl.neomedia.codec.video.h264.*;
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.control.KeyFrameControl;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.neomedia.format.*;
@@ -1135,45 +1133,8 @@ public class VideoMediaDeviceSession
                      */
                     playerScaler = new PlayerScaler(player);
 
-                    /*
-                     * For H.264, we will use RTCP feedback. For example, to
-                     * tell the sender that we've missed a frame.
-                     */
-                    if ("h264/rtp".equalsIgnoreCase(fmjEncoding))
-                    {
-                        final DePacketizer depacketizer = new DePacketizer();
-                        JNIDecoder decoder = new JNIDecoder();
-
-                        if (keyFrameControl != null)
-                        {
-                            depacketizer.setKeyFrameControl(keyFrameControl);
-                            decoder.setKeyFrameControl(
-                                    new KeyFrameControlAdapter()
-                                    {
-                                        @Override
-                                        public boolean requestKeyFrame(
-                                                boolean urgent)
-                                        {
-                                            return
-                                                depacketizer.requestKeyFrame(
-                                                        urgent);
-                                        }
-                                    });
-                        }
-
-                        trackControl.setCodecChain(
-                                new Codec[]
-                                {
-                                    depacketizer,
-                                    decoder,
-                                    playerScaler
-                                });
-                    }
-                    else
-                    {
-                        trackControl.setCodecChain(
-                                new Codec[] { playerScaler });
-                    }
+                    trackControl.setCodecChain(
+                            new Codec[] { playerScaler });
                     break;
                 }
             }
@@ -1694,7 +1655,6 @@ public class VideoMediaDeviceSession
             MediaFormatImpl<? extends Format> mediaFormat,
             Format format)
     {
-        JNIEncoder encoder = null;
         SwScale scaler = null;
         int codecCount = 0;
 
@@ -1702,53 +1662,6 @@ public class VideoMediaDeviceSession
          * For H.264 we will monitor RTCP feedback. For example, if we receive a
          * PLI/FIR message, we will send a keyframe.
          */
-        /*
-         * The current Android video capture device system provided H.264 so it
-         * is not possible to insert an H.264 encoder in the chain. Ideally, we
-         * will want to base the decision on the format of the capture device
-         * and not on the operating system. In a perfect worlds, we will
-         * re-implement the functionality bellow using a Control interface and
-         * we will not bother with inserting customized codecs.
-         */
-        if (!OSUtils.IS_ANDROID
-                && "h264/rtp".equalsIgnoreCase(format.getEncoding()))
-        {
-            encoder = new JNIEncoder();
-
-            // packetization-mode
-            {
-                Map<String, String> formatParameters
-                    = mediaFormat.getFormatParameters();
-                String packetizationMode
-                    = (formatParameters == null)
-                        ? null
-                        : formatParameters.get(
-                                VideoMediaFormatImpl
-                                    .H264_PACKETIZATION_MODE_FMTP);
-
-                encoder.setPacketizationMode(packetizationMode);
-            }
-
-            // additionalCodecSettings
-            {
-                encoder.setAdditionalCodecSettings(
-                        mediaFormat.getAdditionalCodecSettings());
-            }
-
-            this.encoder = encoder;
-            onRTCPFeedbackMessageCreate(encoder);
-            synchronized (rtcpFeedbackMessageCreateListeners)
-            {
-                for (RTCPFeedbackMessageCreateListener l
-                        : rtcpFeedbackMessageCreateListeners)
-                    l.onRTCPFeedbackMessageCreate(encoder);
-            }
-
-            if (keyFrameControl != null)
-                encoder.setKeyFrameControl(keyFrameControl);
-
-            codecCount++;
-        }
 
         if (outputSize != null)
         {
@@ -1772,8 +1685,6 @@ public class VideoMediaDeviceSession
         codecCount = 0;
         if(scaler != null)
             codecs[codecCount++] = scaler;
-        if(encoder != null)
-            codecs[codecCount++] = encoder;
 
         if (codecCount != 0)
         {

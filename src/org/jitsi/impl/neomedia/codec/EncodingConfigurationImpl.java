@@ -57,7 +57,7 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
         // first init default preferences
         // video
         setEncodingPreference(
-            "H264",
+            "VP8",
             VideoMediaFormatImpl.DEFAULT_CLOCK_RATE,
             1100);
 
@@ -66,10 +66,6 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
             VideoMediaFormatImpl.DEFAULT_CLOCK_RATE,
             0);
 
-        setEncodingPreference(
-            "VP8",
-            VideoMediaFormatImpl.DEFAULT_CLOCK_RATE,
-            0);
         /*
         setEncodingPreference(
             "H263",

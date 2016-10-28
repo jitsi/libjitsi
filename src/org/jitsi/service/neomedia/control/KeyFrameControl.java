@@ -150,14 +150,6 @@ public interface KeyFrameControl
     public interface KeyFrameRequester
     {
         /**
-         * The name of the <tt>ConfigurationService</tt> property which
-         * specifies the preferred <tt>KeyFrameRequester</tt> to be used.
-         */
-        public static final String PREFERRED_PNAME
-            = "net.java.sip.communicator.impl.neomedia.codec.video.h264."
-                + "preferredKeyFrameRequester";
-
-        /**
          * The value of the {@link #PREFERRED_PNAME}
          * <tt>ConfigurationService</tt> property which indicates that the
          * RTCP <tt>KeyFrameRequester</tt> is preferred.

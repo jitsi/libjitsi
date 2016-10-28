@@ -3681,7 +3681,7 @@ public class MediaStreamImpl
             return false;
         }
 
-        Byte redPT = null, vp8PT = null, h264PT = null;
+        Byte redPT = null, vp8PT = null;
         for (Map.Entry<Byte, MediaFormat> entry :
             getDynamicRTPPayloadTypes().entrySet())
         {
@@ -3695,10 +3695,6 @@ public class MediaStreamImpl
             else if (Constants.VP8.equalsIgnoreCase(encoding))
             {
                 vp8PT = payloadType;
-            }
-            else if (Constants.H264.equalsIgnoreCase(encoding))
-            {
-                h264PT = payloadType;
             }
         }
 
@@ -3740,10 +3736,6 @@ public class MediaStreamImpl
             {
                 return org.jitsi.impl.neomedia.codec.video.vp8.DePacketizer
                     .isKeyFrame(buf, payloadOff, payloadLen);
-            } else if (h264PT != null && payloadType == h264PT)
-            {
-                return org.jitsi.impl.neomedia.codec.video.h264.DePacketizer
-                    .isKeyFrame(buf, payloadOff, len);
             }
             else
             {
