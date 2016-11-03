@@ -15,18 +15,21 @@
  */
 package org.jitsi.impl.neomedia.codec.video.h264;
 
+import net.sf.fmj.media.AbstractCodec;
+import org.jitsi.impl.neomedia.codec.AbstractCodec2;
+import org.jitsi.impl.neomedia.codec.FFmpeg;
+import org.jitsi.impl.neomedia.format.ParameterizedVideoFormat;
+import org.jitsi.impl.neomedia.format.VideoMediaFormatImpl;
+import org.jitsi.service.neomedia.codec.Constants;
+import org.jitsi.service.neomedia.control.KeyFrameControl;
+import org.jitsi.util.Logger;
+
+import javax.media.Buffer;
+import javax.media.Format;
+import javax.media.PlugIn;
+import javax.media.ResourceUnavailableException;
+import javax.media.format.VideoFormat;
 import java.util.*;
-
-import javax.media.*;
-import javax.media.format.*;
-
-import net.sf.fmj.media.*;
-
-import org.jitsi.impl.neomedia.codec.*;
-import org.jitsi.impl.neomedia.format.*;
-import org.jitsi.service.neomedia.codec.*;
-import org.jitsi.service.neomedia.control.*;
-import org.jitsi.util.*;
 
 /**
  * Implements <tt>Codec</tt> to represent a depacketizer of H.264 RTP packets
@@ -67,7 +70,7 @@ public class DePacketizer
     private static final byte kSei = 6;
     private static final byte kSps = 7;
     private static final byte kPps = 8;
-    private static final byte kStapA = 24;
+    static final byte kStapA = 24;
     private static final byte kFuA = 28;
 
     // Header sizes
@@ -75,7 +78,7 @@ public class DePacketizer
     private static final int kFuAHeaderSize = 2;
     private static final int kLengthFieldSize = 2;
     private static final int kStapAHeaderSize = kNalHeaderSize + kLengthFieldSize;
-    private static final int kNalUSize = 2;
+    static final int kNalUSize = 2;
 
   /**
      * The indicator which determines whether incomplete NAL units are output
@@ -593,7 +596,7 @@ public class DePacketizer
     private static boolean parseSingleNaluForKeyFrame(byte[] buff, int off, int len)
     {
         int naluStart = off + kNalHeaderSize;
-        int naluLength = len - kNalHeaderSize;
+        int naluLength = len - naluStart;
         int nalType = buff[off] & kTypeMask;
         if (nalType == kStapA)
         {
@@ -613,28 +616,32 @@ public class DePacketizer
                 nalType == kPps || nalType == kSei);
     }
 
-    private static boolean verifyStapANaluLengths(byte[] data, int offset,
-        int lengthRemaining)
+    /**
+     * Check if Single-Time Aggregation Packet (STAP-A) NAL unit is correctly formed.
+     * @param data STAP-A payload
+     * @param offset Starting position of NAL unit
+     * @param lengthRemaining Bytes left in STAP-A
+     * @return True if STAP-A NAL Unit is correct
+     */
+    static boolean verifyStapANaluLengths(byte[] data, int offset, int lengthRemaining)
     {
-        int initialLength = lengthRemaining;
-        while (lengthRemaining > 0 && offset + 1 < initialLength && offset > 0)
-        {
-            // Buffer doesn't contain room for additional nalu length.
-            if (lengthRemaining < kNalUSize)
-            {
+        if (data.length < offset + lengthRemaining) {
+            return false;
+        }
+        while (lengthRemaining != 0) {
+            if (lengthRemaining < kNalUSize) {
                 return false;
             }
-            int naluSize = data[offset] << 8 | data[offset+1];
-            offset += kNalUSize;
-            lengthRemaining -= kNalUSize;
-            if (naluSize > lengthRemaining)
-            {
-                return false;
-            }
+            int naluSize = kNalUSize + getUint16(data, offset);
             offset += naluSize;
             lengthRemaining -= naluSize;
         }
         return true;
+    }
+
+    static int getUint16(byte[] data, int offset)
+    {
+        return ((data[offset] & 0xff) << 8) | (data[offset+1] & 0xff);
     }
 
     /**
