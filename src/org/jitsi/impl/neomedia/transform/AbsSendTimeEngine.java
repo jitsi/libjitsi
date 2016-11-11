@@ -137,8 +137,10 @@ public class AbsSendTimeEngine
         int lengthInWords = (buf[extensionOffset++] & 0xFF) << 8
             | (buf[extensionOffset++] & 0xFF);
 
-        // Length in bytes of the header extensions
-        int lengthInBytes = 4 * (1 + lengthInWords);
+        // Length in bytes of the header extensions (excluding the 4 bytes for
+        // the "defined by profile" (0xBEDE) and length field itself, which
+        // we have already incremented past).
+        int lengthInBytes = 4 * lengthInWords;
 
         int innerOffset = 0;
         while (extensionOffset < buf.length && innerOffset < lengthInBytes)
