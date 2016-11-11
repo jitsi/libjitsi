@@ -22,6 +22,7 @@ import javax.media.format.*;
 
 import net.sf.fmj.media.*;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.neomedia.codec.*;
@@ -548,7 +549,7 @@ public class DePacketizer
      */
     public static boolean isKeyFrame(byte[] buff, int off, int len)
     {
-      if (buff == null || buff.length < off + Math.max(len, 1))
+      if (buff == null || buff.length < off + len || len < RTPHeader.SIZE)
       {
           return false;
       }

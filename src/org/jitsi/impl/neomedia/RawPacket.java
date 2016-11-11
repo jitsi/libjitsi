@@ -16,6 +16,8 @@
 package org.jitsi.impl.neomedia;
 
 
+import org.jitsi.service.neomedia.*;
+
 /**
  * When using TransformConnector, a RTP/RTCP packet is represented using
  * RawPacket. RawPacket stores the buffer holding the RTP/RTCP packet, as well
@@ -30,6 +32,9 @@ package org.jitsi.impl.neomedia;
  * FIXME This class needs to be split/merged into RTPHeader, RTCPHeader,
  * ByteBufferUtils, etc.
  *
+ * @see org.jitsi.impl.neomedia.rtcp.RTCPHeaderUtils
+ * @see org.jitsi.impl.neomedia.rtcp.RTCPSenderInfoUtils
+ *
  * @author Werner Dittmann (Werner.Dittmann@t-online.de)
  * @author Bing SU (nova.su@gmail.com)
  * @author Emil Ivov
@@ -39,6 +44,7 @@ package org.jitsi.impl.neomedia;
  * @author George Politis
  */
 public class RawPacket
+    implements ByteArrayBuffer
 {
     /**
      * The size of the extension header as defined by RFC 3550.
@@ -399,6 +405,7 @@ public class RawPacket
      *
      * @return buffer containing the content of this packet
      */
+    @Override
     public byte[] getBuffer()
     {
         return this.buffer;
@@ -659,6 +666,7 @@ public class RawPacket
      *
      * @return length of this packet's data
      */
+    @Override
     public int getLength()
     {
         return length;
@@ -693,6 +701,7 @@ public class RawPacket
      *
      * @return start offset of this packet's data inside storing buffer
      */
+    @Override
     public int getOffset()
     {
         return this.offset;
@@ -810,7 +819,7 @@ public class RawPacket
      */
     public byte getPayloadType()
     {
-        return getPayloadType(buffer, offset, length);
+        return (byte) getPayloadType(buffer, offset, length);
     }
 
     /**
@@ -818,9 +827,14 @@ public class RawPacket
      *
      * @return RTP payload type of source RTP packet
      */
-    public static Byte getPayloadType(byte[] buf, int off, int len)
+    public static int getPayloadType(byte[] buf, int off, int len)
     {
-        return (byte) (buf[off + 1] & (byte)0x7F);
+        if (buf == null || buf.length < off + len || len < 2)
+        {
+            return -1;
+        }
+
+        return (buf[off + 1] & 0x7F);
     }
 
     /**

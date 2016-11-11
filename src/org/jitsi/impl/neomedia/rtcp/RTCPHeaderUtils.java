@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtcp;
 
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Utility class that contains static methods for RTCP header manipulation.
@@ -38,12 +39,28 @@ public class RTCPHeaderUtils
      */
     public static int getPacketType(byte[] buf, int off, int len)
     {
-        if (!isValid(buf, off, len))
+        if (getLength(buf, off, len) < RTCPHeader.SIZE)
         {
             return -1;
         }
 
         return buf[off + 1] & 0xff;
+    }
+
+    /**
+     * Gets the RTCP packet type.
+     *
+     * @param pkt the <tt>SimpleBUffer</tt> that contains the RTCP header.
+     * @return the unsigned RTCP packet type, or -1 in case of an error.
+     */
+    public static int getPacketType(ByteArrayBuffer pkt)
+    {
+        if (pkt == null)
+        {
+            return -1;
+        }
+
+        return getPacketType(pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
     }
 
     /**
@@ -57,7 +74,7 @@ public class RTCPHeaderUtils
      */
     public static long getSenderSSRC(byte[] buf, int off, int len)
     {
-        if (!isValid(buf, off, len))
+        if (getLength(buf, off, len) < RTCPHeader.SIZE)
         {
             return -1;
         }
@@ -76,8 +93,14 @@ public class RTCPHeaderUtils
      */
     public static int getLength(byte[] buf, int off, int len)
     {
-        // XXX Do not check with isValid.
-        if (buf == null || buf.length < off + Math.max(len, 4))
+        if (buf == null
+            || buf.length < off + Math.max(len, RTCPHeader.SIZE)
+            || len < RTCPHeader.SIZE)
+        {
+            return -1;
+        }
+
+        if (RTCPHeader.VERSION != (buf[off] & 0xc0) >>> 6)
         {
             return -1;
         }
@@ -89,50 +112,68 @@ public class RTCPHeaderUtils
     }
 
     /**
-     * Gets the RTCP packet version.
+     * Gets the RTCP packet length in bytes.
      *
-     * @param buf the byte buffer that contains the RTCP header.
-     * @param off the offset in the byte buffer where the RTCP header starts.
-     * @param len the number of bytes in buffer which constitute the actual
-     * data.
-     * @return the RTCP packet version, or -1 in case of an error.
+     * @param pkt the byte buffer that contains the RTCP header.
+     * @return the RTCP packet length in bytes, or -1 in case of an error.
      */
-    public static int getVersion(byte[] buf, int off, int len)
+    public static int getLength(ByteArrayBuffer pkt)
     {
-        // XXX Do not check with isValid.
-        if (buf == null || buf.length < off + Math.max(len, 1))
+        if (pkt == null)
         {
             return -1;
         }
 
-        return (buf[off] & 0xc0) >>> 6;
+        return getLength(pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
     }
 
     /**
-     * Checks whether the RTCP header is valid or not. It does so by checking
-     * the RTCP header version and makes sure the buffer is at least 8 bytes
-     * long.
+     * Gets the RTCP packet report count.
      *
      * @param buf the byte buffer that contains the RTCP header.
      * @param off the offset in the byte buffer where the RTCP header starts.
      * @param len the number of bytes in buffer which constitute the actual
      * data.
-     * @return true if the RTCP packet is valid, false otherwise.
+     * @return the RTCP packet report count, or -1 in case of an error.
      */
-    public static boolean isValid(byte[] buf, int off, int len)
+    public static int getReportCount(byte[] buf, int off, int len)
     {
-        int version = RTCPHeaderUtils.getVersion(buf, off, len);
-        if (version != RTCPHeader.VERSION)
+        if (getLength(buf, off, len) < RTCPHeader.SIZE)
         {
-            return false;
+            return -1;
         }
 
-        int pktLen = RTCPHeaderUtils.getLength(buf, off, len);
-        if (pktLen < RTCPHeader.SIZE)
+        return (buf[off] & 0x1F);
+    }
+
+    /**
+     * Gets the RTCP packet report count.
+     *
+     * @param pkt the <tt>RawPacket</tt> that contains the RTCP header.
+     * @return the RTCP packet report count, or -1 in case of an error.
+     */
+    public static int getReportCount(ByteArrayBuffer pkt)
+    {
+        if (pkt == null)
         {
-            return false;
+            return -1;
         }
 
-        return true;
+        return getReportCount(pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+    }
+
+    /**
+     *
+     * @param baf
+     * @return
+     */
+    public static long getSenderSSRC(ByteArrayBuffer baf)
+    {
+        if (baf == null)
+        {
+            return -1;
+
+        }
+        return getSenderSSRC(baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
 }

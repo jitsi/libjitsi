@@ -28,13 +28,13 @@ import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.rewriting.*;
-import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.QualityControl;
@@ -59,6 +59,23 @@ public class VideoMediaStreamImpl
     extends MediaStreamImpl
     implements VideoMediaStream
 {
+    /**
+     * The name of the property used to disable NACK termination.
+     *
+     * XXX(gp) this has been moved down to LJ from the JVB. We keep the
+     * original property names for backwards compatibility.
+     */
+    public static final String DISABLE_NACK_TERMINATION_PNAME
+        = "org.jitsi.videobridge.DISABLE_NACK_TERMINATION";
+
+    /**
+     * The name of the property used to disable RTCP termination.
+     *
+     * XXX(gp) this has been moved down to LJ from the JVB. We keep the
+     * original property names for backwards compatibility.
+     */
+    public static final String DISABLE_RTCP_TERMINATION_PNAME
+        = "org.jitsi.videobridge.rtcp.strategy";
 
     /**
      * The <tt>Logger</tt> used by the <tt>VideoMediaStreamImpl</tt> class and
@@ -453,7 +470,8 @@ public class VideoMediaStreamImpl
      * The {@code BandwidthEstimator} which estimates the available bandwidth
      * from this endpoint to the remote peer.
      */
-    private BandwidthEstimatorImpl bandwidthEstimator;
+    private BandwidthEstimatorImpl bandwidthEstimator
+        = new BandwidthEstimatorImpl(this);
 
     /**
      * The transformer which handles SSRC rewriting. It is always created
@@ -462,6 +480,30 @@ public class VideoMediaStreamImpl
      */
     private final SsrcRewritingEngine ssrcRewritingEngine
         = new SsrcRewritingEngine(this);
+
+
+    /**
+     * The RTCP termination strategy for this {@link MediaStream}.
+     */
+    private final BasicRTCPTerminationStrategy rtcpTermination;
+
+    /**
+     * The transformer that handles RTX and replies to NACKs.
+     */
+    private final RtxTransformer rtxTransformer;
+
+    /**
+     * The {@link RetransmissionRequesterImpl} instance for this
+     * {@link MediaStream} which will request missing packets by sending
+     * RTCP NACKs.
+     */
+    private final RetransmissionRequesterImpl retransmissionRequester;
+
+    /**
+     * The transformer which caches outgoing RTP packets for this
+     * {@link MediaStream}.
+     */
+    private final CachingTransformer cachingTransformer;
 
     /**
      * Initializes a new <tt>VideoMediaStreamImpl</tt> instance which will use
@@ -490,6 +532,42 @@ public class VideoMediaStreamImpl
         {
             recurringRunnableExecutor.registerRecurringRunnable(
                     (RecurringRunnable) remoteBitrateEstimator);
+        }
+
+        boolean disableRtcpTermination = LibJitsi.getConfigurationService()
+            .getBoolean(DISABLE_RTCP_TERMINATION_PNAME, false);
+
+        if (disableRtcpTermination)
+        {
+            disableRtcpTermination = LibJitsi.getConfigurationService()
+                .getBoolean(DISABLE_NACK_TERMINATION_PNAME, false);
+        }
+
+        if (disableRtcpTermination)
+        {
+            disableRtcpTermination = !LibJitsi.getConfigurationService()
+                .getBoolean(REQUEST_RETRANSMISSIONS_PNAME, true);
+        }
+
+        if (!disableRtcpTermination)
+        {
+            rtxTransformer = new RtxTransformer(this);
+            retransmissionRequester = new RetransmissionRequesterImpl(this);
+            cachingTransformer = new CachingTransformer(this);
+            rtcpTermination = new BasicRTCPTerminationStrategy(this);
+
+            recurringRunnableExecutor
+                .registerRecurringRunnable(cachingTransformer);
+
+            recurringRunnableExecutor
+                .registerRecurringRunnable(rtcpTermination);
+        }
+        else
+        {
+            rtxTransformer = null;
+            retransmissionRequester = null;
+            cachingTransformer = null;
+            rtcpTermination = null;
         }
     }
 
@@ -550,10 +628,23 @@ public class VideoMediaStreamImpl
                 recurringRunnableExecutor.deRegisterRecurringRunnable(
                         (RecurringRunnable) remoteBitrateEstimator);
             }
-            if (bandwidthEstimator != null)
+
+            if (cachingTransformer != null)
             {
-                recurringRunnableExecutor.deRegisterRecurringRunnable(
-                        bandwidthEstimator);
+                cachingTransformer.close();
+                recurringRunnableExecutor
+                    .deRegisterRecurringRunnable(cachingTransformer);
+            }
+
+            if (rtcpTermination != null)
+            {
+                recurringRunnableExecutor
+                    .deRegisterRecurringRunnable(rtcpTermination);
+            }
+
+            if (retransmissionRequester != null)
+            {
+                retransmissionRequester.close();
             }
         }
     }
@@ -1311,30 +1402,7 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    protected CachingTransformer createCachingTransformer()
-    {
-        return new CachingTransformer();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected RetransmissionRequesterImpl createRetransmissionRequester()
-    {
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
-        if (cfg != null && cfg.getBoolean(REQUEST_RETRANSMISSIONS_PNAME, false))
-        {
-            return new RetransmissionRequesterImpl(this);
-        }
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected SsrcRewritingEngine getSsrcRewritingEngine()
+    public SsrcRewritingEngine getSsrcRewritingEngine()
     {
         return ssrcRewritingEngine;
     }
@@ -1343,15 +1411,35 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    public BandwidthEstimator getOrCreateBandwidthEstimator()
+    public RtxTransformer getRtxTransformer()
     {
-        if (bandwidthEstimator == null)
-        {
-            bandwidthEstimator = new BandwidthEstimatorImpl(this);
-            recurringRunnableExecutor.registerRecurringRunnable(
-                    bandwidthEstimator);
-            logger.info("Creating a BandwidthEstimator for stream " + this);
-        }
+        return rtxTransformer;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public BasicRTCPTerminationStrategy getRTCPTerminationStrategy()
+    {
+        return rtcpTermination;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RetransmissionRequesterImpl getRetransmissionRequester()
+    {
+        return retransmissionRequester;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public BandwidthEstimator getBandwidthEstimator()
+    {
         return bandwidthEstimator;
     }
 }

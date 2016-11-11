@@ -42,8 +42,7 @@ import org.jitsi.util.function.*;
  * @author Lyubomir Marinov
  */
 public class BasicRTCPTerminationStrategy
-    extends MediaStreamRTCPTerminationStrategy
-    implements RecurringRunnable
+    implements RecurringRunnable, TransformEngine
 {
     /**
      * The <tt>Logger</tt> used by the <tt>BasicRTCPTerminationStrategy</tt>
@@ -143,9 +142,25 @@ public class BasicRTCPTerminationStrategy
         = new RTCPPacketTransformerImpl();
 
     /**
+     * The {@code MediaStream} that this instance terminates RTCP for.
+     */
+    private final MediaStream stream;
+
+    /**
      * A counter that counts the number of times we've sent "full-blown" SDES.
      */
     private int sdesCounter = 0;
+
+    /**
+     * Ctor.
+     *
+     * @param stream the {@code MediaStream} that this instance will terminate
+     * RTCP for.
+     */
+    public BasicRTCPTerminationStrategy(MediaStream stream)
+    {
+        this.stream = stream;
+    }
 
     /**
      * {@inheritDoc}
@@ -582,7 +597,7 @@ public class BasicRTCPTerminationStrategy
      */
     private long getLocalSSRC()
     {
-        return getStream().getStreamRTPManager().getLocalSSRC();
+        return stream.getStreamRTPManager().getLocalSSRC();
     }
 
     /**
@@ -651,7 +666,6 @@ public class BasicRTCPTerminationStrategy
      */
     private RTCPReportBlock[] makeReportBlocks(long time)
     {
-        MediaStream stream = getStream();
         // State validation.
         if (stream == null)
         {
@@ -734,7 +748,7 @@ public class BasicRTCPTerminationStrategy
         // TODO we should only make REMBs if REMB support has been advertised.
         // Destination
         RemoteBitrateEstimator remoteBitrateEstimator
-            = ((VideoMediaStream) getStream()).getRemoteBitrateEstimator();
+            = ((VideoMediaStream) stream).getRemoteBitrateEstimator();
 
         Collection<Integer> ssrcs = remoteBitrateEstimator.getSsrcs();
 
@@ -801,20 +815,19 @@ public class BasicRTCPTerminationStrategy
      */
     private List<RTCPSRPacket> makeSRs(long time)
     {
-        MediaStreamImpl mediaStream = getMediaStreamImpl();
         List<RTCPSRPacket> srs = new ArrayList<>();
 
         for (RTPStatsEntry rtpStatsEntry : rtpStatsMap.values())
         {
             int ssrc = rtpStatsEntry.getSsrc();
-            RemoteClock remoteClock = mediaStream.getStreamRTPManager()
-                .findRemoteClock(ssrc & 0xffffffffl);
+            RemoteClock remoteClock = stream.getStreamRTPManager()
+                .findRemoteClocks(ssrc & 0xffffffffl)[0];
 
             if (remoteClock == null)
             {
                 logger.warn("We're not going to go far without a remote clock. "
                     + "ssrc=" + (ssrc & 0xffffffffl)
-                    + ", streamHashCode=" + mediaStream.hashCode());
+                    + ", streamHashCode=" + stream.hashCode());
                 continue;
             }
             Timestamp remoteTs;
@@ -823,7 +836,7 @@ public class BasicRTCPTerminationStrategy
             {
                 logger.warn("We're not going to go far without an estimate. "
                     + "ssrc=" + (ssrc & 0xffffffffl)
-                    + ", streamHashCode=" + mediaStream.hashCode());
+                    + ", streamHashCode=" + stream.hashCode());
                 continue;
             }
 
@@ -860,7 +873,7 @@ public class BasicRTCPTerminationStrategy
     {
         // Create an SDES for our own SSRC.
         SSRCInfo ourinfo
-            = getStream().getStreamRTPManager().getSSRCCache().ourssrc;
+            = stream.getStreamRTPManager().getSSRCCache().ourssrc;
         Collection<RTCPSDESItem> ownItems = new ArrayList<>();
 
         // CNAME
@@ -1114,7 +1127,7 @@ public class BasicRTCPTerminationStrategy
             {
                 try
                 {
-                    getStream().injectPacket(
+                    stream.injectPacket(
                             pkt,
                             /* data */ false,
                             BasicRTCPTerminationStrategy.this);
@@ -1236,6 +1249,31 @@ public class BasicRTCPTerminationStrategy
 
             // Remove SRs and RRs from the RTCP packet.
             return feedbackGateway.gateway(compound);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            RTCPIterator it = new RTCPIterator(pkt);
+
+            while (it.hasNext())
+            {
+                ByteArrayBuffer next = it.next();
+                int rc = RTCPHeaderUtils.getReportCount(next);
+                int pt = RTCPHeaderUtils.getPacketType(next);
+                if (pt == RTCPFBPacket.RTPFB && rc == NACKPacket.FMT)
+                {
+                    it.remove();
+                }
+                else if (pt == RTCPFBPacket.PSFB && rc == RTCPREMBPacket.FMT)
+                {
+                    it.remove();
+                }
+            }
+
+            return pkt;
         }
     }
 

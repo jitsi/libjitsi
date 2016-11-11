@@ -99,7 +99,7 @@ public class RemoteClock
     {
         int frequencyHz = getFrequencyHz();
 
-        if (false && frequencyHz < 1000)
+        if (frequencyHz < 1000)
         {
             // We can't continue if (1) we don't have the sender's clock
             // frequency/rate or (2) the sender's clock frequency/rate is bellow
@@ -135,7 +135,7 @@ public class RemoteClock
     {
         int frequencyHz = getFrequencyHz();
 
-        if (false && frequencyHz < 1000)
+        if (frequencyHz < 1000)
         {
             // We can't continue if (1) we don't have the sender's clock
             // frequency/rate or (2) the sender's clock frequency/rate is bellow

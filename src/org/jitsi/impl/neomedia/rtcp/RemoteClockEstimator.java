@@ -91,19 +91,10 @@ public class RemoteClockEstimator
         }
 
         int pktLen = RTCPHeaderUtils.getLength(buf, off, len);
-        if (pktLen == -1)
+        if (pktLen < RTCPHeader.SIZE + RTCPSenderInfo.SIZE)
         {
             logger.warn("Failed to update the remote clock. The RTCP SR length"
                 + " is invalid. streamHashCode="
-                + streamRTPManager.getMediaStream().hashCode());
-            return;
-        }
-
-        if (!RTCPSenderInfoUtils.isValid(
-            buf, off + RTCPHeader.SIZE, len - RTCPHeader.SIZE))
-        {
-            logger.warn("Failed to update the remote clock. The RTCP sender" +
-                " info section is invalid. streamHashCode="
                 + streamRTPManager.getMediaStream().hashCode());
             return;
         }
@@ -122,7 +113,7 @@ public class RemoteClockEstimator
         int frequencyHz;
 
         RemoteClock oldClock = remoteClocks.get(ssrc);
-        if (oldClock != null)
+        if (false && oldClock != null)
         {
             // Calculate the clock frequency/rate.
             Timestamp oldTs = oldClock.getRemoteTimestamp();
@@ -133,7 +124,7 @@ public class RemoteClockEstimator
             frequencyHz = Math.round(
                 (float) (rtpTimestampDiff * 1000)/ systemTimeMsDiff);
 
-            if (frequencyHz < 1)
+            if (frequencyHz < 1000)
             {
                 /**
                  * It has been observed that sometimes Chrome is sending RTCP

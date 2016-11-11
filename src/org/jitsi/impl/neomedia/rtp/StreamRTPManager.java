@@ -105,11 +105,6 @@ public class StreamRTPManager
         return clocks;
     }
 
-    public RemoteClock findRemoteClock(long ssrc)
-    {
-        return findRemoteClocks(ssrc)[0];
-    }
-
     public void addFormat(Format format, int payloadType)
     {
         if (translator == null)

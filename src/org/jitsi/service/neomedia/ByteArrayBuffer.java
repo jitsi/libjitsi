@@ -15,19 +15,32 @@
  */
 package org.jitsi.service.neomedia;
 
-import org.jitsi.impl.neomedia.transform.*;
-
 /**
- *
- * The purpose of an <tt>RTCPTerminationStrategy</tt> its purpose is to
- * terminate the RTCP traffic for a <tt>MediaStream</tt>.
- *
- * It extends a <tt>TransformEngine</tt> giving it full access to both the RTP
- * traffic for statistics extraction and the RTCP traffic for modification.
+ * A simple interface that encapsulates all the information needed for byte
+ * buffer access.
  *
  * @author George Politis
  */
-public interface RTCPTerminationStrategy
-    extends TransformEngine
+public interface ByteArrayBuffer
 {
+    /**
+     * Gets the byte buffer that supports this instance.
+     *
+     * @return the byte buffer that supports this instance.
+     */
+    byte[] getBuffer();
+
+    /**
+     * Gets the offset in the byte buffer where the actual data starts.
+     *
+     * @return the offset in the byte buffer where the actual data starts.
+     */
+    int getOffset();
+
+    /**
+     * Gets the length of the data in the buffer.
+     *
+     * @return the length of the data in the buffer.
+     */
+    int getLength();
 }

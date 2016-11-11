@@ -13,28 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.rtcp.termination.strategies;
-
-import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.service.neomedia.*;
+package org.jitsi.service.neomedia;
 
 /**
- * Forwards whatever it receives from the network but it doesn't generate
- * anything. This strategy will be useful for conferences of up to 2
- * participants.
+ * Finds the {@link RTPEncoding} of RTP packets contained in a
+ * {@link ByteArrayBuffer}.
  *
  * @author George Politis
  */
-public class SilentBridgeRTCPTerminationStrategy
-    implements RTCPTerminationStrategy
+public interface RTPEncodingResolver
 {
-    public PacketTransformer getRTPTransformer()
-    {
-        return null;
-    }
-
-    public PacketTransformer getRTCPTransformer()
-    {
-        return null;
-    }
+    /**
+     * Finds the {@link RTPEncoding} that matches {@link ByteArrayBuffer} passed
+     * in as a parameter.
+     *
+     * @param buf the {@link ByteArrayBuffer} of the {@link RTPEncoding}
+     * to match.
+     *
+     * @return the {@link RTPEncoding} that matches the pkt passed in as
+     * a parameter, or null if there is no matching {@link RTPEncoding}.
+     */
+    RTPEncoding resolveRTPEncoding(ByteArrayBuffer buf);
 }

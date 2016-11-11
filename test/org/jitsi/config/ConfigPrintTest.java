@@ -55,8 +55,6 @@ public class ConfigPrintTest
         config.setProperty(
             "com.sun.setting", "true");
         config.setProperty(
-            "org.jitsi.some.INFLUXDB_PASS", "secret_influx_pass");
-        config.setProperty(
             "some.empty_pass", "");
         config.setProperty(
             "some.null", null);

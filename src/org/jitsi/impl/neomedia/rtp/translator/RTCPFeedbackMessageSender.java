@@ -152,7 +152,7 @@ public class RTCPFeedbackMessageSender
      * @return <tt>true</tt> if a FIR command was sent; otherwise,
      * <tt>false</tt>
      */
-    public boolean sendFIR(int[] mediaSenderSSRCs)
+    public boolean sendFIR(int ... mediaSenderSSRCs)
     {
         if (mediaSenderSSRCs == null || mediaSenderSSRCs.length == 0)
         {

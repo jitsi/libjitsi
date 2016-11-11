@@ -18,9 +18,11 @@ package org.jitsi.service.neomedia;
 import java.beans.*;
 import java.util.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.impl.neomedia.transform.rewriting.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * Abstract base implementation of <tt>MediaStream</tt> to ease the
@@ -51,12 +53,6 @@ public abstract class AbstractMediaStream
      */
     private final PropertyChangeSupport propertyChangeSupport
         = new PropertyChangeSupport(this);
-
-    /**
-     * The currently active {@code RTCPTerminationStrategy} which is to inspect
-     * and modify RTCP traffic between multiple {@code MediaStream}s.
-     */
-    private RTCPTerminationStrategy rtcpTerminationStrategy;
 
     /**
      * The <tt>RTPTranslator</tt>, if any, which forwards RTP and RTCP traffic
@@ -155,15 +151,6 @@ public abstract class AbstractMediaStream
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public RTCPTerminationStrategy getRTCPTerminationStrategy()
-    {
-        return rtcpTerminationStrategy;
-    }
-
-    /**
      * Handles attributes contained in <tt>MediaFormat</tt>.
      *
      * @param format the <tt>MediaFormat</tt> to handle the attributes of
@@ -232,29 +219,6 @@ public abstract class AbstractMediaStream
      * {@inheritDoc}
      */
     @Override
-    public void setRTCPTerminationStrategy(
-            RTCPTerminationStrategy rtcpTerminationStrategy)
-    {
-        if (this.rtcpTerminationStrategy != rtcpTerminationStrategy)
-        {
-            // XXX The following (source) code was moved here from another place
-            // and there it was called before remembering the new
-            // rtcpTerminationStrategy so we've preserved the order here.
-            if (rtcpTerminationStrategy
-                    instanceof MediaStreamRTCPTerminationStrategy)
-            {
-                ((MediaStreamRTCPTerminationStrategy) rtcpTerminationStrategy)
-                    .initialize(this);
-            }
-
-            this.rtcpTerminationStrategy = rtcpTerminationStrategy;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public void setRTPTranslator(RTPTranslator rtpTranslator)
     {
         if (this.rtpTranslator != rtpTranslator)
@@ -292,8 +256,62 @@ public abstract class AbstractMediaStream
      * {@inheritDoc}
      */
     @Override
-    public Map<Long, MediaStreamTrack> getRemoteTracks()
+    public SsrcRewritingEngine getSsrcRewritingEngine()
     {
-        return new HashMap<>();
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public REDBlock getPayloadBlock(byte[] buf, int off, int len)
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isKeyFrame(byte[] buf, int off, int len)
+    {
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isStartOfFrame(byte[] buf, int off, int len)
+    {
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getTemporalLayer(byte[] buf, int off, int len)
+    {
+        return -1;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MediaFormat getFormat(byte pt)
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public BandwidthEstimator getBandwidthEstimator()
+    {
+        return null;
     }
 }

@@ -161,7 +161,7 @@ public class REDBlockIterator
                 return null;
             }
 
-            return new REDBlock(blockOff, blockLen, blockPT);
+            return new REDBlock(buffer, blockOff, blockLen, blockPT);
         }
     }
 
@@ -261,7 +261,7 @@ public class REDBlockIterator
             offNextBlockPayload = -1;
         }
 
-        return new REDBlock(offNextBlockPayload, blockLen, blockPT);
+        return new REDBlock(buffer, offNextBlockPayload, blockLen, blockPT);
     }
 
     @Override

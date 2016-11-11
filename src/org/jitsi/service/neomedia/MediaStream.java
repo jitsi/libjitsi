@@ -20,8 +20,10 @@ import java.net.*;
 import java.util.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.impl.neomedia.transform.rewriting.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.neomedia.rtp.*;
@@ -186,6 +188,17 @@ public interface MediaStream
     public MediaFormat getFormat();
 
     /**
+     * Returns the <tt>MediaFormat</tt> that is associated to the payload type
+     * passed in as a parameter.
+     *
+     * @param pt the payload type of the <tt>MediaFormat</tt> to get.
+     *
+     * @return the <tt>MediaFormat</tt> that is associated to the payload type
+     * passed in as a parameter..
+     */
+    public MediaFormat getFormat(byte pt);
+
+    /**
      * Returns the synchronization source (SSRC) identifier of the local
      * participant or <tt>-1</tt> if that identifier is not yet known at this
      * point.
@@ -267,18 +280,6 @@ public interface MediaStream
      * @return the synchronization source (SSRC) identifiers of the remote peer
      */
     public List<Long> getRemoteSourceIDs();
-
-    /**
-     * Returns a synchronized {@code Map<Long, MediaStreamTrack>} that maps the
-     * {@code MediaStreamTrack}s of the remote peer, as they're signaled by the
-     * remote peer, by the SSRCs of their {@code RTPEncoding}s. The signaling
-     * layer manages this map.
-     *
-     * @return a synchronized {@code Map<Long, MediaStreamTrack>} that maps the
-     * {@code MediaStreamTrack}s of the remote peer, as they're signaled by the
-     * remote peer, by the SSRCs of their {@code RTPEncoding}s.
-     */
-    public Map<Long, MediaStreamTrack> getRemoteTracks();
 
     /**
      * Gets the {@code StreamRTPManager} which is to forward RTP and RTCP
@@ -517,43 +518,77 @@ public interface MediaStream
      * @param buf the buffer that holds the RTP payload.
      * @param off the offset in the buff where the RTP payload is found.
      * @param len then length of the RTP payload in the buffer.
+     *
      * @return true if the packet is a key frame, false otherwise.
+     *
+     * FIXME(gp) conceptually this belongs to the {@link VideoMediaStream}, but
+     * I don't want to be obliged to cast to use this method.
      */
     public boolean isKeyFrame(byte[] buf, int off, int len);
+
     /**
-     * Gets the current active <tt>RTCPTerminationStrategy</tt> which is to
-     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     * Utility method that determines the temporal layer index (TID) of an RTP
+     * packet.
      *
-     * @return the <tt>RTCPTerminationStrategy</tt> which is to inspect and
-     * modify RTCP traffic between multiple <tt>MediaStream</tt>s.
-     */
-    public RTCPTerminationStrategy getRTCPTerminationStrategy();
-
-    /**
-     * Sets the current active <tt>RTCPTerminationStrategy</tt> which is to
-     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
+     * @param buf the buffer that holds the RTP payload.
+     * @param off the offset in the buff where the RTP payload is found.
+     * @param len then length of the RTP payload in the buffer.
      *
-     * @param rtcpTerminationStrategy the <tt>RTCPTerminationStrategy</tt> which
-     * is to inspect and modify RTCP traffic between multiple
-     * <tt>MediaStream</tt>s.
+     * @return the TID of the packet, -1 otherwise.
+     *
+     * FIXME(gp) conceptually this belongs to the {@link VideoMediaStream}, but
+     * I don't want to be obliged to cast to use this method.
      */
-    public void setRTCPTerminationStrategy(
-        RTCPTerminationStrategy rtcpTerminationStrategy);
+    public int getTemporalLayer(byte[] buf, int off, int len);
 
     /**
-     * Gets the {@link RawPacketCache} which (optionally) caches outgoing
-     * packets for this {@link MediaStream}, if it exists.
-     * @return the {@link RawPacketCache} for this {@link MediaStream}.
+     * Utility method that determines whether or not a packet is a start of
+     * frame.
+     *
+     * @param buf the buffer that holds the RTP payload.
+     * @param off the offset in the buff where the RTP payload is found.
+     * @param len then length of the RTP payload in the buffer.
+     *
+     * @return true if the packet is the start of a frame, false otherwise.
+     *
+     * FIXME(gp) conceptually this belongs to the {@link VideoMediaStream}, but
+     * I don't want to be obliged to cast to use this method.
+     *
      */
-    public RawPacketCache getPacketCache();
+    public boolean isStartOfFrame(byte[] buf, int off, int len);
 
     /**
-     * @return the {@link RetransmissionRequester} for this media stream.
+     * Gets the {@link REDBlock} that contains the payload of the packet passed
+     * in as a parameter.
+     *
+     * @param buf the buffer that holds the RTP payload.
+     * @param off the offset in the buff where the RTP payload is found.
+     * @param len then length of the RTP payload in the buffer.
+     * @return the {@link REDBlock} that contains the payload of the packet
+     * passed in as a parameter, or null if the buffer is invalid.
      */
-    public RetransmissionRequester getRetransmissionRequester();
+    public REDBlock getPayloadBlock(byte[] buf, int off, int len);
 
     /**
      * Gets the {@link TransformEngineChain} of this {@link MediaStream}.
      */
     public TransformEngineChain getTransformEngineChain();
+
+    /**
+     * Gets the {@link BandwidthEstimator} for this {@link MediaStream}.
+     *
+     * FIXME(gp) this needs to be associated with the transport.
+     *
+     * @return the {@link BandwidthEstimator} for this {@link MediaStream}.
+     */
+    public BandwidthEstimator getBandwidthEstimator();
+
+    /**
+     * Creates the {@link SsrcRewritingEngine} of this instance.
+     *
+     * FIXME(gp) this is translation specific code that should not be here.
+     *
+     * @return the {@link SsrcRewritingEngine} of this instance.
+     */
+    public SsrcRewritingEngine getSsrcRewritingEngine();
 }
