@@ -190,7 +190,7 @@ class InterArrival
                         (currentTimestampGroup.size - prevTimestampGroup.size);
                 calculatedDeltas = true;
             }
-            prevTimestampGroup = currentTimestampGroup;
+            prevTimestampGroup.copy(currentTimestampGroup);
             // The new timestamp is now the current frame.
             currentTimestampGroup.firstTimestamp = timestamp;
             currentTimestampGroup.timestamp = timestamp;
