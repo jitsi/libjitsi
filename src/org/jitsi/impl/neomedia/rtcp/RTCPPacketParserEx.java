@@ -83,7 +83,7 @@ public class RTCPPacketParserEx
     @Override
     protected RTCPPacket parse(
             RTCPCompoundPacket base,
-            int firstbyte /* without version/padding */,
+            int firstbyte,
             int type,
             int length /* in actual bytes */,
             DataInputStream in)
@@ -121,7 +121,8 @@ public class RTCPPacketParserEx
             }
             else
             {
-                switch (firstbyte)
+                int fmt = firstbyte & 0x1f;
+                switch (fmt)
                 {
                 case RTCPREMBPacket.FMT: // REMB
 /*
@@ -200,12 +201,13 @@ public class RTCPPacketParserEx
     {
         RTCPFBPacket fb;
 
-        if (type == RTCPFBPacket.RTPFB && firstbyte == NACKPacket.FMT)
+        int fmt = firstbyte & 0x1f;
+        if (type == RTCPFBPacket.RTPFB && fmt == NACKPacket.FMT)
             fb = new NACKPacket(base);
         else
             fb = new RTCPFBPacket(base);
 
-        fb.fmt = firstbyte;
+        fb.fmt = fmt;
         fb.type = type;
         fb.senderSSRC = senderSSRC;
         fb.sourceSSRC = sourceSSRC;
