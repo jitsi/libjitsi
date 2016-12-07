@@ -282,7 +282,7 @@ public class RTCPExtendedReport
          * <tt>DataInputStream</tt>.
          *
          * @param blockLength the length of the extended report block to read,
-         * including the header, in 32-bit words minus one
+         * including the header, in bytes.
          * @param datainputstream the binary representation from which the new
          * instance is to be initialized. The <tt>datainputstream</tt> is asumed
          * to contain type-specific block contents without extended report block
@@ -301,8 +301,11 @@ public class RTCPExtendedReport
             this();
 
             // block length
-            if (blockLength != 8)
-                throw new IOException("Invalid RTCP XR block length.");
+            if (blockLength != 8 * 4)
+            {
+                throw new IOException(
+                    "Invalid RTCP XR VoIP Metrics block length.");
+            }
 
             // SSRC of source
             setSourceSSRC(datainputstream.readInt());
@@ -967,7 +970,8 @@ public class RTCPExtendedReport
      *
      * @param b0 the first byte of the binary representation.
      * @param pt the value of the {@code packet type} field.
-     * @param length the value of the {@code length} field.
+     * @param length the length in bytes of the RTCP packet, including all of
+     * it's headers and excluding any padding.
      * @param datainputstream the binary representation from which the new
      * instance is to be initialized, excluding the first 4 bytes.
      * @throws IOException if an input/output error occurs while
@@ -978,6 +982,9 @@ public class RTCPExtendedReport
     private void parse(int b0, int pt, int length, DataInputStream datainputstream)
             throws IOException
     {
+        // The first 4 bytes have already been read.
+        length -= 4;
+
         // V=2
         if ((b0 & 0xc0) != 128)
             throw new IOException("Invalid RTCP version (V).");
@@ -987,15 +994,10 @@ public class RTCPExtendedReport
 
         // SSRC
         setSSRC(datainputstream.readInt());
+        length = length - 4;
 
-        // report blocks
-        /*
-         * The length of an RTCP (XR) packet is expressed in 32-bit words minus
-         * one, including the header and any padding. We consumed two 32-bit
-         * words above when we read the RTCP (XR) header.
-         */
-        length = length + 1 - 2;
-        while (length > 0)
+        // report blocks. A block is at least 4 bytes long.
+        while (length >= 4)
         {
             // block type (BT)
             int bt = datainputstream.readUnsignedByte();
@@ -1003,8 +1005,13 @@ public class RTCPExtendedReport
             // type-specific
             datainputstream.readByte();
 
-            // block length
-            int blockLength = datainputstream.readUnsignedShort();
+            // block length in bytes, including the block header
+            int blockLength = datainputstream.readUnsignedShort() + 1 << 2;
+
+            if (length < blockLength)
+            {
+                throw new IOException("Invalid extended block");
+            }
 
             if (bt == VoIPMetricsReportBlock.VOIP_METRICS_REPORT_BLOCK_TYPE)
             {
@@ -1015,14 +1022,20 @@ public class RTCPExtendedReport
             }
             else
             {
-                /*
-                 * The implementation reads and ignores any extended report
-                 * blocks other than VoIP Metrics Report Block.
-                 */
-                for (int i = 0; i < blockLength; ++i)
-                    datainputstream.readInt();
+                 // The implementation reads and ignores any extended report
+                 // blocks other than VoIP Metrics Report Block.
+
+                // Already read 4 bytes
+                datainputstream.skip(blockLength - 4);
             }
-            length = length - 1 - blockLength;
+            length = length - blockLength;
+        }
+
+        // If we didn't read all bytes of the packet, the stream is probably in
+        // an inconsistent state.
+        if (length != 0)
+        {
+            throw new IOException("Invalid XR packet, unread bytes");
         }
     }
 

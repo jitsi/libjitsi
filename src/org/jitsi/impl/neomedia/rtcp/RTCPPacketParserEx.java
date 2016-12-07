@@ -80,12 +80,24 @@ public class RTCPPacketParserEx
         return parse(udp);
     }
 
+    /**
+     * @param base
+     * @param firstbyte the first byte of the RTCP packet
+     * @param type the packet type of the RTCP packet
+     * @param length the length in bytes of the RTCP packet, including all
+     * headers and excluding padding.
+     * @param in the binary representation from which the new
+     * instance is to be initialized, excluding the first 4 bytes.
+     * @return
+     * @throws BadFormatException
+     * @throws IOException
+     */
     @Override
     protected RTCPPacket parse(
             RTCPCompoundPacket base,
             int firstbyte,
             int type,
-            int length /* in actual bytes */,
+            int length,
             DataInputStream in)
         throws BadFormatException, IOException
     {
@@ -189,11 +201,23 @@ public class RTCPPacketParserEx
         }
     }
 
+    /**
+     * Creates a new {@link RTCPFBPacket} instance.
+     * @param base
+     * @param firstbyte the first byte of the RTCP packet.
+     * @param type the packet type.
+     * @param length the length in bytes.
+     * @param in
+     * @param senderSSRC
+     * @param sourceSSRC
+     * @return
+     * @throws IOException
+     */
     private RTCPFBPacket parseRTCPFBPacket(
             RTCPCompoundPacket base,
             int firstbyte,
             int type,
-            int length /* in actual bytes */,
+            int length,
             DataInputStream in,
             long senderSSRC,
             long sourceSSRC)
