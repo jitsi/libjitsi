@@ -908,10 +908,13 @@ public class StatisticsEngine
                                 pkt.getLength());
                 ex = null;
             }
-            catch (BadFormatException bfe)
+            catch (BadFormatException | IllegalStateException e)
             {
+                // In some parsing failures, FMJ swallows the original
+                // IOException and throws a runtime IllegalStateException.
+                // Handle it as if parsing failed.
                 compound = null;
-                ex = bfe;
+                ex = e;
             }
 
             if (compound == null
