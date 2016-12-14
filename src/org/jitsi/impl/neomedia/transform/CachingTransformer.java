@@ -16,8 +16,10 @@
 package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 import org.jitsi.util.concurrent.*;
@@ -32,9 +34,9 @@ import java.util.concurrent.atomic.*;
  */
 public class CachingTransformer
     extends SinglePacketTransformerAdapter
-    implements RawPacketCache,
-               TransformEngine,
-               RecurringRunnable
+    implements TransformEngine,
+               RecurringRunnable,
+               NACKListener
 {
     /**
      * The <tt>Logger</tt> used by the <tt>CachingTransformer</tt> class and
@@ -42,15 +44,6 @@ public class CachingTransformer
      */
     private static final Logger logger
             = Logger.getLogger(CachingTransformer.class);
-
-    /**
-     * The <tt>RecurringRunnableExecutor</tt> to be utilized by the
-     * <tt>CachingTransformer</tt> class and its instances.
-     */
-    private static final RecurringRunnableExecutor
-        recurringRunnableExecutor
-            = new RecurringRunnableExecutor(
-                    CachingTransformer.class.getSimpleName());
 
     /**
      * The <tt>ConfigurationService</tt> used to load caching configuration.
@@ -118,6 +111,8 @@ public class CachingTransformer
      * unless new packets have been inserted.
      */
     private static int SSRC_TIMEOUT_MILLIS = SIZE_MILLIS + 50;
+
+    private final VideoMediaStreamImpl stream;
 
     /**
      * Returns <tt>true</tt> iff <tt>a</tt> is less than <tt>b</tt> modulo 2^32.
@@ -194,12 +189,6 @@ public class CachingTransformer
     private final Map<Long, Cache> caches = new HashMap<>();
 
     /**
-     * Whether caching packets is enabled or disabled. Note that the default
-     * value is {@code false}.
-     */
-    private boolean enabled = false;
-
-    /**
      * The last time {@link #run()} was called.
      */
     private long lastUpdateTime = -1;
@@ -211,6 +200,15 @@ public class CachingTransformer
     private MonotonicAtomicLong oldestHit = new MonotonicAtomicLong();
 
     /**
+     *
+     * @param stream
+     */
+    public CachingTransformer(VideoMediaStreamImpl stream)
+    {
+        this.stream = stream;
+        this.stream.getMediaStreamStats().addNackListener(this);
+    }
+    /**
      * {@inheritDoc}
      *
      * Transforms an outgoing packet.
@@ -218,7 +216,7 @@ public class CachingTransformer
     @Override
     public RawPacket transform(RawPacket pkt)
     {
-        if (enabled && !closed && pkt != null && pkt.getVersion() == 2)
+        if (!closed && pkt != null && pkt.getVersion() == 2)
         {
             cachePacket(pkt);
         }
@@ -233,6 +231,9 @@ public class CachingTransformer
     {
         if (closed)
             return;
+
+        // TODO stop listening for NACKs.
+
         closed = true;
         if (totalPacketsAdded.get() > 0)
         {
@@ -251,15 +252,15 @@ public class CachingTransformer
         {
             caches.clear();
         }
-
-        recurringRunnableExecutor.deRegisterRecurringRunnable(this);
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * Implements
-     * {@link org.jitsi.service.neomedia.rtp.RawPacketCache#get(long, int)}.
+     * Gets the packet with the given SSRC and RTP sequence number from the
+     * cache. If no such packet is found, returns <tt>null</tt>.
+     * @param ssrc The SSRC of the packet.
+     * @param seq the RTP sequence number of the packet.
+     * @return the packet with the given SSRC and RTP sequence number from the
+     * cache. If no such packet is found, returns <tt>null</tt>.
      */
     public RawPacket get(long ssrc, int seq)
     {
@@ -313,14 +314,11 @@ public class CachingTransformer
     }
 
     /**
-     * {@inheritDoc}
+     * Saves a packet in the cache.
+     * @param pkt the packet to save.
      */
-    @Override
     public void cachePacket(RawPacket pkt)
     {
-        if (!enabled)
-            return;
-
         Cache cache = getCache(pkt.getSSRCAsLong(), true);
 
         if (cache != null)
@@ -332,30 +330,6 @@ public class CachingTransformer
             }
             cache.insert(pkt);
             totalPacketsAdded.incrementAndGet();
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setEnabled(boolean enabled)
-    {
-        this.enabled = enabled;
-
-        if (enabled)
-        {
-            recurringRunnableExecutor.registerRecurringRunnable(this);
-        }
-        else
-        {
-            recurringRunnableExecutor.deRegisterRecurringRunnable(this);
-        }
-
-        if (logger.isDebugEnabled())
-        {
-            logger.debug((enabled ? "Enabling" : "Disabling")
-                                 + " CachingTransformer " + hashCode());
         }
     }
 
@@ -419,6 +393,58 @@ public class CachingTransformer
     {
         lastUpdateTime = System.currentTimeMillis();
         clean(lastUpdateTime);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void nackReceived(NACKPacket nackPacket)
+    {
+        if (logger.isDebugEnabled())
+        {
+            logger.debug(
+                "Received NACK on stream " + stream.hashCode()
+                    + " for SSRC " + nackPacket.sourceSSRC
+                    + ". Packets reported lost: " + nackPacket.getLostPackets());
+        }
+
+        // XXX The retransmission of packets MUST take into account SSRC
+        // rewriting. Which it may do by injecting retransmitted packets
+        // AFTER the SsrcRewritingEngine. Since the retransmitted packets
+        // have been cached by cache and cache is a TransformEngine, the
+        // injection may as well happen after cache.
+
+        for (Iterator<Integer> i = nackPacket.getLostPackets().iterator(); i.hasNext(); )
+        {
+            int seq = i.next();
+            RawPacket pkt = get(nackPacket.sourceSSRC, seq);
+
+            if (pkt != null)
+            {
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug(
+                        "Retransmitting packet from cache. SSRC " + nackPacket.sourceSSRC
+                            + " seq " + seq);
+                }
+
+                if (stream.getRtxTransformer().retransmit(pkt, this))
+                {
+                    i.remove();
+                }
+            }
+        }
+
+
+        if (!nackPacket.getLostPackets().isEmpty())
+        {
+            // If retransmission requests are enabled, videobridge assumes
+            // the responsibility of requesting missing packets.
+            logger.debug("Packets missing from the cache. Ignoring, because"
+                + " retransmission requests are enabled.");
+        }
     }
 
     /**

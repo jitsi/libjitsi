@@ -255,8 +255,8 @@ public class DebugTransformEngine implements TransformEngine
             if (data && RTPPacketPredicate.INSTANCE.test(pkt))
             {
                 RemoteClock clock = mediaStream
-                    .getStreamRTPManager().findRemoteClock(
-                        pkt.getSSRCAsLong());
+                    .getStreamRTPManager().findRemoteClocks(
+                        pkt.getSSRCAsLong())[0];
 
                 long millis = (clock != null)
                     ? clock.rtpTimestamp2remoteSystemTimeMs(pkt.getTimestamp())
@@ -292,11 +292,9 @@ public class DebugTransformEngine implements TransformEngine
 
                 // Check RTCP packet validity. This makes sure that
                 // pktLen > 0 so this loop will eventually terminate.
-                if (RTCPHeaderUtils.isValid(buf, offset, length))
+                int pktLen = RTCPHeaderUtils.getLength(buf, offset, length);
+                if (pktLen >= RTCPHeader.SIZE + RTCPSenderInfo.SIZE)
                 {
-
-                    int pktLen = RTCPHeaderUtils.getLength(buf, offset, length);
-
                     int pt = RTCPHeaderUtils.getPacketType(buf, offset, pktLen);
                     if (pt == RTCPPacket.SR)
                     {
@@ -321,8 +319,8 @@ public class DebugTransformEngine implements TransformEngine
                                 ntptimestampmsw, ntptimestamplsw));
 
                         RemoteClock clock = mediaStream
-                            .getStreamRTPManager().findRemoteClock(
-                                ssrc);
+                            .getStreamRTPManager().findRemoteClocks(
+                                ssrc)[0];
 
                         long millis = (clock != null)
                             ? clock.rtpTimestamp2remoteSystemTimeMs(rtptimestamp)

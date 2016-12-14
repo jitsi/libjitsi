@@ -20,6 +20,7 @@ import java.util.*;
 import javax.media.*;
 import javax.media.rtp.*;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtp.*;
 
 /**
@@ -35,6 +36,8 @@ class StreamRTPManagerDesc
      * defined to reduce unnecessary allocations. 
      */
     private static final int[] EMPTY_INT_ARRAY = new int[0];
+
+    private static final int MAX_TS_HISTORY = 50;
 
     public RTPConnectorDesc connectorDesc;
 
@@ -57,6 +60,8 @@ class StreamRTPManagerDesc
         = new LinkedList<>();
 
     public final StreamRTPManager streamRTPManager;
+
+    private Map<Integer, Set<Long>> tsMRUMap = new TreeMap<>();
 
     /**
      * Initializes a new <tt>StreamRTPManagerDesc</tt> instance which is to
@@ -181,6 +186,51 @@ class StreamRTPManagerDesc
         synchronized (receiveStreamListeners)
         {
             receiveStreamListeners.remove(listener);
+        }
+    }
+
+    /**
+     * Determines whether or not this packet can be dropped.
+     *
+     * @param src
+     * @param buf
+     * @param off
+     * @param len
+     * @param data
+     * @return
+     */
+    public boolean willWrite(StreamRTPManagerDesc src,
+                             byte[] buf, int off, int len, boolean data, boolean write)
+    {
+        if (!data)
+        {
+            return false;
+        }
+
+        int ssrc = RawPacket.getSSRC(buf, off, len);
+        Set<Long> tsMRU = tsMRUMap.get(ssrc);
+        if (tsMRU == null)
+        {
+            tsMRU = Collections.newSetFromMap(new LinkedHashMap<Long, Boolean>()
+            {
+                protected boolean removeEldestEntry(Map.Entry<Long, Boolean> eldest)
+                {
+                    return size() > MAX_TS_HISTORY;
+                }
+            });
+            tsMRUMap.put(ssrc, tsMRU);
+        }
+
+        long ts = RawPacket.getTimestamp(buf, off, len);
+
+        if (write)
+        {
+            tsMRU.add(ts);
+            return write;
+        }
+        else
+        {
+            return tsMRU.contains(ts);
         }
     }
 }

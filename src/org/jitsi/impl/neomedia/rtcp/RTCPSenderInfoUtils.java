@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtcp;
 
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Utility class that contains static methods for RTCP sender info manipulation.
@@ -85,9 +86,11 @@ public class RTCPSenderInfoUtils
      *
      * @return true if the RTCP sender info is valid, false otherwise.
      */
-    public static boolean isValid(byte[] buf, int off, int len)
+    private static boolean isValid(byte[] buf, int off, int len)
     {
-        if (buf == null || buf.length < off + Math.max(len, RTCPSenderInfo.SIZE))
+        if (buf == null
+            || buf.length < off + Math.max(len, RTCPSenderInfo.SIZE)
+            || len < RTCPSenderInfo.SIZE)
         {
             return false;
         }
@@ -133,5 +136,20 @@ public class RTCPSenderInfoUtils
         }
 
         return RawPacket.readInt(buf, off + 4, len) & 0xffffffffl;
+    }
+
+    /**
+     *
+     * @param baf
+     * @return
+     */
+    public static long getTimestamp(ByteArrayBuffer baf)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return getTimestamp(baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
 }

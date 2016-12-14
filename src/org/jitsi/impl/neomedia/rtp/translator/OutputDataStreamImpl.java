@@ -259,6 +259,10 @@ class OutputDataStreamImpl
                     _data);
             }
 
+            // Prevent frame corruption.
+            write = streamRTPManager.willWrite(
+                /* src */ exclusion, buf, off, len, _data, write);
+
             // Hide the gaps in the sequence numbers and in the timestamps (
             // because of dropping packets here).
             boolean altered = rewritePacket(
@@ -817,14 +821,11 @@ class OutputDataStreamImpl
             // SRs being bundled in the same compound packet, and we're only
             // interested in SRs.
 
-            // Check RTCP packet validity. This makes sure that pktLen > 0
-            // so this loop will eventually terminate.
-            if (!RTCPHeaderUtils.isValid(buf, offset, length))
+            int pktLen = RTCPHeaderUtils.getLength(buf, offset, length);
+            if (pktLen < RTCPHeader.SIZE + RTCPSenderInfo.SIZE)
             {
                 return modified;
             }
-
-            int pktLen = RTCPHeaderUtils.getLength(buf, offset, length);
 
             int pt = RTCPHeaderUtils.getPacketType(buf, offset, pktLen);
             if (pt == RTCPPacket.SR)

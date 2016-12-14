@@ -359,6 +359,13 @@ public class MediaUtils
                 Constants.VP8_RTP,
                 null, null);
 
+        addMediaFormats(
+                MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
+                Constants.RTX,
+                MediaType.VIDEO,
+                Constants.RTX_RTP,
+                null, null);
+
         // Calculate the values of the MAX_AUDIO_* static fields of MediaUtils.
         List<MediaFormat> audioMediaFormats
             = new ArrayList<>(
