@@ -15,6 +15,7 @@
  */
 package org.jitsi.util;
 
+import java.util.*;
 import java.util.logging.*;
 
 /**
@@ -392,4 +393,166 @@ public abstract class Logger
      * @param thrown a {@link Throwable} associated with log message.
      */
     public abstract void log(Level level, Object msg, Throwable thrown);
+
+    /**
+     * Logs a given message with and given category at a given level, if that
+     * level is loggable according to the log level configured by this instance.
+     * An identifier of the category in the form of CAT=name will will simply
+     * be prepended to the message.
+     * @param level the level at which to log the message.
+     * @param category the category.
+     * @param msg the message to log.
+     */
+    public void log(Level level, Category category, String msg)
+    {
+        Objects.requireNonNull(category, "category");
+        log(level, category.prepend + msg);
+    }
+
+    /**
+     * Logs a given message with and given category at a given level, if that
+     * level is loggable according to the log level configured by this instance.
+     * An identifier of the category in the form of CAT=name will will simply
+     * be prepended to the message.
+     * @param level the level at which to log the message.
+     * @param category the category.
+     * @param msg the message to log.
+     * @param thrown a {@link Throwable} associated with log message.
+     */
+    public void log(
+            Level level, Category category,
+            String msg, Throwable thrown)
+    {
+        Objects.requireNonNull(category, "category");
+        log(level, category.prepend + msg, thrown);
+    }
+
+    /**
+     * Log a message with debug level.
+     * An identifier of the category in the form of CAT=name will will simply
+     * be prepended to the message.
+     * <p>
+     * @param msg The message to log
+     * @param category the category.
+     */
+    public void debug(Category category, String msg)
+    {
+        log(Level.FINE, category, msg);
+    }
+
+    /**
+     * Log a message with debug level, with associated Throwable information.
+     * An identifier of the category in the form of CAT=name will will simply
+     * be prepended to the message.
+     * <p>
+     * @param msg The message to log
+     * @param category the category.
+     * @param t  Throwable associated with log message.
+     */
+    public void debug(Category category, String msg, Throwable t)
+    {
+        log(Level.FINE, category, msg, t);
+    }
+
+    /**
+     * Log a message with error level.
+     * An identifier of the category in the form of CAT=name will will simply
+     * be prepended to the message.
+     * <p>
+     * @param msg The message to log
+     * @param category the category.
+     */
+    public void error(Category category, String msg)
+    {
+        log(Level.SEVERE, category, msg);
+    }
+
+    /**
+     * Log a message with error level, with associated Throwable information.
+     * An identifier of the category in the form of CAT=name will will simply
+     * be prepended to the message.
+     * <p>
+     * @param msg The message to log
+     * @param category the category.
+     * @param t Throwable associated with log message.
+     */
+    public void error(Category category, String msg, Throwable t)
+    {
+        log(Level.SEVERE, category, msg, t);
+    }
+
+    /**
+     * Log a message with info level, with associated Throwable information.
+     * An identifier of the category in the form of CAT=name will will simply
+     * be prepended to the message.
+     * <p>
+     * @param category the category.
+     * @param msg The message to log
+     * @param t Throwable associated with log message.
+     */
+    public void info(Category category, String msg, Throwable t)
+    {
+        log(Level.INFO, category, msg, t);
+    }
+
+    /**
+     * Log a message with info level.
+     * An identifier of the category in the form of CAT=name will will simply
+     * be prepended to the message.
+     * <p>
+     * @param category the category.
+     * @param msg The message to log
+     */
+    public void info(Category category, String msg)
+    {
+        log(Level.INFO, category, msg);
+    }
+
+    /**
+     * An enumeration of different categories for log messages.
+     */
+    public enum Category
+    {
+        /**
+         * A category for log messages containing statistics.
+         */
+        STATISTICS("stat"),
+
+        /**
+         * A category for messages which needn't be stored.
+         */
+        VOLATILE("vol");
+
+        /**
+         * The short string which identifies the category and is added to
+         * messages logged with this category.
+         */
+        private String name;
+
+        /**
+         * The string to prepend to messages with this category.
+         */
+        private String prepend;
+
+
+        /**
+         * Initializes a {@link Category} instance with the given name.
+         * @param name The short string which identifies the category.
+         */
+        Category(String name)
+        {
+            this.name = name;
+            this.prepend = "CAT=" + name + " ";
+        }
+
+        /**
+         * {@inheritDoc}
+         * @return
+         */
+        @Override
+        public String toString()
+        {
+            return name;
+        }
+    }
 }
