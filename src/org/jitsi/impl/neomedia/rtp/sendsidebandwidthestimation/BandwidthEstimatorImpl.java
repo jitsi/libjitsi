@@ -202,4 +202,13 @@ public class BandwidthEstimatorImpl
             sendSideBandwidthEstimation.updateEstimate(lastUpdateTime);
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getLatestEstimate()
+    {
+        return sendSideBandwidthEstimation.getLatestEstimate();
+    }
 }

@@ -349,6 +349,15 @@ class SendSideBandwidthEstimation
      * {@inheritDoc}
      */
     @Override
+    public long getLatestEstimate()
+    {
+        return bitrate_;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public synchronized void addListener(Listener listener)
     {
         listeners.add(listener);
