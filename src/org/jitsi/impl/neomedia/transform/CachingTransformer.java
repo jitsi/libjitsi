@@ -238,11 +238,11 @@ public class CachingTransformer
         {
             logger.info(Logger.Category.STATISTICS,
                         "closed max_size_bytes=" + maxSizeInBytes
-                            + " max_size_packets=" + maxSizeInPackets
-                            + " total_hits=" + totalHits.get()
-                            + " total_missed=" + totalMisses.get()
-                            + " total_packets=" + totalPacketsAdded.get()
-                            + " oldest_hit_ms=" + oldestHit);
+                            + ",max_size_packets=" + maxSizeInPackets
+                            + ",total_hits=" + totalHits.get()
+                            + ",total_missed=" + totalMisses.get()
+                            + ",total_packets=" + totalPacketsAdded.get()
+                            + ",oldest_hit_ms=" + oldestHit);
         }
 
         synchronized (caches)
