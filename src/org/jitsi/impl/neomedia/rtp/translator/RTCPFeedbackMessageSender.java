@@ -274,7 +274,8 @@ public class RTCPFeedbackMessageSender
 
             if (TRACE)
             {
-                logger.trace("Stopping FIRs to ssrc=" + mediaSenderSSRC);
+                logger.trace("Stopping FIRs to ssrc="
+                                 + (mediaSenderSSRC & 0xffffffffL));
             }
 
             // This lock only runs while we're waiting for a key frame. It
@@ -302,7 +303,7 @@ public class RTCPFeedbackMessageSender
                         if (TRACE)
                         {
                             logger.trace("Starting FIRs to ssrc="
-                                + mediaSenderSSRC);
+                                + (mediaSenderSSRC & 0xffffffffL));
                         }
 
                         remainingRetries = FIR_MAX_RETRIES;
@@ -314,7 +315,7 @@ public class RTCPFeedbackMessageSender
                         if (TRACE)
                         {
                             logger.trace("Pending FIRs to ssrc="
-                                + mediaSenderSSRC);
+                                + (mediaSenderSSRC & 0xffffffffL));
                         }
 
                         return true;
@@ -327,7 +328,8 @@ public class RTCPFeedbackMessageSender
 
                 remainingRetries--;
 
-                logger.info("Sending a FIR to ssrc=" + mediaSenderSSRC
+                logger.info("Sending a FIR to ssrc="
+                            + (mediaSenderSSRC & 0xffffffffL)
                             + " remainingRetries=" + remainingRetries);
             }
 
@@ -354,7 +356,7 @@ public class RTCPFeedbackMessageSender
                 RTCPFeedbackMessageEvent.FMT_FIR,
                 RTCPFeedbackMessageEvent.PT_PS,
                 senderSSRC,
-                0xffffffffl & mediaSenderSSRC);
+                0xffffffffL & mediaSenderSSRC);
 
             fir.setSequenceNumber(sequenceNumber.incrementAndGet());
 

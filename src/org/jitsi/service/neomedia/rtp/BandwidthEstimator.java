@@ -20,12 +20,26 @@ package org.jitsi.service.neomedia.rtp;
  */
 public interface BandwidthEstimator
 {
-    public void addListener(Listener listener);
-    public void removeListener(Listener listener);
+    /**
+     * Adds a listener to be notified about changes to the bandwidth estimation.
+     * @param listener
+     */
+    void addListener(Listener listener);
 
-    public interface Listener
+    /**
+     * Removes a listener.
+     * @param listener
+     */
+    void removeListener(Listener listener);
+
+    /**
+     * @return the latest estimate.
+     */
+    long getLatestEstimate();
+
+    interface Listener
     {
-        public void bandwidthEstimationChanged(long newValueBps);
+        void bandwidthEstimationChanged(long newValueBps);
     }
 }
 

@@ -494,11 +494,14 @@ public class RetransmissionRequesterImpl
                 }
                 else if (request.timesRequested == MAX_REQUESTS)
                 {
-                    logger.info(
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug(
                             "Sending the last NACK for SSRC=" + ssrc + " seq="
                                 + request.seq + ". "
                                 + "Time since the first request: "
                                 + (now - request.firstRequestSentAt));
+                    }
                     iter.remove();
                 }
 
