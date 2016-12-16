@@ -236,15 +236,13 @@ public class CachingTransformer
         closed = true;
         if (totalPacketsAdded.get() > 0)
         {
-            logger.info("Closing. Maximum size reached: "
-                            + maxSizeInBytes + " bytes, "
-                            + maxSizeInPackets + " packets; "
-                            + totalHits + " hits, "
-                            + totalMisses + " misses ("
-                            + (totalHits.get() + totalMisses.get())
-                            + " total requests); "
-                            + totalPacketsAdded.get() + " total packets added, "
-                            + "oldest hit " + oldestHit + "ms.");
+            logger.info(Logger.Category.STATISTICS,
+                        "closed max_size_bytes=" + maxSizeInBytes
+                            + " max_size_packets=" + maxSizeInPackets
+                            + " total_hits=" + totalHits.get()
+                            + " total_missed=" + totalMisses.get()
+                            + " total_packets=" + totalPacketsAdded.get()
+                            + " oldest_hit_ms=" + oldestHit);
         }
 
         synchronized (caches)
