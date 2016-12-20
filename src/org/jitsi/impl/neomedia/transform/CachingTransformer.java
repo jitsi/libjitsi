@@ -211,6 +211,29 @@ public class CachingTransformer
     private MonotonicAtomicLong oldestHit = new MonotonicAtomicLong();
 
     /**
+     * The hash code or other identifier of the owning stream, if any. Only
+     * used for logging.
+     */
+    private final int streamId;
+
+    /**
+     * Initializes a new {@link CachingTransformer} instance.
+     */
+    public CachingTransformer()
+    {
+        this(-1);
+    }
+
+    /**
+     * Initializes a new {@link CachingTransformer} instance.
+     * @param streamId the identifier of the owning stream.
+     */
+    public CachingTransformer(int streamId)
+    {
+        this.streamId = streamId;
+    }
+
+    /**
      * {@inheritDoc}
      *
      * Transforms an outgoing packet.
@@ -237,7 +260,8 @@ public class CachingTransformer
         if (totalPacketsAdded.get() > 0)
         {
             logger.info(Logger.Category.STATISTICS,
-                        "closed max_size_bytes=" + maxSizeInBytes
+                        "closed,stream=" + streamId
+                            + " max_size_bytes=" + maxSizeInBytes
                             + ",max_size_packets=" + maxSizeInPackets
                             + ",total_hits=" + totalHits.get()
                             + ",total_missed=" + totalMisses.get()
