@@ -121,7 +121,7 @@ public class RTCPFeedbackMessageSender
     {
         boolean registerRecurringRunnable = false;
         KeyframeRequester keyframeRequester = kfRequesters.get(mediaSenderSSRC);
-        if (keyframeRequester == null )
+        if (keyframeRequester == null)
         {
             // Avoided repeated creation of unneeded objects until get fails.
             keyframeRequester = new KeyframeRequester(mediaSenderSSRC);
@@ -130,7 +130,12 @@ public class RTCPFeedbackMessageSender
             if (existingKfRequester != null)
             {
                 // Another thread beat this one to putting a keyframe requester.
+                // That other thread is responsible for registering the keyframe
+                // requester with the recurring runnable executor.
                 keyframeRequester = existingKfRequester;
+            }
+            else
+            {
                 registerRecurringRunnable = true;
             }
         }
