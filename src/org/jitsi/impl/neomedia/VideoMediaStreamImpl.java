@@ -1313,7 +1313,7 @@ public class VideoMediaStreamImpl
     @Override
     protected CachingTransformer createCachingTransformer()
     {
-        return new CachingTransformer();
+        return new CachingTransformer(hashCode());
     }
 
     /**
