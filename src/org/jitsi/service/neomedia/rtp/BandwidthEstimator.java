@@ -37,6 +37,18 @@ public interface BandwidthEstimator
      */
     long getLatestEstimate();
 
+    /**
+     * @return the latest values of the Receiver Estimated Maximum Bandwidth.
+     */
+    long getLatestREMB();
+
+    /**
+     * @return the latest effective fraction loss calculated by this
+     * {@link BandwidthEstimator}. The value is between 0 and 256 (corresponding
+     * to 0% and 100% respectively).
+     */
+    int getLatestFractionLoss();
+
     interface Listener
     {
         void bandwidthEstimationChanged(long newValueBps);

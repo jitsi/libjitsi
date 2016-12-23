@@ -210,4 +210,22 @@ public class BandwidthEstimatorImpl
     {
         return sendSideBandwidthEstimation.getLatestEstimate();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getLatestREMB()
+    {
+        return sendSideBandwidthEstimation.getLatestREMB();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getLatestFractionLoss()
+    {
+        return sendSideBandwidthEstimation.getLatestFractionLoss();
+    }
 }

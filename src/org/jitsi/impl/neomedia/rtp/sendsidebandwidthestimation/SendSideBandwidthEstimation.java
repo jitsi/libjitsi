@@ -358,6 +358,24 @@ class SendSideBandwidthEstimation
      * {@inheritDoc}
      */
     @Override
+    public long getLatestREMB()
+    {
+        return bwe_incoming_;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getLatestFractionLoss()
+    {
+        return last_fraction_loss_;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public synchronized void addListener(Listener listener)
     {
         listeners.add(listener);
