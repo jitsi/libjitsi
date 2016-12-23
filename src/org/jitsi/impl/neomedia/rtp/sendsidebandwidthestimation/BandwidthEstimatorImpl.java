@@ -123,7 +123,6 @@ public class BandwidthEstimatorImpl
             if (lastEHSN == null)
             {
                 lastEHSN = extSeqNum;
-                continue;
             }
 
             ssrc_to_last_received_extended_high_seq_num_.put(ssrc, extSeqNum);
@@ -210,5 +209,23 @@ public class BandwidthEstimatorImpl
     public long getLatestEstimate()
     {
         return sendSideBandwidthEstimation.getLatestEstimate();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getLatestREMB()
+    {
+        return sendSideBandwidthEstimation.getLatestREMB();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getLatestFractionLoss()
+    {
+        return sendSideBandwidthEstimation.getLatestFractionLoss();
     }
 }
