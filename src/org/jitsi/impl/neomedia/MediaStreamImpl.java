@@ -3672,92 +3672,57 @@ public class MediaStreamImpl
     }
 
     /**
-    * {@inheritDoc}
-    */
-    public boolean isKeyFrame(byte[] buf, int off, int len)
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isStartOfFrame(byte[] buf, int off, int len)
     {
-        if (buf == null || buf.length < off + len)
+        REDBlock redBlock = getPayloadBlock(buf, off, len);
+        if (redBlock == null || redBlock.getLength() == 0)
         {
             return false;
         }
 
-        Byte redPT = null, vp8PT = null, h264PT = null;
-        for (Map.Entry<Byte, MediaFormat> entry :
-            getDynamicRTPPayloadTypes().entrySet())
-        {
-            String encoding = entry.getValue().getEncoding();
-            Byte payloadType = entry.getKey();
+        final byte vp8PT = getDynamicRTPPayloadType(Constants.VP8);
 
-            if (Constants.RED.equalsIgnoreCase(encoding))
-            {
-                redPT = payloadType;
-            }
-            else if (Constants.VP8.equalsIgnoreCase(encoding))
-            {
-                vp8PT = payloadType;
-            }
-            else if (Constants.H264.equalsIgnoreCase(encoding))
-            {
-                h264PT = payloadType;
-            }
+        if (redBlock.getPayloadType() == vp8PT)
+        {
+            return org.jitsi.impl
+                .neomedia.codec.video.vp8.DePacketizer.VP8PayloadDescriptor
+                .isStartOfFrame(buf, redBlock.getOffset());
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    /**
+    * {@inheritDoc}
+    */
+    public boolean isKeyFrame(byte[] buf, int off, int len)
+    {
+        REDBlock redBlock = getPayloadBlock(buf, off, len);
+        if (redBlock == null || redBlock.getLength() == 0)
+        {
+            return false;
         }
 
-        int payloadOff, payloadLen;
-        byte payloadType;
+        final byte vp8PT = getDynamicRTPPayloadType(Constants.VP8),
+            h264PT = getDynamicRTPPayloadType(Constants.H264);
 
-        try {
-          // XXX this will not work correctly when RTX gets enabled!
-            if (redPT != null
-                && redPT == RawPacket.getPayloadType(buf, off, len))
-            {
-                // XXX There's RawPacket#getPayloadLength() but the implementation
-                // includes pkt.paddingSize at the time of this writing and
-                // we do not know whether that's going to stay that way
-                REDBlock block = REDBlockIterator
-                    .getPrimaryBlock(buf,
-                        RawPacket.getPayloadOffset(buf, off, len),
-                        RawPacket.getPayloadLength(buf, off, len)
-                            - RawPacket.getPaddingSize(buf, off, len)
-                            - RawPacket.getHeaderLength(buf, off, len));
-
-                payloadOff = block.getOffset();
-                payloadLen = block.getLength();
-                payloadType = block.getPayloadType();
-            }
-            else
-            {
-                // XXX There's RawPacket#getPayloadLength() but the implementation
-                // includes pkt.paddingSize at the time of this writing and
-                // we do not know whether that's going to stay that way
-                payloadOff = RawPacket.getPayloadOffset(buf, off, len);
-                payloadLen = RawPacket.getPayloadLength(buf, off, len)
-                    - RawPacket.getPayloadOffset(buf, off, len)
-                    - RawPacket.getHeaderLength(buf, off, len);
-                payloadType
-                    = RawPacket.getPayloadType(buf, off, len);
-            }
-            if (vp8PT != null && payloadType == vp8PT)
-            {
-                return org.jitsi.impl.neomedia.codec.video.vp8.DePacketizer
-                    .isKeyFrame(buf, payloadOff, payloadLen);
-            } else if (h264PT != null && payloadType == h264PT)
-            {
-                return org.jitsi.impl.neomedia.codec.video.h264.DePacketizer
-                    .isKeyFrame(buf, payloadOff, len);
-            }
-            else
-            {
-                return false;
-            }
-        }
-        catch (ArrayIndexOutOfBoundsException e)
+        if (redBlock.getPayloadType() == vp8PT)
         {
-            // While ideally we should check the bounds everywhere and not
-            // attempt to access the packet's buffer at invalid indexes, there
-            // are too many places where it could inadvertently happen. It's
-            // safer to return a default value of 'false' from this utility
-            // method than to risk killing a thread which doesn't expect this.
-            logger.warn("Caught an exception while checking for keyframe:", e);
+            return org.jitsi.impl.neomedia.codec.video.vp8.DePacketizer
+                .isKeyFrame(buf, redBlock.getOffset(), redBlock.getLength());
+        }
+        else if (redBlock.getPayloadType() == h264PT)
+        {
+            return org.jitsi.impl.neomedia.codec.video.h264.DePacketizer
+                .isKeyFrame(buf, redBlock.getOffset(), redBlock.getLength());
+        }
+        else
+        {
             return false;
         }
     }
@@ -3792,6 +3757,34 @@ public class MediaStreamImpl
     public TransformEngineChain getTransformEngineChain()
     {
         return transformEngineChain;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public REDBlock getPayloadBlock(byte[] buf, int off, int len)
+    {
+        if (buf == null || buf.length < off + len
+            || len < net.sf.fmj.media.rtp.RTPHeader.SIZE)
+        {
+            return null;
+        }
+
+        final byte redPT = getDynamicRTPPayloadType(Constants.RED),
+            pktPT = (byte) RawPacket.getPayloadType(buf, off, len);
+
+        if (redPT == pktPT)
+        {
+            return REDBlockIterator.getPrimaryBlock(buf, off, len);
+        }
+        else
+        {
+            final int payloadOff = RawPacket.getPayloadOffset(buf, off, len),
+                payloadLen = RawPacket.getPayloadLength(buf, off, len, true);
+
+            return new REDBlock(payloadOff, payloadLen, pktPT);
+        }
     }
 
     /**

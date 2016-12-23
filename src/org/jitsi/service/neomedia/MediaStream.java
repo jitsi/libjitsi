@@ -20,6 +20,7 @@ import java.net.*;
 import java.util.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.device.*;
@@ -556,4 +557,32 @@ public interface MediaStream
      * Gets the {@link TransformEngineChain} of this {@link MediaStream}.
      */
     public TransformEngineChain getTransformEngineChain();
+
+    /**
+     * Gets the {@link REDBlock} that contains the payload of the packet passed
+     * in as a parameter.
+     *
+     * @param buf the buffer that holds the RTP payload.
+     * @param off the offset in the buff where the RTP payload is found.
+     * @param len then length of the RTP payload in the buffer.
+     * @return the {@link REDBlock} that contains the payload of the packet
+     * passed in as a parameter, or null if the buffer is invalid.
+     */
+    public REDBlock getPayloadBlock(byte[] buf, int off, int len);
+
+    /**
+     * Utility method that determines whether or not a packet is a start of
+     * frame.
+     *
+     * @param buf the buffer that holds the RTP payload.
+     * @param off the offset in the buff where the RTP payload is found.
+     * @param len then length of the RTP payload in the buffer.
+     *
+     * @return true if the packet is the start of a frame, false otherwise.
+     *
+     * FIXME(gp) conceptually this belongs to the {@link VideoMediaStream}, but
+     * I don't want to be obliged to cast to use this method.
+     *
+     */
+    boolean isStartOfFrame(byte[] buf, int off, int len);
 }
