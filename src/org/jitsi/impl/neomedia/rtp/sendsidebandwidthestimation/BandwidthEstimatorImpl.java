@@ -123,7 +123,6 @@ public class BandwidthEstimatorImpl
             if (lastEHSN == null)
             {
                 lastEHSN = extSeqNum;
-                continue;
             }
 
             ssrc_to_last_received_extended_high_seq_num_.put(ssrc, extSeqNum);
