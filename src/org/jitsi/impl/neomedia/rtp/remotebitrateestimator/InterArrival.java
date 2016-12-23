@@ -33,6 +33,10 @@ class InterArrival
 
     private static final Logger logger = Logger.getLogger(InterArrival.class);
 
+    private static long subtractAsUnsignedInt32(long t1, long t2) {
+        return (t1 - t2) & 0xFFFFFFFFL;
+    }
+
     /**
      * webrtc/modules/include/module_common_types.h
      *
@@ -40,19 +44,19 @@ class InterArrival
      * @param prevTimestamp
      * @return
      */
-    private static boolean isNewerTimestamp(long timestamp, long prevTimestamp)
+    static boolean isNewerTimestamp(long timestamp, long prevTimestamp)
     {
         // Distinguish between elements that are exactly 0x80000000 apart.
         // If t1>t2 and |t1-t2| = 0x80000000: IsNewer(t1,t2)=true,
         // IsNewer(t2,t1)=false
         // rather than having IsNewer(t1,t2) = IsNewer(t2,t1) = false.
-        if (timestamp - prevTimestamp == 0x80000000L)
+        if (subtractAsUnsignedInt32(timestamp, prevTimestamp) == 0x80000000L)
         {
             return timestamp > prevTimestamp;
         }
         return
             timestamp != prevTimestamp
-                && timestamp - prevTimestamp < 0x80000000L;
+                && subtractAsUnsignedInt32(timestamp, prevTimestamp) < 0x80000000L;
     }
 
     /**
@@ -62,7 +66,7 @@ class InterArrival
      * @param timestamp2
      * @return
      */
-    private static long latestTimestamp(long timestamp1, long timestamp2)
+    static long latestTimestamp(long timestamp1, long timestamp2)
     {
         return
             isNewerTimestamp(timestamp1, timestamp2) ? timestamp1 : timestamp2;
@@ -254,7 +258,7 @@ class InterArrival
             // interval (32 bits) must be due to reordering. This code is almost
             // identical to that in isNewerTimestamp() in module_common_types.h.
             long timestampDiff
-                    = timestamp - currentTimestampGroup.firstTimestamp;
+                    = subtractAsUnsignedInt32(timestamp, currentTimestampGroup.firstTimestamp);
 
             return timestampDiff < 0x80000000L;
         }
