@@ -29,14 +29,14 @@ public enum MediaType
     AUDIO("audio"),
 
     /**
-     * Represents a (chat-) MESSAGE media type.
-     */
-    MESSAGE("message"),
-
-    /**
      * Represents a VIDEO media type.
      */
     VIDEO("video"),
+
+    /**
+     * Represents a (chat-) MESSAGE media type.
+     */
+    MESSAGE("message"),
 
     /**
      * Represents a DATA media type.
