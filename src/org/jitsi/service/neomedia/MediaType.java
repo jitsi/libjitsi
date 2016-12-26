@@ -19,6 +19,10 @@ package org.jitsi.service.neomedia;
  * The <tt>MediaType</tt> enumeration contains a list of media types
  * currently known to and handled by the <tt>MediaService</tt>.
  *
+ * @see <a href="http://www.iana.org/assignments/sdp-parameters/sdp-parameters.xhtml#sdp-parameters-1">
+ *     Session Description Protocol (SDP) Parameters, media</a>
+ *
+ *
  * @author Emil Ivov
  */
 public enum MediaType
@@ -34,9 +38,24 @@ public enum MediaType
     VIDEO("video"),
 
     /**
+     * Represents a TEXT media type. See RFC4103.
+     */
+    TEXT("text"),
+
+    /**
+     * Represents an APPLICATION media type.
+     */
+    APPLICATION("application"),
+
+    /**
      * Represents a (chat-) MESSAGE media type.
      */
     MESSAGE("message"),
+
+    /**
+     * Represents an IMAGE media type. See RFC6466.
+     */
+    IMAGE("image"),
 
     /**
      * Represents a DATA media type.
