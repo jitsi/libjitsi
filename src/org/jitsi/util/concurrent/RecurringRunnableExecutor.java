@@ -150,14 +150,18 @@ public class RecurringRunnableExecutor
      */
     private boolean run()
     {
+        if (!Thread.currentThread().equals(thread))
+        {
+            return false;
+        }
+
         // Wait for the recurringRunnable that should be called next, but
         // don't block thread longer than 100 ms.
         long minTimeToNext = 100L;
 
         synchronized (recurringRunnables)
         {
-            if (!Thread.currentThread().equals(thread)
-                    || recurringRunnables.isEmpty())
+            if (recurringRunnables.isEmpty())
             {
                 return false;
             }
@@ -176,8 +180,7 @@ public class RecurringRunnableExecutor
         {
             synchronized (recurringRunnables)
             {
-                if (!Thread.currentThread().equals(thread)
-                        || recurringRunnables.isEmpty())
+                if (recurringRunnables.isEmpty())
                 {
                     return false;
                 }
