@@ -109,7 +109,7 @@ public class CachingTransformer
     private static int MAX_SIZE_PACKETS = cfg.getInt(NACK_CACHE_SIZE_PACKETS, 200);
 
     /**
-     * The size of {@link #pool}.
+     * The size of {@link #pool} and {@link #containersPool}.
      */
     private static int POOL_SIZE = 100;
 
@@ -135,7 +135,13 @@ public class CachingTransformer
     /**
      * The pool of <tt>RawPacket</tt>s which we use to avoid allocation and GC.
      */
-    private Queue<RawPacket> pool
+    private final Queue<RawPacket> pool
+        = new LinkedBlockingQueue<>(POOL_SIZE);
+
+    /**
+     * A cache of unused {@link Container} instances.
+     */
+    private final Queue<Container> containersPool
         = new LinkedBlockingQueue<>(POOL_SIZE);
 
     /**
@@ -273,8 +279,33 @@ public class CachingTransformer
         {
             caches.clear();
         }
+        pool.clear();
+        containersPool.clear();
 
         recurringRunnableExecutor.deRegisterRecurringRunnable(this);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Implements
+     * {@link org.jitsi.service.neomedia.rtp.RawPacketCache#getContainer}.
+     */
+    public Container getContainer(long ssrc, int seq)
+    {
+        Cache cache = getCache(ssrc & 0xffffffffL, false);
+
+        Container container = cache != null ? cache.get(seq) : null;
+
+        if (container != null)
+        {
+            oldestHit.increase(cache.getAge(container.pkt));
+            totalHits.incrementAndGet();
+        }
+        else
+            totalMisses.incrementAndGet();
+
+        return container;
     }
 
     /**
@@ -285,19 +316,8 @@ public class CachingTransformer
      */
     public RawPacket get(long ssrc, int seq)
     {
-        Cache cache = getCache(ssrc & 0xffffffffL, false);
-
-        RawPacket pkt = cache != null ? cache.get(seq) : null;
-
-        if (pkt != null)
-        {
-            oldestHit.increase(cache.getAge(pkt));
-            totalHits.incrementAndGet();
-        }
-        else
-            totalMisses.incrementAndGet();
-
-        return pkt;
+        Container container = getContainer(ssrc, seq);
+        return container == null ? null : container.pkt;
     }
 
 
@@ -434,6 +454,19 @@ public class CachingTransformer
     }
 
     /**
+     * @return  an unused {@link Container} instance.
+     */
+    private Container getFreeContainer()
+    {
+        Container container = containersPool.poll();
+        if (container == null)
+        {
+            container = new Container();
+        }
+        return container;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -486,8 +519,7 @@ public class CachingTransformer
          * sequence number, in the same way as used in SRTP (RFC3711)) to the
          * <tt>RawPacket</tt> with the packet contents.
          */
-        private TreeMap<Integer, RawPacket> cache
-                = new TreeMap<>();
+        private TreeMap<Integer, Container> cache = new TreeMap<>();
 
         /**
          * Last system time of insertion of a packet in this cache.
@@ -518,7 +550,10 @@ public class CachingTransformer
             cachePacket.setLength(len);
 
             int index = calculateIndex(pkt.getSequenceNumber());
-            cache.put(index, cachePacket);
+            Container container = getFreeContainer();
+            container.pkt = cachePacket;
+            container.timeAdded = System.currentTimeMillis();
+            cache.put(index, container);
 
             synchronized (sizesSyncRoot)
             {
@@ -578,12 +613,12 @@ public class CachingTransformer
          * cache, or <tt>null</tt> if the cache does not contain a packet with
          * this sequence number.
          */
-        private synchronized RawPacket get(int seq)
+        private synchronized Container get(int seq)
         {
             // Since sequence numbers wrap at 2^16, we can't know with absolute
             // certainty which packet the request refers to. We assume that it
             // is for the latest packet (i.e. the one with the highest index).
-            RawPacket pkt = cache.get(seq + ROC * (1 << 16));
+            Container pkt = cache.get(seq + ROC * (1 << 16));
 
             // Maybe the ROC was just bumped recently.
             if (pkt == null && ROC > 0)
@@ -596,9 +631,11 @@ public class CachingTransformer
             return
                     pkt == null
                     ? null
-                    : new RawPacket(pkt.getBuffer().clone(),
-                                    pkt.getOffset(),
-                                    pkt.getLength());
+                    : new Container(
+                        new RawPacket(pkt.pkt.getBuffer().clone(),
+                                      pkt.pkt.getOffset(),
+                                      pkt.pkt.getLength()),
+                        pkt.timeAdded);
         }
 
         /**
@@ -613,16 +650,19 @@ public class CachingTransformer
             if (size <= 0)
                 return;
 
-            long lastTimestamp = 0xffffffffL & cache.lastEntry().getValue().getTimestamp();
+            long lastTimestamp
+                = 0xffffffffL & cache.lastEntry().getValue().pkt.getTimestamp();
             long cleanBefore = getCleanBefore(lastTimestamp);
 
-            Iterator<Map.Entry<Integer,RawPacket>> iter
+            Iterator<Map.Entry<Integer,Container>> iter
                     = cache.entrySet().iterator();
             int removedPackets = 0;
             int removedBytes = 0;
             while (iter.hasNext())
             {
-                RawPacket pkt = iter.next().getValue();
+                Container container = iter.next().getValue();
+                RawPacket pkt = container.pkt;
+
                 if (size > MAX_SIZE_PACKETS)
                 {
                     // Remove until we go under the max size, regardless of the
@@ -641,6 +681,8 @@ public class CachingTransformer
                 removedBytes += pkt.getLength();
                 removedPackets++;
                 pool.offer(pkt);
+                container.pkt = null;
+                containersPool.offer(container);
             }
 
             synchronized (sizesSyncRoot)
@@ -654,10 +696,12 @@ public class CachingTransformer
         synchronized private void empty()
         {
             int removedBytes = 0;
-            for (RawPacket pkt : cache.values())
+            for (Container container : cache.values())
             {
-                removedBytes += pkt.getBuffer().length;
-                pool.offer(pkt);
+                removedBytes += container.pkt.getBuffer().length;
+                pool.offer(container.pkt);
+                container.pkt = null;
+                containersPool.offer(container);
             }
 
             synchronized (sizesSyncRoot)
@@ -670,8 +714,8 @@ public class CachingTransformer
         }
 
         /**
-         * @return the age of {@code pkt} with respect to the latest added packet
-         * to the cache.
+         * @return the age in milliseconds of {@code pkt} with respect to the
+         * latest added packet to the cache.
          * @param pkt the packet whose age is to be returned.
          */
         synchronized private long getAge(RawPacket pkt)
@@ -681,7 +725,8 @@ public class CachingTransformer
                 return 0;
             }
 
-            RawPacket head = cache.lastEntry().getValue();
+            Container container = cache.lastEntry().getValue();
+            RawPacket head = container.pkt;
 
             long rtpDiff
                 = TimeUtils.rtpDiff(head.getTimestamp(), pkt.getTimestamp());
@@ -701,5 +746,4 @@ public class CachingTransformer
             return (ts + (1L<<32) - SIZE_RTP_CLOCK_TICKS) % (1L<<32);
         }
     }
-
 }

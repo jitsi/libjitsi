@@ -35,6 +35,18 @@ public interface RawPacketCache
     public RawPacket get(long ssrc, int seq);
 
     /**
+     * Gets the packet, encapsulated in a {@link Container} with the given SSRC
+     * and RTP sequence number from the cache. If no such packet is found,
+     * returns <tt>null</tt>.
+     * @param ssrc The SSRC of the packet.
+     * @param seq the RTP sequence number of the packet.
+     * @return the packet, encapsulated in a {@link Container} with the given
+     * SSRC and RTP sequence number from the cache. If no such packet is found,
+     * returns <tt>null</tt>.
+     */
+    public Container getContainer(long ssrc, int seq);
+
+    /**
      * Saves a packet in the cache.
      * @param pkt the packet to save.
      */
@@ -47,4 +59,40 @@ public interface RawPacketCache
      * {@code false} if the caching of packets is to be disabled
      */
     public void setEnabled(boolean enabled);
+
+    /**
+     * A container for packets in the cache.
+     */
+    class Container
+    {
+        /**
+         * The {@link RawPacket} which this container holds.
+         */
+        public RawPacket pkt;
+
+        /**
+         * The time (in milliseconds since the epoch) that the packet was
+         * added to the cache.
+         */
+        public long timeAdded;
+
+        /**
+         * Initializes a new empty {@link Container} instance.
+         */
+        public Container()
+        {
+            this(null, -1);
+        }
+
+        /**
+         * Initializes a new {@link Container} instance.
+         * @param pkt the packet to hold.
+         * @param timeAdded the time the packet was added.
+         */
+        public Container(RawPacket pkt, long timeAdded)
+        {
+            this.pkt = pkt;
+            this.timeAdded = timeAdded;
+        }
+    }
 }
