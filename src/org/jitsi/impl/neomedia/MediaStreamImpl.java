@@ -416,11 +416,10 @@ public class MediaStreamImpl
                     : srtpControl;
 
         this.srtpControl.registerUser(this);
+        this.mediaStreamStatsImpl = new MediaStreamStats2Impl(this);
 
         if (connector != null)
             setConnector(connector);
-
-        this.mediaStreamStatsImpl = new MediaStreamStats2Impl(this);
 
         if (logger.isTraceEnabled())
         {
