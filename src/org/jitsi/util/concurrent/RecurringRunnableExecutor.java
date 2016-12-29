@@ -127,21 +127,17 @@ public class RecurringRunnableExecutor
     @Override
     public void execute(Runnable command)
     {
-        if (command == null)
-        {
-            throw new NullPointerException("command");
-        }
-        else if (command instanceof RecurringRunnable)
-        {
-            registerRecurringRunnable((RecurringRunnable) command);
-        }
-        else
+        Objects.requireNonNull(command, "command");
+
+        if (!(command instanceof RecurringRunnable))
         {
             throw new RejectedExecutionException(
-                    "The class " + command.getClass().getName()
-                        + " of command does not implement "
-                        + RecurringRunnable.class.getName());
+                "The class " + command.getClass().getName()
+                    + " of command does not implement "
+                    + RecurringRunnable.class.getName());
         }
+
+        registerRecurringRunnable((RecurringRunnable) command);
     }
 
     /**
@@ -254,35 +250,30 @@ public class RecurringRunnableExecutor
     public boolean registerRecurringRunnable(
             RecurringRunnable recurringRunnable)
     {
-        if (recurringRunnable == null)
+        Objects.requireNonNull(recurringRunnable, "recurringRunnable");
+
+        synchronized (recurringRunnables)
         {
-            throw new NullPointerException("recurringRunnable");
-        }
-        else
-        {
-            synchronized (recurringRunnables)
+            if (closed)
             {
-                if (closed)
-                {
-                    return false;
-                }
+                return false;
+            }
 
-                // Only allow recurringRunnable to be registered once.
-                if (recurringRunnables.contains(recurringRunnable))
-                {
-                    return false;
-                }
-                else
-                {
-                    recurringRunnables.add(0, recurringRunnable);
+            // Only allow recurringRunnable to be registered once.
+            if (recurringRunnables.contains(recurringRunnable))
+            {
+                return false;
+            }
+            else
+            {
+                recurringRunnables.add(0, recurringRunnable);
 
-                    // Wake the thread calling run() to update the waiting
-                    // time. The waiting time for the just registered
-                    // recurringRunnable may be shorter than all other
-                    // registered recurringRunnables.
-                    startOrNotifyThread();
-                    return true;
-                }
+                // Wake the thread calling run() to update the waiting
+                // time. The waiting time for the just registered
+                // recurringRunnable may be shorter than all other
+                // registered recurringRunnables.
+                startOrNotifyThread();
+                return true;
             }
         }
     }
