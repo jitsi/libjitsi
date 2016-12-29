@@ -299,11 +299,17 @@ public class CachingTransformer
 
         if (container != null)
         {
-            oldestHit.increase(cache.getAge(container.pkt));
+            if (container.timeAdded > 0)
+            {
+                oldestHit
+                    .increase(System.currentTimeMillis() - container.timeAdded);
+            }
             totalHits.incrementAndGet();
         }
         else
+        {
             totalMisses.incrementAndGet();
+        }
 
         return container;
     }
@@ -711,28 +717,6 @@ public class CachingTransformer
             }
 
             cache.clear();
-        }
-
-        /**
-         * @return the age in milliseconds of {@code pkt} with respect to the
-         * latest added packet to the cache.
-         * @param pkt the packet whose age is to be returned.
-         */
-        synchronized private long getAge(RawPacket pkt)
-        {
-            if (cache.isEmpty())
-            {
-                return 0;
-            }
-
-            Container container = cache.lastEntry().getValue();
-            RawPacket head = container.pkt;
-
-            long rtpDiff
-                = TimeUtils.rtpDiff(head.getTimestamp(), pkt.getTimestamp());
-
-            // Assume RTP clock rate of 90000.
-            return rtpDiff / 90;
         }
 
         /**
