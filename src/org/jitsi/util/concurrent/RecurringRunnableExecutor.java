@@ -65,6 +65,12 @@ public class RecurringRunnableExecutor
     private final String name;
 
     /**
+     * Whether this {@link RecurringRunnableExecutor} is closed. When it is
+     * closed, it should stop its thread(s).
+     */
+    private boolean closed = false;
+
+    /**
      * Initializes a new {@link RecurringRunnableExecutor} instance.
      */
     public RecurringRunnableExecutor()
@@ -150,7 +156,7 @@ public class RecurringRunnableExecutor
      */
     private boolean run()
     {
-        if (!Thread.currentThread().equals(thread))
+        if (closed || !Thread.currentThread().equals(thread))
         {
             return false;
         }
@@ -256,6 +262,11 @@ public class RecurringRunnableExecutor
         {
             synchronized (recurringRunnables)
             {
+                if (closed)
+                {
+                    return false;
+                }
+
                 // Only allow recurringRunnable to be registered once.
                 if (recurringRunnables.contains(recurringRunnable))
                 {
@@ -289,7 +300,7 @@ public class RecurringRunnableExecutor
         {
             synchronized (recurringRunnables)
             {
-                if (Thread.currentThread().equals(thread))
+                if (!closed && Thread.currentThread().equals(thread))
                 {
                     thread = null;
                     // If the (current) thread dies in an unexpected way, make
@@ -308,7 +319,7 @@ public class RecurringRunnableExecutor
     {
         synchronized (recurringRunnables)
         {
-            if (this.thread == null)
+            if (!closed && this.thread == null)
             {
                 if (!recurringRunnables.isEmpty())
                 {
@@ -347,6 +358,20 @@ public class RecurringRunnableExecutor
             {
                 recurringRunnables.notifyAll();
             }
+        }
+    }
+
+    /**
+     * Closes this {@link RecurringRunnableExecutor}, signalling its thread to
+     * stop and de-registering all registered runnables.
+     */
+    public void close()
+    {
+        synchronized (recurringRunnables)
+        {
+            closed = true;
+            thread = null;
+            recurringRunnables.notifyAll();
         }
     }
 }
