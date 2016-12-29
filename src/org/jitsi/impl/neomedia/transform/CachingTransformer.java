@@ -270,7 +270,7 @@ public class CachingTransformer
                             + " max_size_bytes=" + maxSizeInBytes
                             + ",max_size_packets=" + maxSizeInPackets
                             + ",total_hits=" + totalHits.get()
-                            + ",total_missed=" + totalMisses.get()
+                            + ",total_misses=" + totalMisses.get()
                             + ",total_packets=" + totalPacketsAdded.get()
                             + ",oldest_hit_ms=" + oldestHit);
         }
