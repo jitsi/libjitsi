@@ -142,6 +142,10 @@ public class RTCPFeedbackMessageSender
 
         if (registerRecurringRunnable)
         {
+            // TODO (2016-12-29) Think about eventually de-registering these
+            // runnables, but note that with the current code this MUST NOT
+            // happen inside run() because of concurrent modification of the
+            // executor's list.
             recurringRunnableExecutor
                 .registerRecurringRunnable(keyframeRequester);
         }
