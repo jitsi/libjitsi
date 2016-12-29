@@ -631,6 +631,7 @@ public class RTPTranslatorImpl
         lock.lock();
         try
         {
+            rtcpFeedbackMessageSender.dispose();
 
             manager.removeReceiveStreamListener(this);
             try

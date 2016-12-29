@@ -203,6 +203,15 @@ public class RTCPFeedbackMessageSender
     }
 
     /**
+     * Releases the resources allocated by this instance in the course of its
+     * execution and prepares it to be garbage collected.
+     */
+    void dispose()
+    {
+        recurringRunnableExecutor.close();
+    }
+
+    /**
      * The <tt>KeyframeRequester</tt> is responsible for sending FIR requests to
      * a specific media sender identified by its SSRC.
      */
