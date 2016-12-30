@@ -408,12 +408,13 @@ public class RetransmissionRequesterImpl
                 {
                     long delta
                         = System.currentTimeMillis() - r.firstRequestSentAt;
-                    if (delta < 10)
-                    {
-                        logger.debug(hashCode()
-                                     + " received a missing packet only "
-                                     + delta + "ms after it was requested.");
-                    }
+                    long rtt
+                        = stream.getMediaStreamStats().getSendStats().getRtt();
+
+                    logger.debug(Logger.Category.STATISTICS,
+                                 "retr_received,stream=" + stream.hashCode() +
+                                 " delay=" + delta +
+                                 ",rtt=" + rtt);
                 }
             }
             else if (diff == 1)
