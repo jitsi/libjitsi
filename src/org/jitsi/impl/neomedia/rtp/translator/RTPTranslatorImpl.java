@@ -631,26 +631,26 @@ public class RTPTranslatorImpl
         lock.lock();
         try
         {
+            rtcpFeedbackMessageSender.dispose();
 
-        manager.removeReceiveStreamListener(this);
-        try
-        {
-            manager.dispose();
-        }
-        catch (Throwable t)
-        {
-            if (t instanceof ThreadDeath)
+            manager.removeReceiveStreamListener(this);
+            try
             {
-                throw (ThreadDeath) t;
+                manager.dispose();
             }
-            else
+            catch (Throwable t)
             {
-                // RTPManager.dispose() often throws at least a
-                // NullPointerException in relation to some RTP BYE.
-                LOGGER.error("Failed to dispose of RTPManager", t);
+                if (t instanceof ThreadDeath)
+                {
+                    throw (ThreadDeath) t;
+                }
+                else
+                {
+                    // RTPManager.dispose() often throws at least a
+                    // NullPointerException in relation to some RTP BYE.
+                    LOGGER.error("Failed to dispose of RTPManager", t);
+                }
             }
-        }
-
         }
         finally
         {

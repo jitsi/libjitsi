@@ -65,6 +65,12 @@ public class RecurringRunnableExecutor
     private final String name;
 
     /**
+     * Whether this {@link RecurringRunnableExecutor} is closed. When it is
+     * closed, it should stop its thread(s).
+     */
+    private boolean closed = false;
+
+    /**
      * Initializes a new {@link RecurringRunnableExecutor} instance.
      */
     public RecurringRunnableExecutor()
@@ -121,21 +127,17 @@ public class RecurringRunnableExecutor
     @Override
     public void execute(Runnable command)
     {
-        if (command == null)
-        {
-            throw new NullPointerException("command");
-        }
-        else if (command instanceof RecurringRunnable)
-        {
-            registerRecurringRunnable((RecurringRunnable) command);
-        }
-        else
+        Objects.requireNonNull(command, "command");
+
+        if (!(command instanceof RecurringRunnable))
         {
             throw new RejectedExecutionException(
-                    "The class " + command.getClass().getName()
-                        + " of command does not implement "
-                        + RecurringRunnable.class.getName());
+                "The class " + command.getClass().getName()
+                    + " of command does not implement "
+                    + RecurringRunnable.class.getName());
         }
+
+        registerRecurringRunnable((RecurringRunnable) command);
     }
 
     /**
@@ -150,7 +152,7 @@ public class RecurringRunnableExecutor
      */
     private boolean run()
     {
-        if (!Thread.currentThread().equals(thread))
+        if (closed || !Thread.currentThread().equals(thread))
         {
             return false;
         }
@@ -248,30 +250,30 @@ public class RecurringRunnableExecutor
     public boolean registerRecurringRunnable(
             RecurringRunnable recurringRunnable)
     {
-        if (recurringRunnable == null)
-        {
-            throw new NullPointerException("recurringRunnable");
-        }
-        else
-        {
-            synchronized (recurringRunnables)
-            {
-                // Only allow recurringRunnable to be registered once.
-                if (recurringRunnables.contains(recurringRunnable))
-                {
-                    return false;
-                }
-                else
-                {
-                    recurringRunnables.add(0, recurringRunnable);
+        Objects.requireNonNull(recurringRunnable, "recurringRunnable");
 
-                    // Wake the thread calling run() to update the waiting
-                    // time. The waiting time for the just registered
-                    // recurringRunnable may be shorter than all other
-                    // registered recurringRunnables.
-                    startOrNotifyThread();
-                    return true;
-                }
+        synchronized (recurringRunnables)
+        {
+            if (closed)
+            {
+                return false;
+            }
+
+            // Only allow recurringRunnable to be registered once.
+            if (recurringRunnables.contains(recurringRunnable))
+            {
+                return false;
+            }
+            else
+            {
+                recurringRunnables.add(0, recurringRunnable);
+
+                // Wake the thread calling run() to update the waiting
+                // time. The waiting time for the just registered
+                // recurringRunnable may be shorter than all other
+                // registered recurringRunnables.
+                startOrNotifyThread();
+                return true;
             }
         }
     }
@@ -289,7 +291,7 @@ public class RecurringRunnableExecutor
         {
             synchronized (recurringRunnables)
             {
-                if (Thread.currentThread().equals(thread))
+                if (!closed && Thread.currentThread().equals(thread))
                 {
                     thread = null;
                     // If the (current) thread dies in an unexpected way, make
@@ -308,7 +310,7 @@ public class RecurringRunnableExecutor
     {
         synchronized (recurringRunnables)
         {
-            if (this.thread == null)
+            if (!closed && this.thread == null)
             {
                 if (!recurringRunnables.isEmpty())
                 {
@@ -347,6 +349,20 @@ public class RecurringRunnableExecutor
             {
                 recurringRunnables.notifyAll();
             }
+        }
+    }
+
+    /**
+     * Closes this {@link RecurringRunnableExecutor}, signalling its thread to
+     * stop and de-registering all registered runnables.
+     */
+    public void close()
+    {
+        synchronized (recurringRunnables)
+        {
+            closed = true;
+            thread = null;
+            recurringRunnables.notifyAll();
         }
     }
 }

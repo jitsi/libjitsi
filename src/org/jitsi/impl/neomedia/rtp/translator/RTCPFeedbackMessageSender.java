@@ -142,6 +142,10 @@ public class RTCPFeedbackMessageSender
 
         if (registerRecurringRunnable)
         {
+            // TODO (2016-12-29) Think about eventually de-registering these
+            // runnables, but note that with the current code this MUST NOT
+            // happen inside run() because of concurrent modification of the
+            // executor's list.
             recurringRunnableExecutor
                 .registerRecurringRunnable(keyframeRequester);
         }
@@ -200,6 +204,15 @@ public class RTCPFeedbackMessageSender
         {
             kfRequester.maybeStopRequesting(streamRTPManager, buf, off, len);
         }
+    }
+
+    /**
+     * Releases the resources allocated by this instance in the course of its
+     * execution and prepares it to be garbage collected.
+     */
+    void dispose()
+    {
+        recurringRunnableExecutor.close();
     }
 
     /**
