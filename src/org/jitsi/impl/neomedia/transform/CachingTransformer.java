@@ -510,6 +510,25 @@ public class CachingTransformer
     }
 
     /**
+     * Returns a {@link Container} and its {@link RawPacket} to the list of
+     * free containers (and packets).
+     * @param container the container to return.
+     */
+    private void returnContainer(Container container)
+    {
+        if (container != null)
+        {
+            if (container.pkt != null)
+            {
+                pool.offer(container.pkt);
+            }
+
+            container.pkt = null;
+            containersPool.offer(container);
+        }
+    }
+
+    /**
      * Implements a cache for the packets of a specific SSRC.
      */
     private class Cache
@@ -553,21 +572,33 @@ public class CachingTransformer
             Container container = getFreeContainer();
             container.pkt = cachePacket;
             container.timeAdded = System.currentTimeMillis();
-            cache.put(index, container);
+
+            // If the packet is already in the cache, we want to update the
+            // timeAdded field for retransmission purposes. This is implemented
+            // by simply replacing the old packet.
+            Container oldContainer = cache.put(index, container);
 
             synchronized (sizesSyncRoot)
             {
                 sizeInPackets++;
                 sizeInBytes += len;
+                if (oldContainer != null)
+                {
+                    sizeInPackets--;
+                    sizeInBytes -= oldContainer.pkt.getLength();
+                }
 
                 if (sizeInPackets > maxSizeInPackets)
                     maxSizeInPackets = sizeInPackets;
                 if (sizeInBytes > maxSizeInBytes)
                     maxSizeInBytes = sizeInBytes;
             }
+
+            returnContainer(oldContainer);
             lastInsertTime = System.currentTimeMillis();
             clean();
         }
+
 
         /**
          * Calculates the index of an RTP packet based on its RTP sequence
@@ -680,9 +711,7 @@ public class CachingTransformer
                 iter.remove();
                 removedBytes += pkt.getLength();
                 removedPackets++;
-                pool.offer(pkt);
-                container.pkt = null;
-                containersPool.offer(container);
+                returnContainer(container);
             }
 
             synchronized (sizesSyncRoot)
@@ -699,9 +728,7 @@ public class CachingTransformer
             for (Container container : cache.values())
             {
                 removedBytes += container.pkt.getBuffer().length;
-                pool.offer(container.pkt);
-                container.pkt = null;
-                containersPool.offer(container);
+                returnContainer(container);
             }
 
             synchronized (sizesSyncRoot)
