@@ -310,9 +310,9 @@ public class RetransmissionRequesterImpl
                 {
                     try
                     {
-                        if (logger.isDebugEnabled())
+                        if (logger.isTraceEnabled())
                         {
-                            logger.debug("Sending a NACK: " + nack);
+                            logger.trace("Sending a NACK: " + nack);
                         }
                         stream.injectPacket(
                                 pkt,
@@ -413,8 +413,8 @@ public class RetransmissionRequesterImpl
 
                     logger.debug(Logger.Category.STATISTICS,
                                  "retr_received,stream=" + stream.hashCode() +
-                                 " delay=" + delta +
-                                 ",rtt=" + rtt);
+                                    " delay=" + delta +
+                                    ",rtt=" + rtt);
                 }
             }
             else if (diff == 1)
