@@ -1,14 +1,10 @@
 1. portaudio
 
-    Get portaudio-hotplug branch and apply the portaudio-hotplug-os patch:
-    $ svn co https://subversion.assembla.com/svn/portaudio/portaudio/branches/hotplug/
-    $ patch -p0 < portaudio-hotplug-os.patch
+    Get portaudio-hotplug branch:
+    $ git clone https://github.com/jitsi/portaudio
     $ autoreconf -i (OS X and Linux only)
-
-    - Linux/FreeBSD
-    pa_linux_alsa.c-by-Werner.patch (already in portaudio-hotplug-os.patch)
-    pa_linux_alsa.c-fix-blocked-renderer.patch (already in portaudio-hotplug-os.patch)
-    $ ./configure --disable-shared --enable-static --with-pic --with-jack=no && make/gmake 
+    $ ./configure --disable-shared --enable-static --with-pic --with-jack=no
+    $ make/gmake 
 
     - Mac OS X
     $ export MACOSX_DEPLOYMENT_TARGET=10.4
@@ -17,14 +13,11 @@
     - Windows
     Download directx devpack for MinGW at http://www.dgrigoriadis.net/post/2004/06/26/DirectXDevPak-for-Dev-Cpp.aspx and
     extract it.
-    
+
     $ DXDIR=/path/to/directx_dev_pack_directory
     $ ./configure --disable-shared --enable-static --with-pic --with-dxdir=$DXDIR --with-winapi=wmme,directx,wdmks && make
 
 2. speex
-    - Linux/FreeBSD, Windows
-    $ ./configure --disable-shared --enable-static --with-pic && make/gmake
-
     - Mac OS X
     $ export MACOSX_DEPLOYMENT_TARGET=10.4
     $ export CC="gcc -arch i386 -arch x86_64 -mmacosx-version-min=10.4"
@@ -32,5 +25,7 @@
     $ ./configure --disable-shared --enable-static --with-pic && make
 
 3. jnportaudio
-    - Linux/FreeBSD, Mac OS X, Windows
-    $ make/gmake
+    - Mac OS X, Windows
+    $ ant -lib ~/.m2/repository/org/apache/maven/maven-ant-tasks/2.1.3 portaudio -Dspeex=../speex -Dportaudio=../portaudio
+    - Linux
+    $ ant -lib ~/.m2/repository/org/apache/maven/maven-ant-tasks/2.1.3 portaudio -Dspeex.dynamic=true -Dportaudio=../portaudio
