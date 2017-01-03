@@ -912,13 +912,6 @@ public class MediaServiceImpl
             if (telephoneEvent != null)
                 dynamicPayloadTypePreferences.put(telephoneEvent, (byte) 101);
 
-            MediaFormat h264
-                = MediaUtils.getMediaFormat(
-                        "H264",
-                        VideoMediaFormatImpl.DEFAULT_CLOCK_RATE);
-            if (h264 != null)
-                dynamicPayloadTypePreferences.put(h264, (byte) 99);
-
             /*
              * Try to load dynamicPayloadTypePreferences from the
              * ConfigurationService.

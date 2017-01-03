@@ -145,15 +145,6 @@ public class AVTransmit2
                 /* PCMU has a static RTP payload type number assigned. */
                 dynamicRTPPayloadType = -1;
                 break;
-            case VIDEO:
-                encoding = "H264";
-                clockRate = MediaFormatFactory.CLOCK_RATE_NOT_SPECIFIED;
-                /*
-                 * The dymanic RTP payload type numbers are usually negotiated
-                 * in the signaling functionality.
-                 */
-                dynamicRTPPayloadType = 99;
-                break;
             default:
                 encoding = null;
                 clockRate = MediaFormatFactory.CLOCK_RATE_NOT_SPECIFIED;

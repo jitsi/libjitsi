@@ -450,69 +450,6 @@ public class MediaDeviceImpl
         {
             for (MediaFormat f : enabledEncodings)
             {
-                if("h264".equalsIgnoreCase(f.getEncoding()))
-                {
-                    Map<String,String> advancedAttrs
-                        = f.getAdvancedAttributes();
-
-                    CaptureDeviceInfo captureDeviceInfo
-                        = getCaptureDeviceInfo();
-                    MediaLocator captureDeviceInfoLocator;
-                    Dimension sendSize = null;
-
-                    // change send size only for video calls
-                    if ((captureDeviceInfo != null)
-                            && ((captureDeviceInfoLocator
-                                        = captureDeviceInfo.getLocator())
-                                    != null)
-                            && !DeviceSystem.LOCATOR_PROTOCOL_IMGSTREAMING
-                                .equals(captureDeviceInfoLocator.getProtocol()))
-                    {
-                        if (sendPreset != null)
-                            sendSize = sendPreset.getResolution();
-                        else
-                        {
-                            /*
-                             * XXX We cannot default to any video size here
-                             * because we do not know how this MediaDevice
-                             * instance will be used. If the caller wanted to
-                             * limit the video size, she would've specified an
-                             * actual sendPreset.
-                             */
-//                            sendSize
-//                                = mediaServiceImpl
-//                                    .getDeviceConfiguration()
-//                                        .getVideoSize();
-                        }
-                    }
-
-                    Dimension receiveSize;
-
-                    // if there is specified preset, send its settings
-                    if (receivePreset != null)
-                        receiveSize = receivePreset.getResolution();
-                    else
-                    {
-                        // or just send the max video resolution of the PC as we
-                        // do by default
-                        ScreenDevice screen
-                            = mediaServiceImpl.getDefaultScreenDevice();
-
-                        receiveSize
-                            = (screen == null) ? null : screen.getSize();
-                    }
-
-                    advancedAttrs.put(
-                            "imageattr",
-                            MediaUtils.createImageAttr(sendSize, receiveSize));
-                    f
-                        = mediaServiceImpl.getFormatFactory().createMediaFormat(
-                                f.getEncoding(),
-                                f.getClockRate(),
-                                f.getFormatParameters(),
-                                advancedAttrs);
-                }
-
                 if (f != null)
                     supportedFormats.add(f);
             }

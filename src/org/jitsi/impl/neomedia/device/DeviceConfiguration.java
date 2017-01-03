@@ -575,8 +575,7 @@ public class DeviceConfiguration
                             new AVFrameFormat(),
                             new VideoFormat(Constants.ANDROID_SURFACE),
                             new VideoFormat(VideoFormat.RGB),
-                            new VideoFormat(VideoFormat.YUV),
-                            new VideoFormat(Constants.H264)
+                            new VideoFormat(VideoFormat.YUV)
                         };
 
             for (Format format : formats)
@@ -731,8 +730,7 @@ public class DeviceConfiguration
                         new AVFrameFormat(),
                         new VideoFormat(Constants.ANDROID_SURFACE),
                         new VideoFormat(VideoFormat.RGB),
-                        new VideoFormat(VideoFormat.YUV),
-                        new VideoFormat(Constants.H264)
+                        new VideoFormat(VideoFormat.YUV)
                     };
         Set<CaptureDeviceInfo> videoCaptureDevices
             = new HashSet<CaptureDeviceInfo>();

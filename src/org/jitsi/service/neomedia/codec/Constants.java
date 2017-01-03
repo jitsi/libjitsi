@@ -80,16 +80,6 @@ public class Constants
     public static final String H263P_RTP = H263P + _RTP;
 
     /**
-     * The H264 constant.
-     */
-    public static final String H264 = "h264";
-
-    /**
-     * The H264/rtp constant.
-     */
-    public static final String H264_RTP = H264 + _RTP;
-
-    /**
      * The ilbc constant.
      */
     public static final String ILBC = "ilbc";
