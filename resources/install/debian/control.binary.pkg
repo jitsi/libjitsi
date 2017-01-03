@@ -16,6 +16,7 @@ Standards-Version: 3.9.4
 Package: libjitsi
 Architecture: i386 amd64
 Depends: ${misc:Depends},
+         libspeex1,
          default-jre | java6-runtime
 Recommends: ${java:Recommends}
 Description: VoIP and Instant Messaging client
