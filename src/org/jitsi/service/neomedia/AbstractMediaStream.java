@@ -18,6 +18,7 @@ package org.jitsi.service.neomedia;
 import java.beans.*;
 import java.util.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.format.*;
@@ -295,5 +296,23 @@ public abstract class AbstractMediaStream
     public Map<Long, MediaStreamTrack> getRemoteTracks()
     {
         return new HashMap<>();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isStartOfFrame(byte[] buf, int off, int len)
+    {
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public REDBlock getPayloadBlock(byte[] buf, int off, int len)
+    {
+        return null;
     }
 }

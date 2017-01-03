@@ -773,10 +773,27 @@ public class RawPacket
      */
     public static int getPayloadLength(byte[] buffer, int offset, int length)
     {
-        // FIXME The payload includes the padding at the end. Do we really want
-        // it though? We are currently keeping the implementation as it is for
-        // compatibility with existing code.
-        return length - getHeaderLength(buffer, offset, length);
+        return getPayloadLength(buffer, offset, length, false);
+    }
+
+    /**
+     * Get RTP payload length from a RTP packet
+     *
+     * @param buffer
+     * @param offset
+     * @param length
+     *
+     * @return RTP payload length from source RTP packet
+     */
+    public static int getPayloadLength(
+        byte[] buffer, int offset, int length, boolean removePadding)
+    {
+        int len = length - getHeaderLength(buffer, offset, length);
+        if (removePadding)
+        {
+            len -= getPaddingSize(buffer, offset, length);
+        }
+        return len;
     }
 
     /**
@@ -810,7 +827,7 @@ public class RawPacket
      */
     public byte getPayloadType()
     {
-        return getPayloadType(buffer, offset, length);
+        return (byte) getPayloadType(buffer, offset, length);
     }
 
     /**
@@ -818,9 +835,14 @@ public class RawPacket
      *
      * @return RTP payload type of source RTP packet
      */
-    public static Byte getPayloadType(byte[] buf, int off, int len)
+    public static int getPayloadType(byte[] buf, int off, int len)
     {
-        return (byte) (buf[off + 1] & (byte)0x7F);
+        if (buf == null || buf.length < off + len || len < 2)
+        {
+            return -1;
+        }
+
+        return (buf[off + 1] & 0x7F);
     }
 
     /**

@@ -16,6 +16,7 @@
 package org.jitsi.util;
 
 import java.lang.reflect.*;
+import java.util.*;
 
 /**
  *
@@ -65,5 +66,31 @@ public final class ArrayUtils
     /** Prevents the initialization of new {@code ArrayUtils} instances. */
     private ArrayUtils()
     {
+    }
+
+    /**
+     * Concatenates two arrays.
+     *
+     * @param first
+     * @param second
+     * @param <T>
+     * @return
+     */
+    public static <T> T[] concat(T[] first, T[] second)
+    {
+        if (first == null || first.length == 0)
+        {
+            return second;
+        }
+        else if (second == null || second.length == 0)
+        {
+            return first;
+        }
+        else
+        {
+            T[] result = Arrays.copyOf(first, first.length + second.length);
+            System.arraycopy(second, 0, result, first.length, second.length);
+            return result;
+        }
     }
 }
