@@ -16,6 +16,8 @@
 package org.jitsi.impl.neomedia;
 
 
+import org.jitsi.service.neomedia.*;
+
 /**
  * When using TransformConnector, a RTP/RTCP packet is represented using
  * RawPacket. RawPacket stores the buffer holding the RTP/RTCP packet, as well
@@ -39,6 +41,7 @@ package org.jitsi.impl.neomedia;
  * @author George Politis
  */
 public class RawPacket
+    implements ByteArrayBuffer
 {
     /**
      * The size of the extension header as defined by RFC 3550.
@@ -399,6 +402,7 @@ public class RawPacket
      *
      * @return buffer containing the content of this packet
      */
+    @Override
     public byte[] getBuffer()
     {
         return this.buffer;
@@ -659,6 +663,7 @@ public class RawPacket
      *
      * @return length of this packet's data
      */
+    @Override
     public int getLength()
     {
         return length;
@@ -693,6 +698,7 @@ public class RawPacket
      *
      * @return start offset of this packet's data inside storing buffer
      */
+    @Override
     public int getOffset()
     {
         return this.offset;
@@ -1061,6 +1067,19 @@ public class RawPacket
      * @return whether the RTP Marker bit is set
      */
     public boolean isPacketMarked()
+    {
+        return isPacketMarked(buffer, offset, length);
+    }
+
+    /**
+     * Test whether the RTP Marker bit is set
+     *
+     * @param buffer
+     * @param offset
+     * @param length
+     * @return true if the RTP Marker bit is set, false otherwise.
+     */
+    public static boolean isPacketMarked(byte[] buffer, int offset, int length)
     {
         return (buffer[offset + 1] & 0x80) != 0;
     }

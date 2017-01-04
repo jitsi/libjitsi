@@ -270,18 +270,6 @@ public interface MediaStream
     public List<Long> getRemoteSourceIDs();
 
     /**
-     * Returns a synchronized {@code Map<Long, MediaStreamTrack>} that maps the
-     * {@code MediaStreamTrack}s of the remote peer, as they're signaled by the
-     * remote peer, by the SSRCs of their {@code RTPEncoding}s. The signaling
-     * layer manages this map.
-     *
-     * @return a synchronized {@code Map<Long, MediaStreamTrack>} that maps the
-     * {@code MediaStreamTrack}s of the remote peer, as they're signaled by the
-     * remote peer, by the SSRCs of their {@code RTPEncoding}s.
-     */
-    public Map<Long, MediaStreamTrack> getRemoteTracks();
-
-    /**
      * Gets the {@code StreamRTPManager} which is to forward RTP and RTCP
      * traffic between this and other {@code MediaStream}s.
      *
@@ -585,4 +573,43 @@ public interface MediaStream
      *
      */
     boolean isStartOfFrame(byte[] buf, int off, int len);
+
+    /**
+     * Utility method that determines whether or not a packet is an end of
+     * frame.
+     *
+     * @param buf the buffer that holds the RTP payload.
+     * @param off the offset in the buff where the RTP payload is found.
+     * @param len then length of the RTP payload in the buffer.
+     *
+     * @return true if the packet is the end of a frame, false otherwise.
+     *
+     * FIXME(gp) conceptually this belongs to the {@link VideoMediaStream}, but
+     * I don't want to be obliged to cast to use this method.
+     *
+     */
+    public boolean isEndOfFrame(byte[] buf, int off, int len);
+
+    /**
+     * Utility method that determines the temporal layer index (TID) of an RTP
+     * packet.
+     *
+     * @param buf the buffer that holds the RTP payload.
+     * @param off the offset in the buff where the RTP payload is found.
+     * @param len then length of the RTP payload in the buffer.
+     *
+     * @return the TID of the packet, -1 otherwise.
+     *
+     * FIXME(gp) conceptually this belongs to the {@link VideoMediaStream}, but
+     * I don't want to be obliged to cast to use this method.
+     */
+    public int getTemporalID(byte[] buf, int off, int len);
+
+    /**
+     * Gets the {@link MediaStreamTrackReceiver} of this {@link MediaStream}.
+     *
+     * @return the {@link MediaStreamTrackReceiver} of this {@link MediaStream},
+     * or null.
+     */
+    public MediaStreamTrackReceiver getMediaStreamTrackReceiver();
 }

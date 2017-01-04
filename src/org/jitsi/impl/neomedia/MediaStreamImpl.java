@@ -241,12 +241,6 @@ public class MediaStreamImpl
     private final Vector<Long> remoteSourceIDs = new Vector<>(1, 1);
 
     /**
-     * The {@code MediaStreamTracks} of this {@code MediaStream}.
-     */
-    private Map<Long, MediaStreamTrack> remoteTracks
-        = Collections.synchronizedMap(new TreeMap<Long, MediaStreamTrack>());
-
-    /**
      * The <tt>RTPConnector</tt> through which this instance sends and receives
      * RTP and RTCP traffic. The instance is a <tt>TransformConnector</tt> in
      * order to also enable packet transformations.
@@ -1095,6 +1089,14 @@ public class MediaStreamImpl
         if (discardEngine != null)
             engineChain.add(discardEngine);
 
+        MediaStreamTrackReceiver mediaStreamTrackReceiver
+            = getMediaStreamTrackReceiver();
+
+        if (mediaStreamTrackReceiver != null)
+        {
+            engineChain.add(mediaStreamTrackReceiver);
+        }
+
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
 
@@ -1852,15 +1854,6 @@ public class MediaStreamImpl
          * prevent ConcurrentModificationException.
          */
         return Collections.unmodifiableList(remoteSourceIDs);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Map<Long, MediaStreamTrack> getRemoteTracks()
-    {
-        return remoteTracks;
     }
 
     /**
@@ -3674,6 +3667,33 @@ public class MediaStreamImpl
      * {@inheritDoc}
      */
     @Override
+    public int getTemporalID(byte[] buf, int off, int len)
+    {
+        REDBlock redBlock = getPayloadBlock(buf, off, len);
+        if (redBlock == null || redBlock.getLength() == 0)
+        {
+            return -1;
+        }
+
+        final byte vp8PT = getDynamicRTPPayloadType(Constants.VP8);
+
+        if (redBlock.getPayloadType() == vp8PT)
+        {
+            return org.jitsi.impl
+                .neomedia.codec.video.vp8.DePacketizer.VP8PayloadDescriptor
+                .getTemporalLayerIndex(
+                    buf, redBlock.getOffset(), redBlock.getLength());
+        }
+        else
+        {
+            return -1;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public boolean isStartOfFrame(byte[] buf, int off, int len)
     {
         REDBlock redBlock = getPayloadBlock(buf, off, len);
@@ -3694,6 +3714,16 @@ public class MediaStreamImpl
         {
             return false;
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isEndOfFrame(byte[] buf, int off, int len)
+    {
+        // XXX(gp) this probably won't work well with spatial scalability.
+        return RawPacket.isPacketMarked(buf, off, len);
     }
 
     /**

@@ -16,19 +16,31 @@
 package org.jitsi.service.neomedia;
 
 /**
- * Represents a collection of {@link RTPEncoding}s that encode the same media
- * source.
+ * A simple interface that encapsulates all the information needed for byte
+ * buffer access.
  *
  * @author George Politis
  */
-public interface MediaStreamTrack
+public interface ByteArrayBuffer
 {
     /**
-     * Returns an array of all the {@link RTPEncoding}s for this instance, in
-     * subjective quality ascending order.
+     * Gets the byte buffer that supports this instance.
      *
-     * @return an array of all the {@link RTPEncoding}s for this instance, in
-     * subjective quality ascending order.
+     * @return the byte buffer that supports this instance.
      */
-    RTPEncoding[] getRTPEncodings();
+    byte[] getBuffer();
+
+    /**
+     * Gets the offset in the byte buffer where the actual data starts.
+     *
+     * @return the offset in the byte buffer where the actual data starts.
+     */
+    int getOffset();
+
+    /**
+     * Gets the length of the data in the buffer.
+     *
+     * @return the length of the data in the buffer.
+     */
+    int getLength();
 }

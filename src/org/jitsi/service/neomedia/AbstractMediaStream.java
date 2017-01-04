@@ -293,15 +293,6 @@ public abstract class AbstractMediaStream
      * {@inheritDoc}
      */
     @Override
-    public Map<Long, MediaStreamTrack> getRemoteTracks()
-    {
-        return new HashMap<>();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public boolean isStartOfFrame(byte[] buf, int off, int len)
     {
         return false;
@@ -311,7 +302,34 @@ public abstract class AbstractMediaStream
      * {@inheritDoc}
      */
     @Override
+    public boolean isEndOfFrame(byte[] buf, int off, int len)
+    {
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getTemporalID(byte[] buf, int off, int len)
+    {
+        return -1;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public REDBlock getPayloadBlock(byte[] buf, int off, int len)
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MediaStreamTrackReceiver getMediaStreamTrackReceiver()
     {
         return null;
     }

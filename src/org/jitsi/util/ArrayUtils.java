@@ -93,4 +93,16 @@ public final class ArrayUtils
             return result;
         }
     }
+
+    /**
+     * Tests whether the array passed in as an argument is null or empty.
+     *
+     * @param array
+     * @param <T>
+     * @return
+     */
+    public static <T> boolean isNullOrEmpty(T[] array)
+    {
+        return array == null || array.length == 0;
+    }
 }
