@@ -406,15 +406,27 @@ public class RetransmissionRequesterImpl
                 Request r = requests.remove(seq);
                 if (r != null && logger.isDebugEnabled())
                 {
-                    long delta
-                        = System.currentTimeMillis() - r.firstRequestSentAt;
                     long rtt
                         = stream.getMediaStreamStats().getSendStats().getRtt();
+                    if (rtt > 0)
+                    {
 
-                    logger.debug(Logger.Category.STATISTICS,
-                                 "retr_received,stream=" + stream.hashCode() +
-                                    " delay=" + delta +
-                                    ",rtt=" + rtt);
+                        // firstRequestSentAt is if we created a Request, but
+                        // haven't yet sent a NACK. Assume a delta of 0 in that
+                        // case.
+                        long firstRequestSentAt = r.firstRequestSentAt;
+                        long delta
+                            = firstRequestSentAt > 0
+                                ? System.currentTimeMillis()
+                                        - r.firstRequestSentAt
+                                : 0;
+
+                        logger.debug(Logger.Category.STATISTICS,
+                                     "retr_received,stream=" + stream
+                                         .hashCode() +
+                                         " delay=" + delta +
+                                         ",rtt=" + rtt);
+                    }
                 }
             }
             else if (diff == 1)
