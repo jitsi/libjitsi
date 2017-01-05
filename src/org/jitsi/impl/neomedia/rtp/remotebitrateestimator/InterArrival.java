@@ -42,17 +42,7 @@ class InterArrival
      */
     private static boolean isNewerTimestamp(long timestamp, long prevTimestamp)
     {
-        // Distinguish between elements that are exactly 0x80000000 apart.
-        // If t1>t2 and |t1-t2| = 0x80000000: IsNewer(t1,t2)=true,
-        // IsNewer(t2,t1)=false
-        // rather than having IsNewer(t1,t2) = IsNewer(t2,t1) = false.
-        if (timestamp - prevTimestamp == 0x80000000L)
-        {
-            return timestamp > prevTimestamp;
-        }
-        return
-            timestamp != prevTimestamp
-                && timestamp - prevTimestamp < 0x80000000L;
+        return TimestampUtils.isNewerTimestamp(timestamp, prevTimestamp);
     }
 
     /**
@@ -64,8 +54,7 @@ class InterArrival
      */
     private static long latestTimestamp(long timestamp1, long timestamp2)
     {
-        return
-            isNewerTimestamp(timestamp1, timestamp2) ? timestamp1 : timestamp2;
+        return TimestampUtils.latestTimestamp(timestamp1, timestamp2);
     }
 
     private boolean burstGrouping;
@@ -254,7 +243,7 @@ class InterArrival
             // interval (32 bits) must be due to reordering. This code is almost
             // identical to that in isNewerTimestamp() in module_common_types.h.
             long timestampDiff
-                    = timestamp - currentTimestampGroup.firstTimestamp;
+                    = TimestampUtils.subtractAsUnsignedInt32(timestamp, currentTimestampGroup.firstTimestamp);
 
             return timestampDiff < 0x80000000L;
         }
