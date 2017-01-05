@@ -36,6 +36,7 @@ import org.jitsi.service.neomedia.stats.*;
  *
  * @author Emil Ivov
  * @author Lyubomir Marinov
+ * @author George Politis
  */
 public interface MediaStream
 {
@@ -185,6 +186,17 @@ public interface MediaStream
      * transmitting in.
      */
     public MediaFormat getFormat();
+
+    /**
+     * Returns the <tt>MediaFormat</tt> that is associated to the payload type
+     * passed in as a parameter.
+     *
+     * @param payloadType the payload type of the <tt>MediaFormat</tt> to get.
+     *
+     * @return the <tt>MediaFormat</tt> that is associated to the payload type
+     * passed in as a parameter.
+     */
+    public MediaFormat getFormat(byte payloadType);
 
     /**
      * Returns the synchronization source (SSRC) identifier of the local

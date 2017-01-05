@@ -28,6 +28,7 @@ import org.jitsi.service.neomedia.format.*;
  * implementation of the interface.
  *
  * @author Lyubomir Marinov
+ * @author George Politis
  */
 public abstract class AbstractMediaStream
     implements MediaStream
@@ -330,6 +331,15 @@ public abstract class AbstractMediaStream
      */
     @Override
     public MediaStreamTrackReceiver getMediaStreamTrackReceiver()
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MediaFormat getFormat(byte pt)
     {
         return null;
     }

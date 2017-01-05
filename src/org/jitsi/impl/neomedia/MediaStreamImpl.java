@@ -1528,6 +1528,18 @@ public class MediaStreamImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MediaFormat getFormat(byte pt)
+    {
+        synchronized (dynamicRTPPayloadTypes)
+        {
+            return dynamicRTPPayloadTypes.get(pt);
+        }
+    }
+
+    /**
      * Returns the list of CSRC identifiers for all parties currently known
      * to contribute to the media that this stream is sending toward its remote
      * counter part. In other words, the method returns the list of CSRC IDs
