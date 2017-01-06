@@ -58,17 +58,17 @@ public class MediaStreamTrackReceiver
     }
 
     /**
-     * Finds the {@link SourceFrameDesc} that matches the RTP packet specified
+     * Finds the {@link FrameDesc} that matches the RTP packet specified
      * in the {@link ByteArrayBuffer} that is passed in as an argument.
      *
      * @param buf the {@link ByteArrayBuffer} that specifies the
      * {@link RawPacket}.
      *
-     * @return the {@link SourceFrameDesc} that matches the RTP packet specified
+     * @return the {@link FrameDesc} that matches the RTP packet specified
      * in the {@link ByteArrayBuffer} that is passed in as an argument, or null
-     * if there is no matching {@link SourceFrameDesc}.
+     * if there is no matching {@link FrameDesc}.
      */
-    public SourceFrameDesc resolveFrameDesc(ByteArrayBuffer buf)
+    public FrameDesc resolveFrameDesc(ByteArrayBuffer buf)
     {
         if (buf == null)
         {
@@ -80,7 +80,7 @@ public class MediaStreamTrackReceiver
     }
 
     /**
-     * Finds the {@link SourceFrameDesc} that matches the RTP packet specified
+     * Finds the {@link FrameDesc} that matches the RTP packet specified
      * in the buffer passed in as an argument.
      *
      * @param buf the <tt>byte</tt> array that contains the RTP packet data.
@@ -88,11 +88,11 @@ public class MediaStreamTrackReceiver
      * @param len the number of <tt>byte</tt>s in <tt>buf</tt> which
      * constitute the actual data.
      *
-     * @return the {@link SourceFrameDesc} that matches the RTP packet specified
+     * @return the {@link FrameDesc} that matches the RTP packet specified
      * in the buffer passed in as a parameter, or null if there is no matching
-     * {@link SourceFrameDesc}.
+     * {@link FrameDesc}.
      */
-    public SourceFrameDesc resolveFrameDesc(byte[] buf, int off, int len)
+    public FrameDesc resolveFrameDesc(byte[] buf, int off, int len)
     {
         RTPEncodingImpl rtpEncoding = resolveRTPEncoding(buf, off, len);
         if (rtpEncoding == null)

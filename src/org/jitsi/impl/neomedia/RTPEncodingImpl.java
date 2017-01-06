@@ -71,11 +71,11 @@ public class RTPEncodingImpl
         = new RateStatistics(AVERAGE_BITRATE_WINDOW_MS);
 
     /**
-     * The {@link TreeMap} that holds the seen {@link SourceFrameDesc}, keyed
+     * The {@link TreeMap} that holds the seen {@link FrameDesc}, keyed
      * by their RTP timestamps.
      */
-    private final TreeMap<Long, SourceFrameDesc> frames
-        = new TreeMap<Long, SourceFrameDesc>()
+    private final TreeMap<Long, FrameDesc> frames
+        = new TreeMap<Long, FrameDesc>()
     {
         /**
          * A helper {@link LinkedList} that is used to cleanup the map.
@@ -86,9 +86,9 @@ public class RTPEncodingImpl
          * {@inheritDoc}
          */
         @Override
-        public SourceFrameDesc put(Long key, SourceFrameDesc value)
+        public FrameDesc put(Long key, FrameDesc value)
         {
-            SourceFrameDesc previous = super.put(key, value);
+            FrameDesc previous = super.put(key, value);
             if (tsl.add(key) && tsl.size() > 300)
             {
                 Long first = tsl.removeFirst();
@@ -302,21 +302,21 @@ public class RTPEncodingImpl
      * @param pkt
      * @param nowMs
      *
-     * @return the {@link SourceFrameDesc} that was updated, otherwise null.
+     * @return the {@link FrameDesc} that was updated, otherwise null.
      */
-    SourceFrameDesc update(RawPacket pkt, long nowMs)
+    FrameDesc update(RawPacket pkt, long nowMs)
     {
         // Update rate stats.
         rateStatistics.update(pkt.getLength(), nowMs);
 
         long ts = pkt.getTimestamp();
-        SourceFrameDesc frame = frames.get(ts);
+        FrameDesc frame = frames.get(ts);
 
         if (frame == null)
         {
             synchronized (frames)
             {
-                frames.put(ts, frame = new SourceFrameDesc(this, ts));
+                frames.put(ts, frame = new FrameDesc(this, ts));
             }
 
             // We measure the stable bitrate on every new frame.
@@ -330,12 +330,12 @@ public class RTPEncodingImpl
             // Frame boundaries heuristics.
 
             // Find the closest next frame.
-            Map.Entry<Long, SourceFrameDesc> ceilingEntry
+            Map.Entry<Long, FrameDesc> ceilingEntry
                 = frames.ceilingEntry((ts + 1) & 0xFFFFFFFFL);
 
             if (ceilingEntry != null)
             {
-                SourceFrameDesc ceilingFrame = ceilingEntry.getValue();
+                FrameDesc ceilingFrame = ceilingEntry.getValue();
 
                 // Make sure the frames are close enough, both in time and in
                 // sequence numbers.
@@ -358,12 +358,12 @@ public class RTPEncodingImpl
             }
 
             // Find the closest previous frame.
-            Map.Entry<Long, SourceFrameDesc> floorEntry
+            Map.Entry<Long, FrameDesc> floorEntry
                 = frames.floorEntry((ts - 1) & 0xFFFFFFFFL);
 
             if (floorEntry != null)
             {
-                SourceFrameDesc floorFrame = floorEntry.getValue();
+                FrameDesc floorFrame = floorEntry.getValue();
 
                 // Make sure the frames are close enough, both in time and in
                 // sequence numbers.
@@ -441,7 +441,7 @@ public class RTPEncodingImpl
     }
 
     /**
-     * Finds the {@link SourceFrameDesc} that matches the RTP packet specified
+     * Finds the {@link FrameDesc} that matches the RTP packet specified
      * in the buffer passed in as an argument.
      *
      * @param buf the <tt>byte</tt> array that contains the RTP packet data.
@@ -449,11 +449,11 @@ public class RTPEncodingImpl
      * @param len the number of <tt>byte</tt>s in <tt>buf</tt> which
      * constitute the actual data.
      *
-     * @return the {@link SourceFrameDesc} that matches the RTP packet specified
+     * @return the {@link FrameDesc} that matches the RTP packet specified
      * in the buffer passed in as a parameter, or null if there is no matching
-     * {@link SourceFrameDesc}.
+     * {@link FrameDesc}.
      */
-    public SourceFrameDesc resolveFrameDesc(byte[] buf, int off, int len)
+    public FrameDesc resolveFrameDesc(byte[] buf, int off, int len)
     {
         long ts = RawPacket.getTimestamp(buf, off, len);
         synchronized (frames)

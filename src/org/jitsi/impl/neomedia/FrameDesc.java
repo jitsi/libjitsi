@@ -22,10 +22,10 @@ import org.jitsi.util.*;
  *
  * @author George Politis
  */
-public class SourceFrameDesc
+public class FrameDesc
 {
     /**
-     * The {@link RTPEncodingImpl} that this {@link SourceFrameDesc} belongs to.
+     * The {@link RTPEncodingImpl} that this {@link FrameDesc} belongs to.
      */
     private final RTPEncodingImpl rtpEncoding;
 
@@ -67,7 +67,7 @@ public class SourceFrameDesc
      * to.
      * @param ts the RTP timestamp for this frame.
      */
-    SourceFrameDesc(RTPEncodingImpl rtpEncoding, long ts)
+    FrameDesc(RTPEncodingImpl rtpEncoding, long ts)
     {
         this.rtpEncoding = rtpEncoding;
         this.ts = ts;
@@ -156,10 +156,10 @@ public class SourceFrameDesc
     }
 
     /**
-     * Updates the state of this {@link SourceFrameDesc}.
+     * Updates the state of this {@link FrameDesc}.
      *
      * @param pkt the {@link RawPacket} that will be used to update the state of
-     * this {@link SourceFrameDesc}.
+     * this {@link FrameDesc}.
      * @return true if the state has changed, false otherwise.
      */
     boolean update(RawPacket pkt)

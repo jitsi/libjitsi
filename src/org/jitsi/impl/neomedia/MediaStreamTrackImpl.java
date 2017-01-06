@@ -98,9 +98,9 @@ public class MediaStreamTrackImpl
         long nowMs = System.currentTimeMillis();
 
         // Update the encoding.
-        SourceFrameDesc sourceFrameDesc = encoding.update(pkt, nowMs);
-        if (sourceFrameDesc == null /* no frame was changed */
-            || !sourceFrameDesc.isIndependent() /* frame is dependent */
+        FrameDesc frameDesc = encoding.update(pkt, nowMs);
+        if (frameDesc == null /* no frame was changed */
+            || !frameDesc.isIndependent() /* frame is dependent */
 
             // The webrtc engine is sending keyframes from high to low and less
             // often than 300 millis. The first keyframe that we observe after
