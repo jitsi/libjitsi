@@ -516,6 +516,10 @@ public class DePacketizer
             }
 
             int sz = getSize(buf, off);
+            if (buf.length < off + sz || sz < 1)
+            {
+                return -1;
+            }
 
             return (buf[off + sz - 1] & 0xc0) >> 6;
         }
