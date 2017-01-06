@@ -50,7 +50,7 @@ public class RTPEncodingImpl
     /**
      * The index of this instance in the track encodings array.
      */
-    private final int subjectiveQualityIdx;
+    private final int idx;
 
     /**
      * The temporal ID of this instance.
@@ -143,7 +143,7 @@ public class RTPEncodingImpl
      * Ctor.
      *
      * @param track the {@link MediaStreamTrack} that this instance belongs to.
-     * @param subjectiveQualityIdx the subjective quality index for this
+     * @param idx the subjective quality index for this
      * layering/encoding.
      * @param primarySSRC The primary SSRC for this layering/encoding.
      * @param rtxSSRC The RTX SSRC for this layering/encoding.
@@ -153,7 +153,7 @@ public class RTPEncodingImpl
      * layer depends.
      */
     public RTPEncodingImpl(
-        MediaStreamTrackImpl track, int subjectiveQualityIdx,
+        MediaStreamTrackImpl track, int idx,
         long primarySSRC, long rtxSSRC,
         int temporalId,
         RTPEncodingImpl[] dependencyEncodings)
@@ -161,7 +161,7 @@ public class RTPEncodingImpl
         this.primarySSRC = primarySSRC;
         this.rtxSSRC = rtxSSRC;
         this.track = track;
-        this.subjectiveQualityIdx = subjectiveQualityIdx;
+        this.idx = idx;
         this.temporalId = temporalId;
         this.dependencyEncodings = dependencyEncodings;
     }
@@ -199,7 +199,7 @@ public class RTPEncodingImpl
     @Override
     public String toString()
     {
-        return "subjective_quality=" + subjectiveQualityIdx +
+        return "subjective_quality=" + idx +
             ",primary_ssrc=" + getPrimarySSRC() +
             ",rtx_ssrc=" + getRTXSSRC() +
             ",temporal_id=" + temporalId +
@@ -223,7 +223,7 @@ public class RTPEncodingImpl
      */
     int getIndex()
     {
-        return subjectiveQualityIdx;
+        return idx;
     }
 
     /**
@@ -231,7 +231,7 @@ public class RTPEncodingImpl
      * {@link RTPEncodingImpl} depends on the subjective quality index that is
      * passed as an argument.
      *
-     * @param idx
+     * @param idx the index of this instance in the track encodings array.
      * @return true if this {@link RTPEncodingImpl} depends on the subjective
      * quality index that is passed as an argument, false otherwise.
      */
@@ -242,7 +242,7 @@ public class RTPEncodingImpl
             return false;
         }
 
-        if (idx == this.subjectiveQualityIdx)
+        if (idx == this.idx)
         {
             return true;
         }
@@ -415,9 +415,9 @@ public class RTPEncodingImpl
      */
     private void getBitrateBps(long nowMs, long[] rates)
     {
-        if (rates[subjectiveQualityIdx] == 0)
+        if (rates[idx] == 0)
         {
-            rates[subjectiveQualityIdx] = rateStatistics.getRate(nowMs);
+            rates[idx] = rateStatistics.getRate(nowMs);
         }
 
         if (!ArrayUtils.isNullOrEmpty(dependencyEncodings))
