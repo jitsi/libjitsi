@@ -3703,7 +3703,9 @@ public class MediaStreamImpl
             return org.jitsi.impl
                 .neomedia.codec.video.vp8.DePacketizer.VP8PayloadDescriptor
                 .getTemporalLayerIndex(
-                    buf, redBlock.getOffset(), redBlock.getLength());
+                    redBlock.getBuffer(),
+                    redBlock.getOffset(),
+                    redBlock.getLength());
         }
         else
         {
@@ -3739,7 +3741,7 @@ public class MediaStreamImpl
         {
             return org.jitsi.impl
                 .neomedia.codec.video.vp8.DePacketizer.VP8PayloadDescriptor
-                .isStartOfFrame(buf, redBlock.getOffset());
+                .isStartOfFrame(redBlock.getBuffer(), redBlock.getOffset());
         }
         else
         {
@@ -3789,7 +3791,10 @@ public class MediaStreamImpl
         else if (redBlock.getPayloadType() == h264PT)
         {
             return org.jitsi.impl.neomedia.codec.video.h264.DePacketizer
-                .isKeyFrame(buf, redBlock.getOffset(), redBlock.getLength());
+                .isKeyFrame(
+                    redBlock.getBuffer(),
+                    redBlock.getOffset(),
+                    redBlock.getLength());
         }
         else
         {
@@ -3853,7 +3858,7 @@ public class MediaStreamImpl
             final int payloadOff = RawPacket.getPayloadOffset(buf, off, len),
                 payloadLen = RawPacket.getPayloadLength(buf, off, len, true);
 
-            return new REDBlock(payloadOff, payloadLen, pktPT);
+            return new REDBlock(buf, payloadOff, payloadLen, pktPT);
         }
     }
 
