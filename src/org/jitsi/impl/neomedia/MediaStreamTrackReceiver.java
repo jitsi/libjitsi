@@ -29,9 +29,9 @@ public class MediaStreamTrackReceiver
     implements TransformEngine
 {
     /**
-     * The {@link MediaStream} that owns this instance.
+     * The {@link MediaStreamImpl} that owns this instance.
      */
-    private final MediaStream stream;
+    private final MediaStreamImpl stream;
 
     /**
      * The {@link PacketTransformer} that transforms RTP packets for this
@@ -52,9 +52,55 @@ public class MediaStreamTrackReceiver
      * @param stream The {@link MediaStream} that this instance receives
      * {@link MediaStreamTrack}s from.
      */
-    public MediaStreamTrackReceiver(MediaStream stream)
+    public MediaStreamTrackReceiver(MediaStreamImpl stream)
     {
         this.stream = stream;
+    }
+
+    /**
+     * Finds the {@link SourceFrameDesc} that matches the RTP packet specified
+     * in the {@link ByteArrayBuffer} that is passed in as an argument.
+     *
+     * @param buf the {@link ByteArrayBuffer} that specifies the
+     * {@link RawPacket}.
+     *
+     * @return the {@link SourceFrameDesc} that matches the RTP packet specified
+     * in the {@link ByteArrayBuffer} that is passed in as an argument, or null
+     * if there is no matching {@link SourceFrameDesc}.
+     */
+    public SourceFrameDesc resolveFrameDesc(ByteArrayBuffer buf)
+    {
+        if (buf == null)
+        {
+            return null;
+        }
+
+        return resolveFrameDesc(
+            buf.getBuffer(), buf.getOffset(), buf.getLength());
+    }
+
+    /**
+     * Finds the {@link SourceFrameDesc} that matches the RTP packet specified
+     * in the buffer passed in as an argument.
+     *
+     * @param buf the <tt>byte</tt> array that contains the RTP packet data.
+     * @param off the offset in <tt>buf</tt> at which the actual data starts.
+     * @param len the number of <tt>byte</tt>s in <tt>buf</tt> which
+     * constitute the actual data.
+     *
+     * @return the {@link SourceFrameDesc} that matches the RTP packet specified
+     * in the buffer passed in as a parameter, or null if there is no matching
+     * {@link SourceFrameDesc}.
+     */
+    public SourceFrameDesc resolveFrameDesc(byte[] buf, int off, int len)
+    {
+        RTPEncodingImpl rtpEncoding = resolveRTPEncoding(buf, off, len);
+        if (rtpEncoding == null)
+        {
+            return null;
+        }
+
+        return rtpEncoding.resolveFrameDesc(buf, off, len);
     }
 
     /**
@@ -82,8 +128,10 @@ public class MediaStreamTrackReceiver
      * Finds the {@link RTPEncoding} that matches {@link ByteArrayBuffer} passed
      * in as a parameter.
      *
-     * @param buf the byte buffer of the {@link RTPEncoding}
-     * to match.
+     * @param buf the <tt>byte</tt> array that contains the RTP packet data.
+     * @param off the offset in <tt>buf</tt> at which the actual data starts.
+     * @param len the number of <tt>byte</tt>s in <tt>buf</tt> which
+     * constitute the actual data.
      *
      * @return the {@link RTPEncoding} that matches the pkt passed in as
      * a parameter, or null if there is no matching {@link RTPEncoding}.
@@ -204,7 +252,7 @@ public class MediaStreamTrackReceiver
      *
      * @return the {@code RtpChannel} that owns this instance.
      */
-    MediaStream getStream()
+    MediaStreamImpl getStream()
     {
         return stream;
     }

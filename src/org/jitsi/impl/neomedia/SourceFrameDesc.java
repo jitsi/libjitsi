@@ -15,7 +15,6 @@
  */
 package org.jitsi.impl.neomedia;
 
-import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -23,7 +22,7 @@ import org.jitsi.util.*;
  *
  * @author George Politis
  */
-class SourceFrameDesc
+public class SourceFrameDesc
 {
     /**
      * The {@link RTPEncodingImpl} that this {@link SourceFrameDesc} belongs to.
@@ -92,7 +91,7 @@ class SourceFrameDesc
      *
      * @return the start sequence number for this source frame.
      */
-    int getStart()
+    public int getStart()
     {
         return start;
     }
@@ -163,7 +162,7 @@ class SourceFrameDesc
             maxSeen = seqNum;
         }
 
-        MediaStream stream = rtpEncoding.getMediaStreamTrack()
+        MediaStreamImpl stream = rtpEncoding.getMediaStreamTrack()
             .getMediaStreamTrackReceiver().getStream();
 
         byte[] buf = pkt.getBuffer();

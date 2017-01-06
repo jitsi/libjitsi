@@ -326,7 +326,10 @@ public class RTPEncodingImpl
         boolean seen = frame != null;
         if (!seen)
         {
-            frames.put(ts, frame = new SourceFrameDesc(this));
+            synchronized (frames)
+            {
+                frames.put(ts, frame = new SourceFrameDesc(this));
+            }
 
             // We measure the stable bitrate on every new frame.
             lastStableBitrateBps = getBitrateBps(nowMs);
@@ -409,5 +412,27 @@ public class RTPEncodingImpl
         }
 
         return bitrateBps;
+    }
+
+    /**
+     * Finds the {@link SourceFrameDesc} that matches the RTP packet specified
+     * in the buffer passed in as an argument.
+     *
+     * @param buf the <tt>byte</tt> array that contains the RTP packet data.
+     * @param off the offset in <tt>buf</tt> at which the actual data starts.
+     * @param len the number of <tt>byte</tt>s in <tt>buf</tt> which
+     * constitute the actual data.
+     *
+     * @return the {@link SourceFrameDesc} that matches the RTP packet specified
+     * in the buffer passed in as a parameter, or null if there is no matching
+     * {@link SourceFrameDesc}.
+     */
+    public SourceFrameDesc resolveFrameDesc(byte[] buf, int off, int len)
+    {
+        long ts = RawPacket.getTimestamp(buf, off, len);
+        synchronized (frames)
+        {
+            return frames.get(ts);
+        }
     }
 }

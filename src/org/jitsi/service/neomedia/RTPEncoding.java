@@ -53,11 +53,13 @@ public interface RTPEncoding
     MediaStreamTrack getMediaStreamTrack();
 
     /**
+     * Gets a boolean indicating whether or not the packet specified in the
+     * arguments matches this encoding or not.
      *
-     * @param buf
-     * @param off
-     * @param len
-     * @return
+     * @param buf the <tt>byte</tt> array that contains the RTP packet data.
+     * @param off the offset in <tt>buf</tt> at which the actual data starts.
+     * @param len the number of <tt>byte</tt>s in <tt>buf</tt> which
+     * constitute the actual data.
      */
     boolean matches(byte[] buf, int off, int len);
 }

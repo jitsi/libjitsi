@@ -571,53 +571,6 @@ public interface MediaStream
     public REDBlock getPayloadBlock(byte[] buf, int off, int len);
 
     /**
-     * Utility method that determines whether or not a packet is a start of
-     * frame.
-     *
-     * @param buf the buffer that holds the RTP payload.
-     * @param off the offset in the buff where the RTP payload is found.
-     * @param len then length of the RTP payload in the buffer.
-     *
-     * @return true if the packet is the start of a frame, false otherwise.
-     *
-     * FIXME(gp) conceptually this belongs to the {@link VideoMediaStream}, but
-     * I don't want to be obliged to cast to use this method.
-     *
-     */
-    boolean isStartOfFrame(byte[] buf, int off, int len);
-
-    /**
-     * Utility method that determines whether or not a packet is an end of
-     * frame.
-     *
-     * @param buf the buffer that holds the RTP payload.
-     * @param off the offset in the buff where the RTP payload is found.
-     * @param len then length of the RTP payload in the buffer.
-     *
-     * @return true if the packet is the end of a frame, false otherwise.
-     *
-     * FIXME(gp) conceptually this belongs to the {@link VideoMediaStream}, but
-     * I don't want to be obliged to cast to use this method.
-     *
-     */
-    public boolean isEndOfFrame(byte[] buf, int off, int len);
-
-    /**
-     * Utility method that determines the temporal layer index (TID) of an RTP
-     * packet.
-     *
-     * @param buf the buffer that holds the RTP payload.
-     * @param off the offset in the buff where the RTP payload is found.
-     * @param len then length of the RTP payload in the buffer.
-     *
-     * @return the TID of the packet, -1 otherwise.
-     *
-     * FIXME(gp) conceptually this belongs to the {@link VideoMediaStream}, but
-     * I don't want to be obliged to cast to use this method.
-     */
-    public int getTemporalID(byte[] buf, int off, int len);
-
-    /**
      * Gets the {@link MediaStreamTrackReceiver} of this {@link MediaStream}.
      *
      * @return the {@link MediaStreamTrackReceiver} of this {@link MediaStream},
