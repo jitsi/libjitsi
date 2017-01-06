@@ -148,8 +148,7 @@ public class RTPEncodingImpl
      * layering/encoding.
      * @param primarySSRC The primary SSRC for this layering/encoding.
      * @param rtxSSRC The RTX SSRC for this layering/encoding.
-     * @param temporalId The inverse of the input framerate fraction to be
-     * encoded.
+     * @param temporalId temporal layer ID for this layering/encoding.
      * @param dependencyEncodings  The {@link RTPEncodingImpl} on which this
      * layer depends.
      */
