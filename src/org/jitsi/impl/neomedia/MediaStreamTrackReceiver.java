@@ -195,12 +195,13 @@ public class MediaStreamTrackReceiver
      * @param newTracks the {@link MediaStreamTrack}s that this instance will
      * receive.
      */
-    public synchronized boolean setMediaStreamTracks(
+    public boolean setMediaStreamTracks(
         MediaStreamTrackImpl[] newTracks)
     {
         boolean changed = false;
 
-        int tracksLen = tracks == null ? 0 : tracks.length;
+        MediaStreamTrackImpl[] oldTracks = tracks;
+        int tracksLen = oldTracks == null ? 0 : oldTracks.length;
         int newTracksLen = newTracks == null ? 0 : newTracks.length;
 
         if (tracksLen == 0 || newTracksLen == 0)
@@ -220,7 +221,7 @@ public class MediaStreamTrackReceiver
                 RTPEncodingImpl newEncoding = newTrack.getRTPEncodings()[0];
 
                 RTPEncodingImpl oldEncoding = null;
-                for (MediaStreamTrackImpl mst : tracks)
+                for (MediaStreamTrackImpl mst : oldTracks)
                 {
                     if (newEncoding.getPrimarySSRC()
                         == mst.getRTPEncodings()[0].getPrimarySSRC())
