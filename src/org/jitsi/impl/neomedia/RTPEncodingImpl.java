@@ -323,8 +323,7 @@ public class RTPEncodingImpl
         long ts = pkt.getTimestamp();
         SourceFrameDesc frame = frames.get(ts);
 
-        boolean seen = frame != null;
-        if (!seen)
+        if (frame == null)
         {
             synchronized (frames)
             {
