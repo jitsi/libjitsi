@@ -389,17 +389,44 @@ public class RTPEncodingImpl
      */
     private long getBitrateBps(long nowMs)
     {
-        long bitrateBps = rateStatistics.getRate(nowMs);
+        RTPEncodingImpl[] encodings = track.getRTPEncodings();
+        if (ArrayUtils.isNullOrEmpty(encodings))
+        {
+            return 0;
+        }
+
+        long[] rates = new long[encodings.length];
+        getBitrateBps(nowMs, rates);
+
+        long bitrate = 0;
+        for (int i = 0; i < rates.length; i++)
+        {
+            bitrate += rates[i];
+        }
+
+        return bitrate;
+    }
+
+    /**
+     * Recursively adds the bitrate (in bps) of this {@link RTPEncodingImpl} and
+     * its dependencies in the array passed in as an argument.
+     *
+     * @param nowMs
+     */
+    private void getBitrateBps(long nowMs, long[] rates)
+    {
+        if (rates[subjectiveQualityIdx] == 0)
+        {
+            rates[subjectiveQualityIdx] = rateStatistics.getRate(nowMs);
+        }
 
         if (!ArrayUtils.isNullOrEmpty(dependencyEncodings))
         {
             for (RTPEncodingImpl dependency : dependencyEncodings)
             {
-                bitrateBps += dependency.getBitrateBps(nowMs);
+                dependency.getBitrateBps(nowMs, rates);
             }
         }
-
-        return bitrateBps;
     }
 
     /**
