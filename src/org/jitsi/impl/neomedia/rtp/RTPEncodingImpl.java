@@ -138,7 +138,7 @@ public class RTPEncodingImpl
         MediaStreamTrackImpl track, long primarySSRC, long rtxSSRC)
     {
         this(track, 0, primarySSRC, rtxSSRC,
-            0 /* temporalId */, null /* dependencies */);
+            -1 /* temporalId */, null /* dependencies */);
     }
 
     /**
@@ -279,11 +279,15 @@ public class RTPEncodingImpl
             return false;
         }
 
+        if (temporalId == -1)
+        {
+            return true;
+        }
+
         int tid = track.getMediaStreamTrackReceiver()
             .getStream().getTemporalID(buf, off, len);
 
-        return (tid == -1 && ArrayUtils.isNullOrEmpty(dependencyEncodings))
-                || tid == temporalId;
+        return tid == temporalId;
     }
 
     /**
