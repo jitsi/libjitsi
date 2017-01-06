@@ -104,6 +104,24 @@ public class RawPacket
     }
 
     /**
+     * Test whether the RTP Marker bit is set
+     *
+     * @param buffer
+     * @param offset
+     * @param length
+     * @return true if the RTP Marker bit is set, false otherwise.
+     */
+    public static boolean isPacketMarked(byte[] buffer, int offset, int length)
+    {
+        if (buffer == null || buffer.length < offset + length || length < 2)
+        {
+            return false;
+        }
+
+        return (buffer[offset + 1] & 0x80) != 0;
+    }
+
+    /**
      * Adds the <tt>extBuff</tt> buffer as an extension of this packet
      * according the rules specified in RFC 5285. Note that this method does
      * not replace extensions so if you add the same buffer twice it would be
@@ -1069,19 +1087,6 @@ public class RawPacket
     public boolean isPacketMarked()
     {
         return isPacketMarked(buffer, offset, length);
-    }
-
-    /**
-     * Test whether the RTP Marker bit is set
-     *
-     * @param buffer
-     * @param offset
-     * @param length
-     * @return true if the RTP Marker bit is set, false otherwise.
-     */
-    public static boolean isPacketMarked(byte[] buffer, int offset, int length)
-    {
-        return (buffer[offset + 1] & 0x80) != 0;
     }
 
     /**
