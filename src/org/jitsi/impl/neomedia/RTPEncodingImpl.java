@@ -104,11 +104,6 @@ public class RTPEncodingImpl
     private final RTPEncodingImpl[] dependencyEncodings;
 
     /**
-     * A cache of the dependencies of this {@link RTPEncoding}.
-     */
-    private final Map<Integer, Boolean> dependencyCache = new TreeMap<>();
-
-    /**
      * A boolean flag that indicates whether or not this instance is streaming
      * or if it's suspended.
      */
@@ -252,25 +247,19 @@ public class RTPEncodingImpl
             return true;
         }
 
-        Boolean requires = dependencyCache.get(idx);
 
-        if (requires == null)
+        boolean requires = false;
+
+        if (!ArrayUtils.isNullOrEmpty(dependencyEncodings))
         {
-            requires = false;
-
-            if (!ArrayUtils.isNullOrEmpty(dependencyEncodings))
+            for (RTPEncodingImpl enc : dependencyEncodings)
             {
-                for (RTPEncodingImpl enc : dependencyEncodings)
+                if (enc.requires(idx))
                 {
-                    if (enc.requires(idx))
-                    {
-                        requires = true;
-                        break;
-                    }
+                    requires = true;
+                    break;
                 }
             }
-
-            dependencyCache.put(idx, requires);
         }
 
         return requires;
