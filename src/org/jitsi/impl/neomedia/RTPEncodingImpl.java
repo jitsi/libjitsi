@@ -71,7 +71,8 @@ public class RTPEncodingImpl
         = new RateStatistics(AVERAGE_BITRATE_WINDOW_MS);
 
     /**
-     * The {@link TreeMap} that holds the seen {@link SourceFrameDesc}.
+     * The {@link TreeMap} that holds the seen {@link SourceFrameDesc}, keyed
+     * by their RTP timestamps.
      */
     private final TreeMap<Long, SourceFrameDesc> frames
         = new TreeMap<Long, SourceFrameDesc>()
