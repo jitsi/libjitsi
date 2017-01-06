@@ -317,7 +317,7 @@ public class RTPEncodingImpl
         {
             synchronized (frames)
             {
-                frames.put(ts, frame = new SourceFrameDesc(this));
+                frames.put(ts, frame = new SourceFrameDesc(this, ts));
             }
 
             // We measure the stable bitrate on every new frame.
@@ -337,17 +337,23 @@ public class RTPEncodingImpl
             if (ceilingEntry != null)
             {
                 SourceFrameDesc ceilingFrame = ceilingEntry.getValue();
-                if (ceilingFrame.getStart() != -1 || frame.getEnd() != -1)
+
+                // Make sure the frames are close enough, both in time and in
+                // sequence numbers.
+                long tsDiff = (ceilingFrame.getTimestamp() - ts) & 0xFFFFFFFFL;
+
+                if (tsDiff < (1L<<31)
+                    && (ceilingFrame.getStart() != -1 || frame.getEnd() != -1))
                 {
-                    int diff = RTPUtils.sequenceNumberDiff(
-                        ceilingFrame.getMinSeen(), frame.getMaxSeen());
+                    int minSeen = ceilingFrame.getMinSeen();
+                    int maxSeen = frame.getMaxSeen();
+                    int snDiff = (minSeen - maxSeen) & 0xFFFF;
 
                     // We can deal with distances that are less than 3.
-                    if (Math.abs(diff) < 3)
+                    if (snDiff < 3)
                     {
-                        frame.setEnd((frame.getMaxSeen() + 1) & 0xFFFF);
-                        ceilingFrame.setStart(
-                            (ceilingFrame.getMinSeen() - 1) & 0xFFFF);
+                        frame.setEnd((maxSeen + 1) & 0xFFFF);
+                        ceilingFrame.setStart((minSeen - 1) & 0xFFFF);
                     }
                 }
             }
@@ -359,18 +365,23 @@ public class RTPEncodingImpl
             if (floorEntry != null)
             {
                 SourceFrameDesc floorFrame = floorEntry.getValue();
-                if (floorFrame.getEnd() != -1 || frame.getStart() != -1)
+
+                // Make sure the frames are close enough, both in time and in
+                // sequence numbers.
+                long tsDiff = (floorFrame.getTimestamp() - ts) & 0xFFFFFFFFL;
+
+                if (tsDiff < (1L<<31)
+                    && (floorFrame.getEnd() != -1 || frame.getStart() != -1))
                 {
-                    int diff = RTPUtils.sequenceNumberDiff(
-                        frame.getMinSeen(), floorFrame.getMaxSeen());
+                    int minSeen = frame.getMinSeen();
+                    int maxSeen = floorFrame.getMaxSeen();
+                    int snDiff = (minSeen - maxSeen) & 0xFFFF;
 
                     // We can deal with distances that are less than 3.
-                    if (Math.abs(diff) < 3)
+                    if (snDiff < 3)
                     {
-                        frame.setStart(
-                            (frame.getMinSeen() - 1) & 0xFFFF);
-                        floorFrame.setEnd(
-                            (floorFrame.getMaxSeen() + 1) & 0xFFFF);
+                        frame.setStart((minSeen - 1) & 0xFFFF);
+                        floorFrame.setEnd((maxSeen + 1) & 0xFFFF);
                     }
                 }
             }

@@ -30,6 +30,11 @@ public class SourceFrameDesc
     private final RTPEncodingImpl rtpEncoding;
 
     /**
+     * The RTP timestamp of this frame.
+     */
+    private final long ts;
+
+    /**
      * A boolean indicating whether or not this frame is independent or not
      * (e.g. VP8 key frame).
      */
@@ -60,10 +65,22 @@ public class SourceFrameDesc
      *
      * @param rtpEncoding the {@link RTPEncodingImpl} that this instance belongs
      * to.
+     * @param ts the RTP timestamp for this frame.
      */
-    SourceFrameDesc(RTPEncodingImpl rtpEncoding)
+    SourceFrameDesc(RTPEncodingImpl rtpEncoding, long ts)
     {
         this.rtpEncoding = rtpEncoding;
+        this.ts = ts;
+    }
+
+    /**
+     * Gets the RTP timestamp for this frame.
+     *
+     * @return the RTP timestamp for this frame.
+     */
+    long getTimestamp()
+    {
+        return ts;
     }
 
     /**
