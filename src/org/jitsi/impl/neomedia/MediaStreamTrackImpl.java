@@ -18,7 +18,8 @@ package org.jitsi.impl.neomedia;
 import org.jitsi.service.neomedia.*;
 
 /**
- * The JVB implementation of a {@link MediaStreamTrack}.
+ * An implementation of a {@link MediaStreamTrack} that provides webrtc
+ * simulcast stream suspension detection.
  *
  * @author George Politis
  */
@@ -100,6 +101,11 @@ public class MediaStreamTrackImpl
         SourceFrameDesc sourceFrameDesc = encoding.update(pkt, nowMs);
         if (sourceFrameDesc == null /* no frame was changed */
             || !sourceFrameDesc.isIndependent() /* frame is dependent */
+
+            // The webrtc engine is sending keyframes from high to low and less
+            // often than 300 millis. The first keyframe that we observe after
+            // we've waited for that long determines the streams that are
+            // streaming (not suspended).
             || nowMs - lastKeyframeMs < MIN_KEY_FRAME_WAIT_MS)
         {
             return;
