@@ -356,8 +356,15 @@ public class RTPEncodingImpl
                     // We can deal with distances that are less than 3.
                     if (snDiff < 3)
                     {
-                        frame.setEnd((maxSeen + 1) & 0xFFFF);
-                        ceilingFrame.setStart((minSeen - 1) & 0xFFFF);
+                        if (frame.getEnd() == -1)
+                        {
+                            frame.setEnd((maxSeen + 1) & 0xFFFF);
+                        }
+
+                        if (ceilingFrame.getStart() == -1)
+                        {
+                            ceilingFrame.setStart((minSeen - 1) & 0xFFFF);
+                        }
                     }
                 }
             }
@@ -384,8 +391,15 @@ public class RTPEncodingImpl
                     // We can deal with distances that are less than 3.
                     if (snDiff < 3)
                     {
-                        frame.setStart((minSeen - 1) & 0xFFFF);
-                        floorFrame.setEnd((maxSeen + 1) & 0xFFFF);
+                        if (frame.getStart() == -1)
+                        {
+                            frame.setStart((minSeen - 1) & 0xFFFF);
+                        }
+
+                        if (floorFrame.getEnd() == -1)
+                        {
+                            floorFrame.setEnd((maxSeen + 1) & 0xFFFF);
+                        }
                     }
                 }
             }
