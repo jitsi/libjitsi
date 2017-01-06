@@ -343,7 +343,7 @@ public class RTPEncodingImpl
 
             // Find the closest next frame.
             Map.Entry<Long, SourceFrameDesc> ceilingEntry
-                = frames.ceilingEntry((ts + 1) & 0xFFFFFFFF);
+                = frames.ceilingEntry((ts + 1) & 0xFFFFFFFFL);
 
             if (ceilingEntry != null)
             {
@@ -365,7 +365,7 @@ public class RTPEncodingImpl
 
             // Find the closest previous frame.
             Map.Entry<Long, SourceFrameDesc> floorEntry
-                = frames.floorEntry((ts - 1) & 0xFFFFFFFF);
+                = frames.floorEntry((ts - 1) & 0xFFFFFFFFL);
 
             if (floorEntry != null)
             {
