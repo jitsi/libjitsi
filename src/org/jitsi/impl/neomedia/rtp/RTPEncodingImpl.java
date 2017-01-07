@@ -362,7 +362,7 @@ public class RTPEncodingImpl
         int tid = track.getMediaStreamTrackReceiver()
             .getStream().getTemporalID(buf, off, len);
 
-        return tid == temporalId;
+        return tid == -1 && idx == 0 || tid == temporalId;
     }
 
     /**
