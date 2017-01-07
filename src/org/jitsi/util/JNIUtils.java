@@ -17,6 +17,7 @@ package org.jitsi.util;
 
 import com.sun.jna.*;
 import java.io.*;
+import java.lang.reflect.*;
 import java.util.regex.*;
 
 /**
@@ -36,9 +37,46 @@ public final class JNIUtils
 
     public static void loadLibrary(String libname, ClassLoader classLoader)
     {
+        loadLibrary(libname, null, classLoader);
+    }
+
+    public static void loadLibrary(String libname, Class clazz)
+    {
+        loadLibrary(libname, clazz, clazz.getClassLoader());
+    }
+
+    private static void loadLibrary(String libname, Class clazz,
+        ClassLoader classLoader)
+    {
         try
         {
-            System.loadLibrary(libname);
+            if (clazz == null)
+            {
+                System.loadLibrary(libname);
+                return;
+            }
+
+            // Hack so that the native library is loaded into the ClassLoader
+            // that called this method, and not into the ClassLoader where
+            // this code resides. This is necessary for true OSGi environments.
+            try
+            {
+                Method loadLibrary0 = Runtime
+                    .getRuntime()
+                    .getClass()
+                    .getDeclaredMethod("loadLibrary0",
+                        Class.class, String.class);
+                loadLibrary0.setAccessible(true);
+                loadLibrary0.invoke(Runtime.getRuntime(), clazz, libname);
+            }
+            catch (NoSuchMethodException
+                | SecurityException
+                | IllegalAccessException
+                | IllegalArgumentException
+                | InvocationTargetException e)
+            {
+                System.loadLibrary(libname);
+            }
         }
         catch (UnsatisfiedLinkError ulerr)
         {
