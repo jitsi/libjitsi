@@ -19,6 +19,7 @@ import org.ice4j.util.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.util.Logger;
 
 import java.util.*;
 
@@ -31,6 +32,13 @@ import java.util.*;
 public class RTPEncodingImpl
     implements RTPEncoding
 {
+    /**
+     * The {@link Logger} used by the {@link RTPEncodingImpl} class to print
+     * debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(RTPEncodingImpl.class);
+
     /**
      * The default window size in ms for the bitrate estimation.
      *
@@ -190,35 +198,46 @@ public class RTPEncodingImpl
             // less than half the timestamp space.
             return;
         }
-
-        int min = b.getMinSeen(), max = a.getMaxSeen();
-        int snDiff = (max - min) & 0xFFFF;
-
-        if (start != -1 || end != -1)
+        else if (tsDiff >= (-(1L << 30) & 0xFFFFFFFFL))
         {
-            // We can deal with sequence number distances (mod 16) that are
-            // less than 3.
-            if (snDiff < 3 || snDiff > (-3 & 0xFFFF))
-            {
-                if (end == -1)
-                {
-                    a.setEnd((max + 1) & 0xFFFF);
-                }
-
-                if (start == -1)
-                {
-                    b.setStart((min - 1) & 0xFFFF);
-                }
-            }
+            logger.warn("Frames that are out of order detected.");
         }
         else
         {
-            // We can deal with sequence number distances (mod 16) that are
-            // less than 4.
-            if (snDiff < 4 || snDiff > (-4 & 0xFFFF))
+            int min = b.getMinSeen(), max = a.getMaxSeen();
+            int snDiff = (max - min) & 0xFFFF;
+
+            if (start != -1 || end != -1)
             {
-                a.setEnd((max + 1) & 0xFFFF);
-                b.setStart((min - 1) & 0xFFFF);
+                if (snDiff == 2)
+                {
+                    if (end == -1)
+                    {
+                        a.setEnd((max + 1) & 0xFFFF);
+                    }
+                    else
+                    {
+                        b.setStart((min - 1) & 0xFFFF);
+                    }
+                }
+                else if (snDiff < 2 || snDiff > (-3 & 0xFFFF))
+                {
+                    logger.warn("Frame corruption or packets that are out of " +
+                        "order detected.");
+                }
+            }
+            else
+            {
+                if (snDiff == 3)
+                {
+                    a.setEnd((max + 1) & 0xFFFF);
+                    b.setStart((min - 1) & 0xFFFF);
+                }
+                else if (snDiff < 3 || snDiff > (-4 & 0xFFFF))
+                {
+                    logger.warn("Frame corruption or packets that are out of" +
+                        " order detected.");
+                }
             }
         }
     }
