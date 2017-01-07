@@ -168,6 +168,62 @@ public class RTPEncodingImpl
     }
 
     /**
+     * Applies frame boundaries heuristics to frames a and b, assuming a
+     * predates/is older than b.
+     *
+     * @param a the old {@link FrameDesc}.
+     * @param b the new {@link FrameDesc}
+     */
+    private static void applyFrameBoundsHeuristics(FrameDesc a, FrameDesc b)
+    {
+        int end = a.getEnd(), start = b.getStart();
+        if (end != -1 && start != -1)
+        {
+            // No need for heuristics.
+            return;
+        }
+
+        long tsDiff = (b.getTimestamp() - a.getTimestamp()) & 0xFFFFFFFFL;
+        if (tsDiff > (1L << 30) && tsDiff < (-(1L << 30) & 0xFFFFFFFFL))
+        {
+            // the distance (mod 32) between the two timestamps needs to be
+            // less than half the timestamp space.
+            return;
+        }
+
+        int min = b.getMinSeen(), max = a.getMaxSeen();
+        int snDiff = (max - min) & 0xFFFF;
+
+        if (start != -1 || end != -1)
+        {
+            // We can deal with sequence number distances (mod 16) that are
+            // less than 3.
+            if (snDiff < 3 || snDiff > (-3 & 0xFFFF))
+            {
+                if (end == -1)
+                {
+                    a.setEnd((max + 1) & 0xFFFF);
+                }
+
+                if (start == -1)
+                {
+                    b.setStart((min - 1) & 0xFFFF);
+                }
+            }
+        }
+        else
+        {
+            // We can deal with sequence number distances (mod 16) that are
+            // less than 4.
+            if (snDiff < 4 || snDiff > (-4 & 0xFFFF))
+            {
+                a.setEnd((max + 1) & 0xFFFF);
+                b.setStart((min - 1) & 0xFFFF);
+            }
+        }
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -340,36 +396,7 @@ public class RTPEncodingImpl
 
             if (ceilingEntry != null)
             {
-                FrameDesc ceilingFrame = ceilingEntry.getValue();
-
-                // Make sure the frames are close enough, both in time and in
-                // sequence numbers.
-                long tsDiff = (ceilingFrame.getTimestamp() - ts) & 0xFFFFFFFFL;
-
-                // the distance (mod 32) between the two timestamps needs to be
-                // less than half the timestamp space.
-                if ((tsDiff < (1L<<30) || tsDiff > (-(1L<<30) & 0xFFFFFFFFL))
-                    && (ceilingFrame.getStart() != -1 || frame.getEnd() != -1))
-                {
-                    int minSeen = ceilingFrame.getMinSeen();
-                    int maxSeen = frame.getMaxSeen();
-                    int snDiff = (minSeen - maxSeen) & 0xFFFF;
-
-                    // We can deal with sequence number distances (mod 16) that
-                    // are less than 3.
-                    if (snDiff < 3 || snDiff > (-3 & 0xFFFF))
-                    {
-                        if (frame.getEnd() == -1)
-                        {
-                            frame.setEnd((maxSeen + 1) & 0xFFFF);
-                        }
-
-                        if (ceilingFrame.getStart() == -1)
-                        {
-                            ceilingFrame.setStart((minSeen - 1) & 0xFFFF);
-                        }
-                    }
-                }
+                applyFrameBoundsHeuristics(frame, ceilingEntry.getValue());
             }
 
             // Find the closest previous frame.
@@ -378,36 +405,7 @@ public class RTPEncodingImpl
 
             if (floorEntry != null)
             {
-                FrameDesc floorFrame = floorEntry.getValue();
-
-                // Make sure the frames are close enough, both in time and in
-                // sequence numbers.
-                long tsDiff = (floorFrame.getTimestamp() - ts) & 0xFFFFFFFFL;
-
-                // the distance (mod 32) between the two timestamps needs to be
-                // less than half the timestamp space.
-                if ((tsDiff < (1L<<30) || tsDiff > (-(1L<<30) & 0xFFFFFFFFL))
-                    && (floorFrame.getEnd() != -1 || frame.getStart() != -1))
-                {
-                    int minSeen = frame.getMinSeen();
-                    int maxSeen = floorFrame.getMaxSeen();
-                    int snDiff = (minSeen - maxSeen) & 0xFFFF;
-
-                    // We can deal with sequence number distances (mod 16) that
-                    // are less than 3.
-                    if (snDiff < 3 || snDiff > (-3 & 0xFFFF))
-                    {
-                        if (frame.getStart() == -1)
-                        {
-                            frame.setStart((minSeen - 1) & 0xFFFF);
-                        }
-
-                        if (floorFrame.getEnd() == -1)
-                        {
-                            floorFrame.setEnd((maxSeen + 1) & 0xFFFF);
-                        }
-                    }
-                }
+                applyFrameBoundsHeuristics(floorEntry.getValue(), frame);
             }
         }
 
