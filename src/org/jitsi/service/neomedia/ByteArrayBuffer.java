@@ -13,25 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.jitsi.service.neomedia;
 
 /**
- * @author Boris Grozev
+ * A simple interface that encapsulates all the information needed for byte
+ * buffer access.
+ *
  * @author George Politis
  */
-public interface RetransmissionRequester
+public interface ByteArrayBuffer
 {
     /**
-     * Enables or disables this {@link RetransmissionRequester}.
-     * @param enable {@code true} to enable, {@code false} to disable.
+     * Gets the byte buffer that supports this instance.
+     *
+     * @return the byte buffer that supports this instance.
      */
-    public void enable(boolean enable);
+    byte[] getBuffer();
 
     /**
-     * Sets the SSRC to be used by this {@link RetransmissionRequester} as
-     * "packet sender SSRC" in outgoing NACK packets.
-     * @param ssrc the SSRC to use as "packet sender SSRC".
+     * Gets the offset in the byte buffer where the actual data starts.
+     *
+     * @return the offset in the byte buffer where the actual data starts.
      */
-    public void setSenderSsrc(long ssrc);
+    int getOffset();
+
+    /**
+     * Gets the length of the data in the buffer.
+     *
+     * @return the length of the data in the buffer.
+     */
+    int getLength();
 }

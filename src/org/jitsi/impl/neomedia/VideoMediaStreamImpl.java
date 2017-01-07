@@ -414,6 +414,13 @@ public class VideoMediaStreamImpl
     private final QualityControlImpl qualityControl = new QualityControlImpl();
 
     /**
+     * The instance that is aware of all of the {@link RTPEncodingImpl} of the
+     * remote endpoint.
+     */
+    private final MediaStreamTrackReceiver mediaStreamTrackReceiver
+        = new MediaStreamTrackReceiver(this);
+
+    /**
      * The <tt>RemoteBitrateEstimator</tt> which computes bitrate estimates for
      * the incoming RTP streams.
      */
@@ -649,6 +656,16 @@ public class VideoMediaStreamImpl
 
         bufferControl.setBufferLength(BufferControl.MAX_VALUE);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MediaStreamTrackReceiver getMediaStreamTrackReceiver()
+    {
+        return mediaStreamTrackReceiver;
+    }
+
 
     /**
      * Notifies this <tt>VideoMediaStreamImpl</tt> that a

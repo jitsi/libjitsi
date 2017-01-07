@@ -19,102 +19,47 @@ package org.jitsi.service.neomedia;
  * Inspired by the ORTC RTCRtpEncodingParameters, the RTPEncoding provides
  * RTP encoding related information.
  *
- * TODO this class needs to own the RemoteClock of this encoding.
- * TODO this class needs to know whether or not the RTP encoding is streaming.
- *
  * @author George Politis
  */
-public class RTPEncoding
+public interface RTPEncoding
 {
-    /**
-     * Base simulcast stream quality order.
-     */
-    public static final int BASE_ORDER = 0;
-
-    /**
-     * The primary SSRC for this layering/encoding.
-     */
-    private final long primarySSRC;
-
-    /**
-     * The RTX SSRC for this layering/encoding.
-     */
-    private final long rtxSSRC;
-
-    /**
-     * The FEC SSRC for this layering/encoding.
-     */
-    private final long fecSSRC;
-
-    /**
-     * The {@link MediaStreamTrack} that owns this {@link RTPEncoding}.
-     */
-    private final MediaStreamTrack mediaStreamTrack;
-
-    /**
-     * Ctor.
-     *
-     * @param mediaStreamTrack
-     * @param primarySSRC
-     * @param rtxSSRC
-     * @param fecSSRC
-     */
-    RTPEncoding(MediaStreamTrack mediaStreamTrack,
-                       long primarySSRC, long rtxSSRC, long fecSSRC)
-    {
-        this.mediaStreamTrack = mediaStreamTrack;
-        this.primarySSRC = primarySSRC;
-        this.rtxSSRC = rtxSSRC;
-        this.fecSSRC = fecSSRC;
-    }
-
-    /**
-     * Gets the {@link MediaStreamTrack} that owns this {@link RTPEncoding}.
-     *
-     * @return the {@link MediaStreamTrack} that owns this {@link RTPEncoding}.
-     */
-    public MediaStreamTrack getMediaStreamTrack()
-    {
-        return mediaStreamTrack;
-    }
-
     /**
      * Gets the primary SSRC for this layering/encoding.
      *
      * @return the primary SSRC for this layering/encoding.
      */
-    public long getPrimarySSRC()
-    {
-        return primarySSRC;
-    }
+    long getPrimarySSRC();
 
     /**
      * Gets the RTX SSRC for this layering/encoding.
      *
      * @return the RTX SSRC for this layering/encoding.
      */
-    public long getRTXSSRC()
-    {
-        return rtxSSRC;
-    }
+    long getRTXSSRC();
 
     /**
-     * Gets the FEC SSRC for this layering/encoding.
+     * Gets a boolean value indicating whether or not this instance is
+     * streaming.
      *
-     * @return the RTX SSRC for this layering/encoding.
+     * @return true if this instance is streaming, false otherwise.
      */
-    public long getFECSSRC()
-    {
-        return fecSSRC;
-    }
+    boolean isActive();
 
     /**
+     * Gets the {@link MediaStreamTrack} that this instance belongs to.
      *
-     * @param ssrc
-     * @return
+     * @return the {@link MediaStreamTrack} that this instance belongs to.
      */
-    public boolean matches(long ssrc)
-    {
-        return ssrc == primarySSRC || ssrc == rtxSSRC || ssrc == fecSSRC;
-    }
+    MediaStreamTrack getMediaStreamTrack();
+
+    /**
+     * Gets a boolean indicating whether or not the packet specified in the
+     * arguments matches this encoding or not.
+     *
+     * @param buf the <tt>byte</tt> array that contains the RTP packet data.
+     * @param off the offset in <tt>buf</tt> at which the actual data starts.
+     * @param len the number of <tt>byte</tt>s in <tt>buf</tt> which
+     * constitute the actual data.
+     */
+    boolean matches(byte[] buf, int off, int len);
 }

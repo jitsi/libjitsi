@@ -20,6 +20,7 @@ import java.util.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.format.*;
 
@@ -28,6 +29,7 @@ import org.jitsi.service.neomedia.format.*;
  * implementation of the interface.
  *
  * @author Lyubomir Marinov
+ * @author George Politis
  */
 public abstract class AbstractMediaStream
     implements MediaStream
@@ -293,25 +295,25 @@ public abstract class AbstractMediaStream
      * {@inheritDoc}
      */
     @Override
-    public Map<Long, MediaStreamTrack> getRemoteTracks()
-    {
-        return new HashMap<>();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isStartOfFrame(byte[] buf, int off, int len)
-    {
-        return false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public REDBlock getPayloadBlock(byte[] buf, int off, int len)
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MediaStreamTrackReceiver getMediaStreamTrackReceiver()
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MediaFormat getFormat(byte pt)
     {
         return null;
     }

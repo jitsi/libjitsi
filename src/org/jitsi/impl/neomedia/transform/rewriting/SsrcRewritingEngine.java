@@ -130,43 +130,34 @@ public class SsrcRewritingEngine
         Rewriter rewriter = rewritersBySSRC.get(encodingSSRC);
         if (rewriter == null)
         {
-            MediaStreamTrack track = null;
-
             // Find the RTPEncoding that corresponds to this SSRC.
             StreamRTPManager receiveRTPManager = stream.getRTPTranslator()
                 .findStreamRTPManagerByReceiveSSRC((int) encodingSSRC);
+
+            MediaStreamTrackReceiver receiver = null;
             if (receiveRTPManager != null)
             {
                 MediaStream receiveStream = receiveRTPManager.getMediaStream();
                 if (receiveStream != null)
                 {
-                    track = receiveStream.getRemoteTracks().get(encodingSSRC);
+                    receiver = receiveStream.getMediaStreamTrackReceiver();
                 }
             }
 
-            if (track == null)
+            if (receiver == null)
             {
-                // Maybe signaling hasn't propagated yet.
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("track_not_found"
-                        + ",stream_hash=" + stream.hashCode()
-                        + ",encodingSSRC=" + encodingSSRC
-                        + " seqNum=" + pkt.getSequenceNumber());
-                }
-
                 return pkt;
             }
 
-            RTPEncoding encoding = track.getEncodingBySSRC(encodingSSRC);
-            if (encoding == null
-                || !encoding.getMediaStreamTrack().hasMultipleEncodings())
+            RTPEncoding encoding = receiver.resolveRTPEncoding(pkt);
+
+            if (encoding == null)
             {
                 // Maybe signaling hasn't propagated yet, or maybe this track
                 // only has a single RTPEncoding.
 
                 // Maybe signaling hasn't propagated yet.
-                if (encoding == null && logger.isDebugEnabled())
+                if (logger.isDebugEnabled())
                 {
                     logger.debug("encoding_not_found"
                         + ",stream_hash=" + stream.hashCode()
@@ -177,8 +168,16 @@ public class SsrcRewritingEngine
                 return pkt;
             }
 
-            long trackSSRC = track.getEncodingByOrder(RTPEncoding.BASE_ORDER)
-                .getPrimarySSRC();
+            MediaStreamTrack track = encoding.getMediaStreamTrack();
+            RTPEncoding[] encodings = track.getRTPEncodings();
+
+            if (encodings == null || encodings.length < 2)
+            {
+                // no simulcast.
+                return pkt;
+            }
+
+            long trackSSRC = encodings[0].getPrimarySSRC();
 
             rewriter = rewritersBySSRC.get(trackSSRC);
             if (rewriter == null)

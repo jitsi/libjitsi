@@ -15,90 +15,20 @@
  */
 package org.jitsi.service.neomedia;
 
-import java.util.*;
-
 /**
+ * Represents a collection of {@link RTPEncoding}s that encode the same media
+ * source.
+ *
  * @author George Politis
  */
-public class MediaStreamTrack
+public interface MediaStreamTrack
 {
     /**
-     * The RTP encodings of this track, keyed by their SSRC.
-     */
-    private final Map<Long, RTPEncoding> encodingsBySSRC
-        = new TreeMap<Long, RTPEncoding>()
-    {
-        @Override
-        public RTPEncoding put(Long key, RTPEncoding value)
-        {
-            if (key == null || key == -1)
-            {
-                return null;
-            }
-
-            return super.put(key, value);
-        }
-    };
-
-    /**
-     * The RTP encodings of this track, keyed by their order.
-     */
-    private final Map<Integer, RTPEncoding> encodingsByOrder = new TreeMap<>();
-
-    /**
-     * Gets the {@code RTPEncoding} that matches the ssrc passed in as a
-     * parameter.
+     * Returns an array of all the {@link RTPEncoding}s for this instance, in
+     * subjective quality ascending order.
      *
-     * @param ssrc the SSRC of the {@code RTPEncoding} to match.
-     *
-     * @return the {@code RTPEncoding} that matches the ssrc passed in as
-     * a parameter, or null if there is no matching {@code RTPEncoding}.
+     * @return an array of all the {@link RTPEncoding}s for this instance, in
+     * subjective quality ascending order.
      */
-    public synchronized RTPEncoding getEncodingBySSRC(long ssrc)
-    {
-        return encodingsBySSRC.get(ssrc);
-    }
-
-    /**
-     * Gets the RTPEncoding that matches the desired order.
-     *
-     * @param order the order of the RTPEncoding to get.
-     * @return the RTPEncoding that matches the desired order, or null if
-     * there's no matching encoding.
-     */
-    public RTPEncoding getEncodingByOrder(int order)
-    {
-        return encodingsByOrder.get(order);
-    }
-
-    /**
-     * Adds an RTP encoding to the list of encodings of this track.
-     *
-     * @param primarySSRC the primary SSRC of the RTP encoding
-     * @param rtxSSRC the RTX SSRC of the RTP encoding
-     * @param fecSSRC the FEC SSRC of the RTP encoding.
-     * @param order the order of the RTP encoding
-     */
-    public synchronized void addEncoding(
-        long primarySSRC, long rtxSSRC, long fecSSRC, int order)
-    {
-        RTPEncoding encoding
-            = new RTPEncoding(this, primarySSRC, rtxSSRC, fecSSRC);
-        encodingsBySSRC.put(encoding.getPrimarySSRC(), encoding);
-        encodingsBySSRC.put(encoding.getRTXSSRC(), encoding);
-        encodingsBySSRC.put(encoding.getFECSSRC(), encoding);
-        encodingsByOrder.put(order, encoding);
-    }
-
-    /**
-     * Returns a boolean indicating whether this {@code MediaStreamTrack}
-     * has multiple {@code RTPEncoding}s.
-     *
-     * @return true if this {@code MediaStreamTrack} has multiple
-     * {@code RTPEncodings}s, false otherwise.
-     */
-    public synchronized boolean hasMultipleEncodings()
-    {
-        return encodingsBySSRC.size() > 1;
-    }
+    RTPEncoding[] getRTPEncodings();
 }
