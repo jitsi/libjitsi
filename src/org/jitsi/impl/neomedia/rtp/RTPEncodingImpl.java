@@ -346,15 +346,18 @@ public class RTPEncodingImpl
                 // sequence numbers.
                 long tsDiff = (ceilingFrame.getTimestamp() - ts) & 0xFFFFFFFFL;
 
-                if (tsDiff < (1L<<31)
+                // the distance (mod 32) between the two timestamps needs to be
+                // less than half the timestamp space.
+                if ((tsDiff < (1L<<30) || tsDiff > (-(1L<<30) & 0xFFFFFFFFL))
                     && (ceilingFrame.getStart() != -1 || frame.getEnd() != -1))
                 {
                     int minSeen = ceilingFrame.getMinSeen();
                     int maxSeen = frame.getMaxSeen();
                     int snDiff = (minSeen - maxSeen) & 0xFFFF;
 
-                    // We can deal with distances that are less than 3.
-                    if (snDiff < 3)
+                    // We can deal with sequence number distances (mod 16) that
+                    // are less than 3.
+                    if (snDiff < 3 || snDiff > (-3 & 0xFFFF))
                     {
                         if (frame.getEnd() == -1)
                         {
@@ -381,15 +384,18 @@ public class RTPEncodingImpl
                 // sequence numbers.
                 long tsDiff = (floorFrame.getTimestamp() - ts) & 0xFFFFFFFFL;
 
-                if (tsDiff < (1L<<31)
+                // the distance (mod 32) between the two timestamps needs to be
+                // less than half the timestamp space.
+                if ((tsDiff < (1L<<30) || tsDiff > (-(1L<<30) & 0xFFFFFFFFL))
                     && (floorFrame.getEnd() != -1 || frame.getStart() != -1))
                 {
                     int minSeen = frame.getMinSeen();
                     int maxSeen = floorFrame.getMaxSeen();
                     int snDiff = (minSeen - maxSeen) & 0xFFFF;
 
-                    // We can deal with distances that are less than 3.
-                    if (snDiff < 3)
+                    // We can deal with sequence number distances (mod 16) that
+                    // are less than 3.
+                    if (snDiff < 3 || snDiff > (-3 & 0xFFFF))
                     {
                         if (frame.getStart() == -1)
                         {
