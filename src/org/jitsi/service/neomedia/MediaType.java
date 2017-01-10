@@ -115,16 +115,28 @@ public enum MediaType
     public static MediaType parseString(String mediaTypeName)
         throws IllegalArgumentException
     {
-        if(AUDIO.toString().equals(mediaTypeName))
+        if(AUDIO.toString().equalsIgnoreCase(mediaTypeName))
             return AUDIO;
 
-        if(MESSAGE.toString().equals(mediaTypeName))
-            return MESSAGE;
-
-        if(VIDEO.toString().equals(mediaTypeName))
+        if(VIDEO.toString().equalsIgnoreCase(mediaTypeName))
             return VIDEO;
 
-        if(DATA.toString().equals(mediaTypeName))
+        if(TEXT.toString().equalsIgnoreCase(mediaTypeName))
+            return TEXT;
+
+        if(APPLICATION.toString().equalsIgnoreCase(mediaTypeName))
+            return APPLICATION;
+
+        if(MESSAGE.toString().equalsIgnoreCase(mediaTypeName))
+            return MESSAGE;
+
+        if(IMAGE.toString().equalsIgnoreCase(mediaTypeName))
+            return IMAGE;
+
+        if(CONTROL.toString().equalsIgnoreCase(mediaTypeName))
+            return CONTROL;
+
+        if(DATA.toString().equalsIgnoreCase(mediaTypeName))
             return DATA;
 
         throw new IllegalArgumentException(
