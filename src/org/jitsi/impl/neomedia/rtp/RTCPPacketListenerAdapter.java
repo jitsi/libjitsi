@@ -13,19 +13,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.service.neomedia.rtp;
+package org.jitsi.impl.neomedia.rtp;
 
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
- * A simple interface for handling RTCP NACK packets.
- * @author Boris Grozev
+ * @author George Politis
  */
-public interface NACKListener
+public class RTCPPacketListenerAdapter
+    implements RTCPPacketListener
 {
     /**
-     * Handles an RTCP NACK packet.
-     * @param nackPacket the packet.
+     * {@inheritDoc}
      */
-    public void nackReceived(NACKPacket nackPacket);
+    @Override
+    public void nackReceived(NACKPacket nackPacket)
+    {
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void rembReceived(RTCPREMBPacket rembPacket)
+    {
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void firReceived(FIRPacket firPacket)
+    {
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void pliReceived(PLIPacket pliPacket)
+    {
+
+    }
 }

@@ -13,28 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.rtcp.termination.strategies;
-
-import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.service.neomedia.*;
+package org.jitsi.impl.neomedia.rtcp;
 
 /**
- * Forwards whatever it receives from the network but it doesn't generate
- * anything. This strategy will be useful for conferences of up to 2
- * participants.
- *
  * @author George Politis
  */
-public class SilentBridgeRTCPTerminationStrategy
-    implements RTCPTerminationStrategy
+public class FIRPacket
+    extends RTCPFBPacket
 {
-    public PacketTransformer getRTPTransformer()
-    {
-        return null;
-    }
+    /**
+     * The FMT of an FIR packet.
+     */
+    public static final int FMT = 4;
 
-    public PacketTransformer getRTCPTransformer()
+    /**
+     * Ctor.
+     *
+     * @param senderSSRC
+     * @param sourceSSRC
+     */
+    public FIRPacket(long senderSSRC, long sourceSSRC)
     {
-        return null;
+        super(FMT, PSFB, senderSSRC, sourceSSRC);
     }
 }

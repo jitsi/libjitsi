@@ -40,7 +40,7 @@ public class ResumableStreamRewriter
      * The timestamp delta between what's been accepted and what's been
      * received, mod 2^32.
      */
-    long timestampDelta = 0;
+    private long timestampDelta = 0;
 
     /**
      * The highest sequence number that got accepted, mod 2^16.
@@ -50,14 +50,7 @@ public class ResumableStreamRewriter
     /**
      * The highest timestamp that got accepted, mod 2^32.
      */
-    long highestTimestampSent = -1;
-
-    /**
-     * Keeps the 16 most significant bits of the extended sequence numbers. It
-     * increases 0x10000 every time a wrap-around is detected in the sequence
-     * numbers. This can be used to extend a given sequence number to 32 bits.
-     */
-    private int cycles = 0;
+    private long highestTimestampSent = -1;
 
     /**
      * Ctor.
@@ -79,7 +72,7 @@ public class ResumableStreamRewriter
      * @param timestampDelta The timestamp delta between what's been accepted
      * and what's been received, mod 2^32.
      */
-    public ResumableStreamRewriter(
+    private ResumableStreamRewriter(
         int highestSequenceNumberSent, int seqnumDelta,
         long highestTimestampSent, long timestampDelta)
     {
@@ -87,73 +80,6 @@ public class ResumableStreamRewriter
         this.highestSequenceNumberSent = highestSequenceNumberSent;
         this.highestTimestampSent = highestTimestampSent;
         this.timestampDelta = timestampDelta;
-    }
-
-    /**
-     * Sets the highest sequence number that got accepted, mod 2^16.
-     *
-     * @param highestSequenceNumberSent the highest sequence number that got
-     * accepted, mod 2^16.
-     */
-    public void setHighestSequenceNumberSent(int highestSequenceNumberSent)
-    {
-        this.highestSequenceNumberSent = highestSequenceNumberSent;
-    }
-
-    /**
-     * Sets the seqnumDelta between what's been accepted and
-     * what's been received, mod 2^16.
-     *
-     * @param val the seqnumDelta between what's been accepted and
-     * what's been received, mod 2^16.
-     */
-    public void setSeqnumDelta(int val)
-    {
-        this.seqnumDelta = val;
-    }
-
-    /**
-     * Sets the highest timestamp that got accepted, mod 2^32.
-     *
-     * @param val The highest timestamp that got accepted, mod 2^32.
-     */
-    public void setHighestTimestampSent(long val)
-    {
-        this.highestTimestampSent = val;
-    }
-
-    /**
-     * Sets the timestamp delta between what's been accepted and what's been
-     * received, mod 2^32.
-     *
-     * @param val the timestamp delta between what's been accepted and what's
-     * been received, mod 2^32.
-     */
-    public void setTimestampDelta(long val)
-    {
-        this.timestampDelta = val;
-    }
-
-    /**
-     * Gets the highest timestamp that got accepted, mod 2^32.
-     *
-     * @return the highest timestamp that got accepted, mod 2^32.
-     */
-    public long getHighestTimestampSent()
-    {
-        return highestTimestampSent;
-    }
-
-    /**
-     * Gets the timestamp delta between what's been accepted and what's been
-     * received, mod 2^32.
-     *
-     * @return the timestamp delta between what's been accepted and what's been
-     * received, mod 2^32.
-     */
-    public long getTimestampDelta()
-    {
-        return timestampDelta;
     }
 
     /**
@@ -197,41 +123,6 @@ public class ResumableStreamRewriter
     }
 
     /**
-     * Restores the RTP timestamp and sequence number of the RTP packet in the
-     * buffer.
-     *
-     * @param buf the byte buffer that contains the RTP packet.
-     * @param off the offset in the byte buffer where the RTP packet starts.
-     * @param len the number of bytes in buffer which constitute the actual
-     * data.
-     * @return true if the RTP packet is modified, false otherwise.
-     */
-    public boolean restoreRTP(byte[] buf, int off, int len)
-    {
-        boolean modified = false;
-
-        if (timestampDelta != 0)
-        {
-            long ts = RawPacket.getTimestamp(buf, off, len);
-            RawPacket.setTimestamp(
-                buf, off, len, (ts + timestampDelta) & 0xffffffffL);
-
-            modified = true;
-        }
-
-        if (seqnumDelta != 0)
-        {
-            int sn = RawPacket.getSequenceNumber(buf, off, len);
-            RawPacket.setSequenceNumber(
-                buf, off, (sn + seqnumDelta) & 0xffff);
-
-            modified = true;
-        }
-
-        return modified;
-    }
-
-    /**
      * Restores the RTP timestamp of the RTCP SR packet in the buffer.
      *
      * @param buf the byte buffer that contains the RTCP packet.
@@ -259,10 +150,10 @@ public class ResumableStreamRewriter
             ? (ts - timestampDelta) & 0xffffffffL
             : (ts + timestampDelta) & 0xffffffffL;
 
-        boolean ret = RTCPSenderInfoUtils.setTimestamp(
+        int ret = RTCPSenderInfoUtils.setTimestamp(
             buf, off + RTCPHeader.SIZE, len - RTCPHeader.SIZE, newTs);
 
-        return ret;
+        return ret > 0;
     }
 
 
@@ -286,12 +177,6 @@ public class ResumableStreamRewriter
             if (highestSequenceNumberSent == -1 || RTPUtils.sequenceNumberDiff(
                 newSequenceNumber, highestSequenceNumberSent) > 0)
             {
-                if (highestSequenceNumberSent != -1
-                    && newSequenceNumber - highestSequenceNumberSent < 0)
-                {
-                    cycles += 0x10000;
-                }
-
                 highestSequenceNumberSent = newSequenceNumber;
             }
 
@@ -323,7 +208,7 @@ public class ResumableStreamRewriter
      * @param timestamp the timestamp to rewrite
      * @return a rewritten timestamp that hides any gaps caused by drops.
      */
-    long rewriteTimestamp(boolean accept, long timestamp)
+    private long rewriteTimestamp(boolean accept, long timestamp)
     {
         if (accept)
         {
@@ -355,35 +240,5 @@ public class ResumableStreamRewriter
 
             return timestamp;
         }
-    }
-
-    public int getSeqnumDelta()
-    {
-        return seqnumDelta;
-    }
-
-    public int getHighestSequenceNumberSent()
-    {
-        return highestSequenceNumberSent;
-    }
-
-    public int extendSequenceNumber(int seqnum) {
-        int cycles = this.cycles;
-        int maxseq = this.highestSequenceNumberSent;
-        int delta = seqnum - maxseq;
-
-        if (delta >= 0)
-        {
-            if (delta > 0x7FFF /* 2^15 - 1 =  32767 */)
-            {
-                cycles -= 0x10000 /* 2^16 = 65536 */;
-            }
-        }
-        else if (delta < -0x7FFF)
-        {
-            cycles += 0x10000;
-        }
-
-        return seqnum + cycles;
     }
 }

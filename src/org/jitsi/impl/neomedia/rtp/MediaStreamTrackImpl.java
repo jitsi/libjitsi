@@ -79,7 +79,7 @@ public class MediaStreamTrackImpl
      *
      * @return The {@link MediaStreamTrackReceiver} that receives this instance.
      */
-    MediaStreamTrackReceiver getMediaStreamTrackReceiver()
+    public MediaStreamTrackReceiver getMediaStreamTrackReceiver()
     {
         return mediaStreamTrackReceiver;
     }
@@ -131,5 +131,54 @@ public class MediaStreamTrackImpl
 
             rtpEncodings[i].setActive(isActive);
         }
+    }
+
+    /**
+     * Finds the {@link RTPEncodingImpl} that corresponds to the packet that is
+     * specified in the buffer passed in as an argument.
+     *
+     * @param buf the byte array that holds the RTP packet.
+     * @param off the offset in the byte array where the actual data starts
+     * @param len the length of the actual data
+     * @return the {@link RTPEncodingImpl} that corresponds to the packet that is
+     * specified in the buffer passed in as an argument, or null.
+     */
+    public RTPEncodingImpl findRTPEncoding(byte[] buf, int off, int len)
+    {
+        if (buf == null || buf.length < off + len)
+        {
+            return null;
+        }
+
+        for (RTPEncodingImpl encoding : rtpEncodings)
+        {
+            if (encoding.matches(buf, off, len))
+            {
+                return encoding;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Finds the {@link FrameDesc} that corresponds to the packet that is
+     * specified in the buffer passed in as an argument.
+     *
+     * @param buf the byte array that holds the RTP packet.
+     * @param off the offset in the byte array where the actual data starts
+     * @param len the length of the actual data
+     * @return the {@link FrameDesc} that corresponds to the packet that is
+     * specified in the buffer passed in as an argument, or null.
+     */
+    public FrameDesc findFrameDesc(byte[] buf, int off, int len)
+    {
+        RTPEncodingImpl rtpEncoding = findRTPEncoding(buf, off, len);
+        if (rtpEncoding == null)
+        {
+            return null;
+        }
+
+        return rtpEncoding.findFrameDesc(buf, off, len);
     }
 }

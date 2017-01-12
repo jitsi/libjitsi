@@ -15,6 +15,8 @@
  */
 package org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation;
 
+import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
@@ -30,7 +32,8 @@ import java.util.*;
  * @author Boris Grozev
  */
 class SendSideBandwidthEstimation
-    implements REMBListener, BandwidthEstimator
+    extends RTCPPacketListenerAdapter
+    implements BandwidthEstimator
 {
     /**
      * send_side_bandwidth_estimation.cc
@@ -394,9 +397,9 @@ class SendSideBandwidthEstimation
      * {@inheritDoc}
      */
     @Override
-    public void rembReceived(long bitrateBps)
+    public void rembReceived(RTCPREMBPacket remb)
     {
-        updateReceiverEstimate(bitrateBps);
+        updateReceiverEstimate(remb.getBitrate());
     }
 
     /**

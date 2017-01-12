@@ -26,6 +26,13 @@ import org.jitsi.util.*;
 public class FrameDesc
 {
     /**
+     * The {@link Logger} used by the {@link FrameDesc} class to print
+     * debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(FrameDesc.class);
+
+    /**
      * The {@link RTPEncodingImpl} that this {@link FrameDesc} belongs to.
      */
     private final RTPEncodingImpl rtpEncoding;
@@ -75,11 +82,22 @@ public class FrameDesc
     }
 
     /**
+     * Gets the {@link RTPEncodingImpl} that this {@link FrameDesc} belongs to.
+     *
+     * @return the {@link RTPEncodingImpl} that this {@link FrameDesc} belongs
+     * to.
+     */
+    public RTPEncodingImpl getRTPEncoding()
+    {
+        return rtpEncoding;
+    }
+
+    /**
      * Gets the RTP timestamp for this frame.
      *
      * @return the RTP timestamp for this frame.
      */
-    long getTimestamp()
+    public long getTimestamp()
     {
         return ts;
     }
@@ -129,7 +147,7 @@ public class FrameDesc
      *
      * @return true if this frame is independent, false otherwise.
      */
-    boolean isIndependent()
+    public boolean isIndependent()
     {
         return independent == null ? false : independent;
     }
@@ -197,8 +215,26 @@ public class FrameDesc
             changed = true;
             start = seqNum;
             independent = stream.isKeyFrame(buf, off, len);
+
+            if (independent)
+            {
+                logger.debug("keyframe,stream=" + stream.hashCode()
+                    + " ssrc=" + rtpEncoding.getPrimarySSRC()
+                    + "," + toString());
+            }
         }
 
         return changed;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ts=" + ts +
+            ",independent=" + independent +
+            ",min_seen=" + minSeen +
+            ",max_seen=" + maxSeen +
+            ",start=" + start +
+            ",end=" + end;
     }
 }

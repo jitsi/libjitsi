@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtcp;
 
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Utility class that contains static methods for RTCP sender info manipulation.
@@ -59,12 +60,12 @@ public class RTCPSenderInfoUtils
      *
      * @return the number of bytes written.
      */
-    public static boolean setTimestamp(
+    public static int setTimestamp(
         byte[] buf, int off, int len, long ts)
     {
         if (!isValid(buf, off, len))
         {
-            return false;
+            return -1;
         }
 
         buf[off + 8] = (byte)(ts>>24);
@@ -72,7 +73,7 @@ public class RTCPSenderInfoUtils
         buf[off + 10] = (byte)(ts>>8);
         buf[off + 11] = (byte)ts;
 
-        return true;
+        return 4;
     }
 
     /**
@@ -133,5 +134,93 @@ public class RTCPSenderInfoUtils
         }
 
         return RawPacket.readInt(buf, off + 4, len) & 0xffffffffl;
+    }
+
+    public static int setTimestamp(ByteArrayBuffer baf, long ts)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return setTimestamp(baf.getBuffer(), baf.getOffset(), baf.getLength(), ts);
+    }
+
+    public static long getTimestamp(ByteArrayBuffer baf)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return getTimestamp(baf.getBuffer(), baf.getOffset(), baf.getLength());
+    }
+
+    /**
+     *
+     * @param val
+     */
+    public static int setOctetCount(ByteArrayBuffer baf, long val)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return setOctetCount(
+            baf.getBuffer(), baf.getOffset(), baf.getLength(), val);
+    }
+
+    /**
+     *
+     * @param val
+     */
+    public static int setPacketCount(ByteArrayBuffer baf, long val)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return setPacketCount(
+            baf.getBuffer(), baf.getOffset(), baf.getLength(), val);
+    }
+
+    /**
+     *
+     * @param buf
+     * @param off
+     * @param len
+     * @param val
+     * @return
+     */
+    private static int setPacketCount(byte[] buf, int off, int len, long val)
+    {
+        // TODO error handling.
+        buf[off + 12] = (byte)(val>>24);
+        buf[off + 13] = (byte)(val>>16);
+        buf[off + 14] = (byte)(val>>8);
+        buf[off + 15] = (byte)val;
+
+        return 4;
+    }
+
+    /**
+     *
+     * @param buf
+     * @param off
+     * @param len
+     * @param val
+     * @return
+     */
+    private static int setOctetCount(byte[] buf, int off, int len, long val)
+    {
+        // TODO error handling.
+        buf[off + 16] = (byte)(val>>24);
+        buf[off + 17] = (byte)(val>>16);
+        buf[off + 18] = (byte)(val>>8);
+        buf[off + 19] = (byte)val;
+
+        return 4;
     }
 }

@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtcp;
 
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Utility class that contains static methods for RTCP header manipulation.
@@ -44,6 +45,16 @@ public class RTCPHeaderUtils
         }
 
         return buf[off + 1] & 0xff;
+    }
+
+    public static int getPacketType(ByteArrayBuffer baf)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return getPacketType(baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
 
     /**
@@ -134,5 +145,15 @@ public class RTCPHeaderUtils
         }
 
         return true;
+    }
+
+    public static long getSenderSSRC(ByteArrayBuffer baf)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return getSenderSSRC(baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
 }

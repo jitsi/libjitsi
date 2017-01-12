@@ -245,6 +245,14 @@ public class RTPEncodingImpl
     /**
      * {@inheritDoc}
      */
+    public long getLastStableBitrateBps()
+    {
+        return lastStableBitrateBps;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public long getPrimarySSRC()
     {
@@ -297,7 +305,7 @@ public class RTPEncodingImpl
      *
      * @return the subjective quality index of this instance.
      */
-    int getIndex()
+    public int getIndex()
     {
         return idx;
     }
@@ -403,8 +411,10 @@ public class RTPEncodingImpl
             lastStableBitrateBps = getBitrateBps(nowMs);
         }
 
-        // Update the frame description.
-        boolean frameChanged = frame.update(pkt);
+        // Update the frame description. We ignore padding packets for that.
+        boolean frameChanged
+            = pkt.getPayloadLength(true) > 0 && frame.update(pkt);
+
         if (frameChanged)
         {
             // Frame boundaries heuristics.
@@ -495,7 +505,7 @@ public class RTPEncodingImpl
      * in the buffer passed in as a parameter, or null if there is no matching
      * {@link FrameDesc}.
      */
-    public FrameDesc resolveFrameDesc(byte[] buf, int off, int len)
+    public FrameDesc findFrameDesc(byte[] buf, int off, int len)
     {
         long ts = RawPacket.getTimestamp(buf, off, len);
         synchronized (frames)

@@ -178,6 +178,10 @@ public class RTCPPacketParserEx
                         remb.dest[i] = in.readInt() & 0xffffffffL;
 
                     return remb;
+                case FIRPacket.FMT:
+                    return new FIRPacket(senderSSRC, sourceSSRC);
+                case PLIPacket.FMT:
+                    return new PLIPacket(senderSSRC, sourceSSRC);
                 default:
                     return
                         parseRTCPFBPacket(

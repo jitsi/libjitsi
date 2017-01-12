@@ -25,7 +25,6 @@ import javax.media.control.*;
 import javax.media.format.*;
 import javax.media.protocol.*;
 import javax.media.rtp.*;
-import javax.media.rtp.rtcp.*;
 
 import net.sf.fmj.media.rtp.*;
 
@@ -304,14 +303,10 @@ public class MediaStreamStatsImpl
     private int remoteJitterCount = 0;
 
     /**
-     * The list of listeners to be notified when NACK packets are received.
+     * The list of listeners to be notified when RTCP packets are received.
      */
-    private final List<NACKListener> nackListeners = new LinkedList<>();
-
-    /**
-     * The list of listeners to be notified when REMB packets are received.
-     */
-    private final List<REMBListener> rembListeners = new LinkedList<>();
+    private final List<RTCPPacketListener> rtcpPacketListeners
+        = Collections.synchronizedList(new LinkedList<RTCPPacketListener>());
 
     /**
      * Creates a new instance of stats concerning a MediaStream.
@@ -431,16 +426,7 @@ public class MediaStreamStatsImpl
     {
         long remoteTimeMs = localTimeMs;
 
-        RemoteClock remoteClock
-            = mediaStreamImpl.getStreamRTPManager().findRemoteClock(ssrc);
-        if (remoteClock != null)
-        {
-            Timestamp remoteTs = remoteClock.estimate(localTimeMs);
-            if (remoteTs != null)
-            {
-                remoteTimeMs = remoteTs.getSystemTimeMs();
-            }
-        }
+        // FIX THIS SH*T
 
         return remoteTimeMs;
     }
@@ -1479,9 +1465,9 @@ public class MediaStreamStatsImpl
     {
         if (remb != null)
         {
-            for (REMBListener listener : rembListeners)
+            for (RTCPPacketListener listener : rtcpPacketListeners)
             {
-                listener.rembReceived(remb.getBitrate());
+                listener.rembReceived(remb);
             }
         }
     }
@@ -1494,7 +1480,7 @@ public class MediaStreamStatsImpl
     {
         if (nack != null)
         {
-            for (NACKListener listener : nackListeners)
+            for (RTCPPacketListener listener : rtcpPacketListeners)
             {
                 listener.nackReceived(nack);
             }
@@ -1502,16 +1488,16 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * {@inheritDoc}
+     * Notifies this instance that an RTCP FIR packet was received.
+     * @param fir the packet.
      */
-    @Override
-    public void addNackListener(NACKListener listener)
+    public void firReceived(FIRPacket fir)
     {
-        if (listener != null)
+        if (fir != null)
         {
-            synchronized (nackListeners)
+            for (RTCPPacketListener listener : rtcpPacketListeners)
             {
-                nackListeners.add(listener);
+                listener.firReceived(fir);
             }
         }
     }
@@ -1520,17 +1506,13 @@ public class MediaStreamStatsImpl
      * {@inheritDoc}
      */
     @Override
-    public void addRembListener(REMBListener listener)
+    public void addRTCPPacketListener(RTCPPacketListener listener)
     {
         if (listener != null)
         {
-            synchronized (rembListeners)
-            {
-                rembListeners.add(listener);
-            }
+            rtcpPacketListeners.add(listener);
         }
     }
-
     /**
      * Notifies this instance that a specific RTCP RR or SR report was received
      * by {@link #rtcpReports}.

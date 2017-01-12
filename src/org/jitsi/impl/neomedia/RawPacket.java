@@ -781,6 +781,16 @@ public class RawPacket
      *
      * @return RTP payload length from source RTP packet
      */
+    public int getPayloadLength(boolean removePadding)
+    {
+        return getPayloadLength(buffer, offset, length, removePadding);
+    }
+
+    /**
+     * Get RTP payload length from a RTP packet
+     *
+     * @return RTP payload length from source RTP packet
+     */
     public int getPayloadLength()
     {
         return getPayloadLength(buffer, offset, length);

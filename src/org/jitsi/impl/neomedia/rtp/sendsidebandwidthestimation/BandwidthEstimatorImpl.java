@@ -89,7 +89,7 @@ public class BandwidthEstimatorImpl
 
         // Hook us up to receive Report Blocks and REMBs.
         MediaStreamStats stats = stream.getMediaStreamStats();
-        stats.addRembListener(sendSideBandwidthEstimation);
+        stats.addRTCPPacketListener(sendSideBandwidthEstimation);
         stats.getRTCPReports().addRTCPReportListener(this);
     }
 

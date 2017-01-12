@@ -13,26 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.rtp.translator;
-
-import net.sf.fmj.media.rtp.*;
-import org.jitsi.service.neomedia.*;
+package org.jitsi.impl.neomedia.rtcp;
 
 /**
  * @author George Politis
  */
-public class RTCPTransmitterFactoryImpl
-    implements RTCPTransmitterFactory
+public class PLIPacket
+    extends RTCPFBPacket
 {
-    private final RTPTranslator translator;
+    /**
+     * The FMT for the PLI packets.
+     */
+    public static final int FMT = 1;
 
-    public RTCPTransmitterFactoryImpl(RTPTranslator translator)
+    /**
+     * Ctor.
+     *
+     * @param senderSSRC
+     * @param sourceSSRC
+     */
+    public PLIPacket(long senderSSRC, long sourceSSRC)
     {
-        this.translator = translator;
-    }
-
-    public RTCPTransmitter newRTCPTransmitter(SSRCCache cache, RTCPRawSender rtcpRawSender)
-    {
-        return new RTCPTransmitterImpl(rtcpRawSender, translator);
+        super(FMT, PSFB, senderSSRC, sourceSSRC);
     }
 }

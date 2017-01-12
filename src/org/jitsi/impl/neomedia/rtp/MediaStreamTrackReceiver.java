@@ -69,14 +69,14 @@ public class MediaStreamTrackReceiver
      * in the {@link ByteArrayBuffer} that is passed in as an argument, or null
      * if there is no matching {@link FrameDesc}.
      */
-    public FrameDesc resolveFrameDesc(ByteArrayBuffer buf)
+    public FrameDesc findFrameDesc(ByteArrayBuffer buf)
     {
         if (buf == null)
         {
             return null;
         }
 
-        return resolveFrameDesc(
+        return findFrameDesc(
             buf.getBuffer(), buf.getOffset(), buf.getLength());
     }
 
@@ -93,15 +93,15 @@ public class MediaStreamTrackReceiver
      * in the buffer passed in as a parameter, or null if there is no matching
      * {@link FrameDesc}.
      */
-    public FrameDesc resolveFrameDesc(byte[] buf, int off, int len)
+    public FrameDesc findFrameDesc(byte[] buf, int off, int len)
     {
-        RTPEncodingImpl rtpEncoding = resolveRTPEncoding(buf, off, len);
+        RTPEncodingImpl rtpEncoding = findRTPEncoding(buf, off, len);
         if (rtpEncoding == null)
         {
             return null;
         }
 
-        return rtpEncoding.resolveFrameDesc(buf, off, len);
+        return rtpEncoding.findFrameDesc(buf, off, len);
     }
 
     /**
@@ -114,14 +114,14 @@ public class MediaStreamTrackReceiver
      * @return the {@link RTPEncoding} that matches the pkt passed in as
      * a parameter, or null if there is no matching {@link RTPEncoding}.
      */
-    public RTPEncodingImpl resolveRTPEncoding(ByteArrayBuffer buf)
+    public RTPEncodingImpl findRTPEncoding(ByteArrayBuffer buf)
     {
         if (buf == null)
         {
             return null;
         }
 
-        return resolveRTPEncoding(
+        return findRTPEncoding(
             buf.getBuffer(), buf.getOffset(), buf.getLength());
     }
 
@@ -137,7 +137,7 @@ public class MediaStreamTrackReceiver
      * @return the {@link RTPEncoding} that matches the pkt passed in as
      * a parameter, or null if there is no matching {@link RTPEncoding}.
      */
-    public RTPEncodingImpl resolveRTPEncoding(byte[] buf, int off, int len)
+    public RTPEncodingImpl findRTPEncoding(byte[] buf, int off, int len)
     {
         MediaStreamTrackImpl[] localTracks = tracks;
         if (ArrayUtils.isNullOrEmpty(localTracks))
@@ -147,12 +147,10 @@ public class MediaStreamTrackReceiver
 
         for (MediaStreamTrackImpl track : localTracks)
         {
-            for (RTPEncodingImpl encoding : track.getRTPEncodings())
+            RTPEncodingImpl encoding = track.findRTPEncoding(buf, off, len);
+            if (encoding != null)
             {
-                if (encoding.matches(buf, off, len))
-                {
-                    return encoding;
-                }
+                return encoding;
             }
         }
 
@@ -195,6 +193,7 @@ public class MediaStreamTrackReceiver
      *
      * @param newTracks the {@link MediaStreamTrack}s that this instance will
      * receive.
+     * @return true if the MSTs have changed, otherwise false.
      */
     public boolean setMediaStreamTracks(
         MediaStreamTrackImpl[] newTracks)
@@ -254,7 +253,7 @@ public class MediaStreamTrackReceiver
      *
      * @return the {@code RtpChannel} that owns this instance.
      */
-    MediaStreamImpl getStream()
+    public MediaStreamImpl getStream()
     {
         return stream;
     }
@@ -272,7 +271,7 @@ public class MediaStreamTrackReceiver
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
-            RTPEncodingImpl encoding = resolveRTPEncoding(pkt);
+            RTPEncodingImpl encoding = findRTPEncoding(pkt);
 
             if (encoding != null)
             {

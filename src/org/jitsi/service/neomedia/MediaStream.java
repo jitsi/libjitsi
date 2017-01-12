@@ -521,25 +521,6 @@ public interface MediaStream
      * @return true if the packet is a key frame, false otherwise.
      */
     boolean isKeyFrame(byte[] buf, int off, int len);
-    /**
-     * Gets the current active <tt>RTCPTerminationStrategy</tt> which is to
-     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
-     *
-     * @return the <tt>RTCPTerminationStrategy</tt> which is to inspect and
-     * modify RTCP traffic between multiple <tt>MediaStream</tt>s.
-     */
-    RTCPTerminationStrategy getRTCPTerminationStrategy();
-
-    /**
-     * Sets the current active <tt>RTCPTerminationStrategy</tt> which is to
-     * inspect and modify RTCP traffic between multiple <tt>MediaStream</tt>s.
-     *
-     * @param rtcpTerminationStrategy the <tt>RTCPTerminationStrategy</tt> which
-     * is to inspect and modify RTCP traffic between multiple
-     * <tt>MediaStream</tt>s.
-     */
-    void setRTCPTerminationStrategy(
-        RTCPTerminationStrategy rtcpTerminationStrategy);
 
     /**
      * Gets the {@link RawPacketCache} which (optionally) caches outgoing
@@ -557,18 +538,6 @@ public interface MediaStream
      * Gets the {@link TransformEngineChain} of this {@link MediaStream}.
      */
     TransformEngineChain getTransformEngineChain();
-
-    /**
-     * Gets the {@link REDBlock} that contains the payload of the packet passed
-     * in as a parameter.
-     *
-     * @param buf the buffer that holds the RTP payload.
-     * @param off the offset in the buff where the RTP payload is found.
-     * @param len then length of the RTP payload in the buffer.
-     * @return the {@link REDBlock} that contains the payload of the packet
-     * passed in as a parameter, or null if the buffer is invalid.
-     */
-    REDBlock getPayloadBlock(byte[] buf, int off, int len);
 
     /**
      * Gets the {@link MediaStreamTrackReceiver} of this {@link MediaStream}.
