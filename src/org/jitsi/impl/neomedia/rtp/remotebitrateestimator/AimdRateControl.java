@@ -15,7 +15,10 @@
  */
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
-import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.stats.StatisticsTable;
+import org.jitsi.service.neomedia.rtp.RemoteBitrateEstimator;
+
+import static org.jitsi.impl.neomedia.stats.CounterName.*;
 
 /**
  * A rate control implementation based on additive increases of bitrate when no
@@ -43,6 +46,8 @@ class AimdRateControl
     private static final int kRtcpSize = 80;
 
     private static final double kWithinIncomingBitrateHysteresis = 1.05;
+
+    private final StatisticsTable stats;
 
     private float avgMaxBitrateKbps;
 
@@ -75,8 +80,9 @@ class AimdRateControl
 
     private float varMaxBitrateKbps;
 
-    public AimdRateControl()
+    public AimdRateControl(StatisticsTable stats)
     {
+        this.stats = stats;
         reset();
     }
 
@@ -133,10 +139,12 @@ class AimdRateControl
         switch (rateControlState)
         {
         case kRcHold:
+            stats.get(RATE_CONTROL_HOLD).incrementAndGet();
             break;
 
         case kRcIncrease:
         {
+            stats.get(RATE_CONTROL_INCREASE).incrementAndGet();
             if (avgMaxBitrateKbps >= 0F
                     && incomingBitrateKbps
                         > avgMaxBitrateKbps + 3F * stdMaxBitRate)
@@ -172,10 +180,12 @@ class AimdRateControl
         }
         case kRcDecrease:
         {
+            stats.get(RATE_CONTROL_DECREASE).incrementAndGet();
             bitrateIsInitialized = true;
             if (incomingBitrateBps < minConfiguredBitrateBps)
             {
                 currentBitrateBps = minConfiguredBitrateBps;
+                stats.get(RATE_CONTROL_DROP_TO_MIN_BITRATE).incrementAndGet();
             }
             else
             {

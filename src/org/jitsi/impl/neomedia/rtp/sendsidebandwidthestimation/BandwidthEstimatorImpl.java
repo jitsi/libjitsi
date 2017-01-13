@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation;
 
 import net.sf.fmj.media.rtp.*;
+import org.jitsi.impl.neomedia.stats.StatisticsTable;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.concurrent.*;
@@ -79,11 +80,11 @@ public class BandwidthEstimatorImpl
      * {@link MediaStream}.
      * @param stream the {@link MediaStream}.
      */
-    public BandwidthEstimatorImpl(MediaStream stream)
+    public BandwidthEstimatorImpl(MediaStream stream, StatisticsTable statisticsTable)
     {
         mediaStream = stream;
         sendSideBandwidthEstimation
-            = new SendSideBandwidthEstimation(stream, START_BITRATE_BPS);
+            = new SendSideBandwidthEstimation(stream, START_BITRATE_BPS, statisticsTable);
         sendSideBandwidthEstimation.setMinMaxBitrate(
                 MIN_BITRATE_BPS, MAX_BITRATE_BPS);
 

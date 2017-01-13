@@ -15,11 +15,15 @@
  */
 package org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation;
 
+import org.jitsi.impl.neomedia.stats.StatisticsTable;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 
 import java.util.*;
+
+import static org.jitsi.impl.neomedia.stats.CounterName.AVAILABLE_SEND_BANDWIDTH_BPS;
+import static org.jitsi.impl.neomedia.stats.CounterName.RECEIVER_ESTIMATED_MAXIMUM_BITRATE_BPS;
 
 /**
  * Implements the send-side bandwidth estimation described in
@@ -138,10 +142,12 @@ class SendSideBandwidthEstimation
      * The {@link MediaStream} for this {@link SendSideBandwidthEstimation}.
      */
     private final MediaStream mediaStream;
+    private final StatisticsTable stats;
 
-    SendSideBandwidthEstimation(MediaStream stream, long startBitrate)
+    SendSideBandwidthEstimation(MediaStream stream, long startBitrate, StatisticsTable stats)
     {
         mediaStream = stream;
+        this.stats = stats;
         setBitrate(startBitrate);
     }
 
@@ -310,6 +316,7 @@ class SendSideBandwidthEstimation
      */
     private synchronized void updateReceiverEstimate(long bandwidth)
     {
+        stats.get(RECEIVER_ESTIMATED_MAXIMUM_BITRATE_BPS).set(bandwidth);
         bwe_incoming_ = bandwidth;
         setBitrate(capBitrateToThresholds(bitrate_));
     }
@@ -342,6 +349,7 @@ class SendSideBandwidthEstimation
         if (oldValue != bitrate_)
         {
             fireBandwidthEstimationChanged(oldValue, newValue);
+            stats.get(AVAILABLE_SEND_BANDWIDTH_BPS).set(bitrate_);
         }
     }
 
