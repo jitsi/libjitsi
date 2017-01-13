@@ -49,7 +49,6 @@ import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
-import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 
 /**
@@ -3704,11 +3703,11 @@ public class MediaStreamImpl
     }
 
     /**
-     * Gets the {@link RawPacketCache} which (optionally) caches outgoing
-     * packets for this {@link MediaStream}, if it exists.
-     * @return the {@link RawPacketCache} for this {@link MediaStreamImpl}.
+     * Gets the {@link CachingTransformer} which (optionally) caches outgoing
+     * packets for this {@link MediaStreamImpl}, if it exists.
+     * @return the {@link CachingTransformer} for this {@link MediaStreamImpl}.
      */
-    public RawPacketCache getPacketCache()
+    public CachingTransformer getPacketCache()
     {
         return cachingTransformer;
     }
