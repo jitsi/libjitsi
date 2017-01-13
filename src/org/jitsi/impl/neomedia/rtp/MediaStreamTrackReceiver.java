@@ -263,22 +263,51 @@ public class MediaStreamTrackReceiver
      * receiver is managing. Detects simulcast stream suspension/resuming.
      */
     private class RTPPacketTransformer
-        extends SinglePacketTransformerAdapter
+        implements PacketTransformer
     {
         /**
          * {@inheritDoc}
          */
         @Override
-        public RawPacket reverseTransform(RawPacket pkt)
+        public void close()
         {
-            RTPEncodingImpl encoding = findRTPEncoding(pkt);
 
-            if (encoding != null)
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket[] reverseTransform(RawPacket[] pkts)
+        {
+            RawPacket[] cumulExtras = null;
+            for (int i = 0; i < pkts.length; i++)
             {
-                encoding.getMediaStreamTrack().update(pkt, encoding);
+                RTPEncodingImpl encoding = findRTPEncoding(pkts[i]);
+
+                if (encoding != null)
+                {
+                    RawPacket[] extras = encoding
+                        .getMediaStreamTrack().update(pkts[i], encoding);
+
+                    if (ArrayUtils.isNullOrEmpty(extras))
+                    {
+                        cumulExtras = ArrayUtils.concat(cumulExtras, extras);
+                    }
+                }
             }
 
-            return pkt;
+            // XXX these array concatenation methods are fast most of the time.
+            return ArrayUtils.concat(cumulExtras, pkts);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket[] transform(RawPacket[] pkts)
+        {
+            return pkts;
         }
     }
 }

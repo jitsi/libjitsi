@@ -50,6 +50,11 @@ public class CachingTransformer
     private final RawPacketCache outgoingRawPacketCache;
 
     /**
+     * The incoming packet cache.
+     */
+    private final RawPacketCache incomingRawPacketCache;
+
+    /**
      * Whether or not this <tt>TransformEngine</tt> has been closed.
      */
     private boolean closed = false;
@@ -61,26 +66,18 @@ public class CachingTransformer
     private boolean enabled = false;
 
     /**
-     * The <tt>RecurringRunnableExecutor</tt> to be utilized by the
-     * <tt>CachingTransformer</tt> class and its instances.
-     */
-    private static final RecurringRunnableExecutor
-        recurringRunnableExecutor
-            = new RecurringRunnableExecutor(
-                    CachingTransformer.class.getSimpleName());
-
-    /**
      * The last time {@link #run()} was called.
      */
     private long lastUpdateTime = -1;
 
     /**
      * Initializes a new {@link CachingTransformer} instance.
-     * @param streamId the identifier of the owning stream.
+     * @param stream the owning stream.
      */
-    public CachingTransformer(int streamId)
+    public CachingTransformer(MediaStreamImpl stream)
     {
-        this.outgoingRawPacketCache = new RawPacketCache(streamId);
+        this.outgoingRawPacketCache = new RawPacketCache(stream.hashCode());
+        this.incomingRawPacketCache = new RawPacketCache(-1);
     }
 
     /**
@@ -101,32 +98,14 @@ public class CachingTransformer
         {
             logger.error(e);
         }
-        recurringRunnableExecutor.deRegisterRecurringRunnable(this);
-    }
 
-    /**
-     * Enables/disables the caching of packets.
-     *
-     * @param enabled {@code true} if the caching of packets is to be enabled or
-     * {@code false} if the caching of packets is to be disabled
-     */
-    public void setEnabled(boolean enabled)
-    {
-        this.enabled = enabled;
-
-        if (enabled)
+        try
         {
-            recurringRunnableExecutor.registerRecurringRunnable(this);
+            incomingRawPacketCache.close();
         }
-        else
+        catch (Exception e)
         {
-            recurringRunnableExecutor.deRegisterRecurringRunnable(this);
-        }
-
-        if (logger.isDebugEnabled())
-        {
-            logger.debug((enabled ? "Enabling" : "Disabling")
-                + " CachingTransformer " + hashCode());
+            logger.error(e);
         }
     }
 
@@ -141,6 +120,16 @@ public class CachingTransformer
         if (enabled && !closed && pkt != null && pkt.getVersion() == 2)
         {
             outgoingRawPacketCache.cachePacket(pkt);
+        }
+        return pkt;
+    }
+
+    @Override
+    public RawPacket reverseTransform(RawPacket pkt)
+    {
+        if (enabled && !closed && pkt != null && pkt.getVersion() == 2)
+        {
+            incomingRawPacketCache.cachePacket(pkt);
         }
         return pkt;
     }
@@ -184,6 +173,24 @@ public class CachingTransformer
     {
         lastUpdateTime = System.currentTimeMillis();
         outgoingRawPacketCache.clean(lastUpdateTime);
+        incomingRawPacketCache.clean(lastUpdateTime);
+    }
+
+    /**
+     * Enables/disables the caching of packets.
+     *
+     * @param enabled {@code true} if the caching of packets is to be enabled or
+     * {@code false} if the caching of packets is to be disabled
+     */
+    public void setEnabled(boolean enabled)
+    {
+        this.enabled = enabled;
+
+        if (logger.isDebugEnabled())
+        {
+            logger.debug((enabled ? "Enabling" : "Disabling")
+                + " CachingTransformer " + hashCode());
+        }
     }
 
     /**
@@ -194,5 +201,15 @@ public class CachingTransformer
     public RawPacketCache getOutgoingRawPacketCache()
     {
         return outgoingRawPacketCache;
+    }
+
+    /**
+     * Gets the incoming {@link RawPacketCache}.
+     *
+     * @return the incoming {@link RawPacketCache}.
+     */
+    public RawPacketCache getIncomingRawPacketCache()
+    {
+        return incomingRawPacketCache;
     }
 }

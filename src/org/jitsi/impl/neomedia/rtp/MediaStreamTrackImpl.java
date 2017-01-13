@@ -94,7 +94,7 @@ public class MediaStreamTrackImpl
      * @param encoding the {@link RTPEncodingImpl} of the {@link RawPacket} that
      * is passed as an argument.
      */
-    void update(RawPacket pkt, RTPEncodingImpl encoding)
+    RawPacket[] update(RawPacket pkt, RTPEncodingImpl encoding)
     {
         long nowMs = System.currentTimeMillis();
 
@@ -109,7 +109,7 @@ public class MediaStreamTrackImpl
             // streaming (not suspended).
             || nowMs - lastKeyframeMs < MIN_KEY_FRAME_WAIT_MS)
         {
-            return;
+            return null;
         }
 
         // media engines may decide to suspend a stream for congestion control.
@@ -131,6 +131,25 @@ public class MediaStreamTrackImpl
 
             rtpEncodings[i].setActive(isActive);
         }
+
+        RawPacket[] extras = null;
+
+        if (!frameDesc.isInOrder())
+        {
+            // Piggy back till max seen.
+            RawPacketCache inCache = mediaStreamTrackReceiver.getStream()
+                .getCachingTransformer().getIncomingRawPacketCache();
+
+            int start = frameDesc.getStart();
+            int len = (frameDesc.getMaxSeen() - start) & 0xFFFF;
+            extras = new RawPacket[len];
+            for (int i = 1; i <= len; i++)
+            {
+                extras[i] = inCache.get(encoding.getPrimarySSRC(),
+                    (start + i) & 0xFFFF);
+            }
+        }
+        return extras;
     }
 
     /**

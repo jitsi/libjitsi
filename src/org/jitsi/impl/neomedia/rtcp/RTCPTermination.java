@@ -101,7 +101,7 @@ public class RTCPTermination
     {
         this.stream = stream;
 
-        CachingTransformer cache = stream.getPacketCache();
+        CachingTransformer cache = stream.getCachingTransformer();
         if (cache != null)
         {
             cache.setEnabled(true);
@@ -155,7 +155,8 @@ public class RTCPTermination
         RawPacketCache cache;
         RtxTransformer rtxTransformer;
 
-        if (stream != null && (cache = stream.getPacketCache().getOutgoingRawPacketCache()) != null
+        if (stream != null
+            && (cache = stream.getCachingTransformer().getOutgoingRawPacketCache()) != null
             && (rtxTransformer = stream.getRtxTransformer())
             != null)
         {

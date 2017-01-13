@@ -43,6 +43,12 @@ public class FrameDesc
     private final long ts;
 
     /**
+     * A boolean indicating whether or not this frame has been received in
+     * order.
+     */
+    private boolean inOrder = false;
+
+    /**
      * A boolean indicating whether or not this frame is independent or not
      * (e.g. VP8 key frame).
      */
@@ -186,9 +192,17 @@ public class FrameDesc
         boolean changed = false;
 
         int seqNum = pkt.getSequenceNumber();
+        byte[] buf = pkt.getBuffer();
+        int off = pkt.getOffset(), len = pkt.getLength();
+
+        MediaStreamImpl stream = rtpEncoding.getMediaStreamTrack()
+            .getMediaStreamTrackReceiver().getStream();
+
+        boolean isSOF = stream.isStartOfFrame(buf, off, len);
         if (minSeen == -1 || RTPUtils.sequenceNumberDiff(minSeen, seqNum) > 0)
         {
             changed = true;
+            inOrder = isSOF;
             minSeen = seqNum;
         }
 
@@ -198,19 +212,13 @@ public class FrameDesc
             maxSeen = seqNum;
         }
 
-        MediaStreamImpl stream = rtpEncoding.getMediaStreamTrack()
-            .getMediaStreamTrackReceiver().getStream();
-
-        byte[] buf = pkt.getBuffer();
-        int off = pkt.getOffset(), len = pkt.getLength();
-
         if (end == -1 && stream.isEndOfFrame(buf, off, len))
         {
             changed = true;
             end = seqNum;
         }
 
-        if (start == -1 && stream.isStartOfFrame(buf, off, len))
+        if (start == -1 && isSOF)
         {
             changed = true;
             start = seqNum;
@@ -236,5 +244,15 @@ public class FrameDesc
             ",max_seen=" + maxSeen +
             ",start=" + start +
             ",end=" + end;
+    }
+
+    /**
+     * Gets a boolean indicating whether or not this frame has been received in
+     * order.
+     * @return true if this frame has been received in order, false otherwise.
+     */
+    public boolean isInOrder()
+    {
+        return inOrder;
     }
 }

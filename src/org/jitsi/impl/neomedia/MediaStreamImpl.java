@@ -3707,7 +3707,7 @@ public class MediaStreamImpl
      * packets for this {@link MediaStreamImpl}, if it exists.
      * @return the {@link CachingTransformer} for this {@link MediaStreamImpl}.
      */
-    public CachingTransformer getPacketCache()
+    public CachingTransformer getCachingTransformer()
     {
         return cachingTransformer;
     }
