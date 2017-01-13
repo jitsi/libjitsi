@@ -43,8 +43,8 @@ public class SimulcastController
      */
     private final Logger logger = Logger.getLogger(SimulcastController.class);
 
-    private static final TransformState dropState
-        = new TransformState(-1, -1, -1, -1);
+    private static final SimTransformation dropState
+        = new SimTransformation(-1, -1, -1, -1);
 
     /**
      * The target SSRC is the primary SSRC of the first encoding of the source.
@@ -84,7 +84,7 @@ public class SimulcastController
     /**
      * Read by the transform thread. Written by the filter thread.
      */
-    private TransformState transformState = dropState;
+    private SimTransformation transformState = dropState;
 
     /**
      * Ctor.
@@ -209,7 +209,7 @@ public class SimulcastController
                 seqNumDelta = 0; tsDelta = 0;
             }
 
-            transformState = new TransformState(
+            transformState = new SimTransformation(
                 sourceSSRC, tsDelta, seqNumDelta, sourceIdx);
 
             onAccept(buf, off, len);
@@ -328,7 +328,7 @@ public class SimulcastController
                 return pkts;
             }
 
-            TransformState state = transformState;
+            SimTransformation state = transformState;
 
             for (int i = 0; i < pkts.length; i++)
             {
@@ -417,7 +417,7 @@ public class SimulcastController
                 return pkts;
             }
 
-            TransformState state = transformState;
+            SimTransformation state = transformState;
 
             for (int i = 0; i < pkts.length; i++)
             {
@@ -474,7 +474,8 @@ public class SimulcastController
     /**
      *
      */
-    private static class TransformState
+    private static class SimTransformation
+        extends Transformation
     {
         /**
          * Ctor.
@@ -483,26 +484,13 @@ public class SimulcastController
          * @param tsDelta
          * @param seqNumDelta
          */
-        TransformState(
+        SimTransformation(
             long currentSSRC, long tsDelta, int seqNumDelta, int currentIdx)
         {
+            super(tsDelta, seqNumDelta);
             this.currentSSRC = currentSSRC;
             this.currentIdx = currentIdx;
-            this.tsDelta = tsDelta;
-            this.seqNumDelta = seqNumDelta;
         }
-
-        /**
-         * The sequence number delta (mod 16) to apply to the RTP packets of the
-         * forwarded RTP stream.
-         */
-        private final long tsDelta;
-
-        /**
-         * The timestamp delta (mod 32) to apply to the RTP packets of the
-         * forwarded RTP stream.
-         */
-        private final int seqNumDelta;
 
         /**
          * The current SSRC that is currently being forwarded.
@@ -514,26 +502,6 @@ public class SimulcastController
          * different than the target, then a switch is pending.
          */
         private int currentIdx = -1;
-
-        /**
-         *
-         * @param ts
-         * @return
-         */
-        long rewriteTimestamp(long ts)
-        {
-            return tsDelta == 0 ? ts : (ts + tsDelta) & 0xFFFFFFFFL;
-        }
-
-        /**
-         *
-         * @param seqNum
-         * @return
-         */
-        int rewriteSeqNum(int seqNum)
-        {
-            return seqNumDelta == 0 ? seqNum : (seqNum + seqNumDelta) & 0xFFFF;
-        }
     }
 
     /**
