@@ -33,6 +33,7 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.protocol.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.stats.*;
@@ -463,6 +464,8 @@ public class MediaStreamImpl
                         rtpPayloadType);
             }
         }
+
+        this.onDynamicPayloadTypesChanged();
     }
 
     /**
@@ -489,6 +492,8 @@ public class MediaStreamImpl
                 fecTransformEngine.setOutgoingPT((byte) -1);
             }
         }
+
+        this.onDynamicPayloadTypesChanged();
     }
 
     /**
@@ -991,7 +996,13 @@ public class MediaStreamImpl
         if (dtmfEngine != null)
             engineChain.add(dtmfEngine);
 
+        // RTX
         engineChain.add(externalTransformerWrapper);
+        RtxTransformer rtxTransformer = getRtxTransformer();
+        if (rtxTransformer != null)
+        {
+            engineChain.add(rtxTransformer);
+        }
 
         // here comes the override payload type transformer
         // as it changes headers of packets, need to go before encryption
@@ -3693,9 +3704,10 @@ public class MediaStreamImpl
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the {@link RawPacketCache} which (optionally) caches outgoing
+     * packets for this {@link MediaStream}, if it exists.
+     * @return the {@link RawPacketCache} for this {@link MediaStreamImpl}.
      */
-    @Override
     public RawPacketCache getPacketCache()
     {
         return cachingTransformer;
@@ -3759,11 +3771,42 @@ public class MediaStreamImpl
     }
 
     /**
+     * Gets the {@code RtxTransformer}, if any, used by the {@code MediaStream}.
+     *
+     * @return the {@code RtxTransformer} used by the {@code MediaStream} or
+     * {@code null}
+     */
+    public RtxTransformer getRtxTransformer()
+    {
+        return null;
+    }
+
+    /**
      * Creates the {@link DiscardTransformEngine} for this stream. Allows
      * extenders to override.
      */
     protected DiscardTransformEngine createDiscardEngine()
     {
         return null;
+    }
+
+    /**
+     * Gets the RTCP termination for this {@link MediaStreamImpl}.
+     */
+    protected RTCPTermination getRTCPTermination()
+    {
+        return null;
+    }
+
+    /**
+     * Code that runs when the dynamic payload types change.
+     */
+    private void onDynamicPayloadTypesChanged()
+    {
+        RtxTransformer rtxTransformer = getRtxTransformer();
+        if (rtxTransformer != null)
+        {
+            rtxTransformer.onDynamicPayloadTypesChanged();
+        }
     }
 }

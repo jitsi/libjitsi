@@ -523,13 +523,6 @@ public interface MediaStream
     boolean isKeyFrame(byte[] buf, int off, int len);
 
     /**
-     * Gets the {@link RawPacketCache} which (optionally) caches outgoing
-     * packets for this {@link MediaStream}, if it exists.
-     * @return the {@link RawPacketCache} for this {@link MediaStream}.
-     */
-    RawPacketCache getPacketCache();
-
-    /**
      * @return the {@link RetransmissionRequester} for this media stream.
      */
     RetransmissionRequester getRetransmissionRequester();

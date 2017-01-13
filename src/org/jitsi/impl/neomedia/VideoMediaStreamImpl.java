@@ -28,6 +28,7 @@ import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation.*;
@@ -428,6 +429,17 @@ public class VideoMediaStreamImpl
         = new MediaStreamTrackReceiver(this);
 
     /**
+     * The transformer which handles outgoing rtx (RFC-4588) packets for this
+     * {@link VideoMediaStreamImpl}.
+     */
+    private final RtxTransformer rtxTransformer = new RtxTransformer(this);
+
+    /**
+     * TODO close the object.
+     */
+    private final RTCPTermination rtcpTermination = new RTCPTermination(this);
+
+    /**
      * The <tt>RemoteBitrateEstimator</tt> which computes bitrate estimates for
      * the incoming RTP streams.
      */
@@ -497,6 +509,15 @@ public class VideoMediaStreamImpl
             recurringRunnableExecutor.registerRecurringRunnable(
                     (RecurringRunnable) remoteBitrateEstimator);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RtxTransformer getRtxTransformer()
+    {
+        return rtxTransformer;
     }
 
     /**
@@ -1344,6 +1365,15 @@ public class VideoMediaStreamImpl
             return new RetransmissionRequesterImpl(this);
         }
         return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected RTCPTermination getRTCPTermination()
+    {
+        return rtcpTermination;
     }
 
     /**

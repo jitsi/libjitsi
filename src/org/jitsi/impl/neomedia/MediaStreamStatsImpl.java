@@ -1590,6 +1590,87 @@ public class MediaStreamStatsImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getPacketsMissingFromCache()
+    {
+        RTCPTermination rtcpTermination = mediaStreamImpl.getRTCPTermination();
+        if (rtcpTermination == null)
+        {
+            return 0;
+        }
+
+        RTCPTermination.Statistics termStats = rtcpTermination.getStatistics();
+        return termStats.getPacketsMissingFromCache();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getPacketsNotRetransmitted()
+    {
+        RTCPTermination rtcpTermination = mediaStreamImpl.getRTCPTermination();
+        if (rtcpTermination == null)
+        {
+            return 0;
+        }
+
+        RTCPTermination.Statistics termStats = rtcpTermination.getStatistics();
+        return termStats.getPacketsNotRetransmitted();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getPacketsRetransmitted()
+    {
+        RTCPTermination rtcpTermination = mediaStreamImpl.getRTCPTermination();
+        if (rtcpTermination == null)
+        {
+            return 0;
+        }
+
+        RTCPTermination.Statistics termStats = rtcpTermination.getStatistics();
+        return termStats.getPacketsRetransmitted();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getBytesNotRetransmitted()
+    {
+        RTCPTermination rtcpTermination = mediaStreamImpl.getRTCPTermination();
+        if (rtcpTermination == null)
+        {
+            return 0;
+        }
+
+        RTCPTermination.Statistics termStats = rtcpTermination.getStatistics();
+        return termStats.getBytesNotRetransmitted();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getBytesRetransmitted()
+    {
+        RTCPTermination rtcpTermination = mediaStreamImpl.getRTCPTermination();
+        if (rtcpTermination == null)
+        {
+            return 0;
+        }
+
+        RTCPTermination.Statistics termStats = rtcpTermination.getStatistics();
+
+        return termStats.getBytesRetransmitted();
+    }
+
+    /**
      * @return this instance as a {@link MediaStreamStats2Impl}.
      */
     private MediaStreamStats2Impl getExtended()
