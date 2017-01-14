@@ -53,6 +53,10 @@ public class RawPacket
      */
     public static final int FIXED_HEADER_SIZE = 12;
 
+    static class ExtensionId {
+      public static final int ABSOLUTE_SEND_TIME = 3;
+    }
+
     /**
      * Byte array storing the content of this Packet
      */
@@ -477,6 +481,40 @@ public class RawPacket
         }
 
         return level;
+    }
+
+    /**
+     * Reads the Absolute Send Time extension which is the timestamp in RTP packets that shows the departure time
+     * when the packet is put on the wire.
+     *
+     * Timestamp is in seconds, 24 bit 6.18 fixed point, yielding 64s wraparound and 3.8us resolution.
+     *
+     * @See https://webrtc.org/experiments/rtp-hdrext/abs-send-time/
+     *
+     * @return abs-send-time or -1 if abs-send-time is not present.
+     */
+    int getAbsSendTime()
+    {
+        final int RETURN_VALUE_ON_FAILURE = -1;
+        int value = RETURN_VALUE_ON_FAILURE;
+        try
+        {
+            if (getExtensionBit() && getExtensionLength() != 0)
+            {
+                int extensionPosition = findExtension(ExtensionId.ABSOLUTE_SEND_TIME);
+                if (extensionPosition != -1)
+                {
+                    int start = offset + extensionPosition;
+                    value = ((buffer[start] & 0xff) << 16) | ((buffer[start+1] & 0xff) << 8) | (buffer[start+2] & 0xff);
+                }
+            }
+        }
+        catch (ArrayIndexOutOfBoundsException e)
+        {
+            // Lazy way to catch malformed packets or packets without the abs-send-time extension.
+            value = RETURN_VALUE_ON_FAILURE;
+        }
+        return value;
     }
 
     /**

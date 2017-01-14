@@ -29,7 +29,7 @@ import org.jitsi.util.*;
  */
 class InterArrival
 {
-    private static final int kBurstDeltaThresholdMs  = 5;
+    private static final int kBurstDeltaThresholdMs = 5;
 
     private static final Logger logger = Logger.getLogger(InterArrival.class);
 
@@ -97,19 +97,14 @@ class InterArrival
                     "currentTimestampGroup.completeTimeMs");
         }
 
-        long arrivalTimeDeltaMs
-            = arrivalTimeMs - currentTimestampGroup.completeTimeMs;
-        long timestampDiff = timestamp - currentTimestampGroup.timestamp;
-        long tsDeltaMs = (long) (timestampToMsCoeff * timestampDiff + 0.5);
-
-        if (tsDeltaMs == 0)
-            return true;
-
-        long propagationDeltaMs = arrivalTimeDeltaMs - tsDeltaMs;
-
         return
-            propagationDeltaMs < 0
-                && arrivalTimeDeltaMs <= kBurstDeltaThresholdMs;
+            TimestampUtils.belongsToBurst(
+                arrivalTimeMs,
+                timestamp,
+                currentTimestampGroup.completeTimeMs,
+                currentTimestampGroup.timestamp,
+                timestampToMsCoeff,
+                kBurstDeltaThresholdMs);
     }
 
     /**

@@ -68,4 +68,38 @@ class TimestampUtils
             isNewerTimestamp(timestamp1, timestamp2) ? timestamp1 : timestamp2;
     }
 
+    /**
+     * Calculate the departure and arrival time delta to determine if the new packet belongs to a burst
+     *
+     * @param packetArrivalTimeMs
+     * @param packetDepartureTimestamp
+     * @param currentGroupCompleteTimeMs
+     * @param currentGroupDepartureTimestamp
+     * @param timestampToMsCoeff
+     * @param kBurstDeltaThresholdMs
+     * @return
+     */
+    static boolean belongsToBurst(
+        long packetArrivalTimeMs,
+        long packetDepartureTimestamp,
+        long currentGroupCompleteTimeMs,
+        long currentGroupDepartureTimestamp,
+        double timestampToMsCoeff,
+        int kBurstDeltaThresholdMs)
+    {
+        long arrivalTimeDeltaMs
+            = packetArrivalTimeMs - currentGroupCompleteTimeMs;
+        long timestampDiff = packetDepartureTimestamp - currentGroupDepartureTimestamp;
+        long tsDeltaMs = (long) (timestampToMsCoeff * timestampDiff + 0.5);
+
+        if (tsDeltaMs == 0)
+            return true;
+
+        long propagationDeltaMs = arrivalTimeDeltaMs - tsDeltaMs;
+
+        return
+            propagationDeltaMs < 0
+                && arrivalTimeDeltaMs <= kBurstDeltaThresholdMs;
+
+    }
 }

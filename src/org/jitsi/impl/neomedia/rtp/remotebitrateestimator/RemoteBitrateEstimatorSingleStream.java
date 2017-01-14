@@ -34,7 +34,10 @@ public class RemoteBitrateEstimatorSingleStream
                RecurringRunnable,
                RemoteBitrateEstimator
 {
-    static final double kTimestampToMs = 1.0 / 90.0;
+    static final short kAbsSendTimeFraction = 18;
+    static final short kAbsSendTimeInterArrivalUpshift = 8;
+    static final short kInterArrivalShift = kAbsSendTimeFraction + kAbsSendTimeInterArrivalUpshift;
+    static final double k24BitTimestampToMs = 1000.0 / (1 << kInterArrivalShift);
 
     private final Object critSect = new Object();
 
@@ -154,7 +157,7 @@ public class RemoteBitrateEstimatorSingleStream
             long arrivalTimeMs,
             int payloadSize,
             int ssrc,
-            long rtpTimestamp,
+            long absSendTime24Bit,
             boolean wasPaced)
     {
         Integer ssrc_ = ssrc;
@@ -192,7 +195,7 @@ public class RemoteBitrateEstimatorSingleStream
         /* long timestampDelta */ deltas[0] = 0;
         /* long timeDelta */ deltas[1] = 0;
         /* int sizeDelta */ deltas[2] = 0;
-
+        long rtpTimestamp = absSendTime24Bit << kAbsSendTimeInterArrivalUpshift;
         if (estimator.interArrival.computeDeltas(
                 rtpTimestamp,
                 arrivalTimeMs,
@@ -200,7 +203,7 @@ public class RemoteBitrateEstimatorSingleStream
                 deltas))
         {
             double timestampDeltaMs
-                = /* timestampDelta */ deltas[0] * kTimestampToMs;
+                = /* timestampDelta */ deltas[0] * k24BitTimestampToMs;
 
             estimator.estimator.update(
                     /* timeDelta */ deltas[1],
@@ -230,27 +233,6 @@ public class RemoteBitrateEstimatorSingleStream
             }
         }
         } // synchronized (critSect)
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void incomingPacket(
-            long arrivalTimeMs,
-            int payloadSize,
-            RTPPacket header,
-            boolean wasPaced)
-    {
-        int ssrc = header.ssrc;
-        long rtpTimestamp
-            = header.timestamp + getExtensionTransmissionTimeOffset(header);
-
-        incomingPacket(
-                arrivalTimeMs,
-                payloadSize,
-                ssrc, rtpTimestamp,
-                wasPaced);
     }
 
     /**
@@ -393,8 +375,8 @@ public class RemoteBitrateEstimatorSingleStream
             this.lastPacketTimeMs = lastPacketTimeMs;
             this.interArrival
                 = new InterArrival(
-                        90 * kTimestampGroupLengthMs,
-                        kTimestampToMs,
+                        (long) (kTimestampGroupLengthMs << kInterArrivalShift) / 1000,
+                        k24BitTimestampToMs,
                         enableBurstGrouping);
             this.estimator = new OveruseEstimator(options);
             this.detector = new OveruseDetector(options);

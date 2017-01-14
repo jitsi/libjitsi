@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.junit.*;
 
+import static org.jitsi.impl.neomedia.rtp.remotebitrateestimator.RemoteBitrateEstimatorSingleStream.k24BitTimestampToMs;
 import static org.junit.Assert.*;
 
 /**
@@ -25,6 +26,10 @@ import static org.junit.Assert.*;
 public class TimestampUtilsTest
 {
     private final static long kBoundary = 0x80000000L;
+
+    private final double timestampToMsCoeff = k24BitTimestampToMs;
+    private final int kBurstDeltaThresholdMs = 5;
+
 
     @Test
     public void testTimestampIsNewer()
@@ -52,5 +57,37 @@ public class TimestampUtilsTest
         assertEquals(kBoundary, TimestampUtils.latestTimestamp(1L, kBoundary));
     }
 
-}
+    @Test
+    public void testPacketBelongsToBurst()
+        throws Exception
+    {
+        assertEquals(
+            false,
+            TimestampUtils.belongsToBurst(2L, 0x28F5CL, 0L, 0L, timestampToMsCoeff, kBurstDeltaThresholdMs));
+        // arrivalTimeDeltaMs = 2 - 0 = 2
+        // tsDeltaMs = (long)((0x28F5C - 0) * k24BitTimestampToMs + 0.5) = 2ms
+        // propagationDeltaMs = arrivalTimeDeltaMs - tsDeltaMs = 0, not belong to burst
 
+        assertEquals(
+            false,
+            TimestampUtils.belongsToBurst(100L, 0x100000L, 0L, 0L, timestampToMsCoeff, kBurstDeltaThresholdMs));
+        // arrivalTimeDeltaMs = 100 - 0 = 100ms > 5ms, not belong to burst
+
+        assertEquals(
+            true,
+            TimestampUtils.belongsToBurst(2L, 0x28F5DL, 0L, 0L, timestampToMsCoeff, kBurstDeltaThresholdMs));
+        // arrivalTimeDeltaMs = 3 - 0 = 3
+        // tsDeltaMs = (long)(0x28F5C - 0) * k24BitTimestampToMs + 0.5 > 2ms
+        // propagationDeltaMs = arrivalTimeDeltaMs - tsDeltaMs = 1 > 0, belong to burst
+    }
+
+    @Test
+    public void test24BitTimestampToMsConversion()
+        throws Exception
+    {
+        // according to https://webrtc.org/experiments/rtp-hdrext/abs-send-time,
+        // the 24 bit timestamp has resolution of 64seconds
+        long timestamp = 0xFFFFFF00L;
+        assertEquals(true, Math.abs(timestamp * timestampToMsCoeff - 64000) < 0.01);
+    }
+}
