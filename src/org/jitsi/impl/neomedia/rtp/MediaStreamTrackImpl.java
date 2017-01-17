@@ -16,16 +16,15 @@
 package org.jitsi.impl.neomedia.rtp;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.service.neomedia.*;
 
 /**
- * An implementation of a {@link MediaStreamTrack} that provides webrtc
- * simulcast stream suspension detection.
+ * Represents a collection of {@link RTPEncodingImpl}s that encode the same
+ * media source. This specific implementation provides webrtc simulcast stream
+ * suspension detection.
  *
  * @author George Politis
  */
 public class MediaStreamTrackImpl
-    implements MediaStreamTrack
 {
     /**
      * The minimum time (in millis) that is required for the media engine to
@@ -54,7 +53,7 @@ public class MediaStreamTrackImpl
      *
      * @param mediaStreamTrackReceiver The {@link MediaStreamTrackReceiver} that
      * receives this instance.
-     * @param rtpEncodings The {@link RTPEncoding}s that this instance
+     * @param rtpEncodings The {@link RTPEncodingImpl}s that this instance
      * possesses.
      */
     public MediaStreamTrackImpl(
@@ -66,9 +65,12 @@ public class MediaStreamTrackImpl
     }
 
     /**
-     * {@inheritDoc}
+     * Returns an array of all the {@link RTPEncodingImpl}s for this instance,
+     * in subjective quality ascending order.
+     *
+     * @return an array of all the {@link RTPEncodingImpl}s for this instance,
+     * in subjective quality ascending order.
      */
-    @Override
     public RTPEncodingImpl[] getRTPEncodings()
     {
         return rtpEncodings;

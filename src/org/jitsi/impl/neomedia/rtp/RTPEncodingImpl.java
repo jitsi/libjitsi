@@ -17,7 +17,6 @@ package org.jitsi.impl.neomedia.rtp;
 
 import org.ice4j.util.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jitsi.util.Logger;
 
@@ -30,7 +29,6 @@ import java.util.*;
  * @author George Politis
  */
 public class RTPEncodingImpl
-    implements RTPEncoding
 {
     /**
      * The {@link Logger} used by the {@link RTPEncodingImpl} class to print
@@ -127,7 +125,7 @@ public class RTPEncodingImpl
     /**
      * Ctor.
      *
-     * @param track the {@link MediaStreamTrack} that this instance belongs to.
+     * @param track the {@link MediaStreamTrackImpl} that this instance belongs to.
      * @param primarySSRC The primary SSRC for this layering/encoding.
      */
     public RTPEncodingImpl(MediaStreamTrackImpl track, long primarySSRC)
@@ -138,7 +136,7 @@ public class RTPEncodingImpl
     /**
      * Ctor.
      *
-     * @param track the {@link MediaStreamTrack} that this instance belongs to.
+     * @param track the {@link MediaStreamTrackImpl} that this instance belongs to.
      * @param primarySSRC The primary SSRC for this layering/encoding.
      * @param rtxSSRC The RTX SSRC for this layering/encoding.
      */
@@ -152,7 +150,8 @@ public class RTPEncodingImpl
     /**
      * Ctor.
      *
-     * @param track the {@link MediaStreamTrack} that this instance belongs to.
+     * @param track the {@link MediaStreamTrackImpl} that this instance belongs
+     * to.
      * @param idx the subjective quality index for this
      * layering/encoding.
      * @param primarySSRC The primary SSRC for this layering/encoding.
@@ -251,27 +250,31 @@ public class RTPEncodingImpl
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the primary SSRC for this layering/encoding.
+     *
+     * @return the primary SSRC for this layering/encoding.
      */
-    @Override
     public long getPrimarySSRC()
     {
         return primarySSRC;
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the RTX SSRC for this layering/encoding.
+     *
+     * @return the RTX SSRC for this layering/encoding.
      */
-    @Override
     public long getRTXSSRC()
     {
         return rtxSSRC;
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a boolean value indicating whether or not this instance is
+     * streaming.
+     *
+     * @return true if this instance is streaming, false otherwise.
      */
-    @Override
     public boolean isActive()
     {
         return active;
@@ -292,9 +295,10 @@ public class RTPEncodingImpl
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the {@link MediaStreamTrackImpl} that this instance belongs to.
+     *
+     * @return the {@link MediaStreamTrackImpl} that this instance belongs to.
      */
-    @Override
     public MediaStreamTrackImpl getMediaStreamTrack()
     {
         return track;
@@ -350,9 +354,14 @@ public class RTPEncodingImpl
     }
 
     /**
-     * {@inheritDoc}
+     * Gets a boolean indicating whether or not the packet specified in the
+     * arguments matches this encoding or not.
+     *
+     * @param buf the <tt>byte</tt> array that contains the RTP packet data.
+     * @param off the offset in <tt>buf</tt> at which the actual data starts.
+     * @param len the number of <tt>byte</tt>s in <tt>buf</tt> which
+     * constitute the actual data.
      */
-    @Override
     public boolean matches(byte[] buf, int off, int len)
     {
         long ssrc = RawPacket.getSSRCAsLong(buf, off, len);

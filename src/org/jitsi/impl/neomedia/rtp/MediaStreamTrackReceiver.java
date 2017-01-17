@@ -22,7 +22,7 @@ import org.jitsi.util.*;
 
 /**
  * This class is inserted in the receive transform chain and it updates the
- * {@link MediaStreamTrack}s that is configured to receive.
+ * {@link MediaStreamTrackImpl}s that is configured to receive.
  *
  * @author George Politis
  */
@@ -42,7 +42,7 @@ public class MediaStreamTrackReceiver
         rtpTransformer = new RTPPacketTransformer();
 
     /**
-     * The {@link MediaStreamTrack}s that this instance is configured to
+     * The {@link MediaStreamTrackImpl}s that this instance is configured to
      * receive.
      */
     private MediaStreamTrackImpl[] tracks;
@@ -51,7 +51,7 @@ public class MediaStreamTrackReceiver
      * Ctor.
      *
      * @param stream The {@link MediaStream} that this instance receives
-     * {@link MediaStreamTrack}s from.
+     * {@link MediaStreamTrackImpl}s from.
      */
     public MediaStreamTrackReceiver(MediaStreamImpl stream)
     {
@@ -105,14 +105,14 @@ public class MediaStreamTrackReceiver
     }
 
     /**
-     * Finds the {@link RTPEncoding} that matches {@link ByteArrayBuffer} passed
-     * in as a parameter.
+     * Finds the {@link RTPEncodingImpl} that matches {@link ByteArrayBuffer}
+     * passed in as a parameter.
      *
-     * @param buf the {@link ByteArrayBuffer} of the {@link RTPEncoding}
+     * @param buf the {@link ByteArrayBuffer} of the {@link RTPEncodingImpl}
      * to match.
      *
-     * @return the {@link RTPEncoding} that matches the pkt passed in as
-     * a parameter, or null if there is no matching {@link RTPEncoding}.
+     * @return the {@link RTPEncodingImpl} that matches the pkt passed in as
+     * a parameter, or null if there is no matching {@link RTPEncodingImpl}.
      */
     public RTPEncodingImpl findRTPEncoding(ByteArrayBuffer buf)
     {
@@ -126,16 +126,16 @@ public class MediaStreamTrackReceiver
     }
 
     /**
-     * Finds the {@link RTPEncoding} that matches {@link ByteArrayBuffer} passed
-     * in as a parameter.
+     * Finds the {@link RTPEncodingImpl} that matches {@link ByteArrayBuffer}
+     * passed in as a parameter.
      *
      * @param buf the <tt>byte</tt> array that contains the RTP packet data.
      * @param off the offset in <tt>buf</tt> at which the actual data starts.
      * @param len the number of <tt>byte</tt>s in <tt>buf</tt> which
      * constitute the actual data.
      *
-     * @return the {@link RTPEncoding} that matches the pkt passed in as
-     * a parameter, or null if there is no matching {@link RTPEncoding}.
+     * @return the {@link RTPEncodingImpl} that matches the pkt passed in as
+     * a parameter, or null if there is no matching {@link RTPEncodingImpl}.
      */
     public RTPEncodingImpl findRTPEncoding(byte[] buf, int off, int len)
     {
@@ -176,11 +176,11 @@ public class MediaStreamTrackReceiver
     }
 
     /**
-     * Gets the {@link MediaStreamTrack}s that this instance is configured to
-     * receive.
+     * Gets the {@link MediaStreamTrackImpl}s that this instance is configured
+     * to receive.
      *
-     * @return the {@link MediaStreamTrack}s that this instance is configured to
-     * receive.
+     * @return the {@link MediaStreamTrackImpl}s that this instance is
+     * configured to receive.
      */
     public MediaStreamTrackImpl[] getMediaStreamTracks()
     {
@@ -191,8 +191,8 @@ public class MediaStreamTrackReceiver
      * Updates this {@link MediaStreamTrackReceiver} with the new RTP encoding
      * parameters.
      *
-     * @param newTracks the {@link MediaStreamTrack}s that this instance will
-     * receive.
+     * @param newTracks the {@link MediaStreamTrackImpl}s that this instance
+     * will receive.
      * @return true if the MSTs have changed, otherwise false.
      */
     public boolean setMediaStreamTracks(
