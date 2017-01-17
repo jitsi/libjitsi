@@ -197,7 +197,6 @@ public class RemoteBitrateEstimatorSingleStream
         this.incomingBitrate.update(payloadSize, nowMs);
 
         BandwidthUsage priorState = estimator.detector.getState();
-        recordBandwidthUsage(ssrc, priorState);
         long[] deltas = this.deltas;
 
         /* long timestampDelta */ deltas[0] = 0;
@@ -247,7 +246,8 @@ public class RemoteBitrateEstimatorSingleStream
     }
 
     private void recordArrivalFilterStats(long ssrc, long deltaArrivalTimeMs, double deltaDepartureTimeMs,
-            long deltaSizeBytes, double estimatedGroupDelayVariationMs, int numOfDeltas) {
+            long deltaSizeBytes, double estimatedGroupDelayVariationMs, int numOfDeltas)
+    {
         double deltaGroupDelayVariationMs = deltaArrivalTimeMs - deltaDepartureTimeMs;
         StatisticsTable.GetCounterWithStreamId counter = stats.get(ssrc);
         counter.get(DELTA_ARRIVAL_TIME_MS).set(deltaArrivalTimeMs);
@@ -256,25 +256,6 @@ public class RemoteBitrateEstimatorSingleStream
         counter.get(DELTA_GROUP_DELAY_VARIATION_MS).set((long) deltaGroupDelayVariationMs);
         counter.get(ESTIMATION_NUM_DELTAS).set(numOfDeltas);
         counter.get(ESTIMATED_DELTA_GROUP_DELAY_VARIATION_MS).set((long)(estimatedGroupDelayVariationMs));
-    }
-
-    private void recordBandwidthUsage(long ssrc, BandwidthUsage bandwidthUsage) {
-        StatisticsTable.GetCounterWithStreamId counter = stats.get(ssrc);
-        counter.get(INCOMING_BITRATE_BPS).set(this.incomingBitrate.getRate());
-        switch (bandwidthUsage)
-        {
-            case kBwNormal:
-                counter.get(BANDWIDTH_NORMAL).incrementAndGet();
-                break;
-            case kBwOverusing:
-                counter.get(BANDWIDTH_OVERUSE).incrementAndGet();
-                break;
-            case kBwUnderusing:
-                counter.get(BANDWIDTH_UNDERUSE).incrementAndGet();
-                break;
-            default:
-                break;
-        }
     }
 
     /**
@@ -404,6 +385,7 @@ public class RemoteBitrateEstimatorSingleStream
         input.incomingBitRate = incomingBitrate.getRate(nowMs);
         input.noiseVar = meanNoiseVar;
         remoteRate.update(input, nowMs);
+        recordRateControlInput(input);
 
         long targetBitrate = remoteRate.updateBandwidthEstimate(nowMs);
 
@@ -420,6 +402,30 @@ public class RemoteBitrateEstimatorSingleStream
         }
 
         } // synchronized (critSect)
+    }
+
+    private void recordRateControlInput(RateControlInput input)
+    {
+        stats.get(INCOMING_BITRATE_BPS).set(input.incomingBitRate);
+        recordBandwidthUsage(input.bwState);
+    }
+
+    private void recordBandwidthUsage(BandwidthUsage bandwidthUsage)
+    {
+        switch (bandwidthUsage)
+        {
+            case kBwNormal:
+                stats.get(BANDWIDTH_NORMAL).incrementAndGet();
+                break;
+            case kBwOverusing:
+                stats.get(BANDWIDTH_OVERUSE).incrementAndGet();
+                break;
+            case kBwUnderusing:
+                stats.get(BANDWIDTH_UNDERUSE).incrementAndGet();
+                break;
+            default:
+                break;
+        }
     }
 
     private static class Detector
