@@ -79,7 +79,7 @@ public class StatisticsTableTest {
     {
         table.get(0, COUNTER_NAME).set(MAGIC_VALUE);
         Map<StatisticsTable.Key, Long> map = table.toMap();
-        Long count = map.get(new StatisticsTable.Key(Optional.of(0L), COUNTER_NAME));
+        Long count = map.get(new StatisticsTable.Key(Optional.of(0), COUNTER_NAME));
         assertEquals(MAGIC_VALUE, count.longValue());
     }
 }

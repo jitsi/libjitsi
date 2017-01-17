@@ -245,7 +245,7 @@ public class RemoteBitrateEstimatorSingleStream
         } // synchronized (critSect)
     }
 
-    private void recordArrivalFilterStats(long ssrc, long deltaArrivalTimeMs, double deltaDepartureTimeMs,
+    private void recordArrivalFilterStats(int ssrc, long deltaArrivalTimeMs, double deltaDepartureTimeMs,
             long deltaSizeBytes, double estimatedGroupDelayVariationMs, int numOfDeltas)
     {
         double deltaGroupDelayVariationMs = deltaArrivalTimeMs - deltaDepartureTimeMs;

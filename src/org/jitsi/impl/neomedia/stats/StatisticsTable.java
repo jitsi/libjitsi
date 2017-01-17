@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StatisticsTable
 {
     private final ConcurrentHashMap<String, Counter> map;
-    private final ConcurrentMultiKeyMap<Long, String, Counter> streamIdMap;
+    private final ConcurrentMultiKeyMap<Integer, String, Counter> streamIdMap;
     private final Optional<String> keyPrefix;
 
     /**
@@ -34,12 +34,12 @@ public class StatisticsTable
 
     private StatisticsTable(Optional<String> keyPrefix)
     {
-        this(keyPrefix, new ConcurrentHashMap<String, Counter>(), new ConcurrentMultiKeyMap<Long,String,Counter>());
+        this(keyPrefix, new ConcurrentHashMap<String, Counter>(), new ConcurrentMultiKeyMap<Integer,String,Counter>());
     }
 
     private StatisticsTable(Optional<String> keyPrefix,
                             ConcurrentHashMap<String, Counter> map,
-                            ConcurrentMultiKeyMap<Long, String, Counter> streamIdMap)
+                            ConcurrentMultiKeyMap<Integer, String, Counter> streamIdMap)
     {
         this.keyPrefix = keyPrefix;
         this.map = map;
@@ -71,16 +71,16 @@ public class StatisticsTable
     /**
      * Obtain a counter by streamId and String name.
      * This method is provided for debugging flexibility, but it is recommended
-     * that you use {@link get(long,CounterName)} for official counters.
+     * that you use {@link #get(int,CounterName)} for official counters.
      */
-    public Counter get(long streamId, String name)
+    public Counter get(int streamId, String name)
     {
         return streamIdMap.computeIfAbsent(
             streamId, append(keyPrefix, name),
-            new BiFunction<Long, String, Counter>()
+            new BiFunction<Integer, String, Counter>()
             {
                 @Override
-                public Counter apply(Long id, String specifier)
+                public Counter apply(Integer id, String specifier)
                 {
                     return new Counter();
                 }
@@ -93,7 +93,7 @@ public class StatisticsTable
      * typechecked correctness for counter definition as well
      * as future proof additional counter options in the future.
      */
-    public Counter get(long streamId, CounterName name)
+    public Counter get(int streamId, CounterName name)
     {
         return get(streamId, name.getName());
     }
@@ -111,7 +111,7 @@ public class StatisticsTable
      *  counter.get(CounterName.RATE_CONTROL_INCREASE).incrementAndGet();
      * }</pre>
      */
-    public GetCounterWithStreamId get(final long streamId)
+    public GetCounterWithStreamId get(final int streamId)
     {
         final StatisticsTable table = this;
         return new GetCounterWithStreamId() {
@@ -134,7 +134,7 @@ public class StatisticsTable
     /**
      * Obtain a Counter by string that is unassociated with any specific streamId.
      * This method is provided for debugging flexibility, but it is recommended
-     * that you use {@link get(CounterName)} for official counters.
+     * that you use {@link #get(CounterName)} for official counters.
      */
     public Counter get(String specifier)
     {
@@ -169,7 +169,7 @@ public class StatisticsTable
     public Map<Key,Long> toMap()
     {
         Map<Key, Long> result = new HashMap<>();
-        for (Map.Entry<Long, ConcurrentHashMap<String, Counter>> entry : streamIdMap.entrySet())
+        for (Map.Entry<Integer, ConcurrentHashMap<String, Counter>> entry : streamIdMap.entrySet())
         {
             for  (Map.Entry<String, Counter> counterEntry : entry.getValue().entrySet())
             {
@@ -179,7 +179,7 @@ public class StatisticsTable
         }
         for (Map.Entry<String, Counter> entry: map.entrySet())
         {
-            Key key = new Key(Optional.<Long>empty(), entry.getKey());
+            Key key = new Key(Optional.<Integer>empty(), entry.getKey());
             result.put(key, entry.getValue().get());
         }
         return result;
@@ -190,16 +190,16 @@ public class StatisticsTable
      */
     public static class Key
     {
-        private Optional<Long> streamId;
+        private Optional<Integer> streamId;
         private String name;
 
-        public Key(Optional<Long> streamId, String name)
+        public Key(Optional<Integer> streamId, String name)
         {
             this.streamId = streamId;
             this.name = name;
         }
 
-        public Optional<Long> getStreamId()
+        public Optional<Integer> getStreamId()
         {
             return streamId;
         }
