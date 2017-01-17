@@ -85,12 +85,6 @@ public class RemoteBitrateEstimatorSingleStream
         this.observer = observer;
     }
 
-    private long getExtensionTransmissionTimeOffset(RTPPacket header)
-    {
-        // TODO Auto-generated method stub
-        return 0;
-    }
-
     /**
      * {@inheritDoc}
      */
