@@ -33,9 +33,9 @@ public class FrameDesc
         = Logger.getLogger(FrameDesc.class);
 
     /**
-     * The {@link RTPEncodingImpl} that this {@link FrameDesc} belongs to.
+     * The {@link RTPEncodingDesc} that this {@link FrameDesc} belongs to.
      */
-    private final RTPEncodingImpl rtpEncoding;
+    private final RTPEncodingDesc rtpEncoding;
 
     /**
      * The RTP timestamp of this frame.
@@ -77,23 +77,23 @@ public class FrameDesc
     /**
      * Ctor.
      *
-     * @param rtpEncoding the {@link RTPEncodingImpl} that this instance belongs
+     * @param rtpEncoding the {@link RTPEncodingDesc} that this instance belongs
      * to.
      * @param ts the RTP timestamp for this frame.
      */
-    FrameDesc(RTPEncodingImpl rtpEncoding, long ts)
+    FrameDesc(RTPEncodingDesc rtpEncoding, long ts)
     {
         this.rtpEncoding = rtpEncoding;
         this.ts = ts;
     }
 
     /**
-     * Gets the {@link RTPEncodingImpl} that this {@link FrameDesc} belongs to.
+     * Gets the {@link RTPEncodingDesc} that this {@link FrameDesc} belongs to.
      *
-     * @return the {@link RTPEncodingImpl} that this {@link FrameDesc} belongs
+     * @return the {@link RTPEncodingDesc} that this {@link FrameDesc} belongs
      * to.
      */
-    public RTPEncodingImpl getRTPEncoding()
+    public RTPEncodingDesc getRTPEncoding()
     {
         return rtpEncoding;
     }

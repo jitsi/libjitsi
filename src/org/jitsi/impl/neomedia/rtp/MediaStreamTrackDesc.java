@@ -18,13 +18,13 @@ package org.jitsi.impl.neomedia.rtp;
 import org.jitsi.impl.neomedia.*;
 
 /**
- * Represents a collection of {@link RTPEncodingImpl}s that encode the same
+ * Represents a collection of {@link RTPEncodingDesc}s that encode the same
  * media source. This specific implementation provides webrtc simulcast stream
  * suspension detection.
  *
  * @author George Politis
  */
-public class MediaStreamTrackImpl
+public class MediaStreamTrackDesc
 {
     /**
      * The minimum time (in millis) that is required for the media engine to
@@ -33,10 +33,10 @@ public class MediaStreamTrackImpl
     private static final int MIN_KEY_FRAME_WAIT_MS = 300;
 
     /**
-     * The {@link RTPEncodingImpl}s that this {@link MediaStreamTrackImpl}
+     * The {@link RTPEncodingDesc}s that this {@link MediaStreamTrackDesc}
      * possesses, ordered by their subjective quality from low to high.
      */
-    private final RTPEncodingImpl[] rtpEncodings;
+    private final RTPEncodingDesc[] rtpEncodings;
 
     /**
      * The {@link MediaStreamTrackReceiver} that receives this instance.
@@ -53,25 +53,25 @@ public class MediaStreamTrackImpl
      *
      * @param mediaStreamTrackReceiver The {@link MediaStreamTrackReceiver} that
      * receives this instance.
-     * @param rtpEncodings The {@link RTPEncodingImpl}s that this instance
+     * @param rtpEncodings The {@link RTPEncodingDesc}s that this instance
      * possesses.
      */
-    public MediaStreamTrackImpl(
+    public MediaStreamTrackDesc(
         MediaStreamTrackReceiver mediaStreamTrackReceiver,
-        RTPEncodingImpl[] rtpEncodings)
+        RTPEncodingDesc[] rtpEncodings)
     {
         this.rtpEncodings = rtpEncodings;
         this.mediaStreamTrackReceiver = mediaStreamTrackReceiver;
     }
 
     /**
-     * Returns an array of all the {@link RTPEncodingImpl}s for this instance,
+     * Returns an array of all the {@link RTPEncodingDesc}s for this instance,
      * in subjective quality ascending order.
      *
-     * @return an array of all the {@link RTPEncodingImpl}s for this instance,
+     * @return an array of all the {@link RTPEncodingDesc}s for this instance,
      * in subjective quality ascending order.
      */
-    public RTPEncodingImpl[] getRTPEncodings()
+    public RTPEncodingDesc[] getRTPEncodings()
     {
         return rtpEncodings;
     }
@@ -93,10 +93,10 @@ public class MediaStreamTrackImpl
      * @param pkt the {@link RawPacket} that is causing the update of this
      * instance.
      *
-     * @param encoding the {@link RTPEncodingImpl} of the {@link RawPacket} that
+     * @param encoding the {@link RTPEncodingDesc} of the {@link RawPacket} that
      * is passed as an argument.
      */
-    RawPacket[] update(RawPacket pkt, RTPEncodingImpl encoding)
+    RawPacket[] update(RawPacket pkt, RTPEncodingDesc encoding)
     {
         long nowMs = System.currentTimeMillis();
 
@@ -155,23 +155,23 @@ public class MediaStreamTrackImpl
     }
 
     /**
-     * Finds the {@link RTPEncodingImpl} that corresponds to the packet that is
+     * Finds the {@link RTPEncodingDesc} that corresponds to the packet that is
      * specified in the buffer passed in as an argument.
      *
      * @param buf the byte array that holds the RTP packet.
      * @param off the offset in the byte array where the actual data starts
      * @param len the length of the actual data
-     * @return the {@link RTPEncodingImpl} that corresponds to the packet that is
+     * @return the {@link RTPEncodingDesc} that corresponds to the packet that is
      * specified in the buffer passed in as an argument, or null.
      */
-    public RTPEncodingImpl findRTPEncoding(byte[] buf, int off, int len)
+    public RTPEncodingDesc findRTPEncodingDesc(byte[] buf, int off, int len)
     {
         if (buf == null || buf.length < off + len)
         {
             return null;
         }
 
-        for (RTPEncodingImpl encoding : rtpEncodings)
+        for (RTPEncodingDesc encoding : rtpEncodings)
         {
             if (encoding.matches(buf, off, len))
             {
@@ -194,7 +194,7 @@ public class MediaStreamTrackImpl
      */
     public FrameDesc findFrameDesc(byte[] buf, int off, int len)
     {
-        RTPEncodingImpl rtpEncoding = findRTPEncoding(buf, off, len);
+        RTPEncodingDesc rtpEncoding = findRTPEncodingDesc(buf, off, len);
         if (rtpEncoding == null)
         {
             return null;

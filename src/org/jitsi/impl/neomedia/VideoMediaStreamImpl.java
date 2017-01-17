@@ -421,7 +421,7 @@ public class VideoMediaStreamImpl
     private final QualityControlImpl qualityControl = new QualityControlImpl();
 
     /**
-     * The instance that is aware of all of the {@link RTPEncodingImpl} of the
+     * The instance that is aware of all of the {@link RTPEncodingDesc} of the
      * remote endpoint.
      */
     private final MediaStreamTrackReceiver mediaStreamTrackReceiver

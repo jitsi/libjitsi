@@ -27,7 +27,7 @@ import java.lang.ref.*;
 
 /**
  * Filters the packets of
- * {@link MediaStreamTrackImpl} based on the currently forwarded subjective
+ * {@link MediaStreamTrackDesc} based on the currently forwarded subjective
  * quality index. It's also taking care of upscaling and downscaling. As a
  * {@link PacketTransformer}, it rewrites the forwarded packets so that the
  * gaps as a result of the drops are hidden.
@@ -52,10 +52,10 @@ public class SimulcastController
     private final long targetSSRC;
 
     /**
-     * A {@link WeakReference} to the {@link MediaStreamTrackImpl} that feeds
+     * A {@link WeakReference} to the {@link MediaStreamTrackDesc} that feeds
      * this instance with RTP/RTCP packets.
      */
-    private final WeakReference<MediaStreamTrackImpl> weakSource;
+    private final WeakReference<MediaStreamTrackDesc> weakSource;
 
     /**
      * The {@link PacketTransformer} that handles incoming/outgoing RTP
@@ -89,10 +89,10 @@ public class SimulcastController
     /**
      * Ctor.
      *
-     * @param source the {@link MediaStreamTrackImpl} that feeds this instance
+     * @param source the {@link MediaStreamTrackDesc} that feeds this instance
      * with RTP/RTCP packets.
      */
-    public SimulcastController(MediaStreamTrackImpl source)
+    public SimulcastController(MediaStreamTrackDesc source)
     {
         this.weakSource = new WeakReference<>(source);
         this.targetSSRC = source.getRTPEncodings()[0].getPrimarySSRC();
@@ -127,7 +127,7 @@ public class SimulcastController
     public boolean rtpTranslatorWillWrite(
         boolean data, byte[] buf, int off, int len)
     {
-        MediaStreamTrackImpl sourceTrack = weakSource.get();
+        MediaStreamTrackDesc sourceTrack = weakSource.get();
 
         // If we're getting packets here => the MST is alive.
         assert sourceTrack != null;
@@ -148,11 +148,11 @@ public class SimulcastController
         boolean currentRTPEncodingIsActive = false;
         if (transformState.currentIdx > -1)
         {
-            RTPEncodingImpl
-                currentRTPEncodingImpl = sourceTrack
+            RTPEncodingDesc
+                currentRTPEncodingDesc = sourceTrack
                 .getRTPEncodings()[transformState.currentIdx];
 
-            currentRTPEncodingIsActive = currentRTPEncodingImpl.isActive();
+            currentRTPEncodingIsActive = currentRTPEncodingDesc.isActive();
         }
 
         if (transformState.currentIdx == targetIdx && currentRTPEncodingIsActive)
@@ -247,7 +247,7 @@ public class SimulcastController
         else
         {
             // send FIR.
-            MediaStreamTrackImpl sourceTrack = weakSource.get();
+            MediaStreamTrackDesc sourceTrack = weakSource.get();
             if (sourceTrack == null)
             {
                 return;

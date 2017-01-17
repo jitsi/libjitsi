@@ -28,14 +28,14 @@ import java.util.*;
  *
  * @author George Politis
  */
-public class RTPEncodingImpl
+public class RTPEncodingDesc
 {
     /**
-     * The {@link Logger} used by the {@link RTPEncodingImpl} class to print
+     * The {@link Logger} used by the {@link RTPEncodingDesc} class to print
      * debug information.
      */
     private static final Logger logger
-        = Logger.getLogger(RTPEncodingImpl.class);
+        = Logger.getLogger(RTPEncodingDesc.class);
 
     /**
      * The default window size in ms for the bitrate estimation.
@@ -65,10 +65,10 @@ public class RTPEncodingImpl
     private final int temporalId;
 
     /**
-     * The {@link MediaStreamTrackImpl} that this {@link RTPEncodingImpl}
+     * The {@link MediaStreamTrackDesc} that this {@link RTPEncodingDesc}
      * belongs to.
      */
-    private final MediaStreamTrackImpl track;
+    private final MediaStreamTrackDesc track;
 
     /**
      * The {@link RateStatistics} instance used to calculate the receiving
@@ -107,9 +107,9 @@ public class RTPEncodingImpl
     };
 
     /**
-     * The {@link RTPEncodingImpl} on which this layer depends.
+     * The {@link RTPEncodingDesc} on which this layer depends.
      */
-    private final RTPEncodingImpl[] dependencyEncodings;
+    private final RTPEncodingDesc[] dependencyEncodings;
 
     /**
      * A boolean flag that indicates whether or not this instance is streaming
@@ -125,10 +125,10 @@ public class RTPEncodingImpl
     /**
      * Ctor.
      *
-     * @param track the {@link MediaStreamTrackImpl} that this instance belongs to.
+     * @param track the {@link MediaStreamTrackDesc} that this instance belongs to.
      * @param primarySSRC The primary SSRC for this layering/encoding.
      */
-    public RTPEncodingImpl(MediaStreamTrackImpl track, long primarySSRC)
+    public RTPEncodingDesc(MediaStreamTrackDesc track, long primarySSRC)
     {
         this(track, primarySSRC, -1 /* rtxSSRC */);
     }
@@ -136,12 +136,12 @@ public class RTPEncodingImpl
     /**
      * Ctor.
      *
-     * @param track the {@link MediaStreamTrackImpl} that this instance belongs to.
+     * @param track the {@link MediaStreamTrackDesc} that this instance belongs to.
      * @param primarySSRC The primary SSRC for this layering/encoding.
      * @param rtxSSRC The RTX SSRC for this layering/encoding.
      */
-    public RTPEncodingImpl(
-        MediaStreamTrackImpl track, long primarySSRC, long rtxSSRC)
+    public RTPEncodingDesc(
+        MediaStreamTrackDesc track, long primarySSRC, long rtxSSRC)
     {
         this(track, 0, primarySSRC, rtxSSRC,
             -1 /* temporalId */, null /* dependencies */);
@@ -150,21 +150,21 @@ public class RTPEncodingImpl
     /**
      * Ctor.
      *
-     * @param track the {@link MediaStreamTrackImpl} that this instance belongs
+     * @param track the {@link MediaStreamTrackDesc} that this instance belongs
      * to.
      * @param idx the subjective quality index for this
      * layering/encoding.
      * @param primarySSRC The primary SSRC for this layering/encoding.
      * @param rtxSSRC The RTX SSRC for this layering/encoding.
      * @param temporalId temporal layer ID for this layering/encoding.
-     * @param dependencyEncodings  The {@link RTPEncodingImpl} on which this
+     * @param dependencyEncodings  The {@link RTPEncodingDesc} on which this
      * layer depends.
      */
-    public RTPEncodingImpl(
-        MediaStreamTrackImpl track, int idx,
+    public RTPEncodingDesc(
+        MediaStreamTrackDesc track, int idx,
         long primarySSRC, long rtxSSRC,
         int temporalId,
-        RTPEncodingImpl[] dependencyEncodings)
+        RTPEncodingDesc[] dependencyEncodings)
     {
         this.primarySSRC = primarySSRC;
         this.rtxSSRC = rtxSSRC;
@@ -295,11 +295,11 @@ public class RTPEncodingImpl
     }
 
     /**
-     * Gets the {@link MediaStreamTrackImpl} that this instance belongs to.
+     * Gets the {@link MediaStreamTrackDesc} that this instance belongs to.
      *
-     * @return the {@link MediaStreamTrackImpl} that this instance belongs to.
+     * @return the {@link MediaStreamTrackDesc} that this instance belongs to.
      */
-    public MediaStreamTrackImpl getMediaStreamTrack()
+    public MediaStreamTrackDesc getMediaStreamTrack()
     {
         return track;
     }
@@ -316,11 +316,11 @@ public class RTPEncodingImpl
 
     /**
      * Returns a boolean that indicates whether or not this
-     * {@link RTPEncodingImpl} depends on the subjective quality index that is
+     * {@link RTPEncodingDesc} depends on the subjective quality index that is
      * passed as an argument.
      *
      * @param idx the index of this instance in the track encodings array.
-     * @return true if this {@link RTPEncodingImpl} depends on the subjective
+     * @return true if this {@link RTPEncodingDesc} depends on the subjective
      * quality index that is passed as an argument, false otherwise.
      */
     boolean requires(int idx)
@@ -340,7 +340,7 @@ public class RTPEncodingImpl
 
         if (!ArrayUtils.isNullOrEmpty(dependencyEncodings))
         {
-            for (RTPEncodingImpl enc : dependencyEncodings)
+            for (RTPEncodingDesc enc : dependencyEncodings)
             {
                 if (enc.requires(idx))
                 {
@@ -386,7 +386,7 @@ public class RTPEncodingImpl
      * Gets a boolean flag that indicates whether or not this instance is
      * streaming or if it's suspended.
      *
-     * @param active true if this {@link RTPEncodingImpl} is active, otherwise
+     * @param active true if this {@link RTPEncodingDesc} is active, otherwise
      * false.
      */
     void setActive(boolean active)
@@ -452,16 +452,16 @@ public class RTPEncodingImpl
 
 
     /**
-     * Gets the cumulative bitrate (in bps) of this {@link RTPEncodingImpl} and
+     * Gets the cumulative bitrate (in bps) of this {@link RTPEncodingDesc} and
      * its dependencies.
      *
      * @param nowMs
-     * @return the cumulative bitrate (in bps) of this {@link RTPEncodingImpl}
+     * @return the cumulative bitrate (in bps) of this {@link RTPEncodingDesc}
      * and its dependencies.
      */
     private long getBitrateBps(long nowMs)
     {
-        RTPEncodingImpl[] encodings = track.getRTPEncodings();
+        RTPEncodingDesc[] encodings = track.getRTPEncodings();
         if (ArrayUtils.isNullOrEmpty(encodings))
         {
             return 0;
@@ -480,7 +480,7 @@ public class RTPEncodingImpl
     }
 
     /**
-     * Recursively adds the bitrate (in bps) of this {@link RTPEncodingImpl} and
+     * Recursively adds the bitrate (in bps) of this {@link RTPEncodingDesc} and
      * its dependencies in the array passed in as an argument.
      *
      * @param nowMs
@@ -494,7 +494,7 @@ public class RTPEncodingImpl
 
         if (!ArrayUtils.isNullOrEmpty(dependencyEncodings))
         {
-            for (RTPEncodingImpl dependency : dependencyEncodings)
+            for (RTPEncodingDesc dependency : dependencyEncodings)
             {
                 dependency.getBitrateBps(nowMs, rates);
             }

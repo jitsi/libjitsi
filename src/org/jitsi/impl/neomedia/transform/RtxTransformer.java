@@ -235,7 +235,7 @@ public class RtxTransformer
             return -1;
         }
 
-        RTPEncodingImpl encoding = receiver.findRTPEncoding(pkt);
+        RTPEncodingDesc encoding = receiver.findRTPEncodingDesc(pkt);
         if (encoding == null)
         {
             logger.warn("encoding_not_found"
@@ -419,7 +419,7 @@ public class RtxTransformer
             return -1;
         }
 
-        RTPEncodingImpl encoding = receiver.findRTPEncoding(pkt);
+        RTPEncodingDesc encoding = receiver.findRTPEncodingDesc(pkt);
         if (encoding == null)
         {
             if (logger.isDebugEnabled())
