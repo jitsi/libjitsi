@@ -26,7 +26,6 @@ import org.jitsi.util.*;
 import org.jitsi.util.concurrent.*;
 import org.jitsi.util.function.*;
 
-import javax.media.rtp.*;
 import java.util.*;
 import java.util.concurrent.atomic.*;
 
@@ -414,79 +413,27 @@ public class RTCPTermination
      * <tt>MediaStream</tt> has and make <tt>RTCPReportBlock</tt>s for all of
      * them.
      *
-     * @param time
+     * @param nowMs
      * @return
      */
-    private RTCPReportBlock[] makeReportBlocks(long time)
+    private RTCPReportBlock[] makeReportBlocks(long nowMs)
     {
-        // State validation.
-        if (stream == null)
+        MediaStreamTrackDesc[] tracks
+            = stream.getMediaStreamTrackReceiver().getMediaStreamTracks();
+
+        if (ArrayUtils.isNullOrEmpty(tracks))
         {
-            logger.warn("stream is null.");
             return MIN_RTCP_REPORT_BLOCKS_ARRAY;
         }
 
-        StreamRTPManager streamRTPManager = stream.getStreamRTPManager();
-        if (streamRTPManager == null)
+        RTCPReportBlock[] reportBlocks = new RTCPReportBlock[tracks.length];
+
+        for (int i = 0; i < tracks.length; i++)
         {
-            logger.warn("streamRTPManager is null.");
-            return MIN_RTCP_REPORT_BLOCKS_ARRAY;
+            reportBlocks[i] = tracks[i].makeReceiverReport(nowMs);
         }
 
-        Collection<ReceiveStream> receiveStreams;
-
-        // XXX MediaStreamImpl's implementation of #getReceiveStreams() says
-        // that, unfortunately, it has been observed that sometimes there are
-        // valid ReceiveStreams in MediaStreamImpl which are not returned by
-        // FMJ's RTPManager. Since (1) MediaStreamImpl#getReceiveStreams() will
-        // include the results of StreamRTPManager#getReceiveStreams() and (2)
-        // we are going to check the results against SSRCCache, it should be
-        // relatively safe to rely on MediaStreamImpl's implementation.
-        if (stream instanceof MediaStreamImpl)
-        {
-            receiveStreams = ((MediaStreamImpl) stream).getReceiveStreams();
-        }
-        else
-        {
-            receiveStreams = streamRTPManager.getReceiveStreams();
-        }
-        if (receiveStreams == null || receiveStreams.isEmpty())
-        {
-            logger.info(
-                "There are no receive streams to build report blocks for.");
-            return MIN_RTCP_REPORT_BLOCKS_ARRAY;
-        }
-
-        SSRCCache cache = streamRTPManager.getSSRCCache();
-        if (cache == null)
-        {
-            logger.info("cache is null.");
-            return MIN_RTCP_REPORT_BLOCKS_ARRAY;
-        }
-
-        // Create and populate the return object.
-        Collection<RTCPReportBlock> reportBlocks = new ArrayList<>();
-
-        for (ReceiveStream receiveStream : receiveStreams)
-        {
-            // Dig into the guts of FMJ and get the stats for the current
-            // receiveStream.
-            SSRCInfo info = cache.cache.get((int) receiveStream.getSSRC());
-
-            if (info == null)
-            {
-                logger.warn("We have a ReceiveStream but not an SSRCInfo for " +
-                    "that ReceiveStream.");
-                continue;
-            }
-            if (!info.ours && info.sender)
-            {
-                RTCPReportBlock reportBlock = info.makeReceiverReport(time);
-                reportBlocks.add(reportBlock);
-            }
-        }
-
-        return reportBlocks.toArray(new RTCPReportBlock[reportBlocks.size()]);
+        return reportBlocks;
     }
 
     /**

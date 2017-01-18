@@ -15,6 +15,7 @@
  */
 package org.jitsi.impl.neomedia.rtp;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.rtp.*;
 
@@ -56,6 +57,15 @@ public class RTCPPacketListenerAdapter
      */
     @Override
     public void pliReceived(PLIPacket pliPacket)
+    {
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void srReceived(RTCPSRPacket srPacket)
     {
 
     }

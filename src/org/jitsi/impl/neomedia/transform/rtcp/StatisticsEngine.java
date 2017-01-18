@@ -984,6 +984,10 @@ public class StatisticsEngine
                 break;
 
             case RTCPPacket.RR:
+                if (rtcp instanceof RTCPSRPacket)
+                {
+                    streamStats.srReceived((RTCPSRPacket) rtcp);
+                }
             case RTCPPacket.SR:
                 {
                 RTCPReport report;

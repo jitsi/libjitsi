@@ -30,6 +30,7 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
@@ -343,92 +344,93 @@ public class MediaStreamStatsImpl
         // blocks (and so without LSR and DLSR)
         if (lsr > 0 && dlsr > 0)
         {
-            // If we perform RTCP termination, the NTP timestamps we include in
-            // outgoing SRs are based on the actual sender's clock. We need to
-            // take this into account in order to compute the correct RTT.
-            now = maybeEstimateRemoteClock(feedback.getSSRC(), now);
+            long latencyMs = 0;
 
-            rtt = getRoundTripDelay(now, lsr, dlsr);
+            // If we are translating, the NTP timestamps we include in outgoing
+            // SRs are based on the actual sender's clock, so we need to take
+            // the sender latency into account in order to compute the correct
+            // RTT.
 
-            // Values over 3s are suspicious and likely indicate a bug.
-            if (rtt < 0 || rtt >= 3000)
+            StreamRTPManager receiveRTPManager = mediaStreamImpl
+                .getRTPTranslator()
+                .findStreamRTPManagerByReceiveSSRC((int) feedback.getSSRC());
+
+            if (receiveRTPManager != null)
             {
-                logger.info(
-                        "Stream: " + mediaStreamImpl.getName()
-                                + ", RTT computation may be wrong (" + rtt
-                                + "): now " + now + ", lsr " + lsr + ", dlsr "
-                                + dlsr);
+                MediaStream receiveStream = receiveRTPManager.getMediaStream();
+                if (receiveStream != null)
+                {
+                    MediaStreamTrackReceiver receiver
+                        = receiveStream.getMediaStreamTrackReceiver();
 
-                rtt = -1;
+                    if (receiver != null)
+                    {
+                        MediaStreamTrackDesc track = receiver
+                            .findMediaStreamTrackDesc(feedback.getSSRC());
+
+                        if (track != null)
+                        {
+                            latencyMs = track.getStatistics().getLatencyMs();
+                            if (latencyMs < 0)
+                            {
+                                return -1;
+                            }
+                        }
+                    }
+                }
             }
-        }
 
+            long arrivalMs = now - latencyMs;
 
-        return rtt;
-    }
+            long arrivalNtp = TimeUtils.toNtpTime(arrivalMs);
+            long arrival = TimeUtils.toNtpShortFormat(arrivalNtp);
 
-    /**
-     * Gets the round trip (delay) time between RTP interfaces, expressed in
-     * milliseconds.
-     *
-     * @param timeMs the <tt>System</tt> time in milliseconds since the epoch.
-     * @param lsr the LSR (last SR) time reported in SR (Sender Report) in NTP
-     * Short Format (Q16.16).
-     * @param dlsr the DLSR (delay since last SR) reported in SR in NTP Short
-     * Format (Q16.16).
-     * @return the round trip (delay) time between RTP interfaces, expressed in
-     * milliseconds, or -1 if it can not be calculated.
-     */
-    public static int getRoundTripDelay(long timeMs, long lsr, long dlsr)
-    {
-        long ntpTime = TimeUtils.toNtpTime(timeMs);
-        ntpTime = TimeUtils.toNtpShortFormat(ntpTime);
-
-        long ntprtd = ntpTime - lsr - dlsr;
-
-        long delayLong;
-        if (ntprtd >= 0)
-        {
-            delayLong = TimeUtils.ntpShortToMs(ntprtd);
-        }
-        else
-        {
+            long ntprtd = arrival - lsr - dlsr;
+            long rttLong;
+            if (ntprtd >= 0)
+            {
+                rttLong = TimeUtils.ntpShortToMs(ntprtd);
+            }
+            else
+            {
             /*
              * Even if ntprtd is negative we compute delayLong
              * as it might round to zero.
              * ntpShortToMs expect positive numbers.
              */
-            delayLong = -TimeUtils.ntpShortToMs(-ntprtd);
+                rttLong = -TimeUtils.ntpShortToMs(-ntprtd);
+            }
+
+            // Values over 3s are suspicious and likely indicate a bug.
+            if (rttLong < 0 || rttLong  >= 3000)
+            {
+                logger.warn(
+                    "invalid_rtt,stream= " + mediaStreamImpl.hashCode()
+                        + " rtt=" + rttLong
+                        + ",now=" + arrivalMs
+                        + ",latency=" + latencyMs
+                        + ",lsr=" + lsr
+                        + ",dlsr=" + dlsr);
+
+                rtt = -1;
+            }
+            else
+            {
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug(
+                        "rtt,stream= " + mediaStreamImpl.hashCode()
+                            + " rtt=" + rttLong
+                            + ",now=" + arrivalMs
+                            + ",latency=" + latencyMs
+                            + ",lsr=" + lsr
+                            + ",dlsr=" + dlsr);
+                }
+                rtt = (int) rttLong;
+            }
         }
 
-        if (delayLong >= 0 && delayLong < Integer.MAX_VALUE)
-        {
-            return (int) delayLong;
-        }
-
-        return -1;
-    }
-
-    /**
-     * Estimates the time on the clock of a remote RTP endpoint (identified by
-     * <tt>ssrc</tt>) corresponding to the local time <tt>localTimeMs</tt>, if
-     * RTCP termination is enabled and the translation can be performed.
-     * Otherwise, does not perform any estimation/translation and return the
-     * input time.
-     *
-     * @param ssrc the SSRC which identifies the remote RTP endpoint.
-     * @param localTimeMs the local in milliseconds since the epoch.
-     * @return an estimation of the time of the RTP endpoint with SSRC
-     * <tt>ssrc</tt> at local time <tt>localTimeMs</tt>, in milliseconds since
-     * the epoch.
-     */
-    private long maybeEstimateRemoteClock(long ssrc, long localTimeMs)
-    {
-        long remoteTimeMs = localTimeMs;
-
-        // FIX THIS SH*T
-
-        return remoteTimeMs;
+        return rtt;
     }
 
     /**
@@ -1503,6 +1505,21 @@ public class MediaStreamStatsImpl
     }
 
     /**
+     * Notifies this instance that an RTCP SR packet was received.
+     * @param sr the packet.
+     */
+    public void srReceived(RTCPSRPacket sr)
+    {
+        if (sr != null)
+        {
+            for (RTCPPacketListener listener : rtcpPacketListeners)
+            {
+                listener.srReceived(sr);
+            }
+        }
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -1513,6 +1530,19 @@ public class MediaStreamStatsImpl
             rtcpPacketListeners.add(listener);
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void removeRTCPPacketListener(RTCPPacketListener listener)
+    {
+        if (listener != null)
+        {
+            rtcpPacketListeners.remove(listener);
+        }
+    }
+
     /**
      * Notifies this instance that a specific RTCP RR or SR report was received
      * by {@link #rtcpReports}.

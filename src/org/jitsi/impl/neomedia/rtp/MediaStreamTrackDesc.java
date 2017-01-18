@@ -15,7 +15,9 @@
  */
 package org.jitsi.impl.neomedia.rtp;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Represents a collection of {@link RTPEncodingDesc}s that encode the same
@@ -26,6 +28,13 @@ import org.jitsi.impl.neomedia.*;
  */
 public class MediaStreamTrackDesc
 {
+    /**
+     * The {@link Logger} used by the {@link MediaStreamTrackDesc} class and its
+     * instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(MediaStreamTrackDesc.class);
+
     /**
      * The minimum time (in millis) that is required for the media engine to
      * generate a new key frame.
@@ -44,9 +53,9 @@ public class MediaStreamTrackDesc
     private final MediaStreamTrackReceiver mediaStreamTrackReceiver;
 
     /**
-     * The time (in millis) that this instance last saw a keyframe.
+     * Stats for this {@link MediaStreamTrackDesc} instance.
      */
-    private long lastKeyframeMs;
+    private final Statistics statistics = new Statistics();
 
     /**
      * Ctor.
@@ -62,6 +71,38 @@ public class MediaStreamTrackDesc
     {
         this.rtpEncodings = rtpEncodings;
         this.mediaStreamTrackReceiver = mediaStreamTrackReceiver;
+    }
+
+    /**
+     * Notifies this instance that a {@link RTCPSRPacket} has been received.
+     *
+     * @param sr the received {@link RTCPSRPacket}.
+     */
+    public void srReceived(RTCPSRPacket sr)
+    {
+        long sendTimeMs = TimeUtils.getTime(TimeUtils.constuctNtp(
+            sr.ntptimestampmsw, sr.ntptimestamplsw));
+
+        long latencyMs = System.currentTimeMillis() - sendTimeMs;
+        if (latencyMs < 0)
+        {
+            statistics.latencyMs = 0;
+        }
+
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("latency=" + statistics.latencyMs);
+        }
+    }
+
+    /**
+     * Gets the stats for this {@link MediaStreamTrackDesc} instance.
+     *
+     * @return gets the stats for this {@link MediaStreamTrackDesc} instance.
+     */
+    public Statistics getStatistics()
+    {
+        return statistics;
     }
 
     /**
@@ -90,13 +131,12 @@ public class MediaStreamTrackDesc
      * Updates rate statistics for the encodings of the tracks that this
      * receiver is managing. Detects simulcast stream suspension/resuming.
      *
-     * @param pkt the {@link RawPacket} that is causing the update of this
-     * instance.
+     * @param pkt the received {@link RawPacket}.
      *
      * @param encoding the {@link RTPEncodingDesc} of the {@link RawPacket} that
      * is passed as an argument.
      */
-    RawPacket[] update(RawPacket pkt, RTPEncodingDesc encoding)
+    RawPacket[] reverseTransform(RawPacket pkt, RTPEncodingDesc encoding)
     {
         long nowMs = System.currentTimeMillis();
 
@@ -109,7 +149,7 @@ public class MediaStreamTrackDesc
             // often than 300 millis. The first keyframe that we observe after
             // we've waited for that long determines the streams that are
             // streaming (not suspended).
-            || nowMs - lastKeyframeMs < MIN_KEY_FRAME_WAIT_MS)
+            || nowMs - statistics.lastKeyframeMs < MIN_KEY_FRAME_WAIT_MS)
         {
             return null;
         }
@@ -121,7 +161,7 @@ public class MediaStreamTrackDesc
         // quality array is ordered in a way to represent the streaming
         // dependencies.
 
-        lastKeyframeMs = nowMs;
+        statistics.lastKeyframeMs = nowMs;
         boolean isActive = false;
 
         for (int i = rtpEncodings.length - 1; i >= 0; i--)
@@ -201,5 +241,56 @@ public class MediaStreamTrackDesc
         }
 
         return rtpEncoding.findFrameDesc(buf, off, len);
+    }
+
+    /**
+     *
+     * @param time
+     * @return
+     */
+    public RTCPReportBlock makeReceiverReport(long time)
+    {
+        SSRCCache cache = mediaStreamTrackReceiver
+            .getStream().getRTPTranslator().getSSRCCache();
+
+        long ssrc = rtpEncodings[0].getPrimarySSRC();
+        SSRCInfo info = cache.cache.get((int) ssrc);
+
+        return (info != null && !info.ours && info.sender)
+            ? info.makeReceiverReport(time) : null;
+    }
+
+    public boolean matches(long ssrc)
+    {
+        return rtpEncodings[0].getPrimarySSRC() == ssrc;
+    }
+
+    /**
+     * Stats for {@link MediaStreamTrackDesc} instances.
+     */
+    public static class Statistics
+    {
+        /**
+         * The time (in millis) that this instance last saw a keyframe.
+         */
+        private long lastKeyframeMs = -1;
+
+        /**
+         * The time (in millis) from when the first bit leaves the transmitter
+         * until the last is received.
+         */
+        long latencyMs = -1;
+
+        /**
+         * Gets the time (in millis) from when the first bit leaves the
+         * transmitter until the last is received.
+         *
+         * @return the time (in millis) from when the first bit leaves the
+         * transmitter until the last is received.
+         */
+        public long getLatencyMs()
+        {
+            return latencyMs;
+        }
     }
 }

@@ -15,11 +15,13 @@
  */
 package org.jitsi.service.neomedia.rtp;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 
 /**
  * A simple interface that enables listening for RTCP packets.
  *
+ * @author Boris Grozev
  * @author George Politis
  */
 public interface RTCPPacketListener
@@ -51,4 +53,11 @@ public interface RTCPPacketListener
      * @param pliPacket the received {@link PLIPacket}.
      */
     void pliReceived(PLIPacket pliPacket);
+
+    /**
+     * Notifies this listener that an {@link RTCPSRPacket} has been received.
+     *
+     * @param srPacket the received {@link RTCPSRPacket}.
+     */
+    void srReceived(RTCPSRPacket srPacket);
 }

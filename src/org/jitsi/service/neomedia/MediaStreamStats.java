@@ -410,6 +410,13 @@ public interface MediaStreamStats
     void addRTCPPacketListener(RTCPPacketListener listener);
 
     /**
+     * Removes a listener from the list of listeners which will be notified when
+     * RTCP packets are received.
+     * @param listener the listener.
+     */
+    void removeRTCPPacketListener(RTCPPacketListener listener);
+
+    /**
      * Gets the rate at which we are currently sending data to the remote
      * endpoint in bits per second. This is almost the same as {@link
      * #getUploadRateKiloBitPerSec()}. The duplication is necessary, because

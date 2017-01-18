@@ -288,21 +288,4 @@ public class StreamRTPManager
         }
 
     }
-
-    /**
-     * Provides access to the underlying <tt>SSRCCache</tt> that holds
-     * statistics information about each SSRC that we receive. This is
-     * admittedly wrong, to expose the bare <tt>SSRCCache</tt> to the use of
-     * of the <tt>StreamRTPManager</tt>. We should find a better way of exposing
-     * this information. Currently it is necessary for RTCP termination.
-     *
-     * @return the underlying <tt>SSRCCache</tt> that holds statistics
-     * information about each SSRC that we receive.
-     */
-    public SSRCCache getSSRCCache()
-    {
-        return translator != null
-            ? translator.getSSRCCache()
-            : ((RTPSessionMgr) manager).getSSRCCache();
-    }
 }
