@@ -459,6 +459,7 @@ public class SimulcastController
                             .setPacketCount(baf, filterState.transmittedPackets);
 
                     case RTCPPacket.SDES:
+                    case RTCPPacket.BYE:
                         break;
                     default:
                         it.remove();
