@@ -983,12 +983,12 @@ public class StatisticsEngine
                 }
                 break;
 
-            case RTCPPacket.RR:
+            case RTCPPacket.SR:
                 if (rtcp instanceof RTCPSRPacket)
                 {
                     streamStats.srReceived((RTCPSRPacket) rtcp);
                 }
-            case RTCPPacket.SR:
+            case RTCPPacket.RR:
                 {
                 RTCPReport report;
 
