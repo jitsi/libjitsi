@@ -88,7 +88,7 @@ public class RTCPHeaderUtils
     public static int getLength(byte[] buf, int off, int len)
     {
         // XXX Do not check with isValid.
-        if (buf == null || buf.length < off + Math.max(len, 4))
+        if (buf == null || buf.length < off + len || len < 4)
         {
             return -1;
         }
@@ -111,7 +111,7 @@ public class RTCPHeaderUtils
     public static int getVersion(byte[] buf, int off, int len)
     {
         // XXX Do not check with isValid.
-        if (buf == null || buf.length < off + Math.max(len, 1))
+        if (buf == null || buf.length < off + len || len < 1)
         {
             return -1;
         }

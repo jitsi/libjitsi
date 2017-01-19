@@ -88,7 +88,7 @@ public class RTCPSenderInfoUtils
      */
     public static boolean isValid(byte[] buf, int off, int len)
     {
-        if (buf == null || buf.length < off + Math.max(len, RTCPSenderInfo.SIZE))
+        if (buf == null || buf.length < off + len || len < RTCPSenderInfo.SIZE)
         {
             return false;
         }
