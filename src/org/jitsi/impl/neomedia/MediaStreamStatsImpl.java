@@ -1467,9 +1467,12 @@ public class MediaStreamStatsImpl
     {
         if (remb != null)
         {
-            for (RTCPPacketListener listener : rtcpPacketListeners)
+            synchronized (rtcpPacketListeners)
             {
-                listener.rembReceived(remb);
+                for (RTCPPacketListener listener : rtcpPacketListeners)
+                {
+                    listener.rembReceived(remb);
+                }
             }
         }
     }
@@ -1482,9 +1485,12 @@ public class MediaStreamStatsImpl
     {
         if (nack != null)
         {
-            for (RTCPPacketListener listener : rtcpPacketListeners)
+            synchronized (rtcpPacketListeners)
             {
-                listener.nackReceived(nack);
+                for (RTCPPacketListener listener : rtcpPacketListeners)
+                {
+                    listener.nackReceived(nack);
+                }
             }
         }
     }
@@ -1497,9 +1503,12 @@ public class MediaStreamStatsImpl
     {
         if (fir != null)
         {
-            for (RTCPPacketListener listener : rtcpPacketListeners)
+            synchronized (rtcpPacketListeners)
             {
-                listener.firReceived(fir);
+                for (RTCPPacketListener listener : rtcpPacketListeners)
+                {
+                    listener.firReceived(fir);
+                }
             }
         }
     }
@@ -1512,9 +1521,12 @@ public class MediaStreamStatsImpl
     {
         if (sr != null)
         {
-            for (RTCPPacketListener listener : rtcpPacketListeners)
+            synchronized (rtcpPacketListeners)
             {
-                listener.srReceived(sr);
+                for (RTCPPacketListener listener : rtcpPacketListeners)
+                {
+                    listener.srReceived(sr);
+                }
             }
         }
     }
