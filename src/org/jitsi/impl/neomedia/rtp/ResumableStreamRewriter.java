@@ -53,36 +53,6 @@ public class ResumableStreamRewriter
     private long highestTimestampSent = -1;
 
     /**
-     * Ctor.
-     */
-    public ResumableStreamRewriter()
-    {
-        this(-1, 0, -1, 0);
-    }
-
-    /**
-     * Ctor.
-     *
-     * @param highestSequenceNumberSent the highest sequence number that got
-     * accepted, mod 2^16.
-     * @param seqnumDelta the seqnumDelta between what's been accepted and
-     * what's been received, mod 2^16.
-     * @param highestTimestampSent The highest timestamp that got accepted,
-     * mod 2^32.
-     * @param timestampDelta The timestamp delta between what's been accepted
-     * and what's been received, mod 2^32.
-     */
-    private ResumableStreamRewriter(
-        int highestSequenceNumberSent, int seqnumDelta,
-        long highestTimestampSent, long timestampDelta)
-    {
-        this.seqnumDelta = seqnumDelta;
-        this.highestSequenceNumberSent = highestSequenceNumberSent;
-        this.highestTimestampSent = highestTimestampSent;
-        this.timestampDelta = timestampDelta;
-    }
-
-    /**
      * Rewrites the sequence number of the RTP packet in the byte buffer,
      * hiding any gaps caused by drops.
      *
