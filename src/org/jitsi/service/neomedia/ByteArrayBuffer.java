@@ -43,4 +43,18 @@ public interface ByteArrayBuffer
      * @return the length of the data in the buffer.
      */
     int getLength();
+
+    /**
+     * Sets the length of the data in the buffer.
+     *
+     * @param len the length of the data in the buffer.
+     */
+    void setLength(int len);
+
+    /**
+     * Sets the offset of the data in the buffer.
+     *
+     * @param off the offset of the data in the buffer.
+     */
+    void setOffset(int off);
 }

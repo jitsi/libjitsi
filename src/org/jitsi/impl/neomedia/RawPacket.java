@@ -1381,6 +1381,7 @@ public class RawPacket
     /**
      * @param length the length to set
      */
+    @Override
     public void setLength(int length)
     {
         this.length = length;
@@ -1407,6 +1408,7 @@ public class RawPacket
     /**
      * @param offset the offset to set
      */
+    @Override
     public void setOffset(int offset)
     {
         this.offset = offset;

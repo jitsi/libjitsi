@@ -37,17 +37,17 @@ public class RTCPIterator
     /**
      * The {@code RawPacket} that holds the RTCP packet to iterate.
      */
-    private final byte[] buf;
+    private final ByteArrayBuffer baf;
 
     /**
-     * The offset in the {@link #buf} where the next packet is to be looked for.
+     * The offset in the {@link #baf} where the next packet is to be looked for.
      */
-    private int off;
+    private int nextOff;
 
     /**
-     * The remaining length in {@link #buf}.
+     * The remaining length in {@link #baf}.
      */
-    private int len;
+    private int remainingLen;
 
     /**
      * The length of the last next element.
@@ -57,28 +57,12 @@ public class RTCPIterator
     /**
      * Ctor.
      *
-     * @param buf the byte buffer that holds the compound RTCP packet to
-     * iterate.
-     * @param off the offset in the byte buffer where the compound RTCP packet
-     * starts.
-     * @param len the length of the compound RTCP packet.
-     */
-    public RTCPIterator(byte[] buf, int off, int len)
-    {
-        this.buf = buf;
-        this.off = off;
-        this.len = len;
-    }
-
-    /**
-     * Ctor.
-     *
      * @param baf The {@code ByteArrayBuffer} that holds the compound RTCP
      * packet to iterate.
      */
     public RTCPIterator(ByteArrayBuffer baf)
     {
-        this(baf.getBuffer(), baf.getOffset(), baf.getLength());
+        this.baf = baf;
     }
 
     /**
@@ -87,7 +71,8 @@ public class RTCPIterator
     @Override
     public boolean hasNext()
     {
-        return RTCPHeaderUtils.getLength(buf, off, len) >= RTCPHeader.SIZE;
+        return RTCPHeaderUtils.getLength
+            (baf.getBuffer(), nextOff, remainingLen) >= RTCPHeader.SIZE;
     }
 
     /**
@@ -96,19 +81,20 @@ public class RTCPIterator
     @Override
     public ByteArrayBuffer next()
     {
-        int pktLen = RTCPHeaderUtils.getLength(buf, off, len);
+        int pktLen = RTCPHeaderUtils.getLength(
+            baf.getBuffer(), nextOff, remainingLen);
         if (pktLen < RTCPHeader.SIZE)
         {
             throw new IllegalStateException();
         }
 
-        RawPacket next = new RawPacket(buf, off, pktLen);
+        RawPacket next = new RawPacket(baf.getBuffer(), nextOff, pktLen);
 
         lastLen = pktLen;
-        off += pktLen;
-        len -= pktLen;
+        nextOff += pktLen;
+        remainingLen -= pktLen;
 
-        if (len < 0)
+        if (remainingLen < 0)
         {
             throw new ArrayIndexOutOfBoundsException();
         }
@@ -127,7 +113,10 @@ public class RTCPIterator
             throw new IllegalStateException();
         }
 
-        System.arraycopy(buf, off, buf, off - lastLen, len);
+        System.arraycopy(
+            baf.getBuffer(), nextOff, baf.getBuffer(), nextOff - lastLen, remainingLen);
+
+        baf.setLength(remainingLen - lastLen);
 
         lastLen = 0;
     }

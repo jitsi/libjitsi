@@ -33,12 +33,12 @@ public class REDBlock
     /**
      * The length in the buffer of this RED block.
      */
-    private final int len;
+    private int len;
 
     /**
      * The offset in the buffer where this RED block starts.
      */
-    private final int off;
+    private int off;
 
     /**
      * The payload type of this RED block.
@@ -78,6 +78,23 @@ public class REDBlock
         return len;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setLength(int len)
+    {
+        this.len = len;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setOffset(int off)
+    {
+        this.off = off;
+    }
 
     /**
      * {@inheritDoc}
