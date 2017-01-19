@@ -502,7 +502,7 @@ public class SimulcastController
          * The current subjective quality index for this instance. If this is
          * different than the target, then a switch is pending.
          */
-        private int currentIdx = -1;
+        private final int currentIdx;
     }
 
     /**
