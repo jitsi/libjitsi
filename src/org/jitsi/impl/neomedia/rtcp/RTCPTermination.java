@@ -20,6 +20,8 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
@@ -32,6 +34,7 @@ import java.util.concurrent.atomic.*;
 /**
  *
  * @author George Politis
+ * @author Boris Grozev
  */
 public class RTCPTermination
     extends RTCPPacketListenerAdapter
@@ -51,6 +54,12 @@ public class RTCPTermination
      * The reporting period for RRs and REMBs.
      */
     private static final long REPORT_PERIOD_MS = 500;
+
+    /**
+     * The name of the property used to disable NACK termination.
+     */
+    public static final String DISABLE_NACK_TERMINATION_PNAME
+        = " org.jitsi.impl.neomedia.rtcp.DISABLE_NACK_TERMINATION";
 
     /**
      * The generator that generates <tt>RawPacket</tt>s from
@@ -100,15 +109,30 @@ public class RTCPTermination
     {
         this.stream = stream;
 
-        CachingTransformer cache = stream.getCachingTransformer();
-        if (cache != null)
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        if (cfg == null)
         {
-            cache.setEnabled(true);
+            logger.warn("NOT initializing RTCP n' NACK termination because "
+                + "the configuration service was not found.");
+            return;
         }
-        else
+
+        boolean enableNackTermination
+            = !cfg.getBoolean(DISABLE_NACK_TERMINATION_PNAME, false);
+
+        if (enableNackTermination)
         {
-            logger.warn("NACK termination is enabled, but we don't have" +
-                " a packet cache.");
+            CachingTransformer cache = stream.getCachingTransformer();
+            if (cache != null)
+            {
+                cache.setEnabled(true);
+            }
+            else
+            {
+                logger.warn("NACK termination is enabled, but we don't have" +
+                    " a packet cache.");
+            }
         }
 
         stream.getMediaStreamStats().addRTCPPacketListener(this);
