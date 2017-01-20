@@ -434,7 +434,7 @@ public class VideoMediaStreamImpl
     private final RtxTransformer rtxTransformer = new RtxTransformer(this);
 
     /**
-     * TODO close the object.
+     * The instance that terminates RTCP (RR, FIR, PLI, NACK).
      */
     private final RTCPTermination rtcpTermination = new RTCPTermination(this);
 
@@ -514,6 +514,8 @@ public class VideoMediaStreamImpl
             recurringRunnableExecutor.registerRecurringRunnable(
                     (RecurringRunnable) remoteBitrateEstimator);
         }
+
+        recurringRunnableExecutor.registerRecurringRunnable(rtcpTermination);
     }
 
     /**
@@ -592,6 +594,12 @@ public class VideoMediaStreamImpl
             {
                 recurringRunnableExecutor.deRegisterRecurringRunnable(
                     cachingTransformer);
+            }
+
+            if (rtcpTermination != null)
+            {
+                recurringRunnableExecutor
+                    .deRegisterRecurringRunnable(rtcpTermination);
             }
         }
     }
