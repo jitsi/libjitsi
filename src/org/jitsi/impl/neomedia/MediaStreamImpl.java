@@ -995,8 +995,9 @@ public class MediaStreamImpl
         if (dtmfEngine != null)
             engineChain.add(dtmfEngine);
 
-        // RTX
         engineChain.add(externalTransformerWrapper);
+
+        // RTX
         RtxTransformer rtxTransformer = getRtxTransformer();
         if (rtxTransformer != null)
         {
