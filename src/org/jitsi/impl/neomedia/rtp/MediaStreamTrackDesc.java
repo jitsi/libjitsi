@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp;
 
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.util.*;
 
 import java.util.*;
@@ -42,6 +43,12 @@ public class MediaStreamTrackDesc
      * generate a new key frame.
      */
     private static final int MIN_KEY_FRAME_WAIT_MS = 300;
+
+    /**
+     * The maximum time interval (in millis) an encoding can be considered
+     * active without new frames.
+     */
+    private static final int SUSPENSION_THRESHOLD_MS = 100;
 
     /**
      * The {@link RTPEncodingDesc}s that this {@link MediaStreamTrackDesc}
@@ -137,6 +144,8 @@ public class MediaStreamTrackDesc
      *
      * @param encoding the {@link RTPEncodingDesc} of the {@link RawPacket} that
      * is passed as an argument.
+     *
+     * @return the extra packets to piggy back to this packet.
      */
     RawPacket[] reverseTransform(RawPacket pkt, RTPEncodingDesc encoding)
     {
@@ -144,8 +153,49 @@ public class MediaStreamTrackDesc
 
         // Update the encoding.
         FrameDesc frameDesc = encoding.update(pkt, nowMs);
-        if (frameDesc == null /* no frame was changed */
-            || !frameDesc.isIndependent() /* frame is dependent */
+        if (frameDesc == null /* no frame was changed */)
+        {
+            return null;
+        }
+
+        // Stream suspension detection.
+        boolean active = true;
+        for (int i = encoding.getIndex() + 1; i < rtpEncodings.length; i++)
+        {
+            RTPEncodingDesc enc = rtpEncodings[i];
+            FrameDesc lastReceivedFrame = enc.getLastReceivedFrame();
+
+            if (lastReceivedFrame != null)
+            {
+                long silentIntervalMs
+                    = nowMs - lastReceivedFrame.getReceivedMs();
+
+                if (active && enc.isActive()
+                    && silentIntervalMs > SUSPENSION_THRESHOLD_MS)
+                {
+                    active = false;
+                }
+            }
+            else
+            {
+                active = false;
+            }
+
+            if (!active && enc.isActive())
+            {
+                rtpEncodings[i].setActive(active);
+            }
+        }
+
+        if (!active)
+        {
+            // FIXME only when suspended encodings are received.
+            ((RTPTranslatorImpl) mediaStreamTrackReceiver.getStream()
+                .getRTPTranslator()).getRtcpFeedbackMessageSender()
+                .sendFIR((int) rtpEncodings[0].getPrimarySSRC());
+        }
+
+        if (!frameDesc.isIndependent() /* frame is dependent */
 
             // The webrtc engine is sending keyframes from high to low and less
             // often than 300 millis. The first keyframe that we observe after

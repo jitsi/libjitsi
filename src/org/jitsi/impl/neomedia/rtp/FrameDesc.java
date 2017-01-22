@@ -33,6 +33,11 @@ public class FrameDesc
         = Logger.getLogger(FrameDesc.class);
 
     /**
+     * The time in (millis) when the first packet of this frame was received.
+     */
+    private final long receivedMs;
+
+    /**
      * The {@link RTPEncodingDesc} that this {@link FrameDesc} belongs to.
      */
     private final RTPEncodingDesc rtpEncoding;
@@ -80,11 +85,14 @@ public class FrameDesc
      * @param rtpEncoding the {@link RTPEncodingDesc} that this instance belongs
      * to.
      * @param ts the RTP timestamp for this frame.
+     * @param receivedMs the time (in millis) when the first packet of this
+     * frame was received.
      */
-    FrameDesc(RTPEncodingDesc rtpEncoding, long ts)
+    FrameDesc(RTPEncodingDesc rtpEncoding, long ts, long receivedMs)
     {
         this.rtpEncoding = rtpEncoding;
         this.ts = ts;
+        this.receivedMs = receivedMs;
     }
 
     /**
@@ -106,6 +114,18 @@ public class FrameDesc
     public long getTimestamp()
     {
         return ts;
+    }
+
+    /**
+     * Gets the time (in millis) when the first packet of this frame was
+     * received.
+     *
+     * @return the time (in millis) when the first packet of this frame was
+     * received.
+     */
+    public long getReceivedMs()
+    {
+        return receivedMs;
     }
 
     /**
@@ -226,9 +246,12 @@ public class FrameDesc
 
             if (independent)
             {
-                logger.debug("keyframe,stream=" + stream.hashCode()
-                    + " ssrc=" + rtpEncoding.getPrimarySSRC()
-                    + "," + toString());
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("keyframe,stream=" + stream.hashCode()
+                        + " ssrc=" + rtpEncoding.getPrimarySSRC()
+                        + "," + toString());
+                }
             }
         }
 

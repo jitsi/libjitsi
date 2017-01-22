@@ -123,6 +123,11 @@ public class RTPEncodingDesc
     private long lastStableBitrateBps;
 
     /**
+     * The last frame from this encoding that has been received.
+     */
+    private FrameDesc lastReceivedFrame;
+
+    /**
      * Ctor.
      *
      * @param track the {@link MediaStreamTrackDesc} that this instance belongs to.
@@ -413,11 +418,17 @@ public class RTPEncodingDesc
         {
             synchronized (frames)
             {
-                frames.put(ts, frame = new FrameDesc(this, ts));
+                frames.put(ts, frame = new FrameDesc(this, ts, nowMs));
             }
 
             // We measure the stable bitrate on every new frame.
             lastStableBitrateBps = getBitrateBps(nowMs);
+
+            if (lastReceivedFrame == null
+                || TimeUtils.rtpDiff(ts, lastReceivedFrame.getTimestamp()) > 0)
+            {
+                lastReceivedFrame = frame;
+            }
         }
 
         // Update the frame description. We ignore padding packets for that.
@@ -521,5 +532,15 @@ public class RTPEncodingDesc
         {
             return frames.get(ts);
         }
+    }
+
+    /**
+     * Gets the last frame from this encoding that has been received.
+     * @return last frame from this encoding that has been received, otherwise
+     * null.
+     */
+    public FrameDesc getLastReceivedFrame()
+    {
+        return lastReceivedFrame;
     }
 }
