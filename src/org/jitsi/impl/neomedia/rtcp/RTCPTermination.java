@@ -76,9 +76,6 @@ public class RTCPTermination
     /**
      * A reusable array that holds {@link #MIN_RTCP_REPORT_BLOCKS}
      * <tt>RTCPReportBlock</tt>s.
-     *
-     * FIXME this should be somewhere else, probably inside the
-     * RTCPReportBlock class.
      */
     private static final RTCPReportBlock[] MIN_RTCP_REPORT_BLOCKS_ARRAY
         = new RTCPReportBlock[MIN_RTCP_REPORT_BLOCKS];
@@ -271,8 +268,17 @@ public class RTCPTermination
     {
         lastRunMs = System.currentTimeMillis();
 
+        // Create and return the packet.
+        // We use the stream's local source ID (SSRC) as the SSRC of packet
+        // sender.
+        long streamSSRC = getLocalSSRC();
+        if (streamSSRC == -1)
+        {
+            return;
+        }
+
         // RRs
-        RTCPRRPacket[] rrs = makeRRs(lastRunMs);
+        RTCPRRPacket[] rrs = makeRRs(streamSSRC);
 
         // Bail out (early) if we have nothing to report.
         if (ArrayUtils.isNullOrEmpty(rrs))
@@ -281,24 +287,31 @@ public class RTCPTermination
         }
 
         // REMB
-        RTCPREMBPacket remb = makeREMB();
+        RTCPREMBPacket remb = makeREMB(streamSSRC);
 
-        // Build the RTCPCompoundPackets to return.
-        RTCPCompoundPacket[] compounds = compound(rrs, remb);
+        // Build the RTCP compound packet to return.
+
+        RTCPPacket[] rtcpPackets
+            = new RTCPPacket[rrs.length + (remb == null ? 0 : 1)];
+
+        System.arraycopy(rrs, 0, rtcpPackets, 0, rrs.length);
+        if (remb != null)
+        {
+            rtcpPackets[rrs.length] = remb;
+        }
+
+        RTCPCompoundPacket compound = new RTCPCompoundPacket(rtcpPackets);
 
         // inject the packets into the MediaStream.
-        for (int i = 0; i < compounds.length; i++)
-        {
-            RawPacket pkt = generator.apply(compounds[i]);
+        RawPacket pkt = generator.apply(compound);
 
-            try
-            {
-                stream.injectPacket(pkt, false, null);
-            }
-            catch (TransmissionFailedException e)
-            {
-                logger.error("transmission of an RTCP packet failed.", e);
-            }
+        try
+        {
+            stream.injectPacket(pkt, false, null);
+        }
+        catch (TransmissionFailedException e)
+        {
+            logger.error("transmission of an RTCP packet failed.", e);
         }
     }
 
@@ -315,54 +328,6 @@ public class RTCPTermination
     }
 
     /**
-     * Constructs a new {@code RTCPCompoundPacket}s out of specific SRs, RRs,
-     * SDES, and other RTCP packets.
-     *
-     * @param rrs
-     * @param others other {@code RTCPPacket}s to be included in the new
-     * {@code RTCPCompoundPacket}
-     * @return a new {@code RTCPCompoundPacket} consisting of the specified
-     * {@code srs}, {@code rrs}, {@code sdes}, and {@code others}
-     */
-    private RTCPCompoundPacket[] compound(
-        RTCPRRPacket[] rrs,
-        RTCPPacket... others)
-    {
-        RTCPCompoundPacket[] compounds = new RTCPCompoundPacket[rrs.length];
-
-        for (int j = 0; j < rrs.length; j++)
-        {
-            RTCPPacket[] rtcps = new RTCPPacket[others.length + 1];
-
-            rtcps[0] = rrs[j];
-
-            // RTCP packets other than SR, RR, and SDES such as REMB.
-            if (j == 0 && others.length > 0)
-            {
-                for (int i = 0; i < others.length; ++i)
-                {
-                    RTCPPacket other = others[i];
-
-                    if (other != null)
-                    {
-                        rtcps[1 + j] = other;
-                        // We've included the current other in the current
-                        // compound packet and we don't want to include it in
-                        // subsequent compound packets.
-                        others[i] = null;
-                    }
-                }
-            }
-
-            RTCPCompoundPacket compound = new RTCPCompoundPacket(rtcps);
-
-            compounds[j] = compound;
-        }
-
-        return compounds;
-    }
-
-    /**
      * (attempts) to get the local SSRC that will be used in the media sender
      * SSRC field of the RTCP reports. TAG(cat4-local-ssrc-hurricane)
      *
@@ -370,6 +335,12 @@ public class RTCPTermination
      */
     private long getLocalSSRC()
     {
+        StreamRTPManager streamRTPManager = stream.getStreamRTPManager();
+        if (streamRTPManager == null)
+        {
+            return -1;
+        }
+
         return stream.getStreamRTPManager().getLocalSSRC();
     }
 
@@ -377,13 +348,12 @@ public class RTCPTermination
     /**
      * Makes <tt>RTCPRRPacket</tt>s using information in FMJ.
      *
-     * @param time
      * @return A <tt>List</tt> of <tt>RTCPRRPacket</tt>s to inject into the
      * <tt>MediaStream</tt>.
      */
-    private RTCPRRPacket[] makeRRs(long time)
+    private RTCPRRPacket[] makeRRs(long streamSSRC)
     {
-        RTCPReportBlock[] reportBlocks = makeReportBlocks(time);
+        RTCPReportBlock[] reportBlocks = makeReportBlocks();
         if (ArrayUtils.isNullOrEmpty(reportBlocks))
         {
             return null;
@@ -394,10 +364,6 @@ public class RTCPTermination
 
         RTCPRRPacket[] rrs = new RTCPRRPacket[mod == 0 ? div : div + 1];
 
-        // We use the stream's local source ID (SSRC) as the SSRC of packet
-        // sender.
-        int streamSSRC = (int) getLocalSSRC();
-
         // Since a maximum of 31 reception report blocks will fit in an SR
         // or RR packet, additional RR packets SHOULD be stacked after the
         // initial SR or RR packet as needed to contain the reception
@@ -406,27 +372,22 @@ public class RTCPTermination
         if (reportBlocks.length > MAX_RTCP_REPORT_BLOCKS)
         {
             int rrIdx = 0;
-            for (int offset = 0;
-                 offset < reportBlocks.length;
-                 offset += MAX_RTCP_REPORT_BLOCKS)
+            for (int off = 0;
+                 off < reportBlocks.length; off += MAX_RTCP_REPORT_BLOCKS)
             {
-                int blockCount
-                    = Math.min(
-                    reportBlocks.length - offset,
-                    MAX_RTCP_REPORT_BLOCKS);
+                int blockCount = Math.min(
+                    reportBlocks.length - off, MAX_RTCP_REPORT_BLOCKS);
+
                 RTCPReportBlock[] blocks = new RTCPReportBlock[blockCount];
 
-                System.arraycopy(
-                    reportBlocks, offset,
-                    blocks, 0,
-                    blocks.length);
+                System.arraycopy(reportBlocks, off, blocks, 0, blocks.length);
 
-                rrs[rrIdx++] = new RTCPRRPacket(streamSSRC, blocks);
+                rrs[rrIdx++] = new RTCPRRPacket((int) streamSSRC, blocks);
             }
         }
         else
         {
-            rrs[0] = new RTCPRRPacket(streamSSRC, reportBlocks);
+            rrs[0] = new RTCPRRPacket((int) streamSSRC, reportBlocks);
         }
 
         return rrs;
@@ -437,10 +398,9 @@ public class RTCPTermination
      * <tt>MediaStream</tt> has and make <tt>RTCPReportBlock</tt>s for all of
      * them.
      *
-     * @param nowMs
      * @return
      */
-    private RTCPReportBlock[] makeReportBlocks(long nowMs)
+    private RTCPReportBlock[] makeReportBlocks()
     {
         MediaStreamTrackDesc[] tracks
             = stream.getMediaStreamTrackReceiver().getMediaStreamTracks();
@@ -450,14 +410,20 @@ public class RTCPTermination
             return MIN_RTCP_REPORT_BLOCKS_ARRAY;
         }
 
-        RTCPReportBlock[] reportBlocks = new RTCPReportBlock[tracks.length];
+        List<RTCPReportBlock> reportBlocks = new ArrayList<>();
 
         for (int i = 0; i < tracks.length; i++)
         {
-            reportBlocks[i] = tracks[i].makeReceiverReport(nowMs);
+            List<RTCPReportBlock> trackReportBlocks
+                = tracks[i].makeReceiverReport(lastRunMs);
+
+            if (!trackReportBlocks.isEmpty())
+            {
+                reportBlocks.addAll(trackReportBlocks);
+            }
         }
 
-        return reportBlocks;
+        return reportBlocks.toArray(new RTCPReportBlock[reportBlocks.size()]);
     }
 
     /**
@@ -467,7 +433,7 @@ public class RTCPTermination
      * @return an <tt>RTCPREMBPacket</tt> that provides receiver feedback to the
      * endpoint from which we receive.
      */
-    private RTCPREMBPacket makeREMB()
+    private RTCPREMBPacket makeREMB(long streamSSRC)
     {
         // TODO we should only make REMBs if REMB support has been advertised.
         // Destination
@@ -484,11 +450,6 @@ public class RTCPTermination
 
         for (Integer ssrc : ssrcs)
             dest[i++] = ssrc & 0xFFFFFFFFL;
-
-        // Create and return the packet.
-        // We use the stream's local source ID (SSRC) as the SSRC of packet
-        // sender.
-        long streamSSRC = getLocalSSRC();
 
         // Exp & mantissa
         long bitrate = remoteBitrateEstimator.getLatestEstimate();

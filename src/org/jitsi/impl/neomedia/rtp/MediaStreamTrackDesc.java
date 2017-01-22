@@ -19,6 +19,8 @@ import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.util.*;
 
+import java.util.*;
+
 /**
  * Represents a collection of {@link RTPEncodingDesc}s that encode the same
  * media source. This specific implementation provides webrtc simulcast stream
@@ -244,22 +246,45 @@ public class MediaStreamTrackDesc
     }
 
     /**
+     * Makes a receiver report for this track.
      *
-     * @param time
+     * @param nowMs
      * @return
      */
-    public RTCPReportBlock makeReceiverReport(long time)
+    public List<RTCPReportBlock> makeReceiverReport(long nowMs)
     {
         SSRCCache cache = mediaStreamTrackReceiver
             .getStream().getRTPTranslator().getSSRCCache();
 
-        long ssrc = rtpEncodings[0].getPrimarySSRC();
-        SSRCInfo info = cache.cache.get((int) ssrc);
+        List<RTCPReportBlock> reportBlocks
+            = new ArrayList<>(rtpEncodings.length);
 
-        return (info != null && !info.ours && info.sender)
-            ? info.makeReceiverReport(time) : null;
+        if (cache != null)
+        {
+            for (int i = 0; i < rtpEncodings.length; i++)
+            {
+                long ssrc = rtpEncodings[i].getPrimarySSRC();
+                SSRCInfo info = cache.cache.get((int) ssrc);
+
+                if (info != null && !info.ours && info.sender)
+                {
+                    RTCPReportBlock reportBlock = info.makeReceiverReport(nowMs);
+                    if (reportBlock != null)
+                    {
+                        reportBlocks.add(reportBlock);
+                    }
+                }
+            }
+        }
+
+        return reportBlocks;
     }
 
+    /**
+     *
+     * @param ssrc
+     * @return
+     */
     public boolean matches(long ssrc)
     {
         return rtpEncodings[0].getPrimarySSRC() == ssrc;
