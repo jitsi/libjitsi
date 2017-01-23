@@ -86,15 +86,20 @@ public class SimulcastController
     }
 
     /**
+     * Defines a packet filter that controls which packets to be written into
+     * some arbitrary target/receiver that owns this {@link SimulcastController}.
      *
-     * @param data
-     * @param buf
-     * @param off
-     * @param len
-     * @return
+     * @param data true if the specified packet/<tt>buffer</tt> is RTP, false if
+     * it is RTCP.
+     * @param buf the <tt>byte</tt> array that holds the packet.
+     * @param off the offset in <tt>buffer</tt> at which the actual data begins.
+     * @param len the number of <tt>byte</tt>s in <tt>buffer</tt> which
+     * constitute the actual data.
+     * @return <tt>true</tt> to allow the specified packet/<tt>buffer</tt> to be
+     * written into the arbitrary target/receiver that owns this
+     * {@link SimulcastController} ; otherwise, <tt>false</tt>
      */
-    public boolean rtpTranslatorWillWrite(
-        boolean data, byte[] buf, int off, int len)
+    public boolean accept(boolean data, byte[] buf, int off, int len)
     {
         MediaStreamTrackDesc sourceTrack = weakSource.get();
 
@@ -197,7 +202,9 @@ public class SimulcastController
     }
 
     /**
-     * {@inheritDoc}
+     * Update the target subjective quality index for this instance.
+     *
+     * @param targetIdx new target subjective quality index.
      */
     public void update(int targetIdx)
     {
@@ -386,7 +393,8 @@ public class SimulcastController
     }
 
     /**
-     *
+     * NOTE(gp) Once we move to Java 8, I want this to be implemented as a
+     * Function.
      */
     private static class SimTransformation
         extends Transformation
