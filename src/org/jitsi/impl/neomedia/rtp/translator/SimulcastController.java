@@ -35,7 +35,6 @@ import java.lang.ref.*;
  * @author George Politis
  */
 public class SimulcastController
-    implements TransformEngine
 {
     /**
      * The {@link Logger} to be used by this instance to print debug
@@ -56,18 +55,6 @@ public class SimulcastController
      * this instance with RTP/RTCP packets.
      */
     private final WeakReference<MediaStreamTrackDesc> weakSource;
-
-    /**
-     * The {@link PacketTransformer} that handles incoming/outgoing RTP
-     * packets for this {@link SimulcastController} instance.
-     */
-    private final RTPTransformer rtpTransformer = new RTPTransformer();
-
-    /**
-     * The {@link PacketTransformer} that handles incoming/outgoing RTCP
-     * packets for this {@link SimulcastController} instance.
-     */
-    private final RTCPTransformer rtcpTransformer = new RTCPTransformer();
 
     /**
      * The state for the filtering thread. R/W by the filtering thread.
@@ -96,24 +83,6 @@ public class SimulcastController
     {
         this.weakSource = new WeakReference<>(source);
         this.targetSSRC = source.getRTPEncodings()[0].getPrimarySSRC();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public PacketTransformer getRTPTransformer()
-    {
-        return rtpTransformer;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public PacketTransformer getRTCPTransformer()
-    {
-        return rtcpTransformer;
     }
 
     /**
@@ -148,9 +117,8 @@ public class SimulcastController
         boolean currentRTPEncodingIsActive = false;
         if (transformState.currentIdx > -1)
         {
-            RTPEncodingDesc
-                currentRTPEncodingDesc = sourceTrack
-                .getRTPEncodings()[transformState.currentIdx];
+            RTPEncodingDesc currentRTPEncodingDesc
+                = sourceTrack.getRTPEncodings()[transformState.currentIdx];
 
             currentRTPEncodingIsActive = currentRTPEncodingDesc.isActive();
         }
@@ -166,7 +134,6 @@ public class SimulcastController
 
             return accept;
         }
-
 
         // An intra-codec/simulcast switch pending.
 
@@ -209,6 +176,13 @@ public class SimulcastController
                 seqNumDelta = 0; tsDelta = 0;
             }
 
+            if (logger.isDebugEnabled())
+            {
+                logger.info("new_transform src_ssrc=" + sourceSSRC
+                    + ",src_idx=" + sourceIdx
+                    + ",ts_delta=" + tsDelta
+                    + ",seq_delta=" + seqNumDelta);
+            }
             transformState = new SimTransformation(
                 sourceSSRC, tsDelta, seqNumDelta, sourceIdx);
 
@@ -294,182 +268,121 @@ public class SimulcastController
     }
 
     /**
-     * Transforms outgoing RTP packets.
+     * Transforms the RTP packet specified in the {@link RawPacket} that is
+     * passed as an argument for the purposes of simulcast.
+     *
+     * @param pkt the {@link RawPacket} to be transformed.
+     * @return the transformed {@link RawPacket} or null if the packet needs
+     * to be dropped.
      */
-    private class RTPTransformer implements PacketTransformer
+    public RawPacket rtpTransform(RawPacket pkt)
     {
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void close()
+        if (!RTPPacketPredicate.INSTANCE.test(pkt))
         {
-            // TODO update the receive counters
+            return pkt;
         }
 
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket[] reverseTransform(RawPacket[] pkts)
+        SimTransformation state = transformState;
+
+        long srcSSRC = pkt.getSSRCAsLong();
+        if (srcSSRC != state.currentSSRC)
         {
-            //  No need for that (yet?).
-            return pkts;
+            // We do _not_ forward packets from SSRCs other than the
+            // current SSRC.
+            return null;
         }
 
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket[] transform(RawPacket[] pkts)
+        int srcSeqNum = pkt.getSequenceNumber();
+        int dstSeqNum = state.rewriteSeqNum(srcSeqNum);
+
+        long srcTs = pkt.getTimestamp();
+        long dstTs = state.rewriteTimestamp(srcTs);
+
+        if (logger.isDebugEnabled())
         {
-            if (ArrayUtils.isNullOrEmpty(pkts))
-            {
-                return pkts;
-            }
-
-            SimTransformation state = transformState;
-
-            for (int i = 0; i < pkts.length; i++)
-            {
-                if (!RTPPacketPredicate.INSTANCE.test(pkts[i]))
-                {
-                    continue;
-                }
-
-                long srcSSRC = pkts[i].getSSRCAsLong();
-                if (srcSSRC != state.currentSSRC)
-                {
-                    // We do _not_ forward packets from SSRCs other than the
-                    // current SSRC.
-                    pkts[i] = null;
-                    continue;
-                }
-
-                int srcSeqNum = pkts[i].getSequenceNumber();
-                int dstSeqNum = state.rewriteSeqNum(srcSeqNum);
-
-                long srcTs = pkts[i].getTimestamp();
-                long dstTs = state.rewriteTimestamp(srcTs);
-
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("src_ssrc=" + pkts[i].getSSRCAsLong()
-                        + ",src_seq=" + srcSeqNum
-                        + ",src_ts=" + srcTs
-                        + ",dst_ssrc=" + targetSSRC
-                        + ",dst_seq=" + dstSeqNum
-                        + ",dst_ts=" + dstTs);
-                }
-
-                if (srcSeqNum != dstSeqNum)
-                {
-                    pkts[i].setSequenceNumber(dstSeqNum);
-                }
-
-                if (dstTs != srcTs)
-                {
-                    pkts[i].setTimestamp(dstTs);
-                }
-
-                if (srcSSRC != targetSSRC)
-                {
-                    pkts[i].setSSRC((int) targetSSRC);
-                }
-            }
-
-            return pkts;
+            logger.debug("src_ssrc=" + pkt.getSSRCAsLong()
+                + ",src_seq=" + srcSeqNum
+                + ",src_ts=" + srcTs
+                + ",dst_ssrc=" + targetSSRC
+                + ",dst_seq=" + dstSeqNum
+                + ",dst_ts=" + dstTs);
         }
+
+        if (srcSeqNum != dstSeqNum)
+        {
+            pkt.setSequenceNumber(dstSeqNum);
+        }
+
+        if (dstTs != srcTs)
+        {
+            pkt.setTimestamp(dstTs);
+        }
+
+        if (srcSSRC != targetSSRC)
+        {
+            pkt.setSSRC((int) targetSSRC);
+        }
+
+        return pkt;
     }
 
     /**
-     * Transforms outgoing RTCP packets.
+     * Transform an RTCP {@link RawPacket} for the purposes of simulcast.
+     *
+     * @param pkt the {@link RawPacket} to be transformed.
+     * @return the transformed RTCP {@link RawPacket}, or null if the packet
+     * needs to be dropped.
      */
-    private class RTCPTransformer implements PacketTransformer
+    public RawPacket rtcpTransform(RawPacket pkt)
     {
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void close()
+        if (!RTCPPacketPredicate.INSTANCE.test(pkt))
         {
-            // TODO update the receive counters
+            return pkt;
         }
 
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket[] reverseTransform(RawPacket[] pkts)
+        SimTransformation state = transformState;
+
+
+        if (RTCPHeaderUtils.getSenderSSRC(pkt) != state.currentSSRC)
         {
-            //  No need for that (yet?).
-            return pkts;
+            // Anything from anywhere else gets axed.
+            return null;
         }
 
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket[] transform(RawPacket[] pkts)
+        RTCPIterator it = new RTCPIterator(pkt);
+        while (it.hasNext())
         {
-            if (ArrayUtils.isNullOrEmpty(pkts))
+            // Anything other than SR and SDES gets axed. SRs are
+            // rewritten.
+            ByteArrayBuffer baf = it.next();
+            switch (RTCPHeaderUtils.getPacketType(baf))
             {
-                return pkts;
+            case RTCPPacket.SR:
+
+                // Rewrite timestamp.
+                long srcTs = RTCPSenderInfoUtils.getTimestamp(baf);
+                long dstTs = state.rewriteTimestamp(srcTs);
+
+                if (srcTs != dstTs)
+                {
+                    RTCPSenderInfoUtils.setTimestamp(baf, dstTs);
+                }
+
+                // Rewrite packet/octet count.
+                RTCPSenderInfoUtils
+                    .setOctetCount(baf, filterState.transmittedBytes);
+                RTCPSenderInfoUtils
+                    .setPacketCount(baf, filterState.transmittedPackets);
+
+            case RTCPPacket.SDES:
+            case RTCPPacket.BYE:
+                break;
+            default:
+                it.remove();
             }
-
-            SimTransformation state = transformState;
-
-            for (int i = 0; i < pkts.length; i++)
-            {
-                if (!RTCPPacketPredicate.INSTANCE.test(pkts[i]))
-                {
-                    continue;
-
-                }
-                if (RTCPHeaderUtils.getSenderSSRC(pkts[i]) != state.currentSSRC)
-                {
-                    // Anything from anywhere else gets axed.
-                    pkts[i] = null;
-                    continue;
-                }
-
-                RTCPIterator it = new RTCPIterator(pkts[i]);
-                while (it.hasNext())
-                {
-                    // Anything other than SR and SDES gets axed. SRs are
-                    // rewritten.
-                    ByteArrayBuffer baf = it.next();
-                    switch (RTCPHeaderUtils.getPacketType(baf))
-                    {
-                    case RTCPPacket.SR:
-
-                        // Rewrite timestamp.
-                        long srcTs = RTCPSenderInfoUtils.getTimestamp(baf);
-                        long dstTs = state.rewriteTimestamp(srcTs);
-
-                        if (srcTs != dstTs)
-                        {
-                            RTCPSenderInfoUtils.setTimestamp(baf, dstTs);
-                        }
-
-                        // Rewrite packet/octet count.
-                        RTCPSenderInfoUtils
-                            .setOctetCount(baf, filterState.transmittedBytes);
-                        RTCPSenderInfoUtils
-                            .setPacketCount(baf, filterState.transmittedPackets);
-
-                    case RTCPPacket.SDES:
-                    case RTCPPacket.BYE:
-                        break;
-                    default:
-                        it.remove();
-                    }
-                }
-
-            }
-
-            return pkts;
         }
+
+        return pkt;
     }
 
     /**
