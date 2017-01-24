@@ -90,7 +90,7 @@ public class RawPacket
      * <tt>byte</tt> array buffer.
      *
      * @param buffer the <tt>byte</tt> array to be the buffer of the new
-     * instance 
+     * instance
      * @param offset the offset in <tt>buffer</tt> at which the actual data to
      * be represented by the new instance starts
      * @param length the number of <tt>byte</tt>s in <tt>buffer</tt> which

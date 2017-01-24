@@ -20,7 +20,10 @@ import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * We use this engine to add the list of CSRC identifiers in RTP packets that
@@ -66,6 +69,29 @@ public class CsrcTransformEngine
      * transform packets for.
      */
     private final MediaStreamImpl mediaStream;
+
+    /**
+    * The flag that determines whether the list of CSRC identifiers are to be
+    * discarded in all packets. The CSRC count will be 0 as well. The default
+    * value is <tt>false</tt>.
+    */
+   private static final boolean discardContributingSrcs;
+
+   /**
+    * The name of the <tt>ConfigurationService</tt> and/or <tt>System</tt>
+    * property which indicates whether the list of CSRC identifiers are to
+    * be discarded from all packets. The default value is <tt>false</tt>.
+    */
+   private static final String DISCARD_CONTRIBUTING_SRCS_PNAME
+       = CsrcTransformEngine.class.getName() + ".DISCARD_CONTRIBUTING_SOURCES";
+
+   static
+   {
+       ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+       discardContributingSrcs =
+           ConfigUtils.getBoolean(cfg, DISCARD_CONTRIBUTING_SRCS_PNAME,false);
+   }
 
     /**
      * Creates an engine instance that will be adding CSRC lists to the
@@ -284,7 +310,7 @@ public class CsrcTransformEngine
 
         long[] csrcList = mediaStream.getLocalContributingSourceIDs();
 
-        if(csrcList == null || csrcList.length == 0)
+        if(csrcList == null || csrcList.length == 0 || this.discardContributingSrcs)
         {
             //nothing to do.
             return pkt;
