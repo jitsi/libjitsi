@@ -70,6 +70,11 @@ public class BasicRTCPTerminationStrategy
     private static final int MIN_RTCP_REPORT_BLOCKS = 0;
 
     /**
+     * The maximum bitrate allowed for an RTCPREMBPacket
+     */
+    private static final long MAX_BITRATE = 1000000L;
+
+    /**
      * A reusable array that holds {@link #MIN_RTCP_REPORT_BLOCKS}
      * <tt>RTCPReportBlock</tt>s.
      *
@@ -789,6 +794,13 @@ public class BasicRTCPTerminationStrategy
         }
         else
         {
+            if (bitrate > MAX_BITRATE) {
+              bitrate = MAX_BITRATE;
+            }
+
+            if (logger.isDebugEnabled())
+                logger.debug("Estimated bitrate: " + bitrate);
+
             return new RTCPREMBPacket(senderSSRC, mediaSSRC, bitrate, dest);
         }
     }
