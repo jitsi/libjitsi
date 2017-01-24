@@ -15,13 +15,20 @@
  */
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
-import java.util.*;
+import net.sf.fmj.media.rtp.util.RTPPacket;
+import org.ice4j.util.RateStatistics;
+import org.jitsi.impl.neomedia.stats.StatisticsTable;
+import org.jitsi.service.neomedia.rtp.RemoteBitrateEstimator;
+import org.jitsi.util.concurrent.RecurringRunnable;
 
-import net.sf.fmj.media.rtp.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
-import org.ice4j.util.*;
-import org.jitsi.service.neomedia.rtp.*;
-import org.jitsi.util.concurrent.*;
+import static org.jitsi.impl.neomedia.stats.CounterName.*;
 
 /**
  * webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.cc
@@ -35,7 +42,6 @@ public class RemoteBitrateEstimatorSingleStream
                RemoteBitrateEstimator
 {
     static final double kTimestampToMs = 1.0 / 90.0;
-
     private final Object critSect = new Object();
 
     /**
@@ -66,7 +72,9 @@ public class RemoteBitrateEstimatorSingleStream
 
     private long processIntervalMs = kProcessIntervalMs;
 
-    private final AimdRateControl remoteRate = new AimdRateControl();
+    private final AimdRateControl remoteRate;
+
+    private final StatisticsTable stats;
 
     /**
      * The set of synchronization source identifiers (SSRCs) currently being
@@ -77,9 +85,11 @@ public class RemoteBitrateEstimatorSingleStream
      */
     private Collection<Integer> ssrcs;
 
-    public RemoteBitrateEstimatorSingleStream(RemoteBitrateObserver observer)
+    public RemoteBitrateEstimatorSingleStream(RemoteBitrateObserver observer, StatisticsTable stats)
     {
         this.observer = observer;
+        this.stats = stats;
+        this.remoteRate = new AimdRateControl(stats);
     }
 
     private long getExtensionTransmissionTimeOffset(RTPPacket header)
@@ -212,6 +222,9 @@ public class RemoteBitrateEstimatorSingleStream
                     timestampDeltaMs,
                     estimator.estimator.getNumOfDeltas(),
                     nowMs);
+
+            recordArrivalFilterStats(ssrc, deltas[1], timestampDeltaMs, deltas[2],
+                    estimator.estimator.getOffset(), estimator.estimator.getNumOfDeltas());
         }
         if (estimator.detector.getState() == BandwidthUsage.kBwOverusing)
         {
@@ -230,6 +243,19 @@ public class RemoteBitrateEstimatorSingleStream
             }
         }
         } // synchronized (critSect)
+    }
+
+    private void recordArrivalFilterStats(int ssrc, long deltaArrivalTimeMs, double deltaDepartureTimeMs,
+            long deltaSizeBytes, double estimatedGroupDelayVariationMs, int numOfDeltas)
+    {
+        double deltaGroupDelayVariationMs = deltaArrivalTimeMs - deltaDepartureTimeMs;
+        StatisticsTable.GetCounterWithStreamId counter = stats.get(ssrc);
+        counter.get(DELTA_ARRIVAL_TIME_MS).set(deltaArrivalTimeMs);
+        counter.get(DELTA_DEPARTURE_TIME_MS).set((long) deltaDepartureTimeMs);
+        counter.get(DELTA_SIZE_BYTES).set(deltaSizeBytes);
+        counter.get(DELTA_GROUP_DELAY_VARIATION_MS).set((long) deltaGroupDelayVariationMs);
+        counter.get(ESTIMATION_NUM_DELTAS).set(numOfDeltas);
+        counter.get(ESTIMATED_DELTA_GROUP_DELAY_VARIATION_MS).set((long)(estimatedGroupDelayVariationMs));
     }
 
     /**
@@ -359,6 +385,7 @@ public class RemoteBitrateEstimatorSingleStream
         input.incomingBitRate = incomingBitrate.getRate(nowMs);
         input.noiseVar = meanNoiseVar;
         remoteRate.update(input, nowMs);
+        recordRateControlInput(input);
 
         long targetBitrate = remoteRate.updateBandwidthEstimate(nowMs);
 
@@ -370,9 +397,35 @@ public class RemoteBitrateEstimatorSingleStream
 
             if (observer != null)
                 observer.onReceiveBitrateChanged(getSsrcs(), targetBitrate);
+
+            stats.get(TARGET_BITRATE_BPS).set(targetBitrate);
         }
 
         } // synchronized (critSect)
+    }
+
+    private void recordRateControlInput(RateControlInput input)
+    {
+        stats.get(INCOMING_BITRATE_BPS).set(input.incomingBitRate);
+        recordBandwidthUsage(input.bwState);
+    }
+
+    private void recordBandwidthUsage(BandwidthUsage bandwidthUsage)
+    {
+        switch (bandwidthUsage)
+        {
+            case kBwNormal:
+                stats.get(BANDWIDTH_NORMAL).incrementAndGet();
+                break;
+            case kBwOverusing:
+                stats.get(BANDWIDTH_OVERUSE).incrementAndGet();
+                break;
+            case kBwUnderusing:
+                stats.get(BANDWIDTH_UNDERUSE).incrementAndGet();
+                break;
+            default:
+                break;
+        }
     }
 
     private static class Detector

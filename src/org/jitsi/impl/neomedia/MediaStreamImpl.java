@@ -193,6 +193,11 @@ public class MediaStreamImpl
     private MediaStreamStats2Impl mediaStreamStatsImpl;
 
     /**
+     * Contains statistics about this <tt>MediaStreamImpl</tt> used for telemetry and debugging.
+     */
+    private final StatisticsTable statisticsTable;
+
+    /**
      * The indicator which determines whether this <tt>MediaStream</tt> is set
      * to transmit "silence" instead of the actual media fed from its
      * <tt>MediaDevice</tt>.
@@ -411,6 +416,7 @@ public class MediaStreamImpl
 
         this.srtpControl.registerUser(this);
         this.mediaStreamStatsImpl = new MediaStreamStats2Impl(this);
+        this.statisticsTable = new StatisticsTable();
 
         if (connector != null)
             setConnector(connector);
@@ -1638,6 +1644,18 @@ public class MediaStreamImpl
     public MediaStreamStats2Impl getMediaStreamStats()
     {
         return mediaStreamStatsImpl;
+    }
+
+    /**
+     * Returns the <tt>StatisticsTable</tt> which contains
+     * additional statistical information about this <tt>MediaStream</tt>.
+     *
+     * @return <tt>StatisticsTable</tt>
+     */
+    @Override
+    public StatisticsTable getStatisticsTable()
+    {
+        return statisticsTable;
     }
 
     /**

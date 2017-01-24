@@ -438,7 +438,8 @@ public class VideoMediaStreamImpl
                                     ssrcs,
                                     bitrate);
                     }
-                });
+                },
+                getStatisticsTable());
 
     /**
      * The facility which aids this instance in managing a list of
@@ -1364,7 +1365,7 @@ public class VideoMediaStreamImpl
     {
         if (bandwidthEstimator == null)
         {
-            bandwidthEstimator = new BandwidthEstimatorImpl(this);
+            bandwidthEstimator = new BandwidthEstimatorImpl(this, getStatisticsTable());
             recurringRunnableExecutor.registerRecurringRunnable(
                     bandwidthEstimator);
             logger.info("Creating a BandwidthEstimator for stream " + this);

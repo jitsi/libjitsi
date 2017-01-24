@@ -22,6 +22,7 @@ import java.util.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.stats.StatisticsTable;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
@@ -217,6 +218,12 @@ public interface MediaStream
      * this <tt>MediaStream</tt>.
      */
     MediaStreamStats2 getMediaStreamStats();
+
+    /**
+     * @return Returns a <tt>StatisticsTable</tt> object used to get additional counters about
+     * this <tt>MediaStream</tt>.
+     */
+    public StatisticsTable getStatisticsTable();
 
     /**
      * Returns the name of this stream or <tt>null</tt> if no name has been
