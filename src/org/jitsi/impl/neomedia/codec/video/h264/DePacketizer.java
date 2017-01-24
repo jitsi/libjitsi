@@ -15,21 +15,20 @@
  */
 package org.jitsi.impl.neomedia.codec.video.h264;
 
-import net.sf.fmj.media.AbstractCodec;
-import org.jitsi.impl.neomedia.codec.AbstractCodec2;
-import org.jitsi.impl.neomedia.codec.FFmpeg;
-import org.jitsi.impl.neomedia.format.ParameterizedVideoFormat;
-import org.jitsi.impl.neomedia.format.VideoMediaFormatImpl;
-import org.jitsi.service.neomedia.codec.Constants;
-import org.jitsi.service.neomedia.control.KeyFrameControl;
-import org.jitsi.util.Logger;
-
-import javax.media.Buffer;
-import javax.media.Format;
-import javax.media.PlugIn;
-import javax.media.ResourceUnavailableException;
-import javax.media.format.VideoFormat;
 import java.util.*;
+
+import javax.media.*;
+import javax.media.format.*;
+
+import net.sf.fmj.media.*;
+
+import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.impl.neomedia.format.*;
+import org.jitsi.service.neomedia.codec.*;
+import org.jitsi.service.neomedia.control.*;
+import org.jitsi.util.*;
+
+import static org.jitsi.impl.neomedia.codec.video.h264.H264.*;
 
 /**
  * Implements <tt>Codec</tt> to represent a depacketizer of H.264 RTP packets
@@ -49,38 +48,6 @@ public class DePacketizer
     private static final Logger logger = Logger.getLogger(DePacketizer.class);
 
     /**
-     * The bytes to prefix any NAL unit to be output by this
-     * <tt>DePacketizer</tt> and given to a H.264 decoder. Includes
-     * start_code_prefix_one_3bytes. According to "B.1 Byte stream NAL unit
-     * syntax and semantics" of "ITU-T Rec. H.264 Advanced video coding for
-     * generic audiovisual services", zero_byte "shall be present" when "the
-     * nal_unit_type within the nal_unit() is equal to 7 (sequence parameter
-     * set) or 8 (picture parameter set)" or "the byte stream NAL unit syntax
-     * structure contains the first NAL unit of an access unit in decoding
-     * order".
-     */
-    public static final byte[] NAL_PREFIX = { 0, 0, 0, 1 };
-
-    /**
-     * Constants used to detect H264 keyframes in rtp packet
-     */
-    private static final byte kTypeMask = 0x1F;
-    // Nalu
-    private static final byte kIdr = 5;
-    private static final byte kSei = 6;
-    private static final byte kSps = 7;
-    private static final byte kPps = 8;
-    static final byte kStapA = 24;
-    private static final byte kFuA = 28;
-
-    // Header sizes
-    private static final int kNalHeaderSize = 1;
-    private static final int kFuAHeaderSize = 2;
-    private static final int kLengthFieldSize = 2;
-    private static final int kStapAHeaderSize = kNalHeaderSize + kLengthFieldSize;
-    static final int kNalUSize = 2;
-
-  /**
      * The indicator which determines whether incomplete NAL units are output
      * from the H.264 <tt>DePacketizer</tt> to the decoder. It is advisable to
      * output incomplete NAL units because the FFmpeg H.264 decoder is able to
@@ -614,34 +581,6 @@ public class DePacketizer
         }
         return (nalType == kIdr || nalType == kSps ||
                 nalType == kPps || nalType == kSei);
-    }
-
-    /**
-     * Check if Single-Time Aggregation Packet (STAP-A) NAL unit is correctly formed.
-     * @param data STAP-A payload
-     * @param offset Starting position of NAL unit
-     * @param lengthRemaining Bytes left in STAP-A
-     * @return True if STAP-A NAL Unit is correct
-     */
-    static boolean verifyStapANaluLengths(byte[] data, int offset, int lengthRemaining)
-    {
-        if (data.length < offset + lengthRemaining) {
-            return false;
-        }
-        while (lengthRemaining != 0) {
-            if (lengthRemaining < kNalUSize) {
-                return false;
-            }
-            int naluSize = kNalUSize + getUint16(data, offset);
-            offset += naluSize;
-            lengthRemaining -= naluSize;
-        }
-        return true;
-    }
-
-    static int getUint16(byte[] data, int offset)
-    {
-        return ((data[offset] & 0xff) << 8) | (data[offset+1] & 0xff);
     }
 
     /**
