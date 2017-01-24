@@ -15,6 +15,10 @@
  */
 package org.jitsi.impl.neomedia;
 
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 import org.jitsi.service.neomedia.*;
 
@@ -77,6 +81,30 @@ public class RawPacket
      * RTPManager we store this info. (Not assuming the offset is always zero)
      */
     private int offset;
+
+    /**
+     * The flag that determines whether the list of CSRC identifiers are to be
+     * discarded in all packets. The CSRC count will be 0 as well. The default
+     * value is <tt>false</tt>.
+     */
+    private static final boolean discardCSRC;
+
+    /**
+     * The name of the <tt>ConfigurationService</tt> and/or <tt>System</tt>
+     * property which indicates whether the list of CSRC identifiers are to
+     * be discarded from all packets. The default value is <tt>false</tt>.
+     */
+    private static final String DISCARD_CONTRIBUTING_SOURCES_PNAME
+        = RawPacket.class.getName() + ".DISCARD_CONTRIBUTING_SOURCES";
+
+    static
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        DISCARD_CONTRIBUTING_SOURCES
+            = ConfigUtils.getBoolean(cfg, DISCARD_CONTRIBUTING_SOURCES_PNAME,
+                false);
+    }
 
     /**
      * Initializes a new empty <tt>RawPacket</tt> instance.
@@ -1285,6 +1313,9 @@ public class RawPacket
      */
     public void setCsrcList(long[] newCsrcList)
     {
+        if(this.discardCSRC)
+            return;
+
         int newCsrcCount = newCsrcList.length;
         byte[] csrcBuff = new byte[newCsrcCount * 4];
         int csrcOffset = 0;
