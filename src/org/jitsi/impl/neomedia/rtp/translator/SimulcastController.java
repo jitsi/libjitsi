@@ -158,10 +158,10 @@ public class SimulcastController
             long tsDelta; int seqNumDelta;
             if (filterState.maxSeqNum != -1)
             {
-                seqNumDelta
-                    = (filterState.maxSeqNum + 1 - sourceFrameDesc.getStart()) & 0xFFFF;
-                tsDelta
-                    = (filterState.maxTs + 3000 - sourceFrameDesc.getTimestamp()) & 0xFFFFFFFFL;
+                seqNumDelta = (filterState.maxSeqNum
+                    + 1 - sourceFrameDesc.getStart()) & 0xFFFF;
+                tsDelta = (filterState.maxTs
+                    + 3000 - sourceFrameDesc.getTimestamp()) & 0xFFFFFFFFL;
             }
             else
             {
