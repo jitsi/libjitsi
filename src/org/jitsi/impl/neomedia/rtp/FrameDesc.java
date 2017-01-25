@@ -48,10 +48,10 @@ public class FrameDesc
     private final long ts;
 
     /**
-     * A boolean indicating whether or not this frame has been received in
-     * order.
+     * A boolean indicating whether or not the start of a frame was the first
+     * packet that was received for this packet.
      */
-    private boolean inOrder = false;
+    private boolean sofInOrder = false;
 
     /**
      * A boolean indicating whether or not this frame is independent or not
@@ -222,7 +222,7 @@ public class FrameDesc
         if (minSeen == -1 || RTPUtils.sequenceNumberDiff(minSeen, seqNum) > 0)
         {
             changed = true;
-            inOrder = isSOF;
+            sofInOrder = isSOF;
             minSeen = seqNum;
         }
 
@@ -274,8 +274,8 @@ public class FrameDesc
      * order.
      * @return true if this frame has been received in order, false otherwise.
      */
-    public boolean isInOrder()
+    public boolean isSofInOrder()
     {
-        return inOrder;
+        return sofInOrder;
     }
 }

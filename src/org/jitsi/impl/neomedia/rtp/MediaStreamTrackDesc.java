@@ -20,8 +20,6 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.util.*;
 
-import java.util.*;
-
 /**
  * Represents a collection of {@link RTPEncodingDesc}s that encode the same
  * media source. This specific implementation provides webrtc simulcast stream
@@ -223,7 +221,7 @@ public class MediaStreamTrackDesc
 
         RawPacket[] extras = null;
 
-        if (!frameDesc.isInOrder())
+        if (!frameDesc.isSofInOrder())
         {
             // Piggy back till max seen.
             RawPacketCache inCache = mediaStreamTrackReceiver.getStream()
