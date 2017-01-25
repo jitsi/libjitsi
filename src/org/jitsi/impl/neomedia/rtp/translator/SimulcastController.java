@@ -64,7 +64,7 @@ public class SimulcastController
     /**
      * The target subjective quality index for this instance. This instance
      * switches between the available RTP streams and sub-encodings until it
-     * reaches this target.
+     * reaches this target. -1 effectively means that the stream is suspended.
      */
     private int targetIdx = -1;
 
