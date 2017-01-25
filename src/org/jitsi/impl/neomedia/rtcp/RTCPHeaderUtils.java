@@ -47,6 +47,12 @@ public class RTCPHeaderUtils
         return buf[off + 1] & 0xff;
     }
 
+    /**
+     * Gets the RTCP packet type.
+     *
+     * @param baf the {@link ByteArrayBuffer} that contains the RTCP header.
+     * @return the unsigned RTCP packet type, or -1 in case of an error.
+     */
     public static int getPacketType(ByteArrayBuffer baf)
     {
         if (baf == null)
@@ -212,6 +218,12 @@ public class RTCPHeaderUtils
         return buf[off] & 0x1F;
     }
 
+    /**
+     * Gets the RTCP packet length in bytes.
+     *
+     * @param baf the {@link ByteArrayBuffer} that contains the RTCP header.
+     * @return  the RTCP packet length in bytes, or -1 in case of an error.
+     */
     public static int getLength(ByteArrayBuffer baf)
     {
         if (baf == null)

@@ -76,9 +76,14 @@ public class RTCPFBPacket
     }
 
     /**
+     * Gets a boolean that indicates whether or not the packet specified in the
+     * {@link ByteArrayBuffer} that is passed in the first argument is an RTCP
+     * RTPFB or PSFB packet.
      *
-     * @param baf
-     * @return
+     * @param baf the {@link ByteArrayBuffer} that holds the RTCP packet.
+     * @return true if the packet specified in the {@link ByteArrayBuffer} that
+     * is passed in the first argument is an RTCP RTPFB or PSFB packet,
+     * otherwise false.
      */
     public static boolean isRTCPFBPacket(ByteArrayBuffer baf)
     {
@@ -114,10 +119,13 @@ public class RTCPFBPacket
     }
 
     /**
-     * Gets the SSRC of the media source of the packet specified in the .
+     * Gets the SSRC of the media source of the packet specified in the
+     * {@link ByteArrayBuffer} passed in as an argument.
      *
-     * @param baf
-     * @return
+     * @param baf the {@link ByteArrayBuffer} that holds the packet
+     * @return the SSRC of the media source of the packet specified in the
+     * {@link ByteArrayBuffer} passed in as an argument, or -1 in case of an
+     * error.
      */
     public static long getSourceSSRC(ByteArrayBuffer baf)
     {
@@ -134,7 +142,8 @@ public class RTCPFBPacket
      * Gets the Feedback Control Information (FCI) field of an RTCP FB message.
      *
      * @param baf the {@link ByteArrayBuffer} that contains the RTCP message.
-     * @return
+     * @return the Feedback Control Information (FCI) field of an RTCP FB
+     * message.
      */
     public static ByteArrayBuffer getFCI(ByteArrayBuffer baf)
     {
