@@ -157,7 +157,9 @@ public class MediaStreamTrackDesc
         }
 
         // Stream suspension detection.
-        boolean deactivated = false;
+        boolean deactivated = false,
+            activated = !encoding.isActive() && !frameDesc.isIndependent();
+
         for (int i = encoding.getIndex() + 1; i < rtpEncodings.length; i++)
         {
             RTPEncodingDesc enc = rtpEncodings[i];
@@ -180,7 +182,7 @@ public class MediaStreamTrackDesc
             }
         }
 
-        if (deactivated)
+        if (deactivated || activated)
         {
             // FIXME only when suspended encodings are received.
             ((RTPTranslatorImpl) mediaStreamTrackReceiver.getStream()
