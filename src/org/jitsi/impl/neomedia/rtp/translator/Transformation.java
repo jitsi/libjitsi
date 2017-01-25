@@ -16,7 +16,14 @@
 package org.jitsi.impl.neomedia.rtp.translator;
 
 /**
+ * A 2D translation in the RTP sequence number and the RTP timestamp space. It
+ * keeps a sequence number delta (mod 16) and an RTP timestamp delta (mod 32)
+ * and applies it to sequence numbers or RTP timestamps.
+ *
  * @author George Politis
+ *
+ * NOTE(gp) Once we move to Java 8, I want this to be implemented as a
+ * Function.
  */
 public class Transformation
 {

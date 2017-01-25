@@ -378,6 +378,9 @@ public class SimulcastController
     }
 
     /**
+     * The 2D translation to apply to outgoing RTP/RTCP packets for the purposes
+     * of simulcast.
+     *
      * NOTE(gp) Once we move to Java 8, I want this to be implemented as a
      * Function.
      */
