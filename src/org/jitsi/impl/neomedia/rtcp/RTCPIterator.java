@@ -63,6 +63,11 @@ public class RTCPIterator
     public RTCPIterator(ByteArrayBuffer baf)
     {
         this.baf = baf;
+        if (baf != null)
+        {
+            this.nextOff = baf.getOffset();
+            this.remainingLen = baf.getLength();
+        }
     }
 
     /**
