@@ -206,10 +206,19 @@ public class SimulcastController
 
         if (logger.isInfoEnabled())
         {
-            long ssrc = weakSource.get().getRTPEncodings()[0].getPrimarySSRC();
-            logger.info("target_update ssrc=" + ssrc
-                + ",new_target=" + targetIdx
-                + ",old_target=" + this.targetIdx);
+            MediaStreamTrackDesc sourceTrack = weakSource.get();
+            if (sourceTrack != null)
+            {
+                RTPEncodingDesc[] sourceEncodings
+                    = sourceTrack.getRTPEncodings();
+                if (!ArrayUtils.isNullOrEmpty(sourceEncodings))
+                {
+                    long ssrc = sourceEncodings[0].getPrimarySSRC();
+                    logger.info("target_update ssrc=" + ssrc
+                        + ",new_target=" + targetIdx
+                        + ",old_target=" + this.targetIdx);
+                }
+            }
         }
 
         this.targetIdx = targetIdx;
