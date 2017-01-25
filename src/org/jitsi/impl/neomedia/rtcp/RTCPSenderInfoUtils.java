@@ -136,6 +136,14 @@ public class RTCPSenderInfoUtils
         return RawPacket.readInt(buf, off + 4, len) & 0xffffffffl;
     }
 
+    /**
+     * Sets the RTP timestamp.
+     *
+     * @param baf the {@link ByteArrayBuffer} that holds the SR.
+     * @param ts the new timestamp to be set.
+     *
+     * @return the number of bytes written.
+     */
     public static int setTimestamp(ByteArrayBuffer baf, long ts)
     {
         if (baf == null)
@@ -146,6 +154,12 @@ public class RTCPSenderInfoUtils
         return setTimestamp(baf.getBuffer(), baf.getOffset(), baf.getLength(), ts);
     }
 
+    /**
+     * Gets the RTP timestamp.
+     *
+     * @param baf the {@link ByteArrayBuffer} that holds the SR.
+     * @return the RTP timestamp, or -1 in case of an error.
+     */
     public static long getTimestamp(ByteArrayBuffer baf)
     {
         if (baf == null)
@@ -157,10 +171,14 @@ public class RTCPSenderInfoUtils
     }
 
     /**
+     * Sets the octet count in the SR that is specified in the arguments.
      *
-     * @param val
+     * @param baf the {@link ByteArrayBuffer} that holds the SR.
+     * @return the number of bytes that were written, otherwise -1.
+     * @param octetCount the octet count ot set.
+     * @return the number of bytes that were written, otherwise -1.
      */
-    public static int setOctetCount(ByteArrayBuffer baf, long val)
+    public static int setOctetCount(ByteArrayBuffer baf, long octetCount)
     {
         if (baf == null)
         {
@@ -168,14 +186,16 @@ public class RTCPSenderInfoUtils
         }
 
         return setOctetCount(
-            baf.getBuffer(), baf.getOffset(), baf.getLength(), val);
+            baf.getBuffer(), baf.getOffset(), baf.getLength(), octetCount);
     }
 
     /**
-     *
-     * @param val
+     * Sets the packet count in the SR that is specified in the arguments.
+     * @param packetCount the packet count to set.
+     * @param baf the {@link ByteArrayBuffer} that holds the SR.
+     * @return the number of bytes that were written, otherwise -1.
      */
-    public static int setPacketCount(ByteArrayBuffer baf, long val)
+    public static int setPacketCount(ByteArrayBuffer baf, long packetCount)
     {
         if (baf == null)
         {
@@ -183,43 +203,56 @@ public class RTCPSenderInfoUtils
         }
 
         return setPacketCount(
-            baf.getBuffer(), baf.getOffset(), baf.getLength(), val);
+            baf.getBuffer(), baf.getOffset(), baf.getLength(), packetCount);
     }
 
     /**
+     * Sets the packet count in the SR that is specified in the arguments.
      *
-     * @param buf
-     * @param off
-     * @param len
-     * @param val
-     * @return
+     * @param packetCount the packet count to set.
+     * @param buf the byte buffer that holds the SR.
+     * @param off the offset where the data starts
+     * @param len the length of the data.
+     * @return the number of bytes that were written, otherwise -1.
      */
-    private static int setPacketCount(byte[] buf, int off, int len, long val)
+    private static int setPacketCount(
+        byte[] buf, int off, int len, long packetCount)
     {
-        // TODO error handling.
-        buf[off + 12] = (byte)(val>>24);
-        buf[off + 13] = (byte)(val>>16);
-        buf[off + 14] = (byte)(val>>8);
-        buf[off + 15] = (byte)val;
+        if (!isValid(buf, off, len))
+        {
+            return -1;
+        }
+
+        buf[off + 12] = (byte)(packetCount>>24);
+        buf[off + 13] = (byte)(packetCount>>16);
+        buf[off + 14] = (byte)(packetCount>>8);
+        buf[off + 15] = (byte)packetCount;
 
         return 4;
     }
 
     /**
+     * Sets the octet count in the SR that is specified in the arguments.
      *
-     * @param buf
-     * @param off
-     * @param len
-     * @param val
-     * @return
+     * @param buf the byte buffer that holds the SR.
+     * @param off the offset where the data starts
+     * @param len the length of the data.
+     * @return the number of bytes that were written, otherwise -1.
+     * @param octetCount the octet count ot set.
+     * @return the number of bytes that were written, otherwise -1.
      */
-    private static int setOctetCount(byte[] buf, int off, int len, long val)
+    private static int setOctetCount(
+        byte[] buf, int off, int len, long octetCount)
     {
-        // TODO error handling.
-        buf[off + 16] = (byte)(val>>24);
-        buf[off + 17] = (byte)(val>>16);
-        buf[off + 18] = (byte)(val>>8);
-        buf[off + 19] = (byte)val;
+        if (!isValid(buf, off, len))
+        {
+            return -1;
+        }
+
+        buf[off + 16] = (byte)(octetCount>>24);
+        buf[off + 17] = (byte)(octetCount>>16);
+        buf[off + 18] = (byte)(octetCount>>8);
+        buf[off + 19] = (byte)octetCount;
 
         return 4;
     }
