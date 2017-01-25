@@ -29,10 +29,10 @@ import org.jitsi.service.neomedia.*;
 public class RTCPSenderInfoUtils
 {
     /**
-     * Gets the RTP timestamp.
+     * Gets the RTP timestamp from an SR.
      *
-     * @param buf the byte buffer that contains the RTCP sender info.
-     * @param off the offset in the byte buffer where the RTCP sender info
+     * @param buf the byte buffer that contains the RTCP sender report.
+     * @param off the offset in the byte buffer where the RTCP sender report
      * starts.
      * @param len the number of bytes in buffer which constitute the actual
      * data.
@@ -45,14 +45,14 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RawPacket.readInt(buf, off + 8, len) & 0xffffffffl;
+        return RawPacket.readInt(buf, off + 8, len) & 0xffffffffL;
     }
 
     /**
-     * Sets the RTP timestamp.
+     * Sets the RTP timestamp in an SR.
      *
-     * @param buf the byte buffer that contains the RTCP sender info.
-     * @param off the offset in the byte buffer where the RTCP sender info
+     * @param buf the byte buffer that contains the RTCP sender report.
+     * @param off the offset in the byte buffer where the RTCP sender report
      * starts.
      * @param len the number of bytes in buffer which constitute the actual
      * data.
@@ -60,8 +60,7 @@ public class RTCPSenderInfoUtils
      *
      * @return the number of bytes written.
      */
-    public static int setTimestamp(
-        byte[] buf, int off, int len, long ts)
+    public static int setTimestamp(byte[] buf, int off, int len, long ts)
     {
         if (!isValid(buf, off, len))
         {
@@ -113,7 +112,7 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RawPacket.readInt(buf, off, len) & 0xffffffffl;
+        return RawPacket.readInt(buf, off, len) & 0xffffffffL;
     }
 
     /**
@@ -133,11 +132,11 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RawPacket.readInt(buf, off + 4, len) & 0xffffffffl;
+        return RawPacket.readInt(buf, off + 4, len) & 0xffffffffL;
     }
 
     /**
-     * Sets the RTP timestamp.
+     * Sets the RTP timestamp in an SR.
      *
      * @param baf the {@link ByteArrayBuffer} that holds the SR.
      * @param ts the new timestamp to be set.
@@ -151,11 +150,12 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return setTimestamp(baf.getBuffer(), baf.getOffset(), baf.getLength(), ts);
+        return setTimestamp(
+            baf.getBuffer(), baf.getOffset(), baf.getLength(), ts);
     }
 
     /**
-     * Gets the RTP timestamp.
+     * Gets the RTP timestamp from an SR.
      *
      * @param baf the {@link ByteArrayBuffer} that holds the SR.
      * @return the RTP timestamp, or -1 in case of an error.

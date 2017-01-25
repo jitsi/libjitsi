@@ -108,8 +108,7 @@ public class ResumableStreamRewriter
             return false;
         }
 
-        long ts = RTCPSenderInfoUtils.getTimestamp(
-            buf, off + RTCPHeader.SIZE, len - RTCPHeader.SIZE);
+        long ts = RTCPSenderInfoUtils.getTimestamp(buf, off, len);
 
         if (ts == -1)
         {
@@ -120,8 +119,7 @@ public class ResumableStreamRewriter
             ? (ts - timestampDelta) & 0xffffffffL
             : (ts + timestampDelta) & 0xffffffffL;
 
-        int ret = RTCPSenderInfoUtils.setTimestamp(
-            buf, off + RTCPHeader.SIZE, len - RTCPHeader.SIZE, newTs);
+        int ret = RTCPSenderInfoUtils.setTimestamp(buf, off, len, newTs);
 
         return ret > 0;
     }
