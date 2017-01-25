@@ -40,7 +40,7 @@ public class SimulcastController
      * The {@link Logger} to be used by this instance to print debug
      * information.
      */
-    private final Logger logger = Logger.getLogger(SimulcastController.class);
+    private static final Logger logger = Logger.getLogger(SimulcastController.class);
 
     private static final SimTransformation dropState
         = new SimTransformation(-1, -1, -1, -1);
