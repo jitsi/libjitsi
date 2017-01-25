@@ -403,9 +403,11 @@ public class SimulcastController
         /**
          * Ctor.
          *
-         * @param currentSSRC
-         * @param tsDelta
-         * @param seqNumDelta
+         * @param currentSSRC the SSRC that is currently being forwarded.
+         * @param tsDelta the RTP timestamp delta (mod 32) to apply to outgoing
+         * RTP/RTCP packets.
+         * @param seqNumDelta the RTP sequence number delta (mod 16) to apply to
+         * outgoing RTP packets.
          */
         SimTransformation(
             long currentSSRC, long tsDelta, int seqNumDelta, int currentIdx)
