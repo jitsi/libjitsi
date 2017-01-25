@@ -997,6 +997,13 @@ public class MediaStreamImpl
 
         engineChain.add(externalTransformerWrapper);
 
+        // RRs and REMBs.
+        RTCPReceiverFeedbackTermination rtcpFeedbackTermination = getRTCPTermination();
+        if (rtcpFeedbackTermination != null)
+        {
+            engineChain.add(rtcpFeedbackTermination);
+        }
+
         // RTX
         RtxTransformer rtxTransformer = getRtxTransformer();
         if (rtxTransformer != null)
@@ -3793,7 +3800,7 @@ public class MediaStreamImpl
     /**
      * Gets the RTCP termination for this {@link MediaStreamImpl}.
      */
-    protected RTCPTermination getRTCPTermination()
+    protected RTCPReceiverFeedbackTermination getRTCPTermination()
     {
         return null;
     }

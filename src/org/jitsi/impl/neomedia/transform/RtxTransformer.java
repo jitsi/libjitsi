@@ -16,8 +16,13 @@
 package org.jitsi.impl.neomedia.transform;
 
 import java.util.*;
+import java.util.concurrent.atomic.*;
+
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
@@ -26,20 +31,26 @@ import org.jitsi.util.*;
 /**
  * Intercepts RTX (RFC-4588) packets coming from an {@link MediaStream}, and
  * removes their RTX encapsulation.
- * Allows packets to be retransmitted to a mediaStream (using the RTX format if
- * the destination supports it).
+ *
+ * Intercepts NACKs and retransmits packets to a mediaStream (using the RTX
+ * format if the destination supports it).
  *
  * @author Boris Grozev
  * @author George Politis
  */
 public class RtxTransformer
-    extends SinglePacketTransformerAdapter
     implements TransformEngine
 {
     /**
+     * The name of the property used to disable NACK termination.
+     */
+    public static final String DISABLE_NACK_TERMINATION_PNAME
+        = " org.jitsi.impl.neomedia.rtcp.DISABLE_NACK_TERMINATION";
+
+    /**
      * The <tt>MediaStream</tt> for the transformer.
      */
-    private MediaStream mediaStream;
+    private MediaStreamImpl mediaStream;
 
     /**
      * Maps an RTX SSRC to the last RTP sequence number sent with that SSRC.
@@ -64,31 +75,56 @@ public class RtxTransformer
     private byte rtxAssociatedPayloadType = -1;
 
     /**
-     * Initializes a new <tt>RtxTransformer</tt> with a specific
-     * <tt>MediaStream</tt>.
-     *
-     * @param mediaStream the <tt>MediaStream</tt> for the transformer.
+     * The transformer that decapsulates RTX.
      */
-    public RtxTransformer(MediaStream mediaStream)
-    {
-        super(RTPPacketPredicate.INSTANCE);
-
-        this.mediaStream = mediaStream;
-    }
+    private final RTPTransformer rtpTransformer = new RTPTransformer();
 
     /**
-     * Implements {@link PacketTransformer#transform(RawPacket[])}.
-     * {@inheritDoc}
+     * The transformer that handles NACKs.
      */
-    @Override
-    public RawPacket reverseTransform(RawPacket pkt)
+    private final RTCPTransformer rtcpTransformer = new RTCPTransformer();
+
+    /**
+     * The instance which holds statistics for this {@link RtxTransformer}
+     * instance.
+     */
+    private final Statistics statistics = new Statistics();
+
+    /**
+     * Initializes a new <tt>RtxTransformer</tt> with a specific
+     * <tt>MediaStreamImpl</tt>.
+     *
+     * @param mediaStream the <tt>MediaStreamImpl</tt> for the transformer.
+     */
+    public RtxTransformer(MediaStreamImpl mediaStream)
     {
-        if (isRtx(pkt))
+        this.mediaStream = mediaStream;
+
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        if (cfg == null)
         {
-            pkt = deRtx(pkt);
+            logger.warn("NOT initializing RTCP n' NACK termination because "
+                + "the configuration service was not found.");
+            return;
         }
 
-        return pkt;
+        boolean enableNackTermination
+            = !cfg.getBoolean(DISABLE_NACK_TERMINATION_PNAME, false);
+
+        if (enableNackTermination)
+        {
+            CachingTransformer cache = mediaStream.getCachingTransformer();
+            if (cache != null)
+            {
+                cache.setEnabled(true);
+            }
+            else
+            {
+                logger.warn("NACK termination is enabled, but we don't have" +
+                    " a packet cache.");
+            }
+        }
     }
 
     /**
@@ -164,7 +200,7 @@ public class RtxTransformer
     @Override
     public PacketTransformer getRTPTransformer()
     {
-        return this;
+        return rtpTransformer;
     }
 
     /**
@@ -173,7 +209,19 @@ public class RtxTransformer
     @Override
     public PacketTransformer getRTCPTransformer()
     {
-        return null;
+        return rtcpTransformer;
+    }
+
+    /**
+     * Gets the instance which holds statistics for this {@link RtxTransformer}
+     * instance.
+     *
+     * @return the instance which holds statistics for this
+     * {@link RtxTransformer} instance.
+     */
+    public Statistics getStatistics()
+    {
+        return statistics;
     }
 
     /**
@@ -258,7 +306,7 @@ public class RtxTransformer
      * @return {@code true} if the packet was successfully retransmitted,
      * {@code false} otherwise.
      */
-    public boolean retransmit(RawPacket pkt, TransformEngine after)
+    private boolean retransmit(RawPacket pkt, TransformEngine after)
     {
         boolean destinationSupportsRtx = rtxPayloadType != -1;
         boolean retransmitPlain;
@@ -431,5 +479,253 @@ public class RtxTransformer
         }
 
         return encoding.getPrimarySSRC();
+    }
+
+    /**
+     *
+     * @param mediaSSRC
+     * @param lostPackets
+     */
+    private void nackReceived(long mediaSSRC, Collection<Integer> lostPackets)
+    {
+        if (logger.isDebugEnabled())
+        {
+            logger.debug(Logger.Category.STATISTICS,
+                "nack_received,stream=" + mediaStream.hashCode()
+                    + " ssrc=" + mediaSSRC
+                    + ",lost_packets=" + lostPackets);
+        }
+
+        RawPacketCache cache;
+
+        if (mediaStream != null
+            && (cache = mediaStream.getCachingTransformer().getOutgoingRawPacketCache()) != null)
+        {
+            // XXX The retransmission of packets MUST take into account SSRC
+            // rewriting. Which it may do by injecting retransmitted packets
+            // AFTER the SsrcRewritingEngine.
+            // Also, the cache MUST be notified of packets being retransmitted,
+            // in order for it to update their timestamp. We do this here by
+            // simply letting retransmitted packets pass through the cache again.
+            // We use the retransmission requester here simply because it is
+            // the transformer right before the cache, not because of anything
+            // intrinsic to it.
+            RetransmissionRequester rr = mediaStream.getRetransmissionRequester();
+            TransformEngine after
+                = (rr instanceof TransformEngine) ? (TransformEngine) rr : null;
+
+            long rtt = mediaStream.getMediaStreamStats().getSendStats().getRtt();
+            long now = System.currentTimeMillis();
+
+            for (Iterator<Integer> i = lostPackets.iterator(); i.hasNext();)
+            {
+                int seq = i.next();
+                RawPacketCache.Container container
+                    = cache.getContainer(mediaSSRC, seq);
+
+
+                if (container != null)
+                {
+                    // Cache hit.
+                    long delay = now - container.timeAdded;
+                    boolean send = (rtt == -1) ||
+                        (delay >= Math.min(rtt * 0.9, rtt - 5));
+
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug(Logger.Category.STATISTICS,
+                            "retransmitting,stream=" + mediaStream.hashCode()
+                                + " ssrc=" + mediaSSRC
+                                + ",seq=" + seq
+                                + ",send=" + send);
+                    }
+
+                    if (send && retransmit(container.pkt, after))
+                    {
+                        statistics.packetsRetransmitted.incrementAndGet();
+                        statistics.bytesRetransmitted.addAndGet(
+                            container.pkt.getLength());
+                        i.remove();
+                    }
+
+                    if (!send)
+                    {
+                        statistics.packetsNotRetransmitted.incrementAndGet();
+                        statistics.bytesNotRetransmitted.addAndGet(
+                            container.pkt.getLength());
+                        i.remove();
+                    }
+
+                }
+                else
+                {
+                    statistics.packetsMissingFromCache.incrementAndGet();
+                }
+            }
+        }
+
+        if (!lostPackets.isEmpty())
+        {
+            // If retransmission requests are enabled, videobridge assumes
+            // the responsibility of requesting missing packets.
+            logger.debug("Packets missing from the cache.");
+        }
+    }
+
+    /**
+     * The transformer that decapsulates RTX.
+     */
+    private class RTPTransformer
+        extends SinglePacketTransformerAdapter
+    {
+        /**
+         * Ctor.
+         */
+        RTPTransformer()
+        {
+            super(RTPPacketPredicate.INSTANCE);
+        }
+
+        /**
+         * Implements {@link PacketTransformer#transform(RawPacket[])}.
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            if (isRtx(pkt))
+            {
+                pkt = deRtx(pkt);
+            }
+
+            return pkt;
+        }
+    }
+
+    /**
+     * The transformer that handles NACKs.
+     */
+    private class RTCPTransformer
+        extends SinglePacketTransformerAdapter
+    {
+        /**
+         * Ctor.
+         */
+        RTCPTransformer()
+        {
+            super(RTCPPacketPredicate.INSTANCE);
+        }
+
+        /**
+         * Implements {@link PacketTransformer#transform(RawPacket[])}.
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            RTCPIterator it = new RTCPIterator(pkt);
+            while (it.hasNext())
+            {
+                ByteArrayBuffer next = it.next();
+                if (NACKPacket.isNACKPacket(next))
+                {
+                    Collection<Integer> lostPackets
+                        = NACKPacket.getLostPackets(next);
+                    long mediaSSRC = NACKPacket.getSourceSSRC(next);
+                    nackReceived(mediaSSRC, lostPackets);
+                }
+            }
+
+            return pkt;
+        }
+    }
+
+    /**
+     * Holds statistics for this {@link RtxTransformer} instance.
+     */
+    public class Statistics
+    {
+        /**
+         * Number of bytes retransmitted.
+         */
+        private final AtomicLong bytesRetransmitted = new AtomicLong();
+
+        /**
+         * Number of bytes for packets which were requested and found in the
+         * cache, but were intentionally not retransmitted.
+         */
+        private final AtomicLong bytesNotRetransmitted = new AtomicLong();
+
+        /**
+         * Number of packets retransmitted.
+         */
+        private final AtomicLong packetsRetransmitted = new AtomicLong();
+
+        /**
+         * Number of packets which were requested and found in the cache, but
+         * were intentionally not retransmitted.
+         */
+        private AtomicLong packetsNotRetransmitted = new AtomicLong();
+
+        /**
+         * The number of packets for which retransmission was requested, but
+         * they were missing from the cache.
+         */
+        private AtomicLong packetsMissingFromCache = new AtomicLong();
+
+        /**
+         * Gets the number of bytes retransmitted.
+         *
+         * @return the number of bytes retransmitted.
+         */
+        public long getBytesRetransmitted()
+        {
+            return bytesRetransmitted.get();
+        }
+
+        /**
+         * Gets the number of bytes for packets which were requested and found
+         * in the cache, but were intentionally not retransmitted.
+         *
+         * @return the number of bytes for packets which were requested and
+         * found in the cache, but were intentionally not retransmitted.
+         */
+        public long getBytesNotRetransmitted()
+        {
+            return bytesNotRetransmitted.get();
+        }
+
+        /**
+         * Gets the number of packets retransmitted.
+         *
+         * @return the number of packets retransmitted.
+         */
+        public long getPacketsRetransmitted()
+        {
+            return packetsRetransmitted.get();
+        }
+
+        /**
+         * Gets the number of packets which were requested and found in the
+         * cache, but were intentionally not retransmitted.
+         *
+         * @return the number of packets which were requested and found in the
+         * cache, but were intentionally not retransmitted.
+         */
+        public long getPacketsNotRetransmitted()
+        {
+            return packetsNotRetransmitted.get();
+        }
+
+        /**
+         * Gets the number of packets for which retransmission was requested,
+         * but they were missing from the cache.
+         * @return the number of packets for which retransmission was requested,
+         * but they were missing from the cache.
+         */
+        public long getPacketsMissingFromCache()
+        {
+            return packetsMissingFromCache.get();
+        }
     }
 }

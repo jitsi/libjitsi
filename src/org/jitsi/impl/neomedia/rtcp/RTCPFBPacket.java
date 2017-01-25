@@ -20,6 +20,7 @@ import java.io.*;
 import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Created by gp on 6/27/14.
@@ -72,6 +73,84 @@ public class RTCPFBPacket
     public RTCPFBPacket(RTCPCompoundPacket base)
     {
         super(base);
+    }
+
+    /**
+     *
+     * @param baf
+     * @return
+     */
+    public static boolean isRTCPFBPacket(ByteArrayBuffer baf)
+    {
+        return isRTPFBPacket(baf) || isPSFBPacket(baf);
+    }
+
+    /**
+     * Gets a boolean that indicates whether or not the packet specified in the
+     * {@link ByteArrayBuffer} passed in as an argument is an RTP FB packet.
+     *
+     * @param baf the {@link ByteArrayBuffer} that holds the packet
+     * @return true if the packet specified in the {@link ByteArrayBuffer}
+     * passed in as an argument is an RTP FB packet, otherwise false.
+     */
+    public static boolean isRTPFBPacket(ByteArrayBuffer baf)
+    {
+        int pt = RTCPHeaderUtils.getPacketType(baf);
+        return pt == RTPFB;
+    }
+
+    /**
+     * Gets a boolean that indicates whether or not the packet specified in the
+     * {@link ByteArrayBuffer} passed in as an argument is an RTP FB packet.
+     *
+     * @param baf the {@link ByteArrayBuffer} that holds the packet
+     * @return true if the packet specified in the {@link ByteArrayBuffer}
+     * passed in as an argument is an RTP FB packet, otherwise false.
+     */
+    public static boolean isPSFBPacket(ByteArrayBuffer baf)
+    {
+        int pt = RTCPHeaderUtils.getPacketType(baf);
+        return pt == PSFB;
+    }
+
+    /**
+     * Gets the SSRC of the media source of the packet specified in the .
+     *
+     * @param baf
+     * @return
+     */
+    public static long getSourceSSRC(ByteArrayBuffer baf)
+    {
+        if (baf == null || baf.isInvalid())
+        {
+            return -1;
+        }
+
+        return RawPacket.readInt(baf.getBuffer(),
+            baf.getOffset() + 8, baf.getLength() - 8) & 0xFFFFFFFFL;
+    }
+
+    /**
+     * Gets the Feedback Control Information (FCI) field of an RTCP FB message.
+     *
+     * @param baf the {@link ByteArrayBuffer} that contains the RTCP message.
+     * @return
+     */
+    public static ByteArrayBuffer getFCI(ByteArrayBuffer baf)
+    {
+        if (!isRTCPFBPacket(baf))
+        {
+            return null;
+        }
+
+        int length = RTCPHeaderUtils.getLength(baf);
+        if (length < 0)
+        {
+            return null;
+        }
+
+        return new RawPacket(baf.getBuffer(),
+            baf.getOffset() + 12, length - 12);
     }
 
     @Override

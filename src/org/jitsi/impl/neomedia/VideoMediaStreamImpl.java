@@ -434,9 +434,9 @@ public class VideoMediaStreamImpl
     private final RtxTransformer rtxTransformer = new RtxTransformer(this);
 
     /**
-     * The instance that terminates RTCP (RR, FIR, PLI, NACK).
+     * The instance that terminates RRs and REMBs.
      */
-    private final RTCPTermination rtcpTermination = new RTCPTermination(this);
+    private final RTCPReceiverFeedbackTermination rtcpFeedbackTermination = new RTCPReceiverFeedbackTermination(this);
 
     /**
      * The <tt>RemoteBitrateEstimator</tt> which computes bitrate estimates for
@@ -515,7 +515,7 @@ public class VideoMediaStreamImpl
                     (RecurringRunnable) remoteBitrateEstimator);
         }
 
-        recurringRunnableExecutor.registerRecurringRunnable(rtcpTermination);
+        recurringRunnableExecutor.registerRecurringRunnable(rtcpFeedbackTermination);
     }
 
     /**
@@ -596,10 +596,10 @@ public class VideoMediaStreamImpl
                     cachingTransformer);
             }
 
-            if (rtcpTermination != null)
+            if (rtcpFeedbackTermination != null)
             {
                 recurringRunnableExecutor
-                    .deRegisterRecurringRunnable(rtcpTermination);
+                    .deRegisterRecurringRunnable(rtcpFeedbackTermination);
             }
         }
     }
@@ -1397,9 +1397,9 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    protected RTCPTermination getRTCPTermination()
+    protected RTCPReceiverFeedbackTermination getRTCPTermination()
     {
-        return rtcpTermination;
+        return rtcpFeedbackTermination;
     }
 
     /**

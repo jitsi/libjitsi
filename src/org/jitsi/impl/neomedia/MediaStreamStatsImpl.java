@@ -33,6 +33,7 @@ import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.stats.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.control.*;
@@ -1637,13 +1638,13 @@ public class MediaStreamStatsImpl
     @Override
     public long getPacketsMissingFromCache()
     {
-        RTCPTermination rtcpTermination = mediaStreamImpl.getRTCPTermination();
+        RtxTransformer rtcpTermination = mediaStreamImpl.getRtxTransformer();
         if (rtcpTermination == null)
         {
             return 0;
         }
 
-        RTCPTermination.Statistics termStats = rtcpTermination.getStatistics();
+        RtxTransformer.Statistics termStats = rtcpTermination.getStatistics();
         return termStats.getPacketsMissingFromCache();
     }
 
@@ -1653,14 +1654,14 @@ public class MediaStreamStatsImpl
     @Override
     public long getPacketsNotRetransmitted()
     {
-        RTCPTermination rtcpTermination = mediaStreamImpl.getRTCPTermination();
-        if (rtcpTermination == null)
+        RtxTransformer rtxTransformer = mediaStreamImpl.getRtxTransformer();
+        if (rtxTransformer == null)
         {
             return 0;
         }
 
-        RTCPTermination.Statistics termStats = rtcpTermination.getStatistics();
-        return termStats.getPacketsNotRetransmitted();
+        RtxTransformer.Statistics statistics = rtxTransformer.getStatistics();
+        return statistics.getPacketsNotRetransmitted();
     }
 
     /**
@@ -1669,14 +1670,14 @@ public class MediaStreamStatsImpl
     @Override
     public long getPacketsRetransmitted()
     {
-        RTCPTermination rtcpTermination = mediaStreamImpl.getRTCPTermination();
-        if (rtcpTermination == null)
+        RtxTransformer rtxTransformer = mediaStreamImpl.getRtxTransformer();
+        if (rtxTransformer == null)
         {
             return 0;
         }
 
-        RTCPTermination.Statistics termStats = rtcpTermination.getStatistics();
-        return termStats.getPacketsRetransmitted();
+        RtxTransformer.Statistics statistics = rtxTransformer.getStatistics();
+        return statistics.getPacketsRetransmitted();
     }
 
     /**
@@ -1685,14 +1686,14 @@ public class MediaStreamStatsImpl
     @Override
     public long getBytesNotRetransmitted()
     {
-        RTCPTermination rtcpTermination = mediaStreamImpl.getRTCPTermination();
-        if (rtcpTermination == null)
+        RtxTransformer rtxTransformer = mediaStreamImpl.getRtxTransformer();
+        if (rtxTransformer == null)
         {
             return 0;
         }
 
-        RTCPTermination.Statistics termStats = rtcpTermination.getStatistics();
-        return termStats.getBytesNotRetransmitted();
+        RtxTransformer.Statistics statistics = rtxTransformer.getStatistics();
+        return statistics.getBytesNotRetransmitted();
     }
 
     /**
@@ -1701,15 +1702,15 @@ public class MediaStreamStatsImpl
     @Override
     public long getBytesRetransmitted()
     {
-        RTCPTermination rtcpTermination = mediaStreamImpl.getRTCPTermination();
-        if (rtcpTermination == null)
+        RtxTransformer rtxTransformer = mediaStreamImpl.getRtxTransformer();
+        if (rtxTransformer == null)
         {
             return 0;
         }
 
-        RTCPTermination.Statistics termStats = rtcpTermination.getStatistics();
+        RtxTransformer.Statistics statistics = rtxTransformer.getStatistics();
 
-        return termStats.getBytesRetransmitted();
+        return statistics.getBytesRetransmitted();
     }
 
     /**

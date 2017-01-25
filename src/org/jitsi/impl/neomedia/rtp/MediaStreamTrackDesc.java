@@ -159,7 +159,7 @@ public class MediaStreamTrackDesc
         }
 
         // Stream suspension detection.
-        boolean active = true;
+        boolean deactivated = false;
         for (int i = encoding.getIndex() + 1; i < rtpEncodings.length; i++)
         {
             RTPEncodingDesc enc = rtpEncodings[i];
@@ -170,24 +170,19 @@ public class MediaStreamTrackDesc
                 long silentIntervalMs
                     = nowMs - lastReceivedFrame.getReceivedMs();
 
-                if (active && enc.isActive()
+                if (enc.isActive()
                     && silentIntervalMs > SUSPENSION_THRESHOLD_MS)
                 {
-                    active = false;
+                    deactivated = true;
+                    rtpEncodings[i].setActive(false);
+                    logger.info("suspended,stream="
+                        + mediaStreamTrackReceiver.getStream().hashCode()
+                        + " ssrc=" + enc.getPrimarySSRC());
                 }
-            }
-            else
-            {
-                active = false;
-            }
-
-            if (!active && enc.isActive())
-            {
-                rtpEncodings[i].setActive(active);
             }
         }
 
-        if (!active)
+        if (deactivated)
         {
             // FIXME only when suspended encodings are received.
             ((RTPTranslatorImpl) mediaStreamTrackReceiver.getStream()
@@ -293,41 +288,6 @@ public class MediaStreamTrackDesc
         }
 
         return rtpEncoding.findFrameDesc(buf, off, len);
-    }
-
-    /**
-     * Makes a receiver report for this track.
-     *
-     * @param nowMs
-     * @return
-     */
-    public List<RTCPReportBlock> makeReceiverReport(long nowMs)
-    {
-        SSRCCache cache = mediaStreamTrackReceiver
-            .getStream().getRTPTranslator().getSSRCCache();
-
-        List<RTCPReportBlock> reportBlocks
-            = new ArrayList<>(rtpEncodings.length);
-
-        if (cache != null)
-        {
-            for (int i = 0; i < rtpEncodings.length; i++)
-            {
-                long ssrc = rtpEncodings[i].getPrimarySSRC();
-                SSRCInfo info = cache.cache.get((int) ssrc);
-
-                if (info != null && !info.ours && info.sender)
-                {
-                    RTCPReportBlock reportBlock = info.makeReceiverReport(nowMs);
-                    if (reportBlock != null)
-                    {
-                        reportBlocks.add(reportBlock);
-                    }
-                }
-            }
-        }
-
-        return reportBlocks;
     }
 
     /**

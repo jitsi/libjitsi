@@ -122,6 +122,21 @@ public class RawPacket
     }
 
     /**
+     * Perform checks on the packet represented by this instance and
+     * return <tt>true</tt> if it is found to be invalid. A return value of
+     * <tt>false</tt> does not necessarily mean that the packet is valid.
+     *
+     * @return <tt>true</tt> if the RTP/RTCP packet represented by this
+     * instance is found to be invalid, <tt>false</tt> otherwise.
+     */
+    public static boolean isInvalid(byte[] buffer, int offset, int length)
+    {
+        return (buffer == null)
+            || (buffer.length < offset + length)
+            || (length < FIXED_HEADER_SIZE);
+    }
+
+    /**
      * Adds the <tt>extBuff</tt> buffer as an extension of this packet
      * according the rules specified in RFC 5285. Note that this method does
      * not replace extensions so if you add the same buffer twice it would be
@@ -810,22 +825,62 @@ public class RawPacket
         return getPayloadLength(buffer, offset, length, false);
     }
 
+
+    /**
+     * Set an integer at specified offset in network order.
+     *
+     * @param buf
+     * @param off offset into the buffer
+     * @param data The integer to store in the packet
+     *
+     * @return the number of bytes that were written in the byte buffer, or
+     * -1 if the write failed.
+     */
+    public static int writeInt(byte[] buf, int off, int data)
+    {
+        if (buf == null || buf.length < off + 4)
+        {
+            return -1;
+        }
+
+        buf[off++] = (byte)(data>>24);
+        buf[off++] = (byte)(data>>16);
+        buf[off++] = (byte)(data>>8);
+        buf[off] = (byte)data;
+
+        return 4;
+    }
+
     /**
      * Get RTP payload length from a RTP packet
      *
      * @param buffer
      * @param offset
      * @param length
+     * @param removePadding
      *
      * @return RTP payload length from source RTP packet
      */
     public static int getPayloadLength(
         byte[] buffer, int offset, int length, boolean removePadding)
     {
-        int len = length - getHeaderLength(buffer, offset, length);
+        int lenHeader = getHeaderLength(buffer, offset, length);
+        if (lenHeader < 0)
+        {
+            return -1;
+        }
+
+        int len = length - lenHeader;
+
         if (removePadding)
         {
-            len -= getPaddingSize(buffer, offset, length);
+            int szPadding = getPaddingSize(buffer, offset, length);
+            if (szPadding < 0)
+            {
+                return -1;
+            }
+
+            len -= szPadding;
         }
         return len;
     }
@@ -1084,10 +1139,7 @@ public class RawPacket
     @Override
     public boolean isInvalid()
     {
-        return
-            (buffer == null)
-                || (buffer.length < offset + length)
-                || (length < FIXED_HEADER_SIZE);
+        return isInvalid(buffer, offset, length);
     }
 
     /**
@@ -1488,15 +1540,12 @@ public class RawPacket
     /**
      * Set an integer at specified offset in network order.
      *
-     * @param off Offset into the buffer
-     * @param data The integer to store in the packet
+     * @param off
+     * @param data
      */
     public void writeInt(int off, int data)
     {
-        buffer[offset + off++] = (byte)(data>>24);
-        buffer[offset + off++] = (byte)(data>>16);
-        buffer[offset + off++] = (byte)(data>>8);
-        buffer[offset + off] = (byte)data;
+        writeInt(buffer, offset + off, data);
     }
 
     /**

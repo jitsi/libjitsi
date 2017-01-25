@@ -21,6 +21,7 @@ import java.util.*;
 import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Created by gp on 6/24/14.
@@ -250,5 +251,16 @@ public class RTCPREMBPacket extends RTCPFBPacket
     public long getBitrate()
     {
         return (long) (mantissa * Math.pow(2, exp));
+    }
+
+    /**
+     *
+     * @param baf
+     * @return
+     */
+    public static boolean isREMBPacket(ByteArrayBuffer baf)
+    {
+        int rc = RTCPHeaderUtils.getReportCount(baf);
+        return isPSFBPacket(baf) && rc == FMT;
     }
 }

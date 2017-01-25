@@ -89,8 +89,6 @@ public class SimulcastController
      * Defines a packet filter that controls which packets to be written into
      * some arbitrary target/receiver that owns this {@link SimulcastController}.
      *
-     * @param data true if the specified packet/<tt>buffer</tt> is RTP, false if
-     * it is RTCP.
      * @param buf the <tt>byte</tt> array that holds the packet.
      * @param off the offset in <tt>buffer</tt> at which the actual data begins.
      * @param len the number of <tt>byte</tt>s in <tt>buffer</tt> which
@@ -99,25 +97,14 @@ public class SimulcastController
      * written into the arbitrary target/receiver that owns this
      * {@link SimulcastController} ; otherwise, <tt>false</tt>
      */
-    public boolean accept(boolean data, byte[] buf, int off, int len)
+    public boolean accept(byte[] buf, int off, int len)
     {
         MediaStreamTrackDesc sourceTrack = weakSource.get();
 
         // If we're getting packets here => the MST is alive.
         assert sourceTrack != null;
 
-        long sourceSSRC;
-        if (data)
-        {
-            sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
-        }
-        else
-        {
-            // NOTE(gp) This will need to be adjusted when we enable
-            // reduced-size RTCP.
-            sourceSSRC = RTCPHeaderUtils.getSenderSSRC(buf, off, len);
-            return sourceSSRC == transformState.currentSSRC;
-        }
+        long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
 
         boolean currentRTPEncodingIsActive = false;
         if (transformState.currentIdx > -1)
@@ -181,7 +168,7 @@ public class SimulcastController
                 seqNumDelta = 0; tsDelta = 0;
             }
 
-            if (logger.isDebugEnabled())
+            if (logger.isInfoEnabled())
             {
                 logger.info("new_transform src_ssrc=" + sourceSSRC
                     + ",src_idx=" + sourceIdx
@@ -213,10 +200,12 @@ public class SimulcastController
             return;
         }
 
-        if (logger.isDebugEnabled())
+        if (logger.isInfoEnabled())
         {
             long ssrc = weakSource.get().getRTPEncodings()[0].getPrimarySSRC();
-            logger.debug("target_update ssrc=" + ssrc + ",target=" + targetIdx);
+            logger.info("target_update ssrc=" + ssrc
+                + ",new_target=" + targetIdx
+                + ",old_target=" + this.targetIdx);
         }
 
         this.targetIdx = targetIdx;
@@ -349,43 +338,39 @@ public class SimulcastController
 
         SimTransformation state = transformState;
 
-
-        if (RTCPHeaderUtils.getSenderSSRC(pkt) != state.currentSSRC)
-        {
-            // Anything from anywhere else gets axed.
-            return null;
-        }
-
         RTCPIterator it = new RTCPIterator(pkt);
         while (it.hasNext())
         {
-            // Anything other than SR and SDES gets axed. SRs are
-            // rewritten.
             ByteArrayBuffer baf = it.next();
             switch (RTCPHeaderUtils.getPacketType(baf))
             {
             case RTCPPacket.SR:
 
-                // Rewrite timestamp.
-                long srcTs = RTCPSenderInfoUtils.getTimestamp(baf);
-                long dstTs = state.rewriteTimestamp(srcTs);
-
-                if (srcTs != dstTs)
+                if (RTCPHeaderUtils.getSenderSSRC(pkt) != state.currentSSRC)
                 {
-                    RTCPSenderInfoUtils.setTimestamp(baf, dstTs);
+                    // SRs from other streams get axed.
+                    it.remove();
                 }
+                else
+                {
+                    // Rewrite senderSSRC
+                    RTCPHeaderUtils.setSenderSSRC(pkt, (int) targetSSRC);
 
-                // Rewrite packet/octet count.
-                RTCPSenderInfoUtils
-                    .setOctetCount(baf, filterState.transmittedBytes);
-                RTCPSenderInfoUtils
-                    .setPacketCount(baf, filterState.transmittedPackets);
+                    // Rewrite timestamp.
+                    long srcTs = RTCPSenderInfoUtils.getTimestamp(baf);
+                    long dstTs = state.rewriteTimestamp(srcTs);
 
-            case RTCPPacket.SDES:
-            case RTCPPacket.BYE:
-                break;
-            default:
-                it.remove();
+                    if (srcTs != dstTs)
+                    {
+                        RTCPSenderInfoUtils.setTimestamp(baf, dstTs);
+                    }
+
+                    // Rewrite packet/octet count.
+                    RTCPSenderInfoUtils
+                        .setOctetCount(baf, filterState.transmittedBytes);
+                    RTCPSenderInfoUtils
+                        .setPacketCount(baf, filterState.transmittedPackets);
+                }
             }
         }
 

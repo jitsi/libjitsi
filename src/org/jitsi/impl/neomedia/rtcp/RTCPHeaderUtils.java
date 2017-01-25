@@ -76,6 +76,29 @@ public class RTCPHeaderUtils
         return RawPacket.readInt(buf, off + 4, len) & 0xffffffffl;
     }
 
+
+    /**
+     * Sets the RTCP sender SSRC.
+     *
+     * @param buf the byte buffer that contains the RTCP header.
+     * @param off the offset in the byte buffer where the RTCP header starts.
+     * @param len the number of bytes in buffer which constitute the actual
+     * data.
+     * @param senderSSRC the sender SSRC to set.
+     * @return the number of bytes that were written to the byte buffer, or -1
+     * in case of an error.
+     */
+    private static int setSenderSSRC(
+        byte[] buf, int off, int len, int senderSSRC)
+    {
+        if (!isValid(buf, off, len))
+        {
+            return -1;
+        }
+
+        return RawPacket.writeInt(buf, off + 4, senderSSRC);
+    }
+
     /**
      * Gets the RTCP packet length in bytes.
      *
@@ -147,6 +170,12 @@ public class RTCPHeaderUtils
         return true;
     }
 
+    /**
+     * Gets the RTCP sender SSRC.
+     *
+     * @param baf the {@link ByteArrayBuffer} that contains the RTCP header.
+     * @return the unsigned RTCP sender SSRC, or -1 in case of an error.
+     */
     public static long getSenderSSRC(ByteArrayBuffer baf)
     {
         if (baf == null)
@@ -155,5 +184,76 @@ public class RTCPHeaderUtils
         }
 
         return getSenderSSRC(baf.getBuffer(), baf.getOffset(), baf.getLength());
+    }
+
+    /**
+     * Sets the RTCP sender SSRC.
+     *
+     * @param baf the {@link ByteArrayBuffer} that contains the RTCP header.
+     * @param senderSSRC the sender SSRC to set.
+     * @return the number of bytes that were written to the byte buffer, or -1
+     * in case of an error.
+     */
+    public static int setSenderSSRC(ByteArrayBuffer baf, int senderSSRC)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return setSenderSSRC(
+            baf.getBuffer(), baf.getOffset(), baf.getLength(), senderSSRC);
+    }
+
+    /**
+     * Gets the report count field of the RTCP packet specified in the
+     * {@link ByteArrayBuffer} that is passed in as a parameter.
+     *
+     * @param baf the {@link ByteArrayBuffer} that contains the RTCP header.
+     * @return the report count field of the RTCP packet specified in the
+     * {@link ByteArrayBuffer} that is passed in as a parameter, or -1 in case
+     * of an error.
+     */
+    public static int getReportCount(ByteArrayBuffer baf)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return getReportCount(
+            baf.getBuffer(), baf.getOffset(), baf.getLength());
+    }
+
+    /**
+     * Gets the report count field of the RTCP packet specified in the
+     * {@link ByteArrayBuffer} that is passed in as a parameter.
+     *
+     * @param buf the byte buffer that contains the RTCP header.
+     * @param off the offset in the byte buffer where the RTCP header starts.
+     * @param len the number of bytes in buffer which constitute the actual
+     * data.
+     * @return the report count field of the RTCP packet specified in the
+     * byte buffer that is passed in as a parameter, or -1 in case
+     * of an error.
+     */
+    private static int getReportCount(byte[] buf, int off, int len)
+    {
+        if (buf == null || buf.length < off + len || len < 1)
+        {
+            return -1;
+        }
+
+        return buf[off] & 0x1F;
+    }
+
+    public static int getLength(ByteArrayBuffer baf)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return getLength(baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
 }
