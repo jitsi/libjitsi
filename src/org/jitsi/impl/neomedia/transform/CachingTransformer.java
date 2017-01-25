@@ -76,6 +76,7 @@ public class CachingTransformer
      */
     public CachingTransformer(MediaStreamImpl stream)
     {
+        super(RTPPacketPredicate.INSTANCE);
         this.outgoingRawPacketCache = new RawPacketCache(stream.hashCode());
         this.incomingRawPacketCache = new RawPacketCache(-1);
     }
@@ -117,7 +118,7 @@ public class CachingTransformer
     @Override
     public RawPacket transform(RawPacket pkt)
     {
-        if (enabled && !closed && pkt != null && pkt.getVersion() == 2)
+        if (enabled && !closed)
         {
             outgoingRawPacketCache.cachePacket(pkt);
         }
@@ -127,7 +128,7 @@ public class CachingTransformer
     @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
-        if (enabled && !closed && pkt != null && pkt.getVersion() == 2)
+        if (enabled && !closed)
         {
             incomingRawPacketCache.cachePacket(pkt);
         }
