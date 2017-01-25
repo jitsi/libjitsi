@@ -122,6 +122,7 @@ public class RTCPIterator
             baf.getBuffer(), nextOff,
             baf.getBuffer(), nextOff - lastLen, remainingLen);
 
+        nextOff -= lastLen;
         baf.setLength(baf.getLength() - lastLen);
 
         lastLen = 0;
