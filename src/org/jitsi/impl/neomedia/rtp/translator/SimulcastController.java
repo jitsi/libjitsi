@@ -42,6 +42,10 @@ public class SimulcastController
      */
     private static final Logger logger = Logger.getLogger(SimulcastController.class);
 
+    /**
+     * The transformation to use when a stream is suspended (or equivalently
+     * when the target idx = -1.
+     */
     private static final SimTransformation dropState
         = new SimTransformation(-1, -1, -1, -1);
 
