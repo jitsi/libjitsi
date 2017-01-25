@@ -246,9 +246,9 @@ public class FrameDesc
 
             if (independent)
             {
-                if (logger.isDebugEnabled())
+                if (logger.isInfoEnabled())
                 {
-                    logger.debug("keyframe,stream=" + stream.hashCode()
+                    logger.info("keyframe,stream=" + stream.hashCode()
                         + " ssrc=" + rtpEncoding.getPrimarySSRC()
                         + "," + toString());
                 }
