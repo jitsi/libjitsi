@@ -26,11 +26,10 @@ import org.jitsi.util.*;
 import java.lang.ref.*;
 
 /**
- * Filters the packets of
- * {@link MediaStreamTrackDesc} based on the currently forwarded subjective
- * quality index. It's also taking care of upscaling and downscaling. As a
- * {@link PacketTransformer}, it rewrites the forwarded packets so that the
- * gaps as a result of the drops are hidden.
+ * Filters the packets of {@link MediaStreamTrackDesc} based on the currently
+ * forwarded subjective quality index. It's also taking care of upscaling and
+ * downscaling. As a {@link PacketTransformer}, it rewrites the forwarded
+ * packets so that the gaps as a result of the drops are hidden.
  *
  * @author George Politis
  */
@@ -40,7 +39,8 @@ public class SimulcastController
      * The {@link Logger} to be used by this instance to print debug
      * information.
      */
-    private static final Logger logger = Logger.getLogger(SimulcastController.class);
+    private static final Logger logger
+        = Logger.getLogger(SimulcastController.class);
 
     /**
      * The transformation to use when a stream is suspended (or equivalently
@@ -428,7 +428,8 @@ public class SimulcastController
     }
 
     /**
-     *
+     * State that is kept by the filter thread. It includes the maximum RTP
+     * sequence number and the maximum RTP timestamp that was accepted.
      */
     private static class FilterState
     {
@@ -443,12 +444,12 @@ public class SimulcastController
         private long maxTs = -1;
 
         /**
-         *
+         * The number of transmitted bytes.
          */
         private long transmittedBytes = 0;
 
-        /*
-
+        /**
+         * The number of transmitted packets.
          */
         private long transmittedPackets = 0;
     }

@@ -254,9 +254,13 @@ public class RTCPREMBPacket extends RTCPFBPacket
     }
 
     /**
+     * Gets a boolean that indicates whether or not the packet specified in the
+     * {@link ByteArrayBuffer} that is passed in the first argument is an RTCP
+     * REMB packet.
      *
-     * @param baf
-     * @return
+     * @param baf the {@link ByteArrayBuffer} that holds the RTCP packet.
+     * @return true if the packet specified in the {@link ByteArrayBuffer} that
+     * is passed in the first argument is an RTCP REMB packet, otherwise false.
      */
     public static boolean isREMBPacket(ByteArrayBuffer baf)
     {
