@@ -119,9 +119,10 @@ public class RTCPIterator
         }
 
         System.arraycopy(
-            baf.getBuffer(), nextOff, baf.getBuffer(), nextOff - lastLen, remainingLen);
+            baf.getBuffer(), nextOff,
+            baf.getBuffer(), nextOff - lastLen, remainingLen);
 
-        baf.setLength(remainingLen - lastLen);
+        baf.setLength(baf.getLength() - lastLen);
 
         lastLen = 0;
     }
