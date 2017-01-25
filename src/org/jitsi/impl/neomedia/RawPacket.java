@@ -137,6 +137,47 @@ public class RawPacket
     }
 
     /**
+     * Get RTCP SSRC from a RTCP packet
+     *
+     * @return RTP SSRC from source RTP packet
+     */
+    public static int getRTCPSSRC(byte[] buf, int off, int len)
+    {
+        return readInt(buf, off + 4, len);
+    }
+
+    /**
+     * Get RTCP SSRC from a RTCP packet
+     *
+     * @return RTP SSRC from source RTP packet
+     */
+    public static int getRTCPSSRC(ByteArrayBuffer baf)
+    {
+        if (baf == null)
+        {
+            // good luck with that, that's a valid SSRC
+            return -1;
+        }
+
+        return getRTCPSSRC(baf.getBuffer(), baf.getOffset(), baf.getLength());
+    }
+
+    /**
+     * Get RTCP SSRC from a RTCP packet
+     *
+     * @return RTP SSRC from source RTP packet in a {@code long}.
+     */
+    public static long getRTCPSSRCAsLong(ByteArrayBuffer baf)
+    {
+        if (baf == null || baf.isInvalid())
+        {
+            return -1;
+        }
+
+        return getRTCPSSRC(baf) & 0xffffffffL;
+    }
+
+    /**
      * Adds the <tt>extBuff</tt> buffer as an extension of this packet
      * according the rules specified in RFC 5285. Note that this method does
      * not replace extensions so if you add the same buffer twice it would be

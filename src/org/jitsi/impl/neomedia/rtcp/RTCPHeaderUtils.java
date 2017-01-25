@@ -57,25 +57,6 @@ public class RTCPHeaderUtils
         return getPacketType(baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
 
-    /**
-     * Gets the RTCP sender SSRC.
-     *
-     * @param buf the byte buffer that contains the RTCP header.
-     * @param off the offset in the byte buffer where the RTCP header starts.
-     * @param len the number of bytes in buffer which constitute the actual
-     * data.
-     * @return the unsigned RTCP sender SSRC, or -1 in case of an error.
-     */
-    public static long getSenderSSRC(byte[] buf, int off, int len)
-    {
-        if (!isValid(buf, off, len))
-        {
-            return -1;
-        }
-
-        return RawPacket.readInt(buf, off + 4, len) & 0xffffffffl;
-    }
-
 
     /**
      * Sets the RTCP sender SSRC.
@@ -168,22 +149,6 @@ public class RTCPHeaderUtils
         }
 
         return true;
-    }
-
-    /**
-     * Gets the RTCP sender SSRC.
-     *
-     * @param baf the {@link ByteArrayBuffer} that contains the RTCP header.
-     * @return the unsigned RTCP sender SSRC, or -1 in case of an error.
-     */
-    public static long getSenderSSRC(ByteArrayBuffer baf)
-    {
-        if (baf == null)
-        {
-            return -1;
-        }
-
-        return getSenderSSRC(baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
 
     /**
