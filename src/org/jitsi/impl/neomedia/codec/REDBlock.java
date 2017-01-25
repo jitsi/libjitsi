@@ -100,6 +100,15 @@ public class REDBlock
      * {@inheritDoc}
      */
     @Override
+    public boolean isInvalid()
+    {
+        return buf == null || buf.length < off + len;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public int getOffset()
     {
         return off;

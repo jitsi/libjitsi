@@ -1081,6 +1081,7 @@ public class RawPacket
      * @return <tt>true</tt> if the RTP/RTCP packet represented by this
      * instance is found to be invalid, <tt>false</tt> otherwise.
      */
+    @Override
     public boolean isInvalid()
     {
         return
