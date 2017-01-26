@@ -406,7 +406,7 @@ public class MediaStreamStatsImpl
             if (rttLong < 0 || rttLong  >= 3000)
             {
                 logger.warn(
-                    "invalid_rtt,stream= " + mediaStreamImpl.hashCode()
+                    "invalid_rtt,stream=" + mediaStreamImpl.hashCode()
                         + " rtt=" + rttLong
                         + ",now=" + arrivalMs
                         + ",latency=" + latencyMs

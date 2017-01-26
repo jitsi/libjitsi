@@ -67,8 +67,8 @@ public class RTCPReceiverFeedbackTermination
         = new RTCPReportBlock[MIN_RTCP_REPORT_BLOCKS];
 
     /**
-     * The {@link Logger} used by the {@link RTCPReceiverFeedbackTermination} class to print
-     * debug information.
+     * The {@link Logger} used by the {@link RTCPReceiverFeedbackTermination}
+     * class to print debug information.
      */
     private static final Logger logger
         = Logger.getLogger(RTCPReceiverFeedbackTermination.class);

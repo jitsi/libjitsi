@@ -436,7 +436,8 @@ public class VideoMediaStreamImpl
     /**
      * The instance that terminates RRs and REMBs.
      */
-    private final RTCPReceiverFeedbackTermination rtcpFeedbackTermination = new RTCPReceiverFeedbackTermination(this);
+    private final RTCPReceiverFeedbackTermination rtcpFeedbackTermination
+        = new RTCPReceiverFeedbackTermination(this);
 
     /**
      * The <tt>RemoteBitrateEstimator</tt> which computes bitrate estimates for
