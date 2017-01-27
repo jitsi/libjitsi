@@ -174,9 +174,24 @@ public class RawPacket
             return -1;
         }
 
-        return getRTCPSSRC(baf) & 0xffffffffL;
+        return getRTCPSSRCAsLong(
+            baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
 
+    /**
+     * Get RTCP SSRC from a RTCP packet
+     *
+     * @return RTP SSRC from source RTP packet
+     */
+    public static long getRTCPSSRCAsLong(byte[] buf, int off, int len)
+    {
+        if (buf == null || buf.length < off + len || len < 8)
+        {
+            return -1;
+        }
+
+        return getRTCPSSRC(buf, off, len) & 0xFFFFFFFFL;
+    }
     /**
      * Adds the <tt>extBuff</tt> buffer as an extension of this packet
      * according the rules specified in RFC 5285. Note that this method does
