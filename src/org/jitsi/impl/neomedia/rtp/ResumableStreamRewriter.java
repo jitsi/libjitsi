@@ -119,7 +119,7 @@ public class ResumableStreamRewriter
             ? (ts - timestampDelta) & 0xffffffffL
             : (ts + timestampDelta) & 0xffffffffL;
 
-        int ret = RTCPSenderInfoUtils.setTimestamp(buf, off, len, newTs);
+        int ret = RTCPSenderInfoUtils.setTimestamp(buf, off, len, (int) newTs);
 
         return ret > 0;
     }

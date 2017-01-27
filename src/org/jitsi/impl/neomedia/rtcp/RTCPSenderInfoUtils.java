@@ -60,19 +60,14 @@ public class RTCPSenderInfoUtils
      *
      * @return the number of bytes written.
      */
-    public static int setTimestamp(byte[] buf, int off, int len, long ts)
+    public static int setTimestamp(byte[] buf, int off, int len, int ts)
     {
         if (!isValid(buf, off, len))
         {
             return -1;
         }
 
-        buf[off + 8] = (byte)(ts>>24);
-        buf[off + 9] = (byte)(ts>>16);
-        buf[off + 10] = (byte)(ts>>8);
-        buf[off + 11] = (byte)ts;
-
-        return 4;
+        return RawPacket.writeInt(buf, off + 16, ts);
     }
 
     /**
@@ -143,7 +138,7 @@ public class RTCPSenderInfoUtils
      *
      * @return the number of bytes written.
      */
-    public static int setTimestamp(ByteArrayBuffer baf, long ts)
+    public static int setTimestamp(ByteArrayBuffer baf, int ts)
     {
         if (baf == null)
         {
@@ -178,7 +173,7 @@ public class RTCPSenderInfoUtils
      * @param octetCount the octet count ot set.
      * @return the number of bytes that were written, otherwise -1.
      */
-    public static int setOctetCount(ByteArrayBuffer baf, long octetCount)
+    public static int setOctetCount(ByteArrayBuffer baf, int octetCount)
     {
         if (baf == null)
         {
@@ -195,7 +190,7 @@ public class RTCPSenderInfoUtils
      * @param baf the {@link ByteArrayBuffer} that holds the SR.
      * @return the number of bytes that were written, otherwise -1.
      */
-    public static int setPacketCount(ByteArrayBuffer baf, long packetCount)
+    public static int setPacketCount(ByteArrayBuffer baf, int packetCount)
     {
         if (baf == null)
         {
@@ -216,19 +211,14 @@ public class RTCPSenderInfoUtils
      * @return the number of bytes that were written, otherwise -1.
      */
     private static int setPacketCount(
-        byte[] buf, int off, int len, long packetCount)
+        byte[] buf, int off, int len, int packetCount)
     {
         if (!isValid(buf, off, len))
         {
             return -1;
         }
 
-        buf[off + 12] = (byte)(packetCount>>24);
-        buf[off + 13] = (byte)(packetCount>>16);
-        buf[off + 14] = (byte)(packetCount>>8);
-        buf[off + 15] = (byte)packetCount;
-
-        return 4;
+        return RawPacket.writeInt(buf, off + 20, packetCount);
     }
 
     /**
@@ -242,18 +232,13 @@ public class RTCPSenderInfoUtils
      * @return the number of bytes that were written, otherwise -1.
      */
     private static int setOctetCount(
-        byte[] buf, int off, int len, long octetCount)
+        byte[] buf, int off, int len, int octetCount)
     {
         if (!isValid(buf, off, len))
         {
             return -1;
         }
 
-        buf[off + 16] = (byte)(octetCount>>24);
-        buf[off + 17] = (byte)(octetCount>>16);
-        buf[off + 18] = (byte)(octetCount>>8);
-        buf[off + 19] = (byte)octetCount;
-
-        return 4;
+        return RawPacket.writeInt(buf, off + 24, octetCount);
     }
 }

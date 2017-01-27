@@ -238,8 +238,6 @@ public class RTCPReceiverFeedbackTermination
             return MIN_RTCP_REPORT_BLOCKS_ARRAY;
         }
 
-
-
         // XXX MediaStreamImpl's implementation of #getReceiveStreams() says
         // that, unfortunately, it has been observed that sometimes there are
         // valid ReceiveStreams in MediaStreamImpl which are not returned by
@@ -251,7 +249,7 @@ public class RTCPReceiverFeedbackTermination
 
         if (receiveStreams == null || receiveStreams.isEmpty())
         {
-            logger.info(
+            logger.debug(
                 "There are no receive streams to build report blocks for.");
             return MIN_RTCP_REPORT_BLOCKS_ARRAY;
         }

@@ -375,14 +375,14 @@ public class SimulcastController
 
                     if (srcTs != dstTs)
                     {
-                        RTCPSenderInfoUtils.setTimestamp(baf, dstTs);
+                        RTCPSenderInfoUtils.setTimestamp(baf, (int) dstTs);
                     }
 
                     // Rewrite packet/octet count.
-                    RTCPSenderInfoUtils
-                        .setOctetCount(baf, filterState.transmittedBytes);
-                    RTCPSenderInfoUtils
-                        .setPacketCount(baf, filterState.transmittedPackets);
+                    RTCPSenderInfoUtils.setOctetCount(
+                        baf, (int) filterState.transmittedBytes);
+                    RTCPSenderInfoUtils.setPacketCount(
+                        baf, (int) filterState.transmittedPackets);
                 }
             }
         }
