@@ -17,8 +17,8 @@ package org.jitsi.impl.neomedia.rtp.translator;
 
 /**
  * A 2D translation in the RTP sequence number and the RTP timestamp space. It
- * keeps a sequence number delta (mod 16) and an RTP timestamp delta (mod 32)
- * and applies it to sequence numbers or RTP timestamps.
+ * keeps a sequence number delta (mod 2^16) and an RTP timestamp delta
+ * (mod 2^32) and applies it to sequence numbers or RTP timestamps.
  *
  * @author George Politis
  *
@@ -33,13 +33,13 @@ public class Transformation
         this.tsDelta = tsDelta;
     }
     /**
-     * The sequence number delta (mod 16) to apply to the RTP packets of the
+     * The sequence number delta (mod 2^16) to apply to the RTP packets of the
      * forwarded RTP stream.
      */
     private final long tsDelta;
 
     /**
-     * The timestamp delta (mod 32) to apply to the RTP packets of the
+     * The timestamp delta (mod 2^32) to apply to the RTP packets of the
      * forwarded RTP stream.
      */
     private final int seqNumDelta;

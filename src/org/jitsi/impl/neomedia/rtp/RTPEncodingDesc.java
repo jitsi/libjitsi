@@ -198,7 +198,7 @@ public class RTPEncodingDesc
         long tsDiff = (b.getTimestamp() - a.getTimestamp()) & 0xFFFFFFFFL;
         if (tsDiff > (1L << 30) && tsDiff < (-(1L << 30) & 0xFFFFFFFFL))
         {
-            // the distance (mod 32) between the two timestamps needs to be
+            // the distance (mod 2^32) between the two timestamps needs to be
             // less than half the timestamp space.
             return;
         }

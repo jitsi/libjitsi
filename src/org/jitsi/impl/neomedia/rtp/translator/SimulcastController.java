@@ -404,10 +404,10 @@ public class SimulcastController
          * Ctor.
          *
          * @param currentSSRC the SSRC that is currently being forwarded.
-         * @param tsDelta the RTP timestamp delta (mod 32) to apply to outgoing
-         * RTP/RTCP packets.
-         * @param seqNumDelta the RTP sequence number delta (mod 16) to apply to
-         * outgoing RTP packets.
+         * @param tsDelta the RTP timestamp delta (mod 2^32) to apply to
+         * outgoing RTP/RTCP packets.
+         * @param seqNumDelta the RTP sequence number delta (mod 2^16) to apply
+         * to outgoing RTP packets.
          */
         SimTransformation(
             long currentSSRC, long tsDelta, int seqNumDelta, int currentIdx)
@@ -436,12 +436,13 @@ public class SimulcastController
     private static class FilterState
     {
         /**
-         * The maximum sequence number (mod 16) that this instance has sent out.
+         * The maximum sequence number (mod 2^16) that this instance has sent
+         * out.
          */
         private int maxSeqNum = -1;
 
         /**
-         * The maximum timestamp (mod 32) that this instance has sent out.
+         * The maximum timestamp (mod 2^32) that this instance has sent out.
          */
         private long maxTs = -1;
 
