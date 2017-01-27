@@ -152,9 +152,9 @@ public class SimulcastController
             return accept;
         }
 
-        if (((targetIdx <= sourceIdx && sourceIdx < transformState.currentIdx)
+        if ((targetIdx <= sourceIdx && sourceIdx < transformState.currentIdx)
             || (transformState.currentIdx < sourceIdx && sourceIdx <= targetIdx)
-            || (!currentRTPEncodingIsActive && sourceIdx <= targetIdx)))
+            || (!currentRTPEncodingIsActive && sourceIdx <= targetIdx))
         {
             // Pretend this is the next frame of whatever has already been
             // sent.
