@@ -1581,8 +1581,8 @@ public class RawPacket
     /**
      * Set an integer at specified offset in network order.
      *
-     * @param off
-     * @param data
+     * @param off Offset into the buffer
+     * @param data The integer to store in the packet
      */
     public void writeInt(int off, int data)
     {
