@@ -45,7 +45,7 @@ public class RtxTransformer
      * The name of the property used to disable NACK termination.
      */
     public static final String DISABLE_NACK_TERMINATION_PNAME
-        = " org.jitsi.impl.neomedia.rtcp.DISABLE_NACK_TERMINATION";
+        = "org.jitsi.impl.neomedia.rtcp.DISABLE_NACK_TERMINATION";
 
     /**
      * The <tt>MediaStream</tt> for the transformer.
