@@ -178,6 +178,14 @@ public class RTCPPacketParserEx
                         remb.dest[i] = in.readInt() & 0xffffffffL;
 
                     return remb;
+                case FIRPacket.FMT:
+                    FIRPacket firPacket = new FIRPacket(senderSSRC, sourceSSRC);
+                    // read 32 bits of unused sequence number and reserved.
+                    in.readInt();
+                    return firPacket;
+                case PLIPacket.FMT:
+                    // PLIs have no feedback control information.
+                    return new PLIPacket(senderSSRC, sourceSSRC);
                 default:
                     return
                         parseRTCPFBPacket(

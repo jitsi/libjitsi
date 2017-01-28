@@ -15,10 +15,7 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
-import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.rtcp.*;
-import java.util.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.service.neomedia.*;
@@ -93,7 +90,7 @@ public class DebugTransformEngine implements TransformEngine
      * @param pktLogging the {@code PacketLoggingService} to be used by the new
      * instance
      */
-    public DebugTransformEngine(
+    DebugTransformEngine(
             MediaStreamImpl mediaStream,
             PacketLoggingService pktLogging)
     {
@@ -155,7 +152,7 @@ public class DebugTransformEngine implements TransformEngine
     {
         if (pkt == null)
         {
-            return pkt;
+            return null;
         }
 
         if (mediaStream == null)
@@ -248,97 +245,6 @@ public class DebugTransformEngine implements TransformEngine
 
             src = dst;
             dst = swap;
-        }
-
-        if (logger.isDebugEnabled())
-        {
-            if (data && RTPPacketPredicate.INSTANCE.test(pkt))
-            {
-                RemoteClock clock = mediaStream
-                    .getStreamRTPManager().findRemoteClock(
-                        pkt.getSSRCAsLong());
-
-                long millis = (clock != null)
-                    ? clock.rtpTimestamp2remoteSystemTimeMs(pkt.getTimestamp())
-                    .getSystemTimeMs()
-                    : -1;
-
-                if (sender)
-                {
-                    logger.debug((sender ? "sending" : "received")
-                        + " RTP ssrc=" + pkt.getSSRCAsLong() + ", seqnum="
-                        + pkt.getSequenceNumber() + ", ts=" + pkt.getTimestamp()
-                        + ", realtime=" + new Date(millis)
-                        + ", realtimeMs=" + millis
-                        + ", streamHashCode=" + mediaStream.hashCode());
-                }
-                else
-                {
-                    logger.debug((sender ? "sending" : "received")
-                        + " RTP ssrc=" + pkt.getSSRCAsLong() + ", seqnum="
-                        + pkt.getSequenceNumber() + ", ts=" + pkt.getTimestamp()
-                        + ", streamHashCode=" + mediaStream.hashCode());
-                }
-            }
-            else if (RTCPPacketPredicate.INSTANCE.test(pkt))
-            {
-                int offset = pkt.getOffset(), length = pkt.getLength();
-                byte[] buf = pkt.getBuffer();
-
-                // The correct thing to do here is a loop because the RTCP packet
-                // can be compound. However, in practice we haven't seen multiple
-                // SRs being bundled in the same compound packet, and we're only
-                // interested in SRs.
-
-                // Check RTCP packet validity. This makes sure that
-                // pktLen > 0 so this loop will eventually terminate.
-                if (RTCPHeaderUtils.isValid(buf, offset, length))
-                {
-
-                    int pktLen = RTCPHeaderUtils.getLength(buf, offset, length);
-
-                    int pt = RTCPHeaderUtils.getPacketType(buf, offset, pktLen);
-                    if (pt == RTCPPacket.SR)
-                    {
-                        long ssrc = RTCPHeaderUtils.getSenderSSRC(
-                            buf, offset, pktLen);
-
-                        long rtptimestamp
-                            = RTCPSenderInfoUtils.getTimestamp(
-                            buf, offset + RTCPHeader.SIZE,
-                            pktLen - RTCPHeader.SIZE);
-                        long ntptimestampmsw
-                            = RTCPSenderInfoUtils.getNtpTimestampMSW(
-                            buf, offset + RTCPHeader.SIZE,
-                            pktLen - RTCPHeader.SIZE);
-                        long ntptimestamplsw
-                            = RTCPSenderInfoUtils.getNtpTimestampLSW(
-                            buf, offset + RTCPHeader.SIZE,
-                            pktLen - RTCPHeader.SIZE);
-
-                        long systemTimeMs = TimeUtils.getTime(
-                            TimeUtils.constuctNtp(
-                                ntptimestampmsw, ntptimestamplsw));
-
-                        RemoteClock clock = mediaStream
-                            .getStreamRTPManager().findRemoteClock(
-                                ssrc);
-
-                        long millis = (clock != null)
-                            ? clock.rtpTimestamp2remoteSystemTimeMs(rtptimestamp)
-                            .getSystemTimeMs()
-                            : -1;
-
-                        logger.debug((sender ? "sending" : "received")
-                            + " RTCP SR ssrc=" + ssrc + ", ts=" + rtptimestamp
-                            + ", packed_realtime=" + new Date(systemTimeMs)
-                            + ", packed_realtime_ms=" + systemTimeMs
-                            + ", calculated_realtime=" + new Date(millis)
-                            + ", calculated_realtime_ms=" + millis
-                            + ", streamHashCode=" + mediaStream.hashCode());
-                    }
-                }
-            }
         }
 
         pktLogging.logPacket(

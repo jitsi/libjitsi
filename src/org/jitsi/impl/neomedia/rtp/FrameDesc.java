@@ -26,14 +26,32 @@ import org.jitsi.util.*;
 public class FrameDesc
 {
     /**
-     * The {@link RTPEncodingImpl} that this {@link FrameDesc} belongs to.
+     * The {@link Logger} used by the {@link FrameDesc} class to print
+     * debug information.
      */
-    private final RTPEncodingImpl rtpEncoding;
+    private static final Logger logger
+        = Logger.getLogger(FrameDesc.class);
+
+    /**
+     * The time in (millis) when the first packet of this frame was received.
+     */
+    private final long receivedMs;
+
+    /**
+     * The {@link RTPEncodingDesc} that this {@link FrameDesc} belongs to.
+     */
+    private final RTPEncodingDesc rtpEncoding;
 
     /**
      * The RTP timestamp of this frame.
      */
     private final long ts;
+
+    /**
+     * A boolean indicating whether or not the start of a frame was the first
+     * packet that was received for this packet.
+     */
+    private Boolean sofInOrder;
 
     /**
      * A boolean indicating whether or not this frame is independent or not
@@ -64,14 +82,28 @@ public class FrameDesc
     /**
      * Ctor.
      *
-     * @param rtpEncoding the {@link RTPEncodingImpl} that this instance belongs
+     * @param rtpEncoding the {@link RTPEncodingDesc} that this instance belongs
      * to.
      * @param ts the RTP timestamp for this frame.
+     * @param receivedMs the time (in millis) when the first packet of this
+     * frame was received.
      */
-    FrameDesc(RTPEncodingImpl rtpEncoding, long ts)
+    FrameDesc(RTPEncodingDesc rtpEncoding, long ts, long receivedMs)
     {
         this.rtpEncoding = rtpEncoding;
         this.ts = ts;
+        this.receivedMs = receivedMs;
+    }
+
+    /**
+     * Gets the {@link RTPEncodingDesc} that this {@link FrameDesc} belongs to.
+     *
+     * @return the {@link RTPEncodingDesc} that this {@link FrameDesc} belongs
+     * to.
+     */
+    public RTPEncodingDesc getRTPEncoding()
+    {
+        return rtpEncoding;
     }
 
     /**
@@ -79,9 +111,21 @@ public class FrameDesc
      *
      * @return the RTP timestamp for this frame.
      */
-    long getTimestamp()
+    public long getTimestamp()
     {
         return ts;
+    }
+
+    /**
+     * Gets the time (in millis) when the first packet of this frame was
+     * received.
+     *
+     * @return the time (in millis) when the first packet of this frame was
+     * received.
+     */
+    public long getReceivedMs()
+    {
+        return receivedMs;
     }
 
     /**
@@ -129,7 +173,7 @@ public class FrameDesc
      *
      * @return true if this frame is independent, false otherwise.
      */
-    boolean isIndependent()
+    public boolean isIndependent()
     {
         return independent == null ? false : independent;
     }
@@ -168,6 +212,18 @@ public class FrameDesc
         boolean changed = false;
 
         int seqNum = pkt.getSequenceNumber();
+        byte[] buf = pkt.getBuffer();
+        int off = pkt.getOffset(), len = pkt.getLength();
+
+        MediaStreamImpl stream = rtpEncoding.getMediaStreamTrack()
+            .getMediaStreamTrackReceiver().getStream();
+
+        boolean isSOF = stream.isStartOfFrame(buf, off, len);
+        if (sofInOrder == null)
+        {
+            sofInOrder = isSOF;
+        }
+
         if (minSeen == -1 || RTPUtils.sequenceNumberDiff(minSeen, seqNum) > 0)
         {
             changed = true;
@@ -180,25 +236,50 @@ public class FrameDesc
             maxSeen = seqNum;
         }
 
-        MediaStreamImpl stream = rtpEncoding.getMediaStreamTrack()
-            .getMediaStreamTrackReceiver().getStream();
-
-        byte[] buf = pkt.getBuffer();
-        int off = pkt.getOffset(), len = pkt.getLength();
-
         if (end == -1 && stream.isEndOfFrame(buf, off, len))
         {
             changed = true;
             end = seqNum;
         }
 
-        if (start == -1 && stream.isStartOfFrame(buf, off, len))
+        if (start == -1 && isSOF)
         {
             changed = true;
             start = seqNum;
             independent = stream.isKeyFrame(buf, off, len);
+
+            if (independent)
+            {
+                if (logger.isInfoEnabled())
+                {
+                    logger.info("keyframe,stream=" + stream.hashCode()
+                        + " ssrc=" + rtpEncoding.getPrimarySSRC()
+                        + "," + toString());
+                }
+            }
         }
 
         return changed;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ts=" + ts +
+            ",independent=" + independent +
+            ",min_seen=" + minSeen +
+            ",max_seen=" + maxSeen +
+            ",start=" + start +
+            ",end=" + end;
+    }
+
+    /**
+     * Gets a boolean indicating whether or not this frame has been received in
+     * order.
+     * @return true if this frame has been received in order, false otherwise.
+     */
+    public boolean isSofInOrder()
+    {
+        return sofInOrder != null && sofInOrder;
     }
 }

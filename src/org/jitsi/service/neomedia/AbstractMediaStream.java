@@ -19,7 +19,6 @@ import java.beans.*;
 import java.util.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
-import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.format.*;
@@ -54,12 +53,6 @@ public abstract class AbstractMediaStream
      */
     private final PropertyChangeSupport propertyChangeSupport
         = new PropertyChangeSupport(this);
-
-    /**
-     * The currently active {@code RTCPTerminationStrategy} which is to inspect
-     * and modify RTCP traffic between multiple {@code MediaStream}s.
-     */
-    private RTCPTerminationStrategy rtcpTerminationStrategy;
 
     /**
      * The <tt>RTPTranslator</tt>, if any, which forwards RTP and RTCP traffic
@@ -158,15 +151,6 @@ public abstract class AbstractMediaStream
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public RTCPTerminationStrategy getRTCPTerminationStrategy()
-    {
-        return rtcpTerminationStrategy;
-    }
-
-    /**
      * Handles attributes contained in <tt>MediaFormat</tt>.
      *
      * @param format the <tt>MediaFormat</tt> to handle the attributes of
@@ -235,29 +219,6 @@ public abstract class AbstractMediaStream
      * {@inheritDoc}
      */
     @Override
-    public void setRTCPTerminationStrategy(
-            RTCPTerminationStrategy rtcpTerminationStrategy)
-    {
-        if (this.rtcpTerminationStrategy != rtcpTerminationStrategy)
-        {
-            // XXX The following (source) code was moved here from another place
-            // and there it was called before remembering the new
-            // rtcpTerminationStrategy so we've preserved the order here.
-            if (rtcpTerminationStrategy
-                    instanceof MediaStreamRTCPTerminationStrategy)
-            {
-                ((MediaStreamRTCPTerminationStrategy) rtcpTerminationStrategy)
-                    .initialize(this);
-            }
-
-            this.rtcpTerminationStrategy = rtcpTerminationStrategy;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public void setRTPTranslator(RTPTranslator rtpTranslator)
     {
         if (this.rtpTranslator != rtpTranslator)
@@ -289,15 +250,6 @@ public abstract class AbstractMediaStream
     public byte getDynamicRTPPayloadType(String codec)
     {
         return -1;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public REDBlock getPayloadBlock(byte[] buf, int off, int len)
-    {
-        return null;
     }
 
     /**

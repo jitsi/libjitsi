@@ -122,6 +122,77 @@ public class RawPacket
     }
 
     /**
+     * Perform checks on the packet represented by this instance and
+     * return <tt>true</tt> if it is found to be invalid. A return value of
+     * <tt>false</tt> does not necessarily mean that the packet is valid.
+     *
+     * @return <tt>true</tt> if the RTP/RTCP packet represented by this
+     * instance is found to be invalid, <tt>false</tt> otherwise.
+     */
+    public static boolean isInvalid(byte[] buffer, int offset, int length)
+    {
+        return (buffer == null)
+            || (buffer.length < offset + length)
+            || (length < FIXED_HEADER_SIZE);
+    }
+
+    /**
+     * Get RTCP SSRC from a RTCP packet
+     *
+     * @return RTP SSRC from source RTP packet
+     */
+    public static int getRTCPSSRC(byte[] buf, int off, int len)
+    {
+        return readInt(buf, off + 4, len);
+    }
+
+    /**
+     * Get RTCP SSRC from a RTCP packet
+     *
+     * @return RTP SSRC from source RTP packet
+     */
+    public static int getRTCPSSRC(ByteArrayBuffer baf)
+    {
+        if (baf == null)
+        {
+            // good luck with that, that's a valid SSRC
+            return -1;
+        }
+
+        return getRTCPSSRC(baf.getBuffer(), baf.getOffset(), baf.getLength());
+    }
+
+    /**
+     * Get RTCP SSRC from a RTCP packet
+     *
+     * @return RTP SSRC from source RTP packet in a {@code long}.
+     */
+    public static long getRTCPSSRCAsLong(ByteArrayBuffer baf)
+    {
+        if (baf == null || baf.isInvalid())
+        {
+            return -1;
+        }
+
+        return getRTCPSSRCAsLong(
+            baf.getBuffer(), baf.getOffset(), baf.getLength());
+    }
+
+    /**
+     * Get RTCP SSRC from a RTCP packet
+     *
+     * @return RTP SSRC from source RTP packet
+     */
+    public static long getRTCPSSRCAsLong(byte[] buf, int off, int len)
+    {
+        if (buf == null || buf.length < off + len || len < 8)
+        {
+            return -1;
+        }
+
+        return getRTCPSSRC(buf, off, len) & 0xFFFFFFFFL;
+    }
+    /**
      * Adds the <tt>extBuff</tt> buffer as an extension of this packet
      * according the rules specified in RFC 5285. Note that this method does
      * not replace extensions so if you add the same buffer twice it would be
@@ -781,6 +852,16 @@ public class RawPacket
      *
      * @return RTP payload length from source RTP packet
      */
+    public int getPayloadLength(boolean removePadding)
+    {
+        return getPayloadLength(buffer, offset, length, removePadding);
+    }
+
+    /**
+     * Get RTP payload length from a RTP packet
+     *
+     * @return RTP payload length from source RTP packet
+     */
     public int getPayloadLength()
     {
         return getPayloadLength(buffer, offset, length);
@@ -800,22 +881,62 @@ public class RawPacket
         return getPayloadLength(buffer, offset, length, false);
     }
 
+
+    /**
+     * Set an integer at specified offset in network order.
+     *
+     * @param buf
+     * @param off offset into the buffer
+     * @param data The integer to store in the packet
+     *
+     * @return the number of bytes that were written in the byte buffer, or
+     * -1 if the write failed.
+     */
+    public static int writeInt(byte[] buf, int off, int data)
+    {
+        if (buf == null || buf.length < off + 4)
+        {
+            return -1;
+        }
+
+        buf[off++] = (byte)(data>>24);
+        buf[off++] = (byte)(data>>16);
+        buf[off++] = (byte)(data>>8);
+        buf[off] = (byte)data;
+
+        return 4;
+    }
+
     /**
      * Get RTP payload length from a RTP packet
      *
      * @param buffer
      * @param offset
      * @param length
+     * @param removePadding
      *
      * @return RTP payload length from source RTP packet
      */
     public static int getPayloadLength(
         byte[] buffer, int offset, int length, boolean removePadding)
     {
-        int len = length - getHeaderLength(buffer, offset, length);
+        int lenHeader = getHeaderLength(buffer, offset, length);
+        if (lenHeader < 0)
+        {
+            return -1;
+        }
+
+        int len = length - lenHeader;
+
         if (removePadding)
         {
-            len -= getPaddingSize(buffer, offset, length);
+            int szPadding = getPaddingSize(buffer, offset, length);
+            if (szPadding < 0)
+            {
+                return -1;
+            }
+
+            len -= szPadding;
         }
         return len;
     }
@@ -1071,12 +1192,10 @@ public class RawPacket
      * @return <tt>true</tt> if the RTP/RTCP packet represented by this
      * instance is found to be invalid, <tt>false</tt> otherwise.
      */
+    @Override
     public boolean isInvalid()
     {
-        return
-            (buffer == null)
-                || (buffer.length < offset + length)
-                || (length < FIXED_HEADER_SIZE);
+        return isInvalid(buffer, offset, length);
     }
 
     /**
@@ -1371,6 +1490,7 @@ public class RawPacket
     /**
      * @param length the length to set
      */
+    @Override
     public void setLength(int length)
     {
         this.length = length;
@@ -1397,6 +1517,7 @@ public class RawPacket
     /**
      * @param offset the offset to set
      */
+    @Override
     public void setOffset(int offset)
     {
         this.offset = offset;
@@ -1480,10 +1601,7 @@ public class RawPacket
      */
     public void writeInt(int off, int data)
     {
-        buffer[offset + off++] = (byte)(data>>24);
-        buffer[offset + off++] = (byte)(data>>16);
-        buffer[offset + off++] = (byte)(data>>8);
-        buffer[offset + off] = (byte)data;
+        writeInt(buffer, offset + off, data);
     }
 
     /**

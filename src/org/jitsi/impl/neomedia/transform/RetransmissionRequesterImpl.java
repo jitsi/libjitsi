@@ -146,7 +146,7 @@ public class RetransmissionRequesterImpl
                 MediaStreamTrackReceiver receiver
                     = stream.getMediaStreamTrackReceiver();
 
-                RTPEncoding encoding = receiver.resolveRTPEncoding(pkt);
+                RTPEncodingDesc encoding = receiver.findRTPEncodingDesc(pkt);
 
                 if (encoding != null)
                 {

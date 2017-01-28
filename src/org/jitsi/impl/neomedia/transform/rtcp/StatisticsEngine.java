@@ -37,7 +37,6 @@ import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
-import org.jitsi.util.function.*;
 
 /**
  * Implements a <tt>TransformEngine</tt> monitors the incoming and outgoing RTCP
@@ -156,12 +155,6 @@ public class StatisticsEngine
      * RTCP packets.
      */
     private final RTCPPacketParserEx parser = new RTCPPacketParserEx();
-
-    /**
-     * The <tt>Function</tt> that generates <tt>RawPacket</tt>s from
-     * <tt>RTCPCompoundPacket</tt>s.
-     */
-    private RTCPGenerator generator = new RTCPGenerator();
 
     /**
      * The <tt>PacketTransformer</tt> instance to use for RTP.
@@ -922,23 +915,18 @@ public class StatisticsEngine
                     || compound.packets.length == 0)
             {
                 logger.info(
-                        "Failed to analyze an incoming RTCP packet for the"
-                            + " purposes of statistics.",
-                        ex);
+                    "Failed to analyze an incoming RTCP packet for the"
+                        + " purposes of statistics.",
+                    ex);
                 return pkt;
             }
 
-            List<RTCPPacket> out = new LinkedList<>();
-            boolean modified;
-
             try
             {
-                modified
-                    = updateReceivedMediaStreamStats(compound.packets, out);
+                updateReceivedMediaStreamStats(compound.packets);
             }
             catch (Throwable t)
             {
-                modified = false;
                 if (t instanceof InterruptedException)
                 {
                     Thread.currentThread().interrupt();
@@ -955,23 +943,6 @@ public class StatisticsEngine
                             t);
                 }
             }
-
-            if (!modified)
-            {
-                return pkt; // no change was introduced
-            }
-            else if (out.isEmpty())
-            {
-                return null; // all RTCP packets were consumed
-            }
-            else
-            {
-                RTCPCompoundPacket outPacket
-                    = new RTCPCompoundPacket(
-                            out.toArray(new RTCPPacket[out.size()]));
-
-                pkt = generator.apply(outPacket);
-            }
         }
 
         return pkt;
@@ -981,15 +952,11 @@ public class StatisticsEngine
      * Processes the {@link RTCPPacket}s from {@code in} as received RTCP
      * packets and updates the {@link MediaStreamStats}. Adds to {@code out} the
      * ones which were not consumed and should be output from this instance.
-     * @param in the input packets
-     * @param out the list to which non-consumed packets will be added.
-     * @return {@code true} iff some packets were consumed.
+     * @param in the array of received RTCP packets
      */
-    private boolean updateReceivedMediaStreamStats(
-            RTCPPacket[] in,
-            List<RTCPPacket> out)
+    private void updateReceivedMediaStreamStats(
+            RTCPPacket[] in)
     {
-        boolean removed = false;
         MediaStreamStatsImpl streamStats = mediaStream.getMediaStreamStats();
 
         for (RTCPPacket rtcp : in)
@@ -1009,12 +976,19 @@ public class StatisticsEngine
                                         + Arrays.toString(remb.getDest()));
                     }
                     streamStats.rembReceived(remb);
-                    out.add(rtcp);
+                }
+                else if (rtcp instanceof FIRPacket)
+                {
+                    streamStats.firReceived((FIRPacket) rtcp);
                 }
                 break;
 
-            case RTCPPacket.RR:
             case RTCPPacket.SR:
+                if (rtcp instanceof RTCPSRPacket)
+                {
+                    streamStats.srReceived((RTCPSRPacket) rtcp);
+                }
+            case RTCPPacket.RR:
                 {
                 RTCPReport report;
 
@@ -1038,7 +1012,6 @@ public class StatisticsEngine
                     streamStats.getRTCPReports().rtcpReportReceived(report);
                 }
 
-                out.add(rtcp);
                 }
                 break;
 
@@ -1048,12 +1021,6 @@ public class StatisticsEngine
                     NACKPacket nack = (NACKPacket) rtcp;
 
                     streamStats.nackReceived(nack);
-
-                    // Note that we drop NACK packets here, and leave it as a
-                    // responsibility of the user application to handle them, if
-                    // necessary (i.e. forward the NACK packet somewhere, or
-                    // retransmit RTP packets).
-                    removed = true;
                 }
                 break;
 
@@ -1061,12 +1028,7 @@ public class StatisticsEngine
                 if (rtcp instanceof RTCPExtendedReport)
                 {
                     streamStats.getRTCPReports().rtcpExtendedReportReceived(
-                            (RTCPExtendedReport) rtcp);
-
-                    // Remove any RTP Control Protocol Extended Report (RTCP XR)
-                    // packets because neither FMJ, nor
-                    // RTCPSenderReport/RTCPReceiverReport understands them.
-                    removed = true;
+                        (RTCPExtendedReport) rtcp);
                 }
                 break;
 
@@ -1075,8 +1037,6 @@ public class StatisticsEngine
                 break;
             }
         }
-
-        return removed;
     }
 
     /**

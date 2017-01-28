@@ -28,12 +28,12 @@ import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.impl.neomedia.transform.rewriting.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -59,7 +59,6 @@ public class VideoMediaStreamImpl
     extends MediaStreamImpl
     implements VideoMediaStream
 {
-
     /**
      * The <tt>Logger</tt> used by the <tt>VideoMediaStreamImpl</tt> class and
      * its instances for logging output.
@@ -72,6 +71,14 @@ public class VideoMediaStreamImpl
      * Indication messages are to be used.
      */
     private static final boolean USE_RTCP_FEEDBACK_PLI = true;
+
+    /**
+     * The <tt>RecurringRunnableExecutor</tt> to be utilized by the
+     * <tt>MediaStreamImpl</tt> class and its instances.
+     */
+    private static final RecurringRunnableExecutor
+        recurringRunnableExecutor = new RecurringRunnableExecutor(
+        VideoMediaStreamImpl.class.getSimpleName());
 
     /**
      * Extracts and returns maximum resolution can receive from the image
@@ -414,11 +421,23 @@ public class VideoMediaStreamImpl
     private final QualityControlImpl qualityControl = new QualityControlImpl();
 
     /**
-     * The instance that is aware of all of the {@link RTPEncodingImpl} of the
+     * The instance that is aware of all of the {@link RTPEncodingDesc} of the
      * remote endpoint.
      */
     private final MediaStreamTrackReceiver mediaStreamTrackReceiver
         = new MediaStreamTrackReceiver(this);
+
+    /**
+     * The transformer which handles outgoing rtx (RFC-4588) packets for this
+     * {@link VideoMediaStreamImpl}.
+     */
+    private final RtxTransformer rtxTransformer = new RtxTransformer(this);
+
+    /**
+     * The instance that terminates RRs and REMBs.
+     */
+    private final RTCPReceiverFeedbackTermination rtcpFeedbackTermination
+        = new RTCPReceiverFeedbackTermination(this);
 
     /**
      * The <tt>RemoteBitrateEstimator</tt> which computes bitrate estimates for
@@ -457,18 +476,16 @@ public class VideoMediaStreamImpl
         = new VideoNotifierSupport(this, true);
 
     /**
-     * The {@code BandwidthEstimator} which estimates the available bandwidth
+     * The {@link BandwidthEstimator} which estimates the available bandwidth
      * from this endpoint to the remote peer.
      */
     private BandwidthEstimatorImpl bandwidthEstimator;
 
     /**
-     * The transformer which handles SSRC rewriting. It is always created
-     * (which is extremely lightweight) but it needs to be initialized so that
-     * it can work.
+     * The {@link CachingTransformer} which caches outgoing/incoming packets
+     * from/to this {@link VideoMediaStreamImpl}.
      */
-    private final SsrcRewritingEngine ssrcRewritingEngine
-        = new SsrcRewritingEngine(this);
+    private CachingTransformer cachingTransformer;
 
     /**
      * Initializes a new <tt>VideoMediaStreamImpl</tt> instance which will use
@@ -498,6 +515,17 @@ public class VideoMediaStreamImpl
             recurringRunnableExecutor.registerRecurringRunnable(
                     (RecurringRunnable) remoteBitrateEstimator);
         }
+
+        recurringRunnableExecutor.registerRecurringRunnable(rtcpFeedbackTermination);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RtxTransformer getRtxTransformer()
+    {
+        return rtxTransformer;
     }
 
     /**
@@ -561,6 +589,18 @@ public class VideoMediaStreamImpl
             {
                 recurringRunnableExecutor.deRegisterRecurringRunnable(
                         bandwidthEstimator);
+            }
+
+            if (cachingTransformer != null)
+            {
+                recurringRunnableExecutor.deRegisterRecurringRunnable(
+                    cachingTransformer);
+            }
+
+            if (rtcpFeedbackTermination != null)
+            {
+                recurringRunnableExecutor
+                    .deRegisterRecurringRunnable(rtcpFeedbackTermination);
             }
         }
     }
@@ -1330,7 +1370,14 @@ public class VideoMediaStreamImpl
     @Override
     protected CachingTransformer createCachingTransformer()
     {
-        return new CachingTransformer(hashCode());
+        if (cachingTransformer == null)
+        {
+            cachingTransformer = new CachingTransformer(this);
+            recurringRunnableExecutor.registerRecurringRunnable(
+                cachingTransformer);
+        }
+
+        return cachingTransformer;
     }
 
     /**
@@ -1351,9 +1398,9 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    protected SsrcRewritingEngine getSsrcRewritingEngine()
+    protected RTCPReceiverFeedbackTermination getRTCPTermination()
     {
-        return ssrcRewritingEngine;
+        return rtcpFeedbackTermination;
     }
 
     /**

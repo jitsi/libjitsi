@@ -13,19 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.service.neomedia.rtp;
-
-import org.jitsi.impl.neomedia.rtcp.*;
+package org.jitsi.impl.neomedia.rtcp;
 
 /**
- * A simple interface for handling RTCP NACK packets.
- * @author Boris Grozev
+ * @author George Politis
  */
-public interface NACKListener
+public class FIRPacket
+    extends RTCPFBPacket
 {
     /**
-     * Handles an RTCP NACK packet.
-     * @param nackPacket the packet.
+     * The FMT of an FIR packet.
      */
-    public void nackReceived(NACKPacket nackPacket);
+    public static final int FMT = 4;
+
+    /**
+     * Ctor.
+     *
+     * @param senderSSRC
+     * @param sourceSSRC
+     */
+    public FIRPacket(long senderSSRC, long sourceSSRC)
+    {
+        super(FMT, PSFB, senderSSRC, sourceSSRC);
+    }
 }

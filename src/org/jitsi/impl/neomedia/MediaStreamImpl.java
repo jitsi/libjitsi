@@ -33,12 +33,11 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.protocol.*;
-import org.jitsi.impl.neomedia.rtcp.termination.strategies.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.impl.neomedia.transform.rewriting.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
 import org.jitsi.impl.neomedia.transform.dtmf.*;
 import org.jitsi.impl.neomedia.transform.fec.*;
@@ -50,9 +49,7 @@ import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
-import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
-import org.jitsi.util.concurrent.*;
 
 /**
  * Implements <tt>MediaStream</tt> using JMF.
@@ -76,14 +73,6 @@ public class MediaStreamImpl
      */
     private static final Logger logger
         = Logger.getLogger(MediaStreamImpl.class);
-
-    /**
-     * The <tt>RecurringRunnableExecutor</tt> to be utilized by the
-     * <tt>MediaStreamImpl</tt> class and its instances.
-     */
-    protected static final RecurringRunnableExecutor
-        recurringRunnableExecutor = new RecurringRunnableExecutor(
-            MediaStreamImpl.class.getSimpleName());
 
     /**
      * The name of the property indicating the length of our receive buffer.
@@ -318,15 +307,6 @@ public class MediaStreamImpl
             = new TransformEngineWrapper<>();
 
     /**
-     * The <tt>TransformEngine</tt> instance registered in the
-     * <tt>RTPConnector</tt>'s transform chain, which allows the
-     * <tt>RTCPTerminationStrategy</tt> to be swapped.
-     */
-    private final TransformEngineWrapper<RTCPTerminationStrategy>
-        rtcpTransformEngineWrapper
-            = new TransformEngineWrapper<>();
-
-    /**
      * The transformer which replaces the timestamp in an abs-send-time RTP
      * header extension.
      */
@@ -483,6 +463,8 @@ public class MediaStreamImpl
                         rtpPayloadType);
             }
         }
+
+        this.onDynamicPayloadTypesChanged();
     }
 
     /**
@@ -509,6 +491,8 @@ public class MediaStreamImpl
                 fecTransformEngine.setOutgoingPT((byte) -1);
             }
         }
+
+        this.onDynamicPayloadTypesChanged();
     }
 
     /**
@@ -771,13 +755,6 @@ public class MediaStreamImpl
 
         if (deviceSession != null)
             deviceSession.close();
-
-        RTCPTerminationStrategy strategy = getRTCPTerminationStrategy();
-        if (strategy instanceof RecurringRunnable)
-        {
-            recurringRunnableExecutor
-                .deRegisterRecurringRunnable((RecurringRunnable) strategy);
-        }
     }
 
     /**
@@ -996,16 +973,6 @@ public class MediaStreamImpl
     }
 
     /**
-     * Creates the {@link SsrcRewritingEngine} for this
-     * {@code MediaStream}.
-     * @return the created {@link SsrcRewritingEngine}.
-     */
-    protected SsrcRewritingEngine getSsrcRewritingEngine()
-    {
-        return null;
-    }
-
-    /**
      * Creates a chain of transform engines for use with this stream. Note
      * that this is the only place where the <tt>TransformEngineChain</tt> is
      * and should be manipulated to avoid problems with the order of the
@@ -1030,6 +997,20 @@ public class MediaStreamImpl
 
         engineChain.add(externalTransformerWrapper);
 
+        // RRs and REMBs.
+        RTCPReceiverFeedbackTermination rtcpFeedbackTermination = getRTCPTermination();
+        if (rtcpFeedbackTermination != null)
+        {
+            engineChain.add(rtcpFeedbackTermination);
+        }
+
+        // RTX
+        RtxTransformer rtxTransformer = getRtxTransformer();
+        if (rtxTransformer != null)
+        {
+            engineChain.add(rtxTransformer);
+        }
+
         // here comes the override payload type transformer
         // as it changes headers of packets, need to go before encryption
         if (ptTransformEngine == null)
@@ -1045,17 +1026,6 @@ public class MediaStreamImpl
         REDTransformEngine redTransformEngine = getRedTransformEngine();
         if (redTransformEngine != null)
             engineChain.add(redTransformEngine);
-
-        // SSRC rewriting
-        SsrcRewritingEngine ssrcRewritingEngine = getSsrcRewritingEngine();
-        if (ssrcRewritingEngine != null)
-            engineChain.add(ssrcRewritingEngine);
-
-        // RTCPTerminationTransformEngine passes received RTCP to
-        // RTCPTerminationStrategy for inspection and modification. The RTCP
-        // termination needs to be as close to the SRTP transform engine as
-        // possible.
-        engineChain.add(rtcpTransformEngineWrapper);
 
         // RTCP Statistics
         if (statisticsEngine == null)
@@ -1912,12 +1882,6 @@ public class MediaStreamImpl
                 configureRTPManagerBufferControl(rtpManager, bc);
 
             rtpManager.setSSRCFactory(ssrcFactory);
-            // Override the default RTCP generation and transmission mechanism
-            // in FMJ. The default mechanism can be emulated using
-            // PassthroughRTCPTerminationStrategy although this would only be
-            // useful in the case the bridge acts as an audio mixer.
-            rtpManager.setRTCPTransmitterFactory(
-                new RTCPTransmitterFactoryImpl(rtpTranslator));
 
             rtpManager.initialize(rtpConnector);
 
@@ -3568,53 +3532,6 @@ public class MediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    public RTCPTerminationStrategy getRTCPTerminationStrategy()
-    {
-        return rtcpTransformEngineWrapper.getWrapped();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setRTCPTerminationStrategy(
-            RTCPTerminationStrategy rtcpTerminationStrategy)
-    {
-        RTCPTerminationStrategy oldValue
-            = rtcpTransformEngineWrapper.getWrapped();
-        RTCPTerminationStrategy newValue = rtcpTerminationStrategy;
-
-        if (oldValue != newValue)
-        {
-            if (oldValue instanceof RecurringRunnable)
-            {
-                recurringRunnableExecutor
-                    .deRegisterRecurringRunnable((RecurringRunnable) oldValue);
-            }
-
-            // XXX The following (source) code was moved here from another place
-            // and there it was called before remembering the new
-            // rtcpTerminationStrategy so we've preserved the order here.
-            if (newValue instanceof MediaStreamRTCPTerminationStrategy)
-            {
-                ((MediaStreamRTCPTerminationStrategy) newValue)
-                    .initialize(this);
-            }
-
-            if (newValue instanceof RecurringRunnable)
-            {
-                recurringRunnableExecutor
-                    .registerRecurringRunnable((RecurringRunnable) newValue);
-            }
-
-            rtcpTransformEngineWrapper.setWrapped(newValue);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     @SuppressWarnings("unchecked")
     public void injectPacket(RawPacket pkt, boolean data, TransformEngine after)
         throws TransmissionFailedException
@@ -3651,15 +3568,6 @@ public class MediaStreamImpl
                 if (wrapper != null && wrapper.contains(after))
                 {
                     after = wrapper;
-                }
-                else
-                {
-                    // rtcpTransformEngineWrapper
-                    wrapper = rtcpTransformEngineWrapper;
-                    if (wrapper != null && wrapper.contains(after))
-                    {
-                        after = wrapper;
-                    }
                 }
             }
 
@@ -3803,10 +3711,11 @@ public class MediaStreamImpl
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the {@link CachingTransformer} which (optionally) caches outgoing
+     * packets for this {@link MediaStreamImpl}, if it exists.
+     * @return the {@link CachingTransformer} for this {@link MediaStreamImpl}.
      */
-    @Override
-    public RawPacketCache getPacketCache()
+    public CachingTransformer getCachingTransformer()
     {
         return cachingTransformer;
     }
@@ -3835,9 +3744,15 @@ public class MediaStreamImpl
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the {@link REDBlock} that contains the payload of the packet passed
+     * in as a parameter.
+     *
+     * @param buf the buffer that holds the RTP payload.
+     * @param off the offset in the buff where the RTP payload is found.
+     * @param len then length of the RTP payload in the buffer.
+     * @return the {@link REDBlock} that contains the payload of the packet
+     * passed in as a parameter, or null if the buffer is invalid.
      */
-    @Override
     public REDBlock getPayloadBlock(byte[] buf, int off, int len)
     {
         if (buf == null || buf.length < off + len
@@ -3863,11 +3778,42 @@ public class MediaStreamImpl
     }
 
     /**
+     * Gets the {@code RtxTransformer}, if any, used by the {@code MediaStream}.
+     *
+     * @return the {@code RtxTransformer} used by the {@code MediaStream} or
+     * {@code null}
+     */
+    public RtxTransformer getRtxTransformer()
+    {
+        return null;
+    }
+
+    /**
      * Creates the {@link DiscardTransformEngine} for this stream. Allows
      * extenders to override.
      */
     protected DiscardTransformEngine createDiscardEngine()
     {
         return null;
+    }
+
+    /**
+     * Gets the RTCP termination for this {@link MediaStreamImpl}.
+     */
+    protected RTCPReceiverFeedbackTermination getRTCPTermination()
+    {
+        return null;
+    }
+
+    /**
+     * Code that runs when the dynamic payload types change.
+     */
+    private void onDynamicPayloadTypesChanged()
+    {
+        RtxTransformer rtxTransformer = getRtxTransformer();
+        if (rtxTransformer != null)
+        {
+            rtxTransformer.onDynamicPayloadTypesChanged();
+        }
     }
 }

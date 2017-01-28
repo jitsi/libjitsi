@@ -150,8 +150,7 @@ public class DiscardTransformEngine
             int pt = RTCPHeaderUtils.getPacketType(buf, offset, pktLen);
             if (pt == RTCPPacket.SR)
             {
-                long ssrc
-                    = RTCPHeaderUtils.getSenderSSRC(buf, offset, pktLen);
+                long ssrc = RawPacket.getRTCPSSRCAsLong(buf, offset, pktLen);
 
                 ResumableStreamRewriter rewriter;
                 synchronized (ssrcToRewriter)

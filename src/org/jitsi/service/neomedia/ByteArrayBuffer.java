@@ -43,4 +43,27 @@ public interface ByteArrayBuffer
      * @return the length of the data in the buffer.
      */
     int getLength();
+
+    /**
+     * Sets the length of the data in the buffer.
+     *
+     * @param len the length of the data in the buffer.
+     */
+    void setLength(int len);
+
+    /**
+     * Sets the offset of the data in the buffer.
+     *
+     * @param off the offset of the data in the buffer.
+     */
+    void setOffset(int off);
+
+    /**
+     * Perform checks on the byte buffer represented by this instance and
+     * return <tt>true</tt> if it is found to be invalid.
+     *
+     * @return <tt>true</tt> if the byte buffer represented by this
+     * instance is found to be invalid, <tt>false</tt> otherwise.
+     */
+    boolean isInvalid();
 }
