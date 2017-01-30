@@ -267,7 +267,7 @@ public class JNIDecoder
 
                         if ((nal != null) && (nal.length != 0))
                         {
-                            nals.write(DePacketizer.NAL_PREFIX);
+                            nals.write(H264.NAL_PREFIX);
                             nals.write(nal);
                         }
                     }
