@@ -1048,12 +1048,6 @@ public class MediaStreamImpl
             engineChain.add(absSendTimeEngine);
         }
 
-        // Debug
-        debugTransformEngine
-            = DebugTransformEngine.createDebugTransformEngine(this);
-        if (debugTransformEngine != null)
-            engineChain.add(debugTransformEngine);
-
         // Discard
         DiscardTransformEngine discardEngine = createDiscardEngine();
         if (discardEngine != null)
@@ -1066,6 +1060,12 @@ public class MediaStreamImpl
         {
             engineChain.add(mediaStreamTrackReceiver);
         }
+
+        // Debug
+        debugTransformEngine
+            = DebugTransformEngine.createDebugTransformEngine(this);
+        if (debugTransformEngine != null)
+            engineChain.add(debugTransformEngine);
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
