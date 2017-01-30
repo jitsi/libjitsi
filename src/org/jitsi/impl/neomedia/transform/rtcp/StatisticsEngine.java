@@ -977,10 +977,6 @@ public class StatisticsEngine
                     }
                     streamStats.rembReceived(remb);
                 }
-                else if (rtcp instanceof FIRPacket)
-                {
-                    streamStats.firReceived((FIRPacket) rtcp);
-                }
                 break;
 
             case RTCPPacket.SR:

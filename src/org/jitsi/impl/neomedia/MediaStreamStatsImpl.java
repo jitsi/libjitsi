@@ -1497,24 +1497,6 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * Notifies this instance that an RTCP FIR packet was received.
-     * @param fir the packet.
-     */
-    public void firReceived(FIRPacket fir)
-    {
-        if (fir != null)
-        {
-            synchronized (rtcpPacketListeners)
-            {
-                for (RTCPPacketListener listener : rtcpPacketListeners)
-                {
-                    listener.firReceived(fir);
-                }
-            }
-        }
-    }
-
-    /**
      * Notifies this instance that an RTCP SR packet was received.
      * @param sr the packet.
      */

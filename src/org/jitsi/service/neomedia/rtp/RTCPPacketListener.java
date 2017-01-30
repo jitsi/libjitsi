@@ -41,20 +41,6 @@ public interface RTCPPacketListener
     void rembReceived(RTCPREMBPacket rembPacket);
 
     /**
-     * Notifies this listener that a {@link FIRPacket} has been received.
-     *
-     * @param firPacket the received {@link FIRPacket}.
-     */
-    void firReceived(FIRPacket firPacket);
-
-    /**
-     * Notifies this listener that a {@link PLIPacket} has been received.
-     *
-     * @param pliPacket the received {@link PLIPacket}.
-     */
-    void pliReceived(PLIPacket pliPacket);
-
-    /**
      * Notifies this listener that an {@link RTCPSRPacket} has been received.
      *
      * @param srPacket the received {@link RTCPSRPacket}.

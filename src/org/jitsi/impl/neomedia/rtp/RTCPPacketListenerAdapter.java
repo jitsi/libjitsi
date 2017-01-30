@@ -47,24 +47,6 @@ public class RTCPPacketListenerAdapter
      * {@inheritDoc}
      */
     @Override
-    public void firReceived(FIRPacket firPacket)
-    {
-
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void pliReceived(PLIPacket pliPacket)
-    {
-
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public void srReceived(RTCPSRPacket srPacket)
     {
 
