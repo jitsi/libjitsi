@@ -312,7 +312,7 @@ public class MediaStreamTrackReceiver
                 RawPacket[] extras = encoding
                     .getMediaStreamTrack().reverseTransform(pkts[i], encoding);
 
-                if (ArrayUtils.isNullOrEmpty(extras))
+                if (!ArrayUtils.isNullOrEmpty(extras))
                 {
                     cumulExtras = ArrayUtils.concat(cumulExtras, extras);
                 }
