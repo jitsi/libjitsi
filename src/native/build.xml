@@ -1313,6 +1313,7 @@
             outfile="${native_install_dir}/jnsctp"
             objdir="${obj}">
 
+            <compilerarg value="-g" />
             <compilerarg value="-D_JNI_IMPLEMENTATION_" />
             <compilerarg value="-DINET6=1" />
             <compilerarg value="-fPIC" />
