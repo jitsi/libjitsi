@@ -70,18 +70,12 @@ public class BandwidthEstimatorImpl
     private final SendSideBandwidthEstimation sendSideBandwidthEstimation;
 
     /**
-     * The {@link MediaStream} which owns this instance.
-     */
-    private final MediaStream mediaStream;
-
-    /**
      * Initializes a new instance which is to belong to a particular
      * {@link MediaStream}.
      * @param stream the {@link MediaStream}.
      */
     public BandwidthEstimatorImpl(MediaStream stream)
     {
-        mediaStream = stream;
         sendSideBandwidthEstimation
             = new SendSideBandwidthEstimation(stream, START_BITRATE_BPS);
         sendSideBandwidthEstimation.setMinMaxBitrate(
