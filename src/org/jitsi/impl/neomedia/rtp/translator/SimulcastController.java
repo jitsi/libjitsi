@@ -324,7 +324,7 @@ public class SimulcastController
                 int start = startFrame.getStart();
                 int len = (startFrame.getMaxSeen() - start) & 0xFFFF;
                 pkts = new RawPacket[len];
-                for (int i = 0; i < len; i++)
+                for (int i = 0; i <= len; i++)
                 {
                     // Note that the ingress cache might not have the desired
                     // packet.
