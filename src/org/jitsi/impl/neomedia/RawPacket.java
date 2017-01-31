@@ -171,6 +171,9 @@ public class RawPacket
      * not replace extensions so if you add the same buffer twice it would be
      * added as a separate extension.
      *
+     * WARNING this code is broken and doesn't correctly handle adding extensions
+     * with length % 4 != 0, which requires padding to be added.
+     *
      * @param extBuff the buffer that we'd like to add as an extension in this
      * packet.
      * @param newExtensionLen the length of the data in extBuff.
@@ -629,6 +632,8 @@ public class RawPacket
     {
         if (!getExtensionBit(buffer, offset, length))
             return 0;
+
+        // TODO should we verify the "defined by profile" field here (0xBEDE)?
 
         // The extension length comes after the RTP header, the CSRC list, and
         // two bytes in the extension header called "defined by profile".
