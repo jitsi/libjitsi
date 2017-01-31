@@ -190,7 +190,8 @@ Java_org_jitsi_sctp4j_Sctp_usrsctp_1init
     debugSctpPrintf("=====>: org_jitsi_sctp4j_Sctp.c about to set SCTP_DEBUG_ALL\n");
 #ifdef SCTP_DEBUG
     debugSctpPrintf("=====>: org_jitsi_sctp4j_Sctp.c setting SCTP_DEBUG_ALL\n");
-    usrsctp_sysctl_set_sctp_debug_on(SCTP_DEBUG_ALL);
+    //usrsctp_sysctl_set_sctp_debug_on(SCTP_DEBUG_ALL);
+    usrsctp_sysctl_set_sctp_debug_on(SCTP_DEBUG_NONE);
 #endif
 
 
@@ -634,6 +635,7 @@ debugSctpPrintf(const char *format, ...)
     va_start(args, format);
     vprintf(format, args);
     va_end(args);
+    fflush(stdout);
 }
 
 void
