@@ -886,7 +886,7 @@ public class StatisticsEngine
         if (isRTCP(pkt))
         {
             mediaStreamStats.rtcpPacketReceived(
-                pkt.getRTCPSSRCAsLong(), pkt.getLength());
+                pkt.getRTCPSSRC(), pkt.getLength());
 
             RTCPCompoundPacket compound;
             Exception ex;
@@ -1054,7 +1054,7 @@ public class StatisticsEngine
         // SRTP may send non-RTCP packets.
         if (isRTCP(pkt))
         {
-            mediaStreamStats.rtcpPacketSent(pkt.getRTCPSSRCAsLong(),
+            mediaStreamStats.rtcpPacketSent(pkt.getRTCPSSRC(),
                                             pkt.getLength());
             try
             {
