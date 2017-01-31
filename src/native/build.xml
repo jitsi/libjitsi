@@ -1314,6 +1314,7 @@
             objdir="${obj}">
 
             <compilerarg value="-g" />
+            <compilerarg value="-DSCTP_DEBUG=1" if="SCTP_DEBUG"/>
             <compilerarg value="-D_JNI_IMPLEMENTATION_" />
             <compilerarg value="-DINET6=1" />
             <compilerarg value="-fPIC" />
@@ -1335,7 +1336,7 @@
             <linkerarg value="-lusrsctp" location="end" />
             <linkerarg value="-Wl,-Bdynamic" location="end" />
             <linkerarg value="-lpthread" location="end" />
-            <linkerarg value="-L${usrsctp}/usrsctplib/.libs" />
+            <linkerarg value="-L/home/brian/src/usrsctp/usrsctplib/.libs" />
 
             <fileset dir="${src}/native/sctp" includes="org_jitsi_sctp4j_Sctp.c"/>
 
