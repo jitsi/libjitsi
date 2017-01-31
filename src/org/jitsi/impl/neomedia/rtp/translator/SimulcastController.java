@@ -47,7 +47,7 @@ public class SimulcastController
      * when the target idx = -1.
      */
     private static final SimTransformation dropState
-        = new SimTransformation(-1, -1, -1, -1);
+        = new SimTransformation(-1, -1, null);
 
     /**
      * The target SSRC is the primary SSRC of the first encoding of the source.
@@ -180,7 +180,7 @@ public class SimulcastController
                     + ",seq_delta=" + seqNumDelta);
             }
             transformState = new SimTransformation(
-                sourceSSRC, tsDelta, seqNumDelta, sourceIdx);
+                tsDelta, seqNumDelta, sourceFrameDesc);
 
             onAccept(buf, off, len);
 
@@ -284,11 +284,11 @@ public class SimulcastController
      * @return the transformed {@link RawPacket} or null if the packet needs
      * to be dropped.
      */
-    public RawPacket rtpTransform(RawPacket pkt)
+    public RawPacket[] rtpTransform(RawPacket pkt)
     {
         if (!RTPPacketPredicate.INSTANCE.test(pkt))
         {
-            return pkt;
+            return new RawPacket[] { pkt };
         }
 
         SimTransformation state = transformState;
@@ -301,38 +301,87 @@ public class SimulcastController
             return null;
         }
 
-        int srcSeqNum = pkt.getSequenceNumber();
-        int dstSeqNum = state.rewriteSeqNum(srcSeqNum);
+        RawPacket[] pkts;
 
-        long srcTs = pkt.getTimestamp();
-        long dstTs = state.rewriteTimestamp(srcTs);
-
-        if (logger.isDebugEnabled())
+        FrameDesc startFrame;
+        if (transformState.maybeFixInitialIndependentFrame
+            && (startFrame = state.weakStartFrame.get()) != null
+            && startFrame.matches(pkt))
         {
-            logger.debug("src_ssrc=" + pkt.getSSRCAsLong()
-                + ",src_seq=" + srcSeqNum
-                + ",src_ts=" + srcTs
-                + ",dst_ssrc=" + targetSSRC
-                + ",dst_seq=" + dstSeqNum
-                + ",dst_ts=" + dstTs);
+            transformState.maybeFixInitialIndependentFrame = false;
+
+            if (startFrame.getStart() != pkt.getSequenceNumber())
+            {
+                // Piggy back till max seen.
+                RawPacketCache inCache = startFrame
+                    .getRTPEncoding()
+                    .getMediaStreamTrack()
+                    .getMediaStreamTrackReceiver()
+                    .getStream()
+                    .getCachingTransformer()
+                    .getIncomingRawPacketCache();
+
+                int start = startFrame.getStart();
+                int len = (startFrame.getMaxSeen() - start) & 0xFFFF;
+                pkts = new RawPacket[len];
+                for (int i = 0; i < len; i++)
+                {
+                    // Note that the ingress cache might not have the desired
+                    // packet.
+                    pkts[i] = inCache.get(srcSSRC, (start + i) & 0xFFFF);
+                }
+            }
+            else
+            {
+                pkts = new RawPacket[] { pkt };
+            }
+        }
+        else
+        {
+            pkts = new RawPacket[]{pkt};
         }
 
-        if (srcSeqNum != dstSeqNum)
+        for (int i = 0; i < pkts.length; i++)
         {
-            pkt.setSequenceNumber(dstSeqNum);
+            // Note that the ingress cache might not have the desired packet.
+            if (pkts[i] == null)
+            {
+                continue;
+            }
+
+            int srcSeqNum = pkt.getSequenceNumber();
+            int dstSeqNum = state.rewriteSeqNum(srcSeqNum);
+
+            long srcTs = pkt.getTimestamp();
+            long dstTs = state.rewriteTimestamp(srcTs);
+
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("src_ssrc=" + pkt.getSSRCAsLong()
+                    + ",src_seq=" + srcSeqNum
+                    + ",src_ts=" + srcTs
+                    + ",dst_ssrc=" + targetSSRC
+                    + ",dst_seq=" + dstSeqNum
+                    + ",dst_ts=" + dstTs);
+            }
+
+            if (srcSeqNum != dstSeqNum)
+            {
+                pkt.setSequenceNumber(dstSeqNum);
+            }
+
+            if (dstTs != srcTs)
+            {
+                pkt.setTimestamp(dstTs);
+            }
+
+            if (srcSSRC != targetSSRC)
+            {
+                pkt.setSSRC((int) targetSSRC);
+            }
         }
 
-        if (dstTs != srcTs)
-        {
-            pkt.setTimestamp(dstTs);
-        }
-
-        if (srcSSRC != targetSSRC)
-        {
-            pkt.setSSRC((int) targetSSRC);
-        }
-
-        return pkt;
+        return pkts;
     }
 
     /**
@@ -403,19 +452,30 @@ public class SimulcastController
         /**
          * Ctor.
          *
-         * @param currentSSRC the SSRC that is currently being forwarded.
+         * @param startFrame the frame that has caused this transformation.
          * @param tsDelta the RTP timestamp delta (mod 2^32) to apply to
          * outgoing RTP/RTCP packets.
          * @param seqNumDelta the RTP sequence number delta (mod 2^16) to apply
          * to outgoing RTP packets.
          */
-        SimTransformation(
-            long currentSSRC, long tsDelta, int seqNumDelta, int currentIdx)
+        SimTransformation(long tsDelta, int seqNumDelta, FrameDesc startFrame)
         {
             super(tsDelta, seqNumDelta);
-            this.currentSSRC = currentSSRC;
-            this.currentIdx = currentIdx;
+            if (startFrame != null)
+            {
+                this.currentSSRC = startFrame.getRTPEncoding().getPrimarySSRC();
+                this.currentIdx = startFrame.getRTPEncoding().getIndex();
+            }
+            else
+            {
+                this.currentIdx = -1;
+                this.currentSSRC = -1;
+            }
+            this.weakStartFrame = new WeakReference<>(startFrame);
         }
+
+        private final WeakReference<FrameDesc> weakStartFrame;
+
 
         /**
          * The current SSRC that is currently being forwarded.
@@ -427,6 +487,12 @@ public class SimulcastController
          * different than the target, then a switch is pending.
          */
         private final int currentIdx;
+
+        /**
+         * A boolean that indicates whether or not the transform thread should
+         * try to piggyback missed packets from the initial key frame.
+         */
+        private boolean maybeFixInitialIndependentFrame = true;
     }
 
     /**
