@@ -131,6 +131,7 @@ public class ByteArrayBufferImpl
             throw new IllegalArgumentException("length");
         }
         this.offset = offset;
+        this.length = length;
     }
 
     /**
