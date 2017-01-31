@@ -215,7 +215,8 @@ public class FrameDesc
         }
 
         int seqNum = pkt.getSequenceNumber();
-        return seqNum >= minSeen && seqNum <= maxSeen;
+        return RTPUtils.sequenceNumberDiff(seqNum, minSeen) >= 0
+            && RTPUtils.sequenceNumberDiff(seqNum, maxSeen) <= 0;
     }
 
 
