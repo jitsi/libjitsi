@@ -209,7 +209,9 @@ public class FrameDesc
      */
     public boolean matches(RawPacket pkt)
     {
-        if (!RTPPacketPredicate.INSTANCE.test(pkt) || ts != pkt.getTimestamp())
+        if (!RTPPacketPredicate.INSTANCE.test(pkt)
+            || ts != pkt.getTimestamp()
+            || minSeen == -1 /* <=> maxSeen == -1 */)
         {
             return false;
         }
