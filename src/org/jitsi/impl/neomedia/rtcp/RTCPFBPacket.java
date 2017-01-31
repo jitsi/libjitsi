@@ -21,6 +21,7 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Created by gp on 6/27/14.
@@ -134,8 +135,7 @@ public class RTCPFBPacket
             return -1;
         }
 
-        return RawPacket.readInt(baf.getBuffer(),
-            baf.getOffset() + 8, baf.getLength() - 8) & 0xFFFFFFFFL;
+        return RTPUtils.readUint32AsLong(baf.getBuffer(), baf.getOffset() + 8);
     }
 
     /**
@@ -196,8 +196,7 @@ public class RTCPFBPacket
         // line with the definition of the length field used in RTCP
         // sender and receiver reports
         int rtcpPacketLength = len / 4 - 1;
-        buf[off++] = (byte) ((rtcpPacketLength & 0xFF00) >> 8);
-        buf[off++] = (byte) (rtcpPacketLength & 0x00FF);
+        off += RTPUtils.writeShort(buf, off, (short) rtcpPacketLength);
 
         // SSRC of packet sender: 32 bits
         RTCPFeedbackMessagePacket.writeSSRC(senderSSRC, buf, off);
