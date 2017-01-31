@@ -268,7 +268,7 @@ public class FrameDesc
         {
             changed = true;
             start = seqNum;
-            independent = stream.isKeyFrame(buf, off, len);
+            independent = stream.isKeyFrame(pkt);
 
             if (independent)
             {

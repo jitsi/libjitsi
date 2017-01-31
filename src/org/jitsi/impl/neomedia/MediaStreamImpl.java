@@ -332,6 +332,12 @@ public class MediaStreamImpl
         = createRetransmissionRequester();
 
     /**
+     * The ID of the frame markings RTP header extension. We use this field as
+     * a cache, in order to not access {@link #activeRTPExtensions} every time.
+     */
+    private byte frameMarkingsExtensionId = -1;
+
+    /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
      * specified <tt>MediaDevice</tt> for both capture and playback of media.
      * The new instance will not have an associated <tt>StreamConnector</tt> and
@@ -647,13 +653,17 @@ public class MediaStreamImpl
         boolean active
             = !MediaDirection.INACTIVE.equals(rtpExtension.getDirection());
 
-        if (RTPExtension.ABS_SEND_TIME_URN.equals(
-                rtpExtension.getURI().toString()))
+        String uri = rtpExtension.getURI().toString();
+        if (RTPExtension.ABS_SEND_TIME_URN.equals(uri))
         {
             if (absSendTimeEngine != null)
             {
                 absSendTimeEngine.setExtensionID(active ? extensionID : -1);
             }
+        }
+        else if (RTPExtension.FRAME_MARKING_URN.equals(uri))
+        {
+            frameMarkingsExtensionId = active ? extensionID : -1;
         }
     }
 
@@ -3678,10 +3688,47 @@ public class MediaStreamImpl
     }
 
     /**
-    * {@inheritDoc}
-    */
+     * {@inheritDoc}
+     * </p>
+     * This is absolutely terrible, but we need a RawPacket and the method is
+     * used from RTPTranslator, which doesn't work with RawPacket.
+     */
     public boolean isKeyFrame(byte[] buf, int off, int len)
     {
+        return isKeyFrame(new RawPacket(buf, off, len));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public boolean isKeyFrame(RawPacket pkt)
+    {
+        byte[] buf = pkt.getBuffer();
+        int off = pkt.getOffset();
+        int len = pkt.getLength();
+
+        if (frameMarkingsExtensionId != -1)
+        {
+            RawPacket.HeaderExtensions hes = pkt.getHeaderExtensions();
+            while (hes.hasNext())
+            {
+                RawPacket.HeaderExtension he = hes.next();
+                if (he.getExtId() == frameMarkingsExtensionId)
+                {
+                    return FrameMarkingHeaderExtension.isKeyframe(he);
+                }
+            }
+
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Packet with no frame marking, while frame marking"
+                             + " is enabled.");
+            }
+            // Note that we go on and try to use the payload itself. We may want
+            // to change this behaviour in the future, because it will give
+            // wrong results if the payload is encrypted.
+        }
+
         REDBlock redBlock = getPayloadBlock(buf, off, len);
         if (redBlock == null || redBlock.getLength() == 0)
         {
