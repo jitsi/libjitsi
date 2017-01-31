@@ -65,8 +65,6 @@ public class FMJPlugInConfiguration
             "org.jitsi.impl.neomedia.codec.audio.speex.JNIDecoder",
             "org.jitsi.impl.neomedia.codec.audio.speex.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.audio.speex.SpeexResampler",
-            // MP3
-            "org.jitsi.impl.neomedia.codec.audio.mp3.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.audio.ilbc.JavaDecoder",
             "org.jitsi.impl.neomedia.codec.audio.ilbc.JavaEncoder",
             EncodingConfigurationImpl.G729
@@ -83,25 +81,36 @@ public class FMJPlugInConfiguration
             "org.jitsi.impl.neomedia.codec.audio.gsm.Packetizer",
             "org.jitsi.impl.neomedia.codec.audio.silk.JavaDecoder",
             "org.jitsi.impl.neomedia.codec.audio.silk.JavaEncoder",
-            //"org.jitsi.impl.neomedia.codec.video.h263p.DePacketizer",
-            //"org.jitsi.impl.neomedia.codec.video.h263p.JNIDecoder",
-            //"org.jitsi.impl.neomedia.codec.video.h263p.JNIEncoder",
-            //"org.jitsi.impl.neomedia.codec.video.h263p.Packetizer",
-            "org.jitsi.impl.neomedia.codec.video.h264.DePacketizer",
-            "org.jitsi.impl.neomedia.codec.video.h264.JNIDecoder",
-            "org.jitsi.impl.neomedia.codec.video.h264.JNIEncoder",
-            "org.jitsi.impl.neomedia.codec.video.h264.Packetizer",
-            "org.jitsi.impl.neomedia.codec.video.SwScale",
             // VP8
             "org.jitsi.impl.neomedia.codec.video.vp8.DePacketizer",
             "org.jitsi.impl.neomedia.codec.video.vp8.Packetizer",
             "org.jitsi.impl.neomedia.codec.video.vp8.VPXDecoder",
             "org.jitsi.impl.neomedia.codec.video.vp8.VPXEncoder",
+        };
+
+    /**
+     * The additional custom JMF codecs, which depend on ffmpeg and should
+     * therefore only be used when ffmpeg is enabled.
+     */
+    private static final String[] CUSTOM_CODECS_FFMPEG
+        = {
+            // MP3
+            "org.jitsi.impl.neomedia.codec.audio.mp3.JNIEncoder",
+            // h264
+            "org.jitsi.impl.neomedia.codec.video.h264.DePacketizer",
+            "org.jitsi.impl.neomedia.codec.video.h264.JNIDecoder",
+            "org.jitsi.impl.neomedia.codec.video.h264.JNIEncoder",
+            "org.jitsi.impl.neomedia.codec.video.h264.Packetizer",
+            "org.jitsi.impl.neomedia.codec.video.SwScale",
+            //"org.jitsi.impl.neomedia.codec.video.h263p.DePacketizer",
+            //"org.jitsi.impl.neomedia.codec.video.h263p.JNIDecoder",
+            //"org.jitsi.impl.neomedia.codec.video.h263p.JNIEncoder",
+            //"org.jitsi.impl.neomedia.codec.video.h263p.Packetizer",
             // Adaptive Multi-Rate Wideband (AMR-WB)
-//            "org.jitsi.impl.neomedia.codec.audio.amrwb.DePacketizer",
+            // "org.jitsi.impl.neomedia.codec.audio.amrwb.DePacketizer",
             "org.jitsi.impl.neomedia.codec.audio.amrwb.JNIDecoder",
             "org.jitsi.impl.neomedia.codec.audio.amrwb.JNIEncoder",
-//            "org.jitsi.impl.neomedia.codec.audio.amrwb.Packetizer",
+            // "org.jitsi.impl.neomedia.codec.audio.amrwb.Packetizer",
         };
 
     /**
@@ -138,8 +147,10 @@ public class FMJPlugInConfiguration
 
     /**
      * Register in JMF the custom codecs we provide
+     * @param enableFfmpeg whether codecs which depend of ffmpeg should be
+     * registered.
      */
-    public static void registerCustomCodecs()
+    public static void registerCustomCodecs(boolean enableFfmpeg)
     {
         if(codecsRegistered)
             return;
@@ -203,7 +214,13 @@ public class FMJPlugInConfiguration
                 "net.sf.fmj.media.codec.JavaSoundCodec",
                 PlugInManager.CODEC);
 
-        for (String className : CUSTOM_CODECS)
+        List<String> customCodecs = Arrays.asList(CUSTOM_CODECS);
+        if (enableFfmpeg)
+        {
+            customCodecs.addAll(Arrays.asList(CUSTOM_CODECS_FFMPEG));
+        }
+
+        for (String className : customCodecs)
         {
 
             /*
@@ -276,10 +293,8 @@ public class FMJPlugInConfiguration
         {
             boolean setPlugInList = false;
 
-            for (int i = CUSTOM_CODECS.length - 1; i >= 0; i--)
+            for (String className : customCodecs)
             {
-                String className = CUSTOM_CODECS[i];
-
                 if (className != null)
                 {
                     int classNameIndex = codecs.indexOf(className);
