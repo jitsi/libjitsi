@@ -56,7 +56,7 @@ public class AbsSendTimeEngine
     }
 
     /**
-     * Implements {@link SinglePacketTransformer#reverseTransform(RawPacket)}.
+     * Implements {@link SinglePacketTransformer#transform(RawPacket)}.
      */
     @Override
     public RawPacket transform(RawPacket pkt)
