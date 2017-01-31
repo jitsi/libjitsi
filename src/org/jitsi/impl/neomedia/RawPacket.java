@@ -139,23 +139,12 @@ public class RawPacket
     /**
      * Get RTCP SSRC from a RTCP packet
      *
-     * @return RTP SSRC from source RTP packet
+     * @return RTP SSRC from source RTP packet in a {@code long}.
      */
-    public static int getRTCPSSRC(byte[] buf, int off, int len)
+    public static long getRTCPSSRC(ByteArrayBuffer baf)
     {
-        return readInt(buf, off + 4, len);
-    }
-
-    /**
-     * Get RTCP SSRC from a RTCP packet
-     *
-     * @return RTP SSRC from source RTP packet
-     */
-    public static int getRTCPSSRC(ByteArrayBuffer baf)
-    {
-        if (baf == null)
+        if (baf == null || baf.isInvalid())
         {
-            // good luck with that, that's a valid SSRC
             return -1;
         }
 
@@ -165,32 +154,16 @@ public class RawPacket
     /**
      * Get RTCP SSRC from a RTCP packet
      *
-     * @return RTP SSRC from source RTP packet in a {@code long}.
-     */
-    public static long getRTCPSSRCAsLong(ByteArrayBuffer baf)
-    {
-        if (baf == null || baf.isInvalid())
-        {
-            return -1;
-        }
-
-        return getRTCPSSRCAsLong(
-            baf.getBuffer(), baf.getOffset(), baf.getLength());
-    }
-
-    /**
-     * Get RTCP SSRC from a RTCP packet
-     *
      * @return RTP SSRC from source RTP packet
      */
-    public static long getRTCPSSRCAsLong(byte[] buf, int off, int len)
+    public static long getRTCPSSRC(byte[] buf, int off, int len)
     {
         if (buf == null || buf.length < off + len || len < 8)
         {
             return -1;
         }
 
-        return getRTCPSSRC(buf, off, len) & 0xFFFFFFFFL;
+        return readInt(buf, off + 4, len) & 0xFFFFFFFFL;
     }
     /**
      * Adds the <tt>extBuff</tt> buffer as an extension of this packet
@@ -995,19 +968,9 @@ public class RawPacket
      *
      * @return RTP SSRC from source RTP packet
      */
-    public int getRTCPSSRC()
+    public long getRTCPSSRC()
     {
-        return readInt(4);
-    }
-
-    /**
-     * Get RTCP SSRC from a RTCP packet
-     *
-     * @return RTP SSRC from source RTP packet in a {@code long}.
-     */
-    public long getRTCPSSRCAsLong()
-    {
-        return getRTCPSSRC() & 0xffffffffL;
+        return getRTCPSSRC(this);
     }
 
     /**

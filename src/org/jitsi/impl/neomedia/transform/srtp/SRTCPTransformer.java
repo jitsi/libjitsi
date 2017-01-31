@@ -145,7 +145,7 @@ public class SRTCPTransformer
             RawPacket pkt,
             SRTPContextFactory engine)
     {
-        int ssrc = pkt.getRTCPSSRC();
+        int ssrc = (int) pkt.getRTCPSSRC();
         SRTCPCryptoContext context = null;
 
         synchronized (contexts)

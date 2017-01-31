@@ -408,7 +408,7 @@ public class SimulcastController
             {
             case RTCPPacket.SR:
 
-                if (RawPacket.getRTCPSSRCAsLong(pkt) != state.currentSSRC)
+                if (RawPacket.getRTCPSSRC(pkt) != state.currentSSRC)
                 {
                     // SRs from other streams get axed.
                     it.remove();
