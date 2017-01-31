@@ -322,9 +322,10 @@ public class SimulcastController
                     .getIncomingRawPacketCache();
 
                 int start = startFrame.getStart();
-                int len = (startFrame.getMaxSeen() - start) & 0xFFFF;
+                int len = RTPUtils.sequenceNumberDiff(
+                    startFrame.getMaxSeen(), start) + 1;
                 pkts = new RawPacket[len];
-                for (int i = 0; i <= len; i++)
+                for (int i = 0; i < pkts.length; i++)
                 {
                     // Note that the ingress cache might not have the desired
                     // packet.

@@ -223,19 +223,26 @@ public class MediaStreamTrackDesc
 
         RawPacket[] extras = null;
 
-        if (!frameDesc.isSofInOrder())
+        if (frameDesc.getStart() != -1 && !frameDesc.isSofInOrder())
         {
+            frameDesc.setSofInOrder(true);
+
             // Piggy back till max seen.
             RawPacketCache inCache = mediaStreamTrackReceiver.getStream()
                 .getCachingTransformer().getIncomingRawPacketCache();
 
             int start = frameDesc.getStart();
-            int len = (frameDesc.getMaxSeen() - start) & 0xFFFF;
+            int len = RTPUtils
+                    .sequenceNumberDiff(frameDesc.getMaxSeen(), start);
             extras = new RawPacket[len];
-            for (int i = 1; i <= len; i++)
+            for (int i = 0; i < extras.length; i++)
             {
+                // skip the first packet of the key frame as this will be
+                // included by the calling function.. here we only include the
+                // extra packets. Furthermore, this only runs once, when we
+                // receive the first packet of a keyframe.
                 extras[i] = inCache.get(encoding.getPrimarySSRC(),
-                    (start + i) & 0xFFFF);
+                    (start + i + 1) & 0xFFFF);
             }
         }
         return extras;
