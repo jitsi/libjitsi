@@ -195,10 +195,32 @@ public class FrameDesc
      * @return the maximum sequence number that we've seen for this source
      * frame.
      */
-    int getMaxSeen()
+    public int getMaxSeen()
     {
         return maxSeen;
     }
+
+    /**
+     * Determines whether a packet belongs to this frame or not.
+     * @param pkt the {@link RawPacket} to determine whether or not it belongs
+     * to this frame.
+     * @return true if the {@link RawPacket} passed as an argument belongs to
+     * this frame, otherwise false.
+     */
+    public boolean matches(RawPacket pkt)
+    {
+        if (!RTPPacketPredicate.INSTANCE.test(pkt)
+            || ts != pkt.getTimestamp()
+            || minSeen == -1 /* <=> maxSeen == -1 */)
+        {
+            return false;
+        }
+
+        int seqNum = pkt.getSequenceNumber();
+        return RTPUtils.sequenceNumberDiff(seqNum, minSeen) >= 0
+            && RTPUtils.sequenceNumberDiff(seqNum, maxSeen) <= 0;
+    }
+
 
     /**
      * Updates the state of this {@link FrameDesc}.
