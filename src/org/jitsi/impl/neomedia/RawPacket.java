@@ -82,10 +82,17 @@ public class RawPacket
     private int offset;
 
     /**
+     * A {@link HeaderExtensions} instance, used to iterate over the RTP header
+     * extensions of this {@link RawPacket}.
+     */
+    private HeaderExtensions headerExtensions;
+
+    /**
      * Initializes a new empty <tt>RawPacket</tt> instance.
      */
     public RawPacket()
     {
+        headerExtensions = null;
     }
 
     /**
@@ -104,6 +111,7 @@ public class RawPacket
         this.buffer = buffer;
         this.offset = offset;
         this.length = length;
+        headerExtensions = new HeaderExtensions();
     }
 
     /**
@@ -622,6 +630,19 @@ public class RawPacket
     public int getExtensionLength()
     {
         return getExtensionLength(buffer, offset, length);
+    }
+
+    /**
+     * @return the iterator over this {@link RawPacket}'s RTP header extensions.
+     */
+    public HeaderExtensions getHeaderExtensions()
+    {
+        if (headerExtensions == null)
+        {
+            headerExtensions = new HeaderExtensions();
+        }
+        headerExtensions.reset();
+        return headerExtensions;
     }
 
     /**
@@ -1270,6 +1291,7 @@ public class RawPacket
     public void setBuffer(byte[] buffer)
     {
         this.buffer = buffer;
+        headerExtensions = new HeaderExtensions();
     }
 
     /**
@@ -1532,5 +1554,174 @@ public class RawPacket
             .append(']');
 
         return sb.toString();
+    }
+
+    /**
+     * Represents an RTP header extension with the RFC5285 one-byte header:
+     * <pre>{@code
+     * 0
+     * 0 1 2 3 4 5 6 7
+     * +-+-+-+-+-+-+-+-+
+     * |  ID   |  len  |
+     * +-+-+-+-+-+-+-+-+
+     * }</pre>
+     */
+    public class HeaderExtension
+        extends ByteArrayBufferImpl
+    {
+        HeaderExtension()
+        {
+            super(buffer, 0, 0);
+        }
+
+        /**
+         * @return the ID field of this extension.
+         */
+        public int getExtId()
+        {
+            if (getLength() <= 0)
+                return -1;
+            return (buffer[getOffset()] & 0xf0) >>> 4;
+        }
+
+        /**
+         * @return the number of bytes of data in this header extension.
+         */
+        public int getExtLength()
+        {
+            // "The 4-bit length is the number minus one of data bytes of this
+            // header extension element following the one-byte header.
+            // Therefore, the value zero in this field indicates that one byte
+            // of data follows, and a value of 15 (the maximum) indicates
+            // element data of 16 bytes."
+            return (buffer[getOffset()] & 0x0f) + 1;
+        }
+    }
+
+    /**
+     * Implements an iterator over the RTP header extensions of a
+     * {@link RawPacket}.
+     */
+    public class HeaderExtensions
+        implements Iterator<HeaderExtension>
+    {
+        /**
+         * The offset of the next extension.
+         */
+        private int nextOff;
+
+        /**
+         * The remaining length of the extensions headers.
+         */
+        private int remainingLen;
+
+        /**
+         * The single {@link HeaderExtension} instance which will be updates
+         * with each iteration.
+         */
+        private HeaderExtension headerExtension = new HeaderExtension();
+
+        /**
+         * Resets the iterator to the beginning of the header extensions of the
+         * {@link RawPacket}.
+         */
+        private void reset()
+        {
+            int len = getExtensionLength();
+            if (len <= 0)
+            {
+                // No extensions.
+                nextOff = -1;
+                remainingLen = -1;
+                return;
+            }
+
+            nextOff
+                = offset
+                        + FIXED_HEADER_SIZE
+                        + getCsrcCount(buffer, offset, length) * 4
+                        + EXT_HEADER_SIZE;
+            remainingLen = len;
+        }
+
+        /**
+         * {@inheritDoc}
+         * </p>
+         * Returns true if this {@RawPacket} contains another header extension.
+         */
+        @Override
+        public boolean hasNext()
+        {
+            if (remainingLen <= 0 || nextOff < 0)
+            {
+                return false;
+            }
+
+            int len = getExtLength(buffer, nextOff, remainingLen);
+            if (len <= 0)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /**
+         * @return the length in bytes of an RTP header extension with an
+         * RFC5285 one-byte header. This is slightly different from
+         * {@link HeaderExtension#getExtLength()} in that it includes the header
+         * byte and checks the boundaries.
+         */
+        private int getExtLength(byte[] buf, int off, int len)
+        {
+            if (len <= 2)
+            {
+                return -1;
+            }
+
+            // len=0 indicates 1 byte of data; add 1 more byte for the id/len
+            // field itself.
+            int extLen = (buf[off] & 0x0f) + 2;
+
+            if (extLen > len)
+            {
+                return -1;
+            }
+            return extLen;
+        }
+
+        /**
+         * @return the next header extension of this {@link RawPacket}. Note
+         * that it reuses the same object and only update its state.
+         */
+        @Override
+        public HeaderExtension next()
+        {
+            // Prepare this.headerExtension
+            int extLen = getExtLength(buffer, nextOff, remainingLen);
+            if (extLen <= 0)
+            {
+                throw new IllegalStateException(
+                    "Invalid extension length. Did next() return true?");
+            }
+            headerExtension.setOffsetLength(nextOff, extLen);
+
+            // Advance "next"
+            nextOff += extLen;
+            remainingLen -= extLen;
+
+            return headerExtension;
+        }
+
+        /**
+         * {@inheritDoc}
+         * </p>
+         * This {@link Iterator} does not support removing elements.
+         */
+        @Override
+        public void remove()
+        {
+            throw new UnsupportedOperationException("remove");
+        }
     }
 }
