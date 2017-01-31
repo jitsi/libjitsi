@@ -1492,6 +1492,16 @@ public class RawPacket
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setOffsetLength(int offset, int length)
+    {
+        setOffset(offset);
+        setLength(length);
+    }
+
+    /**
      * Sets the payload type of this packet.
      *
      * @param payload the RTP payload type describing the content of this
