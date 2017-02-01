@@ -123,7 +123,11 @@ public class ByteArrayBufferImpl
         this.offset = offset;
     }
 
-    @Override
+    /**
+     * Sets the offset and the length of this {@link ByteArrayBuffer}
+     * @param offset the offset to set.
+     * @param length the length to set.
+     */
     public void setOffsetLength(int offset, int length)
     {
         if (offset + length > buffer.length)

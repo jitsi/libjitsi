@@ -59,13 +59,6 @@ public interface ByteArrayBuffer
     void setOffset(int off);
 
     /**
-     * Sets the offset and length fields of this {@link ByteArrayBuffer}.
-     * @param off the offset to set.
-     * @param len the length to set.
-     */
-    void setOffsetLength(int off, int len);
-
-    /**
      * Perform checks on the byte buffer represented by this instance and
      * return <tt>true</tt> if it is found to be invalid.
      *

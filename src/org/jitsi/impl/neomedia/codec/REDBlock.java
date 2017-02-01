@@ -100,16 +100,6 @@ public class REDBlock
      * {@inheritDoc}
      */
     @Override
-    public void setOffsetLength(int off, int len)
-    {
-        setOffset(off);
-        setLength(len);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public boolean isInvalid()
     {
         return buf == null || buf.length < off + len;
