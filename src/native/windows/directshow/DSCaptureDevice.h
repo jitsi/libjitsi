@@ -128,6 +128,11 @@ public:
     size_t getBitPerPixel();
 
 private:
+    // see https://msdn.microsoft.com/en-us/library/windows/desktop/dd390650(v=vs.85).aspx
+    void RemoveFromRot();
+    HRESULT AddToRot();
+    DWORD m_dwRotRegister;
+
     /**
      * \brief Initialize list of supported size.
      */
