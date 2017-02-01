@@ -3703,6 +3703,11 @@ public class MediaStreamImpl
      */
     public boolean isKeyFrame(RawPacket pkt)
     {
+        if (!RTPPacketPredicate.INSTANCE.test(pkt))
+        {
+            return false;
+        }
+
         byte[] buf = pkt.getBuffer();
         int off = pkt.getOffset();
         int len = pkt.getLength();

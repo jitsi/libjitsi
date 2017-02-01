@@ -56,8 +56,11 @@ public class FrameMarkingHeaderExtension
      */
     public static boolean isKeyframe(ByteArrayBuffer baf)
     {
-        if (baf.getLength() < 2)
+        if (baf == null || baf.getLength() < 2)
+        {
             return false;
+        }
+
         // The data follows the one-byte header.
         byte b = baf.getBuffer()[baf.getOffset() + 1];
         return (b & KF_MASK) != 0;
