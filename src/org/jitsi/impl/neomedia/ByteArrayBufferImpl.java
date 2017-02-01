@@ -50,9 +50,9 @@ public class ByteArrayBufferImpl
     public ByteArrayBufferImpl(byte[] buffer, int offset, int length)
     {
         this.buffer = Objects.requireNonNull(buffer, "buffer");
-        if (offset + length > buffer.length || length < 0)
+        if (offset + length > buffer.length || length < 0 || offset < 0)
         {
-            throw new IllegalArgumentException("length");
+            throw new IllegalArgumentException("length or offset");
         }
         this.offset = offset;
         this.length = length;
@@ -120,7 +120,7 @@ public class ByteArrayBufferImpl
     @Override
     public void setOffset(int offset)
     {
-        if (offset + length > buffer.length)
+        if (offset + length > buffer.length || offset < 0)
         {
             throw new IllegalArgumentException("offset");
         }
@@ -134,9 +134,9 @@ public class ByteArrayBufferImpl
      */
     public void setOffsetLength(int offset, int length)
     {
-        if (offset + length > buffer.length || length < 0)
+        if (offset + length > buffer.length || length < 0 || offset < 0)
         {
-            throw new IllegalArgumentException("length");
+            throw new IllegalArgumentException("length or offset");
         }
         this.offset = offset;
         this.length = length;
