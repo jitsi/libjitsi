@@ -87,7 +87,7 @@ public:
      * \return true if success, false otherwise
      * \note Call this method before start().
      */
-    bool buildGraph();
+    HRESULT buildGraph();
 
     /**
      * \brief get callback object.

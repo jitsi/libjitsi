@@ -441,7 +441,7 @@ std::list<DSFormat> DSCaptureDevice::getSupportedFormats() const
     return m_formats;
 }
 
-bool DSCaptureDevice::buildGraph()
+HRESULT DSCaptureDevice::buildGraph()
 {
     HRESULT hr
         = m_captureGraphBuilder->RenderStream(
@@ -456,17 +456,18 @@ bool DSCaptureDevice::buildGraph()
         REFERENCE_TIME start = 0;
         REFERENCE_TIME stop = MAXLONGLONG;
 
-        hr
-            = m_captureGraphBuilder->ControlStream(
+        hr = m_captureGraphBuilder->ControlStream(
                     &PIN_CATEGORY_PREVIEW,
                     &MEDIATYPE_Video,
                     m_srcFilter,
                     &start, &stop,
                     1, 2);
-        return SUCCEEDED(hr);
+        return hr;
     }
     else
-        return false;
+    {
+        return hr;
+    }
 }
 
 HRESULT DSCaptureDevice::start()
