@@ -167,9 +167,8 @@ JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_connect
     (JNIEnv* env, jobject obj, jlong ptr)
 {
-    DSCaptureDevice* thiz = reinterpret_cast<DSCaptureDevice*>(ptr);
-
-    thiz->buildGraph();
+    // if the graph is built, setting the format doesn't have any effect, build it
+    // when it is required (i.e. right before starting the stream)
 }
 
 /**

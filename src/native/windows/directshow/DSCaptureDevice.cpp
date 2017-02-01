@@ -472,6 +472,12 @@ HRESULT DSCaptureDevice::buildGraph()
 
 HRESULT DSCaptureDevice::start()
 {
+    HRESULT hr = buildGraph();
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
     return m_graphController ? m_graphController->Run() : E_FAIL;
 }
 
