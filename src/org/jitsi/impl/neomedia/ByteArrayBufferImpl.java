@@ -122,7 +122,7 @@ public class ByteArrayBufferImpl
     {
         if (offset + length > buffer.length)
         {
-            throw new IllegalArgumentException("length");
+            throw new IllegalArgumentException("offset");
         }
         this.offset = offset;
     }
