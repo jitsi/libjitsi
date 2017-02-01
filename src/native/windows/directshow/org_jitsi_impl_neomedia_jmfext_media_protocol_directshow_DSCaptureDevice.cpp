@@ -126,15 +126,11 @@ Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_sa
     BYTE *src_ = (BYTE *) (intptr_t) src;
     BYTE *dst_ = (BYTE *) (intptr_t) dst;
 
-    // prevent crashing if the reported length from the callback
-    // doesn't match the expected size
+    // Prevent crashing if the reported length from the callback
+    // doesn't match the expected size. The length can be smaller for
+    // compressed formats (e.g. MPJG).
     size_t imageBytes = fmt.width * fmt.height * (thiz_->getBitPerPixel() / 8);
-    if ((size_t)length < imageBytes)
-    {
-        return 0;
-    }
-
-    if (flip)
+    if (flip && (size_t)length >= imageBytes)
     {
         size_t height = fmt.height;
 
@@ -167,9 +163,8 @@ JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_jmfext_media_protocol_directshow_DSCaptureDevice_connect
     (JNIEnv* env, jobject obj, jlong ptr)
 {
-    DSCaptureDevice* thiz = reinterpret_cast<DSCaptureDevice*>(ptr);
-
-    thiz->buildGraph();
+    // if the graph is built, setting the format doesn't have any effect, build it
+    // when it is required (i.e. right before starting the stream)
 }
 
 /**
