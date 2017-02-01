@@ -9,3 +9,10 @@ libjitsi.jar
 .classpath
 .project
 libjitsi.iml
+src/native/windows/directshow/Debug/*
+lib/native/win32-x86/*.exp
+lib/native/win32-x86-64/*.exp
+*.sdf
+*.opensdf
+*.o
+src/native/native_obj/*
