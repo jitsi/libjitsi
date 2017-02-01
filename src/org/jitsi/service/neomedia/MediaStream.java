@@ -515,12 +515,19 @@ public interface MediaStream
     /**
      * Utility method that determines whether or not a packet is a key frame.
      *
-     * @param buf the buffer that holds the RTP payload.
-     * @param off the offset in the buff where the RTP payload is found.
-     * @param len then length of the RTP payload in the buffer.
+     * @param buf the buffer that holds the RTP packet.
+     * @param off the offset in the buff where the RTP packet is found.
+     * @param len then length of the RTP packet in the buffer.
      * @return true if the packet is a key frame, false otherwise.
      */
     boolean isKeyFrame(byte[] buf, int off, int len);
+
+    /**
+     * Utility method that determines whether or not a packet is a key frame.
+     *
+     * @param pkt the packet.
+     */
+    boolean isKeyFrame(RawPacket pkt);
 
     /**
      * @return the {@link RetransmissionRequester} for this media stream.

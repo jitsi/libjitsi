@@ -18,6 +18,7 @@ package org.jitsi.impl.neomedia.rtcp;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Utility class that contains static methods for RTCP sender info manipulation.
@@ -45,7 +46,7 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RawPacket.readInt(buf, off + 8, len) & 0xffffffffL;
+        return RTPUtils.readUint32AsLong(buf, off + 8);
     }
 
     /**
@@ -67,7 +68,7 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RawPacket.writeInt(buf, off + 16, ts);
+        return RTPUtils.writeInt(buf, off + 16, ts);
     }
 
     /**
@@ -107,7 +108,7 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RawPacket.readInt(buf, off, len) & 0xffffffffL;
+        return RTPUtils.readUint32AsLong(buf, off);
     }
 
     /**
@@ -127,7 +128,7 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RawPacket.readInt(buf, off + 4, len) & 0xffffffffL;
+        return RTPUtils.readUint32AsLong(buf, off + 4);
     }
 
     /**
@@ -218,7 +219,7 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RawPacket.writeInt(buf, off + 20, packetCount);
+        return RTPUtils.writeInt(buf, off + 20, packetCount);
     }
 
     /**
@@ -227,7 +228,6 @@ public class RTCPSenderInfoUtils
      * @param buf the byte buffer that holds the SR.
      * @param off the offset where the data starts
      * @param len the length of the data.
-     * @return the number of bytes that were written, otherwise -1.
      * @param octetCount the octet count ot set.
      * @return the number of bytes that were written, otherwise -1.
      */
@@ -239,6 +239,6 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RawPacket.writeInt(buf, off + 24, octetCount);
+        return RTPUtils.writeInt(buf, off + 24, octetCount);
     }
 }

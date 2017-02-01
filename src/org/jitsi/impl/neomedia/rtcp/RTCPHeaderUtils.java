@@ -18,6 +18,7 @@ package org.jitsi.impl.neomedia.rtcp;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Utility class that contains static methods for RTCP header manipulation.
@@ -83,7 +84,7 @@ public class RTCPHeaderUtils
             return -1;
         }
 
-        return RawPacket.writeInt(buf, off + 4, senderSSRC);
+        return RTPUtils.writeInt(buf, off + 4, senderSSRC);
     }
 
     /**
