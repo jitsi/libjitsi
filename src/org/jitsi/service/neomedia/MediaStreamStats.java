@@ -428,44 +428,4 @@ public interface MediaStreamStats
      */
     @Deprecated
     long getSendingBitrate();
-
-    /**
-     * Gets the number of packets for which retransmission was requested,
-     * but they were missing from the cache.
-     * @return the number of packets for which retransmission was requested,
-     * but they were missing from the cache.
-     */
-    long getPacketsMissingFromCache();
-
-    /**
-     * Gets the number of bytes retransmitted.
-     *
-     * @return the number of bytes retransmitted.
-     */
-    long getBytesRetransmitted();
-
-    /**
-     * Gets the number of bytes for packets which were requested and found
-     * in the cache, but were intentionally not retransmitted.
-     *
-     * @return the number of bytes for packets which were requested and
-     * found in the cache, but were intentionally not retransmitted.
-     */
-    long getBytesNotRetransmitted();
-
-    /**
-     * Gets the number of packets retransmitted.
-     *
-     * @return the number of packets retransmitted.
-     */
-    long getPacketsRetransmitted();
-
-    /**
-     * Gets the number of packets which were requested and found in the
-     * cache, but were intentionally not retransmitted.
-     *
-     * @return the number of packets which were requested and found in the
-     * cache, but were intentionally not retransmitted.
-     */
-    long getPacketsNotRetransmitted();
 }

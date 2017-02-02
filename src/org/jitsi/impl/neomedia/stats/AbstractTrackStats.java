@@ -44,12 +44,41 @@ public abstract class AbstractTrackStats
     /**
      * The total number of bytes.
      */
-    protected AtomicLong bytes = new AtomicLong();
+    protected final AtomicLong bytes = new AtomicLong();
 
     /**
      * The total number of bytes.
      */
-    protected AtomicLong packets = new AtomicLong();
+    protected final AtomicLong packets = new AtomicLong();
+
+    /**
+     * Number of bytes retransmitted.
+     */
+    protected final AtomicLong bytesRetransmitted = new AtomicLong();
+
+    /**
+     * Number of bytes for packets which were requested and found in the
+     * cache, but were intentionally not retransmitted.
+     */
+    protected final AtomicLong bytesNotRetransmitted = new AtomicLong();
+
+    /**
+     * Number of packets retransmitted.
+     */
+    protected final AtomicLong packetsRetransmitted = new AtomicLong();
+
+    /**
+     * Number of packets which were requested and found in the cache, but
+     * were intentionally not retransmitted.
+     */
+    protected final AtomicLong packetsNotRetransmitted = new AtomicLong();
+
+    /**
+     * The number of packets for which retransmission was requested, but
+     * they were missing from the cache.
+     */
+    protected final AtomicLong packetsMissingFromCache = new AtomicLong();
+
 
     /**
      * The bitrate.
@@ -216,5 +245,93 @@ public abstract class AbstractTrackStats
     protected void setRtt(long rtt)
     {
         this.rtt = rtt;
+    }
+
+    /**
+     * Gets the number of bytes retransmitted.
+     *
+     * @return the number of bytes retransmitted.
+     */
+    public long getBytesRetransmitted()
+    {
+        return bytesRetransmitted.get();
+    }
+
+    /**
+     * Gets the number of bytes for packets which were requested and found
+     * in the cache, but were intentionally not retransmitted.
+     *
+     * @return the number of bytes for packets which were requested and
+     * found in the cache, but were intentionally not retransmitted.
+     */
+    public long getBytesNotRetransmitted()
+    {
+        return bytesNotRetransmitted.get();
+    }
+
+    /**
+     * Gets the number of packets retransmitted.
+     *
+     * @return the number of packets retransmitted.
+     */
+    @Override
+    public long getPacketsRetransmitted()
+    {
+        return packetsRetransmitted.get();
+    }
+
+    /**
+     * Gets the number of packets which were requested and found in the
+     * cache, but were intentionally not retransmitted.
+     *
+     * @return the number of packets which were requested and found in the
+     * cache, but were intentionally not retransmitted.
+     */
+    public long getPacketsNotRetransmitted()
+    {
+        return packetsNotRetransmitted.get();
+    }
+
+    /**
+     * Gets the number of packets for which retransmission was requested,
+     * but they were missing from the cache.
+     * @return the number of packets for which retransmission was requested,
+     * but they were missing from the cache.
+     */
+    public long getPacketsMissingFromCache()
+    {
+        return packetsMissingFromCache.get();
+    }
+
+    /**
+     * Notifies this instance that an RTP packet with a given length was not
+     * retransmitted (that is, the remote endpoint requested it,
+     * and it was found in the local cache, but it was not retransmitted).
+     * @param length the length in bytes of the packet.
+     */
+    protected void rtpPacketRetransmitted(long length)
+    {
+        packetsRetransmitted.incrementAndGet();
+        bytesRetransmitted.addAndGet(length);
+    }
+
+    /**
+     * Notifies this instance that an RTP packet with a given length was
+     * retransmitted.
+     * @param length the length in bytes of the packet.
+     */
+    protected void rtpPacketNotRetransmitted(long length)
+    {
+        packetsNotRetransmitted.incrementAndGet();
+        bytesNotRetransmitted.addAndGet(length);
+    }
+
+    /**
+     * Notifies this instance that the remote endpoint requested retransmission
+     * of a packet, and it was not found in the local cache.
+     */
+    void rtpPacketCacheMiss()
+    {
+        packetsMissingFromCache.incrementAndGet();
     }
 }

@@ -68,6 +68,42 @@ public class MediaStreamStats2Impl
     }
 
     /**
+     * Notifies this instance that an RTP packet with a given SSRC and a given
+     * length was retransmitted.
+     * @param ssrc the SSRC of the packet.
+     * @param length the length in bytes of the packet.
+     */
+    public void rtpPacketRetransmitted(long ssrc, long length)
+    {
+        getSendStats(ssrc).rtpPacketRetransmitted(length);
+        sendStats.rtpPacketRetransmitted(length);
+    }
+
+    /**
+     * Notifies this instance that an RTP packet with a given SSRC and a given
+     * length was not retransmitted (that is, the remote endpoint requested it,
+     * and it was found in the local cache, but it was not retransmitted).
+     * @param ssrc the SSRC of the packet.
+     * @param length the length in bytes of the packet.
+     */
+    public void rtpPacketNotRetransmitted(long ssrc, long length)
+    {
+        getSendStats(ssrc).rtpPacketNotRetransmitted(length);
+        sendStats.rtpPacketNotRetransmitted(length);
+    }
+
+    /**
+     * Notifies this instance that the remote endpoint requested retransmission
+     * of a packet with a given SSRC, and it was not found in the local cache.
+     * @param ssrc the SSRC of the requested packet.
+     */
+    public void rtpPacketCacheMiss(long ssrc)
+    {
+        getSendStats(ssrc).rtpPacketCacheMiss();
+        sendStats.rtpPacketCacheMiss();
+    }
+
+    /**
      * Notifies this instance that an RTP packet with a particular SSRC,
      * sequence number and length was sent (or is about to be sent).
      * @param ssrc the SSRC of the packet.

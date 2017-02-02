@@ -16,11 +16,11 @@
 package org.jitsi.impl.neomedia.transform;
 
 import java.util.*;
-import java.util.concurrent.atomic.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -83,12 +83,6 @@ public class RtxTransformer
      * The transformer that handles NACKs.
      */
     private final RTCPTransformer rtcpTransformer = new RTCPTransformer();
-
-    /**
-     * The instance which holds statistics for this {@link RtxTransformer}
-     * instance.
-     */
-    private final Statistics statistics = new Statistics();
 
     /**
      * Initializes a new <tt>RtxTransformer</tt> with a specific
@@ -210,18 +204,6 @@ public class RtxTransformer
     public PacketTransformer getRTCPTransformer()
     {
         return rtcpTransformer;
-    }
-
-    /**
-     * Gets the instance which holds statistics for this {@link RtxTransformer}
-     * instance.
-     *
-     * @return the instance which holds statistics for this
-     * {@link RtxTransformer} instance.
-     */
-    public Statistics getStatistics()
-    {
-        return statistics;
     }
 
     /**
@@ -524,6 +506,8 @@ public class RtxTransformer
                     = cache.getContainer(mediaSSRC, seq);
 
 
+                MediaStreamStats2Impl stats
+                    = mediaStream.getMediaStreamStats();
                 if (container != null)
                 {
                     // Cache hit.
@@ -542,24 +526,22 @@ public class RtxTransformer
 
                     if (send && retransmit(container.pkt, after))
                     {
-                        statistics.packetsRetransmitted.incrementAndGet();
-                        statistics.bytesRetransmitted.addAndGet(
-                            container.pkt.getLength());
+                        stats.rtpPacketRetransmitted(
+                            mediaSSRC, container.pkt.getLength());
                         i.remove();
                     }
 
                     if (!send)
                     {
-                        statistics.packetsNotRetransmitted.incrementAndGet();
-                        statistics.bytesNotRetransmitted.addAndGet(
-                            container.pkt.getLength());
+                        stats.rtpPacketNotRetransmitted(
+                            mediaSSRC, container.pkt.getLength());
                         i.remove();
                     }
 
                 }
                 else
                 {
-                    statistics.packetsMissingFromCache.incrementAndGet();
+                    stats.rtpPacketCacheMiss(mediaSSRC);
                 }
             }
         }
@@ -637,95 +619,6 @@ public class RtxTransformer
             }
 
             return pkt;
-        }
-    }
-
-    /**
-     * Holds statistics for this {@link RtxTransformer} instance.
-     */
-    public class Statistics
-    {
-        /**
-         * Number of bytes retransmitted.
-         */
-        private final AtomicLong bytesRetransmitted = new AtomicLong();
-
-        /**
-         * Number of bytes for packets which were requested and found in the
-         * cache, but were intentionally not retransmitted.
-         */
-        private final AtomicLong bytesNotRetransmitted = new AtomicLong();
-
-        /**
-         * Number of packets retransmitted.
-         */
-        private final AtomicLong packetsRetransmitted = new AtomicLong();
-
-        /**
-         * Number of packets which were requested and found in the cache, but
-         * were intentionally not retransmitted.
-         */
-        private AtomicLong packetsNotRetransmitted = new AtomicLong();
-
-        /**
-         * The number of packets for which retransmission was requested, but
-         * they were missing from the cache.
-         */
-        private AtomicLong packetsMissingFromCache = new AtomicLong();
-
-        /**
-         * Gets the number of bytes retransmitted.
-         *
-         * @return the number of bytes retransmitted.
-         */
-        public long getBytesRetransmitted()
-        {
-            return bytesRetransmitted.get();
-        }
-
-        /**
-         * Gets the number of bytes for packets which were requested and found
-         * in the cache, but were intentionally not retransmitted.
-         *
-         * @return the number of bytes for packets which were requested and
-         * found in the cache, but were intentionally not retransmitted.
-         */
-        public long getBytesNotRetransmitted()
-        {
-            return bytesNotRetransmitted.get();
-        }
-
-        /**
-         * Gets the number of packets retransmitted.
-         *
-         * @return the number of packets retransmitted.
-         */
-        public long getPacketsRetransmitted()
-        {
-            return packetsRetransmitted.get();
-        }
-
-        /**
-         * Gets the number of packets which were requested and found in the
-         * cache, but were intentionally not retransmitted.
-         *
-         * @return the number of packets which were requested and found in the
-         * cache, but were intentionally not retransmitted.
-         */
-        public long getPacketsNotRetransmitted()
-        {
-            return packetsNotRetransmitted.get();
-        }
-
-        /**
-         * Gets the number of packets for which retransmission was requested,
-         * but they were missing from the cache.
-         * @return the number of packets for which retransmission was requested,
-         * but they were missing from the cache.
-         */
-        public long getPacketsMissingFromCache()
-        {
-            return packetsMissingFromCache.get();
         }
     }
 }
