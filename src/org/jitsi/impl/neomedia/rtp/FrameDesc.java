@@ -304,4 +304,15 @@ public class FrameDesc
     {
         return sofInOrder != null && sofInOrder;
     }
+
+    /**
+     * Sets a boolean indicating whether or not this frame has been received in
+     * order.
+     * @param sofInOrder true if this frame has been received in order, false
+     * otherwise.
+     */
+    public void setSofInOrder(boolean sofInOrder)
+    {
+        this.sofInOrder = sofInOrder;
+    }
 }
