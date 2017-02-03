@@ -176,7 +176,7 @@ public class OriginalHeaderBlockTransformEngine
 
         // The above is exhaustive, but the compiler (and IDE) can't figure it
         // out.
-        return -1;
+        throw new IllegalStateException();
     }
 
     /**
