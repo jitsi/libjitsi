@@ -406,9 +406,9 @@ public class RTPEncodingDesc
      *
      * @return the {@link FrameDesc} that was updated, otherwise null.
      */
-    FrameDesc update(RawPacket pkt, long nowMs)
+    void update(RawPacket pkt, long nowMs)
     {
-        // Update rate stats.
+        // Update rate stats (this should run after padding termination).
         rateStatistics.update(pkt.getLength(), nowMs);
 
         long ts = pkt.getTimestamp();
@@ -431,10 +431,8 @@ public class RTPEncodingDesc
             }
         }
 
-        // Update the frame description. We ignore padding packets for that.
-        boolean frameChanged
-            = pkt.getPayloadLength(true) > 0 && frame.update(pkt);
-
+        // Update the frame description.
+        boolean frameChanged = frame.update(pkt);
         if (frameChanged)
         {
             // Frame boundaries heuristics.
@@ -458,7 +456,7 @@ public class RTPEncodingDesc
             }
         }
 
-        return frameChanged ? frame : null;
+        track.update(frame, nowMs);
     }
 
 

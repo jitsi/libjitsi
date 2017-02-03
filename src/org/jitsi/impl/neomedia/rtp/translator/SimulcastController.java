@@ -139,6 +139,7 @@ public class SimulcastController
         int sourceIdx = sourceFrameDesc.getRTPEncoding().getIndex();
 
         if (!sourceFrameDesc.isIndependent()
+            || !sourceFrameDesc.getRTPEncoding().isActive()
             || sourceIdx == transformState.currentIdx)
         {
             // An intra-codec switch requires a key frame.

@@ -48,12 +48,6 @@ public class FrameDesc
     private final long ts;
 
     /**
-     * A boolean indicating whether or not the start of a frame was the first
-     * packet that was received for this packet.
-     */
-    private Boolean sofInOrder;
-
-    /**
      * A boolean indicating whether or not this frame is independent or not
      * (e.g. VP8 key frame).
      */
@@ -241,10 +235,6 @@ public class FrameDesc
             .getMediaStreamTrackReceiver().getStream();
 
         boolean isSOF = stream.isStartOfFrame(buf, off, len);
-        if (sofInOrder == null)
-        {
-            sofInOrder = isSOF;
-        }
 
         if (minSeen == -1 || RTPUtils.sequenceNumberDiff(minSeen, seqNum) > 0)
         {
@@ -293,26 +283,5 @@ public class FrameDesc
             ",max_seen=" + maxSeen +
             ",start=" + start +
             ",end=" + end;
-    }
-
-    /**
-     * Gets a boolean indicating whether or not this frame has been received in
-     * order.
-     * @return true if this frame has been received in order, false otherwise.
-     */
-    public boolean isSofInOrder()
-    {
-        return sofInOrder != null && sofInOrder;
-    }
-
-    /**
-     * Sets a boolean indicating whether or not this frame has been received in
-     * order.
-     * @param sofInOrder true if this frame has been received in order, false
-     * otherwise.
-     */
-    public void setSofInOrder(boolean sofInOrder)
-    {
-        this.sofInOrder = sofInOrder;
     }
 }

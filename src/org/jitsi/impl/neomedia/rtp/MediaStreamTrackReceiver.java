@@ -297,7 +297,7 @@ public class MediaStreamTrackReceiver
     @Override
     public RawPacket[] reverseTransform(RawPacket[] pkts)
     {
-        RawPacket[] cumulExtras = null;
+        long nowMs = System.currentTimeMillis();
         for (int i = 0; i < pkts.length; i++)
         {
             if (!RTPPacketPredicate.INSTANCE.test(pkts[i]))
@@ -309,18 +309,11 @@ public class MediaStreamTrackReceiver
 
             if (encoding != null)
             {
-                RawPacket[] extras = encoding
-                    .getMediaStreamTrack().reverseTransform(pkts[i], encoding);
-
-                if (!ArrayUtils.isNullOrEmpty(extras))
-                {
-                    cumulExtras = ArrayUtils.concat(cumulExtras, extras);
-                }
+                encoding.update(pkts[i], nowMs);
             }
         }
 
-        // XXX these array concatenation methods are fast most of the time.
-        return ArrayUtils.concat(cumulExtras, pkts);
+        return pkts;
     }
 
     /**
