@@ -3714,14 +3714,11 @@ public class MediaStreamImpl
 
         if (frameMarkingsExtensionId != -1)
         {
-            RawPacket.HeaderExtensions hes = pkt.getHeaderExtensions();
-            while (hes.hasNext())
+            RawPacket.HeaderExtension fmhe
+                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+            if (fmhe != null)
             {
-                RawPacket.HeaderExtension he = hes.next();
-                if (he.getExtId() == frameMarkingsExtensionId)
-                {
-                    return FrameMarkingHeaderExtension.isKeyframe(he);
-                }
+                return FrameMarkingHeaderExtension.isKeyframe(fmhe);
             }
 
             if (logger.isDebugEnabled())
@@ -3808,7 +3805,7 @@ public class MediaStreamImpl
     public REDBlock getPayloadBlock(byte[] buf, int off, int len)
     {
         if (buf == null || buf.length < off + len
-            || len < net.sf.fmj.media.rtp.RTPHeader.SIZE)
+            || len < RawPacket.FIXED_HEADER_SIZE)
         {
             return null;
         }
