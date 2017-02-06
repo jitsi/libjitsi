@@ -121,16 +121,4 @@ public class RTPUtils
         int val = b1 << 8 | b2;
         return val;
     }
-
-    /**
-     * Read a short from this packet at specified offset
-     *
-     * @return short value at offset
-     */
-    public static short readShort(byte[] buffer, int offset)
-    {
-        return (short) readUint16AsInt(buffer, offset);
-    }
-
-
 }
