@@ -1507,7 +1507,7 @@ public class RawPacket
      */
     public int getOriginalSequenceNumber()
     {
-        return RTPUtils.readShort(buffer, offset + getHeaderLength());
+        return RTPUtils.readUint16AsInt(buffer, offset + getHeaderLength());
     }
 
     /**
