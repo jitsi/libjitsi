@@ -160,8 +160,8 @@ public class MediaStreamTrackDesc
         {
             RTPEncodingDesc encoding = frameDesc.getRTPEncoding();
 
-            // When we suspect that a stream is suspended, we send a FIR to
-            // downscale receivers that are receiving the suspended stream.
+            // When we suspect that a stream is suspended, we send an FIR to the
+            // sender so we can send a different stream to its receivers.
             boolean maybeSuspended = false,
 
                 // when a stream gets re-activated, it needs to start with an
