@@ -46,7 +46,7 @@ public class MediaStreamTrackDesc
      * The maximum time interval (in millis) an encoding can be considered
      * active without new frames.
      */
-    private static final int SUSPENSION_THRESHOLD_MS = 100;
+    private static final int SUSPENSION_THRESHOLD_MS = 300;
 
     /**
      * The {@link RTPEncodingDesc}s that this {@link MediaStreamTrackDesc}
@@ -138,114 +138,106 @@ public class MediaStreamTrackDesc
      * Updates rate statistics for the encodings of the tracks that this
      * receiver is managing. Detects simulcast stream suspension/resuming.
      *
-     * @param pkt the received {@link RawPacket}.
-     *
-     * @param encoding the {@link RTPEncodingDesc} of the {@link RawPacket} that
-     * is passed as an argument.
-     *
-     * @return the extra packets to piggy back to this packet.
+     * @param frameDesc
+     * @param nowMs
      */
-    RawPacket[] reverseTransform(RawPacket pkt, RTPEncodingDesc encoding)
+    void update(FrameDesc frameDesc, long nowMs)
     {
-        long nowMs = System.currentTimeMillis();
-
-        // Update the encoding.
-        FrameDesc frameDesc = encoding.update(pkt, nowMs);
-        if (frameDesc == null /* no frame was changed */)
+        if (nowMs - statistics.lastKeyframeMs < MIN_KEY_FRAME_WAIT_MS)
         {
-            return null;
+            // The webrtc engine is sending keyframes from high to low and less
+            // often than 300 millis. The first fresh keyframe that we observe
+            // after we've waited for that long determines the streams that are
+            // streaming (not suspended).
+            //
+            // On the other hand, if this packet is not a keyframe, the only
+            // other action we can do is send an FIR and it's pointless to spam
+            // the engine.
+            return;
         }
 
-        // Stream suspension detection.
-        boolean deactivated = false,
-            activated = !encoding.isActive() && !frameDesc.isIndependent();
-
-        for (int i = encoding.getIndex() + 1; i < rtpEncodings.length; i++)
+        if (!frameDesc.isIndependent())
         {
-            RTPEncodingDesc enc = rtpEncodings[i];
-            FrameDesc lastReceivedFrame = enc.getLastReceivedFrame();
+            RTPEncodingDesc encoding = frameDesc.getRTPEncoding();
 
-            if (lastReceivedFrame != null)
+            // When we suspect that a stream is suspended, we send an FIR to the
+            // sender so we can send a different stream to its receivers.
+            boolean maybeSuspended = false,
+
+                // when a stream gets re-activated, it needs to start with an
+                // independent frame so that receivers can switch to it.
+                activated = !encoding.isActive() && !frameDesc.isIndependent();
+
+            for (int i = encoding.getIndex() + 1; i < rtpEncodings.length; i++)
             {
-                long silentIntervalMs
-                    = nowMs - lastReceivedFrame.getReceivedMs();
+                RTPEncodingDesc enc = rtpEncodings[i];
+                FrameDesc lastReceivedFrame = enc.getLastReceivedFrame();
 
-                if (enc.isActive()
-                    && silentIntervalMs > SUSPENSION_THRESHOLD_MS)
+                if (lastReceivedFrame != null)
                 {
-                    deactivated = true;
-                    rtpEncodings[i].setActive(false);
-                    logger.info("suspended,stream="
-                        + mediaStreamTrackReceiver.getStream().hashCode()
-                        + " ssrc=" + enc.getPrimarySSRC());
+                    long silentIntervalMs
+                        = nowMs - lastReceivedFrame.getReceivedMs();
+
+                    if (enc.isActive()
+                        && silentIntervalMs > SUSPENSION_THRESHOLD_MS)
+                    {
+                        maybeSuspended = true;
+                        logger.info("maybe_suspended,stream="
+                            + mediaStreamTrackReceiver.getStream().hashCode()
+                            + " ssrc=" + enc.getPrimarySSRC());
+                    }
+                }
+            }
+
+            if (maybeSuspended || activated)
+            {
+                // FIXME only when suspended encodings are received.
+                ((RTPTranslatorImpl) mediaStreamTrackReceiver.getStream()
+                    .getRTPTranslator()).getRtcpFeedbackMessageSender()
+                    .sendFIR((int) rtpEncodings[0].getPrimarySSRC());
+            }
+        }
+        else
+        {
+            RTPEncodingDesc encoding = frameDesc.getRTPEncoding();
+
+            FrameDesc lastReceivedFrame = encoding.getLastReceivedFrame();
+            if (lastReceivedFrame != null && TimeUtils.rtpDiff(
+                frameDesc.getTimestamp(), lastReceivedFrame.getTimestamp()) < 0)
+            {
+                // This is a late key frame header packet that we've missed.
+
+                if (!encoding.isActive())
+                {
+                    // FIXME only when encodings is received.
+                    ((RTPTranslatorImpl) mediaStreamTrackReceiver.getStream()
+                        .getRTPTranslator()).getRtcpFeedbackMessageSender()
+                        .sendFIR((int) rtpEncodings[0].getPrimarySSRC());
+                }
+            }
+            else
+            {
+                // media engines may decide to suspend a stream for congestion
+                // control. This is the case with the webrtc.org simulcast
+                // implementation. This behavior induces a streaming dependency
+                // between the encodings of a given track. The following piece
+                // of code assumes that the subjective quality array is ordered
+                // in a way to represent the streaming dependencies.
+
+                statistics.lastKeyframeMs = nowMs;
+                boolean isActive = false;
+
+                for (int i = rtpEncodings.length - 1; i > -1; i--)
+                {
+                    if (!isActive && rtpEncodings[i].requires(encoding.getIndex()))
+                    {
+                        isActive = true;
+                    }
+
+                    rtpEncodings[i].setActive(isActive);
                 }
             }
         }
-
-        if (deactivated || activated)
-        {
-            // FIXME only when suspended encodings are received.
-            ((RTPTranslatorImpl) mediaStreamTrackReceiver.getStream()
-                .getRTPTranslator()).getRtcpFeedbackMessageSender()
-                .sendFIR((int) rtpEncodings[0].getPrimarySSRC());
-        }
-
-        if (!frameDesc.isIndependent() /* frame is dependent */
-
-            // The webrtc engine is sending keyframes from high to low and less
-            // often than 300 millis. The first keyframe that we observe after
-            // we've waited for that long determines the streams that are
-            // streaming (not suspended).
-            || nowMs - statistics.lastKeyframeMs < MIN_KEY_FRAME_WAIT_MS)
-        {
-            return null;
-        }
-
-        // media engines may decide to suspend a stream for congestion control.
-        // This is the case with the webrtc.org simulcast implementation. This
-        // behavior induces a streaming dependency between the encodings of a
-        // given track. The following piece of code assumes that the subjective
-        // quality array is ordered in a way to represent the streaming
-        // dependencies.
-
-        statistics.lastKeyframeMs = nowMs;
-        boolean isActive = false;
-
-        for (int i = rtpEncodings.length - 1; i >= 0; i--)
-        {
-            if (!isActive && rtpEncodings[i].requires(encoding.getIndex()))
-            {
-                isActive = true;
-            }
-
-            rtpEncodings[i].setActive(isActive);
-        }
-
-        RawPacket[] extras = null;
-
-        if (frameDesc.getStart() != -1 && !frameDesc.isSofInOrder())
-        {
-            frameDesc.setSofInOrder(true);
-
-            // Piggy back till max seen.
-            RawPacketCache inCache = mediaStreamTrackReceiver.getStream()
-                .getCachingTransformer().getIncomingRawPacketCache();
-
-            int start = frameDesc.getStart();
-            int len = RTPUtils
-                    .sequenceNumberDiff(frameDesc.getMaxSeen(), start);
-            extras = new RawPacket[len];
-            for (int i = 0; i < extras.length; i++)
-            {
-                // skip the first packet of the key frame as this will be
-                // included by the calling function.. here we only include the
-                // extra packets. Furthermore, this only runs once, when we
-                // receive the first packet of a keyframe.
-                extras[i] = inCache.get(encoding.getPrimarySSRC(),
-                    (start + i + 1) & 0xFFFF);
-            }
-        }
-        return extras;
     }
 
     /**
