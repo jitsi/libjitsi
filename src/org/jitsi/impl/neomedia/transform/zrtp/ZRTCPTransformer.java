@@ -15,8 +15,8 @@
  */
 package org.jitsi.impl.neomedia.transform.zrtp;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * PacketTransformer that delegates the forward/reverse transformation of

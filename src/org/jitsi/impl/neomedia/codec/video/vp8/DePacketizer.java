@@ -15,8 +15,8 @@
  */
 package org.jitsi.impl.neomedia.codec.video.vp8;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.util.*;
 import javax.media.*;

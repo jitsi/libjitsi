@@ -15,9 +15,8 @@
  */
 package org.jitsi.impl.neomedia.transform.delay;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.util.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * A {@link TransformEngine} that delays the RTP stream by specified packet

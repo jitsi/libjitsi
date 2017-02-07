@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.transform.dtmf;
 
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**

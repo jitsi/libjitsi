@@ -18,7 +18,7 @@ package org.jitsi.impl.neomedia.transform.zrtp;
 import gnu.java.zrtp.packets.*;
 import gnu.java.zrtp.utils.*;
 
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * ZRTP packet representation.
