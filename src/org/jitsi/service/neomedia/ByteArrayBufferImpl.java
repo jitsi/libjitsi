@@ -13,9 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia;
-
-import org.jitsi.service.neomedia.*;
+package org.jitsi.service.neomedia;
 
 import java.util.*;
 

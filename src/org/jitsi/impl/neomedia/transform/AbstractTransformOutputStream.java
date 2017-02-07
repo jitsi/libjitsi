@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Facilitates the implementation of the interface

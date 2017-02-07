@@ -20,8 +20,8 @@ import javax.media.*;
 import javax.media.control.*;
 import javax.media.format.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 import java.io.*;

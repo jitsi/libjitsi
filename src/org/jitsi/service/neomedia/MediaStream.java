@@ -19,13 +19,10 @@ import java.beans.*;
 import java.net.*;
 import java.util.*;
 
-import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
-import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.service.neomedia.stats.*;
 
 /**

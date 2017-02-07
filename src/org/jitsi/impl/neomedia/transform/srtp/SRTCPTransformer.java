@@ -17,8 +17,8 @@ package org.jitsi.impl.neomedia.transform.srtp;
 
 import java.util.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * SRTCPTransformer implements PacketTransformer.
