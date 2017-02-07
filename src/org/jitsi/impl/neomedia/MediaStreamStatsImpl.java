@@ -351,6 +351,8 @@ public class MediaStreamStatsImpl
             // SRs are based on the actual sender's clock, so we need to take
             // the sender latency into account in order to compute the correct
             // RTT.
+            if (mediaStreamImpl.getRTPTranslator() == null)
+                return rtt;
 
             StreamRTPManager receiveRTPManager = mediaStreamImpl
                 .getRTPTranslator()
