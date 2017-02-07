@@ -332,6 +332,13 @@ public class MediaStreamImpl
         = createRetransmissionRequester();
 
     /**
+     * The engine which adds an Original Header Block header extension to
+     * incoming packets.
+     */
+    private final OriginalHeaderBlockTransformEngine ohbEngine
+        = new OriginalHeaderBlockTransformEngine();
+
+    /**
      * The ID of the frame markings RTP header extension. We use this field as
      * a cache, in order to not access {@link #activeRTPExtensions} every time.
      */
@@ -653,17 +660,23 @@ public class MediaStreamImpl
         boolean active
             = !MediaDirection.INACTIVE.equals(rtpExtension.getDirection());
 
+        byte effectiveId = active ? extensionID : -1;
+
         String uri = rtpExtension.getURI().toString();
         if (RTPExtension.ABS_SEND_TIME_URN.equals(uri))
         {
             if (absSendTimeEngine != null)
             {
-                absSendTimeEngine.setExtensionID(active ? extensionID : -1);
+                absSendTimeEngine.setExtensionID(effectiveId);
             }
         }
         else if (RTPExtension.FRAME_MARKING_URN.equals(uri))
         {
-            frameMarkingsExtensionId = active ? extensionID : -1;
+            frameMarkingsExtensionId = effectiveId;
+        }
+        else if (RTPExtension.ORIGINAL_HEADER_BLOCK_URN.equals(uri))
+        {
+            ohbEngine.setExtensionID(effectiveId);
         }
     }
 
@@ -1076,6 +1089,9 @@ public class MediaStreamImpl
             = DebugTransformEngine.createDebugTransformEngine(this);
         if (debugTransformEngine != null)
             engineChain.add(debugTransformEngine);
+
+        // OHB
+        engineChain.add(new OriginalHeaderBlockTransformEngine());
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
@@ -3714,14 +3730,11 @@ public class MediaStreamImpl
 
         if (frameMarkingsExtensionId != -1)
         {
-            RawPacket.HeaderExtensions hes = pkt.getHeaderExtensions();
-            while (hes.hasNext())
+            RawPacket.HeaderExtension fmhe
+                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+            if (fmhe != null)
             {
-                RawPacket.HeaderExtension he = hes.next();
-                if (he.getExtId() == frameMarkingsExtensionId)
-                {
-                    return FrameMarkingHeaderExtension.isKeyframe(he);
-                }
+                return FrameMarkingHeaderExtension.isKeyframe(fmhe);
             }
 
             if (logger.isDebugEnabled())
@@ -3808,7 +3821,7 @@ public class MediaStreamImpl
     public REDBlock getPayloadBlock(byte[] buf, int off, int len)
     {
         if (buf == null || buf.length < off + len
-            || len < net.sf.fmj.media.rtp.RTPHeader.SIZE)
+            || len < RawPacket.FIXED_HEADER_SIZE)
         {
             return null;
         }
