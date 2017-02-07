@@ -68,4 +68,38 @@ class TimestampUtils
             isNewerTimestamp(timestamp1, timestamp2) ? timestamp1 : timestamp2;
     }
 
+    /**
+     * Determine if a new packet is part of the current burst.
+     *
+     * @param packetArrivalTimeMs Packet arrival time in milliseconds.
+     * @param packetDepartureTimestamp Packet departure time in units defined by timestampToMsCoeff.
+     * @param currentGroupCompleteTimeMs The last packet arrival time the current burst.
+     * @param currentGroupDepartureTimestamp The last packet departure timestamp of the current burst in units defined by timestampToMsCoeff.
+     * @param timestampToMsCoeff Packet departure times may be converted to milliseconds using this coefficient.
+     * @param kBurstDeltaThresholdMs The threshold in milliseconds which defines a new burst.
+     * @return True if the packet belongs to the current burst.
+     */
+    static boolean belongsToBurst(
+        long packetArrivalTimeMs,
+        long packetDepartureTimestamp,
+        long currentGroupCompleteTimeMs,
+        long currentGroupDepartureTimestamp,
+        double timestampToMsCoeff,
+        int kBurstDeltaThresholdMs)
+    {
+        long arrivalTimeDeltaMs
+            = packetArrivalTimeMs - currentGroupCompleteTimeMs;
+        long timestampDiff = packetDepartureTimestamp - currentGroupDepartureTimestamp;
+        long tsDeltaMs = (long) (timestampToMsCoeff * timestampDiff + 0.5);
+
+        if (tsDeltaMs == 0)
+            return true;
+
+        long propagationDeltaMs = arrivalTimeDeltaMs - tsDeltaMs;
+
+        return
+            propagationDeltaMs < 0
+                && arrivalTimeDeltaMs <= kBurstDeltaThresholdMs;
+
+    }
 }

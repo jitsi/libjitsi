@@ -487,6 +487,8 @@ public class VideoMediaStreamImpl
      */
     private CachingTransformer cachingTransformer;
 
+    private final RateLimiter logMissingAbsSendTime = new RateLimiter();
+
     /**
      * Initializes a new <tt>VideoMediaStreamImpl</tt> instance which will use
      * the specified <tt>MediaDevice</tt> for both capture and playback of video
@@ -742,19 +744,30 @@ public class VideoMediaStreamImpl
                 if (payloadOff >= 0)
                 {
                     long arrivalTimeMs = System.currentTimeMillis();
-                    long timestamp
-                        = RTPTranslatorImpl.readInt(buf, off + 4) & 0xFFFFFFFFL;
+                    long absSendTime24Bit = getAbsSendTime(p);
+                    if (absSendTime24Bit < 0)
+                    {
+                        if (logMissingAbsSendTime.shouldRun())
+                        {
+                            logger.error("RTP packet is missing abs-send-time. Please check for enabled extension.");
+                        }
+                    }
                     int ssrc = RTPTranslatorImpl.readInt(buf, off + 8);
-
                     remoteBitrateEstimator.incomingPacket(
                             arrivalTimeMs,
                             payloadLen,
                             ssrc,
-                            timestamp,
+                            absSendTime24Bit,
                             /* wasPaced */ false);
                 }
             }
         }
+    }
+
+    private long getAbsSendTime(DatagramPacket p)
+    {
+        RawPacket packet = new RawPacket(p.getData(), p.getOffset(), p.getLength());
+        return packet.getAbsSendTime();
     }
 
     /**

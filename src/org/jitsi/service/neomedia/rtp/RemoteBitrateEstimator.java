@@ -59,30 +59,15 @@ public interface RemoteBitrateEstimator
      * @param arrivalTimeMs can be of an arbitrary time base
      * @param payloadSize the packet size excluding headers
      * @param ssrc
-     * @param rtpTimestamp
+     * @param absSendTime24Bit Timestamp in seconds, 24 bit 6.18 fixed point, yielding 64s wraparound and 3.8us resolution.
+     *      @see <a href=https://webrtc.org/experiments/rtp-hdrext/abs-send-time/>abs-send-time</a>
      * @param wasPaced
      */
     void incomingPacket(
             long arrivalTimeMs,
             int payloadSize,
             int ssrc,
-            long rtpTimestamp,
-            boolean wasPaced);
-
-    /**
-     * Called for each incoming packet. Updates the incoming payload bitrate
-     * estimate and the over-use detector. If an over-use is detected the remote
-     * bitrate estimate will be updated.
-     *
-     * @param arrivalTimeMs can be of an arbitrary time base
-     * @param payloadSize the packet size excluding headers
-     * @param header
-     * @param wasPaced
-     */
-    void incomingPacket(
-            long arrivalTimeMs,
-            int payloadSize,
-            RTPPacket header,
+            long absSendTime24Bit,
             boolean wasPaced);
 
     /**
