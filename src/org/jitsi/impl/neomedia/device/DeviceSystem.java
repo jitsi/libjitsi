@@ -15,17 +15,30 @@
  */
 package org.jitsi.impl.neomedia.device;
 
-import java.io.*;
-import java.lang.reflect.*;
-import java.util.*;
+import org.jitsi.impl.neomedia.MediaServiceImpl;
+import org.jitsi.service.neomedia.MediaType;
+import org.jitsi.util.Logger;
+import org.jitsi.util.OSUtils;
+import org.jitsi.util.event.PropertyChangeNotifier;
 
-import javax.media.*;
-import javax.media.format.*;
-
-import org.jitsi.impl.neomedia.*;
-import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
-import org.jitsi.util.event.*;
+import javax.media.CaptureDeviceInfo;
+import javax.media.CaptureDeviceManager;
+import javax.media.Format;
+import javax.media.MediaLocator;
+import javax.media.Renderer;
+import javax.media.format.AudioFormat;
+import javax.media.format.VideoFormat;
+import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ServiceLoader;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * Represents the base of a supported device system/backend such as DirectShow,
@@ -208,6 +221,12 @@ public abstract class DeviceSystem
                     ".AudioSilenceSystem",
                     ".NoneAudioSystem"
                 };
+            final List<String> allClasses = new ArrayList<>();
+            allClasses.addAll(Arrays.asList(classNames));
+            ServiceLoader.load(AudioSystem.class).forEach(as -> {
+                allClasses.add(as.getClass().getName());
+            });
+            classNames = allClasses.toArray(new String[allClasses.size()]);
             break;
         case VIDEO:
             classNames
