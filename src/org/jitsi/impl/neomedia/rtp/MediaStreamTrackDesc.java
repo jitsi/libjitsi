@@ -141,7 +141,7 @@ public class MediaStreamTrackDesc
      * @param frameDesc
      * @param nowMs
      */
-    void update(FrameDesc frameDesc, long nowMs)
+    void update(RawPacket pkt, FrameDesc frameDesc, long nowMs)
     {
         if (nowMs - statistics.lastKeyframeMs < MIN_KEY_FRAME_WAIT_MS)
         {
@@ -166,7 +166,8 @@ public class MediaStreamTrackDesc
 
                 // when a stream gets re-activated, it needs to start with an
                 // independent frame so that receivers can switch to it.
-                activated = !encoding.isActive() && !frameDesc.isIndependent();
+                activated = !encoding.isActive() && !frameDesc.isIndependent()
+                    && pkt.getPayloadLength(true) > 0;
 
             for (int i = encoding.getIndex() + 1; i < rtpEncodings.length; i++)
             {
@@ -253,6 +254,11 @@ public class MediaStreamTrackDesc
     public RTPEncodingDesc findRTPEncodingDesc(byte[] buf, int off, int len)
     {
         if (buf == null || buf.length < off + len)
+        {
+            return null;
+        }
+
+        if (ArrayUtils.isNullOrEmpty(rtpEncodings))
         {
             return null;
         }

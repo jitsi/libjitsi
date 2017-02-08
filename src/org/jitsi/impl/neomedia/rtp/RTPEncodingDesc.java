@@ -456,7 +456,7 @@ public class RTPEncodingDesc
             }
         }
 
-        track.update(frame, nowMs);
+        track.update(pkt, frame, nowMs);
     }
 
 
