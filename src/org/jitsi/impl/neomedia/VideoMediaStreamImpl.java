@@ -440,10 +440,15 @@ public class VideoMediaStreamImpl
         = new RTCPReceiverFeedbackTermination(this);
 
     /**
+     *
+     */
+    private final PaddingTermination paddingTermination = new PaddingTermination();
+
+    /**
      * The <tt>RemoteBitrateEstimator</tt> which computes bitrate estimates for
      * the incoming RTP streams.
      */
-    private final RemoteBitrateEstimator remoteBitrateEstimator
+    private final RemoteBitrateEstimatorSingleStream remoteBitrateEstimator
         = new RemoteBitrateEstimatorSingleStream(
                 new RemoteBitrateObserver()
                 {
@@ -585,11 +590,6 @@ public class VideoMediaStreamImpl
                 recurringRunnableExecutor.deRegisterRecurringRunnable(
                         (RecurringRunnable) remoteBitrateEstimator);
             }
-            if (bandwidthEstimator != null)
-            {
-                recurringRunnableExecutor.deRegisterRecurringRunnable(
-                        bandwidthEstimator);
-            }
 
             if (cachingTransformer != null)
             {
@@ -603,33 +603,6 @@ public class VideoMediaStreamImpl
                     .deRegisterRecurringRunnable(rtcpFeedbackTermination);
             }
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void configureDataInputStream(
-            RTPConnectorInputStream<?> dataInputStream)
-    {
-        super.configureDataInputStream(dataInputStream);
-
-        /*
-         * Start listening to the receipt of data/RTP packets in order to notify
-         * remoteBitrateEstimator.
-         */
-        dataInputStream.addDatagramPacketListener(
-                new DatagramPacketListener()
-                {
-                    @Override
-                    public void update(Object source, DatagramPacket p)
-                    {
-                        VideoMediaStreamImpl.this
-                            .dataInputStreamDatagramPacketListenerUpdate(
-                                    source,
-                                    p);
-                    }
-                });
     }
 
     /**
@@ -983,7 +956,7 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    public RemoteBitrateEstimator getRemoteBitrateEstimator()
+    public RemoteBitrateEstimatorSingleStream getRemoteBitrateEstimator()
     {
         return remoteBitrateEstimator;
     }
@@ -1406,14 +1379,20 @@ public class VideoMediaStreamImpl
     /**
      * {@inheritDoc}
      */
+    protected PaddingTermination getPaddingTermination()
+    {
+        return paddingTermination;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public BandwidthEstimator getOrCreateBandwidthEstimator()
     {
         if (bandwidthEstimator == null)
         {
             bandwidthEstimator = new BandwidthEstimatorImpl(this);
-            recurringRunnableExecutor.registerRecurringRunnable(
-                    bandwidthEstimator);
             logger.info("Creating a BandwidthEstimator for stream " + this);
         }
         return bandwidthEstimator;

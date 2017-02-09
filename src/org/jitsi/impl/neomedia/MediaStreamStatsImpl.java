@@ -1209,13 +1209,12 @@ public class MediaStreamStatsImpl
             {
                 // RemoteBitrateEstimator is a CallStatsObserver and
                 // VideoMediaStream has a RemoteBitrateEstimator.
-                MediaStream mediaStream = this.mediaStreamImpl;
+                MediaStreamImpl mediaStream = this.mediaStreamImpl;
 
                 if (mediaStream instanceof VideoMediaStream)
                 {
                     RemoteBitrateEstimator remoteBitrateEstimator
-                        = ((VideoMediaStream) mediaStream)
-                            .getRemoteBitrateEstimator();
+                        = mediaStream.getRemoteBitrateEstimator();
 
                     if (remoteBitrateEstimator instanceof CallStatsObserver)
                     {

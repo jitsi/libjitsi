@@ -300,7 +300,7 @@ public class RTCPReceiverFeedbackTermination
         // TODO we should only make REMBs if REMB support has been advertised.
         // Destination
         RemoteBitrateEstimator remoteBitrateEstimator
-            = ((VideoMediaStream) stream).getRemoteBitrateEstimator();
+            = stream.getRemoteBitrateEstimator();
 
         Collection<Integer> ssrcs = remoteBitrateEstimator.getSsrcs();
 

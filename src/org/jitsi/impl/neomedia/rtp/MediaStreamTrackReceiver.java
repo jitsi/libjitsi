@@ -150,6 +150,35 @@ public class MediaStreamTrackReceiver
     }
 
     /**
+     * Finds the {@link RTPEncodingDesc} that matches {@link ByteArrayBuffer}
+     * passed in as a parameter.
+     *
+     * @param buf the {@link ByteArrayBuffer} of the {@link RTPEncodingDesc}
+     * to match.
+     * @return the {@link RTPEncodingDesc} that matches the pkt passed in as
+     * a parameter, or null if there is no matching {@link RTPEncodingDesc}.
+     */
+    public RTPEncodingDesc findRTPEncodingDesc(long ssrc)
+    {
+        MediaStreamTrackDesc[] localTracks = tracks;
+        if (ArrayUtils.isNullOrEmpty(localTracks))
+        {
+            return null;
+        }
+
+        for (MediaStreamTrackDesc track : localTracks)
+        {
+            RTPEncodingDesc encoding = track.findRTPEncodingDesc(ssrc);
+            if (encoding != null)
+            {
+                return encoding;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override

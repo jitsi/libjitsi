@@ -226,6 +226,7 @@ public class RTPEncodingDesc
                 }
                 else if (snDiff < 2 || snDiff > (-3 & 0xFFFF))
                 {
+                    // FIXME we get that way too often.
                     logger.warn("Frame corruption or packets that are out of " +
                         "order detected.");
                 }
@@ -239,6 +240,7 @@ public class RTPEncodingDesc
                 }
                 else if (snDiff < 3 || snDiff > (-4 & 0xFFFF))
                 {
+                    // FIXME or this.
                     logger.warn("Frame corruption or packets that are out of" +
                         " order detected.");
                 }
@@ -385,6 +387,16 @@ public class RTPEncodingDesc
             .getStream().getTemporalID(buf, off, len);
 
         return tid == -1 && idx == 0 || tid == temporalId;
+    }
+
+    public boolean matches(long ssrc)
+    {
+        if (primarySSRC != ssrc && rtxSSRC != ssrc)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     /**

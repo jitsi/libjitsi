@@ -971,8 +971,8 @@ public class StatisticsEngine
                     if (logger.isTraceEnabled())
                     {
                         logger.trace(
-                                "Received estimated bitrate (bps): "
-                                        + remb.getBitrate() + ", dest: "
+                                "remb,stream=" + mediaStream.hashCode() +
+                                " bps=" + remb.getBitrate() + ",dest="
                                         + Arrays.toString(remb.getDest()));
                     }
                     streamStats.rembReceived(remb);

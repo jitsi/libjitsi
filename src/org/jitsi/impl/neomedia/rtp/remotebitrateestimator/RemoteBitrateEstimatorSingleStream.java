@@ -20,6 +20,7 @@ import java.util.*;
 import net.sf.fmj.media.rtp.util.*;
 
 import org.ice4j.util.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.concurrent.*;
 
@@ -28,11 +29,14 @@ import org.jitsi.util.concurrent.*;
  * webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.h
  *
  * @author Lyubomir Marinov
+ * @author George Politis
  */
 public class RemoteBitrateEstimatorSingleStream
+    extends SinglePacketTransformerAdapter
     implements CallStatsObserver,
                RecurringRunnable,
-               RemoteBitrateEstimator
+               RemoteBitrateEstimator,
+               TransformEngine
 {
     static final double kTimestampToMs = 1.0 / 90.0;
 
@@ -86,6 +90,24 @@ public class RemoteBitrateEstimatorSingleStream
     {
         // TODO Auto-generated method stub
         return 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public PacketTransformer getRTPTransformer()
+    {
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public PacketTransformer getRTCPTransformer()
+    {
+        return null;
     }
 
     /**

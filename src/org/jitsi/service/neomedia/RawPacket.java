@@ -1519,6 +1519,39 @@ public class RawPacket
     }
 
     /**
+     * Sets the padding length for this RTP packet.
+     *
+     * @param len the padding length.
+     * @return the number of bytes that were written, or -1 in case of an error.
+     */
+    public int setPaddingSize(int len)
+    {
+        if (buffer == null || buffer.length < offset + FIXED_HEADER_SIZE + len
+            || len < 0 || len > 0xFF)
+        {
+            return -1;
+        }
+
+        // Set the padding bit.
+        buffer[offset] |= 0x20;
+        buffer[offset + length - 1] = (byte) len;
+
+        return 2;
+    }
+
+    /**
+     *
+     * @return
+     */
+    public int setVersion()
+    {
+
+        buffer[offset] |= 0x80;
+
+        return 1;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override

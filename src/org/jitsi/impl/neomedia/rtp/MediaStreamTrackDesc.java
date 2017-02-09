@@ -275,6 +275,32 @@ public class MediaStreamTrackDesc
     }
 
     /**
+     * Finds the {@link RTPEncodingDesc} that corresponds to the packet that is
+     * specified in the buffer passed in as an argument.
+     *
+     * @param ssrc the SSRC of the {@link RTPEncodingDesc} to find.
+     * @return the {@link RTPEncodingDesc} that corresponds to the packet that is
+     * specified in the buffer passed in as an argument, or null.
+     */
+    public RTPEncodingDesc findRTPEncodingDesc(long ssrc)
+    {
+        if (ArrayUtils.isNullOrEmpty(rtpEncodings))
+        {
+            return null;
+        }
+
+        for (RTPEncodingDesc encoding : rtpEncodings)
+        {
+            if (encoding.matches(ssrc))
+            {
+                return encoding;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Finds the {@link FrameDesc} that corresponds to the packet that is
      * specified in the buffer passed in as an argument.
      *

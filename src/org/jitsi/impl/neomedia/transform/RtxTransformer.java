@@ -554,6 +554,70 @@ public class RtxTransformer
         }
     }
 
+    public void pad(long ssrc, long bytes)
+    {
+        StreamRTPManager receiveRTPManager = mediaStream
+            .getRTPTranslator()
+            .findStreamRTPManagerByReceiveSSRC((int) ssrc);
+
+        MediaStreamTrackReceiver receiver = null;
+        if (receiveRTPManager != null)
+        {
+            MediaStream receiveStream = receiveRTPManager.getMediaStream();
+            if (receiveStream != null)
+            {
+                receiver = receiveStream.getMediaStreamTrackReceiver();
+            }
+        }
+
+        if (receiver == null)
+        {
+            return;
+        }
+
+        RTPEncodingDesc encoding = receiver.findRTPEncodingDesc(ssrc);
+        if (encoding == null)
+        {
+            logger.warn("encoding_not_found"
+                + ",stream_hash=" + mediaStream.hashCode()
+                + " ssrc=" + ssrc);
+            return;
+        }
+
+        long rtxSSRC = encoding.getRTXSSRC();
+
+        int pktLen = RawPacket.FIXED_HEADER_SIZE + 0xFF;
+        // int mod = (int) (bytes % pktLen);
+        int len = (int) (bytes / pktLen) + 1;
+        RawPacket[] pkts = new RawPacket[len + 1];
+        for (int i = 0; i < pkts.length; i++)
+        {
+            byte[] buf = new byte[pktLen];
+
+            RawPacket pkt = new RawPacket(buf, 0, buf.length);
+
+            pkt.setVersion();
+            pkt.setPayloadType(rtxPayloadType);
+            pkt.setSSRC((int) rtxSSRC);
+            pkt.setTimestamp(0);
+            pkt.setSequenceNumber(getNextRtxSequenceNumber(rtxSSRC));
+            pkt.setPaddingSize(0xFF);
+            pkts[i] = pkt;
+        }
+
+        for (int i = 0; i < pkts.length; i++)
+        {
+            try
+            {
+                mediaStream.injectPacket(pkts[i], /* data */ true, this);
+            }
+            catch (TransmissionFailedException tfe)
+            {
+                logger.warn("Failed to retransmit a packet.");
+            }
+        }
+    }
+
     /**
      * The transformer that decapsulates RTX.
      */
