@@ -1545,6 +1545,28 @@ public class RawPacket
     }
 
     /**
+     * @return the header extension of this {@link RawPacket} with the given ID,
+     * or null if the packet doesn't have one.
+     * WARNING: This method should not be used while iterating over the
+     * extensions with {@link #getHeaderExtensions()}, because it uses the same
+     * iterator.
+     * @param id
+     */
+    public HeaderExtension getHeaderExtension(byte id)
+    {
+        HeaderExtensions hes = getHeaderExtensions();
+        while (hes.hasNext())
+        {
+            HeaderExtension he = hes.next();
+            if (he.getExtId() == id)
+            {
+                return he;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Represents an RTP header extension with the RFC5285 one-byte header:
      * <pre>{@code
      * 0

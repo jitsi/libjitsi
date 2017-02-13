@@ -59,6 +59,13 @@ public class RTPExtension
             = "urn:ietf:params:rtp-hdrext:framemarking";
 
     /**
+     * The URN which identifies the Original Header Block RTP extension defined
+     * in {@link "https://tools.ietf.org/html/draft-ietf-perc-double-02"}.
+     */
+    public static final String ORIGINAL_HEADER_BLOCK_URN
+        = "urn:ietf:params:rtp-hdrext:ohb";
+
+    /**
      * The direction that this extension will be transmitted in.
      */
     private MediaDirection direction = MediaDirection.SENDRECV;
