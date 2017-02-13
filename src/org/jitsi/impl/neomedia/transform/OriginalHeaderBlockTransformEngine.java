@@ -86,6 +86,8 @@ public class OriginalHeaderBlockTransformEngine
     public RawPacket transform(RawPacket pkt)
     {
         return pkt;
+        // We would want to do something like the below if we wanted to optimize
+        // the packet size (by only including the modified fields in the OHB).
         /*
         if (extensionID != -1)
         {
@@ -99,6 +101,12 @@ public class OriginalHeaderBlockTransformEngine
         */
     }
 
+    /**
+     * Removes any unmodified fields from the OHB header extension of a
+     * {@link RawPacket}.
+     * @param pkt the packet.
+     * @param ohb the OHB header extension.
+     */
     private void rebuildOhb(RawPacket pkt, RawPacket.HeaderExtension ohb)
     {
         byte[] buf = ohb.getBuffer();
@@ -139,6 +147,14 @@ public class OriginalHeaderBlockTransformEngine
         }
     }
 
+    /**
+     * @return the length of the OHB extension, given the fields which differ
+     * from the original packet.
+     * @param pt whether the PR was modified.
+     * @param seq whether the sequence number was modified.
+     * @param ts whether the timestamp was modified.
+     * @param ssrc whether the SSRC was modified.
+     */
     private int getLength(boolean pt, boolean seq, boolean ts, boolean ssrc)
     {
         if (!pt && !seq && !ts && !ssrc)
