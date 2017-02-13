@@ -54,7 +54,7 @@ public class OriginalHeaderBlockTransformEngine
     /**
      * The ID of the OHB RTP header extension, or -1 if it is not enabled.
      */
-    private byte extensionID = 8;
+    private byte extensionID = -1;
 
     /**
      * Initializes a new {@link OriginalHeaderBlockTransformEngine} instance.
