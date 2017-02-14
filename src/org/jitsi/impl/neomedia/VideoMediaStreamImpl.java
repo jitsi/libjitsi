@@ -679,57 +679,6 @@ public class VideoMediaStreamImpl
         return mediaStreamTrackReceiver;
     }
 
-
-    /**
-     * Notifies this <tt>VideoMediaStreamImpl</tt> that a
-     * <tt>DatagramPacket</tt> was received by the data/RTP input stream of this
-     * <tt>MediaStreamImpl</tt>.
-     *
-     * @param source the source of the event
-     * @param p the <tt>DatagramPacket</tt> received by the data/RTP input
-     * stream of this <tt>MediaStreamImpl</tt>
-     */
-    private void dataInputStreamDatagramPacketListenerUpdate(
-            Object source,
-            DatagramPacket p)
-    {
-        RemoteBitrateEstimator remoteBitrateEstimator
-            = getRemoteBitrateEstimator();
-
-        if (remoteBitrateEstimator != null)
-        {
-            // Do the bytes in p resemble (a header of) an RTP packet?
-            byte[] buf = p.getData();
-            int off = p.getOffset();
-            long payloadLenAndOff
-                = RTPTranslatorImpl.getPayloadLengthAndOffsetIfRTP(
-                        buf,
-                        off,
-                        p.getLength());
-
-            if (payloadLenAndOff >= 0)
-            {
-                int payloadLen = (int) (payloadLenAndOff >>> 32);
-                int payloadOff = (int) payloadLenAndOff;
-
-                if (payloadOff >= 0)
-                {
-                    long arrivalTimeMs = System.currentTimeMillis();
-                    long timestamp
-                        = RTPTranslatorImpl.readInt(buf, off + 4) & 0xFFFFFFFFL;
-                    int ssrc = RTPTranslatorImpl.readInt(buf, off + 8);
-
-                    remoteBitrateEstimator.incomingPacket(
-                            arrivalTimeMs,
-                            payloadLen,
-                            ssrc,
-                            timestamp,
-                            /* wasPaced */ false);
-                }
-            }
-        }
-    }
-
     /**
      * Notifies this <tt>MediaStream</tt> that the <tt>MediaDevice</tt> (and
      * respectively the <tt>MediaDeviceSession</tt> with it) which this instance

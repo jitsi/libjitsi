@@ -17,8 +17,6 @@ package org.jitsi.service.neomedia.rtp;
 
 import java.util.*;
 
-import net.sf.fmj.media.rtp.util.*;
-
 /**
  * webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.cc
  * webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h
@@ -50,40 +48,6 @@ public interface RemoteBitrateEstimator
     long getLatestEstimate();
 
     Collection<Integer> getSsrcs();
-
-    /**
-     * Called for each incoming packet. Updates the incoming payload bitrate
-     * estimate and the over-use detector. If an over-use is detected the remote
-     * bitrate estimate will be updated.
-     *
-     * @param arrivalTimeMs can be of an arbitrary time base
-     * @param payloadSize the packet size excluding headers
-     * @param ssrc
-     * @param rtpTimestamp
-     * @param wasPaced
-     */
-    void incomingPacket(
-            long arrivalTimeMs,
-            int payloadSize,
-            int ssrc,
-            long rtpTimestamp,
-            boolean wasPaced);
-
-    /**
-     * Called for each incoming packet. Updates the incoming payload bitrate
-     * estimate and the over-use detector. If an over-use is detected the remote
-     * bitrate estimate will be updated.
-     *
-     * @param arrivalTimeMs can be of an arbitrary time base
-     * @param payloadSize the packet size excluding headers
-     * @param header
-     * @param wasPaced
-     */
-    void incomingPacket(
-            long arrivalTimeMs,
-            int payloadSize,
-            RTPPacket header,
-            boolean wasPaced);
 
     /**
      * Removes all data for <tt>ssrc</tt>.
