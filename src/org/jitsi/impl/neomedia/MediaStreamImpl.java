@@ -50,6 +50,7 @@ import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 
 /**
@@ -1088,7 +1089,7 @@ public class MediaStreamImpl
 
         // TODO RTCP termination should end up here.
 
-        RemoteBitrateEstimatorSingleStream
+        RemoteBitrateEstimator
             remoteBitrateEstimator = getRemoteBitrateEstimator();
         if (remoteBitrateEstimator != null)
         {
@@ -3902,7 +3903,7 @@ public class MediaStreamImpl
      * @return the <tt>RemoteBitrateEstimator</tt> of this
      * <tt>VideoMediaStream</tt> if any; otherwise, <tt>null</tt>
      */
-    public RemoteBitrateEstimatorSingleStream getRemoteBitrateEstimator()
+    public RemoteBitrateEstimator getRemoteBitrateEstimator()
     {
         return null;
     }

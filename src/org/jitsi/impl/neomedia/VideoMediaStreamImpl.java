@@ -905,7 +905,7 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    public RemoteBitrateEstimatorSingleStream getRemoteBitrateEstimator()
+    public RemoteBitrateEstimator getRemoteBitrateEstimator()
     {
         return remoteBitrateEstimator;
     }

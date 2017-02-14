@@ -40,7 +40,7 @@ public class PaddingTermination
     /**
      * The {@code ReplayContext} for every SSRC that this instance has seen.
      */
-    private final Map<Integer, ReplayContext> replayContexts = new TreeMap<>();
+    private final Map<Long, ReplayContext> replayContexts = new TreeMap<>();
 
     /**
      * {@inheritDoc}
@@ -66,7 +66,7 @@ public class PaddingTermination
     @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
-        Integer mediaSSRC = pkt.getSSRC();
+        Long mediaSSRC = pkt.getSSRCAsLong();
 
         // TODO maybe drop padding from the main RTP stream?
         ReplayContext replayContext = replayContexts.get(mediaSSRC);

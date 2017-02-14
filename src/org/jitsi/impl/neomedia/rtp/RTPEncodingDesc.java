@@ -389,14 +389,15 @@ public class RTPEncodingDesc
         return tid == -1 && idx == 0 || tid == temporalId;
     }
 
+    /**
+     * Gets a boolean indicating whether or not the SSRC specified in the
+     * arguments matches this encoding or not.
+     *
+     * @param ssrc the SSRC to match.
+     */
     public boolean matches(long ssrc)
     {
-        if (primarySSRC != ssrc && rtxSSRC != ssrc)
-        {
-            return false;
-        }
-
-        return true;
+        return primarySSRC == ssrc || rtxSSRC == ssrc;
     }
 
     /**

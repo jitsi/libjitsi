@@ -554,7 +554,14 @@ public class RtxTransformer
         }
     }
 
-    public void pad(long ssrc, long bytes)
+    /**
+     * Sends padding packets with the RTX SSRC associated to the media SSRC that
+     * is passed as a parameter.
+     *
+     * @param ssrc the media SSRC.
+     * @param bytes the amount of padding to send in bytes.
+     */
+    public void sendPadding(long ssrc, long bytes)
     {
         StreamRTPManager receiveRTPManager = mediaStream
             .getRTPTranslator()
@@ -592,17 +599,8 @@ public class RtxTransformer
         RawPacket[] pkts = new RawPacket[len + 1];
         for (int i = 0; i < pkts.length; i++)
         {
-            byte[] buf = new byte[pktLen];
-
-            RawPacket pkt = new RawPacket(buf, 0, buf.length);
-
-            pkt.setVersion();
-            pkt.setPayloadType(rtxPayloadType);
-            pkt.setSSRC((int) rtxSSRC);
-            pkt.setTimestamp(0);
-            pkt.setSequenceNumber(getNextRtxSequenceNumber(rtxSSRC));
-            pkt.setPaddingSize(0xFF);
-            pkts[i] = pkt;
+            pkts[i] = RawPacket.makeRTP((int) rtxSSRC,
+                rtxPayloadType, getNextRtxSequenceNumber(rtxSSRC), 0, pktLen);
         }
 
         for (int i = 0; i < pkts.length; i++)

@@ -113,6 +113,35 @@ public class RawPacket
     }
 
     /**
+     * Makes a new RTP {@code RawPacket} filled with padding with the specified
+     * parameters. Note that because we're creating a packet filled with
+     * padding, the length must not exceed 12 + 0xFF.
+     *
+     * @param ssrc the SSRC of the RTP packet to make.
+     * @param pt the payload type of the RTP packet to make.
+     * @param seqNum the sequence number of the RTP packet to make.
+     * @param ts the RTP timestamp of the RTP packet to make.
+     * @param len the length of the RTP packet to make.
+     * @return the RTP {@code RawPacket} that was created.
+     */
+    public static RawPacket makeRTP(
+        int ssrc, byte pt, int seqNum, long ts, int len)
+    {
+        byte[] buf = new byte[len];
+
+        RawPacket pkt = new RawPacket(buf, 0, buf.length);
+
+        pkt.setVersion();
+        pkt.setPayloadType(pt);
+        pkt.setSSRC(ssrc);
+        pkt.setTimestamp(ts);
+        pkt.setSequenceNumber(seqNum);
+        pkt.setPaddingSize(len - FIXED_HEADER_SIZE);
+
+        return pkt;
+    }
+
+    /**
      * Test whether the RTP Marker bit is set
      *
      * @param buffer
@@ -1540,14 +1569,18 @@ public class RawPacket
     }
 
     /**
+     * Sets the RTP version in this RTP packet.
      *
-     * @return
+     * @return the number of bytes that were written, or -1 in case of an error.
      */
     public int setVersion()
     {
+        if (isInvalid())
+        {
+            return -1;
+        }
 
         buffer[offset] |= 0x80;
-
         return 1;
     }
 

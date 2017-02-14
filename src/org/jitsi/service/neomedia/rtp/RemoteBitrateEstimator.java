@@ -15,6 +15,8 @@
  */
 package org.jitsi.service.neomedia.rtp;
 
+import org.jitsi.impl.neomedia.transform.*;
+
 import java.util.*;
 
 /**
@@ -24,6 +26,7 @@ import java.util.*;
  * @author Lyubomir Marinov
  */
 public interface RemoteBitrateEstimator
+    extends TransformEngine
 {
     /**
      * webrtc/modules/remote_bitrate_estimator/include/bwe_defines.h
