@@ -15,7 +15,6 @@
  */
 package org.jitsi.impl.neomedia.rtp;
 
-import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -78,28 +77,6 @@ public class MediaStreamTrackDesc
     {
         this.rtpEncodings = rtpEncodings;
         this.mediaStreamTrackReceiver = mediaStreamTrackReceiver;
-    }
-
-    /**
-     * Notifies this instance that a {@link RTCPSRPacket} has been received.
-     *
-     * @param sr the received {@link RTCPSRPacket}.
-     */
-    public void srReceived(RTCPSRPacket sr)
-    {
-        long sendTimeMs = TimeUtils.getTime(TimeUtils.constuctNtp(
-            sr.ntptimestampmsw, sr.ntptimestamplsw));
-
-        long latencyMs = System.currentTimeMillis() - sendTimeMs;
-        if (latencyMs < 0)
-        {
-            statistics.latencyMs = 0;
-        }
-
-        if (logger.isDebugEnabled())
-        {
-            logger.debug("latency=" + statistics.latencyMs);
-        }
     }
 
     /**
@@ -340,23 +317,5 @@ public class MediaStreamTrackDesc
          * The time (in millis) that this instance last saw a keyframe.
          */
         private long lastKeyframeMs = -1;
-
-        /**
-         * The time (in millis) from when the first bit leaves the transmitter
-         * until the last is received.
-         */
-        long latencyMs = -1;
-
-        /**
-         * Gets the time (in millis) from when the first bit leaves the
-         * transmitter until the last is received.
-         *
-         * @return the time (in millis) from when the first bit leaves the
-         * transmitter until the last is received.
-         */
-        public long getLatencyMs()
-        {
-            return latencyMs;
-        }
     }
 }

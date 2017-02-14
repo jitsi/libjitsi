@@ -28,7 +28,6 @@ import org.jitsi.util.*;
  * @author George Politis
  */
 public class MediaStreamTrackReceiver
-    extends RTCPPacketListenerAdapter
     implements TransformEngine, PacketTransformer
 {
     /**
@@ -51,7 +50,6 @@ public class MediaStreamTrackReceiver
     public MediaStreamTrackReceiver(MediaStreamImpl stream)
     {
         this.stream = stream;
-        this.stream.getMediaStreamStats().addRTCPPacketListener(this);
     }
 
     /**
@@ -200,23 +198,9 @@ public class MediaStreamTrackReceiver
      * {@inheritDoc}
      */
     @Override
-    public void srReceived(RTCPSRPacket srPacket)
-    {
-        MediaStreamTrackDesc track
-            = findMediaStreamTrackDesc(srPacket.ssrc & 0xFFFFFFFFL);
-        if (track != null)
-        {
-            track.srReceived(srPacket);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public void close()
     {
-        stream.getMediaStreamStats().removeRTCPPacketListener(this);
+
     }
 
     /**
