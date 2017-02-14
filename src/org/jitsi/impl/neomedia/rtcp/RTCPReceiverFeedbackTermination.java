@@ -125,12 +125,16 @@ public class RTCPReceiverFeedbackTermination
 
         // Build the RTCP compound packet to return.
 
-        RTCPPacket[] rtcpPackets
-            = new RTCPPacket[rrs.length + (remb == null ? 0 : 1)];
-
-        System.arraycopy(rrs, 0, rtcpPackets, 0, rrs.length);
-        if (remb != null)
+        RTCPPacket[] rtcpPackets;
+        if (remb == null)
         {
+            rtcpPackets = rrs;
+            logger.warn("no_remb,stream=" + stream.hashCode());
+        }
+        else
+        {
+            rtcpPackets = new RTCPPacket[rrs.length + 1];
+            System.arraycopy(rrs, 0, rtcpPackets, 0, rrs.length);
             rtcpPackets[rrs.length] = remb;
         }
 
