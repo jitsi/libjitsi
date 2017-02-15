@@ -209,7 +209,7 @@ public class RTPEncodingDesc
         else
         {
             int min = b.getMinSeen(), max = a.getMaxSeen();
-            int snDiff = (max - min) & 0xFFFF;
+            int snDiff = (min - max) & 0xFFFF;
 
             if (start != -1 || end != -1)
             {
@@ -226,7 +226,6 @@ public class RTPEncodingDesc
                 }
                 else if (snDiff < 2 || snDiff > (-3 & 0xFFFF))
                 {
-                    // FIXME we get that way too often.
                     logger.warn("Frame corruption or packets that are out of " +
                         "order detected.");
                 }
@@ -240,7 +239,6 @@ public class RTPEncodingDesc
                 }
                 else if (snDiff < 3 || snDiff > (-4 & 0xFFFF))
                 {
-                    // FIXME or this.
                     logger.warn("Frame corruption or packets that are out of" +
                         " order detected.");
                 }
