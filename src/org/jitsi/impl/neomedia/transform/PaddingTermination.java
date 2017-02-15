@@ -17,11 +17,15 @@ package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 import java.util.*;
 
 /**
- * De-duplicates RTP packets from incoming RTP streams.
+ * De-duplicates RTP packets from incoming RTP streams. A more space-efficient
+ * implementation using a replay context is possible but one needs to be careful
+ * with the window size not to drop valid retransmissions
+ * (https://github.com/jitsi/libjitsi/pull/263#discussion_r100417318).
  *
  * @author George Politis
  */
@@ -29,6 +33,14 @@ public class PaddingTermination
     extends SinglePacketTransformerAdapter
     implements TransformEngine
 {
+    /**
+     * The size of the seen sequence numbers set to hold per SSRC. As long as
+     * Chrome does not probe with ancient packets (> 5 seconds (300 packets per
+     * second) this size should be a sufficiently large size to prevent padding
+     * packets.
+     */
+    private static final int SEEN_SET_SZ = 1500;
+
     /**
      * Ctor.
      */
@@ -40,7 +52,7 @@ public class PaddingTermination
     /**
      * The {@code ReplayContext} for every SSRC that this instance has seen.
      */
-    private final Map<Long, ReplayContext> replayContexts = new TreeMap<>();
+    private final Map<Long, Set<Integer>> replayContexts = new TreeMap<>();
 
     /**
      * {@inheritDoc}
@@ -68,15 +80,21 @@ public class PaddingTermination
     {
         Long mediaSSRC = pkt.getSSRCAsLong();
 
-        // TODO maybe drop padding from the main RTP stream?
-        ReplayContext replayContext = replayContexts.get(mediaSSRC);
+        // NOTE dropping padding from the main RTP stream is not supported
+        // because we can't rewrite to hide the gaps. Padding packets in the
+        // RTX stream are detected and killed in the RtxTransformer, so this
+        // instance should not see any RTX packets (it's after RTX in the
+        // chain).
+        Set<Integer> replayContext = replayContexts.get(mediaSSRC);
         if (replayContext == null)
         {
-            replayContext = new ReplayContext();
+            replayContext = Collections.newSetFromMap(
+                new LRUCache<Integer, Boolean>(SEEN_SET_SZ));
+
             replayContexts.put(mediaSSRC, replayContext);
         }
 
-        return replayContext.isSeen(pkt) ? null : pkt;
+        return replayContext.add(pkt.getSequenceNumber()) ? pkt : null;
     }
 
 }
