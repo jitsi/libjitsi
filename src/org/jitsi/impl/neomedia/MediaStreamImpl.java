@@ -35,7 +35,6 @@ import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
-import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.impl.neomedia.transform.*;
