@@ -370,6 +370,25 @@ public class MediaStreamStatsImpl
 
                     lsr = stats.emission2reception.get(lsr);
                 }
+                else
+                {
+                    // feedback.getSSRC() might refer to the RTX SSRC but the
+                    // translator doesn't know about the RTX SSRC because of the
+                    // de-RTXification step. In the translator case if we can't
+                    // map an emission time to a receipt time, we're bound to
+                    // compute the wrong RTT, so here we return -1.
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug(
+                            "invalid_rtt,stream=" + mediaStreamImpl.hashCode()
+                                + " ssrc=" + feedback.getSSRC()
+                                + ",now=" + arrivalMs
+                                + ",lsr=" + lsr
+                                + ",dlsr=" + dlsr);
+                    }
+
+                    return -1;
+                }
             }
 
             long arrivalNtp = TimeUtils.toNtpTime(arrivalMs);
@@ -396,7 +415,8 @@ public class MediaStreamStatsImpl
             {
                 logger.warn(
                     "invalid_rtt,stream=" + mediaStreamImpl.hashCode()
-                        + " rtt=" + rttLong
+                        + " ssrc=" + feedback.getSSRC()
+                        + ",rtt=" + rttLong
                         + ",now=" + arrivalMs
                         + ",lsr=" + lsr
                         + ",dlsr=" + dlsr);
@@ -409,7 +429,8 @@ public class MediaStreamStatsImpl
                 {
                     logger.debug(
                         "rtt,stream= " + mediaStreamImpl.hashCode()
-                            + " rtt=" + rttLong
+                            + " ssrc=" + feedback.getSSRC()
+                            + ",rtt=" + rttLong
                             + ",now=" + arrivalMs
                             + ",lsr=" + lsr
                             + ",dlsr=" + dlsr);
@@ -1545,11 +1566,10 @@ public class MediaStreamStatsImpl
 
         if (!feedbackReports.isEmpty())
         {
-            updateNewReceivedFeedback(feedbackReports.get(0));
-
             MediaStreamStats2Impl extended = getExtended();
             for (RTCPFeedback rtcpFeedback : feedbackReports)
             {
+                updateNewReceivedFeedback(rtcpFeedback);
                 extended.rtcpReceiverReportReceived(
                     rtcpFeedback.getSSRC(),
                     rtcpFeedback.getFractionLost());
