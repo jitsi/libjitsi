@@ -255,9 +255,10 @@ public class MediaStreamTrackDesc
      * Finds the {@link RTPEncodingDesc} that corresponds to the packet that is
      * specified in the buffer passed in as an argument.
      *
-     * @param ssrc the SSRC of the {@link RTPEncodingDesc} to find.
-     * @return the {@link RTPEncodingDesc} that corresponds to the packet that is
-     * specified in the buffer passed in as an argument, or null.
+     * @param ssrc the SSRC of the {@link RTPEncodingDesc} to find. If multiple
+     * encodings share the same SSRC, the first match will be returned.
+     * @return the {@link RTPEncodingDesc} that corresponds to the packet that
+     * is specified in the buffer passed in as an argument, or null.
      */
     public RTPEncodingDesc findRTPEncodingDesc(long ssrc)
     {

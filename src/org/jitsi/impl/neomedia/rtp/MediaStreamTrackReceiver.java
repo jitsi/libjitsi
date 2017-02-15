@@ -151,8 +151,8 @@ public class MediaStreamTrackReceiver
      * Finds the {@link RTPEncodingDesc} that matches {@link ByteArrayBuffer}
      * passed in as a parameter.
      *
-     * @param buf the {@link ByteArrayBuffer} of the {@link RTPEncodingDesc}
-     * to match.
+     * @param ssrc the SSRC of the {@link RTPEncodingDesc} to match. If multiple
+     * encodings share the same SSRC, the first match will be returned.
      * @return the {@link RTPEncodingDesc} that matches the pkt passed in as
      * a parameter, or null if there is no matching {@link RTPEncodingDesc}.
      */
