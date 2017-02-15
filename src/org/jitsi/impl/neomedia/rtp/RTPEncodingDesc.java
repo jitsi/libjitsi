@@ -209,7 +209,7 @@ public class RTPEncodingDesc
         else
         {
             int min = b.getMinSeen(), max = a.getMaxSeen();
-            int snDiff = (max - min) & 0xFFFF;
+            int snDiff = (min - max) & 0xFFFF;
 
             if (start != -1 || end != -1)
             {
@@ -385,6 +385,17 @@ public class RTPEncodingDesc
             .getStream().getTemporalID(buf, off, len);
 
         return tid == -1 && idx == 0 || tid == temporalId;
+    }
+
+    /**
+     * Gets a boolean indicating whether or not the SSRC specified in the
+     * arguments matches this encoding or not.
+     *
+     * @param ssrc the SSRC to match.
+     */
+    public boolean matches(long ssrc)
+    {
+        return primarySSRC == ssrc || rtxSSRC == ssrc;
     }
 
     /**

@@ -125,13 +125,16 @@ public class RTCPReceiverFeedbackTermination
 
         // Build the RTCP compound packet to return.
 
-        RTCPPacket[] rtcpPackets
-            = new RTCPPacket[rrs.length + (remb == null ? 0 : 1)];
-
-        System.arraycopy(rrs, 0, rtcpPackets, 0, rrs.length);
-        if (remb != null)
+        RTCPPacket[] rtcpPackets;
+        if (remb == null)
         {
-            rtcpPackets[rrs.length] = remb;
+            rtcpPackets = rrs;
+            logger.warn("no_remb,stream=" + stream.hashCode());
+        }
+        else
+        {
+            // NOTE the add method throws an exception if remb == null.
+            rtcpPackets = ArrayUtils.add(rrs, RTCPPacket.class, remb);
         }
 
         RTCPCompoundPacket compound = new RTCPCompoundPacket(rtcpPackets);
@@ -300,7 +303,7 @@ public class RTCPReceiverFeedbackTermination
         // TODO we should only make REMBs if REMB support has been advertised.
         // Destination
         RemoteBitrateEstimator remoteBitrateEstimator
-            = ((VideoMediaStream) stream).getRemoteBitrateEstimator();
+            = stream.getRemoteBitrateEstimator();
 
         Collection<Integer> ssrcs = remoteBitrateEstimator.getSsrcs();
 

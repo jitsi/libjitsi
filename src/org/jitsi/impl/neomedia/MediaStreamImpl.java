@@ -49,6 +49,7 @@ import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 
 /**
@@ -1027,13 +1028,6 @@ public class MediaStreamImpl
             engineChain.add(rtcpFeedbackTermination);
         }
 
-        // RTX
-        RtxTransformer rtxTransformer = getRtxTransformer();
-        if (rtxTransformer != null)
-        {
-            engineChain.add(rtxTransformer);
-        }
-
         // here comes the override payload type transformer
         // as it changes headers of packets, need to go before encryption
         if (ptTransformEngine == null)
@@ -1065,12 +1059,6 @@ public class MediaStreamImpl
             engineChain.add(cachingTransformer);
         }
 
-        absSendTimeEngine = createAbsSendTimeEngine();
-        if (absSendTimeEngine != null)
-        {
-            engineChain.add(absSendTimeEngine);
-        }
-
         // Discard
         DiscardTransformEngine discardEngine = createDiscardEngine();
         if (discardEngine != null)
@@ -1082,6 +1070,35 @@ public class MediaStreamImpl
         if (mediaStreamTrackReceiver != null)
         {
             engineChain.add(mediaStreamTrackReceiver);
+        }
+
+        // Padding termination.
+        PaddingTermination paddingTermination = getPaddingTermination();
+        if (paddingTermination != null)
+        {
+            engineChain.add(paddingTermination);
+        }
+
+        // RTX
+        RtxTransformer rtxTransformer = getRtxTransformer();
+        if (rtxTransformer != null)
+        {
+            engineChain.add(rtxTransformer);
+        }
+
+        // TODO RTCP termination should end up here.
+
+        RemoteBitrateEstimator
+            remoteBitrateEstimator = getRemoteBitrateEstimator();
+        if (remoteBitrateEstimator != null)
+        {
+            engineChain.add(remoteBitrateEstimator);
+        }
+
+        absSendTimeEngine = createAbsSendTimeEngine();
+        if (absSendTimeEngine != null)
+        {
+            engineChain.add(absSendTimeEngine);
         }
 
         // Debug
@@ -3870,6 +3887,25 @@ public class MediaStreamImpl
         return null;
     }
 
+    /**
+     * Gets the {@link PaddingTermination} for this {@link MediaStreamImpl}.
+     */
+    protected PaddingTermination getPaddingTermination()
+    {
+        return null;
+    }
+
+    /**
+     * Gets the <tt>RemoteBitrateEstimator</tt> of this
+     * <tt>VideoMediaStream</tt>.
+     *
+     * @return the <tt>RemoteBitrateEstimator</tt> of this
+     * <tt>VideoMediaStream</tt> if any; otherwise, <tt>null</tt>
+     */
+    public RemoteBitrateEstimator getRemoteBitrateEstimator()
+    {
+        return null;
+    }
     /**
      * Code that runs when the dynamic payload types change.
      */

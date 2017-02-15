@@ -28,7 +28,6 @@ import org.jitsi.util.*;
  * @author George Politis
  */
 public class MediaStreamTrackReceiver
-    extends RTCPPacketListenerAdapter
     implements TransformEngine, PacketTransformer
 {
     /**
@@ -51,7 +50,6 @@ public class MediaStreamTrackReceiver
     public MediaStreamTrackReceiver(MediaStreamImpl stream)
     {
         this.stream = stream;
-        this.stream.getMediaStreamStats().addRTCPPacketListener(this);
     }
 
     /**
@@ -150,6 +148,35 @@ public class MediaStreamTrackReceiver
     }
 
     /**
+     * Finds the {@link RTPEncodingDesc} that matches {@link ByteArrayBuffer}
+     * passed in as a parameter.
+     *
+     * @param ssrc the SSRC of the {@link RTPEncodingDesc} to match. If multiple
+     * encodings share the same SSRC, the first match will be returned.
+     * @return the {@link RTPEncodingDesc} that matches the pkt passed in as
+     * a parameter, or null if there is no matching {@link RTPEncodingDesc}.
+     */
+    public RTPEncodingDesc findRTPEncodingDesc(long ssrc)
+    {
+        MediaStreamTrackDesc[] localTracks = tracks;
+        if (ArrayUtils.isNullOrEmpty(localTracks))
+        {
+            return null;
+        }
+
+        for (MediaStreamTrackDesc track : localTracks)
+        {
+            RTPEncodingDesc encoding = track.findRTPEncodingDesc(ssrc);
+            if (encoding != null)
+            {
+                return encoding;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -171,23 +198,9 @@ public class MediaStreamTrackReceiver
      * {@inheritDoc}
      */
     @Override
-    public void srReceived(RTCPSRPacket srPacket)
-    {
-        MediaStreamTrackDesc track
-            = findMediaStreamTrackDesc(srPacket.ssrc & 0xFFFFFFFFL);
-        if (track != null)
-        {
-            track.srReceived(srPacket);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public void close()
     {
-        stream.getMediaStreamStats().removeRTCPPacketListener(this);
+
     }
 
     /**

@@ -13,25 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia;
+package org.jitsi.util;
 
-import java.net.*;
+import java.util.*;
 
 /**
- * Represents a listener of a source of a type of events involving/caused by
- * <tt>DatagramPacket</tt>s.
- *
- * @author Lyubomir Marinov
+ * @author George Politis
  */
-public interface DatagramPacketListener
+public class LRUCache<K, V> extends LinkedHashMap<K, V>
 {
     /**
-     * Notifies this listener about an event fired by a specific <tt>source</tt>
-     * and involving/caused by a specific <tt>DatagramPacket</tt>.
      *
-     * @param source the source of/which fired the event
-     * @param p the <tt>DatagramPacket</tt> which caused/is involved in the
-     * event fired by <tt>source</tt>
      */
-    void update(Object source, DatagramPacket p);
+    private int cacheSize;
+
+    /**
+     * Ctor.
+     *
+     * @param cacheSize
+     */
+    public LRUCache(int cacheSize)
+    {
+        this.cacheSize = cacheSize;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected boolean removeEldestEntry(Map.Entry<K, V> eldest)
+    {
+        return size() >= cacheSize;
+    }
 }

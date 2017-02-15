@@ -402,17 +402,25 @@ public class SimulcastController
 
         SimTransformation state = transformState;
 
+        boolean removed = false;
         RTCPIterator it = new RTCPIterator(pkt);
         while (it.hasNext())
         {
             ByteArrayBuffer baf = it.next();
             switch (RTCPHeaderUtils.getPacketType(baf))
             {
+            case RTCPPacket.SDES:
+                if (removed)
+                {
+                    it.remove();
+                }
+                break;
             case RTCPPacket.SR:
 
                 if (RawPacket.getRTCPSSRC(pkt) != state.currentSSRC)
                 {
                     // SRs from other streams get axed.
+                    removed = true;
                     it.remove();
                 }
                 else
@@ -438,7 +446,7 @@ public class SimulcastController
             }
         }
 
-        return pkt;
+        return pkt.getLength() > 0 ? pkt : null;
     }
 
     /**

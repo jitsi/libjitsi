@@ -440,6 +440,11 @@ public class VideoMediaStreamImpl
         = new RTCPReceiverFeedbackTermination(this);
 
     /**
+     *
+     */
+    private final PaddingTermination paddingTermination = new PaddingTermination();
+
+    /**
      * The <tt>RemoteBitrateEstimator</tt> which computes bitrate estimates for
      * the incoming RTP streams.
      */
@@ -585,11 +590,6 @@ public class VideoMediaStreamImpl
                 recurringRunnableExecutor.deRegisterRecurringRunnable(
                         (RecurringRunnable) remoteBitrateEstimator);
             }
-            if (bandwidthEstimator != null)
-            {
-                recurringRunnableExecutor.deRegisterRecurringRunnable(
-                        bandwidthEstimator);
-            }
 
             if (cachingTransformer != null)
             {
@@ -603,33 +603,6 @@ public class VideoMediaStreamImpl
                     .deRegisterRecurringRunnable(rtcpFeedbackTermination);
             }
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void configureDataInputStream(
-            RTPConnectorInputStream<?> dataInputStream)
-    {
-        super.configureDataInputStream(dataInputStream);
-
-        /*
-         * Start listening to the receipt of data/RTP packets in order to notify
-         * remoteBitrateEstimator.
-         */
-        dataInputStream.addDatagramPacketListener(
-                new DatagramPacketListener()
-                {
-                    @Override
-                    public void update(Object source, DatagramPacket p)
-                    {
-                        VideoMediaStreamImpl.this
-                            .dataInputStreamDatagramPacketListenerUpdate(
-                                    source,
-                                    p);
-                    }
-                });
     }
 
     /**
@@ -704,57 +677,6 @@ public class VideoMediaStreamImpl
     public MediaStreamTrackReceiver getMediaStreamTrackReceiver()
     {
         return mediaStreamTrackReceiver;
-    }
-
-
-    /**
-     * Notifies this <tt>VideoMediaStreamImpl</tt> that a
-     * <tt>DatagramPacket</tt> was received by the data/RTP input stream of this
-     * <tt>MediaStreamImpl</tt>.
-     *
-     * @param source the source of the event
-     * @param p the <tt>DatagramPacket</tt> received by the data/RTP input
-     * stream of this <tt>MediaStreamImpl</tt>
-     */
-    private void dataInputStreamDatagramPacketListenerUpdate(
-            Object source,
-            DatagramPacket p)
-    {
-        RemoteBitrateEstimator remoteBitrateEstimator
-            = getRemoteBitrateEstimator();
-
-        if (remoteBitrateEstimator != null)
-        {
-            // Do the bytes in p resemble (a header of) an RTP packet?
-            byte[] buf = p.getData();
-            int off = p.getOffset();
-            long payloadLenAndOff
-                = RTPTranslatorImpl.getPayloadLengthAndOffsetIfRTP(
-                        buf,
-                        off,
-                        p.getLength());
-
-            if (payloadLenAndOff >= 0)
-            {
-                int payloadLen = (int) (payloadLenAndOff >>> 32);
-                int payloadOff = (int) payloadLenAndOff;
-
-                if (payloadOff >= 0)
-                {
-                    long arrivalTimeMs = System.currentTimeMillis();
-                    long timestamp
-                        = RTPTranslatorImpl.readInt(buf, off + 4) & 0xFFFFFFFFL;
-                    int ssrc = RTPTranslatorImpl.readInt(buf, off + 8);
-
-                    remoteBitrateEstimator.incomingPacket(
-                            arrivalTimeMs,
-                            payloadLen,
-                            ssrc,
-                            timestamp,
-                            /* wasPaced */ false);
-                }
-            }
-        }
     }
 
     /**
@@ -1406,14 +1328,20 @@ public class VideoMediaStreamImpl
     /**
      * {@inheritDoc}
      */
+    protected PaddingTermination getPaddingTermination()
+    {
+        return paddingTermination;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public BandwidthEstimator getOrCreateBandwidthEstimator()
     {
         if (bandwidthEstimator == null)
         {
             bandwidthEstimator = new BandwidthEstimatorImpl(this);
-            recurringRunnableExecutor.registerRecurringRunnable(
-                    bandwidthEstimator);
             logger.info("Creating a BandwidthEstimator for stream " + this);
         }
         return bandwidthEstimator;

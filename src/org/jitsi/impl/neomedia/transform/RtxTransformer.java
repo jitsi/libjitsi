@@ -555,6 +555,68 @@ public class RtxTransformer
     }
 
     /**
+     * Sends padding packets with the RTX SSRC associated to the media SSRC that
+     * is passed as a parameter.
+     *
+     * @param ssrc the media SSRC.
+     * @param bytes the amount of padding to send in bytes.
+     */
+    public void sendPadding(long ssrc, long bytes)
+    {
+        StreamRTPManager receiveRTPManager = mediaStream
+            .getRTPTranslator()
+            .findStreamRTPManagerByReceiveSSRC((int) ssrc);
+
+        MediaStreamTrackReceiver receiver = null;
+        if (receiveRTPManager != null)
+        {
+            MediaStream receiveStream = receiveRTPManager.getMediaStream();
+            if (receiveStream != null)
+            {
+                receiver = receiveStream.getMediaStreamTrackReceiver();
+            }
+        }
+
+        if (receiver == null)
+        {
+            return;
+        }
+
+        RTPEncodingDesc encoding = receiver.findRTPEncodingDesc(ssrc);
+        if (encoding == null)
+        {
+            logger.warn("encoding_not_found"
+                + ",stream_hash=" + mediaStream.hashCode()
+                + " ssrc=" + ssrc);
+            return;
+        }
+
+        long rtxSSRC = encoding.getRTXSSRC();
+
+        int pktLen = RawPacket.FIXED_HEADER_SIZE + 0xFF;
+        // int mod = (int) (bytes % pktLen);
+        int len = (int) (bytes / pktLen) + 1;
+        RawPacket[] pkts = new RawPacket[len + 1];
+        for (int i = 0; i < pkts.length; i++)
+        {
+            pkts[i] = RawPacket.makeRTP((int) rtxSSRC,
+                rtxPayloadType, getNextRtxSequenceNumber(rtxSSRC), 0, pktLen);
+        }
+
+        for (int i = 0; i < pkts.length; i++)
+        {
+            try
+            {
+                mediaStream.injectPacket(pkts[i], /* data */ true, this);
+            }
+            catch (TransmissionFailedException tfe)
+            {
+                logger.warn("Failed to retransmit a packet.");
+            }
+        }
+    }
+
+    /**
      * The transformer that decapsulates RTX.
      */
     private class RTPTransformer
