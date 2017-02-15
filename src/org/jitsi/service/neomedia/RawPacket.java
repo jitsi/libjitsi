@@ -1553,19 +1553,19 @@ public class RawPacket
      * @param len the padding length.
      * @return the number of bytes that were written, or -1 in case of an error.
      */
-    public int setPaddingSize(int len)
+    public boolean setPaddingSize(int len)
     {
         if (buffer == null || buffer.length < offset + FIXED_HEADER_SIZE + len
             || len < 0 || len > 0xFF)
         {
-            return -1;
+            return false;
         }
 
         // Set the padding bit.
         buffer[offset] |= 0x20;
         buffer[offset + length - 1] = (byte) len;
 
-        return 2;
+        return true;
     }
 
     /**
@@ -1573,15 +1573,15 @@ public class RawPacket
      *
      * @return the number of bytes that were written, or -1 in case of an error.
      */
-    public int setVersion()
+    public boolean setVersion()
     {
         if (isInvalid())
         {
-            return -1;
+            return false;
         }
 
         buffer[offset] |= 0x80;
-        return 1;
+        return true;
     }
 
     /**
