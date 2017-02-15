@@ -133,9 +133,8 @@ public class RTCPReceiverFeedbackTermination
         }
         else
         {
-            rtcpPackets = new RTCPPacket[rrs.length + 1];
-            System.arraycopy(rrs, 0, rtcpPackets, 0, rrs.length);
-            rtcpPackets[rrs.length] = remb;
+            // NOTE the add method throws an exception if remb == null.
+            rtcpPackets = ArrayUtils.add(rrs, RTCPPacket.class, remb);
         }
 
         RTCPCompoundPacket compound = new RTCPCompoundPacket(rtcpPackets);
