@@ -281,20 +281,20 @@ public class SimulcastController
      * Transforms the RTP packet specified in the {@link RawPacket} that is
      * passed as an argument for the purposes of simulcast.
      *
-     * @param pkt the {@link RawPacket} to be transformed.
+     * @param pktIn the {@link RawPacket} to be transformed.
      * @return the transformed {@link RawPacket} or null if the packet needs
      * to be dropped.
      */
-    public RawPacket[] rtpTransform(RawPacket pkt)
+    public RawPacket[] rtpTransform(RawPacket pktIn)
     {
-        if (!RTPPacketPredicate.INSTANCE.test(pkt))
+        if (!RTPPacketPredicate.INSTANCE.test(pktIn))
         {
-            return new RawPacket[] { pkt };
+            return new RawPacket[] { pktIn };
         }
 
         SimTransformation state = transformState;
 
-        long srcSSRC = pkt.getSSRCAsLong();
+        long srcSSRC = pktIn.getSSRCAsLong();
         if (srcSSRC != state.currentSSRC)
         {
             // We do _not_ forward packets from SSRCs other than the
@@ -302,16 +302,16 @@ public class SimulcastController
             return null;
         }
 
-        RawPacket[] pkts;
+        RawPacket[] pktsOut;
 
         FrameDesc startFrame;
         if (transformState.maybeFixInitialIndependentFrame
             && (startFrame = state.weakStartFrame.get()) != null
-            && startFrame.matches(pkt))
+            && startFrame.matches(pktIn))
         {
             transformState.maybeFixInitialIndependentFrame = false;
 
-            if (startFrame.getStart() != pkt.getSequenceNumber())
+            if (startFrame.getStart() != pktIn.getSequenceNumber())
             {
                 // Piggy back till max seen.
                 RawPacketCache inCache = startFrame
@@ -325,41 +325,41 @@ public class SimulcastController
                 int start = startFrame.getStart();
                 int len = RTPUtils.sequenceNumberDiff(
                     startFrame.getMaxSeen(), start) + 1;
-                pkts = new RawPacket[len];
-                for (int i = 0; i < pkts.length; i++)
+                pktsOut = new RawPacket[len];
+                for (int i = 0; i < pktsOut.length; i++)
                 {
                     // Note that the ingress cache might not have the desired
                     // packet.
-                    pkts[i] = inCache.get(srcSSRC, (start + i) & 0xFFFF);
+                    pktsOut[i] = inCache.get(srcSSRC, (start + i) & 0xFFFF);
                 }
             }
             else
             {
-                pkts = new RawPacket[] { pkt };
+                pktsOut = new RawPacket[] { pktIn };
             }
         }
         else
         {
-            pkts = new RawPacket[]{pkt};
+            pktsOut = new RawPacket[]{ pktIn };
         }
 
-        for (int i = 0; i < pkts.length; i++)
+        for (RawPacket pktOut : pktsOut)
         {
             // Note that the ingress cache might not have the desired packet.
-            if (pkts[i] == null)
+            if (pktOut == null)
             {
                 continue;
             }
 
-            int srcSeqNum = pkt.getSequenceNumber();
+            int srcSeqNum = pktOut.getSequenceNumber();
             int dstSeqNum = state.rewriteSeqNum(srcSeqNum);
 
-            long srcTs = pkt.getTimestamp();
+            long srcTs = pktOut.getTimestamp();
             long dstTs = state.rewriteTimestamp(srcTs);
 
             if (logger.isDebugEnabled())
             {
-                logger.debug("src_ssrc=" + pkt.getSSRCAsLong()
+                logger.debug("sim_rewrite src_ssrc=" + pktIn.getSSRCAsLong()
                     + ",src_seq=" + srcSeqNum
                     + ",src_ts=" + srcTs
                     + ",dst_ssrc=" + targetSSRC
@@ -369,21 +369,21 @@ public class SimulcastController
 
             if (srcSeqNum != dstSeqNum)
             {
-                pkt.setSequenceNumber(dstSeqNum);
+                pktOut.setSequenceNumber(dstSeqNum);
             }
 
             if (dstTs != srcTs)
             {
-                pkt.setTimestamp(dstTs);
+                pktOut.setTimestamp(dstTs);
             }
 
             if (srcSSRC != targetSSRC)
             {
-                pkt.setSSRC((int) targetSSRC);
+                pktOut.setSSRC((int) targetSSRC);
             }
         }
 
-        return pkts;
+        return pktsOut;
     }
 
     /**
