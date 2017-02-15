@@ -448,7 +448,7 @@ public class VideoMediaStreamImpl
      * The <tt>RemoteBitrateEstimator</tt> which computes bitrate estimates for
      * the incoming RTP streams.
      */
-    private final RemoteBitrateEstimatorSingleStream remoteBitrateEstimator
+    private final RemoteBitrateEstimator remoteBitrateEstimator
         = new RemoteBitrateEstimatorSingleStream(
                 new RemoteBitrateObserver()
                 {
