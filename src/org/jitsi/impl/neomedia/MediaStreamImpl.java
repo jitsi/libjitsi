@@ -1108,7 +1108,7 @@ public class MediaStreamImpl
             engineChain.add(debugTransformEngine);
 
         // OHB
-        engineChain.add(new OriginalHeaderBlockTransformEngine());
+        engineChain.add(ohbEngine);
 
         // SRTP
         engineChain.add(srtpControl.getTransformEngine());
