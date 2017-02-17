@@ -368,7 +368,13 @@ public class MediaStreamStatsImpl
                     MediaStreamStatsImpl stats
                         = (MediaStreamStatsImpl) receiveStream.getMediaStreamStats();
 
-                    lsr = stats.emission2reception.get(lsr);
+                    Long lsrReceipt = stats.emission2reception.get(lsr);
+                    if (lsrReceipt == null)
+                    {
+                        return -1;
+                    }
+
+                    lsr = lsrReceipt;
                 }
                 else
                 {
