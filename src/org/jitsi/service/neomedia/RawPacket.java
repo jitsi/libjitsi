@@ -125,15 +125,15 @@ public class RawPacket
      * @return the RTP {@code RawPacket} that was created.
      */
     public static RawPacket makeRTP(
-        int ssrc, byte pt, int seqNum, long ts, int len)
+        long ssrc, int pt, int seqNum, long ts, int len)
     {
         byte[] buf = new byte[len];
 
         RawPacket pkt = new RawPacket(buf, 0, buf.length);
 
         pkt.setVersion();
-        pkt.setPayloadType(pt);
-        pkt.setSSRC(ssrc);
+        pkt.setPayloadType((byte) pt);
+        pkt.setSSRC((int) ssrc);
         pkt.setTimestamp(ts);
         pkt.setSequenceNumber(seqNum);
         pkt.setPaddingSize(len - FIXED_HEADER_SIZE);

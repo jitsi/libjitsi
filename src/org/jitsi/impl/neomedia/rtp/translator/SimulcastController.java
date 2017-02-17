@@ -34,6 +34,7 @@ import java.lang.ref.*;
  * @author George Politis
  */
 public class SimulcastController
+    implements PaddingParams
 {
     /**
      * The {@link Logger} to be used by this instance to print debug
@@ -73,6 +74,11 @@ public class SimulcastController
     private int targetIdx = -1;
 
     /**
+     * The optimal subjective quality index for this instance.
+     */
+    private int optimalIdx;
+
+    /**
      * Read by the transform thread. Written by the filter thread.
      */
     private SimTransformation transformState = dropState;
@@ -87,6 +93,77 @@ public class SimulcastController
     {
         this.weakSource = new WeakReference<>(source);
         this.targetSSRC = source.getRTPEncodings()[0].getPrimarySSRC();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getCurrentBps()
+    {
+        MediaStreamTrackDesc source = weakSource.get();
+        if (source == null)
+        {
+            return 0;
+        }
+
+        SimTransformation simTransformation = transformState;
+        if (simTransformation == null || simTransformation.currentIdx == -1)
+        {
+            return 0;
+        }
+
+        if (!source.getRTPEncodings()[simTransformation.currentIdx].isActive())
+        {
+            return 0;
+        }
+
+        return source.getRTPEncodings()[simTransformation.currentIdx]
+            .getLastStableBitrateBps();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getOptimalBps()
+    {
+        int optimalIdx = this.optimalIdx;
+        if (optimalIdx < 0)
+        {
+            return 0;
+        }
+
+        MediaStreamTrackDesc source = weakSource.get();
+        if (source == null)
+        {
+            return 0;
+        }
+
+        for (int i = optimalIdx; i > -1; i--)
+        {
+            if (!source.getRTPEncodings()[i].isActive())
+            {
+                continue;
+            }
+
+            long bps = source.getRTPEncodings()[i].getLastStableBitrateBps();
+            if (bps > 0)
+            {
+                return bps;
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getTargetSSRC()
+    {
+        return targetSSRC;
     }
 
     /**
@@ -198,8 +275,9 @@ public class SimulcastController
      *
      * @param targetIdx new target subjective quality index.
      */
-    public void update(int targetIdx)
+    public void update(int targetIdx, int optimalIdx)
     {
+        this.optimalIdx = optimalIdx;
         if (this.targetIdx == targetIdx)
         {
             return;

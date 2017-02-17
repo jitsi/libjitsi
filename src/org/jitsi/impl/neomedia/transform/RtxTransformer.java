@@ -463,6 +463,13 @@ public class RtxTransformer
         return encoding.getPrimarySSRC();
     }
 
+    private RawPacketCache getCache()
+    {
+        MediaStreamImpl stream = this.mediaStream;
+        return stream != null
+            ? stream.getCachingTransformer().getOutgoingRawPacketCache() : null;
+    }
+
     /**
      *
      * @param mediaSSRC
@@ -478,10 +485,9 @@ public class RtxTransformer
                     + ",lost_packets=" + lostPackets);
         }
 
-        RawPacketCache cache;
+        RawPacketCache cache = getCache();
 
-        if (mediaStream != null
-            && (cache = mediaStream.getCachingTransformer().getOutgoingRawPacketCache()) != null)
+        if (cache != null)
         {
             // Retransmitted packets need to be inserted:
             // * after SSRC-rewriting (the external transform engine)
@@ -563,28 +569,51 @@ public class RtxTransformer
      * Sends padding packets with the RTX SSRC associated to the media SSRC that
      * is passed as a parameter.
      *
-     * @param ssrc the media SSRC.
+     * @param ssrc the media SSRC to protect.
      * @param bytes the amount of padding to send in bytes.
+     * @return the remaining padding bytes budget.
      */
-    public void sendPadding(long ssrc, long bytes)
+    public long sendPadding(long ssrc, long bytes)
     {
+        if (rtxPayloadType == -1)
+        {
+            // If the client does not support RTX, then it's impossible to
+            // protect any media RTP stream because any duplicate packets that
+            // we send will be killed at the SRTP layer. The caller better probe
+            // using the JVB's SSRC.
+            return bytes;
+        }
+
         StreamRTPManager receiveRTPManager = mediaStream
             .getRTPTranslator()
             .findStreamRTPManagerByReceiveSSRC((int) ssrc);
 
-        MediaStreamTrackReceiver receiver = null;
-        if (receiveRTPManager != null)
+        if (receiveRTPManager == null)
         {
-            MediaStream receiveStream = receiveRTPManager.getMediaStream();
-            if (receiveStream != null)
-            {
-                receiver = receiveStream.getMediaStreamTrackReceiver();
-            }
+            logger.warn("rtp_manager_not_found"
+                + ",stream_hash=" + mediaStream.hashCode()
+                + " ssrc=" + ssrc);
+            return bytes;
         }
 
+        MediaStream receiveStream = receiveRTPManager.getMediaStream();
+        if (receiveStream == null)
+        {
+            logger.warn("stream_not_found"
+                + ",stream_hash=" + mediaStream.hashCode()
+                + " ssrc=" + ssrc);
+            return bytes;
+        }
+
+
+        MediaStreamTrackReceiver receiver
+            = receiveStream.getMediaStreamTrackReceiver();
         if (receiver == null)
         {
-            return;
+            logger.warn("receiver_not_found"
+                + ",stream_hash=" + mediaStream.hashCode()
+                + " ssrc=" + ssrc);
+            return bytes;
         }
 
         RTPEncodingDesc encoding = receiver.findRTPEncodingDesc(ssrc);
@@ -593,32 +622,48 @@ public class RtxTransformer
             logger.warn("encoding_not_found"
                 + ",stream_hash=" + mediaStream.hashCode()
                 + " ssrc=" + ssrc);
-            return;
+            return bytes;
         }
 
-        long rtxSSRC = encoding.getRTXSSRC();
-
-        int pktLen = RawPacket.FIXED_HEADER_SIZE + 0xFF;
-        // int mod = (int) (bytes % pktLen);
-        int len = (int) (bytes / pktLen) + 1;
-        RawPacket[] pkts = new RawPacket[len + 1];
-        for (int i = 0; i < pkts.length; i++)
+        RawPacketCache cache = getCache();
+        if (cache == null)
         {
-            pkts[i] = RawPacket.makeRTP((int) rtxSSRC,
-                rtxPayloadType, getNextRtxSequenceNumber(rtxSSRC), 0, pktLen);
+            return bytes;
         }
 
-        for (int i = 0; i < pkts.length; i++)
+        Map<Integer, RawPacketCache.Container> lastNPackets
+            = cache.getLastN(ssrc, 600);
+
+        if (lastNPackets != null && !lastNPackets.isEmpty())
         {
-            try
+            Iterator<Map.Entry<Integer, RawPacketCache.Container>>
+                it = lastNPackets.entrySet().iterator();
+
+            while (it.hasNext())
             {
-                mediaStream.injectPacket(pkts[i], /* data */ true, this);
-            }
-            catch (TransmissionFailedException tfe)
-            {
-                logger.warn("Failed to retransmit a packet.");
+                Map.Entry<Integer, RawPacketCache.Container> entry = it.next();
+                RawPacketCache.Container container = entry.getValue();
+                RawPacket pkt = container.pkt;
+                // Containers are recycled/reused, so we must check if the
+                // packet is still there.
+                if (pkt != null)
+                {
+                    int len = container.pkt.getLength();
+                    if (bytes - len > 0)
+                    {
+                        retransmit(container.pkt, this);
+                        bytes -= len;
+                    }
+                    else
+                    {
+                        // Don't break as we might be able to squeeze in the
+                        // next packet.
+                    }
+                }
             }
         }
+
+        return bytes;
     }
 
     /**

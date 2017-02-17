@@ -390,6 +390,12 @@ public class RawPacketCache
         }
     }
 
+    public Map<Integer, Container> getLastN(long ssrc, int n)
+    {
+        Cache cache = getCache(ssrc & 0xffffffffL, false);
+        return cache == null ? null : cache.getLastN(n);
+    }
+
     /**
      * Updates the timestamp of the packet in the cache with SSRC {@code ssrc}
      * and sequence number {@code seq}, if such a packet exists in the cache,
@@ -637,6 +643,11 @@ public class RawPacketCache
             }
 
             cache.clear();
+        }
+
+        public synchronized Map<Integer, Container> getLastN(int n)
+        {
+            return new HashMap<>(cache.tailMap(s_l - n));
         }
     }
 
