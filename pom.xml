@@ -108,4 +108,15 @@
     </resources>
   </build>
 
+  <distributionManagement>
+    <snapshotRepository>
+      <id>snapshots</id>
+      <url>https://alianza.artifactoryonline.com/alianza/libs-snapshot</url>
+    </snapshotRepository>
+    <repository>
+      <id>central</id>
+      <url>https://alianza.artifactoryonline.com/alianza/libs-release</url>
+    </repository>
+  </distributionManagement>
+
 </project>
