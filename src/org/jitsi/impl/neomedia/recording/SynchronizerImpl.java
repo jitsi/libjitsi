@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.recording;
 
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.util.*;
 
@@ -277,11 +277,11 @@ public class SynchronizerImpl
      */
     private void addSR(RawPacket pkt, long localTime)
     {
-        long ssrc = pkt.getRTCPSSRCAsLong();
-        long rtpTime = pkt.readUnsignedIntAsLong(16);
+        long ssrc = pkt.getRTCPSSRC();
+        long rtpTime = pkt.readUint32AsLong(16);
 
-        long sec = pkt.readUnsignedIntAsLong(8);
-        long fract = pkt.readUnsignedIntAsLong(12);
+        long sec = pkt.readUint32AsLong(8);
+        long fract = pkt.readUint32AsLong(12);
         double ntpTime = sec + (((double)fract) / (1L<<32));
 
         if (localTime != -1 && ntpTime != -1.0)

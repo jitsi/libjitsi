@@ -13,26 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.rtp.translator;
+package org.jitsi.impl.neomedia.rtp;
 
 import net.sf.fmj.media.rtp.*;
-import org.jitsi.service.neomedia.*;
+import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.service.neomedia.rtp.*;
 
 /**
  * @author George Politis
  */
-public class RTCPTransmitterFactoryImpl
-    implements RTCPTransmitterFactory
+public class RTCPPacketListenerAdapter
+    implements RTCPPacketListener
 {
-    private final RTPTranslator translator;
-
-    public RTCPTransmitterFactoryImpl(RTPTranslator translator)
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void nackReceived(NACKPacket nackPacket)
     {
-        this.translator = translator;
+
     }
 
-    public RTCPTransmitter newRTCPTransmitter(SSRCCache cache, RTCPRawSender rtcpRawSender)
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void rembReceived(RTCPREMBPacket rembPacket)
     {
-        return new RTCPTransmitterImpl(rtcpRawSender, translator);
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void srReceived(RTCPSRPacket srPacket)
+    {
+
     }
 }

@@ -64,10 +64,22 @@ DSCaptureDevice::DSCaptureDevice(const WCHAR* name)
     m_renderer = NULL;
 }
 
+void DSCaptureDevice::RemoveFromRot()
+{
+    IRunningObjectTable *pROT;
+    if (SUCCEEDED(GetRunningObjectTable(0, &pROT)))
+    {
+        pROT->Revoke(m_dwRotRegister);
+        pROT->Release();
+    }
+}
+
 DSCaptureDevice::~DSCaptureDevice()
 {
     if(m_filterGraph)
     {
+        RemoveFromRot();
+
         /* remove all added filters from filter graph */
         if(m_srcFilter)
             m_filterGraph->RemoveFilter(m_srcFilter);
@@ -238,6 +250,38 @@ void DSCaptureDevice::setCallback(BasicSampleGrabberCB *callback)
     m_sampleGrabber->SetCallback(callback, 0);
 }
 
+HRESULT DSCaptureDevice::AddToRot()
+{
+    IMoniker * pMoniker = NULL;
+    IRunningObjectTable *pROT = NULL;
+    HRESULT hr = GetRunningObjectTable(0, &pROT);
+
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    const size_t STRING_LENGTH = 256;
+    WCHAR wsz[STRING_LENGTH];
+    StringCchPrintfW(
+        wsz, STRING_LENGTH,
+        L"FilterGraph %08x pid %08x",
+        (DWORD_PTR)m_filterGraph,
+        GetCurrentProcessId()
+        );
+
+    hr = CreateItemMoniker(L"!", wsz, &pMoniker);
+    if (SUCCEEDED(hr))
+    {
+        hr = pROT->Register(ROTFLAGS_REGISTRATIONKEEPSALIVE, m_filterGraph,
+            pMoniker, &m_dwRotRegister);
+        pMoniker->Release();
+    }
+
+    pROT->Release();
+    return hr;
+}
+
 HRESULT DSCaptureDevice::initDevice(IMoniker* moniker)
 {
     HRESULT ret = 0;
@@ -254,6 +298,9 @@ HRESULT DSCaptureDevice::initDevice(IMoniker* moniker)
 
     if(FAILED(ret))
         return false;
+
+    /* register in ROT to inspect in GraphEdt */
+    AddToRot();
 
     ret = CoCreateInstance(CLSID_CaptureGraphBuilder2, NULL,
         CLSCTX_INPROC_SERVER, IID_ICaptureGraphBuilder2, 
@@ -296,16 +343,7 @@ HRESULT DSCaptureDevice::initDevice(IMoniker* moniker)
     /* and sample grabber to the filter graph */
     ret = m_filterGraph->AddFilter(m_sampleGrabberFilter, L"SampleGrabberFilter");
 
-    /* set media type */
-/*
-    AM_MEDIA_TYPE mediaType;
-    memset(&mediaType, 0x00, sizeof(AM_MEDIA_TYPE));
-    mediaType.majortype = MEDIATYPE_Video;
-    mediaType.subtype = MEDIASUBTYPE_RGB24;
-    ret = m_sampleGrabber->SetMediaType(&mediaType);
-*/
     /* set the callback handler */
-
     if(ret != S_OK)
         return false;
 
@@ -403,7 +441,7 @@ std::list<DSFormat> DSCaptureDevice::getSupportedFormats() const
     return m_formats;
 }
 
-bool DSCaptureDevice::buildGraph()
+HRESULT DSCaptureDevice::buildGraph()
 {
     HRESULT hr
         = m_captureGraphBuilder->RenderStream(
@@ -418,21 +456,28 @@ bool DSCaptureDevice::buildGraph()
         REFERENCE_TIME start = 0;
         REFERENCE_TIME stop = MAXLONGLONG;
 
-        hr
-            = m_captureGraphBuilder->ControlStream(
+        hr = m_captureGraphBuilder->ControlStream(
                     &PIN_CATEGORY_PREVIEW,
                     &MEDIATYPE_Video,
                     m_srcFilter,
                     &start, &stop,
                     1, 2);
-        return SUCCEEDED(hr);
+        return hr;
     }
     else
-        return false;
+    {
+        return hr;
+    }
 }
 
 HRESULT DSCaptureDevice::start()
 {
+    HRESULT hr = buildGraph();
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
     return m_graphController ? m_graphController->Run() : E_FAIL;
 }
 

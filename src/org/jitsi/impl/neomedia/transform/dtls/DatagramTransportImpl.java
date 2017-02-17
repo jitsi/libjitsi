@@ -23,6 +23,7 @@ import org.bouncycastle.crypto.tls.*;
 import org.ice4j.ice.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.video.h264.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**

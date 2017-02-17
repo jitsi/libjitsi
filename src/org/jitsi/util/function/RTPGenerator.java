@@ -16,7 +16,7 @@
 package org.jitsi.util.function;
 
 import net.sf.fmj.media.rtp.util.*;
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * A <tt>Function</tt> that produces <tt>RawPacket</tt>s from

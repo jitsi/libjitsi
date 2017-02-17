@@ -19,8 +19,8 @@ import java.util.*;
 
 import net.sf.fmj.media.rtp.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Implements a <tt>TransformEngine</tt> which splits incoming RTCP compound

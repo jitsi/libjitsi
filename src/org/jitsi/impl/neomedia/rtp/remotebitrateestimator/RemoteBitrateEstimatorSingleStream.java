@@ -20,6 +20,8 @@ import java.util.*;
 import net.sf.fmj.media.rtp.util.*;
 
 import org.ice4j.util.*;
+import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.concurrent.*;
 
@@ -28,11 +30,14 @@ import org.jitsi.util.concurrent.*;
  * webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.h
  *
  * @author Lyubomir Marinov
+ * @author George Politis
  */
 public class RemoteBitrateEstimatorSingleStream
+    extends SinglePacketTransformerAdapter
     implements CallStatsObserver,
                RecurringRunnable,
-               RemoteBitrateEstimator
+               RemoteBitrateEstimator,
+               TransformEngine
 {
     static final double kTimestampToMs = 1.0 / 90.0;
 
@@ -86,6 +91,24 @@ public class RemoteBitrateEstimatorSingleStream
     {
         // TODO Auto-generated method stub
         return 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public PacketTransformer getRTPTransformer()
+    {
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public PacketTransformer getRTCPTransformer()
+    {
+        return null;
     }
 
     /**
@@ -150,14 +173,9 @@ public class RemoteBitrateEstimatorSingleStream
      * {@inheritDoc}
      */
     @Override
-    public void incomingPacket(
-            long arrivalTimeMs,
-            int payloadSize,
-            int ssrc,
-            long rtpTimestamp,
-            boolean wasPaced)
+    public RawPacket reverseTransform(RawPacket pkt)
     {
-        Integer ssrc_ = ssrc;
+        Integer ssrc_ = pkt.getSSRC();
         long nowMs = System.currentTimeMillis();
 
         synchronized (critSect)
@@ -184,7 +202,7 @@ public class RemoteBitrateEstimatorSingleStream
         Detector estimator = it;
 
         estimator.lastPacketTimeMs = nowMs;
-        this.incomingBitrate.update(payloadSize, nowMs);
+        this.incomingBitrate.update(pkt.getPayloadLength(), nowMs);
 
         BandwidthUsage priorState = estimator.detector.getState();
         long[] deltas = this.deltas;
@@ -194,9 +212,9 @@ public class RemoteBitrateEstimatorSingleStream
         /* int sizeDelta */ deltas[2] = 0;
 
         if (estimator.interArrival.computeDeltas(
-                rtpTimestamp,
-                arrivalTimeMs,
-                payloadSize,
+                pkt.getTimestamp(),
+                System.currentTimeMillis(),
+                pkt.getPayloadLength(),
                 deltas))
         {
             double timestampDeltaMs
@@ -230,27 +248,8 @@ public class RemoteBitrateEstimatorSingleStream
             }
         }
         } // synchronized (critSect)
-    }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void incomingPacket(
-            long arrivalTimeMs,
-            int payloadSize,
-            RTPPacket header,
-            boolean wasPaced)
-    {
-        int ssrc = header.ssrc;
-        long rtpTimestamp
-            = header.timestamp + getExtensionTransmissionTimeOffset(header);
-
-        incomingPacket(
-                arrivalTimeMs,
-                payloadSize,
-                ssrc, rtpTimestamp,
-                wasPaced);
+        return pkt;
     }
 
     /**

@@ -16,7 +16,7 @@
 package org.jitsi.impl.neomedia.transform;
 
 import net.sf.fmj.media.rtp.*;
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**

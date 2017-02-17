@@ -18,7 +18,7 @@ package org.jitsi.impl.neomedia.jmfext.media.protocol.rtpdumpfile;
 
 import java.io.*;
 
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * This class represent a rtpdump file and provide an API to get the

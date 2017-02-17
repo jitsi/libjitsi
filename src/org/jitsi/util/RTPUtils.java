@@ -47,4 +47,78 @@ public class RTPUtils
     {
         return (a - b) & 0xFFFF;
     }
+
+    /**
+     * Set an integer at specified offset in network order.
+     *
+     * @param off Offset into the buffer
+     * @param data The integer to store in the packet
+     */
+    public static int writeInt(byte[] buf, int off, int data)
+    {
+        if (buf == null || buf.length < off + 4)
+        {
+            return -1;
+        }
+
+        buf[off++] = (byte)(data>>24);
+        buf[off++] = (byte)(data>>16);
+        buf[off++] = (byte)(data>>8);
+        buf[off] = (byte)data;
+        return 4;
+    }
+
+    /**
+     * Set an integer at specified offset in network order.
+     *
+     * @param off Offset into the buffer
+     * @param data The integer to store in the packet
+     */
+    public static int writeShort(byte[] buf, int off, short data)
+    {
+        buf[off++] = (byte)(data>>8);
+        buf[off] = (byte)data;
+        return 2;
+    }
+
+    /**
+     * Read a integer from a buffer at a specified offset.
+     *
+     * @param buffer the buffer.
+     * @param offset start offset of the integer to be read.
+     */
+    public static int readInt(byte[] buffer, int offset)
+    {
+        return
+            ((buffer[offset++] & 0xFF) << 24)
+                | ((buffer[offset++] & 0xFF) << 16)
+                | ((buffer[offset++] & 0xFF) << 8)
+                | (buffer[offset] & 0xFF);
+    }
+
+    /**
+     * Reads a 32-bit unsigned integer from the given buffer at the given
+     * offset and returns its {@link long} representation.
+     * @param buffer the buffer.
+     * @param offset start offset of the integer to be read.
+     */
+    public static long readUint32AsLong(byte[] buffer, int offset)
+    {
+        return readInt(buffer, offset) & 0xFFFFFFFFL;
+    }
+
+    /**
+     * Read an unsigned short at specified offset as a int
+     *
+     * @param buffer
+     * @param offset start offset of the unsigned short
+     * @return the int value of the unsigned short at offset
+     */
+    public static int readUint16AsInt(byte[] buffer, int offset)
+    {
+        int b1 = (0xFF & (buffer[offset + 0]));
+        int b2 = (0xFF & (buffer[offset + 1]));
+        int val = b1 << 8 | b2;
+        return val;
+    }
 }

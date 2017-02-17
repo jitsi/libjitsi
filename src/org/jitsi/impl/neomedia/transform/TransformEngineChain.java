@@ -16,7 +16,8 @@
 package org.jitsi.impl.neomedia.transform;
 
 import java.util.*;
-import org.jitsi.impl.neomedia.*;
+
+import org.jitsi.service.neomedia.*;
 
 /**
  * The engine chain allows using numerous <tt>TransformEngine</tt>s on a single

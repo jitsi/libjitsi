@@ -16,7 +16,8 @@
 package org.jitsi.impl.neomedia.transform;
 
 import javax.media.rtp.*;
-import org.jitsi.impl.neomedia.*;
+
+import org.jitsi.service.neomedia.*;
 
 /**
  * Facilitates {@code OutputDataStream} in the implementation of the interface

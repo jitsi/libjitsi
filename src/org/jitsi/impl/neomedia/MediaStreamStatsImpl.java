@@ -25,12 +25,12 @@ import javax.media.control.*;
 import javax.media.format.*;
 import javax.media.protocol.*;
 import javax.media.rtp.*;
-import javax.media.rtp.rtcp.*;
 
 import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
@@ -71,6 +71,13 @@ public class MediaStreamStatsImpl
      */
     private static final Logger logger
         = Logger.getLogger(MediaStreamStatsImpl.class);
+
+    /**
+     * Keeps track of when a given NTP time (found in an SR) has been received.
+     * This is used to compute the correct RTT in the translator case.
+     */
+    private final Map<Long, Long> emission2reception
+        = Collections.synchronizedMap(new LRUCache<Long, Long>(100));
 
     /**
      * Computes an Exponentially Weighted Moving Average (EWMA). Thus, the most
@@ -304,14 +311,10 @@ public class MediaStreamStatsImpl
     private int remoteJitterCount = 0;
 
     /**
-     * The list of listeners to be notified when NACK packets are received.
+     * The list of listeners to be notified when RTCP packets are received.
      */
-    private final List<NACKListener> nackListeners = new LinkedList<>();
-
-    /**
-     * The list of listeners to be notified when REMB packets are received.
-     */
-    private final List<REMBListener> rembListeners = new LinkedList<>();
+    private final List<RTCPPacketListener> rtcpPacketListeners
+        = Collections.synchronizedList(new LinkedList<RTCPPacketListener>());
 
     /**
      * Creates a new instance of stats concerning a MediaStream.
@@ -339,7 +342,6 @@ public class MediaStreamStatsImpl
      */
     private int computeRTTInMs(RTCPFeedback feedback)
     {
-        long now = System.currentTimeMillis();
         long lsr = feedback.getLSR();
         long dlsr = feedback.getDLSR();
         int rtt = -1;
@@ -348,101 +350,96 @@ public class MediaStreamStatsImpl
         // blocks (and so without LSR and DLSR)
         if (lsr > 0 && dlsr > 0)
         {
-            // If we perform RTCP termination, the NTP timestamps we include in
-            // outgoing SRs are based on the actual sender's clock. We need to
-            // take this into account in order to compute the correct RTT.
-            now = maybeEstimateRemoteClock(feedback.getSSRC(), now);
+            long arrivalMs = System.currentTimeMillis();
 
-            rtt = getRoundTripDelay(now, lsr, dlsr);
-
-            // Values over 3s are suspicious and likely indicate a bug.
-            if (rtt < 0 || rtt >= 3000)
+            // If we are translating, the NTP timestamps we include in outgoing
+            // SRs are based on the actual sender's clock.
+            RTPTranslator translator = mediaStreamImpl.getRTPTranslator();
+            if (translator != null)
             {
-                logger.info(
-                        "Stream: " + mediaStreamImpl.getName()
-                                + ", RTT computation may be wrong (" + rtt
-                                + "): now " + now + ", lsr " + lsr + ", dlsr "
-                                + dlsr);
+                StreamRTPManager receiveRTPManager = translator
+                    .findStreamRTPManagerByReceiveSSRC((int) feedback.getSSRC());
 
-                rtt = -1;
+                if (receiveRTPManager != null)
+                {
+                    MediaStream receiveStream
+                        = receiveRTPManager.getMediaStream();
+
+                    MediaStreamStatsImpl stats
+                        = (MediaStreamStatsImpl) receiveStream.getMediaStreamStats();
+
+                    lsr = stats.emission2reception.get(lsr);
+                }
+                else
+                {
+                    // feedback.getSSRC() might refer to the RTX SSRC but the
+                    // translator doesn't know about the RTX SSRC because of the
+                    // de-RTXification step. In the translator case if we can't
+                    // map an emission time to a receipt time, we're bound to
+                    // compute the wrong RTT, so here we return -1.
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug(
+                            "invalid_rtt,stream=" + mediaStreamImpl.hashCode()
+                                + " ssrc=" + feedback.getSSRC()
+                                + ",now=" + arrivalMs
+                                + ",lsr=" + lsr
+                                + ",dlsr=" + dlsr);
+                    }
+
+                    return -1;
+                }
             }
-        }
 
+            long arrivalNtp = TimeUtils.toNtpTime(arrivalMs);
+            long arrival = TimeUtils.toNtpShortFormat(arrivalNtp);
 
-        return rtt;
-    }
-
-    /**
-     * Gets the round trip (delay) time between RTP interfaces, expressed in
-     * milliseconds.
-     *
-     * @param timeMs the <tt>System</tt> time in milliseconds since the epoch.
-     * @param lsr the LSR (last SR) time reported in SR (Sender Report) in NTP
-     * Short Format (Q16.16).
-     * @param dlsr the DLSR (delay since last SR) reported in SR in NTP Short
-     * Format (Q16.16).
-     * @return the round trip (delay) time between RTP interfaces, expressed in
-     * milliseconds, or -1 if it can not be calculated.
-     */
-    public static int getRoundTripDelay(long timeMs, long lsr, long dlsr)
-    {
-        long ntpTime = TimeUtils.toNtpTime(timeMs);
-        ntpTime = TimeUtils.toNtpShortFormat(ntpTime);
-
-        long ntprtd = ntpTime - lsr - dlsr;
-
-        long delayLong;
-        if (ntprtd >= 0)
-        {
-            delayLong = TimeUtils.ntpShortToMs(ntprtd);
-        }
-        else
-        {
+            long ntprtd = arrival - lsr - dlsr;
+            long rttLong;
+            if (ntprtd >= 0)
+            {
+                rttLong = TimeUtils.ntpShortToMs(ntprtd);
+            }
+            else
+            {
             /*
              * Even if ntprtd is negative we compute delayLong
              * as it might round to zero.
              * ntpShortToMs expect positive numbers.
              */
-            delayLong = -TimeUtils.ntpShortToMs(-ntprtd);
-        }
+                rttLong = -TimeUtils.ntpShortToMs(-ntprtd);
+            }
 
-        if (delayLong >= 0 && delayLong < Integer.MAX_VALUE)
-        {
-            return (int) delayLong;
-        }
-
-        return -1;
-    }
-
-    /**
-     * Estimates the time on the clock of a remote RTP endpoint (identified by
-     * <tt>ssrc</tt>) corresponding to the local time <tt>localTimeMs</tt>, if
-     * RTCP termination is enabled and the translation can be performed.
-     * Otherwise, does not perform any estimation/translation and return the
-     * input time.
-     *
-     * @param ssrc the SSRC which identifies the remote RTP endpoint.
-     * @param localTimeMs the local in milliseconds since the epoch.
-     * @return an estimation of the time of the RTP endpoint with SSRC
-     * <tt>ssrc</tt> at local time <tt>localTimeMs</tt>, in milliseconds since
-     * the epoch.
-     */
-    private long maybeEstimateRemoteClock(long ssrc, long localTimeMs)
-    {
-        long remoteTimeMs = localTimeMs;
-
-        RemoteClock remoteClock
-            = mediaStreamImpl.getStreamRTPManager().findRemoteClock(ssrc);
-        if (remoteClock != null)
-        {
-            Timestamp remoteTs = remoteClock.estimate(localTimeMs);
-            if (remoteTs != null)
+            // Values over 3s are suspicious and likely indicate a bug.
+            if (rttLong < 0 || rttLong  >= 3000)
             {
-                remoteTimeMs = remoteTs.getSystemTimeMs();
+                logger.warn(
+                    "invalid_rtt,stream=" + mediaStreamImpl.hashCode()
+                        + " ssrc=" + feedback.getSSRC()
+                        + ",rtt=" + rttLong
+                        + ",now=" + arrivalMs
+                        + ",lsr=" + lsr
+                        + ",dlsr=" + dlsr);
+
+                rtt = -1;
+            }
+            else
+            {
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug(
+                        "rtt,stream= " + mediaStreamImpl.hashCode()
+                            + " ssrc=" + feedback.getSSRC()
+                            + ",rtt=" + rttLong
+                            + ",now=" + arrivalMs
+                            + ",lsr=" + lsr
+                            + ",dlsr=" + dlsr);
+                }
+                rtt = (int) rttLong;
             }
         }
 
-        return remoteTimeMs;
+        return rtt;
     }
 
     /**
@@ -1218,13 +1215,12 @@ public class MediaStreamStatsImpl
             {
                 // RemoteBitrateEstimator is a CallStatsObserver and
                 // VideoMediaStream has a RemoteBitrateEstimator.
-                MediaStream mediaStream = this.mediaStreamImpl;
+                MediaStreamImpl mediaStream = this.mediaStreamImpl;
 
                 if (mediaStream instanceof VideoMediaStream)
                 {
                     RemoteBitrateEstimator remoteBitrateEstimator
-                        = ((VideoMediaStream) mediaStream)
-                            .getRemoteBitrateEstimator();
+                        = mediaStream.getRemoteBitrateEstimator();
 
                     if (remoteBitrateEstimator instanceof CallStatsObserver)
                     {
@@ -1479,9 +1475,12 @@ public class MediaStreamStatsImpl
     {
         if (remb != null)
         {
-            for (REMBListener listener : rembListeners)
+            synchronized (rtcpPacketListeners)
             {
-                listener.rembReceived(remb.getBitrate());
+                for (RTCPPacketListener listener : rtcpPacketListeners)
+                {
+                    listener.rembReceived(remb);
+                }
             }
         }
     }
@@ -1494,9 +1493,38 @@ public class MediaStreamStatsImpl
     {
         if (nack != null)
         {
-            for (NACKListener listener : nackListeners)
+            synchronized (rtcpPacketListeners)
             {
-                listener.nackReceived(nack);
+                for (RTCPPacketListener listener : rtcpPacketListeners)
+                {
+                    listener.nackReceived(nack);
+                }
+            }
+        }
+    }
+
+    /**
+     * Notifies this instance that an RTCP SR packet was received.
+     * @param sr the packet.
+     */
+    public void srReceived(RTCPSRPacket sr)
+    {
+        if (sr != null)
+        {
+            long emisionTime = TimeUtils.toNtpShortFormat(
+                TimeUtils.constuctNtp(sr.ntptimestampmsw, sr.ntptimestamplsw));
+
+            long arrivalTime = TimeUtils.toNtpShortFormat(
+                TimeUtils.toNtpTime(System.currentTimeMillis()));
+
+            emission2reception.put(emisionTime, arrivalTime);
+
+            synchronized (rtcpPacketListeners)
+            {
+                for (RTCPPacketListener listener : rtcpPacketListeners)
+                {
+                    listener.srReceived(sr);
+                }
             }
         }
     }
@@ -1505,14 +1533,11 @@ public class MediaStreamStatsImpl
      * {@inheritDoc}
      */
     @Override
-    public void addNackListener(NACKListener listener)
+    public void addRTCPPacketListener(RTCPPacketListener listener)
     {
         if (listener != null)
         {
-            synchronized (nackListeners)
-            {
-                nackListeners.add(listener);
-            }
+            rtcpPacketListeners.add(listener);
         }
     }
 
@@ -1520,14 +1545,11 @@ public class MediaStreamStatsImpl
      * {@inheritDoc}
      */
     @Override
-    public void addRembListener(REMBListener listener)
+    public void removeRTCPPacketListener(RTCPPacketListener listener)
     {
         if (listener != null)
         {
-            synchronized (rembListeners)
-            {
-                rembListeners.add(listener);
-            }
+            rtcpPacketListeners.remove(listener);
         }
     }
 
@@ -1544,11 +1566,10 @@ public class MediaStreamStatsImpl
 
         if (!feedbackReports.isEmpty())
         {
-            updateNewReceivedFeedback(feedbackReports.get(0));
-
             MediaStreamStats2Impl extended = getExtended();
             for (RTCPFeedback rtcpFeedback : feedbackReports)
             {
+                updateNewReceivedFeedback(rtcpFeedback);
                 extended.rtcpReceiverReportReceived(
                     rtcpFeedback.getSSRC(),
                     rtcpFeedback.getFractionLost());

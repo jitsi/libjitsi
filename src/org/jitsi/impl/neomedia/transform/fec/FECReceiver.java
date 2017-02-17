@@ -17,10 +17,10 @@ package org.jitsi.impl.neomedia.transform.fec;
 
 import java.util.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -99,14 +99,14 @@ class FECReceiver
 
     /**
      * The name of the <tt>ConfigurationService</tt> property which specifies
-     * the value of {@link #MEDIA_BUFF_SIZE}.
+     * the value of {@link #MEDIA_BUF_SIZE}.
      */
     private static final String MEDIA_BUF_SIZE_PNAME
             = FECReceiver.class.getName() + ".MEDIA_BUFF_SIZE";
 
     /**
      * The name of the <tt>ConfigurationService</tt> property which specifies
-     * the value of {@link #FEC_BUFF_SIZE}.
+     * the value of {@link #FEC_BUF_SIZE}.
      */
     private static final String FEC_BUF_SIZE_PNAME
             = FECReceiver.class.getName() + ".FEC_BUFF_SIZE";
@@ -485,8 +485,7 @@ class FECReceiver
             // mask length in bytes
             int maskLen = (buf[idx] & 0x40) == 0 ? 2 : 6;
             int base
-                    = fecPacket.readUnsignedShortAsInt(
-                    fecPacket.getHeaderLength() + 2);
+                = fecPacket.readUint16AsInt(fecPacket.getHeaderLength() + 2);
 
 
             idx+=12; // skip FEC Header and Protection Length, point to mask

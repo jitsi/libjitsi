@@ -37,7 +37,7 @@ public interface MediaStreamStats
      * @return the last jitter average computed (in ms).
      */
     @Deprecated
-    public double getDownloadJitterMs();
+    double getDownloadJitterMs();
 
     /**
      * Returns the percent loss of the download stream.
@@ -47,7 +47,7 @@ public interface MediaStreamStats
      * @return the last loss rate computed (in %).
      */
     @Deprecated
-    public double getDownloadPercentLoss();
+    double getDownloadPercentLoss();
 
     /**
      * Returns the bandwidth used by this download stream.
@@ -57,7 +57,7 @@ public interface MediaStreamStats
      * @return the last used download bandwidth computed (in Kbit/s).
      */
     @Deprecated
-    public double getDownloadRateKiloBitPerSec();
+    double getDownloadRateKiloBitPerSec();
 
     /**
      * Returns the download video size if this stream downloads a video, or
@@ -66,49 +66,49 @@ public interface MediaStreamStats
      * @return the download video size if this stream downloads a video, or
      * <tt>null</tt> if not.
      */
-    public Dimension getDownloadVideoSize();
+    Dimension getDownloadVideoSize();
 
     /**
      * Returns the <tt>MediaStream</tt> enconding.
      *
      * @return the encoding used by the stream.
      */
-    public String getEncoding();
+    String getEncoding();
 
     /**
      * Returns the <tt>MediaStream</tt> enconding rate (in Hz).
      *
      * @return the encoding rate used by the stream.
      */
-    public String getEncodingClockRate();
+    String getEncodingClockRate();
 
     /**
      * Returns the delay in milliseconds introduced by the jitter buffer.
      *
      * @return the delay in milliseconds introduced by the jitter buffer
      */
-    public int getJitterBufferDelayMs();
+    int getJitterBufferDelayMs();
 
     /**
      * Returns the delay in number of packets introduced by the jitter buffer.
      *
      * @return the delay in number of packets introduced by the jitter buffer
      */
-    public int getJitterBufferDelayPackets();
+    int getJitterBufferDelayPackets();
 
     /**
      * Returns the local IP address of the <tt>MediaStream</tt>.
      *
      * @return the local IP address of the stream.
      */
-    public String getLocalIPAddress();
+    String getLocalIPAddress();
 
     /**
      * Returns the local port of the <tt>MediaStream</tt>.
      *
      * @return the local port of the stream.
      */
-    public int getLocalPort();
+    int getLocalPort();
 
     /**
      * Returns the number of received bytes since the beginning of the
@@ -119,7 +119,7 @@ public interface MediaStreamStats
      * @return the number of received bytes for this stream.
      */
     @Deprecated
-    public long getNbReceivedBytes();
+    long getNbReceivedBytes();
 
     /**
      * Returns the number of sent bytes since the beginning of the
@@ -130,7 +130,7 @@ public interface MediaStreamStats
      * @return the number of sent bytes for this stream.
      */
     @Deprecated
-    public long getNbSentBytes();
+    long getNbSentBytes();
 
     /**
      * Returns the total number of discarded packets since the beginning of the
@@ -139,7 +139,7 @@ public interface MediaStreamStats
      * @return the total number of discarded packets since the beginning of the
      * session.
      */
-    public long getNbDiscarded();
+    long getNbDiscarded();
 
     /**
      * Returns the number of packets discarded since the beginning of the
@@ -148,7 +148,7 @@ public interface MediaStreamStats
      * @return the number of packets discarded since the beginning of the
      * session, because the packet queue was full.
      */
-    public int getNbDiscardedFull();
+    int getNbDiscardedFull();
 
     /**
      * Returns the number of packets discarded since the beginning of the
@@ -157,7 +157,7 @@ public interface MediaStreamStats
      * @return the number of packets discarded since the beginning of the
      * session, because they were late.
      */
-    public int getNbDiscardedLate();
+    int getNbDiscardedLate();
 
     /**
      * Returns the number of packets discarded since the beginning of the
@@ -166,7 +166,7 @@ public interface MediaStreamStats
      * @return the number of packets discarded since the beginning of the
      * session, because the packet queue was reset.
      */
-    public int getNbDiscardedReset();
+    int getNbDiscardedReset();
 
     /**
      * Returns the number of packets discarded since the beginning of the
@@ -175,14 +175,14 @@ public interface MediaStreamStats
      * @return the number of packets discarded since the beginning of the
      * session, while the packet queue was shrinking.
      */
-    public int getNbDiscardedShrink();
+    int getNbDiscardedShrink();
 
     /**
      * Returns the number of packets for which FEC data was decoded.
      *
      * @return the number of packets for which FEC data was decoded
      */
-    public long getNbFec();
+    long getNbFec();
 
     /**
      * Returns the total number of packets that are send or receive for this
@@ -192,7 +192,7 @@ public interface MediaStreamStats
      * @return the total number of packets.
      */
     @Deprecated
-    public long getNbPackets();
+    long getNbPackets();
 
     /**
      * Returns the number of lost packets for that stream.
@@ -201,42 +201,42 @@ public interface MediaStreamStats
      * @return the number of lost packets.
      */
     @Deprecated
-    public long getNbPacketsLost();
+    long getNbPacketsLost();
 
     /**
      * Returns the number of packets currently in the packet queue.
      *
      * @return the number of packets currently in the packet queue.
      */
-    public int getPacketQueueCountPackets();
+    int getPacketQueueCountPackets();
 
     /**
      * Returns the current size of the packet queue.
      *
      * @return the current size of the packet queue.
      */
-    public int getPacketQueueSize();
+    int getPacketQueueSize();
 
     /**
      * Returns the current percent of discarded packets.
      *
      * @return the current percent of discarded packets.
      */
-    public double getPercentDiscarded();
+    double getPercentDiscarded();
 
     /**
      * Returns the remote IP address of the <tt>MediaStream</tt>.
      *
      * @return the remote IP address of the stream.
      */
-    public String getRemoteIPAddress();
+    String getRemoteIPAddress();
 
     /**
      * Returns the remote port of the <tt>MediaStream</tt>.
      *
      * @return the remote port of the stream.
      */
-    public int getRemotePort();
+    int getRemotePort();
 
     /**
      * Gets the detailed statistics about the RTCP reports sent and received by
@@ -245,7 +245,7 @@ public interface MediaStreamStats
      * @return the detailed statistics about the RTCP reports sent and received
      * by the associated local peer
      */
-    public RTCPReports getRTCPReports();
+    RTCPReports getRTCPReports();
 
     /**
      * Returns the RTT computed with the RTCP feedback (cf. RFC3550, section
@@ -257,7 +257,7 @@ public interface MediaStreamStats
      * the RTT has not been computed yet. Otherwise the RTT in ms.
      */
     @Deprecated
-    public long getRttMs();
+    long getRttMs();
 
     /**
      * Returns the jitter average of this upload stream.
@@ -267,7 +267,7 @@ public interface MediaStreamStats
      * @return the last jitter average computed (in ms).
      */
     @Deprecated
-    public double getUploadJitterMs();
+    double getUploadJitterMs();
 
     /**
      * Returns the percent loss of the upload stream.
@@ -277,7 +277,7 @@ public interface MediaStreamStats
      * @return the last loss rate computed (in %).
      */
     @Deprecated
-    public double getUploadPercentLoss();
+    double getUploadPercentLoss();
 
     /**
      * Returns the bandwidth used by this download stream.
@@ -287,7 +287,7 @@ public interface MediaStreamStats
      * @return the last used upload bandwidth computed (in Kbit/s).
      */
     @Deprecated
-    public double getUploadRateKiloBitPerSec();
+    double getUploadRateKiloBitPerSec();
 
     /**
      * Returns the upload video size if this stream uploads a video, or
@@ -296,7 +296,7 @@ public interface MediaStreamStats
      * @return the upload video size if this stream uploads a video, or
      * <tt>null</tt> if not.
      */
-    public Dimension getUploadVideoSize();
+    Dimension getUploadVideoSize();
 
     /**
      * Checks whether there is an adaptive jitter buffer enabled for at least
@@ -306,12 +306,12 @@ public interface MediaStreamStats
      * at least one of the <tt>ReceiveStream</tt>s of the
      * <tt>MediaStreamImpl</tt>; otherwise, <tt>false</tt>
      */
-    public boolean isAdaptiveBufferEnabled();
+    boolean isAdaptiveBufferEnabled();
 
     /**
      * Computes and updates information for a specific stream.
      */
-    public void updateStats();
+    void updateStats();
 
     /**
      * Gets the minimum RTP jitter value reported by us in an RTCP report, in
@@ -319,7 +319,7 @@ public interface MediaStreamStats
      * @return the minimum RTP jitter value reported by us in an RTCP report, in
      * milliseconds.
      */
-    public double getMinDownloadJitterMs();
+    double getMinDownloadJitterMs();
 
     /**
      * Gets the maximum RTP jitter value reported by us in an RTCP report, in
@@ -327,7 +327,7 @@ public interface MediaStreamStats
      * @return the maximum RTP jitter value reported by us in an RTCP report, in
      * milliseconds.
      */
-    public double getMaxDownloadJitterMs();
+    double getMaxDownloadJitterMs();
 
     /**
      * Gets the average of the RTP jitter values reported to us in RTCP reports,
@@ -335,7 +335,7 @@ public interface MediaStreamStats
      * @return  the average of the RTP jitter values reported to us in RTCP
      * reports, in milliseconds. Returns -1D if the value is unknown.
      */
-    public double getAvgDownloadJitterMs();
+    double getAvgDownloadJitterMs();
 
     /**
      * Gets the minimum RTP jitter value reported to us in an RTCP report, in
@@ -343,7 +343,7 @@ public interface MediaStreamStats
      * @return the minimum RTP jitter value reported to us in an RTCP report, in
      * milliseconds.
      */
-    public double getMinUploadJitterMs();
+    double getMinUploadJitterMs();
 
     /**
      * Gets the maximum RTP jitter value reported to us in an RTCP report, in
@@ -351,7 +351,7 @@ public interface MediaStreamStats
      * @return the maximum RTP jitter value reported to us in an RTCP report, in
      * milliseconds.
      */
-    public double getMaxUploadJitterMs();
+    double getMaxUploadJitterMs();
 
     /**
      * Gets the average of the RTP jitter values reported to us in RTCP reports,
@@ -359,7 +359,7 @@ public interface MediaStreamStats
      * @return  the average of the RTP jitter values reported to us in RTCP
      * reports, in milliseconds. Returns -1D if the value is unknown.
      */
-    public double getAvgUploadJitterMs();
+    double getAvgUploadJitterMs();
 
     /**
      * Returns the number of packets sent since the beginning of the session.
@@ -368,7 +368,7 @@ public interface MediaStreamStats
      * @return  the number of packets sent since the beginning of the session.
      */
     @Deprecated
-    public long getNbPacketsSent();
+    long getNbPacketsSent();
 
     /**
      * Returns the number of packets received since the beginning of the
@@ -379,7 +379,7 @@ public interface MediaStreamStats
      * session.
      */
     @Deprecated
-    public long getNbPacketsReceived();
+    long getNbPacketsReceived();
 
     /**
      * Returns the number of RTP packets sent by the remote side, but not
@@ -390,7 +390,7 @@ public interface MediaStreamStats
      * received by us.
      */
     @Deprecated
-    public long getDownloadNbPacketLost();
+    long getDownloadNbPacketLost();
 
     /**
      * Returns the number of RTP packets sent by us, but not
@@ -401,19 +401,20 @@ public interface MediaStreamStats
      * received by the remote side.
      */
     @Deprecated
-    public long getUploadNbPacketLost();
+    long getUploadNbPacketLost();
 
     /**
-     * Adds a listener which will be notified when NACK packets are received.
+     * Adds a listener which will be notified when RTCP packets are received.
      * @param listener the listener.
      */
-    public void addNackListener(NACKListener listener);
+    void addRTCPPacketListener(RTCPPacketListener listener);
 
     /**
-     * Adds a listener which will be notified when REMB packets are received.
+     * Removes a listener from the list of listeners which will be notified when
+     * RTCP packets are received.
      * @param listener the listener.
      */
-    public void addRembListener(REMBListener listener);
+    void removeRTCPPacketListener(RTCPPacketListener listener);
 
     /**
      * Gets the rate at which we are currently sending data to the remote
@@ -426,5 +427,5 @@ public interface MediaStreamStats
      * endpoint, in bits per second.
      */
     @Deprecated
-    public long getSendingBitrate();
+    long getSendingBitrate();
 }

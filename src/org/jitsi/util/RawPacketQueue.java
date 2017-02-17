@@ -16,7 +16,7 @@
 package org.jitsi.util;
 
 import org.ice4j.util.*;
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Implements {@link PacketQueue} for {@link RawPacket}.

@@ -21,6 +21,7 @@ package org.jitsi.service.neomedia.codec;
  *
  * @author Lyubomir Marinov
  * @author Boris Grozev
+ * @author George Politis
  */
 public class Constants
 {
@@ -255,4 +256,9 @@ public class Constants
      * The VP8/rtp constant.
      */
     public static final String VP8_RTP = VP8 + _RTP;
+
+    /**
+     * The RTX/rtp constant.
+     */
+    public static final String RTX_RTP = RTX + _RTP;
 }

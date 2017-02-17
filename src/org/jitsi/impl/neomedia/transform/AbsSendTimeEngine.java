@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
@@ -33,7 +34,7 @@ public class AbsSendTimeEngine
     /**
      * One billion.
      */
-    private static final int b = 1000 * 1000 * 1000;
+    private static final int b = 1_000_000_000;
 
     /**
      * The <tt>Logger</tt> used by the {@link AbsSendTimeEngine} class and its
@@ -56,7 +57,7 @@ public class AbsSendTimeEngine
     }
 
     /**
-     * Implements {@link SinglePacketTransformer#reverseTransform(RawPacket)}.
+     * Implements {@link SinglePacketTransformer#transform(RawPacket)}.
      */
     @Override
     public RawPacket transform(RawPacket pkt)
@@ -65,6 +66,8 @@ public class AbsSendTimeEngine
         {
             // If the packet already has as extension with this ID, replace its
             // value.
+            // TODO: PERC-related logic (don't modify header extensions unless
+            // they come after an OHB extension.
             if (!replaceExtension(pkt))
             {
                 // If it doesn't, add a new extension.

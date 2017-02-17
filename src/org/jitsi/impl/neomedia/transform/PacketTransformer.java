@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Encapsulate the concept of packet transformation. Given an array of packets,
