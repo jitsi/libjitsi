@@ -18,6 +18,7 @@ package org.jitsi.impl.neomedia.transform;
 import java.net.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * Extends <tt>RTPConnectorTCPOutputStream</tt> with transform logic.

@@ -184,11 +184,16 @@ Java_org_jitsi_sctp4j_Sctp_usrsctp_1init
      * First argument is udp_encapsulation_port which is not relevant to our
      * AF_CONN use of SCTP.
      */
+    debugSctpPrintf("=====>: org_jitsi_sctp4j_Sctp.c calling init\n");
     usrsctp_init((uint16_t) port, onSctpOutboundPacket, debugSctpPrintf);
 
+    debugSctpPrintf("=====>: org_jitsi_sctp4j_Sctp.c about to set SCTP_DEBUG_ALL\n");
 #ifdef SCTP_DEBUG
-    usrsctp_sysctl_set_sctp_debug_on(SCTP_DEBUG_ALL);
+    debugSctpPrintf("=====>: org_jitsi_sctp4j_Sctp.c setting SCTP_DEBUG_ALL\n");
+    //usrsctp_sysctl_set_sctp_debug_on(SCTP_DEBUG_ALL);
+    usrsctp_sysctl_set_sctp_debug_on(SCTP_DEBUG_NONE);
 #endif
+
 
     /* TODO(ldixon) Consider turning this on/off. */
     usrsctp_sysctl_set_sctp_ecn_enable(0);
@@ -630,6 +635,7 @@ debugSctpPrintf(const char *format, ...)
     va_start(args, format);
     vprintf(format, args);
     va_end(args);
+    fflush(stdout);
 }
 
 void

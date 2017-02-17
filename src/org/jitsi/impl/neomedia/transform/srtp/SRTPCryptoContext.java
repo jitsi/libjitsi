@@ -40,9 +40,9 @@ import javax.media.*;
 
 import org.bouncycastle.crypto.params.*;
 import org.jitsi.bccontrib.params.*;
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**

@@ -1167,27 +1167,6 @@ public class RTPTranslatorImpl
     }
 
     /**
-     * Sets the <tt>RTCPTransmitterFactory</tt> to be utilized by the
-     * underlying logic (FMJ) to create its <tt>RTCPTransmitter</tt>.
-     *
-     * @param rtcpTransmitterFactory the <tt>RTCPTransmitterFactory</tt> to be
-     * utilized by the underlying logic (FMJ) to create its
-     * <tt>RTCPTransmitter</tt> or <tt>null</tt> if this instance is to employ
-     * internal logic to create its <tt>RTCPTransmitter</tt>.
-     */
-    public void setRTCPTransmitterFactory(
-        RTCPTransmitterFactory rtcpTransmitterFactory)
-    {
-        RTPManager manager = this.manager;
-        if (manager instanceof
-            org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)
-        {
-            ((org.jitsi.impl.neomedia.jmfext.media.rtp.RTPSessionMgr)manager)
-                .setRTCPTransmitterFactory(rtcpTransmitterFactory);
-        }
-    }
-
-    /**
      * Notifies this <tt>ReceiveStreamListener</tt> about a specific event
      * related to a <tt>ReceiveStream</tt>.
      *

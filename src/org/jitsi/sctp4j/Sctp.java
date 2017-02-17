@@ -174,6 +174,7 @@ public class Sctp
         //    return;
         if(!initialized)
         {
+            logger.error("Init'ing brian's patched usrsctp");
             usrsctp_init(0);
             initialized = true;
         }

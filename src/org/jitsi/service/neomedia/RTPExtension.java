@@ -52,6 +52,20 @@ public class RTPExtension
             = "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time";
 
     /**
+     * The URN which identifies the framemarking RTP extension defined at
+     * {@link "https://tools.ietf.org/html/draft-ietf-avtext-framemarking-03"}
+     */
+    public static final String FRAME_MARKING_URN
+            = "urn:ietf:params:rtp-hdrext:framemarking";
+
+    /**
+     * The URN which identifies the Original Header Block RTP extension defined
+     * in {@link "https://tools.ietf.org/html/draft-ietf-perc-double-02"}.
+     */
+    public static final String ORIGINAL_HEADER_BLOCK_URN
+        = "urn:ietf:params:rtp-hdrext:ohb";
+
+    /**
      * The direction that this extension will be transmitted in.
      */
     private MediaDirection direction = MediaDirection.SENDRECV;

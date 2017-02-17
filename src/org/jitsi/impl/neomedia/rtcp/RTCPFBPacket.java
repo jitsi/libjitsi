@@ -20,6 +20,8 @@ import java.io.*;
 import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Created by gp on 6/27/14.
@@ -74,6 +76,92 @@ public class RTCPFBPacket
         super(base);
     }
 
+    /**
+     * Gets a boolean that indicates whether or not the packet specified in the
+     * {@link ByteArrayBuffer} that is passed in the first argument is an RTCP
+     * RTPFB or PSFB packet.
+     *
+     * @param baf the {@link ByteArrayBuffer} that holds the RTCP packet.
+     * @return true if the packet specified in the {@link ByteArrayBuffer} that
+     * is passed in the first argument is an RTCP RTPFB or PSFB packet,
+     * otherwise false.
+     */
+    public static boolean isRTCPFBPacket(ByteArrayBuffer baf)
+    {
+        return isRTPFBPacket(baf) || isPSFBPacket(baf);
+    }
+
+    /**
+     * Gets a boolean that indicates whether or not the packet specified in the
+     * {@link ByteArrayBuffer} passed in as an argument is an RTP FB packet.
+     *
+     * @param baf the {@link ByteArrayBuffer} that holds the packet
+     * @return true if the packet specified in the {@link ByteArrayBuffer}
+     * passed in as an argument is an RTP FB packet, otherwise false.
+     */
+    public static boolean isRTPFBPacket(ByteArrayBuffer baf)
+    {
+        int pt = RTCPHeaderUtils.getPacketType(baf);
+        return pt == RTPFB;
+    }
+
+    /**
+     * Gets a boolean that indicates whether or not the packet specified in the
+     * {@link ByteArrayBuffer} passed in as an argument is an RTP FB packet.
+     *
+     * @param baf the {@link ByteArrayBuffer} that holds the packet
+     * @return true if the packet specified in the {@link ByteArrayBuffer}
+     * passed in as an argument is an RTP FB packet, otherwise false.
+     */
+    public static boolean isPSFBPacket(ByteArrayBuffer baf)
+    {
+        int pt = RTCPHeaderUtils.getPacketType(baf);
+        return pt == PSFB;
+    }
+
+    /**
+     * Gets the SSRC of the media source of the packet specified in the
+     * {@link ByteArrayBuffer} passed in as an argument.
+     *
+     * @param baf the {@link ByteArrayBuffer} that holds the packet
+     * @return the SSRC of the media source of the packet specified in the
+     * {@link ByteArrayBuffer} passed in as an argument, or -1 in case of an
+     * error.
+     */
+    public static long getSourceSSRC(ByteArrayBuffer baf)
+    {
+        if (baf == null || baf.isInvalid())
+        {
+            return -1;
+        }
+
+        return RTPUtils.readUint32AsLong(baf.getBuffer(), baf.getOffset() + 8);
+    }
+
+    /**
+     * Gets the Feedback Control Information (FCI) field of an RTCP FB message.
+     *
+     * @param baf the {@link ByteArrayBuffer} that contains the RTCP message.
+     * @return the Feedback Control Information (FCI) field of an RTCP FB
+     * message.
+     */
+    public static ByteArrayBuffer getFCI(ByteArrayBuffer baf)
+    {
+        if (!isRTCPFBPacket(baf))
+        {
+            return null;
+        }
+
+        int length = RTCPHeaderUtils.getLength(baf);
+        if (length < 0)
+        {
+            return null;
+        }
+
+        return new RawPacket(baf.getBuffer(),
+            baf.getOffset() + 12, length - 12);
+    }
+
     @Override
     public void assemble(DataOutputStream dataoutputstream) throws IOException
     {
@@ -108,8 +196,7 @@ public class RTCPFBPacket
         // line with the definition of the length field used in RTCP
         // sender and receiver reports
         int rtcpPacketLength = len / 4 - 1;
-        buf[off++] = (byte) ((rtcpPacketLength & 0xFF00) >> 8);
-        buf[off++] = (byte) (rtcpPacketLength & 0x00FF);
+        off += RTPUtils.writeShort(buf, off, (short) rtcpPacketLength);
 
         // SSRC of packet sender: 32 bits
         RTCPFeedbackMessagePacket.writeSSRC(senderSSRC, buf, off);

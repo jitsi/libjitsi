@@ -18,7 +18,6 @@ package org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
-import org.jitsi.util.concurrent.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -30,17 +29,12 @@ import java.util.concurrent.*;
  * 7ad9e661f8a035d49d049ccdb87c77ae8ecdfa35).
  *
  * @author Boris Grozev
+ * @author George Politis
  */
 public class BandwidthEstimatorImpl
     extends RTCPReportAdapter
-    implements BandwidthEstimator, RecurringRunnable
+    implements BandwidthEstimator
 {
-    /**
-     * The interval at which {@link #run()} should be called, in
-     * milliseconds.
-     */
-    private static final int PROCESS_INTERVAL_MS = 25;
-
     /**
      * The minimum value to be output by this estimator, in bits per second.
      */
@@ -70,18 +64,12 @@ public class BandwidthEstimatorImpl
     private final SendSideBandwidthEstimation sendSideBandwidthEstimation;
 
     /**
-     * The {@link MediaStream} which owns this instance.
-     */
-    private final MediaStream mediaStream;
-
-    /**
      * Initializes a new instance which is to belong to a particular
      * {@link MediaStream}.
      * @param stream the {@link MediaStream}.
      */
     public BandwidthEstimatorImpl(MediaStream stream)
     {
-        mediaStream = stream;
         sendSideBandwidthEstimation
             = new SendSideBandwidthEstimation(stream, START_BITRATE_BPS);
         sendSideBandwidthEstimation.setMinMaxBitrate(
@@ -89,7 +77,7 @@ public class BandwidthEstimatorImpl
 
         // Hook us up to receive Report Blocks and REMBs.
         MediaStreamStats stats = stream.getMediaStreamStats();
-        stats.addRembListener(sendSideBandwidthEstimation);
+        stats.addRTCPPacketListener(sendSideBandwidthEstimation);
         stats.getRTCPReports().addRTCPReportListener(this);
     }
 
@@ -174,32 +162,6 @@ public class BandwidthEstimatorImpl
     public void removeListener(Listener listener)
     {
         sendSideBandwidthEstimation.removeListener(listener);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public long getTimeUntilNextRun()
-    {
-        return
-                (lastUpdateTime < 0L)
-                        ? 0L
-                        : lastUpdateTime + PROCESS_INTERVAL_MS
-                            - System.currentTimeMillis();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void run()
-    {
-        synchronized (sendSideBandwidthEstimation)
-        {
-            lastUpdateTime = System.currentTimeMillis();
-            sendSideBandwidthEstimation.updateEstimate(lastUpdateTime);
-        }
     }
 
     /**

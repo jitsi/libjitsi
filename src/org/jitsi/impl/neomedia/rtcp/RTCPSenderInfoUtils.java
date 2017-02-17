@@ -17,6 +17,8 @@ package org.jitsi.impl.neomedia.rtcp;
 
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Utility class that contains static methods for RTCP sender info manipulation.
@@ -28,10 +30,10 @@ import org.jitsi.impl.neomedia.*;
 public class RTCPSenderInfoUtils
 {
     /**
-     * Gets the RTP timestamp.
+     * Gets the RTP timestamp from an SR.
      *
-     * @param buf the byte buffer that contains the RTCP sender info.
-     * @param off the offset in the byte buffer where the RTCP sender info
+     * @param buf the byte buffer that contains the RTCP sender report.
+     * @param off the offset in the byte buffer where the RTCP sender report
      * starts.
      * @param len the number of bytes in buffer which constitute the actual
      * data.
@@ -44,14 +46,14 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RawPacket.readInt(buf, off + 8, len) & 0xffffffffl;
+        return RTPUtils.readUint32AsLong(buf, off + 8);
     }
 
     /**
-     * Sets the RTP timestamp.
+     * Sets the RTP timestamp in an SR.
      *
-     * @param buf the byte buffer that contains the RTCP sender info.
-     * @param off the offset in the byte buffer where the RTCP sender info
+     * @param buf the byte buffer that contains the RTCP sender report.
+     * @param off the offset in the byte buffer where the RTCP sender report
      * starts.
      * @param len the number of bytes in buffer which constitute the actual
      * data.
@@ -59,20 +61,14 @@ public class RTCPSenderInfoUtils
      *
      * @return the number of bytes written.
      */
-    public static boolean setTimestamp(
-        byte[] buf, int off, int len, long ts)
+    public static int setTimestamp(byte[] buf, int off, int len, int ts)
     {
         if (!isValid(buf, off, len))
         {
-            return false;
+            return -1;
         }
 
-        buf[off + 8] = (byte)(ts>>24);
-        buf[off + 9] = (byte)(ts>>16);
-        buf[off + 10] = (byte)(ts>>8);
-        buf[off + 11] = (byte)ts;
-
-        return true;
+        return RTPUtils.writeInt(buf, off + 16, ts);
     }
 
     /**
@@ -87,7 +83,7 @@ public class RTCPSenderInfoUtils
      */
     public static boolean isValid(byte[] buf, int off, int len)
     {
-        if (buf == null || buf.length < off + Math.max(len, RTCPSenderInfo.SIZE))
+        if (buf == null || buf.length < off + len || len < RTCPSenderInfo.SIZE)
         {
             return false;
         }
@@ -112,7 +108,7 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RawPacket.readInt(buf, off, len) & 0xffffffffl;
+        return RTPUtils.readUint32AsLong(buf, off);
     }
 
     /**
@@ -132,6 +128,117 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RawPacket.readInt(buf, off + 4, len) & 0xffffffffl;
+        return RTPUtils.readUint32AsLong(buf, off + 4);
+    }
+
+    /**
+     * Sets the RTP timestamp in an SR.
+     *
+     * @param baf the {@link ByteArrayBuffer} that holds the SR.
+     * @param ts the new timestamp to be set.
+     *
+     * @return the number of bytes written.
+     */
+    public static int setTimestamp(ByteArrayBuffer baf, int ts)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return setTimestamp(
+            baf.getBuffer(), baf.getOffset(), baf.getLength(), ts);
+    }
+
+    /**
+     * Gets the RTP timestamp from an SR.
+     *
+     * @param baf the {@link ByteArrayBuffer} that holds the SR.
+     * @return the RTP timestamp, or -1 in case of an error.
+     */
+    public static long getTimestamp(ByteArrayBuffer baf)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return getTimestamp(baf.getBuffer(), baf.getOffset(), baf.getLength());
+    }
+
+    /**
+     * Sets the octet count in the SR that is specified in the arguments.
+     *
+     * @param baf the {@link ByteArrayBuffer} that holds the SR.
+     * @return the number of bytes that were written, otherwise -1.
+     * @param octetCount the octet count ot set.
+     * @return the number of bytes that were written, otherwise -1.
+     */
+    public static int setOctetCount(ByteArrayBuffer baf, int octetCount)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return setOctetCount(
+            baf.getBuffer(), baf.getOffset(), baf.getLength(), octetCount);
+    }
+
+    /**
+     * Sets the packet count in the SR that is specified in the arguments.
+     * @param packetCount the packet count to set.
+     * @param baf the {@link ByteArrayBuffer} that holds the SR.
+     * @return the number of bytes that were written, otherwise -1.
+     */
+    public static int setPacketCount(ByteArrayBuffer baf, int packetCount)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return setPacketCount(
+            baf.getBuffer(), baf.getOffset(), baf.getLength(), packetCount);
+    }
+
+    /**
+     * Sets the packet count in the SR that is specified in the arguments.
+     *
+     * @param packetCount the packet count to set.
+     * @param buf the byte buffer that holds the SR.
+     * @param off the offset where the data starts
+     * @param len the length of the data.
+     * @return the number of bytes that were written, otherwise -1.
+     */
+    private static int setPacketCount(
+        byte[] buf, int off, int len, int packetCount)
+    {
+        if (!isValid(buf, off, len))
+        {
+            return -1;
+        }
+
+        return RTPUtils.writeInt(buf, off + 20, packetCount);
+    }
+
+    /**
+     * Sets the octet count in the SR that is specified in the arguments.
+     *
+     * @param buf the byte buffer that holds the SR.
+     * @param off the offset where the data starts
+     * @param len the length of the data.
+     * @param octetCount the octet count ot set.
+     * @return the number of bytes that were written, otherwise -1.
+     */
+    private static int setOctetCount(
+        byte[] buf, int off, int len, int octetCount)
+    {
+        if (!isValid(buf, off, len))
+        {
+            return -1;
+        }
+
+        return RTPUtils.writeInt(buf, off + 24, octetCount);
     }
 }

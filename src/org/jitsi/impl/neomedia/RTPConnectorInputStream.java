@@ -29,6 +29,7 @@ import org.ice4j.socket.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.util.*;
 
@@ -120,16 +121,6 @@ public abstract class RTPConnectorInputStream<T>
      * <tt>RawPacket</tt>s.
      */
     private DatagramPacketFilter[] datagramPacketFilters;
-
-    /**
-     * The <tt>DatagramPacketListeners</tt> to be notified about the receipt of
-     * <tt>DatagramPacket</tt>s. If a received <tt>DatagramPacket</tt> is not
-     * accepted by the {@link #datagramPacketFilters}, the
-     * <tt>datagramPacketListeners</tt>s are not notified about it (and the
-     * <tt>DatagramPacket</tt> in question is discarded/dropped/ignored, of
-     * course).
-     */
-    private DatagramPacketListener[] datagramPacketListeners;
 
     /**
      * Whether this <tt>RTPConnectorInputStream</tt> is enabled or disabled.
@@ -356,25 +347,6 @@ public abstract class RTPConnectorInputStream<T>
     }
 
     /**
-     * Adds a <tt>DatagramPacketListener</tt> to be notified by this
-     * <tt>RTPConnectorInputStream</tt> about the receipt of
-     * <tt>DatagramPacket</tt>s.
-     *
-     * @param datagramPacketListener the <tt>DatagramPacketListener</tt> to be
-     * notified by this <tt>RTPConnectorInputStream</tt> about the receipt of
-     * <tt>DatagramPacket</tt>s
-     */
-    public synchronized void addDatagramPacketListener(
-            DatagramPacketListener datagramPacketListener)
-    {
-        datagramPacketListeners
-            = ArrayUtils.add(
-                    datagramPacketListeners,
-                    DatagramPacketListener.class,
-                    datagramPacketListener);
-    }
-
-    /**
      * Close this stream, stops the worker thread.
      */
     public synchronized void close()
@@ -541,20 +513,6 @@ public abstract class RTPConnectorInputStream<T>
     protected synchronized DatagramPacketFilter[] getDatagramPacketFilters()
     {
         return datagramPacketFilters;
-    }
-
-    /**
-     * Gets the set of <tt>DatagramPacketListener</tt>s to be notified by this
-     * <tt>RTPConnectorInputStream</tt> about the receipt of
-     * <tt>DatagramPacket</tt>s.
-     *
-     * @return an array of the <tt>DatagramPacketListener</tt>s to be notified
-     * by this <tt>RTPConnectorInputStream</tt> about the receipt of
-     * <tt>DatagramPacket</tt>s
-     */
-    protected synchronized DatagramPacketListener[] getDatagramPacketListeners()
-    {
-        return datagramPacketListeners;
     }
 
     /**
@@ -808,8 +766,6 @@ public abstract class RTPConnectorInputStream<T>
                 if (accept(p))
                 {
                     RawPacket[] pkts = createRawPacket(p);
-
-                    updateDatagramPacketListeners(p);
                     transferData(pkts);
                 }
             }
@@ -944,55 +900,6 @@ public abstract class RTPConnectorInputStream<T>
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * Notifies the {@link #datagramPacketListeners} that a specific
-     * <tt>DatagramPacket</tt> was received by this
-     * <tt>RTPConnectorInputStream</tt> (and was accepted by the
-     * {@link #datagramPacketFilters}).
-     *
-     * @param p the <tt>DatagramPacket</tt> which was received by this
-     * <tt>RTPConnectorInputStream</tT> (and accepted by the
-     * <tt>datagramPacketFilters</tt>)
-     */
-    private void updateDatagramPacketListeners(DatagramPacket p)
-    {
-        try
-        {
-            DatagramPacketListener[] listeners = getDatagramPacketListeners();
-
-            if ((listeners != null) && (listeners.length != 0))
-            {
-                for (DatagramPacketListener listener : listeners)
-                {
-                    try
-                    {
-                        listener.update(this, p);
-                    }
-                    catch (Throwable t)
-                    {
-                        // The failure of a listener should not affect the other
-                        // listeners.
-                        if (t instanceof InterruptedException)
-                            Thread.currentThread().interrupt();
-                        else if (t instanceof ThreadDeath)
-                            throw (ThreadDeath) t;
-                    }
-                }
-            }
-        }
-        catch (Throwable t)
-        {
-            // The whole purpose of the method is to update the
-            // datagramPacketListeners. If a DatagramPacketListener fails, the
-            // failure is ignored. Consequently, if the method (invocation)
-            // fails, the failure is to be ignored as well.
-            if (t instanceof InterruptedException)
-                Thread.currentThread().interrupt();
-            else if (t instanceof ThreadDeath)
-                throw (ThreadDeath) t;
         }
     }
 }

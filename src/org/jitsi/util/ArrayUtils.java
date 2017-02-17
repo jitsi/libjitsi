@@ -78,11 +78,11 @@ public final class ArrayUtils
      */
     public static <T> T[] concat(T[] first, T[] second)
     {
-        if (first == null || first.length == 0)
+        if (isNullOrEmpty(first))
         {
             return second;
         }
-        else if (second == null || second.length == 0)
+        else if (isNullOrEmpty(second))
         {
             return first;
         }
@@ -92,5 +92,17 @@ public final class ArrayUtils
             System.arraycopy(second, 0, result, first.length, second.length);
             return result;
         }
+    }
+
+    /**
+     * Tests whether the array passed in as an argument is null or empty.
+     *
+     * @param array
+     * @param <T>
+     * @return
+     */
+    public static <T> boolean isNullOrEmpty(T[] array)
+    {
+        return array == null || array.length == 0;
     }
 }

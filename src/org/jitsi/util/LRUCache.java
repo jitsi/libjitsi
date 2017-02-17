@@ -13,19 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.service.neomedia.rtp;
+package org.jitsi.util;
 
-import org.jitsi.impl.neomedia.rtcp.*;
+import java.util.*;
 
 /**
- * A simple interface for handling RTCP NACK packets.
- * @author Boris Grozev
+ * @author George Politis
  */
-public interface NACKListener
+public class LRUCache<K, V> extends LinkedHashMap<K, V>
 {
     /**
-     * Handles an RTCP NACK packet.
-     * @param nackPacket the packet.
+     *
      */
-    public void nackReceived(NACKPacket nackPacket);
+    private int cacheSize;
+
+    /**
+     * Ctor.
+     *
+     * @param cacheSize
+     */
+    public LRUCache(int cacheSize)
+    {
+        this.cacheSize = cacheSize;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected boolean removeEldestEntry(Map.Entry<K, V> eldest)
+    {
+        return size() >= cacheSize;
+    }
 }

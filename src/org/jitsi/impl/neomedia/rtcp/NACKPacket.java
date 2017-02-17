@@ -18,7 +18,7 @@ package org.jitsi.impl.neomedia.rtcp;
 import java.io.*;
 import java.util.*;
 import net.sf.fmj.media.rtp.*;
-import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * A class which represents an RTCP Generic NACK feedback message, as defined
@@ -130,34 +130,67 @@ public class NACKPacket
     }
 
     /**
+     * Gets a boolean indicating whether or not the RTCP packet specified in the
+     * {@link ByteArrayBuffer} that is passed as an argument is a NACK packet or
+     * not.
+     *
+     * @param baf the {@link ByteArrayBuffer}
+     * @return true if the byte array buffer holds a NACK packet, otherwise
+     * false.
+     */
+    public static boolean isNACKPacket(ByteArrayBuffer baf)
+    {
+        int rc = RTCPHeaderUtils.getReportCount(baf);
+        return isRTPFBPacket(baf) && rc == FMT;
+    }
+
+    /**
+     *
+     * @param next
+     * @return
+     */
+    public static Collection<Integer> getLostPackets(ByteArrayBuffer next)
+    {
+        Collection<Integer> lostPackets = new LinkedList<>();
+        ByteArrayBuffer fciBuffer = getFCI(next);
+        if (fciBuffer == null)
+        {
+            return lostPackets;
+        }
+
+        byte[] fci = fciBuffer.getBuffer();
+        int off = fciBuffer.getOffset(), len = fciBuffer.getLength();
+
+        for (int i = 0; i < (len / 4); i++)
+        {
+            int pid = (0xFF & fci[off + i * 4 + 0]) << 8 | (0xFF & fci[off + i * 4 + 1]);
+            lostPackets.add(pid);
+
+            // First byte of the BLP
+            for (int j = 0; j < 8; j++)
+                if (0 != (fci[off + i * 4 + 2] & (1 << j)))
+                    lostPackets.add((pid + 1 + 8 + j) % (1 << 16));
+
+            // Second byte of the BLP
+            for (int j = 0; j < 8; j++)
+                if (0 != (fci[off + i * 4 + 3] & (1 << j)))
+                    lostPackets.add((pid + 1 + j) % (1 << 16));
+        }
+
+        return lostPackets;
+    }
+
+    /**
      * Gets the set of sequence numbers reported lost in this NACK packet.
      * @return
      */
     synchronized public Collection<Integer> getLostPackets()
     {
-        if (lostPackets != null)
-            return lostPackets;
-
-        // parse this.fci as containing NACK entries and initialize
-        // this.lostPackets
-        lostPackets = new LinkedList<Integer>();
-        if (fci != null)
+        if (lostPackets == null)
         {
-            for (int i = 0; i < (fci.length / 4); i++)
-            {
-                int pid = (0xFF & fci[i * 4 + 0]) << 8 | (0xFF & fci[i * 4 + 1]);
-                lostPackets.add(pid);
-
-                // First byte of the BLP
-                for (int j = 0; j < 8; j++)
-                    if (0 != (fci[i * 4 + 2] & (1 << j)))
-                        lostPackets.add((pid + 1 + 8 + j) % (1 << 16));
-
-                // Second byte of the BLP
-                for (int j = 0; j < 8; j++)
-                    if (0 != (fci[i * 4 + 3] & (1 << j)))
-                        lostPackets.add((pid + 1 + j) % (1 << 16));
-            }
+            // parse this.fci as containing NACK entries and initialize
+            // this.lostPackets
+            lostPackets = getLostPackets(new RawPacket(fci, 0, fci.length));
         }
 
         return lostPackets;

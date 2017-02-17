@@ -17,10 +17,10 @@ package org.jitsi.impl.neomedia.recording;
 
 import java.util.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * A <tt>TransformEngine</tt> and <tt>PacketTransformer</tt> which implement

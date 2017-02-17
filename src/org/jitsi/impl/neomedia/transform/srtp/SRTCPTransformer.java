@@ -17,8 +17,8 @@ package org.jitsi.impl.neomedia.transform.srtp;
 
 import java.util.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.neomedia.*;
 
 /**
  * SRTCPTransformer implements PacketTransformer.
@@ -145,7 +145,7 @@ public class SRTCPTransformer
             RawPacket pkt,
             SRTPContextFactory engine)
     {
-        int ssrc = pkt.getRTCPSSRC();
+        int ssrc = (int) pkt.getRTCPSSRC();
         SRTCPCryptoContext context = null;
 
         synchronized (contexts)

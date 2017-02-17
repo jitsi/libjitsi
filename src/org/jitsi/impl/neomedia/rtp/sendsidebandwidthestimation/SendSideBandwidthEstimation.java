@@ -15,6 +15,8 @@
  */
 package org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation;
 
+import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
@@ -30,7 +32,8 @@ import java.util.*;
  * @author Boris Grozev
  */
 class SendSideBandwidthEstimation
-    implements REMBListener, BandwidthEstimator
+    extends RTCPPacketListenerAdapter
+    implements BandwidthEstimator
 {
     /**
      * send_side_bandwidth_estimation.cc
@@ -214,10 +217,25 @@ class SendSideBandwidthEstimation
                 // (gives a little extra increase at low rates, negligible at higher
                 // rates).
                 bitrate += 1000;
+
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("bwe,stream=" + mediaStream.hashCode() +
+                        " action=increase,last_fraction_loss=" + last_fraction_loss_ +
+                        ",bitrate=" + bitrate);
+                }
+
             }
             else if (last_fraction_loss_ <= 26)
             {
                 // Loss between 2% - 10%: Do nothing.
+
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("bwe,stream=" + mediaStream.hashCode() +
+                        " action=keep,last_fraction_loss=" + last_fraction_loss_ +
+                        ",bitrate=" + bitrate);
+                }
             }
             else
             {
@@ -235,6 +253,13 @@ class SendSideBandwidthEstimation
                     bitrate = (long) (
                         (bitrate * (512 - last_fraction_loss_)) / 512.0);
                     has_decreased_since_last_fraction_loss_ = true;
+
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("bwe,stream=" + mediaStream.hashCode() +
+                            " action=decrease,last_fraction_loss=" + last_fraction_loss_ +
+                            ",bitrate=" + bitrate);
+                    }
                 }
             }
         }
@@ -394,9 +419,9 @@ class SendSideBandwidthEstimation
      * {@inheritDoc}
      */
     @Override
-    public void rembReceived(long bitrateBps)
+    public void rembReceived(RTCPREMBPacket remb)
     {
-        updateReceiverEstimate(bitrateBps);
+        updateReceiverEstimate(remb.getBitrate());
     }
 
     /**

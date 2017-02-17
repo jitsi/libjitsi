@@ -17,6 +17,7 @@
 package org.jitsi.impl.neomedia.jmfext.media.protocol.rtpdumpfile;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**

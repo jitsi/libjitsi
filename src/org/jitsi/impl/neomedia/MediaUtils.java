@@ -39,6 +39,7 @@ import org.jitsi.util.*;
  * @author Emil Ivov
  * @author Lyubomir Marinov
  * @author Boris Grozev
+ * @author George Politis
  */
 public class MediaUtils
 {
@@ -358,6 +359,13 @@ public class MediaUtils
                 MediaType.VIDEO,
                 Constants.VP8_RTP,
                 null, null);
+
+        addMediaFormats(
+            MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
+            Constants.RTX,
+            MediaType.VIDEO,
+            Constants.RTX_RTP,
+            null, null);
 
         // Calculate the values of the MAX_AUDIO_* static fields of MediaUtils.
         List<MediaFormat> audioMediaFormats
