@@ -244,7 +244,7 @@ public class MediaStreamTrackReceiver
             {
                 RTPEncodingDesc newEncoding = newTracks[i].getRTPEncodings()[0];
 
-                for (int j = 0; i < oldTracks.length; j++)
+                for (int j = 0; j < oldTracks.length; j++)
                 {
                     if (oldTracks[j] != null
                         && oldTracks[j].matches(newEncoding.getPrimarySSRC()))
