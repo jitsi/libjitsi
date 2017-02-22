@@ -113,13 +113,15 @@ public class SimulcastController
             return 0;
         }
 
-        if (!source.getRTPEncodings()[simTransformation.currentIdx].isActive())
+        RTPEncodingDesc[] encodings = source.getRTPEncodings();
+        if (ArrayUtils.isNullOrEmpty(encodings)
+            || !encodings[simTransformation.currentIdx].isActive())
         {
             return 0;
         }
 
-        return source.getRTPEncodings()[simTransformation.currentIdx]
-            .getLastStableBitrateBps();
+        return
+            encodings[simTransformation.currentIdx].getLastStableBitrateBps();
     }
 
     /**
@@ -140,14 +142,20 @@ public class SimulcastController
             return 0;
         }
 
+        RTPEncodingDesc[] encodings = source.getRTPEncodings();
+        if (ArrayUtils.isNullOrEmpty(encodings))
+        {
+            return 0;
+        }
+
         for (int i = optimalIdx; i > -1; i--)
         {
-            if (!source.getRTPEncodings()[i].isActive())
+            if (!encodings[i].isActive())
             {
                 continue;
             }
 
-            long bps = source.getRTPEncodings()[i].getLastStableBitrateBps();
+            long bps = encodings[i].getLastStableBitrateBps();
             if (bps > 0)
             {
                 return bps;
