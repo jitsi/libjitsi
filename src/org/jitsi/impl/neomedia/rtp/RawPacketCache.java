@@ -390,6 +390,15 @@ public class RawPacketCache
         }
     }
 
+    /**
+     * Gets the most recent Math.min(n, cache size) packets from the cache that
+     * pertains to the SSRC that is specified as an argument.
+     *
+     * @param ssrc the SSRC whose last Math.min(N, cache size) packets to
+     * retrieve.
+     * @param n the maximum number of packets to retrieve.
+     * @return the most recent Math.min(n, cache size) packets to retrieve.
+     */
     public Map<Integer, Container> getLastN(long ssrc, int n)
     {
         Cache cache = getCache(ssrc & 0xffffffffL, false);
@@ -645,9 +654,27 @@ public class RawPacketCache
             cache.clear();
         }
 
+        /**
+         * Gets the most recent Math.min(n, cache size) packets from this cache.
+         *
+         * @param n the maximum number of packets to retrieve.
+         * @return the most recent Math.min(n, cache size) packets to retrieve.
+         */
         public synchronized Map<Integer, Container> getLastN(int n)
         {
-            return new HashMap<>(cache.tailMap(s_l - n));
+            // XXX(gp) This is effectively Copy-on-Read and is inefficient. We
+            // should implement a Copy-on-Write method or something else that is
+            // more efficient than this..
+            HashMap<Integer, Container> map = new HashMap<>();
+            for (int i = 0; i < n; i++)
+            {
+                Container container = get(s_l - i & 0xffff);
+                if (container != null && container.pkt != null)
+                {
+                    map.put(i, container);
+                }
+            }
+            return map;
         }
     }
 
