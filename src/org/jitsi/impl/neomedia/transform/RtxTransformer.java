@@ -483,18 +483,17 @@ public class RtxTransformer
         if (mediaStream != null
             && (cache = mediaStream.getCachingTransformer().getOutgoingRawPacketCache()) != null)
         {
-            // XXX The retransmission of packets MUST take into account SSRC
-            // rewriting. Which it may do by injecting retransmitted packets
-            // AFTER the SsrcRewritingEngine.
-            // Also, the cache MUST be notified of packets being retransmitted,
-            // in order for it to update their timestamp. We do this here by
-            // simply letting retransmitted packets pass through the cache again.
-            // We use the retransmission requester here simply because it is
-            // the transformer right before the cache, not because of anything
-            // intrinsic to it.
-            RetransmissionRequester rr = mediaStream.getRetransmissionRequester();
-            TransformEngine after
-                = (rr instanceof TransformEngine) ? (TransformEngine) rr : null;
+            // Retransmitted packets need to be inserted:
+            // * after SSRC-rewriting (the external transform engine)
+            // * after statistics (we update them explicitly)
+            // * before abs-send-time
+            // * before SRTP
+            // We use 'this', because the RtxTransformer happens to be in the
+            // correct place in the chain. See
+            // MediaStreamImpl#createTransformEngineChain.
+            // The position of the packet cache does not matter, because we
+            // update it explicitly.
+            TransformEngine after = this;
 
             long rtt = mediaStream.getMediaStreamStats().getSendStats().getRtt();
             long now = System.currentTimeMillis();
