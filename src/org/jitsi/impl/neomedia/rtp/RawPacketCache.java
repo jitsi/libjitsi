@@ -216,7 +216,7 @@ public class RawPacketCache
      */
     public Container getContainer(long ssrc, int seq)
     {
-        Cache cache = getCache(ssrc & 0xffffffffL, false);
+        Cache cache = getCache(ssrc & 0xffff_ffffL, false);
 
         Container container = cache != null ? cache.get(seq) : null;
 
@@ -503,22 +503,22 @@ public class RawPacketCache
             }
 
             int v = ROC;
-            if (s_l < (1<<15))
-                if (seq - s_l > (1<<15))
-                    v = (int) ((ROC-1) % (1L<<32));
-                else if (s_l - (1<<16) > seq)
-                    v = (int) ((ROC+1) % (1L<<32));
+            if (s_l < 0x7fff)
+                if (seq - s_l > 0x7fff)
+                    v = (int) ((ROC - 1) & 0xffff_ffffL);
+                else if (s_l - 0xffff > seq)
+                    v = (int) ((ROC + 1) & 0xffff_ffffL );
 
             if (v == ROC && seq > s_l)
                 s_l = seq;
-            else if (v == ((ROC + 1) % (1L<<32)))
+            else if (v == ((ROC + 1) & 0xffff_ffffL))
             {
                 s_l = seq;
                 ROC = v;
             }
 
 
-            return seq + v * (1<<16);
+            return seq + v * 0xffff;
         }
 
         /**
