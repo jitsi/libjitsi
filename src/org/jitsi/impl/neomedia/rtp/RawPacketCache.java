@@ -415,6 +415,30 @@ public class RawPacketCache
     }
 
     /**
+     * Updates the timestamp of the packet in the cache with SSRC {@code ssrc}
+     * and sequence number {@code seq}, if such a packet exists in the cache,
+     * setting it to {@code ts}.
+     * @param ssrc the SSRC of the packet.
+     * @param seq the sequence number of the packet.
+     * @param ts the timestamp to set.
+     */
+    public void updateTimestamp(long ssrc, int seq, long ts)
+    {
+        Cache cache = getCache(ssrc, false);
+        if (cache != null)
+        {
+            synchronized (cache)
+            {
+                Container container = cache.doGet(seq);
+                if (container != null)
+                {
+                    container.timeAdded = ts;
+                }
+            }
+        }
+    }
+
+    /**
      * Implements a cache for the packets of a specific SSRC.
      */
     private class Cache
@@ -522,37 +546,52 @@ public class RawPacketCache
         }
 
         /**
-         * Returns the RTP packet with sequence number <tt>seq</tt> from the
-         * cache, or <tt>null</tt> if the cache does not contain a packet with
-         * this sequence number.
+         * Returns a copy of the RTP packet with sequence number {@code seq}
+         * from the cache, or {@code null} if the cache does not contain a
+         * packet with this sequence number.
          * @param seq the RTP sequence number of the packet to get.
-         * @return the RTP packet with sequence number <tt>seq</tt> from the
-         * cache, or <tt>null</tt> if the cache does not contain a packet with
-         * this sequence number.
+         * @return a copy of the RTP packet with sequence number {@code seq}
+         * from the cache, or {@code null} if the cache does not contain a
+         * packet with this sequence number.
          */
         private synchronized Container get(int seq)
+        {
+            Container container = doGet(seq);
+
+            return
+                container == null
+                    ? null
+                    : new Container(
+                    new RawPacket(container.pkt.getBuffer().clone(),
+                        container.pkt.getOffset(),
+                        container.pkt.getLength()),
+                    container.timeAdded);
+        }
+
+        /**
+         * Returns the RTP packet with sequence number {@code seq}
+         * from the cache, or {@code null} if the cache does not contain a
+         * packet with this sequence number.
+         * @param seq the RTP sequence number of the packet to get.
+         * @return the RTP packet with sequence number {@code seq}
+         * from the cache, or {@code null} if the cache does not contain a
+         * packet with this sequence number.
+         */
+        private synchronized Container doGet(int seq)
         {
             // Since sequence numbers wrap at 2^16, we can't know with absolute
             // certainty which packet the request refers to. We assume that it
             // is for the latest packet (i.e. the one with the highest index).
-            Container pkt = cache.get(seq + ROC * (1 << 16));
+            Container container = cache.get(seq + ROC * 0xffff);
 
             // Maybe the ROC was just bumped recently.
-            if (pkt == null && ROC > 0)
-                pkt = cache.get(seq + (ROC-1)*(1<<16));
+            if (container == null && ROC > 0)
+                container = cache.get(seq + (ROC-1) * 0xffff);
 
             // Since the cache only stores <tt>SIZE_MILLIS</tt> milliseconds of
             // packets, we assume that it doesn't contain packets spanning
             // more than one ROC.
-
-            return
-                pkt == null
-                    ? null
-                    : new Container(
-                    new RawPacket(pkt.pkt.getBuffer().clone(),
-                        pkt.pkt.getOffset(),
-                        pkt.pkt.getLength()),
-                    pkt.timeAdded);
+            return container;
         }
 
         /**

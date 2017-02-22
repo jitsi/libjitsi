@@ -528,6 +528,12 @@ public class RtxTransformer
                     {
                         stats.rtpPacketRetransmitted(
                             mediaSSRC, container.pkt.getLength());
+
+                        // We just retransmitted the packet. Update its
+                        // timestamp so that we use the new timestamp when we
+                        // handle subsequent NACKs.
+                        cache.updateTimestamp(mediaSSRC, seq, now);
+
                         i.remove();
                     }
 
