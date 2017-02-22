@@ -191,7 +191,7 @@ class SendSideBandwidthEstimation
         {
             setBitrate(capBitrateToThresholds(bwe_incoming_));
             min_bitrate_history_.clear();
-            min_bitrate_history_.addLast(new Pair<>(now, bitrate));
+            min_bitrate_history_.addLast(new Pair<>(now, bitrate_));
             return;
         }
         updateMinHistory(now);
