@@ -74,17 +74,6 @@ public class RawPacketCache
     private static int SIZE_MILLIS = cfg.getInt(NACK_CACHE_SIZE_MILLIS, 500);
 
     /**
-     * Assumed rate of the RTP clock.
-     */
-    private static int RTP_CLOCK_RATE = 90000;
-
-    /**
-     * <tt>SIZE_MILLIS</tt> expressed as a number of ticks on the RTP clock.
-     */
-    private static int SIZE_RTP_CLOCK_TICKS
-        = (RTP_CLOCK_RATE / 1000) * SIZE_MILLIS;
-
-    /**
      * The maximum number of different SSRCs for which a cache will be created.
      */
     private static int MAX_SSRC_COUNT = cfg.getInt(NACK_CACHE_SIZE_STREAMS, 50);
@@ -104,19 +93,6 @@ public class RawPacketCache
      * unless new packets have been inserted.
      */
     private static int SSRC_TIMEOUT_MILLIS = SIZE_MILLIS + 50;
-
-    /**
-     * Returns <tt>true</tt> iff <tt>a</tt> is less than <tt>b</tt> modulo 2^32.
-     */
-    private static boolean lessThanTS(long a, long b)
-    {
-        if (a == b)
-            return false;
-        else if (a > b)
-            return a - b >= (1L << 31);
-        else //a < b
-            return b - a < (1L << 31);
-    }
 
     /**
      * The pool of <tt>RawPacket</tt>s which we use to avoid allocation and GC.
@@ -606,9 +582,7 @@ public class RawPacketCache
             if (size <= 0)
                 return;
 
-            long lastTimestamp
-                = 0xffffffffL & cache.lastEntry().getValue().pkt.getTimestamp();
-            long cleanBefore = getCleanBefore(lastTimestamp);
+            long cleanBefore = System.currentTimeMillis() - SIZE_MILLIS;
 
             Iterator<Map.Entry<Integer,Container>> iter
                 = cache.entrySet().iterator();
@@ -625,8 +599,8 @@ public class RawPacketCache
                     // timestamps.
                     size--;
                 }
-                else if (lessThanTS(cleanBefore,
-                    0xffffffffL & pkt.getTimestamp()))
+                else if (container.timeAdded >= 0 &&
+                         container.timeAdded < cleanBefore)
                 {
                     // We reached a packet with a timestamp after 'cleanBefore'.
                     // The rest of the packets are even more recent.
@@ -663,17 +637,6 @@ public class RawPacketCache
             }
 
             cache.clear();
-        }
-
-        /**
-         * Returns the RTP timestamp which is {@link #SIZE_MILLIS} milliseconds
-         * older than <tt>ts</tt>.
-         * @param ts
-         * @return
-         */
-        private long getCleanBefore(long ts)
-        {
-            return (ts + (1L<<32) - SIZE_RTP_CLOCK_TICKS) % (1L<<32);
         }
     }
 
