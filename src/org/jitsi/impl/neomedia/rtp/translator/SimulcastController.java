@@ -99,70 +99,52 @@ public class SimulcastController
      * {@inheritDoc}
      */
     @Override
-    public long getCurrentBps()
+    public Bitrates getBitrates()
     {
+        long currentBps = 0;
         MediaStreamTrackDesc source = weakSource.get();
         if (source == null)
         {
-            return 0;
-        }
-
-        SimTransformation simTransformation = transformState;
-        if (simTransformation == null || simTransformation.currentIdx == -1)
-        {
-            return 0;
-        }
-
-        RTPEncodingDesc[] encodings = source.getRTPEncodings();
-        if (ArrayUtils.isNullOrEmpty(encodings)
-            || !encodings[simTransformation.currentIdx].isActive())
-        {
-            return 0;
-        }
-
-        return
-            encodings[simTransformation.currentIdx].getLastStableBitrateBps();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public long getOptimalBps()
-    {
-        int optimalIdx = this.optimalIdx;
-        if (optimalIdx < 0)
-        {
-            return 0;
-        }
-
-        MediaStreamTrackDesc source = weakSource.get();
-        if (source == null)
-        {
-            return 0;
+            return Bitrates.EMPTY;
         }
 
         RTPEncodingDesc[] encodings = source.getRTPEncodings();
         if (ArrayUtils.isNullOrEmpty(encodings))
         {
-            return 0;
+            return Bitrates.EMPTY;
         }
 
-        for (int i = optimalIdx; i > -1; i--)
+        SimTransformation simTransformation = transformState;
+        if (simTransformation != null && simTransformation.currentIdx != -1)
         {
-            if (!encodings[i].isActive())
+            if (encodings[simTransformation.currentIdx].isActive())
             {
-                continue;
-            }
-
-            long bps = encodings[i].getLastStableBitrateBps();
-            if (bps > 0)
-            {
-                return bps;
+                currentBps = encodings[simTransformation.currentIdx]
+                    .getLastStableBitrateBps();
             }
         }
 
-        return 0;
+        long optimalBps = 0;
+        int optimalIdx = this.optimalIdx;
+        if (optimalIdx >= 0)
+        {
+            for (int i = optimalIdx; i > -1; i--)
+            {
+                if (!encodings[i].isActive())
+                {
+                    continue;
+                }
+
+                long bps = encodings[i].getLastStableBitrateBps();
+                if (bps > 0)
+                {
+                    optimalBps = bps;
+                    break;
+                }
+            }
+        }
+
+        return new Bitrates(currentBps, optimalBps);
     }
 
     /**

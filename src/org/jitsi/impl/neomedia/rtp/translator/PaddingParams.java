@@ -21,20 +21,11 @@ package org.jitsi.impl.neomedia.rtp.translator;
 public interface PaddingParams
 {
     /**
-     * Gets the current bitrate (bps). Together with the optimal bitrate, it
-     * allows to calculate the probing bitrate.
+     * Gets
      *
      * @return the current bitrate (bps).
      */
-    long getCurrentBps();
-
-    /**
-     * Gets the optimal bitrate (bps). Together with the current bitrate, it
-     * allows to calculate the probing bitrate.
-     *
-     * @return the optimal bitrate (bps).
-     */
-    long getOptimalBps();
+    Bitrates getBitrates();
 
     /**
      * Gets the SSRC to protect with RTX, in case the padding budget is
@@ -44,4 +35,62 @@ public interface PaddingParams
      * positive.
      */
     long getTargetSSRC();
+
+    /**
+     * Utility class that holds the optimal and the current bitrate (in bps).
+     */
+    class Bitrates
+    {
+        /**
+         * A static bitrates object with 0 bps for both the optimal and the
+         * current bitrates.
+         */
+        static final Bitrates EMPTY = new Bitrates(0, 0);
+
+        /**
+         * Ctor.
+         *
+         * @param currentBps the current bitrate (in bps)
+         * @param optimalBps the optimal bitrate (in bps)
+         */
+        public Bitrates(long currentBps, long optimalBps)
+        {
+            this.currentBps = currentBps;
+            this.optimalBps = optimalBps;
+        }
+
+        /**
+         * The current bitrate (bps). Together with the optimal bitrate, it
+         * allows to calculate the probing bitrate.
+         */
+        long currentBps;
+
+        /**
+         * The optimal bitrate (bps). Together with the current bitrate, it
+         * allows to calculate the probing bitrate.
+         */
+        long optimalBps;
+
+        /**
+         * Gets the current bitrate (bps). Together with the optimal bitrate, it
+         * allows to calculate the probing bitrate.
+         *
+         * @return the current bitrate (bps).
+         */
+        public long getCurrentBps()
+        {
+            return currentBps;
+        }
+
+        /**
+         * Gets the optimal bitrate (bps). Together with the current bitrate, it
+         * allows to calculate the probing bitrate.
+         *
+         * @return the optimal bitrate (bps).
+         */
+        public long getOptimalBps()
+        {
+            return optimalBps;
+        }
+    }
 }
