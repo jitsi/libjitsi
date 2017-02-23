@@ -503,10 +503,10 @@ public class RawPacketCache
             }
 
             int v = ROC;
-            if (s_l < 0x7fff)
-                if (seq - s_l > 0x7fff)
+            if (s_l < 0x8000)
+                if (seq - s_l > 0x8000)
                     v = (int) ((ROC - 1) & 0xffff_ffffL);
-                else if (s_l - 0xffff > seq)
+                else if (s_l - 0x1_0000 > seq)
                     v = (int) ((ROC + 1) & 0xffff_ffffL );
 
             if (v == ROC && seq > s_l)
@@ -518,7 +518,7 @@ public class RawPacketCache
             }
 
 
-            return seq + v * 0xffff;
+            return seq + v * 0x1_0000;
         }
 
         /**
@@ -558,11 +558,11 @@ public class RawPacketCache
             // Since sequence numbers wrap at 2^16, we can't know with absolute
             // certainty which packet the request refers to. We assume that it
             // is for the latest packet (i.e. the one with the highest index).
-            Container container = cache.get(seq + ROC * 0xffff);
+            Container container = cache.get(seq + ROC * 0x1_0000);
 
             // Maybe the ROC was just bumped recently.
             if (container == null && ROC > 0)
-                container = cache.get(seq + (ROC-1) * 0xffff);
+                container = cache.get(seq + (ROC-1) * 0x1_0000);
 
             // Since the cache only stores <tt>SIZE_MILLIS</tt> milliseconds of
             // packets, we assume that it doesn't contain packets spanning
