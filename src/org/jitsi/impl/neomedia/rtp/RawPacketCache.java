@@ -74,17 +74,6 @@ public class RawPacketCache
     private static int SIZE_MILLIS = cfg.getInt(NACK_CACHE_SIZE_MILLIS, 500);
 
     /**
-     * Assumed rate of the RTP clock.
-     */
-    private static int RTP_CLOCK_RATE = 90000;
-
-    /**
-     * <tt>SIZE_MILLIS</tt> expressed as a number of ticks on the RTP clock.
-     */
-    private static int SIZE_RTP_CLOCK_TICKS
-        = (RTP_CLOCK_RATE / 1000) * SIZE_MILLIS;
-
-    /**
      * The maximum number of different SSRCs for which a cache will be created.
      */
     private static int MAX_SSRC_COUNT = cfg.getInt(NACK_CACHE_SIZE_STREAMS, 50);
@@ -104,19 +93,6 @@ public class RawPacketCache
      * unless new packets have been inserted.
      */
     private static int SSRC_TIMEOUT_MILLIS = SIZE_MILLIS + 50;
-
-    /**
-     * Returns <tt>true</tt> iff <tt>a</tt> is less than <tt>b</tt> modulo 2^32.
-     */
-    private static boolean lessThanTS(long a, long b)
-    {
-        if (a == b)
-            return false;
-        else if (a > b)
-            return a - b >= (1L << 31);
-        else //a < b
-            return b - a < (1L << 31);
-    }
 
     /**
      * The pool of <tt>RawPacket</tt>s which we use to avoid allocation and GC.
@@ -240,7 +216,7 @@ public class RawPacketCache
      */
     public Container getContainer(long ssrc, int seq)
     {
-        Cache cache = getCache(ssrc & 0xffffffffL, false);
+        Cache cache = getCache(ssrc & 0xffff_ffffL, false);
 
         Container container = cache != null ? cache.get(seq) : null;
 
@@ -415,6 +391,30 @@ public class RawPacketCache
     }
 
     /**
+     * Updates the timestamp of the packet in the cache with SSRC {@code ssrc}
+     * and sequence number {@code seq}, if such a packet exists in the cache,
+     * setting it to {@code ts}.
+     * @param ssrc the SSRC of the packet.
+     * @param seq the sequence number of the packet.
+     * @param ts the timestamp to set.
+     */
+    public void updateTimestamp(long ssrc, int seq, long ts)
+    {
+        Cache cache = getCache(ssrc, false);
+        if (cache != null)
+        {
+            synchronized (cache)
+            {
+                Container container = cache.doGet(seq);
+                if (container != null)
+                {
+                    container.timeAdded = ts;
+                }
+            }
+        }
+    }
+
+    /**
      * Implements a cache for the packets of a specific SSRC.
      */
     private class Cache
@@ -503,56 +503,71 @@ public class RawPacketCache
             }
 
             int v = ROC;
-            if (s_l < (1<<15))
-                if (seq - s_l > (1<<15))
-                    v = (int) ((ROC-1) % (1L<<32));
-                else if (s_l - (1<<16) > seq)
-                    v = (int) ((ROC+1) % (1L<<32));
+            if (s_l < 0x8000)
+                if (seq - s_l > 0x8000)
+                    v = (int) ((ROC - 1) & 0xffff_ffffL);
+                else if (s_l - 0x1_0000 > seq)
+                    v = (int) ((ROC + 1) & 0xffff_ffffL );
 
             if (v == ROC && seq > s_l)
                 s_l = seq;
-            else if (v == ((ROC + 1) % (1L<<32)))
+            else if (v == ((ROC + 1) & 0xffff_ffffL))
             {
                 s_l = seq;
                 ROC = v;
             }
 
 
-            return seq + v * (1<<16);
+            return seq + v * 0x1_0000;
         }
 
         /**
-         * Returns the RTP packet with sequence number <tt>seq</tt> from the
-         * cache, or <tt>null</tt> if the cache does not contain a packet with
-         * this sequence number.
+         * Returns a copy of the RTP packet with sequence number {@code seq}
+         * from the cache, or {@code null} if the cache does not contain a
+         * packet with this sequence number.
          * @param seq the RTP sequence number of the packet to get.
-         * @return the RTP packet with sequence number <tt>seq</tt> from the
-         * cache, or <tt>null</tt> if the cache does not contain a packet with
-         * this sequence number.
+         * @return a copy of the RTP packet with sequence number {@code seq}
+         * from the cache, or {@code null} if the cache does not contain a
+         * packet with this sequence number.
          */
         private synchronized Container get(int seq)
+        {
+            Container container = doGet(seq);
+
+            return
+                container == null
+                    ? null
+                    : new Container(
+                    new RawPacket(container.pkt.getBuffer().clone(),
+                        container.pkt.getOffset(),
+                        container.pkt.getLength()),
+                    container.timeAdded);
+        }
+
+        /**
+         * Returns the RTP packet with sequence number {@code seq}
+         * from the cache, or {@code null} if the cache does not contain a
+         * packet with this sequence number.
+         * @param seq the RTP sequence number of the packet to get.
+         * @return the RTP packet with sequence number {@code seq}
+         * from the cache, or {@code null} if the cache does not contain a
+         * packet with this sequence number.
+         */
+        private synchronized Container doGet(int seq)
         {
             // Since sequence numbers wrap at 2^16, we can't know with absolute
             // certainty which packet the request refers to. We assume that it
             // is for the latest packet (i.e. the one with the highest index).
-            Container pkt = cache.get(seq + ROC * (1 << 16));
+            Container container = cache.get(seq + ROC * 0x1_0000);
 
             // Maybe the ROC was just bumped recently.
-            if (pkt == null && ROC > 0)
-                pkt = cache.get(seq + (ROC-1)*(1<<16));
+            if (container == null && ROC > 0)
+                container = cache.get(seq + (ROC-1) * 0x1_0000);
 
             // Since the cache only stores <tt>SIZE_MILLIS</tt> milliseconds of
             // packets, we assume that it doesn't contain packets spanning
             // more than one ROC.
-
-            return
-                pkt == null
-                    ? null
-                    : new Container(
-                    new RawPacket(pkt.pkt.getBuffer().clone(),
-                        pkt.pkt.getOffset(),
-                        pkt.pkt.getLength()),
-                    pkt.timeAdded);
+            return container;
         }
 
         /**
@@ -567,9 +582,7 @@ public class RawPacketCache
             if (size <= 0)
                 return;
 
-            long lastTimestamp
-                = 0xffffffffL & cache.lastEntry().getValue().pkt.getTimestamp();
-            long cleanBefore = getCleanBefore(lastTimestamp);
+            long cleanBefore = System.currentTimeMillis() - SIZE_MILLIS;
 
             Iterator<Map.Entry<Integer,Container>> iter
                 = cache.entrySet().iterator();
@@ -586,8 +599,8 @@ public class RawPacketCache
                     // timestamps.
                     size--;
                 }
-                else if (lessThanTS(cleanBefore,
-                    0xffffffffL & pkt.getTimestamp()))
+                else if (container.timeAdded >= 0 &&
+                         container.timeAdded < cleanBefore)
                 {
                     // We reached a packet with a timestamp after 'cleanBefore'.
                     // The rest of the packets are even more recent.
@@ -624,17 +637,6 @@ public class RawPacketCache
             }
 
             cache.clear();
-        }
-
-        /**
-         * Returns the RTP timestamp which is {@link #SIZE_MILLIS} milliseconds
-         * older than <tt>ts</tt>.
-         * @param ts
-         * @return
-         */
-        private long getCleanBefore(long ts)
-        {
-            return (ts + (1L<<32) - SIZE_RTP_CLOCK_TICKS) % (1L<<32);
         }
     }
 
