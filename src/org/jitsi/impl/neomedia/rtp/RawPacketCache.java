@@ -399,10 +399,11 @@ public class RawPacketCache
      *
      * @param ssrc the SSRC whose most recent packets to retrieve.
      * @param bytes the maximum total size of the packets to retrieve.
-     * @return the most recent packets to retrieve, not exceeding the number of
-     * bytes specified as an argument.
+     * @return the set of the most recent packets to retrieve, not exceeding the
+     * number of bytes specified as an argument, or null if there are no packets
+     * in the cache
      */
-    public Map<Integer, Container> getMany(long ssrc, int bytes)
+    public Set<Container> getMany(long ssrc, int bytes)
     {
         Cache cache = getCache(ssrc & 0xffffffffL, false);
         return cache == null ? null : cache.getMany(bytes);
@@ -662,26 +663,35 @@ public class RawPacketCache
          * number of bytes specified as an argument.
          *
          * @param bytes the maximum number of bytes to retrieve.
-         * @return the most recent packets to retrieve, not exceeding the number
-         * of bytes specified as an argument.
+         * @return the set of the most recent packets to retrieve, not exceeding
+         * the number of bytes specified as an argument, or null if there are
+         * no packets in the cache.
          */
-        public synchronized Map<Integer, Container> getMany(int bytes)
+        public synchronized Set<Container> getMany(int bytes)
         {
+            if (cache.isEmpty() || bytes < 1)
+            {
+                return null;
+            }
+
             // XXX(gp) This is effectively Copy-on-Read and is inefficient. We
             // should implement a Copy-on-Write method or something else that is
             // more efficient than this..
-            HashMap<Integer, Container> map = new HashMap<>();
-            int sz = cache.size(), s_l = this.s_l;
-            for (int i = 0; i < sz && bytes > 0; i++)
+            Set<Container> set = new HashSet<>();
+
+            Iterator<Map.Entry<Integer, Container>> it
+                = cache.descendingMap().entrySet().iterator();
+            while (it.hasNext() && bytes > 0)
             {
-                Container container = get(s_l - i & 0xffff);
+                Container container = it.next().getValue();
                 if (container != null && container.pkt != null)
                 {
-                    map.put(i, container);
+                    set.add(container);
                     bytes -= container.pkt.getLength();
                 }
             }
-            return map;
+
+            return set;
         }
     }
 

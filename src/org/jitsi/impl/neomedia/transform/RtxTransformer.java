@@ -631,7 +631,7 @@ public class RtxTransformer
             return bytes;
         }
 
-        Map<Integer, RawPacketCache.Container> lastNPackets
+        Set<RawPacketCache.Container> lastNPackets
             = cache.getMany(ssrc, bytes);
 
         if (lastNPackets == null || lastNPackets.isEmpty())
@@ -644,13 +644,11 @@ public class RtxTransformer
         // will change before taking its final form.
         for (int i = 0; i < 2; i++)
         {
-            Iterator<Map.Entry<Integer, RawPacketCache.Container>>
-                it = lastNPackets.entrySet().iterator();
+            Iterator<RawPacketCache.Container> it = lastNPackets.iterator();
 
             while (it.hasNext())
             {
-                Map.Entry<Integer, RawPacketCache.Container> entry = it.next();
-                RawPacketCache.Container container = entry.getValue();
+                RawPacketCache.Container container = it.next();
                 RawPacket pkt = container.pkt;
                 // Containers are recycled/reused, so we must check if the
                 // packet is still there.
