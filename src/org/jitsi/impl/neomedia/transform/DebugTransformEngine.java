@@ -271,7 +271,7 @@ public class DebugTransformEngine implements TransformEngine
         {
             if (RTPPacketPredicate.INSTANCE.test(pkt))
             {
-                len = RawPacket.FIXED_HEADER_SIZE;
+                len = pkt.getHeaderLength();
             }
             else // if (RTCPPacketPredicate.INSTANCE.test(pkt))
             {
