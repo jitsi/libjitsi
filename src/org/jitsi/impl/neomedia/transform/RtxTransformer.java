@@ -567,13 +567,13 @@ public class RtxTransformer
 
     /**
      * Sends padding packets with the RTX SSRC associated to the media SSRC that
-     * is passed as a parameter.
+     * is passed as a parameter. It implements packet triplication.
      *
      * @param ssrc the media SSRC to protect.
      * @param bytes the amount of padding to send in bytes.
      * @return the remaining padding bytes budget.
      */
-    public long sendPadding(long ssrc, long bytes)
+    public int sendPadding(long ssrc, int bytes)
     {
         if (rtxPayloadType == -1)
         {
@@ -632,9 +632,17 @@ public class RtxTransformer
         }
 
         Map<Integer, RawPacketCache.Container> lastNPackets
-            = cache.getLastN(ssrc, 600);
+            = cache.getMany(ssrc, bytes);
 
-        if (lastNPackets != null && !lastNPackets.isEmpty())
+        if (lastNPackets == null || lastNPackets.isEmpty())
+        {
+            return bytes;
+        }
+
+        // XXX this constant is not great, however the final place of the stream
+        // protection strategy is not clear at this point so I expect the code
+        // will change before taking its final form.
+        for (int i = 0; i < 2; i++)
         {
             Iterator<Map.Entry<Integer, RawPacketCache.Container>>
                 it = lastNPackets.entrySet().iterator();

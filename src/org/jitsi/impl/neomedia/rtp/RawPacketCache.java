@@ -70,6 +70,8 @@ public class RawPacketCache
     /**
      * Packets added to the cache more than <tt>SIZE_MILLIS</tt> ago might be
      * cleared from the cache.
+     *
+     * FIXME(gp) the cache size should be adaptive based on the RTT.
      */
     private static int SIZE_MILLIS = cfg.getInt(NACK_CACHE_SIZE_MILLIS, 500);
 
@@ -391,18 +393,19 @@ public class RawPacketCache
     }
 
     /**
-     * Gets the most recent Math.min(n, cache size) packets from the cache that
-     * pertains to the SSRC that is specified as an argument.
+     * Gets the most recent packets from the cache that pertains to the SSRC
+     * that is specified as an argument, not exceeding the number of bytes
+     * specified as an argument.
      *
-     * @param ssrc the SSRC whose last Math.min(N, cache size) packets to
-     * retrieve.
-     * @param n the maximum number of packets to retrieve.
-     * @return the most recent Math.min(n, cache size) packets to retrieve.
+     * @param ssrc the SSRC whose most recent packets to retrieve.
+     * @param bytes the maximum total size of the packets to retrieve.
+     * @return the most recent packets to retrieve, not exceeding the number of
+     * bytes specified as an argument.
      */
-    public Map<Integer, Container> getLastN(long ssrc, int n)
+    public Map<Integer, Container> getMany(long ssrc, int bytes)
     {
         Cache cache = getCache(ssrc & 0xffffffffL, false);
-        return cache == null ? null : cache.getLastN(n);
+        return cache == null ? null : cache.getMany(bytes);
     }
 
     /**
@@ -655,23 +658,27 @@ public class RawPacketCache
         }
 
         /**
-         * Gets the most recent Math.min(n, cache size) packets from this cache.
+         * Gets the most recent packets from this cache, not exceeding the
+         * number of bytes specified as an argument.
          *
-         * @param n the maximum number of packets to retrieve.
-         * @return the most recent Math.min(n, cache size) packets to retrieve.
+         * @param bytes the maximum number of bytes to retrieve.
+         * @return the most recent packets to retrieve, not exceeding the number
+         * of bytes specified as an argument.
          */
-        public synchronized Map<Integer, Container> getLastN(int n)
+        public synchronized Map<Integer, Container> getMany(int bytes)
         {
             // XXX(gp) This is effectively Copy-on-Read and is inefficient. We
             // should implement a Copy-on-Write method or something else that is
             // more efficient than this..
             HashMap<Integer, Container> map = new HashMap<>();
-            for (int i = 0; i < n; i++)
+            int sz = cache.size(), s_l = this.s_l;
+            for (int i = 0; i < sz && bytes > 0; i++)
             {
                 Container container = get(s_l - i & 0xffff);
                 if (container != null && container.pkt != null)
                 {
                     map.put(i, container);
+                    bytes -= container.pkt.getLength();
                 }
             }
             return map;
