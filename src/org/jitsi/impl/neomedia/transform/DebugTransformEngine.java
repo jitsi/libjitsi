@@ -273,9 +273,9 @@ public class DebugTransformEngine implements TransformEngine
             {
                 len = RawPacket.FIXED_HEADER_SIZE;
             }
-            else if (RTCPPacketPredicate.INSTANCE.test(pkt))
+            else // if (RTCPPacketPredicate.INSTANCE.test(pkt))
             {
-                len = 8;
+                // RTCP packets are usually pretty small, no need to trim them.
             }
         }
 
