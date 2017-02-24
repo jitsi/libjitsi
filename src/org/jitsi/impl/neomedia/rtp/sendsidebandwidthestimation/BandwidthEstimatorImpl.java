@@ -16,6 +16,8 @@
 package org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation;
 
 import net.sf.fmj.media.rtp.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 
@@ -36,6 +38,14 @@ public class BandwidthEstimatorImpl
     implements BandwidthEstimator
 {
     /**
+     * The system property name of the initial value of the estimation, in bits
+     * per second.
+     */
+    private static final String START_BITRATE_BPS_PNAME = "org.jitsi.impl" +
+        ".neomedia.rtp.sendsidebandwidthestimation.BandwidthEstimatorImpl" +
+        ".START_BITRATE_BPS";
+
+    /**
      * The minimum value to be output by this estimator, in bits per second.
      */
     private final static int MIN_BITRATE_BPS = 30000;
@@ -46,9 +56,16 @@ public class BandwidthEstimatorImpl
     private final static int MAX_BITRATE_BPS = 20 * 1000 * 1000;
 
     /**
-     * The initial value of the estimation, in bits per secod.
+     * The ConfigurationService to get config values from.
      */
-    private static final int START_BITRATE_BPS = 300000;
+    private static final ConfigurationService cfg
+        = LibJitsi.getConfigurationService();
+
+    /**
+     * The initial value of the estimation, in bits per second.
+     */
+    private static final long START_BITRATE_BPS
+        = cfg != null ? cfg.getLong(START_BITRATE_BPS_PNAME, 300000) : 300000;
 
     /**
      * bitrate_controller_impl.h

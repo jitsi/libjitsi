@@ -70,6 +70,8 @@ public class RawPacketCache
     /**
      * Packets added to the cache more than <tt>SIZE_MILLIS</tt> ago might be
      * cleared from the cache.
+     *
+     * FIXME(gp) the cache size should be adaptive based on the RTT.
      */
     private static int SIZE_MILLIS = cfg.getInt(NACK_CACHE_SIZE_MILLIS, 500);
 
@@ -391,6 +393,23 @@ public class RawPacketCache
     }
 
     /**
+     * Gets the most recent packets from the cache that pertains to the SSRC
+     * that is specified as an argument, not exceeding the number of bytes
+     * specified as an argument.
+     *
+     * @param ssrc the SSRC whose most recent packets to retrieve.
+     * @param bytes the maximum total size of the packets to retrieve.
+     * @return the set of the most recent packets to retrieve, not exceeding the
+     * number of bytes specified as an argument, or null if there are no packets
+     * in the cache
+     */
+    public Set<Container> getMany(long ssrc, int bytes)
+    {
+        Cache cache = getCache(ssrc & 0xffffffffL, false);
+        return cache == null ? null : cache.getMany(bytes);
+    }
+
+    /**
      * Updates the timestamp of the packet in the cache with SSRC {@code ssrc}
      * and sequence number {@code seq}, if such a packet exists in the cache,
      * setting it to {@code ts}.
@@ -637,6 +656,42 @@ public class RawPacketCache
             }
 
             cache.clear();
+        }
+
+        /**
+         * Gets the most recent packets from this cache, not exceeding the
+         * number of bytes specified as an argument.
+         *
+         * @param bytes the maximum number of bytes to retrieve.
+         * @return the set of the most recent packets to retrieve, not exceeding
+         * the number of bytes specified as an argument, or null if there are
+         * no packets in the cache.
+         */
+        public synchronized Set<Container> getMany(int bytes)
+        {
+            if (cache.isEmpty() || bytes < 1)
+            {
+                return null;
+            }
+
+            // XXX(gp) This is effectively Copy-on-Read and is inefficient. We
+            // should implement a Copy-on-Write method or something else that is
+            // more efficient than this..
+            Set<Container> set = new HashSet<>();
+
+            Iterator<Map.Entry<Integer, Container>> it
+                = cache.descendingMap().entrySet().iterator();
+            while (it.hasNext() && bytes > 0)
+            {
+                Container container = it.next().getValue();
+                if (container != null && container.pkt != null)
+                {
+                    set.add(container);
+                    bytes -= container.pkt.getLength();
+                }
+            }
+
+            return set;
         }
     }
 

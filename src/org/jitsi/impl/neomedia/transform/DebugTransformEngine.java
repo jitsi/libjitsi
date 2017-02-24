@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.service.neomedia.*;
@@ -58,6 +59,24 @@ public class DebugTransformEngine implements TransformEngine
      */
     private static final Logger logger
         = Logger.getLogger(DebugTransformEngine.class);
+
+    /**
+     * The {@link ConfigurationService} used to load caching configuration.
+     */
+    private final static ConfigurationService cfg
+        = LibJitsi.getConfigurationService();
+
+    /**
+     *
+     */
+    private final static String LOG_RTP_PAYLOAD_PNAME = "org.jitsi.impl." +
+        "neomedia.transform.DebugTransformEngine.LOG_RTP_PAYLOAD";
+
+    /**
+     *
+     */
+    private static boolean LOG_RTP_PAYLOAD
+        = cfg.getBoolean(LOG_RTP_PAYLOAD_PNAME, false);
 
     /**
      * The <tt>MediaStream</tt> that owns this instance.
@@ -247,6 +266,19 @@ public class DebugTransformEngine implements TransformEngine
             dst = swap;
         }
 
+        int len = pkt.getLength();
+        if (!LOG_RTP_PAYLOAD)
+        {
+            if (RTPPacketPredicate.INSTANCE.test(pkt))
+            {
+                len = pkt.getHeaderLength();
+            }
+            else // if (RTCPPacketPredicate.INSTANCE.test(pkt))
+            {
+                // RTCP packets are usually pretty small, no need to trim them.
+            }
+        }
+
         pktLogging.logPacket(
                 PacketLoggingService.ProtocolName.ARBITRARY,
                 (src != null)
@@ -261,7 +293,7 @@ public class DebugTransformEngine implements TransformEngine
                 sender,
                 pkt.getBuffer().clone(),
                 pkt.getOffset(),
-                pkt.getLength());
+                len);
 
         return pkt;
     }
