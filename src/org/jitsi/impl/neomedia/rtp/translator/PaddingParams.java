@@ -34,7 +34,7 @@ public interface PaddingParams
      * @return the SSRC to protect with RTX, in case the padding budget is
      * positive.
      */
-    long getTargetSSRC();
+    long getProtectedSSRC();
 
     /**
      * Utility class that holds the optimal and the current bitrate (in bps).

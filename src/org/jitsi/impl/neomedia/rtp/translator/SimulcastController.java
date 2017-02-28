@@ -151,7 +151,7 @@ public class SimulcastController
      * {@inheritDoc}
      */
     @Override
-    public long getTargetSSRC()
+    public long getProtectedSSRC()
     {
         return targetSSRC;
     }
