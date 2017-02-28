@@ -334,14 +334,15 @@ public class SimulcastController
                     [currentTL0Idx].getBaseLayer().getIndex();
             }
 
-            int targetTL0Idx = sourceTrack
-                .getRTPEncodings()[newTargetIdx].getBaseLayer().getIndex();
+            RTPEncodingDesc targetTL0 = sourceTrack
+                .getRTPEncodings()[newTargetIdx].getBaseLayer();
 
-            if (currentTL0Idx != targetTL0Idx)
+            if (currentTL0Idx != targetTL0.getIndex())
             {
                 ((RTPTranslatorImpl) sourceTrack.getMediaStreamTrackReceiver()
                     .getStream().getRTPTranslator())
-                    .getRtcpFeedbackMessageSender().sendFIR((int) targetSSRC);
+                    .getRtcpFeedbackMessageSender().sendFIR(
+                        (int) targetTL0.getPrimarySSRC());
             }
         }
     }
