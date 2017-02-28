@@ -310,7 +310,7 @@ public class CsrcTransformEngine
 
         long[] csrcList = mediaStream.getLocalContributingSourceIDs();
 
-        if(csrcList == null || csrcList.length == 0 || this.discardContributingSrcs)
+        if (csrcList == null || csrcList.length == 0 || discardContributingSrcs)
         {
             //nothing to do.
             return pkt;
