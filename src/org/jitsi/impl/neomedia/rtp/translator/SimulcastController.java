@@ -88,11 +88,12 @@ public class SimulcastController
      *
      * @param source the {@link MediaStreamTrackDesc} that feeds this instance
      * with RTP/RTCP packets.
+     * @param targetSSRC
      */
-    public SimulcastController(MediaStreamTrackDesc source)
+    public SimulcastController(MediaStreamTrackDesc source, long targetSSRC)
     {
         this.weakSource = new WeakReference<>(source);
-        this.targetSSRC = source.getRTPEncodings()[0].getPrimarySSRC();
+        this.targetSSRC = targetSSRC;
     }
 
     /**
