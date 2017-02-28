@@ -48,8 +48,8 @@ public class SimulcastController
      * The transformation to use when a stream is suspended (or equivalently
      * when the target idx = -1.
      */
-    private static final SimTransformation dropState
-        = new SimTransformation(-1, -1, null, -1, -1);
+    private static final Context dropState
+        = new Context(-1, -1, null, -1, -1);
 
     /**
      * The target SSRC is the primary SSRC of the first encoding of the source.
@@ -82,7 +82,7 @@ public class SimulcastController
     /**
      * Read by the transform thread. Written by the filter thread.
      */
-    private SimTransformation transformState = dropState;
+    private Context context = dropState;
 
     /**
      * Ctor.
@@ -116,7 +116,7 @@ public class SimulcastController
             return Bitrates.EMPTY;
         }
 
-        int currentIdx = transformState.currentIdx;
+        int currentIdx = context.currentIdx;
         if (currentIdx != -1)
         {
             if (sourceEncodings[currentIdx].isActive())
@@ -183,7 +183,7 @@ public class SimulcastController
 
         // if the base (TL0) is suspended, we MUST downscale.
         boolean currentTL0IsActive = false;
-        int currentTL0Idx = transformState.currentIdx;
+        int currentTL0Idx = context.currentIdx;
         if (currentTL0Idx > -1)
         {
             currentTL0Idx = sourceEncodings[currentTL0Idx]
@@ -197,7 +197,7 @@ public class SimulcastController
         {
             // XXX The reason why we filter by SSRC here is because it's faster.
             long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
-            boolean accept = sourceSSRC == transformState.currentSSRC;
+            boolean accept = sourceSSRC == context.currentSSRC;
 
             if (accept)
             {
@@ -225,7 +225,7 @@ public class SimulcastController
 
             // XXX The reason why we filter by SSRC here is because it's faster.
             long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
-            boolean accept = sourceSSRC == transformState.currentSSRC;
+            boolean accept = sourceSSRC == context.currentSSRC;
 
             if (accept)
             {
@@ -266,7 +266,7 @@ public class SimulcastController
             }
 
             long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
-            transformState = new SimTransformation(
+            context = new Context(
                 tsDelta, seqNumDelta, sourceFrameDesc, sourceSSRC, sourceTL0Idx + 2);
 
             onAccept(buf, off, len);
@@ -316,7 +316,7 @@ public class SimulcastController
         if (newTargetIdx < 0)
         {
             // suspend the stream.
-            transformState = dropState;
+            context = dropState;
         }
         else
         {
@@ -327,7 +327,7 @@ public class SimulcastController
                 return;
             }
 
-            int currentTL0Idx = transformState.currentIdx;
+            int currentTL0Idx = context.currentIdx;
             if (currentTL0Idx > -1)
             {
                 currentTL0Idx = sourceTrack.getRTPEncodings()
@@ -359,7 +359,7 @@ public class SimulcastController
      */
     private void onAccept(byte[] buf, int off, int len)
     {
-        long ts = transformState.tsTranslation
+        long ts = context.tsTranslation
             .apply(RawPacket.getTimestamp(buf, off, len));
 
         if (filterState.maxTs == -1
@@ -368,7 +368,7 @@ public class SimulcastController
             filterState.maxTs = ts;
         }
 
-        int seqNum = transformState.seqNumTranslation
+        int seqNum = context.seqNumTranslation
             .apply(RawPacket.getSequenceNumber(buf, off, len));
 
         if (filterState.maxSeqNum == -1
@@ -396,10 +396,10 @@ public class SimulcastController
             return new RawPacket[] { pktIn };
         }
 
-        SimTransformation state = transformState;
+        Context context = this.context;
 
         long srcSSRC = pktIn.getSSRCAsLong();
-        if (srcSSRC != state.currentSSRC)
+        if (srcSSRC != context.currentSSRC)
         {
             // We do _not_ forward packets from SSRCs other than the
             // current SSRC.
@@ -409,11 +409,11 @@ public class SimulcastController
         RawPacket[] pktsOut;
 
         FrameDesc startFrame;
-        if (transformState.maybeFixInitialIndependentFrame
-            && (startFrame = state.weakStartFrame.get()) != null
+        if (context.maybeFixInitialIndependentFrame
+            && (startFrame = context.weakStartFrame.get()) != null
             && startFrame.matches(pktIn))
         {
-            transformState.maybeFixInitialIndependentFrame = false;
+            context.maybeFixInitialIndependentFrame = false;
 
             if (startFrame.getStart() != pktIn.getSequenceNumber())
             {
@@ -456,10 +456,10 @@ public class SimulcastController
             }
 
             int srcSeqNum = pktOut.getSequenceNumber();
-            int dstSeqNum = state.seqNumTranslation.apply(srcSeqNum);
+            int dstSeqNum = context.seqNumTranslation.apply(srcSeqNum);
 
             long srcTs = pktOut.getTimestamp();
-            long dstTs = state.tsTranslation.apply(srcTs);
+            long dstTs = context.tsTranslation.apply(srcTs);
 
             if (logger.isDebugEnabled())
             {
@@ -504,7 +504,7 @@ public class SimulcastController
             return pktIn;
         }
 
-        SimTransformation state = transformState;
+        Context context = this.context;
 
         boolean removed = false;
         RTCPIterator it = new RTCPIterator(pktIn);
@@ -521,7 +521,7 @@ public class SimulcastController
                 break;
             case RTCPPacket.SR:
 
-                if (RawPacket.getRTCPSSRC(baf) != state.currentSSRC)
+                if (RawPacket.getRTCPSSRC(baf) != context.currentSSRC)
                 {
                     // SRs from other streams get axed.
                     removed = true;
@@ -534,7 +534,7 @@ public class SimulcastController
 
                     // Rewrite timestamp.
                     long srcTs = RTCPSenderInfoUtils.getTimestamp(baf);
-                    long dstTs = state.tsTranslation.apply(srcTs);
+                    long dstTs = context.tsTranslation.apply(srcTs);
 
                     if (srcTs != dstTs)
                     {
@@ -560,7 +560,7 @@ public class SimulcastController
      * NOTE(gp) Once we move to Java 8, I want this to be implemented as a
      * Function.
      */
-    private static class SimTransformation
+    private static class Context
     {
         /**
          * Ctor.
@@ -573,7 +573,7 @@ public class SimulcastController
          * @param currentSSRC
          * @param currentIdx
          */
-        SimTransformation(
+        Context(
             long tsDelta,
             int seqNumDelta,
             FrameDesc startFrame,
