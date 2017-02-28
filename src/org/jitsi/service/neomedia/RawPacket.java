@@ -273,7 +273,7 @@ public class RawPacket
             = getLength()
             + (extensionBit ? 0 : EXT_HEADER_SIZE)
             + len + 1 /* header extension header */
-            + (4 - ((len + 1) % 4)) % 4 /* padding */;
+            + 3 /* padding */;
 
 
         byte[] newBuffer;
