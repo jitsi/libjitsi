@@ -283,7 +283,7 @@ public class RawPacket
             // We don't need a new buffer.
             newBuffer = buffer;
 
-            if ( (offset + getHeaderLength()) <=
+            if ( (offset + getHeaderLength()) >=
                  (maxRequiredLength - getPayloadLength()))
             {
                 // If region A (see above) is enough to accommodate the new
