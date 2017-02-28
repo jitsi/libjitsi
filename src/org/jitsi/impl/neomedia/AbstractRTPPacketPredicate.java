@@ -23,7 +23,7 @@ import org.jitsi.util.function.*;
  * @author George Politis
  */
 public class AbstractRTPPacketPredicate
-    implements Predicate<RawPacket>
+    implements Predicate<ByteArrayBuffer>
 {
     /**
      * The <tt>Logger</tt> used by the <tt>AbstractRTPPacketPredicate</tt>
@@ -51,7 +51,7 @@ public class AbstractRTPPacketPredicate
      * {@inheritDoc}
      */
     @Override
-    public boolean test(RawPacket pkt)
+    public boolean test(ByteArrayBuffer pkt)
     {
         // XXX inspired by RtpChannelDatagramFilter.accept().
         boolean result;
@@ -60,7 +60,7 @@ public class AbstractRTPPacketPredicate
         {
             if (pkt.getLength() >= 4)
             {
-                if (pkt.getVersion() == 2) // RTP/RTCP version field
+                if (RawPacket.getVersion(pkt) == 2) // RTP/RTCP version field
                 {
                     byte[] buff = pkt.getBuffer();
                     int off = pkt.getOffset();

@@ -39,7 +39,8 @@ public class SinglePacketTransformerAdapter
      * @param packetPredicate the <tt>PacketPredicate</tt> to use to match
      * packets to (reverse) transform.
      */
-    public SinglePacketTransformerAdapter(Predicate<RawPacket> packetPredicate)
+    public SinglePacketTransformerAdapter(
+        Predicate<ByteArrayBuffer> packetPredicate)
     {
         super(packetPredicate);
     }

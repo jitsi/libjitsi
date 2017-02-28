@@ -22,6 +22,7 @@ import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.util.function.*;
 
 import java.lang.ref.*;
 
@@ -357,8 +358,8 @@ public class SimulcastController
      */
     private void onAccept(byte[] buf, int off, int len)
     {
-        long ts = transformState
-            .rewriteTimestamp(RawPacket.getTimestamp(buf, off, len));
+        long ts = transformState.tsTranslation
+            .apply(RawPacket.getTimestamp(buf, off, len));
 
         if (filterState.maxTs == -1
             || TimeUtils.rtpDiff(ts, filterState.maxTs) > 0)
@@ -366,8 +367,8 @@ public class SimulcastController
             filterState.maxTs = ts;
         }
 
-        int seqNum = transformState
-            .rewriteSeqNum(RawPacket.getSequenceNumber(buf, off, len));
+        int seqNum = transformState.seqNumTranslation
+            .apply(RawPacket.getSequenceNumber(buf, off, len));
 
         if (filterState.maxSeqNum == -1
             || RTPUtils.sequenceNumberDiff(seqNum, filterState.maxSeqNum) > 0)
@@ -454,10 +455,10 @@ public class SimulcastController
             }
 
             int srcSeqNum = pktOut.getSequenceNumber();
-            int dstSeqNum = state.rewriteSeqNum(srcSeqNum);
+            int dstSeqNum = state.seqNumTranslation.apply(srcSeqNum);
 
             long srcTs = pktOut.getTimestamp();
-            long dstTs = state.rewriteTimestamp(srcTs);
+            long dstTs = state.tsTranslation.apply(srcTs);
 
             if (logger.isDebugEnabled())
             {
@@ -532,7 +533,7 @@ public class SimulcastController
 
                     // Rewrite timestamp.
                     long srcTs = RTCPSenderInfoUtils.getTimestamp(baf);
-                    long dstTs = state.rewriteTimestamp(srcTs);
+                    long dstTs = state.tsTranslation.apply(srcTs);
 
                     if (srcTs != dstTs)
                     {
@@ -559,7 +560,6 @@ public class SimulcastController
      * Function.
      */
     private static class SimTransformation
-        extends Transformation
     {
         /**
          * Ctor.
@@ -579,12 +579,24 @@ public class SimulcastController
             long currentSSRC,
             int currentIdx)
         {
-            super(tsDelta, seqNumDelta);
+            this.tsTranslation = new TimestampTranslation(tsDelta);
+            this.seqNumTranslation = new SeqnumTranslation(seqNumDelta);
+
             this.currentIdx = currentIdx;
             this.currentSSRC = currentSSRC;
 
             this.weakStartFrame = new WeakReference<>(startFrame);
         }
+
+        /**
+         *
+         */
+        private final TimestampTranslation tsTranslation;
+
+        /**
+         *
+         */
+        private final SeqnumTranslation seqNumTranslation;
 
         /**
          *
