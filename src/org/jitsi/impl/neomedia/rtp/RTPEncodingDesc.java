@@ -552,4 +552,15 @@ public class RTPEncodingDesc
     {
         return lastReceivedFrame;
     }
+
+    public RTPEncodingDesc getBaseLayer()
+    {
+        return ArrayUtils.isNullOrEmpty(dependencyEncodings)
+            ? this : dependencyEncodings[0].getBaseLayer();
+    }
+
+    public RTPEncodingDesc[] getDependencyEncodings()
+    {
+        return dependencyEncodings;
+    }
 }

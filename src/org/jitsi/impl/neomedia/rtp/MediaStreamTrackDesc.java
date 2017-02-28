@@ -45,7 +45,7 @@ public class MediaStreamTrackDesc
      * The maximum time interval (in millis) an encoding can be considered
      * active without new frames.
      */
-    private static final int SUSPENSION_THRESHOLD_MS = 300;
+    private static final int SUSPENSION_THRESHOLD_MS = 600;
 
     /**
      * The {@link RTPEncodingDesc}s that this {@link MediaStreamTrackDesc}
@@ -141,14 +141,18 @@ public class MediaStreamTrackDesc
             // sender so we can send a different stream to its receivers.
             boolean maybeSuspended = false,
 
-                // when a stream gets re-activated, it needs to start with an
-                // independent frame so that receivers can switch to it.
-                activated = !encoding.isActive() && !frameDesc.isIndependent()
-                    && pkt.getPayloadLength(true) > 0;
+            // when a stream gets re-activated, it needs to start with an
+            // independent frame so that receivers can switch to it.
+            activated = !encoding.isActive() && pkt.getPayloadLength(true) > 0;
 
             for (int i = encoding.getIndex() + 1; i < rtpEncodings.length; i++)
             {
                 RTPEncodingDesc enc = rtpEncodings[i];
+                if (!ArrayUtils.isNullOrEmpty(enc.getDependencyEncodings()))
+                {
+                    continue;
+                }
+
                 FrameDesc lastReceivedFrame = enc.getLastReceivedFrame();
 
                 if (lastReceivedFrame != null)
@@ -162,7 +166,9 @@ public class MediaStreamTrackDesc
                         maybeSuspended = true;
                         logger.info("maybe_suspended,stream="
                             + mediaStreamTrackReceiver.getStream().hashCode()
-                            + " ssrc=" + enc.getPrimarySSRC());
+                            + " ssrc=" + enc.getPrimarySSRC()
+                            + ",idx=" + enc.getIndex()
+                            + ",silent_ms=" + silentIntervalMs);
                     }
                 }
             }

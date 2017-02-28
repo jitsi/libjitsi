@@ -48,7 +48,7 @@ public class SimulcastController
      * when the target idx = -1.
      */
     private static final SimTransformation dropState
-        = new SimTransformation(-1, -1, null);
+        = new SimTransformation(-1, -1, null, -1, -1);
 
     /**
      * The target SSRC is the primary SSRC of the first encoding of the source.
@@ -109,19 +109,18 @@ public class SimulcastController
             return Bitrates.EMPTY;
         }
 
-        RTPEncodingDesc[] encodings = source.getRTPEncodings();
-        if (ArrayUtils.isNullOrEmpty(encodings))
+        RTPEncodingDesc[] sourceEncodings = source.getRTPEncodings();
+        if (ArrayUtils.isNullOrEmpty(sourceEncodings))
         {
             return Bitrates.EMPTY;
         }
 
-        SimTransformation simTransformation = transformState;
-        if (simTransformation != null && simTransformation.currentIdx != -1)
+        int currentIdx = transformState.currentIdx;
+        if (currentIdx != -1)
         {
-            if (encodings[simTransformation.currentIdx].isActive())
+            if (sourceEncodings[currentIdx].isActive())
             {
-                currentBps = encodings[simTransformation.currentIdx]
-                    .getLastStableBitrateBps();
+                currentBps = sourceEncodings[currentIdx].getLastStableBitrateBps();
             }
         }
 
@@ -131,12 +130,12 @@ public class SimulcastController
         {
             for (int i = optimalIdx; i > -1; i--)
             {
-                if (!encodings[i].isActive())
+                if (!sourceEncodings[i].isActive())
                 {
                     continue;
                 }
 
-                long bps = encodings[i].getLastStableBitrateBps();
+                long bps = sourceEncodings[i].getLastStableBitrateBps();
                 if (bps > 0)
                 {
                     optimalBps = bps;
@@ -176,23 +175,32 @@ public class SimulcastController
         // If we're getting packets here => the MST is alive.
         assert sourceTrack != null;
 
-        long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
+        RTPEncodingDesc sourceEncodings[] = sourceTrack.getRTPEncodings();
 
-        boolean currentRTPEncodingIsActive = false;
-        if (transformState.currentIdx > -1)
+        // If we're getting packets here => there must be at least 1 encoding.
+        assert !ArrayUtils.isNullOrEmpty(sourceEncodings);
+
+        // if the base (TL0) is suspended, we MUST downscale.
+        boolean currentTL0IsActive = false;
+        int currentTL0Idx = transformState.currentIdx;
+        if (currentTL0Idx > -1)
         {
-            RTPEncodingDesc currentRTPEncodingDesc
-                = sourceTrack.getRTPEncodings()[transformState.currentIdx];
-
-            currentRTPEncodingIsActive = currentRTPEncodingDesc.isActive();
+            currentTL0Idx = sourceEncodings[currentTL0Idx]
+                .getBaseLayer().getIndex();
+            
+            currentTL0IsActive = sourceEncodings[currentTL0Idx].isActive();
         }
 
-        if (transformState.currentIdx == targetIdx && currentRTPEncodingIsActive)
+        int targetTL0Idx = sourceEncodings[targetIdx].getBaseLayer().getIndex();
+        if (currentTL0Idx == targetTL0Idx && currentTL0IsActive)
         {
+            // XXX The reason why we filter by SSRC here is because it's faster.
+            long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
             boolean accept = sourceSSRC == transformState.currentSSRC;
 
             if (accept)
             {
+                // TODO Implement SVC filtering.
                 onAccept(buf, off, len);
             }
 
@@ -201,29 +209,35 @@ public class SimulcastController
 
         // An intra-codec/simulcast switch pending.
 
-        FrameDesc sourceFrameDesc
-            = sourceTrack.findFrameDesc(buf, off, len);
+        FrameDesc sourceFrameDesc = sourceTrack.findFrameDesc(buf, off, len);
 
-        int sourceIdx = sourceFrameDesc.getRTPEncoding().getIndex();
+        int sourceTL0Idx
+            = sourceEncodings[sourceFrameDesc.getRTPEncoding().getIndex()]
+                .getBaseLayer().getIndex();
 
+        boolean sourceTL0IsActive = sourceEncodings[sourceTL0Idx].isActive();
         if (!sourceFrameDesc.isIndependent()
-            || !sourceFrameDesc.getRTPEncoding().isActive()
-            || sourceIdx == transformState.currentIdx)
+            || !sourceTL0IsActive
+            || sourceTL0Idx == currentTL0Idx)
         {
             // An intra-codec switch requires a key frame.
+
+            // XXX The reason why we filter by SSRC here is because it's faster.
+            long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
             boolean accept = sourceSSRC == transformState.currentSSRC;
 
             if (accept)
             {
+                // TODO Implement SVC filtering.
                 onAccept(buf, off, len);
             }
 
             return accept;
         }
 
-        if ((targetIdx <= sourceIdx && sourceIdx < transformState.currentIdx)
-            || (transformState.currentIdx < sourceIdx && sourceIdx <= targetIdx)
-            || (!currentRTPEncodingIsActive && sourceIdx <= targetIdx))
+        if ((targetTL0Idx <= sourceTL0Idx && sourceTL0Idx < currentTL0Idx)
+            || (currentTL0Idx < sourceTL0Idx && sourceTL0Idx <= targetTL0Idx)
+            || (!currentTL0IsActive && sourceTL0Idx <= targetTL0Idx))
         {
             // Pretend this is the next frame of whatever has already been
             // sent.
@@ -243,13 +257,16 @@ public class SimulcastController
 
             if (logger.isInfoEnabled())
             {
+                long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
                 logger.info("new_transform src_ssrc=" + sourceSSRC
-                    + ",src_idx=" + sourceIdx
+                    + ",src_idx=" + sourceTL0Idx
                     + ",ts_delta=" + tsDelta
                     + ",seq_delta=" + seqNumDelta);
             }
+
+            long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
             transformState = new SimTransformation(
-                tsDelta, seqNumDelta, sourceFrameDesc);
+                tsDelta, seqNumDelta, sourceFrameDesc, sourceSSRC, sourceTL0Idx + 2);
 
             onAccept(buf, off, len);
 
@@ -264,12 +281,15 @@ public class SimulcastController
     /**
      * Update the target subjective quality index for this instance.
      *
-     * @param targetIdx new target subjective quality index.
+     * @param newTargetIdx new target subjective quality index.
+     * @param newOptimalIdx
      */
-    public void update(int targetIdx, int optimalIdx)
+    public void update(int newTargetIdx, int newOptimalIdx)
     {
-        this.optimalIdx = optimalIdx;
-        if (this.targetIdx == targetIdx)
+        this.optimalIdx = newOptimalIdx;
+
+        int oldTargetIdx = this.targetIdx;
+        if (oldTargetIdx == newTargetIdx)
         {
             return;
         }
@@ -285,30 +305,43 @@ public class SimulcastController
                 {
                     long ssrc = sourceEncodings[0].getPrimarySSRC();
                     logger.info("target_update ssrc=" + ssrc
-                        + ",new_target=" + targetIdx
-                        + ",old_target=" + this.targetIdx);
+                        + ",new_target=" + newTargetIdx
+                        + ",old_target=" + oldTargetIdx);
                 }
             }
         }
 
-        this.targetIdx = targetIdx;
-        if (targetIdx < 0)
+        this.targetIdx = newTargetIdx;
+        if (newTargetIdx < 0)
         {
             // suspend the stream.
             transformState = dropState;
         }
         else
         {
-            // send FIR.
+            // maybe send FIR.
             MediaStreamTrackDesc sourceTrack = weakSource.get();
             if (sourceTrack == null)
             {
                 return;
             }
 
-            ((RTPTranslatorImpl) sourceTrack.getMediaStreamTrackReceiver()
-                .getStream().getRTPTranslator())
-                .getRtcpFeedbackMessageSender().sendFIR((int) targetSSRC);
+            int currentTL0Idx = transformState.currentIdx;
+            if (currentTL0Idx > -1)
+            {
+                currentTL0Idx = sourceTrack.getRTPEncodings()
+                    [currentTL0Idx].getBaseLayer().getIndex();
+            }
+
+            int targetTL0Idx = sourceTrack
+                .getRTPEncodings()[newTargetIdx].getBaseLayer().getIndex();
+
+            if (currentTL0Idx != targetTL0Idx)
+            {
+                ((RTPTranslatorImpl) sourceTrack.getMediaStreamTrackReceiver()
+                    .getStream().getRTPTranslator())
+                    .getRtcpFeedbackMessageSender().sendFIR((int) targetSSRC);
+            }
         }
     }
 
@@ -536,23 +569,26 @@ public class SimulcastController
          * outgoing RTP/RTCP packets.
          * @param seqNumDelta the RTP sequence number delta (mod 2^16) to apply
          * to outgoing RTP packets.
+         * @param currentSSRC
+         * @param currentIdx
          */
-        SimTransformation(long tsDelta, int seqNumDelta, FrameDesc startFrame)
+        SimTransformation(
+            long tsDelta,
+            int seqNumDelta,
+            FrameDesc startFrame,
+            long currentSSRC,
+            int currentIdx)
         {
             super(tsDelta, seqNumDelta);
-            if (startFrame != null)
-            {
-                this.currentSSRC = startFrame.getRTPEncoding().getPrimarySSRC();
-                this.currentIdx = startFrame.getRTPEncoding().getIndex();
-            }
-            else
-            {
-                this.currentIdx = -1;
-                this.currentSSRC = -1;
-            }
+            this.currentIdx = currentIdx;
+            this.currentSSRC = currentSSRC;
+
             this.weakStartFrame = new WeakReference<>(startFrame);
         }
 
+        /**
+         *
+         */
         private final WeakReference<FrameDesc> weakStartFrame;
 
 
