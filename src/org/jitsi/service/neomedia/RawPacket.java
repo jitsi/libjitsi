@@ -203,107 +203,202 @@ public class RawPacket
 
         return RTPUtils.readUint32AsLong(buf, off + 4);
     }
+
     /**
-     * Adds the <tt>extBuff</tt> buffer as an extension of this packet
+     * Adds the given buffer as a header extension of this packet
      * according the rules specified in RFC 5285. Note that this method does
      * not replace extensions so if you add the same buffer twice it would be
      * added as a separate extension.
      *
-     * WARNING this code is broken and doesn't correctly handle adding extensions
-     * with length % 4 != 0, which requires padding to be added.
+     * This method MUST NOT be called while iterating over the extensions using
+     * {@link #getHeaderExtensions()}, or while manipulating the state of this
+     * {@link RawPacket}.
      *
-     * @param extBuff the buffer that we'd like to add as an extension in this
-     * packet.
-     * @param newExtensionLen the length of the data in extBuff.
+     * @param id the ID with which to add the extension.
+     * @param data the buffer containing the extension data.
      */
-    public void addExtension(byte[] extBuff, int newExtensionLen)
+    public void addExtension(byte id, byte[] data)
     {
-        int bufferOffset = offset;
-        int newBufferOffset = 0;
-        boolean extensionBit = getExtensionBit();
-        int payloadOffset = getPayloadOffset();
+        addExtension(id, data, data.length);
+    }
+
+    /**
+     * Adds the given buffer as a header extension of this packet
+     * according the rules specified in RFC 5285. Note that this method does
+     * not replace extensions so if you add the same buffer twice it would be
+     * added as a separate extension.
+     *
+     * This method MUST NOT be called while iterating over the extensions using
+     * {@link #getHeaderExtensions()}, or while manipulating the state of this
+     * {@link RawPacket}.
+     *
+     * @param id the ID with which to add the extension.
+     * @param data the buffer containing the extension data.
+     * @param len the length of the extension.
+     */
+    public void addExtension(byte id, byte[] data, int len)
+    {
+        if (id < 1 || id > 15 || data == null ||
+            len < 1 || len > 16 || data.length < len)
+        {
+            throw new IllegalArgumentException(
+                "id=" + id + " data.length="
+                    + (data == null ? "null" : data.length)
+                    + " len=" + len);
+        }
+
+        // The byte[] of a RawPacket has the following structure:
+        // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        // | A: unused | B: hdr + ext | C: payload | D: unused |
+        // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        // And the regions have the following sizes:
+        // A: this.offset
+        // B: this.getHeaderLength()
+        // C: this.getPayloadLength()
+        // D: this.buffer.length - this.length - this.offset
+        // We will try to extend the packet so that it uses A and/or D if
+        // possible, in order to avoid allocating new memory.
+
+        // We get this early, before we modify the buffer.
         int payloadLength = getPayloadLength();
-        int existingExtensionLength = getExtensionLength();
-        int extraBytes = newExtensionLen + (extensionBit ? 0 : EXT_HEADER_SIZE);
-        int newPayloadOffset = payloadOffset - offset + extraBytes;
-        int newBuffLen = length + extraBytes;
-        int lengthToCopy = FIXED_HEADER_SIZE + getCsrcCount()*4;
+        boolean extensionBit = getExtensionBit();
+        int extHeaderOffset = FIXED_HEADER_SIZE + 4 * getCsrcCount();
 
-        if (extensionBit)
+
+        // This is an upper bound on the required length for the packet after
+        // the addition of the new extension. It is easier to calculate than
+        // the exact number, and is relatively close (it may be off by a few
+        // bytes due to padding)
+        int maxRequiredLength
+            = getLength()
+            + (extensionBit ? 0 : EXT_HEADER_SIZE)
+            + len + 1 /* header extension header */
+            + (4 - ((len + 1) % 4)) % 4 /* padding */;
+
+
+        byte[] newBuffer;
+        int newPayloadOffset;
+        if (buffer.length >= maxRequiredLength)
         {
-            // without copying the extension length value, will set it later
-            lengthToCopy += EXT_HEADER_SIZE - 2;
-        }
+            // We don't need a new buffer.
+            newBuffer = buffer;
 
-        // Warning: newBuffer may be the same byte[] as buffer. This must be
-        // taken into account while copying or writing to newBuffer below.
-        byte[] newBuffer = buffer;
-        if (newBuffer.length < newBuffLen)
-        {
-            newBuffer = new byte[newBuffLen];
-        }
-
-        // Copy the header, CSRC list and the leading two bytes of the
-        // extension header if any.
-        System.arraycopy(buffer, bufferOffset,
-            newBuffer, newBufferOffset, lengthToCopy);
-        //raise the extension bit.
-        newBuffer[newBufferOffset] |= 0x10;
-        bufferOffset += lengthToCopy;
-        newBufferOffset += lengthToCopy;
-
-        // Copy the payload first, because parts of it may end up being
-        // overwritten if this.buffer is reused.
-        System.arraycopy(buffer, payloadOffset,
-                         newBuffer, newPayloadOffset,
-                         payloadLength);
-
-        // Set the extension header or modify the existing one.
-        int totalExtensionLen = newExtensionLen + existingExtensionLength;
-
-        //if there were no extensions previously, we need to add the hdr now
-        if (extensionBit)
-        {
-            // We've copied "defined by profile" already. Consequently, we have
-            // to skip the length only.
-            bufferOffset += 2;
+            if ( (offset + getHeaderLength()) <=
+                 (maxRequiredLength - getPayloadLength()))
+            {
+                // If region A (see above) is enough to accommodate the new
+                // packet, then keep the payload where it is.
+                newPayloadOffset = getPayloadOffset();
+            }
+            else
+            {
+                // Otherwise, we have to use region D. To do so, move the
+                // payload to the right.
+                newPayloadOffset = buffer.length - payloadLength;
+                System.arraycopy(buffer, getPayloadOffset(),
+                                 buffer, newPayloadOffset,
+                                 payloadLength);
+            }
         }
         else
         {
-           // we will now be adding the RFC 5285 ext header which looks like
-           // this:
-           //
-           //  0                   1                   2                   3
-           //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-           // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-           // |       0xBE    |    0xDE       |           length              |
-           // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-            newBufferOffset
-                += RTPUtils.writeShort(newBuffer, newBufferOffset, (short)0xBEDE);
+            // We need a new buffer. We will place the payload to the very right.
+            newBuffer = new byte[maxRequiredLength];
+            newPayloadOffset = newBuffer.length - payloadLength;
+            System.arraycopy(buffer, getPayloadOffset(),
+                             newBuffer, newPayloadOffset,
+                             payloadLength);
         }
-        // length field counts the number of 32-bit words in the extension
-        int lengthInWords = (totalExtensionLen + 3)/4;
-        newBufferOffset
-            += RTPUtils.writeShort(
-                newBuffer, newBufferOffset, (short)lengthInWords);
 
-        // Copy the existing extension content if any.
+        // By now we have the payload in a position which leaves enough space
+        // for the whole new header.
+        // Next, we are going to construct a new header + extensions (including
+        // the one we are adding) at offset 0, and once finished, we will move
+        // them to the correct offset.
+
+
+        int newHeaderLength = extHeaderOffset;
+        // The bytes in the header extensions, excluding the (0xBEDE, length)
+        // field and any padding.
+        int extensionBytes = 0;
         if (extensionBit)
         {
-            lengthToCopy = existingExtensionLength;
-            System.arraycopy(buffer, bufferOffset,
-                newBuffer, newBufferOffset, lengthToCopy);
-            bufferOffset += lengthToCopy;
-            newBufferOffset += lengthToCopy;
+            // (0xBEDE, length)
+            newHeaderLength += 4;
+
+            // We can't find the actual length without an iteration because
+            // of padding. It is safe to iterate, because we have not yet
+            // modified the header (we only might have moved the offset right)
+            HeaderExtensions hes = getHeaderExtensions();
+            while (hes.hasNext())
+            {
+                HeaderExtension he = hes.next();
+                // 1 byte for id/len + data
+                extensionBytes += 1 + he.getExtLength();
+            }
+
+            newHeaderLength += extensionBytes;
         }
 
-        //copy the extension content from the new extension.
-        System.arraycopy(extBuff, 0,
-            newBuffer, newBufferOffset, newExtensionLen);
+        // Copy the header (and extensions, excluding padding, if there are any)
+        System.arraycopy(buffer, offset,
+                         newBuffer, 0,
+                         newHeaderLength);
 
-        buffer = newBuffer;
-        this.length = this.length + extraBytes;
-        this.offset = 0;
+        if (!extensionBit)
+        {
+            // If the original packet didn't have any extensions, we need to
+            // add the extension header (RFC 5285):
+            //  0                   1                   2                   3
+            //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            // |       0xBE    |    0xDE       |           length              |
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            RTPUtils.writeShort(newBuffer, extHeaderOffset, (short) 0xBEDE);
+            // We will set the length field later.
+            newHeaderLength += 4;
+        }
+
+        // Finally we get to add our extension.
+        newBuffer[newHeaderLength++]
+            = (byte) ((id & 0x0f) << 4 | (len - 1) & 0x0f);
+        extensionBytes++;
+
+        System.arraycopy(data, 0,
+                         newBuffer, newHeaderLength,
+                         len);
+        newHeaderLength += len;
+        extensionBytes += len;
+
+        int paddingBytes = (4 - (extensionBytes % 4)) % 4;
+        for (int i = 0; i < paddingBytes; i++)
+        {
+            // Set the padding to 0 (we have to do this because we may be
+            // reusing a buffer).
+            newBuffer[newHeaderLength++] = 0;
+        }
+
+        RTPUtils.writeShort(newBuffer, extHeaderOffset + 2,
+                            (short) ((extensionBytes + paddingBytes) / 4));
+
+        // Now we have the new header, with the added header extension and with
+        // the correct padding, in newBuffer at offset 0. Lets move it to the
+        // correct place (right before the payload).
+        int newOffset = newPayloadOffset - newHeaderLength;
+        if (newOffset != 0)
+        {
+            System.arraycopy(newBuffer, 0,
+                             newBuffer, newOffset,
+                             newHeaderLength);
+        }
+
+        // All that is left to do is update the RawPacket state.
+        this.buffer = newBuffer;
+        this.offset = newOffset;
+        this.length = newHeaderLength + payloadLength;
+
+        // ... and set the extension bit.
+        setExtensionBit(true);
     }
 
     /**

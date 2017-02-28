@@ -225,16 +225,15 @@ public class OriginalHeaderBlockTransformEngine
      */
     private void addExtension(RawPacket pkt)
     {
-        byte[] extensionBytes = new byte[12];
-        extensionBytes[0] = (byte) ((extensionID << 4) | 10);
-        extensionBytes[1] = pkt.getPayloadType();
+        byte[] extensionBytes = new byte[11];
+        extensionBytes[0] = pkt.getPayloadType();
 
-        RTPUtils.writeShort(extensionBytes, 2, (short) pkt.getSequenceNumber());
-        RTPUtils.writeInt(extensionBytes, 4, (int) pkt.getTimestamp());
-        RTPUtils.writeInt(extensionBytes, 8, pkt.getSSRC());
+        RTPUtils.writeShort(extensionBytes, 1, (short) pkt.getSequenceNumber());
+        RTPUtils.writeInt(extensionBytes, 3, (int) pkt.getTimestamp());
+        RTPUtils.writeInt(extensionBytes, 7, pkt.getSSRC());
 
 
-        pkt.addExtension(extensionBytes, extensionBytes.length);
+        pkt.addExtension(extensionID, extensionBytes);
     }
 
     /**

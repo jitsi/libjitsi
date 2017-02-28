@@ -186,13 +186,10 @@ public class AbsSendTimeEngine
      */
     private void addExtension(RawPacket pkt)
     {
-        // one byte for ID and length (see RFC5285) and three bytes for a
-        // timestamp (see
-        byte[] extensionBytes = new byte[4];
-        extensionBytes[0] = (byte) ((extensionID << 4) | 2);
-        setTimestamp(extensionBytes, 1);
+        byte[] extensionBytes = new byte[3];
+        setTimestamp(extensionBytes, 0);
 
-        pkt.addExtension(extensionBytes, extensionBytes.length);
+        pkt.addExtension((byte) extensionID, extensionBytes);
     }
 
     /**

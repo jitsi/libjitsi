@@ -166,23 +166,7 @@ public class CsrcTransformEngine
      */
     private byte[] createLevelExtensionBuffer(long[] csrcList)
     {
-        int buffLen = 1 + //CSRC one byte extension hdr
-                      csrcList.length;
-
-        // calculate extension padding
-        int padLen = 4 - buffLen%4;
-
-        if(padLen == 4)
-            padLen = 0;
-
-        buffLen += padLen;
-
-        byte[] extensionBuff = getExtensionBuff(buffLen);
-
-        extensionBuff[0]
-            = (byte)((csrcAudioLevelExtID << 4) | (csrcList.length - 1));
-
-        int csrcOffset = 1; // initial offset is equal to ext hdr size
+        byte[] extensionBuff = getExtensionBuff(csrcList.length);
 
         for (int i = 0; i < csrcList.length; i++)
         {
@@ -192,8 +176,7 @@ public class CsrcTransformEngine
                     ((AudioMediaStreamImpl) mediaStream)
                         .getLastMeasuredAudioLevel(csrc);
 
-            extensionBuff[csrcOffset] = level;
-            csrcOffset ++;
+            extensionBuff[i] = level;
         }
 
         return extensionBuff;
@@ -325,7 +308,7 @@ public class CsrcTransformEngine
         {
             byte[] levelsExt = createLevelExtensionBuffer(csrcList);
 
-            pkt.addExtension(levelsExt, extensionBuffLen);
+            pkt.addExtension(csrcAudioLevelExtID, levelsExt, extensionBuffLen);
         }
 
         return pkt;
