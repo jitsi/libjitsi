@@ -491,21 +491,21 @@ public class SimulcastController
     /**
      * Transform an RTCP {@link RawPacket} for the purposes of simulcast.
      *
-     * @param pkt the {@link RawPacket} to be transformed.
+     * @param pktIn the {@link RawPacket} to be transformed.
      * @return the transformed RTCP {@link RawPacket}, or null if the packet
      * needs to be dropped.
      */
-    public RawPacket rtcpTransform(RawPacket pkt)
+    public RawPacket rtcpTransform(RawPacket pktIn)
     {
-        if (!RTCPPacketPredicate.INSTANCE.test(pkt))
+        if (!RTCPPacketPredicate.INSTANCE.test(pktIn))
         {
-            return pkt;
+            return pktIn;
         }
 
         SimTransformation state = transformState;
 
         boolean removed = false;
-        RTCPIterator it = new RTCPIterator(pkt);
+        RTCPIterator it = new RTCPIterator(pktIn);
         while (it.hasNext())
         {
             ByteArrayBuffer baf = it.next();
@@ -519,7 +519,7 @@ public class SimulcastController
                 break;
             case RTCPPacket.SR:
 
-                if (RawPacket.getRTCPSSRC(pkt) != state.currentSSRC)
+                if (RawPacket.getRTCPSSRC(baf) != state.currentSSRC)
                 {
                     // SRs from other streams get axed.
                     removed = true;
@@ -528,7 +528,7 @@ public class SimulcastController
                 else
                 {
                     // Rewrite senderSSRC
-                    RTCPHeaderUtils.setSenderSSRC(pkt, (int) targetSSRC);
+                    RTCPHeaderUtils.setSenderSSRC(baf, (int) targetSSRC);
 
                     // Rewrite timestamp.
                     long srcTs = RTCPSenderInfoUtils.getTimestamp(baf);
@@ -548,7 +548,7 @@ public class SimulcastController
             }
         }
 
-        return pkt.getLength() > 0 ? pkt : null;
+        return pktIn.getLength() > 0 ? pktIn : null;
     }
 
     /**
