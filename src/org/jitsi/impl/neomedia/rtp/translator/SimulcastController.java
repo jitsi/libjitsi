@@ -63,9 +63,25 @@ public class SimulcastController
     private final WeakReference<MediaStreamTrackDesc> weakSource;
 
     /**
-     * The state for the filtering thread. R/W by the filtering thread.
+     * The maximum sequence number (mod 2^16) that this instance has sent
+     * out.
      */
-    private final FilterState filterState = new FilterState();
+    private int maxSeqNum = -1;
+
+    /**
+     * The maximum timestamp (mod 2^32) that this instance has sent out.
+     */
+    private long maxTs = -1;
+
+    /**
+     * The number of transmitted bytes.
+     */
+    private long transmittedBytes = 0;
+
+    /**
+     * The number of transmitted packets.
+     */
+    private long transmittedPackets = 0;
 
     /**
      * The target subjective quality index for this instance. This instance
@@ -244,11 +260,11 @@ public class SimulcastController
             // sent.
 
             long tsDelta; int seqNumDelta;
-            if (filterState.maxSeqNum != -1)
+            if (maxSeqNum != -1)
             {
-                seqNumDelta = (filterState.maxSeqNum
+                seqNumDelta = (maxSeqNum
                     + 1 - sourceFrameDesc.getStart()) & 0xFFFF;
-                tsDelta = (filterState.maxTs
+                tsDelta = (maxTs
                     + 3000 - sourceFrameDesc.getTimestamp()) & 0xFFFFFFFFL;
             }
             else
@@ -348,8 +364,8 @@ public class SimulcastController
     }
 
     /**
-     * Increments the {@link #filterState} as a result of accepting the packet
-     * specified in the arguments.
+     * Increments counters as a result of accepting the packet specified in the
+     * arguments.
      *
      * @param buf the <tt>byte</tt> array that holds the RTP packet.
      * @param off the offset in <tt>buffer</tt> at which the actual RTP data
@@ -362,23 +378,23 @@ public class SimulcastController
         long ts = context.tsTranslation
             .apply(RawPacket.getTimestamp(buf, off, len));
 
-        if (filterState.maxTs == -1
-            || TimeUtils.rtpDiff(ts, filterState.maxTs) > 0)
+        if (maxTs == -1
+            || TimeUtils.rtpDiff(ts, maxTs) > 0)
         {
-            filterState.maxTs = ts;
+            maxTs = ts;
         }
 
         int seqNum = context.seqNumTranslation
             .apply(RawPacket.getSequenceNumber(buf, off, len));
 
-        if (filterState.maxSeqNum == -1
-            || RTPUtils.sequenceNumberDiff(seqNum, filterState.maxSeqNum) > 0)
+        if (maxSeqNum == -1
+            || RTPUtils.sequenceNumberDiff(seqNum, maxSeqNum) > 0)
         {
-            filterState.maxSeqNum = seqNum;
+            maxSeqNum = seqNum;
         }
 
-        filterState.transmittedBytes += len;
-        filterState.transmittedPackets++;
+        transmittedBytes += len;
+        transmittedPackets++;
     }
 
     /**
@@ -543,9 +559,9 @@ public class SimulcastController
 
                     // Rewrite packet/octet count.
                     RTCPSenderInfoUtils.setOctetCount(
-                        baf, (int) filterState.transmittedBytes);
+                        baf, (int) transmittedBytes);
                     RTCPSenderInfoUtils.setPacketCount(
-                        baf, (int) filterState.transmittedPackets);
+                        baf, (int) transmittedPackets);
                 }
             }
         }
@@ -621,33 +637,5 @@ public class SimulcastController
          * try to piggyback missed packets from the initial key frame.
          */
         private boolean maybeFixInitialIndependentFrame = true;
-    }
-
-    /**
-     * State that is kept by the filter thread. It includes the maximum RTP
-     * sequence number and the maximum RTP timestamp that was accepted.
-     */
-    private static class FilterState
-    {
-        /**
-         * The maximum sequence number (mod 2^16) that this instance has sent
-         * out.
-         */
-        private int maxSeqNum = -1;
-
-        /**
-         * The maximum timestamp (mod 2^32) that this instance has sent out.
-         */
-        private long maxTs = -1;
-
-        /**
-         * The number of transmitted bytes.
-         */
-        private long transmittedBytes = 0;
-
-        /**
-         * The number of transmitted packets.
-         */
-        private long transmittedPackets = 0;
     }
 }
