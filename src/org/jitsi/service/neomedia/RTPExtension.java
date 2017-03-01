@@ -66,6 +66,13 @@ public class RTPExtension
         = "urn:ietf:params:rtp-hdrext:ohb";
 
     /**
+     * The URN which identifies the Transport-Wide Congestion Control RTP
+     * extension.
+     */
+    public static final String TRANSPORT_CC_URN
+        = "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
+
+    /**
      * The direction that this extension will be transmitted in.
      */
     private MediaDirection direction = MediaDirection.SENDRECV;
