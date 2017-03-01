@@ -186,10 +186,8 @@ public class AbsSendTimeEngine
      */
     private void addExtension(RawPacket pkt)
     {
-        byte[] extensionBytes = new byte[3];
-        setTimestamp(extensionBytes, 0);
-
-        pkt.addExtension((byte) extensionID, extensionBytes);
+        RawPacket.HeaderExtension he = pkt.addExtension((byte) extensionID, 3);
+        setTimestamp(he.getBuffer(), he.getOffset() + 1);
     }
 
     /**

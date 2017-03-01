@@ -238,13 +238,38 @@ public class RawPacket
      */
     public void addExtension(byte id, byte[] data, int len)
     {
-        if (id < 1 || id > 15 || data == null ||
-            len < 1 || len > 16 || data.length < len)
+        if (data == null || len < 1 || len > 16 || data.length < len)
         {
             throw new IllegalArgumentException(
                 "id=" + id + " data.length="
                     + (data == null ? "null" : data.length)
                     + " len=" + len);
+        }
+
+        HeaderExtension he = addExtension(id, len);
+        System.arraycopy(data, 0,
+                         he.getBuffer(), he.getOffset() + 1,
+                         len);
+    }
+
+    /**
+     * Adds an RTP header extension with a given ID and a given length to this
+     * packet. The contents of the extension are not set to anything, and the
+     * caller of this method is responsible for filling them in.
+     *
+     * This method MUST NOT be called while iterating over the extensions using
+     * {@link #getHeaderExtensions()}, or while manipulating the state of this
+     * {@link RawPacket}.
+     *
+     * @param id the ID of the extension to add.
+     * @param len the length in bytes of the extension to add.
+     * @return the header extension which was added.
+     */
+    public HeaderExtension addExtension(byte id, int len)
+    {
+        if (id < 1 || id > 15 || len < 1 || len > 16)
+        {
+            throw new IllegalArgumentException("id=" + id + " len=" + len);
         }
 
         // The byte[] of a RawPacket has the following structure:
@@ -365,9 +390,9 @@ public class RawPacket
             = (byte) ((id & 0x0f) << 4 | (len - 1) & 0x0f);
         extensionBytes++;
 
-        System.arraycopy(data, 0,
-                         newBuffer, newHeaderLength,
-                         len);
+        // This is where the data of the extension that we add begins. We just
+        // skip 'len' bytes, and let the caller fill them in.
+        int extensionDataOffset = newHeaderLength;
         newHeaderLength += len;
         extensionBytes += len;
 
@@ -400,6 +425,13 @@ public class RawPacket
 
         // ... and set the extension bit.
         setExtensionBit(true);
+
+        // Setup the single HeaderExtension instance of this RawPacket and
+        // return it.
+        HeaderExtension he = getHeaderExtensions().headerExtension;
+        he.setOffset( getOffset() + extensionDataOffset);
+        he.setLength(len + 1);
+        return he;
     }
 
     /**
