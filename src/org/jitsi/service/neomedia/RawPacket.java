@@ -272,7 +272,8 @@ public class RawPacket
         int maxRequiredLength
             = getLength()
             + (extensionBit ? 0 : EXT_HEADER_SIZE)
-            + len + 1 /* header extension header */
+            + 1 /* the 1-byte header of the extension element */
+            + len
             + 3 /* padding */;
 
 
