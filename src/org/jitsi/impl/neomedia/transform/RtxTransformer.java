@@ -657,10 +657,8 @@ public class RtxTransformer
                     int len = container.pkt.getLength();
                     if (bytes - len > 0)
                     {
-                        if (retransmit(container.pkt, this))
-                        {
-                            bytes -= len;
-                        }
+                        retransmit(container.pkt, this);
+                        bytes -= len;
                     }
                     else
                     {
