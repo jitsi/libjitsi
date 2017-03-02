@@ -46,49 +46,11 @@ public class DePacketizer
     private static final boolean TRACE = logger.isTraceEnabled();
 
     /**
-     * A <tt>Comparator</tt> implementation for RTP sequence numbers.
-     * Compares <tt>a</tt> and <tt>b</tt>, taking into account the wrap at 2^16.
-     *
-     * IMPORTANT: This is a valid <tt>Comparator</tt> implementation only if
-     * used for subsets of [0, 2^16) which don't span more than 2^15 elements.
-     *
-     * E.g. it works for: [0, 2^15-1] and ([50000, 2^16) u [0, 10000])
-     * Doesn't work for: [0, 2^15] and ([0, 2^15-1] u {2^16-1}) and [0, 2^16)
-     *
-     * NOTE: An identical implementation for Integers can be found in the class
-     * SeqNumComparator. Sequence numbers are 16 bits and unsigned, so an
-     * Integer should be sufficient to hold that.
-     */
-    private static final Comparator<? super Long> seqNumComparator
-            = new Comparator<Long>() {
-        @Override
-        public int compare(Long a, Long b)
-        {
-            if (a.equals(b))
-                return 0;
-            else if (a > b)
-            {
-                if (a - b < 32768)
-                    return 1;
-                else
-                    return -1;
-            }
-            else //a < b
-            {
-                if (b - a < 32768)
-                    return -1;
-                else
-                    return 1;
-            }
-        }
-    };
-
-    /**
      * Stores the RTP payloads (VP8 payload descriptor stripped) from RTP packets
      * belonging to a single VP8 compressed frame.
      */
-    private SortedMap<Long, Container> data
-            = new TreeMap<Long, Container>(seqNumComparator);
+    private SortedMap<Integer, Container> data
+            = new TreeMap<>(RTPUtils.sequenceNumberComparator);
 
     /**
      * Stores unused <tt>Container</tt>'s.
@@ -99,13 +61,13 @@ public class DePacketizer
      * Stores the first (earliest) sequence number stored in <tt>data</tt>, or
      * -1 if <tt>data</tt> is empty.
      */
-    private long firstSeq = -1;
+    private int firstSeq = -1;
 
     /**
      * Stores the last (latest) sequence number stored in <tt>data</tt>, or -1
      * if <tt>data</tt> is empty.
      */
-    private long lastSeq = -1;
+    private int lastSeq = -1;
 
     /**
      * Stores the value of the <tt>PictureID</tt> field for the VP8 compressed
@@ -118,7 +80,7 @@ public class DePacketizer
      * Stores the RTP timestamp of the packets stored in <tt>data</tt>, or -1
      * if they don't have a timestamp set.
      */
-    private long timestamp = -1;
+    private long timestamp = -1L;
 
     /**
      * Whether we have stored any packets in <tt>data</tt>. Equivalent to
@@ -148,7 +110,7 @@ public class DePacketizer
      * The sequence number of the last RTP packet, which was included in the
      * output.
      */
-    private long lastSentSeq = -1;
+    private int lastSentSeq = -1;
 
     /**
      * Initializes a new <tt>JNIEncoder</tt> instance.
@@ -185,14 +147,15 @@ public class DePacketizer
      */
     private void reinit()
     {
-        firstSeq = lastSeq = timestamp = -1;
+        firstSeq = lastSeq = -1;
+        timestamp = -1L;
         pictureId = -1;
         empty = true;
         haveEnd = haveStart = false;
         frameLength = 0;
 
-        Iterator<Map.Entry<Long,Container>> it = data.entrySet().iterator();
-        Map.Entry<Long, Container> e;
+        Iterator<Map.Entry<Integer,Container>> it = data.entrySet().iterator();
+        Map.Entry<Integer, Container> e;
         while (it.hasNext())
         {
             e = it.next();
@@ -222,13 +185,13 @@ public class DePacketizer
      */
     private boolean haveMissing()
     {
-        Set<Long> seqs = data.keySet();
-        long s = firstSeq;
+        Set<Integer> seqs = data.keySet();
+        int s = firstSeq;
         while (s != lastSeq)
         {
             if (!seqs.contains(s))
                 return true;
-            s = (s+1) % (1<<16);
+            s = (s+1) & 0xffff;
         }
         return false;
     }
@@ -249,7 +212,7 @@ public class DePacketizer
             return BUFFER_PROCESSED_FAILED; //XXX: FAILED or OK?
         }
 
-        long inSeq = inBuffer.getSequenceNumber();
+        int inSeq = (int) inBuffer.getSequenceNumber();
         long inRtpTimestamp = inBuffer.getRtpTimeStamp();
         int inPictureId = VP8PayloadDescriptor.getPictureId(inData, inOffset);
         boolean inMarker = (inBuffer.getFlags() & Buffer.FLAG_RTP_MARKER) != 0;
@@ -261,7 +224,8 @@ public class DePacketizer
 
         if (empty
                 && lastSentSeq != -1
-                && seqNumComparator.compare(inSeq, lastSentSeq) != 1)
+                && RTPUtils
+                    .sequenceNumberComparator.compare(inSeq, lastSentSeq) != 1)
         {
             if (logger.isInfoEnabled())
                 logger.info("Discarding old packet (while empty) " + inSeq);
@@ -279,7 +243,7 @@ public class DePacketizer
                  | (timestamp != -1 && inRtpTimestamp != -1
                     && inRtpTimestamp != timestamp) )
             {
-                if (seqNumComparator
+                if (RTPUtils.sequenceNumberComparator
                         .compare(inSeq, firstSeq) != 1) //inSeq <= firstSeq
                 {
                     // the packet belongs to a previous frame. discard it
@@ -356,10 +320,12 @@ public class DePacketizer
         // update fields
         frameLength += inPayloadLength;
         if (firstSeq == -1
-                || (seqNumComparator.compare(firstSeq, inSeq) == 1))
+                || (RTPUtils.sequenceNumberComparator.compare(firstSeq, inSeq)
+                        == 1))
             firstSeq = inSeq;
         if (lastSeq == -1
-                || (seqNumComparator.compare(inSeq, lastSeq) == 1))
+                || (RTPUtils.sequenceNumberComparator.compare(inSeq, lastSeq)
+                        == 1))
             lastSeq = inSeq;
 
         if (empty)
@@ -382,7 +348,7 @@ public class DePacketizer
                     = validateByteArraySize(outBuffer, frameLength, false);
             int ptr = 0;
             Container b;
-            for (Map.Entry<Long, Container> entry : data.entrySet())
+            for (Map.Entry<Integer, Container> entry : data.entrySet())
             {
                 b = entry.getValue();
                 System.arraycopy(
