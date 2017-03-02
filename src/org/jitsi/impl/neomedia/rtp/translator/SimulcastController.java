@@ -15,16 +15,10 @@
  */
 package org.jitsi.impl.neomedia.rtp.translator;
 
-import net.sf.fmj.media.rtp.*;
-import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
-import org.jitsi.util.function.*;
-
-import java.lang.ref.*;
 
 /**
  * Filters the packets of {@link MediaStreamTrackDesc} based on the currently
@@ -35,82 +29,21 @@ import java.lang.ref.*;
  * @author George Politis
  */
 public class SimulcastController
-    implements PaddingParams
+    implements PaddingParams, BufferFilter
 {
     /**
-     * The {@link Logger} to be used by this instance to print debug
-     * information.
+     * The {@link BitstreamControllerImpl} for the currently forwarded RTP stream.
      */
-    private static final Logger logger
-        = Logger.getLogger(SimulcastController.class);
-
-    /**
-     * The transformation to use when a stream is suspended (or equivalently
-     * when the target idx = -1.
-     */
-    private static final Context dropState
-        = new Context(-1, -1, null, -1, -1);
-
-    /**
-     * The target SSRC is the primary SSRC of the first encoding of the source.
-     */
-    private final long targetSSRC;
-
-    /**
-     * A {@link WeakReference} to the {@link MediaStreamTrackDesc} that feeds
-     * this instance with RTP/RTCP packets.
-     */
-    private final WeakReference<MediaStreamTrackDesc> weakSource;
-
-    /**
-     * The maximum sequence number (mod 2^16) that this instance has sent
-     * out.
-     */
-    private int maxSeqNum = -1;
-
-    /**
-     * The maximum timestamp (mod 2^32) that this instance has sent out.
-     */
-    private long maxTs = -1;
-
-    /**
-     * The number of transmitted bytes.
-     */
-    private long transmittedBytes = 0;
-
-    /**
-     * The number of transmitted packets.
-     */
-    private long transmittedPackets = 0;
-
-    /**
-     * The target subjective quality index for this instance. This instance
-     * switches between the available RTP streams and sub-encodings until it
-     * reaches this target. -1 effectively means that the stream is suspended.
-     */
-    private int targetIdx = -1;
-
-    /**
-     * The optimal subjective quality index for this instance.
-     */
-    private int optimalIdx;
-
-    /**
-     * Read by the transform thread. Written by the filter thread.
-     */
-    private Context context = dropState;
+    private BitstreamControllerImpl bitstreamController;
 
     /**
      * Ctor.
-     *
-     * @param source the {@link MediaStreamTrackDesc} that feeds this instance
-     * with RTP/RTCP packets.
-     * @param targetSSRC
      */
-    public SimulcastController(MediaStreamTrackDesc source, long targetSSRC)
+    public SimulcastController(
+        MediaStreamTrackDesc source, int startTl0Idx, int targetIdx, int optimalIdx)
     {
-        this.weakSource = new WeakReference<>(source);
-        this.targetSSRC = targetSSRC;
+        bitstreamController = new BitstreamControllerImpl(
+            source, startTl0Idx, targetIdx, optimalIdx);
     }
 
     /**
@@ -119,118 +52,80 @@ public class SimulcastController
     @Override
     public Bitrates getBitrates()
     {
-        long currentBps = 0;
-        MediaStreamTrackDesc source = weakSource.get();
-        if (source == null)
-        {
-            return Bitrates.EMPTY;
-        }
-
-        RTPEncodingDesc[] sourceEncodings = source.getRTPEncodings();
-        if (ArrayUtils.isNullOrEmpty(sourceEncodings))
-        {
-            return Bitrates.EMPTY;
-        }
-
-        int currentIdx = context.currentIdx;
-        if (currentIdx != -1)
-        {
-            if (sourceEncodings[currentIdx].isActive())
-            {
-                currentBps = sourceEncodings[currentIdx].getLastStableBitrateBps();
-            }
-        }
-
-        long optimalBps = 0;
-        int optimalIdx = this.optimalIdx;
-        if (optimalIdx >= 0)
-        {
-            for (int i = optimalIdx; i > -1; i--)
-            {
-                if (!sourceEncodings[i].isActive())
-                {
-                    continue;
-                }
-
-                long bps = sourceEncodings[i].getLastStableBitrateBps();
-                if (bps > 0)
-                {
-                    optimalBps = bps;
-                    break;
-                }
-            }
-        }
-
-        return new Bitrates(currentBps, optimalBps);
+        return bitstreamController.getBitrates();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public long getProtectedSSRC()
+    public long getTargetSSRC()
     {
-        return targetSSRC;
+        return bitstreamController.getTargetSSRC();
     }
 
     /**
-     * Defines a packet filter that controls which packets to be written into
-     * some arbitrary target/receiver that owns this {@link SimulcastController}.
-     *
-     * @param buf the <tt>byte</tt> array that holds the packet.
-     * @param off the offset in <tt>buffer</tt> at which the actual data begins.
-     * @param len the number of <tt>byte</tt>s in <tt>buffer</tt> which
-     * constitute the actual data.
-     * @return <tt>true</tt> to allow the specified packet/<tt>buffer</tt> to be
-     * written into the arbitrary target/receiver that owns this
-     * {@link SimulcastController} ; otherwise, <tt>false</tt>
+     * {@inheritDoc}
      */
-    public boolean accept(byte[] buf, int off, int len)
+    @Override
+    public boolean accept(FrameDesc sourceFrameDesc, byte[] buf, int off, int len)
     {
-        MediaStreamTrackDesc sourceTrack = weakSource.get();
+        if (sourceFrameDesc == null || buf == null || off < 0
+            || len < RawPacket.FIXED_HEADER_SIZE || buf.length < off + len
+            )
+        {
+            return false;
+        }
 
-        // If we're getting packets here => the MST is alive.
-        assert sourceTrack != null;
-
-        RTPEncodingDesc sourceEncodings[] = sourceTrack.getRTPEncodings();
+        RTPEncodingDesc sourceEncodings[] = sourceFrameDesc.getRTPEncoding()
+            .getMediaStreamTrack().getRTPEncodings();
 
         // If we're getting packets here => there must be at least 1 encoding.
-        assert !ArrayUtils.isNullOrEmpty(sourceEncodings);
+        if (ArrayUtils.isNullOrEmpty(sourceEncodings))
+        {
+            return false;
+        }
 
         // if the base (TL0) is suspended, we MUST downscale.
         boolean currentTL0IsActive = false;
-        int currentTL0Idx = context.currentIdx;
+        int currentTL0Idx = bitstreamController.getCurrentIndex();
         if (currentTL0Idx > -1)
         {
-            currentTL0Idx = sourceEncodings[currentTL0Idx]
-                .getBaseLayer().getIndex();
-            
+            currentTL0Idx
+                = sourceEncodings[currentTL0Idx].getBaseLayer().getIndex();
+
             currentTL0IsActive = sourceEncodings[currentTL0Idx].isActive();
         }
 
-        int targetTL0Idx = sourceEncodings[targetIdx].getBaseLayer().getIndex();
+        int targetTL0Idx = bitstreamController.getTargetIndex();
+        if (targetTL0Idx > -1)
+        {
+            targetTL0Idx
+                = sourceEncodings[targetTL0Idx].getBaseLayer().getIndex();
+        }
+
         if (currentTL0Idx == targetTL0Idx && currentTL0IsActive)
         {
-            // XXX The reason why we filter by SSRC here is because it's faster.
-            long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
-            boolean accept = sourceSSRC == context.currentSSRC;
+            long sourceSSRC = sourceFrameDesc.getRTPEncoding().getPrimarySSRC();
+            boolean accept = sourceSSRC == bitstreamController.getTL0SSRC();
 
-            if (accept)
+            if (!accept)
             {
-                // TODO Implement SVC filtering.
-                onAccept(buf, off, len);
+                return false;
             }
 
-            return accept;
+            // Give the bitstream filter a chance to drop the packet.
+            return bitstreamController.accept(sourceFrameDesc, buf, off, len);
         }
 
         // An intra-codec/simulcast switch pending.
 
-        FrameDesc sourceFrameDesc = sourceTrack.findFrameDesc(buf, off, len);
-
-        int sourceTL0Idx
-            = sourceEncodings[sourceFrameDesc.getRTPEncoding().getIndex()]
-                .getBaseLayer().getIndex();
+        int sourceTL0Idx = sourceFrameDesc.getRTPEncoding().getIndex();
+        if (sourceTL0Idx > -1)
+        {
+            sourceTL0Idx
+                = sourceEncodings[sourceTL0Idx].getBaseLayer().getIndex();
+        }
 
         boolean sourceTL0IsActive = sourceEncodings[sourceTL0Idx].isActive();
         if (!sourceFrameDesc.isIndependent()
@@ -239,55 +134,42 @@ public class SimulcastController
         {
             // An intra-codec switch requires a key frame.
 
-            // XXX The reason why we filter by SSRC here is because it's faster.
-            long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
-            boolean accept = sourceSSRC == context.currentSSRC;
+            long sourceSSRC = sourceFrameDesc.getRTPEncoding().getPrimarySSRC();
+            boolean accept = sourceSSRC == bitstreamController.getTL0SSRC();
 
-            if (accept)
+            if (!accept)
             {
-                // TODO Implement SVC filtering.
-                onAccept(buf, off, len);
+                return false;
             }
 
-            return accept;
+            // Give the bitstream filter a chance to drop the packet.
+            return bitstreamController.accept(sourceFrameDesc, buf, off, len);
         }
 
         if ((targetTL0Idx <= sourceTL0Idx && sourceTL0Idx < currentTL0Idx)
             || (currentTL0Idx < sourceTL0Idx && sourceTL0Idx <= targetTL0Idx)
             || (!currentTL0IsActive && sourceTL0Idx <= targetTL0Idx))
         {
-            // Pretend this is the next frame of whatever has already been
-            // sent.
+            synchronized (this)
+            {
+                int maxSeqNum = bitstreamController.getMaxSeqNum(),
+                    targetIdx = bitstreamController.getTargetIndex(),
+                    optimalIdx = bitstreamController.getOptimalIndex();
 
-            long tsDelta; int seqNumDelta;
-            if (maxSeqNum != -1)
-            {
-                seqNumDelta = (maxSeqNum
-                    + 1 - sourceFrameDesc.getStart()) & 0xFFFF;
-                tsDelta = (maxTs
-                    + 3000 - sourceFrameDesc.getTimestamp()) & 0xFFFFFFFFL;
-            }
-            else
-            {
-                seqNumDelta = 0; tsDelta = 0;
-            }
+                long maxTs = bitstreamController.getMaxTs(),
+                    transmittedBytes = bitstreamController.getTransmittedBytes(),
+                    transmittedPackets = bitstreamController.getTransmittedPackets();
 
-            if (logger.isInfoEnabled())
-            {
-                long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
-                logger.info("new_transform src_ssrc=" + sourceSSRC
-                    + ",src_idx=" + sourceTL0Idx
-                    + ",ts_delta=" + tsDelta
-                    + ",seq_delta=" + seqNumDelta);
+                bitstreamController = new BitstreamControllerImpl(
+                    sourceFrameDesc.getRTPEncoding().getMediaStreamTrack(),
+                    sourceFrameDesc,
+                    maxSeqNum, maxTs,
+                    transmittedBytes, transmittedPackets,
+                    sourceTL0Idx, targetIdx, optimalIdx);
             }
 
-            long sourceSSRC = RawPacket.getSSRCAsLong(buf, off, len);
-            context = new Context(
-                tsDelta, seqNumDelta, sourceFrameDesc, sourceSSRC, sourceTL0Idx + 2);
-
-            onAccept(buf, off, len);
-
-            return true;
+            // Give the bitstream filter a chance to drop the packet.
+            return bitstreamController.accept(sourceFrameDesc, buf, off, len);
         }
         else
         {
@@ -299,102 +181,49 @@ public class SimulcastController
      * Update the target subjective quality index for this instance.
      *
      * @param newTargetIdx new target subjective quality index.
-     * @param newOptimalIdx
      */
-    public void update(int newTargetIdx, int newOptimalIdx)
+    public void setTargetIndex(int newTargetIdx)
     {
-        this.optimalIdx = newOptimalIdx;
-
-        int oldTargetIdx = this.targetIdx;
-        if (oldTargetIdx == newTargetIdx)
+        synchronized (this)
         {
-            return;
+            bitstreamController.setTargetIndex(newTargetIdx);
         }
 
-        if (logger.isInfoEnabled())
-        {
-            MediaStreamTrackDesc sourceTrack = weakSource.get();
-            if (sourceTrack != null)
-            {
-                RTPEncodingDesc[] sourceEncodings
-                    = sourceTrack.getRTPEncodings();
-                if (!ArrayUtils.isNullOrEmpty(sourceEncodings))
-                {
-                    long ssrc = sourceEncodings[0].getPrimarySSRC();
-                    logger.info("target_update ssrc=" + ssrc
-                        + ",new_target=" + newTargetIdx
-                        + ",old_target=" + oldTargetIdx);
-                }
-            }
-        }
-
-        this.targetIdx = newTargetIdx;
-        if (newTargetIdx < 0)
-        {
-            // suspend the stream.
-            context = dropState;
-        }
-        else
+        if (newTargetIdx > -1)
         {
             // maybe send FIR.
-            MediaStreamTrackDesc sourceTrack = weakSource.get();
+            MediaStreamTrackDesc sourceTrack = bitstreamController.getSource();
             if (sourceTrack == null)
             {
                 return;
             }
 
-            int currentTL0Idx = context.currentIdx;
+            int currentTL0Idx = bitstreamController.getCurrentIndex();
             if (currentTL0Idx > -1)
             {
                 currentTL0Idx = sourceTrack.getRTPEncodings()
                     [currentTL0Idx].getBaseLayer().getIndex();
             }
 
-            RTPEncodingDesc targetTL0 = sourceTrack
-                .getRTPEncodings()[newTargetIdx].getBaseLayer();
+            int targetTL0Idx
+                = sourceTrack.getRTPEncodings()[newTargetIdx].getBaseLayer().getIndex();
 
-            if (currentTL0Idx != targetTL0.getIndex())
+            if (currentTL0Idx != targetTL0Idx)
             {
                 ((RTPTranslatorImpl) sourceTrack.getMediaStreamTrackReceiver()
                     .getStream().getRTPTranslator())
                     .getRtcpFeedbackMessageSender().sendFIR(
-                        (int) targetTL0.getPrimarySSRC());
+                    (int) bitstreamController.getTargetSSRC());
             }
         }
     }
 
-    /**
-     * Increments counters as a result of accepting the packet specified in the
-     * arguments.
-     *
-     * @param buf the <tt>byte</tt> array that holds the RTP packet.
-     * @param off the offset in <tt>buffer</tt> at which the actual RTP data
-     * begins.
-     * @param len the number of <tt>byte</tt>s in <tt>buffer</tt> which
-     * constitute the actual RTP data.
-     */
-    private void onAccept(byte[] buf, int off, int len)
+    public void setOptimalIndex(int optimalIndex)
     {
-        long ts = context.tsTranslation
-            .apply(RawPacket.getTimestamp(buf, off, len));
-
-        if (maxTs == -1
-            || TimeUtils.rtpDiff(ts, maxTs) > 0)
+        synchronized (this)
         {
-            maxTs = ts;
+            bitstreamController.setOptimalIndex(optimalIndex);
         }
-
-        int seqNum = context.seqNumTranslation
-            .apply(RawPacket.getSequenceNumber(buf, off, len));
-
-        if (maxSeqNum == -1
-            || RTPUtils.sequenceNumberDiff(seqNum, maxSeqNum) > 0)
-        {
-            maxSeqNum = seqNum;
-        }
-
-        transmittedBytes += len;
-        transmittedPackets++;
     }
 
     /**
@@ -407,103 +236,7 @@ public class SimulcastController
      */
     public RawPacket[] rtpTransform(RawPacket pktIn)
     {
-        if (!RTPPacketPredicate.INSTANCE.test(pktIn))
-        {
-            return new RawPacket[] { pktIn };
-        }
-
-        Context context = this.context;
-
-        long srcSSRC = pktIn.getSSRCAsLong();
-        if (srcSSRC != context.currentSSRC)
-        {
-            // We do _not_ forward packets from SSRCs other than the
-            // current SSRC.
-            return null;
-        }
-
-        RawPacket[] pktsOut;
-
-        FrameDesc startFrame;
-        if (context.maybeFixInitialIndependentFrame
-            && (startFrame = context.weakStartFrame.get()) != null
-            && startFrame.matches(pktIn))
-        {
-            context.maybeFixInitialIndependentFrame = false;
-
-            if (startFrame.getStart() != pktIn.getSequenceNumber())
-            {
-                // Piggy back till max seen.
-                RawPacketCache inCache = startFrame
-                    .getRTPEncoding()
-                    .getMediaStreamTrack()
-                    .getMediaStreamTrackReceiver()
-                    .getStream()
-                    .getCachingTransformer()
-                    .getIncomingRawPacketCache();
-
-                int start = startFrame.getStart();
-                int len = RTPUtils.sequenceNumberDiff(
-                    startFrame.getMaxSeen(), start) + 1;
-                pktsOut = new RawPacket[len];
-                for (int i = 0; i < pktsOut.length; i++)
-                {
-                    // Note that the ingress cache might not have the desired
-                    // packet.
-                    pktsOut[i] = inCache.get(srcSSRC, (start + i) & 0xFFFF);
-                }
-            }
-            else
-            {
-                pktsOut = new RawPacket[] { pktIn };
-            }
-        }
-        else
-        {
-            pktsOut = new RawPacket[]{ pktIn };
-        }
-
-        for (RawPacket pktOut : pktsOut)
-        {
-            // Note that the ingress cache might not have the desired packet.
-            if (pktOut == null)
-            {
-                continue;
-            }
-
-            int srcSeqNum = pktOut.getSequenceNumber();
-            int dstSeqNum = context.seqNumTranslation.apply(srcSeqNum);
-
-            long srcTs = pktOut.getTimestamp();
-            long dstTs = context.tsTranslation.apply(srcTs);
-
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("sim_rewrite src_ssrc=" + pktIn.getSSRCAsLong()
-                    + ",src_seq=" + srcSeqNum
-                    + ",src_ts=" + srcTs
-                    + ",dst_ssrc=" + targetSSRC
-                    + ",dst_seq=" + dstSeqNum
-                    + ",dst_ts=" + dstTs);
-            }
-
-            if (srcSeqNum != dstSeqNum)
-            {
-                pktOut.setSequenceNumber(dstSeqNum);
-            }
-
-            if (dstTs != srcTs)
-            {
-                pktOut.setTimestamp(dstTs);
-            }
-
-            if (srcSSRC != targetSSRC)
-            {
-                pktOut.setSSRC((int) targetSSRC);
-            }
-        }
-
-        return pktsOut;
+        return bitstreamController.rtpTransform(pktIn);
     }
 
     /**
@@ -515,127 +248,6 @@ public class SimulcastController
      */
     public RawPacket rtcpTransform(RawPacket pktIn)
     {
-        if (!RTCPPacketPredicate.INSTANCE.test(pktIn))
-        {
-            return pktIn;
-        }
-
-        Context context = this.context;
-
-        boolean removed = false;
-        RTCPIterator it = new RTCPIterator(pktIn);
-        while (it.hasNext())
-        {
-            ByteArrayBuffer baf = it.next();
-            switch (RTCPHeaderUtils.getPacketType(baf))
-            {
-            case RTCPPacket.SDES:
-                if (removed)
-                {
-                    it.remove();
-                }
-                break;
-            case RTCPPacket.SR:
-
-                if (RawPacket.getRTCPSSRC(baf) != context.currentSSRC)
-                {
-                    // SRs from other streams get axed.
-                    removed = true;
-                    it.remove();
-                }
-                else
-                {
-                    // Rewrite senderSSRC
-                    RTCPHeaderUtils.setSenderSSRC(baf, (int) targetSSRC);
-
-                    // Rewrite timestamp.
-                    long srcTs = RTCPSenderInfoUtils.getTimestamp(baf);
-                    long dstTs = context.tsTranslation.apply(srcTs);
-
-                    if (srcTs != dstTs)
-                    {
-                        RTCPSenderInfoUtils.setTimestamp(baf, (int) dstTs);
-                    }
-
-                    // Rewrite packet/octet count.
-                    RTCPSenderInfoUtils.setOctetCount(
-                        baf, (int) transmittedBytes);
-                    RTCPSenderInfoUtils.setPacketCount(
-                        baf, (int) transmittedPackets);
-                }
-            }
-        }
-
-        return pktIn.getLength() > 0 ? pktIn : null;
-    }
-
-    /**
-     * The 2D translation to apply to outgoing RTP/RTCP packets for the purposes
-     * of simulcast.
-     *
-     * NOTE(gp) Once we move to Java 8, I want this to be implemented as a
-     * Function.
-     */
-    private static class Context
-    {
-        /**
-         * Ctor.
-         *
-         * @param startFrame the frame that has caused this transformation.
-         * @param tsDelta the RTP timestamp delta (mod 2^32) to apply to
-         * outgoing RTP/RTCP packets.
-         * @param seqNumDelta the RTP sequence number delta (mod 2^16) to apply
-         * to outgoing RTP packets.
-         * @param currentSSRC
-         * @param currentIdx
-         */
-        Context(
-            long tsDelta,
-            int seqNumDelta,
-            FrameDesc startFrame,
-            long currentSSRC,
-            int currentIdx)
-        {
-            this.tsTranslation = new TimestampTranslation(tsDelta);
-            this.seqNumTranslation = new SeqnumTranslation(seqNumDelta);
-
-            this.currentIdx = currentIdx;
-            this.currentSSRC = currentSSRC;
-
-            this.weakStartFrame = new WeakReference<>(startFrame);
-        }
-
-        /**
-         *
-         */
-        private final TimestampTranslation tsTranslation;
-
-        /**
-         *
-         */
-        private final SeqnumTranslation seqNumTranslation;
-
-        /**
-         *
-         */
-        private final WeakReference<FrameDesc> weakStartFrame;
-
-
-        /**
-         * The current SSRC that is currently being forwarded.
-         */
-        private final long currentSSRC;
-
-        /**
-         * The current subjective quality index for this instance. If this is
-         * different than the target, then a switch is pending.
-         */
-        private final int currentIdx;
-
-        /**
-         * A boolean that indicates whether or not the transform thread should
-         * try to piggyback missed packets from the initial key frame.
-         */
-        private boolean maybeFixInitialIndependentFrame = true;
+        return bitstreamController.rtcpTransform(pktIn);
     }
 }
