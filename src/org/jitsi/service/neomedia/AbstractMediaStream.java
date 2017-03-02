@@ -268,4 +268,12 @@ public abstract class AbstractMediaStream
     {
         return null;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setTransportCCEngine(TransportCCEngine engine)
+    {
+    }
 }

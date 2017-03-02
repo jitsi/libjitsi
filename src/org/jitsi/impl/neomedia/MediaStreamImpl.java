@@ -346,6 +346,13 @@ public class MediaStreamImpl
     private byte frameMarkingsExtensionId = -1;
 
     /**
+     * The {@link TransportCCEngine} instance, if any, for this
+     * {@link MediaStream}. The instance could be shared between more than one
+     * {@link MediaStream}, if they all use the same transport.
+     */
+    private TransportCCEngine transportCCEngine;
+
+    /**
      * Initializes a new <tt>MediaStreamImpl</tt> instance which will use the
      * specified <tt>MediaDevice</tt> for both capture and playback of media.
      * The new instance will not have an associated <tt>StreamConnector</tt> and
@@ -678,6 +685,10 @@ public class MediaStreamImpl
         else if (RTPExtension.ORIGINAL_HEADER_BLOCK_URN.equals(uri))
         {
             ohbEngine.setExtensionID(effectiveId);
+        }
+        else if (RTPExtension.TRANSPORT_CC_URN.equals(uri))
+        {
+            transportCCEngine.setExtensionID(effectiveId);
         }
     }
 
@@ -1101,6 +1112,11 @@ public class MediaStreamImpl
             engineChain.add(absSendTimeEngine);
         }
 
+        if (transportCCEngine != null)
+        {
+            engineChain.add(transportCCEngine);
+        }
+
         // Debug
         debugTransformEngine
             = DebugTransformEngine.createDebugTransformEngine(this);
@@ -1123,8 +1139,8 @@ public class MediaStreamImpl
             engineChain.add(ssrcEngine);
 
         // RTP extensions may be implemented in some of the engines just
-        // created (e.g. abs-send-time). So take into account their
-        // configuration.
+        // created (e.g. abs-send-time, ohb, transport-cc). So take into
+        // account their configuration.
         enableRTPExtensions();
 
         return
@@ -3906,6 +3922,7 @@ public class MediaStreamImpl
     {
         return null;
     }
+
     /**
      * Code that runs when the dynamic payload types change.
      */
@@ -3916,5 +3933,14 @@ public class MediaStreamImpl
         {
             rtxTransformer.onDynamicPayloadTypesChanged();
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setTransportCCEngine(TransportCCEngine engine)
+    {
+        this.transportCCEngine = engine;
     }
 }

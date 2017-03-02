@@ -543,4 +543,12 @@ public interface MediaStream
      * or null.
      */
     MediaStreamTrackReceiver getMediaStreamTrackReceiver();
+
+    /**
+     * Sets the {@link TransportCCEngine} of this media stream. Note that for
+     * this to take effect it needs to be called early, before the transform
+     * chain is initialized (i.e. before a connector is set).
+     * @param engine the engine to set.
+     */
+    void setTransportCCEngine(TransportCCEngine engine);
 }
