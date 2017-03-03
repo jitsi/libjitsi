@@ -28,6 +28,7 @@ import net.sf.fmj.media.util.*;
 import org.ice4j.socket.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.protocol.*;
+import org.jitsi.impl.neomedia.recording.RTPRecorder;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.packetlogging.*;
@@ -766,6 +767,7 @@ public abstract class RTPConnectorInputStream<T>
                 if (accept(p))
                 {
                     RawPacket[] pkts = createRawPacket(p);
+                    RTPRecorder.savePacket(p, pkts);
                     transferData(pkts);
                 }
             }
