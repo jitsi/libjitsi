@@ -449,11 +449,8 @@ public class MediaServiceImpl
         {
         case AUDIO:
             AudioMediaDeviceImpl deviceToUse = (AudioMediaDeviceImpl) device;
-            boolean useWavFile = Boolean.getBoolean("net.java.sip.communicator.impl.neomedia.audioSystem.useWavFile");
-            if (useWavFile) {
-                String filename = System.getProperty("net.java.sip.communicator.impl.neomedia.audioSystem.wavFileName", "media/play.wav");
-                deviceToUse = new WavMediaDevice(filename);
-            }
+            String filename = System.getProperty("net.java.sip.communicator.impl.neomedia.audioSystem.wavFileName", "media/input/play.wav");
+            deviceToUse = new WavMediaDevice(filename);
             return new AudioMixerMediaDevice(deviceToUse);
         case VIDEO:
             return new VideoTranslatorMediaDevice((MediaDeviceImpl) device);
