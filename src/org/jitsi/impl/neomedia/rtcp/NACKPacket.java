@@ -230,15 +230,5 @@ public class NACKPacket
                         Arrays.toString(lostPackets.toArray()));
     }
 
-    /**
-     * Returns a <tt>RawPacket</tt> representation of this <tt>NACKPacket</tt>.
-     * @return
-     * @throws IOException
-     */
-    public RawPacket toRawPacket()
-        throws IOException
-    {
-        return RTCPPacketParserEx.toRawPacket(this);
-    }
 }
 

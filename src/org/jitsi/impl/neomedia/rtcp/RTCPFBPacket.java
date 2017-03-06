@@ -233,4 +233,14 @@ public class RTCPFBPacket
     {
         return "\tRTCP FB packet from sync source " + senderSSRC;
     }
+
+    /**
+     * @return a {@link RawPacket} representation of this {@link RTCPFBPacket}.
+     * @throws IOException
+     */
+    public RawPacket toRawPacket()
+        throws IOException
+    {
+        return RTCPPacketParserEx.toRawPacket(this);
+    }
 }
