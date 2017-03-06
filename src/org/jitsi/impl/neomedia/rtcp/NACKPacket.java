@@ -26,6 +26,7 @@ import org.jitsi.service.neomedia.*;
  *
  * The RTCP packet structure is:
  *
+ * <pre>{@code
  * 0                   1                   2                   3
  * 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -47,6 +48,7 @@ import org.jitsi.service.neomedia.*;
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  * |             PID               |             BLP               |
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * }</pre>
  *
  * @author Boris Grozev
  */
@@ -83,7 +85,7 @@ public class NACKPacket
      *
      * Note that this implementation is not optimized and might not always use
      * the minimal possible number of bytes to describe a given set of packets.
-     * Specifically, it does take into account that sequence numbers wrap
+     * Specifically, it does not take into account that sequence numbers wrap
      * at 2^16 and fails to pack numbers close to 2^16 with those close to 0.
      */
     public NACKPacket(long senderSSRC, long sourceSSRC,
@@ -91,9 +93,9 @@ public class NACKPacket
     {
         super(FMT, RTPFB, senderSSRC, sourceSSRC);
 
-        List<Integer> sorted = new LinkedList<Integer>(lostPackets);
+        List<Integer> sorted = new LinkedList<>(lostPackets);
         Collections.sort(sorted);
-        List<byte[]> nackList = new LinkedList<byte[]>();
+        List<byte[]> nackList = new LinkedList<>();
 
         int currentPid = -1;
         byte[] currentNack = null;
