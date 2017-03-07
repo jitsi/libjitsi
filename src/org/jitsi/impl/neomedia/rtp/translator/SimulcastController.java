@@ -15,10 +15,15 @@
  */
 package org.jitsi.impl.neomedia.rtp.translator;
 
+import net.sf.fmj.media.rtp.*;
+import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+
+import java.lang.ref.*;
 
 /**
  * Filters the packets of {@link MediaStreamTrackDesc} based on the currently
@@ -29,21 +34,46 @@ import org.jitsi.util.*;
  * @author George Politis
  */
 public class SimulcastController
-    implements PaddingParams, BufferFilter
+    implements PaddingParams
 {
     /**
-     * The {@link BitstreamControllerImpl} for the currently forwarded RTP stream.
+     * A {@link WeakReference} to the {@link MediaStreamTrackDesc} that feeds
+     * this instance with RTP/RTCP packets.
      */
-    private BitstreamControllerImpl bitstreamController;
+    private final WeakReference<MediaStreamTrackDesc> weakSource;
+
+    /**
+     * The SSRC to protect when probing for bandwidth ({@see PaddingParams}) and
+     * for RTP/RTCP packet rewritting.
+     */
+    private final long targetSSRC;
+
+    /**
+     * The {@link BitstreamController} for the currently forwarded RTP
+     * stream.
+     */
+    private BitstreamController bitstreamController;
 
     /**
      * Ctor.
      */
-    public SimulcastController(
-        MediaStreamTrackDesc source, int startTl0Idx, int targetIdx, int optimalIdx)
+    public SimulcastController(MediaStreamTrackDesc source,
+                               int initialIdx, int targetIdx, int optimalIdx)
     {
-        bitstreamController = new BitstreamControllerImpl(
-            source, startTl0Idx, targetIdx, optimalIdx);
+        weakSource = new WeakReference<>(source);
+
+        RTPEncodingDesc[] rtpEncodings = source.getRTPEncodings();
+        if (ArrayUtils.isNullOrEmpty(rtpEncodings))
+        {
+            targetSSRC = -1;
+        }
+        else
+        {
+            targetSSRC = rtpEncodings[0].getPrimarySSRC();
+        }
+
+        bitstreamController = new BitstreamController(
+            source, initialIdx, targetIdx, optimalIdx);
     }
 
     /**
@@ -52,7 +82,46 @@ public class SimulcastController
     @Override
     public Bitrates getBitrates()
     {
-        return bitstreamController.getBitrates();
+        long currentBps = 0;
+        MediaStreamTrackDesc source = weakSource.get();
+        if (source == null)
+        {
+            return Bitrates.EMPTY;
+        }
+
+        RTPEncodingDesc[] sourceEncodings = source.getRTPEncodings();
+        if (ArrayUtils.isNullOrEmpty(sourceEncodings))
+        {
+            return Bitrates.EMPTY;
+        }
+
+        int currentIdx = bitstreamController.getCurrentIndex();
+        if (currentIdx > -1 && sourceEncodings[currentIdx].isActive())
+        {
+            currentBps = sourceEncodings[currentIdx].getLastStableBitrateBps();
+        }
+
+        long optimalBps = 0;
+        int optimalIdx = bitstreamController.getOptimalIndex();
+        if (optimalIdx > -1)
+        {
+            for (int i = optimalIdx; i > -1; i--)
+            {
+                if (!sourceEncodings[i].isActive())
+                {
+                    continue;
+                }
+
+                long bps = sourceEncodings[i].getLastStableBitrateBps();
+                if (bps > 0)
+                {
+                    optimalBps = bps;
+                    break;
+                }
+            }
+        }
+
+        return new Bitrates(currentBps, optimalBps);
     }
 
     /**
@@ -61,18 +130,24 @@ public class SimulcastController
     @Override
     public long getTargetSSRC()
     {
-        return bitstreamController.getTargetSSRC();
+        return targetSSRC;
     }
 
     /**
-     * {@inheritDoc}
+     *
+     * @param buf
+     * @param off
+     * @param len
+     * @return
      */
-    @Override
-    public boolean accept(FrameDesc sourceFrameDesc, byte[] buf, int off, int len)
+    public boolean accept(byte[] buf, int off, int len)
     {
+        MediaStreamTrackDesc sourceTrack = weakSource.get();
+        assert sourceTrack != null;
+        FrameDesc sourceFrameDesc = sourceTrack.findFrameDesc(buf, off, len);
+
         if (sourceFrameDesc == null || buf == null || off < 0
-            || len < RawPacket.FIXED_HEADER_SIZE || buf.length < off + len
-            )
+            || len < RawPacket.FIXED_HEADER_SIZE || buf.length < off + len)
         {
             return false;
         }
@@ -86,7 +161,7 @@ public class SimulcastController
             return false;
         }
 
-        // if the base (TL0) is suspended, we MUST downscale.
+        // if the TL0 of the forwarded stream is suspended, we MUST downscale.
         boolean currentTL0IsActive = false;
         int currentTL0Idx = bitstreamController.getCurrentIndex();
         if (currentTL0Idx > -1)
@@ -106,6 +181,7 @@ public class SimulcastController
 
         if (currentTL0Idx == targetTL0Idx && currentTL0IsActive)
         {
+            // An intra-codec/simulcast switch pending is NOT pending.
             long sourceSSRC = sourceFrameDesc.getRTPEncoding().getPrimarySSRC();
             boolean accept = sourceSSRC == bitstreamController.getTL0SSRC();
 
@@ -150,19 +226,19 @@ public class SimulcastController
             || (currentTL0Idx < sourceTL0Idx && sourceTL0Idx <= targetTL0Idx)
             || (!currentTL0IsActive && sourceTL0Idx <= targetTL0Idx))
         {
+            long maxTs = bitstreamController.getMaxTs(),
+                transmittedBytes = bitstreamController.getTransmittedBytes(),
+                transmittedPackets = bitstreamController.getTransmittedPackets();
+
+            int maxSeqNum = bitstreamController.getMaxSeqNum();
+
             synchronized (this)
             {
-                int maxSeqNum = bitstreamController.getMaxSeqNum(),
-                    targetIdx = bitstreamController.getTargetIndex(),
+                int targetIdx = bitstreamController.getTargetIndex(),
                     optimalIdx = bitstreamController.getOptimalIndex();
 
-                long maxTs = bitstreamController.getMaxTs(),
-                    transmittedBytes = bitstreamController.getTransmittedBytes(),
-                    transmittedPackets = bitstreamController.getTransmittedPackets();
-
-                bitstreamController = new BitstreamControllerImpl(
+                bitstreamController = new BitstreamController(
                     sourceFrameDesc.getRTPEncoding().getMediaStreamTrack(),
-                    sourceFrameDesc,
                     maxSeqNum, maxTs,
                     transmittedBytes, transmittedPackets,
                     sourceTL0Idx, targetIdx, optimalIdx);
@@ -192,7 +268,7 @@ public class SimulcastController
         if (newTargetIdx > -1)
         {
             // maybe send FIR.
-            MediaStreamTrackDesc sourceTrack = bitstreamController.getSource();
+            MediaStreamTrackDesc sourceTrack = weakSource.get();
             if (sourceTrack == null)
             {
                 return;
@@ -213,7 +289,7 @@ public class SimulcastController
                 ((RTPTranslatorImpl) sourceTrack.getMediaStreamTrackReceiver()
                     .getStream().getRTPTranslator())
                     .getRtcpFeedbackMessageSender().sendFIR(
-                    (int) bitstreamController.getTargetSSRC());
+                    (int) targetSSRC);
             }
         }
     }
@@ -236,7 +312,23 @@ public class SimulcastController
      */
     public RawPacket[] rtpTransform(RawPacket pktIn)
     {
-        return bitstreamController.rtpTransform(pktIn);
+        if (!RTPPacketPredicate.INSTANCE.test(pktIn))
+        {
+            return new RawPacket[] { pktIn };
+        }
+
+        RawPacket[] pktsOut = bitstreamController.rtpTransform(pktIn);
+
+        if (!ArrayUtils.isNullOrEmpty(pktsOut) && pktIn.getSSRC() != targetSSRC)
+        {
+            // Rewrite the SSRC of the output RTP stream.
+            for (RawPacket pktOut : pktsOut)
+            {
+                pktOut.setSSRC((int) targetSSRC);
+            }
+        }
+
+        return pktsOut;
     }
 
     /**
@@ -248,6 +340,46 @@ public class SimulcastController
      */
     public RawPacket rtcpTransform(RawPacket pktIn)
     {
-        return bitstreamController.rtcpTransform(pktIn);
+        if (!RTCPPacketPredicate.INSTANCE.test(pktIn))
+        {
+            return pktIn;
+        }
+
+        BitstreamController bitstreamController = this.bitstreamController;
+
+        // Rewrite timestamp and transmission.
+        pktIn = bitstreamController.rtcpTransform(pktIn);
+
+        // Drop SRs from other streams.
+        boolean removed = false;
+        RTCPIterator it = new RTCPIterator(pktIn);
+        while (it.hasNext())
+        {
+            ByteArrayBuffer baf = it.next();
+            switch (RTCPHeaderUtils.getPacketType(baf))
+            {
+            case RTCPPacket.SDES:
+                if (removed)
+                {
+                    it.remove();
+                }
+                break;
+            case RTCPPacket.SR:
+                if (RawPacket.getRTCPSSRC(baf) != bitstreamController.getTL0SSRC())
+                {
+                    // SRs from other streams get axed.
+                    removed = true;
+                    it.remove();
+                }
+                else
+                {
+                    // Rewrite senderSSRC
+                    RTCPHeaderUtils.setSenderSSRC(baf, (int) targetSSRC);
+                }
+                break;
+            }
+        }
+
+        return pktIn.getLength() > 0 ? pktIn : null;
     }
 }

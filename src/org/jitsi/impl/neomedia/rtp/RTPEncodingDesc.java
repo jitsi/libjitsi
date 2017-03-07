@@ -328,7 +328,7 @@ public class RTPEncodingDesc
      * @return true if this {@link RTPEncodingDesc} depends on the subjective
      * quality index that is passed as an argument, false otherwise.
      */
-    boolean requires(int idx)
+    public boolean requires(int idx)
     {
         if (idx < 0)
         {
