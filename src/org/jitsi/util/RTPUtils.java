@@ -71,6 +71,27 @@ public class RTPUtils
     }
 
     /**
+     * Writes the least significant 24 bits from the given integer into the
+     * given byte array at the given offset.
+     * @param buf the buffer into which to write.
+     * @param off the offset at which to write.
+     * @param data the integer to write.
+     * @return 3
+     */
+    public static int writeUint24(byte[] buf, int off, int data)
+    {
+        if (buf == null || buf.length < off + 3)
+        {
+            return -1;
+        }
+
+        buf[off++] = (byte)(data>>16);
+        buf[off++] = (byte)(data>>8);
+        buf[off] = (byte)data;
+        return 3;
+    }
+
+    /**
      * Set an integer at specified offset in network order.
      *
      * @param off Offset into the buffer
