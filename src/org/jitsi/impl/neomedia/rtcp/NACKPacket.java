@@ -147,14 +147,14 @@ public class NACKPacket
     }
 
     /**
-     *
-     * @param next
-     * @return
+     * @return the set of sequence numbers reported lost in a NACK packet
+     * represented by a {@link ByteArrayBuffer}.
+     * @param baf the NACK packet.
      */
-    public static Collection<Integer> getLostPackets(ByteArrayBuffer next)
+    public static Collection<Integer> getLostPackets(ByteArrayBuffer baf)
     {
         Collection<Integer> lostPackets = new LinkedList<>();
-        ByteArrayBuffer fciBuffer = getFCI(next);
+        ByteArrayBuffer fciBuffer = getFCI(baf);
         if (fciBuffer == null)
         {
             return lostPackets;
@@ -183,8 +183,7 @@ public class NACKPacket
     }
 
     /**
-     * Gets the set of sequence numbers reported lost in this NACK packet.
-     * @return
+     * @return the set of sequence numbers reported lost in this NACK packet.
      */
     synchronized public Collection<Integer> getLostPackets()
     {
