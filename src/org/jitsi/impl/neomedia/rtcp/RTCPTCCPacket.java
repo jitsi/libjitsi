@@ -61,6 +61,21 @@ public class RTCPTCCPacket
     extends RTCPFBPacket
 {
     /**
+     * Gets a boolean indicating whether or not the RTCP packet specified in the
+     * {@link ByteArrayBuffer} that is passed as an argument is a NACK packet or
+     * not.
+     *
+     * @param baf the {@link ByteArrayBuffer}
+     * @return true if the byte array buffer holds a NACK packet, otherwise
+     * false.
+     */
+    public static boolean isTCCPacket(ByteArrayBuffer baf)
+    {
+        int rc = RTCPHeaderUtils.getReportCount(baf);
+        return isRTPFBPacket(baf) && rc == FMT;
+    }
+
+    /**
      * The value of the "fmt" field for a transport-cc packet.
      */
     public static final int FMT = 15;
@@ -234,21 +249,6 @@ public class RTCPTCCPacket
         System.arraycopy(buf, 0, fci, 0, off);
         System.arraycopy(deltas, 0, fci, off, deltaOff);
         this.packets = packets;
-    }
-
-    /**
-     * Gets a boolean indicating whether or not the RTCP packet specified in the
-     * {@link ByteArrayBuffer} that is passed as an argument is a NACK packet or
-     * not.
-     *
-     * @param baf the {@link ByteArrayBuffer}
-     * @return true if the byte array buffer holds a NACK packet, otherwise
-     * false.
-     */
-    public static boolean isTCCPacket(ByteArrayBuffer baf)
-    {
-        int rc = RTCPHeaderUtils.getReportCount(baf);
-        return isRTPFBPacket(baf) && rc == FMT;
     }
 
     /**

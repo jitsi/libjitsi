@@ -51,10 +51,62 @@ import org.jitsi.service.neomedia.*;
  * }</pre>
  *
  * @author Boris Grozev
+ * @author George Politis
  */
 public class NACKPacket
     extends RTCPFBPacket
 {
+    /**
+     * Gets a boolean indicating whether or not the RTCP packet specified in the
+     * {@link ByteArrayBuffer} that is passed as an argument is a NACK packet or
+     * not.
+     *
+     * @param baf the {@link ByteArrayBuffer}
+     * @return true if the byte array buffer holds a NACK packet, otherwise
+     * false.
+     */
+    public static boolean isNACKPacket(ByteArrayBuffer baf)
+    {
+        int rc = RTCPHeaderUtils.getReportCount(baf);
+        return isRTPFBPacket(baf) && rc == FMT;
+    }
+
+    /**
+     * @return the set of sequence numbers reported lost in a NACK packet
+     * represented by a {@link ByteArrayBuffer}.
+     * @param baf the NACK packet.
+     */
+    public static Collection<Integer> getLostPackets(ByteArrayBuffer baf)
+    {
+        Collection<Integer> lostPackets = new LinkedList<>();
+        ByteArrayBuffer fciBuffer = getFCI(baf);
+        if (fciBuffer == null)
+        {
+            return lostPackets;
+        }
+
+        byte[] fci = fciBuffer.getBuffer();
+        int off = fciBuffer.getOffset(), len = fciBuffer.getLength();
+
+        for (int i = 0; i < (len / 4); i++)
+        {
+            int pid = (0xFF & fci[off + i * 4 + 0]) << 8 | (0xFF & fci[off + i * 4 + 1]);
+            lostPackets.add(pid);
+
+            // First byte of the BLP
+            for (int j = 0; j < 8; j++)
+                if (0 != (fci[off + i * 4 + 2] & (1 << j)))
+                    lostPackets.add((pid + 1 + 8 + j) % (1 << 16));
+
+            // Second byte of the BLP
+            for (int j = 0; j < 8; j++)
+                if (0 != (fci[off + i * 4 + 3] & (1 << j)))
+                    lostPackets.add((pid + 1 + j) % (1 << 16));
+        }
+
+        return lostPackets;
+    }
+
     /**
      * The value of the "fmt" field for a NACK packet.
      */
@@ -129,57 +181,6 @@ public class NACKPacket
             System.arraycopy(nackList.get(i), 0, fci, i*4, 4);
 
         this.lostPackets = sorted;
-    }
-
-    /**
-     * Gets a boolean indicating whether or not the RTCP packet specified in the
-     * {@link ByteArrayBuffer} that is passed as an argument is a NACK packet or
-     * not.
-     *
-     * @param baf the {@link ByteArrayBuffer}
-     * @return true if the byte array buffer holds a NACK packet, otherwise
-     * false.
-     */
-    public static boolean isNACKPacket(ByteArrayBuffer baf)
-    {
-        int rc = RTCPHeaderUtils.getReportCount(baf);
-        return isRTPFBPacket(baf) && rc == FMT;
-    }
-
-    /**
-     * @return the set of sequence numbers reported lost in a NACK packet
-     * represented by a {@link ByteArrayBuffer}.
-     * @param baf the NACK packet.
-     */
-    public static Collection<Integer> getLostPackets(ByteArrayBuffer baf)
-    {
-        Collection<Integer> lostPackets = new LinkedList<>();
-        ByteArrayBuffer fciBuffer = getFCI(baf);
-        if (fciBuffer == null)
-        {
-            return lostPackets;
-        }
-
-        byte[] fci = fciBuffer.getBuffer();
-        int off = fciBuffer.getOffset(), len = fciBuffer.getLength();
-
-        for (int i = 0; i < (len / 4); i++)
-        {
-            int pid = (0xFF & fci[off + i * 4 + 0]) << 8 | (0xFF & fci[off + i * 4 + 1]);
-            lostPackets.add(pid);
-
-            // First byte of the BLP
-            for (int j = 0; j < 8; j++)
-                if (0 != (fci[off + i * 4 + 2] & (1 << j)))
-                    lostPackets.add((pid + 1 + 8 + j) % (1 << 16));
-
-            // Second byte of the BLP
-            for (int j = 0; j < 8; j++)
-                if (0 != (fci[off + i * 4 + 3] & (1 << j)))
-                    lostPackets.add((pid + 1 + j) % (1 << 16));
-        }
-
-        return lostPackets;
     }
 
     /**
