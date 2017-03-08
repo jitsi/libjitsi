@@ -146,6 +146,21 @@ public class RTPUtils
     }
 
     /**
+     * Read an unsigned short at specified offset as a int
+     *
+     * @param buffer
+     * @param offset start offset of the unsigned short
+     * @return the int value of the unsigned short at offset
+     */
+    public static int readUint24AsInt(byte[] buffer, int offset)
+    {
+        int b1 = (0xFF & (buffer[offset + 0]));
+        int b2 = (0xFF & (buffer[offset + 1]));
+        int b3 = (0xFF & (buffer[offset + 2]));
+        return b1 << 16 | b2 << 8 | b3;
+    }
+
+    /**
      * A {@link Comparator} implementation for unsigned 16-bit {@link Integer}s.
      * Compares {@code a} and {@code b} inside the [0, 2^16] ring;
      * {@code a} is considered smaller than {@code b} if it takes a smaller

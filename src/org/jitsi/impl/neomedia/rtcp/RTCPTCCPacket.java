@@ -75,6 +75,42 @@ public class RTCPTCCPacket
         return isRTPFBPacket(baf) && rc == FMT;
     }
 
+    public static TreeMap<Integer, Long> getPackets(ByteArrayBuffer baf)
+    {
+        return getPacketsFci(getFCI(baf));
+    }
+
+    /**
+     *
+     * @param next
+     * @return
+     */
+    public static TreeMap<Integer, Long> getPacketsFci(ByteArrayBuffer fciBuffer)
+    {
+        TreeMap<Integer,Long> packets
+            = new TreeMap<>(RTPUtils.sequenceNumberComparator);
+        if (fciBuffer == null)
+        {
+            return packets;
+        }
+
+        byte[] buf = fciBuffer.getBuffer();
+        int off = fciBuffer.getOffset();
+        int len = fciBuffer.getLength();
+
+        int baseSeq = RTPUtils.readUint16AsInt(buf, off);
+        int packetStatusCount = RTPUtils.readUint16AsInt(buf, off + 2);
+
+        // reference time with resolution 250µs
+        long referenceTime = RTPUtils.readUint24AsInt(buf, off + 4) << 8;
+
+        off += 8;
+
+        int deltaOff = 3;
+
+        return packets;
+    }
+
     /**
      * The value of the "fmt" field for a transport-cc packet.
      */
@@ -84,7 +120,7 @@ public class RTCPTCCPacket
      * The map which contains the sequence numbers (mapped to the reception
      * timestamp) of the packets described by this RTCP packet.
      */
-    private Map<Integer, Long> packets = null;
+    private TreeMap<Integer, Long> packets = null;
 
     /**
      * Initializes a new <tt>NACKPacket</tt> instance.
@@ -251,43 +287,6 @@ public class RTCPTCCPacket
         this.packets = packets;
     }
 
-    /**
-     *
-     * @param next
-     * @return
-     */
-    /*
-    public static Map<Integer, Long> getPackets(ByteArrayBuffer next)
-    {
-        Map<Integer,Long> packets = new TreeMap<>(RTPUtils.sequenceNumberComparator);
-        ByteArrayBuffer fciBuffer = getFCI(next);
-        if (fciBuffer == null)
-        {
-            return packets;
-        }
-
-        byte[] fci = fciBuffer.getBuffer();
-        int off = fciBuffer.getOffset(), len = fciBuffer.getLength();
-
-        for (int i = 0; i < (len / 4); i++)
-        {
-            int pid = (0xFF & fci[off + i * 4 + 0]) << 8 | (0xFF & fci[off + i * 4 + 1]);
-            packets.add(pid);
-
-            // First byte of the BLP
-            for (int j = 0; j < 8; j++)
-                if (0 != (fci[off + i * 4 + 2] & (1 << j)))
-                    packets.add((pid + 1 + 8 + j) % (1 << 16));
-
-            // Second byte of the BLP
-            for (int j = 0; j < 8; j++)
-                if (0 != (fci[off + i * 4 + 3] & (1 << j)))
-                    packets.add((pid + 1 + j) % (1 << 16));
-        }
-
-        return packets;
-    }
-    */
 
     /**
      * @return
@@ -296,9 +295,7 @@ public class RTCPTCCPacket
     {
         if (packets == null)
         {
-            // parse this.fci as containing NACK entries and initialize
-            // this.packets
-            //packets = getPackets(new RawPacket(fci, 0, fci.length));
+            packets = getPacketsFci(new ByteArrayBufferImpl(fci, 0, fci.length));
         }
 
         return packets;
