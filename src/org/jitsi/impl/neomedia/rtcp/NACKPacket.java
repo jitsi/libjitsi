@@ -78,8 +78,18 @@ public class NACKPacket
      */
     public static Collection<Integer> getLostPackets(ByteArrayBuffer baf)
     {
+        return getLostPacketsFci(getFCI(baf));
+    }
+
+    /**
+     * @return the set of sequence numbers reported lost in the FCI field of a
+     * NACK packet represented by a {@link ByteArrayBuffer}.
+     * @param fciBuffer the {@link ByteArrayBuffer} which represents the FCI
+     * field of a NACK packet.
+     */
+    public static Collection<Integer> getLostPacketsFci(ByteArrayBuffer fciBuffer)
+    {
         Collection<Integer> lostPackets = new LinkedList<>();
-        ByteArrayBuffer fciBuffer = getFCI(baf);
         if (fciBuffer == null)
         {
             return lostPackets;
@@ -192,7 +202,7 @@ public class NACKPacket
         {
             // parse this.fci as containing NACK entries and initialize
             // this.lostPackets
-            lostPackets = getLostPackets(new RawPacket(fci, 0, fci.length));
+            lostPackets = getLostPacketsFci(new RawPacket(fci, 0, fci.length));
         }
 
         return lostPackets;
