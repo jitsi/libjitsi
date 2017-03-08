@@ -741,6 +741,11 @@ public class MediaStreamImpl
             transformEngineChain = null;
         }
 
+        if (transportCCEngine != null)
+        {
+            transportCCEngine.removeMediaStream(this);
+        }
+
         if (rtpManager != null)
         {
             if (logger.isInfoEnabled())
@@ -3941,6 +3946,15 @@ public class MediaStreamImpl
     @Override
     public void setTransportCCEngine(TransportCCEngine engine)
     {
+        if (transportCCEngine != null)
+        {
+            transportCCEngine.removeMediaStream(this);
+        }
+
         this.transportCCEngine = engine;
+        if (transportCCEngine != null)
+        {
+            transportCCEngine.addMediaStream(this);
+        }
     }
 }
