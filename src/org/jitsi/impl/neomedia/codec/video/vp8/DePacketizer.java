@@ -419,15 +419,15 @@ public class DePacketizer
      * Returns true if the buffer contains a VP8 key frame at offset
      * <tt>offset</tt>.
      *
-     * @param buff the byte buffer to check
+     * @param buf the byte buffer to check
      * @param off the offset in the byte buffer where the actual data starts
      * @param len the length of the data in the byte buffer
      * @return true if the buffer contains a VP8 key frame at offset
      * <tt>offset</tt>.
      */
-    public static boolean isKeyFrame(byte[] buff, int off, int len)
+    public static boolean isKeyFrame(byte[] buf, int off, int len)
     {
-        if (buff == null || buff.length < off + len
+        if (buf == null || buf.length < off + len
             || len < RawPacket.FIXED_HEADER_SIZE)
         {
             return false;
@@ -435,21 +435,21 @@ public class DePacketizer
 
         // Check if this is the start of a VP8 partition in the payload
         // descriptor.
-        if (!DePacketizer.VP8PayloadDescriptor.isValid(buff, off))
+        if (!DePacketizer.VP8PayloadDescriptor.isValid(buf, off))
         {
             return false;
         }
 
-        if (!DePacketizer.VP8PayloadDescriptor.isStartOfFrame(buff, off))
+        if (!DePacketizer.VP8PayloadDescriptor.isStartOfFrame(buf, off))
         {
             return false;
         }
 
         int szVP8PayloadDescriptor = DePacketizer
-            .VP8PayloadDescriptor.getSize(buff, off);
+            .VP8PayloadDescriptor.getSize(buf, off);
 
         return DePacketizer.VP8PayloadHeader.isKeyFrame(
-                buff, off + szVP8PayloadDescriptor);
+                buf, off + szVP8PayloadDescriptor);
     }
 
     /**
