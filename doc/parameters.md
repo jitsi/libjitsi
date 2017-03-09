@@ -2,7 +2,7 @@
 
 ##### net.java.sip.communicator.service.media.DISABLE\_AUDIO\_SUPPORT=*boolean*
 
-Indicates whether the detection of audio CaptureDevices is to be disabled. The default value is false i.e. the detection of the audio CaptureDevices is disabled.
+Indicates whether the detection of audio CaptureDevices is to be disabled. The default value is false i.e. the detection of the audio CaptureDevices is enabled.
 
 ##### net.java.sip.communicator.impl.neomedia.audiosystem.DISABLED=*boolean*
 
@@ -10,7 +10,7 @@ Indicates whether the method DeviceConfiguration#setAudioSystem(AudioSystem, boo
 
 ##### net.java.sip.communicator.service.media.DISABLE\_VIDEO\_SUPPORT=*boolean*
 
-Indicates whether the detection of video CaptureDevices is to be disabled. The default value is false i.e. the detection of the video CaptureDevices is disabled.
+Indicates whether the detection of video CaptureDevices is to be disabled. The default value is false i.e. the detection of the video CaptureDevices is enabled.
 
 ##### net.java.sip.communicator.impl.neomedia.dynamicPayloadTypePreferences
 
