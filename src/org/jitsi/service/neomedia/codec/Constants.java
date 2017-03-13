@@ -248,9 +248,19 @@ public class Constants
     public static final String VP8 = "VP8";
 
     /**
+     * The VP9 constant
+     */
+    public static final String VP9 = "VP9";
+
+    /**
      * The RTX constant
      */
     public static final String RTX = "rtx";
+
+    /**
+     * The VP9/rtp constant.
+     */
+    public static final String VP9_RTP = VP9 + _RTP;
 
     /**
      * The VP8/rtp constant.

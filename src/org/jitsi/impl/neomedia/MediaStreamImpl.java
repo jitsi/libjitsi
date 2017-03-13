@@ -3647,7 +3647,8 @@ public class MediaStreamImpl
             return -1;
         }
 
-        final byte vp8PT = getDynamicRTPPayloadType(Constants.VP8);
+        final byte vp8PT = getDynamicRTPPayloadType(Constants.VP8),
+            vp9PT = getDynamicRTPPayloadType(Constants.VP9);
 
         if (redBlock.getPayloadType() == vp8PT)
         {
@@ -3658,8 +3659,57 @@ public class MediaStreamImpl
                     redBlock.getOffset(),
                     redBlock.getLength());
         }
+        else if (redBlock.getPayloadType() == vp9PT)
+        {
+            return org.jitsi.impl
+                .neomedia.codec.video.vp9.DePacketizer.VP9PayloadDescriptor
+                .getTemporalLayerIndex(
+                    redBlock.getBuffer(),
+                    redBlock.getOffset(),
+                    redBlock.getLength());
+        }
         else
         {
+            logger.warn("Method not implemented");
+            return -1;
+        }
+    }
+
+    /**
+     * Utility method that determines the spatial layer index (SID) of an RTP
+     * packet.
+     *
+     * @param buf the buffer that holds the RTP payload.
+     * @param off the offset in the buff where the RTP payload is found.
+     * @param len then length of the RTP payload in the buffer.
+     *
+     * @return the SID of the packet, -1 otherwise.
+     *
+     * FIXME(gp) conceptually this belongs to the {@link VideoMediaStreamImpl},
+     * but I don't want to be obliged to cast to use this method.
+     */
+    public int getSpatialID(byte[] buf, int off, int len)
+    {
+        REDBlock redBlock = getPayloadBlock(buf, off, len);
+        if (redBlock == null || redBlock.getLength() == 0)
+        {
+            return -1;
+        }
+
+        final byte vp9PT = getDynamicRTPPayloadType(Constants.VP9);
+
+        if (redBlock.getPayloadType() == vp9PT)
+        {
+            return org.jitsi.impl
+                .neomedia.codec.video.vp9.DePacketizer.VP9PayloadDescriptor
+                .getSpatialLayerIndex(
+                    redBlock.getBuffer(),
+                    redBlock.getOffset(),
+                    redBlock.getLength());
+        }
+        else
+        {
+            logger.warn("Method not implemented");
             return -1;
         }
     }
@@ -3686,7 +3736,8 @@ public class MediaStreamImpl
             return false;
         }
 
-        final byte vp8PT = getDynamicRTPPayloadType(Constants.VP8);
+        final byte vp8PT = getDynamicRTPPayloadType(Constants.VP8),
+            vp9PT = getDynamicRTPPayloadType(Constants.VP9);
 
         if (redBlock.getPayloadType() == vp8PT)
         {
@@ -3694,8 +3745,16 @@ public class MediaStreamImpl
                 .neomedia.codec.video.vp8.DePacketizer.VP8PayloadDescriptor
                 .isStartOfFrame(redBlock.getBuffer(), redBlock.getOffset());
         }
+        else if (redBlock.getPayloadType() == vp9PT)
+        {
+            return org.jitsi.impl
+                .neomedia.codec.video.vp9.DePacketizer.VP9PayloadDescriptor
+                .isStartOfFrame(redBlock.getBuffer(),
+                    redBlock.getOffset(), redBlock.getLength());
+        }
         else
         {
+            logger.warn("Method not implemented");
             return false;
         }
     }
@@ -3716,8 +3775,24 @@ public class MediaStreamImpl
      */
     public boolean isEndOfFrame(byte[] buf, int off, int len)
     {
-        // XXX(gp) this probably won't work well with spatial scalability.
-        return RawPacket.isPacketMarked(buf, off, len);
+        REDBlock redBlock = getPayloadBlock(buf, off, len);
+        if (redBlock == null || redBlock.getLength() == 0)
+        {
+            return false;
+        }
+
+        final byte vp9PT = getDynamicRTPPayloadType(Constants.VP9);
+        if (redBlock.getPayloadType() == vp9PT)
+        {
+            return org.jitsi.impl
+                .neomedia.codec.video.vp9.DePacketizer.VP9PayloadDescriptor
+                .isEndOfFrame(redBlock.getBuffer(),
+                    redBlock.getOffset(), redBlock.getLength());
+        }
+        else
+        {
+            return RawPacket.isPacketMarked(buf, off, len);
+        }
     }
 
     /**
