@@ -3786,7 +3786,7 @@ public class MediaStreamImpl
         {
             return org.jitsi.impl
                 .neomedia.codec.video.vp9.DePacketizer.VP9PayloadDescriptor
-                .isEndtOfFrame(redBlock.getBuffer(),
+                .isEndOfFrame(redBlock.getBuffer(),
                     redBlock.getOffset(), redBlock.getLength());
         }
         else

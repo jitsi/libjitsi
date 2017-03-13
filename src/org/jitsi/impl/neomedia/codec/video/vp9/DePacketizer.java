@@ -81,7 +81,7 @@ public class DePacketizer
          * @return  <tt>true</tt> if the E bit from the first byte of the
          * payload descriptor has value 0, false otherwise.
          */
-        public static boolean isEndtOfFrame(byte[] buf, int off, int len)
+        public static boolean isEndOfFrame(byte[] buf, int off, int len)
         {
             // Check if this is the end of a VP9 layer frame in the payload
             // descriptor.
