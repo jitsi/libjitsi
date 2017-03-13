@@ -584,10 +584,11 @@ public class RtxTransformer
                     int len = container.pkt.getLength();
                     Byte apt = rtx2apt.get(container.pkt.getPayloadType());
 
-                    // If the client does not support RTX, then it's impossible
-                    // to protect any media RTP stream because any duplicate
-                    // packets that we send will be killed at the SRTP layer.
-                    // The caller better probe using the JVB's SSRC.
+                    // XXX if the client doesn't support RTX, then we can not
+                    // effectively ramp-up bwe using duplicates because they
+                    // would be dropped too early in the SRTP layer. So we are
+                    // forced to use the bridge's SSRC and thus increase the
+                    // probability of losses.
 
                     if (bytes - len > 0 && apt != null)
                     {
