@@ -18,16 +18,29 @@ package org.jitsi.util.function;
 /**
  * @author George Politis
  */
-public class SeqnumTranslation
+public class SeqNumTranslation
     extends AbstractFunction<Integer, Integer>
 {
+    /**
+     * The delta to apply to the sequence number that is specified as an
+     * argument in the apply method.
+     */
     private final int seqNumDelta;
 
-    public SeqnumTranslation(int seqNumDelta)
+    /**
+     * Ctor.
+     *
+     * @param seqNumDelta The delta to apply to the sequence number that is
+     * specified as an argument in the apply method.
+     */
+    public SeqNumTranslation(int seqNumDelta)
     {
         this.seqNumDelta = seqNumDelta;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Integer apply(Integer seqNum)
     {

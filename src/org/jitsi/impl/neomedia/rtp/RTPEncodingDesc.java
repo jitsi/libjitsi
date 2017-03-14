@@ -72,7 +72,8 @@ public class RTPEncodingDesc
     private final int sid;
 
     /**
-     * The very base layer for this encoding. Usefull for simulcast.
+     * The root {@link RTPEncodingDesc} of the dependencies DAG. Useful for
+     * simulcast handling.
      */
     private final RTPEncodingDesc base;
 
@@ -579,11 +580,23 @@ public class RTPEncodingDesc
         return lastReceivedFrame;
     }
 
+    /**
+     * Gets the root {@link RTPEncodingDesc} of the dependencies DAG. Useful for
+     * simulcast handling.
+     *
+     * @return the root {@link RTPEncodingDesc} of the dependencies DAG. Useful for
+     * simulcast handling.
+     */
     public RTPEncodingDesc getBaseLayer()
     {
         return base;
     }
 
+    /**
+     * Gets the {@link RTPEncodingDesc} on which this layer depends.
+     *
+     * @return the {@link RTPEncodingDesc} on which this layer depends.
+     */
     RTPEncodingDesc[] getDependencyEncodings()
     {
         return dependencyEncodings;

@@ -77,6 +77,7 @@ public class MediaStreamTrackDesc
      * receives this instance.
      * @param rtpEncodings The {@link RTPEncodingDesc}s that this instance
      * possesses.
+     * @param simulcast true to enable simulcast logic, false otherwise
      */
     public MediaStreamTrackDesc(
         MediaStreamTrackReceiver mediaStreamTrackReceiver,

@@ -25,36 +25,38 @@ public class SeqNumPacketTranslation<T extends ByteArrayBuffer>
     extends AbstractFunction<T, T>
 {
     /**
-     *
+     * The {@link SeqNumTranslation} to apply to the sequence number of the
+     * {@link RawPacket} that is specified as an argument in the apply method.
      */
-    private final SeqnumTranslation seqNumTranslation;
+    private final SeqNumTranslation seqNumTranslation;
 
     /**
      *
-     * @param seqNumDelta
+     * @param seqNumDelta The delta to apply to the sequence number of the
+     * {@link RawPacket} that is specified as an argument in the apply method.
      */
     public SeqNumPacketTranslation(int seqNumDelta)
     {
-        this.seqNumTranslation = new SeqnumTranslation(seqNumDelta);
+        this.seqNumTranslation = new SeqNumTranslation(seqNumDelta);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ByteArrayBuffer apply(ByteArrayBuffer pktIn)
+    public ByteArrayBuffer apply(ByteArrayBuffer baf)
     {
-        if (RTPPacketPredicate.INSTANCE.test(pktIn))
+        if (RTPPacketPredicate.INSTANCE.test(baf))
         {
-            int srcSeqNum = RawPacket.getSequenceNumber(pktIn);
+            int srcSeqNum = RawPacket.getSequenceNumber(baf);
             int dstSeqNum = seqNumTranslation.apply(srcSeqNum);
 
             if (srcSeqNum != dstSeqNum)
             {
-                RawPacket.setSequenceNumber(pktIn, dstSeqNum);
+                RawPacket.setSequenceNumber(baf, dstSeqNum);
             }
         }
 
-        return pktIn;
+        return baf;
     }
 }

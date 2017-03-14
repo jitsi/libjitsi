@@ -21,13 +21,26 @@ package org.jitsi.util.function;
 public class TimestampTranslation
     extends AbstractFunction<Long, Long>
 {
+    /**
+     * The delta to apply to the timestamp that is specified as an argument in
+     * the apply method.
+     */
     private final long tsDelta;
 
+    /**
+     * Ctor.
+     *
+     * @param tsDelta The delta to apply to the timestamp that is specified as
+     * an argument in the apply method.
+     */
     public TimestampTranslation(long tsDelta)
     {
         this.tsDelta = tsDelta;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Long apply(Long ts)
     {

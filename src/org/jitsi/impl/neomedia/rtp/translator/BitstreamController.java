@@ -47,7 +47,7 @@ public class BitstreamController
 
     /**
      * The SSRC of the TL0 of the RTP stream that is currently being
-     * forwarded.
+     * forwarded. This is useful for simulcast and RTCP SR rewriting.
      */
     private final long tl0SSRC;
 
@@ -88,51 +88,72 @@ public class BitstreamController
     /**
      * The max (biggest timestamp) frame that we've sent out.
      */
-    private FrameController maxSentFrame;
+    private SeenFrame maxSentFrame;
 
     /**
      * At 60fps, this holds 5 seconds worth of frames.
      * At 30fps, this holds 10 seconds worth of frames.
      */
-    private Map<Long, FrameController> seenFrames
-        = Collections.synchronizedMap(new LRUCache<Long, FrameController>(300));
+    private Map<Long, SeenFrame> seenFrames
+        = Collections.synchronizedMap(new LRUCache<Long, SeenFrame>(300));
+
+    /**
+     * Ctor. Used when switching between independent bitstreams
+     * (simulcast case).
+     *
+     * @param bc the previous {@link BitstreamController}.
+     * @param currentTL0Idx the TL0 of the current bitstream.
+     */
+    BitstreamController(BitstreamController bc, int currentTL0Idx)
+    {
+        this(bc.weakSource, bc.getMaxSeqNum(), bc.getMaxTs(),
+            bc.transmittedBytes, bc.transmittedPackets,
+            currentTL0Idx, bc.targetIdx, bc.optimalIdx);
+    }
 
     /**
      * Ctor.
      *
-     * @param bc the previous {@link BitstreamController} (simulcast case).
-     * @param sourceTL0Idx the TL0 of the current bitstream.
-     */
-    BitstreamController(BitstreamController bc, int sourceTL0Idx)
-    {
-        this(bc.weakSource, bc.getMaxSeqNum(), bc.getMaxTs(),
-            bc.transmittedBytes, bc.transmittedPackets,
-            sourceTL0Idx, bc.targetIdx, bc.optimalIdx);
-    }
-
-    /**
-     * Ctor.
+     * @param source the source {@link MediaStreamTrackDesc} for this instance.
+     * @param currentIdx the current subjective quality index for this instance.
+     * @param targetIdx the target subjective quality index for this instance.
+     * @param optimalIdx the optimal subjective quality index for this instance.
      */
     BitstreamController(
-        MediaStreamTrackDesc source, int tl0Idx, int targetIdx, int optimalIdx)
+        MediaStreamTrackDesc source,
+        int currentIdx, int targetIdx, int optimalIdx)
     {
         this(new WeakReference<>(source),
-            -1, -1, 0, 0, tl0Idx, targetIdx, optimalIdx);
+            -1, -1, 0, 0, currentIdx, targetIdx, optimalIdx);
     }
 
     /**
      * Ctor.
+     *
+     * @param weakSource a weak reference to the source
+     * {@link MediaStreamTrackDesc} for this instance.
+     * @param seqNumOff the sequence number offset (rewritten sequence numbers
+     * will start from seqNumOff + 1).
+     * @param tsOff the timestamp offset (rewritten timestamps will start from
+     * tsOff + 1).
+     * @param transmittedBytesOff the transmitted bytes offset (the bytes that
+     * this instance sends will be added to this value).
+     * @param transmittedPacketsOff the transmitted packets offset (the packets
+     * that this instance sends will be added to this value).
+     * @param currentIdx the current subjective quality index for this instance.
+     * @param targetIdx the target subjective quality index for this instance.
+     * @param optimalIdx the optimal subjective quality index for this instance.
      */
     private BitstreamController(
         WeakReference<MediaStreamTrackDesc> weakSource,
         int seqNumOff, long tsOff,
-        long transmittedBytes, long transmittedPackets,
-        int initialIdx, int targetIdx, int optimalIdx)
+        long transmittedBytesOff, long transmittedPacketsOff,
+        int currentIdx, int targetIdx, int optimalIdx)
     {
         this.seqNumOff = seqNumOff;
         this.tsOff = tsOff;
-        this.transmittedBytes = transmittedBytes;
-        this.transmittedPackets = transmittedPackets;
+        this.transmittedBytes = transmittedBytesOff;
+        this.transmittedPackets = transmittedPacketsOff;
         this.optimalIdx = optimalIdx;
         this.weakSource = weakSource;
 
@@ -146,11 +167,11 @@ public class BitstreamController
         }
         else
         {
-            int initialTL0Idx = initialIdx;
-            if (initialIdx > -1)
+            int currentTL0Idx = currentIdx;
+            if (currentIdx > -1)
             {
-                initialTL0Idx
-                    = rtpEncodings[initialTL0Idx].getBaseLayer().getIndex();
+                currentTL0Idx
+                    = rtpEncodings[currentTL0Idx].getBaseLayer().getIndex();
             }
 
             // find the available qualities in this bitstream.
@@ -159,7 +180,7 @@ public class BitstreamController
             List<Integer> availableQualities = new ArrayList<>();
             for (int i = 0; i < rtpEncodings.length; i++)
             {
-                if (rtpEncodings[i].requires(initialTL0Idx))
+                if (rtpEncodings[i].requires(currentTL0Idx))
                 {
                     availableQualities.add(i);
                 }
@@ -172,9 +193,9 @@ public class BitstreamController
                 availableIdx[i] = iterator.next();
             }
 
-            if (initialTL0Idx > -1)
+            if (currentTL0Idx > -1)
             {
-                tl0SSRC = rtpEncodings[initialTL0Idx].getPrimarySSRC();
+                tl0SSRC = rtpEncodings[currentTL0Idx].getPrimarySSRC();
             }
             else
             {
@@ -186,18 +207,25 @@ public class BitstreamController
     }
 
     /**
+     * Defines an RTP packet filter that controls which packets to be written
+     * into some arbitrary target/receiver that owns this
+     * {@link BitstreamController}.
      *
-     * @param sourceFrameDesc
-     * @param buf
-     * @param off
-     * @param len
-     * @return
+     * @param sourceFrameDesc the {@link FrameDesc} that the RTP packet belongs
+     * to.
+     * @param buf the <tt>byte</tt> array that holds the packet.
+     * @param off the offset in <tt>buffer</tt> at which the actual data begins.
+     * @param len the number of <tt>byte</tt>s in <tt>buffer</tt> which
+     * constitute the actual data.
+     * @return <tt>true</tt> to allow the specified packet/<tt>buffer</tt> to be
+     * written into the arbitrary target/receiver that owns this
+     * {@link BitstreamController} ; otherwise, <tt>false</tt>
      */
     public boolean accept(
         FrameDesc sourceFrameDesc, byte[] buf, int off, int len)
     {
         long srcTs = sourceFrameDesc.getTimestamp();
-        FrameController destFrame = seenFrames.get(srcTs);
+        SeenFrame destFrame = seenFrames.get(srcTs);
 
         if (destFrame == null)
         {
@@ -235,17 +263,17 @@ public class BitstreamController
                     // TODO ask for independent frame if we're corrupting a TL0.
 
                     int maxSeqNum = getMaxSeqNum();
-                    SeqnumTranslation seqnumTranslation;
+                    SeqNumTranslation seqNumTranslation;
                     if (maxSeqNum > -1)
                     {
                         int seqNumDelta = (maxSeqNum
                             + 1 - sourceFrameDesc.getStart()) & 0xFFFF;
 
-                        seqnumTranslation = new SeqnumTranslation(seqNumDelta);
+                        seqNumTranslation = new SeqNumTranslation(seqNumDelta);
                     }
                     else
                     {
-                        seqnumTranslation = null;
+                        seqNumTranslation = null;
                     }
 
                     long maxTs = getMaxTs();
@@ -262,20 +290,20 @@ public class BitstreamController
                         tsTranslation = null;
                     }
 
-                    destFrame = new FrameController(
-                        srcTs, seqnumTranslation, tsTranslation);
+                    destFrame = new SeenFrame(
+                        srcTs, seqNumTranslation, tsTranslation);
                     seenFrames.put(sourceFrameDesc.getTimestamp(), destFrame);
                     maxSentFrame = destFrame;
                 }
                 else
                 {
-                    destFrame = new FrameController(srcTs, null, null);
+                    destFrame = new SeenFrame(srcTs, null, null);
                     seenFrames.put(sourceFrameDesc.getTimestamp(), destFrame);
                 }
             }
             else
             {
-                destFrame = new FrameController(srcTs, null, null);
+                destFrame = new SeenFrame(srcTs, null, null);
                 seenFrames.put(sourceFrameDesc.getTimestamp(), destFrame);
             }
         }
@@ -294,7 +322,7 @@ public class BitstreamController
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the optimal subjective quality index for this instance.
      */
     int getOptimalIndex()
     {
@@ -302,7 +330,7 @@ public class BitstreamController
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the current subjective quality index for this instance.
      */
     int getCurrentIndex()
     {
@@ -310,7 +338,7 @@ public class BitstreamController
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the target subjective quality index for this instance.
      */
     int getTargetIndex()
     {
@@ -318,7 +346,10 @@ public class BitstreamController
     }
 
     /**
-     * {@inheritDoc}
+     * Sets the target subjective quality index for this instance.
+     *
+     * @param newTargetIdx the new target subjective quality index for this
+     * instance.
      */
     void setTargetIndex(int newTargetIdx)
     {
@@ -348,7 +379,10 @@ public class BitstreamController
     }
 
     /**
-     * {@inheritDoc}
+     * Sets the optimal subjective quality index for this instance.
+     *
+     * @param newOptimalIdx the new optimal subjective quality index for this
+     * instance.
      */
     void setOptimalIndex(int newOptimalIdx)
     {
@@ -356,13 +390,17 @@ public class BitstreamController
     }
 
     /**
+     * Translates accepted packets and drops packets that are not accepted (by
+     * this instance).
      *
-     * @param pktIn
-     * @return
+     * @param pktIn the packet to translate or drop.
+     *
+     * @return the translated packet (along with any piggy backed packets), if
+     * the packet is accepted, null otherwise.
      */
     RawPacket[] rtpTransform(RawPacket pktIn)
     {
-        FrameController destFrame = seenFrames.get(pktIn.getTimestamp());
+        SeenFrame destFrame = seenFrames.get(pktIn.getTimestamp());
         if (destFrame == null)
         {
             return null;
@@ -372,13 +410,15 @@ public class BitstreamController
     }
 
     /**
+     * Updates the timestamp, transmitted bytes and transmitted packets in the
+     * RTCP SR packets.
      *
-     * @param pktIn
-     * @return
+     * @param pktIn the RTCP packet to transform.
+     *
+     * @return the transformed RTCP packet.
      */
     RawPacket rtcpTransform(RawPacket pktIn)
     {
-        // Drop SRs from other streams.
         RTCPIterator it = new RTCPIterator(pktIn);
         while (it.hasNext())
         {
@@ -392,12 +432,12 @@ public class BitstreamController
                 }
                 // Rewrite timestamp.
                 if (maxSentFrame != null
-                    && maxSentFrame.getTimestampTranslation() != null)
+                    && maxSentFrame.tsTranslation != null)
                 {
                     long srcTs = RTCPSenderInfoUtils.getTimestamp(pktIn);
                     // FIXME what if maxSentFrame == null?
                     long dstTs
-                        = maxSentFrame.getTimestampTranslation().apply(srcTs);
+                        = maxSentFrame.tsTranslation.apply(srcTs);
 
                     if (srcTs != dstTs)
                     {
@@ -431,17 +471,27 @@ public class BitstreamController
         return maxSentFrame == null ? tsOff : maxSentFrame.getTs();
     }
 
+    /**
+     * Gets the SSRC of the TL0 of the RTP stream that is currently being
+     * forwarded.
+     *
+     * @return the SSRC of the TL0 of the RTP stream that is currently being
+     * forwarded.
+     */
     long getTL0SSRC()
     {
         return tl0SSRC;
     }
 
-    class FrameController
+    /**
+     * Utility class that holds information about seen frames.
+     */
+    class SeenFrame
     {
         /**
          * The sequence number translation to apply to accepted RTP packets.
          */
-        private final SeqnumTranslation seqNumTranslation;
+        private final SeqNumTranslation seqNumTranslation;
 
         /**
          * The RTP timestamp translation to apply to accepted RTP/RTCP packets.
@@ -470,20 +520,42 @@ public class BitstreamController
         private int srcSeqNumStart = -1;
 
         /**
+         * Ctor.
          *
-         * @param ts
-         * @param seqnumTranslation
-         * @param tsTranslation
+         * @param ts the timestamp of the seen frame.
+         * @param seqNumTranslation the {@link SeqNumTranslation} to apply to
+         * RTP packets of this frame.
+         * @param tsTranslation the {@link TimestampTranslation} to apply to
+         * RTP packets of this frame.
          */
-        FrameController(long ts, SeqnumTranslation seqnumTranslation,
-                        TimestampTranslation tsTranslation)
+        SeenFrame(long ts, SeqNumTranslation seqNumTranslation,
+                  TimestampTranslation tsTranslation)
         {
             this.srcTs = ts;
-            this.seqNumTranslation = seqnumTranslation;
+            this.seqNumTranslation = seqNumTranslation;
             this.tsTranslation = tsTranslation;
         }
 
-        boolean accept(boolean expand, FrameDesc source, byte[] buf, int off, int len)
+        /**
+         * Defines an RTP packet filter that controls which packets to be
+         * written into some arbitrary target/receiver that owns this
+         * {@link SeenFrame}.
+         *
+         * @param expand a boolean than indicates whether this frame is still
+         * expanding or not.
+         * @param source the {@link FrameDesc} that the RTP packet belongs
+         * to.
+         * @param buf the <tt>byte</tt> array that holds the packet.
+         * @param off the offset in <tt>buffer</tt> at which the actual data
+         * begins.
+         * @param len the number of <tt>byte</tt>s in <tt>buffer</tt> which
+         * constitute the actual data.
+         * @return <tt>true</tt> to allow the specified packet/<tt>buffer</tt>
+         * to be written into the arbitrary target/receiver that owns this
+         * {@link SeenFrame} ; otherwise, <tt>false</tt>
+         */
+        boolean accept(
+            boolean expand, FrameDesc source, byte[] buf, int off, int len)
         {
             if (expand)
             {
@@ -511,7 +583,13 @@ public class BitstreamController
         }
 
         /**
-         * {@inheritDoc}
+         * Translates accepted packets and drops packets that are not accepted
+         * (by this instance).
+         *
+         * @param pktIn the packet to translate or drop.
+         *
+         * @return the translated packet (along with any piggy backed packets),
+         * if the packet is accepted, null otherwise.
          */
         RawPacket[] rtpTransform(RawPacket pktIn)
         {
@@ -524,8 +602,10 @@ public class BitstreamController
 
                 if (srcSeqNumStart != pktIn.getSequenceNumber())
                 {
+                    MediaStreamTrackDesc source = weakSource.get();
+                    assert source != null;
                     // Piggy back till max seen.
-                    RawPacketCache inCache = weakSource.get()
+                    RawPacketCache inCache = source
                         .getMediaStreamTrackReceiver()
                         .getStream()
                         .getCachingTransformer()
@@ -584,17 +664,23 @@ public class BitstreamController
             return pktsOut;
         }
 
-        TimestampTranslation getTimestampTranslation()
-        {
-            return tsTranslation;
-        }
-
+        /**
+         * Gets the max sequence number that has been sent out by this instance.
+         *
+         * @return the max sequence number that has been sent out by this
+         * instance.
+         */
         int getMaxSeqNum()
         {
             return seqNumTranslation == null
                 ? srcSeqNumLimit : seqNumTranslation.apply(srcSeqNumLimit);
         }
 
+        /**
+         * Gets the max timestamp that has been sent out by this instance.
+         *
+         * @return the max timestamp that has been sent out by this instance.
+         */
         long getTs()
         {
             return tsTranslation == null ? srcTs : tsTranslation.apply(srcTs);

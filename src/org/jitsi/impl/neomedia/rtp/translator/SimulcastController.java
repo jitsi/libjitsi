@@ -56,9 +56,14 @@ public class SimulcastController
 
     /**
      * Ctor.
+     *
+     * @param source the source {@link MediaStreamTrackDesc}
+     * @param currentIdx the current subjective quality index.
+     * @param targetIdx the target subjective quality index.
+     * @param optimalIdx the optimal subjective quality index.
      */
     public SimulcastController(MediaStreamTrackDesc source,
-                               int initialIdx, int targetIdx, int optimalIdx)
+                               int currentIdx, int targetIdx, int optimalIdx)
     {
         weakSource = new WeakReference<>(source);
 
@@ -73,7 +78,7 @@ public class SimulcastController
         }
 
         bitstreamController = new BitstreamController(
-            source, initialIdx, targetIdx, optimalIdx);
+            source, currentIdx, targetIdx, optimalIdx);
     }
 
     /**
@@ -289,6 +294,11 @@ public class SimulcastController
         }
     }
 
+    /**
+     * Update the optimal subjective quality index for this instance.
+     *
+     * @param optimalIndex new optimal subjective quality index.
+     */
     public void setOptimalIndex(int optimalIndex)
     {
         synchronized (this)

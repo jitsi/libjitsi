@@ -26,14 +26,16 @@ public class TimestampPacketTranslation<T extends ByteArrayBuffer>
 extends AbstractFunction<T, T>
 {
     /**
-     *
+     * The {@link TimestampTranslation} to apply to the timestamp of the
+     * {@link RawPacket} that is specified as an argument in the apply method.
      */
     private final TimestampTranslation tsTranslation;
 
     /**
      * Ctor.
      *
-     * @param tsDelta
+     * @param tsDelta The delta to apply to the timestamp of the
+     * {@link RawPacket} that is specified as an argument in the apply method.
      */
     public TimestampPacketTranslation(long tsDelta)
     {
