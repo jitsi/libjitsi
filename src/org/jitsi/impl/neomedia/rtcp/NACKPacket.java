@@ -105,13 +105,21 @@ public class NACKPacket
 
             // First byte of the BLP
             for (int j = 0; j < 8; j++)
+            {
                 if (0 != (fci[off + i * 4 + 2] & (1 << j)))
+                {
                     lostPackets.add((pid + 1 + 8 + j) % (1 << 16));
+                }
+            }
 
             // Second byte of the BLP
             for (int j = 0; j < 8; j++)
+            {
                 if (0 != (fci[off + i * 4 + 3] & (1 << j)))
+                {
                     lostPackets.add((pid + 1 + j) % (1 << 16));
+                }
+            }
         }
 
         return lostPackets;
@@ -180,15 +188,21 @@ public class NACKPacket
             // Add seq to the current fci
             int diff = seq - currentPid;
             if (diff <= 8)
-                currentNack[3] |= (byte) (1<<(diff-1));
+            {
+                currentNack[3] |= (byte) (1 << (diff - 1));
+            }
             else
-                currentNack[2] |= (byte) (1<<(diff-8-1));
+            {
+                currentNack[2] |= (byte) (1 << (diff - 8 - 1));
+            }
         }
 
         // Set the fci field, which is used when assembling
         fci = new byte[nackList.size() * 4];
         for (int i = 0; i < nackList.size(); i++)
-            System.arraycopy(nackList.get(i), 0, fci, i*4, 4);
+        {
+            System.arraycopy(nackList.get(i), 0, fci, i * 4, 4);
+        }
 
         this.lostPackets = sorted;
     }
