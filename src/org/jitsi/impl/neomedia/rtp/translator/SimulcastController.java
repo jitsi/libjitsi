@@ -330,7 +330,10 @@ public class SimulcastController
             // Rewrite the SSRC of the output RTP stream.
             for (RawPacket pktOut : pktsOut)
             {
-                pktOut.setSSRC((int) targetSSRC);
+                if (pktOut != null)
+                {
+                    pktOut.setSSRC((int) targetSSRC);
+                }
             }
         }
 
